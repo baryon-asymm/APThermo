@@ -108,7 +108,7 @@ def _state(get, transport: bool, frozen: bool = False) -> dict:
         "entropy": float(get("entropy")) * KJ_TO_J,
         "gibbsEnergy": float(get("gibbs_energy")) * KJ_TO_J,
         "molarMass": molar_mass,
-        "gasMolarMass": float(get("MW")),
+        "mixtureMolarMass": float(get("MW")),
         "cpFrozen": float(get("cp_fr")) * KJ_TO_J,
         "cpEquilibrium": cp_eq,
         "cvFrozen": float(get("cv_fr")) * KJ_TO_J,

@@ -69,6 +69,22 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   with `converged`. `dlnVdlnT`, `dlnVdlnP` and the sound speed of equilibrium cases are
   derived in `cea_cases.py` from the package's cp, cv, γ_s and M, with the relations
   named there; a frozen station carries the ideal-gas derivatives 1 and −1.
+
+  ⚠ 2026-09-12, three caveats of the reference's fields, found by the Equilibrium tests
+  and confirmed with probes of the package on the reference machine:
+  - `mixtureMolarMass` (the package's `MW`) is one kilogram over the moles of all species
+    with the condensed ones counted as moles; `molarMass` (its `M`) is one kilogram over
+    the gaseous moles. The field was named `gasMolarMass` until then.
+  - `cvFrozen` and `cvEquilibrium` at a frozen station are not computed by the reference:
+    the exits carry 0 and a frozen throat carries the chamber's values. Test nodes do not
+    compare them at frozen stations.
+  - With transport on, the package's `cp_fr` and `cv_fr` of a mixture that holds
+    condensed species are those of the gas phase per kilogram of gas (AP/HTPB/Al chamber:
+    2038.5 with transport, 1904.5 kJ/(kg·K)·10⁻³ without, the latter being the sum over
+    all species), while cp_eq, γ_s, M and MW do not change. Hence the derived
+    equilibrium cases are generated without transport (below), and the `cpFrozen` and
+    `cvFrozen` of a rocket station with condensed species and transport on are gas-phase
+    values, to be compared as such by the performance tests node.
 - Case matrix of version 1:
   - RP-1311 examples 1 (tp), 3 (hp, two fuels), 5 (hp, solid with a custom binder and
     condensed products), 8 (rocket LOX/LH2), 12 (rocket MMH/NTO, shifting and frozen
@@ -100,7 +116,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     supersonic exits) and 12 (chamber and throat, its exits being frozen): a tp case at
     the station's (T, p), an hp case at (h, p), an sp case at (s, p), each solved
     afresh with the package's equilibrium solver, so that `Equilibrium` is verified
-    without the nozzle.
+    without the nozzle; generated without transport.
+
+  ⚠ 2026-09-12: the derived cases carried transport (the propellant ones inheriting it
+  from the rocket case). Dropped for the reason above; mixture transport is verified on the
+  rocket stations, which keep it.
 
   ⚠ 2026-09-12: stood "derived from every rocket station", which would be about two
   thousand files for the same coverage of the tp, hp and sp paths; narrowed to one
@@ -167,7 +187,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       equals the one `Data` reads": a Python script cannot call the tree; the fixture
       records the list and the comparison moves to the node that selects species.
 - [ ] Tolerances calibrated after the first full comparison; every entry confirmed or
-      reworded with the reason, with the date.
+      reworded with the reason, with the date. 2026-09-12: the tp, hp and sp kinds (106
+      files) passed the table unchanged in the Equilibrium tests, the frozen stations of
+      the rocket kind (51 files) in their frozen-mode test; the equilibrium stations of
+      the rocket kind and the transport kind remain.
 
 ## Taboos
 

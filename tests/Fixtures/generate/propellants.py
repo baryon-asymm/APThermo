@@ -86,7 +86,9 @@ def generate_propellant(writer: Writer, prop: dict) -> None:
                                          area_ratios=prop["areaRatios"], of_ratio=of_ratio),
                     outputs=rocket_outputs(solution, transport, flow), script_path=__file__)
                 if flow == FLOW_SHIFTING and (of_ratio, pc_mpa) == prop["derive"]:
-                    derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, True,
+                    # Derived cases carry no transport: with transport on, the package reports the gas-phase
+                    # frozen heat capacities for a mixture with condensed species (Fixtures BOOT.md).
+                    derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, False,
                                              list(range(solution.num_pts)), of_ratio=of_ratio)
 
 

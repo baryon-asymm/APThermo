@@ -147,7 +147,7 @@ def example8(writer: Writer) -> None:
                              of_ratio=of_ratio),
         outputs=rocket_outputs(solution, True, FLOW_SHIFTING), script_path=__file__)
     supersonic = [i for i in range(solution.num_pts) if i < 2 or solution.Mach[i] > 1.0]
-    derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, True, supersonic,
+    derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, False, supersonic,
                              of_ratio=of_ratio)
 
 
@@ -168,7 +168,7 @@ def example12(writer: Writer) -> None:
         inputs=rocket_inputs(descriptions, prod.species_names, chamber_pressure_pa, enthalpy, FLOW_FROZEN_THROAT, True,
                              area_ratios=area_ratios, pressure_ratios=pressure_ratios, of_ratio=of_ratio),
         outputs=rocket_outputs(solution, True, FLOW_FROZEN_THROAT), script_path=__file__)
-    derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, True, [0, 1],
+    derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, False, [0, 1],
                              of_ratio=of_ratio)
 
 

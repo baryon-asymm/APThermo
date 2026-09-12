@@ -71,7 +71,9 @@ public sealed class FixtureFormatException : Exception
 `Load` checks the form of a document: `case.name`, `case.kind`, `case.inputs`, every
 provenance field, `outputs`, the date format, and that `case.kind` equals the name of
 the directory the file lies in. It does not check the outputs of a kind: which fields
-a kind carries is described in `BOOT.md` and used by the test nodes.
+a kind carries, and the caveats of the reference's fields (`mixtureMolarMass`, the
+frozen-station `cv`, the frozen `cp` with condensed species and transport), are
+described in `BOOT.md` and used by the test nodes.
 
 ## Generator ✅
 

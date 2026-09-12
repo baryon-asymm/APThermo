@@ -17,7 +17,7 @@
     "entropy": { "absolute": 0.0, "relative": 1e-4, "derivation": "Printed with four decimals in kJ/(kg K) on magnitudes of 10 to 20; 1e-4 relative." },
     "gibbsEnergy": { "absolute": 20.0, "relative": 1e-4, "derivation": "As enthalpy." },
     "molarMass": { "absolute": 0.0, "relative": 1e-4, "derivation": "Follows the composition; printed with three decimals on magnitudes of 10 to 30." },
-    "gasMolarMass": { "absolute": 0.0, "relative": 1e-4, "derivation": "As molarMass." },
+    "mixtureMolarMass": { "absolute": 0.0, "relative": 1e-4, "derivation": "As molarMass; the reference's MW, one kilogram over the moles of all species with the condensed ones counted." },
     "cpFrozen": { "absolute": 0.0, "relative": 1e-4, "derivation": "A sum of species functions weighted by the composition; the composition tolerance dominates." },
     "cpEquilibrium": { "absolute": 0.0, "relative": 1e-4, "derivation": "Contains the equilibrium derivatives, which are solutions of the same linear system as the composition corrections." },
     "cvFrozen": { "absolute": 0.0, "relative": 1e-4, "derivation": "As cpFrozen." },

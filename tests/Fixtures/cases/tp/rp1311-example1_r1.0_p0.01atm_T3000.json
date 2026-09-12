@@ -63,7 +63,7 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "cea-package",
     "script": "rp1311.py",
-    "scriptSha256": "9bfd1e4de57a6c848aad02d349b604e52af5bce6a7e1b49a0506630ee583c8c0",
+    "scriptSha256": "02f0b6a3df3efc0b4afa67046f5d8d123939621590f02793441f6b02a4e0c7b7",
     "generatedOn": "2026-09-12"
   },
   "outputs": {
@@ -75,7 +75,7 @@
     "entropy": 16775.13371921574,
     "gibbsEnergy": -39249939.158009365,
     "molarMass": 16.28084459813313,
-    "gasMolarMass": 16.28084459813313,
+    "mixtureMolarMass": 16.28084459813313,
     "cpFrozen": 1827.689419321631,
     "cpEquilibrium": 15551.18796003478,
     "cvFrozen": 1316.9966263351175,

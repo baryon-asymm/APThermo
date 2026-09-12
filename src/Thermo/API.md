@@ -23,7 +23,7 @@ public struct MixtureState                        // one station of one case; SI
     public double Entropy;                        // J/(kg·K)
     public double GibbsEnergy;                    // J/kg
     public double MolarMass;                      // kg/kmol, CEA's M = 1/n (whole mixture per kmol of gas)
-    public double GasMolarMass;                   // kg/kmol, CEA's MW (gaseous part per kmol of gas)
+    public double MixtureMolarMass;               // kg/kmol, CEA's MW: one kilogram over the moles of all species, condensed included
     public double CpFrozen, CpEquilibrium;        // J/(kg·K)
     public double CvFrozen, CvEquilibrium;        // J/(kg·K)
     public double DlnVdlnT, DlnVdlnP;             // equilibrium derivatives, dimensionless; 1 and −1 when frozen
@@ -45,9 +45,15 @@ public enum CaseStatus
 }
 ```
 
-`InternalEnergy`, `GasMolarMass`, `CvFrozen` and `CvEquilibrium` were added to the
+`InternalEnergy`, `MixtureMolarMass`, `CvFrozen` and `CvEquilibrium` were added to the
 sketch when the reference fixtures turned out to report them; a numerical node that
 does not compute a field leaves it zero and says so in its `API.md`.
+
+⚠ 2026-09-12: the field was `GasMolarMass`, "CEA's MW (gaseous part per kmol of gas)".
+Wrong: the reference's MW is 1/Σ n_j over all species with the condensed ones counted
+as moles (it equals M for a gas-only mixture), found when the Equilibrium tests compared
+the water-condensation example (M = 64.18, MW = 19.29 kg/kmol at 300 K) and the
+aluminized propellant. Renamed, with the fixture field and the tolerance entry.
 
 ## Species table ✅
 
