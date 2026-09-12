@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Thermo.Tests: the readiness criterion of src/Thermo. CPU accelerator only. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Data\AerospacePropellantThermodynamics.Data.csproj" />
+    <ProjectReference Include="..\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="janaf.json" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+</Project>

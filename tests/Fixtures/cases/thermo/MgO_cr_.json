@@ -41,11 +41,14 @@
       ],
       "temperatures": [
         285.0,
+        300.0,
         500.0,
         1000.0,
         1000.0001,
+        1700.0,
         2000.0,
         3000.0,
+        3100.0,
         3255.0
       ]
     }
@@ -60,7 +63,7 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "independent-evaluation",
     "script": "thermo_functions.py",
-    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "scriptSha256": "2f7d3cd1bd35bbeb12ffb6e026466e7fdbdcde996fe18010c8e1a01b3e855402",
     "generatedOn": "2026-09-12"
   },
   "outputs": {
@@ -73,6 +76,15 @@
         "hOverRT": -254.08243023859868,
         "sOverR": 3.0421974266432925,
         "gOverRT": -257.124627665242
+      },
+      {
+        "temperature": 300.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 4.495809189411093,
+        "hOverRT": -241.15711702672294,
+        "sOverR": 3.2690783331920885,
+        "gOverRT": -244.42619535991503
       },
       {
         "temperature": 500.0,
@@ -102,6 +114,15 @@
         "gOverRT": -78.28690042350205
       },
       {
+        "temperature": 1700.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 6.525367750205033,
+        "hOverRT": -37.62616320442952,
+        "sOverR": 13.240965026198126,
+        "gOverRT": -50.86712823062764
+      },
+      {
         "temperature": 2000.0,
         "inRange": true,
         "interval": 1,
@@ -118,6 +139,15 @@
         "hOverRT": -18.27327494398333,
         "sOverR": 17.20479030625159,
         "gOverRT": -35.47806525023492
+      },
+      {
+        "temperature": 3100.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 7.921678576270465,
+        "hOverRT": -17.430930377555374,
+        "sOverR": 17.461828516059636,
+        "gOverRT": -34.89275889361501
       },
       {
         "temperature": 3255.0,

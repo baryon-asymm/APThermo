@@ -109,8 +109,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - `thermo`: `Cp°/R`, `H°/RT`, `S°/R`, `G°/RT` for the species listed in
     `thermo_functions.py` (gaseous and condensed records, one with four intervals), at
     those of 200, 298.15, 500, 1000, 1000.0001, 2000, 3000, 5000, 6000 K that lie in the
-    record's range, plus one point 5 % below the first bound and one 5 % above the last,
-    flagged out of range; from an independent Python evaluation of the polynomials read
+    record's range, the record's first bound, midpoint and last bound (so that a narrow
+    condensed record such as `ALCL3(cr)`, 300–465.7 K, still has three points inside),
+    plus one point 5 % below the first bound and one 5 % above the last, flagged out of
+    range; from an independent Python evaluation of the polynomials read
     from `data/thermo.inp` (not through the package), plus the package's `R` in `constants`.
 
   ⚠ 2026-09-12: stood "at 200, 298.15, …, 6000 K" for every species. Far outside a

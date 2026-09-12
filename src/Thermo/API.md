@@ -4,7 +4,7 @@ Namespace `AerospacePropellantThermodynamics.Thermo`. The node exposes compact s
 tables, the kernel-compatible species functions, and the vocabulary shared by the
 numerical nodes. Everything not listed here is internal and may change.
 
-## Constants and shared vocabulary ⏳
+## Constants and shared vocabulary ✅
 
 ```csharp
 namespace AerospacePropellantThermodynamics.Thermo;
@@ -19,10 +19,14 @@ public struct MixtureState                        // one station of one case; SI
     public double Temperature;                    // K
     public double Pressure;                       // Pa
     public double Density;                        // kg/m³
-    public double Enthalpy, Entropy, GibbsEnergy; // J/kg, J/(kg·K), J/kg
-    public double MolarMass;                      // kg/kmol, CEA's M = 1/n
+    public double Enthalpy, InternalEnergy;       // J/kg
+    public double Entropy;                        // J/(kg·K)
+    public double GibbsEnergy;                    // J/kg
+    public double MolarMass;                      // kg/kmol, CEA's M = 1/n (whole mixture per kmol of gas)
+    public double GasMolarMass;                   // kg/kmol, CEA's MW (gaseous part per kmol of gas)
     public double CpFrozen, CpEquilibrium;        // J/(kg·K)
-    public double DlnVdlnT, DlnVdlnP;             // equilibrium derivatives, dimensionless
+    public double CvFrozen, CvEquilibrium;        // J/(kg·K)
+    public double DlnVdlnT, DlnVdlnP;             // equilibrium derivatives, dimensionless; 1 and −1 when frozen
     public double GammaS;                         // isentropic exponent
     public double SoundSpeed;                     // m/s
     public double Velocity, Mach;                 // zero where not applicable
@@ -41,41 +45,60 @@ public enum CaseStatus
 }
 ```
 
-## Species table ⏳
+`InternalEnergy`, `GasMolarMass`, `CvFrozen` and `CvEquilibrium` were added to the
+sketch when the reference fixtures turned out to report them; a numerical node that
+does not compute a field leaves it zero and says so in its `API.md`.
+
+## Species table ✅
 
 ```csharp
 public sealed class SpeciesTable                          // host side, immutable
 {
     public static SpeciesTable Build(SpeciesDatabase database,
                                      IReadOnlyList<string> elements,
-                                     IReadOnlyList<string> species);   // gaseous first, then condensed
-    public IReadOnlyList<string> Elements { get; }
-    public IReadOnlyList<string> Species { get; }
+                                     IReadOnlyList<string> species);   // gaseous first, then condensed, each in the given order
+    public IReadOnlyList<string> Elements { get; }           // as given; the row order of the stoichiometry matrix
+    public IReadOnlyList<string> Species { get; }            // table order
+    public IReadOnlyList<Species> Records { get; }           // the Data records in table order
     public int SpeciesCount { get; }
     public int GasCount { get; }
     public int CondensedCount { get; }
+    public int ElementCount { get; }
     public SpeciesTableArrays Arrays { get; }                // flat host arrays, ready to upload
-    public SpeciesTableView HostView { get; }                // a view over the host arrays
+    public int IndexOf(string species);                      // table index, or −1
 }
 
-public sealed class SpeciesTableArrays
+public sealed class SpeciesTableArrays                       // do not modify after the build
 {
-    public double[] MolarMass;          // [species], kg/kmol
-    public double[] FormationEnthalpy;  // [species], J/mol
-    public double[] Stoichiometry;      // [element * SpeciesCount + species], atoms per formula unit
-    public int[] IntervalStart;         // [species]
-    public int[] IntervalCount;         // [species]
-    public double[] IntervalBounds;     // [interval * 2 + (0: TLow, 1: THigh)]
-    public double[] Exponents;          // [interval * 8 + k]
-    public double[] Coefficients;       // [interval * 9 + k]: a1 … a7, b1, b2
+    public double[] MolarMass { get; }          // [species], kg/kmol
+    public double[] FormationEnthalpy { get; }  // [species], J/mol
+    public double[] Stoichiometry { get; }      // [element * SpeciesCount + species], atoms per formula unit
+    public int[] IntervalStart { get; }         // [species]
+    public int[] IntervalCount { get; }         // [species]
+    public double[] IntervalBounds { get; }     // [interval * 2 + (0: TLow, 1: THigh)]
+    public double[] Exponents { get; }          // [interval * 8 + k]
+    public double[] Coefficients { get; }       // [interval * 9 + k]: a1 … a7, b1, b2
+    public int IntervalTotal { get; }
 }
 
-public readonly struct SpeciesTableView                    // blittable; the same layout as the arrays
+public readonly struct SpeciesTableView                    // blittable; the same layout over accelerator memory
 {
     public readonly int SpeciesCount, GasCount, ElementCount;
     public readonly ArrayView<double> MolarMass, FormationEnthalpy, Stoichiometry;
     public readonly ArrayView<int> IntervalStart, IntervalCount;
     public readonly ArrayView<double> IntervalBounds, Exponents, Coefficients;
+    public SpeciesTableView(int speciesCount, int gasCount, int elementCount,
+                            ArrayView<double> molarMass, ArrayView<double> formationEnthalpy, ArrayView<double> stoichiometry,
+                            ArrayView<int> intervalStart, ArrayView<int> intervalCount,
+                            ArrayView<double> intervalBounds, ArrayView<double> exponents, ArrayView<double> coefficients);
+}
+
+public sealed class SpeciesTableBuffers : IDisposable        // the table uploaded to one accelerator; owns the buffers
+{
+    public static SpeciesTableBuffers Upload(Accelerator accelerator, SpeciesTable table);
+    public SpeciesTable Table { get; }
+    public SpeciesTableView View { get; }                    // pass to kernels; on the CPU accelerator, usable from host code too
+    public void Dispose();
 }
 
 public static class TableLimits
@@ -86,7 +109,15 @@ public static class TableLimits
 }
 ```
 
-## Species functions ⏳
+Element symbols of `elements` are matched to the records' formula symbols
+case-insensitively (`Al` and `AL` name the same row); species names are exact.
+
+⚠ 2026-09-12: the sketch had `SpeciesTable.HostView`, "a view over the host arrays".
+ILGPU 1.5.3 offers no view over a managed array outside a kernel; a view needs a
+buffer of an accelerator, so `SpeciesTableBuffers.Upload(accelerator, table)` replaces
+it, and the host path uses the CPU accelerator. See the note in `BOOT.md`.
+
+## Species functions ✅
 
 ```csharp
 public static class SpeciesFunctions                       // kernel-compatible
@@ -95,22 +126,24 @@ public static class SpeciesFunctions                       // kernel-compatible
     public static double HOverRT(in SpeciesTableView table, int species, double temperature);
     public static double SOverR(in SpeciesTableView table, int species, double temperature);
     public static double GOverRT(in SpeciesTableView table, int species, double temperature); // H/RT − S/R
-    public static int IntervalOf(in SpeciesTableView table, int species, double temperature);  // nearest interval
-    public static bool IsInRange(in SpeciesTableView table, int species, double temperature);
+    public static int IntervalOf(in SpeciesTableView table, int species, double temperature);  // 0-based within the species: the first whose upper bound is not below T, else the last
+    public static bool IsInRange(in SpeciesTableView table, int species, double temperature); // first lower bound ≤ T ≤ last upper bound
 }
 ```
 
 `temperature` is in K and must be positive; the functions are dimensionless. Species
 indices are those of the table. The functions are safe to call from any thread and
-from kernels.
+from kernels; the usual exponents −2 … 4 are evaluated by multiplication, any other
+through `Math.Pow`.
 
 ## Errors
 
 | Situation | Behaviour |
 |---|---|
-| unknown species or element name in `Build` | `KeyNotFoundException` naming it |
+| unknown species name in `Build` | `KeyNotFoundException` naming it (from the database indexer) |
 | a species with an element outside `elements` | `ArgumentException` naming the species and the element |
-| more species, elements or intervals than `TableLimits` | `ArgumentException` |
+| a species listed twice, an element listed twice, an empty list, or a reactant-only record without polynomial intervals (`O2(L)`) | `ArgumentException` naming it |
+| more species, elements or intervals than `TableLimits` | `ArgumentException`, checked before any lookup |
 | a species function with an index outside the table | undefined in kernels; callers guarantee the range |
 
 ## Side effects

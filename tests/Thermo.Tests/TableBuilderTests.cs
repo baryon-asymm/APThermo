@@ -1,0 +1,125 @@
+using AerospacePropellantThermodynamics.Data;
+
+namespace AerospacePropellantThermodynamics.Thermo.Tests;
+
+/// <summary>L1: the table builder against the Data records of the same species.</summary>
+public sealed class TableBuilderTests : IClassFixture<CpuFixture>
+{
+    private readonly CpuFixture _cpu;
+
+    public TableBuilderTests(CpuFixture cpu) => _cpu = cpu;
+
+    private static readonly string[] Elements = ["H", "O", "C", "N", "AL", "CL"];
+
+    private static readonly string[] Mixed = ["H2O", "AL2O3(L)", "CO2", "C(gr)", "H2", "AL2O3(a)", "N2", "HCL", "AL", "OH"];
+
+    [Fact]
+    public void Gaseous_species_come_first_and_each_group_keeps_its_order()
+    {
+        var table = SpeciesTable.Build(_cpu.Database, Elements, Mixed);
+        var gaseous = Mixed.Where(s => _cpu.Database[s].Phase == SpeciesPhase.Gas).ToArray();
+        var condensed = Mixed.Where(s => _cpu.Database[s].Phase == SpeciesPhase.Condensed).ToArray();
+        Assert.Equal(gaseous.Concat(condensed), table.Species);
+        Assert.Equal(gaseous.Length, table.GasCount);
+        Assert.Equal(condensed.Length, table.CondensedCount);
+        Assert.Equal(Mixed.Length, table.SpeciesCount);
+        Assert.Equal(Elements, table.Elements);
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            Assert.Equal(table.Species[j], table.Records[j].Name);
+            Assert.Equal(j, table.IndexOf(table.Species[j]));
+        }
+
+        Assert.Equal(-1, table.IndexOf("NoSuchSpecies"));
+    }
+
+    /// <summary>The list of checked entries is generated from the table: every element of every species, and every zero.</summary>
+    [Fact]
+    public void The_stoichiometry_matrix_equals_the_data_formulas()
+    {
+        var table = SpeciesTable.Build(_cpu.Database, Elements, Mixed);
+        var arrays = table.Arrays;
+        var checkedEntries = 0;
+        for (var i = 0; i < table.ElementCount; i++)
+        {
+            for (var j = 0; j < table.SpeciesCount; j++)
+            {
+                var expected = table.Records[j].Formula
+                    .Where(p => string.Equals(p.Symbol, table.Elements[i], StringComparison.OrdinalIgnoreCase))
+                    .Sum(p => p.Count);
+                Assert.Equal(expected, arrays.Stoichiometry[i * table.SpeciesCount + j]);
+                checkedEntries++;
+            }
+        }
+
+        Assert.Equal(table.ElementCount * table.SpeciesCount, checkedEntries);
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            Assert.Equal(table.Records[j].MolarMass, arrays.MolarMass[j]);
+            Assert.Equal(table.Records[j].FormationEnthalpy, arrays.FormationEnthalpy[j]);
+            Assert.Equal(table.Records[j].Intervals.Count, arrays.IntervalCount[j]);
+        }
+    }
+
+    [Fact]
+    public void Intervals_are_flattened_in_species_order_with_the_record_values()
+    {
+        var table = SpeciesTable.Build(_cpu.Database, Elements, Mixed);
+        var arrays = table.Arrays;
+        var next = 0;
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            Assert.Equal(next, arrays.IntervalStart[j]);
+            foreach (var interval in table.Records[j].Intervals)
+            {
+                Assert.Equal(interval.TLow, arrays.IntervalBounds[next * 2]);
+                Assert.Equal(interval.THigh, arrays.IntervalBounds[next * 2 + 1]);
+                Assert.Equal(interval.Exponents, arrays.Exponents.Skip(next * 8).Take(8));
+                Assert.Equal(interval.Coefficients, arrays.Coefficients.Skip(next * 9).Take(7));
+                Assert.Equal(interval.B1, arrays.Coefficients[next * 9 + 7]);
+                Assert.Equal(interval.B2, arrays.Coefficients[next * 9 + 8]);
+                next++;
+            }
+        }
+
+        Assert.Equal(next, arrays.IntervalTotal);
+    }
+
+    [Fact]
+    public void A_species_with_a_foreign_element_is_refused_by_name()
+    {
+        var e = Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "CO2"]));
+        Assert.Contains("CO2", e.Message, StringComparison.Ordinal);
+        Assert.Contains("'C'", e.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Unknown_names_duplicates_and_records_without_polynomials_are_refused()
+    {
+        Assert.Throws<KeyNotFoundException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "NoSuchSpecies"]));
+        var duplicate = Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "H2O"]));
+        Assert.Contains("H2O", duplicate.Message, StringComparison.Ordinal);
+        var reactant = Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "O2(L)"]));
+        Assert.Contains("O2(L)", reactant.Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "H"], ["H2"]));
+    }
+
+    [Fact]
+    public void The_limits_are_enforced_before_any_lookup()
+    {
+        var tooManyElements = Enumerable.Range(0, TableLimits.MaxElements + 1).Select(i => $"E{i}").ToArray();
+        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, tooManyElements, ["H2"]));
+        var tooManySpecies = Enumerable.Range(0, TableLimits.MaxSpecies + 1).Select(i => $"S{i}").ToArray();
+        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H"], tooManySpecies));
+        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, [], ["H2"]));
+        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H"], []));
+    }
+
+    [Fact]
+    public void Element_symbols_are_matched_case_insensitively()
+    {
+        var table = SpeciesTable.Build(_cpu.Database, ["Al", "O"], ["AL2O3(a)", "ALO"]);
+        Assert.Equal(2.0, table.Arrays.Stoichiometry[0 * 2 + 1]); // AL in AL2O3(a), which is the condensed one and comes second
+        Assert.Equal(1.0, table.Arrays.Stoichiometry[0 * 2 + 0]); // AL in ALO
+    }
+}

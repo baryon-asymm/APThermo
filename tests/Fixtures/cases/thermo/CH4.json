@@ -48,6 +48,7 @@
         1000.0001,
         2000.0,
         3000.0,
+        3100.0,
         5000.0,
         6000.0,
         6300.0
@@ -64,7 +65,7 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "independent-evaluation",
     "script": "thermo_functions.py",
-    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "scriptSha256": "2f7d3cd1bd35bbeb12ffb6e026466e7fdbdcde996fe18010c8e1a01b3e855402",
     "generatedOn": "2026-09-12"
   },
   "outputs": {
@@ -140,6 +141,15 @@
         "hOverRT": 6.510614674789671,
         "sOverR": 42.489657626476045,
         "gOverRT": -35.979042951686374
+      },
+      {
+        "temperature": 3100.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 13.916235135479267,
+        "hOverRT": 6.747432554412264,
+        "sOverR": 42.94384967769025,
+        "gOverRT": -36.19641712327799
       },
       {
         "temperature": 5000.0,

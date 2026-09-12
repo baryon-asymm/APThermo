@@ -58,8 +58,9 @@ def functions(record: Record, temperature: float) -> tuple[int, float, float, fl
 
 
 def points(record: Record) -> list[float]:
+    """The standard temperatures inside the record's range, the range's bounds and midpoint, and one point beyond each end."""
     first, last = record.intervals[0].t_low, record.intervals[-1].t_high
-    inside = [t for t in TEMPERATURES if first <= t <= last]
+    inside = sorted({t for t in TEMPERATURES if first <= t <= last} | {first, 0.5 * (first + last), last})
     below = first * (1.0 - OUT_OF_RANGE_FACTOR)
     above = last * (1.0 + OUT_OF_RANGE_FACTOR)
     return [below] + inside + [above]

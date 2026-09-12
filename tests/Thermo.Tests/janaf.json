@@ -1,0 +1,63 @@
+{
+  "source": "NIST-JANAF Thermochemical Tables, fourth edition (M. W. Chase, Jr., J. Phys. Chem. Ref. Data, Monograph 9, 1998), as served by https://janaf.nist.gov/: tables H-064 (H2O), C-095 (CO2), H-050 (H2), N-023 (N2); rows copied on 2026-09-12 with the tables' precision (three decimals). Standard state 1 bar; R = 8.314510 J/(mol K).",
+  "units": {
+    "cp": "J/(mol K)",
+    "entropy": "J/(mol K)",
+    "enthalpyIncrement": "kJ/mol, H(T) - H(298.15 K)"
+  },
+  "toleranceNote": "relativeTolerance bounds |fit - table| / |table| for every column of the species. The NASA Glenn records are fits to compilations other than JANAF (the record comments name the source), and the compilations differ from JANAF by more than the fits' own accuracy; the worst deviation observed on 2026-09-12 is recorded per species so that the check stays a plausibility check of the formulas and units.",
+  "species": [
+    {
+      "name": "H2O",
+      "table": "H-064",
+      "nasaSource": "Hf:Cox,1989. Woolley,1987. TRC(10/88) tuv25.",
+      "relativeTolerance": 0.025,
+      "note": "Woolley's 1987 partition-function values supersede the 1985 JANAF table at high temperature: Cp differs by 1.1 % at 2000 K and 1.9 % at 3000 K, H - H298 by 0.9 % at 3000 K, S by 0.2 %.",
+      "rows": [
+        { "temperature": 298.15, "cp": 33.590, "entropy": 188.834, "enthalpyIncrement": 0.0 },
+        { "temperature": 1000.0, "cp": 41.268, "entropy": 232.738, "enthalpyIncrement": 26.000 },
+        { "temperature": 2000.0, "cp": 51.180, "entropy": 264.769, "enthalpyIncrement": 72.790 },
+        { "temperature": 3000.0, "cp": 55.748, "entropy": 286.504, "enthalpyIncrement": 126.549 }
+      ]
+    },
+    {
+      "name": "CO2",
+      "table": "C-095",
+      "nasaSource": "Gurvich,1991 pt1 p27 pt2 p24.",
+      "relativeTolerance": 0.002,
+      "note": "Gurvich and JANAF agree to 0.03 % up to 2000 K; Cp differs by 0.12 % at 3000 K.",
+      "rows": [
+        { "temperature": 298.15, "cp": 37.129, "entropy": 213.795, "enthalpyIncrement": 0.0 },
+        { "temperature": 1000.0, "cp": 54.308, "entropy": 269.299, "enthalpyIncrement": 33.397 },
+        { "temperature": 2000.0, "cp": 60.350, "entropy": 309.293, "enthalpyIncrement": 91.439 },
+        { "temperature": 3000.0, "cp": 62.229, "entropy": 334.169, "enthalpyIncrement": 152.852 }
+      ]
+    },
+    {
+      "name": "H2",
+      "table": "H-050",
+      "nasaSource": "Ref-Elm. Gurvich,1978 pt1 p103 pt2 p31.",
+      "relativeTolerance": 0.001,
+      "note": "Worst deviation 0.024 % (Cp at 3000 K).",
+      "rows": [
+        { "temperature": 298.15, "cp": 28.836, "entropy": 130.680, "enthalpyIncrement": 0.0 },
+        { "temperature": 1000.0, "cp": 30.205, "entropy": 166.216, "enthalpyIncrement": 20.680 },
+        { "temperature": 2000.0, "cp": 34.280, "entropy": 188.418, "enthalpyIncrement": 52.951 },
+        { "temperature": 3000.0, "cp": 37.087, "entropy": 202.891, "enthalpyIncrement": 88.740 }
+      ]
+    },
+    {
+      "name": "N2",
+      "table": "N-023",
+      "nasaSource": "Ref-Elm. Gurvich,1978 pt1 p280 pt2 p207.",
+      "relativeTolerance": 0.001,
+      "note": "Worst deviation 0.007 % (Cp at 3000 K).",
+      "rows": [
+        { "temperature": 298.15, "cp": 29.124, "entropy": 191.609, "enthalpyIncrement": 0.0 },
+        { "temperature": 1000.0, "cp": 32.697, "entropy": 228.170, "enthalpyIncrement": 21.463 },
+        { "temperature": 2000.0, "cp": 35.971, "entropy": 252.074, "enthalpyIncrement": 56.137 },
+        { "temperature": 3000.0, "cp": 37.030, "entropy": 266.891, "enthalpyIncrement": 92.715 }
+      ]
+    }
+  ]
+}
