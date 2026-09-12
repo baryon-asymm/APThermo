@@ -1,0 +1,13 @@
+NASA CEA data files
+
+thermo.inp and trans.inp are copied verbatim from https://github.com/nasa/cea,
+directory data/, tag v3.3.4 (commit 4c5c612efa2002a94e3a5a1f33b1674d55c65340),
+the release that produced the reference `cea` Python package 3.3.4.
+
+License: Apache License 2.0, see LICENSE-nasa-cea.txt; upstream notice: NOTICE-nasa-cea.txt.
+Source of the data: NASA TP-2002-211556 (McBride, Zehe, Gordon 2002) and the
+transport-property fits of NASA CEA.
+
+SHA-256:
+  thermo.inp  fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363
+  trans.inp   379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41

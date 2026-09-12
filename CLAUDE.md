@@ -21,8 +21,7 @@ decide the mode (design or coding), run the linter before and after the work.
 - Protocol lint: `python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates`
   (`-X utf8` avoids a cp1252 crash on Windows consoles; `--exclude templates` keeps the
   document templates under `docs/protocol/templates/` from being read as nodes).
-- Build: `dotnet build AerospacePropellantThermodynamics.sln` (the solution file appears
-  in the first coding session).
+- Build: `dotnet build AerospacePropellantThermodynamics.sln`
 - Tests, fast set: `dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
 - Tests, full set: `dotnet test AerospacePropellantThermodynamics.sln`
 
