@@ -72,8 +72,9 @@ public sealed class FixtureFormatException : Exception
 provenance field, `outputs`, the date format, and that `case.kind` equals the name of
 the directory the file lies in. It does not check the outputs of a kind: which fields
 a kind carries, and the caveats of the reference's fields (`mixtureMolarMass`, the
-frozen-station `cv`, the frozen `cp` with condensed species and transport), are
-described in `BOOT.md` and used by the test nodes.
+frozen-station `cv`, the frozen `cp` of the transport set when transport is on, the
+reacting conductivity at the trace-component stations), are described in `BOOT.md`
+and used by the test nodes.
 
 ## Generator ✅
 

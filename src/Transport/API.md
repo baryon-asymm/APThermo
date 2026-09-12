@@ -1,70 +1,177 @@
 # API.md — Transport
 
 Namespace `AerospacePropellantThermodynamics.Transport`. The node exposes a compact
-transport table for the species of a species table and a kernel-compatible
-evaluation of the mixture transport properties at one station. Everything not listed
-here is internal and may change.
+transport table for the species of a species table and a kernel-compatible evaluation
+of the mixture transport properties at one station. Everything not listed here is
+internal and may change.
 
-## Transport table ⏳
+## Transport table ✅
 
 ```csharp
 namespace AerospacePropellantThermodynamics.Transport;
 
 public sealed class TransportTable                       // host side, immutable
 {
+    public const double ViscosityFactorToSi = 1e-7;      // 1 μP in Pa·s, folded into the constant term of every viscosity fit
+    public const double ConductivityFactorToSi = 1e-4;   // 1 μW/(cm·K) in W/(m·K), likewise for conductivity fits
+    public const int FitStride = 6;                      // doubles per fit: TLow, THigh, A, B, C, D
     public static TransportTable Build(TransportDatabase database, SpeciesTable species);
-    public IReadOnlyList<string> SpeciesWithoutData { get; }
+    public SpeciesTable Species { get; }
+    public IReadOnlyList<string> SpeciesWithData { get; }       // gaseous species with a viscosity fit, table order
+    public IReadOnlyList<string> SpeciesWithoutData { get; }    // gaseous species without an entry, table order; estimated by the solver
+    public IReadOnlyList<(string First, string Second)> Pairs { get; }  // pairs of gaseous species with interaction data, database order
     public TransportTableArrays Arrays { get; }
-    public TransportTableView HostView { get; }
+    public int SpeciesCount { get; }
 }
 
-public readonly struct TransportTableView                // blittable
+public sealed class TransportTableArrays                 // do not modify after the build
 {
-    public readonly int SpeciesCount;
-    public readonly ArrayView<int> ViscosityStart, ViscosityCount;       // [species]
-    public readonly ArrayView<int> ConductivityStart, ConductivityCount; // [species]
-    public readonly ArrayView<double> Fits;                              // [fit * 6]: TLow, THigh, A, B, C, D
-    public readonly ArrayView<int> PairIndex;                            // [species * SpeciesCount + species], −1 = no pair data
-    public readonly ArrayView<int> PairViscosityStart, PairViscosityCount;
+    public int[] ViscosityStart { get; }        // [species]
+    public int[] ViscosityCount { get; }        // [species], 0 = no data (and for condensed species)
+    public int[] ConductivityStart { get; }     // [species]
+    public int[] ConductivityCount { get; }     // [species], 0 = no conductivity fit
+    public double[] Fits { get; }               // [fit * 6]: TLow, THigh, A, B, C, D with the SI factor in D
+    public int[] PairIndex { get; }             // [species * SpeciesCount + species], −1 = no pair data
+    public int[] PairStart { get; }             // [pair] (one padding entry when there is no pair)
+    public int[] PairCount { get; }             // [pair]
+    public int PairTotal { get; }
+    public int FitTotal { get; }
+}
+
+public readonly struct TransportTableView                // blittable; the same layout over accelerator memory
+{
+    public readonly int SpeciesCount, PairTotal;
+    public readonly ArrayView<int> ViscosityStart, ViscosityCount, ConductivityStart, ConductivityCount;
+    public readonly ArrayView<double> Fits;
+    public readonly ArrayView<int> PairIndex, PairStart, PairCount;
+    public TransportTableView(int speciesCount, int pairTotal,
+                              ArrayView<int> viscosityStart, ArrayView<int> viscosityCount,
+                              ArrayView<int> conductivityStart, ArrayView<int> conductivityCount,
+                              ArrayView<double> fits, ArrayView<int> pairIndex, ArrayView<int> pairStart, ArrayView<int> pairCount);
+}
+
+public sealed class TransportTableBuffers : IDisposable  // the table uploaded to one accelerator; owns the buffers
+{
+    public static TransportTableBuffers Upload(Accelerator accelerator, TransportTable table);
+    public TransportTable Table { get; }
+    public TransportTableView View { get; }              // pass to kernels; on the CPU accelerator, usable from host code too
+    public void Dispose();
 }
 ```
 
-## Evaluation ⏳
+A species is looked up by its exact name; a pair entry is taken when both of its
+species are gaseous members of the table. A species with an entry that has viscosity
+fits but no conductivity fits keeps its viscosity fits and a zero conductivity count.
+
+⚠ 2026-09-12: the sketch had `TransportTableView HostView` on the table. As for the
+species table of `Thermo`, ILGPU 1.5.3 offers no view over a managed array outside a
+kernel; `TransportTableBuffers.Upload` replaces it. The sketch also had one start and
+count per species for the pair runs; the pairs got their own start and count arrays
+addressed through `PairIndex`.
+
+## Evaluation ✅
 
 ```csharp
 public struct TransportFigures                           // one station; SI
 {
     public double Viscosity;                             // Pa·s
     public double FrozenConductivity;                    // W/(m·K)
-    public double ReactingConductivity;                  // W/(m·K)
-    public double FrozenPrandtl;
-    public double ReactingPrandtl;
-    public double ExcludedMoleFraction;                  // gaseous moles without transport data
+    public double ReactingConductivity;                  // W/(m·K), frozen plus reaction term
+    public double FrozenPrandtl;                         // Cp_fr η / λ_fr over the transport set
+    public double ReactingPrandtl;                       // Cp_eq η / λ_eq over the transport set
+    public double FrozenHeatCapacity;                    // J/(kg·K) of the set's gas: the reference's cp_fr with transport on
+    public double EquilibriumHeatCapacity;               // J/(kg·K), frozen plus reaction heat capacity of the set
+    public double EstimatedMoleFraction;                 // of the set, carried by species without data
+    public int SpeciesCount;                             // NM
+    public int ReactionCount;                            // NR, after the trace eliminations
+    public int EstimatedSpeciesCount;
+    public int TraceEliminations;                        // species of the set below TraceFraction removed from the reaction set
+    public int Capped;                                   // 1 when a species was refused because the set was full
+}
+
+public static class TransportLayout
+{
+    public const int MaxSpecies = 40;                                          // the reference's limit on the set
+    public static int DoublesPerCase(int speciesCount, int elementCount);      // 4 · MaxSpecies² + elements · MaxSpecies + 8 · MaxSpecies
+    public static int IntsPerCase(int speciesCount, int elementCount);         // species + 4 · MaxSpecies + 4 · elements
+}
+
+public readonly struct TransportScratch                  // slices of batch-sized buffers, sized by TransportLayout
+{
+    public readonly ArrayView<double> Eta, Alpha, Matrix, MatrixReacting;      // [MaxSpecies²] each, row-major, stride MaxSpecies
+    public readonly ArrayView<double> Basis;                                   // [elements · MaxSpecies]
+    public readonly ArrayView<double> Cond, Xs, Cp, H, DeltaH, Rhs, RowScale, Stx;  // [MaxSpecies] each
+    public readonly ArrayView<int> Mark;                                       // [species]
+    public readonly ArrayView<int> IndexList, CompLocal, CompRow, IsComponent; // [MaxSpecies] each
+    public readonly ArrayView<int> Component, Default, RowTaken, RowActive;    // [elements] each
+    public TransportScratch(ArrayView<double> eta, ArrayView<double> alpha, ArrayView<double> matrix, ArrayView<double> matrixReacting,
+                            ArrayView<double> basis, ArrayView<double> cond, ArrayView<double> xs, ArrayView<double> cp, ArrayView<double> h,
+                            ArrayView<double> deltaH, ArrayView<double> rhs, ArrayView<double> rowScale, ArrayView<double> stx,
+                            ArrayView<int> mark, ArrayView<int> indexList, ArrayView<int> compLocal, ArrayView<int> compRow,
+                            ArrayView<int> isComponent, ArrayView<int> component, ArrayView<int> @default, ArrayView<int> rowTaken,
+                            ArrayView<int> rowActive);
+    public static TransportScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount);
 }
 
 public static class TransportSolver                      // kernel-compatible
 {
-    public static CaseStatus Evaluate(in SpeciesTableView species, in TransportTableView transport,
-                                      in MixtureState state,
-                                      ArrayView<double> moles,          // [species], kmol per kg
-                                      ArrayView<double> multipliers,    // [element], from Equilibrium
-                                      ArrayView<double> scratch,        // [ScratchDoubles(speciesCount)]
-                                      out TransportFigures figures);
-    public static int ScratchDoubles(int speciesCount);
+    public const int MaxSpecies = TransportLayout.MaxSpecies;
+    public const double CoverageFraction = 0.999999999;  // the set is complete when it carries this fraction of the gaseous moles …
+    public const double CoverageTolerance = 1e-6;        // … within this relative slack
+    public const double CutoffFraction = 1e-11;          // the selection never descends below this fraction of the gaseous moles
+    public const double TraceFraction = 1e-10;           // a species of the set below this mole fraction leaves the reaction set
+    public const double BasisCleaningThreshold = 1e-5;
+    public const double ReactionCoefficientThreshold = 1e-6;
+    public const double EliminationThreshold = 1e-5;
+    public const double StoichiometryThreshold = 1e-10;
+    public const double UnitCountTolerance = 1e-8;
+    public const double AStar = 1.1;
+    public const double Boltzmann = 1.3806580e-23;       // J/K, the reference's value
+    public const double Avogadro = 6.0221367e26;         // 1/kmol, the reference's value
+    public const double CollisionDiameter = 1e-10;       // m, of the hard-sphere estimate
+    public static CaseStatus Evaluate(in SpeciesTableView species, in TransportTableView transport, double temperature,
+                                      ArrayView<double> moles,              // [species], kmol per kg, condensed included (ignored)
+                                      in TransportScratch scratch,
+                                      ArrayView<TransportFigures> figures); // [1], written on every status
+    public static int FitOf(in TransportTableView transport, int start, int count, double temperature);   // global fit index by the reference's rule
+    public static double FitValue(in TransportTableView transport, int fit, double temperature);         // exp(A ln T + B/T + C/T² + D), SI
+    public static double PureViscosity(in TransportTableView transport, int species, double temperature);     // Pa·s; 0 without data
+    public static double PureConductivity(in TransportTableView transport, int species, double temperature);  // W/(m·K); 0 without data
+    public static double PairViscosity(in TransportTableView transport, int pair, double temperature);        // Pa·s
 }
 ```
 
+`temperature` is in K; the transport set, the estimates and the reaction terms follow
+the Constraints of `BOOT.md`. The evaluation reads the moles of every species (a
+condensed species with positive moles marks its elements active) and uses the gaseous
+ones.
+
+⚠ 2026-09-12: the sketch was `Evaluate(in species, in transport, in MixtureState state,
+moles, multipliers, ArrayView<double> scratch, out TransportFigures figures)` with
+`ScratchDoubles(int speciesCount)`, and the figures held `ExcludedMoleFraction`. The
+state's only input is the temperature, so it is passed alone; the multipliers are not
+needed (`BOOT.md`); the scratch is a struct of named slices with ints as well, like
+`Equilibrium`'s, because the set selection and the component basis need index arrays;
+the figures are written into a view, as every numerical node does, and report the
+estimated species and the set's bookkeeping instead of an excluded fraction.
+
 ## Errors
 
-Never throws. Returns `Ok` or `NoTransportData` (excluded fraction above the node's
-threshold); `figures` is fully written in both cases so that a caller may still report
-the values with the status.
+Never throws. `Evaluate` returns `Ok`; `InvalidInput` (non-positive or NaN
+temperature, a negative or NaN mole number, a transport table whose species count is
+not the species table's, an empty or gas-free table); `NoTransportData` (no gaseous
+species with positive moles); `SingularMatrix` (a reaction system could not be solved:
+the frozen figures are written and the reacting ones equal them). `figures[0]` is
+written on every status, zero on `InvalidInput` and `NoTransportData`. `Build` throws
+`ArgumentNullException` for a null argument and nothing else: a species without an
+entry is not an error.
 
 ## Side effects
 
-None.
+None. Writes only into `figures` and the scratch.
 
 ## Out of scope
 
 - Parsing `trans.inp`: `Data`.
 - Deciding at which stations transport is evaluated: `Problems` and `Execution`.
+- Computing the composition: `Equilibrium`, `Performance`.

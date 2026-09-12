@@ -76,7 +76,18 @@ public static class ScratchLayout
     public static int DoublesPerCase(int speciesCount, int elementCount);     // 6 · species + MaxUnknowns² + 2 · MaxUnknowns
     public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + MaxCondensedInSolution
 }
+
+public static class DenseSolver                        // kernel-compatible; shared with Transport
+{
+    public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride);
+        // Gaussian elimination with scaled partial pivoting, in place, on the row-major n×n system held with the given stride;
+        // the solution replaces rhs; false when a pivot falls below 1e-13 of its row's largest initial entry
+}
 ```
+
+⚠ 2026-09-12: `DenseSolver` was internal. The Transport node solves the two linear
+systems of its reaction terms and, by the root's first invariant, may not carry a
+second elimination; the solver became public and part of this contract.
 
 Units: SI throughout; mole numbers in kmol per kilogram of mixture, so that
 `Σ n_j M_j = 1` over the whole mixture. `Multipliers` are the dimensionless `π_i` of

@@ -87,6 +87,34 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     equilibrium cases are generated without transport (below), and the `cpFrozen` and
     `cvFrozen` of a rocket station with condensed species and transport on are gas-phase
     values, to be compared as such by the performance tests node.
+
+    ⚠ 2026-09-12, made precise by the source of the package (`source/equilibrium.f90`,
+    `compute_transport_properties`) when the Transport node was written: with transport
+    on, `cp_fr` at every station is the frozen heat capacity of the package's transport
+    set (at most 40 gaseous species chosen as the Transport `BOOT.md` describes) per
+    kilogram of that gas, and `cv_fr` is that value minus n R with n the gaseous moles of
+    the whole mixture. Without condensed species the set covers the gas to 1e-6 and the
+    value is the whole mixture's within the tolerance; the Transport tests compare the
+    field with the set's heat capacity at every station with transport.
+
+  ⚠ 2026-09-12, two more caveats found by the Transport node:
+  - The package estimates the transport properties of a gaseous species without an
+    entry in `trans.inp` (hard spheres for the viscosity, the modified Eucken relation
+    for the conductivity, as CEA2 did); it excludes nothing. The tolerance derivations
+    of the transport fields said "excluded on both sides"; reworded.
+  - The package's reacting conductivity is defective at a station where one of the
+    component species that seed its transport set is a trace (x < 1e-10 of the set):
+    the Fortran rewrite writes `continue`, a no-op, where CEA2 had `GOTO 260` in the
+    elimination of the trace species, keeps the reaction through it while dropping its
+    pairs, and reports a reacting conductivity 170 to 440 times the frozen one. Nine
+    stations of the committed fixtures carry it: the exits of LOX/LH2 O/F 4 at 5, 7
+    and 10 MPa (both exits, 645 to 1020 K) and the second exit of LOX/LH2 O/F 5 at 5, 7
+    and 10 MPa (910 to 916 K), where `OH` seeds the oxygen row. The fixtures are not
+    edited (first invariant); the Transport tests skip `reactingConductivity` and
+    `reactingPrandtl` where the tree's solver reports a trace elimination, assert the
+    defect is still visible there, and fail when it is gone, so that a regenerated
+    reference removes this caveat rather than hiding it. `reactingPrandtl` at those
+    stations is deflated (0.34–0.41 against 0.53–0.61) by the same inflation.
 - Case matrix of version 1:
   - RP-1311 examples 1 (tp), 3 (hp, two fuels), 5 (hp, solid with a custom binder and
     condensed products), 8 (rocket LOX/LH2), 12 (rocket MMH/NTO, shifting and frozen
@@ -195,7 +223,13 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (89 files) passed in the Performance tests after one calibration: `pressure` from
       1e-5 to 1e-4 relative, because the reference's throat and area-ratio pressures carry
       its iteration residual of up to 4e-5 (RP-1311 equations 6.16 and 6.25; 3.9e-5
-      observed), while an assigned pressure stays exact. The transport kind remains.
+      observed), while an assigned pressure stays exact. 2026-09-12: the transport kind
+      (27 fit files, `transportFit` 1e-12) and the transport fields of the rocket kind
+      (39 files with transport) passed the table unchanged in the Transport tests, the
+      stations evaluated on the reference composition: worst 3.4e-8 relative against the
+      5e-4 of the table, the rest of the budget being for the comparison on the tree's
+      own composition, which the Problems tests node makes. The end-to-end comparison
+      remains.
 
 ## Taboos
 
