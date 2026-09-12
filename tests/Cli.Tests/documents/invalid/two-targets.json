@@ -1,0 +1,28 @@
+{
+  "propellant": {
+    "reactants": [
+      {
+        "name": "O2(L)",
+        "role": "oxidizer",
+        "amount": 1.0,
+        "temperature": 90.17
+      },
+      {
+        "name": "H2(L)",
+        "role": "fuel",
+        "amount": 1.0,
+        "temperature": 20.27
+      }
+    ],
+    "mixture": {
+      "oxidizerToFuel": 6.0
+    }
+  },
+  "problem": {
+    "type": "equilibrium",
+    "kind": "tp",
+    "pressure": 1000000.0,
+    "temperature": 3000.0,
+    "enthalpy": 0.0
+  }
+}

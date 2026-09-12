@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Cli.Tests: the readiness criterion of src/Cli. In-process through Program.Run and as a separate process; CPU accelerator only. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cli\AerospacePropellantThermodynamics.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Problems\AerospacePropellantThermodynamics.Problems.csproj" />
+    <ProjectReference Include="..\..\src\Execution\AerospacePropellantThermodynamics.Execution.csproj" />
+    <ProjectReference Include="..\..\src\Transport\AerospacePropellantThermodynamics.Transport.csproj" />
+    <ProjectReference Include="..\..\src\Performance\AerospacePropellantThermodynamics.Performance.csproj" />
+    <ProjectReference Include="..\..\src\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Data\AerospacePropellantThermodynamics.Data.csproj" />
+    <ProjectReference Include="..\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj" />
+  </ItemGroup>
+
+</Project>

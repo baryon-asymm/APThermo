@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "apthermo devices listing",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run", "cudaForbidden", "cpu", "cuda"],
+  "properties": {
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "version", "command"],
+      "properties": {
+        "tool": { "const": "apthermo" },
+        "version": { "type": "string" },
+        "command": { "const": "devices" }
+      }
+    },
+    "cudaForbidden": { "type": "boolean" },
+    "cpu": { "$ref": "#/$defs/accelerator" },
+    "cuda": { "oneOf": [{ "$ref": "#/$defs/accelerator" }, { "$ref": "#/$defs/unavailable" }] }
+  },
+  "$defs": {
+    "accelerator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "deviceName", "ilgpuVersion", "libNvvmPath", "libDevicePath", "threadsOrMultiprocessors"],
+      "properties": {
+        "kind": { "enum": ["cpu", "cuda"] },
+        "deviceName": { "type": "string" },
+        "ilgpuVersion": { "type": "string" },
+        "libNvvmPath": { "type": ["string", "null"] },
+        "libDevicePath": { "type": ["string", "null"] },
+        "threadsOrMultiprocessors": { "type": "integer" }
+      }
+    },
+    "unavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "message", "pathsTried"],
+      "properties": {
+        "available": { "const": false },
+        "message": { "type": "string" },
+        "pathsTried": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

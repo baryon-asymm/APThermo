@@ -1,0 +1,41 @@
+{
+  "propellant": {
+    "reactants": [
+      {
+        "name": "NH4CLO4(I)",
+        "role": "named",
+        "amount": 0.68,
+        "temperature": 298.15
+      },
+      {
+        "name": "HTPB",
+        "role": "named",
+        "amount": 0.14,
+        "temperature": 298.15,
+        "formula": {
+          "C": 7.3165,
+          "H": 10.3416,
+          "O": 0.0674
+        },
+        "enthalpy": -1046.0
+      },
+      {
+        "name": "AL(cr)",
+        "role": "named",
+        "amount": 0.18,
+        "temperature": 298.15
+      }
+    ]
+  },
+  "problem": {
+    "type": "rocket",
+    "chamberPressure": 7000000.0,
+    "flow": "shifting-equilibrium",
+    "areaRatios": [
+      8.0,
+      12.0
+    ],
+    "pressureRatios": [],
+    "transport": true
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "propellant": {
+    "reactants": [
+      {
+        "name": "O2(L)",
+        "role": "oxidizer",
+        "amount": 1.0,
+        "temperature": 90.17
+      },
+      {
+        "name": "H2(L)",
+        "role": "fuel",
+        "amount": 1.0,
+        "temperature": 20.27
+      }
+    ],
+    "mixture": {
+      "oxidizerToFuel": 6.0
+    }
+  },
+  "problem": {
+    "type": "rocket",
+    "chamberPressure": 7000000.0,
+    "areaRatios": [
+      20.0
+    ],
+    "pressureRatios": [
+      10.0
+    ]
+  },
+  "sweep": {
+    "oxidizerToFuel": {
+      "from": 4.0,
+      "to": 7.0,
+      "step": 1.0
+    },
+    "chamberPressure": [
+      5000000.0,
+      7000000.0
+    ]
+  },
+  "engine": {
+    "accelerator": "cpu"
+  }
+}

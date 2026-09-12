@@ -160,11 +160,12 @@ There is no external ancestor: the tree root is the repository root, and the loa
       9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
 - [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
       (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
-      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1654
-      tests green after the Problems node (850 after the Execution node), none
-      skipped, the CUDA-category tests verifying the refusal instead.
+      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1733
+      tests green after the Cli node (1654 after the Problems node, 850 after the
+      Execution node), none skipped, the CUDA-category tests verifying the refusal
+      instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
-      of `CLAUDE.md`, run after every node, last after the Problems node: 0 errors,
+      of `CLAUDE.md`, run after every node, last after the Cli node: 0 errors,
       0 warnings).
 - [ ] The reflection checks are written for this stack and each was shown red once
       (AGENTS.md §13).
@@ -224,7 +225,14 @@ batches on the GPU.
 - `src/Cli` is a thin adapter: JSON in, JSON or table out. Kept apart so the library
   never depends on console or serialization concerns.
 
-Dependencies point downward only: `Cli` → {`Problems`, `Data`}; `Problems` → {`Data`,
+  ⚠ 2026-09-13: it also uses `Execution` (engine options, the accelerator description,
+  the unavailable exception) and reads the result structs of `Thermo`, `Performance`
+  and `Transport` and the problem kind of `Equilibrium`, field by field into the
+  documents; the dependency list below carries those links, which its first version
+  lacked.
+
+Dependencies point downward only: `Cli` → {`Problems`, `Data`, `Execution`, `Thermo`,
+`Equilibrium`, `Performance`, `Transport`}; `Problems` → {`Data`,
 `Thermo`, `Equilibrium`, `Performance`, `Transport`, `Execution`}; `Execution` → {`Thermo`,
 `Equilibrium`, `Performance`, `Transport`};
 `Performance` → {`Equilibrium`, `Thermo`}; `Transport` → {`Data`, `Thermo`,

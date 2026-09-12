@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "apthermo species listing",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run", "species"],
+  "properties": {
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "version", "command", "inputs", "database", "timings", "threshold"],
+      "properties": {
+        "tool": { "const": "apthermo" },
+        "version": { "type": "string" },
+        "command": { "const": "species" },
+        "inputs": { "type": "array", "items": { "type": "string" } },
+        "database": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["thermoPath", "transPath", "thermoSha256", "transSha256"],
+          "properties": {
+            "thermoPath": { "type": "string" },
+            "transPath": { "type": ["string", "null"] },
+            "thermoSha256": { "type": "string" },
+            "transSha256": { "type": ["string", "null"] }
+          }
+        },
+        "timings": { "type": "object", "additionalProperties": { "type": "number" } },
+        "threshold": { "type": "number" }
+      }
+    },
+    "species": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "section", "phase", "formula", "molarMass", "formationEnthalpy", "temperatureRange", "transportData"],
+        "properties": {
+          "name": { "type": "string" },
+          "section": { "enum": ["products", "reactants"] },
+          "phase": { "enum": ["gas", "condensed"] },
+          "formula": { "type": "object", "additionalProperties": { "type": "number" } },
+          "molarMass": { "type": "number", "exclusiveMinimum": 0 },
+          "formationEnthalpy": { "type": "number" },
+          "temperatureRange": { "oneOf": [{ "type": "array", "minItems": 2, "items": { "type": "number" } }, { "type": "null" }] },
+          "assignedTemperature": { "type": "number" },
+          "transportData": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

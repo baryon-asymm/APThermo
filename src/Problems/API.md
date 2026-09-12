@@ -223,6 +223,8 @@ public sealed class Solver : IDisposable
     public IReadOnlyList<RocketResult> Solve(ElementalMixture mixture, IReadOnlyList<RocketProblem> problems);
     public EquilibriumResult Solve(ElementalMixture mixture, EquilibriumProblem problem);
     public IReadOnlyList<EquilibriumResult> Solve(ElementalMixture mixture, IReadOnlyList<EquilibriumProblem> problems);
+    public IReadOnlyList<RocketResult> Solve(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<RocketProblem> problems);           // one case per index
+    public IReadOnlyList<EquilibriumResult> Solve(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<EquilibriumProblem> problems);
     public IReadOnlyList<EquilibriumResult> SolveStates(IReadOnlyList<StateRecord> states, StateBatchOptions? options = null);
     public void Dispose();
 }
@@ -233,13 +235,18 @@ accelerator or to CUDA. Rocket problems of one call are grouped by exit layout
 (number of pressure-ratio and area-ratio exits) and each group is one batch; the
 results come back in the order given. Equilibrium problems of one call are one batch.
 Transport figures are evaluated in a second pass over the stations of the cases that
-asked for them. The uploaded tables of every element set and species list, and the
+asked for them. A list of mixtures with a list of problems is one batch with one case
+per index over the union of the mixtures' elements; every mixture must carry the same
+`Omit` and `Only` lists, and `SolveStates` is that overload over state records. The uploaded tables of every element set and species list, and the
 reactant enthalpies of every propellant instance, are kept until `Dispose`.
 
 ⚠ 2026-09-12: `Database`, `Mixture` and `CandidateSpecies` were added so that a
 caller (and the tests) can see the mixture a propellant implies and the species a
 selection produces without solving; `Solve(ElementalMixture, IReadOnlyList<EquilibriumProblem>)`
-completes the overload set; `SolveStates`' options are optional.
+completes the overload set; `SolveStates`' options are optional. The two overloads over
+lists of mixtures were added on 2026-09-13 for the command line: a sweep over the
+oxidizer-to-fuel ratio with any exit layout, and the records of another simulation with
+exits, are one batch through them.
 
 ## Errors
 

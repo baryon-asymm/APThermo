@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Cli: the apthermo command line. JSON in, JSON or CSV out; a thin adapter over Problems. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Version>1.0.0</Version>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>apthermo</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Problems\AerospacePropellantThermodynamics.Problems.csproj" />
+    <ProjectReference Include="..\Data\AerospacePropellantThermodynamics.Data.csproj" />
+    <ProjectReference Include="..\Execution\AerospacePropellantThermodynamics.Execution.csproj" />
+    <ProjectReference Include="..\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\AerospacePropellantThermodynamics.Equilibrium.csproj" />
+    <ProjectReference Include="..\Performance\AerospacePropellantThermodynamics.Performance.csproj" />
+    <ProjectReference Include="..\Transport\AerospacePropellantThermodynamics.Transport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AerospacePropellantThermodynamics.Cli.Tests" />
+  </ItemGroup>
+
+</Project>

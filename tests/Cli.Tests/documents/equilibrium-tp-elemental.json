@@ -1,0 +1,17 @@
+{
+  "propellant": {
+    "elementMoles": {
+      "C": 10.399624992624991,
+      "H": 41.598499970499965,
+      "N": 25.343490501240545,
+      "O": 29.887731017231108
+    }
+  },
+  "problem": {
+    "type": "equilibrium",
+    "kind": "tp",
+    "pressure": 2000000.0,
+    "temperature": 3228.125500181907,
+    "transport": true
+  }
+}

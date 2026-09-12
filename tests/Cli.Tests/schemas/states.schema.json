@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "apthermo state records (src/Cli/API.md, Command line): one record, or an array of records; JSON Lines files hold one record per line",
+  "oneOf": [
+    { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/record" } },
+    { "$ref": "#/$defs/record" }
+  ],
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pressure", "composition"],
+      "properties": {
+        "pressure": { "type": "number", "exclusiveMinimum": 0 },
+        "composition": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+        "enthalpy": { "type": "number" },
+        "temperature": { "type": "number", "exclusiveMinimum": 0 },
+        "entropy": { "type": "number" },
+        "areaRatios": { "type": "array", "items": { "type": "number" } },
+        "pressureRatios": { "type": "array", "items": { "type": "number" } },
+        "flow": { "enum": ["shifting-equilibrium", "frozen-at-chamber", "frozen-at-throat"] }
+      }
+    }
+  }
+}

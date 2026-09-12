@@ -1,0 +1,80 @@
+namespace AerospacePropellantThermodynamics.Cli.Tests;
+
+/// <summary>L0: option parsing and the usage text.</summary>
+[Collection(CliCollection.Name)]
+public sealed class CommandLineTests(CliFixture fixture)
+{
+    [Fact]
+    public void No_command_is_exit_2_with_the_usage()
+    {
+        var run = fixture.Invoke();
+        Assert.Equal(2, run.Code);
+        Assert.Contains("usage:", run.Error);
+        Assert.Empty(run.Output);
+    }
+
+    [Fact]
+    public void Help_prints_the_usage_and_exits_0()
+    {
+        foreach (var args in new[] { new[] { "--help" }, new[] { "-h" }, new[] { "rocket", "--help" } })
+        {
+            var run = fixture.Invoke(args);
+            Assert.Equal(0, run.Code);
+            Assert.Contains("commands:", run.Output);
+            Assert.Empty(run.Error);
+        }
+    }
+
+    [Theory]
+    [InlineData(new[] { "frobnicate" }, "frobnicate")]
+    [InlineData(new[] { "rocket", "x.json", "--bogus", "1" }, "--bogus")]
+    [InlineData(new[] { "rocket" }, "exactly one")]
+    [InlineData(new[] { "rocket", "a.json", "b.json" }, "exactly one")]
+    [InlineData(new[] { "species", "extra" }, "no argument")]
+    [InlineData(new[] { "states" }, "at least one")]
+    [InlineData(new[] { "rocket", "x.json", "--format", "xml" }, "xml")]
+    [InlineData(new[] { "rocket", "x.json", "--accelerator", "gpu" }, "gpu")]
+    [InlineData(new[] { "rocket", "x.json", "--threshold", "-1" }, "threshold")]
+    [InlineData(new[] { "rocket", "x.json", "--threshold", "many" }, "threshold")]
+    [InlineData(new[] { "species", "--transport" }, "--transport")]
+    [InlineData(new[] { "rocket", "x.json", "--find", "H2" }, "--find")]
+    [InlineData(new[] { "devices", "--format", "csv" }, "CSV")]
+    [InlineData(new[] { "rocket", "x.json", "--output" }, "needs a value")]
+    [InlineData(new[] { "rocket", "x.json", "--output", "a", "--output", "b" }, "twice")]
+    [InlineData(new[] { "states", "x.json", "--transport=yes" }, "no value")]
+    public void Invalid_command_lines_are_exit_2_naming_the_offender(string[] args, string fragment)
+    {
+        var run = fixture.Invoke(args);
+        Assert.Equal(2, run.Code);
+        Assert.Contains(fragment, run.Error);
+        Assert.Empty(run.Output);
+    }
+
+    [Fact]
+    public void The_usage_names_every_command_and_option()
+    {
+        foreach (var command in CommandLine.Commands)
+        {
+            Assert.Contains($"  {command}", CommandLine.Usage);
+        }
+
+        foreach (var option in new[] { "--output", "--format", "--accelerator", "--database", "--threshold", "--transport", "--find", "--help" })
+        {
+            Assert.Contains(option, CommandLine.Usage);
+        }
+
+        Assert.Contains("exit codes: 0", CommandLine.Usage);
+    }
+
+    [Fact]
+    public void Options_may_be_given_with_an_equals_sign()
+    {
+        var invocation = CommandLine.Parse(["rocket", "p.json", "--format=csv", "--threshold=1e-3", "--accelerator=cpu"]);
+        Assert.Equal("rocket", invocation.Command);
+        Assert.Equal(["p.json"], invocation.Arguments);
+        Assert.Equal(OutputFormat.Csv, invocation.Options.Format);
+        Assert.Equal(1e-3, invocation.Options.Threshold);
+        Assert.Equal(Execution.AcceleratorKind.Cpu, invocation.Options.Accelerator);
+        Assert.Equal(CommandOptions.DefaultThreshold, CommandLine.Parse(["devices"]).Options.Threshold);
+    }
+}

@@ -9,6 +9,15 @@ public sealed class RocketTests(SolverFixture fixture)
 {
     public static IEnumerable<object[]> Cases() => FixtureCases.Names("rocket");
 
+    /// <summary>
+    /// When the union of a batch reorders the elements of a case, the linear solves pivot in another order and the iterates differ by
+    /// rounding at every step; the converged state then agrees to what the polish threshold guarantees, as between the accelerators.
+    /// </summary>
+    public const double ReorderedElementsTolerance = 1e-9;
+
+    /// <summary>Below this mole fraction the reordered comparison does not look (the floor of the GPU/CPU table).</summary>
+    public const double MoleFractionFloor = 1e-8;
+
     [Theory]
     [MemberData(nameof(Cases))]
     public void The_rocket_case_reproduces_the_reference_end_to_end(string name)
@@ -181,5 +190,73 @@ public sealed class RocketTests(SolverFixture fixture)
             var allowed = fixture.Tolerances.For("moleFraction").Absolute * molarMass / mixtureMolarMass + fixture.Tolerances.For("mixtureMolarMass").Relative * expected;
             Assert.True(Math.Abs(actual - expected) <= allowed, $"{species.Name}: mass fraction {actual:R}, from the reference {expected:R}");
         }
+    }
+
+    [Fact]
+    public void Rocket_and_equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements()
+    {
+        // Three propellants with different elements, one problem each, in one call: the single solves bit for bit where the union
+        // keeps the relative order of the case's elements, to rounding where it reorders them (Problems BOOT.md).
+        string[] names = ["lox-lh2_of6_pc7MPa_shiftingEquilibrium", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium", "ap-htpb-al_pc7MPa_shiftingEquilibrium"];
+        var cases = names.Select(n => FixtureCases.Load("rocket", n)).ToList();
+        var propellants = cases.Select(c => FixtureCases.PropellantOf(fixture.Database, c)).ToList();
+        var problems = cases.Select(FixtureCases.RocketProblemOf).ToList();
+        var mixtures = propellants.Select(p => fixture.Solver.Mixture(p)).ToList();
+        var union = new List<string>();
+        foreach (var symbol in mixtures.SelectMany(m => m.Elements))
+        {
+            if (!union.Contains(symbol, StringComparer.Ordinal))
+            {
+                union.Add(symbol);
+            }
+        }
+
+        Assert.Contains(mixtures, m => m.Elements.Count < union.Count);
+        static bool OrderKept(IReadOnlyList<string> elements, List<string> union)
+        {
+            var positions = elements.Select(e => union.IndexOf(e)).ToList();
+            return positions.Zip(positions.Skip(1)).All(pair => pair.First < pair.Second);
+        }
+
+        Assert.Contains(mixtures, m => OrderKept(m.Elements, union));
+        Assert.Contains(mixtures, m => !OrderKept(m.Elements, union));
+        var batch = fixture.Solver.Solve(mixtures, problems);
+        Assert.Equal(names.Length, batch.Count);
+        for (var i = 0; i < names.Length; i++)
+        {
+            var single = fixture.Solver.Solve(propellants[i], problems[i]);
+            Assert.Null(batch[i].Propellant);
+            Assert.Equal(single.Status, batch[i].Status);
+            Assert.True(batch[i].Species.Count >= single.Species.Count);
+            Assert.Equal(single.Stations.Count, batch[i].Stations.Count);
+            var kept = OrderKept(mixtures[i].Elements, union);
+            for (var s = 0; s < single.Stations.Count; s++)
+            {
+                var label = $"{names[i]} station {s}";
+                List<string> differences;
+                if (kept)
+                {
+                    differences = Comparison.BitDifferences(single.Stations[s], batch[i].Stations[s], label).ToList();
+                }
+                else
+                {
+                    differences = Comparison.RelativeDifferences(single.Stations[s], batch[i].Stations[s], ReorderedElementsTolerance, MoleFractionFloor, label).ToList();
+                }
+
+                Assert.True(differences.Count == 0, string.Join("; ", differences));
+            }
+        }
+
+        var hp = new EquilibriumProblem { Kind = Equilibrium.ProblemKind.AssignedEnthalpyPressure, Pressure = 1.0e6 };
+        var states = fixture.Solver.Solve(mixtures, Enumerable.Repeat(hp, names.Length).ToList());
+        for (var i = 0; i < names.Length; i++)
+        {
+            var differences = Comparison.RelativeDifferences(fixture.Solver.Solve(propellants[i], hp).State, states[i].State, ReorderedElementsTolerance, MoleFractionFloor, $"{names[i]} state").ToList();
+            Assert.True(differences.Count == 0, string.Join("; ", differences));
+        }
+
+        Assert.Throws<ArgumentException>(() => fixture.Solver.Solve(mixtures, problems.Take(2).ToList()));
+        var otherSelection = ElementalMixture.Create(mixtures[0].ElementMoles, mixtures[0].Enthalpy, ["HO2"]);
+        Assert.Throws<ArgumentException>(() => fixture.Solver.Solve([mixtures[0], otherSelection], [problems[0], problems[0]]));
     }
 }

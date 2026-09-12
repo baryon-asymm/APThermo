@@ -130,6 +130,26 @@ public sealed class Solver : IDisposable
         return SolveEquilibrium(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, null)).ToList());
     }
 
+    /// <summary>One rocket case per index over the union of the mixtures' elements; every mixture carries the same species lists.</summary>
+    public IReadOnlyList<RocketResult> Solve(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<RocketProblem> problems)
+    {
+        ArgumentNullException.ThrowIfNull(mixtures);
+        ArgumentNullException.ThrowIfNull(problems);
+        ThrowIfDisposed();
+        var system = UnionSystem(mixtures, problems.Count, "rocket");
+        return SolveRocket(system, mixtures.Select((mixture, i) => new RocketCase(mixture, problems[i], null, null)).ToList());
+    }
+
+    /// <summary>One equilibrium case per index over the union of the mixtures' elements; every mixture carries the same species lists.</summary>
+    public IReadOnlyList<EquilibriumResult> Solve(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<EquilibriumProblem> problems)
+    {
+        ArgumentNullException.ThrowIfNull(mixtures);
+        ArgumentNullException.ThrowIfNull(problems);
+        ThrowIfDisposed();
+        var system = UnionSystem(mixtures, problems.Count, "equilibrium");
+        return SolveEquilibrium(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList());
+    }
+
     /// <summary>One batch of state records over the union of their elements; a record lacking an element runs with the species containing it inactive.</summary>
     public IReadOnlyList<EquilibriumResult> SolveStates(IReadOnlyList<StateRecord> states, StateBatchOptions? options = null)
     {
@@ -141,8 +161,8 @@ public sealed class Solver : IDisposable
             throw new ArgumentException("the state batch is empty", nameof(states));
         }
 
-        var elements = new List<string>();
-        var cases = new List<EquilibriumCase>(states.Count);
+        var mixtures = new List<ElementalMixture>(states.Count);
+        var problems = new List<EquilibriumProblem>(states.Count);
         for (var i = 0; i < states.Count; i++)
         {
             var record = states[i] ?? throw new ArgumentException($"state record {i} is null", nameof(states));
@@ -152,25 +172,16 @@ public sealed class Solver : IDisposable
                 throw new ArgumentException($"state record {i}: exactly one of enthalpy, temperature and entropy must be given, not {targets}", nameof(states));
             }
 
-            ElementalMixture mixture;
             try
             {
-                mixture = ElementalMixture.Create(record.Composition, record.Enthalpy, options.Omit, options.Only);
+                mixtures.Add(ElementalMixture.Create(record.Composition, record.Enthalpy, options.Omit, options.Only));
             }
             catch (ArgumentException inner)
             {
                 throw new ArgumentException($"state record {i}: {inner.Message}", nameof(states), inner);
             }
 
-            foreach (var symbol in mixture.Elements)
-            {
-                if (!elements.Contains(symbol, StringComparer.Ordinal))
-                {
-                    elements.Add(symbol);
-                }
-            }
-
-            var problem = new EquilibriumProblem
+            problems.Add(new EquilibriumProblem
             {
                 Kind = record.Temperature is not null ? ProblemKind.AssignedTemperaturePressure
                      : record.Entropy is not null ? ProblemKind.AssignedEntropyPressure
@@ -180,11 +191,10 @@ public sealed class Solver : IDisposable
                 Enthalpy = record.Enthalpy,
                 Entropy = record.Entropy ?? 0.0,
                 Transport = options.Transport,
-            };
-            cases.Add(new EquilibriumCase(mixture, problem, null));
+            });
         }
 
-        return SolveEquilibrium(GetSystem(elements, options.Omit ?? [], options.Only), cases);
+        return Solve(mixtures, problems);
     }
 
     /// <inheritdoc />
@@ -468,6 +478,44 @@ public sealed class Solver : IDisposable
     }
 
     private ChemicalSystem GetSystem(ElementalMixture mixture) => GetSystem(mixture.Elements, mixture.Omit, mixture.Only);
+
+    /// <summary>The system over the union of the mixtures' elements, in order of first appearance, under the species lists they all share.</summary>
+    private ChemicalSystem UnionSystem(IReadOnlyList<ElementalMixture> mixtures, int problemCount, string kind)
+    {
+        if (mixtures.Count != problemCount)
+        {
+            throw new ArgumentException($"{mixtures.Count} mixtures were given for {problemCount} {kind} problems; a batch over mixtures takes one mixture per problem");
+        }
+
+        if (mixtures.Count == 0)
+        {
+            throw new ArgumentException($"no {kind} problems were given");
+        }
+
+        var first = mixtures[0] ?? throw new ArgumentException("mixture 0 is null");
+        var elements = new List<string>();
+        for (var i = 0; i < mixtures.Count; i++)
+        {
+            var mixture = mixtures[i] ?? throw new ArgumentException($"mixture {i} is null");
+            if (!SameNames(mixture.Omit, first.Omit) || !SameNames(mixture.Only, first.Only))
+            {
+                throw new ArgumentException($"mixture {i}: its Omit or Only list differs from mixture 0's; a batch has one species selection");
+            }
+
+            foreach (var symbol in mixture.Elements)
+            {
+                if (!elements.Contains(symbol, StringComparer.Ordinal))
+                {
+                    elements.Add(symbol);
+                }
+            }
+        }
+
+        return GetSystem(elements, first.Omit, first.Only);
+    }
+
+    private static bool SameNames(IReadOnlyList<string>? a, IReadOnlyList<string>? b) =>
+        a is null ? b is null : b is not null && a.Count == b.Count && a.ToHashSet(StringComparer.Ordinal).SetEquals(b);
 
     private ChemicalSystem GetSystem(IReadOnlyList<string> elements, IReadOnlyList<string> omit, IReadOnlyList<string>? only)
     {

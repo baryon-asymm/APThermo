@@ -61,17 +61,26 @@ chemical system is its knowledge and the engine only runs batches; the flow mode
 are the performance node's enum. Equilibrium problems, sweeps and state records
 were part of the intent from the start and are shown now that they exist.
 
-## Command line ⏳
+## Command line ✅
 
 ```console
-$ apthermo rocket problem.json --output result.json
+$ apthermo rocket problem.json --output result.json          # chamber, throat, exits; JSON or --format csv
+$ apthermo equilibrium problem.json                          # one tp, hp or sp state
+$ apthermo states records.json --transport                   # state records of another simulation, one batch
+$ apthermo species --find H2O                                # the database
+$ apthermo devices                                           # the accelerators
 ```
+
+`apthermo` is the tool command name of the `Cli` node's package; a direct run is
+`dotnet AerospacePropellantThermodynamics.Cli.dll …`. Exit codes: 0 every case ok, 1 a
+case failed numerically (document written), 2 invalid input, 3 accelerator or
+infrastructure error.
 
 Pressures in Pa, temperatures in K, specific impulse in m/s; every other unit is SI as
 stated in `BOOT.md`. A failed case is reported with a status, never with a partially
 filled result.
 
-## Children ⏳
+## Children ✅
 
 - [Problems](./src/Problems/API.md) — the front door: propellants, problems, results, the solver.
 - [Cli](./src/Cli/API.md) — the `apthermo` command line: JSON in, JSON or CSV out.
@@ -82,7 +91,7 @@ Internal nodes, not used from outside the tree: [Thermo](./src/Thermo/API.md),
 [Equilibrium](./src/Equilibrium/API.md), [Performance](./src/Performance/API.md),
 [Transport](./src/Transport/API.md).
 
-## Test nodes ⏳
+## Test nodes ✅
 
 - [Fixtures](./tests/Fixtures/API.md) — the reference outputs, their generator, the tolerance table;
   [Fixtures.Tests](./tests/Fixtures.Tests/API.md) proves their form and provenance.
@@ -90,4 +99,4 @@ Internal nodes, not used from outside the tree: [Thermo](./src/Thermo/API.md),
   [Equilibrium.Tests](./tests/Equilibrium.Tests/API.md), [Performance.Tests](./tests/Performance.Tests/API.md),
   [Transport.Tests](./tests/Transport.Tests/API.md), [Execution.Tests](./tests/Execution.Tests/API.md),
   [Problems.Tests](./tests/Problems.Tests/API.md), [Cli.Tests](./tests/Cli.Tests/API.md) — what each node proves.
-- [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13).
+- [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13); planned.

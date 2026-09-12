@@ -1,0 +1,15 @@
+{
+  "pressure": 7000000.0,
+  "enthalpy": -986308.2798134929,
+  "composition": {
+    "H": 141.73179242528607,
+    "O": 53.57343757533765
+  },
+  "areaRatios": [
+    20.0
+  ],
+  "pressureRatios": [
+    10.0
+  ],
+  "flow": "shifting-equilibrium"
+}

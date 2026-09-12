@@ -119,7 +119,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   per-case amounts (oxidizer-to-fuel ratio or mass fractions), chamber pressure and
   exit values; the number of exits per batch is fixed by the batch, the values vary
   per case. Rocket problems with different exit layouts given in one call are grouped
-  by layout, one batch per group, and the results come back in the order given. A
+  by layout, one batch per group, and the results come back in the order given. Several
+  mixtures with one problem each (rocket or equilibrium) are one batch over the union of
+  their elements when their species lists agree. In such a batch the results of a case
+  equal those of the case solved with its own table to rounding: bit for bit, the
+  transport figures included, when the union (elements in order of first appearance)
+  keeps the relative order of the case's elements; within 1e-9 relative when it
+  reorders them, because the linear solves pivot in element order and the iterates
+  then differ by rounding at every step. The transport set of a case counts the gases
+  of the case, not of the table (the transport node's `BOOT.md`, 2026-09-13), so the
+  larger table changes no figure. A
   state batch is a list of records, each with its own element moles, pressure and one
   target (enthalpy, temperature or entropy); its element set is the union over the
   records.
@@ -159,7 +168,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (`RocketTests.An_elemental_mixture_reproduces_its_propellant_bit_for_bit`); a
       state batch of the fixture stations reproduces the fixtures within the tolerance
       table, including records where an element of the batch is absent
-      (`EquilibriumTests.State_batches_over_the_union_of_elements_reproduce_the_reference`).
+      (`EquilibriumTests.State_batches_over_the_union_of_elements_reproduce_the_reference`;
+      2026-09-13 for the batch over several mixtures:
+      `RocketTests.Rocket_and_equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`).
 - [x] 2026-09-12 — End-to-end: every rocket fixture (the four reference propellants in
       shifting and frozen flow, with and without transport, and the RP-1311 rocket
       examples) and every tp, hp and sp fixture through this node match the fixtures
