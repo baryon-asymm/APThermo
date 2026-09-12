@@ -1,0 +1,167 @@
+{
+  "case": {
+    "name": "ALO",
+    "kind": "thermo",
+    "inputs": {
+      "species": "ALO",
+      "line": 398,
+      "phase": "gas",
+      "molarMass": 42.980938,
+      "intervals": [
+        [
+          300.0,
+          1000.0
+        ],
+        [
+          1000.0,
+          6000.0
+        ],
+        [
+          6000.0,
+          20000.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        500.0,
+        1000.0,
+        1000.0001,
+        2000.0,
+        3000.0,
+        5000.0,
+        6000.0,
+        21000.0
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 3.6885935015265656,
+        "hOverRT": 28.238224737446235,
+        "sOverR": 26.099002060772467,
+        "gOverRT": 2.139222676673768
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 4.05968876015,
+        "hOverRT": 17.76734215007866,
+        "sOverR": 28.274253325019107,
+        "gOverRT": -10.506911174940445
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 4.4666636798,
+        "hOverRT": 11.025826713550646,
+        "sOverR": 31.228368174482856,
+        "gOverRT": -20.20254146093221
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 4.46666371449146,
+        "hOverRT": 11.025826061757177,
+        "sOverR": 31.228368616377885,
+        "gOverRT": -20.202542554620706
+      },
+      {
+        "temperature": 2000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 5.410898073342503,
+        "hOverRT": 7.983224836318638,
+        "sOverR": 34.612898275330814,
+        "gOverRT": -26.629673439012176
+      },
+      {
+        "temperature": 3000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 5.734531895302226,
+        "hOverRT": 7.1993552104034455,
+        "sOverR": 36.89189230362483,
+        "gOverRT": -29.692537093221382
+      },
+      {
+        "temperature": 5000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 5.561475579214397,
+        "hOverRT": 6.577728479682876,
+        "sOverR": 39.78015321861652,
+        "gOverRT": -33.202424738933644
+      },
+      {
+        "temperature": 6000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 5.513860092851388,
+        "hOverRT": 6.4060478422122555,
+        "sOverR": 40.791715589040784,
+        "gOverRT": -34.38566774682853
+      },
+      {
+        "temperature": 21000.0,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 3.548234460085679,
+        "hOverRT": 5.031358713672292,
+        "sOverR": 46.690248155774434,
+        "gOverRT": -41.658889442102144
+      }
+    ]
+  }
+}

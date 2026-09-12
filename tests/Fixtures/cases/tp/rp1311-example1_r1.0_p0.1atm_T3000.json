@@ -1,0 +1,111 @@
+{
+  "case": {
+    "name": "rp1311-example1_r1.0_p0.1atm_T3000",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "H2",
+          "massFraction": 0.028331640493028304,
+          "temperature": null
+        },
+        {
+          "name": "Air",
+          "massFraction": 0.9716683595069716,
+          "temperature": null
+        }
+      ],
+      "oxidizerToFuelRatio": 34.29622553441931,
+      "elementMoles": {
+        "AR": 0.000314327502089516,
+        "C": 1.0734770615650494e-05,
+        "H": 0.02810845932598002,
+        "N": 0.0523890352201918,
+        "O": 0.01407563250818997
+      },
+      "temperature": 3000.0,
+      "pressure": 10132.5,
+      "transport": false,
+      "products": [
+        "Ar",
+        "C",
+        "CO",
+        "CO2",
+        "H",
+        "H2",
+        "H2O",
+        "HNO",
+        "HO2",
+        "HNO2",
+        "HNO3",
+        "N",
+        "NH",
+        "NO",
+        "N2",
+        "N2O3",
+        "O",
+        "O2",
+        "OH",
+        "O3"
+      ],
+      "omit": [],
+      "trace": null,
+      "chemicalEquivalenceRatio": 1.0
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "rp1311.py",
+    "scriptSha256": "9bfd1e4de57a6c848aad02d349b604e52af5bce6a7e1b49a0506630ee583c8c0",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "temperature": 3000.0,
+    "pressure": 10132.5,
+    "density": 0.008085108647238888,
+    "enthalpy": 5730178.600982252,
+    "internalEnergy": 4476948.688795444,
+    "entropy": 13927.482807891616,
+    "gibbsEnergy": -36052269.822692595,
+    "molarMass": 19.903395025478677,
+    "gasMolarMass": 19.903395025478677,
+    "cpFrozen": 1791.6920084792528,
+    "cpEquilibrium": 14392.17055555552,
+    "cvFrozen": 1373.9487044169832,
+    "cvEquilibrium": 11906.761464457722,
+    "gammaS": 1.1205816135096696,
+    "dlnVdlnT": 2.5333125133457512,
+    "dlnVdlnP": -1.078671369043653,
+    "soundSpeed": 1185.0512212967317,
+    "moleFractions": {
+      "Ar": 0.006252846017719966,
+      "C": 7.095618768267428e-14,
+      "CO": 0.00018417424841688128,
+      "CO2": 2.8816448823122232e-05,
+      "H": 0.14289460143470828,
+      "H2": 0.08271781532731468,
+      "H2O": 0.09579146294208195,
+      "HNO": 5.81418836284842e-07,
+      "HO2": 5.080377254075677e-06,
+      "HNO2": 1.4351788949805698e-08,
+      "HNO3": 1.7682402434366863e-13,
+      "N": 3.134776459684964e-05,
+      "NH": 1.3987794076639968e-06,
+      "NO": 0.013705130093002312,
+      "N2": 0.5144839175042935,
+      "N2O3": 1.5476244812022046e-15,
+      "O": 0.057868384832182554,
+      "O2": 0.02650089102394548,
+      "OH": 0.05953353558829719,
+      "O3": 1.8470811146225357e-09
+    },
+    "converged": true
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "case": {
+    "name": "ALCL3(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "ALCL3(cr)",
+      "line": 11012,
+      "phase": "condensed",
+      "molarMass": 133.340538,
+      "intervals": [
+        [
+          300.0,
+          465.7
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        488.985
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 10.813933775704431,
+        "hOverRT": -298.0586941785425,
+        "sOverR": 12.653397086302926,
+        "gOverRT": -310.7120912648454
+      },
+      {
+        "temperature": 488.985,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 12.97878735627118,
+        "hOverRT": -168.75608341100732,
+        "sOverR": 19.025796851003424,
+        "gOverRT": -187.78188026201076
+      }
+    ]
+  }
+}

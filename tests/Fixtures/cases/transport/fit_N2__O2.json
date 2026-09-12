@@ -1,0 +1,99 @@
+{
+  "case": {
+    "name": "fit_N2__O2",
+    "kind": "transport",
+    "inputs": {
+      "species": "N2",
+      "partner": "O2",
+      "reference": "SVEHLA (1994)",
+      "fits": [
+        [
+          "V",
+          300.0,
+          1000.0
+        ],
+        [
+          "V",
+          1000.0,
+          5000.0
+        ],
+        [
+          "V",
+          5000.0,
+          15000.0
+        ]
+      ],
+      "fileUnits": {
+        "viscosity": "micropoise",
+        "conductivity": "microwatt per centimetre kelvin"
+      },
+      "factorsToSi": {
+        "viscosity": 1e-07,
+        "conductivity": 0.0001
+      }
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "transport_fits.py",
+    "scriptSha256": "27cffa7a72c62b33707d875926cd67cebc6f168fb2a9018fda2e960edd3a98c6",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "viscosity": [
+      {
+        "temperature": 300.0,
+        "fit": 0,
+        "value": 1.98472989347688e-05
+      },
+      {
+        "temperature": 500.0,
+        "fit": 0,
+        "value": 2.8488570805436706e-05
+      },
+      {
+        "temperature": 1000.0,
+        "fit": 0,
+        "value": 4.6277502245092484e-05
+      },
+      {
+        "temperature": 1000.0,
+        "fit": 1,
+        "value": 4.627750613770754e-05
+      },
+      {
+        "temperature": 2000.0,
+        "fit": 1,
+        "value": 7.517986888848324e-05
+      },
+      {
+        "temperature": 3000.0,
+        "fit": 1,
+        "value": 9.959266830266511e-05
+      },
+      {
+        "temperature": 5000.0,
+        "fit": 1,
+        "value": 0.00014140072055443065
+      },
+      {
+        "temperature": 5000.0,
+        "fit": 2,
+        "value": 0.00014137909238871413
+      },
+      {
+        "temperature": 15000.0,
+        "fit": 2,
+        "value": 0.00031731393165473654
+      }
+    ],
+    "conductivity": []
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "case": {
+    "name": "rp1311-example8_exit2",
+    "kind": "hp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "H2(L)",
+          "massFraction": 0.15263517131965196,
+          "temperature": 20.27
+        },
+        {
+          "name": "O2(L)",
+          "massFraction": 0.8473648286803481,
+          "temperature": 90.17
+        }
+      ],
+      "oxidizerToFuelRatio": 5.55157,
+      "elementMoles": {
+        "H": 0.15143279492792422,
+        "O": 0.052962287878317194
+      },
+      "enthalpy": -8561508.13962115,
+      "pressure": 53317.19970703125,
+      "transport": true,
+      "products": [
+        "H",
+        "H2",
+        "H2O",
+        "H2O2",
+        "HO2",
+        "O",
+        "O2",
+        "O3",
+        "OH",
+        "H2O(L)",
+        "H2O(cr)"
+      ],
+      "omit": [],
+      "trace": null,
+      "derivedFrom": {
+        "case": "rp1311-example8",
+        "station": "exit2",
+        "index": 3,
+        "temperature": 1759.8928321969922
+      }
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "rp1311.py",
+    "scriptSha256": "9bfd1e4de57a6c848aad02d349b604e52af5bce6a7e1b49a0506630ee583c8c0",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "temperature": 1759.89283330919,
+    "pressure": 53317.19970703125,
+    "density": 0.04811787169339143,
+    "enthalpy": -8561508.135870535,
+    "internalEnergy": -9669562.125597473,
+    "entropy": 18658.567905188724,
+    "gibbsEnergy": -41398588.072025046,
+    "molarMass": 13.205716235075856,
+    "gasMolarMass": 13.205716235075856,
+    "cpFrozen": 3398.72363727867,
+    "cpEquilibrium": 3434.7717051119807,
+    "cvFrozen": 2769.1091694230204,
+    "cvEquilibrium": 2802.9567503763087,
+    "gammaS": 1.2253423079767267,
+    "dlnVdlnT": 1.0017737019420816,
+    "dlnVdlnP": -1.0000553812589044,
+    "viscosity": 6.190185472783949e-05,
+    "frozenConductivity": 0.3000291274600819,
+    "reactingConductivity": 0.30861401026365914,
+    "frozenPrandtl": 0.701222906708916,
+    "reactingPrandtl": 0.6889431238600949,
+    "soundSpeed": 1165.223340452304,
+    "moleFractions": {
+      "H": 0.00019077280004839277,
+      "H2": 0.30040429602644103,
+      "H2O": 0.6993742492958629,
+      "H2O2": 4.547293851268663e-11,
+      "HO2": 9.080245299032871e-12,
+      "O": 1.3226298468827078e-08,
+      "O2": 1.3698917771279825e-08,
+      "O3": 2.0739050362991124e-20,
+      "OH": 3.06548978782131e-05,
+      "H2O(L)": 0.0,
+      "H2O(cr)": 0.0
+    },
+    "converged": true
+  }
+}

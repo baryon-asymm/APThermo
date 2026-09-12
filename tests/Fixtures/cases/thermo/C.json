@@ -1,0 +1,167 @@
+{
+  "case": {
+    "name": "C",
+    "kind": "thermo",
+    "inputs": {
+      "species": "C",
+      "line": 1954,
+      "phase": "gas",
+      "molarMass": 12.0107,
+      "intervals": [
+        [
+          300.0,
+          1000.0
+        ],
+        [
+          1000.0,
+          6000.0
+        ],
+        [
+          6000.0,
+          20000.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        500.0,
+        1000.0,
+        1000.0001,
+        2000.0,
+        3000.0,
+        5000.0,
+        6000.0,
+        21000.0
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 2.506905697163288,
+        "hOverRT": 302.32750327658226,
+        "sOverR": 18.90199966271715,
+        "gOverRT": 283.4255036138651
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 2.5022112586079372,
+        "hOverRT": 173.40335770455619,
+        "sOverR": 20.309613338659595,
+        "gOverRT": 153.09374436589658
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 2.500599980512,
+        "hOverRT": 87.95223251729051,
+        "sOverR": 22.043310695167943,
+        "gOverRT": 65.90892182212257
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.5005999819420275,
+        "hOverRT": 87.95222394850146,
+        "sOverR": 22.043310945346537,
+        "gOverRT": 65.90891300315492
+      },
+      {
+        "temperature": 2000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.52006520164,
+        "hOverRT": 45.22893126046037,
+        "sOverR": 23.779475496605823,
+        "gOverRT": 21.449455763854548
+      },
+      {
+        "temperature": 3000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.600257007843889,
+        "hOverRT": 31.00493084927424,
+        "sOverR": 24.81511726754825,
+        "gOverRT": 6.189813581725989
+      },
+      {
+        "temperature": 5000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.7518174919269995,
+        "hOverRT": 19.676926712868184,
+        "sOverR": 26.183271375551804,
+        "gOverRT": -6.50634466268362
+      },
+      {
+        "temperature": 6000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.7889966162088884,
+        "hOverRT": 16.85932879071116,
+        "sOverR": 26.688445062774186,
+        "gOverRT": -9.829116272063025
+      },
+      {
+        "temperature": 21000.0,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 3.71948710624887,
+        "hOverRT": 7.132462536635547,
+        "sOverR": 30.60360774685593,
+        "gOverRT": -23.47114521022038
+      }
+    ]
+  }
+}

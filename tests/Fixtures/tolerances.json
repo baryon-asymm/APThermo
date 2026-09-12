@@ -1,0 +1,47 @@
+{
+  "comment": "The single tolerance table of the tree. A value matches when |expected - actual| <= absolute + relative * |expected|. Provisional until the first full comparison calibrates it (Fixtures BOOT.md).",
+  "fields": {
+    "temperature": {
+      "absolute": 0.05,
+      "relative": 2e-5,
+      "derivation": "CEA prints temperatures to 0.01 K and stops its hp and sp iterations at 5e-5 on the relative temperature correction (RP-1311, section 3.2); 2e-5 relative on a 3500 K chamber is 0.07 K, and 0.05 K covers the print precision at low temperatures."
+    },
+    "pressure": {
+      "absolute": 0.0,
+      "relative": 1e-5,
+      "derivation": "Throat and exit pressures follow from iterations converged to 4e-5 on the squared Mach number (RP-1311, section 6.2) and are printed with five significant digits; 1e-5 relative is the print precision."
+    },
+    "density": { "absolute": 0.0, "relative": 1e-4, "derivation": "Derived from T, p and the molar mass; the product of their tolerances." },
+    "enthalpy": { "absolute": 20.0, "relative": 1e-4, "derivation": "Enthalpy passes through zero; 20 J/kg is 1e-5 of a typical 2 MJ/kg magnitude and covers the 0.01 kJ/kg print precision of the reference." },
+    "internalEnergy": { "absolute": 20.0, "relative": 1e-4, "derivation": "As enthalpy." },
+    "entropy": { "absolute": 0.0, "relative": 1e-4, "derivation": "Printed with four decimals in kJ/(kg K) on magnitudes of 10 to 20; 1e-4 relative." },
+    "gibbsEnergy": { "absolute": 20.0, "relative": 1e-4, "derivation": "As enthalpy." },
+    "molarMass": { "absolute": 0.0, "relative": 1e-4, "derivation": "Follows the composition; printed with three decimals on magnitudes of 10 to 30." },
+    "gasMolarMass": { "absolute": 0.0, "relative": 1e-4, "derivation": "As molarMass." },
+    "cpFrozen": { "absolute": 0.0, "relative": 1e-4, "derivation": "A sum of species functions weighted by the composition; the composition tolerance dominates." },
+    "cpEquilibrium": { "absolute": 0.0, "relative": 1e-4, "derivation": "Contains the equilibrium derivatives, which are solutions of the same linear system as the composition corrections." },
+    "cvFrozen": { "absolute": 0.0, "relative": 1e-4, "derivation": "As cpFrozen." },
+    "cvEquilibrium": { "absolute": 0.0, "relative": 1e-4, "derivation": "As cpEquilibrium." },
+    "gammaS": { "absolute": 0.0, "relative": 1e-4, "derivation": "Printed with four decimals on magnitudes near 1.2." },
+    "dlnVdlnT": { "absolute": 0.0, "relative": 1e-4, "derivation": "Derived in the generator from the package's cp, cv, gamma_s and M (cea_cases.py); inherits their tolerance." },
+    "dlnVdlnP": { "absolute": 0.0, "relative": 1e-4, "derivation": "As dlnVdlnT." },
+    "soundSpeed": { "absolute": 0.0, "relative": 1e-4, "derivation": "sqrt(gamma_s R T / M); half the relative tolerance of its factors, rounded up." },
+    "mach": { "absolute": 0.0, "relative": 1e-4, "derivation": "The throat Mach number is 1 within 2e-5 by the sonic criterion; exits follow the area-ratio iteration." },
+    "moleFraction": { "absolute": 5e-6, "relative": 0.0, "derivation": "CEA prints mole fractions above 5e-6 with five significant digits and lists the rest as trace species; the equilibrium iteration stops at 5e-7 on the mole-number corrections (RP-1311, section 3.2)." },
+    "moleFractionTrace": { "absolute": 1e-5, "relative": 0.0, "derivation": "A species the reference reports below 5e-6 is only asserted to stay below 1e-5 in the tree: the trace tail depends on the iteration path." },
+    "areaRatio": { "absolute": 0.0, "relative": 1e-4, "derivation": "An input for area-ratio stations (reproduced to 1e-7 by the reference), a result for pressure-ratio stations." },
+    "pressureRatio": { "absolute": 0.0, "relative": 1e-4, "derivation": "As areaRatio, with the roles of input and result exchanged." },
+    "characteristicVelocity": { "absolute": 0.0, "relative": 1e-4, "derivation": "p_c / (rho_t u_t); printed with one decimal on magnitudes near 2000 m/s." },
+    "thrustCoefficient": { "absolute": 0.0, "relative": 1e-4, "derivation": "Isp / c*; printed with four decimals." },
+    "specificImpulse": { "absolute": 0.0, "relative": 1e-4, "derivation": "The exit velocity; printed with one decimal on magnitudes near 4000 m/s." },
+    "vacuumSpecificImpulse": { "absolute": 0.0, "relative": 1e-4, "derivation": "As specificImpulse." },
+    "viscosity": { "absolute": 0.0, "relative": 5e-4, "derivation": "The reference prints transport properties with five significant digits; the mixture rules sum over pairs with interaction fits, and species without data are excluded on both sides." },
+    "frozenConductivity": { "absolute": 0.0, "relative": 5e-4, "derivation": "As viscosity." },
+    "reactingConductivity": { "absolute": 0.0, "relative": 5e-4, "derivation": "Adds the reaction term built from the equilibrium derivatives; as viscosity." },
+    "frozenPrandtl": { "absolute": 0.0, "relative": 5e-4, "derivation": "cp mu / k; as viscosity." },
+    "reactingPrandtl": { "absolute": 0.0, "relative": 5e-4, "derivation": "As reactingConductivity." },
+    "thermoFunction": { "absolute": 1e-12, "relative": 1e-12, "derivation": "The same polynomial evaluated in double precision by two programs; the difference is rounding, at most a few units in the last place of the largest term. The absolute part covers values that pass through zero." },
+    "transportFit": { "absolute": 0.0, "relative": 1e-12, "derivation": "The same fit evaluated in double precision by two programs: exp of a four-term sum." },
+    "gasConstant": { "absolute": 0.0, "relative": 0.0, "derivation": "A constant typed in both places; equality is exact." }
+  }
+}

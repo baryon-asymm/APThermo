@@ -1,0 +1,167 @@
+{
+  "case": {
+    "name": "C(gr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "C(gr)",
+      "line": 15466,
+      "phase": "condensed",
+      "molarMass": 12.0107,
+      "intervals": [
+        [
+          300.0,
+          600.0
+        ],
+        [
+          600.0,
+          2000.0
+        ],
+        [
+          2000.0,
+          6000.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        500.0,
+        1000.0,
+        1000.0001,
+        2000.0,
+        3000.0,
+        5000.0,
+        6000.0,
+        6300.0
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 0.9708651543470077,
+        "hOverRT": -0.046064089148483374,
+        "sOverR": 0.6446140703633662,
+        "gOverRT": -0.6906781595118495
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 1.7579813549999987,
+        "hOverRT": 0.5691880097748809,
+        "sOverR": 1.4022168958990786,
+        "gOverRT": -0.8330288861241977
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.5992561320999994,
+        "hOverRT": 1.4186173869411278,
+        "sOverR": 2.9409269988064826,
+        "gOverRT": -1.5223096118653547
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 2.599256216333996,
+        "hOverRT": 1.418617505004997,
+        "sOverR": 2.9409272587320796,
+        "gOverRT": -1.5223097537270827
+      },
+      {
+        "temperature": 2000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 3.0175129098499993,
+        "hOverRT": 2.1360910767690067,
+        "sOverR": 4.902636641296428,
+        "gOverRT": -2.766545564527421
+      },
+      {
+        "temperature": 3000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 3.2003007661668885,
+        "hOverRT": 2.4623969174100013,
+        "sOverR": 6.163177907252787,
+        "gOverRT": -3.7007809898427855
+      },
+      {
+        "temperature": 5000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 3.474632751574,
+        "hOverRT": 2.813886891990717,
+        "sOverR": 7.863991753395913,
+        "gOverRT": -5.050104861405196
+      },
+      {
+        "temperature": 6000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 3.605091760866889,
+        "hOverRT": 2.9348492344113084,
+        "sOverR": 8.50898748120572,
+        "gOverRT": -5.574138246794412
+      },
+      {
+        "temperature": 6300.0,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 3.645163749550604,
+        "hOverRT": 2.967716603736341,
+        "sOverR": 8.685847000747644,
+        "gOverRT": -5.718130397011303
+      }
+    ]
+  }
+}

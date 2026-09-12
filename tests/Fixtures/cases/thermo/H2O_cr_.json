@@ -1,0 +1,79 @@
+{
+  "case": {
+    "name": "H2O(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "H2O(cr)",
+      "line": 12476,
+      "phase": "condensed",
+      "molarMass": 18.01528,
+      "intervals": [
+        [
+          200.0,
+          273.15
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        190.0,
+        200.0,
+        286.8075
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 190.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 3.2363894542981537,
+        "hOverRT": -187.6379073892912,
+        "sOverR": 3.570027730963792,
+        "gOverRT": -191.207935120255
+      },
+      {
+        "temperature": 200.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 3.392177161999987,
+        "hOverRT": -178.09029127483424,
+        "sOverR": 3.7400008529440263,
+        "gOverRT": -181.83029212777828
+      },
+      {
+        "temperature": 286.8075,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 4.827911128981313,
+        "hOverRT": -122.94929717414425,
+        "sOverR": 5.199973744712143,
+        "gOverRT": -128.1492709188564
+      }
+    ]
+  }
+}

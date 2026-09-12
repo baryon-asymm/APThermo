@@ -1,0 +1,27 @@
+{
+  "case": {
+    "name": "R",
+    "kind": "constants",
+    "inputs": {
+      "quantity": "universal gas constant",
+      "unit": "J/(kmol K)",
+      "source": "cea.R"
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "constants.py",
+    "scriptSha256": "64ecc0a3e1a5085e6fb03abafdc4a08b70c4d9bcb78fe60ce905a360de9067e1",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "R": 8314.51
+  }
+}

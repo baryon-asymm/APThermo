@@ -63,7 +63,8 @@ Internal nodes, not used from outside the tree: [Thermo](./src/Thermo/API.md),
 
 ## Test nodes ⏳
 
-- [Fixtures](./tests/Fixtures/API.md) — the reference outputs, their generator, the tolerance table.
+- [Fixtures](./tests/Fixtures/API.md) — the reference outputs, their generator, the tolerance table;
+  [Fixtures.Tests](./tests/Fixtures.Tests/API.md) proves their form and provenance.
 - [Data.Tests](./tests/Data.Tests/API.md), [Thermo.Tests](./tests/Thermo.Tests/API.md),
   [Equilibrium.Tests](./tests/Equilibrium.Tests/API.md), [Performance.Tests](./tests/Performance.Tests/API.md),
   [Transport.Tests](./tests/Transport.Tests/API.md), [Execution.Tests](./tests/Execution.Tests/API.md),

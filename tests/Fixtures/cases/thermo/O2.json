@@ -1,0 +1,187 @@
+{
+  "case": {
+    "name": "O2",
+    "kind": "thermo",
+    "inputs": {
+      "species": "O2",
+      "line": 8018,
+      "phase": "gas",
+      "molarMass": 31.9988,
+      "intervals": [
+        [
+          200.0,
+          1000.0
+        ],
+        [
+          1000.0,
+          6000.0
+        ],
+        [
+          6000.0,
+          20000.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        190.0,
+        200.0,
+        298.15,
+        500.0,
+        1000.0,
+        1000.0001,
+        2000.0,
+        3000.0,
+        5000.0,
+        6000.0,
+        21000.0
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 190.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 3.499790253194582,
+        "hOverRT": -1.9999103634325635,
+        "sOverR": 23.09108562513329,
+        "gOverRT": -25.09099598856585
+      },
+      {
+        "temperature": 200.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 3.5030287193488006,
+        "hOverRT": -1.7248382224411496,
+        "sOverR": 23.270690052957768,
+        "gOverRT": -24.995528275398918
+      },
+      {
+        "temperature": 298.15,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 3.533383612161839,
+        "hOverRT": -5.166370599558878e-09,
+        "sOverR": 24.673668967541573,
+        "gOverRT": -24.673668972707944
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 3.7394441388250006,
+        "hOverRT": 1.4638267963944438,
+        "sOverR": 26.54373902280171,
+        "gOverRT": -25.079912226407266
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 4.195381929800001,
+        "hOverRT": 2.7310341435749046,
+        "sOverR": 29.296652945019954,
+        "gOverRT": -26.565618801445048
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 4.1953819901765845,
+        "hOverRT": 2.7310342942264394,
+        "sOverR": 29.2966533643805,
+        "gOverRT": -26.56561907015406
+      },
+      {
+        "temperature": 2000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 4.54431840878,
+        "hOverRT": 3.560132940915276,
+        "sOverR": 32.32566803972326,
+        "gOverRT": -28.765535098807984
+      },
+      {
+        "temperature": 3000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 4.808434330134999,
+        "hOverRT": 3.9335835022386587,
+        "sOverR": 34.219816941948295,
+        "gOverRT": -30.286233439709637
+      },
+      {
+        "temperature": 5000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 5.171306245895,
+        "hOverRT": 4.363100234580403,
+        "sOverR": 36.7698135819383,
+        "gOverRT": -32.4067133473579
+      },
+      {
+        "temperature": 6000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 5.28590712454,
+        "hOverRT": 4.507854793895476,
+        "sOverR": 37.723334390742565,
+        "gOverRT": -33.21547959684709
+      },
+      {
+        "temperature": 21000.0,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 3.2624344344512064,
+        "hOverRT": 4.3671873028516615,
+        "sOverR": 43.435457978988055,
+        "gOverRT": -39.06827067613639
+      }
+    ]
+  }
+}

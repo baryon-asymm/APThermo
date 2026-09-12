@@ -1,0 +1,127 @@
+{
+  "case": {
+    "name": "Fe(a)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "Fe(a)",
+      "line": 12180,
+      "phase": "condensed",
+      "molarMass": 55.845,
+      "intervals": [
+        [
+          300.0,
+          500.0
+        ],
+        [
+          500.0,
+          800.0
+        ],
+        [
+          800.0,
+          1042.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        500.0,
+        1000.0,
+        1000.0001,
+        1094.1000000000001
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 2.9780465988175804,
+        "hOverRT": -0.1383411536250537,
+        "sOverR": 3.150704559609969,
+        "gOverRT": -3.289045713235023
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 3.57231340474,
+        "hOverRT": 1.329497047681456,
+        "sOverR": 4.976481863919446,
+        "gOverRT": -3.64698481623799
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.541672000003473,
+        "hOverRT": 2.907727501156387,
+        "sOverR": 8.000205487525932,
+        "gOverRT": -5.092477986369545
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.541677050119233,
+        "hOverRT": 2.9077278645517026,
+        "sOverR": 8.000206141690228,
+        "gOverRT": -5.092478277138525
+      },
+      {
+        "temperature": 1094.1000000000001,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 19.915267515963023,
+        "hOverRT": 3.6510879465375865,
+        "sOverR": 9.030216357051131,
+        "gOverRT": -5.379128410513545
+      }
+    ]
+  }
+}

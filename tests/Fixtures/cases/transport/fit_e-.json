@@ -1,0 +1,80 @@
+{
+  "case": {
+    "name": "fit_e-",
+    "kind": "transport",
+    "inputs": {
+      "species": "e-",
+      "partner": null,
+      "reference": "MASON ET AL (1967)",
+      "fits": [
+        [
+          "V",
+          2000.0,
+          5000.0
+        ],
+        [
+          "C",
+          2000.0,
+          5000.0
+        ]
+      ],
+      "fileUnits": {
+        "viscosity": "micropoise",
+        "conductivity": "microwatt per centimetre kelvin"
+      },
+      "factorsToSi": {
+        "viscosity": 1e-07,
+        "conductivity": 0.0001
+      }
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "transport_fits.py",
+    "scriptSha256": "27cffa7a72c62b33707d875926cd67cebc6f168fb2a9018fda2e960edd3a98c6",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "viscosity": [
+      {
+        "temperature": 2000.0,
+        "fit": 0,
+        "value": 2.2302517231606363e-10
+      },
+      {
+        "temperature": 3000.0,
+        "fit": 0,
+        "value": 1.3165771114721474e-09
+      },
+      {
+        "temperature": 5000.0,
+        "fit": 0,
+        "value": 1.5046756865539387e-08
+      }
+    ],
+    "conductivity": [
+      {
+        "temperature": 2000.0,
+        "fit": 1,
+        "value": 0.012676394003811755
+      },
+      {
+        "temperature": 3000.0,
+        "fit": 1,
+        "value": 0.07482976655102043
+      },
+      {
+        "temperature": 5000.0,
+        "fit": 1,
+        "value": 0.8552092432225069
+      }
+    ]
+  }
+}

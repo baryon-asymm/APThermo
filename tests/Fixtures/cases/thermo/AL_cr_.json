@@ -1,0 +1,79 @@
+{
+  "case": {
+    "name": "AL(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "AL(cr)",
+      "line": 10992,
+      "phase": "condensed",
+      "molarMass": 26.981538,
+      "intervals": [
+        [
+          300.0,
+          933.61
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        500.0,
+        980.2905000000001
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "492bcd7749a40904e09366a4e06487a508d8723dd7ddd7d6f2a846a59fc81b73",
+    "generatedOn": "2026-09-12"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 2.8799490272781934,
+        "hOverRT": -0.1335978788811564,
+        "sOverR": 3.2730860381931537,
+        "gOverRT": -3.40668391707431
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 3.2365099901750005,
+        "hOverRT": 1.2463132867154108,
+        "sOverR": 4.99267750896593,
+        "gOverRT": -3.7463642222505196
+      },
+      {
+        "temperature": 980.2905000000001,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 4.2681353818630505,
+        "hOverRT": 2.425517564028918,
+        "sOverR": 7.415917185940512,
+        "gOverRT": -4.990399621911594
+      }
+    ]
+  }
+}
