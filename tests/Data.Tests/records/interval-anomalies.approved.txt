@@ -1,0 +1,11 @@
+Br2(cr) [Products]: interval 1 bounds 300..265.9 are not ascending
+Ca(a) [Products]: interval 1 bounds 300..298.15 are not ascending
+CrN(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+FeCL3(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+FeOCL(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+Fe3O4(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+Li(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+NH4F(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+Si(cr) [Products]: interval 1 bounds 300..298.15 are not ascending
+Ti3O5(a) [Products]: interval 1 bounds 300..298.15 are not ascending
+U3O8(II) [Products]: interval 1 bounds 300..300 are not ascending

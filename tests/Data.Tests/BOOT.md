@@ -8,8 +8,8 @@ code" (AGENTS.md §1): it is the readiness criterion, moved into a node of its o
 
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
-| L0 | column parsing: `D`/`E`/blank exponents, formula pairs, phase field, `N = 0` records, transport header codes | hand-transcribed record strings with expected values in fixture files of this node | ⏳ |
-| L1 | full loads of the committed `data/thermo.inp` and `data/trans.inp`: counts, fixture records, interval contiguity, anomaly list, atomic weights, failure on corrupted copies | an independent line scan in the test, the anomaly list approved file, the fixture records | ⏳ |
+| L0 | numeric field reading: `D`/`E`/blank exponents, a sign in place of the exponent letter, bare decimals, blank fields, non-numeric text | expected doubles in the theory data of `FortranNumberTests` (the one place a number is typed: the forms are the subject, not the data) | ✅ 2026-09-12 |
+| L1 | full loads of the committed `data/thermo.inp` and `data/trans.inp`: counts, fixture records, interval ordering and contiguity, anomaly list, transport blocks, atomic weights, failure on corrupted copies | an independent line scan in the test, the approved anomaly list, the fixture records written by `transcribe.py` | ✅ 2026-09-12 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot (protocol tests node) | ⏳ |
 
 Each next level makes sense only when the previous one is green.
@@ -21,29 +21,63 @@ Each next level makes sense only when the previous one is green.
 - **Counts are generated, not typed**: the number of records the loader must find is
   produced by the test's own scan of the file text, so the criterion cannot fall
   behind the file.
-- **Corruption tests mutate a copy** in the test's temporary directory; the committed
-  data files are never touched.
+- **Corruption tests mutate an in-memory copy** of one record (a minimal file built
+  from the `H2O` record and parsed from a string); the committed data files are never
+  touched.
+
+  ⚠ 2026-09-12: stood "mutate a copy in the test's temporary directory". A minimal
+  in-memory file proved enough, keeps the line numbers small and leaves nothing on
+  disk; changed when the corruption tests were written.
 
 ## Dependencies
 
 - [Data](../../src/Data/API.md) — what is being checked.
+- [Fixtures](../Fixtures/API.md) — `RepositoryPaths`, the repository root and the `data/` directory.
 
-Outside the tree: xunit; the committed data files `data/thermo.inp`, `data/trans.inp`.
+Outside the tree: xunit; Python 3 for `transcribe.py`; the committed data files
+`data/thermo.inp`, `data/trans.inp`.
 
 ## Constraints
 
 - Part of the default test command.
-- Data paths are resolved from the repository root (found from the test source file
-  with `[CallerFilePath]`), never by `../../..` chains.
-- Tests do not write into the working directory.
+- Data paths are resolved from the repository root through `RepositoryPaths` of the
+  fixtures node (the root is found from a source file with `[CallerFilePath]`), never
+  by `../../..` chains.
+- Tests write nothing into the working directory except the
+  `records/interval-anomalies.actual.txt` of a failed approval comparison, written
+  next to the approved file so that the two can be compared, and ignored by git.
+- Fixture records are regenerated with `python tests/Data.Tests/transcribe.py`; the
+  species and transport blocks it transcribes are listed at the top of the script.
+
+  ⚠ 2026-09-12: the third constraint stood "Tests do not write into the working
+  directory". The approval comparison of the anomaly list writes its actual text next
+  to the approved file, as approval tests do; reworded when that test was written.
 
 ## Acceptance criteria
 
-- [ ] L0 green with the fixture strings listed in the node (date and test names).
-- [ ] L1 green: counts, fixture records, anomaly list, transport blocks, atomic
-      weights, corruption failures (date and test names).
-- [ ] Every check proven non-degenerate once: a fixture value altered, a count
-      altered, a record corrupted, each seen red (AGENTS.md §13).
+- [x] 2026-09-12 — L0 green: `FortranNumberTests.Parses_every_form_of_the_files`,
+      `FortranNumberTests.Rejects_text`.
+- [x] 2026-09-12 — L1 green: `ThermoLoadTests` (`Every_record_of_the_file_is_parsed`,
+      `Header_carries_the_default_interval_bounds`,
+      `Fixture_records_parse_to_the_transcribed_values` for every file under
+      `records/species/`, `Interval_anomalies_equal_the_approved_list`,
+      `Atomic_weights_come_from_the_monatomic_species`, `Unknown_names_are_reported_by_name`,
+      `Loading_the_full_file_takes_under_a_second`); `TransLoadTests`
+      (`Every_block_of_the_file_is_parsed`, `Fixture_blocks_parse_to_the_transcribed_values`
+      for every file under `records/transport/`, `Pairs_are_found_in_either_order`);
+      `CorruptionTests` (`The_minimal_file_itself_loads`,
+      `A_truncated_coefficient_line_names_its_line`,
+      `A_missing_interval_fails_before_the_end_marker`, `A_file_without_the_end_marker_fails`,
+      `A_bad_coefficient_count_is_rejected`, `A_missing_file_is_reported_before_parsing`).
+- [x] 2026-09-12 — Every check proven non-degenerate once (AGENTS.md §13): a
+      coefficient of `records/species/H2O.json` altered by 1e-9 turned
+      `Fixture_records_parse_to_the_transcribed_values` red; the parser made to drop the
+      last product record turned `Every_record_of_the_file_is_parsed` red (2030
+      expected, 2029 found); `A_truncated_coefficient_line_names_its_line` was red
+      (line 5 reported, 6 expected) until the parser stamped the failing field's line;
+      `Fixture_blocks_parse_to_the_transcribed_values` was red while the transcription
+      collapsed the double blank of the `H2` reference. Mutations reverted; nothing of
+      them is committed.
 
 ## Taboos
 

@@ -1,0 +1,27 @@
+{
+  "name": "C2H8N2(L),UDMH",
+  "line": 15537,
+  "comment": "Unsymmetrical Dimethyl Hydrazine. McBride,1996 pp85,93.",
+  "dateCode": "g 6/96",
+  "formula": [
+    {
+      "symbol": "C",
+      "count": 2.0
+    },
+    {
+      "symbol": "H",
+      "count": 8.0
+    },
+    {
+      "symbol": "N",
+      "count": 2.0
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 60.09832,
+  "formationEnthalpy": 48900.0,
+  "assignedTemperature": 298.15,
+  "intervals": [],
+  "section": "Reactants",
+  "isInert": false
+}

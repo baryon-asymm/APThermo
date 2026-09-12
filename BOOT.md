@@ -132,7 +132,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
       recorded in the benchmark's approved file.
 - [ ] The full test suite passes in a process where CUDA is forbidden (environment
       variable `APTHERMO_NO_CUDA=1`, honoured by the execution node).
-- [ ] The tree passes `protocol_lint` without errors.
+- [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
+      of `CLAUDE.md`, run after the Data node: 0 errors, 0 warnings).
 - [ ] The reflection checks are written for this stack and each was shown red once
       (AGENTS.md §13).
 

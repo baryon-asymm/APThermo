@@ -1,0 +1,58 @@
+{
+  "name": "NH4CLO4(I)",
+  "line": 15714,
+  "comment": "Ammonium Perchlorate. Chase,1998 p766.                  React.",
+  "dateCode": "j12/62",
+  "formula": [
+    {
+      "symbol": "N",
+      "count": 1.0
+    },
+    {
+      "symbol": "H",
+      "count": 4.0
+    },
+    {
+      "symbol": "CL",
+      "count": 1.0
+    },
+    {
+      "symbol": "O",
+      "count": 4.0
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 117.48906,
+  "formationEnthalpy": -295767.0,
+  "assignedTemperature": 0.0,
+  "intervals": [
+    {
+      "tLow": 100.0,
+      "tHigh": 513.15,
+      "exponents": [
+        -2.0,
+        -1.0,
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        0.0
+      ],
+      "coefficients": [
+        -3075.3449,
+        -213.650613,
+        10.21583093,
+        0.01659463617,
+        1.665266832e-05,
+        -2.306096672e-08,
+        1.543657693e-11
+      ],
+      "b1": -38257.6726,
+      "b2": -42.3025438,
+      "enthalpyOffset": 25238.0
+    }
+  ],
+  "section": "Reactants",
+  "isInert": false
+}

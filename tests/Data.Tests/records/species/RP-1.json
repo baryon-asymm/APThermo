@@ -1,0 +1,23 @@
+{
+  "name": "RP-1",
+  "line": 15775,
+  "comment": "Mehta et.al. AIAA 95-2962 1995. Hcomb(high) = 19923.BTU/#",
+  "dateCode": "gll/00",
+  "formula": [
+    {
+      "symbol": "C",
+      "count": 1.0
+    },
+    {
+      "symbol": "H",
+      "count": 1.95
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 13.976183,
+  "formationEnthalpy": -24717.7,
+  "assignedTemperature": 298.15,
+  "intervals": [],
+  "section": "Reactants",
+  "isInert": false
+}

@@ -1,0 +1,98 @@
+{
+  "name": "e-",
+  "line": 65,
+  "comment": "Ref-Species. Chase,1998 3/82.",
+  "dateCode": "g12/98",
+  "formula": [
+    {
+      "symbol": "E",
+      "count": 1.0
+    }
+  ],
+  "phase": "Gas",
+  "molarMass": 0.000548579903,
+  "formationEnthalpy": 0.0,
+  "assignedTemperature": 0.0,
+  "intervals": [
+    {
+      "tLow": 298.15,
+      "tHigh": 1000.0,
+      "exponents": [
+        -2.0,
+        -1.0,
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        0.0
+      ],
+      "coefficients": [
+        0.0,
+        0.0,
+        2.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "b1": -745.375,
+      "b2": -11.72081224,
+      "enthalpyOffset": 6197.428
+    },
+    {
+      "tLow": 1000.0,
+      "tHigh": 6000.0,
+      "exponents": [
+        -2.0,
+        -1.0,
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        0.0
+      ],
+      "coefficients": [
+        0.0,
+        0.0,
+        2.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "b1": -745.375,
+      "b2": -11.72081224,
+      "enthalpyOffset": 6197.428
+    },
+    {
+      "tLow": 6000.0,
+      "tHigh": 20000.0,
+      "exponents": [
+        -2.0,
+        -1.0,
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        0.0
+      ],
+      "coefficients": [
+        0.0,
+        0.0,
+        2.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "b1": -745.375,
+      "b2": -11.72081224,
+      "enthalpyOffset": 6197.428
+    }
+  ],
+  "section": "Products",
+  "isInert": false
+}

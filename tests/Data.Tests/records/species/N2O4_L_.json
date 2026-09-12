@@ -1,0 +1,23 @@
+{
+  "name": "N2O4(L)",
+  "line": 15763,
+  "comment": "Dinitrogen tetroxide. McBride,1996 pp85,93.",
+  "dateCode": "g 6/96",
+  "formula": [
+    {
+      "symbol": "N",
+      "count": 2.0
+    },
+    {
+      "symbol": "O",
+      "count": 4.0
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 92.011,
+  "formationEnthalpy": -17549.0,
+  "assignedTemperature": 298.15,
+  "intervals": [],
+  "section": "Reactants",
+  "isInert": false
+}

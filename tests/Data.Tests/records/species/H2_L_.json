@@ -1,0 +1,19 @@
+{
+  "name": "H2(L)",
+  "line": 15625,
+  "comment": "Hydrogen. McBride,1996 pp84,92.",
+  "dateCode": "g 6/96",
+  "formula": [
+    {
+      "symbol": "H",
+      "count": 2.0
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 2.01588,
+  "formationEnthalpy": -9012.0,
+  "assignedTemperature": 20.27,
+  "intervals": [],
+  "section": "Reactants",
+  "isInert": false
+}

@@ -43,6 +43,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `transport`,
   `thermo`, `constants`); the C# loader is the node's assembly
   `AerospacePropellantThermodynamics.Fixtures`.
+- The node also owns the repository-path resolution every test node uses
+  (`RepositoryPaths`): the root is the nearest directory above this node's source file
+  that holds `AGENTS.md`, found with `[CallerFilePath]`, never by `../..` chains or
+  from the binary's location (AGENTS.md §13).
 - Fixture document: `{ "case": { inputs by name, SI }, "generator": { provenance },
   "outputs": { by name, SI } }`; station and performance fields use the names of the
   tree's result types; compositions are mole fractions by species name, all species
@@ -95,10 +99,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [ ] The HTPB definition is decided and cited. Proposal: formula
       C 7.3165 H 10.3416 O 0.0674, enthalpy −250 cal/mol (−1046.0 J/mol) at 298.15 K,
       the definition used by common CEA front ends; to be confirmed against a cited source.
-- [ ] The `data/` files are tied to the package's data: proposal, commit `data/thermo.inp`
-      and `data/trans.inp` from the nasa/cea tag that produced the 3.3.4 wheel and record
-      the tag in `data/NOTICE`; the generator asserts that the package's species list for
-      each case equals the one `Data` reads from the tree's files.
+- [x] 2026-09-12 — `data/thermo.inp` and `data/trans.inp` are committed verbatim from
+      the nasa/cea tag `v3.3.4` (commit `4c5c612efa2002a94e3a5a1f33b1674d55c65340`), the
+      release that produced the 3.3.4 wheel; the tag, the commit and the SHA-256 of both
+      files are recorded in `data/NOTICE`.
+- [ ] The generator asserts that the package's species list for each case equals the
+      one `Data` reads from the tree's files, tying the fixtures to the committed data.
 - [ ] Tolerances calibrated after the first full comparison; every entry confirmed or
       reworded with the reason, with the date.
 

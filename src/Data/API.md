@@ -4,7 +4,7 @@ Namespace `AerospacePropellantThermodynamics.Data`. The node exposes the NASA
 databases as an immutable object model addressed by species name. Everything not
 listed here is internal and may change.
 
-## Database ⏳
+## Database ✅
 
 ```csharp
 namespace AerospacePropellantThermodynamics.Data;
@@ -36,9 +36,9 @@ public sealed record Species(
     double MolarMass,                             // kg/kmol
     double FormationEnthalpy,                     // J/mol at 298.15 K; assigned enthalpy when Intervals is empty
     double AssignedTemperature,                   // K; meaningful only when Intervals is empty
-    IReadOnlyList<TemperatureInterval> Intervals, // file order, ascending temperature
+    IReadOnlyList<TemperatureInterval> Intervals, // file order; bounds as written (see the note below)
     SpeciesSection Section,
-    bool IsInert);                                // CEA "inert" pseudo-element record
+    bool IsInert);                                // name starts with "Inert" (CEA pseudo-element record)
 
 public readonly record struct ElementCount(string Symbol, double Count);
 
@@ -53,7 +53,17 @@ public enum SpeciesPhase { Gas, Condensed }
 public enum SpeciesSection { Products, Reactants }
 ```
 
-## Transport database ⏳
+`Load` hashes the bytes of each file, `Parse` the UTF-8 text it was given; both hashes
+are lowercase hexadecimal SHA-256. Names, comments and references are stored exactly
+as in the file with the outer blanks trimmed.
+
+⚠ 2026-09-12: the `Intervals` comment stood "file order, ascending temperature".
+Eleven condensed records of the committed file carry a first interval written with an
+upper bound not above the lower one (`Br2(cr)` 300..265.9); the node stores such
+bounds as they are, and the tests node lists the records in its approved anomaly list.
+Found when the loader first rejected them.
+
+## Transport database ✅
 
 ```csharp
 public sealed class TransportDatabase
@@ -71,7 +81,16 @@ public sealed record TransportFit(double TLow, double THigh, double A, double B,
 // ln(property) = A ln T + B/T + C/T² + D; viscosity in micropoise, conductivity in μW/(cm·K), as in the file
 ```
 
-## Errors
+## Errors ✅
+
+```csharp
+public sealed class DatabaseFormatException : Exception
+{
+    public DatabaseFormatException(string? fileName, int lineNumber, string message, Exception? inner = null);
+    public string? FileName { get; }     // null when parsed from a TextReader
+    public int LineNumber { get; }       // 1-based line of the offending field
+}
+```
 
 | Situation | Behaviour |
 |---|---|

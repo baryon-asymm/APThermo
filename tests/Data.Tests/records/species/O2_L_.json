@@ -1,0 +1,19 @@
+{
+  "name": "O2(L)",
+  "line": 15766,
+  "comment": "Oxygen. McBride,1996 pp85,93.",
+  "dateCode": "g 6/96",
+  "formula": [
+    {
+      "symbol": "O",
+      "count": 2.0
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 31.9988,
+  "formationEnthalpy": -12979.0,
+  "assignedTemperature": 90.17,
+  "intervals": [],
+  "section": "Reactants",
+  "isInert": false
+}

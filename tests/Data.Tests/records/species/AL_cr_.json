@@ -1,0 +1,46 @@
+{
+  "name": "AL(cr)",
+  "line": 10992,
+  "comment": "Cubic. Ref-Elm. Cox,1989 p217.",
+  "dateCode": "coda89",
+  "formula": [
+    {
+      "symbol": "AL",
+      "count": 1.0
+    }
+  ],
+  "phase": "Condensed",
+  "molarMass": 26.981538,
+  "formationEnthalpy": 0.0,
+  "assignedTemperature": 0.0,
+  "intervals": [
+    {
+      "tLow": 300.0,
+      "tHigh": 933.61,
+      "exponents": [
+        -2.0,
+        -1.0,
+        0.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        0.0
+      ],
+      "coefficients": [
+        -62518.1143,
+        634.393435,
+        -0.713188382,
+        0.0108872528,
+        -1.45874182e-05,
+        9.96116088e-09,
+        -1.77492801e-12
+      ],
+      "b1": -3985.43932,
+      "b2": 6.5611002,
+      "enthalpyOffset": 4540.0
+    }
+  ],
+  "section": "Products",
+  "isInert": false
+}

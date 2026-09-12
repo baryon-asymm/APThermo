@@ -4,17 +4,28 @@ Namespace `AerospacePropellantThermodynamics.Fixtures`. The node exposes the ref
 cases as documents, a loader, the tolerance table, and the generator scripts.
 Everything not listed here is internal and may change.
 
-## Loader ⏳
+## Repository paths ✅
 
 ```csharp
 namespace AerospacePropellantThermodynamics.Fixtures;
 
+public static class RepositoryPaths
+{
+    public static string Root { get; }                              // the directory holding AGENTS.md, found upward from this node's source file
+    public static string Data { get; }                              // <Root>/data
+    public static string Resolve(params string[] segments);         // Path.Combine(Root, segments)
+}
+
 public static class FixtureFiles
 {
     public static string Root { get; }                              // tests/Fixtures/cases, from the repository root
-    public static IReadOnlyList<string> Enumerate(string kind);     // file paths, sorted
+    public static IReadOnlyList<string> Enumerate(string kind);     // file paths of cases/<kind>/*.json, sorted ordinally; DirectoryNotFoundException for an unknown kind
 }
+```
 
+## Loader ⏳
+
+```csharp
 public sealed record Provenance(
     string Package, string Version, string LibraryVersion,
     string Script, string ScriptSha256,

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Fixtures: reference cases, their loader and the tolerance table. A plain library, not a test project. -->
+  <PropertyGroup>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+</Project>
