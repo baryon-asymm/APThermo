@@ -115,18 +115,15 @@ def main() -> int:
     for name in SPECIES:
         record = transcribe_species(thermo, end_products, name)
         safe = re.sub(r"[^A-Za-z0-9_.-]", "_", name)
-        with open(os.path.join(out_dir, safe + ".json"), "w", encoding="utf-8", newline="
-") as f:
+        with open(os.path.join(out_dir, safe + ".json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(record, f, indent=2)
     out_dir = os.path.join(HERE, "records", "transport")
     os.makedirs(out_dir, exist_ok=True)
     for name in TRANSPORT_SINGLE:
-        with open(os.path.join(out_dir, name + ".json"), "w", encoding="utf-8", newline="
-") as f:
+        with open(os.path.join(out_dir, name + ".json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(transcribe_transport(trans, name, None), f, indent=2)
     for a, b in TRANSPORT_PAIRS:
-        with open(os.path.join(out_dir, f"{a}__{b}.json"), "w", encoding="utf-8", newline="
-") as f:
+        with open(os.path.join(out_dir, f"{a}__{b}.json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(transcribe_transport(trans, a, b), f, indent=2)
     print("fixtures written under", os.path.join(HERE, "records"))
     return 0
