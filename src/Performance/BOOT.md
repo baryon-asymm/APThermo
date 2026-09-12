@@ -50,41 +50,81 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the exit stations in the order given.
 - Inputs per case: the element moles per kilogram, the reactant enthalpy per kilogram,
   the chamber pressure, the flow model (`ShiftingEquilibrium`, `FrozenAtChamber`,
-  `FrozenAtThroat`), and a fixed number of exit stations per batch, each either an
-  area ratio (`≥ 1`, supersonic branch) or a pressure ratio `p_c/p_e (> 1)`.
-- Throat: initial pressure ratio from the chamber `γ_s` as in the report; Newton on
-  `ln(p_c/p_t)` with the report's update; at most 20 iterations, else `ThroatNotFound`.
-- Exit by area ratio: initial pressure ratio from the isentropic relation with the
-  throat `γ_s`; Newton on `ln(p_c/p_e)` as in the report; at most 20 iterations; the
-  supersonic branch only, so an area ratio below 1 is `AreaRatioInvalid`.
+  `FrozenAtThroat`), and a fixed number of exit stations per batch (possibly none),
+  each either an area ratio (`≥ 1`, supersonic branch) or a pressure ratio `p_c/p_e (> 1)`.
+- Throat: initial pressure ratio from the chamber `γ_s` as in the report (6.15);
+  the momentum update of (6.17) on the throat pressure; at most 20 iterations, else
+  `ThroatNotFound`. The report stops at `|u² − a²|/u² ≤ 4e-5` (6.16); this node goes
+  on to `1e-10` when it can, so that the reported throat is at rounding level, and
+  accepts the report's tolerance as `Ok` otherwise.
+- Exit by area ratio: initial pressure ratio from the report's estimates, the
+  correction of (6.23)–(6.24) on `ln(p_c/p_e)`; at most 20 iterations; the
+  supersonic branch only, so an area ratio below 1 is `AreaRatioInvalid`. The report
+  stops at `4e-5` on the correction (6.25); this node goes on to `1e-10` when it can.
+
+  ⚠ 2026-09-12: stood "initial pressure ratio from the isentropic relation with the
+  throat γ_s". The report's own estimates are used instead: the extrapolation with the
+  derivative (6.23) from the previous station when both area ratios exceed 2, else its
+  empirical formulas (6.21) for ratios up to 2 and (6.22) above. The formulas were
+  recovered from the report's text, whose typography lost the range boundaries; the
+  ranges are this node's reading, and they only change how many iterations a station
+  takes, never where it converges.
 - Exit by pressure ratio: one sp solve at `p_e`; the area ratio is an output.
-- Each station's sp solve starts from the previous station's composition and
-  temperature as the estimate.
+- Each station's sp solve starts from the last converged station's composition and
+  temperature as the estimate (a failed station is skipped over), in frozen flow from
+  the freezing station's composition.
 - Frozen flow: the freezing station's composition is copied once; downstream stations
-  use `SolveFrozen`.
-- Outputs per case: the chamber, throat and exit `MixtureState`s, the mole numbers at
-  every station (for composition output and for `Transport`), the performance figures
-  per exit station, and a status.
+  use `SolveFrozen`. In `FrozenAtChamber` flow the chamber's isentropic exponent,
+  sound speed and derivatives are the frozen ones (section 6.5.3), as the reference
+  reports them, while its heat capacities stay the equilibrium ones.
+- Outputs per case: the chamber, throat and exit `MixtureState`s with velocity and
+  Mach number, the mole numbers and multipliers at every station (for composition
+  output and for `Transport`), the performance figures per station (the reference
+  reports them at every station: `c*` everywhere, the throat's `C_F`, `Isp`, `Ivac`),
+  a status per station, the equilibrium iteration counts, and the case status.
 - Not in version 1: finite-area chamber, subsonic exit stations, freezing at an
-  arbitrary station.
+  arbitrary station, the report's stop of a frozen expansion 50 K below the range of
+  a condensed species present at the chamber (section 6.5.1).
 
 ## Acceptance criteria
 
-- [ ] For the reference rocket cases of the four propellants and RP-1311 example 8
-      (LOX/LH2) and example 12 (MMH/NTO, equilibrium and frozen with freezing at the
-      throat), the chamber, throat and exit temperatures, pressures, `M`, `γ_s`, sound
-      speed, Mach, `c*`, `C_F`, `Isp` and `Ivac` agree with the fixtures within the
-      tolerance table; the list of compared fields is generated from the fixture.
-- [ ] Exit stations requested by pressure ratio reproduce the reference area ratios,
-      and stations requested by area ratio reproduce the reference pressure ratios.
-- [ ] Frozen flow at the throat and at the chamber both reproduce the reference
-      (example 12 covers `nfz = 2`; a generated fixture covers `nfz = 1`).
-- [ ] The invariants' tolerances (entropy, sonic condition, area ratio) hold for every
-      converged fixture case (machine-generated list).
-- [ ] An area ratio below 1 returns `AreaRatioInvalid` for that station and leaves the
-      other stations unaffected.
-- [ ] Runs unchanged inside an ILGPU kernel on the CPU accelerator with the same
-      results as the host call.
+- [x] 2026-09-12 — For the reference rocket cases of the four propellants and
+      RP-1311 example 8 (LOX/LH2) and example 12 (MMH/NTO, equilibrium and frozen with
+      freezing at the throat), the chamber, throat and exit temperatures, pressures,
+      `M`, `γ_s`, sound speed, Mach, `c*`, `C_F`, `Isp` and `Ivac` agree with the
+      fixtures within the tolerance table; the list of compared fields is generated
+      from the fixture. `Performance.Tests`,
+      `RocketFixtureTests.The_rocket_case_reproduces_the_reference` over the enumerated
+      `cases/rocket` directory (89 files): every numeric station output mapped by name to
+      a field of `MixtureState` or `PerformanceFigures`, plus every listed mole
+      fraction; left out by the fixtures node's caveats: the reference's `cv` at frozen
+      stations and its gas-phase frozen heat capacities at stations with condensed
+      species and transport on; the one subsonic station of example 8 is outside
+      version 1. The `pressure` tolerance was calibrated to the reference's own
+      iteration residual (the fixtures node's criteria).
+- [x] 2026-09-12 — Exit stations requested by pressure ratio reproduce the reference
+      area ratios, and stations requested by area ratio reproduce the reference
+      pressure ratios: part of the same comparison (`areaRatio` at the pressure-ratio
+      stations of examples 8 and 12, `pressureRatio` and `pressure` at every area-ratio
+      station).
+- [x] 2026-09-12 — Frozen flow at the throat and at the chamber both reproduce the
+      reference: the same test over the 15 `frozenAtChamber` and 40 `frozenAtThroat`
+      propellant cases and example 12 (`nfz = 2`).
+- [x] 2026-09-12 — The invariants' tolerances (entropy, sonic condition, area ratio,
+      frozen composition bit for bit, velocity from the energy equation) hold for every
+      converged fixture case:
+      `InvariantTests.Entropy_sonic_throat_area_ratio_and_frozen_composition_hold` over
+      the 89 files.
+- [x] 2026-09-12 — An area ratio below 1 returns `AreaRatioInvalid` for that station
+      and leaves the other stations unaffected:
+      `InvariantTests.An_area_ratio_below_one_fails_its_station_only` (and
+      `A_pressure_ratio_not_above_one_fails_its_station_only`,
+      `A_case_without_exits_gives_the_chamber_and_the_throat`,
+      `A_non_positive_chamber_pressure_is_invalid_input`).
+- [x] 2026-09-12 — Runs unchanged inside an ILGPU kernel on the CPU accelerator with
+      the same results as the host call: `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
+      over the 6 batches of fixtures sharing a table and an exit layout (89 cases; states,
+      figures, moles and statuses bit for bit).
 
 ## Taboos
 

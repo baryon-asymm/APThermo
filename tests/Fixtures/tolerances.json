@@ -6,11 +6,7 @@
       "relative": 2e-5,
       "derivation": "CEA prints temperatures to 0.01 K and stops its hp and sp iterations at 5e-5 on the relative temperature correction (RP-1311, section 3.2); 2e-5 relative on a 3500 K chamber is 0.07 K, and 0.05 K covers the print precision at low temperatures."
     },
-    "pressure": {
-      "absolute": 0.0,
-      "relative": 1e-5,
-      "derivation": "Throat and exit pressures follow from iterations converged to 4e-5 on the squared Mach number (RP-1311, section 6.2) and are printed with five significant digits; 1e-5 relative is the print precision."
-    },
+    "pressure": { "absolute": 0.0, "relative": 1e-4, "derivation": "Exact where assigned (derived cases, pressure-ratio exits). At the throat and at area-ratio exits the reference stops its iterations at 4e-5 on the sonic ratio and on the correction of ln(pc/pe) (RP-1311, equations 6.16 and 6.25) and reports the pressure of its last iterate; up to 3.9e-5 relative was observed against the tree, which iterates to 1e-10. Calibrated 2026-09-12 from 1e-5." },
     "density": { "absolute": 0.0, "relative": 1e-4, "derivation": "Derived from T, p and the molar mass; the product of their tolerances." },
     "enthalpy": { "absolute": 20.0, "relative": 1e-4, "derivation": "Enthalpy passes through zero; 20 J/kg is 1e-5 of a typical 2 MJ/kg magnitude and covers the 0.01 kJ/kg print precision of the reference." },
     "internalEnergy": { "absolute": 20.0, "relative": 1e-4, "derivation": "As enthalpy." },

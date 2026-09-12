@@ -136,9 +136,12 @@ def equilibrium_state(solution: cea.EqSolution, transport: bool) -> dict:
     return d
 
 
-def rocket_station(solution: cea.RocketSolution, i: int, label: str, transport: bool, frozen: bool) -> dict:
+def rocket_station(solution: cea.RocketSolution, i: int, label: str, transport: bool, frozen: bool,
+                   frozen_derivatives: bool) -> dict:
+    """`frozen` marks a station whose composition is the freezing station's; `frozen_derivatives` also covers the
+    chamber of a case frozen at the chamber, whose gamma_s and sound speed the package reports as the frozen ones."""
     d = {"station": label, "index": i, "frozen": frozen}
-    d.update(_state(lambda name: getattr(solution, name)[i], transport, frozen))
+    d.update(_state(lambda name: getattr(solution, name)[i], transport, frozen_derivatives))
     d.update({
         "soundSpeed": float(solution.sonic_velocity[i]),
         "mach": float(solution.Mach[i]),
@@ -193,7 +196,8 @@ def rocket_outputs(solution: cea.RocketSolution, transport: bool, flow: str = FL
     """The stations in the package's order; stations from the freezing point on are flagged frozen."""
     labels = station_labels(solution)
     frozen_from = N_FRZ[flow]
-    return {"stations": [rocket_station(solution, i, labels[i], transport, frozen_from is not None and i >= frozen_from)
+    return {"stations": [rocket_station(solution, i, labels[i], transport, frozen_from is not None and i >= frozen_from,
+                                        frozen_from is not None and (i >= frozen_from or frozen_from <= 1))
                          for i in range(solution.num_pts)]}
 
 

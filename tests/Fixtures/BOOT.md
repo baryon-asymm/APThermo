@@ -68,7 +68,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   species the reference reports, no threshold. Equilibrium outputs are one such state
   with `converged`. `dlnVdlnT`, `dlnVdlnP` and the sound speed of equilibrium cases are
   derived in `cea_cases.py` from the package's cp, cv, γ_s and M, with the relations
-  named there; a frozen station carries the ideal-gas derivatives 1 and −1.
+  named there; a frozen station carries the ideal-gas derivatives 1 and −1, and so does
+  the chamber of a case frozen at the chamber, whose γ_s and sound speed the package
+  reports as the frozen ones while its heat capacities stay the equilibrium ones.
 
   ⚠ 2026-09-12, three caveats of the reference's fields, found by the Equilibrium tests
   and confirmed with probes of the package on the reference machine:
@@ -151,7 +153,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   | Field | Absolute | Relative |
   |---|---|---|
   | temperature | 0.05 K | 2e-5 |
-  | pressure at derived stations | — | 1e-5 |
+  | pressure | — | 1e-4 (calibrated from 1e-5, see the criteria) |
   | density, enthalpy, entropy, molar mass, heat capacities, `γ_s`, sound speed | — | 1e-4 |
   | mole fractions | 5e-6 | — (species below 5e-6 in the reference: only "below 1e-5" is asserted) |
   | `c*`, `Isp`, `Ivac`, `C_F`, area and pressure ratios | — | 1e-4 |
@@ -189,8 +191,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [ ] Tolerances calibrated after the first full comparison; every entry confirmed or
       reworded with the reason, with the date. 2026-09-12: the tp, hp and sp kinds (106
       files) passed the table unchanged in the Equilibrium tests, the frozen stations of
-      the rocket kind (51 files) in their frozen-mode test; the equilibrium stations of
-      the rocket kind and the transport kind remain.
+      the rocket kind (51 files) in their frozen-mode test. 2026-09-12: the rocket kind
+      (89 files) passed in the Performance tests after one calibration: `pressure` from
+      1e-5 to 1e-4 relative, because the reference's throat and area-ratio pressures carry
+      its iteration residual of up to 4e-5 (RP-1311 equations 6.16 and 6.25; 3.9e-5
+      observed), while an assigned pressure stays exact. The transport kind remains.
 
 ## Taboos
 
