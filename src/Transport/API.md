@@ -144,7 +144,9 @@ public static class TransportSolver                      // kernel-compatible
 `temperature` is in K; the transport set, the estimates and the reaction terms follow
 the Constraints of `BOOT.md`. The evaluation reads the moles of every species (a
 condensed species with positive moles marks its elements active) and uses the gaseous
-ones.
+ones of the case, those whose every element is active: a table may hold the species
+of elements the case lacks (a batch over a union of elements), and they neither
+enter the set nor count in its thresholds (`BOOT.md`, Invariants).
 
 ⚠ 2026-09-12: the sketch was `Evaluate(in species, in transport, in MixtureState state,
 moles, multipliers, ArrayView<double> scratch, out TransportFigures figures)` with

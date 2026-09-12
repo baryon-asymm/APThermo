@@ -31,6 +31,20 @@ Constraints below.
 - **Frozen and reacting values are consistent**: the reaction term is a quadratic form
   with a positive definite matrix, so the reacting conductivity is never below the
   frozen one, and the two are equal where the set has no reaction.
+- **A larger table changes nothing.** A case evaluated in a table that holds its
+  species in their order and, besides, the species of elements the case lacks gives
+  the figures of its own table bit for bit: the set's thresholds count the gases of
+  the case (those whose every element is active), the seeding and the passes skip
+  zero-mole species, and the sums run over the set in table order. This is what lets
+  the front door batch cases with different elements over one table.
+
+  ⚠ 2026-09-13: the set's rule (Constraints) counted "the gaseous species in the
+  table", as the reference counts the gaseous products of its problem, and the two
+  agree only in a table built for one case. In the front door's batch over a union
+  of elements the larger count lowered every threshold: the LOX/RP-1 throat set took
+  a fourteenth species in the table shared with AP/HTPB/Al, and its figures moved by
+  up to 4e-7 relative against the single solve. Found by the front door's batch test;
+  the count is now the case's, and the test node proves the invariant bit for bit.
 - **Stateless, deterministic, no allocation**, as every numerical node.
 
 ⚠ 2026-09-12: the second invariant stood "Only species with data take part. A species
@@ -89,7 +103,10 @@ reference, recovered from its source:
   independent of the rows' default species, the monatomic gases); then every gaseous
   species with moles not below n/(ng·10^k), k = 1, 2, …, until the set carries
   (1 − 1e-9)(1 − 1e-6) of the gaseous moles n, the set is full, or the threshold falls
-  below 1e-11 n (ng is the number of gaseous species in the table). Within a pass the
+  below 1e-11 n (ng is the number of gaseous species of the case: those of the table
+  whose every element the case holds, which in a table built for the case alone is
+  the table's gas count, the reference's product list; see the Invariants for the
+  correction of 2026-09-13). Within a pass the
   species are taken in table order, which matters only when the set fills: the
   AP/HTPB/Al chamber needs 56 species for the coverage and takes the first 40. Mole
   fractions x_s are relative to the set.
@@ -167,6 +184,14 @@ still visible there.
       fraction equals the independently computed one"; rewritten with the ⚠ above.
 - [x] 2026-09-12 — Runs unchanged inside an ILGPU kernel on the CPU accelerator with
       the same bits as the host call (`KernelEqualityTests`, five batches).
+- [x] 2026-09-13 — Every station of a case evaluated in a table that also holds the
+      species of elements the case lacks gives the same bits as in the case's own
+      table (`AbsentElementTests.A_table_with_the_species_of_absent_elements_gives_the_same_bits`:
+      LOX/RP-1 in the table with AP/HTPB/Al, LOX/LH2 with N2O4/UDMH, N2O4/UDMH with
+      AP/HTPB/Al, every station with transport, every field of the figures); seen red
+      with the table's gas count in the thresholds on two of the three pairs (the
+      LOX/RP-1 throat set of 14 species against 13, the N2O4/UDMH sets of 21 against
+      26, every figure moved).
 
 ## Taboos
 

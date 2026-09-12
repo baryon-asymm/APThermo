@@ -143,7 +143,7 @@ public static class TransportSolver
             {
                 for (var j = 0; j < gasCount; j++)
                 {
-                    if (Math.Abs(species.Stoichiometry[i * speciesCount + j]) > StoichiometryThreshold)
+                    if (Math.Abs(species.Stoichiometry[i * speciesCount + j]) > StoichiometryThreshold && OfCase(in species, in scratch, j))
                     {
                         scratch.Default[i] = j;
                         break;
@@ -225,6 +225,17 @@ public static class TransportSolver
             scratch.Mark[candidate] |= 1;
         }
 
+        // The gases of the case: those whose every element is active. The reference's ng counts the gaseous products of the
+        // problem; a table shared by cases with different elements holds more, and they must not lower the thresholds.
+        var caseGasCount = 0;
+        for (var j = 0; j < gasCount; j++)
+        {
+            if (OfCase(in species, in scratch, j))
+            {
+                caseGasCount++;
+            }
+        }
+
         // The transport set: the components, then every gas above a threshold descending by decades until the set covers the gas.
         var nm = 0;
         var total = 0.0;
@@ -247,9 +258,9 @@ public static class TransportSolver
         }
 
         var coverage = CoverageFraction * gasMoles * (1.0 - CoverageTolerance);
-        var threshold = gasMoles / gasCount;
+        var threshold = gasMoles / caseGasCount;
         var capped = 0;
-        for (var pass = 0; pass < gasCount; pass++)
+        for (var pass = 0; pass < caseGasCount; pass++)
         {
             if (total >= coverage)
             {
@@ -744,6 +755,21 @@ public static class TransportSolver
         }
 
         return sum;
+    }
+
+    /// <summary>Whether gaseous species j is one the case can form: every element of its formula is an active row.</summary>
+    private static bool OfCase(in SpeciesTableView species, in TransportScratch scratch, int j)
+    {
+        var speciesCount = species.SpeciesCount;
+        for (var i = 0; i < species.ElementCount; i++)
+        {
+            if (species.Stoichiometry[i * speciesCount + j] != 0.0 && scratch.RowActive[i] == 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool SameColumn(in SpeciesTableView species, in TransportScratch scratch, int first, int second)
