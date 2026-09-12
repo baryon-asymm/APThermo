@@ -1,0 +1,120 @@
+using System.Reflection;
+using System.Text.Json;
+using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Thermo;
+
+namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+
+/// <summary>Compares a solution with a fixture's outputs field by field, the field list taken from the fixture.</summary>
+internal static class StateComparison
+{
+    /// <summary>Below this reference mole fraction the reference lists a species as trace (the derivation of moleFractionTrace in the tolerance table).</summary>
+    public const double TracePrintThreshold = 5e-6;
+
+    /// <summary>Outputs of the transport node, which this node does not compute.</summary>
+    private static readonly HashSet<string> TransportFields =
+        ["viscosity", "frozenConductivity", "reactingConductivity", "frozenPrandtl", "reactingPrandtl"];
+
+    /// <summary>Outputs that are not state fields.</summary>
+    private static readonly HashSet<string> NonStateFields = ["moleFractions", "converged"];
+
+    /// <summary>
+    /// The state fields of a fixture's outputs, in document order, mapped to the fields of <see cref="MixtureState"/>. An output
+    /// without a field is an error for an equilibrium case and is skipped for a rocket station (<paramref name="strict"/> false),
+    /// whose other outputs belong to the performance node.
+    /// </summary>
+    public static IEnumerable<(string Name, double Expected, FieldInfo Field)> StateFields(JsonElement outputs, bool strict = true)
+    {
+        foreach (var property in outputs.EnumerateObject())
+        {
+            if (NonStateFields.Contains(property.Name) || TransportFields.Contains(property.Name) || property.Value.ValueKind != JsonValueKind.Number)
+            {
+                continue;
+            }
+
+            var fieldName = char.ToUpperInvariant(property.Name[0]) + property.Name[1..];
+            var field = typeof(MixtureState).GetField(fieldName);
+            if (field is null)
+            {
+                if (strict)
+                {
+                    throw new InvalidOperationException($"the fixture output {property.Name} has no field in MixtureState");
+                }
+
+                continue;
+            }
+
+            yield return (property.Name, property.Value.GetDouble(), field);
+        }
+    }
+
+    /// <summary>Every state field and every listed mole fraction outside its tolerance, as messages; empty when the solution matches.</summary>
+    public static IReadOnlyList<string> Compare(CeaCase c, HostSolution solution, ToleranceTable tolerances,
+                                                Func<string, bool>? includeField = null)
+    {
+        var mismatches = new List<string>();
+        foreach (var (name, expected, field) in StateFields(c.Outputs))
+        {
+            if (includeField is not null && !includeField(name))
+            {
+                continue;
+            }
+
+            var actual = (double)field.GetValue(solution.State)!;
+            if (!tolerances.Matches(name, expected, actual))
+            {
+                mismatches.Add($"{name}: reference {expected:R}, tree {actual:R}");
+            }
+        }
+
+        foreach (var species in c.Outputs.GetProperty("moleFractions").EnumerateObject())
+        {
+            var expected = species.Value.GetDouble();
+            if (solution.Table.IndexOf(species.Name) < 0)
+            {
+                mismatches.Add($"{species.Name}: not in the table");
+                continue;
+            }
+
+            var actual = solution.MoleFraction(species.Name);
+            var tolerance = expected >= TracePrintThreshold ? "moleFraction" : "moleFractionTrace";
+            if (!tolerances.Matches(tolerance, expected, actual))
+            {
+                mismatches.Add($"x({species.Name}): reference {expected:R}, tree {actual:R} [{tolerance}]");
+            }
+        }
+
+        return mismatches;
+    }
+
+    /// <summary>
+    /// The condensed species the reference reports present (above the trace threshold) and absent (zero). A species the table
+    /// lacks counts as condensed when its name has a phase suffix, so that an omitted candidate is reported missing.
+    /// </summary>
+    public static (IReadOnlyList<string> Present, IReadOnlyList<string> Absent) CondensedSetOf(CeaCase c, SpeciesTable table)
+    {
+        var present = new List<string>();
+        var absent = new List<string>();
+        foreach (var species in c.Outputs.GetProperty("moleFractions").EnumerateObject())
+        {
+            var index = table.IndexOf(species.Name);
+            var condensed = index < 0 ? species.Name.EndsWith(')') && species.Name.Contains('(') : index >= table.GasCount;
+            if (!condensed)
+            {
+                continue;
+            }
+
+            var x = species.Value.GetDouble();
+            if (x >= TracePrintThreshold)
+            {
+                present.Add(species.Name);
+            }
+            else if (x == 0.0)
+            {
+                absent.Add(species.Name);
+            }
+        }
+
+        return (present, absent);
+    }
+}
