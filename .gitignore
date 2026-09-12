@@ -1,0 +1,17 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+artifacts/
+
+# Protocol checks: the actual snapshot is regenerated on every run; only the approved one is committed
+*.actual.txt
+
+# Python
+__pycache__/
+
+# Local tool state
+.claude/settings.local.json
