@@ -132,11 +132,21 @@ There is no external ancestor: the tree root is the repository root, and the loa
 
 ## Acceptance criteria
 
-- [ ] For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber, throat and exit
-      states and the performance figures, in equilibrium and in frozen flow, agree with
-      the NASA CEA reference outputs within the tolerance table of the fixtures node.
-      The list of reference files is produced by a directory listing, and every file in
-      it is covered.
+- [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
+      throat and exit states and the performance figures, in equilibrium and in frozen
+      flow, agree with the NASA CEA reference outputs within the tolerance table of the
+      fixtures node. The list of reference files is produced by a directory listing,
+      and every file in it is covered:
+      `Problems.Tests.RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      over every file of `tests/Fixtures/cases/rocket` (89 that day: the four
+      propellants with and without transport, and the RP-1311 rocket examples) and
+      `EquilibriumTests.Assigned_temperature_cases_reproduce_the_reference`,
+      `Assigned_enthalpy_cases_reproduce_the_reference`,
+      `Assigned_entropy_cases_reproduce_the_reference` over every tp, hp and sp file
+      (106). The two documented defects of the reference (the fixtures node's BOOT.md:
+      the reacting conductivity where a trace component is eliminated, the
+      frozen-station cv) are skipped by the rule recorded there, and the skip is
+      guarded: the defect must be visible on the reference's own composition.
 - [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
       accelerator within the tolerance table; the list of compared fields is produced
       by reflection over the result type
@@ -150,10 +160,12 @@ There is no external ancestor: the tree root is the repository root, and the loa
       9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
 - [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
       (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
-      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 850
-      tests green, none skipped, the CUDA-category tests verifying the refusal instead.
+      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1654
+      tests green after the Problems node (850 after the Execution node), none
+      skipped, the CUDA-category tests verifying the refusal instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
-      of `CLAUDE.md`, run after the Data node: 0 errors, 0 warnings).
+      of `CLAUDE.md`, run after every node, last after the Problems node: 0 errors,
+      0 warnings).
 - [ ] The reflection checks are written for this stack and each was shown red once
       (AGENTS.md §13).
 
@@ -205,11 +217,15 @@ batches on the GPU.
   and result types, orchestration of `Data`, `Thermo`, `Transport` and `Execution`,
   with the result types of `Performance`. Propellant conventions are knowledge about
   CEA and rockets, not about solving.
+
+  ⚠ 2026-09-12: it also names `Equilibrium`'s `ProblemKind` in its equilibrium
+  problem type, the kind the execution node's batch takes; the dependency list below
+  carries the link, which the first version of this list lacked.
 - `src/Cli` is a thin adapter: JSON in, JSON or table out. Kept apart so the library
   never depends on console or serialization concerns.
 
 Dependencies point downward only: `Cli` → {`Problems`, `Data`}; `Problems` → {`Data`,
-`Thermo`, `Performance`, `Transport`, `Execution`}; `Execution` → {`Thermo`,
+`Thermo`, `Equilibrium`, `Performance`, `Transport`, `Execution`}; `Execution` → {`Thermo`,
 `Equilibrium`, `Performance`, `Transport`};
 `Performance` → {`Equilibrium`, `Thermo`}; `Transport` → {`Data`, `Thermo`,
 `Equilibrium`}; `Equilibrium` → `Thermo`; `Thermo` → `Data`; `Data` → nothing.

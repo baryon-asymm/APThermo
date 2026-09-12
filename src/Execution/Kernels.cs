@@ -66,6 +66,19 @@ public readonly struct TransportBatchViews(
     public readonly ArrayView<int> Status = status;
 }
 
+/// <summary>Device views of one species-function chunk. Public only because ILGPU requires kernel parameter types to be.</summary>
+public readonly struct SpeciesFunctionBatchViews(
+    ArrayView<int> species, ArrayView<double> temperatures, ArrayView<double> cpOverR, ArrayView<double> hOverRT, ArrayView<double> sOverR,
+    ArrayView<int> inRange)
+{
+    public readonly ArrayView<int> Species = species;
+    public readonly ArrayView<double> Temperatures = temperatures;
+    public readonly ArrayView<double> CpOverR = cpOverR;
+    public readonly ArrayView<double> HOverRT = hOverRT;
+    public readonly ArrayView<double> SOverR = sOverR;
+    public readonly ArrayView<int> InRange = inRange;
+}
+
 /// <summary>The probe of the root's math list: one value per function per input.</summary>
 public static class MathProbe
 {
@@ -135,6 +148,16 @@ internal static class Kernels
         batch.Status[index] = (int)TransportSolver.Evaluate(in species, in transport, batch.Temperatures[index],
                                                              batch.Moles.SubView(index * speciesCount, speciesCount), in scratch,
                                                              batch.Figures.SubView(index, 1));
+    }
+
+    internal static void Functions(Index1D index, SpeciesTableView table, SpeciesFunctionBatchViews batch)
+    {
+        var species = batch.Species[index];
+        var temperature = batch.Temperatures[index];
+        batch.CpOverR[index] = SpeciesFunctions.CpOverR(in table, species, temperature);
+        batch.HOverRT[index] = SpeciesFunctions.HOverRT(in table, species, temperature);
+        batch.SOverR[index] = SpeciesFunctions.SOverR(in table, species, temperature);
+        batch.InRange[index] = SpeciesFunctions.IsInRange(in table, species, temperature) ? 1 : 0;
     }
 
     internal static void Probe(Index1D index, ArrayView<double> inputs, ArrayView<double> outputs)

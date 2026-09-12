@@ -88,7 +88,8 @@ def example1(writer: Writer) -> None:
                 writer.case(
                     "tp", f"rp1311-example1_r{eq_ratio}_p{p_atm}atm_T{t:g}",
                     inputs=equilibrium_inputs(descriptions, prod.species_names, "tp", t, pressure_pa, False,
-                                              of_ratio=float(of_ratio), extra={"chemicalEquivalenceRatio": eq_ratio}),
+                                              of_ratio=float(of_ratio), extra={"chemicalEquivalenceRatio": eq_ratio},
+                                              only=EXAMPLE1_PRODUCTS),
                     outputs=outputs, script_path=__file__)
 
 
@@ -166,10 +167,11 @@ def example12(writer: Writer) -> None:
     writer.case(
         "rocket", name,
         inputs=rocket_inputs(descriptions, prod.species_names, chamber_pressure_pa, enthalpy, FLOW_FROZEN_THROAT, True,
-                             area_ratios=area_ratios, pressure_ratios=pressure_ratios, of_ratio=of_ratio),
+                             area_ratios=area_ratios, pressure_ratios=pressure_ratios, of_ratio=of_ratio,
+                             only=EXAMPLE12_PRODUCTS),
         outputs=rocket_outputs(solution, True, FLOW_FROZEN_THROAT), script_path=__file__)
     derive_equilibrium_cases(writer, __file__, name, solution, reac, prod, weights, descriptions, False, [0, 1],
-                             of_ratio=of_ratio)
+                             of_ratio=of_ratio, only=EXAMPLE12_PRODUCTS)
 
 
 def example14(writer: Writer) -> None:

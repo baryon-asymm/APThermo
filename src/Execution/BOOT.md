@@ -101,12 +101,17 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   scratch is 4·M² + E·M + 8·M doubles per station with M = 40, about 43 KB, so a
   chunk of 16 384 stations would take 700 MB; the memory bound was added, and the
   rocket chunk counts its per-station moles in the same bound.
-- **Kernels**: one entry point per program (`Equilibrium`, `Rocket`, `Transport`) and
+- **Kernels**: one entry point per program (`Equilibrium`, `Rocket`, `Transport`,
+  and `Functions` for the species functions of `Thermo` at given temperatures) and
   the `Probe` of the root's math list; each entry point does nothing but slice the
   views for its case and call the numerical node. The transport kernel takes a plain
   batch of stations (a temperature and a composition each); the batch is built from a
   finished rocket or equilibrium result by factories of the batch type, not by the
   engine, which does not know where a composition came from.
+
+  ⚠ 2026-09-12: the species-function batch was not in the sketch; the front door needs
+  the reactant enthalpies at their temperatures from the tree's one implementation of
+  the polynomials, and that implementation runs only over accelerator memory.
 - **Warm-up**: kernel compilation and post-link happen on the first run of a program
   per engine and are cached for the engine's lifetime; the time is reported as the
   run's `WarmUp`, separately from the upload, kernel and download times.
@@ -156,6 +161,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-12 — Two runs of the same batch on the same accelerator are bit-identical
       (`BatchTests.Chunking_and_repetition_do_not_change_a_bit` on the CPU accelerator,
       the sweep test above on CUDA).
+- [x] 2026-09-12 — The species-function batch equals the host calls of `Thermo`'s
+      functions bit for bit on the CPU accelerator and matches CUDA within the tolerance
+      table, inside and outside the records' ranges (`SpeciesFunctionTests`:
+      `The_cpu_accelerator_equals_the_host_functions_bit_for_bit`,
+      `Cuda_matches_the_cpu_accelerator_within_the_table`,
+      `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
 
 ## Taboos
 

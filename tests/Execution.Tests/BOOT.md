@@ -9,7 +9,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 |---|---|---|---|
 | L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch array validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
-| L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`) | ✅ |
+| L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file (`Throughput.approved.txt`), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ⏳ (the protocol tests node) |
 
@@ -21,7 +21,11 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   after the same number of Newton steps, and 1e-9 where they did not; relative 1e-9
   on the other state fields, the performance figures and the transport figures; 4 ULP
   on the probe kernel's math functions (3 measured on the reference machine); at most
-  one station in a thousand may stop after different numbers of Newton steps.
+  one station in a thousand may stop after different numbers of Newton steps; 1e-10
+  on the species functions, taken on the larger of 1 and the value, because H°/RT of a
+  reference element at 298.15 K cancels to zero by construction and the condensed fits
+  cancel by up to five decades (1.7e-11 measured on liquid water's Cp/R; the entry was
+  first written as 1e-12 relative and calibrated on that measurement the same day).
 
   ⚠ 2026-09-12: the sketch had one tier, 1e-10 on every mole fraction above the
   floor. The 100 000-case sweep showed 12 mole fractions at 2 of its 400 000
@@ -88,7 +92,10 @@ libdevice for the CUDA category.
       `An_equilibrium_family_equals_the_host_solver_bit_for_bit`); `CudaTests`
       (`A_rocket_family_on_cuda_matches_the_cpu_accelerator` over every family with
       the transport pass, `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`,
-      `The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`).
+      `The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`);
+      `SpeciesFunctionTests` (`The_cpu_accelerator_equals_the_host_functions_bit_for_bit`,
+      `Cuda_matches_the_cpu_accelerator_within_the_table`,
+      `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
 - [x] 2026-09-12 — Benchmark approved file present with the measured figures and the
       date of the measurement on the reference machine (`Throughput.approved.txt`:
       RTX 5070 Ti, 100 000 cases, 4 stations, 11 species, CUDA 0.170 s, CPU

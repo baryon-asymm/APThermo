@@ -273,3 +273,67 @@ public sealed class TransportBatchResult
 
     public AcceleratorInfo Accelerator { get; }
 }
+
+/// <summary>A batch of species-function evaluations: a table species and a temperature per entry.</summary>
+public sealed class SpeciesFunctionBatch
+{
+    public SpeciesFunctionBatch(int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+        Species = new int[count];
+        Temperature = new double[count];
+    }
+
+    public int Count => Species.Length;
+
+    /// <summary>[entry] table index of the species.</summary>
+    public int[] Species { get; }
+
+    /// <summary>[entry] K.</summary>
+    public double[] Temperature { get; }
+
+    internal void Validate(int speciesCount)
+    {
+        if (Temperature.Length != Count)
+        {
+            throw new ArgumentException("the batch arrays have inconsistent lengths");
+        }
+
+        for (var i = 0; i < Count; i++)
+        {
+            if (Species[i] < 0 || Species[i] >= speciesCount)
+            {
+                throw new ArgumentException($"entry {i} names species {Species[i]}, but the table has {speciesCount} species");
+            }
+        }
+    }
+}
+
+/// <summary>What a species-function batch produced, one entry per evaluation; the functions are dimensionless.</summary>
+public sealed class SpeciesFunctionBatchResult
+{
+    internal SpeciesFunctionBatchResult(double[] cpOverR, double[] hOverRT, double[] sOverR, bool[] inRange, RunTimings timings, AcceleratorInfo accelerator)
+    {
+        CpOverR = cpOverR;
+        HOverRT = hOverRT;
+        SOverR = sOverR;
+        InRange = inRange;
+        Timings = timings;
+        Accelerator = accelerator;
+    }
+
+    public int Count => CpOverR.Length;
+
+    public double[] CpOverR { get; }
+
+    public double[] HOverRT { get; }
+
+    public double[] SOverR { get; }
+
+    /// <summary>[entry] whether the temperature lies within the species record (first lower bound to last upper bound); outside, the nearest interval was evaluated.</summary>
+    public bool[] InRange { get; }
+
+    public RunTimings Timings { get; }
+
+    public AcceleratorInfo Accelerator { get; }
+}

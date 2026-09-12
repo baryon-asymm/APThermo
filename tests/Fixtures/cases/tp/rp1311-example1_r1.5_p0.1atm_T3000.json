@@ -50,6 +50,28 @@
       ],
       "omit": [],
       "trace": null,
+      "only": [
+        "Ar",
+        "C",
+        "CO",
+        "CO2",
+        "H",
+        "H2",
+        "H2O",
+        "HNO",
+        "HO2",
+        "HNO2",
+        "HNO3",
+        "N",
+        "NH",
+        "NO",
+        "N2",
+        "N2O3",
+        "O",
+        "O2",
+        "OH",
+        "O3"
+      ],
       "chemicalEquivalenceRatio": 1.5
     }
   },
@@ -63,7 +85,7 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "cea-package",
     "script": "rp1311.py",
-    "scriptSha256": "02f0b6a3df3efc0b4afa67046f5d8d123939621590f02793441f6b02a4e0c7b7",
+    "scriptSha256": "7a99f6304ac60759fa49ed25e93bef834e1ff4021e5b91fb3931c95bfa131657",
     "generatedOn": "2026-09-12"
   },
   "outputs": {

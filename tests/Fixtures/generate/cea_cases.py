@@ -203,8 +203,9 @@ def rocket_outputs(solution: cea.RocketSolution, transport: bool, flow: str = FL
 
 def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressure_pa: float, reactant_enthalpy: float,
                   flow: str, transport: bool, area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None,
-                  of_ratio: float | None = None, omit: list[str] | None = None, trace: float | None = None) -> dict:
-    return {
+                  of_ratio: float | None = None, omit: list[str] | None = None, trace: float | None = None,
+                  only: list[str] | None = None) -> dict:
+    d = {
         "reactants": descriptions,
         "oxidizerToFuelRatio": of_ratio,
         "elementMoles": element_moles(RECORDS, descriptions),
@@ -219,11 +220,15 @@ def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressur
         "omit": list(omit or []),
         "trace": trace,
     }
+    if only is not None:
+        d["only"] = list(only)   # the explicit product list the package was given, when there was one
+    return d
 
 
 def equilibrium_inputs(descriptions: list[dict], products: list[str], kind: str, value_si: float, pressure_pa: float,
                        transport: bool, of_ratio: float | None = None, omit: list[str] | None = None,
-                       trace: float | None = None, derived_from: dict | None = None, extra: dict | None = None) -> dict:
+                       trace: float | None = None, derived_from: dict | None = None, extra: dict | None = None,
+                       only: list[str] | None = None) -> dict:
     key = {"tp": "temperature", "hp": "enthalpy", "sp": "entropy"}[kind]
     d = {
         "reactants": descriptions,
@@ -236,6 +241,8 @@ def equilibrium_inputs(descriptions: list[dict], products: list[str], kind: str,
         "omit": list(omit or []),
         "trace": trace,
     }
+    if only is not None:
+        d["only"] = list(only)   # the explicit product list the package was given, when there was one
     if derived_from is not None:
         d["derivedFrom"] = derived_from
     if extra:
@@ -245,7 +252,7 @@ def equilibrium_inputs(descriptions: list[dict], products: list[str], kind: str,
 
 def derive_equilibrium_cases(writer, script_path: str, base_name: str, solution: cea.RocketSolution, reac, prod,
                              weights, descriptions: list[dict], transport: bool, indices: list[int],
-                             of_ratio: float | None = None) -> None:
+                             of_ratio: float | None = None, only: list[str] | None = None) -> None:
     """tp, hp and sp cases at the given rocket stations, solved afresh with the equilibrium solver."""
     labels = station_labels(solution)
     for i in indices:
@@ -260,7 +267,7 @@ def derive_equilibrium_cases(writer, script_path: str, base_name: str, solution:
             writer.case(
                 kind, f"{base_name}_{labels[i]}",
                 inputs=equilibrium_inputs(descriptions, prod.species_names, kind, value, pressure_pa, transport,
-                                          of_ratio=of_ratio,
+                                          of_ratio=of_ratio, only=only,
                                           derived_from={"case": base_name, "station": labels[i], "index": i,
                                                         "temperature": float(solution.T[i])}),
                 outputs=outputs,

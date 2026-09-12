@@ -59,8 +59,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Fixture document: `{ "case": { "name", "kind", "inputs" }, "generator": { provenance },
   "outputs": { by name, SI } }`. Inputs carry the reactants (name or custom definition,
   mass fraction, temperature), `elementMoles` in kmol per kg computed by the generator
-  from the file's formulas, `products` (the species list the package used), the
-  problem values in SI, and for derived cases `derivedFrom`. Rocket outputs are
+  from the file's formulas and the recorded mass fractions, `products` (the species
+  list the package used), `omit` (the names given to the package, whether or not each
+  names a product: the package ignores the rest), `only` when the case was given an
+  explicit product list (RP-1311 examples 1 and 12), the problem values in SI, and
+  for derived cases `derivedFrom`. Rocket outputs are
   `stations` in the package's order (chamber, throat, then the exits as given), each
   with `station`, `index`, `frozen`, the state fields named after `MixtureState`, the
   performance fields named after `PerformanceFigures`, the transport fields named after
@@ -71,6 +74,18 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   named there; a frozen station carries the ideal-gas derivatives 1 and −1, and so does
   the chamber of a case frozen at the chamber, whose γ_s and sound speed the package
   reports as the frozen ones while its heat capacities stay the equilibrium ones.
+
+  ⚠ 2026-09-12, found by the Problems tests: the package's `of_ratio_to_weights`
+  holds the oxidizer-to-fuel ratio in single precision before it splits the kilogram
+  (2.6 becomes 2.5999999046, 5.55157 becomes 5.5515699387), so the recorded mass
+  fractions, and the `elementMoles` and reactant enthalpies computed from them, carry
+  up to 6e-8 relative of that rounding against the nominal ratio; a ratio that is exact
+  in single precision (LOX/LH2 at 4, 5, 6, 7, 8) carries none. The `oxidizerToFuelRatio`
+  field records the nominal ratio. A tree that splits in double precision reproduces
+  the recorded mass fractions to 1e-7 and, from the recorded mass fractions themselves,
+  the element moles and enthalpies to rounding. Until then the inputs paragraph above
+  said the element moles were computed "from the file's formulas" without naming the
+  mass fractions they multiply, and did not mention `only`.
 
   ⚠ 2026-09-12, three caveats of the reference's fields, found by the Equilibrium tests
   and confirmed with probes of the package on the reference machine:
@@ -209,15 +224,20 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       the nasa/cea tag `v3.3.4` (commit `4c5c612efa2002a94e3a5a1f33b1674d55c65340`), the
       release that produced the 3.3.4 wheel; the tag, the commit and the SHA-256 of both
       files are recorded in `data/NOTICE`.
-- [ ] The tree's species selection for each case equals the package's product list
-      recorded in the fixture inputs (`products`); checked where the tree selects
-      species (the Problems tests node), not in the generator, which cannot run the tree.
+- [x] 2026-09-12 — The tree's species selection for each case equals the package's
+      product list recorded in the fixture inputs (`products`); checked where the tree
+      selects species, not in the generator, which cannot run the tree:
+      `Problems.Tests.PropellantTests.Candidate_species_equal_the_reference_product_list`
+      over every rocket, tp, hp and sp file (the list from the directory listing, 195
+      that day). The RP-1311 examples 1 and 12 were generated with an explicit product
+      list, which the package takes as given; since 2026-09-12 the fixture inputs
+      record it (`only`, see the inputs paragraph), and the comparison uses it.
 
       ⚠ 2026-09-12: stood "the generator asserts that the package's species list
       equals the one `Data` reads": a Python script cannot call the tree; the fixture
       records the list and the comparison moves to the node that selects species.
-- [ ] Tolerances calibrated after the first full comparison; every entry confirmed or
-      reworded with the reason, with the date. 2026-09-12: the tp, hp and sp kinds (106
+- [x] 2026-09-12 — Tolerances calibrated after the first full comparison; every entry
+      confirmed or reworded with the reason, with the date. 2026-09-12: the tp, hp and sp kinds (106
       files) passed the table unchanged in the Equilibrium tests, the frozen stations of
       the rocket kind (51 files) in their frozen-mode test. 2026-09-12: the rocket kind
       (89 files) passed in the Performance tests after one calibration: `pressure` from
@@ -228,8 +248,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (39 files with transport) passed the table unchanged in the Transport tests, the
       stations evaluated on the reference composition: worst 3.4e-8 relative against the
       5e-4 of the table, the rest of the budget being for the comparison on the tree's
-      own composition, which the Problems tests node makes. The end-to-end comparison
-      remains.
+      own composition, which the Problems tests node makes. 2026-09-12: the end-to-end
+      comparison in the Problems tests node passed the table unchanged: every rocket
+      file on the tree's own composition with its transport fields
+      (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`), every tp, hp
+      and sp file singly and as state records in batches over unions of elements
+      (`EquilibriumTests`).
 
 ## Taboos
 

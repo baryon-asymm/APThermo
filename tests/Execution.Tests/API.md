@@ -10,7 +10,7 @@ GPU/CPU tolerance table and the approved throughput figures.
 |---|---|---|
 | every function of the root's math list is linked on CUDA and matches the CPU accelerator within 4 ULP, and the CPU accelerator reproduces `System.Math` bit for bit | L1 probe kernel | ✅ |
 | CUDA batches equal CPU-accelerator batches within the tolerance table, for all fields enumerated by reflection over `MixtureState`, `PerformanceFigures` and `TransportFigures`, on 100 000 cases and on every fixture family | L2 | ✅ |
-| batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit | L2 | ✅ |
+| batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |
 | CUDA is at least 5× faster than the CPU accelerator with all cores on the reference machine, and the measured figure is recorded | Benchmark, `Throughput.approved.txt` | ✅ |
 | CUDA can be forbidden and the node then never touches the CUDA driver; an explicit CUDA request that cannot be met names every path tried | L0 | ✅ |

@@ -47,6 +47,7 @@ public sealed class Engine : IDisposable
     public EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch);
     public RocketBatchResult Run(UploadedTables tables, RocketBatch batch);
     public TransportBatchResult Run(UploadedTables tables, TransportBatch batch);
+    public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch);
     public double[] ProbeMath(double[] inputs);        // [input * MathProbe.FunctionCount + function]
     public void Dispose();
 }
@@ -152,7 +153,32 @@ public sealed class TransportBatchResult
     public RunTimings Timings { get; }
     public AcceleratorInfo Accelerator { get; }
 }
+
+public sealed class SpeciesFunctionBatch                 // evaluations of the species functions: a table species and a temperature per entry
+{
+    public SpeciesFunctionBatch(int count);
+    public int Count { get; }
+    public int[] Species { get; }                        // [entry] table index
+    public double[] Temperature { get; }                 // [entry] K
+}
+
+public sealed class SpeciesFunctionBatchResult          // dimensionless, as Thermo's SpeciesFunctions return them
+{
+    public int Count { get; }
+    public double[] CpOverR { get; }                     // [entry]
+    public double[] HOverRT { get; }                     // [entry]
+    public double[] SOverR { get; }                      // [entry]
+    public bool[] InRange { get; }                       // [entry] first lower bound ≤ T ≤ last upper bound; outside, the nearest interval was evaluated
+    public RunTimings Timings { get; }
+    public AcceleratorInfo Accelerator { get; }
+}
 ```
+
+⚠ 2026-09-12: the species-function batch was added for the front door, which needs
+H°(T) of reactant records at their temperatures. The tree's only species functions are
+the kernel-compatible ones of `Thermo`, and running them needs a view over accelerator
+memory, which this node owns; an evaluation on the host would be a second
+implementation of the polynomial.
 
 The kernel parameter structs `EquilibriumBatchViews`, `RocketBatchViews` and
 `TransportBatchViews` are public only because ILGPU requires kernel parameter types to

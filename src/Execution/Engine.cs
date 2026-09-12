@@ -360,6 +360,56 @@ public sealed class Engine : IDisposable
         return new TransportBatchResult(figures, status.Select(s => (CaseStatus)s).ToArray(), timer.Timings(), Accelerator);
     }
 
+    /// <summary>Evaluates Cp/R, H/RT and S/R of table species at temperatures, one entry per thread.</summary>
+    public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(tables);
+        ArgumentNullException.ThrowIfNull(batch);
+        ThrowIfDisposed();
+        tables.ThrowIfNotOwned(this);
+        var table = tables.Species;
+        batch.Validate(table.SpeciesCount);
+        var count = batch.Count;
+        var timer = new Timer();
+        var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, SpeciesFunctionBatchViews>>(nameof(Kernels.Functions), timer);
+        var chunk = ChunkSize(count, 3, 2);
+
+        var cpOverR = new double[count];
+        var hOverRT = new double[count];
+        var sOverR = new double[count];
+        var inRange = new int[count];
+        using var speciesBuffer = _accelerator.Allocate1D<int>(chunk);
+        using var temperatureBuffer = _accelerator.Allocate1D<double>(chunk);
+        using var cpBuffer = _accelerator.Allocate1D<double>(chunk);
+        using var hBuffer = _accelerator.Allocate1D<double>(chunk);
+        using var sBuffer = _accelerator.Allocate1D<double>(chunk);
+        using var rangeBuffer = _accelerator.Allocate1D<int>(chunk);
+        var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
+
+        for (var offset = 0; offset < count; offset += chunk)
+        {
+            var n = Math.Min(chunk, count - offset);
+            timer.Start();
+            Upload(speciesBuffer, batch.Species, offset, n);
+            Upload(temperatureBuffer, batch.Temperature, offset, n);
+            timer.Stop(ref timer.Upload);
+
+            timer.Start();
+            launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+            _accelerator.Synchronize();
+            timer.Stop(ref timer.Kernel);
+
+            timer.Start();
+            Download(cpBuffer, cpOverR, offset, n);
+            Download(hBuffer, hOverRT, offset, n);
+            Download(sBuffer, sOverR, offset, n);
+            Download(rangeBuffer, inRange, offset, n);
+            timer.Stop(ref timer.Download);
+        }
+
+        return new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, inRange.Select(r => r != 0).ToArray(), timer.Timings(), Accelerator);
+    }
+
     /// <summary>Runs the probe of the root's math list: <c>[input * MathProbe.FunctionCount + function]</c>.</summary>
     public double[] ProbeMath(double[] inputs)
     {

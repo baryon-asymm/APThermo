@@ -30,6 +30,7 @@ public static class GpuCpuTolerances
         ["state"] = (1e-9, "Every other field of MixtureState: sums of species functions and solutions of the derivative systems over the same converged composition; the sums accumulate the ULP differences of the functions."),
         ["figures"] = (1e-9, "Performance figures: velocities from enthalpy differences and the throat and area-ratio iterations, which stop at 1e-10 on both accelerators."),
         ["transport"] = (1e-9, "Transport figures: sums of exp fits and the reaction systems, over the composition given to both accelerators alike."),
+        ["functions"] = (1e-10, "Cp/R, H/RT and S/R of one species, on the larger of 1 and the value: an eight-term polynomial in T plus log T (and pow for a non-integer exponent), whose terms cancel by up to five decades in the condensed fits (the liquid-water coefficients reach 1e8; measured 1.7e-11 on its Cp/R at 298.15 K) and cancel to zero by construction in H/RT of a reference element at 298.15 K, where a relative bound would be meaningless."),
     };
 
     /// <summary>The mole-fraction tolerance of a station, by whether both accelerators stopped after the same number of Newton steps.</summary>

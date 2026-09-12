@@ -4,23 +4,31 @@ Tree root. The system is a .NET library under the root namespace
 `AerospacePropellantThermodynamics`, whose front door is the `Problems` node, plus a
 command-line tool over it. Everything not named here is internal and may change.
 
-## How the system is used ⏳
+## How the system is used
 
 1. Load the NASA database once (`Data` node) from `data/` or from a path supplied by
    the caller.
-2. Describe a propellant (`Problems` node): reactants by database name, amounts by mass
-   fraction or by oxidizer-to-fuel ratio, reactant temperatures or enthalpies.
-3. Describe the problem: chamber pressure, expansion ratios or exit pressures, flow
-   model and freezing station; or a batch of such problems for one propellant.
-4. Create an engine bound to an accelerator (CPU or CUDA, `Execution` node) and solve.
-   The result holds the station states and the performance figures, or a batch of them.
+2. Describe a propellant (`Problems` node): reactants by database name or by formula
+   and enthalpy, amounts by mass fraction, by moles or by oxidizer-to-fuel ratio,
+   reactant temperatures where they differ from the records' own; or hand over a
+   mixture by its element moles and enthalpy per kilogram.
+3. Describe the problem: chamber pressure, area ratios or pressure ratios, flow model
+   and freezing station, transport on or off; or an equilibrium state at assigned
+   pressure with the temperature, the enthalpy or the entropy given; or a batch of
+   such problems, a sweep over ratios and pressures, or a list of state records.
+4. Create a solver (`Problems` node) bound by the execution options to the CPU
+   accelerator or to CUDA, and solve. The result holds the station states, the
+   compositions by name and the performance figures, or a batch of them.
 
-The command line does the same with JSON files.
+The command line will do the same with JSON files (`Cli`, planned).
 
-## Entry points ⏳
+## Entry points ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Problems;
+using AerospacePropellantThermodynamics.Data;
+using AerospacePropellantThermodynamics.Execution;
+using AerospacePropellantThermodynamics.Performance;
+using AerospacePropellantThermodynamics.Problems;
 
 var database = SpeciesDatabase.Load(thermoPath, transPath);                 // Data node
 
@@ -34,13 +42,26 @@ var problem = new RocketProblem
 {
     ChamberPressure = 7.0e6,                                                // Pa
     AreaRatios = [20.0, 77.5],
-    Flow = FlowModel.ShiftingEquilibrium,                                   // or Frozen(FreezeAt.Chamber)
+    Flow = FlowModel.ShiftingEquilibrium,                                   // or FrozenAtChamber, FrozenAtThroat
+    Transport = true,
 };
 
-using var engine = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Auto });
-RocketResult result = engine.Solve(propellant, problem);                    // one case
-RocketResult[] results = engine.Solve(propellant, problems);                // one batch
+using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Auto });
+RocketResult result = solver.Solve(propellant, problem);                    // one case
+IReadOnlyList<RocketResult> results = solver.Solve(propellant, problems);   // one batch
+IReadOnlyList<RocketResult> sweep = solver.Solve(new RocketSweep(propellant, ratios, pressures, areaRatios));
+EquilibriumResult state = solver.Solve(propellant, new EquilibriumProblem { Pressure = 7.0e6 });   // hp at the propellant's enthalpy
+IReadOnlyList<EquilibriumResult> states = solver.SolveStates(records);      // element moles, pressure and one target each
 ```
+
+⚠ 2026-09-12: the sketch solved on an `Engine` of the execution node
+(`engine.Solve(propellant, problem)`) and froze the flow with a `Frozen(FreezeAt.Chamber)`
+call. The solver lives in the front door node, because turning a propellant into a
+chemical system is its knowledge and the engine only runs batches; the flow models
+are the performance node's enum. Equilibrium problems, sweeps and state records
+were part of the intent from the start and are shown now that they exist.
+
+## Command line ⏳
 
 ```console
 $ apthermo rocket problem.json --output result.json
