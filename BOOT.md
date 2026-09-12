@@ -55,6 +55,19 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   accelerator agree within the tolerance table owned by the execution tests node
   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
   Every batch test compares both.
+
+  ⚠ 2026-09-12: those numbers hold at stations where both accelerators stop after
+  the same number of Newton steps. The equilibrium solver polishes until its
+  corrections fall below 1e-11, the rounding floor of its linear solves, and a
+  last-ULP difference between libdevice and .NET flips that threshold decision now
+  and then (91 of the 400 000 stations of the 100 000-case sweep): one accelerator
+  then takes one polish step more, and the two differ by up to 1.4e-11 on
+  temperature and 3.3e-10 on the mole fraction of a minor species. The original
+  wording assumed the converged iterate were unique to 1e-10, which the stopping
+  rule does not guarantee. The tolerance table of the execution tests node states
+  the second tier (1e-9 on mole fractions at such stations, derived from the polish
+  threshold) and bounds the share of such stations, so that a systematic divergence
+  cannot hide behind it.
 - **SI units in every public type**: K, Pa, J/kg, J/(kg·K), kg/kmol, kg/m³, m/s,
   Pa·s, W/(m·K). Specific impulse is the effective exhaust velocity in m/s; the
   conversion to seconds with g0 = 9.80665 m/s² happens only in the command-line front end.
@@ -124,14 +137,21 @@ There is no external ancestor: the tree root is the repository root, and the loa
       the NASA CEA reference outputs within the tolerance table of the fixtures node.
       The list of reference files is produced by a directory listing, and every file in
       it is covered.
-- [ ] A batch of 100 000 states on CUDA equals the same batch on the CPU accelerator
-      within the tolerance table; the list of compared fields is produced by reflection
-      over the result type.
-- [ ] On the reference machine the CUDA path is at least 5× faster than the CPU
-      accelerator path with all cores on the 100 000-state batch; the measured figure is
-      recorded in the benchmark's approved file.
-- [ ] The full test suite passes in a process where CUDA is forbidden (environment
-      variable `APTHERMO_NO_CUDA=1`, honoured by the execution node).
+- [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
+      accelerator within the tolerance table; the list of compared fields is produced
+      by reflection over the result type
+      (`CudaTests.The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
+      in the execution tests node, long-running; the table's second tier for mole
+      fractions is described under the GPU-equals-CPU invariant above).
+- [x] 2026-09-12 — On the reference machine the CUDA path is at least 5× faster than
+      the CPU accelerator path with all cores on the 100 000-state batch; the measured
+      figure is recorded in the benchmark's approved file
+      (`tests/Execution.Tests/Throughput.approved.txt`: 56.28×, CUDA 0.170 s against
+      9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
+- [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
+      (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
+      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 850
+      tests green, none skipped, the CUDA-category tests verifying the refusal instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
       of `CLAUDE.md`, run after the Data node: 0 errors, 0 warnings).
 - [ ] The reflection checks are written for this stack and each was shown red once

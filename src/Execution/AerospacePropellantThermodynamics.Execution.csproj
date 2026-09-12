@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Execution: accelerators, batch buffers, kernel entry points and the libdevice post-link. The only node that knows CUDA. -->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\AerospacePropellantThermodynamics.Equilibrium.csproj" />
+    <ProjectReference Include="..\Performance\AerospacePropellantThermodynamics.Performance.csproj" />
+    <ProjectReference Include="..\Transport\AerospacePropellantThermodynamics.Transport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AerospacePropellantThermodynamics.Execution.Tests" />
+  </ItemGroup>
+
+</Project>
