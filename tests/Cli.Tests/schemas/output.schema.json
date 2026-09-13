@@ -14,7 +14,7 @@
     "run": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tool", "version", "command", "inputs", "database", "accelerator", "timings", "threshold"],
+      "required": ["tool", "version", "command", "inputs", "database", "accelerator", "timings", "threshold", "massTolerance"],
       "properties": {
         "tool": { "const": "apthermo" },
         "version": { "type": "string" },
@@ -28,7 +28,8 @@
           "required": ["database", "solve"],
           "properties": { "database": { "type": "number", "minimum": 0 }, "solve": { "type": "number", "minimum": 0 } }
         },
-        "threshold": { "type": "number", "minimum": 0 }
+        "threshold": { "type": "number", "minimum": 0 },
+        "massTolerance": { "type": "number", "minimum": 0 }
       }
     },
     "database": {
@@ -66,10 +67,11 @@
         "mixture": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["elementMoles", "enthalpy"],
+          "required": ["elementMoles", "enthalpy", "mass"],
           "properties": {
             "elementMoles": { "type": "object", "additionalProperties": { "type": "number" } },
-            "enthalpy": { "type": ["number", "null"] }
+            "enthalpy": { "type": ["number", "null"] },
+            "mass": { "type": "number", "exclusiveMinimum": 0 }
           }
         },
         "stations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/station" } }

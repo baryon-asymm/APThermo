@@ -29,20 +29,19 @@ why they are a node of their own.
   within the mixture's mass tolerance, or the solve refuses the mixture before any
   kernel runs with a `MixtureMassException` naming it (`state record i`,
   `mixture i`, the propellant's mixture), the mass found in grams and the tolerance.
-  The tolerance is the constant `ElementalMixture.MassTolerance` (1e-2 relative) for
-  every mixture. ⏳ Designed 2026-09-13, not yet coded (`API.md`, the section of the
-  same mark): the tolerance becomes a declaration of the mixture (`MassTolerance`
-  per instance, given at `Create` or through `StateBatchOptions`, default
-  `DefaultMassTolerance` = 1e-2, the propellant path always at the default), and the
-  mass itself is reported on every result (`MixtureMass`) and by `Solver.MassOf`,
-  so that a raised tolerance never hides the figure. The default is derived from what
-  must pass and what must fail:
+  The tolerance is a declaration of the mixture (`MassTolerance` per instance, given
+  at `Create` or through `StateBatchOptions`; `DefaultMassTolerance` = 1e-2 when none
+  is named; the propellant path always at the default, since its mixture is the
+  tree's own), and the mass itself is reported on every result (`MixtureMass`) and by
+  `Solver.MassOf`, so that a raised tolerance never hides the figure. The default is
+  derived from what must pass and what must fail:
   - must pass: a record built with the database's own atomic weights differs from
     one kilogram by the rounding of its digits (the record of 2026-09-13 below:
     1.5e-5); a record built from a reactant record's own molar mass carries that
     record's rounding (the element moles of every fixture file, 195 on 2026-09-13,
-    are within 1.65e-5 of one kilogram, the largest from the `Air` record's
-    28.9651159 kg/kmol against its formula's 28.96561; the reactant records `HAN` and
+    are within 1.7e-5 of one kilogram, the largest 1.6502e-5 from the `Air` record's
+    28.9651159 kg/kmol against its formula's 28.96561, a bound the front door tests
+    node checks over the directory listing; the reactant records `HAN` and
     `LMP-103S` are rounded by 4.5e-4 and 1.5e-4); a record built with another
     atomic-weight table differs by that table's last digits (below 1e-4); a
     simulation that omits its trace elements loses their mass, and an element worth
@@ -86,7 +85,14 @@ why they are a node of their own.
   because the reference divides by each reactant record's molar mass), so a default
   normalization would move the tree off the reference. The user's records are per
   kilogram; should records that are proportions ever appear, a declared basis is the
-  honest feature, not a warning.
+  honest feature, not a warning. Coded the same day; the tests of the declared
+  tolerance use the record made heavy, because made light it does not converge: at
+  6.5 MPa its enthalpy sits 1.4 K above the 2700 K interval boundary of the `ALN(L)`
+  record, across which the tree's enthalpy of the mixture jumps by 357 kJ/kg (the
+  record's two fits differ by 68 kJ/mol there), and an assigned enthalpy inside that
+  gap has no solution on either side: the equilibrium node's open defect at a
+  transition with variable temperature, in a new place. Recorded here because it was
+  found here; the fix is that node's.
 - **Candidate species are chosen by one rule**: every gaseous product species of the
   database whose elements are all among the mixture's elements, then every condensed
   product species under the same condition, each in database order, minus the `Omit`
@@ -199,8 +205,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   to the numerical nodes in kmol per kg (the CEA convention), the one conversion this
   node makes besides mass normalization; enthalpy in J/kg is passed unchanged.
 - The mass tolerance is a declaration about the input, not a physical quantity: it
-  travels with the mixture (⏳ 2026-09-13), never with a problem, and the command
-  line passes it as a run option, not as a field of a document.
+  travels with the mixture (2026-09-13), never with a problem, and the command line
+  passes it as a run option, not as a field of a document.
 - Element symbols are matched to the database spelling case-insensitively (`Al`,
   `al` and `AL` are the same element); the result reports the database spelling.
 - Single-case calls are batches of one.
@@ -270,19 +276,23 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (`A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`).
       Every fixture keeps passing through the end-to-end theories, unchanged (their
       element moles were measured within 1.65e-5 of one kilogram, see the invariant).
-- [ ] The tolerance a mixture declares is the one the check applies, through every
-      front door: a record 2 % light passes at 3 % and is refused at 1 %, the message
-      naming the tolerance in force; `StateBatchOptions.MassTolerance` reaches every
-      record of the batch; the propellant path stays at the default; a negative or
-      non-finite tolerance is refused by `Create` naming it (`RejectionTests`).
-- [ ] The mass is reported: `Solver.MassOf` equals `Σ n_i A_i` from the database's
-      atomic weights; every result's `MixtureMass` equals `MassOf` of its mixture, on
-      both front doors; over every fixture file (the directory listing) the mass of
-      the recorded element moles lies within 1.65e-5 of one kilogram, the figure the
-      derivation above rests on (`PropellantTests`).
-- [ ] Both proven non-degenerate, each mutation alone and seen red: the declared
-      tolerance ignored (the check reading the default), and `MixtureMass` not the
-      measured mass.
+- [x] 2026-09-13 — The tolerance a mixture declares is the one the check applies,
+      through every front door: the record of the invariant made 2 % heavy is refused
+      at the default and solved at 3 %, through `StateBatchOptions.MassTolerance` for
+      every record of a batch and through `Create` for the direct overloads; made 5 %
+      heavy it is refused at 3 % with the message naming `3 %`; the propellant path
+      and a mixture naming no tolerance declare the default; a negative, NaN or
+      infinite tolerance is refused by `Create` naming `massTolerance`
+      (`RejectionTests.The_tolerance_a_mixture_declares_is_the_one_applied`). Heavy,
+      not light, for the reason recorded under the invariant.
+- [x] 2026-09-13 — The mass is reported: `Solver.MassOf` equals `Σ n_i A_i` from
+      `SpeciesDatabase.AtomicWeight`, and over every fixture file (the directory
+      listing, 195 files) the recorded element moles lie within 1.7e-5 of one
+      kilogram, the figure the derivation above rests on
+      (`PropellantTests.The_recorded_element_moles_of_every_fixture_weigh_one_kilogram_within_the_derivation_figure`);
+      every result's `MixtureMass` equals `MassOf` of its mixture on both front doors
+      and through `SolveStates`, and a mixture made 0.5 % heavy reports 1.005, not one
+      (`PropellantTests.Results_carry_the_mass_of_their_mixture`).
 
 ## Taboos
 

@@ -93,15 +93,17 @@ built for.
 ```csharp
 public sealed record ElementalMixture
 {
-    public const double MassTolerance = 1.0e-2;         // relative: Σ n_i A_i must lie within this of 1 kg (BOOT.md); the solver checks it
+    public const double DefaultMassTolerance = 1.0e-2;  // relative to one kilogram: the tolerance a mixture declares when it names none (BOOT.md)
     public static ElementalMixture Create(IReadOnlyDictionary<string, double> elementMoles,   // mol per kg
                                           double? enthalpy = null,                             // J per kg; null: assigned-temperature problems only
-                                          IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null);
+                                          IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null,
+                                          double massTolerance = DefaultMassTolerance);        // finite and non-negative, else ArgumentException naming it
     public IReadOnlyDictionary<string, double> ElementMoles { get; }   // symbols in the database spelling ("Al" → "AL")
     public double? Enthalpy { get; }
     public IReadOnlyList<string> Elements { get; }                    // order used in results
     public IReadOnlyList<string> Omit { get; }
     public IReadOnlyList<string>? Only { get; }
+    public double MassTolerance { get; }                              // the tolerance this mixture declares; the solver compares |Σ n_i A_i − 1| with it
 }
 
 public sealed record StateRecord(                     // the exchange record: one state of a mixture
@@ -111,13 +113,15 @@ public sealed record StateRecord(                     // the exchange record: on
     double? Temperature = null,                       // K     → tp problem
     double? Entropy = null);                          // J/(kg·K) → sp problem; exactly one of the three is set
 
-public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null);
+public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null,
+                                       double MassTolerance = ElementalMixture.DefaultMassTolerance);   // declared for every record of the batch
 
-public sealed class MixtureMassException : ArgumentException   // the solver's refusal of a mixture beyond MassTolerance
+public sealed class MixtureMassException : ArgumentException   // the solver's refusal of a mixture beyond its MassTolerance
 {
-    public MixtureMassException(string subject, int index, double mass);
+    public MixtureMassException(string subject, int index, double mass, double tolerance);
     public int Index { get; }                         // position in the batch: the case index, or the state record's index
     public double Mass { get; }                       // kg: Σ n_i A_i with the database's atomic weights
+    public double Tolerance { get; }                  // the tolerance in force, relative
     public string Reason { get; }                     // the message without the subject, for a caller that names the mixture its own way
 }
 ```
@@ -132,18 +136,33 @@ the numerical nodes use.
 
 Element moles are per kilogram of mixture, and the solver holds every mixture to it
 before any kernel runs: their mass with the database's atomic weights must be one
-kilogram within `MassTolerance`, else the solve throws a `MixtureMassException`
-whose message is the subject and the reason, `state record 3: the composition weighs
-2000.03 g with the database's atomic weights; element moles are per kilogram of
-mixture, so it must weigh 1000 g within 1 %` (the subject is `mixture i` from the
-overloads over mixtures, `state record i` from `SolveStates`, and `the propellant's
-mixture (case i)` when a reactant record's molar mass contradicts its formula). The
-propellant path produces one kilogram by construction and is checked all the same.
+kilogram within the tolerance the mixture declares (`MassTolerance`, given at
+`Create` or through `StateBatchOptions`, `DefaultMassTolerance` when none is named;
+the propellant path always declares the default, since its mixture is the tree's own
+and a deviation there is a database defect, not the caller's knowledge), else the
+solve throws a `MixtureMassException` whose message is the subject and the reason,
+`state record 3: the composition weighs 2000.03 g with the database's atomic weights;
+element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (the
+subject is `mixture i` from the overloads over mixtures, `state record i` from
+`SolveStates`, and `the propellant's mixture (case i)` when a reactant record's molar
+mass contradicts its formula; the tolerance in force is printed in percent to three
+significant digits). The mass itself is reported: `Solver.MassOf` gives it for any
+mixture, and every result carries it as `MixtureMass`, so that a raised tolerance
+never hides the figure.
 
 ⚠ 2026-09-13: the contract said "mol per kg" and checked nothing: a record with every
 element mole doubled, or in mol/g, solved without a word (the parent's BOOT.md,
-invariants). `MassTolerance`, `MixtureMassException` and the check are new; the
-tolerance is derived there.
+invariants). The check and `MixtureMassException` were added with a constant
+`MassTolerance`; the design session of the same day made the tolerance a declaration
+of the mixture (the constant became `DefaultMassTolerance`, the mixture gained
+`MassTolerance`, the options and the exception their fields) and the mass a figure of
+the result (`MixtureMass`, `MassOf`). The decisions taken then, so that they are not
+reopened by accident: no "warning" mode (a record solved as given is wrong in every
+per-kilogram figure, and a flag left in a script lets the next thousandfold error
+through); no normalization of the moles to one kilogram (it would guess the basis of
+the enthalpy, and the reference's own `b_i` are not normalized); the tolerance
+travels with the mixture, not with a problem or a document field, because it
+describes the caller's records, not the physics. The reasons are in the parent's `BOOT.md`.
 
 ⚠ 2026-09-12: the sketch's `Create(elementMoles, enthalpy)` had a mandatory enthalpy
 and no species lists. A mixture solved only at assigned temperatures has no enthalpy
@@ -195,6 +214,7 @@ public sealed record Station(
 public sealed record RocketResult(
     Propellant? Propellant,                             // null for an elemental mixture
     ElementalMixture Mixture,                           // the element moles and enthalpy the case started from
+    double MixtureMass,                                 // kg: Σ n_i A_i of those element moles with the database's atomic weights
     RocketProblem Problem,
     double? OxidizerToFuelRatio,                        // the ratio of the mixture rule, or null
     IReadOnlyList<string> Species,                      // table order: gases, then condensed species
@@ -205,6 +225,7 @@ public sealed record RocketResult(
 public sealed record EquilibriumResult(
     Propellant? Propellant,
     ElementalMixture Mixture,
+    double MixtureMass,                                 // kg, as on RocketResult
     EquilibriumProblem Problem,
     IReadOnlyList<string> Species,
     Station State,
@@ -238,6 +259,7 @@ public sealed class Solver : IDisposable
     public AcceleratorInfo Accelerator { get; }
     public ElementalMixture Mixture(Propellant propellant, double? oxidizerToFuelRatio = null);   // b_i (mol/kg) and h_0 (J/kg)
     public IReadOnlyList<string> CandidateSpecies(IReadOnlyList<string> elements, IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null);
+    public double MassOf(ElementalMixture mixture);     // kg: Σ n_i A_i with the database's atomic weights, the number the mass check compares with one kilogram
     public RocketResult Solve(Propellant propellant, RocketProblem problem);
     public IReadOnlyList<RocketResult> Solve(Propellant propellant, IReadOnlyList<RocketProblem> problems);
     public IReadOnlyList<RocketResult> Solve(RocketSweep sweep);
@@ -270,63 +292,8 @@ selection produces without solving; `Solve(ElementalMixture, IReadOnlyList<Equil
 completes the overload set; `SolveStates`' options are optional. The two overloads over
 lists of mixtures were added on 2026-09-13 for the command line: a sweep over the
 oxidizer-to-fuel ratio with any exit layout, and the records of another simulation with
-exits, are one batch through them.
-
-## Declared mass tolerance and mass report ⏳
-
-Designed on 2026-09-13, after the mass check of the same day (the parent's `BOOT.md`,
-invariants): the tolerance becomes a declaration of the mixture and the mass a figure
-of the result. Until the coding session the blocks marked done above are the
-contract; once implemented, the declarations below replace theirs, and the constant
-`MassTolerance` of the elemental-mixtures block becomes `DefaultMassTolerance`.
-
-```csharp
-public sealed record ElementalMixture
-{
-    public const double DefaultMassTolerance = 1.0e-2;    // the constant MassTolerance above, renamed; value and derivation unchanged
-    public static ElementalMixture Create(IReadOnlyDictionary<string, double> elementMoles, double? enthalpy = null,
-                                          IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null,
-                                          double massTolerance = DefaultMassTolerance);   // finite and non-negative, else ArgumentException naming it
-    public double MassTolerance { get; }                  // the tolerance this mixture declares, relative to one kilogram
-}
-
-public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null,
-                                       double MassTolerance = ElementalMixture.DefaultMassTolerance);   // declared for every record of the batch
-
-public sealed class MixtureMassException : ArgumentException
-{
-    public MixtureMassException(string subject, int index, double mass, double tolerance);
-    public int Index { get; }
-    public double Mass { get; }                           // kg
-    public double Tolerance { get; }                      // the tolerance in force, relative
-    public string Reason { get; }
-}
-
-public sealed record RocketResult(Propellant? Propellant, ElementalMixture Mixture, double MixtureMass, RocketProblem Problem, /* … as above */);
-public sealed record EquilibriumResult(Propellant? Propellant, ElementalMixture Mixture, double MixtureMass, EquilibriumProblem Problem, /* … as above */);
-
-public sealed class Solver
-{
-    public double MassOf(ElementalMixture mixture);       // kg: Σ n_i A_i with the database's atomic weights, the number the check compares
-}
-```
-
-The check compares `|MassOf(mixture) − 1|` with `mixture.MassTolerance`; `SolveStates`
-creates every record's mixture with the options' tolerance; the propellant path
-declares the default, since its mixture is the tree's own and a deviation there is a
-database defect, not the caller's knowledge. `MixtureMass` is filled on every result
-of both front doors, and `MassOf` gives the figure without a solve. The message keeps
-its shape and names the tolerance in force, in percent to three significant digits:
-`… so it must weigh 1000 g within 3 %`. The errors row for the mass then reads "by
-more than the mixture's `MassTolerance`".
-
-Decisions taken with the design, recorded so that they are not reopened by accident:
-no "warning" mode (a record solved as given is wrong in every per-kilogram figure,
-and a flag left in a script lets the next thousandfold error through); no
-normalization of the moles to one kilogram (it would guess the basis of the
-enthalpy, and the reference's own `b_i` are not normalized); the tolerance travels
-with the mixture, not with a problem or a document field, because it describes the
-caller's records, not the physics. The reasons are in the parent's `BOOT.md`.
+exits, are one batch through them. `MassOf` was added the same day with the mass
+check (the elemental-mixtures section).
 
 ## Errors
 
@@ -337,7 +304,8 @@ caller's records, not the physics. The reasons are in the parent's `BOOT.md`.
 | a negative amount, a non-positive temperature, an empty formula, a non-finite enthalpy | `ArgumentException` naming the reactant, from `Reactant` |
 | an element symbol without a database record; a mixture without enthalpy given a rocket problem or an assigned-enthalpy problem without one; a non-positive pressure, chamber pressure or exit value; transport requested on a database loaded without `trans.inp`; an empty batch or sweep; a ratio set on a propellant given by mass fractions | `ArgumentException` naming the element or the problem index, from `Solve`, before any kernel runs |
 | a state record with none or more than one of enthalpy, temperature and entropy, a negative abundance, an empty or duplicated symbol | `ArgumentException` naming the record index, from `SolveStates`, before any kernel runs |
-| a mixture whose element moles weigh more or less than one kilogram with the database's atomic weights by more than `ElementalMixture.MassTolerance` (a doubled record, mol/g, kmol/kg, a reactant record whose molar mass contradicts its formula) | `MixtureMassException` (an `ArgumentException`) naming the mixture (`mixture i`, `state record i`, the propellant's mixture), the mass in grams and the tolerance, from `Solve` and `SolveStates`, before any kernel runs |
+| a mixture whose element moles weigh more or less than one kilogram with the database's atomic weights by more than the mixture's `MassTolerance` (a doubled record, mol/g, kmol/kg, a reactant record whose molar mass contradicts its formula) | `MixtureMassException` (an `ArgumentException`) naming the mixture (`mixture i`, `state record i`, the propellant's mixture), the mass in grams and the tolerance in force, from `Solve` and `SolveStates`, before any kernel runs |
+| a mass tolerance that is negative or not finite | `ArgumentException` naming `massTolerance`, from `Create` |
 | accelerator unavailable or ILGPU mismatch | the `Execution` exceptions, unchanged |
 | per-case numerical failure | `Status` on the result and on the station; no exception |
 | a disposed solver | `ObjectDisposedException` |

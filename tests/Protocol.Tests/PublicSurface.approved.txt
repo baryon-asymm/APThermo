@@ -462,13 +462,14 @@ enum AerospacePropellantThermodynamics.Problems.AmountKind : Int32
     Moles = 1
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.ElementalMixture : IEquatable<ElementalMixture>
+    Double MassTolerance { get; }
     Double? Enthalpy { get; }
     IReadOnlyDictionary<String, Double> ElementMoles { get; }
     IReadOnlyList<String> Elements { get; }
     IReadOnlyList<String> Omit { get; }
     IReadOnlyList<String>? Only { get; }
-    const Double MassTolerance = 0.01
-    static ElementalMixture Create(IReadOnlyDictionary<String, Double> elementMoles, Double? enthalpy = null, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null)
+    const Double DefaultMassTolerance = 0.01
+    static ElementalMixture Create(IReadOnlyDictionary<String, Double> elementMoles, Double? enthalpy = null, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null, Double massTolerance = 0.01)
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumProblem : IEquatable<EquilibriumProblem>
     .ctor()
@@ -480,9 +481,10 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumProb
     ProblemKind Kind { get; init; }
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumResult : IEquatable<EquilibriumResult>
-    .ctor(Propellant? Propellant, ElementalMixture Mixture, EquilibriumProblem Problem, IReadOnlyList<String> Species, Station State, CaseStatus Status, AcceleratorInfo Accelerator)
+    .ctor(Propellant? Propellant, ElementalMixture Mixture, Double MixtureMass, EquilibriumProblem Problem, IReadOnlyList<String> Species, Station State, CaseStatus Status, AcceleratorInfo Accelerator)
     AcceleratorInfo Accelerator { get; init; }
     CaseStatus Status { get; init; }
+    Double MixtureMass { get; init; }
     ElementalMixture Mixture { get; init; }
     EquilibriumProblem Problem { get; init; }
     IReadOnlyList<String> Species { get; init; }
@@ -490,8 +492,9 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumResu
     Station State { get; init; }
 
 sealed class AerospacePropellantThermodynamics.Problems.MixtureMassException : ArgumentException, ISerializable
-    .ctor(String subject, Int32 index, Double mass)
+    .ctor(String subject, Int32 index, Double mass, Double tolerance)
     Double Mass { get; }
+    Double Tolerance { get; }
     Int32 Index { get; }
     String Reason { get; }
 
@@ -557,9 +560,10 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.RocketProblem :
     Int32 ExitCount { get; }
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.RocketResult : IEquatable<RocketResult>
-    .ctor(Propellant? Propellant, ElementalMixture Mixture, RocketProblem Problem, Double? OxidizerToFuelRatio, IReadOnlyList<String> Species, IReadOnlyList<Station> Stations, CaseStatus Status, AcceleratorInfo Accelerator)
+    .ctor(Propellant? Propellant, ElementalMixture Mixture, Double MixtureMass, RocketProblem Problem, Double? OxidizerToFuelRatio, IReadOnlyList<String> Species, IReadOnlyList<Station> Stations, CaseStatus Status, AcceleratorInfo Accelerator)
     AcceleratorInfo Accelerator { get; init; }
     CaseStatus Status { get; init; }
+    Double MixtureMass { get; init; }
     Double? OxidizerToFuelRatio { get; init; }
     ElementalMixture Mixture { get; init; }
     IReadOnlyList<Station> Stations { get; init; }
@@ -578,6 +582,7 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.RocketSweep : I
 
 sealed class AerospacePropellantThermodynamics.Problems.Solver : IDisposable
     AcceleratorInfo Accelerator { get; }
+    Double MassOf(ElementalMixture mixture)
     ElementalMixture Mixture(Propellant propellant, Double? oxidizerToFuelRatio = null)
     EquilibriumResult Solve(ElementalMixture mixture, EquilibriumProblem problem)
     EquilibriumResult Solve(Propellant propellant, EquilibriumProblem problem)
@@ -597,8 +602,9 @@ sealed class AerospacePropellantThermodynamics.Problems.Solver : IDisposable
     static Solver Create(SpeciesDatabase database, EngineOptions? options = null)
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.StateBatchOptions : IEquatable<StateBatchOptions>
-    .ctor(Boolean Transport = false, IReadOnlyList<String>? Omit = null, IReadOnlyList<String>? Only = null)
+    .ctor(Boolean Transport = false, IReadOnlyList<String>? Omit = null, IReadOnlyList<String>? Only = null, Double MassTolerance = 0.01)
     Boolean Transport { get; init; }
+    Double MassTolerance { get; init; }
     IReadOnlyList<String>? Omit { get; init; }
     IReadOnlyList<String>? Only { get; init; }
 

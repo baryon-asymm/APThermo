@@ -16,7 +16,7 @@ internal static class Listings
         var entries = database.Products.Concat(database.Reactants)
             .Where(s => options.Find is null || s.Name.Contains(options.Find, StringComparison.OrdinalIgnoreCase))
             .ToList();
-        var run = new RunInfo("species", [], info, null, databaseSeconds, 0.0, options.Threshold);
+        var run = new RunInfo("species", [], info, null, databaseSeconds, 0.0, options.Threshold, options.MassTolerance);
         var text = options.Format == OutputFormat.Csv ? SpeciesCsv(entries, database) : SpeciesJson(run, entries, database);
         Outputs.Deliver(text, options.Output, output);
         return ExitCode.Ok;

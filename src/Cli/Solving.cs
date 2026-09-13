@@ -98,8 +98,8 @@ internal static class Propellants
         return builder.Build();
     }
 
-    public static ElementalMixture Build(ElementalPropellant document) =>
-        ElementalMixture.Create(document.ElementMoles, document.Enthalpy, document.Omit, document.Only);
+    public static ElementalMixture Build(ElementalPropellant document, double massTolerance) =>
+        ElementalMixture.Create(document.ElementMoles, document.Enthalpy, document.Omit, document.Only, massTolerance);
 }
 
 /// <summary>The solving commands: document in, cases out.</summary>
@@ -132,7 +132,7 @@ internal static class Solving
         }
         else
         {
-            var mixture = Propellants.Build((ElementalPropellant)document.Propellant);
+            var mixture = Propellants.Build((ElementalPropellant)document.Propellant, options.MassTolerance);
             mixtures = combinations.Select(_ => mixture).ToList();
         }
 
@@ -153,7 +153,7 @@ internal static class Solving
         }
 
         watch.Stop();
-        var run = new RunInfo(invocation.Command, [path], info, solver.Accelerator, databaseSeconds, watch.Elapsed.TotalSeconds, options.Threshold);
+        var run = new RunInfo(invocation.Command, [path], info, solver.Accelerator, databaseSeconds, watch.Elapsed.TotalSeconds, options.Threshold, options.MassTolerance);
         return Outputs.Write(run, cases, options, output);
     }
 
@@ -170,7 +170,7 @@ internal static class Solving
         var cases = new CaseOutput[records.Count];
         if (equilibrium.Count > 0)
         {
-            var mixtures = equilibrium.Select(r => MixtureOf(r)).ToList();
+            var mixtures = equilibrium.Select(r => MixtureOf(r, options.MassTolerance)).ToList();
             var problems = equilibrium.Select(r => new EquilibriumProblem
             {
                 Kind = r.Temperature is not null ? ProblemKind.AssignedTemperaturePressure
@@ -187,13 +187,13 @@ internal static class Solving
             {
                 var record = equilibrium[k];
                 var result = results[k];
-                cases[record.Index] = new CaseOutput(record.Index, JsonNode.Parse(record.Record.GetRawText())!, result.Status, result.Mixture, result.Species, [result.State]);
+                cases[record.Index] = new CaseOutput(record.Index, JsonNode.Parse(record.Record.GetRawText())!, result.Status, result.Mixture, result.MixtureMass, result.Species, [result.State]);
             }
         }
 
         if (rockets.Count > 0)
         {
-            var mixtures = rockets.Select(r => MixtureOf(r)).ToList();
+            var mixtures = rockets.Select(r => MixtureOf(r, options.MassTolerance)).ToList();
             var problems = rockets.Select(r => new RocketProblem
             {
                 ChamberPressure = r.Pressure,
@@ -207,12 +207,12 @@ internal static class Solving
             {
                 var record = rockets[k];
                 var result = results[k];
-                cases[record.Index] = new CaseOutput(record.Index, JsonNode.Parse(record.Record.GetRawText())!, result.Status, result.Mixture, result.Species, result.Stations);
+                cases[record.Index] = new CaseOutput(record.Index, JsonNode.Parse(record.Record.GetRawText())!, result.Status, result.Mixture, result.MixtureMass, result.Species, result.Stations);
             }
         }
 
         watch.Stop();
-        var run = new RunInfo("states", invocation.Arguments, info, solver.Accelerator, databaseSeconds, watch.Elapsed.TotalSeconds, options.Threshold);
+        var run = new RunInfo("states", invocation.Arguments, info, solver.Accelerator, databaseSeconds, watch.Elapsed.TotalSeconds, options.Threshold, options.MassTolerance);
         return Outputs.Write(run, cases, options, output);
     }
 
@@ -229,11 +229,11 @@ internal static class Solving
         }
     }
 
-    private static ElementalMixture MixtureOf(StateDocument record)
+    private static ElementalMixture MixtureOf(StateDocument record, double massTolerance)
     {
         try
         {
-            return ElementalMixture.Create(record.Composition, record.Enthalpy);
+            return ElementalMixture.Create(record.Composition, record.Enthalpy, massTolerance: massTolerance);
         }
         catch (ArgumentException e)
         {
@@ -264,7 +264,7 @@ internal static class Solving
             }
 
             inputs["chamberPressure"] = problems[i].ChamberPressure;
-            cases.Add(new CaseOutput(i, inputs, results[i].Status, results[i].Mixture, results[i].Species, results[i].Stations));
+            cases.Add(new CaseOutput(i, inputs, results[i].Status, results[i].Mixture, results[i].MixtureMass, results[i].Species, results[i].Stations));
         }
 
         return cases;
@@ -311,7 +311,7 @@ internal static class Solving
                     break;
             }
 
-            cases.Add(new CaseOutput(i, inputs, results[i].Status, results[i].Mixture, results[i].Species, [results[i].State]));
+            cases.Add(new CaseOutput(i, inputs, results[i].Status, results[i].Mixture, results[i].MixtureMass, results[i].Species, [results[i].State]));
         }
 
         return cases;

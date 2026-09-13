@@ -94,6 +94,43 @@ public sealed class ExitCodeTests(CliFixture fixture)
     }
 
     [Fact]
+    public void The_mass_tolerance_option_is_the_tolerance_the_run_declares()
+    {
+        // The record of another simulation made 2 % heavy: refused at the default, solved at 3 %; made 5 % heavy, refused at 3 %, naming it.
+        // Heavy, not light: made light it does not converge (the front door tests node's RejectionTests say why).
+        var record = JsonNode.Parse(File.ReadAllText(fixture.Document("states-ap-al-record.json")))![0]!.AsObject();
+        string Scaled(double factor, string name)
+        {
+            var scaled = JsonNode.Parse(record.ToJsonString())!.AsObject();
+            var composition = scaled["composition"]!.AsObject();
+            foreach (var symbol in composition.Select(p => p.Key).ToList())
+            {
+                composition[symbol] = composition[symbol]!.GetValue<double>() * factor;
+            }
+
+            var path = fixture.TempFile(name);
+            File.WriteAllText(path, scaled.ToJsonString());
+            return path;
+        }
+
+        var heavy = Scaled(1.02, "heavy-2pct.json");
+        var run = fixture.Invoke(fixture.Solving("states", heavy));
+        Assert.Equal(2, run.Code);
+        Assert.Contains("within 1 %", run.Error);
+        run = fixture.Invoke(fixture.Solving("states", heavy, "--mass-tolerance", "0.03"));
+        Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
+        using var document = run.Json();
+        Assert.Equal(0.03, document.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
+        var mass = document.RootElement.GetProperty("cases")[0].GetProperty("mixture").GetProperty("mass").GetDouble();
+        Assert.True(Math.Abs(mass - 1.02) < 1e-3, $"mass {mass:R} kg");
+
+        run = fixture.Invoke(fixture.Solving("states", Scaled(1.05, "heavy-5pct.json"), "--mass-tolerance", "0.03"));
+        Assert.Equal(2, run.Code);
+        Assert.Contains("within 3 %", run.Error);
+        Assert.Empty(run.Output);
+    }
+
+    [Fact]
     public void Devices_is_exit_0_whether_or_not_cuda_is_available()
     {
         var run = fixture.Invoke("devices");

@@ -72,10 +72,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   omitted from the composition tables; default 5e-6, the reference's print threshold),
   `--transport` (states), `--find TEXT` (species), `--help`. Every option applies to
   the commands `API.md` lists it with; an option that does not apply is an error.
-  ⏳ 2026-09-13, designed: `--mass-tolerance X` on the solving commands, the mass
-  tolerance declared for every mixture built from element moles (default the
-  library's, 1e-2; a propellant by reactants keeps the default); a run option, not a
-  document field, because it describes the caller's records and not the physics.
+  2026-09-13: `--mass-tolerance X` on the solving commands, the mass tolerance
+  declared for every mixture built from element moles (default the library's, 1e-2;
+  a propellant by reactants keeps the default); a run option, not a document field,
+  because it describes the caller's records and not the physics.
 - The assembly is named after its namespace, as the root requires; `apthermo` is the
   tool command name of the package (`dotnet pack` produces a tool package whose
   command is `apthermo`), and a direct run is `dotnet AerospacePropellantThermodynamics.Cli.dll`.
@@ -103,9 +103,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   call each.
 - Timings and the accelerator description are always in the output document's
   `run` section, with the command, the input files, the database files and their
-  hashes, and the threshold; ⏳ 2026-09-13: and the mass tolerance in force, while
-  every case's `mixture` section carries the mass of its element moles
-  (`MixtureMass` of the library), so that a raised tolerance never hides the figure.
+  hashes, the threshold and (2026-09-13) the mass tolerance in force, while every
+  case's `mixture` section carries the mass of its element moles (`MixtureMass` of
+  the library), so that a raised tolerance never hides the figure.
 
   ⚠ 2026-09-12: the sketch's timings were the engine's (`warmUp`, `upload`, `kernel`,
   `download`), which the front door does not expose; the tool reports its own phases
@@ -147,13 +147,20 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       behind a good one in a JSON Lines file is named by file and line, not by its
       position in the batch
       (`ExitCodeTests.A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`).
-- [ ] `--mass-tolerance` is parsed like `--threshold` (a bad value and a listing
-      command are exit code 2, the usage names it), reaches every elemental mixture
-      of the run and is echoed as `run.massTolerance`; every case of every solving
-      command carries `mixture.mass`, and the output schema of the tests node lists
-      both fields; the record of another simulation made 2 % light is exit code 2
-      without the option and exit code 0 with `--mass-tolerance 0.03`, the refusal
-      naming `3 %`; the mutation "the option not passed to the solver" seen red.
+- [x] 2026-09-13 — `--mass-tolerance` is parsed like `--threshold`: a negative or
+      infinite value and the option on a listing command are exit code 2, the usage
+      names it, `=` works and the default is the library's
+      (`CommandLineTests.Invalid_command_lines_are_exit_2_naming_the_offender`,
+      `The_usage_names_every_command_and_option`, `Options_may_be_given_with_an_equals_sign`);
+      it is echoed as `run.massTolerance` and every case of every solving command
+      carries `mixture.mass`, the schema files of the tests node listing both
+      (`OutputDocumentTests.The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture`,
+      `Every_example_document_runs_and_its_result_validates_against_the_output_schema`),
+      and the mass is the library's exactly (`LibraryEqualityTests`); the record of
+      another simulation made 2 % heavy is exit code 2 without the option and exit
+      code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
+      (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
+      heavy, not light: the front door's BOOT.md records why).
 
 ## Taboos
 

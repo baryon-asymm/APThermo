@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using AerospacePropellantThermodynamics.Performance;
+using AerospacePropellantThermodynamics.Problems;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
 
@@ -113,6 +114,29 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.Equal(expected, cases.Select(c => (c.GetProperty("inputs").GetProperty("pressure").GetDouble(), c.GetProperty("inputs").GetProperty("temperature").GetDouble())));
         Assert.All(cases, c => Assert.Equal("tp", c.GetProperty("inputs").GetProperty("kind").GetString()));
         Assert.All(cases, c => Assert.Equal(c.GetProperty("inputs").GetProperty("temperature").GetDouble(), c.GetProperty("stations")[0].GetProperty("temperature").GetDouble()));
+    }
+
+    [Fact]
+    public void The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture()
+    {
+        var (_, standard, _) = fixture.Produce("states", "states.json");
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, standard.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
+        var (_, loose, _) = fixture.Produce("states", "states.json", "--mass-tolerance", "0.05");
+        Assert.Equal(0.05, loose.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
+        foreach (var document in new[] { standard, loose })
+        {
+            foreach (var c in document.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var mass = c.GetProperty("mixture").GetProperty("mass").GetDouble();
+                Assert.True(Math.Abs(mass - 1.0) <= ElementalMixture.DefaultMassTolerance, $"case {c.GetProperty("index").GetInt32()}: mass {mass:R} kg");
+            }
+        }
+
+        // The propellant path reports it too: every case of the LOX/LH2 sweep within the reactant records' rounding of one kilogram.
+        var (_, sweep, _) = fixture.Produce("rocket", "rocket-sweep.json");
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, sweep.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
+        Assert.All(sweep.RootElement.GetProperty("cases").EnumerateArray(),
+                   c => Assert.True(Math.Abs(c.GetProperty("mixture").GetProperty("mass").GetDouble() - 1.0) < 1e-4, c.GetProperty("mixture").GetProperty("mass").GetRawText()));
     }
 
     [Fact]

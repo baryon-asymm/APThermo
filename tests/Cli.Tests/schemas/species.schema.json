@@ -8,7 +8,7 @@
     "run": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tool", "version", "command", "inputs", "database", "timings", "threshold"],
+      "required": ["tool", "version", "command", "inputs", "database", "timings", "threshold", "massTolerance"],
       "properties": {
         "tool": { "const": "apthermo" },
         "version": { "type": "string" },
@@ -26,7 +26,8 @@
           }
         },
         "timings": { "type": "object", "additionalProperties": { "type": "number" } },
-        "threshold": { "type": "number" }
+        "threshold": { "type": "number" },
+        "massTolerance": { "type": "number" }
       }
     },
     "species": {

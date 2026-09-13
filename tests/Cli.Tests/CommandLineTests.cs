@@ -36,6 +36,9 @@ public sealed class CommandLineTests(CliFixture fixture)
     [InlineData(new[] { "rocket", "x.json", "--accelerator", "gpu" }, "gpu")]
     [InlineData(new[] { "rocket", "x.json", "--threshold", "-1" }, "threshold")]
     [InlineData(new[] { "rocket", "x.json", "--threshold", "many" }, "threshold")]
+    [InlineData(new[] { "rocket", "x.json", "--mass-tolerance", "-0.01" }, "mass tolerance")]
+    [InlineData(new[] { "states", "x.json", "--mass-tolerance", "inf" }, "mass tolerance")]
+    [InlineData(new[] { "species", "--mass-tolerance", "0.1" }, "--mass-tolerance")]
     [InlineData(new[] { "species", "--transport" }, "--transport")]
     [InlineData(new[] { "rocket", "x.json", "--find", "H2" }, "--find")]
     [InlineData(new[] { "devices", "--format", "csv" }, "CSV")]
@@ -58,7 +61,7 @@ public sealed class CommandLineTests(CliFixture fixture)
             Assert.Contains($"  {command}", CommandLine.Usage);
         }
 
-        foreach (var option in new[] { "--output", "--format", "--accelerator", "--database", "--threshold", "--transport", "--find", "--help" })
+        foreach (var option in new[] { "--output", "--format", "--accelerator", "--database", "--threshold", "--mass-tolerance", "--transport", "--find", "--help" })
         {
             Assert.Contains(option, CommandLine.Usage);
         }
@@ -69,12 +72,14 @@ public sealed class CommandLineTests(CliFixture fixture)
     [Fact]
     public void Options_may_be_given_with_an_equals_sign()
     {
-        var invocation = CommandLine.Parse(["rocket", "p.json", "--format=csv", "--threshold=1e-3", "--accelerator=cpu"]);
+        var invocation = CommandLine.Parse(["rocket", "p.json", "--format=csv", "--threshold=1e-3", "--mass-tolerance=0.03", "--accelerator=cpu"]);
         Assert.Equal("rocket", invocation.Command);
         Assert.Equal(["p.json"], invocation.Arguments);
         Assert.Equal(OutputFormat.Csv, invocation.Options.Format);
         Assert.Equal(1e-3, invocation.Options.Threshold);
+        Assert.Equal(0.03, invocation.Options.MassTolerance);
         Assert.Equal(Execution.AcceleratorKind.Cpu, invocation.Options.Accelerator);
         Assert.Equal(CommandOptions.DefaultThreshold, CommandLine.Parse(["devices"]).Options.Threshold);
+        Assert.Equal(Problems.ElementalMixture.DefaultMassTolerance, CommandLine.Parse(["states", "r.json"]).Options.MassTolerance);
     }
 }

@@ -6,24 +6,30 @@ namespace AerospacePropellantThermodynamics.Problems;
 public sealed record ElementalMixture
 {
     /// <summary>
-    /// How far the mass of the element moles, Σ n_i A_i with the database's atomic weights, may lie from one kilogram (relative). The
-    /// solver refuses a mixture beyond it with a <see cref="MixtureMassException"/>, whichever front door it came through; BOOT.md derives the value.
+    /// The mass tolerance a mixture declares when it names none: how far the mass of its element moles, Σ n_i A_i with the database's
+    /// atomic weights, may lie from one kilogram (relative). The solver refuses a mixture beyond its tolerance with a
+    /// <see cref="MixtureMassException"/>, whichever front door it came through; BOOT.md derives the value.
     /// </summary>
-    public const double MassTolerance = 1.0e-2;
+    public const double DefaultMassTolerance = 1.0e-2;
 
     private ElementalMixture(IReadOnlyDictionary<string, double> elementMoles, double? enthalpy, IReadOnlyList<string> elements,
-                             IReadOnlyList<string> omit, IReadOnlyList<string>? only)
+                             IReadOnlyList<string> omit, IReadOnlyList<string>? only, double massTolerance)
     {
         ElementMoles = elementMoles;
         Enthalpy = enthalpy;
         Elements = elements;
         Omit = omit;
         Only = only;
+        MassTolerance = massTolerance;
     }
 
-    /// <summary>Element moles per kilogram (mol/kg) by symbol, and the enthalpy in J/kg (null when only assigned-temperature problems will be solved).</summary>
+    /// <summary>
+    /// Element moles per kilogram (mol/kg) by symbol, the enthalpy in J/kg (null when only assigned-temperature problems will be solved),
+    /// and the mass tolerance the mixture declares, relative to one kilogram (BOOT.md).
+    /// </summary>
     public static ElementalMixture Create(IReadOnlyDictionary<string, double> elementMoles, double? enthalpy = null,
-                                          IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null)
+                                          IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null,
+                                          double massTolerance = DefaultMassTolerance)
     {
         ArgumentNullException.ThrowIfNull(elementMoles);
         if (elementMoles.Count == 0)
@@ -34,6 +40,11 @@ public sealed record ElementalMixture
         if (enthalpy is { } h && !double.IsFinite(h))
         {
             throw new ArgumentException("the enthalpy must be finite", nameof(enthalpy));
+        }
+
+        if (!double.IsFinite(massTolerance) || massTolerance < 0.0)
+        {
+            throw new ArgumentException($"the mass tolerance must be a finite non-negative number, not {massTolerance}", nameof(massTolerance));
         }
 
         var moles = new Dictionary<string, double>(StringComparer.Ordinal);
@@ -59,7 +70,7 @@ public sealed record ElementalMixture
             elements.Add(spelling);
         }
 
-        return new ElementalMixture(moles, enthalpy, elements, omit?.Distinct(StringComparer.Ordinal).ToList() ?? [], only?.Distinct(StringComparer.Ordinal).ToList());
+        return new ElementalMixture(moles, enthalpy, elements, omit?.Distinct(StringComparer.Ordinal).ToList() ?? [], only?.Distinct(StringComparer.Ordinal).ToList(), massTolerance);
     }
 
     /// <summary>mol per kg, by symbol in the database spelling; insertion order is the order of <see cref="Elements"/>.</summary>
@@ -74,6 +85,9 @@ public sealed record ElementalMixture
     public IReadOnlyList<string> Omit { get; }
 
     public IReadOnlyList<string>? Only { get; }
+
+    /// <summary>The mass tolerance this mixture declares: how far Σ n_i A_i may lie from one kilogram, relative; the solver checks it.</summary>
+    public double MassTolerance { get; }
 
     /// <summary>The abundances in the numerical nodes' unit, kmol per kg, in the order of the given element list; absent elements are zero.</summary>
     internal double[] KilomolesPerKilogram(IReadOnlyList<string> elements)
@@ -96,21 +110,23 @@ public sealed record StateRecord(
     double? Temperature = null,                       // K: an assigned-temperature problem
     double? Entropy = null);                          // J/(kg·K): an assigned-entropy problem
 
-/// <summary>Options of a state batch: transport at every state, and the species lists applied to the batch's table.</summary>
-public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null);
+/// <summary>Options of a state batch: transport at every state, the species lists applied to the batch's table, and the mass tolerance every record declares.</summary>
+public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null,
+                                       double MassTolerance = ElementalMixture.DefaultMassTolerance);
 
 /// <summary>
 /// A mixture whose element moles do not describe one kilogram: their mass with the database's atomic weights differs from 1 kg by more
-/// than <see cref="ElementalMixture.MassTolerance"/>. An <see cref="ArgumentException"/>, so that a caller mapping those maps this one too.
+/// than the mixture's <see cref="ElementalMixture.MassTolerance"/>. An <see cref="ArgumentException"/>, so that a caller mapping those maps this one too.
 /// </summary>
 public sealed class MixtureMassException : ArgumentException
 {
-    public MixtureMassException(string subject, int index, double mass)
-        : base(string.Create(CultureInfo.InvariantCulture, $"{subject}: {ReasonFor(mass)}"))
+    public MixtureMassException(string subject, int index, double mass, double tolerance)
+        : base(string.Create(CultureInfo.InvariantCulture, $"{subject}: {ReasonFor(mass, tolerance)}"))
     {
         Index = index;
         Mass = mass;
-        Reason = ReasonFor(mass);
+        Tolerance = tolerance;
+        Reason = ReasonFor(mass, tolerance);
     }
 
     /// <summary>The position of the mixture in its batch: the case index, or the state record's index.</summary>
@@ -119,10 +135,13 @@ public sealed class MixtureMassException : ArgumentException
     /// <summary>Σ n_i A_i in kg: the mass the element moles describe with the database's atomic weights.</summary>
     public double Mass { get; }
 
+    /// <summary>The tolerance in force, relative to one kilogram: the mixture's <see cref="ElementalMixture.MassTolerance"/>.</summary>
+    public double Tolerance { get; }
+
     /// <summary>The message without the subject, for a caller that names the mixture its own way (the command line names the record's file and position).</summary>
     public string Reason { get; }
 
-    private static string ReasonFor(double mass) => string.Create(
+    private static string ReasonFor(double mass, double tolerance) => string.Create(
         CultureInfo.InvariantCulture,
-        $"the composition weighs {mass * 1.0e3:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {ElementalMixture.MassTolerance * 100.0:G} %");
+        $"the composition weighs {mass * 1.0e3:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {tolerance * 100.0:G3} %");
 }

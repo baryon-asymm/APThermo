@@ -115,15 +115,27 @@ Outside the tree: xunit.
       and `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`
       seen red, together with the Cli tests node's four unit-error documents and its
       line-naming test (that node's BOOT.md).
-- [ ] The declared tolerance (the `Problems` BOOT.md's ⏳ of 2026-09-13):
-      `RejectionTests` on a record made 2 % light (refused at the default, solved at
-      3 % through `Create`, through `StateBatchOptions` for every record of a batch,
-      the message naming `3 %`; the propellant path at the default; an invalid
-      tolerance refused by name); `PropellantTests` on the report (`Solver.MassOf`
-      against `Σ n_i A_i` from `SpeciesDatabase.AtomicWeight`, `MixtureMass` of every
-      result against `MassOf`, and every fixture file's recorded element moles within
-      1.65e-5 of one kilogram over the directory listing). Two mutations to see red:
-      the declared tolerance ignored, `MixtureMass` not the measured mass.
+- [x] 2026-09-13 — The declared tolerance and the mass report (the `Problems`
+      BOOT.md's design of the same day): `RejectionTests.The_tolerance_a_mixture_declares_is_the_one_applied`
+      on the record made 2 % heavy (refused at the default, solved at 3 % through
+      `Create` and through `StateBatchOptions` for every record of a batch; made 5 %
+      heavy, refused at 3 % with the message naming `3 %`; the propellant path at the
+      default; an invalid tolerance refused by name); `PropellantTests` on the report
+      (`The_recorded_element_moles_of_every_fixture_weigh_one_kilogram_within_the_derivation_figure`:
+      `Solver.MassOf` against `Σ n_i A_i` from `SpeciesDatabase.AtomicWeight` and
+      within 1.7e-5 of one kilogram over the directory listing;
+      `Results_carry_the_mass_of_their_mixture`: `MixtureMass` of every result against
+      `MassOf`, and a mixture made 0.5 % heavy reporting 1.005). Heavy, not light:
+      the record made 1 % to 10 % light does not converge as an hp state at 6.5 MPa
+      (the `ALN(L)` record's 2700 K interval boundary, the front door's BOOT.md), and a
+      case that fails numerically would not show that the check let it through.
+- [x] 2026-09-13 — The declared tolerance and the mass report proven non-degenerate,
+      each mutation alone and seen red: the check reading the default instead of the
+      mixture's tolerance (`The_tolerance_a_mixture_declares_is_the_one_applied`, and
+      the Cli tests node's option test); the equilibrium results reporting one
+      kilogram instead of the measured mass, and the rocket results likewise
+      (`Results_carry_the_mass_of_their_mixture`, each; the first also the Cli tests
+      node's option test through the reported mass).
 
 ## Taboos
 

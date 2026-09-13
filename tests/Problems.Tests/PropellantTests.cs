@@ -18,7 +18,49 @@ public sealed class PropellantTests(SolverFixture fixture)
     /// </summary>
     public const double RatioMassFractionTolerance = 1e-7;
 
+    /// <summary>
+    /// How far the fixtures' element moles lie from one kilogram with the database's atomic weights: the reference divides by each reactant
+    /// record's molar mass, and the Air record's 28.9651159 kg/kmol against its formula's 28.96561 sets the maximum, 1.6502e-5 on
+    /// 2026-09-13 (RP-1311 example 1). The figure the Problems BOOT.md's derivation of the default mass tolerance rests on.
+    /// </summary>
+    public const double FixtureMassDeviation = 1.7e-5;
+
     public static IEnumerable<object[]> Cases() => FixtureCases.NamesWithReactants();
+
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void The_recorded_element_moles_of_every_fixture_weigh_one_kilogram_within_the_derivation_figure(string kind, string name)
+    {
+        var c = FixtureCases.Load(kind, name);
+        var moles = FixtureCases.ElementMolesOf(c).ToDictionary(kv => kv.Key, kv => kv.Value * FixtureCases.KilomolesToMoles, StringComparer.Ordinal);
+        var expected = moles.Sum(kv => kv.Value * 1.0e-3 * fixture.Database.AtomicWeight(kv.Key));
+        var mass = fixture.Solver.MassOf(ElementalMixture.Create(moles));
+        Assert.True(Math.Abs(mass - expected) <= 1e-14 * expected, $"MassOf {mass:R} kg, the sum over the atomic weights {expected:R} kg");
+        Assert.True(Math.Abs(mass - 1.0) <= FixtureMassDeviation, $"the recorded element moles weigh {mass:R} kg");
+    }
+
+    [Fact]
+    public void Results_carry_the_mass_of_their_mixture()
+    {
+        var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
+        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var rocket = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
+        Assert.Equal(fixture.Solver.MassOf(rocket.Mixture), rocket.MixtureMass);
+        Assert.True(Math.Abs(rocket.MixtureMass - 1.0) <= FixtureMassDeviation, $"{rocket.MixtureMass:R} kg");
+        var equilibrium = fixture.Solver.Solve(propellant, new EquilibriumProblem { Pressure = 7.0e6 });
+        Assert.Equal(rocket.MixtureMass, equilibrium.MixtureMass);
+        var mixture = ElementalMixture.Create(rocket.Mixture.ElementMoles, rocket.Mixture.Enthalpy);
+        Assert.Equal(rocket.MixtureMass, fixture.Solver.Solve(mixture, new EquilibriumProblem { Pressure = 7.0e6 }).MixtureMass);
+        Assert.Equal(rocket.MixtureMass, fixture.Solver.Solve(mixture, FixtureCases.RocketProblemOf(c)).MixtureMass);
+        Assert.Equal(rocket.MixtureMass, fixture.Solver.SolveStates([new StateRecord(7.0e6, mixture.ElementMoles, Enthalpy: mixture.Enthalpy)])[0].MixtureMass);
+
+        // The figure is the measured one, not one kilogram: the same mixture made 0.5 % heavy, within the default tolerance, reports 1.005.
+        var heavy = ElementalMixture.Create(rocket.Mixture.ElementMoles.ToDictionary(kv => kv.Key, kv => kv.Value * 1.005, StringComparer.Ordinal), rocket.Mixture.Enthalpy);
+        var expected = fixture.Solver.MassOf(heavy);
+        Assert.True(Math.Abs(expected - 1.005 * rocket.MixtureMass) <= 1e-12, $"{expected:R} kg");
+        Assert.Equal(expected, fixture.Solver.Solve(heavy, FixtureCases.RocketProblemOf(c)).MixtureMass);
+        Assert.Equal(expected, fixture.Solver.Solve(heavy, new EquilibriumProblem { Pressure = 7.0e6 }).MixtureMass);
+    }
 
     [Theory]
     [MemberData(nameof(Cases))]

@@ -20,6 +20,7 @@ public sealed record Station(
 public sealed record RocketResult(
     Propellant? Propellant,                             // null for an elemental mixture
     ElementalMixture Mixture,                           // the element moles and enthalpy the case started from
+    double MixtureMass,                                 // kg: Σ n_i A_i of those element moles with the database's atomic weights; one within the mixture's MassTolerance
     RocketProblem Problem,
     double? OxidizerToFuelRatio,                        // the ratio of the mixture rule, or null
     IReadOnlyList<string> Species,                      // table order: gases, then condensed species
@@ -31,6 +32,7 @@ public sealed record RocketResult(
 public sealed record EquilibriumResult(
     Propellant? Propellant,
     ElementalMixture Mixture,
+    double MixtureMass,                                 // kg, as on RocketResult
     EquilibriumProblem Problem,
     IReadOnlyList<string> Species,
     Station State,

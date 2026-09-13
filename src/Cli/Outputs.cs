@@ -17,10 +17,10 @@ internal sealed record DatabaseInfo(string ThermoPath, string? TransPath, string
 
 /// <summary>The run section of an output document.</summary>
 internal sealed record RunInfo(string Command, IReadOnlyList<string> Inputs, DatabaseInfo? Database, AcceleratorInfo? Accelerator,
-                               double DatabaseSeconds, double SolveSeconds, double Threshold);
+                               double DatabaseSeconds, double SolveSeconds, double Threshold, double MassTolerance);
 
-/// <summary>One case of an output document: what it was given, and what the library returned.</summary>
-internal sealed record CaseOutput(int Index, JsonNode Inputs, CaseStatus Status, ElementalMixture Mixture, IReadOnlyList<string> Species, IReadOnlyList<Station> Stations);
+/// <summary>One case of an output document: what it was given, and what the library returned (the mixture with its mass in kg).</summary>
+internal sealed record CaseOutput(int Index, JsonNode Inputs, CaseStatus Status, ElementalMixture Mixture, double MixtureMass, IReadOnlyList<string> Species, IReadOnlyList<Station> Stations);
 
 /// <summary>The public fields of the library's result structs, in declaration order, with their document names.</summary>
 internal static class Fields
@@ -136,6 +136,7 @@ internal static class Outputs
         writer.WriteNumber("solve", run.SolveSeconds);
         writer.WriteEndObject();
         writer.WriteNumber("threshold", run.Threshold);
+        writer.WriteNumber("massTolerance", run.MassTolerance);
         writer.WriteEndObject();
     }
 
@@ -193,6 +194,7 @@ internal static class JsonOutput
             writer.WriteNull("enthalpy");
         }
 
+        Outputs.WriteNumber(writer, "mass", c.MixtureMass);
         writer.WriteEndObject();
         writer.WriteStartArray("stations");
         foreach (var station in c.Stations)

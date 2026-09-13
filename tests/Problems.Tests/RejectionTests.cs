@@ -53,6 +53,7 @@ public sealed class RejectionTests(SolverFixture fixture)
             var composition = Scaled(factor);
             var e = Assert.Throws<MixtureMassException>(() => fixture.Solver.SolveStates([new StateRecord(RecordPressure, composition, Enthalpy: RecordEnthalpy)]));
             Assert.Equal(0, e.Index);
+            Assert.Equal(ElementalMixture.DefaultMassTolerance, e.Tolerance);
             Assert.StartsWith("state record 0: the composition weighs ", e.Message, StringComparison.Ordinal);
             Assert.Equal("state record 0: " + e.Reason, e.Message);
             var grams = GramsOf(composition);
@@ -78,6 +79,41 @@ public sealed class RejectionTests(SolverFixture fixture)
         // The tolerance is the one the message names: 0.9 % heavy solves, 1.1 % heavy is refused.
         Assert.Equal(CaseStatus.Ok, fixture.Solver.Solve(ElementalMixture.Create(Scaled(1.009)), AssignedTemperature()).Status);
         Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(ElementalMixture.Create(Scaled(1.011)), AssignedTemperature()));
+    }
+
+    [Fact]
+    public void The_tolerance_a_mixture_declares_is_the_one_applied()
+    {
+        // The record made 2 % and 2.5 % heavy: refused at the default through the state batch, solved when the batch declares 3 %, every
+        // record of it. Heavy, not light: the same record made 1 % to 10 % light does not converge as an hp state at 6.5 MPa (the
+        // equilibrium node's open defect at variable temperature, found 2026-09-13 with this test), and a record that fails numerically
+        // would not show that the check let it through.
+        var heavy = new StateRecord(RecordPressure, Scaled(1.02), Enthalpy: RecordEnthalpy);
+        var heavier = new StateRecord(RecordPressure, Scaled(1.025), Enthalpy: RecordEnthalpy);
+        var refused = Assert.Throws<MixtureMassException>(() => fixture.Solver.SolveStates([heavy, heavier]));
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, refused.Tolerance);
+        var results = fixture.Solver.SolveStates([heavy, heavier], new StateBatchOptions(MassTolerance: 0.03));
+        Assert.Equal(2, results.Count);
+        Assert.All(results, r => Assert.Equal(CaseStatus.Ok, r.Status));
+        Assert.All(results, r => Assert.Equal(0.03, r.Mixture.MassTolerance));
+
+        // Through Create, for the direct overloads; the exception and its message name the tolerance in force.
+        var declared = ElementalMixture.Create(Scaled(1.02), RecordEnthalpy, massTolerance: 0.03);
+        Assert.Equal(0.03, declared.MassTolerance);
+        Assert.Equal(CaseStatus.Ok, fixture.Solver.Solve(declared, AssignedTemperature()).Status);
+        Assert.Equal(CaseStatus.Ok, fixture.Solver.Solve(declared, new RocketProblem { ChamberPressure = RecordPressure, Flow = FlowModel.FrozenAtChamber }).Status);
+        var beyond = Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(ElementalMixture.Create(Scaled(1.05), RecordEnthalpy, massTolerance: 0.03), AssignedTemperature()));
+        Assert.Equal(0.03, beyond.Tolerance);
+        Assert.EndsWith("must weigh 1000 g within 3 %", beyond.Message, StringComparison.Ordinal);
+
+        // The propellant path and a mixture that names no tolerance declare the default; a tolerance that is no tolerance is refused by name.
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, fixture.Solver.Mixture(LoxLh2().OxidizerToFuelRatio(6.0).Build()).MassTolerance);
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, ElementalMixture.Create(OneKilogram).MassTolerance);
+        foreach (var invalid in new[] { -0.01, double.NaN, double.PositiveInfinity })
+        {
+            var e = Assert.Throws<ArgumentException>(() => ElementalMixture.Create(OneKilogram, massTolerance: invalid));
+            Assert.Equal("massTolerance", e.ParamName);
+        }
     }
 
     [Fact]

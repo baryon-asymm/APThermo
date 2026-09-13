@@ -1,5 +1,6 @@
 using System.Globalization;
 using AerospacePropellantThermodynamics.Execution;
+using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
@@ -24,6 +25,9 @@ internal sealed record CommandOptions
     public string? Database { get; init; }
 
     public double Threshold { get; init; } = DefaultThreshold;
+
+    /// <summary>The mass tolerance declared for every mixture built from element moles (the Problems BOOT.md); a propellant by reactants keeps the library's default.</summary>
+    public double MassTolerance { get; init; } = ElementalMixture.DefaultMassTolerance;
 
     public bool Transport { get; init; }
 
@@ -56,6 +60,7 @@ internal static class CommandLine
         "  --accelerator auto|cpu|cuda  where to solve (default: the document's engine.accelerator, else auto)\n" +
         "  --database DIR               directory with thermo.inp and trans.inp (default: data/ next to the executable, then the current directory)\n" +
         "  --threshold X                omit mole fractions below X from the compositions (default 5e-6)\n" +
+        "  --mass-tolerance X           accept element moles whose mass differs from one kilogram by at most X, relative (default 0.01)\n" +
         "  --transport                  states: evaluate transport properties at every record\n" +
         "  --find TEXT                  species: only names containing TEXT (case-insensitive)\n" +
         "  --help, -h                   this text\n" +
@@ -64,9 +69,9 @@ internal static class CommandLine
 
     private static readonly IReadOnlyDictionary<string, string[]> Applicable = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
-        ["rocket"] = ["output", "format", "accelerator", "database", "threshold"],
-        ["equilibrium"] = ["output", "format", "accelerator", "database", "threshold"],
-        ["states"] = ["output", "format", "accelerator", "database", "threshold", "transport"],
+        ["rocket"] = ["output", "format", "accelerator", "database", "threshold", "mass-tolerance"],
+        ["equilibrium"] = ["output", "format", "accelerator", "database", "threshold", "mass-tolerance"],
+        ["states"] = ["output", "format", "accelerator", "database", "threshold", "mass-tolerance", "transport"],
         ["species"] = ["output", "format", "database", "find"],
         ["devices"] = ["output", "format"],
     };
@@ -113,7 +118,7 @@ internal static class CommandLine
                 continue;
             }
 
-            if (name is not ("output" or "format" or "accelerator" or "database" or "threshold" or "find"))
+            if (name is not ("output" or "format" or "accelerator" or "database" or "threshold" or "mass-tolerance" or "find"))
             {
                 throw new InputException($"unknown option '--{name}'; run apthermo --help for the options");
             }
@@ -140,6 +145,7 @@ internal static class CommandLine
                 "accelerator" => options with { Accelerator = ParseAccelerator(value) },
                 "database" => options with { Database = value },
                 "threshold" => options with { Threshold = ParseThreshold(value) },
+                "mass-tolerance" => options with { MassTolerance = ParseMassTolerance(value) },
                 _ => options with { Find = value },
             };
         }
@@ -211,5 +217,15 @@ internal static class CommandLine
         }
 
         return threshold;
+    }
+
+    private static double ParseMassTolerance(string value)
+    {
+        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var tolerance) || !double.IsFinite(tolerance) || tolerance < 0.0)
+        {
+            throw new InputException($"the mass tolerance must be a finite non-negative number, not '{value}'");
+        }
+
+        return tolerance;
     }
 }

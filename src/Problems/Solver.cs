@@ -69,6 +69,26 @@ public sealed class Solver : IDisposable
         return SpeciesSelection.Candidates(Database, elements, omit ?? [], only);
     }
 
+    /// <summary>Σ n_i A_i in kilograms with the database's atomic weights: the mass the element moles describe, the number the mass check compares with one kilogram.</summary>
+    public double MassOf(ElementalMixture mixture)
+    {
+        ArgumentNullException.ThrowIfNull(mixture);
+        var mass = 0.0;
+        foreach (var (symbol, moles) in mixture.ElementMoles)
+        {
+            try
+            {
+                mass += moles * 1.0e-3 * Database.AtomicWeight(symbol);
+            }
+            catch (KeyNotFoundException inner)
+            {
+                throw new ArgumentException($"element '{symbol}' has no record in the database", inner);
+            }
+        }
+
+        return mass;
+    }
+
     public RocketResult Solve(Propellant propellant, RocketProblem problem) => Solve(propellant, [problem])[0];
 
     public IReadOnlyList<RocketResult> Solve(Propellant propellant, IReadOnlyList<RocketProblem> problems)
@@ -173,7 +193,7 @@ public sealed class Solver : IDisposable
 
             try
             {
-                mixtures.Add(ElementalMixture.Create(record.Composition, record.Enthalpy, options.Omit, options.Only));
+                mixtures.Add(ElementalMixture.Create(record.Composition, record.Enthalpy, options.Omit, options.Only, options.MassTolerance));
             }
             catch (ArgumentException inner)
             {
@@ -223,12 +243,13 @@ public sealed class Solver : IDisposable
 
         var groups = new Dictionary<(int Pressures, int Areas), List<int>>();
         var order = new List<(int Pressures, int Areas)>();
+        var masses = new double[cases.Count];
         for (var k = 0; k < cases.Count; k++)
         {
             var (mixture, problem, propellant, _) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             ValidateRocket(mixture, problem, k);
-            CheckMass(mixture, propellant, "mixture", k);
+            masses[k] = CheckMass(mixture, propellant, "mixture", k);
             var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);
             if (!groups.TryGetValue(key, out var members))
             {
@@ -278,7 +299,7 @@ public sealed class Solver : IDisposable
                                               figures, transportStatus, run.StationStatus[index]);
                 }
 
-                results[members[m]] = new RocketResult(propellant, mixture, problem, ratio, table.Species, stations, run.Status[m], run.Accelerator);
+                results[members[m]] = new RocketResult(propellant, mixture, masses[members[m]], problem, ratio, table.Species, stations, run.Status[m], run.Accelerator);
             }
         }
 
@@ -302,12 +323,13 @@ public sealed class Solver : IDisposable
         var table = system.Table;
         var batch = new EquilibriumBatch(cases.Count, table.ElementCount);
         var anyTransport = false;
+        var masses = new double[cases.Count];
         for (var k = 0; k < cases.Count; k++)
         {
             var (mixture, problem, propellant) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             var target = ValidateEquilibrium(mixture, problem, k);
-            CheckMass(mixture, propellant, noun, k);
+            masses[k] = CheckMass(mixture, propellant, noun, k);
             batch.Kind[k] = problem.Kind;
             batch.Pressure[k] = problem.Pressure;
             batch.Temperature[k] = problem.Temperature;
@@ -326,7 +348,7 @@ public sealed class Solver : IDisposable
             var transportStatus = wantTransport ? transport!.Status[k] : (CaseStatus?)null;
             var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[k] : (TransportFigures?)null;
             var state = MakeStation("state", table, run.State[k], null, run.Moles, (long)k * table.SpeciesCount, figures, transportStatus, run.Status[k]);
-            results[k] = new EquilibriumResult(propellant, mixture, problem, table.Species, state, run.Status[k], run.Accelerator);
+            results[k] = new EquilibriumResult(propellant, mixture, masses[k], problem, table.Species, state, run.Status[k], run.Accelerator);
         }
 
         return results;
@@ -364,21 +386,19 @@ public sealed class Solver : IDisposable
     }
 
     /// <summary>
-    /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance (BOOT.md),
-    /// whichever front door the mixture came through. A propellant fails this only when a reactant record's molar mass contradicts its formula.
+    /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance the mixture
+    /// declares (BOOT.md), whichever front door it came through. A propellant fails this only when a reactant record's molar mass contradicts
+    /// its formula. Returns the mass, which the result reports.
     /// </summary>
-    private void CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index)
+    private double CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index)
     {
-        var mass = 0.0;
-        foreach (var (symbol, moles) in mixture.ElementMoles)
+        var mass = MassOf(mixture);
+        if (Math.Abs(mass - 1.0) > mixture.MassTolerance)
         {
-            mass += moles * 1.0e-3 * Database.AtomicWeight(symbol);
+            throw new MixtureMassException(propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index, mass, mixture.MassTolerance);
         }
 
-        if (Math.Abs(mass - 1.0) > ElementalMixture.MassTolerance)
-        {
-            throw new MixtureMassException(propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index, mass);
-        }
+        return mass;
     }
 
     private double ValidateEquilibrium(ElementalMixture mixture, EquilibriumProblem problem, int index)

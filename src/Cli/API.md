@@ -7,9 +7,9 @@ reads and writes. Everything not listed here is internal and may change.
 ## Command line ✅
 
 ```console
-$ apthermo rocket problem.json [--output result.json] [--format json|csv] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold 5e-6]
+$ apthermo rocket problem.json [--output result.json] [--format json|csv] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold 5e-6] [--mass-tolerance 0.01]
 $ apthermo equilibrium problem.json [same options]
-$ apthermo states records.json [more files...] [--output results.json] [--format json|csv] [--transport] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold X]
+$ apthermo states records.json [more files...] [--output results.json] [--format json|csv] [--transport] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold X] [--mass-tolerance X]
 $ apthermo species [--find TEXT] [--database DIR] [--output PATH] [--format json|csv]
 $ apthermo devices [--output PATH]
 $ apthermo --help
@@ -21,7 +21,15 @@ and, optionally, `trans.inp`; without it the tool looks for `data/` next to the
 executable, then `data/` under the current directory, then the current directory
 itself. `--accelerator` overrides the document's `engine.accelerator`; the default is
 `auto`. `--threshold` omits mole fractions below its value from the compositions
-(default 5e-6, the reference's print threshold).
+(default 5e-6, the reference's print threshold). `--mass-tolerance` (a finite
+non-negative number, relative to one kilogram; default the library's
+`ElementalMixture.DefaultMassTolerance`, 1e-2) is the mass tolerance declared for
+every mixture the command builds from element moles, `propellant.elementMoles` and
+state records; a propellant given by reactants keeps the default, since its mixture is
+the library's own. It is a run parameter like `--threshold`, not a field of the
+documents: a tolerance describes the caller's records, not the physics. Both are
+recorded in the output document's `run` section, and every case reports the mass of
+its element moles.
 
 `states` takes state records, the exchange shape of the `Problems` node, as a JSON
 array, a single object, JSON Lines (one record per line) or several such files, and
@@ -58,7 +66,8 @@ the assembly is `AerospacePropellantThermodynamics.Cli`, named after its namespa
 the root requires, so a direct run is `dotnet AerospacePropellantThermodynamics.Cli.dll …`.
 The sketch's `species` and `devices` had no output form; they write JSON (CSV for
 `species`) like the solving commands. `--database` and `--threshold` apply to `states`
-too, and `--output` and `--format` to the listings.
+too, and `--output` and `--format` to the listings. `--mass-tolerance` was added on
+2026-09-13 after the design session on the mass check (the `Problems` API.md).
 
 ## Entry point ✅
 
@@ -206,14 +215,15 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
     "database": { "thermoPath": "data/thermo.inp", "transPath": "data/trans.inp", "thermoSha256": "…", "transSha256": "…" },
     "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70 },
     "timings": { "database": 0.31, "solve": 1.2 },
-    "threshold": 5e-6
+    "threshold": 5e-6,
+    "massTolerance": 0.01
   },
   "cases": [
     {
       "index": 0,
       "inputs": { "oxidizerToFuel": 6.0, "chamberPressure": 7.0e6 },
       "status": "ok",
-      "mixture": { "elementMoles": { "H": 141.73, "O": 53.57 }, "enthalpy": -986308.28 },
+      "mixture": { "elementMoles": { "H": 141.73, "O": 53.57 }, "enthalpy": -986308.28, "mass": 1.0000000 },
       "stations": [
         {
           "name": "chamber", "status": "ok",
@@ -238,7 +248,10 @@ Every case carries `index` (its position), `inputs` (the values that vary in the
 batch: the ratio and the chamber pressure of a rocket case; the ratio, `kind`,
 `pressure` and the assigned target of an equilibrium case; the record itself for
 `states`), `status`, `mixture` (the element moles in mol/kg and the enthalpy in J/kg
-the case started from, `null` when none was given), and `stations`: chamber, throat,
+the case started from, `null` when none was given, and `mass`: Σ n_i A_i of those
+element moles in kg with the database's atomic weights, the library's `MixtureMass`,
+one within the tolerance in force, which `run.massTolerance` records), and
+`stations`: chamber, throat,
 `exit1`… for a rocket case, one station named `state` for an equilibrium case. A
 station carries every field of the library's `MixtureState` under its camel-case
 name, `performance` with every field of `PerformanceFigures` plus the two
@@ -251,7 +264,8 @@ is written as `null`. Statuses are the library's `CaseStatus` names in camel cas
 The CSV form has one row per case and station: `case`, the scalar inputs, `station`,
 `status`, the state fields, the performance fields with the two conversions,
 `transportStatus` and the transport fields, in that order; cells that do not apply
-are empty; compositions are not in CSV. Numbers are written in round-trip form.
+are empty; compositions are not in CSV, nor is the `mixture` section (its mass
+included). Numbers are written in round-trip form.
 
 ⚠ 2026-09-12: the sketch had `elementMoles` and `reactantEnthalpy` on the case, a
 `performance` list per exit next to the stations, only a few named state fields, and
@@ -260,42 +274,9 @@ the mixture as one record, so the document does the same; the field lists are th
 library's structs, enumerated by reflection, so that a field added there reaches the
 document without a second list. The `run.timings` are the tool's phases (`database`
 load, `solve`), not the engine's, which the front door does not expose; `run` also
-names the command, the input files and the threshold.
-
-## Declared mass tolerance and mass report ⏳
-
-Designed on 2026-09-13 together with the front door's declared tolerance (`Problems`
-`API.md`, the section of the same mark); until coded, the blocks above are the
-contract, and on implementation the option joins the command lines and the fields
-join the output example above.
-
-```console
-$ apthermo rocket|equilibrium|states … [--mass-tolerance X]
-```
-
-`--mass-tolerance X` (the solving commands only; a finite non-negative number,
-relative to one kilogram; default the library's `ElementalMixture.DefaultMassTolerance`,
-1e-2) is the tolerance declared for every mixture the command builds from element
-moles: `propellant.elementMoles` and state records. A propellant given by reactants
-keeps the default, since its mixture is the library's own. The option is a run
-parameter like `--threshold`, not a field of the documents: a tolerance describes the
-caller's records, not the physics. The output document records the tolerance in force
-and the mass of every case:
-
-```json
-{
-  "run": { "threshold": 5e-6, "massTolerance": 0.01 },
-  "cases": [ { "index": 0, "mixture": { "elementMoles": { "H": 141.73, "O": 53.57 }, "enthalpy": -986308.28, "mass": 1.0000165 } } ]
-}
-```
-
-(the other fields of `run`, `cases[]` and `mixture` as in the output document above).
-`mixture.mass` is `Σ n_i A_i` in kg with the database's atomic weights, the library's
-`MixtureMass`, present for every case of every solving command, propellants by
-reactants included (there it shows the reactant records' rounding). It is not a CSV
-column: the mixture section is not in CSV. The message of a refused composition names
-the tolerance in force (`… so it must weigh 1000 g within 3 %`); a bad option value is
-`the mass tolerance must be a finite non-negative number, not 'X'`, exit code 2.
+names the command, the input files and the threshold. 2026-09-13: `run.massTolerance`
+and `mixture.mass` were added with `--mass-tolerance`, so that a raised tolerance
+never hides the figure the check compared.
 
 ## Errors
 
@@ -305,7 +286,8 @@ the tolerance in force (`… so it must weigh 1000 g within 3 %`); a bad option 
 | malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step | message with the JSON path on standard error, exit code 2, no document |
 | a document whose problem type does not match the command | message naming the right command, exit code 2 |
 | unknown reactant, temperature out of range, an element without a record, a rocket case without enthalpy, transport without `trans.inp` | the library's message, exit code 2 |
-| a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the front door's tolerance (a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document), exit code 2, no document |
+| a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the tolerance in force (`--mass-tolerance`, default 1 %: a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document; `within 3 %` under `--mass-tolerance 0.03`), exit code 2, no document |
+| `--mass-tolerance` with a value that is not a finite non-negative number, or on a listing command | `the mass tolerance must be a finite non-negative number, not 'X'`, or the option named as not applying; exit code 2 |
 | input file or database directory not found | message with the path, exit code 2 |
 | accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3; for an accelerator, every path tried |
 | a case or station failed numerically | the document is written with the status per case and station; exit code 1 |

@@ -101,14 +101,23 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       test red; the record's source no longer substituted for the library's subject
       in `states`: the same theory over the three state-record documents (`record 0:`
       absent from the messages) and the line-naming test red.
-- [ ] `--mass-tolerance` and the mass report (the `Cli` BOOT.md's ⏳ of 2026-09-13):
-      `CommandLineTests` (the usage names the option; a bad value and the option on a
-      listing command are exit 2); `OutputDocumentTests` (`run.massTolerance` echoes
-      the option and its default, `mixture.mass` in every case of every solving
-      command, both in `schemas/output.schema.json`); `ExitCodeTests` (the record of
-      another simulation made 2 % light: exit 2 without the option, exit 0 with
-      `--mass-tolerance 0.03`, the message naming `3 %`). One mutation to see red:
-      the option not passed to the solver.
+- [x] 2026-09-13 — `--mass-tolerance` and the mass report (the `Cli` BOOT.md's design
+      of the same day): `CommandLineTests` (the usage names the option; a negative
+      value, `inf` and the option on a listing command are exit 2; `=` and the
+      default); `OutputDocumentTests.The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture`
+      (`run.massTolerance` echoes the option and its default, `mixture.mass` in every
+      case of the states and sweep documents; both fields in `schemas/output.schema.json`
+      and `run.massTolerance` in `species.schema.json`, since the listing writes the
+      same run section); `LibraryEqualityTests` (`mixture.mass` exactly the library's
+      `MixtureMass`); `ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`
+      (the record of another simulation made 2 % heavy: exit 2 without the option,
+      exit 0 with `--mass-tolerance 0.03` and the mass 1.02 reported; made 5 % heavy,
+      exit 2 naming `3 %`).
+- [x] 2026-09-13 — Proven non-degenerate: the option not passed to the solver (the
+      state records built at the library's default), applied alone, and
+      `ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares` seen
+      red (the echo test stays green, as it should: the echo is not the check); the
+      same test also red under the front door's own mutations (that node's BOOT.md).
 
 ## Taboos
 
