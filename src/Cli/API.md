@@ -30,7 +30,7 @@ batch over the union of their elements, the records with exits as one rocket bat
 A state record is exactly this shape:
 
 ```json
-{ "pressure": 1000000.0, "enthalpy": -1527829.408385985, "composition": { "C": 9.505849129331365, "H": 35.214695099119155, "O": 31.2, "N": 4.1 } }
+{ "pressure": 6500000.0, "enthalpy": -1527829.408385985, "composition": { "C": 9.505849129331365, "H": 35.214695099119155, "O": 15.704786718374072, "N": 6.007718569653603, "Cl": 3.3293409533388547, "Al": 14.709996403305084 } }
 ```
 
 with `pressure` in Pa, `composition` as element moles per kilogram of mixture (element
@@ -38,7 +38,16 @@ symbols in any case), and exactly one of `enthalpy` (J/kg, hp problem), `tempera
 (K, tp problem) or `entropy` (J/(kg·K), sp problem). Optional `areaRatios` or
 `pressureRatios` on a record turn it into a rocket case with `pressure` as the chamber
 pressure and `enthalpy` required; an optional `flow` names the flow model of such a
-record. Unknown fields are an error, so that a unit mistake cannot pass silently.
+record. Unknown fields are an error, so that a unit mistake cannot pass silently, and
+so is a composition that does not weigh one kilogram with the database's atomic
+weights within the front door's tolerance (`ElementalMixture.MassTolerance`, 1 %): a
+record in mol/g, in kmol/kg or per two kilograms is refused naming the record, the mass
+found and the tolerance (the errors table below).
+
+⚠ 2026-09-13: the example record stood with `"O": 31.2, "N": 4.1` at 1 MPa, an
+illustration that weighed 706 g and would now be refused; it is the record of another
+simulation that the mass check was written for (1000.015 g), and the tests node solves
+every record example of this document.
 
 Exit codes: `0` all cases `ok`; `1` at least one case or station failed numerically
 (the document is written); `2` invalid input document, option, database path or
@@ -119,10 +128,16 @@ An equilibrium state of a mixture given by its element moles and enthalpy:
 
 ```json
 {
-  "propellant": { "elementMoles": { "C": 9.5058, "H": 35.2147, "O": 31.2, "N": 4.1 }, "enthalpy": -1527829.4 },
-  "problem": { "type": "equilibrium", "kind": "hp", "pressure": 1.0e6, "transport": true }
+  "propellant": {
+    "elementMoles": { "C": 9.505849129331365, "H": 35.214695099119155, "O": 15.704786718374072, "N": 6.007718569653603, "Cl": 3.3293409533388547, "Al": 14.709996403305084 },
+    "enthalpy": -1527829.408385985
+  },
+  "problem": { "type": "equilibrium", "kind": "hp", "pressure": 6.5e6, "transport": true }
 }
 ```
+
+(the same mixture as the state record above, given as a problem document; the
+element moles must weigh one kilogram, as for a record).
 
 An assigned-temperature sweep over pressure and temperature:
 
@@ -255,6 +270,7 @@ names the command, the input files and the threshold.
 | malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step | message with the JSON path on standard error, exit code 2, no document |
 | a document whose problem type does not match the command | message naming the right command, exit code 2 |
 | unknown reactant, temperature out of range, an element without a record, a rocket case without enthalpy, transport without `trans.inp` | the library's message, exit code 2 |
+| a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the front door's tolerance (a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document), exit code 2, no document |
 | input file or database directory not found | message with the path, exit code 2 |
 | accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3; for an accelerator, every path tried |
 | a case or station failed numerically | the document is written with the status per case and station; exit code 1 |

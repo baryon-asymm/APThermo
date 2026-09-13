@@ -7,7 +7,7 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
-| L0 | mass fractions, element moles and reactant enthalpy per kilogram; the oxidizer-to-fuel split; mole amounts; custom reactants; candidate species selection and order; input validation by name | the fixtures' recorded mass fractions, `elementMoles`, `reactantEnthalpy` / `enthalpy` and `products` (`PropellantTests`); documented behaviour (`RejectionTests`) | ✅ |
+| L0 | mass fractions, element moles and reactant enthalpy per kilogram; the oxidizer-to-fuel split; mole amounts; custom reactants; candidate species selection and order; input validation by name; the mass of a composition against one kilogram | the fixtures' recorded mass fractions, `elementMoles`, `reactantEnthalpy` / `enthalpy` and `products` (`PropellantTests`); documented behaviour, and the database's atomic weights for the mass a message reports (`RejectionTests`) | ✅ |
 | L1 | every rocket, tp, hp and sp fixture solved singly from its propellant through the library | the fixtures node's reference outputs and its tolerance table (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`, the three `EquilibriumTests` theories) | ✅ |
 | L2 | end to end over every rocket fixture with transport, in shifting and frozen flow; a sweep as one batch against its cases one by one; an elemental mixture against its propellant; identical problems alone and in one call; mixed exit layouts in one call; state batches over unions of elements; a failing station as a status | the fixtures; the single-case results of the same code, bit for bit, or to rounding where a union reorders a case's elements (`RocketTests`, `EquilibriumTests`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
@@ -71,7 +71,15 @@ Outside the tree: xunit.
       `An_elemental_mixture_normalizes_symbols_and_keeps_the_order`); `RejectionTests`
       (nine facts: unknown reactant, temperature out of range, mixture rules, custom
       reactant with an unknown element, the `Only` list, state records, problems
-      without the data they need, a disposed solver).
+      without the data they need, a disposed solver; 2026-09-13, two more: the mass
+      of a composition against one kilogram through every front door, with the grams
+      of the message checked against the database's atomic weights and the tolerance
+      pinned by a record 0.9 % and one 1.1 % heavy,
+      `A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance`;
+      the propellant path through the committed file's `ADN` record, whose molar
+      mass contradicts its formula,
+      `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`;
+      that fact goes when the record is corrected upstream).
 - [x] 2026-09-12 — L1 green for every fixture case, the list generated from the
       directory listing: `RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
       over `cases/rocket` (89 files that day),
@@ -101,6 +109,12 @@ Outside the tree: xunit.
       298.15 K); the defect signature disabled (the end-to-end test at the LOX/LH2
       O/F 4 exits with transport); mole fractions taken over the gaseous phase (the
       end-to-end test on the aluminized propellant).
+- [x] 2026-09-13 — The mass check proven non-degenerate: the check removed from the
+      solver (its comparison made never true), and
+      `RejectionTests.A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance`
+      and `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`
+      seen red, together with the Cli tests node's four unit-error documents and its
+      line-naming test (that node's BOOT.md).
 
 ## Taboos
 

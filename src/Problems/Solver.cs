@@ -146,8 +146,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixtures);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        var system = UnionSystem(mixtures, problems.Count, "equilibrium");
-        return SolveEquilibrium(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList());
+        return SolveEquilibrium(mixtures, problems, "mixture");
     }
 
     /// <summary>One batch of state records over the union of their elements; a record lacking an element runs with the species containing it inactive.</summary>
@@ -194,7 +193,7 @@ public sealed class Solver : IDisposable
             });
         }
 
-        return Solve(mixtures, problems);
+        return SolveEquilibrium(mixtures, problems, "state record");
     }
 
     /// <inheritdoc />
@@ -226,9 +225,10 @@ public sealed class Solver : IDisposable
         var order = new List<(int Pressures, int Areas)>();
         for (var k = 0; k < cases.Count; k++)
         {
-            var (mixture, problem, _, _) = cases[k];
+            var (mixture, problem, propellant, _) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             ValidateRocket(mixture, problem, k);
+            CheckMass(mixture, propellant, "mixture", k);
             var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);
             if (!groups.TryGetValue(key, out var members))
             {
@@ -285,7 +285,14 @@ public sealed class Solver : IDisposable
         return results;
     }
 
-    private IReadOnlyList<EquilibriumResult> SolveEquilibrium(ChemicalSystem system, IReadOnlyList<EquilibriumCase> cases)
+    /// <summary>One case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>
+    private IReadOnlyList<EquilibriumResult> SolveEquilibrium(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<EquilibriumProblem> problems, string noun)
+    {
+        var system = UnionSystem(mixtures, problems.Count, "equilibrium");
+        return SolveEquilibrium(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList(), noun);
+    }
+
+    private IReadOnlyList<EquilibriumResult> SolveEquilibrium(ChemicalSystem system, IReadOnlyList<EquilibriumCase> cases, string noun = "mixture")
     {
         if (cases.Count == 0)
         {
@@ -297,9 +304,10 @@ public sealed class Solver : IDisposable
         var anyTransport = false;
         for (var k = 0; k < cases.Count; k++)
         {
-            var (mixture, problem, _) = cases[k];
+            var (mixture, problem, propellant) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             var target = ValidateEquilibrium(mixture, problem, k);
+            CheckMass(mixture, propellant, noun, k);
             batch.Kind[k] = problem.Kind;
             batch.Pressure[k] = problem.Pressure;
             batch.Temperature[k] = problem.Temperature;
@@ -352,6 +360,24 @@ public sealed class Solver : IDisposable
         if (problem.Transport && Database.Transport is null)
         {
             throw new ArgumentException($"rocket problem {index}: transport properties were requested, but the database was loaded without a trans.inp file");
+        }
+    }
+
+    /// <summary>
+    /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance (BOOT.md),
+    /// whichever front door the mixture came through. A propellant fails this only when a reactant record's molar mass contradicts its formula.
+    /// </summary>
+    private void CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index)
+    {
+        var mass = 0.0;
+        foreach (var (symbol, moles) in mixture.ElementMoles)
+        {
+            mass += moles * 1.0e-3 * Database.AtomicWeight(symbol);
+        }
+
+        if (Math.Abs(mass - 1.0) > ElementalMixture.MassTolerance)
+        {
+            throw new MixtureMassException(propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index, mass);
         }
     }
 

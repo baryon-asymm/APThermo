@@ -6,7 +6,7 @@ The definition of what "`Cli` is ready" means.
 
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
-| L0 | option parsing, the usage text, exit codes; input document reading and its messages with the JSON path; the example documents against the input and states schemas | the schema files of this node; the documented messages and exit codes (`CommandLineTests`, `InputDocumentTests`, `ExitCodeTests`) | ✅ |
+| L0 | option parsing, the usage text, exit codes; input document reading and its messages with the JSON path; the example documents against the input and states schemas; a composition that does not weigh one kilogram refused naming the record | the schema files of this node; the documented messages and exit codes (`CommandLineTests`, `InputDocumentTests`, `ExitCodeTests`) | ✅ |
 | L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | schema files; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
 | L2 | the LOX/LH2 rocket document, the LOX/RP-1 hp document and the elemental tp document give the library's numbers field by field | the `Problems` result of the same case, built from the fixture the document encodes, over reflection-enumerated fields (`LibraryEqualityTests`) | ✅ |
 | Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
@@ -59,11 +59,17 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       over sixteen command lines, `The_usage_names_every_command_and_option`,
       `Options_may_be_given_with_an_equals_sign`); `InputDocumentTests`
       (`An_invalid_document_is_exit_2_with_the_documented_message_and_no_output` over
-      `documents/invalid/`, `Every_example_document_validates_against_the_input_schema`,
+      `documents/invalid/` (2026-09-13: four more documents there, a state record
+      doubled, in mol/g, one in kmol/kg and a doubled `propellant.elementMoles`, each
+      refused naming the record and the mass), `Every_example_document_validates_against_the_input_schema`,
       `Every_states_document_validates_against_the_states_schema`,
-      `Every_example_of_the_api_document_is_read_or_validates`,
-      `State_records_may_come_as_an_array_a_single_object_or_lines`,
-      `A_range_expands_inclusively_and_lands_on_its_end`); `ExitCodeTests` (six facts).
+      `Every_example_of_the_api_document_is_read_or_validates_and_its_records_solve`
+      (2026-09-13: the record examples are solved, not only read, since one of them
+      weighed 706 g), `State_records_may_come_as_an_array_a_single_object_or_lines`,
+      `A_range_expands_inclusively_and_lands_on_its_end`); `ExitCodeTests` (six facts;
+      2026-09-13, a seventh: the record of another simulation is exit 0, and the same
+      record doubled behind it in a JSON Lines file is named by file and line,
+      `A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`).
 - [x] 2026-09-13 — L1 green: `OutputDocumentTests`
       (`Every_example_document_runs_and_its_result_validates_against_the_output_schema`
       over the directory listing, `The_states_result_validates_and_echoes_every_record_in_order`,
@@ -89,6 +95,12 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       a CSV column dropped (the approved CSV); the threshold no longer applied (the
       threshold test and the library equality); the sweep's ratio order reversed (the
       sweep order test).
+- [x] 2026-09-13 — The mass check and its naming proven non-degenerate, each mutation
+      alone: the front door's check removed (its comparison made never true): the
+      invalid-document theory over the four unit-error documents and the line-naming
+      test red; the record's source no longer substituted for the library's subject
+      in `states`: the same theory over the three state-record documents (`record 0:`
+      absent from the messages) and the line-naming test red.
 
 ## Taboos
 

@@ -93,6 +93,7 @@ built for.
 ```csharp
 public sealed record ElementalMixture
 {
+    public const double MassTolerance = 1.0e-2;         // relative: Σ n_i A_i must lie within this of 1 kg (BOOT.md); the solver checks it
     public static ElementalMixture Create(IReadOnlyDictionary<string, double> elementMoles,   // mol per kg
                                           double? enthalpy = null,                             // J per kg; null: assigned-temperature problems only
                                           IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null);
@@ -111,6 +112,14 @@ public sealed record StateRecord(                     // the exchange record: on
     double? Entropy = null);                          // J/(kg·K) → sp problem; exactly one of the three is set
 
 public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null);
+
+public sealed class MixtureMassException : ArgumentException   // the solver's refusal of a mixture beyond MassTolerance
+{
+    public MixtureMassException(string subject, int index, double mass);
+    public int Index { get; }                         // position in the batch: the case index, or the state record's index
+    public double Mass { get; }                       // kg: Σ n_i A_i with the database's atomic weights
+    public string Reason { get; }                     // the message without the subject, for a caller that names the mixture its own way
+}
 ```
 
 An `ElementalMixture` is accepted everywhere a `Propellant` is (rocket and
@@ -120,6 +129,21 @@ union of the elements of the batch (in order of first appearance) under the opti
 lists; an element absent from a record (or zero) makes the species containing it
 inactive for that record. Element moles are converted once, here, to the kmol per kg
 the numerical nodes use.
+
+Element moles are per kilogram of mixture, and the solver holds every mixture to it
+before any kernel runs: their mass with the database's atomic weights must be one
+kilogram within `MassTolerance`, else the solve throws a `MixtureMassException`
+whose message is the subject and the reason, `state record 3: the composition weighs
+2000.03 g with the database's atomic weights; element moles are per kilogram of
+mixture, so it must weigh 1000 g within 1 %` (the subject is `mixture i` from the
+overloads over mixtures, `state record i` from `SolveStates`, and `the propellant's
+mixture (case i)` when a reactant record's molar mass contradicts its formula). The
+propellant path produces one kilogram by construction and is checked all the same.
+
+⚠ 2026-09-13: the contract said "mol per kg" and checked nothing: a record with every
+element mole doubled, or in mol/g, solved without a word (the parent's BOOT.md,
+invariants). `MassTolerance`, `MixtureMassException` and the check are new; the
+tolerance is derived there.
 
 ⚠ 2026-09-12: the sketch's `Create(elementMoles, enthalpy)` had a mandatory enthalpy
 and no species lists. A mixture solved only at assigned temperatures has no enthalpy
@@ -257,6 +281,7 @@ exits, are one batch through them.
 | a negative amount, a non-positive temperature, an empty formula, a non-finite enthalpy | `ArgumentException` naming the reactant, from `Reactant` |
 | an element symbol without a database record; a mixture without enthalpy given a rocket problem or an assigned-enthalpy problem without one; a non-positive pressure, chamber pressure or exit value; transport requested on a database loaded without `trans.inp`; an empty batch or sweep; a ratio set on a propellant given by mass fractions | `ArgumentException` naming the element or the problem index, from `Solve`, before any kernel runs |
 | a state record with none or more than one of enthalpy, temperature and entropy, a negative abundance, an empty or duplicated symbol | `ArgumentException` naming the record index, from `SolveStates`, before any kernel runs |
+| a mixture whose element moles weigh more or less than one kilogram with the database's atomic weights by more than `ElementalMixture.MassTolerance` (a doubled record, mol/g, kmol/kg, a reactant record whose molar mass contradicts its formula) | `MixtureMassException` (an `ArgumentException`) naming the mixture (`mixture i`, `state record i`, the propellant's mixture), the mass in grams and the tolerance, from `Solve` and `SolveStates`, before any kernel runs |
 | accelerator unavailable or ILGPU mismatch | the `Execution` exceptions, unchanged |
 | per-case numerical failure | `Status` on the result and on the station; no exception |
 | a disposed solver | `ObjectDisposedException` |

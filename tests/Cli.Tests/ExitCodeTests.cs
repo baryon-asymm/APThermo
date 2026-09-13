@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
@@ -68,6 +69,28 @@ public sealed class ExitCodeTests(CliFixture fixture)
         Assert.Equal(0, run.Code);
         using var document = run.Json();
         Assert.Equal(JsonValueKind.Null, document.RootElement.GetProperty("run").GetProperty("database").GetProperty("transSha256").ValueKind);
+    }
+
+    [Fact]
+    public void A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line()
+    {
+        // The record another simulation handed over (1000.015 g with the database's atomic weights) solves.
+        var (code, document, _) = fixture.Produce("states", "states-ap-al-record.json");
+        Assert.Equal(0, code);
+        var solved = Assert.Single(document.RootElement.GetProperty("cases").EnumerateArray());
+        Assert.Equal("ok", solved.GetProperty("status").GetString());
+
+        // The same record doubled, with exits, behind the good one in a JSON Lines file: it is the first case of the rocket batch, and
+        // the message names the file and the line, not the position in the batch.
+        var good = JsonNode.Parse(File.ReadAllText(fixture.Document("states-ap-al-record.json")))![0]!;
+        var doubled = JsonNode.Parse(File.ReadAllText(fixture.Document(Path.Combine("invalid", "states-two-kilograms.json"))))![0]!.AsObject();
+        doubled["areaRatios"] = new JsonArray(10.0);
+        var lines = fixture.TempFile("mixed.jsonl");
+        File.WriteAllText(lines, good.ToJsonString() + "\n" + doubled.ToJsonString() + "\n");
+        var run = fixture.Invoke(fixture.Solving("states", lines));
+        Assert.Equal(2, run.Code);
+        Assert.Contains($"{lines}:2: the composition weighs 2000.03 g with the database's atomic weights", run.Error);
+        Assert.Empty(run.Output);
     }
 
     [Fact]

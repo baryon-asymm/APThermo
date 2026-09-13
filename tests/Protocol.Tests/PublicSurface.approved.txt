@@ -467,6 +467,7 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.ElementalMixtur
     IReadOnlyList<String> Elements { get; }
     IReadOnlyList<String> Omit { get; }
     IReadOnlyList<String>? Only { get; }
+    const Double MassTolerance = 0.01
     static ElementalMixture Create(IReadOnlyDictionary<String, Double> elementMoles, Double? enthalpy = null, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null)
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumProblem : IEquatable<EquilibriumProblem>
@@ -487,6 +488,12 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumResu
     IReadOnlyList<String> Species { get; init; }
     Propellant? Propellant { get; init; }
     Station State { get; init; }
+
+sealed class AerospacePropellantThermodynamics.Problems.MixtureMassException : ArgumentException, ISerializable
+    .ctor(String subject, Int32 index, Double mass)
+    Double Mass { get; }
+    Int32 Index { get; }
+    String Reason { get; }
 
 abstract class (record) AerospacePropellantThermodynamics.Problems.MixtureSpecification : IEquatable<MixtureSpecification>
     nested MassFractions

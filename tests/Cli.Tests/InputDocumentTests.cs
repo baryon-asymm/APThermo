@@ -23,6 +23,10 @@ public sealed class InputDocumentTests(CliFixture fixture)
         ["states-two-targets.json"] = "exactly one of enthalpy, temperature and entropy",
         ["states-unknown-field.json"] = "unknown field 'pressureBar'",
         ["states-rocket-without-enthalpy.json"] = "needs 'enthalpy'",
+        ["states-two-kilograms.json"] = "record 0: the composition weighs 2000.03 g with the database's atomic weights",
+        ["states-mol-per-gram.json"] = "record 0: the composition weighs 1.000015 g",
+        ["states-kmol-per-kg.json"] = "record 0: the composition weighs 1 g",
+        ["elemental-two-kilograms.json"] = "$.propellant.elementMoles: the composition weighs 2000.03 g",
     };
 
     public static IEnumerable<object[]> Invalid() => CliFixture.InvalidDocumentNames().Select(n => new object[] { n });
@@ -57,7 +61,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
     public void Every_states_document_validates_against_the_states_schema()
     {
         var schema = JsonSchema.Load(fixture.Schema("states.schema.json"));
-        foreach (var name in new[] { "states.json", "states-part1.json", "states-part2.json" })
+        foreach (var name in new[] { "states.json", "states-part1.json", "states-part2.json", "states-ap-al-record.json" })
         {
             using var document = JsonDocument.Parse(File.ReadAllText(fixture.Document(name)));
             var errors = schema.Validate(document.RootElement);
@@ -72,7 +76,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
     }
 
     [Fact]
-    public void Every_example_of_the_api_document_is_read_or_validates()
+    public void Every_example_of_the_api_document_is_read_or_validates_and_its_records_solve()
     {
         var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
         var inputs = CliFixture.JsonFencesOf(api, "## Input document ✅");
@@ -90,6 +94,12 @@ public sealed class InputDocumentTests(CliFixture fixture)
         for (var i = 0; i < records.Count; i++)
         {
             Assert.NotEmpty(InputDocuments.ReadStates([($"API.md record example {i}", records[i])]));
+
+            // An example record is a real record: it solves, and in particular it weighs one kilogram (2026-09-13: the earlier example did not).
+            var path = fixture.TempFile($"api-record-{i}.json");
+            File.WriteAllText(path, records[i]);
+            var run = fixture.Invoke(fixture.Solving("states", path));
+            Assert.True(run.Code == 0, $"API.md record example {i}: exit code {run.Code}: {run.Error}");
         }
 
         var outputs = CliFixture.JsonFencesOf(api, "## Output document ✅");

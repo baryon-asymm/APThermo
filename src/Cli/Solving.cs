@@ -136,12 +136,22 @@ internal static class Solving
             mixtures = combinations.Select(_ => mixture).ToList();
         }
 
-        var cases = document.Problem switch
+        IReadOnlyList<CaseOutput> cases;
+        try
         {
-            RocketDocument rocket => Rocket(solver, mixtures, combinations, rocket, ownRatio),
-            EquilibriumDocument equilibrium => Equilibrium(solver, mixtures, combinations, equilibrium, ownRatio),
-            var other => throw new InvalidOperationException($"unknown problem document {other.GetType().Name}"),
-        };
+            cases = document.Problem switch
+            {
+                RocketDocument rocket => Rocket(solver, mixtures, combinations, rocket, ownRatio),
+                EquilibriumDocument equilibrium => Equilibrium(solver, mixtures, combinations, equilibrium, ownRatio),
+                var other => throw new InvalidOperationException($"unknown problem document {other.GetType().Name}"),
+            };
+        }
+        catch (MixtureMassException e) when (document.Propellant is ElementalPropellant)
+        {
+            // The library names the mixture by its index in the batch; the document has one, at a JSON path.
+            throw new InputException($"{path}: $.propellant.elementMoles: {e.Reason}");
+        }
+
         watch.Stop();
         var run = new RunInfo(invocation.Command, [path], info, solver.Accelerator, databaseSeconds, watch.Elapsed.TotalSeconds, options.Threshold);
         return Outputs.Write(run, cases, options, output);
@@ -172,7 +182,7 @@ internal static class Solving
                 Entropy = r.Entropy ?? 0.0,
                 Transport = options.Transport,
             }).ToList();
-            var results = solver.Solve(mixtures, problems);
+            var results = Named(equilibrium, () => solver.Solve(mixtures, problems));
             for (var k = 0; k < equilibrium.Count; k++)
             {
                 var record = equilibrium[k];
@@ -192,7 +202,7 @@ internal static class Solving
                 PressureRatios = r.PressureRatios,
                 Transport = options.Transport,
             }).ToList();
-            var results = solver.Solve(mixtures, problems);
+            var results = Named(rockets, () => solver.Solve(mixtures, problems));
             for (var k = 0; k < rockets.Count; k++)
             {
                 var record = rockets[k];
@@ -204,6 +214,19 @@ internal static class Solving
         watch.Stop();
         var run = new RunInfo("states", invocation.Arguments, info, solver.Accelerator, databaseSeconds, watch.Elapsed.TotalSeconds, options.Threshold);
         return Outputs.Write(run, cases, options, output);
+    }
+
+    /// <summary>The library names a mixture it refuses by its index in the batch; a state record is named by its file and position.</summary>
+    private static T Named<T>(IReadOnlyList<StateDocument> group, Func<T> solve)
+    {
+        try
+        {
+            return solve();
+        }
+        catch (MixtureMassException e)
+        {
+            throw new InputException($"{group[e.Index].Source}: {e.Reason}");
+        }
     }
 
     private static ElementalMixture MixtureOf(StateDocument record)

@@ -163,7 +163,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
       (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
       `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1742
       tests green after the protocol tests node (1733 after the Cli node, 1654 after
-      the Problems node, 850 after the Execution node), none skipped, the
+      the Problems node, 850 after the Execution node; 1749 on 2026-09-13 after the
+      front door's mass check, the `Problems` BOOT.md), none skipped, the
       CUDA-category tests verifying the refusal instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
       of `CLAUDE.md`, run after every node and by `Protocol.Tests.LintTests` in

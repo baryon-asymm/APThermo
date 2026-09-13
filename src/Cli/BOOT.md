@@ -27,7 +27,17 @@ depends on console, serialization or file-layout concerns.
 - **Strict documents.** Unknown fields, missing required fields and values of the
   wrong type are errors naming the JSON path, so that a unit mistake cannot pass
   silently; nothing physical has a default (the flow model and the accelerator are
-  choices, and their defaults are documented).
+  choices, and their defaults are documented). A composition that does not weigh one
+  kilogram with the database's atomic weights is refused by the front door
+  (`Problems` BOOT.md, invariants) and named here by the record's file and position,
+  or by the JSON path of `propellant.elementMoles`.
+
+  ⚠ 2026-09-13: the strictness covered the names of fields, not the values of a
+  composition: a state record with every element mole doubled, or given in mol/g,
+  ran through `states` and produced a document with exit code 0, which is exactly
+  the silent unit mistake this invariant promised to catch. The check belongs to the
+  front door, where a mixture meets the database's atomic weights; this node only
+  names the record.
 - **No hidden state**: no configuration files, no registry, no environment variable
   except the ones `Execution` reads.
 
@@ -100,7 +110,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-13 — Every example document in `API.md` and every document of the
       tests node's `documents/` directory runs end to end against the committed data
       files and produces a document that validates against the output schema (schema
-      files kept next to the tests): `Cli.Tests.InputDocumentTests.Every_example_of_the_api_document_is_read_or_validates`,
+      files kept next to the tests): `Cli.Tests.InputDocumentTests.Every_example_of_the_api_document_is_read_or_validates_and_its_records_solve`
+      (2026-09-13: the record examples of `API.md` are solved too, since the earlier
+      example weighed 706 g),
       `OutputDocumentTests.Every_example_document_runs_and_its_result_validates_against_the_output_schema`
       (over the directory listing), `The_states_result_validates_and_echoes_every_record_in_order`,
       `The_species_listing_validates_and_finds_names_case_insensitively`, `The_devices_listing_validates`.
@@ -118,6 +130,17 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-13 — CSV output has one row per case and station and the documented
       columns, checked against the approved file `documents/rocket-lox-lh2.approved.csv`
       of the tests node (`CsvTests`: the header exactly, every number as a number).
+- [x] 2026-09-13 — A record that weighs one kilogram (the record of another
+      simulation, `documents/states-ap-al-record.json`) is exit code 0; the same
+      record doubled, in mol/g, a record in kmol/kg and a document with a doubled
+      `propellant.elementMoles` are exit code 2 with the documented message naming
+      the record and the mass, and no document
+      (`InputDocumentTests.An_invalid_document_is_exit_2_with_the_documented_message_and_no_output`
+      over `documents/invalid/states-two-kilograms.json`, `states-mol-per-gram.json`,
+      `states-kmol-per-kg.json`, `elemental-two-kilograms.json`); a doubled record
+      behind a good one in a JSON Lines file is named by file and line, not by its
+      position in the batch
+      (`ExitCodeTests.A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`).
 
 ## Taboos
 

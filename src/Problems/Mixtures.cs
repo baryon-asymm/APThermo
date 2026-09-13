@@ -1,8 +1,16 @@
+using System.Globalization;
+
 namespace AerospacePropellantThermodynamics.Problems;
 
 /// <summary>A mixture given by its element abundances and enthalpy per kilogram: what every solve starts from, whatever the input was.</summary>
 public sealed record ElementalMixture
 {
+    /// <summary>
+    /// How far the mass of the element moles, Σ n_i A_i with the database's atomic weights, may lie from one kilogram (relative). The
+    /// solver refuses a mixture beyond it with a <see cref="MixtureMassException"/>, whichever front door it came through; BOOT.md derives the value.
+    /// </summary>
+    public const double MassTolerance = 1.0e-2;
+
     private ElementalMixture(IReadOnlyDictionary<string, double> elementMoles, double? enthalpy, IReadOnlyList<string> elements,
                              IReadOnlyList<string> omit, IReadOnlyList<string>? only)
     {
@@ -90,3 +98,31 @@ public sealed record StateRecord(
 
 /// <summary>Options of a state batch: transport at every state, and the species lists applied to the batch's table.</summary>
 public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null);
+
+/// <summary>
+/// A mixture whose element moles do not describe one kilogram: their mass with the database's atomic weights differs from 1 kg by more
+/// than <see cref="ElementalMixture.MassTolerance"/>. An <see cref="ArgumentException"/>, so that a caller mapping those maps this one too.
+/// </summary>
+public sealed class MixtureMassException : ArgumentException
+{
+    public MixtureMassException(string subject, int index, double mass)
+        : base(string.Create(CultureInfo.InvariantCulture, $"{subject}: {ReasonFor(mass)}"))
+    {
+        Index = index;
+        Mass = mass;
+        Reason = ReasonFor(mass);
+    }
+
+    /// <summary>The position of the mixture in its batch: the case index, or the state record's index.</summary>
+    public int Index { get; }
+
+    /// <summary>Σ n_i A_i in kg: the mass the element moles describe with the database's atomic weights.</summary>
+    public double Mass { get; }
+
+    /// <summary>The message without the subject, for a caller that names the mixture its own way (the command line names the record's file and position).</summary>
+    public string Reason { get; }
+
+    private static string ReasonFor(double mass) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"the composition weighs {mass * 1.0e3:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {ElementalMixture.MassTolerance * 100.0:G} %");
+}

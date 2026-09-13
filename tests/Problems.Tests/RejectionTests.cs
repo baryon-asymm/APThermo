@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Equilibrium;
 using AerospacePropellantThermodynamics.Execution;
@@ -11,7 +13,87 @@ namespace AerospacePropellantThermodynamics.Problems.Tests;
 [Collection(SolverCollection.Name)]
 public sealed class RejectionTests(SolverFixture fixture)
 {
+    /// <summary>The record another simulation handed over on 2026-09-13 (C, H, O, N, Cl, Al in mol/kg): 1000.015 g with the database's atomic weights.</summary>
+    private static readonly IReadOnlyDictionary<string, double> OneKilogram = new Dictionary<string, double>(StringComparer.Ordinal)
+    {
+        ["C"] = 9.505849129331365,
+        ["H"] = 35.214695099119155,
+        ["O"] = 15.704786718374072,
+        ["N"] = 6.007718569653603,
+        ["Cl"] = 3.3293409533388547,
+        ["Al"] = 14.709996403305084,
+    };
+
+    private const double RecordEnthalpy = -1527829.408385985;   // J/kg
+    private const double RecordPressure = 6.5e6;                 // Pa
+
+    /// <summary>One kilogram of water as element moles (55.508 mol of H2O), for the facts that need a composition and not a mixture in particular.</summary>
+    private static readonly IReadOnlyDictionary<string, double> Water = new Dictionary<string, double>(StringComparer.Ordinal) { ["H"] = 111.0168, ["O"] = 55.5084 };
+
     private PropellantBuilder LoxLh2() => Propellant.From(fixture.Database).Oxidizer("O2(L)").Fuel("H2(L)");
+
+    private static Dictionary<string, double> Scaled(double factor) => OneKilogram.ToDictionary(kv => kv.Key, kv => kv.Value * factor, StringComparer.Ordinal);
+
+    /// <summary>Σ n_i A_i in grams with the database's atomic weights: the number the message must report.</summary>
+    private double GramsOf(IReadOnlyDictionary<string, double> composition) => composition.Sum(kv => kv.Value * fixture.Database.AtomicWeight(kv.Key));
+
+    private static EquilibriumProblem AssignedTemperature() => new() { Kind = ProblemKind.AssignedTemperaturePressure, Pressure = RecordPressure, Temperature = 3000.0 };
+
+    [Fact]
+    public void A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance()
+    {
+        // The record as handed over passes: it is 1.5e-5 off one kilogram, and it solves.
+        var solved = Assert.Single(fixture.Solver.SolveStates([new StateRecord(RecordPressure, OneKilogram, Enthalpy: RecordEnthalpy)]));
+        Assert.Equal(CaseStatus.Ok, solved.Status);
+
+        // Doubled (two kilograms), in mol/g or kmol/kg (a thousandth) and in mmol/kg (a thousandfold): refused before any kernel runs,
+        // naming the record, the mass found in grams and the tolerance.
+        foreach (var factor in new[] { 2.0, 1.0e-3, 1.0e3 })
+        {
+            var composition = Scaled(factor);
+            var e = Assert.Throws<MixtureMassException>(() => fixture.Solver.SolveStates([new StateRecord(RecordPressure, composition, Enthalpy: RecordEnthalpy)]));
+            Assert.Equal(0, e.Index);
+            Assert.StartsWith("state record 0: the composition weighs ", e.Message, StringComparison.Ordinal);
+            Assert.Equal("state record 0: " + e.Reason, e.Message);
+            var grams = GramsOf(composition);
+            Assert.Equal(grams * 1.0e-3, e.Mass, grams * 1.0e-15);
+            var reported = double.Parse(Regex.Match(e.Message, @"weighs ([0-9.E+-]+) g").Groups[1].Value, CultureInfo.InvariantCulture);
+            Assert.Equal(grams, reported, grams * 1.0e-6);
+            Assert.Contains("element moles are per kilogram of mixture", e.Message, StringComparison.Ordinal);
+            Assert.Contains("must weigh 1000 g within 1 %", e.Message, StringComparison.Ordinal);
+        }
+
+        // The other front doors of the elemental form name the mixture by its index in the batch.
+        var doubled = ElementalMixture.Create(Scaled(2.0), RecordEnthalpy);
+        var rocket = Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(doubled, new RocketProblem { ChamberPressure = RecordPressure, AreaRatios = [10.0] }));
+        Assert.StartsWith("mixture 0: the composition weighs ", rocket.Message, StringComparison.Ordinal);
+        var equilibrium = Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(doubled, AssignedTemperature()));
+        Assert.StartsWith("mixture 0: the composition weighs ", equilibrium.Message, StringComparison.Ordinal);
+        var good = ElementalMixture.Create(OneKilogram, RecordEnthalpy);
+        var problem = new EquilibriumProblem { Pressure = RecordPressure };
+        var batch = Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve([good, doubled], [problem, problem]));
+        Assert.Equal(1, batch.Index);
+        Assert.StartsWith("mixture 1: ", batch.Message, StringComparison.Ordinal);
+
+        // The tolerance is the one the message names: 0.9 % heavy solves, 1.1 % heavy is refused.
+        Assert.Equal(CaseStatus.Ok, fixture.Solver.Solve(ElementalMixture.Create(Scaled(1.009)), AssignedTemperature()).Status);
+        Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(ElementalMixture.Create(Scaled(1.011)), AssignedTemperature()));
+    }
+
+    [Fact]
+    public void A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve()
+    {
+        // The committed file's ADN reactant record carries 630.0 kg/kmol against its formula H4N4O4 (124.06 with the file's own atomic
+        // weights), so the element moles per kilogram the record implies weigh a fifth of a kilogram: the propellant path is checked too,
+        // and the solve says so instead of computing with them. When the record is corrected upstream, this fact goes with it.
+        var adn = fixture.Database["ADN"];
+        var propellant = Propellant.From(fixture.Database).Named("ADN", 1.0).Build();
+        var e = Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(propellant, new EquilibriumProblem { Kind = ProblemKind.AssignedTemperaturePressure, Pressure = 1.0e6, Temperature = 2000.0 }));
+        Assert.StartsWith("the propellant's mixture (case 0): the composition weighs ", e.Message, StringComparison.Ordinal);
+        var formulaMass = adn.Formula.Sum(pair => pair.Count * fixture.Database.AtomicWeight(pair.Symbol));
+        Assert.Equal(formulaMass / adn.MolarMass, e.Mass, 1.0e-12);
+        Assert.True(e.Mass < 0.25, $"the ADN mixture weighs {e.Mass} kg");
+    }
 
     [Fact]
     public void An_unknown_reactant_is_rejected_by_name()
@@ -79,7 +161,7 @@ public sealed class RejectionTests(SolverFixture fixture)
     [Fact]
     public void Invalid_state_records_are_rejected_by_index_or_element()
     {
-        var composition = new Dictionary<string, double> { ["H"] = 100.0, ["O"] = 50.0 };
+        var composition = Water;
         var two = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Enthalpy: 0.0, Temperature: 3000.0)]));
         Assert.Contains("record 0", two.Message, StringComparison.Ordinal);
         var none = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Temperature: 3000.0), new StateRecord(1.0e6, composition)]));
@@ -97,7 +179,7 @@ public sealed class RejectionTests(SolverFixture fixture)
     [Fact]
     public void Problems_without_the_data_they_need_are_rejected()
     {
-        var mixture = ElementalMixture.Create(new Dictionary<string, double> { ["H"] = 100.0, ["O"] = 50.0 });
+        var mixture = ElementalMixture.Create(Water);
         var rocket = Assert.Throws<ArgumentException>(() => fixture.Solver.Solve(mixture, new RocketProblem { ChamberPressure = 7.0e6 }));
         Assert.Contains("enthalpy", rocket.Message, StringComparison.Ordinal);
         Assert.Throws<ArgumentException>(() => fixture.Solver.Solve(mixture, new EquilibriumProblem { Kind = ProblemKind.AssignedEnthalpyPressure, Pressure = 1.0e6 }));

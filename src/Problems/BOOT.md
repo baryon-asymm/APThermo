@@ -24,6 +24,43 @@ why they are a node of their own.
   element moles and enthalpy meet in the same `ElementalMixture` before anything else
   happens; every solve starts from element moles per kilogram and an enthalpy, whatever
   the input was.
+- **Element moles describe one kilogram.** Whatever the front door, the mass of the
+  element moles with the database's atomic weights, `Σ n_i A_i`, is one kilogram
+  within `ElementalMixture.MassTolerance` (1e-2 relative), or the solve refuses the
+  mixture before any kernel runs with a `MixtureMassException` naming it
+  (`state record i`, `mixture i`, the propellant's mixture), the mass found in grams
+  and the tolerance. The value is derived from what must pass and what must fail:
+  - must pass: a record built with the database's own atomic weights differs from
+    one kilogram by the rounding of its digits (the record of 2026-09-13 below:
+    1.5e-5); a record built from a reactant record's own molar mass carries that
+    record's rounding (the element moles of every fixture file, 195 on 2026-09-13,
+    are within 1.65e-5 of one kilogram, the largest from the `Air` record's
+    28.9651159 kg/kmol against its formula's 28.96561; the reactant records `HAN` and
+    `LMP-103S` are rounded by 4.5e-4 and 1.5e-4); a record built with another
+    atomic-weight table differs by that table's last digits (below 1e-4); a
+    simulation that omits its trace elements loses their mass, and an element worth
+    more than a percent of the mass is no trace;
+  - must fail: the nearest plausible mistakes are a composition per kilogram of one
+    reactant instead of the mixture (LOX/LH2 at an oxidizer-to-fuel ratio of 6: 17 %
+    off per kilogram of oxidizer, sixfold per kilogram of fuel), per pound (0.4536 kg,
+    54 % off), per two kilograms (100 %), in mol/g or kmol/kg (a thousandth), in
+    mmol/kg (a thousandfold), per 100 g (tenfold);
+  - so any tolerance between 1e-2 and 0.17 separates the two; it is set at the lower
+    end, 1e-2, so that the largest legitimate deviation passes and anything larger,
+    which is no longer a trace omission but a different mixture, fails. The nearest
+    plausible mistake is seventeen times the tolerance; the largest legitimate
+    deviation measured, the `HAN` record's rounding of 4.5e-4, is twenty-two times
+    below it.
+
+  ⚠ 2026-09-13: until this date nothing checked the mass. A record of another
+  simulation (C, H, O, N, Cl, Al; 1000.015 g) solved to 2701.37 K at 6.5 MPa, and
+  the same record with every element mole doubled solved without a message to
+  2799.63 K; a composition in mol/g or kmol/kg passed the same way, against the
+  root's intent and the command line's promise that a unit mistake cannot pass
+  silently. The propellant path is held to the same check: a reactant record whose
+  molar mass contradicts its formula yields a mixture of the wrong mass, and the
+  committed file has one (`ADN`, 630.0 kg/kmol against its formula's 124.06), so
+  such a propellant is refused instead of being solved for a fifth of a kilogram.
 - **Candidate species are chosen by one rule**: every gaseous product species of the
   database whose elements are all among the mixture's elements, then every condensed
   product species under the same condition, each in database order, minus the `Omit`
@@ -191,6 +228,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       numbers): `RocketTests.Identical_problems_give_identical_results_alone_and_in_one_call`,
       `A_sweep_equals_its_cases_solved_one_by_one`,
       `Problems_with_different_exit_layouts_are_solved_in_one_call_in_order`.
+- [x] 2026-09-13 — A composition that does not weigh one kilogram is refused with
+      its mass and the tolerance, and one that does is solved: the record of the
+      invariant above passes as a state record; doubled, in mol/g or kmol/kg and in
+      mmol/kg it is refused through `SolveStates` (`state record 0`), through
+      `Solve(ElementalMixture, …)` for a rocket and for an equilibrium problem and
+      through the batch over mixtures (`mixture 1`); the grams in the message equal
+      `Σ n_i A_i` with the database's atomic weights; a record 0.9 % heavy solves and
+      one 1.1 % heavy is refused
+      (`RejectionTests.A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance`);
+      the propellant path is covered by the committed file's `ADN` record
+      (`A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`).
+      Every fixture keeps passing through the end-to-end theories, unchanged (their
+      element moles were measured within 1.65e-5 of one kilogram, see the invariant).
 
 ## Taboos
 
