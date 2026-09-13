@@ -10,7 +10,7 @@ The definition of what "`Cli` is ready" means.
 | L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | schema files; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
 | L2 | the LOX/LH2 rocket document, the LOX/RP-1 hp document and the elemental tp document give the library's numbers field by field | the `Problems` result of the same case, built from the fixture the document encodes, over reflection-enumerated fields (`LibraryEqualityTests`) | ✅ |
 | Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
-| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ⏳ (the protocol tests node) |
+| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
 

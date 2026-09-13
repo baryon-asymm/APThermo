@@ -35,7 +35,8 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   is no second, scalar implementation of any formula. Checked by the batch tests that
   run the same kernels on both accelerators and compare.
 - **Double precision only.** Numerical nodes contain no `float` or `Half` value or
-  operation. Checked by the reflection tests scanning the numerical assemblies.
+  operation. Checked by reflection over the numerical assemblies
+  (`Protocol.Tests.InvariantTests.Numerical_nodes_hold_no_single_precision_value_or_operation`).
 - **Data come from files.** No thermodynamic or transport coefficient and no atomic
   weight is typed into code: every number comes from the committed NASA files, whose
   upstream commit hash is recorded next to them. Atomic weights are taken from the
@@ -49,8 +50,8 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   change. Cases with different species sets belong to different batches.
 - **The CPU path needs no NVIDIA software.** No numerical node references the
   `ILGPU.Runtime.Cuda` namespace; only the execution node does, and it works with the
-  CPU accelerator when there is no CUDA device or no libdevice. Checked by the
-  reflection dependency test.
+  CPU accelerator when there is no CUDA device or no libdevice. Checked by reflection
+  over every assembly (`Protocol.Tests.InvariantTests.Only_the_execution_node_and_its_tests_name_cuda_types`).
 - **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU
   accelerator agree within the tolerance table owned by the execution tests node
   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
@@ -73,7 +74,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   conversion to seconds with g0 = 9.80665 m/s² happens only in the command-line front end.
 - **No hidden state.** A numerical routine takes every input and every scratch area
   through explicit parameters; numerical nodes have no mutable static fields. Checked
-  by reflection.
+  by reflection (`Protocol.Tests.InvariantTests.Numerical_nodes_have_no_mutable_static_field`).
 - **Failures are values.** Numerical code reports a per-case status code and never
   throws; the front door node turns statuses into results or exceptions.
 
@@ -160,15 +161,23 @@ There is no external ancestor: the tree root is the repository root, and the loa
       9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
 - [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
       (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
-      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1733
-      tests green after the Cli node (1654 after the Problems node, 850 after the
-      Execution node), none skipped, the CUDA-category tests verifying the refusal
-      instead.
+      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1742
+      tests green after the protocol tests node (1733 after the Cli node, 1654 after
+      the Problems node, 850 after the Execution node), none skipped, the
+      CUDA-category tests verifying the refusal instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
-      of `CLAUDE.md`, run after every node, last after the Cli node: 0 errors,
+      of `CLAUDE.md`, run after every node and by `Protocol.Tests.LintTests` in
+      every test run, last after the protocol tests node: 0 errors,
       0 warnings).
-- [ ] The reflection checks are written for this stack and each was shown red once
-      (AGENTS.md §13).
+- [x] 2026-09-13 — The reflection checks are written for this stack and each was
+      shown red once (AGENTS.md §13): the protocol tests node
+      (`tests/Protocol.Tests`: `SurfaceTests`, `CoverageTests`, `DeclarationTests`,
+      `DependencyTests`, with `LintTests` running the linter and `InvariantTests`
+      holding the three root invariants above), ten mutations applied alone and seen
+      red, listed in that node's `BOOT.md`; the surface snapshot is
+      `tests/Protocol.Tests/PublicSurface.approved.txt`. The first run over the tree
+      found one undocumented public type (`Execution`'s `SpeciesFunctionBatchViews`,
+      fixed in its `API.md`).
 
 ## Taboos
 

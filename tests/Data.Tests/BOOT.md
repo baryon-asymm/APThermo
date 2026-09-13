@@ -10,7 +10,7 @@ code" (AGENTS.md §1): it is the readiness criterion, moved into a node of its o
 |---|---|---|---|
 | L0 | numeric field reading: `D`/`E`/blank exponents, a sign in place of the exponent letter, bare decimals, blank fields, non-numeric text | expected doubles in the theory data of `FortranNumberTests` (the one place a number is typed: the forms are the subject, not the data) | ✅ 2026-09-12 |
 | L1 | full loads of the committed `data/thermo.inp` and `data/trans.inp`: counts, fixture records, interval ordering and contiguity, anomaly list, transport blocks, atomic weights, failure on corrupted copies | an independent line scan in the test, the approved anomaly list, the fixture records written by `transcribe.py` | ✅ 2026-09-12 |
-| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot (protocol tests node) | ⏳ |
+| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 Each next level makes sense only when the previous one is green.
 

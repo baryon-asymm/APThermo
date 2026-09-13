@@ -11,7 +11,7 @@ The definition of what "`Transport` is ready" means.
 | L1 | the evaluation inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
 | L1 | a table that also holds the species of elements the case lacks gives the same bits as the case's own table, at every station with transport | the evaluation on the case's own table | ✅ |
 | Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits | the `API.md` of `Transport` | ✅ |
-| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ⏳ (the Protocol.Tests node) |
+| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
 

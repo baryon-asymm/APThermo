@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Node tests/Protocol.Tests: the reflection half of the machine checks of AGENTS.md §13 and the wiring of the linter.
+    Every project of the tree is referenced so that its assembly lands in this build output and can be loaded by name;
+    none of their types is used (this node's BOOT.md: Dependencies, None).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cli\AerospacePropellantThermodynamics.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Data\AerospacePropellantThermodynamics.Data.csproj" />
+    <ProjectReference Include="..\..\src\Equilibrium\AerospacePropellantThermodynamics.Equilibrium.csproj" />
+    <ProjectReference Include="..\..\src\Execution\AerospacePropellantThermodynamics.Execution.csproj" />
+    <ProjectReference Include="..\..\src\Performance\AerospacePropellantThermodynamics.Performance.csproj" />
+    <ProjectReference Include="..\..\src\Problems\AerospacePropellantThermodynamics.Problems.csproj" />
+    <ProjectReference Include="..\..\src\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Transport\AerospacePropellantThermodynamics.Transport.csproj" />
+    <ProjectReference Include="..\Cli.Tests\AerospacePropellantThermodynamics.Cli.Tests.csproj" />
+    <ProjectReference Include="..\Data.Tests\AerospacePropellantThermodynamics.Data.Tests.csproj" />
+    <ProjectReference Include="..\Equilibrium.Tests\AerospacePropellantThermodynamics.Equilibrium.Tests.csproj" />
+    <ProjectReference Include="..\Execution.Tests\AerospacePropellantThermodynamics.Execution.Tests.csproj" />
+    <ProjectReference Include="..\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj" />
+    <ProjectReference Include="..\Fixtures.Tests\AerospacePropellantThermodynamics.Fixtures.Tests.csproj" />
+    <ProjectReference Include="..\Performance.Tests\AerospacePropellantThermodynamics.Performance.Tests.csproj" />
+    <ProjectReference Include="..\Problems.Tests\AerospacePropellantThermodynamics.Problems.Tests.csproj" />
+    <ProjectReference Include="..\Thermo.Tests\AerospacePropellantThermodynamics.Thermo.Tests.csproj" />
+    <ProjectReference Include="..\Transport.Tests\AerospacePropellantThermodynamics.Transport.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

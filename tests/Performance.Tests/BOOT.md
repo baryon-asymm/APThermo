@@ -9,7 +9,7 @@ The definition of what "`Performance` is ready" means.
 | L0 | the invariants on a converged case: constant entropy, sonic throat, area ratio met, frozen composition, velocity from the energy equation; status on invalid exits and inputs | the invariants' tolerances | ✅ |
 | L1 | rocket cases of the fixtures node (LOX/LH2 example 8, MMH/NTO example 12 equilibrium and frozen, the four reference propellants): stations, `c*`, `C_F`, `Isp`, `Ivac`, area and pressure ratios, compositions | the fixtures node's reference outputs and its tolerance table | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
-| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ⏳ |
+| Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
 

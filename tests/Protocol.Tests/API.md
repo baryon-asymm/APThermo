@@ -7,18 +7,29 @@ consider guaranteed about the agreement between its documents and its code.
 
 | Claim | Confirmed by | State |
 |---|---|---|
-| the tree passes the language-independent linter without errors | Lint level | ⏳ |
-| no public surface changes without the snapshot moving in the same commit | Surface level | ⏳ |
-| every exported type is named in its node's `API.md` | Coverage level | ⏳ |
-| every declaration under ✅ exists | Declarations level | ⏳ |
-| declared dependencies match the real ones, in both directions, from signatures and method bodies | Dependencies level | ⏳ |
+| the tree passes the language-independent linter without errors or warnings | Lint level (`LintTests`) | ✅ |
+| no public surface of a library assembly changes without the snapshot moving in the same commit | Surface level (`SurfaceTests`, `PublicSurface.approved.txt`) | ✅ |
+| every type a library assembly exports is named in its node's `API.md`, and every type of every assembly lives in its node's namespace | Coverage level (`CoverageTests`) | ✅ |
+| every declaration under ✅ exists, the type and the member | Declarations level (`DeclarationTests`) | ✅ |
+| declared dependencies match the real ones, in both directions, from signatures and method bodies | Dependencies level (`DependencyTests`) | ✅ |
+| the numerical nodes hold no single-precision value or operation and no mutable static field; no node but the execution node and its tests names a CUDA type | Root invariants level (`InvariantTests`) | ✅ |
 
-What it does not guarantee: that a document tells the truth about the code it
-names correctly (`AGENTS.md` §13).
+What it does not guarantee: that a document tells the truth about the code it names
+correctly (`AGENTS.md` §13); that a signature under ✅ matches the code (names are
+checked here, signatures by the snapshot); a dependency carried only by constants,
+which the compiler inlines (a node reading nothing but `const` values of a neighbour
+leaves no trace in its assembly); the surface of the test assemblies.
 
 ## What the tests rely on
 
-- `RepositoryPaths`: the tree root from `[CallerFilePath]`.
-- `PublicSurface.approved.txt` in this node, one section per assembly.
-- The linter invoked as `python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates`
-  from the tree root, with Python found on the path; absence of Python is a failure.
+- The tree root from `[CallerFilePath]` of `Tree.cs`; nodes from the directories
+  holding both documents; assemblies by the project names, loaded from this project's
+  build output.
+- `PublicSurface.approved.txt` in this node: one section per library assembly, one
+  line per exported type with its kind and bases, one line per public member with
+  `init` told from `set`, nullable annotations, `in`/`out`/`ref`/`params`, default
+  values and constant values; members the compiler writes (record equality, accessors,
+  the clone helper) left out.
+- The linter invoked as `python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates --strict`
+  from the tree root, with Python found on the path; absence of Python is a failure,
+  not a skip.

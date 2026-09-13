@@ -180,9 +180,14 @@ the kernel-compatible ones of `Thermo`, and running them needs a view over accel
 memory, which this node owns; an evaluation on the host would be a second
 implementation of the polynomial.
 
-The kernel parameter structs `EquilibriumBatchViews`, `RocketBatchViews` and
-`TransportBatchViews` are public only because ILGPU requires kernel parameter types to
-be; they carry the device views of one chunk and are not meant to be used from outside.
+The kernel parameter structs `EquilibriumBatchViews`, `RocketBatchViews`,
+`TransportBatchViews` and `SpeciesFunctionBatchViews` are public only because ILGPU
+requires kernel parameter types to be; they carry the device views of one chunk and are
+not meant to be used from outside.
+
+⚠ 2026-09-13: the list named three structs after the fourth had been added with the
+species-function batch; found by the coverage check of the protocol tests node, the
+first time it ran.
 
 ⚠ 2026-09-12: the sketch had the rocket figures per exit (`[case * exits + exit]`),
 no `Iterations`, a transport run taking a `RocketBatchResult` and a station mask
