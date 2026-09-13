@@ -1,3 +1,5 @@
+using AerospacePropellantThermodynamics.Data;
+
 namespace AerospacePropellantThermodynamics.Thermo;
 
 /// <summary>
@@ -17,6 +19,14 @@ namespace AerospacePropellantThermodynamics.Thermo;
 /// </remarks>
 public static class SpeciesFunctions
 {
+    /// <summary>
+    /// |ΔH°/RT| at a bound shared by two condensed fits at or above which the two sides are a real transition: the
+    /// builder cuts a species there (BOOT.md, join-and-cut) and the equilibrium solver pins a two-phase pair there.
+    /// The smallest real transition of the committed file is BeO a/b at 1.34e-2, the largest interval-split artifact
+    /// 3.9e-4 (Cr(cr)).
+    /// </summary>
+    public const double LatentHeatThreshold = 1.0e-3;
+
     private const int CoefficientsPerInterval = 7;
     private const int ExponentStride = 8;
     private const int CoefficientStride = 9;
@@ -63,9 +73,23 @@ public static class SpeciesFunctions
         var sum = table.Coefficients[interval * CoefficientStride + 7] / temperature;
         for (var k = 0; k < CoefficientsPerInterval; k++)
         {
-            var e = table.Exponents[interval * ExponentStride + k];
-            var term = e == -1.0 ? Math.Log(temperature) / temperature : Power(temperature, e) / (e + 1.0);
-            sum += table.Coefficients[interval * CoefficientStride + k] * term;
+            sum += table.Coefficients[interval * CoefficientStride + k] * EnthalpyTerm(table.Exponents[interval * ExponentStride + k], temperature);
+        }
+
+        return sum;
+    }
+
+    /// <summary>
+    /// H°/RT of one record interval, for the builder's join-and-cut test (host side; the terms are the ones the view
+    /// overload sums, so the formula lives once).
+    /// </summary>
+    internal static double HOverRT(TemperatureInterval interval, double temperature)
+    {
+        var sum = interval.B1 / temperature;
+        for (var k = 0; k < CoefficientsPerInterval; k++)
+        {
+            var e = k < interval.Exponents.Count ? interval.Exponents[k] : 0.0;
+            sum += interval.Coefficients[k] * EnthalpyTerm(e, temperature);
         }
 
         return sum;
@@ -88,6 +112,9 @@ public static class SpeciesFunctions
     /// <summary>H°/RT − S°/R.</summary>
     public static double GOverRT(in SpeciesTableView table, int species, double temperature) =>
         HOverRT(table, species, temperature) - SOverR(table, species, temperature);
+
+    /// <summary>I_h(e, T) of the class remarks: the enthalpy integral of one polynomial term.</summary>
+    private static double EnthalpyTerm(double e, double t) => e == -1.0 ? Math.Log(t) / t : Power(t, e) / (e + 1.0);
 
     /// <summary>T^e: the usual exponents −2 … 4 by multiplication, any other through Math.Pow.</summary>
     private static double Power(double t, double e)

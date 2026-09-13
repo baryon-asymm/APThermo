@@ -25,9 +25,25 @@ can be uploaded to an accelerator and evaluated without allocation.
   of each formula in the tree.
 - **Interval selection is defined.** For a temperature `T`, the interval used is the
   first one with `T ≤ THigh`; below the first interval or above the last, the nearest
-  interval's polynomial is used and `IsInRange` reports `false`. For condensed species
-  `IsInRange` is the candidacy test other nodes rely on; for gaseous species it is
-  advisory.
+  interval's polynomial is used and `IsInRange` reports `false`. `IsInRange` is exact
+  against the record's own bounds; for gaseous species it is advisory.
+
+  ⚠ 2026-09-13: stood "for condensed species `IsInRange` is the candidacy test other
+  nodes rely on". The melting-plateau analysis of this date moved the equilibrium
+  node's condensed candidacy to effective bounds — the crossing of adjacent records'
+  Gibbs curves, which that node derives from this table's bounds and fits, because
+  the committed fits cross up to 2.7e-3 K away from the printed bound and a pinned
+  two-phase pair is exempt from any range test. `IsInRange` itself is unchanged.
+- **One condensed species per contiguous fit.** The builder joins and cuts condensed
+  product records so that every condensed table species is one contiguous,
+  thermodynamically continuous piece: records sharing one name (the file splits some
+  condensed species into one record per range) are concatenated into one species when
+  their formulas and molar masses agree and their ranges touch, and a condensed
+  species whose adjacent intervals disagree at a shared internal bound by
+  `|ΔH°/RT| ≥ LatentHeatThreshold` is split there into separate table species — the
+  equilibrium node then sees every real transition as a boundary between two records
+  and never as a jump inside one. Gaseous species are never joined or split.
+  (The join-and-cut section of `API.md`.)
 - **One physical constant.** `R = 8314.51 J/(kmol·K)` is the value NASA CEA uses and
   the only physical constant typed into the tree; it lives here and nowhere else, and
   a test compares it with the value the reference implementation exposes.
@@ -50,7 +66,25 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - The functions and the view are kernel-compatible C# (static methods, blittable
   structs, no allocation, no exceptions). The builder is ordinary .NET.
 - Size limits are fixed here because they size the scratch of every consumer: at most
-  20 elements, at most 2 048 species per table, at most 5 intervals per species.
+  20 elements, at most 2 048 species per table, at most 5 intervals per species
+  (after concatenation; the builder refuses an overflow by name).
+- The join-and-cut threshold is `SpeciesFunctions.LatentHeatThreshold` = 1e-3 on
+  `|ΔH°/RT|` at a shared bound, the one constant separating a real latent heat from
+  fit noise: the smallest real transition of the committed file is BeO a/b at
+  1.34e-2, the largest interval-split artifact 3.9e-4 (`Cr(cr)`). It lives here
+  because the equilibrium node's pair rule tests the same quantity against the same
+  constant. On the committed file the cut fires exactly once — `ALN(L)`, whose two
+  intervals differ by 68 kJ/mol at 2700 K, the only such jump among the 203
+  multi-interval condensed product records — and the concatenation covers every
+  same-name record split of the file (`Co(b)`, `Cr(cr)`, `Cr2O3(I)` — three
+  records — `Fe(a)`, `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`,
+  `SnS(cr)`), whose upper records were unreachable before (the database index
+  returns the first record per name).
+- A cut piece is named `NAME[TLow-THigh]` over the piece's range in kelvin
+  (`ALN(L)[1800-2700]`, `ALN(L)[2700-6000]`; square brackets occur in no database
+  name); the pieces stand adjacent, ascending, in the place of their record in the
+  given order, and `Records` maps each piece, and each concatenated species, to the
+  record that provided its first interval.
 - Math: only `Math.Log` and `Math.Pow` from the root's list are needed; `Math.Pow`
   is used for the general exponents, the usual exponents −2 … 4 are evaluated by
   multiplication.
@@ -108,6 +142,17 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       accelerator and give the same bits as the host call, for nine species at twelve
       temperatures: `KernelEqualityTests.Kernel_and_host_give_the_same_bits` (the
       execution tests node covers CUDA).
+- [x] 2026-09-13 — The join-and-cut rule holds on the committed file: `Cr(cr)`
+      builds as one species whose range reaches the second record's upper bound,
+      `ALN(L)` builds as two species named by their ranges with the real jump
+      visible across the pieces, and a species list naming records that cannot
+      concatenate is refused by name (`JoinAndCutTests`, all three facts); the
+      functions of the joined `Cr(cr)` and `Fe(a)` and of both `ALN(L)` pieces equal
+      the independent evaluation piecewise
+      (`FunctionFixtureTests.Functions_equal_the_independent_evaluation` over their
+      fixtures, the generator joining records the same way); and every species of
+      the four reference propellants' tables builds and compares as before (the
+      Equilibrium, Performance and Problems fixture suites of the same day).
 
 ## Taboos
 

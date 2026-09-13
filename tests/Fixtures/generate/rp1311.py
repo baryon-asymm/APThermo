@@ -1,8 +1,10 @@
-"""The six RP-1311 examples of the case matrix, with the inputs of the package's own sample scripts.
+"""The seven RP-1311 examples of the case matrix, with the inputs of the package's own sample scripts.
 
-Examples 1 and 14 are tp problems, 3 and 5 hp problems, 8 and 12 rocket problems (12 frozen
-from the throat). Equilibrium cases are derived from the stations of examples 8 and 12
-(chamber and throat only for 12, whose exits are frozen).
+Examples 1 and 14 are tp problems, 3 and 5 hp problems, 8, 12 and 13 rocket problems (12
+frozen from the throat; 13 the beryllium rocket whose throat and first exit sit on the BeO
+melting plateau, solved with the package's `insert` list). Equilibrium cases are derived from
+the stations of examples 8 and 12 (chamber and throat only for 12, whose exits are frozen),
+and tp cases at the BeO transition bounds from example 13's mixture.
 """
 from __future__ import annotations
 
@@ -12,8 +14,9 @@ import numpy as np
 
 import cea
 
-from cea_cases import (FLOW_FROZEN_THROAT, FLOW_SHIFTING, Custom, derive_equilibrium_cases, describe_reactants,
-                       equilibrium_inputs, make_mixtures, rocket_inputs, rocket_outputs, solve_equilibrium, solve_rocket)
+from cea_cases import (FLOW_FROZEN_THROAT, FLOW_SHIFTING, RECORDS, Custom, derive_equilibrium_cases,
+                       describe_reactants, equilibrium_inputs, make_mixtures, rocket_inputs, rocket_outputs,
+                       solve_equilibrium, solve_rocket)
 from common import BAR_TO_PA
 from writer import Writer, main_of
 
@@ -174,6 +177,42 @@ def example12(writer: Writer) -> None:
                              of_ratio=of_ratio, only=EXAMPLE12_PRODUCTS)
 
 
+def example13(writer: Writer) -> None:
+    """The beryllium rocket: N2H4/Be 80/20 fuel with H2O2 at O/F 33/67, 3000 psia, exits p_c/p 3, 10, 30, 300.
+
+    The throat and the first exit sit on the BeO(b)/BeO(L) melting plateau at 2851 K, which the package only
+    converges with `insert` seeding the liquid; without it the case loses 0.61 % of Ivac (Fixtures BOOT.md,
+    the station guard). The trace threshold keeps the beryllium condensed pair printed at every station."""
+    reactants = ["N2H4(L)", "Be(a)", "H2O2(L)"]
+    temperatures = np.array([298.15, 298.15, 298.15])
+    of_ratio = 33.0 / 67.0
+    reac, prod = make_mixtures(reactants)
+    weights = reac.of_ratio_to_weights(np.array([0.0, 0.0, 1.0]), np.array([0.8, 0.2, 0.0]), of_ratio)
+    descriptions = describe_reactants(reactants, weights, temperatures)
+    chamber_pressure_pa = cea.units.psi_to_bar(3000.0) * BAR_TO_PA
+    pressure_ratios = [3.0, 10.0, 30.0, 300.0]
+    insert = ["BeO(L)"]
+    trace = 1e-10
+    solution, enthalpy = solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa, FLOW_SHIFTING, False,
+                                      pressure_ratios=pressure_ratios, insert=insert, trace=trace)
+    writer.case(
+        "rocket", "rp1311-example13",
+        inputs=rocket_inputs(descriptions, prod.species_names, chamber_pressure_pa, enthalpy, FLOW_SHIFTING, False,
+                             pressure_ratios=pressure_ratios, of_ratio=of_ratio, trace=trace, insert=insert),
+        outputs=rocket_outputs(solution, False, FLOW_SHIFTING), script_path=__file__)
+
+    # tp exactly at the BeO transition bounds (the case matrix): the record chosen at a bound has a fixture.
+    beo_b = RECORDS["BeO(b)"]
+    for t in [beo_b.intervals[-1].t_high, beo_b.intervals[0].t_low]:
+        pressure_pa = 10.0e6
+        outputs = solve_equilibrium(reac, prod, weights, "tp", float(t), pressure_pa, transport=False)
+        writer.case(
+            "tp", f"rp1311-example13-mixture_T{t:g}",
+            inputs=equilibrium_inputs(descriptions, prod.species_names, "tp", float(t), pressure_pa, False,
+                                      of_ratio=of_ratio),
+            outputs=outputs, script_path=__file__)
+
+
 def example14(writer: Writer) -> None:
     reactants = ["H2(L)", "O2(L)"]
     reac, prod = make_mixtures(reactants)
@@ -195,6 +234,7 @@ def generate(writer: Writer) -> None:
     example5(writer)
     example8(writer)
     example12(writer)
+    example13(writer)
     example14(writer)
 
 

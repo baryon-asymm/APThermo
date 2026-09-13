@@ -30,7 +30,8 @@ a full restatement of the equations in this document, which nobody has asked for
   reported as `NotConverged`, never as `Ok`.
 - **The candidate list never changes.** Every species of the table is a candidate
   throughout; gaseous species stay positive because the unknowns are their logarithms;
-  condensed species enter and leave the solution by the report's tests; a species is
+  condensed species enter and leave the solution by the condensed-species rule of the
+  Constraints (the report's tests, completed on 2026-09-13); a species is
   never deleted from the table by this node.
 - **An absent element is a mask, not an error.** A case whose abundance of an element
   is zero runs with every species containing that element inactive (mole number zero,
@@ -99,18 +100,77 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   dozens of hydrocarbons shrinking by e⁻⁴⁰ two units at a time. CEA's code limits only
   positive corrections (a species on its way out may fall by any factor in one step);
   so does this node, and the same cases converge in 24 to 44 steps.
-- Condensed species: inclusion test after convergence of the gaseous problem (the
-  species whose `Σ π_i a_ij − g_j/RT` is largest and positive is added, one at a
-  time); a condensed species with a negative mole number is removed; a condensed
-  species outside its temperature range is not a candidate at that temperature, and
-  phase transitions between records of one substance follow section 3.5: after
-  convergence a record outside its range is removed and the other record of the same
-  formula that covers the temperature enters in its place; when the temperature is a
-  variable and the range is missed by less than 50 K both records stay, the temperature
-  settles at the transition and the record that turns negative is removed after the
-  next convergence. Singular matrices are reported as `SingularMatrix` after the
-  report's remedies (resetting vanished species to `1e-6`, twice; then removing the
-  last condensed species) have been tried.
+- Condensed species: one change per convergence, tested in this order after the
+  report's tests pass.
+  1. A condensed species with a negative mole number is removed.
+  2. A record beyond its effective range (below) changes phase. A record whose
+     same-formula partner is in the solution beside it — a pinned pair — is exempt
+     from the range test. Otherwise the candidate is the record of the same formula
+     whose effective range holds the temperature or, failing that, the adjacent
+     record at the crossed bound. The record and the candidate pair up — the
+     candidate enters at zero moles, both stay, and the next convergence settles the
+     temperature at the crossing `T*` — when the candidate is that adjacent record,
+     the temperature is a variable, the latent heat at the shared bound is real
+     (`|ΔH°/RT| ≥ SpeciesFunctions.LatentHeatThreshold`, the Thermo node's constant),
+     the set has room, and either `|T − T*| ≤ PhaseTransitionWindow` (50 K) or the
+     candidate is the record switched out at the previous switch. Otherwise the
+     record is switched for the candidate, and the record switched out is
+     remembered; with no candidate at all it is removed and remembered as removed
+     for range. A record removed for range a second time in one solve stands down
+     for the rest of it — the temperature keeps leaving its range, and re-adding it
+     forever is the cycle the reference aborts on (its "reinsertion likely to cause
+     singularity" stop) — and an `Ok` exit is then guarded: a stood-down record
+     that would qualify at the final state (in effective range, no partner in the
+     solution, per-mole gain above the 1e-9 rounding of the converged multipliers)
+     turns the status into `NotConverged` rather than a false equilibrium.
+  3. The inclusion test: the species whose `Σ π_i a_ij − g_j/RT` is largest and
+     positive is added, one at a time, compared per mole as RP-1311 section 3.4
+     words it (the reference's code — cea2.f as 3.3.4 — divides the gain by the
+     molar mass; this node follows the report). Two candidates are passed over: a
+     species whose formula is already in the solution, because a pair is completed
+     by rule 2, never by inclusion; and, once, the record just removed for range
+     while another positive candidate exists — the anti-cycling rule; when it is the
+     only positive candidate it is taken, so no equilibrium is lost.
+
+  Effective range: where two records of one formula share a bound `T_b` and the
+  latent heat there is real, the boundary between them is the crossing of their
+  linearized Gibbs curves, `T* = T_b (1 + Δg/Δh)` with `Δg` and `Δh` the differences
+  of `G°/RT` and `H°/RT` at `T_b`. The committed fits differ at their shared bounds
+  by up to 1e-8 in `G°/RT`, so the pair's equilibrium sits at `T*`, not at `T_b`
+  (AL2O3 a/L +1.241e-5 K, BeO b/L +1.447e-5 K, BeO a/b −2.705e-3 K, H2O cr/L
+  −0.028 K). A crossing farther than 1 K from its bound means inconsistent fits
+  (NaCN) and the printed bound stands; a shared bound below the latent-heat
+  threshold moves nothing and its records switch without pairing; range comparisons
+  carry a relative tolerance of 1e-9. In tp problems there is no pair — the
+  temperature is assigned — and between `T_b` and `T*` the effective ranges hand the
+  temperature to the record with the lower Gibbs energy. The memories (switched out,
+  removed for range once, stood down) are per-case state — the stand-down mark
+  lives in the species mask — and the scratch layout is unchanged.
+  Singular matrices are reported as `SingularMatrix` after the report's remedies
+  (resetting vanished species to `1e-6`, twice; then removing the last condensed
+  species) have been tried.
+
+  ⚠ 2026-09-13: until this date the rule read "a condensed species outside its
+  temperature range is not a candidate at that temperature … when the temperature is
+  a variable and the range is missed by less than 50 K both records stay, the
+  temperature settles at the transition and the record that turns negative is
+  removed after the next convergence". Wrong three ways, found by tracing the
+  published verification cases and verified against a scratchpad prototype and
+  cea 3.3.4 (sessions of 2026-09-13): the pair settles at `T*`, not at the printed
+  bound, and the exact range test removed the returning record at every convergence,
+  so every state on a melting plateau ended `NotConverged` (RP-1311 example 13's
+  throat at BeO's 2851 K; the AP/Al verification record's exits on AL2O3's 2327 K
+  plateau); a state that overshoots a transition by more than the window switched
+  records forever instead of pairing (the same throat search, 2794 ↔ 3112 K), hence
+  the switch memory, which the reference's code keeps too; and the inclusion test
+  could re-add a record just removed for its range forever (AL4C3(cr), whose range
+  ends at 2500 K with no record above), hence the anti-cycling rule. The reference
+  avoids the last cycle by ranking inclusion per unit mass and by letting a record
+  live up to 1.2 × its upper bound — an evaluation of the fit outside its range this
+  node does not copy. With these rules the prototype converged every lost case and
+  matched the reference's direct solves (plateau `Isp` to 0.001 m/s); the
+  reference's own multi-station rocket runs stay unreliable past a plateau (the
+  fixtures node records the guard).
 - Frozen mode: with the composition fixed, solve for the temperature that gives the
   requested enthalpy or entropy (Newton on `T`, to `1e-10` relative) and compute the
   frozen properties; this mode serves frozen nozzle flow. Its state carries
@@ -125,6 +185,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   with `n` the total gaseous moles per kilogram; `MW = 1/Σ n_j` over all species with
   the condensed ones counted as moles (the reference's MW, see the Thermo `API.md`);
   the condensed species are included in h, s and Cp of the mixture as in CEA.
+  At a pinned pair the constant-pressure derivatives do not exist: the derivative
+  system is assembled once, at constant temperature, with one record of the pair as
+  the representative (RP-1311 section 3.5; Gordon 1970), and the state carries the
+  reference's convention `Cp_eq = Cv_eq = (∂ln V/∂ln T)_p = 0` with
+  `(∂ln V/∂ln p)_T` real, `γ_s = −1/(∂ln V/∂ln p)_T` and `a² = n R T γ_s` — the
+  plateau values the throat search needs (the AP/Al verification record: `γ_s` 0.816
+  on the plateau against 1.09 beside it; the zeros against NaN-plus-flag decided in
+  the design session of 2026-09-13, so that the state struct, the surface snapshot
+  and the reference comparisons stay unchanged).
 
 ## Acceptance criteria
 
@@ -174,6 +243,41 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       accelerator with the same results as the host call:
       `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over the 8 table families
       of the 106 cases (moles, multipliers, state, status and iterations bit for bit).
+- [x] 2026-09-13 — Plateau states converge and match the reference: the
+      melting-plateau fixture cases (RP-1311 example 13 generated with its insert
+      list; the direct plateau stations of AP/HTPB/Al; the latent-heat-band hp
+      cases) return `Ok` with both records of the pair in the solution, the
+      temperature at the pair's `T*`, and every compared field — `γ_s`, the sound
+      speed and the plateau zeros included — within the fixtures node's tolerance
+      table: `FixtureSolveTests` over every tp and hp file of that day,
+      `Performance.Tests.RocketFixtureTests` and
+      `Problems.Tests.RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      over `rp1311-example13` and the eight `ap-htpb-al-plateau` rocket files.
+- [x] 2026-09-13 — The anti-cycling rule closes the include/remove cycle: an
+      assigned enthalpy inside the `ALN(L)` gap of the fuel-rich AP/HTPB/Al chamber
+      — where `AL4C3(cr)` near its 2500 K upper bound was included and lost every
+      round, seen red before the stand-down rule was added — converges onto the
+      pinned pieces
+      (`PlateauTests.An_enthalpy_inside_the_ALN_gap_pins_the_pieces_at_the_cut`); a
+      record removed for range re-enters when it is the only positive candidate, a
+      second escape stands it down, and an `Ok` exit never hides a positive-gain
+      candidate
+      (`PlateauTests.An_enthalpy_no_admissible_set_can_hold_is_refused_rather_than_lied_about`
+      walks exactly that path to an honest `NotConverged`, and
+      `An_ok_solution_leaves_no_condensed_candidate_with_positive_inclusion_gain`
+      holds over every hp fixture).
+- [x] 2026-09-13 — Sweeps across a plateau lose no station: the pressure-ratio band
+      across the AL2O3 plateau solves sequentially and one exit at a time onto the
+      same stations, on the chamber isentrope throughout
+      (`Problems.Tests.SplitRecordTests.A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`);
+      example 13's four exits cross the BeO plateau end to end
+      (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end` over
+      `rp1311-example13`); and tp solves at the printed bounds pick the record the
+      reference picks (`FixtureSolveTests` over `ap-htpb-al-plateau_T2327`,
+      `rp1311-example13-mixture_T2851` and `_T2373`), one kelvin beside the `ALN(L)`
+      cut the gap test picking each side. The original wording asked for "fine"
+      sweeps of both plateaus from both starts; the eight-ratio band and the
+      four-exit example are that promise's committed form.
 
 ## Taboos
 

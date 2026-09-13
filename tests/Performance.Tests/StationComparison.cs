@@ -89,7 +89,7 @@ internal static class StationComparison
             foreach (var species in moleFractions.EnumerateObject())
             {
                 var expected = species.Value.GetDouble();
-                if (solution.Table.IndexOf(species.Name) < 0)
+                if (solution.Table.IndicesOf(species.Name).Count == 0)
                 {
                     mismatches.Add($"{label} {species.Name}: not in the table");
                     continue;
@@ -109,7 +109,7 @@ internal static class StationComparison
 
     private static bool IsCondensed(SpeciesTable table, string species)
     {
-        var index = table.IndexOf(species);
-        return index >= table.GasCount;
+        var indices = table.IndicesOf(species);
+        return indices.Count > 0 && indices[0] >= table.GasCount;
     }
 }

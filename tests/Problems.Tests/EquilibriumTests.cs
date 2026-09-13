@@ -33,7 +33,8 @@ public sealed class EquilibriumTests(SolverFixture fixture)
         Assert.Equal("state", result.State.Name);
         Assert.Null(result.State.Performance);
         Assert.Same(propellant, result.Propellant);
-        var mismatches = Comparison.Compare(c.Outputs, result.State, result.Species, Comparison.GasCountOf(result.Species), false, false, name, fixture.Tolerances).ToList();
+        var mismatches = Comparison.Compare(c.Outputs, result.State, result.Species, Comparison.GasCountOf(result.Species), false, false, name, fixture.Tolerances,
+                                            singularReference: Comparison.SingularTp(c)).ToList();
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
     }
 
@@ -67,7 +68,8 @@ public sealed class EquilibriumTests(SolverFixture fixture)
                 }
 
                 Assert.Null(results[k].Propellant);
-                mismatches.AddRange(Comparison.Compare(c.Outputs, results[k].State, results[k].Species, Comparison.GasCountOf(results[k].Species), false, false, c.Name, fixture.Tolerances));
+                mismatches.AddRange(Comparison.Compare(c.Outputs, results[k].State, results[k].Species, Comparison.GasCountOf(results[k].Species), false, false, c.Name, fixture.Tolerances,
+                                                       singularReference: Comparison.SingularTp(c)));
                 solved++;
             }
         }

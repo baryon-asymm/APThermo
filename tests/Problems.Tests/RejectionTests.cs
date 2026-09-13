@@ -14,7 +14,7 @@ namespace AerospacePropellantThermodynamics.Problems.Tests;
 public sealed class RejectionTests(SolverFixture fixture)
 {
     /// <summary>The record another simulation handed over on 2026-09-13 (C, H, O, N, Cl, Al in mol/kg): 1000.015 g with the database's atomic weights.</summary>
-    private static readonly IReadOnlyDictionary<string, double> OneKilogram = new Dictionary<string, double>(StringComparer.Ordinal)
+    internal static readonly IReadOnlyDictionary<string, double> OneKilogram = new Dictionary<string, double>(StringComparer.Ordinal)
     {
         ["C"] = 9.505849129331365,
         ["H"] = 35.214695099119155,
@@ -25,7 +25,7 @@ public sealed class RejectionTests(SolverFixture fixture)
     };
 
     private const double RecordEnthalpy = -1527829.408385985;   // J/kg
-    private const double RecordPressure = 6.5e6;                 // Pa
+    internal const double RecordPressure = 6.5e6;                 // Pa
 
     /// <summary>One kilogram of water as element moles (55.508 mol of H2O), for the facts that need a composition and not a mixture in particular.</summary>
     private static readonly IReadOnlyDictionary<string, double> Water = new Dictionary<string, double>(StringComparer.Ordinal) { ["H"] = 111.0168, ["O"] = 55.5084 };

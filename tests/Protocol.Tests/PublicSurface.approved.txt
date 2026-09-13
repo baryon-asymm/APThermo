@@ -139,7 +139,7 @@ readonly struct AerospacePropellantThermodynamics.Equilibrium.EquilibriumScratch
 
 static class AerospacePropellantThermodynamics.Equilibrium.EquilibriumSolver
     const Double TraceThreshold = 18.420681
-    const Int32 MaxCondensedSetChanges = 10
+    const Int32 MaxCondensedSetChanges = 24
     const Int32 MaxNewtonSteps = 50
     static Void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, Boolean useMolesAsEstimate)
     static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
@@ -664,6 +664,7 @@ static class AerospacePropellantThermodynamics.Thermo.PhysicalConstants
     const Double R = 8314.51
 
 static class AerospacePropellantThermodynamics.Thermo.SpeciesFunctions
+    const Double LatentHeatThreshold = 0.001
     static Boolean IsInRange(in SpeciesTableView table, Int32 species, Double temperature)
     static Double CpOverR(in SpeciesTableView table, Int32 species, Double temperature)
     static Double GOverRT(in SpeciesTableView table, Int32 species, Double temperature)
@@ -672,6 +673,7 @@ static class AerospacePropellantThermodynamics.Thermo.SpeciesFunctions
     static Int32 IntervalOf(in SpeciesTableView table, Int32 species, Double temperature)
 
 sealed class AerospacePropellantThermodynamics.Thermo.SpeciesTable
+    IReadOnlyList<Int32> IndicesOf(String species)
     IReadOnlyList<Species> Records { get; }
     IReadOnlyList<String> Elements { get; }
     IReadOnlyList<String> Species { get; }

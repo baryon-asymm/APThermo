@@ -18,7 +18,7 @@ from __future__ import annotations
 import math
 import sys
 
-from common import Record, read_thermo
+from common import Record, read_thermo_joined
 from writer import Writer, main_of
 
 SPECIES = [
@@ -26,6 +26,9 @@ SPECIES = [
     "AL", "ALCL", "AL2O", "ALO", "ALOH", "HF", "F", "CH4", "NH3", "C", "e-",
     "AL2O3(a)", "AL2O3(L)", "C(gr)", "H2O(L)", "H2O(cr)", "MgO(cr)", "ALCL3(cr)", "AL(cr)", "AL(L)",
     "Fe(a)", "Fe(L)", "W(cr)",
+    # Multi-record and multi-piece condensed species (the Thermo node's join-and-cut): Cr(cr) is two records
+    # joined into one contiguous fit, ALN(L) one record whose fits disagree at 2700 K by a real latent heat.
+    "Cr(cr)", "ALN(L)",
 ]
 
 TEMPERATURES = [200.0, 298.15, 500.0, 1000.0, 1000.0001, 2000.0, 3000.0, 5000.0, 6000.0]
@@ -67,7 +70,7 @@ def points(record: Record) -> list[float]:
 
 
 def generate(writer: Writer) -> None:
-    records = read_thermo()
+    records = read_thermo_joined()   # condensed records of one name concatenated, as the Thermo node's builder joins them
     for name in SPECIES:
         record = records[name]
         if not record.intervals:

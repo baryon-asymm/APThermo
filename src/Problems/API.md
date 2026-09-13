@@ -249,6 +249,11 @@ species, the reference's convention (the parent's BOOT.md). `EquilibriumProblem.
 is nullable so that the mixture's enthalpy is the default; `TemperatureEstimate`,
 `ExitCount`, `TransportStatus` and the sweep's defaults are new.
 
+Since 2026-09-13: when the species table cuts a condensed
+record at a fit discontinuity (the Thermo node's join-and-cut rule; `ALN(L)` today),
+`Species`, `MoleFractions` and `CondensedMassFractions` carry the record's name once,
+the pieces summed — no piece name leaves this node (the parent `BOOT.md`, results).
+
 ## Solving ✅
 
 ```csharp

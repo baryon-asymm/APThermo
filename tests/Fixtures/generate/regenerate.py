@@ -10,13 +10,14 @@ from __future__ import annotations
 import sys
 
 import constants
+import plateaus
 import propellants
 import rp1311
 import thermo_functions
 import transport_fits
 from writer import Writer
 
-SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants]
+SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants, plateaus]
 
 
 def main() -> int:

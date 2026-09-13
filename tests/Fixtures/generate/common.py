@@ -81,9 +81,34 @@ class Record:
 
 def read_thermo(path: str = THERMO_INP) -> dict[str, Record]:
     """All records of thermo.inp by name; products first, so a reactant-only name never shadows a product."""
+    records: dict[str, Record] = {}
+    for record in _read_thermo_records(path):
+        records.setdefault(record.name, record)
+    return records
+
+
+def read_thermo_joined(path: str = THERMO_INP) -> dict[str, Record]:
+    """`read_thermo` with the Thermo node's join: condensed product records sharing a name whose formulas and
+    molar masses agree and whose ranges touch are concatenated into one record holding all their intervals, so
+    a species' range is the joined one. A later record that does not join is dropped, as `read_thermo` drops it."""
+    records: dict[str, Record] = {}
+    for record in _read_thermo_records(path):
+        held = records.get(record.name)
+        if held is None:
+            records[record.name] = record
+        elif (held.section == "Products" and record.section == "Products"
+              and held.condensed and record.condensed
+              and held.formula == record.formula and held.molar_mass == record.molar_mass
+              and held.intervals and record.intervals
+              and record.intervals[0].t_low == held.intervals[-1].t_high):
+            held.intervals.extend(record.intervals)
+    return records
+
+
+def _read_thermo_records(path: str) -> list[Record]:
     with open(path, encoding="latin-1") as f:
         lines = [l.rstrip("\r\n") for l in f]
-    records: dict[str, Record] = {}
+    records: list[Record] = []
     i = 0
     while not lines[i].lower().startswith("thermo"):
         i += 1
@@ -128,7 +153,7 @@ def read_thermo(path: str = THERMO_INP) -> dict[str, Record]:
                     fortran_float(h[0:11]), fortran_float(h[11:22]), exps, coeffs,
                     fortran_float(c2[48:64]), fortran_float(c2[64:80]), fortran_float(h[65:80])))
                 i += 3
-        records.setdefault(name, record)
+        records.append(record)
     return records
 
 

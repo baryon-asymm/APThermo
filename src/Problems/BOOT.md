@@ -92,7 +92,13 @@ why they are a node of their own.
   record's two fits differ by 68 kJ/mol there), and an assigned enthalpy inside that
   gap has no solution on either side: the equilibrium node's open defect at a
   transition with variable temperature, in a new place. Recorded here because it was
-  found here; the fix is that node's.
+  found here; the fix is that node's. 2026-09-13, the design sessions of the same
+  day assigned the fix: the Thermo builder cuts such a record at its jump
+  (join-and-cut) and the equilibrium node holds a pinned pair there, so an assigned
+  enthalpy inside the gap settles on the 2700 K plateau — coded the same day: the
+  record made light solves through the front door
+  (`SplitRecordTests.An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`)
+  and the gap is closed.
 - **Candidate species are chosen by one rule**: every gaseous product species of the
   database whose elements are all among the mixture's elements, then every condensed
   product species under the same condition, each in database order, minus the `Omit`
@@ -184,6 +190,13 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   condensed species". The reference reports mole fractions over all species, and a
   result that compares to it without a conversion is worth more than a gas-phase
   convention nobody asked for; the condensed mass fractions stay.
+
+  2026-09-13 (coded the same day): when the species table cuts a
+  condensed record at a fit discontinuity (the Thermo node's join-and-cut rule;
+  `ALN(L)` today), the result speaks the record's name — the mole fractions and
+  condensed mass fractions of the pieces are summed under it and `Species` lists it
+  once. The pieces are one substance, cut only so that the solver sees the fit's
+  jump as a transition; no piece name leaves this node.
 - Batch construction: one propellant definition (reactant set and temperatures) with
   per-case amounts (oxidizer-to-fuel ratio or mass fractions), chamber pressure and
   exit values; the number of exits per batch is fixed by the batch, the values vary
@@ -293,6 +306,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       every result's `MixtureMass` equals `MassOf` of its mixture on both front doors
       and through `SolveStates`, and a mixture made 0.5 % heavy reports 1.005, not one
       (`PropellantTests.Results_carry_the_mass_of_their_mixture`).
+- [x] 2026-09-13 — A cut condensed record is one name in every result: for a mixture
+      holding `ALN(L)` the stations' mole fractions and condensed mass fractions
+      carry `ALN(L)` once with the sum of its pieces and `Species` lists it once
+      (`SplitRecordTests.A_cut_species_reports_one_entry_under_its_database_name`);
+      an hp state whose assigned enthalpy lies inside the record's 2700 K gap (the
+      mass-tolerance invariant's record, made light) converges to the pinned pair at
+      the crossing instead of `NotConverged`
+      (`SplitRecordTests.An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`);
+      and the sweep across the alumina plateau stays on the isentrope by either path
+      (`SplitRecordTests.A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`).
 
 ## Taboos
 

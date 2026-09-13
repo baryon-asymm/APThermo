@@ -86,8 +86,11 @@ public sealed class PropellantTests(SolverFixture fixture)
             Assert.True(Math.Abs(actual - kilomoles) <= MixtureTolerance * Math.Abs(kilomoles), $"{symbol}: reference {kilomoles:R}, tree {actual:R}");
         }
 
+        // An hp fixture whose enthalpy was assigned by the generator (the latent-heat band cases) or derived from a
+        // rocket station does not carry the propellant's own enthalpy.
+        var assigned = c.Inputs.TryGetProperty("enthalpyAssigned", out var flag) && flag.GetBoolean();
         double? referenceEnthalpy = kind == "rocket" ? c.Inputs.GetProperty("reactantEnthalpy").GetDouble()
-            : kind == "hp" && !c.Inputs.TryGetProperty("derivedFrom", out _) ? c.Inputs.GetProperty("enthalpy").GetDouble()
+            : kind == "hp" && !assigned && !c.Inputs.TryGetProperty("derivedFrom", out _) ? c.Inputs.GetProperty("enthalpy").GetDouble()
             : null;
         if (referenceEnthalpy is { } h)
         {

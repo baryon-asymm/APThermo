@@ -18,6 +18,9 @@ internal static class StateComparison
     /// <summary>Outputs that are not state fields.</summary>
     private static readonly HashSet<string> NonStateFields = ["moleFractions", "converged"];
 
+    /// <summary>The second-order response: skipped where the reference's derivative matrix was singular (the singular-tp defect, Fixtures BOOT.md).</summary>
+    private static readonly HashSet<string> SecondOrderFields = ["cpEquilibrium", "cvEquilibrium", "gammaS", "dlnVdlnT", "dlnVdlnP", "soundSpeed"];
+
     /// <summary>
     /// The state fields of a fixture's outputs, in document order, mapped to the fields of <see cref="MixtureState"/>. An output
     /// without a field is an error for an equilibrium case and is skipped for a rocket station (<paramref name="strict"/> false),
@@ -53,9 +56,20 @@ internal static class StateComparison
                                                 Func<string, bool>? includeField = null)
     {
         var mismatches = new List<string>();
+
+        // A tp assigned exactly at a bound two records of one substance share makes the reference's derivative
+        // matrix singular, and it prints its convention (cp_eq = 0, gamma_s = -1/dlnVdlnP) instead of derivatives
+        // (Fixtures BOOT.md, the singular-tp defect); the tree reports the chosen record's real response. The
+        // signature guards the skip: no real tp state has a zero equilibrium heat capacity.
+        var singularTp = c.Kind == "tp" && c.Outputs.GetProperty("cpEquilibrium").GetDouble() == 0.0;
         foreach (var (name, expected, field) in StateFields(c.Outputs))
         {
             if (includeField is not null && !includeField(name))
+            {
+                continue;
+            }
+
+            if (singularTp && SecondOrderFields.Contains(name))
             {
                 continue;
             }
@@ -70,7 +84,7 @@ internal static class StateComparison
         foreach (var species in c.Outputs.GetProperty("moleFractions").EnumerateObject())
         {
             var expected = species.Value.GetDouble();
-            if (solution.Table.IndexOf(species.Name) < 0)
+            if (solution.Table.IndicesOf(species.Name).Count == 0)
             {
                 mismatches.Add($"{species.Name}: not in the table");
                 continue;
@@ -97,8 +111,8 @@ internal static class StateComparison
         var absent = new List<string>();
         foreach (var species in c.Outputs.GetProperty("moleFractions").EnumerateObject())
         {
-            var index = table.IndexOf(species.Name);
-            var condensed = index < 0 ? species.Name.EndsWith(')') && species.Name.Contains('(') : index >= table.GasCount;
+            var indices = table.IndicesOf(species.Name);
+            var condensed = indices.Count == 0 ? species.Name.EndsWith(')') && species.Name.Contains('(') : indices[0] >= table.GasCount;
             if (!condensed)
             {
                 continue;

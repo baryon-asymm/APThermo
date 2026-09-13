@@ -30,10 +30,11 @@ internal readonly record struct Instruction(OpCode Code, MemberInfo? Operand);
 /// </summary>
 internal static class Tree
 {
-    /// <summary>Directories never read as nodes: build output, tool caches, and the protocol kit's templates (the linter's --exclude templates).</summary>
+    /// <summary>Directories never read as nodes: build output, tool caches, the agent's session directory (.claude holds
+    /// worktrees of other sessions, each a full copy of the tree), and the protocol kit's templates (the linter's --exclude templates).</summary>
     private static readonly HashSet<string> Skipped = new(StringComparer.Ordinal)
     {
-        ".git", ".vs", "bin", "obj", ".venv", "__pycache__", "TestResults", "artifacts", "node_modules", "templates",
+        ".git", ".vs", ".claude", "bin", "obj", ".venv", "__pycache__", "TestResults", "artifacts", "node_modules", "templates",
     };
 
     private const BindingFlags Declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;

@@ -142,6 +142,32 @@ indices are those of the table. The functions are safe to call from any thread a
 from kernels; the usual exponents −2 … 4 are evaluated by multiplication, any other
 through `Math.Pow`.
 
+## Join-and-cut of condensed records ✅
+
+```csharp
+public static class SpeciesFunctions
+{
+    public const double LatentHeatThreshold = 1.0e-3;   // |ΔH°/RT| at a shared bound: at or above it, two adjacent condensed fits are a real transition
+}
+
+public sealed class SpeciesTable
+{
+    public IReadOnlyList<int> IndicesOf(string species);   // the pieces of a database name in table order, or its one entry; empty when the table lacks the name
+}
+```
+
+`SpeciesTable.Build` concatenates condensed product records that share one name (when
+their formulas and molar masses agree and their ranges touch) into one table species,
+and splits a condensed species at every internal interval bound where the two fits
+differ by `|ΔH°/RT| ≥ LatentHeatThreshold`, each piece named `NAME[TLow-THigh]` in
+kelvin (`ALN(L)[1800-2700]`, `ALN(L)[2700-6000]`). `Species`, `SpeciesCount`,
+`CondensedCount` and `IndexOf` speak of table species, which need not be one-to-one
+with the given names; `IndicesOf` maps a database name to its pieces, adjacent and
+ascending in the record's place; `Records` maps each table species to the record that
+provided its first interval; records of one name that cannot concatenate are refused
+with an `ArgumentException` naming them. The rule and the threshold's derivation are
+in `BOOT.md`.
+
 ## Errors
 
 | Situation | Behaviour |

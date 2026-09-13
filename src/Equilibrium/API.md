@@ -59,7 +59,7 @@ public static class EquilibriumSolver                  // kernel-compatible
 {
     public const double TraceThreshold = 18.420681;    // −ln(1e-8): below this mole fraction a gaseous species is reported as zero
     public const int MaxNewtonSteps = 50;              // after the last change of the condensed set
-    public const int MaxCondensedSetChanges = 10;
+    public const int MaxCondensedSetChanges = 3 * ScratchLayout.MaxCondensedInSolution;   // include, forgive and stand down every slot
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem,
                              in EquilibriumScratch scratch, in EquilibriumResult result,
                              bool useMolesAsEstimate);
@@ -100,6 +100,13 @@ frozen state: `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`, `DlnVdlnT 
 by this node. A gaseous species whose mole fraction fell below `1e-8` at convergence
 is reported with zero moles, as the reference prints it; its logarithm stays in the
 scratch for the next estimate.
+
+At a pinned two-phase state — two records of one formula in the solution at their
+transition, hp and sp problems only (`BOOT.md`, the condensed-species rule) —
+`CpEquilibrium`, `CvEquilibrium` and `DlnVdlnT` are written as zero, the reference's
+convention for derivatives that do not exist on a plateau (decided 2026-09-13), while
+`DlnVdlnP`, `GammaS = −1/DlnVdlnP` and `SoundSpeed` carry the real plateau values and
+both records' mole numbers are reported.
 
 ⚠ 2026-09-12: the sketch had `EquilibriumScratch { GOverRT, LogMoles, Matrix,
 RightHandSide, Pivots, CondensedInSolution }` and `IntsPerCase(int elementCount)`.

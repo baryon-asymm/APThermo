@@ -36,10 +36,10 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         var moles = new double[table.SpeciesCount];
         foreach (var species in source.GetProperty("moleFractions").EnumerateObject())
         {
-            var index = table.IndexOf(species.Name);
-            Assert.True(index >= 0, $"{species.Name} is not in the table");
-            Assert.True(index < table.GasCount || species.Value.GetDouble() == 0.0, "a condensed species in the frozen composition is outside this test");
-            moles[index] = species.Value.GetDouble() * totalMoles;
+            var indices = table.IndicesOf(species.Name);
+            Assert.True(indices.Count > 0, $"{species.Name} is not in the table");
+            Assert.True(indices[0] < table.GasCount || species.Value.GetDouble() == 0.0, "a condensed species in the frozen composition is outside this test");
+            moles[indices[0]] = species.Value.GetDouble() * totalMoles;
         }
 
         var entropy = source.GetProperty("entropy").GetDouble();

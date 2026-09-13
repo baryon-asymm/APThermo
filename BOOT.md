@@ -144,10 +144,13 @@ There is no external ancestor: the tree root is the repository root, and the loa
       `EquilibriumTests.Assigned_temperature_cases_reproduce_the_reference`,
       `Assigned_enthalpy_cases_reproduce_the_reference`,
       `Assigned_entropy_cases_reproduce_the_reference` over every tp, hp and sp file
-      (106). The two documented defects of the reference (the fixtures node's BOOT.md:
-      the reacting conductivity where a trace component is eliminated, the
-      frozen-station cv) are skipped by the rule recorded there, and the skip is
-      guarded: the defect must be visible on the reference's own composition.
+      (106). 2026-09-13: 98 rocket and 115 equilibrium files after the
+      melting-plateau cases (example 13 and the plateau band), the same tests green.
+      The documented defects of the reference (the fixtures node's BOOT.md: the
+      reacting conductivity where a trace component is eliminated, the
+      frozen-station cv, the singular derivative matrix of a bound-exact tp) are
+      skipped by the rules recorded there, and each skip is guarded: the defect must
+      be visible on the reference's own output.
 - [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
       accelerator within the tolerance table; the list of compared fields is produced
       by reflection over the result type
@@ -165,7 +168,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
       tests green after the protocol tests node (1733 after the Cli node, 1654 after
       the Problems node, 850 after the Execution node; 1749 on 2026-09-13 after the
       front door's mass check and 1951 after its declared tolerance and mass report,
-      the `Problems` BOOT.md), none skipped, the CUDA-category tests verifying the
+      the `Problems` BOOT.md; 2143 on 2026-09-14 after the melting-plateau rule, the
+      `Equilibrium` BOOT.md), none skipped, the CUDA-category tests verifying the
       refusal instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
       of `CLAUDE.md`, run after every node and by `Protocol.Tests.LintTests` in

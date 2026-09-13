@@ -1,0 +1,167 @@
+{
+  "case": {
+    "name": "Cr(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "Cr(cr)",
+      "line": 11751,
+      "phase": "condensed",
+      "molarMass": 51.9961,
+      "intervals": [
+        [
+          300.0,
+          311.5
+        ],
+        [
+          311.5,
+          1000.0
+        ],
+        [
+          1000.0,
+          2130.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        300.0,
+        500.0,
+        1000.0,
+        1000.0001,
+        1215.0,
+        2000.0,
+        2130.0,
+        2236.5
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "7ab054964487da3aaed7aaee5cad14f2b8329cbb1d4d36af109a30fd6d677c24",
+    "generatedOn": "2026-09-13"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 2.789381541441628,
+        "hOverRT": -0.12938086890540124,
+        "sOverR": 2.714096594985854,
+        "gOverRT": -2.843477463891255
+      },
+      {
+        "temperature": 300.0,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 2.822460493444442,
+        "hOverRT": 0.017392740016846098,
+        "sOverR": 2.8580230337010217,
+        "gOverRT": -2.8406302936841756
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 3.2035416325749986,
+        "hOverRT": 1.2214803072682552,
+        "sOverR": 4.396366943927622,
+        "gOverRT": -3.174886636659367
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 3.8320465873000007,
+        "hOverRT": 2.359992937399232,
+        "sOverR": 6.798291891715527,
+        "gOverRT": -4.438298954316295
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 3.832046544046105,
+        "hOverRT": 2.359992868963928,
+        "sOverR": 6.7982921122957665,
+        "gOverRT": -4.438299243331839
+      },
+      {
+        "temperature": 1215.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 4.26722929423336,
+        "hOverRT": 2.657807720480771,
+        "sOverR": 7.584272197035974,
+        "gOverRT": -4.926464476555203
+      },
+      {
+        "temperature": 2000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.279217654999961,
+        "hOverRT": 3.6728894969544665,
+        "sOverR": 10.156329814826078,
+        "gOverRT": -6.483440317871612
+      },
+      {
+        "temperature": 2130.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.635557471920592,
+        "hOverRT": 3.8428450212435834,
+        "sOverR": 10.562874619833604,
+        "gOverRT": -6.7200295985900205
+      },
+      {
+        "temperature": 2236.5,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 6.921555085440033,
+        "hOverRT": 3.9826819533258266,
+        "sOverR": 10.893586893332479,
+        "gOverRT": -6.9109049400066525
+      }
+    ]
+  }
+}

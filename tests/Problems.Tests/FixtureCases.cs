@@ -19,7 +19,7 @@ internal static class FixtureCases
     /// The reactants the reference treats as oxidizers in the cases given with an oxidizer-to-fuel ratio: the four propellants of the
     /// case matrix (Fixtures BOOT.md) and the RP-1311 examples. A role, not an expected value; the mass fractions come from the file.
     /// </summary>
-    public static readonly IReadOnlySet<string> Oxidizers = new HashSet<string>(StringComparer.Ordinal) { "O2(L)", "N2O4(L)", "Air" };
+    public static readonly IReadOnlySet<string> Oxidizers = new HashSet<string>(StringComparer.Ordinal) { "O2(L)", "N2O4(L)", "Air", "NH4CLO4(I)", "H2O2(L)" };
 
     /// <summary>Unit of the fixtures' element moles (kmol per kg) in the library's (mol per kg).</summary>
     public const double KilomolesToMoles = 1.0e3;
@@ -185,13 +185,14 @@ internal static class FixtureCases
             var mixtureMolarMass = reference[s].GetProperty("mixtureMolarMass").GetDouble();
             foreach (var entry in reference[s].GetProperty("moleFractions").EnumerateObject())
             {
-                var index = table.IndexOf(entry.Name);
-                if (index < 0)
+                var indices = table.IndicesOf(entry.Name);
+                if (indices.Count == 0)
                 {
                     throw new InvalidOperationException($"{entry.Name} is not in the table");
                 }
 
-                batch.Moles[s * table.SpeciesCount + index] = entry.Value.GetDouble() / mixtureMolarMass;
+                // The whole fraction on the first piece of a cut species: the solver reads only the gases, which never split.
+                batch.Moles[s * table.SpeciesCount + indices[0]] = entry.Value.GetDouble() / mixtureMolarMass;
             }
         }
 

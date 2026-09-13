@@ -35,6 +35,9 @@ internal static class Comparison
     /// <summary>The reference computes no Cv at a frozen station (Fixtures BOOT.md).</summary>
     private static readonly HashSet<string> NotAtFrozenStations = ["cvFrozen", "cvEquilibrium"];
 
+    /// <summary>The second-order response: skipped where the reference's derivative matrix was singular (the singular-tp defect, Fixtures BOOT.md).</summary>
+    private static readonly HashSet<string> SecondOrderFields = ["cpEquilibrium", "cvEquilibrium", "gammaS", "dlnVdlnT", "dlnVdlnP", "soundSpeed"];
+
     /// <summary>With transport on, the reference's frozen heat capacities of a station with condensed species are those of the transport set (Fixtures BOOT.md).</summary>
     private static readonly HashSet<string> GasPhaseWithTransport = ["cpFrozen", "cvFrozen"];
 
@@ -43,8 +46,16 @@ internal static class Comparison
     /// reference reacting conductivity is defective (<paramref name="referenceDefective"/>), the reacting fields are not compared
     /// but the defect must still be visible.
     /// </summary>
+    /// <summary>
+    /// The signature of the singular-tp defect (Fixtures BOOT.md): a tp assigned exactly at a bound two records of one
+    /// substance share makes the reference's derivative matrix singular, and it prints its convention (cp_eq = 0,
+    /// gamma_s = -1/dlnVdlnP) instead of derivatives. No real tp state has a zero equilibrium heat capacity.
+    /// </summary>
+    public static bool SingularTp(CeaCase c) => c.Kind == "tp" && c.Outputs.GetProperty("cpEquilibrium").GetDouble() == 0.0;
+
     public static IEnumerable<string> Compare(JsonElement reference, Station station, IReadOnlyList<string> species, int gasCount,
-                                              bool transport, bool frozen, string label, ToleranceTable tolerances, bool referenceDefective = false)
+                                              bool transport, bool frozen, string label, ToleranceTable tolerances, bool referenceDefective = false,
+                                              bool singularReference = false)
     {
         var moleFractions = reference.GetProperty("moleFractions");
         var condensedPresent = moleFractions.EnumerateObject().Any(p => p.Value.GetDouble() > 0.0 && IsCondensed(species, gasCount, p.Name));
@@ -86,6 +97,11 @@ internal static class Comparison
             }
 
             if (frozen && NotAtFrozenStations.Contains(name))
+            {
+                continue;
+            }
+
+            if (singularReference && SecondOrderFields.Contains(name))
             {
                 continue;
             }

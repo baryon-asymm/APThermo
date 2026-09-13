@@ -19,9 +19,12 @@ import numpy as np
 import cea
 
 from common import (BAR_TO_PA, KJ_TO_J, MILLIPOISE_TO_PA_S, MW_PER_CM_K_TO_W_PER_M_K,
-                    atomic_weight, element_moles, read_thermo)
+                    atomic_weight, element_moles, read_thermo, read_thermo_joined)
 
 RECORDS = read_thermo()
+JOINED = read_thermo_joined()   # the station guard reads condensed ranges as the tree's join-and-cut does
+
+GUARD_ENTROPY_RTOL = 1e-6   # the tp re-solve of the station guard must reproduce a station's entropy to this
 
 CAL_TO_J = 4.184   # thermochemical calorie, the unit the package's custom reactants take
 
@@ -85,6 +88,11 @@ def make_mixtures(reactants: list, products: list[str] | None = None, omit: list
 
 def _derivatives(cp_eq: float, cv_eq: float, gamma_s: float, molar_mass: float, frozen: bool) -> tuple[float, float]:
     """(dlnV/dlnT)_p and (dlnV/dlnP)_T; a frozen composition has the ideal-gas values 1 and -1."""
+    if not frozen and cp_eq == 0.0 and cv_eq == 0.0 and gamma_s > 0.0:
+        # A pinned two-phase state: the package reports zero equilibrium heat capacities and a real gamma_s,
+        # and the derivations below degenerate. The fixture writes the plateau convention of the case matrix
+        # (BOOT.md, melting-plateau cases) directly: dlnVdlnT = 0, dlnVdlnP = -1/gamma_s.
+        return 0.0, -1.0 / gamma_s
     if frozen or cv_eq <= 0.0 or gamma_s <= 0.0:
         return 1.0, -1.0
     dlnv_dlnp = -(cp_eq / cv_eq) / gamma_s
@@ -172,16 +180,84 @@ def solve_equilibrium(reac, prod, weights, kind: str, value_si: float, pressure_
 
 
 def solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa: float, flow: str, transport: bool,
-                 area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None):
-    """Solves the infinite-area-chamber rocket problem; returns (solution, reactant enthalpy in J/kg)."""
-    solver = cea.RocketSolver(prod, reactants=reac, transport=transport)
+                 area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None, insert=None, trace=None):
+    """Solves the infinite-area-chamber rocket problem; returns (solution, reactant enthalpy in J/kg).
+
+    `insert` seeds condensed species the package's own inclusion test misses (RP-1311 example 13). Every
+    solution passes the station guard of BOOT.md before it is returned."""
+    options = {"transport": transport}
+    if insert is not None:
+        options["insert"] = list(insert)
+    if trace is not None:
+        options["trace"] = trace
+    solver = cea.RocketSolver(prod, reactants=reac, **options)
     solution = cea.RocketSolution(solver)
     enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))   # J/kg
     solver.solve(solution, weights, chamber_pressure_pa / BAR_TO_PA, pi_p=pressure_ratios,
                  subar=subsonic_area_ratios, supar=area_ratios, iac=True, hc=enthalpy / cea.R, n_frz=N_FRZ[flow])
     if not solution.converged:
         raise RuntimeError(f"rocket solve did not converge (last_error {solution.last_error})")
+    guard_stations(solution, reac, prod, weights, flow)
     return solution, enthalpy
+
+
+def _pinned_pair(fractions: dict[str, float], species: str) -> bool:
+    """True when another present condensed species has the same formula: a two-phase pair at its transition."""
+    formula = sorted((s.upper(), c) for s, c in JOINED[species].formula)
+    for other, x in fractions.items():
+        if other == species or x <= 0.0:
+            continue
+        record = JOINED.get(other)
+        if (record is not None and record.condensed and record.intervals
+                and sorted((s.upper(), c) for s, c in record.formula) == formula):
+            return True
+    return False
+
+
+def guard_stations(solution: cea.RocketSolution, reac, prod, weights, flow: str) -> None:
+    """The multi-station guard of BOOT.md, over every shifting station of a rocket solution.
+
+    The package's sequential stations can keep a condensed species outside its range or drift off the
+    chamber isentrope past a melting plateau (found 2026-09-13); a reference that does either must not
+    become a fixture. Two checks: every condensed species with a positive mole fraction lies within its
+    joined record range at the station's temperature, unless its same-formula partner stands beside it
+    (a pinned pair, whose temperature sits at the shared bound); and at every shifting station without
+    such a pair a tp re-solve of the package at the station's (T, p) reproduces the station's entropy to
+    GUARD_ENTROPY_RTOL (at a pinned station the tp state is degenerate and proves nothing). Raises
+    RuntimeError naming the first failing station; prints one log line per solution."""
+    labels = station_labels(solution)
+    frozen_from = N_FRZ[flow]
+    checked = 0
+    worst = 0.0
+    for i in range(solution.num_pts):
+        if frozen_from is not None and i >= frozen_from:
+            continue   # a frozen station keeps the freezing station's composition by construction
+        t = float(solution.T[i])
+        fractions = {name: float(x[i]) for name, x in solution.mole_fractions.items()}
+        pinned = False
+        for name, x in fractions.items():
+            record = JOINED.get(name)
+            if x <= 0.0 or record is None or not record.condensed or not record.intervals:
+                continue
+            if _pinned_pair(fractions, name):
+                pinned = True
+                continue
+            low, high = record.intervals[0].t_low, record.intervals[-1].t_high
+            if not low <= t <= high:
+                raise RuntimeError(
+                    f"station {labels[i]}: {name} carried at {t} K, outside its range [{low}, {high}] K, with no pinned partner")
+        if pinned:
+            continue
+        entropy = float(solution.entropy[i]) * KJ_TO_J
+        re_solved = solve_equilibrium(reac, prod, weights, "tp", t, float(solution.P[i]) * BAR_TO_PA, transport=False)
+        residual = abs(re_solved["entropy"] - entropy) / abs(entropy)
+        checked += 1
+        worst = max(worst, residual)
+        if residual > GUARD_ENTROPY_RTOL:
+            raise RuntimeError(
+                f"station {labels[i]}: a tp re-solve at ({t} K, {float(solution.P[i])} bar) puts the entropy "
+                f"{residual:.2e} away from the station's ({re_solved['entropy']!r} against {entropy!r})")
+    print(f"    guard: {checked} stations re-solved, worst entropy residual {worst:.2e}")
 
 
 def station_labels(solution: cea.RocketSolution) -> list[str]:
@@ -204,7 +280,7 @@ def rocket_outputs(solution: cea.RocketSolution, transport: bool, flow: str = FL
 def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressure_pa: float, reactant_enthalpy: float,
                   flow: str, transport: bool, area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None,
                   of_ratio: float | None = None, omit: list[str] | None = None, trace: float | None = None,
-                  only: list[str] | None = None) -> dict:
+                  only: list[str] | None = None, insert: list[str] | None = None) -> dict:
     d = {
         "reactants": descriptions,
         "oxidizerToFuelRatio": of_ratio,
@@ -222,6 +298,8 @@ def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressur
     }
     if only is not None:
         d["only"] = list(only)   # the explicit product list the package was given, when there was one
+    if insert:
+        d["insert"] = list(insert)   # the package's condensed seed list, recorded when one was needed (example 13)
     return d
 
 

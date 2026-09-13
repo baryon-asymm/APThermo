@@ -13,11 +13,8 @@ internal sealed record HostSolution(
     /// <summary>Gaseous plus condensed moles per kilogram: the denominator of the reference's mole fractions.</summary>
     public double TotalMoles => Moles.Sum();
 
-    public double MoleFraction(string species)
-    {
-        var index = Table.IndexOf(species);
-        return index < 0 ? 0.0 : Moles[index] / TotalMoles;
-    }
+    /// <summary>The reference reports one fraction per database name: the pieces of a cut species sum under it.</summary>
+    public double MoleFraction(string species) => Table.IndicesOf(species).Sum(index => Moles[index]) / TotalMoles;
 }
 
 /// <summary>Runs the solver on the host over CPU-accelerator buffers, with the inputs of a fixture case or given directly.</summary>

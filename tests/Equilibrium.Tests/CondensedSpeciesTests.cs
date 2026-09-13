@@ -30,8 +30,8 @@ public sealed class CondensedSpeciesTests(CpuFixture fixture)
         var solution = HostSolver.Solve(fixture, c);
         Assert.Equal(CaseStatus.Ok, solution.Status);
         var (present, absent) = StateComparison.CondensedSetOf(c, solution.Table);
-        var missing = present.Where(s => solution.Table.IndexOf(s) < 0 || !(solution.Moles[solution.Table.IndexOf(s)] > 0.0)).ToList();
-        var spurious = absent.Where(s => solution.Table.IndexOf(s) >= 0 && solution.Moles[solution.Table.IndexOf(s)] != 0.0).ToList();
+        var missing = present.Where(s => !(solution.Table.IndicesOf(s).Sum(j => solution.Moles[j]) > 0.0)).ToList();
+        var spurious = absent.Where(s => solution.Table.IndicesOf(s).Sum(j => solution.Moles[j]) != 0.0).ToList();
         Assert.True(missing.Count == 0 && spurious.Count == 0,
                     $"missing [{string.Join(", ", missing)}], spurious [{string.Join(", ", spurious)}]; reference present [{string.Join(", ", present)}]");
     }

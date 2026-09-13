@@ -29,18 +29,24 @@ public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
         var fixture = CeaFixtures.Load(fixturePath);
         var name = fixture.Inputs.GetProperty("species").GetString()!;
         using var buffers = _cpu.Upload(name);
+        var table = buffers.Table;
         var view = buffers.View;
         var tolerance = "thermoFunction";
         var points = 0;
         foreach (var value in fixture.Outputs.GetProperty("values").EnumerateArray())
         {
             var t = value.GetProperty("temperature").GetDouble();
-            AssertClose(tolerance, value.GetProperty("cpOverR").GetDouble(), SpeciesFunctions.CpOverR(view, 0, t), $"{name} Cp/R at {t} K");
-            AssertClose(tolerance, value.GetProperty("hOverRT").GetDouble(), SpeciesFunctions.HOverRT(view, 0, t), $"{name} H/RT at {t} K");
-            AssertClose(tolerance, value.GetProperty("sOverR").GetDouble(), SpeciesFunctions.SOverR(view, 0, t), $"{name} S/R at {t} K");
-            AssertClose(tolerance, value.GetProperty("gOverRT").GetDouble(), SpeciesFunctions.GOverRT(view, 0, t), $"{name} G/RT at {t} K");
-            Assert.True(value.GetProperty("interval").GetInt32() == SpeciesFunctions.IntervalOf(view, 0, t), $"{name}: interval at {t} K");
-            Assert.True(value.GetProperty("inRange").GetBoolean() == SpeciesFunctions.IsInRange(view, 0, t), $"{name}: range flag at {t} K");
+
+            // The fixture indexes the record: a species cut at a fit discontinuity (the join-and-cut of the node's
+            // BOOT.md) is evaluated on the piece owning the temperature, whose interval start restores the record index.
+            var species = PieceOf(table, t);
+            var offset = table.Arrays.IntervalStart[species];
+            AssertClose(tolerance, value.GetProperty("cpOverR").GetDouble(), SpeciesFunctions.CpOverR(view, species, t), $"{name} Cp/R at {t} K");
+            AssertClose(tolerance, value.GetProperty("hOverRT").GetDouble(), SpeciesFunctions.HOverRT(view, species, t), $"{name} H/RT at {t} K");
+            AssertClose(tolerance, value.GetProperty("sOverR").GetDouble(), SpeciesFunctions.SOverR(view, species, t), $"{name} S/R at {t} K");
+            AssertClose(tolerance, value.GetProperty("gOverRT").GetDouble(), SpeciesFunctions.GOverRT(view, species, t), $"{name} G/RT at {t} K");
+            Assert.True(value.GetProperty("interval").GetInt32() == offset + SpeciesFunctions.IntervalOf(view, species, t), $"{name}: interval at {t} K");
+            Assert.True(value.GetProperty("inRange").GetBoolean() == SpeciesFunctions.IsInRange(view, species, t), $"{name}: range flag at {t} K");
             points++;
         }
 
@@ -65,6 +71,25 @@ public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
         var fixture = Assert.Single(CeaFixtures.LoadAll("constants"));
         var expected = fixture.Outputs.GetProperty("R").GetDouble();
         Assert.True(_cpu.Tolerances.Matches("gasConstant", expected, PhysicalConstants.R), $"R = {PhysicalConstants.R}, reference {expected}");
+    }
+
+    /// <summary>
+    /// The entry owning the temperature in a one-name table: the first piece whose last bound is not below it, else
+    /// the last. <see cref="SpeciesFunctions.IntervalOf"/>'s rule lifted over the pieces of a cut species; a table of
+    /// one uncut species has one entry and the answer is 0.
+    /// </summary>
+    private static int PieceOf(SpeciesTable table, double temperature)
+    {
+        for (var j = 0; j < table.SpeciesCount - 1; j++)
+        {
+            var last = table.Arrays.IntervalStart[j] + table.Arrays.IntervalCount[j] - 1;
+            if (temperature <= table.Arrays.IntervalBounds[last * 2 + 1])
+            {
+                return j;
+            }
+        }
+
+        return table.SpeciesCount - 1;
     }
 
     private void AssertClose(string field, double expected, double actual, string what)

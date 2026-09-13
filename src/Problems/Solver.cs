@@ -261,6 +261,7 @@ public sealed class Solver : IDisposable
         }
 
         var table = system.Table;
+        var speciesNames = ResultSpecies(table);
         var results = new RocketResult[cases.Count];
         foreach (var key in order)
         {
@@ -299,7 +300,7 @@ public sealed class Solver : IDisposable
                                               figures, transportStatus, run.StationStatus[index]);
                 }
 
-                results[members[m]] = new RocketResult(propellant, mixture, masses[members[m]], problem, ratio, table.Species, stations, run.Status[m], run.Accelerator);
+                results[members[m]] = new RocketResult(propellant, mixture, masses[members[m]], problem, ratio, speciesNames, stations, run.Status[m], run.Accelerator);
             }
         }
 
@@ -341,6 +342,7 @@ public sealed class Solver : IDisposable
         var run = _engine.Run(system.Tables, batch);
         var transport = anyTransport ? _engine.Run(system.Tables, TransportBatch.FromEquilibrium(run)) : null;
         var results = new EquilibriumResult[cases.Count];
+        var speciesNames = ResultSpecies(table);
         for (var k = 0; k < cases.Count; k++)
         {
             var (mixture, problem, propellant) = cases[k];
@@ -348,7 +350,7 @@ public sealed class Solver : IDisposable
             var transportStatus = wantTransport ? transport!.Status[k] : (CaseStatus?)null;
             var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[k] : (TransportFigures?)null;
             var state = MakeStation("state", table, run.State[k], null, run.Moles, (long)k * table.SpeciesCount, figures, transportStatus, run.Status[k]);
-            results[k] = new EquilibriumResult(propellant, mixture, masses[k], problem, table.Species, state, run.Status[k], run.Accelerator);
+            results[k] = new EquilibriumResult(propellant, mixture, masses[k], problem, speciesNames, state, run.Status[k], run.Accelerator);
         }
 
         return results;
@@ -462,15 +464,35 @@ public sealed class Solver : IDisposable
         var condensed = new Dictionary<string, double>(table.CondensedCount, StringComparer.Ordinal);
         for (var j = 0; j < speciesCount; j++)
         {
+            // A condensed record cut at a fit discontinuity reports the record's name, its pieces summed (BOOT.md, results).
+            var species = table.Records[j].Name;
             var n = moles[offset + j];
-            fractions[table.Species[j]] = total > 0.0 ? n / total : 0.0;
+            var fraction = total > 0.0 ? n / total : 0.0;
+            fractions[species] = fractions.TryGetValue(species, out var f) ? f + fraction : fraction;
             if (j >= table.GasCount)
             {
-                condensed[table.Species[j]] = n * table.Arrays.MolarMass[j];
+                var massFraction = n * table.Arrays.MolarMass[j];
+                condensed[species] = condensed.TryGetValue(species, out var w) ? w + massFraction : massFraction;
             }
         }
 
         return new Station(name, state, figures, fractions, condensed, transport, transportStatus, status);
+    }
+
+    /// <summary>The species names a result reports: the table's, with the pieces of a cut condensed record collapsed to the record's name (BOOT.md, results).</summary>
+    private static IReadOnlyList<string> ResultSpecies(SpeciesTable table)
+    {
+        var names = new List<string>(table.SpeciesCount);
+        for (var i = 0; i < table.SpeciesCount; i++)
+        {
+            var name = table.Records[i].Name;
+            if (names.Count == 0 || !string.Equals(names[^1], name, StringComparison.Ordinal))
+            {
+                names.Add(name);
+            }
+        }
+
+        return names;
     }
 
     /// <summary>J per kilogram of every reactant at its temperature: the record's polynomial through the engine, or the assigned enthalpy.</summary>
@@ -507,7 +529,7 @@ public sealed class Solver : IDisposable
             for (var i = 0; i < fitted.Count; i++)
             {
                 var r = resolved[fitted[i]];
-                batch.Species[i] = table.IndexOf(r.Record!.Name);
+                batch.Species[i] = PieceAt(table, r.Record!.Name, r.Temperature);
                 batch.Temperature[i] = r.Temperature;
             }
 
@@ -595,6 +617,25 @@ public sealed class Solver : IDisposable
         system = new ChemicalSystem(elements.ToList(), table, transport, _engine.Upload(table, transport));
         _systems[key] = system;
         return system;
+    }
+
+    /// <summary>
+    /// The table entry of a record name at a temperature: the first piece of a species cut at a fit discontinuity
+    /// (the Thermo API's join-and-cut) whose last bound is not below it, else the last piece.
+    /// </summary>
+    private static int PieceAt(SpeciesTable table, string name, double temperature)
+    {
+        var indices = table.IndicesOf(name);
+        for (var k = 0; k < indices.Count - 1; k++)
+        {
+            var last = table.Arrays.IntervalStart[indices[k]] + table.Arrays.IntervalCount[indices[k]] - 1;
+            if (temperature <= table.Arrays.IntervalBounds[last * 2 + 1])
+            {
+                return indices[k];
+            }
+        }
+
+        return indices[^1];
     }
 
     private static int IndexOf(IReadOnlyList<string> elements, string symbol)

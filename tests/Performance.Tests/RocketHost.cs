@@ -59,11 +59,9 @@ internal sealed record RocketSolution(
 
     public double TotalMoles(int station) => Enumerable.Range(0, Table.SpeciesCount).Sum(j => Moles[station * Table.SpeciesCount + j]);
 
-    public double MoleFraction(int station, string species)
-    {
-        var index = Table.IndexOf(species);
-        return index < 0 ? 0.0 : Moles[station * Table.SpeciesCount + index] / TotalMoles(station);
-    }
+    /// <summary>The reference reports one fraction per database name: the pieces of a cut species sum under it.</summary>
+    public double MoleFraction(int station, string species) =>
+        Table.IndicesOf(species).Sum(index => Moles[station * Table.SpeciesCount + index]) / TotalMoles(station);
 }
 
 /// <summary>Runs the rocket solver on the host over CPU-accelerator buffers.</summary>

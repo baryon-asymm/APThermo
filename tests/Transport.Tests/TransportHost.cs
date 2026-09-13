@@ -44,13 +44,14 @@ internal static class TransportHost
         var mixtureMolarMass = station.GetProperty("mixtureMolarMass").GetDouble();
         foreach (var species in station.GetProperty("moleFractions").EnumerateObject())
         {
-            var index = table.IndexOf(species.Name);
-            if (index < 0)
+            var indices = table.IndicesOf(species.Name);
+            if (indices.Count == 0)
             {
                 throw new InvalidOperationException($"{species.Name} is not in the table");
             }
 
-            moles[index] = species.Value.GetDouble() / mixtureMolarMass;
+            // The whole fraction on the first piece of a cut species: the solver reads only the gases, which never split.
+            moles[indices[0]] = species.Value.GetDouble() / mixtureMolarMass;
         }
 
         return moles;
@@ -62,7 +63,8 @@ internal static class TransportHost
         var gas = new Dictionary<string, double>(StringComparer.Ordinal);
         foreach (var species in station.GetProperty("moleFractions").EnumerateObject())
         {
-            if (table.IndexOf(species.Name) < table.GasCount)
+            var indices = table.IndicesOf(species.Name);
+            if (indices.Count > 0 && indices[0] < table.GasCount)
             {
                 gas[species.Name] = species.Value.GetDouble();
             }

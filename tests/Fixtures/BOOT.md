@@ -29,6 +29,23 @@ node generates the outputs itself, from committed scripts, and records how.
 - **Units in fixtures are SI**, converted once in the generator from the package's
   units (bar, kJ/kg, kJ/(kg·K), kg/m³, m/s), and the conversion factors are named in
   the generator's header.
+- **Multi-station rocket references are guarded.** The package's rocket solver can
+  err silently after a melting plateau: it keeps a liquid below its range at later
+  stations (−0.57 % of Ivac at `p_c/p` 100 on the AP/Al verification record), its
+  sequential stations can drift off the chamber isentrope with no transition at all
+  (−0.70 m/s at `p_c/p` 2000), and example 13 without its insert list loses 0.61 %
+  of Ivac the same way — all three found 2026-09-13 against tp re-solves of the
+  package itself. Every shifting station of a generated rocket reference is
+  therefore checked before the fixture is written (a frozen station keeps the
+  freezing station's composition by construction): no condensed species outside its
+  joined record range unless its same-formula partner stands beside it (a pinned
+  pair), and at every shifting station without such a pair a tp re-solve of the
+  package at the station's (T, p) reproduces the station's entropy to 1e-6 relative
+  — at a pinned station the tp state is degenerate and proves nothing. A station
+  that fails is regenerated as a direct single-exit case from the chamber; a case
+  that still fails is not committed. The guard lives in `generate/cea_cases.py`
+  (`guard_stations`, run on every rocket solve) and prints one log line per
+  solution.
 
 ## Dependencies
 
@@ -130,6 +147,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     defect is still visible there, and fail when it is gone, so that a regenerated
     reference removes this caveat rather than hiding it. `reactingPrandtl` at those
     stations is deflated (0.34–0.41 against 0.53–0.61) by the same inflation.
+
+  ⚠ 2026-09-13, found by the melting-plateau cases: at a tp assigned exactly at a
+  bound two records of one substance share, the package's derivative matrix is
+  singular (the stop its manual documents as "derivative matrix singular") and it
+  prints zero equilibrium heat capacities with `γ_s = −1/dlnVdlnP` instead of the
+  chosen record's derivatives; the composition itself converges and matches the
+  tree's (`rp1311-example13-mixture_T2373`; at 2851 K the same mixture picks a side
+  cleanly and carries real derivatives). The fixtures are not edited (first
+  invariant); the equilibrium comparisons of the Equilibrium and Problems tests skip
+  the second-order fields — `cpEquilibrium`, `cvEquilibrium`, `gammaS`, `dlnVdlnT`,
+  `dlnVdlnP`, `soundSpeed` — exactly where a tp fixture prints `cpEquilibrium` 0, a
+  value no real tp state has: the reference's own output is the signature, so a
+  regenerated reference without the defect resumes the full comparison by itself.
 - Case matrix of version 1:
   - RP-1311 examples 1 (tp), 3 (hp, two fuels), 5 (hp, solid with a custom binder and
     condensed products), 8 (rocket LOX/LH2), 12 (rocket MMH/NTO, shifting and frozen
@@ -147,6 +177,35 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - AP/HTPB/Al (`NH4CLO4(I)` 68 %, HTPB 14 %, `AL(cr)` 18 % by mass, all at
     298.15 K): 5 and 7 MPa; area ratios 8 and 12; shifting; transport on; condensed
     products expected (`AL2O3(L)` in the chamber).
+  - Melting-plateau cases, added by the design session of 2026-09-13 (the
+    condensed-phase rules of the equilibrium node):
+    - RP-1311 example 13 (N2H4/Be 80/20 at O/F 0.4925…, 20.68 MPa; exits `p_c/p` 3,
+      10, 30, 300), generated with the package's `insert` list seeding `BeO(L)`, the
+      list recorded in the inputs: its throat and first exit sit on the BeO melting
+      plateau at 2851 K, which the package only converges with the insert.
+    - Direct plateau stations of AP/HTPB/Al at 7 MPa: single-exit rocket cases
+      (chamber plus one exit each) at pressure ratios covering the AL2O3(a)/(L)
+      plateau and both its edges (`p_c/p` 21.6 … 37.4), so the pinned pair, its
+      crossing temperature, the plateau `γ_s` and sound speed have fixtures;
+      single-exit because of the guard above.
+    - The fuel-rich chamber, AP/HTPB/Al at O/F 0.50 and 7 MPa, hp: the
+      include/remove cycle case (`AL4C3(cr)`), which the package converges.
+    - hp across the plateau: AP/HTPB/Al at 700 kPa, assigned enthalpies stepping
+      through the AL2O3 latent-heat band, one case per enthalpy; the inputs mark
+      them `enthalpyAssigned` (with the band's edge enthalpies), so the propellant
+      tests know the assigned value is not the reactants' enthalpy.
+    - tp at transition bounds: AP/HTPB/Al at 2327 K, example 13's mixture at 2851 K
+      and 2373 K, one case each, so the record chosen exactly at a bound has a
+      fixture.
+    - No fixture inside the `ALN(L)` 2700 K gap: the package cannot converge there
+      (its own hp fails between the gap's edges), so the tree's pinned pair at the
+      crossing, once the record is cut, is verified by the tree's own invariant
+      tests, not against the reference.
+    On a pinned two-phase station the package reports `cp_eq = 0` and the
+    `cea_cases.py` derivations of the equilibrium derivatives degenerate; the
+    generator writes the reference's plateau convention directly — `cpEquilibrium`,
+    `cvEquilibrium` and `dlnVdlnT` zero, `dlnVdlnP = −1/γ_s` — instead of deriving
+    them (RP-1311 section 3.5; the equilibrium node writes the same zeros).
 
   ⚠ 2026-09-12: the frozen cases were to carry transport too. With transport on, the
   package's frozen expansion reports "Frozen calculations did not converge in 8
@@ -236,6 +295,14 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       ⚠ 2026-09-12: stood "the generator asserts that the package's species list
       equals the one `Data` reads": a Python script cannot call the tree; the fixture
       records the list and the comparison moves to the node that selects species.
+- [x] 2026-09-13 — The melting-plateau cases are generated with the station guard in
+      force: the full regeneration re-solved 98 rocket solutions through the guard
+      with a worst entropy residual of 8.3e-8 and no range failure, the plateau
+      fixtures carry the convention values of the matrix above, and example 13
+      regenerates byte-identically with its insert list recorded (the regeneration
+      runs of 2026-09-13: `regenerate.py` over every kind, unchanged everywhere but
+      the new and reprovenanced files; `Fixtures.Tests` green on form and
+      provenance).
 - [x] 2026-09-12 — Tolerances calibrated after the first full comparison; every entry
       confirmed or reworded with the reason, with the date. 2026-09-12: the tp, hp and sp kinds (106
       files) passed the table unchanged in the Equilibrium tests, the frozen stations of
