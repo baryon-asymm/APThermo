@@ -54,7 +54,7 @@ internal static class CommandLine
         "  --output PATH                write the document to PATH instead of standard output\n" +
         "  --format json|csv            document format (default json; devices: json only)\n" +
         "  --accelerator auto|cpu|cuda  where to solve (default: the document's engine.accelerator, else auto)\n" +
-        "  --database DIR               directory with thermo.inp and trans.inp (default: data/ next to the executable, then the current directory)\n" +
+        "  --database DIR               directory with thermo.inp and trans.inp (default: data/ next to the executable, then data/ under the current directory, then the current directory)\n" +
         "  --threshold X                omit mole fractions below X from the compositions (default 5e-6)\n" +
         "  --transport                  states: evaluate transport properties at every record\n" +
         "  --find TEXT                  species: only names containing TEXT (case-insensitive)\n" +
