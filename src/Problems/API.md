@@ -272,6 +272,62 @@ lists of mixtures were added on 2026-09-13 for the command line: a sweep over th
 oxidizer-to-fuel ratio with any exit layout, and the records of another simulation with
 exits, are one batch through them.
 
+## Declared mass tolerance and mass report ⏳
+
+Designed on 2026-09-13, after the mass check of the same day (the parent's `BOOT.md`,
+invariants): the tolerance becomes a declaration of the mixture and the mass a figure
+of the result. Until the coding session the blocks marked done above are the
+contract; once implemented, the declarations below replace theirs, and the constant
+`MassTolerance` of the elemental-mixtures block becomes `DefaultMassTolerance`.
+
+```csharp
+public sealed record ElementalMixture
+{
+    public const double DefaultMassTolerance = 1.0e-2;    // the constant MassTolerance above, renamed; value and derivation unchanged
+    public static ElementalMixture Create(IReadOnlyDictionary<string, double> elementMoles, double? enthalpy = null,
+                                          IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null,
+                                          double massTolerance = DefaultMassTolerance);   // finite and non-negative, else ArgumentException naming it
+    public double MassTolerance { get; }                  // the tolerance this mixture declares, relative to one kilogram
+}
+
+public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null,
+                                       double MassTolerance = ElementalMixture.DefaultMassTolerance);   // declared for every record of the batch
+
+public sealed class MixtureMassException : ArgumentException
+{
+    public MixtureMassException(string subject, int index, double mass, double tolerance);
+    public int Index { get; }
+    public double Mass { get; }                           // kg
+    public double Tolerance { get; }                      // the tolerance in force, relative
+    public string Reason { get; }
+}
+
+public sealed record RocketResult(Propellant? Propellant, ElementalMixture Mixture, double MixtureMass, RocketProblem Problem, /* … as above */);
+public sealed record EquilibriumResult(Propellant? Propellant, ElementalMixture Mixture, double MixtureMass, EquilibriumProblem Problem, /* … as above */);
+
+public sealed class Solver
+{
+    public double MassOf(ElementalMixture mixture);       // kg: Σ n_i A_i with the database's atomic weights, the number the check compares
+}
+```
+
+The check compares `|MassOf(mixture) − 1|` with `mixture.MassTolerance`; `SolveStates`
+creates every record's mixture with the options' tolerance; the propellant path
+declares the default, since its mixture is the tree's own and a deviation there is a
+database defect, not the caller's knowledge. `MixtureMass` is filled on every result
+of both front doors, and `MassOf` gives the figure without a solve. The message keeps
+its shape and names the tolerance in force, in percent to three significant digits:
+`… so it must weigh 1000 g within 3 %`. The errors row for the mass then reads "by
+more than the mixture's `MassTolerance`".
+
+Decisions taken with the design, recorded so that they are not reopened by accident:
+no "warning" mode (a record solved as given is wrong in every per-kilogram figure,
+and a flag left in a script lets the next thousandfold error through); no
+normalization of the moles to one kilogram (it would guess the basis of the
+enthalpy, and the reference's own `b_i` are not normalized); the tolerance travels
+with the mixture, not with a problem or a document field, because it describes the
+caller's records, not the physics. The reasons are in the parent's `BOOT.md`.
+
 ## Errors
 
 | Situation | Behaviour |

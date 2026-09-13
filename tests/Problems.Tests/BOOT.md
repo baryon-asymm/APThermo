@@ -115,6 +115,15 @@ Outside the tree: xunit.
       and `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`
       seen red, together with the Cli tests node's four unit-error documents and its
       line-naming test (that node's BOOT.md).
+- [ ] The declared tolerance (the `Problems` BOOT.md's ⏳ of 2026-09-13):
+      `RejectionTests` on a record made 2 % light (refused at the default, solved at
+      3 % through `Create`, through `StateBatchOptions` for every record of a batch,
+      the message naming `3 %`; the propellant path at the default; an invalid
+      tolerance refused by name); `PropellantTests` on the report (`Solver.MassOf`
+      against `Σ n_i A_i` from `SpeciesDatabase.AtomicWeight`, `MixtureMass` of every
+      result against `MassOf`, and every fixture file's recorded element moles within
+      1.65e-5 of one kilogram over the directory listing). Two mutations to see red:
+      the declared tolerance ignored, `MixtureMass` not the measured mass.
 
 ## Taboos
 

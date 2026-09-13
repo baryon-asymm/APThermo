@@ -11,6 +11,7 @@ consider proven about `Cli`.
 | the executable's numbers are the library's numbers, field by field and exactly, for a rocket case with transport, an hp case and an elemental tp case | L2 (`LibraryEqualityTests`) | ✅ |
 | exit codes and error messages follow the contract, in-process and as a process; an invalid document writes nothing and names the JSON path | L0 in-process (`ExitCodeTests`, `InputDocumentTests`, `CommandLineTests`) and as a process (`ProcessTests`) | ✅ |
 | a state record or an elemental propellant whose composition does not weigh one kilogram is exit code 2 with the documented message naming the record (file and position, or the JSON path) and the mass; a record that does weigh one kilogram solves; the record examples of the `Cli` API solve | L0 (`InputDocumentTests`, `ExitCodeTests.A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`) | ✅ |
+| `--mass-tolerance` is the tolerance the run declares, echoed in `run`, and every case reports the mass of its mixture | L0, L1 (`CommandLineTests`, `OutputDocumentTests`, `ExitCodeTests`; the `Cli` BOOT.md's design of 2026-09-13) | ⏳ |
 | sweeps expand in the documented order into one document, states files of every accepted form give the same cases in input order, the threshold and the transport flag act as documented, the CSV has the documented layout | L1 (`OutputDocumentTests`, `CsvTests` against the approved file) | ✅ |
 
 ## What the tests rely on

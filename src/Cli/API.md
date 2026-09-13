@@ -262,6 +262,41 @@ document without a second list. The `run.timings` are the tool's phases (`databa
 load, `solve`), not the engine's, which the front door does not expose; `run` also
 names the command, the input files and the threshold.
 
+## Declared mass tolerance and mass report ⏳
+
+Designed on 2026-09-13 together with the front door's declared tolerance (`Problems`
+`API.md`, the section of the same mark); until coded, the blocks above are the
+contract, and on implementation the option joins the command lines and the fields
+join the output example above.
+
+```console
+$ apthermo rocket|equilibrium|states … [--mass-tolerance X]
+```
+
+`--mass-tolerance X` (the solving commands only; a finite non-negative number,
+relative to one kilogram; default the library's `ElementalMixture.DefaultMassTolerance`,
+1e-2) is the tolerance declared for every mixture the command builds from element
+moles: `propellant.elementMoles` and state records. A propellant given by reactants
+keeps the default, since its mixture is the library's own. The option is a run
+parameter like `--threshold`, not a field of the documents: a tolerance describes the
+caller's records, not the physics. The output document records the tolerance in force
+and the mass of every case:
+
+```json
+{
+  "run": { "threshold": 5e-6, "massTolerance": 0.01 },
+  "cases": [ { "index": 0, "mixture": { "elementMoles": { "H": 141.73, "O": 53.57 }, "enthalpy": -986308.28, "mass": 1.0000165 } } ]
+}
+```
+
+(the other fields of `run`, `cases[]` and `mixture` as in the output document above).
+`mixture.mass` is `Σ n_i A_i` in kg with the database's atomic weights, the library's
+`MixtureMass`, present for every case of every solving command, propellants by
+reactants included (there it shows the reactant records' rounding). It is not a CSV
+column: the mixture section is not in CSV. The message of a refused composition names
+the tolerance in force (`… so it must weigh 1000 g within 3 %`); a bad option value is
+`the mass tolerance must be a finite non-negative number, not 'X'`, exit code 2.
+
 ## Errors
 
 | Situation | Behaviour |

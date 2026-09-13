@@ -101,6 +101,14 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       test red; the record's source no longer substituted for the library's subject
       in `states`: the same theory over the three state-record documents (`record 0:`
       absent from the messages) and the line-naming test red.
+- [ ] `--mass-tolerance` and the mass report (the `Cli` BOOT.md's ⏳ of 2026-09-13):
+      `CommandLineTests` (the usage names the option; a bad value and the option on a
+      listing command are exit 2); `OutputDocumentTests` (`run.massTolerance` echoes
+      the option and its default, `mixture.mass` in every case of every solving
+      command, both in `schemas/output.schema.json`); `ExitCodeTests` (the record of
+      another simulation made 2 % light: exit 2 without the option, exit 0 with
+      `--mass-tolerance 0.03`, the message naming `3 %`). One mutation to see red:
+      the option not passed to the solver.
 
 ## Taboos
 
