@@ -65,6 +65,7 @@ public static class TransportSolver
     public static CaseStatus Evaluate(in SpeciesTableView species, in TransportTableView transport, double temperature,
                                       ArrayView<double> moles, in TransportScratch scratch, ArrayView<TransportFigures> figures)
     {
+        var inputs = new StationInputs(in species, in transport, in scratch, moles, temperature);
         var result = default(TransportFigures);
         figures[0] = result;
         var speciesCount = species.SpeciesCount;
@@ -132,7 +133,7 @@ public static class TransportSolver
             for (var j = 0; j < gasCount; j++)
             {
                 if (Math.Abs(Math.Abs(species.Stoichiometry[i * speciesCount + j]) - 1.0) < UnitCountTolerance
-                    && Math.Abs(AtomCount(in species, j) - 1.0) < UnitCountTolerance)
+                    && Math.Abs(AtomCount(in inputs, j) - 1.0) < UnitCountTolerance)
                 {
                     scratch.Default[i] = j;
                     break;
@@ -143,7 +144,7 @@ public static class TransportSolver
             {
                 for (var j = 0; j < gasCount; j++)
                 {
-                    if (Math.Abs(species.Stoichiometry[i * speciesCount + j]) > StoichiometryThreshold && OfCase(in species, in scratch, j))
+                    if (Math.Abs(species.Stoichiometry[i * speciesCount + j]) > StoichiometryThreshold && OfCase(in inputs, j))
                     {
                         scratch.Default[i] = j;
                         break;
@@ -195,7 +196,7 @@ public static class TransportSolver
                         continue;
                     }
 
-                    accept = !SameColumn(in species, in scratch, candidate, scratch.Component[l]);
+                    accept = !SameColumn(in inputs, candidate, scratch.Component[l]);
                 }
 
                 for (var k = 0; k < elementCount && accept; k++)
@@ -230,7 +231,7 @@ public static class TransportSolver
         var caseGasCount = 0;
         for (var j = 0; j < gasCount; j++)
         {
-            if (OfCase(in species, in scratch, j))
+            if (OfCase(in inputs, j))
             {
                 caseGasCount++;
             }
@@ -354,7 +355,7 @@ public static class TransportSolver
                 continue;
             }
 
-            var column = LocalIndex(in scratch, nm, scratch.Component[i]);
+            var column = LocalIndex(in inputs, nm, scratch.Component[i]);
             if (column < 0)
             {
                 continue;
@@ -409,7 +410,7 @@ public static class TransportSolver
                 continue;
             }
 
-            var a = LocalIndex(in scratch, nm, scratch.Component[i]);
+            var a = LocalIndex(in inputs, nm, scratch.Component[i]);
             if (a < 0 || scratch.IsComponent[a] == 1)
             {
                 continue;
@@ -746,8 +747,9 @@ public static class TransportSolver
     public static double PairViscosity(in TransportTableView transport, int pair, double temperature) =>
         FitValue(in transport, FitOf(in transport, transport.PairStart[pair], transport.PairCount[pair], temperature), temperature);
 
-    private static double AtomCount(in SpeciesTableView species, int j)
+    private static double AtomCount(in StationInputs inputs, int j)
     {
+        var species = inputs.Species;
         var sum = 0.0;
         for (var i = 0; i < species.ElementCount; i++)
         {
@@ -758,8 +760,10 @@ public static class TransportSolver
     }
 
     /// <summary>Whether gaseous species j is one the case can form: every element of its formula is an active row.</summary>
-    private static bool OfCase(in SpeciesTableView species, in TransportScratch scratch, int j)
+    private static bool OfCase(in StationInputs inputs, int j)
     {
+        var species = inputs.Species;
+        var scratch = inputs.Scratch;
         var speciesCount = species.SpeciesCount;
         for (var i = 0; i < species.ElementCount; i++)
         {
@@ -772,8 +776,10 @@ public static class TransportSolver
         return true;
     }
 
-    private static bool SameColumn(in SpeciesTableView species, in TransportScratch scratch, int first, int second)
+    private static bool SameColumn(in StationInputs inputs, int first, int second)
     {
+        var species = inputs.Species;
+        var scratch = inputs.Scratch;
         for (var i = 0; i < species.ElementCount; i++)
         {
             if (scratch.RowActive[i] == 0)
@@ -790,8 +796,9 @@ public static class TransportSolver
         return true;
     }
 
-    private static int LocalIndex(in TransportScratch scratch, int nm, int speciesIndex)
+    private static int LocalIndex(in StationInputs inputs, int nm, int speciesIndex)
     {
+        var scratch = inputs.Scratch;
         for (var a = 0; a < nm; a++)
         {
             if (scratch.IndexList[a] == speciesIndex)
