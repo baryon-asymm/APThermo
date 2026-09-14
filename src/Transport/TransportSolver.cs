@@ -524,118 +524,9 @@ public static class TransportSolver
         var mixture = MixtureRules.Evaluate(in inputs, nm);
 
         // Reaction contributions: Butler and Brokaw over the pairs of the set, equations (5.8) to (5.12).
-        var status = CaseStatus.Ok;
-        var reactionHeatCapacity = 0.0;
-        var reactionConductivity = 0.0;
-        if (nr > 0)
-        {
-            for (var r = 0; r < nr; r++)
-            {
-                var deltaH = 0.0;
-                for (var b = 0; b < nm; b++)
-                {
-                    if (Math.Abs(scratch.Alpha[r * Stride + b]) < ReactionCoefficientThreshold)
-                    {
-                        scratch.Alpha[r * Stride + b] = 0.0;
-                    }
+        var reaction = ReactionTerms.Evaluate(in inputs, nm, nr);
 
-                    deltaH += scratch.Alpha[r * Stride + b] * scratch.H[b];
-                }
-
-                scratch.DeltaH[r] = deltaH;
-                for (var c = 0; c < nr; c++)
-                {
-                    scratch.Matrix[r * Stride + c] = 0.0;
-                    scratch.MatrixReacting[r * Stride + c] = 0.0;
-                }
-            }
-
-            for (var k = 0; k < nm - 1; k++)
-            {
-                if (scratch.Xs[k] < TraceFraction)
-                {
-                    continue;
-                }
-
-                var massK = species.MolarMass[scratch.IndexList[k]];
-                for (var m = k + 1; m < nm; m++)
-                {
-                    if (scratch.Xs[m] < TraceFraction)
-                    {
-                        continue;
-                    }
-
-                    var massM = species.MolarMass[scratch.IndexList[m]];
-                    var rtOverPD = 5.0 * massK * massM / (3.0 * AStar * scratch.Eta[k * Stride + m] * (massK + massM));
-                    var inverse = 1.0 / (scratch.Xs[k] * scratch.Xs[m]);
-                    for (var r = 0; r < nr; r++)
-                    {
-                        var alphaK = scratch.Alpha[r * Stride + k];
-                        var alphaM = scratch.Alpha[r * Stride + m];
-                        scratch.Stx[r] = alphaK == 0.0 && alphaM == 0.0 ? 0.0 : scratch.Xs[m] * alphaK - scratch.Xs[k] * alphaM;
-                    }
-
-                    for (var r = 0; r < nr; r++)
-                    {
-                        var stxR = scratch.Stx[r];
-                        if (stxR == 0.0)
-                        {
-                            continue;
-                        }
-
-                        for (var c = r; c < nr; c++)
-                        {
-                            var term = stxR * scratch.Stx[c] * inverse;
-                            scratch.Matrix[r * Stride + c] += term;
-                            scratch.MatrixReacting[r * Stride + c] += term * rtOverPD;
-                        }
-                    }
-                }
-            }
-
-            for (var r = 0; r < nr; r++)
-            {
-                for (var c = 0; c < r; c++)
-                {
-                    scratch.Matrix[r * Stride + c] = scratch.Matrix[c * Stride + r];
-                    scratch.MatrixReacting[r * Stride + c] = scratch.MatrixReacting[c * Stride + r];
-                }
-
-                scratch.Rhs[r] = scratch.DeltaH[r];
-            }
-
-            if (DenseSolver.Solve(scratch.Matrix, scratch.Rhs, scratch.RowScale, nr, Stride))
-            {
-                for (var r = 0; r < nr; r++)
-                {
-                    reactionHeatCapacity += scratch.DeltaH[r] * scratch.Rhs[r];
-                    scratch.Rhs[r] = scratch.DeltaH[r];
-                }
-
-                reactionHeatCapacity *= PhysicalConstants.R;
-                if (DenseSolver.Solve(scratch.MatrixReacting, scratch.Rhs, scratch.RowScale, nr, Stride))
-                {
-                    for (var r = 0; r < nr; r++)
-                    {
-                        reactionConductivity += scratch.DeltaH[r] * scratch.Rhs[r];
-                    }
-
-                    reactionConductivity *= PhysicalConstants.R;
-                }
-                else
-                {
-                    status = CaseStatus.SingularMatrix;
-                    reactionConductivity = 0.0;
-                }
-            }
-            else
-            {
-                status = CaseStatus.SingularMatrix;
-                reactionHeatCapacity = 0.0;
-            }
-        }
-
-        SetProperties.Fill(in inputs, nm, in mixture, reactionHeatCapacity, reactionConductivity, ref result);
+        SetProperties.Fill(in inputs, nm, in mixture, in reaction, ref result);
         result.EstimatedMoleFraction = estimatedFraction;
         result.SpeciesCount = nm;
         result.ReactionCount = nr;
@@ -643,7 +534,7 @@ public static class TransportSolver
         result.TraceEliminations = traceEliminations;
         result.Capped = capped;
         figures[0] = result;
-        return status;
+        return reaction.Status;
     }
 
     /// <summary>The fit of a run for the temperature, the reference's rule: the last fit whose predecessor's upper bound lies below T, else the first.</summary>

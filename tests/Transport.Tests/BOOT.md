@@ -10,7 +10,7 @@ The definition of what "`Transport` is ready" means.
 | L1 | mixture viscosity, frozen and reacting conductivity, both Prandtl numbers and the reference's `cpFrozen` at every station of every rocket fixture run with transport, evaluated on the reference composition; the estimate for species without data on the aluminized propellant | the fixtures node's reference outputs and its tolerance table | ✅ |
 | L1 | the evaluation inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
 | L1 | a table that also holds the species of elements the case lacks gives the same bits as the case's own table, at every station with transport | the evaluation on the case's own table | ✅ |
-| Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits; a reaction system that cannot be solved is `SingularMatrix` with the reacting figures equal to the frozen ones, driven through the `ReactionTerms` stage (2026-09-14) | the `API.md` of `Transport` | ✅ (the singular case ⏳) |
+| Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits; a reaction system that cannot be solved is `SingularMatrix` with the reacting figures equal to the frozen ones, driven through the `ReactionTerms` stage (2026-09-14) | the `API.md` of `Transport` | ✅ |
 | Bits | the host evaluation of every station of every rocket fixture run with transport gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of every field of every station's figures and status, in station order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ (2026-09-14) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
@@ -102,11 +102,18 @@ dependency went away with it.
       31 of the fixtures and not all: at the other stations the one-ulp difference is
       absorbed in rounding, so the criterion states the perturbation it was seen red
       with.
-- [ ] The `SingularMatrix` status holds the contract: `StatusTests` (or the existing
-      `InputTests`) drives `ReactionTerms` into a reaction system it cannot solve and
-      asserts that the reacting conductivity, the equilibrium heat capacity and the
-      reacting Prandtl number equal the frozen ones and the status is
-      `SingularMatrix`; seen red against the code of `8e36a27`.
+- [x] 2026-09-14 — The `SingularMatrix` status holds the contract:
+      `StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
+      drives `ReactionTerms` over a synthetic set of three species and two reactions
+      whose second system is singular and whose first is not, and asserts that the
+      reacting conductivity, the equilibrium heat capacity and the reacting Prandtl
+      number equal the frozen ones and that the status is `SingularMatrix`; seen red
+      against the code of `8e36a27` (the equilibrium heat capacity 10441.86 against
+      the frozen 5001.70, the status and the conductivity already right).
+      `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight` holds the
+      construction to its purpose: with a mass for the third species both systems are
+      solved and both contributions are positive, so the first test cannot pass by
+      failing everything.
 - [ ] The station comparison is one type and the facts are one test each
       (2026-09-14, the test review's F-TK-05): `FigureComparison` turns one station's
       figures into the list of mismatches (the Transport counterpart of the sibling

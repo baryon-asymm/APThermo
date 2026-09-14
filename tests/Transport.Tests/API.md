@@ -11,7 +11,7 @@ consider proven about `Transport`.
 | fits, intervals and units are evaluated as documented; species without data are estimated and reported, pairs are those of the database | L0 `FitTests`, L1 `StationTests` | ✅ |
 | the evaluation gives the same bits inside a CPU-accelerator kernel as on the host | L1 `KernelEqualityTests` | ✅ |
 | bad inputs are statuses | `InputTests` | ✅ |
-| a reaction system that cannot be solved is `SingularMatrix` with the reacting conductivity, the equilibrium heat capacity and the reacting Prandtl number equal to the frozen figures | the status test over the `ReactionTerms` stage (2026-09-14) | ⏳ |
+| a reaction system that cannot be solved is `SingularMatrix` with the reacting conductivity, the equilibrium heat capacity and the reacting Prandtl number equal to the frozen figures | the status test over the `ReactionTerms` stage (2026-09-14) | ✅ |
 | no figure of any station of any transport fixture changes a bit on the CPU accelerator without `Bits.approved.txt` moving in the same commit (a tripwire, not a contract) | Bits level (`BitSnapshotTests`, `Bits.approved.txt`) | ✅ (2026-09-14) |
 
 ## What the tests rely on

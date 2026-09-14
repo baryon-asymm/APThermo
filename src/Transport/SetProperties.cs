@@ -13,8 +13,8 @@ internal static class SetProperties
     /// Writes the viscosity, both conductivities, both heat capacities and both Prandtl numbers of the station into
     /// <paramref name="figures"/>; the bookkeeping fields belong to the stages that count them.
     /// </summary>
-    internal static void Fill(in StationInputs inputs, int nm, in MixtureTransport mixture,
-                              double reactionHeatCapacity, double reactionConductivity, ref TransportFigures figures)
+    internal static void Fill(in StationInputs inputs, int nm, in MixtureTransport mixture, in ReactionContribution reaction,
+                              ref TransportFigures figures)
     {
         var species = inputs.Species;
         var scratch = inputs.Scratch;
@@ -27,8 +27,8 @@ internal static class SetProperties
         }
 
         var frozenHeatCapacity = PhysicalConstants.R * cpOfSet / massOfSet;
-        var equilibriumHeatCapacity = frozenHeatCapacity + reactionHeatCapacity / massOfSet;
-        var reactingConductivity = mixture.FrozenConductivity + reactionConductivity;
+        var equilibriumHeatCapacity = frozenHeatCapacity + reaction.HeatCapacity / massOfSet;
+        var reactingConductivity = mixture.FrozenConductivity + reaction.Conductivity;
         figures.Viscosity = mixture.Viscosity;
         figures.FrozenConductivity = mixture.FrozenConductivity;
         figures.ReactingConductivity = reactingConductivity;

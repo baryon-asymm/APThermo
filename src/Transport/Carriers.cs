@@ -52,3 +52,24 @@ internal readonly struct MixtureTransport
         FrozenConductivity = frozenConductivity;
     }
 }
+
+/// <summary>What <see cref="ReactionTerms"/> returns: the two reaction contributions of the set and the status of the solves.</summary>
+internal readonly struct ReactionContribution
+{
+    /// <summary>Reaction heat capacity of the set, J/(kmol·K) of its gas; divided by the set's mass by <see cref="SetProperties"/>.</summary>
+    public readonly double HeatCapacity;
+
+    /// <summary>Reaction contribution to the thermal conductivity, W/(m·K).</summary>
+    public readonly double Conductivity;
+
+    /// <summary><see cref="CaseStatus.SingularMatrix"/> when a reaction system could not be solved, else <see cref="CaseStatus.Ok"/>.</summary>
+    public readonly CaseStatus Status;
+
+    /// <summary>Wraps the two contributions and the status.</summary>
+    public ReactionContribution(double heatCapacity, double conductivity, CaseStatus status)
+    {
+        HeatCapacity = heatCapacity;
+        Conductivity = conductivity;
+        Status = status;
+    }
+}

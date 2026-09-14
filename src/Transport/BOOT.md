@@ -265,11 +265,18 @@ Decisions taken with the review of 2026-09-14:
       transport unchanged, `KernelEqualityTests` and `AbsentElementTests` green, every
       criterion above still green, the execution tests node's CUDA sweep green once at
       the end.
-- [ ] `SingularMatrix` writes the frozen figures and reacting figures equal to them, as
-      `API.md` promises: a test of the tests node drives `ReactionTerms` (through
-      `InternalsVisibleTo`) into a reaction system it cannot solve and asserts the
-      equalities and the status; seen red once against the code of `8e36a27`, where
-      the heat capacity survived a failed second solve.
+- [x] 2026-09-14 — `SingularMatrix` writes the frozen figures and reacting figures
+      equal to them, as `API.md` promises:
+      `Transport.Tests.StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
+      drives `ReactionTerms` (through `InternalsVisibleTo`) over a set of three species
+      and two reactions whose second system is singular while the first is not — the
+      third species weighs nothing, so RT/(pD) vanishes for both pairs that hold it and
+      the one pair left gives the two reactions the same difference vector — and
+      asserts the three equalities and the status. Seen red against the code of
+      `8e36a27` (moved here unchanged before the fix): the status and the conductivity
+      were right and the equilibrium heat capacity was 10441.86 against the frozen
+      5001.70. `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight`
+      keeps the first test from passing because both systems fail.
 
 ## Taboos
 
