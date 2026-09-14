@@ -46,7 +46,7 @@ public sealed class DeclarationTests
 
                     if (!HasMember(current, declaration.Name))
                     {
-                        problems.Add($"{api}: {Tree.SimpleName(current)} has no member named {declaration.Name}, declared under ✅");
+                        problems.Add($"{api}: {TypeShape.SimpleName(current)} has no member named {declaration.Name}, declared under ✅");
                     }
                 }
             }
@@ -59,12 +59,12 @@ public sealed class DeclarationTests
     /// <summary>The type of the given simple name: in the node's own assembly first, then in any assembly of the tree.</summary>
     private static Type? Find(Node node, string simpleName)
     {
-        var own = Tree.Assemblies.TryGetValue(node, out var assembly) ? assembly : null;
-        return Tree.Assemblies.Values
+        var own = NodeAssemblies.Assemblies.TryGetValue(node, out var assembly) ? assembly : null;
+        return NodeAssemblies.Assemblies.Values
             .OrderBy(candidate => candidate == own ? 0 : 1)
             .ThenBy(candidate => candidate.GetName().Name, StringComparer.Ordinal)
             .SelectMany(candidate => candidate.GetTypes())
-            .FirstOrDefault(type => Tree.SimpleName(type) == simpleName);
+            .FirstOrDefault(type => TypeShape.SimpleName(type) == simpleName);
     }
 
     private static bool HasMember(Type type, string name)

@@ -25,7 +25,7 @@ public sealed class InvariantTests
         {
             foreach (var type in assembly.GetTypes())
             {
-                foreach (var (where, referenced) in Tree.Shape(type))
+                foreach (var (where, referenced) in TypeShape.Shape(type))
                 {
                     if (IsSinglePrecision(referenced))
                     {
@@ -33,9 +33,9 @@ public sealed class InvariantTests
                     }
                 }
 
-                foreach (var method in Tree.MethodsOf(type))
+                foreach (var method in TypeShape.MethodsOf(type))
                 {
-                    var opcodes = Tree.Instructions(method).Select(instruction => instruction.Code.Name!).Where(name => name.Contains(".r4", StringComparison.Ordinal)).Distinct().ToList();
+                    var opcodes = IlBody.Instructions(method).Select(instruction => instruction.Code.Name!).Where(name => name.Contains(".r4", StringComparison.Ordinal)).Distinct().ToList();
                     if (opcodes.Count > 0)
                     {
                         problems.Add($"{node.Name}: {type.FullName}.{method.Name} performs single-precision operations ({string.Join(", ", opcodes)})");
@@ -51,7 +51,7 @@ public sealed class InvariantTests
     public void Only_the_execution_node_and_its_tests_name_cuda_types()
     {
         var problems = new List<string>();
-        foreach (var (node, assembly) in Tree.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
+        foreach (var (node, assembly) in NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
         {
             if (CudaNodes.Contains(node.RelativePath))
             {
@@ -60,7 +60,7 @@ public sealed class InvariantTests
 
             foreach (var type in assembly.GetTypes())
             {
-                foreach (var referenced in Tree.ReferencedTypes(type))
+                foreach (var referenced in TypeShape.ReferencedTypes(type))
                 {
                     if (referenced.Namespace is { } ns && CudaNamespaces.Any(cuda => ns == cuda || ns.StartsWith(cuda + ".", StringComparison.Ordinal)))
                     {
@@ -81,14 +81,14 @@ public sealed class InvariantTests
         {
             foreach (var type in assembly.GetTypes())
             {
-                if (Tree.IsCompilerGenerated(type))
+                if (TypeShape.IsCompilerGenerated(type))
                 {
                     continue;
                 }
 
                 foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly))
                 {
-                    if (field.IsLiteral || Tree.IsCompilerGenerated(field))
+                    if (field.IsLiteral || TypeShape.IsCompilerGenerated(field))
                     {
                         continue;
                     }
@@ -114,7 +114,7 @@ public sealed class InvariantTests
         {
             var node = Tree.Nodes.SingleOrDefault(candidate => candidate.RelativePath == path)
                        ?? throw new InvalidOperationException($"{path} is not a node of the tree; the list of numerical nodes is stale");
-            yield return (node, Tree.Assemblies[node]);
+            yield return (node, NodeAssemblies.Assemblies[node]);
         }
     }
 

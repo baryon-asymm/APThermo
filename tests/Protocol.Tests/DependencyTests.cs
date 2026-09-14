@@ -11,15 +11,15 @@ public sealed class DependencyTests
     public void Every_node_declares_the_neighbours_it_uses_and_no_other()
     {
         var problems = new List<string>();
-        foreach (var (node, assembly) in Tree.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
+        foreach (var (node, assembly) in NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
         {
             var crossings = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
             var usedNodes = new Dictionary<string, Node>(StringComparer.Ordinal);
             foreach (var type in assembly.GetTypes())
             {
-                foreach (var referenced in Tree.ReferencedTypes(type))
+                foreach (var referenced in TypeShape.ReferencedTypes(type))
                 {
-                    var target = Tree.NodeOf(referenced);
+                    var target = NodeAssemblies.NodeOf(referenced);
                     if (target is null || target == node || target.IsDescendantOf(node))
                     {
                         continue;
@@ -31,11 +31,11 @@ public sealed class DependencyTests
                         crossings[target.RelativePath] = users = new SortedSet<string>(StringComparer.Ordinal);
                     }
 
-                    users.Add(Tree.SimpleName(Tree.Outermost(type)) + " → " + Tree.SimpleName(referenced));
+                    users.Add(TypeShape.SimpleName(TypeShape.Outermost(type)) + " → " + TypeShape.SimpleName(referenced));
                 }
             }
 
-            var (declared, unresolved) = Tree.DeclaredDependencies(node);
+            var (declared, unresolved) = NodeDocuments.DeclaredDependencies(node);
             var boot = Tree.Relative(node.Boot);
             foreach (var link in unresolved)
             {

@@ -13,9 +13,9 @@ public sealed class CoverageTests
     public void Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api()
     {
         var problems = new List<string>();
-        foreach (var (node, assembly) in Tree.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
+        foreach (var (node, assembly) in NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
         {
-            if (Tree.IsTestAssembly(assembly))
+            if (NodeAssemblies.IsTestAssembly(assembly))
             {
                 continue;
             }
@@ -23,7 +23,7 @@ public sealed class CoverageTests
             var api = File.ReadAllText(node.Api);
             foreach (var type in assembly.GetExportedTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
             {
-                var name = Tree.SimpleName(type);
+                var name = TypeShape.SimpleName(type);
                 if (!Regex.IsMatch(api, $@"\b{Regex.Escape(name)}\b"))
                 {
                     problems.Add($"{Tree.Relative(node.Api)} never names {name}, which {node.AssemblyName} exports (root BOOT.md, Taboos: no public type outside its node's API.md)");
@@ -38,11 +38,11 @@ public sealed class CoverageTests
     public void Every_type_of_every_assembly_lives_in_the_namespace_of_its_node()
     {
         var problems = new List<string>();
-        foreach (var (node, assembly) in Tree.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
+        foreach (var (node, assembly) in NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
         {
             foreach (var type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
             {
-                if (type.IsNested || type.Namespace is null || Tree.IsCompilerGenerated(type))
+                if (type.IsNested || type.Namespace is null || TypeShape.IsCompilerGenerated(type))
                 {
                     continue;
                 }

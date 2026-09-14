@@ -19,7 +19,7 @@ public sealed class SurfaceTests
     [Fact]
     public void The_public_surface_of_the_library_assemblies_matches_the_approved_snapshot()
     {
-        var assemblies = Tree.Assemblies.Values.Where(assembly => !Tree.IsTestAssembly(assembly)).OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal).ToList();
+        var assemblies = NodeAssemblies.Assemblies.Values.Where(assembly => !NodeAssemblies.IsTestAssembly(assembly)).OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal).ToList();
         Assert.NotEmpty(assemblies);
         var actual = Describe(assemblies);
         if (!File.Exists(ApprovedPath))
@@ -118,7 +118,7 @@ public sealed class SurfaceTests
                                                        || method.Name.StartsWith("remove_", StringComparison.Ordinal) => false,
         MethodInfo { Name: "<Clone>$" } => false,
         FieldInfo { Name: "value__" } => false,
-        _ => !Tree.IsCompilerGenerated(member),
+        _ => !TypeShape.IsCompilerGenerated(member),
     };
 
     private static string DescribeMember(Type owner, MemberInfo member) => member switch
@@ -205,8 +205,8 @@ public sealed class SurfaceTests
         }
 
         var name = type.IsGenericType
-            ? Tree.SimpleName(type) + "<" + string.Join(", ", type.GetGenericArguments().Select(argument => TypeName(argument))) + ">"
-            : type.IsGenericParameter ? type.Name : Tree.SimpleName(type);
+            ? TypeShape.SimpleName(type) + "<" + string.Join(", ", type.GetGenericArguments().Select(argument => TypeName(argument))) + ">"
+            : type.IsGenericParameter ? type.Name : TypeShape.SimpleName(type);
         if (type.IsNested && !type.IsGenericParameter)
         {
             name = TypeName(type.DeclaringType!) + "." + name;
