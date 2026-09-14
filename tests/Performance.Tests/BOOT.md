@@ -9,7 +9,7 @@ The definition of what "`Performance` is ready" means.
 | L0 | the invariants on a converged case: constant entropy, sonic throat, area ratio met, frozen composition, velocity from the energy equation; status on invalid exits and inputs | the invariants' tolerances | ✅ |
 | L1 | rocket cases of the fixtures node (LOX/LH2 example 8, MMH/NTO example 12 equilibrium and frozen, the four reference propellants): stations, `c*`, `C_F`, `Isp`, `Ivac`, area and pressure ratios, compositions | the fixtures node's reference outputs and its tolerance table | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
-| L0 | an exit station that never leaves the subsonic side is `NotConverged` and its neighbours `Ok`, driven through the `AreaRatioIteration` stage from an estimate deep on the subsonic side (2026-09-14) | the `API.md` of `Performance` | ⏳ |
+| L0 | an exit station that never leaves the subsonic side is `NotConverged` and its neighbours `Ok`, driven through the `AreaRatioIteration` stage from an estimate deep on the subsonic side (2026-09-14) | the `API.md` of `Performance` | ✅ (2026-09-14) |
 | Bits | the host solve of every rocket fixture gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of the stations' states, moles, multipliers, figures, station statuses, iteration counts and the case status, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ (2026-09-14) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
@@ -88,10 +88,15 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       ulp to `0.5000000000000001` — every one of the enumerated fixtures red; one line
       removed from `Bits.approved.txt` — that fixture red, naming it, with the
       instruction to approve, and the other fixtures green.
-- [ ] The never-supersonic outcome: a test drives `AreaRatioIteration` (through the
-      node's new `InternalsVisibleTo`) from an estimate deep on the subsonic side and
-      asserts `NotConverged` for that station and `Ok` for its neighbours; seen red
-      against the code of `8e36a27`, where the station came back `Ok`.
+- [x] 2026-09-14 — The never-supersonic outcome:
+      `SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
+      drives `AreaRatioIteration` (through the node's new `InternalsVisibleTo`) from an
+      estimate two units of `ln(p_c/p_e)` below the throat's, so that the twenty
+      subsonic steps of the iteration cannot reach the sonic point, and asserts
+      `NotConverged` for that station and `Ok` for the chamber, the throat and the exit
+      after it. Seen red against the acceptance test of `8e36a27`, where the station
+      came back `Ok`. The stage is driven over a `RocketCase`, the node's buffers of
+      one case, which the host solve now uses as well.
 - [ ] The invariants are one type and one test each (2026-09-14, the test review's
       F-TK-06 and F-TK-07): `RocketInvariants` returns the violated invariants of a
       solution as messages, one private method per invariant, the two unnamed

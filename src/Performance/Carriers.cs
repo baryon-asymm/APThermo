@@ -59,6 +59,39 @@ internal readonly struct ThroatReference
     }
 }
 
+/// <summary>What the estimate of the next exit station is made of: the temperature of the last station that converged and the extrapolation state of (6.23).</summary>
+internal struct ExitEstimate
+{
+    /// <summary>K, the temperature the next station's solve starts from.</summary>
+    public double Temperature;
+
+    /// <summary>Whether the previous station may be extrapolated from: it converged and its area ratio exceeds <see cref="RocketSolver.ExtrapolationAreaRatio"/>.</summary>
+    public bool Extrapolable;
+
+    public double LogPressureRatio;
+    public double LogAreaRatio;
+    public double Derivative;
+}
+
+/// <summary>How the area-ratio iteration of one exit station ended.</summary>
+internal enum ExitOutcome
+{
+    /// <summary>The correction of (6.25) fell below the tight tolerance.</summary>
+    Converged,
+
+    /// <summary>The iterations ran out; the last correction is within the report's tolerance, and the station is accepted.</summary>
+    WithinReportTolerance,
+
+    /// <summary>The iterations ran out and the last correction is above the report's tolerance.</summary>
+    NotMet,
+
+    /// <summary>Every pass fell on the subsonic side of the sonic point, so no correction was ever computed.</summary>
+    NeverSupersonic,
+
+    /// <summary>A station solve did not return Ok; the station carries the equilibrium node's status.</summary>
+    SolveFailed,
+}
+
 /// <summary>Which solver a station is solved with: the composition follows the equilibrium, or it stays the one already in the station's row.</summary>
 internal enum StationFlow
 {

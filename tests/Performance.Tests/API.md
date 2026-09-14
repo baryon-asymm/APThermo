@@ -10,7 +10,7 @@ consider proven about `Performance`.
 | chamber, throat and exit stations, their compositions and the performance figures reproduce the reference within the tolerance table for every rocket fixture case, in shifting and frozen flow (subsonic stations excepted) | L1 over the enumerated fixtures (`RocketFixtureTests`) | ✅ |
 | the isentropic, sonic, area-ratio and frozen-composition invariants hold on every converged case; invalid exits fail their station only | L0 (`InvariantTests`) | ✅ |
 | the solver gives the same bits inside a CPU-accelerator kernel as on the host | L1 kernel-equality tests (`KernelEqualityTests`) | ✅ |
-| an exit station that never leaves the subsonic side is `NotConverged` and its neighbours are `Ok` | L0 over the `AreaRatioIteration` stage (2026-09-14) | ⏳ |
+| an exit station that never leaves the subsonic side is `NotConverged` and its neighbours are `Ok` | L0 over the `AreaRatioIteration` stage (`SubsonicStationTests`, 2026-09-14) | ✅ |
 | no result of any rocket fixture changes a bit on the CPU accelerator without `Bits.approved.txt` moving in the same commit (a tripwire, not a contract) | Bits level (`BitSnapshotTests`, `Bits.approved.txt`) | ✅ (2026-09-14) |
 
 ## What the tests rely on

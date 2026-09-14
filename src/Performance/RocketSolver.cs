@@ -25,7 +25,7 @@ public static class RocketSolver
     public const int MaxAreaRatioIterations = 20;
 
     /// <summary>Above this area ratio the report's analytic extrapolation from the previous station gives the initial estimate.</summary>
-    private const double ExtrapolationAreaRatio = 2.0;
+    internal const double ExtrapolationAreaRatio = 2.0;
 
     /// <summary>The station indices of the two fixed stations; the k-th exit is <see cref="RocketLayout.FixedStations"/> + k.</summary>
     internal const int Chamber = 0;
@@ -78,12 +78,8 @@ public static class RocketSolver
         var frozen = problem.Flow != FlowModel.ShiftingEquilibrium;
         var exitFlow = frozen ? StationFlow.Frozen : StationFlow.Shifting;
         var freezingStation = frozenAtChamber ? Chamber : Throat;
-        var logPressureRatioThroat = throat.LogPressureRatio;
-        var gammaThroat = throat.GammaS;
-        var previousExtrapolable = false;
-        var previousLogPressureRatio = 0.0;
-        var previousLogAreaRatio = 0.0;
-        var previousDerivative = 1.0;
+        var estimate = default(ExitEstimate);
+        estimate.Derivative = 1.0;
         var caseStatus = CaseStatus.Ok;
         var lastSolved = Throat;   // the estimate for the next station comes from the last station that converged
         for (var k = 0; k < exitCount; k++)
@@ -93,10 +89,10 @@ public static class RocketSolver
             var kind = (ExitSpecification)problem.ExitKinds[k];
             var source = frozen ? freezingStation : lastSolved;
             StationSolve.CopyComposition(in context, source, station);
-            var previousState = result.Stations[lastSolved];
-            var extrapolable = false;
+            estimate.Temperature = result.Stations[lastSolved].Temperature;
             if (kind == ExitSpecification.PressureRatio)
             {
+                estimate.Extrapolable = false;
                 if (!(value > 1.0))
                 {
                     result.StationStatus[station] = (int)CaseStatus.InvalidInput;
@@ -104,7 +100,7 @@ public static class RocketSolver
                 else
                 {
                     var pressure = pressureChamber / value;
-                    var request = new StationRequest(station, pressure, previousState.Temperature, entropyChamber, exitFlow);
+                    var request = new StationRequest(station, pressure, estimate.Temperature, entropyChamber, exitFlow);
                     if (StationSolve.At(in context, in request))
                     {
                         var state = result.Stations[station];
@@ -116,89 +112,15 @@ public static class RocketSolver
             }
             else if (!(value >= 1.0))
             {
+                estimate.Extrapolable = false;
                 result.StationStatus[station] = (int)CaseStatus.AreaRatioInvalid;
             }
             else
             {
-                // Initial estimate of ln(p_c/p_e): the report's extrapolation (6.23, 6.24) from the previous station when both
-                // area ratios exceed 2, else its empirical formulas (6.21, 6.22).
-                var logAreaRatio = Math.Log(value);
-                double logPressureRatio;
-                if (previousExtrapolable && value > ExtrapolationAreaRatio)
-                {
-                    logPressureRatio = previousLogPressureRatio + (logAreaRatio - previousLogAreaRatio) / previousDerivative;
-                }
-                else if (value <= ExtrapolationAreaRatio)
-                {
-                    logPressureRatio = logPressureRatioThroat + Math.Sqrt(3.294 * logAreaRatio * logAreaRatio + 1.535 * logAreaRatio);
-                }
-                else
-                {
-                    logPressureRatio = gammaThroat + 1.4 * logAreaRatio;
-                }
-
-                var estimate = previousState.Temperature;
-                var converged = false;
-                var lastCorrection = 0.0;
-                var derivative = 1.0;
-                var failed = false;
-                for (var iteration = 0; iteration < MaxAreaRatioIterations; iteration++)
-                {
-                    var pressure = pressureChamber * Math.Exp(-logPressureRatio);
-                    var request = new StationRequest(station, pressure, estimate, entropyChamber, exitFlow);
-                    if (!StationSolve.At(in context, in request))
-                    {
-                        failed = true;
-                        break;
-                    }
-
-                    var state = result.Stations[station];
-                    var velocitySquared = StationFigures.VelocitySquared(enthalpyChamber, in state);
-                    var soundSquared = state.SoundSpeed * state.SoundSpeed;
-                    if (!(velocitySquared > soundSquared))
-                    {
-                        // Subsonic side of the sonic point: move outward and try again.
-                        logPressureRatio += 0.1;
-                        estimate = state.Temperature;
-                        continue;
-                    }
-
-                    var velocity = Math.Sqrt(velocitySquared);
-                    var currentAreaRatio = StationFigures.AreaRatio(massFluxThroat, in state, velocity);
-                    // Equation (6.23): ∂ln(A_e/A_t)/∂ln(p_c/p_e) at constant entropy.
-                    derivative = (velocitySquared - soundSquared) / (state.GammaS * velocitySquared);
-                    lastCorrection = (logAreaRatio - Math.Log(currentAreaRatio)) / derivative;
-                    if (Math.Abs(lastCorrection) <= TightTolerance)
-                    {
-                        converged = true;
-                        break;
-                    }
-
-                    logPressureRatio += lastCorrection;
-                    estimate = state.Temperature;
-                }
-
-                if (!failed)
-                {
-                    if (converged || Math.Abs(lastCorrection) <= AreaRatioTolerance)
-                    {
-                        var state = result.Stations[station];
-                        var velocity = StationFigures.Velocity(enthalpyChamber, in state);
-                        var areaRatio = StationFigures.AreaRatio(massFluxThroat, in state, velocity);
-                        StationFigures.Write(in context, station, velocity, areaRatio, pressureChamber / state.Pressure, characteristicVelocity);
-                        extrapolable = value > ExtrapolationAreaRatio;
-                        previousLogPressureRatio = Math.Log(pressureChamber / state.Pressure);
-                        previousLogAreaRatio = logAreaRatio;
-                        previousDerivative = derivative;
-                    }
-                    else
-                    {
-                        result.StationStatus[station] = (int)CaseStatus.NotConverged;
-                    }
-                }
+                // The station carries the verdict of the iteration: its figures when the area ratio was met, its status when it was not.
+                AreaRatioIteration.At(in context, in chamber, in throat, value, station, ref estimate);
             }
 
-            previousExtrapolable = extrapolable;
             if (result.StationStatus[station] == (int)CaseStatus.Ok)
             {
                 lastSolved = station;

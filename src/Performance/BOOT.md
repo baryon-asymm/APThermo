@@ -115,6 +115,19 @@ exits), and the enums `StationFlow { Shifting, Frozen }` (in place of the boolea
 picked the solver) and `ExitOutcome { Converged, WithinReportTolerance,
 NeverSupersonic, SolveFailed }`.
 
+⚠ 2026-09-14, found in the coding: two of those carriers are not what the design
+wrote. `ExitOutcome` has a fifth value, `NotMet`: the four above name every ending of
+the iteration but one — twenty corrections whose last is above the report's tolerance
+— which the code of `8e36a27` ended as `NotConverged` and which must keep ending so;
+with four values that ending had no name and would have had to borrow one. And
+`ExitEstimate` carries `Temperature` beside the extrapolation state: it is the
+temperature estimate of the last station that converged, which the exit loop used to
+read from that station and pass down, and carrying it here keeps
+`AreaRatioIteration.At` at the six parameters the root's code shape allows. The
+station's verdict is written by the iteration itself (`NotConverged` for
+`NeverSupersonic` and for `NotMet`), so the exit loop reads one thing — the station
+status — as it did before.
+
 Decisions taken with the review of 2026-09-14:
 
 - **A station that never went supersonic is `NotConverged`.** The area-ratio iteration
@@ -193,11 +206,16 @@ Decisions taken with the review of 2026-09-14:
       counts and the case status, hashed per fixture) unchanged, `KernelEqualityTests`
       green, every criterion above still green, the execution tests node's CUDA sweep
       and throughput benchmark green once at the end.
-- [ ] An exit station that never leaves the subsonic side of the sonic point is
-      `NotConverged` and its neighbours are `Ok`: a test of the tests node drives
-      `AreaRatioIteration` (through `InternalsVisibleTo`) from an estimate deep on
-      the subsonic side; seen red once against the code of `8e36a27`, where the
-      station came back `Ok`.
+- [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
+      point is `NotConverged` and its neighbours are `Ok`:
+      `Performance.Tests.SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
+      drives `AreaRatioIteration` (through `InternalsVisibleTo`) from an estimate two
+      units of `ln(p_c/p_e)` below the throat's, where the twenty subsonic steps of
+      `SubsonicStep` cannot reach the sonic point, and reads the station's status and
+      its neighbours'. Seen red once against the acceptance test of `8e36a27`, which
+      read the never-written correction as zero and returned the station `Ok`; green
+      with `NeverSupersonic` ending the station as `NotConverged`. No fixture reaches
+      the path: the bit snapshot of all 98 rocket fixtures did not move.
 
 ## Taboos
 
