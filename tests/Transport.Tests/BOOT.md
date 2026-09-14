@@ -11,7 +11,7 @@ The definition of what "`Transport` is ready" means.
 | L1 | the evaluation inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
 | L1 | a table that also holds the species of elements the case lacks gives the same bits as the case's own table, at every station with transport | the evaluation on the case's own table | ✅ |
 | Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits; a reaction system that cannot be solved is `SingularMatrix` with the reacting figures equal to the frozen ones, driven through the `ReactionTerms` stage (2026-09-14) | the `API.md` of `Transport` | ✅ (the singular case ⏳) |
-| Bits | the host evaluation of every station of every rocket fixture run with transport gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of every field of every station's figures and status, in station order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ⏳ |
+| Bits | the host evaluation of every station of every rocket fixture run with transport gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of every field of every station's figures and status, in station order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ (2026-09-14) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -88,12 +88,20 @@ dependency went away with it.
 
       ⚠ 2026-09-12: the criterion named "the exclusion threshold changed in a copy":
       there is no exclusion (Transport `BOOT.md`); the estimate's constants are mutated instead.
-- [ ] Bits level green: `BitSnapshotTests.Every_fixture_with_transport_gives_the_recorded_bits`
-      over the enumerated rocket fixtures with transport against `Bits.approved.txt`,
-      recorded at `8e36a27` before any code of the decomposition moved, and unchanged
-      after it; seen red once by a solver constant perturbed in the last digit (every
-      fixture red) and by a fixture absent from the snapshot (that fixture red with
-      the instruction to approve).
+- [x] 2026-09-14 — Bits level green:
+      `BitSnapshotTests.Every_fixture_with_transport_gives_the_recorded_bits` over the
+      enumerated rocket fixtures with transport (the enumeration of `StationTests`,
+      one line each in `Bits.approved.txt`) against the snapshot recorded before any
+      code of the decomposition moved: the code of `8e36a27`, which `e3e75a1` (the
+      base of the decomposition branch) changes in documents only. Seen red twice:
+      `TransportSolver.AStar` 1.1 → 1.1000000001 turned every one of the fixtures red
+      while the other tests of the node stayed green, which is the tripwire's point —
+      a relative 1e-10 is far under every tolerance of the reference comparison; and a
+      line deleted from the approved file turned that fixture red with the instruction
+      to approve. The last-digit perturbation `AStar` 1.1 → 1.1000000000000003 moves
+      31 of the fixtures and not all: at the other stations the one-ulp difference is
+      absorbed in rounding, so the criterion states the perturbation it was seen red
+      with.
 - [ ] The `SingularMatrix` status holds the contract: `StatusTests` (or the existing
       `InputTests`) drives `ReactionTerms` into a reaction system it cannot solve and
       asserts that the reacting conductivity, the equilibrium heat capacity and the
