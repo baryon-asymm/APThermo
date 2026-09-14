@@ -35,7 +35,7 @@ public sealed class BitHash                                 // SHA-256 over litt
     public BitHash Add(ReadOnlySpan<double> values);
     public BitHash Add(int value);
     public BitHash Add(ReadOnlySpan<int> values);
-    public BitHash Add(string text);                        // its UTF-8 bytes and a terminating zero byte
+    public BitHash Add(string text);                        // its UTF-8 bytes, as the recorded snapshots hash a string
     public string ToHex();                                  // lowercase hexadecimal
 }
 

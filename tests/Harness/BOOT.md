@@ -28,8 +28,10 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 - **Bits are raw bits.** Two doubles are the same when `BitConverter.DoubleToInt64Bits`
   agrees, so that signed zeros and NaN payloads are told apart; a bit hash is the
   SHA-256 of the little-endian bytes of the values in the order they were added, a
-  string entering as its UTF-8 bytes and a terminating zero byte; nothing is rounded or
-  formatted on the way.
+  string entering as its UTF-8 bytes; nothing is rounded or formatted on the way. The
+  node hashes exactly as the snapshots recorded before it existed were hashed: every
+  approved file of the tree stays byte for byte, and an encoding one snapshot needs and
+  another does not is a second method of `BitHash`, never a re-approval.
 - **An approval file is a tripwire, not a contract.** A snapshot line is keyed by its
   first field; a key missing from the approved file, a differing line and an approved
   key that no run produced are each a problem naming the key and how to approve; on a
