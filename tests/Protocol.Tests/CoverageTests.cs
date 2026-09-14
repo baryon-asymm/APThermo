@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace AerospacePropellantThermodynamics.Protocol.Tests;
 
 /// <summary>
@@ -11,48 +13,48 @@ public sealed class CoverageTests
     [Fact]
     public void Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api()
     {
-        var problems = new List<string>();
-        foreach (var (node, assembly) in NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
-        {
-            if (NodeAssemblies.IsTestAssembly(assembly))
-            {
-                continue;
-            }
-
-            var api = File.ReadAllText(node.Api);
-            foreach (var type in assembly.GetExportedTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
-            {
-                var name = TypeShape.SimpleName(type);
-                if (!ApiDeclarations.NamesType(api, name))
-                {
-                    problems.Add($"{Tree.Relative(node.Api)} never names {name}, which {node.AssemblyName} exports (root BOOT.md, Taboos: no public type outside its node's API.md)");
-                }
-            }
-        }
-
+        var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
+            .Where(pair => !NodeAssemblies.IsTestAssembly(pair.Value))
+            .SelectMany(pair => UndocumentedTypeProblems(pair.Key, pair.Value))
+            .ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     [Fact]
     public void Every_type_of_every_assembly_lives_in_the_namespace_of_its_node()
     {
-        var problems = new List<string>();
-        foreach (var (node, assembly) in NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
-        {
-            foreach (var type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
-            {
-                if (type.IsNested || type.Namespace is null || TypeShape.IsCompilerGenerated(type))
-                {
-                    continue;
-                }
+        var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
+            .SelectMany(pair => MisplacedTypeProblems(pair.Key, pair.Value))
+            .ToList();
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
 
-                if (type.Namespace != node.AssemblyName)
-                {
-                    problems.Add($"{type.FullName} is in namespace {type.Namespace}; the node {node.Name} is the namespace {node.AssemblyName} (AGENTS.md §1)");
-                }
+    private static IEnumerable<string> UndocumentedTypeProblems(Node node, Assembly assembly)
+    {
+        var api = File.ReadAllText(node.Api);
+        foreach (var type in assembly.GetExportedTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
+        {
+            var name = TypeShape.SimpleName(type);
+            if (!ApiDeclarations.NamesType(api, name))
+            {
+                yield return $"{Tree.Relative(node.Api)} never names {name}, which {node.AssemblyName} exports (root BOOT.md, Taboos: no public type outside its node's API.md)";
             }
         }
+    }
 
-        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    private static IEnumerable<string> MisplacedTypeProblems(Node node, Assembly assembly)
+    {
+        foreach (var type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
+        {
+            if (type.IsNested || type.Namespace is null || TypeShape.IsCompilerGenerated(type))
+            {
+                continue;
+            }
+
+            if (type.Namespace != node.AssemblyName)
+            {
+                yield return $"{type.FullName} is in namespace {type.Namespace}; the node {node.Name} is the namespace {node.AssemblyName} (AGENTS.md §1)";
+            }
+        }
     }
 }
