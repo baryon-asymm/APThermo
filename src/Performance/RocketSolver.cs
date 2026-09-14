@@ -98,7 +98,7 @@ public static class RocketSolver
             }
 
             var state = result.Stations[Throat];
-            var velocitySquared = 2.0 * (enthalpyChamber - state.Enthalpy);
+            var velocitySquared = StationFigures.VelocitySquared(enthalpyChamber, in state);
             var soundSquared = state.SoundSpeed * state.SoundSpeed;
             sonicRatio = velocitySquared / soundSquared;
             if (!(velocitySquared > 0.0) || !(soundSquared > 0.0))
@@ -125,10 +125,10 @@ public static class RocketSolver
         }
 
         var throatState = result.Stations[Throat];
-        var velocityThroat = Math.Sqrt(2.0 * (enthalpyChamber - throatState.Enthalpy));
+        var velocityThroat = StationFigures.Velocity(enthalpyChamber, in throatState);
         var massFluxThroat = throatState.Density * velocityThroat;
         var characteristicVelocity = pressureChamber / massFluxThroat;
-        FinishStation(in context, Throat, velocityThroat, 1.0, pressureChamber / pressureThroat, characteristicVelocity);
+        StationFigures.Write(in context, Throat, velocityThroat, 1.0, pressureChamber / pressureThroat, characteristicVelocity);
         var chamberFigures = result.Figures[Chamber];
         chamberFigures.PressureRatio = 1.0;
         chamberFigures.CharacteristicVelocity = characteristicVelocity;
@@ -166,9 +166,9 @@ public static class RocketSolver
                     if (SolveStation(in context, station, pressure, previousState.Temperature, entropyChamber, frozen))
                     {
                         var state = result.Stations[station];
-                        var velocity = Math.Sqrt(Math.Max(2.0 * (enthalpyChamber - state.Enthalpy), 0.0));
-                        var areaRatio = massFluxThroat / (state.Density * velocity);
-                        FinishStation(in context, station, velocity, areaRatio, value, characteristicVelocity);
+                        var velocity = StationFigures.VelocityClamped(enthalpyChamber, in state);
+                        var areaRatio = StationFigures.AreaRatio(massFluxThroat, in state, velocity);
+                        StationFigures.Write(in context, station, velocity, areaRatio, value, characteristicVelocity);
                     }
                 }
             }
@@ -210,7 +210,7 @@ public static class RocketSolver
                     }
 
                     var state = result.Stations[station];
-                    var velocitySquared = 2.0 * (enthalpyChamber - state.Enthalpy);
+                    var velocitySquared = StationFigures.VelocitySquared(enthalpyChamber, in state);
                     var soundSquared = state.SoundSpeed * state.SoundSpeed;
                     if (!(velocitySquared > soundSquared))
                     {
@@ -221,7 +221,7 @@ public static class RocketSolver
                     }
 
                     var velocity = Math.Sqrt(velocitySquared);
-                    var currentAreaRatio = massFluxThroat / (state.Density * velocity);
+                    var currentAreaRatio = StationFigures.AreaRatio(massFluxThroat, in state, velocity);
                     // Equation (6.23): ∂ln(A_e/A_t)/∂ln(p_c/p_e) at constant entropy.
                     derivative = (velocitySquared - soundSquared) / (state.GammaS * velocitySquared);
                     lastCorrection = (logAreaRatio - Math.Log(currentAreaRatio)) / derivative;
@@ -240,9 +240,9 @@ public static class RocketSolver
                     if (converged || Math.Abs(lastCorrection) <= AreaRatioTolerance)
                     {
                         var state = result.Stations[station];
-                        var velocity = Math.Sqrt(2.0 * (enthalpyChamber - state.Enthalpy));
-                        var areaRatio = massFluxThroat / (state.Density * velocity);
-                        FinishStation(in context, station, velocity, areaRatio, pressureChamber / state.Pressure, characteristicVelocity);
+                        var velocity = StationFigures.Velocity(enthalpyChamber, in state);
+                        var areaRatio = StationFigures.AreaRatio(massFluxThroat, in state, velocity);
+                        StationFigures.Write(in context, station, velocity, areaRatio, pressureChamber / state.Pressure, characteristicVelocity);
                         extrapolable = value > ExtrapolationAreaRatio;
                         previousLogPressureRatio = Math.Log(pressureChamber / state.Pressure);
                         previousLogAreaRatio = logAreaRatio;
@@ -285,25 +285,6 @@ public static class RocketSolver
         }
 
         return context.Result.StationStatus[station] == (int)CaseStatus.Ok;
-    }
-
-    /// <summary>Writes the velocity and Mach number into the station's state and its performance figures (6.2).</summary>
-    private static void FinishStation(in RocketContext context, int station, double velocity, double areaRatio, double pressureRatio,
-                                      double characteristicVelocity)
-    {
-        var result = context.Result;
-        var state = result.Stations[station];
-        state.Velocity = velocity;
-        state.Mach = velocity / state.SoundSpeed;
-        result.Stations[station] = state;
-        var figures = result.Figures[station];
-        figures.AreaRatio = areaRatio;
-        figures.PressureRatio = pressureRatio;
-        figures.CharacteristicVelocity = characteristicVelocity;
-        figures.ThrustCoefficient = velocity / characteristicVelocity;
-        figures.SpecificImpulse = velocity;
-        figures.VacuumSpecificImpulse = velocity + state.Pressure / (state.Density * velocity);
-        result.Figures[station] = figures;
     }
 
     private static EquilibriumResult StationResult(in RocketContext context, int station)
