@@ -197,15 +197,33 @@ Decisions taken with the review of 2026-09-14:
       the same results as the host call: `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
       over the 6 batches of fixtures sharing a table and an exit layout (89 cases; states,
       figures, moles and statuses bit for bit).
-- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node within
-      the root's code-shape constraint (the protocol tests node's `ShapeTests`), the
-      public surface unchanged (`Protocol.Tests.SurfaceTests` against the unchanged
-      snapshot), and every rocket fixture bit for bit as at `8e36a27` on the CPU
-      accelerator: the tests node's bit snapshot over every rocket fixture (the
-      stations' states, moles, multipliers, figures, station statuses, iteration
-      counts and the case status, hashed per fixture) unchanged, `KernelEqualityTests`
-      green, every criterion above still green, the execution tests node's CUDA sweep
-      and throughput benchmark green once at the end.
+- [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): every type of the
+      node within the root's code-shape constraint. The largest method is now
+      `AreaRatioIteration.At` at 53 lines (`ThroatSearch.At` next, at 52); before the
+      decomposition `RocketSolver.Solve` alone was 238 lines in a 326-line file. The
+      largest type is under 120 lines (`Carriers.cs`, seven small carriers, none of
+      them individually near the limit); before, the single `RocketSolver` type was
+      326 lines. Confirmed by the tree-wide inventory (nothing of this node in its
+      list of types ≥ 250 or methods ≥ 60 lines) and by `Protocol.Tests` (9 of 9
+      green, `ShapeTests` included, run before and after this node's work). The
+      public surface is unchanged: `Protocol.Tests.SurfaceTests` green against the
+      unchanged `PublicSurface.approved.txt`; every new type of the decomposition
+      (`RocketContext`, `ChamberReference`, `ThroatReference`, `ExitEstimate`,
+      `ExitOutcome`, `StationFlow`, `StationRequest`, `ChamberSolve`, `ThroatSearch`,
+      `ExitStations`, `AreaRatioIteration`, `StationSolve`, `StationFigures`) is
+      `internal`, reached by the tests node only through the new
+      `InternalsVisibleTo`. Every rocket fixture is bit for bit as at `8e36a27` on the
+      CPU accelerator: `BitSnapshotTests` green against `Bits.approved.txt` recorded
+      at step 0 (`c038877`) and unmoved since, through every later step including the
+      tests-node refactor of the criterion below.
+      `KernelEqualityTests` green (post its own F-TK-07 split). Every criterion above
+      still green, and every criterion of `tests/Performance.Tests/BOOT.md`: the full
+      fast suite, `dotnet test AerospacePropellantThermodynamics.sln --filter
+      "Category!=LongRunning"` with `APTHERMO_NO_CUDA=1`, 2632 tests, 0 failed, 0
+      skipped. The execution tests node's CUDA sweep and throughput benchmark are
+      `Category=LongRunning`; this task's instructions direct leaving them to the
+      orchestrator after the merge, so they were not run here — the one part of this
+      criterion not verified in this session.
 - [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
       point is `NotConverged` and its neighbours are `Ok`:
       `Performance.Tests.SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
