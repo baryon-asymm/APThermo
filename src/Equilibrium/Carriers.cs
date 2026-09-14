@@ -18,6 +18,22 @@ internal enum DerivativeKind
 }
 
 /// <summary>
+/// The verdict of <see cref="ConvergenceTests.Evaluate"/>: the small result the Newton loop reads instead of the tests'
+/// own intermediate quantities (BOOT.md, ## Structure, "The Newton loop holds no formula").
+/// </summary>
+internal enum ConvergenceVerdict
+{
+    /// <summary>Equations (3.5) or (3.6) or the element balance are not yet met.</summary>
+    NotConverged,
+
+    /// <summary>The report's tests are met; the corrections have not yet reached the polish test's rounding floor.</summary>
+    ReportTestsMet,
+
+    /// <summary>The report's tests are met and the corrections are at rounding level: no further polish step is needed.</summary>
+    Polished,
+}
+
+/// <summary>
 /// The four values of a species' slot in <c>scratch.SpeciesActive</c> (the node's API.md records the domain). A gaseous
 /// species is only ever Absent or Active; the last two are the memories of the anti-cycling rule for condensed records.
 /// </summary>
