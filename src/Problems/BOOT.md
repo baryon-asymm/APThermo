@@ -456,13 +456,20 @@ first `## Acceptance criteria` row below, left to the design session.
 
       Measured 2026-09-14 on this node's build with the root's own dependency-check
       walk (a scratch reproduction of it, not the earlier manual count), first at
-      `ef54a4a` and again after the parameter fix below: lines, nesting and parameters
-      are within the root's limits everywhere in this node (every type and method of
-      the built assembly, none over 400/60/3/6; the three published records' declared
-      exception to the parameter count constructed with named arguments since
-      `cc6ed49`; `RocketRunner.SolveGroup`, `EquilibriumRunner.SolveGroup` and
-      `ResolvedReactant`, all found over six and none a declared exception, fixed at
-      this close, `## Structure` above). Ce is not, for two types: `RocketRunner`
+      `ef54a4a` and again after the parameter fix below: parameters are within the
+      root's limit everywhere in this node by the walk itself (every method and
+      constructor of the built assembly, none over six outside the three published
+      records' declared exception, constructed with named arguments since `cc6ed49`;
+      `RocketRunner.SolveGroup`, `EquilibriumRunner.SolveGroup` and `ResolvedReactant`,
+      all found over six and none a declared exception, fixed at this close,
+      `## Structure` above). Lines and nesting are not the walk's business — it reads
+      IL, not source text — so they stand on direct reading, not a tool run: no file of
+      this node over 270 lines (`Reactants.cs`, three types; a single-type file's own
+      type is smaller still), the longest method found `RocketRunner.SolveGroup` at 53
+      lines, no nesting past two levels seen anywhere touched or read this close (the
+      root's limits are 400, 60 and 3). The tree's own Roslyn-based `ShapeTests` is the
+      authority this stands in for; this node may not read it, and the root's own
+      criterion for the whole tree is still open. Ce is not, for two types: `RocketRunner`
       measures 27 and `EquilibriumRunner` 25 by the walk (each one more than first
       measured, from the parameter fix's own `SolveContext` type), both over the
       walk-calibrated 14 the root records as of the integration branch's `9facd7f`
