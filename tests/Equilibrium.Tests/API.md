@@ -9,9 +9,10 @@ consider proven about `Equilibrium`.
 |---|---|---|
 | tp, hp and sp solves reproduce the reference implementation within the fixtures node's tolerance table for every fixture case | L1 over the enumerated fixture directories (`FixtureSolveTests`) | ✅ |
 | condensed species enter and leave as in the reference (AP/binder/aluminium, water condensation, alumina phases at the exits) | L1 condensed cases (`CondensedSpeciesTests`) | ✅ |
-| frozen mode reproduces the frozen stations of the reference rocket cases and recovers the equilibrium temperature at the equilibrium composition | L1 (`FrozenModeTests`) | ✅ |
+| frozen mode reproduces the frozen stations of the reference rocket cases and recovers the equilibrium state at the equilibrium composition | L1 (`FrozenModeTests`) | ✅ |
 | element conservation and status codes behave as the invariants state; an absent element is a mask, bit for bit | L0 (`ElementConservationTests`, `InvalidInputTests`, `AbsentElementTests`, `DenseSolverTests`) | ✅ |
 | the solver gives the same bits inside a CPU-accelerator kernel as on the host | L1 kernel-equality tests (`KernelEqualityTests`) | ✅ |
+| a condensed species pair pins at its cut, an enthalpy no admissible set can hold is refused rather than reported `Ok`, and an `Ok` status never leaves a positive-gain condensed candidate out — states the reference cannot reach, checked against the node's own rule | L2 (`PlateauTests`) | ✅ |
 | no result of a fixture case changes a bit on the CPU accelerator without `Bits.approved.txt` moving in the same commit (a tripwire, not a contract) | Bits level (`BitSnapshotTests`, `Bits.approved.txt`) | ✅ |
 
 ## What the tests rely on

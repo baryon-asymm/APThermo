@@ -325,12 +325,22 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       in the chamber with the reference mass fraction, and the low-temperature RP-1311
       example (example 14, water condensation) reproduces the reference phase changes.
       `CondensedSpeciesTests`: `The_aluminized_propellant_burns_to_liquid_alumina_in_the_chamber`
-      (mole fraction 0.07645 and mass fraction 0.304 as the reference),
+      (mole fraction 0.07645 as the reference; the reference's mass fraction, 0.304,
+      follows from that mole fraction and its molar mass, so it is not compared a
+      second time),
       `Water_condenses_below_its_dew_point_in_the_low_temperature_example` (liquid at
       300 to 304.3 K, none from 305 K, as the reference), and
       `The_condensed_species_in_the_solution_are_those_of_the_reference` over every
       fixture case with condensed candidates (96 cases), including `AL2O3(a)` at the
       AP/HTPB/Al exits below the melting point.
+
+      ⚠ 2026-09-14: until this date the same test also asserted the derived mass
+      fraction against an absolute `1e-4` bound typed into the test itself — five
+      times looser than the fixtures node's tolerance table applied to the mole
+      fraction that mass fraction is built from. Removed: the mole fraction and the
+      molar mass are already compared through the table two lines above in the test,
+      and a mass fraction computed from both states adds no fact the reference can
+      settle beyond them. Found by the test review of 2026-09-14 (F-TK-01).
 - [x] 2026-09-12 — Derivatives: `Cp_eq`, `γ_s` and the sound speed agree with the
       reference within the tolerance table for every converged fixture case: part of
       the `FixtureSolveTests` comparison above (`cpEquilibrium`, `cvEquilibrium`,

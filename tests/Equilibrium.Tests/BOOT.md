@@ -9,6 +9,7 @@ The definition of what "`Equilibrium` is ready" means.
 | L0 | the internal dense solver on small systems; element conservation of a converged result; status codes on invalid input; the absent-element mask | analytic solutions; the invariant's tolerance; a table without the element | ✅ |
 | L1 | tp, hp and sp solves for the fixture mixtures: composition, temperature, `M`, `MW`, `Cp_eq`, `γ_s`, sound speed; condensed species inclusion (AP/binder/aluminium, RP-1311 example 14); frozen mode | the fixtures node's reference outputs and its tolerance table; the frozen stations of the reference rocket cases | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
+| L2 | states the reference cannot reach: the pinned pair at a cut, the refusal where no admissible set exists, no condensed candidate with positive gain left out of an `Ok` status | the node's own condensed-species rule (`BOOT.md`), not the reference | ✅ |
 | Bits | the host solve of every tp, hp and sp fixture case gives the recorded bits: one line per case in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the moles, the multipliers, every field of the state, the status and the iteration count, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
@@ -28,6 +29,12 @@ The definition of what "`Equilibrium` is ready" means.
   accelerator on the reference machine's runtime; a runtime update that moves lines
   is re-approved with that reason recorded here. A fixture case absent from the
   snapshot fails the test with instructions, as the surface snapshot does.
+- **This node owns the tolerance of a comparison that is not with the reference**
+  (2026-09-14): two paths of this tree reaching the same state (an equilibrium solve
+  and a frozen one at its composition; a plateau state reached twice) or an algebraic
+  identity of one state have no entry in the fixtures node's table to ask, so their
+  tolerance is a named constant of this node, `Tolerances.cs`, with its origin in a
+  comment, rather than a literal at the assertion (F-TK-10).
 
 ## Dependencies
 
@@ -60,15 +67,35 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — L0 green: `DenseSolverTests` (5 tests), `InvalidInputTests` (8),
-      `AbsentElementTests` (3 cases), `ElementConservationTests` over the 106 tp, hp
-      and sp files.
-- [x] 2026-09-12 — L1 green for every fixture case of kinds tp, hp, sp, including the
-      condensed cases: `FixtureSolveTests` over the enumerated directories (46 + 34 +
-      26 files); `CondensedSpeciesTests` (96 cases with condensed candidates, the
-      alumina and the water-condensation tests); `FrozenModeTests` over the 51 rocket
-      fixtures with frozen stations and 3 self-consistency cases;
-      `KernelEqualityTests` over the 8 table families (106 cases).
+- [x] 2026-09-14 — L0 green: `DenseSolverTests` (5 tests), `InvalidInputTests` (8),
+      `AbsentElementTests` (3 cases), `ElementConservationTests` over the enumerated
+      tp, hp and sp files.
+- [x] 2026-09-14 — L1 green for every fixture case of kinds tp, hp, sp, including the
+      condensed cases: `FixtureSolveTests` over the enumerated tp, hp and sp
+      directories; `CondensedSpeciesTests` over the fixture cases with condensed
+      candidates (the alumina and the water-condensation tests); `FrozenModeTests`:
+      `Frozen_stations_of_the_reference_are_reproduced_from_the_frozen_composition`
+      over the reference rocket cases with a frozen station, and the self-consistency
+      cases, one per problem kind, over
+      `Frozen_mode_at_the_equilibrium_composition_recovers_the_equilibrium_state`,
+      `A_frozen_state_reports_the_frozen_heat_capacities_as_the_equilibrium_ones` and
+      `A_frozen_state_carries_the_ideal_gas_derivatives`; `KernelEqualityTests` over
+      the table families of the enumerated directory.
+
+      ⚠ 2026-09-14: until this date these two criteria carried hand-typed fixture
+      counts (106 tp/hp/sp files, 96 condensed cases, 51 frozen-station fixtures, 8
+      table families) that had fallen behind the fixtures node's directories, in one
+      case since before the tick was written (AGENTS.md §8: a number repeating the
+      length of a list diverges at the list's first change). Dropped in favour of the
+      enumerated directory itself, which is the list; found by the test review of
+      2026-09-14 (F-TK-03). `FrozenModeTests`' single named test is replaced by the
+      three tests its split into the same day (F-TK-11).
+- [x] 2026-09-14 — L2 green: `PlateauTests.An_enthalpy_inside_the_ALN_gap_pins_the_pieces_at_the_cut`,
+      `An_enthalpy_no_admissible_set_can_hold_is_refused_rather_than_lied_about`, and
+      `An_ok_solution_leaves_no_condensed_candidate_with_positive_inclusion_gain` (a
+      theory over every hp fixture case). The class named itself L2 in its own comment
+      since 2026-09-14 while this node's level table and criteria did not; both now
+      say the same thing (F-TK-02).
 - [x] 2026-09-12 — Every check proven non-degenerate once, by mutation runs on the
       reference machine, each restored afterwards: a reference `cpEquilibrium` raised by
       1 % in a tp fixture (1 red); the solver's convergence tolerances loosened to
