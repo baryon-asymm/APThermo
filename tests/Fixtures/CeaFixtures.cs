@@ -90,8 +90,9 @@ public static class CeaFixtures
             }
 
             var provenance = new Provenance(
-                strings[0], strings[1], strings[2], strings[3], strings[4], strings[5],
-                strings[6], strings[7], strings[8], strings[9], generatedOn);
+                Package: strings[0], Version: strings[1], LibraryVersion: strings[2], Method: strings[3], Script: strings[4],
+                ScriptSha256: strings[5], ThermoLibSha256: strings[6], TransLibSha256: strings[7], DataThermoSha256: strings[8],
+                DataTransSha256: strings[9], GeneratedOn: generatedOn);
             return new CeaCase(name, kind, inputs.Clone(), outputs.Clone(), provenance, path);
         }
     }

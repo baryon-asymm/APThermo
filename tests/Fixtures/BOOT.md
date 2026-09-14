@@ -354,10 +354,12 @@ one creation names its arguments; it passes them by position today (the criterio
       proves the rule at the threshold and one ULP on each side, seen red once with the
       comparison reversed (`<` for `>=`), reverted before that test was committed, the
       evidence recorded in the test's own doc comment.
-- [ ] The creation of `Provenance` in `CeaFixtures` names its arguments, each bound to the
-      `generator` field its value is read from (the root's condition on a declared wide
-      constructor, the row of `## Shape exceptions`); every fixture theory of the tests
-      nodes green unchanged.
+- [x] 2026-09-15 — The creation of `Provenance` in `CeaFixtures` names its arguments,
+      each bound to the `generator` field its value is read from (the root's condition
+      on a declared wide constructor, the row of `## Shape exceptions`), verified by
+      `named-construction-scan.py . Provenance` (one site, fully named); every fixture
+      theory of the tests nodes green unchanged: the full-solution fast suite (10
+      projects, 3014 tests) green, every consumer's `Bits.approved.txt` hash unmoved.
 
 ## Taboos
 
