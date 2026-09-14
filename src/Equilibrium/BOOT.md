@@ -89,10 +89,20 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `ln(n_j/n) = −18.420681` (that is `n_j/n = 1e-8`) as in the report, below which a
   gaseous species is held at zero in the sums, keeps its logarithm, and is reported
   with zero moles. Iteration cap: 50 Newton steps after the last change of the
-  condensed species set, and at most 10 changes of that set per case. After the
+  condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
+  case: three per slot of the condensed set, an inclusion, a forgiveness and a
+  stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
+  the constant is the number, this document only names it). After the
   report's tests pass, up to six further steps polish the iterate until the largest
   correction is below `1e-11`, so that the reported state is at rounding level and the
   tolerance table measures the reference's convergence, not this node's.
+
+  ⚠ 2026-09-14: stood "at most 10 changes of that set per case". The plateau rules of
+  2026-09-13 need up to three changes per slot, and the code's constant became
+  `3 * MaxCondensedInSolution` that day while this sentence kept the old number;
+  found by the clean-code review of 2026-09-14 (AGENTS.md §8: a number repeating a
+  constant diverges at the constant's first change, so the document now names the
+  constant).
 
   ⚠ 2026-09-12: the report's wording of equation (3.1) does not say that only growing
   species enter the maximum. Read symmetrically, the nozzle exits of NTO/UDMH and
@@ -195,6 +205,72 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the design session of 2026-09-13, so that the state struct, the surface snapshot
   and the reference comparisons stay unchanged).
 
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
+is one public facade over internal stage classes, all static and kernel-compatible,
+all in this directory and namespace, one class per file, sharing the existing view,
+scratch and result structs. Every floating-point expression keeps its present form
+and its present order of evaluation: the decomposition moves code, it does not
+rewrite formulas, and the bit snapshot of the tests node (the acceptance criteria
+below) is the proof.
+
+| Class | Responsibility | Visibility |
+|---|---|---|
+| `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above 10 | public, contract unchanged |
+| `CaseSetup` | input validation, the element and species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
+| `Composition` | the four species functions at the case temperature; the retained gaseous moles (the trace rule, one place); the mixture sums the system and the state need (`MixtureSums`) | internal |
+| `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
+| `NewtonIteration` | one damped step: the corrections of (2.18), the control factor of (3.1)–(3.3), the application (3.4), the temperature update and its range check, the tests (3.5) and (3.6), the polish control and the singular remedies of section 3.6 | internal |
+| `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
+| `PhaseGeometry` | where two records of one formula meet: the record bounds, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
+| `ElementBalance` | the residual `Σ a_ij n_j − b_i` (one place, used by the matrix and by the tests) and its two tolerance tests, as two named methods | internal |
+| `DerivativeSystem` | the derivative system of section 2.6 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
+| `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
+| `FrozenTemperature` | Newton on the temperature at a fixed composition, to the frozen test, with its own step cap | internal |
+| `DenseSolver` | contract unchanged; `Solve` split into scaling, elimination and back substitution | public, contract unchanged |
+
+Carriers (`Carriers.cs`): `IterationState`, the per-case state carried between the
+stages (temperature, `ln n`, the condensed count, the temperature the functions were
+evaluated at, the step and set-change counts, the switched-out and removed-for-range
+memories), passed by `ref`, or returned by value should the kernel compiler refuse a
+`ref` struct, which the kernel-equality test decides; `SystemLayout` (the unknown
+count, the stride, the rows of the total-moles and temperature equations, the
+problem kind); `MixtureSums`; `Derivatives`; the enums `EstimateSource`,
+`DerivativeKind` and `SpeciesMark`.
+
+Decisions taken with the review of 2026-09-14:
+
+- **The species mark.** `SpeciesActive` keeps its slot and gains named values,
+  `SpeciesMark { Absent = 0, Active = 1, ForgivenOnce = 2, StoodDown = 3 }`: a
+  stood-down record is `StoodDown`, no longer `Absent`, so the honesty guard reads
+  the mark instead of re-deriving element presence, and "in play" is one predicate
+  (`Active` or `ForgivenOnce`) instead of three spellings. The scratch layout is
+  unchanged; `API.md` records the domain.
+- **The flag arguments.** `isTp` and `isHp` come from `SystemLayout.Kind`; the
+  derivative flag becomes `DerivativeKind`; the element-balance flag becomes the two
+  named tests. `useMolesAsEstimate` stays on the public entry point: it is the
+  contract, and `EstimateSource` is its internal translation.
+- **The pinned representative.** `DerivativeSystem` swaps the representative into the
+  last slot exactly as today, so that the assembled rows and the pivoting keep their
+  order, and restores the caller's order before returning: the scratch is not
+  permuted behind the caller's back.
+- **The constants.** Every number of the report gets a name in the stage that uses
+  it: the control-factor weight 5 and limit 2 of equation (3.1), the frozen step
+  limit 0.4, the initial gaseous moles 0.1, the offset of one e-fold below the trace
+  threshold for an unestimated species, and a frozen step cap of its own, equal to
+  `MaxNewtonSteps` today; values unchanged.
+- **The geometry stays here.** The pure part of `PhaseGeometry` (which records share
+  a bound, the crossing of each pair) is a property of the table and could live in
+  `Thermo` beside the join-and-cut rule it already owns; moving it changes `Thermo`'s
+  contract and the arithmetic path on CUDA (host-computed crossings against
+  kernel-computed ones), so it is a later design session of the root, not part of
+  this decomposition.
+- **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
+  stage; should the composition root's `Solve` not fit under 60 lines as a plain
+  sequence of stage calls, the exception is declared here with the measured count,
+  and it may not exceed 100 lines.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — tp problems: for the product mixtures of the four reference
@@ -278,6 +354,24 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       cut the gap test picking each side. The original wording asked for "fine"
       sweeps of both plateaus from both starts; the eight-ratio band and the
       four-exit example are that promise's committed form.
+- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node
+      within the root's code-shape constraint (measured by the protocol tests node's
+      `ShapeTests`; an exception, if one is needed, declared under `## Structure`),
+      the public surface unchanged (`Protocol.Tests.SurfaceTests` against the
+      unchanged snapshot), and the results bit for bit those of `8e36a27` on the CPU
+      accelerator: the tests node's bit snapshot over every tp, hp and sp fixture
+      case (the moles, the multipliers, every field of the state, the status and the
+      iteration count, hashed per case) unchanged, `KernelEqualityTests` green, every
+      criterion above still green, and the execution tests node's CUDA sweep and
+      throughput benchmark green once at the end.
+- [ ] The rules the review of 2026-09-14 found written twice exist once each: the
+      inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, used by the
+      inclusion test and by the honesty guard), the element residual
+      (`ElementBalance.Residual`, used by the matrix and by the tests), the trace
+      retention (`Composition`), the state record (`MixtureProperties`); the dead
+      conditional of the frozen target is gone; every number of the report is a
+      named constant in its stage. Checked by reading at the design review of the
+      decomposition.
 
 ## Taboos
 

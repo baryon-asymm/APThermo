@@ -127,6 +127,22 @@ linter; xunit for tests.
   text data and text fixtures. Nothing secret exists in this repository.
 - Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, CUDA
   Toolkits 12.9 and 13.3, 16 logical CPU cores. Recorded, not required.
+- Code shape (2026-09-14, the clean-code pass): a type spans at most 400 physical
+  lines from its declaration to its closing brace, a method at most 60, control flow
+  nests at most 3 deep, a method takes at most 6 parameters (kernels aggregate through
+  their `in` view and scratch structs). A type names at most 10 distinct types of the
+  tree in its signatures and bodies (its efferent coupling, Ce), unless it is a
+  registry or a composition root that holds no formula and is named as such in its
+  node's `BOOT.md`. A type named by 10 or more types of the tree (its afferent
+  coupling, Ca) is a stable type: at most 100 lines and no behaviour beyond
+  construction and validation, or a contract in its node's `API.md`. The instability
+  `I = Ce / (Ca + Ce)` of the `src` nodes over their project graph never rises along a
+  dependency. Every exception is declared in the node's `BOOT.md` with the measured
+  figure and the reason. Decomposition goes along the domain's axes (stages of an
+  algorithm, entities, phases of a pipeline), never through `partial` (the
+  `[GeneratedRegex]` requirement excepted), `#region` or a Helpers/Utils class.
+  Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md` records why the
+  numbers are what they are.
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
@@ -184,6 +200,20 @@ There is no external ancestor: the tree root is the repository root, and the loa
       `tests/Protocol.Tests/PublicSurface.approved.txt`. The first run over the tree
       found one undocumented public type (`Execution`'s `SpeciesFunctionBatchViews`,
       fixed in its `API.md`).
+- [ ] The tree meets the code-shape constraint above: no type over 400 physical
+      lines, no method over 60, no control flow nested deeper than 3, no method with
+      more than 6 parameters, no type with Ce over 10 outside the registries and
+      composition roots the nodes declare, every stable type in shape, no dependency
+      against instability; measured by the protocol tests node's `ShapeTests` over a
+      machine-generated list of every type and method of every assembly, the declared
+      exceptions read from the nodes' `BOOT.md`. The review of 2026-09-14 (nine
+      read-only reviews over the tree at `8e36a27`, one per node group and one across
+      the boundaries) found 5 types over 400 lines (`EquilibriumSolver` 1289,
+      `TransportSolver` 794, `Problems.Solver` 663, `Engine` 509, `Protocol.Tests.Tree`
+      428), 31 methods over 60 lines (the longest `TransportSolver.Evaluate` 640 and
+      `EquilibriumSolver.Solve` 512) and 10 types with Ce over 10; the decompositions
+      are designed in the nodes' `BOOT.md` files under `## Structure` and each is
+      accepted only with its node's bit-for-bit or field-by-field guard green.
 
 ## Taboos
 

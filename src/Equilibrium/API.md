@@ -33,7 +33,7 @@ public readonly struct EquilibriumScratch              // slices of batch-sized 
     public readonly ArrayView<double> Matrix;          // [MaxUnknowns * MaxUnknowns], row-major
     public readonly ArrayView<double> RightHandSide;   // [MaxUnknowns]; the solution after a solve
     public readonly ArrayView<double> RowScale;        // [MaxUnknowns]
-    public readonly ArrayView<int> SpeciesActive;      // [species], 1 when every element of the species is present
+    public readonly ArrayView<int> SpeciesActive;      // [species], the species mark: 0 Absent (an element missing), 1 Active, 2 ForgivenOnce, 3 StoodDown (BOOT.md, the condensed-species rule)
     public readonly ArrayView<int> ElementActive;      // [element], 1 when the abundance is positive
     public readonly ArrayView<int> CondensedInSolution;// [MaxCondensedInSolution], species indices, −1 beyond the count
     public EquilibriumScratch(ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
@@ -107,6 +107,16 @@ transition, hp and sp problems only (`BOOT.md`, the condensed-species rule) —
 convention for derivatives that do not exist on a plateau (decided 2026-09-13), while
 `DlnVdlnP`, `GammaS = −1/DlnVdlnP` and `SoundSpeed` carry the real plateau values and
 both records' mole numbers are reported.
+
+⚠ 2026-09-14: `SpeciesActive` was documented as "1 when every element of the species
+is present", a two-valued mask, while the plateau rules of 2026-09-13 had made it
+carry a third value (2, a condensed record removed for its range once) and had
+written 0 for a record that stood down, so that an absent element and a stood-down
+record were indistinguishable and the honesty guard re-derived element presence by
+hand. Found by the clean-code review of 2026-09-14. The slot now carries the four
+named values above (`SpeciesMark` in the node's `BOOT.md`, `## Structure`); the
+layout of the scratch is unchanged, and a caller that slices the scratch writes
+nothing into it.
 
 ⚠ 2026-09-12: the sketch had `EquilibriumScratch { GOverRT, LogMoles, Matrix,
 RightHandSide, Pivots, CondensedInSolution }` and `IntsPerCase(int elementCount)`.

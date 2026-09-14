@@ -9,6 +9,7 @@ The definition of what "`Equilibrium` is ready" means.
 | L0 | the internal dense solver on small systems; element conservation of a converged result; status codes on invalid input; the absent-element mask | analytic solutions; the invariant's tolerance; a table without the element | ✅ |
 | L1 | tp, hp and sp solves for the fixture mixtures: composition, temperature, `M`, `MW`, `Cp_eq`, `γ_s`, sound speed; condensed species inclusion (AP/binder/aluminium, RP-1311 example 14); frozen mode | the fixtures node's reference outputs and its tolerance table; the frozen stations of the reference rocket cases | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
+| Bits | the host solve of every tp, hp and sp fixture case gives the recorded bits: one line per case in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the moles, the multipliers, every field of the state, the status and the iteration count, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ⏳ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -19,6 +20,14 @@ The definition of what "`Equilibrium` is ready" means.
   reference) and are not overridden locally.
 - **Every fixture case is compared**: the test enumerates the fixture directory; a new
   fixture file is a new test case without code changes.
+- **The bits are a tripwire, not a contract** (2026-09-14): the Bits level guards the
+  numerics against unnoticed change the way the surface snapshot guards the contract
+  (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the
+  numerical change that moved it named in the same commit; a decomposition, a
+  renaming or a reordering of code moves no line. The snapshot is of the CPU
+  accelerator on the reference machine's runtime; a runtime update that moves lines
+  is re-approved with that reason recorded here. A fixture case absent from the
+  snapshot fails the test with instructions, as the surface snapshot does.
 
 ## Dependencies
 
@@ -69,6 +78,12 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       kernel given a different estimate flag (8 red); the conservation invariant
       tightened to `1e-20` (106 red); a frozen-station reference temperature raised by
       1 K (1 red); negative abundances accepted by the solver (1 red).
+- [ ] Bits level green: `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+      over the enumerated tp, hp and sp directories against `Bits.approved.txt`,
+      recorded at `8e36a27` before any code of the decomposition moved, and
+      unchanged after it; seen red once by a solver constant perturbed in the last
+      digit (every case red) and by a fixture file absent from the snapshot (that
+      case red with the instruction to approve).
 
 ## Taboos
 
