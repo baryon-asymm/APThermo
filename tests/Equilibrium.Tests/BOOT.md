@@ -155,13 +155,6 @@ creation names its arguments; it passes them by position today (the criterion be
       named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
       `65788e23f4390305763c80ab1f66b2054ff1907a`, the fast suite 463/463 green).
 
-      ⚠ 2026-09-15: first verified with a hand-written scratch script
-      (`named-construction-scan.py`), against the root's own rule that shape is
-      measured with the protocol tool, never a scratch script. The fact did not
-      change - the site was and stays fully named - only the evidence: the protocol
-      tests node already carries this exact check (`ShapeMechanics.Constructions`,
-      built for `ShapeTests` to use), reading the same syntax trees by the same rule,
-      and it confirms the one call site above.
 - [x] 2026-09-15 — `HostSolution` (`HostSolver.cs`) restructured from 7 to 3
       parameters, within the root's limit, along the domain axis of input against
       converged output: `Moles`, `Multipliers`, `State`, `Status` and `Iterations`
