@@ -209,79 +209,9 @@ public static class TransportSolver
             scratch.Mark[candidate] |= 1;
         }
 
-        // The gases of the case: those whose every element is active. The reference's ng counts the gaseous products of the
-        // problem; a table shared by cases with different elements holds more, and they must not lower the thresholds.
-        var caseGasCount = 0;
-        for (var j = 0; j < gasCount; j++)
-        {
-            if (OfCase(in inputs, j))
-            {
-                caseGasCount++;
-            }
-        }
-
-        // The transport set: the components, then every gas above a threshold descending by decades until the set covers the gas.
-        var nm = 0;
-        var total = 0.0;
-        for (var i = 0; i < elementCount; i++)
-        {
-            var j = scratch.Component[i];
-            if (scratch.RowActive[i] == 0 || j < 0 || (scratch.Mark[j] & 2) != 0)
-            {
-                continue;
-            }
-
-            if (nm >= MaxSpecies)
-            {
-                break;
-            }
-
-            scratch.IndexList[nm++] = j;
-            scratch.Mark[j] |= 2;
-            total += moles[j];
-        }
-
-        var coverage = CoverageFraction * gasMoles * (1.0 - CoverageTolerance);
-        var threshold = gasMoles / caseGasCount;
-        var capped = 0;
-        for (var pass = 0; pass < caseGasCount; pass++)
-        {
-            if (total >= coverage)
-            {
-                break;
-            }
-
-            if (nm >= MaxSpecies)
-            {
-                capped = 1;
-                break;
-            }
-
-            threshold /= 10.0;
-            for (var j = 0; j < gasCount; j++)
-            {
-                if (moles[j] < threshold || (scratch.Mark[j] & 2) != 0)
-                {
-                    continue;
-                }
-
-                if (nm >= MaxSpecies)
-                {
-                    capped = 1;
-                    break;
-                }
-
-                total += moles[j];
-                scratch.IndexList[nm++] = j;
-                scratch.Mark[j] |= 2;
-            }
-
-            if (threshold < CutoffFraction * gasMoles)
-            {
-                break;
-            }
-        }
-
+        // The transport set: the gases of the case, the components, then every gas above a threshold descending by decades.
+        var total = TransportSetSelection.Select(in inputs, gasMoles, ref result);
+        var nm = result.SpeciesCount;
         if (nm == 0 || total <= 0.0)
         {
             return CaseStatus.NoTransportData;
@@ -306,8 +236,6 @@ public static class TransportSolver
         var reaction = ReactionTerms.Evaluate(in inputs, nm, nr);
 
         SetProperties.Fill(in inputs, nm, in mixture, in reaction, ref result);
-        result.SpeciesCount = nm;
-        result.Capped = capped;
         figures[0] = result;
         return reaction.Status;
     }
@@ -368,7 +296,7 @@ public static class TransportSolver
     }
 
     /// <summary>Whether gaseous species j is one the case can form: every element of its formula is an active row.</summary>
-    private static bool OfCase(in StationInputs inputs, int j)
+    internal static bool OfCase(in StationInputs inputs, int j)
     {
         var species = inputs.Species;
         var scratch = inputs.Scratch;
