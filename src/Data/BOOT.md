@@ -168,8 +168,22 @@ Decisions taken with the review of 2026-09-14:
   compile unnoticed (F-TD-07).
 - **The load time is a measurement, not a criterion** (Constraints); the wall-clock
   test of the tests node goes (F-TK-14).
+- **`SpeciesRecordReader` does not translate its own field errors.** A first pass left
+  the `FieldException → DatabaseFormatException` wrap (BOOT.md, `LineErrors`) inside
+  `SpeciesRecordReader.Read`, which put it at Ce 12 (`DatabaseFormatException`,
+  `FieldException`, `ElementCount`, `FixedColumns`, `FortranNumber`, `IntervalReader`,
+  `LineErrors`, `RecordColumns`, `Species`, `SpeciesPhase`, `SpeciesSection`,
+  `TemperatureInterval`), two over the root's limit. `ThermoFile.Parse` already holds
+  the record's start line (`first = i`, before calling `Read`) for its own errors, so
+  the wrap moved to its call site instead: `SpeciesRecordReader` now lets
+  `FieldException` propagate, and `ThermoFile` catches it there. `Read`'s Ce drops to
+  10 (at the limit); `ThermoFile`'s rises to 5. No behaviour changed — the corruption
+  tests assert the same file, line and message before and after.
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
-  than 6 parameters (the two constructors aside).
+  than 6 parameters (the two constructors aside); no type names more than 10 distinct
+  types of the tree (its efferent coupling, Ce) — measured by a scan of every file of
+  this node and the tests node, `SpeciesRecordReader` at the limit and no other type
+  above 10 (the root's code-shape constraint).
 
 ## Acceptance criteria
 

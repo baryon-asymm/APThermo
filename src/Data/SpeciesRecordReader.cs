@@ -3,55 +3,50 @@ namespace AerospacePropellantThermodynamics.Data;
 /// <summary>
 /// One species record of <c>thermo.inp</c>, whole or absent: the identity line, the properties line (interval count,
 /// date code, formula, phase, molar mass, formation enthalpy), then either the assigned-temperature line (no
-/// intervals) or the record's intervals, each read by <see cref="IntervalReader"/>.
+/// intervals) or the record's intervals, each read by <see cref="IntervalReader"/>. A field error propagates as the
+/// <c>LineErrors</c> <c>FieldException</c>; <see cref="ThermoFile"/>, which already knows the record's start line,
+/// is the one that turns it into the final <see cref="DatabaseFormatException"/> (keeps this type's efferent
+/// coupling within the root's limit; the translation belongs to the caller's context regardless).
 /// </summary>
 internal static class SpeciesRecordReader
 {
     public static Species Read(string[] lines, ref int i, SpeciesSection section, string? fileName)
     {
-        var first = i;
-        try
+        var l1 = lines[i];
+        var (name, comment) = LineErrors.OnLine(i, () => ReadIdentity(l1));
+
+        var l2 = LineErrors.Require(lines, i + 1, fileName, "a record");
+        var properties = LineErrors.OnLine(i + 1, () => ReadProperties(l2));
+
+        var intervals = new List<TemperatureInterval>(properties.IntervalCount);
+        var assignedTemperature = 0.0;
+        if (properties.IntervalCount == 0)
         {
-            var l1 = lines[i];
-            var (name, comment) = LineErrors.OnLine(i, () => ReadIdentity(l1));
-
-            var l2 = LineErrors.Require(lines, i + 1, fileName, "a record");
-            var properties = LineErrors.OnLine(i + 1, () => ReadProperties(l2));
-
-            var intervals = new List<TemperatureInterval>(properties.IntervalCount);
-            var assignedTemperature = 0.0;
-            if (properties.IntervalCount == 0)
-            {
-                var l3 = LineErrors.Require(lines, i + 2, fileName, "a record");
-                assignedTemperature = LineErrors.OnLine(i + 2, () => ReadAssignedTemperature(l3));
-                i += 3;
-            }
-            else
-            {
-                i += 2;
-                for (var n = 0; n < properties.IntervalCount; n++)
-                {
-                    intervals.Add(IntervalReader.Read(lines, ref i, fileName));
-                }
-            }
-
-            return new Species(
-                Name: name,
-                Comment: comment,
-                DateCode: properties.DateCode,
-                Formula: properties.Formula,
-                Phase: properties.Phase,
-                MolarMass: properties.MolarMass,
-                FormationEnthalpy: properties.FormationEnthalpy,
-                AssignedTemperature: assignedTemperature,
-                Intervals: intervals,
-                Section: section,
-                IsInert: name.StartsWith("Inert", StringComparison.Ordinal));
+            var l3 = LineErrors.Require(lines, i + 2, fileName, "a record");
+            assignedTemperature = LineErrors.OnLine(i + 2, () => ReadAssignedTemperature(l3));
+            i += 3;
         }
-        catch (FieldException e)
+        else
         {
-            throw new DatabaseFormatException(fileName, e.LineIndex + 1, $"record starting at line {first + 1}: {e.Message}", e.InnerException);
+            i += 2;
+            for (var n = 0; n < properties.IntervalCount; n++)
+            {
+                intervals.Add(IntervalReader.Read(lines, ref i, fileName));
+            }
         }
+
+        return new Species(
+            Name: name,
+            Comment: comment,
+            DateCode: properties.DateCode,
+            Formula: properties.Formula,
+            Phase: properties.Phase,
+            MolarMass: properties.MolarMass,
+            FormationEnthalpy: properties.FormationEnthalpy,
+            AssignedTemperature: assignedTemperature,
+            Intervals: intervals,
+            Section: section,
+            IsInert: name.StartsWith("Inert", StringComparison.Ordinal));
     }
 
     private static (string Name, string Comment) ReadIdentity(string line)
