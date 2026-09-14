@@ -176,10 +176,20 @@ position today (the criterion below).
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
-      `## Shape exceptions`), verified by `named-construction-scan.py . RocketBatchViews`
-      (two sites tree-wide, this node's and the execution node's own type of the same
-      name, both fully named); the node's bit snapshot unchanged (`Bits.approved.txt`
-      hash `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green).
+      `## Shape exceptions`), verified by `ShapeMechanics.Constructions` (the
+      protocol tests node's own tool, run through a temporary, uncommitted test):
+      two sites tree-wide, this node's (`KernelEqualityTests.cs:133`) and the
+      execution node's own type of the same name (`src/Execution/RocketPipeline.cs:53`),
+      both fully named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
+      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green).
+
+      ⚠ 2026-09-15: first verified with a hand-written scratch script
+      (`named-construction-scan.py`), against the root's own rule that shape is
+      measured with the protocol tool, never a scratch script. The fact did not
+      change - both sites were and stay fully named - only the evidence: the
+      protocol tests node already carries this exact check
+      (`ShapeMechanics.Constructions`, built for `ShapeTests` to use), reading the
+      same syntax trees by the same rule, and it confirms both call sites above.
 - [x] 2026-09-15 — `RocketInputs` (8 parameters) and `RocketSolution` (9), both in
       `RocketHost.cs`, restructured within the root's limit, along domain axes;
       neither is a declared exception, so no row was added to `## Shape exceptions`.
