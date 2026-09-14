@@ -178,6 +178,20 @@ Decisions taken with the reviews of 2026-09-14:
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
   than 6 parameters (the two constructors aside).
 
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `SpeciesTableView.SpeciesTableView` | parameters | 11 | the layout itself, the aggregation mechanism the root names for kernels (the decision "The constructors of the view and the arrays are the declared exception to the parameter rule"); every creation names its arguments |
+| `SpeciesTableArrays.SpeciesTableArrays` | parameters | 8 | the layout itself, as `SpeciesTableView` above; every creation names its arguments |
+
+No type of this node names more than 8 distinct types of the tree by the dependency
+check's walk (`CondensedAssembly` and `SpeciesTable` tie at 8), below the root's limit
+of 14: no efferent coupling row is needed.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — For the species and temperatures of the `thermo` fixtures (one file

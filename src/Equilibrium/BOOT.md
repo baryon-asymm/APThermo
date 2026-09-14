@@ -347,6 +347,20 @@ What the implementation settled, 2026-09-14, in the coding session that followed
   the set from `result.Moles` at every entry), so no result moves - the point is that
   a stage may not hand the caller's scratch back reordered.
 
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `EquilibriumSolver` | efferent coupling | 19 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `NewtonIteration` | efferent coupling | 17 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
+| `EquilibriumScratch.EquilibriumScratch` | parameters | 12 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
+
+Every other type of the node measures 10 or below by the dependency check's walk
+(`CondensedSet`, the highest of the rest), well below the root's limit of 14.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — tp problems: for the product mixtures of the four reference

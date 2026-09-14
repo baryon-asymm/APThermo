@@ -128,7 +128,12 @@ internal static class TypeShape
 
     private static IEnumerable<Type> Unwrap(Type type)
     {
-        var bare = type.IsByRef || type.IsArray || type.IsPointer ? type.GetElementType() ?? type : type;
+        var bare = type;
+        while ((bare.IsByRef || bare.IsArray || bare.IsPointer) && bare.GetElementType() is { } element)
+        {
+            bare = element;
+        }
+
         yield return bare;
         if (!bare.IsGenericType)
         {

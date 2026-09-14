@@ -241,6 +241,29 @@ tuple. `StationEvaluation.Run` is 32 lines and holds no formula; the largest typ
 the node is now `TransportComponents` at 244 lines and the largest method
 `TransportScratch.Slice` at 53, against 794 and 640 before.
 
+  ⚠ 2026-09-14, superseded by the named-construction fix below: `Descriptors.cs`'s
+  `TransportScratch.Slice` return statement was rewritten from positional to named
+  arguments after this paragraph was written, which lengthened it to 58 lines (measured
+  by the protocol tests node's `ShapeMeasures`); still well under the root's 60.
+  `StationEvaluation.Run` measures 28 lines by the same tool, not 32; unchanged since,
+  the difference is this paragraph's own figure, not a later edit.
+
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `TransportScratch.TransportScratch` | parameters | 22 | a descriptor whose constructor enumerates the slices of a blittable struct; grouping them into three structs would move the contract for no run-time gain (the decision "The scratch descriptor stays"); every creation names its arguments |
+| `TransportTableView.TransportTableView` | parameters | 10 | the same case as `TransportScratch` above |
+| `TransportTableArrays.TransportTableArrays` | parameters | 9 | the same case as `TransportScratch` above |
+
+`StationEvaluation`, named in `## Structure` as the composition root the root's Ce rule
+allows above its limit, measures 14 by the dependency check's walk: at, not above, the
+root's limit of 14, so it claims no exception and this node needs no efferent-coupling
+row.
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — Every rocket fixture run with transport (enumerated by the tests

@@ -3,8 +3,8 @@ using System.Text.RegularExpressions;
 namespace AerospacePropellantThermodynamics.Protocol.Tests;
 
 /// <summary>
-/// What a node's own <c>BOOT.md</c> declares: the links of its <c>## Dependencies</c> section. (The rows of a
-/// <c>## Shape exceptions</c> table are a later phase's concern; this node reads only the dependency links.)
+/// What a node's own <c>BOOT.md</c> declares: the links of its <c>## Dependencies</c> section, and the rows of its
+/// <c>## Shape exceptions</c> table (2026-09-14).
 /// </summary>
 internal static class NodeDocuments
 {
@@ -43,4 +43,29 @@ internal static class NodeDocuments
 
         return (declared, unresolved);
     }
+
+    /// <summary>The rows of a node's own `## Shape exceptions` table, in the form `tests/Protocol.Tests/BOOT.md` defines
+    /// ("Shape check"): `Where` with its wrapping backticks stripped, `Rule` and `Reason` as written, `Measured` as an
+    /// integer. Empty when the node's `BOOT.md` has no such section.</summary>
+    public static IReadOnlyList<ShapeException> ShapeExceptions(Node node)
+    {
+        var boot = File.ReadAllText(node.Boot).ReplaceLineEndings("\n");
+        var section = Regex.Match(boot, @"^## Shape exceptions\s*$(.*?)(?=^## |\z)", RegexOptions.Multiline | RegexOptions.Singleline);
+        if (!section.Success)
+        {
+            return [];
+        }
+
+        var rows = new List<ShapeException>();
+        var pattern = @"^\|\s*(?<where>[^|\r\n]+?)\s*\|\s*(?<rule>[^|\r\n]+?)\s*\|\s*(?<measured>\d+)\s*\|\s*(?<reason>[^|\r\n]+?)\s*\|\s*$";
+        foreach (Match row in Regex.Matches(section.Groups[1].Value, pattern, RegexOptions.Multiline))
+        {
+            rows.Add(new ShapeException(StripBackticks(row.Groups["where"].Value), row.Groups["rule"].Value,
+                int.Parse(row.Groups["measured"].Value), row.Groups["reason"].Value));
+        }
+
+        return rows;
+    }
+
+    private static string StripBackticks(string cell) => cell.Length >= 2 && cell[0] == '`' && cell[^1] == '`' ? cell[1..^1] : cell;
 }

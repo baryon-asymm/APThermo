@@ -9,9 +9,11 @@ namespace AerospacePropellantThermodynamics.Protocol.Tests;
 /// </summary>
 internal static class Tree
 {
-    /// <summary>Directories never read as nodes: build output, tool caches, the agent's session directory (.claude holds
-    /// worktrees of other sessions, each a full copy of the tree), and the protocol kit's templates (the linter's --exclude templates).</summary>
-    private static readonly HashSet<string> Skipped = new(StringComparer.Ordinal)
+    /// <summary>Directories never read as nodes or as source: build output, tool caches, the agent's session directory (.claude
+    /// holds worktrees of other sessions, each a full copy of the tree), and the protocol kit's templates (the linter's
+    /// --exclude templates). Internal rather than private so that <see cref="SourceSyntax"/> shares the one list instead of
+    /// keeping a second copy that could drift from it.</summary>
+    internal static readonly HashSet<string> Skipped = new(StringComparer.Ordinal)
     {
         ".git", ".vs", ".claude", "bin", "obj", ".venv", "__pycache__", "TestResults", "artifacts", "node_modules", "templates",
     };

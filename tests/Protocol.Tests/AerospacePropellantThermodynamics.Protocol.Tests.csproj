@@ -6,6 +6,11 @@
     none of their types is used (this node's BOOT.md: Dependencies, None).
   -->
   <ItemGroup>
+    <!-- Roslyn: syntax trees only, for the Shape level's SourceSyntax (tests/Protocol.Tests/BOOT.md, Dependencies). -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Cli\AerospacePropellantThermodynamics.Cli.csproj" />
     <ProjectReference Include="..\..\src\Data\AerospacePropellantThermodynamics.Data.csproj" />
     <ProjectReference Include="..\..\src\Equilibrium\AerospacePropellantThermodynamics.Equilibrium.csproj" />
