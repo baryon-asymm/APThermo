@@ -58,7 +58,10 @@ internal static class TableLayout
             }
         }
 
-        return new SpeciesTableArrays(molarMass, formationEnthalpy, stoichiometry, intervalStart, intervalCount, bounds, exponents, coefficients);
+        return new SpeciesTableArrays(
+            molarMass: molarMass, formationEnthalpy: formationEnthalpy, stoichiometry: stoichiometry,
+            intervalStart: intervalStart, intervalCount: intervalCount, intervalBounds: bounds,
+            exponents: exponents, coefficients: coefficients);
     }
 
     private static void WriteInterval(TemperatureInterval interval, int slot, double[] bounds, double[] exponents, double[] coefficients)

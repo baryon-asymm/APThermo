@@ -95,8 +95,11 @@ public sealed class StatusTests(CpuFixture fixture)
             _spareInts = accelerator.Allocate1D<int>(SetSpecies * SetSpecies);
             var scratch = TransportScratch.Slice(_doubles.View, _ints.View, SetSpecies, 1);
             Prepare(scratch);
-            var species = new SpeciesTableView(SetSpecies, SetSpecies, 1, _molarMass.View, _spare.View, _spare.View,
-                                               _spareInts.View, _spareInts.View, _spare.View, _spare.View, _spare.View);
+            var species = new SpeciesTableView(
+                speciesCount: SetSpecies, gasCount: SetSpecies, elementCount: 1,
+                molarMass: _molarMass.View, formationEnthalpy: _spare.View, stoichiometry: _spare.View,
+                intervalStart: _spareInts.View, intervalCount: _spareInts.View,
+                intervalBounds: _spare.View, exponents: _spare.View, coefficients: _spare.View);
             var transport = new TransportTableView(SetSpecies, 0, _spareInts.View, _spareInts.View, _spareInts.View, _spareInts.View,
                                                    _spare.View, _spareInts.View, _spareInts.View, _spareInts.View);
             Inputs = new StationInputs(in species, in transport, in scratch, _spare.View, 3000.0);
