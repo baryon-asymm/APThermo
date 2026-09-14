@@ -93,33 +93,54 @@ public sealed class TableBuilderTests : IClassFixture<CpuFixture>
         Assert.Contains("'C'", e.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Unknown_names_duplicates_and_records_without_polynomials_are_refused()
+    /// <summary>One refusal per case: the input that is wrong, the exception it must raise, and the name the message must carry.</summary>
+    public static TheoryData<string[], string[], Type, string> RefusalCases() => new()
     {
-        Assert.Throws<KeyNotFoundException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "NoSuchSpecies"]));
-        var duplicate = Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "H2O"]));
-        Assert.Contains("H2O", duplicate.Message, StringComparison.Ordinal);
-        var reactant = Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "O"], ["H2O", "O2(L)"]));
-        Assert.Contains("O2(L)", reactant.Message, StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H", "H"], ["H2"]));
+        { ["H", "O"], ["H2O", "NoSuchSpecies"], typeof(KeyNotFoundException), "NoSuchSpecies" },
+        { ["H", "O"], ["H2O", "H2O"], typeof(ArgumentException), "H2O" },
+        { ["H", "O"], ["H2O", "O2(L)"], typeof(ArgumentException), "O2(L)" },
+        { ["H", "H"], ["H2"], typeof(ArgumentException), "H" },
+    };
+
+    [Theory]
+    [MemberData(nameof(RefusalCases))]
+    public void Unknown_names_duplicates_and_records_without_polynomials_are_refused(string[] elements, string[] species, Type exceptionType, string refusedName)
+    {
+        var e = Assert.Throws(exceptionType, () => SpeciesTable.Build(_cpu.Database, elements, species));
+        Assert.Contains(refusedName, e.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_limits_are_enforced_before_any_lookup()
+    /// <summary>One refusal per case: the (elements, species) pair that breaks a limit of <see cref="TableLimits"/>.</summary>
+    public static TheoryData<string[], string[]> LimitCases()
     {
         var tooManyElements = Enumerable.Range(0, TableLimits.MaxElements + 1).Select(i => $"E{i}").ToArray();
-        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, tooManyElements, ["H2"]));
         var tooManySpecies = Enumerable.Range(0, TableLimits.MaxSpecies + 1).Select(i => $"S{i}").ToArray();
-        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H"], tooManySpecies));
-        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, [], ["H2"]));
-        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, ["H"], []));
+        return new TheoryData<string[], string[]>
+        {
+            { tooManyElements, ["H2"] },
+            { ["H"], tooManySpecies },
+            { [], ["H2"] },
+            { ["H"], [] },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(LimitCases))]
+    public void The_limits_are_enforced_before_any_lookup(string[] elements, string[] species)
+    {
+        Assert.Throws<ArgumentException>(() => SpeciesTable.Build(_cpu.Database, elements, species));
     }
 
     [Fact]
     public void Element_symbols_are_matched_case_insensitively()
     {
         var table = SpeciesTable.Build(_cpu.Database, ["Al", "O"], ["AL2O3(a)", "ALO"]);
-        Assert.Equal(2.0, table.Arrays.Stoichiometry[0 * 2 + 1]); // AL in AL2O3(a), which is the condensed one and comes second
-        Assert.Equal(1.0, table.Arrays.Stoichiometry[0 * 2 + 0]); // AL in ALO
+        var aluminiumInAl2O3 = AluminiumCount(_cpu.Database["AL2O3(a)"]);
+        var aluminiumInAlo = AluminiumCount(_cpu.Database["ALO"]);
+        Assert.Equal(aluminiumInAl2O3, table.Arrays.Stoichiometry[0 * table.SpeciesCount + table.IndexOf("AL2O3(a)")]); // the condensed one, second
+        Assert.Equal(aluminiumInAlo, table.Arrays.Stoichiometry[0 * table.SpeciesCount + table.IndexOf("ALO")]); // gaseous, first
     }
+
+    private static double AluminiumCount(Species record) =>
+        record.Formula.Where(pair => string.Equals(pair.Symbol, "AL", StringComparison.OrdinalIgnoreCase)).Sum(pair => pair.Count);
 }

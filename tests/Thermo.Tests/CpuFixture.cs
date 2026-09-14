@@ -17,6 +17,16 @@ public sealed class CpuFixture : IDisposable
         Tolerances = ToleranceTable.Load();
     }
 
+    /// <summary>
+    /// The rounding floor for a comparison that is not against an independent reference but against a fit's own
+    /// continuity: a polynomial evaluated on either side of its own interval bound (<c>IntervalRuleTests</c>), or a
+    /// fit's enthalpy increment at 298.15 K, which the record's own H(298.15) − H(0) convention makes exactly zero
+    /// (<c>JanafTests</c>). Double arithmetic over the polynomial's own terms leaves a residual at this scale; a
+    /// real defect (a wrong exponent, a misread coefficient) is orders of magnitude larger. One named constant
+    /// instead of the literal <c>1e-9</c> typed twice (the clean-code review's F-TK-10).
+    /// </summary>
+    public const double RoundingBound = 1e-9;
+
     public Context Context { get; }
 
     public Accelerator Accelerator { get; }

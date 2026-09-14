@@ -70,6 +70,32 @@ public sealed class JoinAndCutTests : IClassFixture<CpuFixture>
         Assert.True(jump >= SpeciesFunctions.LatentHeatThreshold, $"|dH/RT| = {jump} at the cut at {bound} K");
     }
 
+    /// <summary>
+    /// F-TD-09: the join compares the formation enthalpy too. No repeated product-name group of the committed file
+    /// disagrees in it (confirmed by a scan of data/thermo.inp), so the rule is exercised on a synthetic pair: the
+    /// real, touching Cr(cr) records with only the second record's formation enthalpy nudged.
+    /// </summary>
+    [Fact]
+    public void Records_disagreeing_in_formation_enthalpy_are_refused_by_name()
+    {
+        var lines = File.ReadAllLines(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Encoding.Latin1);
+        var start = Array.FindIndex(lines, l => l.StartsWith("Cr(cr)", StringComparison.Ordinal));
+        Assert.True(start > 0, "Cr(cr) must be in the committed file");
+        // The first record has one interval (name + properties + 3 lines = 5); the second has two (2 + 6 = 8): 13 lines in all.
+        var record = lines.Skip(start).Take(13).ToArray();
+        Assert.Equal("0.000", record[6][65..].Trim()); // the second record's formation enthalpy, columns 66-80, before the mutation
+        record[6] = record[6][..65] + "          1.000"; // still columns 66-80, now a disagreeing value
+        var file = new List<string> { "thermo", "    200.00   1000.00   6000.00  20000.   9/8/2021" };
+        file.AddRange(record);
+        file.Add("END PRODUCTS");
+        file.Add("END REACTANTS");
+        var database = SpeciesDatabase.Parse(new StringReader(string.Join('\n', file) + "\n"));
+
+        var e = Assert.Throws<ArgumentException>(() => SpeciesTable.Build(database, ["CR"], ["Cr(cr)"]));
+        Assert.Contains("Cr(cr)", e.Message, StringComparison.Ordinal);
+        Assert.Contains("joined", e.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Records_that_cannot_be_joined_are_refused_by_name()
     {
