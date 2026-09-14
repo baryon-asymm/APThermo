@@ -74,35 +74,10 @@ internal static class RocketHost
 
     public static RocketSolution Solve(Accelerator accelerator, SpeciesTable table, RocketInputs inputs)
     {
-        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
-        var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        var stationCount = RocketLayout.StationCount(inputs.ExitCount);
-        using var elements = accelerator.Allocate1D(inputs.ElementMoles);
-        using var exitValues = accelerator.Allocate1D(inputs.ExitValues.Length == 0 ? new[] { 0.0 } : inputs.ExitValues);
-        using var exitKinds = accelerator.Allocate1D(inputs.ExitKinds.Length == 0 ? new[] { 0 } : inputs.ExitKinds.Select(k => (int)k).ToArray());
-        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        using var stations = accelerator.Allocate1D<MixtureState>(stationCount);
-        using var moles = accelerator.Allocate1D<double>((long)stationCount * speciesCount);
-        using var multipliers = accelerator.Allocate1D<double>((long)stationCount * elementCount);
-        using var figures = accelerator.Allocate1D<PerformanceFigures>(stationCount);
-        using var stationStatus = accelerator.Allocate1D<int>(stationCount);
-        using var iterations = accelerator.Allocate1D<int>(stationCount);
-        using var status = accelerator.Allocate1D<int>(1);
-        moles.MemSetToZero();
-        stations.MemSetToZero();
-
-        var problem = new RocketProblem(inputs.ChamberPressure, inputs.ReactantEnthalpy, 0.0, inputs.Flow, elements.View,
-                                        exitValues.View.SubView(0, inputs.ExitCount), exitKinds.View.SubView(0, inputs.ExitCount));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
-        var result = new RocketResult(stations.View, moles.View, multipliers.View, figures.View, stationStatus.View, iterations.View, status.View);
-        var view = buffers.View;
-        RocketSolver.Solve(in view, in problem, in scratch, in result);
-
-        return new RocketSolution(table, inputs, stations.GetAsArray1D(), moles.GetAsArray1D(), multipliers.GetAsArray1D(),
-                                  figures.GetAsArray1D(), stationStatus.GetAsArray1D().Select(s => (CaseStatus)s).ToArray(),
-                                  iterations.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0]);
+        using var rocketCase = new RocketCase(accelerator, table, inputs);
+        var context = rocketCase.Context;
+        RocketSolver.Solve(in context.Table, in context.Problem, in context.Scratch, in context.Result);
+        return rocketCase.Read();
     }
 
     /// <summary>The rocket fixture files as theory data: the file name without extension.</summary>

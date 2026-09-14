@@ -31,6 +31,45 @@ public readonly struct RocketBatchViews(
     public readonly ArrayView<int> Status = status;
 }
 
+/// <summary>
+/// One batch's buffers on the accelerator, released together: what <see cref="KernelEqualityTests.Fill"/> allocates and uploads,
+/// and the five of them the test later downloads. The batch counterpart of <see cref="RocketCase"/>'s owned buffers.
+/// </summary>
+internal sealed class RocketBatchBuffers : IDisposable
+{
+    private readonly List<IDisposable> _owned = [];
+
+    public SpeciesTableView Table { get; set; }
+
+    public RocketBatchViews Views { get; set; }
+
+    public MemoryBuffer1D<MixtureState, Stride1D.Dense> Stations { get; set; } = null!;
+
+    public MemoryBuffer1D<double, Stride1D.Dense> Moles { get; set; } = null!;
+
+    public MemoryBuffer1D<PerformanceFigures, Stride1D.Dense> Figures { get; set; } = null!;
+
+    public MemoryBuffer1D<int, Stride1D.Dense> StationStatus { get; set; } = null!;
+
+    public MemoryBuffer1D<int, Stride1D.Dense> Status { get; set; } = null!;
+
+    /// <summary>Adds a buffer to the set this batch releases on Dispose, and returns it.</summary>
+    public T Own<T>(T buffer)
+        where T : IDisposable
+    {
+        _owned.Add(buffer);
+        return buffer;
+    }
+
+    public void Dispose()
+    {
+        for (var k = _owned.Count - 1; k >= 0; k--)
+        {
+            _owned[k].Dispose();
+        }
+    }
+}
+
 /// <summary>L1: the rocket solver inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
 [Collection(CpuCollection.Name)]
 public sealed class KernelEqualityTests(CpuFixture fixture)
@@ -67,45 +106,67 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var table = SpeciesTable.Build(fixture.Database, inputs[0].Elements, inputs[0].Products);
         var host = inputs.Select(i => RocketHost.Solve(fixture.Accelerator, table, i)).ToList();
 
-        var accelerator = fixture.Accelerator;
+        using var buffers = Fill(fixture.Accelerator, table, inputs);
+        var kernel = fixture.Accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, RocketBatchViews>(SolveKernel);
+        kernel(count, buffers.Table, buffers.Views);
+        fixture.Accelerator.Synchronize();
+
+        AssertSameBits(host, table, buffers, members);
+    }
+
+    /// <summary>Allocates and uploads one batch: the cases' inputs, their scratch and their station rows.</summary>
+    private static RocketBatchBuffers Fill(Accelerator accelerator, SpeciesTable table, IReadOnlyList<RocketInputs> inputs)
+    {
+        var buffers = new RocketBatchBuffers();
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
         var exitCount = inputs[0].ExitCount;
+        var count = inputs.Count;
         var stationCount = RocketLayout.StationCount(exitCount);
-        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
-        using var chamberPressures = accelerator.Allocate1D(inputs.Select(i => i.ChamberPressure).ToArray());
-        using var reactantEnthalpies = accelerator.Allocate1D(inputs.Select(i => i.ReactantEnthalpy).ToArray());
-        using var flows = accelerator.Allocate1D(inputs.Select(i => (int)i.Flow).ToArray());
-        using var elementMoles = accelerator.Allocate1D(inputs.SelectMany(i => i.ElementMoles).ToArray());
-        using var exitValues = accelerator.Allocate1D(inputs.SelectMany(i => i.ExitValues).ToArray());
-        using var exitKinds = accelerator.Allocate1D(inputs.SelectMany(i => i.ExitKinds.Select(k => (int)k)).ToArray());
-        using var scratchDoubles = accelerator.Allocate1D<double>((long)count * ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        using var scratchInts = accelerator.Allocate1D<int>((long)count * ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        using var stations = accelerator.Allocate1D<MixtureState>((long)count * stationCount);
-        using var moles = accelerator.Allocate1D<double>((long)count * stationCount * speciesCount);
-        using var multipliers = accelerator.Allocate1D<double>((long)count * stationCount * elementCount);
-        using var figures = accelerator.Allocate1D<PerformanceFigures>((long)count * stationCount);
-        using var stationStatus = accelerator.Allocate1D<int>((long)count * stationCount);
-        using var iterations = accelerator.Allocate1D<int>((long)count * stationCount);
-        using var status = accelerator.Allocate1D<int>(count);
+        var tableBuffers = buffers.Own(SpeciesTableBuffers.Upload(accelerator, table));
+        var chamberPressures = buffers.Own(accelerator.Allocate1D(inputs.Select(i => i.ChamberPressure).ToArray()));
+        var reactantEnthalpies = buffers.Own(accelerator.Allocate1D(inputs.Select(i => i.ReactantEnthalpy).ToArray()));
+        var flows = buffers.Own(accelerator.Allocate1D(inputs.Select(i => (int)i.Flow).ToArray()));
+        var elementMoles = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.ElementMoles).ToArray()));
+        var exitValues = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.ExitValues).ToArray()));
+        var exitKinds = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.ExitKinds.Select(k => (int)k)).ToArray()));
+        var scratchDoubles = buffers.Own(accelerator.Allocate1D<double>((long)count * ScratchLayout.DoublesPerCase(speciesCount, elementCount)));
+        var scratchInts = buffers.Own(accelerator.Allocate1D<int>((long)count * ScratchLayout.IntsPerCase(speciesCount, elementCount)));
+        var stations = buffers.Own(accelerator.Allocate1D<MixtureState>((long)count * stationCount));
+        var moles = buffers.Own(accelerator.Allocate1D<double>((long)count * stationCount * speciesCount));
+        var multipliers = buffers.Own(accelerator.Allocate1D<double>((long)count * stationCount * elementCount));
+        var figures = buffers.Own(accelerator.Allocate1D<PerformanceFigures>((long)count * stationCount));
+        var stationStatus = buffers.Own(accelerator.Allocate1D<int>((long)count * stationCount));
+        var iterations = buffers.Own(accelerator.Allocate1D<int>((long)count * stationCount));
+        var status = buffers.Own(accelerator.Allocate1D<int>(count));
         moles.MemSetToZero();
         stations.MemSetToZero();
 
-        var batch = new RocketBatchViews(exitCount, chamberPressures.View, reactantEnthalpies.View, flows.View, elementMoles.View,
-                                         exitValues.View, exitKinds.View, scratchDoubles.View, scratchInts.View, stations.View, moles.View,
-                                         multipliers.View, figures.View, stationStatus.View, iterations.View, status.View);
-        var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, RocketBatchViews>(SolveKernel);
-        kernel(count, buffers.View, batch);
-        accelerator.Synchronize();
+        buffers.Table = tableBuffers.View;
+        buffers.Stations = stations;
+        buffers.Moles = moles;
+        buffers.Figures = figures;
+        buffers.StationStatus = stationStatus;
+        buffers.Status = status;
+        buffers.Views = new RocketBatchViews(exitCount, chamberPressures.View, reactantEnthalpies.View, flows.View, elementMoles.View,
+                                             exitValues.View, exitKinds.View, scratchDoubles.View, scratchInts.View, stations.View,
+                                             moles.View, multipliers.View, figures.View, stationStatus.View, iterations.View, status.View);
+        return buffers;
+    }
 
-        var kernelStations = stations.GetAsArray1D();
-        var kernelMoles = moles.GetAsArray1D();
-        var kernelFigures = figures.GetAsArray1D();
-        var kernelStationStatus = stationStatus.GetAsArray1D();
-        var kernelStatus = status.GetAsArray1D();
+    /// <summary>Every station's state, figures and moles, bit for bit, host against kernel; the fields come from reflection.</summary>
+    private static void AssertSameBits(IReadOnlyList<RocketSolution> host, SpeciesTable table, RocketBatchBuffers buffers, string[] members)
+    {
+        var stationCount = RocketLayout.StationCount(buffers.Views.ExitCount);
+        var speciesCount = table.SpeciesCount;
+        var kernelStations = buffers.Stations.GetAsArray1D();
+        var kernelMoles = buffers.Moles.GetAsArray1D();
+        var kernelFigures = buffers.Figures.GetAsArray1D();
+        var kernelStationStatus = buffers.StationStatus.GetAsArray1D();
+        var kernelStatus = buffers.Status.GetAsArray1D();
         var stateFields = typeof(MixtureState).GetFields();
         var figureFields = typeof(PerformanceFigures).GetFields();
-        for (var k = 0; k < count; k++)
+        for (var k = 0; k < host.Count; k++)
         {
             Assert.True(host[k].Status == CaseStatus.Ok, $"{members[k]}: host status {host[k].Status}");
             Assert.True((int)host[k].Status == kernelStatus[k], $"{members[k]}: kernel status {(CaseStatus)kernelStatus[k]}");

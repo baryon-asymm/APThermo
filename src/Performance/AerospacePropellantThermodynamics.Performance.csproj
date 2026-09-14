@@ -10,4 +10,8 @@
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="AerospacePropellantThermodynamics.Performance.Tests" />
+  </ItemGroup>
+
 </Project>
