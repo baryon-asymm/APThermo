@@ -22,3 +22,29 @@ internal readonly struct RocketContext
         Result = result;
     }
 }
+
+/// <summary>Which solver a station is solved with: the composition follows the equilibrium, or it stays the one already in the station's row.</summary>
+internal enum StationFlow
+{
+    Shifting,
+    Frozen,
+}
+
+/// <summary>One station's solve as it is asked for: where it is written, at which pressure, from which temperature estimate, at which entropy, in which flow.</summary>
+internal readonly struct StationRequest
+{
+    public readonly int Station;
+    public readonly double Pressure;
+    public readonly double TemperatureEstimate;
+    public readonly double Entropy;
+    public readonly StationFlow Flow;
+
+    public StationRequest(int station, double pressure, double temperatureEstimate, double entropy, StationFlow flow)
+    {
+        Station = station;
+        Pressure = pressure;
+        TemperatureEstimate = temperatureEstimate;
+        Entropy = entropy;
+        Flow = flow;
+    }
+}
