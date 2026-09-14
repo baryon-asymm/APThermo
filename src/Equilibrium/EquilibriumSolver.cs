@@ -806,17 +806,9 @@ public static class EquilibriumSolver
                                           in EquilibriumResult result, int condensedCount, double logN, double logPressure,
                                           double temperature, int stride)
     {
-        var speciesCount = table.SpeciesCount;
         var gasCount = table.GasCount;
-        var elementCount = table.ElementCount;
-        var r = PhysicalConstants.R;
-        var n = 0.0;
-        var hOverRT = 0.0;
-        var sOverR = 0.0;
-        var cpOverR = 0.0;
-        var hSquared = 0.0;
-        var condensedMoles = 0.0;
-        for (var j = 0; j < speciesCount; j++)
+        var sums = new MixtureSums { LogN = logN, LogPressure = logPressure, Temperature = temperature };
+        for (var j = 0; j < table.SpeciesCount; j++)
         {
             var nj = result.Moles[j];
             if (nj == 0.0)
@@ -824,199 +816,27 @@ public static class EquilibriumSolver
                 continue;
             }
 
-            hOverRT += nj * scratch.HOverRT[j];
-            cpOverR += nj * scratch.CpOverR[j];
+            sums.HOverRT += nj * scratch.HOverRT[j];
+            sums.CpOverR += nj * scratch.CpOverR[j];
             if (j < gasCount)
             {
-                n += nj;
-                sOverR += nj * (scratch.SOverR[j] - scratch.LogMoles[j] + logN - logPressure);
-                hSquared += nj * scratch.HOverRT[j] * scratch.HOverRT[j];
+                sums.SumGas += nj;
+                sums.SOverR += nj * (scratch.SOverR[j] - scratch.LogMoles[j] + logN - logPressure);
             }
             else
             {
-                sOverR += nj * scratch.SOverR[j];
-                condensedMoles += nj;
+                sums.SOverR += nj * scratch.SOverR[j];
+                sums.CondensedMoles += nj;
             }
         }
 
-        // Derivatives with respect to ln T (table 2.3) and ln p (table 2.4): the tp matrix with two right-hand sides.
-        var pairSecond = -1;
-        for (var c = 0; c < condensedCount && pairSecond < 0; c++)
+        var derivatives = DerivativeSystem.Solve(table, scratch, result, condensedCount, stride);
+        if (!derivatives.Solved)
         {
-            for (var d = c + 1; d < condensedCount; d++)
-            {
-                if (PhaseGeometry.SameFormula(table, scratch.CondensedInSolution[c], scratch.CondensedInSolution[d]))
-                {
-                    pairSecond = d;
-                    break;
-                }
-            }
+            return CaseStatus.SingularMatrix;
         }
 
-        var pinned = pairSecond >= 0;
-        var derivativeCount = condensedCount;
-        if (pinned)
-        {
-            var tmp = scratch.CondensedInSolution[pairSecond];
-            scratch.CondensedInSolution[pairSecond] = scratch.CondensedInSolution[condensedCount - 1];
-            scratch.CondensedInSolution[condensedCount - 1] = tmp;
-            derivativeCount = condensedCount - 1;
-        }
-
-        var unknowns = elementCount + derivativeCount + 1;
-        var nRow = elementCount + derivativeCount;
-        var dlnNdlnT = 0.0;
-        var dlnNdlnP = 0.0;
-        var reaction = 0.0;
-        for (var pass = pinned ? 1 : 0; pass < 2; pass++)
-        {
-            AssembleDerivative(table, scratch, result, derivativeCount, unknowns, stride, pass == 0);
-            if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, unknowns, stride))
-            {
-                return CaseStatus.SingularMatrix;
-            }
-
-            if (pass == 0)
-            {
-                dlnNdlnT = scratch.RightHandSide[nRow];
-                // Equation (2.59): the reaction part of cp/R from the temperature derivatives.
-                for (var i = 0; i < elementCount; i++)
-                {
-                    var sum = 0.0;
-                    for (var j = 0; j < gasCount; j++)
-                    {
-                        sum += table.Stoichiometry[i * speciesCount + j] * result.Moles[j] * scratch.HOverRT[j];
-                    }
-
-                    reaction += sum * scratch.RightHandSide[i];
-                }
-
-                for (var c = 0; c < derivativeCount; c++)
-                {
-                    reaction += scratch.HOverRT[scratch.CondensedInSolution[c]] * scratch.RightHandSide[elementCount + c];
-                }
-
-                var gasEnthalpy = 0.0;
-                for (var j = 0; j < gasCount; j++)
-                {
-                    gasEnthalpy += result.Moles[j] * scratch.HOverRT[j];
-                }
-
-                reaction += gasEnthalpy * dlnNdlnT + hSquared;
-            }
-            else
-            {
-                dlnNdlnP = scratch.RightHandSide[nRow];
-            }
-        }
-
-        var state = new MixtureState();
-        state.Temperature = temperature;
-        state.Pressure = problem.Pressure;
-        state.MolarMass = 1.0 / n;
-        state.MixtureMolarMass = 1.0 / (n + condensedMoles);
-        state.Density = problem.Pressure / (n * r * temperature);
-        state.Enthalpy = r * temperature * hOverRT;
-        state.InternalEnergy = state.Enthalpy - n * r * temperature;
-        state.Entropy = r * sOverR;
-        state.GibbsEnergy = state.Enthalpy - temperature * state.Entropy;
-        state.CpFrozen = r * cpOverR;
-        state.CvFrozen = state.CpFrozen - n * r;
-        if (pinned)
-        {
-            state.CpEquilibrium = 0.0;
-            state.CvEquilibrium = 0.0;
-            state.DlnVdlnT = 0.0;
-            state.DlnVdlnP = -1.0 + dlnNdlnP;
-            state.GammaS = -1.0 / state.DlnVdlnP;
-        }
-        else
-        {
-            state.CpEquilibrium = r * (cpOverR + reaction);
-            state.DlnVdlnT = 1.0 + dlnNdlnT;
-            state.DlnVdlnP = -1.0 + dlnNdlnP;
-            state.CvEquilibrium = state.CpEquilibrium + n * r * state.DlnVdlnT * state.DlnVdlnT / state.DlnVdlnP;
-            state.GammaS = -(state.CpEquilibrium / state.CvEquilibrium) / state.DlnVdlnP;
-        }
-
-        state.SoundSpeed = Math.Sqrt(n * r * temperature * state.GammaS);
-        state.Velocity = 0.0;
-        state.Mach = 0.0;
-        result.State[0] = state;
+        MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives);
         return CaseStatus.Ok;
-    }
-
-    /// <summary>The tp-type matrix at the converged composition with the right-hand side of table 2.3 (temperature) or 2.4 (pressure).</summary>
-    private static void AssembleDerivative(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                           int condensedCount, int unknowns, int stride, bool temperatureDerivative)
-    {
-        var speciesCount = table.SpeciesCount;
-        var gasCount = table.GasCount;
-        var elementCount = table.ElementCount;
-        var nRow = elementCount + condensedCount;
-        for (var k = 0; k < unknowns * stride; k++)
-        {
-            scratch.Matrix[k] = 0.0;
-        }
-
-        for (var k = 0; k < unknowns; k++)
-        {
-            scratch.RightHandSide[k] = 0.0;
-        }
-
-        for (var j = 0; j < gasCount; j++)
-        {
-            var nj = result.Moles[j];
-            if (nj == 0.0)
-            {
-                continue;
-            }
-
-            var weight = temperatureDerivative ? -scratch.HOverRT[j] : 1.0;
-            for (var k = 0; k < elementCount; k++)
-            {
-                var akj = table.Stoichiometry[k * speciesCount + j];
-                if (akj == 0.0)
-                {
-                    continue;
-                }
-
-                var akjn = akj * nj;
-                for (var i = 0; i < elementCount; i++)
-                {
-                    scratch.Matrix[k * stride + i] += akjn * table.Stoichiometry[i * speciesCount + j];
-                }
-
-                scratch.Matrix[k * stride + nRow] += akjn;
-                scratch.RightHandSide[k] += akjn * weight;
-            }
-
-            scratch.RightHandSide[nRow] += nj * weight;
-        }
-
-        for (var i = 0; i < elementCount; i++)
-        {
-            scratch.Matrix[nRow * stride + i] = scratch.Matrix[i * stride + nRow];
-            if (scratch.ElementActive[i] == 0)
-            {
-                scratch.Matrix[i * stride + i] = 1.0;
-                scratch.RightHandSide[i] = 0.0;
-            }
-        }
-
-        // At convergence Σ n_j − n vanishes; the n-row diagonal is zero.
-        for (var c = 0; c < condensedCount; c++)
-        {
-            var j = scratch.CondensedInSolution[c];
-            var row = elementCount + c;
-            for (var i = 0; i < elementCount; i++)
-            {
-                var aij = table.Stoichiometry[i * speciesCount + j];
-                scratch.Matrix[row * stride + i] = aij;
-                scratch.Matrix[i * stride + row] = aij;
-            }
-
-            scratch.RightHandSide[row] = temperatureDerivative ? -scratch.HOverRT[j] : 0.0;
-        }
     }
 }
