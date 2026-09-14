@@ -14,7 +14,7 @@ namespace AerospacePropellantThermodynamics.Equilibrium;
 /// </remarks>
 internal static class NewtonIteration
 {
-    /// <summary>The steps after the report's tests run until the corrections are this small: the rounding floor of the linear solves.</summary>
+    /// <summary>The cap on the polish steps the loop takes after the report's tests pass.</summary>
     private const int MaxPolishSteps = 6;
 
     /// <summary>

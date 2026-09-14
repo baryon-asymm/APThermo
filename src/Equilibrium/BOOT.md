@@ -508,10 +508,15 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       the same 463-test run; `Performance.Tests` green (699 tests, `SolveFrozen`'s
       kernel test included); the execution tests node's fast set green on CUDA (41
       tests, no `APTHERMO_NO_CUDA`).
-- [ ] Every creation of `EquilibriumScratch` in the tree names its arguments (the
-      decision "The scratch descriptor keeps its constructor"), the protocol tests
-      node's named-construction fact green once it exists; the tests node's bit
-      snapshot unchanged.
+- [x] 2026-09-14 — Every creation of `EquilibriumScratch` in the tree names its
+      arguments (the decision "The scratch descriptor keeps its constructor"): the
+      named-construction scan of `AGENTS.md` §13 finds the one site,
+      `src/Equilibrium/Descriptors.cs:123` (`Slice`), fully named. The protocol tests
+      node's `ShapeTests.Every_wide_constructor_is_called_with_named_arguments` does not
+      exist on this tree yet (that node's own unticked Shape-level criterion); this scan
+      is the evidence until it does. `dotnet test tests/Equilibrium.Tests` (463 tests)
+      green; `tests/Equilibrium.Tests/Bits.approved.txt` unchanged (`git hash-object`:
+      `65788e23f4390305763c80ab1f66b2054ff1907a` before and after).
 
 ## Taboos
 
