@@ -53,7 +53,7 @@ public sealed class JanafTests : IClassFixture<CpuFixture>
         }
         else
         {
-            Assert.True(Math.Abs(hFit) < 1e-9, $"{species}: the increment at 298.15 K is {hFit}");
+            Assert.True(Math.Abs(hFit) < CpuFixture.RoundingBound, $"{species}: the increment at 298.15 K is {hFit}");
         }
     }
 

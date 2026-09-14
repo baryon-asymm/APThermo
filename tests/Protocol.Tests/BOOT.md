@@ -120,6 +120,29 @@ Decisions taken with the review:
   door tests node's comparison split.
 - **Size**: the root's constraint, this node's own code included.
 
+Phase 1 (2026-09-14, the clean-code pass) split `Tree`, moved `DeclarationTests`'s grammar into
+`ApiDeclarations`, and flattened every fact to a problems-yielding helper plus one
+assertion; `SourceSyntax` and `ShapeMeasures` are the Shape level's and stay undone
+(the row below stays ⏳). Two small record types the table above does not name, because
+they are data the split types carry rather than a responsibility of their own, got a
+file each too, one type per file throughout: `Node` (a directory of the tree; `Tree`'s
+own vocabulary) and `Instruction` (one opcode and the member its token names;
+`IlBody`'s own vocabulary).
+
+`ApiDeclarations`'s "named in the `API.md`" turned out to need more than "declared in
+a ✅ block": `Execution`'s `API.md` names `EquilibriumBatchViews`, `RocketBatchViews`,
+`SpeciesFunctionBatchViews` and `TransportBatchViews` only in a sentence ("public only
+because ILGPU requires kernel parameter types to be … not meant to be used from
+outside", found by `CoverageTests` itself under the block-only reading, first run of
+this phase), never in a block. `NamesType` therefore searches the ✅-marked text as a
+whole, prose and code together (a document without a status mark counts as ✅
+throughout, unchanged) — the same status-mark state machine `ImplementedCsharpBlocks`
+walks, kept in one place, but not narrowed to code blocks the way `DeclarationTests`'s
+own reading is. Strictly tighter than the check it replaces in one respect (a name
+inside a ⏳ block no longer counts, where the old whole-document regex did not
+distinguish), and unchanged in the other (a name in ✅ prose still counts, as it always
+did).
+
 ## Shape check
 
 Designed 2026-09-14 (the root's code-shape constraint). Every number below means one
@@ -216,16 +239,45 @@ Why the numbers are what they are:
       field in Equilibrium: the static-field check red; (9) a Thermo type in a
       namespace of its own: the namespace check red; (10) a ✅ block declaring a type
       that does not exist: Declarations red, Lint red.
-- [ ] The support code in shape (`## Structure`, the review's F-TF-02, F-TF-08,
-      F-TF-17): `Tree` split into `Tree`, `NodeAssemblies`, `TypeShape`, `IlBody` and
-      `NodeDocuments`; `ApiDeclarations` read by `DeclarationTests` and
+- [x] 2026-09-14 — The support code in shape (`## Structure`, the review's F-TF-02,
+      F-TF-08, F-TF-17): `Tree` split into `Tree`, `NodeAssemblies`, `TypeShape`,
+      `IlBody` and `NodeDocuments` (plus `Node` and `Instruction`, the two small record
+      types the split types carry); `ApiDeclarations` read by `DeclarationTests` and
       `CoverageTests`; every fact one loop and one assertion over a problems-yielding
-      helper; `PublicSurface.approved.txt` unchanged; the ten mutations above red again,
-      each alone, with the same messages.
-- [ ] The two uncovered diagnostics seen red (F-TF-15), each mutation alone: (3c) a link
-      to a descendant's `API.md` added to a `## Dependencies`: Dependencies red naming
-      the descendant, Lint red; (3d) a `## Dependencies` link to a directory without an
-      `API.md`: Dependencies red naming the unresolved link, Lint red.
+      helper. `PublicSurface.approved.txt` unchanged (`git diff --stat` over the
+      approved file empty; Surface green). The ten mutations above red again, each
+      alone, with the same messages (`dotnet test tests/Protocol.Tests` after each; a
+      throwaway script, not committed): (1) Coverage and Surface red, "never names
+      MutationGhost1" / "no longer matches PublicSurface.approved.txt"; (2)
+      Declarations red, "SpeciesTable has no member named GasCountMutated"; (3a)
+      Dependencies and Lint red, "does not declare src/Data, but src/Thermo uses its
+      types" / "declares nothing in canonical form"; (3b) Dependencies red, "declares
+      src/Cli, but no type of src/Thermo refers to it"; (4) Surface red, "First
+      difference at line 723: … 'const Int32 MutationConst = 1'"; (5) Lint red,
+      "src/Ghost/API.md … is missing"; (6) the precision check red, "MutationFloat,
+      Convert(value) is Single"; (7) the CUDA check red, "names
+      ILGPU.Runtime.Cuda.CudaAccelerator"; (8) the static-field check red, "Counter is
+      a static field that is neither const nor readonly"; (9) the namespace check red,
+      "is in namespace AerospacePropellantThermodynamics.Thermo.Weird"; (10)
+      Declarations and Lint red, "declares the type MutationNonexistentType under ✅,
+      and no assembly of the tree has it". One unrelated failure ran alongside every
+      check above and after, in the coder's worktree only: Declarations red on
+      `src/Execution/API.md`'s `AcceleratorInfo`/`CudaSkippedBecause`, a member the
+      design had declared under ✅ before the execution node's code added it (out of
+      this node's subtree, left alone, `AGENTS.md` §3). On the integration branch the
+      member exists since the execution node's merge, and the check holds there.
+
+      ⚠ 2026-09-14: the parenthetical above first read "fixed upstream at `431e684`".
+      That commit moved the member to a planned section while the execution node's
+      coder was still at work, and `356d2ef` reverted it once the merge `8f051d8`
+      brought the member: the member fixed the check, not the move.
+- [x] 2026-09-14 — The two uncovered diagnostics seen red (F-TF-15), each mutation
+      alone: (3c) `tests/Fixtures/BOOT.md` linking its descendant `./generate/API.md`:
+      Dependencies red, "declares its descendant tests/Fixtures/generate; a parent
+      owns its children…", Lint red (warning: "declares a dependency on its own
+      descendant"); (3d) `src/Data/BOOT.md` linking `../Nowhere/API.md`: Dependencies
+      red, "links ../Nowhere/API.md under ## Dependencies, and no node has that
+      API.md", Lint red (error: "resolves to nothing").
 - [ ] Shape level green: `ShapeTests` (`No_type_spans_more_than_400_lines`,
       `No_method_spans_more_than_60_lines`, `No_control_flow_nests_deeper_than_3`,
       `No_method_takes_more_than_6_parameters`,

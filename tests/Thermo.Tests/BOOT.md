@@ -10,8 +10,8 @@ The definition of what "`Thermo` is ready" means.
 | L1 | the table builder: order, gaseous-first split, stoichiometry matrix, flattened intervals, refusal of foreign elements, duplicates and reactant-only records, limits | the `Data` records of the same species (list generated from the table) | ✅ 2026-09-12 |
 | L1 | the same functions inside an ILGPU kernel on the CPU accelerator give the same bits as the host call | the host call | ✅ 2026-09-12 |
 | L1 | the join-and-cut of condensed records: touching same-name records build one species, a real latent heat cuts a species into range-named pieces, records that cannot join are refused by name | the committed file's records (`Cr(cr)`, `ALN(L)`) and the rule of the `Thermo` node's `BOOT.md` (`JoinAndCutTests`) | ✅ 2026-09-13 (the row written 2026-09-14, the ⚠ below) |
-| L1 | the range questions of a table: `PieceOf` against the interval rule over the pieces of a cut name, `RecordLow` and `RecordHigh` against `IsInRange`; the host-side `H°/RT` overload against the kernel-side one bit for bit; the join's formation-enthalpy rule | the interval rule, the kernel-side functions, the committed file (`RangeQuestionTests`, `OverloadPinningTests`) | ⏳ (2026-09-14) |
-| Bits | the table of every fixture case gives the recorded bits: one line per case file in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the eight arrays of `SpeciesTableArrays` in their declared order, the species names joined by commas hashed first | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ⏳ |
+| L1 | the range questions of a table: `PieceOf` against the interval rule over the pieces of a cut name, `RecordLow` and `RecordHigh` against `IsInRange`; the host-side `H°/RT` overload against the kernel-side one bit for bit; the join's formation-enthalpy rule | the interval rule, the kernel-side functions, the committed file (`RangeQuestionTests`, `OverloadPinningTests`) | ✅ 2026-09-14 |
+| Bits | the table of every fixture case gives the recorded bits: one line per case file in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the eight arrays of `SpeciesTableArrays` in their declared order, the species names joined by commas hashed first | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ 2026-09-14 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ⚠ 2026-09-14: the join-and-cut row was missing. `JoinAndCutTests` came with the
@@ -94,32 +94,44 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       `Records_that_cannot_be_joined_are_refused_by_name`), the evidence the `Thermo`
       node's criterion of that day cites; written here on 2026-09-14 (the ⚠ under the
       level table).
-- [ ] Bits level green: `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
       over the enumerated tp, hp, sp and rocket directories (a case's table is built
       from the names of its `inputs.elementMoles`, in that order, and its
       `inputs.products`) against `Bits.approved.txt`, recorded at `8e36a27` before
-      any code of the decomposition moved and unchanged after it; seen red once by a
-      stoichiometry entry offset by one in the builder (every case red) and by a
+      any code of the decomposition moved and unchanged after it (confirmed identical
+      by a byte-for-byte diff before and after step 3); seen red once by a
+      stoichiometry entry offset by one in the builder (every case red, step 1) and by a
       fixture file absent from the snapshot (that case red with the instruction to
-      approve).
-- [ ] The range questions and the overload pinning green: `RangeQuestionTests`
-      (`PieceOf_names_the_piece_the_interval_rule_chooses` over every cut name of the
-      fixture tables at every piece bound and one ULP on each side, the last piece
-      above the last bound, and −1 for a name the table lacks;
+      approve, step 1).
+- [x] 2026-09-14 — The range questions and the overload pinning green: `RangeQuestionTests`
+      (`PieceOf_names_the_piece_the_interval_rule_chooses` over `ALN(L)`, the one cut
+      name the fixture tables contain (found by the test's own scan, not typed), at
+      its piece bound and one ULP on each side, the last piece far above the last
+      bound, and −1 for a name the table lacks;
       `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses` over every species of
       the fixture tables: `IsInRange` true at both and false one ULP outside each),
       `OverloadPinningTests.Host_and_kernel_enthalpy_sums_give_the_same_bits` over
       every species and temperature of the thermo fixtures, and the join's
-      formation-enthalpy rule as the `Thermo` node decided it, one fact either way;
-      each seen red once (a bound accessor made to read the wrong slot; the host
-      overload's sum reordered).
-- [ ] The tests in shape (the review's F-TK-12, F-TK-15, F-TK-10):
+      formation-enthalpy rule as the `Thermo` node decided it
+      (`JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`);
+      each seen red once, reverted: `RecordHigh` made to read the `TLow` slot turned
+      `PieceOf_names_the_piece_the_interval_rule_chooses` red; `IsInRange`'s lower
+      comparison changed from `>=` to `>` turned every case of
+      `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses` red; the host overload's
+      sum reordered turned 36 of 40 cases of `Host_and_kernel_enthalpy_sums_give_the_same_bits`
+      red; the join's formation-enthalpy comparison removed turned
+      `Records_disagreeing_in_formation_enthalpy_are_refused_by_name` red alone.
+- [x] 2026-09-14 — The tests in shape (the review's F-TK-12, F-TK-15, F-TK-10):
       `Unknown_names_duplicates_and_records_without_polynomials_are_refused` and
-      `The_limits_are_enforced_before_any_lookup` become theories with one refusal
-      per case and the refused name in the case data; the aluminium expectations of
-      `Element_symbols_are_matched_case_insensitively` come from the records'
-      formulas, not from typed numbers; the rounding tolerance of `IntervalRuleTests`
-      and `JanafTests` is one named constant; no method over 60 lines.
+      `The_limits_are_enforced_before_any_lookup` are theories with one refusal
+      per case and the refused name in the case data (the limit cases carry the
+      elements and species arrays instead, since a count limit refuses no one name);
+      the aluminium expectations of `Element_symbols_are_matched_case_insensitively`
+      come from `AluminiumCount` over the records' own formulas, not typed numbers;
+      the rounding tolerance of `IntervalRuleTests` and `JanafTests` is
+      `CpuFixture.RoundingBound`, one named constant with its origin in a comment; no
+      method over 60 lines in this node (the longest blank-line-delimited block found
+      by a scan of every file, 25 lines, well under the bound).
 
 ## Taboos
 

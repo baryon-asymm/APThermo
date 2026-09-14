@@ -14,8 +14,8 @@ consider proven about `Thermo`.
 | the functions give the same bits inside a CPU-accelerator kernel as on the host | L1: `KernelEqualityTests` | ✅ 2026-09-12 |
 | `R` equals the reference implementation's value | L0: `FunctionFixtureTests.R_equals_the_reference_package_constant` | ✅ 2026-09-12 |
 | touching same-name condensed records build one species, a real latent heat cuts a species into range-named pieces, and records that cannot join are refused by name | L1: `JoinAndCutTests` | ✅ 2026-09-13 (recorded 2026-09-14) |
-| `PieceOf`, `RecordLow` and `RecordHigh` answer as the interval rule does, and the host-side enthalpy sum equals the kernel-side one bit for bit | L1: `RangeQuestionTests`, `OverloadPinningTests` | ⏳ 2026-09-14 |
-| the table arrays of every fixture case are bit for bit what they were at `8e36a27` | Bits: `BitSnapshotTests`, `Bits.approved.txt` | ⏳ 2026-09-14 |
+| `PieceOf`, `RecordLow` and `RecordHigh` answer as the interval rule does, and the host-side enthalpy sum equals the kernel-side one bit for bit | L1: `RangeQuestionTests`, `OverloadPinningTests` | ✅ 2026-09-14 |
+| the table arrays of every fixture case are bit for bit what they were at `8e36a27` | Bits: `BitSnapshotTests`, `Bits.approved.txt` | ✅ 2026-09-14 |
 
 ## What the tests rely on
 

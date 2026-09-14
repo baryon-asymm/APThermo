@@ -73,7 +73,7 @@ returned the first silently, and `Thermo` had built an index of its own over
 `Products` to reach the others (the clean-code review's F-TD-06). `Records` below is
 this node's answer, and the indexer keeps returning the first.
 
-## Same-name records ⏳
+## Same-name records ✅
 
 ```csharp
 public sealed class SpeciesDatabase
@@ -82,8 +82,8 @@ public sealed class SpeciesDatabase
 }
 ```
 
-Declared 2026-09-14; the mark turns ✅ with the commit that implements it and moves
-the surface snapshot.
+Declared 2026-09-14, implemented the same day with the `## Structure` decomposition below: the indexer and
+`TryGet` still return the first record of a name, and the surface snapshot moves in the same commit.
 
 ## Transport database ✅
 
