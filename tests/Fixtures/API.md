@@ -76,6 +76,20 @@ frozen-station `cv`, the frozen `cp` of the transport set when transport is on, 
 reacting conductivity at the trace-component stations), are described in `BOOT.md`
 and used by the test nodes.
 
+## Shared comparison rules ⏳
+
+```csharp
+public sealed class ToleranceTable
+{
+    public string MoleFractionField(double referenceValue);   // "moleFraction" when the reference value is not below For("moleFraction").Absolute, else "moleFractionTrace"
+}
+```
+
+Planned 2026-09-14 (the parent `BOOT.md`, the tolerance-table invariant): the rule
+stood in three test nodes, each with the threshold typed again; `tolerances.json` gains
+`moleFractionFloor` and `polishThresholdRelative` in the same commit. The mark turns ✅
+with the commit that implements it.
+
 ## Generator ✅
 
 ```console

@@ -297,4 +297,6 @@ Test nodes mirror the source nodes as `tests/<Node>.Tests`; `tests/Protocol.Test
 holds the reflection checks of AGENTS.md §13; `tests/Fixtures` holds the reference
 outputs generated with NASA's `cea` package, their provenance, the generator scripts
 and the tolerance table, and `tests/Fixtures.Tests` proves the form and provenance of
-those files. The node list with links is in `API.md`.
+those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes share
+(one CPU host, bit comparison, bit snapshots, fixture families) and names nothing above
+`Data` and `Fixtures`. The node list with links is in `API.md`.

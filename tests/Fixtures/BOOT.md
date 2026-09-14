@@ -23,7 +23,16 @@ node generates the outputs itself, from committed scripts, and records how.
   the committed one is a finding about the data or the package version, recorded in
   this node's acceptance criteria, not a silent update.
 - **One tolerance table**, in `tolerances.json`, with a derivation per entry; no test
-  node keeps a tolerance for a comparison with the reference.
+  node keeps a tolerance for a comparison with the reference. The table also holds two
+  entries that are no comparison with the reference but that two test nodes share and
+  neither may read from the other (2026-09-14, decided at the root on the clean-code
+  review's F-TF-05): `moleFractionFloor`, the mole fraction below which the GPU/CPU and
+  union-batch comparisons assert nothing, and `polishThresholdRelative`, the second
+  tier derived from the equilibrium solver's polish threshold, each with its derivation
+  like every other entry. The rule that picks `moleFraction` or `moleFractionTrace` for
+  a reference value is the table's too (`ToleranceTable.MoleFractionField`), so that
+  the print threshold is written once, in the table (the review's F-AR-03 found it
+  typed with its selection line in three test nodes).
 - **The case matrix is explicit** (Constraints) and file names encode the case; a test
   enumerates a directory, it never lists cases by hand.
 - **Units in fixtures are SI**, converted once in the generator from the package's
@@ -321,6 +330,14 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`), every tp, hp
       and sp file singly and as state records in batches over unions of elements
       (`EquilibriumTests`).
+- [ ] The shared rules of 2026-09-14: `ToleranceTable.MoleFractionField` picks the
+      entry by the table's own `moleFraction` threshold, and the equilibrium,
+      performance and front door tests nodes call it instead of a constant and a
+      selection line of their own; `moleFractionFloor` and `polishThresholdRelative`
+      stand in the table with their derivations, and the execution and front door tests
+      nodes read them instead of their copies; `Fixtures.Tests` proves the rule at the
+      threshold and one ULP on each side, and seen red once with the threshold compared
+      the other way round.
 
 ## Taboos
 
