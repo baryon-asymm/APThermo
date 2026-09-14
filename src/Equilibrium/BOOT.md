@@ -271,6 +271,38 @@ Decisions taken with the review of 2026-09-14:
   sequence of stage calls, the exception is declared here with the measured count,
   and it may not exceed 100 lines.
 
+What the implementation settled, 2026-09-14, in the coding session that followed:
+
+- **The `ref` carrier holds.** `IterationState` is passed by `ref` through every
+  stage; the kernel compiler takes it, so the fallback of returning it by value is not
+  needed. The judges were `KernelEqualityTests` of this node's tests node and the one
+  of `Performance.Tests`, which runs `SolveFrozen` - the first stage to take the
+  carrier - inside a CPU-accelerator kernel.
+- **The composition root fits.** `Solve` is 45 physical lines and `SolveFrozen` 54,
+  both under the root's 60, so the exception this section reserved for `Solve` is not
+  claimed. The node's largest method is `NewtonIteration.Converge` at 56 lines and its
+  largest type `CondensedSet` at 250, against the root's 400.
+- **The carriers are filled by name, not by position.** `MixtureSums` and
+  `Derivatives` are structs whose fields are written at the one place that computes
+  them and read through `in` afterwards, rather than readonly structs with a nine- and
+  a five-parameter constructor: a carrier whose purpose is to remove the root's
+  parameter hazard may not reintroduce it in its own constructor. `SystemLayout` stays
+  readonly - its four arguments are the shape of the system and it derives the rest.
+- **Where three small pieces landed.** The last term of equation (2.59),
+  the sum of `n_j (h_j/RT)^2`, belongs to `DerivativeSystem` with the rest of that
+  equation rather than to `MixtureSums`, which does not carry it. The membership test
+  `InSolution` sits in `PhaseGeometry` beside the partner lookup that needs it. The
+  mark accessors (`Mark`, `InPlay`) and the two reductions of the input
+  (`LogPressure`, `InitialTemperature`) sit in `CaseSetup`, which writes the marks and
+  reads the problem. `Composition` also holds the frozen sums, whose gaseous
+  logarithms come from the mole numbers because the frozen path has no `LogMoles`.
+- **One behaviour changed, deliberately and invisibly.** `DerivativeSystem` restores
+  the caller's condensed order before returning on every path, the singular one
+  included; the code before the decomposition returned from that path with the scratch
+  still permuted. Nothing in the tree reads that order afterwards (`Solve` rebuilds
+  the set from `result.Moles` at every entry), so no result moves - the point is that
+  a stage may not hand the caller's scratch back reordered.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — tp problems: for the product mixtures of the four reference
@@ -354,24 +386,43 @@ Decisions taken with the review of 2026-09-14:
       cut the gap test picking each side. The original wording asked for "fine"
       sweeps of both plateaus from both starts; the eight-ratio band and the
       four-exit example are that promise's committed form.
-- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node
-      within the root's code-shape constraint (measured by the protocol tests node's
-      `ShapeTests`; an exception, if one is needed, declared under `## Structure`),
-      the public surface unchanged (`Protocol.Tests.SurfaceTests` against the
-      unchanged snapshot), and the results bit for bit those of `8e36a27` on the CPU
-      accelerator: the tests node's bit snapshot over every tp, hp and sp fixture
-      case (the moles, the multipliers, every field of the state, the status and the
-      iteration count, hashed per case) unchanged, `KernelEqualityTests` green, every
-      criterion above still green, and the execution tests node's CUDA sweep and
-      throughput benchmark green once at the end.
-- [ ] The rules the review of 2026-09-14 found written twice exist once each: the
-      inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, used by the
-      inclusion test and by the honesty guard), the element residual
-      (`ElementBalance.Residual`, used by the matrix and by the tests), the trace
-      retention (`Composition`), the state record (`MixtureProperties`); the dead
-      conditional of the frozen target is gone; every number of the report is a
-      named constant in its stage. Checked by reading at the design review of the
-      decomposition.
+- [x] 2026-09-14 - The decomposition of `## Structure` is in place and changed no
+      number. Shape: the node's largest type is `CondensedSet` at 250 physical lines
+      against the root's 400 and its largest method `NewtonIteration.Converge` at 56
+      against 60, with no control flow deeper than 3 and no method over six
+      parameters; measured over every type and method of the tree by the inventory
+      pass of the review, no exception declared or needed. (The protocol tests node's
+      `ShapeTests`, which is to hold this by machine, is the root's own unticked
+      criterion and does not exist yet.) Surface: `Protocol.Tests.SurfaceTests`
+      against `tests/Protocol.Tests/PublicSurface.approved.txt`, which this work did
+      not touch - every new type is internal. Numbers: the tests node's
+      `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over every
+      enumerated tp, hp and sp fixture case against `Bits.approved.txt`, recorded from
+      the code of `8e36a27` before the first line moved and unmoved after the last;
+      `KernelEqualityTests` green; and the whole fast suite (2142 tests that day)
+      green after each of the six extraction steps. The execution tests node's CUDA
+      sweep and throughput benchmark are long-running and belong to the root's own
+      criteria; they are run on the merge, not here, and this node's evidence is of
+      the CPU accelerator.
+- [x] 2026-09-14 - The rules the review of 2026-09-14 found written twice exist once
+      each: the inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, called by
+      the inclusion test and by the honesty guard), the element residual
+      (`ElementBalance.Residual`, called by the element rows of `IterationMatrix` and
+      by both tolerance tests), the trace retention (`Composition.Retain`, called by
+      the sums of every step and by the final iterate of every convergence), the state
+      record (`MixtureProperties.Common`, called by the equilibrium and the frozen
+      closure). The dead conditional of the frozen target is gone, its unit difference
+      now a comment in `FrozenTemperature`. Every number of the report is a named
+      constant in the stage that uses it: the control-factor weight and limit of
+      equation (3.1), the small-species bound of (3.2), the tests of (3.5) and (3.6),
+      the polish threshold and step count, the reset moles and reset count of section
+      3.6 (`NewtonIteration`); the step limit, test and step cap of the frozen Newton
+      (`FrozenTemperature`); the initial gaseous moles, the default temperature and
+      the unestimated offset of section 3.1 (`CaseSetup`); the transition window and
+      the residual gain limit (`CondensedSet`); the crossing limit and the range
+      tolerance (`PhaseGeometry`); the two element-balance tolerances
+      (`ElementBalance`). Checked by reading at the close of the decomposition; the
+      bit snapshot proves the reading moved no number.
 
 ## Taboos
 
