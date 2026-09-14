@@ -368,12 +368,15 @@ Why the numbers are what they are:
       The nodes' `## Shape exceptions` tables transcribe the exceptions their
       `## Structure` sections declare; a violation no node declared is a finding for a
       design session, not a new row. Each fact seen red once, each mutation alone: a
-      method padded to 61 lines; a fourth nesting level; a seventh parameter; an
-      internal `src` type made to name a fifteenth type of the tree; an internal type
-      with ten dependants grown past 100 lines; a synthetic project graph with a
-      reference against instability given to the same rule; a `#region`; a row's
-      figure set below its measurement; a row for a member within its limits; one
-      argument of a declared wide constructor's creation passed by position.
+      type padded to 401 lines; a method padded to 61 lines; a fourth nesting level; a
+      seventh parameter; an internal `src` type made to name a fifteenth type of the
+      tree; an internal type with ten dependants grown past 100 lines; a synthetic
+      project graph with a reference against instability given to the same rule; a
+      `#region`; a row's figure set below its measurement; a row for a member within its
+      limits; one argument of a declared wide constructor's creation passed by position.
+      The named-construction fact also stays green when a creation of another node's
+      type that shares a row type's simple name passes an argument by position (the
+      resolution its definition settled on 2026-09-14).
 
 ## Taboos
 
