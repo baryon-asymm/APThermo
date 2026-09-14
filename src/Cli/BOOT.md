@@ -198,9 +198,27 @@ Decisions taken with the review of 2026-09-14:
 - **Names**: `CommandRegistry` and `CommandTable` instead of two `Commands`, and verbs
   for the case builders (F-CL-14).
 - **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
-  more than 6 parameters, no type with an efferent coupling over 10; a type that
+  more than 6 parameters, no type with an efferent coupling over 14; a type that
   cannot stay under the coupling limit is declared here with its measured figure and
   its reason, or split.
+
+  ⚠ 2026-09-14: this bullet stood "over 10" after the root's own limit was recalibrated
+  to 14 the same day (the root `BOOT.md`, Constraints): the root's number moved and
+  this copy of it did not. Corrected against the close's own measurement below.
+
+## Shape exceptions
+
+Measured by the scratch tool of the close of 2026-09-14 (`coupling.py`, the
+efferent-coupling walk over the tree's `.csproj` graph and every type's signatures and
+bodies, textual and node-scoped the way the protocol tests node's reflection walk is
+defined); the rule applies to `src` nodes only (`tests/Protocol.Tests`' `BOOT.md`,
+Shape check), so no row is needed for a type of `tests/Cli.Tests`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `ProblemCommand` | efferent coupling | 27 | the composition root of `rocket` and `equilibrium`: reads the document, builds the mixtures, expands the sweep, dispatches to `RocketCases` or `EquilibriumCases`, writes the run. It names every type that passes through that one path and holds no formula of its own; splitting it further would only move names between files, not reduce how many the command touches. |
+| `ProblemDocumentReader` | efferent coupling | 19 | the one reader of every problem-document shape (rocket or equilibrium, a propellant by reactants or by element moles, a custom reactant's formula, a sweep): each shape's own small type of the tree, named once here rather than duplicated per reader, and no formula. |
+| `StatesCommand` | efferent coupling | 16 | the composition root of `states`: the accelerator kind, the front door's record and batch options, and this node's own naming and output types, named once where the two batches (`SolveStates`, `SolveRocketStates`) are dispatched and the cases placed back in input order. |
 
 ## Acceptance criteria
 
@@ -252,18 +270,31 @@ Decisions taken with the review of 2026-09-14:
       code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
       (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
       heavy, not light: the front door's BOOT.md records why).
-- [ ] The decomposition of `## Structure` (2026-09-14): every type within the root's
-      code-shape constraint; the tests node's snapshot of the example outputs unchanged
-      from before any code moved; every L0, L1, L2 and process fact green; the public
-      surface (`Program`, `ExitCode`) unchanged.
-- [ ] The documents follow the front door's contract of 2026-09-14: the `states`
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type within the root's
+      code-shape constraint except the three declared above (`## Shape exceptions`),
+      measured by the close's scratch tool (`coupling.py`, the efferent-coupling walk;
+      no type of either node over 400 lines, no method over 60, no nesting over 3, no
+      method over 6 parameters, measured by a second tool over every type and member
+      of both nodes); the tests node's snapshot of the example outputs unchanged from
+      before any code moved (`tests/Cli.Tests/Bits.approved.txt`, empty diff against
+      the version recorded by `f795f3c`, before the decomposition); every L0, L1, L2
+      and process fact green (`dotnet test tests/Cli.Tests`: 91 passed, 0 failed); the
+      public surface unchanged (`Program`, `ExitCode` the only public types of the
+      assembly; `Protocol.Tests.SurfaceTests` green against `PublicSurface.approved.txt`).
+- [x] 2026-09-14 — The documents follow the front door's contract: the `states`
       example gives the library's numbers field by field through `SolveStates` and
-      `SolveRocketStates`; an invalid record is exit code 2 naming its file and
-      position with the front door's reason; an unexpected exception is exit code 3;
-      an `auto` run with CUDA forbidden writes the reason in
-      `run.accelerator.cudaSkippedBecause` and in the `devices` listing, and the schema
-      files list the field (the tests node's `LibraryEqualityTests`, `ExitCodeTests`,
-      `OutputDocumentTests`).
+      `SolveRocketStates` (`LibraryEqualityTests.The_states_example_equals_the_library_field_by_field`,
+      a records file with and without exits); an invalid record is exit code 2 naming
+      its file and position with the front door's reason (the pinned fragments of
+      `InputDocumentTests`, `states-two-targets.json` and `states-rocket-without-enthalpy.json`);
+      the exception → exit code rule maps an input refusal to 2 and an accelerator
+      failure or any other exception to 3
+      (`ExitCodeTests.An_exception_maps_to_its_documented_exit_code`); an `auto` run
+      with CUDA forbidden writes the reason in `run.accelerator.cudaSkippedBecause` and
+      the `devices` listing names the variable too, both schema files listing the field
+      (`OutputDocumentTests.An_auto_run_that_fell_back_says_why`, a separate process
+      with `APTHERMO_NO_CUDA=1`). Each fact seen red once and reverted: the fallback
+      reason not written, an unexpected exception mapped to 2.
 
 ## Taboos
 
