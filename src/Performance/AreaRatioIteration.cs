@@ -65,17 +65,10 @@ internal static class AreaRatioIteration
             temperatureEstimate = state.Temperature;
         }
 
-        if (outcome != ExitOutcome.Converged && outcome != ExitOutcome.WithinReportTolerance)
-        {
-            estimate.Extrapolable = false;
-            result.StationStatus[station] = (int)CaseStatus.NotConverged;
-            return outcome;
-        }
-
         estimate.LogAreaRatio = logAreaRatio;
         estimate.Derivative = derivative;
-        Accept(in context, in chamber, in throat, areaRatio, station, ref estimate);
-        return outcome;
+        estimate.Extrapolable = areaRatio > RocketSolver.ExtrapolationAreaRatio;
+        return Close(in context, in chamber, in throat, station, ref estimate, outcome);
     }
 
     /// <summary>
@@ -97,16 +90,27 @@ internal static class AreaRatioIteration
         return throat.GammaS + 1.4 * logAreaRatio;
     }
 
-    /// <summary>The station is met: its figures are written and it becomes the station the next one is extrapolated from.</summary>
-    private static void Accept(in RocketContext context, in ChamberReference chamber, in ThroatReference throat,
-                               double areaRatio, int station, ref ExitEstimate estimate)
+    /// <summary>
+    /// The verdict on the station: when its area ratio was met, its figures are written and it becomes the station the next one
+    /// is extrapolated from; when it was not, it is NotConverged and nothing may be extrapolated from it.
+    /// </summary>
+    private static ExitOutcome Close(in RocketContext context, in ChamberReference chamber, in ThroatReference throat,
+                                     int station, ref ExitEstimate estimate, ExitOutcome outcome)
     {
-        var state = context.Result.Stations[station];
+        var result = context.Result;
+        if (outcome != ExitOutcome.Converged && outcome != ExitOutcome.WithinReportTolerance)
+        {
+            estimate.Extrapolable = false;
+            result.StationStatus[station] = (int)CaseStatus.NotConverged;
+            return outcome;
+        }
+
+        var state = result.Stations[station];
         var velocity = StationFigures.Velocity(chamber.Enthalpy, in state);
         var currentAreaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
         StationFigures.Write(in context, station, velocity, currentAreaRatio, chamber.Pressure / state.Pressure,
                              throat.CharacteristicVelocity);
-        estimate.Extrapolable = areaRatio > RocketSolver.ExtrapolationAreaRatio;
         estimate.LogPressureRatio = Math.Log(chamber.Pressure / state.Pressure);
+        return outcome;
     }
 }
