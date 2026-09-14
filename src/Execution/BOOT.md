@@ -144,8 +144,20 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above 10 (Ce 22 on 2026-09-14: one views struct, one layout class and one solver per program, which no split removes) | internal |
-| `MathProbe` | the probe of the root's math list, in a file of its own; `FunctionCount` is the constant the kernel strides by, and the function list is asserted to have that length | public, contract unchanged |
+| `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | public, contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the NVVM module from the fragments, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load | internal |
+
+⚠ 2026-09-14: this row first read "`FunctionCount` is the constant the kernel strides by" (F-EX-07's own
+wording: `public const int FunctionCount = 10;`), which would have turned `FunctionCount` from a property
+into a `const` field — a second public-surface change beyond `AcceleratorInfo.CudaSkippedBecause`, which
+the coding task reserves that change for alone. Confirmed red-handed by running
+`Protocol.Tests.SurfaceTests` against the literal change: it failed, naming exactly this member
+(`approved 'static Int32 FunctionCount { get; }', actual 'const Int32 FunctionCount = 10'`). `FunctionCount`
+stays the public property (contract truly unchanged); an `internal const int StrideCount = 10` was added
+beside it for the kernel to stride by (a `const` inlines into kernel-compatible code, a property touching
+the managed string array `Functions` does not), and
+`ProbeKernelTests.The_kernels_stride_constant_matches_the_function_list` asserts `StrideCount ==
+FunctionCount` so the two cannot drift silently.
 
 Decisions taken with the review of 2026-09-14:
 
@@ -175,8 +187,8 @@ Decisions taken with the review of 2026-09-14:
   constructor guarantees it. The element- and species-count checks stay.
 - **One thread at a time.** An engine is used from one thread at a time; the kernel
   cache is the only synchronised piece. Said in `API.md`.
-- **The probe's stride** is `MathProbe.FunctionCount`; the two literals of the
-  species-function chunk are the strides the pipeline declares.
+- **The probe's stride** is `MathProbe.StrideCount` (internal; see the ⚠ above); the two
+  literals of the species-function chunk are the strides the pipeline declares.
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more than
   6 parameters (the views structs aside).
 

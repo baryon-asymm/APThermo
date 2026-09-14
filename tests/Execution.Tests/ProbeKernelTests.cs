@@ -24,6 +24,15 @@ public sealed class ProbeKernelTests(EngineFixture fixture)
     }
 
     [Fact]
+    public void The_kernels_stride_constant_matches_the_function_list()
+    {
+        // Kernels.Probe strides by MathProbe.StrideCount, a const so it inlines into the kernel (Functions is a string array, and
+        // kernel-compatible code allows no strings); this is what keeps that literal from drifting away from Functions silently
+        // if a function is ever added to the root's math list (F-EX-07).
+        Assert.Equal(MathProbe.StrideCount, MathProbe.FunctionCount);
+    }
+
+    [Fact]
     public void The_cpu_accelerator_reproduces_dotnet_math_exactly()
     {
         var inputs = Inputs();

@@ -122,26 +122,6 @@ public sealed class Engine : IDisposable
 
     internal Accelerator IlgpuAccelerator => _session.Accelerator;
 
-    /// <summary>The largest number of cases per launch, by the one rule of <see cref="ChunkPlan"/>.</summary>
-    private int ChunkSize(int count, long doublesPerCase, long intsPerCase) =>
-        ChunkPlan.For(count, doublesPerCase * sizeof(double) + intsPerCase * sizeof(int), _options).Size;
-
-    private static void Upload<T>(MemoryBuffer1D<T, Stride1D.Dense> buffer, T[] source, long offset, long length) where T : unmanaged
-    {
-        if (length > 0)
-        {
-            buffer.View.SubView(0, length).CopyFromCPU(ref source[offset], length);
-        }
-    }
-
-    private static void Download<T>(MemoryBuffer1D<T, Stride1D.Dense> buffer, T[] target, long offset, long length) where T : unmanaged
-    {
-        if (length > 0)
-        {
-            buffer.View.SubView(0, length).CopyToCPU(ref target[offset], length);
-        }
-    }
-
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     /// <summary>What every run checks before its pipeline starts: the arguments, the engine and the ownership of the tables.</summary>

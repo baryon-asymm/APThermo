@@ -79,20 +79,6 @@ public readonly struct SpeciesFunctionBatchViews(
     public readonly ArrayView<int> InRange = inRange;
 }
 
-/// <summary>The probe of the root's math list: one value per function per input.</summary>
-public static class MathProbe
-{
-    /// <summary>The functions of the root's list, in the order of the probe's outputs.</summary>
-    public static readonly IReadOnlyList<string> Functions =
-        ["Exp", "Log", "Log10", "Pow", "Sqrt", "Abs", "Min", "Max", "Floor", "Ceiling"];
-
-    /// <summary>Outputs per input.</summary>
-    public static int FunctionCount => Functions.Count;
-
-    /// <summary>The exponent the probe passes to Pow.</summary>
-    public const double PowExponent = 1.37;
-}
-
 /// <summary>The kernel entry points: each slices the views of its case and calls the numerical node. No formula lives here.</summary>
 internal static class Kernels
 {
@@ -163,7 +149,7 @@ internal static class Kernels
     internal static void Probe(Index1D index, ArrayView<double> inputs, ArrayView<double> outputs)
     {
         var v = inputs[index];
-        var o = index * 10;
+        var o = index * MathProbe.StrideCount;
         outputs[o] = Math.Exp(v);
         outputs[o + 1] = Math.Log(v);
         outputs[o + 2] = Math.Log10(v);
