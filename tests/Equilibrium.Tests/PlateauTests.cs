@@ -4,8 +4,9 @@ using AerospacePropellantThermodynamics.Thermo;
 namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
 
 /// <summary>
-/// L2: the pinned two-phase states of the condensed-species rule (BOOT.md) where the reference cannot follow: the
-/// enthalpy gap of a species cut at a fit discontinuity, and the no-candidate-left-out property of an Ok status.
+/// L2: states the reference cannot reach: the pinned pair at a cut, the refusal where no admissible set exists, no
+/// condensed candidate with positive gain left out of an <c>Ok</c> status — checked against the node's own rule, not
+/// against the reference.
 /// </summary>
 public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
 {
@@ -23,8 +24,8 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
         var pressure = HostSolver.PressureOf(c);
         var elementMoles = HostSolver.ElementMolesOf(c);
 
-        var below = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles);
-        var above = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles);
+        var below = HostSolver.Solve(fixture.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles));
+        var above = HostSolver.Solve(fixture.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles));
         Assert.Equal(CaseStatus.Ok, below.Status);
         Assert.Equal(CaseStatus.Ok, above.Status);
         Assert.True(below.Moles[pieces[0]] > 0.0, "the lower piece must hold the aluminium nitride just under the cut");
@@ -35,16 +36,16 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
         var gap = above.State.Enthalpy - below.State.Enthalpy;
         Assert.True(gap > 5.0 * (2.0 * below.State.CpEquilibrium), $"the cut must carry a real enthalpy gap, got {gap} J/kg");
         var target = 0.5 * (below.State.Enthalpy + above.State.Enthalpy);
-        var pinned = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles);
+        var pinned = HostSolver.Solve(fixture.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
         Assert.Equal(CaseStatus.Ok, pinned.Status);
         Assert.True(pinned.Moles[pieces[0]] > 0.0 && pinned.Moles[pieces[1]] > 0.0,
                     $"both pieces must stand in the solution (n = {pinned.Moles[pieces[0]]:R}, {pinned.Moles[pieces[1]]:R})");
         Assert.True(Math.Abs(pinned.State.Temperature - bound) <= 0.01, $"T = {pinned.State.Temperature:R} against the cut at {bound}");
-        Assert.True(Math.Abs(pinned.State.Enthalpy - target) <= 1e-9 * Math.Abs(target), "the assigned enthalpy is met on the plateau");
+        Assert.True(Math.Abs(pinned.State.Enthalpy - target) <= Tolerances.SelfConsistency * Math.Abs(target), "the assigned enthalpy is met on the plateau");
         Assert.Equal(0.0, pinned.State.CpEquilibrium);
         Assert.Equal(0.0, pinned.State.CvEquilibrium);
         Assert.Equal(0.0, pinned.State.DlnVdlnT);
-        Assert.True(pinned.State.GammaS > 0.0 && Math.Abs(pinned.State.GammaS * pinned.State.DlnVdlnP + 1.0) <= 1e-12,
+        Assert.True(pinned.State.GammaS > 0.0 && Math.Abs(pinned.State.GammaS * pinned.State.DlnVdlnP + 1.0) <= Tolerances.Exact,
                     $"gamma_s = -1/dlnVdlnP on the plateau, got {pinned.State.GammaS:R} and {pinned.State.DlnVdlnP:R}");
     }
 
@@ -65,14 +66,14 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
         var bound = full.Arrays.IntervalBounds[full.Arrays.IntervalStart[pieces[0]] * 2 + 1];
         var pressure = HostSolver.PressureOf(c);
         var elementMoles = HostSolver.ElementMolesOf(c);
-        var below = HostSolver.Solve(fixture.Accelerator, full, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles);
-        var above = HostSolver.Solve(fixture.Accelerator, full, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles);
+        var below = HostSolver.Solve(fixture.Accelerator, new EquilibriumCase(full, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles));
+        var above = HostSolver.Solve(fixture.Accelerator, new EquilibriumCase(full, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles));
         var target = 0.5 * (below.State.Enthalpy + above.State.Enthalpy);
 
         var duo = SpeciesTable.Build(fixture.Database, HostSolver.ElementsOf(c),
                                      HostSolver.ProductsOf(c).Where(s => fixture.Database[s].Phase == SpeciesPhase.Gas
                                                                          || s == "AL4C3(cr)" || s == "ALN(L)").ToArray());
-        var solution = HostSolver.Solve(fixture.Accelerator, duo, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles);
+        var solution = HostSolver.Solve(fixture.Accelerator, new EquilibriumCase(duo, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
         Assert.Equal(CaseStatus.NotConverged, solution.Status);
     }
 
@@ -110,7 +111,7 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
                 gain += table.Arrays.Stoichiometry[i * count + j] * solution.Multipliers[i];
             }
 
-            Assert.True(gain <= 1e-9, $"{name}: {table.Species[j]} left out with inclusion gain {gain:R} at {t} K");
+            Assert.True(gain <= Tolerances.SelfConsistency, $"{name}: {table.Species[j]} left out with inclusion gain {gain:R} at {t} K");
         }
     }
 

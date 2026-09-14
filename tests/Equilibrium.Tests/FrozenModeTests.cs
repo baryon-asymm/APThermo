@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AerospacePropellantThermodynamics.Fixtures;
 using AerospacePropellantThermodynamics.Thermo;
 
@@ -21,6 +20,14 @@ public sealed class FrozenModeTests(CpuFixture fixture)
             .Select(path => (Name: Path.GetFileNameWithoutExtension(path), Case: CeaFixtures.Load(path)))
             .Where(x => x.Case.Outputs.GetProperty("stations").EnumerateArray().Any(s => s.GetProperty("frozen").GetBoolean()))
             .Select(x => new object[] { x.Name });
+
+    /// <summary>The three equilibrium cases the self-consistency tests below are run over, one of each problem kind.</summary>
+    public static IEnumerable<object[]> SelfConsistencyCases()
+    {
+        yield return ["tp", "rp1311-example1_r1.0_p1.0atm_T3000"];
+        yield return ["hp", "lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber"];
+        yield return ["sp", "nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_exit2"];
+    }
 
     [Theory]
     [MemberData(nameof(FrozenRocketCases))]
@@ -49,31 +56,12 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         foreach (var station in stations.Where(s => s.GetProperty("frozen").GetBoolean()))
         {
             var label = station.GetProperty("station").GetString();
-            var pressure = station.GetProperty("pressure").GetDouble();
-            var solution = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedEntropyPressure, pressure, 0.0, entropy, elementMoles, moles, frozen: true);
+            var expansion = new EquilibriumCase(table, ProblemKind.AssignedEntropyPressure,
+                                                Pressure: station.GetProperty("pressure").GetDouble(),
+                                                Temperature: 0.0, Target: entropy, ElementMoles: elementMoles);
+            var solution = HostSolver.SolveFrozen(fixture.Accelerator, expansion, moles);
             Assert.True(solution.Status == CaseStatus.Ok, $"{label}: status {solution.Status}");
-            foreach (var (field, expected, info) in StateComparison.StateFields(station, strict: false))
-            {
-                if (NotFrozenFields.Contains(field))
-                {
-                    continue;
-                }
-
-                var actual = (double)info.GetValue(solution.State)!;
-                if (!fixture.Tolerances.Matches(field, expected, actual))
-                {
-                    mismatches.Add($"{label} {field}: reference {expected:R}, tree {actual:R}");
-                }
-
-                compared++;
-            }
-
-            // In frozen flow the reference's equilibrium heat capacity is the frozen one.
-            var cpEquilibrium = station.GetProperty("cpEquilibrium").GetDouble();
-            if (!fixture.Tolerances.Matches("cpEquilibrium", cpEquilibrium, solution.State.CpEquilibrium))
-            {
-                mismatches.Add($"{label} cpEquilibrium: reference {cpEquilibrium:R}, tree {solution.State.CpEquilibrium:R}");
-            }
+            compared += CompareStation(station, solution, label, mismatches);
         }
 
         Assert.True(compared > 0, "no frozen station field was compared");
@@ -81,38 +69,100 @@ public sealed class FrozenModeTests(CpuFixture fixture)
     }
 
     [Theory]
-    [InlineData("tp", "rp1311-example1_r1.0_p1.0atm_T3000")]
-    [InlineData("hp", "lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber")]
-    [InlineData("sp", "nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_exit2")]
-    public void Frozen_mode_at_the_equilibrium_composition_recovers_the_equilibrium_temperature(string kind, string name)
+    [MemberData(nameof(SelfConsistencyCases))]
+    public void Frozen_mode_at_the_equilibrium_composition_recovers_the_equilibrium_state(string kind, string name)
+    {
+        var (equilibrium, frozen) = FrozenAtEquilibrium(kind, name);
+        foreach (var state in frozen)
+        {
+            Assert.Equal(equilibrium.Temperature, state.Temperature, equilibrium.Temperature * Tolerances.SelfConsistency);
+            Assert.Equal(equilibrium.Enthalpy, state.Enthalpy, Math.Abs(equilibrium.Enthalpy) * Tolerances.SelfConsistency + 1e-3);
+            Assert.Equal(equilibrium.Entropy, state.Entropy, equilibrium.Entropy * Tolerances.SelfConsistency);
+            Assert.Equal(equilibrium.CpFrozen, state.CpFrozen, equilibrium.CpFrozen * Tolerances.SelfConsistency);
+            Assert.Equal(equilibrium.CvFrozen, state.CvFrozen, equilibrium.CvFrozen * Tolerances.SelfConsistency);
+            Assert.Equal(equilibrium.MolarMass, state.MolarMass, equilibrium.MolarMass * Tolerances.Exact);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(SelfConsistencyCases))]
+    public void A_frozen_state_reports_the_frozen_heat_capacities_as_the_equilibrium_ones(string kind, string name)
+    {
+        var (_, frozen) = FrozenAtEquilibrium(kind, name);
+        foreach (var state in frozen)
+        {
+            Assert.Equal(state.CpFrozen, state.CpEquilibrium);
+            Assert.Equal(state.CvFrozen, state.CvEquilibrium);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(SelfConsistencyCases))]
+    public void A_frozen_state_carries_the_ideal_gas_derivatives(string kind, string name)
+    {
+        var (_, frozen) = FrozenAtEquilibrium(kind, name);
+        foreach (var state in frozen)
+        {
+            Assert.Equal(1.0, state.DlnVdlnT);
+            Assert.Equal(-1.0, state.DlnVdlnP);
+            Assert.Equal(state.CpFrozen / state.CvFrozen, state.GammaS, Tolerances.Exact);
+        }
+    }
+
+    /// <summary>Every field of one frozen station the reference settles, against the tolerance table; returns how many were compared.</summary>
+    private int CompareStation(System.Text.Json.JsonElement station, HostSolution solution, string? label, List<string> mismatches)
+    {
+        var compared = 0;
+        foreach (var (field, expected, info) in StateComparison.StateFields(station, strict: false))
+        {
+            if (NotFrozenFields.Contains(field))
+            {
+                continue;
+            }
+
+            var actual = (double)info.GetValue(solution.State)!;
+            if (!fixture.Tolerances.Matches(field, expected, actual))
+            {
+                mismatches.Add($"{label} {field}: reference {expected:R}, tree {actual:R}");
+            }
+
+            compared++;
+        }
+
+        // In frozen flow the reference's equilibrium heat capacity is the frozen one.
+        var cpEquilibrium = station.GetProperty("cpEquilibrium").GetDouble();
+        if (!fixture.Tolerances.Matches("cpEquilibrium", cpEquilibrium, solution.State.CpEquilibrium))
+        {
+            mismatches.Add($"{label} cpEquilibrium: reference {cpEquilibrium:R}, tree {solution.State.CpEquilibrium:R}");
+        }
+
+        return compared;
+    }
+
+    /// <summary>
+    /// One equilibrium solve of the fixture case, then the same composition held frozen and solved for its temperature three
+    /// ways: from the enthalpy, from the entropy, and at the temperature itself. All four states describe one point.
+    /// </summary>
+    private (MixtureState Equilibrium, MixtureState[] Frozen) FrozenAtEquilibrium(string kind, string name)
     {
         var c = HostSolver.Load(kind, name);
         var equilibrium = HostSolver.Solve(fixture, c);
         Assert.Equal(CaseStatus.Ok, equilibrium.Status);
-        var pressure = equilibrium.State.Pressure;
-        var elementMoles = HostSolver.ElementMolesOf(c);
+        var held = HostSolver.Of(equilibrium.Table, c);
+        var state = equilibrium.State;
+        var byEnthalpy = held with { Kind = ProblemKind.AssignedEnthalpyPressure, Pressure = state.Pressure, Temperature = 0.0, Target = state.Enthalpy };
+        var byEntropy = held with { Kind = ProblemKind.AssignedEntropyPressure, Pressure = state.Pressure, Temperature = 0.0, Target = state.Entropy };
+        var atTemperature = held with { Kind = ProblemKind.AssignedTemperaturePressure, Pressure = state.Pressure, Temperature = state.Temperature, Target = 0.0 };
 
-        var byEnthalpy = HostSolver.Solve(fixture.Accelerator, equilibrium.Table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0,
-                                          equilibrium.State.Enthalpy, elementMoles, equilibrium.Moles, frozen: true);
-        var byEntropy = HostSolver.Solve(fixture.Accelerator, equilibrium.Table, ProblemKind.AssignedEntropyPressure, pressure, 0.0,
-                                         equilibrium.State.Entropy, elementMoles, equilibrium.Moles, frozen: true);
-        var atTemperature = HostSolver.Solve(fixture.Accelerator, equilibrium.Table, ProblemKind.AssignedTemperaturePressure, pressure,
-                                             equilibrium.State.Temperature, 0.0, elementMoles, equilibrium.Moles, frozen: true);
-
-        foreach (var frozen in new[] { byEnthalpy, byEntropy, atTemperature })
+        var frozen = new MixtureState[3];
+        var cases = new[] { byEnthalpy, byEntropy, atTemperature };
+        for (var i = 0; i < cases.Length; i++)
         {
-            Assert.Equal(CaseStatus.Ok, frozen.Status);
-            Assert.Equal(equilibrium.State.Temperature, frozen.State.Temperature, equilibrium.State.Temperature * 1e-9);
-            Assert.Equal(equilibrium.State.Enthalpy, frozen.State.Enthalpy, Math.Abs(equilibrium.State.Enthalpy) * 1e-9 + 1e-3);
-            Assert.Equal(equilibrium.State.Entropy, frozen.State.Entropy, equilibrium.State.Entropy * 1e-9);
-            Assert.Equal(equilibrium.State.CpFrozen, frozen.State.CpFrozen, equilibrium.State.CpFrozen * 1e-9);
-            Assert.Equal(equilibrium.State.CvFrozen, frozen.State.CvFrozen, equilibrium.State.CvFrozen * 1e-9);
-            Assert.Equal(equilibrium.State.MolarMass, frozen.State.MolarMass, equilibrium.State.MolarMass * 1e-12);
-            Assert.Equal(frozen.State.CpFrozen, frozen.State.CpEquilibrium);
-            Assert.Equal(frozen.State.CvFrozen, frozen.State.CvEquilibrium);
-            Assert.Equal(1.0, frozen.State.DlnVdlnT);
-            Assert.Equal(-1.0, frozen.State.DlnVdlnP);
-            Assert.Equal(frozen.State.CpFrozen / frozen.State.CvFrozen, frozen.State.GammaS, 1e-12);
+            var solution = HostSolver.SolveFrozen(fixture.Accelerator, cases[i], equilibrium.Moles);
+            Assert.Equal(CaseStatus.Ok, solution.Status);
+            frozen[i] = solution.State;
         }
+
+        return (state, frozen);
     }
 }

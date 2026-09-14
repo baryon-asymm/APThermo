@@ -46,7 +46,8 @@ public sealed class InvalidInputTests(CpuFixture fixture)
     public void Invalid_inputs_are_reported_as_such(double[] elementMoles, double pressure, double temperature)
     {
         var table = SpeciesTable.Build(fixture.Database, Elements, Species);
-        var solution = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedTemperaturePressure, pressure, temperature, 0.0, elementMoles);
+        var problem = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, temperature, 0.0, elementMoles);
+        var solution = HostSolver.Solve(fixture.Accelerator, problem);
         Assert.Equal(CaseStatus.InvalidInput, solution.Status);
         Assert.Equal(0, solution.Iterations);
     }
@@ -55,7 +56,8 @@ public sealed class InvalidInputTests(CpuFixture fixture)
     public void A_valid_small_case_converges()
     {
         var table = SpeciesTable.Build(fixture.Database, Elements, Species);
-        var solution = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedTemperaturePressure, 1e5, 3000.0, 0.0, [0.1, 0.05]);
+        var problem = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, 1e5, 3000.0, 0.0, [0.1, 0.05]);
+        var solution = HostSolver.Solve(fixture.Accelerator, problem);
         Assert.Equal(CaseStatus.Ok, solution.Status);
         Assert.True(solution.Iterations > 0);
         Assert.True(solution.Moles[table.IndexOf("H2O")] > solution.Moles[table.IndexOf("O2")], "stoichiometric hydrogen and oxygen burn mostly to water");
@@ -66,7 +68,8 @@ public sealed class InvalidInputTests(CpuFixture fixture)
     {
         var table = SpeciesTable.Build(fixture.Database, Elements, Species);
         var zeroes = new double[table.SpeciesCount];
-        var solution = HostSolver.Solve(fixture.Accelerator, table, ProblemKind.AssignedEnthalpyPressure, 1e5, 0.0, -1e6, [0.1, 0.05], zeroes, frozen: true);
+        var problem = new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, 1e5, 0.0, -1e6, [0.1, 0.05]);
+        var solution = HostSolver.SolveFrozen(fixture.Accelerator, problem, zeroes);
         Assert.Equal(CaseStatus.InvalidInput, solution.Status);
     }
 }

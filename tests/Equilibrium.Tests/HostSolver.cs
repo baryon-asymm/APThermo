@@ -5,6 +5,10 @@ using ILGPU.Runtime;
 
 namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
 
+/// <summary>Everything one equilibrium solve needs, named rather than lined up as arguments.</summary>
+internal sealed record EquilibriumCase(
+    SpeciesTable Table, ProblemKind Kind, double Pressure, double Temperature, double Target, double[] ElementMoles);
+
 /// <summary>What one host call of the solver produced, copied out of the accelerator buffers.</summary>
 internal sealed record HostSolution(
     SpeciesTable Table, double[] ElementMoles, double[] Moles, double[] Multipliers,
@@ -56,44 +60,57 @@ internal static class HostSolver
     public static string TableKey(CeaCase c) =>
         string.Join(",", ElementsOf(c)) + "|" + string.Join(",", ProductsOf(c));
 
-    public static HostSolution Solve(CpuFixture fixture, CeaCase c) =>
-        Solve(fixture.Accelerator, BuildTable(fixture.Database, c), KindOf(c), PressureOf(c), TemperatureOf(c), TargetOf(c), ElementMolesOf(c));
+    /// <summary>The case a fixture describes, over a table built for it.</summary>
+    public static EquilibriumCase Of(CpuFixture fixture, CeaCase c) => Of(BuildTable(fixture.Database, c), c);
 
-    /// <summary>One solve; with <paramref name="estimate"/> the moles are the initial estimate, with <paramref name="frozen"/> the composition is held.</summary>
-    public static HostSolution Solve(Accelerator accelerator, SpeciesTable table, ProblemKind kind, double pressure, double temperature,
-                                     double target, double[] elementMoles, double[]? estimate = null, bool frozen = false)
+    /// <summary>The case a fixture describes, over a table the caller chose (a shared one, or one with a species left out).</summary>
+    public static EquilibriumCase Of(SpeciesTable table, CeaCase c) =>
+        new(table, KindOf(c), PressureOf(c), TemperatureOf(c), TargetOf(c), ElementMolesOf(c));
+
+    public static HostSolution Solve(CpuFixture fixture, CeaCase c) => Solve(fixture.Accelerator, Of(fixture, c));
+
+    /// <summary>One solve; with <paramref name="estimate"/> the moles given are the initial estimate.</summary>
+    public static HostSolution Solve(Accelerator accelerator, EquilibriumCase problem, double[]? estimate = null) =>
+        Run(accelerator, problem, estimate, frozen: false);
+
+    /// <summary>One frozen solve: the composition is held at <paramref name="composition"/> and the temperature follows from it.</summary>
+    public static HostSolution SolveFrozen(Accelerator accelerator, EquilibriumCase problem, double[] composition) =>
+        Run(accelerator, problem, composition, frozen: true);
+
+    private static HostSolution Run(Accelerator accelerator, EquilibriumCase problem, double[]? moles, bool frozen)
     {
+        var table = problem.Table;
         using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
-        using var elements = accelerator.Allocate1D(elementMoles);
+        using var elements = accelerator.Allocate1D(problem.ElementMoles);
         using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
         using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        using var moles = estimate is null ? accelerator.Allocate1D<double>(speciesCount) : accelerator.Allocate1D(estimate);
+        using var molesBuffer = moles is null ? accelerator.Allocate1D<double>(speciesCount) : accelerator.Allocate1D(moles);
         using var multipliers = accelerator.Allocate1D<double>(elementCount);
         using var state = accelerator.Allocate1D<MixtureState>(1);
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
-        if (estimate is null)
+        if (moles is null)
         {
-            moles.MemSetToZero();
+            molesBuffer.MemSetToZero();
         }
 
-        var problem = new EquilibriumProblem(kind, pressure, temperature, target, elements.View);
+        var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
-        var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
+        var result = new EquilibriumResult(molesBuffer.View, multipliers.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         if (frozen)
         {
-            EquilibriumSolver.SolveFrozen(in view, in problem, in scratch, in result);
+            EquilibriumSolver.SolveFrozen(in view, in input, in scratch, in result);
         }
         else
         {
-            EquilibriumSolver.Solve(in view, in problem, in scratch, in result, estimate is not null);
+            EquilibriumSolver.Solve(in view, in input, in scratch, in result, moles is not null);
         }
 
-        return new HostSolution(table, elementMoles, moles.GetAsArray1D(), multipliers.GetAsArray1D(), state.GetAsArray1D()[0],
-                                (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
+        return new HostSolution(table, problem.ElementMoles, molesBuffer.GetAsArray1D(), multipliers.GetAsArray1D(),
+                                state.GetAsArray1D()[0], (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
     }
 
     /// <summary>The fixture files of a kind as theory data: the file name without extension; <see cref="Load"/> reads it back.</summary>
