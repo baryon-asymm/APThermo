@@ -33,6 +33,12 @@ public sealed class CliFixture : IDisposable
     public static IReadOnlyList<string> ProblemDocumentNames() =>
         Directory.GetFiles(DocumentsDirectory, "*.json").Select(p => Path.GetFileName(p)).Where(n => !n.StartsWith("states", StringComparison.Ordinal)).Order(StringComparer.Ordinal).ToList();
 
+    /// <summary>The names of the states example documents of the directory (JSON and JSON Lines), each solvable on its own.</summary>
+    public static IReadOnlyList<string> StatesDocumentNames() =>
+        Directory.GetFiles(DocumentsDirectory).Select(p => Path.GetFileName(p)!)
+            .Where(n => n.StartsWith("states", StringComparison.Ordinal) && (n.EndsWith(".json", StringComparison.Ordinal) || n.EndsWith(".jsonl", StringComparison.Ordinal)))
+            .Order(StringComparer.Ordinal).ToList();
+
     public static IReadOnlyList<string> InvalidDocumentNames() =>
         Directory.GetFiles(Path.Combine(DocumentsDirectory, "invalid"), "*.json").Select(p => Path.GetFileName(p)).Order(StringComparer.Ordinal).ToList();
 
