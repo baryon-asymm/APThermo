@@ -202,28 +202,43 @@ Decisions taken with the review of 2026-09-14:
   `CaseOutput` is declared with init properties (F-CL-09).
 - **Names**: `CommandRegistry` and `CommandTable` instead of two `Commands`, and verbs
   for the case builders (F-CL-14).
+- **The commands are composition roots.** `ProblemCommand`, `StatesCommand` and
+  `SpeciesCommand` turn one command into calls of their collaborators: the input read,
+  the cases solved through the front door or the database listed, the run written. They
+  hold no formula and no rule of a document or a record, so each names every type its
+  path passes through, and a coupling above the root's limit is declared in
+  `## Shape exceptions` (the root's exception for a composition root). A reader, a
+  rendering or a mapper is not one: above the limit it is split along the document's
+  sections or the output's parts, never by moving a responsibility to where the count
+  fits.
 - **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
-  more than 6 parameters, no type with an efferent coupling over 14; a type that
-  cannot stay under the coupling limit is declared here with its measured figure and
-  its reason, or split.
+  more than 6 parameters, no type with an efferent coupling over 14; a composition root
+  or a registry that holds no formula and cannot stay under the coupling limit is
+  declared in `## Shape exceptions` with its measured figure and its reason, and any
+  other type is split.
 
   ⚠ 2026-09-14: this bullet stood "over 10" after the root's own limit was recalibrated
-  to 14 the same day (the root `BOOT.md`, Constraints): the root's number moved and
-  this copy of it did not. Corrected against the close's own measurement below.
+  to 14 the same day (the root `BOOT.md`, Constraints): the root's number moved and this
+  copy of it did not. It also let any type that could not stay under the coupling limit
+  be declared, where the root allows the exception only to a registry or a composition
+  root that holds no formula. The protocol tests node's measurement over the tree with
+  this decomposition merged found `ProblemDocumentReader` at 21 and `SpeciesListing` at
+  17; both were split instead (`PropellantDocumentReader`, `ProblemPartReader` and
+  `SweepDocumentReader` out of the first; `SpeciesCommand` and `SpeciesListing`).
 
 ## Shape exceptions
 
-Measured by the scratch tool of the close of 2026-09-14 (`coupling.py`, the
-efferent-coupling walk over the tree's `.csproj` graph and every type's signatures and
-bodies, textual and node-scoped the way the protocol tests node's reflection walk is
-defined); the rule applies to `src` nodes only (`tests/Protocol.Tests`' `BOOT.md`,
-Shape check), so no row is needed for a type of `tests/Cli.Tests`.
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `ProblemCommand` | efferent coupling | 27 | the composition root of `rocket` and `equilibrium`: reads the document, builds the mixtures, expands the sweep, dispatches to `RocketCases` or `EquilibriumCases`, writes the run. It names every type that passes through that one path and holds no formula of its own; splitting it further would only move names between files, not reduce how many the command touches. |
-| `ProblemDocumentReader` | efferent coupling | 19 | the one reader of every problem-document shape (rocket or equilibrium, a propellant by reactants or by element moles, a custom reactant's formula, a sweep): each shape's own small type of the tree, named once here rather than duplicated per reader, and no formula. |
-| `StatesCommand` | efferent coupling | 16 | the composition root of `states`: the accelerator kind, the front door's record and batch options, and this node's own naming and output types, named once where the two batches (`SolveStates`, `SolveRocketStates`) are dispatched and the cases placed back in input order. |
+| `ProblemCommand` | efferent coupling | 30 | the composition root of `rocket` and `equilibrium`: the document read, the problem type checked, the mixtures and the sweep built by their types, the cases solved through `RocketCases` or `EquilibriumCases`, the run written; holds no formula (the decision "The commands are composition roots") |
+| `StatesCommand` | efferent coupling | 21 | the composition root of `states`, as `ProblemCommand`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates`, the cases back in input order |
+| `SpeciesCommand` | efferent coupling | 15 | the composition root of `species`, as `ProblemCommand`: the database loaded, the entries filtered and flattened, the rows rendered by `SpeciesListing` |
+
+Every other type of the node measures 14 or below by the dependency check's walk
+(`JsonOutput`, the highest of the rest), within the root's limit of 14.
 
 ## Acceptance criteria
 
@@ -276,16 +291,17 @@ Shape check), so no row is needed for a type of `tests/Cli.Tests`.
       (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
       heavy, not light: the front door's BOOT.md records why).
 - [x] 2026-09-14 — The decomposition of `## Structure`: every type within the root's
-      code-shape constraint except the three declared above (`## Shape exceptions`),
-      measured by the close's scratch tool (`coupling.py`, the efferent-coupling walk;
-      no type of either node over 400 lines, no method over 60, no nesting over 3, no
-      method over 6 parameters, measured by a second tool over every type and member
-      of both nodes); the tests node's snapshot of the example outputs unchanged from
-      before any code moved (`tests/Cli.Tests/Bits.approved.txt`, empty diff against
-      the version recorded by `f795f3c`, before the decomposition); every L0, L1, L2
-      and process fact green (`dotnet test tests/Cli.Tests`: 91 passed, 0 failed); the
+      code-shape constraint except the rows of `## Shape exceptions`, measured by the
+      protocol tests node's measurements (`ShapeMeasures`, `CouplingMeasures`) over the
+      tree with this decomposition merged, 66 types and 134 methods of the node: no type
+      over 400 lines, no method over 60, no nesting deeper than 3, no method over 6
+      parameters; the tests node's snapshot of the example outputs unchanged from before
+      any code moved (`tests/Cli.Tests/Bits.approved.txt`, empty diff against the
+      version recorded by `f795f3c`, before the decomposition); every L0, L1, L2 and
+      process fact green (`dotnet test tests/Cli.Tests`: 91 passed, 0 failed); the
       public surface unchanged (`Program`, `ExitCode` the only public types of the
-      assembly; `Protocol.Tests.SurfaceTests` green against `PublicSurface.approved.txt`).
+      assembly; `Protocol.Tests.SurfaceTests` green against
+      `PublicSurface.approved.txt`).
 - [x] 2026-09-14 — The documents follow the front door's contract: the `states`
       example gives the library's numbers field by field through `SolveStates` and
       `SolveRocketStates` (`LibraryEqualityTests.The_states_example_equals_the_library_field_by_field`,
