@@ -63,74 +63,8 @@ public sealed class Engine : IDisposable
     /// <summary>Solves every case of the batch.</summary>
     public EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch)
     {
-        ArgumentNullException.ThrowIfNull(tables);
-        ArgumentNullException.ThrowIfNull(batch);
-        ThrowIfDisposed();
-        tables.ThrowIfNotOwned(this);
-        var table = tables.Species;
-        batch.Validate(table.ElementCount);
-        var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        var count = batch.Count;
-        var timer = new RunTimer();
-        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, EquilibriumBatchViews>>(nameof(Kernels.Equilibrium), out var warmUp);
-        timer.AddWarmUp(warmUp);
-        var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
-        var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
-        var chunk = ChunkSize(count, doublesPerCase, intsPerCase);
-
-        var states = new MixtureState[count];
-        var moles = new double[(long)count * speciesCount];
-        var status = new int[count];
-        var iterations = new int[count];
-        var kinds = batch.Kind.Select(k => (int)k).ToArray();
-
-        using var kindBuffer = _session.Accelerator.Allocate1D<int>(chunk);
-        using var pressureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var temperatureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var targetBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var elementBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * elementCount);
-        using var scratchDoubles = _session.Accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
-        using var scratchInts = _session.Accelerator.Allocate1D<int>((long)chunk * intsPerCase);
-        using var molesBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * speciesCount);
-        using var multiplierBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * elementCount);
-        using var stateBuffer = _session.Accelerator.Allocate1D<MixtureState>(chunk);
-        using var statusBuffer = _session.Accelerator.Allocate1D<int>(chunk);
-        using var iterationBuffer = _session.Accelerator.Allocate1D<int>(chunk);
-        var views = new EquilibriumBatchViews(kindBuffer.View, pressureBuffer.View, temperatureBuffer.View, targetBuffer.View, elementBuffer.View,
-                                              scratchDoubles.View, scratchInts.View, molesBuffer.View, multiplierBuffer.View, stateBuffer.View,
-                                              statusBuffer.View, iterationBuffer.View);
-
-        for (var offset = 0; offset < count; offset += chunk)
-        {
-            var n = Math.Min(chunk, count - offset);
-            using (timer.Uploading())
-            {
-                Upload(kindBuffer, kinds, offset, n);
-                Upload(pressureBuffer, batch.Pressure, offset, n);
-                Upload(temperatureBuffer, batch.Temperature, offset, n);
-                Upload(targetBuffer, batch.Target, offset, n);
-                Upload(elementBuffer, batch.ElementMoles, (long)offset * elementCount, (long)n * elementCount);
-                molesBuffer.MemSetToZero();
-                stateBuffer.MemSetToZero();
-            }
-
-            using (timer.Launching())
-            {
-                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-                _session.Accelerator.Synchronize();
-            }
-
-            using (timer.Downloading())
-            {
-                Download(stateBuffer, states, offset, n);
-                Download(molesBuffer, moles, (long)offset * speciesCount, (long)n * speciesCount);
-                Download(statusBuffer, status, offset, n);
-                Download(iterationBuffer, iterations, offset, n);
-            }
-        }
-
-        return new EquilibriumBatchResult(speciesCount, states, moles, status.Select(s => (CaseStatus)s).ToArray(), iterations, timer.Timings(), Accelerator);
+        Guard(tables, batch);
+        return EquilibriumPipeline.Run(_session, _kernels, _options, tables, batch);
     }
 
     /// <summary>Solves every case of the batch: chamber, throat and the exits.</summary>
@@ -395,6 +329,15 @@ public sealed class Engine : IDisposable
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    /// <summary>What every run checks before its pipeline starts: the arguments, the engine and the ownership of the tables.</summary>
+    private void Guard(UploadedTables tables, object batch)
+    {
+        ArgumentNullException.ThrowIfNull(tables);
+        ArgumentNullException.ThrowIfNull(batch);
+        ThrowIfDisposed();
+        tables.ThrowIfNotOwned(this);
+    }
 }
 
 /// <summary>Device copies of the tables, owned by the engine that uploaded them.</summary>
