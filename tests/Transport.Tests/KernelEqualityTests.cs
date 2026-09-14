@@ -1,4 +1,5 @@
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
@@ -22,35 +23,24 @@ public readonly struct TransportBatchViews(
 [Collection(CpuCollection.Name)]
 public sealed class KernelEqualityTests(CpuFixture fixture)
 {
-    /// <summary>The families of transport rocket fixtures sharing one table, largest first; each is one batch of all their stations.</summary>
+    /// <summary>The families of rocket fixtures sharing one table, largest first, kept to their members with transport; each is one batch of all their stations.</summary>
     public static IEnumerable<object[]> Batches()
     {
-        var families = new Dictionary<string, List<string>>();
-        foreach (var row in TransportHost.RocketCasesWithTransport())
+        foreach (var row in FixtureFamilies.Of(["rocket"], TransportHost.TableKey))
         {
-            var name = (string)row[0];
-            var key = TransportHost.TableKey(TransportHost.LoadRocket(name));
-            if (!families.TryGetValue(key, out var list))
+            var cases = ((IReadOnlyList<CeaCase>)row[2]).Where(TransportHost.HasTransport).ToList();
+            if (cases.Count > 0)
             {
-                families[key] = list = [];
+                yield return [row[0], cases.Count, cases];
             }
-
-            list.Add(name);
-        }
-
-        foreach (var family in families.Values.OrderByDescending(f => f.Count).ThenBy(f => f[0], StringComparer.Ordinal))
-        {
-            yield return [family[0], family.Count, family.ToArray()];
         }
     }
 
     [Theory]
     [MemberData(nameof(Batches))]
-    public void Kernel_and_host_give_the_same_bits(string family, int count, string[] members)
+    public void Kernel_and_host_give_the_same_bits(string key, int count, IReadOnlyList<CeaCase> cases)
     {
-        Assert.Equal(count, members.Length);
-        Assert.Equal(family, members[0]);
-        var cases = members.Select(TransportHost.LoadRocket).ToList();
+        Assert.Equal(count, cases.Count);
         var (table, transport) = TransportHost.TablesOf(fixture, cases[0]);
         var stations = cases.SelectMany(c => TransportHost.StationsWithTransport(c).Select(s => (Case: c.Name, Station: s))).ToList();
         var temperatures = stations.Select(s => s.Station.GetProperty("temperature").GetDouble()).ToArray();
@@ -80,13 +70,13 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var fields = typeof(TransportFigures).GetFields();
         for (var i = 0; i < batchSize; i++)
         {
-            var label = $"{stations[i].Case} {stations[i].Station.GetProperty("station").GetString()}";
+            var label = $"{key} {stations[i].Case} {stations[i].Station.GetProperty("station").GetString()}";
             Assert.True((int)host[i].Status == kernelStatus[i], $"{label}: host status {host[i].Status}, kernel {(CaseStatus)kernelStatus[i]}");
             foreach (var field in fields)
             {
                 var a = field.GetValue(host[i].Figures)!;
                 var b = field.GetValue(kernelFigures[i])!;
-                var same = a is double x && b is double y ? SameBits(x, y) : a.Equals(b);
+                var same = a is double x && b is double y ? Bits.Same(x, y) : a.Equals(b);
                 Assert.True(same, $"{label}: {field.Name} host {a}, kernel {b}");
             }
         }
@@ -104,6 +94,4 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
                                                              batch.Moles.SubView(index * speciesCount, speciesCount), in scratch,
                                                              batch.Figures.SubView(index, 1));
     }
-
-    private static bool SameBits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 }
