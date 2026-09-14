@@ -1,15 +1,9 @@
-using System.Diagnostics;
-using System.Reflection;
 using AerospacePropellantThermodynamics.Equilibrium;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
 using ILGPU;
-using ILGPU.Backends.EntryPoints;
-using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
-using ILGPU.Runtime.Cuda;
 
 namespace AerospacePropellantThermodynamics.Execution;
 
@@ -17,14 +11,14 @@ namespace AerospacePropellantThermodynamics.Execution;
 public sealed class Engine : IDisposable
 {
     private readonly AcceleratorSession _session;
+    private readonly KernelCache _kernels;
     private readonly EngineOptions _options;
-    private readonly Dictionary<string, Delegate> _kernels = new(StringComparer.Ordinal);
-    private readonly object _gate = new();
     private bool _disposed;
 
     private Engine(AcceleratorSession session, EngineOptions options)
     {
         _session = session;
+        _kernels = new KernelCache(session);
         _options = options;
     }
 
@@ -79,7 +73,8 @@ public sealed class Engine : IDisposable
         var elementCount = table.ElementCount;
         var count = batch.Count;
         var timer = new RunTimer();
-        var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, EquilibriumBatchViews>>(nameof(Kernels.Equilibrium), timer);
+        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, EquilibriumBatchViews>>(nameof(Kernels.Equilibrium), out var warmUp);
+        timer.AddWarmUp(warmUp);
         var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
         var chunk = ChunkSize(count, doublesPerCase, intsPerCase);
@@ -153,7 +148,8 @@ public sealed class Engine : IDisposable
         var exits = batch.Exits;
         var stationCount = batch.StationCount;
         var timer = new RunTimer();
-        var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, RocketBatchViews>>(nameof(Kernels.Rocket), timer);
+        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, RocketBatchViews>>(nameof(Kernels.Rocket), out var warmUp);
+        timer.AddWarmUp(warmUp);
         var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
         var chunk = ChunkSize(count, doublesPerCase + (long)stationCount * speciesCount, intsPerCase);
@@ -249,7 +245,8 @@ public sealed class Engine : IDisposable
         var elementCount = table.ElementCount;
         var count = batch.Count;
         var timer = new RunTimer();
-        var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, TransportTableView, TransportBatchViews>>(nameof(Kernels.Transport), timer);
+        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, TransportTableView, TransportBatchViews>>(nameof(Kernels.Transport), out var warmUp);
+        timer.AddWarmUp(warmUp);
         var doublesPerCase = TransportLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = TransportLayout.IntsPerCase(speciesCount, elementCount);
         var chunk = ChunkSize(count, doublesPerCase + speciesCount, intsPerCase);
@@ -300,7 +297,8 @@ public sealed class Engine : IDisposable
         batch.Validate(table.SpeciesCount);
         var count = batch.Count;
         var timer = new RunTimer();
-        var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, SpeciesFunctionBatchViews>>(nameof(Kernels.Functions), timer);
+        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, SpeciesFunctionBatchViews>>(nameof(Kernels.Functions), out var warmUp);
+        timer.AddWarmUp(warmUp);
         var chunk = ChunkSize(count, 3, 2);
 
         var cpOverR = new double[count];
@@ -353,7 +351,8 @@ public sealed class Engine : IDisposable
         }
 
         var timer = new RunTimer();
-        var launch = LoadKernel<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), timer);
+        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out var warmUp);
+        timer.AddWarmUp(warmUp);
         using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
         using var outputBuffer = _session.Accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
         launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
@@ -378,38 +377,6 @@ public sealed class Engine : IDisposable
     /// <summary>The largest number of cases per launch, by the one rule of <see cref="ChunkPlan"/>.</summary>
     private int ChunkSize(int count, long doublesPerCase, long intsPerCase) =>
         ChunkPlan.For(count, doublesPerCase * sizeof(double) + intsPerCase * sizeof(int), _options).Size;
-
-    private TDelegate LoadKernel<TDelegate>(string name, RunTimer timer) where TDelegate : Delegate
-    {
-        lock (_gate)
-        {
-            if (_kernels.TryGetValue(name, out var cached))
-            {
-                return (TDelegate)cached;
-            }
-
-            var watch = Stopwatch.StartNew();
-            var method = typeof(Kernels).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic)
-                         ?? throw new InvalidOperationException($"no kernel named {name}");
-            Kernel kernel;
-            if (_session.Accelerator is CudaAccelerator cuda)
-            {
-                // Every CUDA kernel goes through the post-link; the CPU accelerator loads the method as ILGPU does.
-                var entry = EntryPointDescription.FromImplicitlyGroupedKernel(method);
-                var compiled = (PTXCompiledKernel)cuda.Backend.Compile(entry, KernelSpecialization.Empty);
-                kernel = _session.Accelerator.LoadAutoGroupedKernel(LibDevicePostLink.Link(cuda, _session.Nvvm!, compiled));
-            }
-            else
-            {
-                kernel = _session.Accelerator.LoadAutoGroupedKernel(method);
-            }
-
-            var launcher = kernel.CreateLauncherDelegate<TDelegate>();
-            _kernels[name] = launcher;
-            timer.AddWarmUp(watch.Elapsed);
-            return launcher;
-        }
-    }
 
     private static void Upload<T>(MemoryBuffer1D<T, Stride1D.Dense> buffer, T[] source, long offset, long length) where T : unmanaged
     {
