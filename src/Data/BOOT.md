@@ -53,8 +53,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - The files are read from paths given by the caller; the node has no default path.
 - Encoding: the files are 7-bit ASCII; they are read as Latin-1 so that a stray byte
   never breaks a load.
-- Loading the full `thermo.inp` (1.2 MB, about 2 100 records) takes under one second
-  on the reference machine.
+- Loading the full `thermo.inp` (1.2 MB, about 2 100 records) took under one second
+  on the reference machine (measured 2026-09-12; a figure, not a budget: since
+  2026-09-14 no test holds it, because a wall-clock bound in the fast set reddens on
+  a busy machine for no defect, the test review's F-TK-14).
 
   ⚠ 2026-09-12: stood "about 3 800 records", a figure from memory. The independent
   scan of the committed file (`ThermoLoadTests.Every_record_of_the_file_is_parsed`)
@@ -100,7 +102,13 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   only); the node neither rejects nor reorders them, and the tests node keeps them on
   its approved anomaly list.
 - Condensed phases of one substance are separate records (`AL2O3(a)`, `AL2O3(L)`),
-  each with its own temperature range; the node does not relate them.
+  each with its own temperature range; the node does not relate them. One condensed
+  substance may also be written as several records under one name, one per
+  temperature range (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` with three, and seven more of the
+  committed file): the indexer returns the first, `Records` returns them all in file
+  order, and joining them is the consumer's rule (`Thermo`). Recorded 2026-09-14:
+  until then the fact was stated only in the consumer's document, and the consumer
+  rebuilt the index the file implies (the clean-code review's F-TD-06).
 - CEA's "inert" records (`InertO2`, `InertH2(L)`, `InertAir`, …) are the records whose
   name starts with `Inert`; their formulas use the pseudo-element symbols `IC`, `IH`,
   `IN`, `IO`. They are parsed like any other record and flagged by the name prefix.
@@ -121,6 +129,47 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Meaning: `ln η = A ln T + B/T + C/T² + D` with η in micropoise; the same form for
   the conductivity in μW/(cm·K). The node stores the fits and the units as in the
   file; conversion to SI belongs to `Transport`.
+
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). Each
+parser is the record structure of its file, one class per file in this directory and
+namespace, everything internal but the database types; the parsed model is
+unchanged, and the fixture and corruption tests of the tests node are the proof.
+
+| Type | Responsibility | Visibility |
+|---|---|---|
+| `SpeciesDatabase` | the contract; gains `Records(string name)`, the records of a name in file order, built once at load beside the index; the atomic weights are built at load too, so the type is immutable and shareable once loaded | public, contract grown by `Records` |
+| `ThermoFile` | the skeleton of `thermo.inp`: comments, the `thermo` line, the header, the two sections, the record loop | internal |
+| `SpeciesRecordReader` | one record, whole or absent: the identity line, the properties line (`N`, the date code, the formula pairs, the phase, the molar mass, the formation enthalpy), the assigned-temperature line | internal |
+| `IntervalReader` | one interval: the bounds and exponents line, the two coefficient lines | internal |
+| `RecordColumns` | the column map of the format facts above as named constants, so that the code reads against that table field by field | internal |
+| `FixedColumns` | a field by its columns, for both files | internal |
+| `LineErrors` | a field error stamped with its line and file, for both parsers, with an `Action` form so that no reader returns a value nobody reads | internal |
+| `TransParser` | the block loop of `trans.inp` | internal |
+| `TransportBlockReader` | one block: the header (the names, the `VnCm` code, the reference) and the fit lines with the V/C dispatch and the count check | internal |
+
+Decisions taken with the review of 2026-09-14:
+
+- **Several records under one name are a format fact of this node** (the bullet
+  under the format facts): the indexer returns the first, `Records` returns them all
+  in file order, and `Thermo` no longer rebuilds that index (the review's F-TD-06). A
+  contract change, recorded in `API.md` with its ⚠; the snapshot moves in the same
+  commit.
+- **One sentinel convention.** The section and end markers are compared ordinally in
+  the file's own case (`END PRODUCTS`, `END REACTANTS`, `end`); the `thermo` line
+  alone is matched case-insensitively, as the format description allows (F-TD-12).
+- **A negative interval count is a format error** stamped with its line, like every
+  other bad field, instead of an `ArgumentOutOfRangeException` without file or line
+  (F-TD-08); the seventh corruption case of the tests node.
+- **The record constructors are the declared exception** to the parameter rule:
+  `Species` (11 parameters) and `TemperatureInterval` (7) mirror the file's fields
+  one to one; their single construction sites use named arguments, so a swap cannot
+  compile unnoticed (F-TD-07).
+- **The load time is a measurement, not a criterion** (Constraints); the wall-clock
+  test of the tests node goes (F-TK-14).
+- **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
+  than 6 parameters (the two constructors aside).
 
 ## Acceptance criteria
 
@@ -160,6 +209,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-12 — `AtomicWeight("AL")` equals the molar mass of the record `AL`;
       `AtomicWeight` of a symbol without a monatomic record throws:
       `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species`.
+- [ ] The decomposition of `## Structure` (2026-09-14): no type over 400 lines, no
+      method over 60, no nesting deeper than 3, no more than 6 parameters except the
+      two record constructors; the public surface grown by `SpeciesDatabase.Records`
+      only, the snapshot moved in the same commit; every fixture, count, anomaly and
+      corruption test of the tests node green unchanged.
+- [ ] `Records(name)` returns the records of every same-name group in file order and
+      the indexer the first of them (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` as the list of the
+      format facts); a negative interval count fails the load naming its line, the
+      seventh corruption case; the atomic weights are built at load, so that a loaded
+      database is immutable (the tests node's `ThermoLoadTests`, `CorruptionTests`).
 
 ## Taboos
 

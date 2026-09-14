@@ -1,8 +1,11 @@
 # API.md — Data
 
 Namespace `AerospacePropellantThermodynamics.Data`. The node exposes the NASA
-databases as an immutable object model addressed by species name. Everything not
-listed here is internal and may change.
+databases as an immutable object model addressed by species name: everything a
+database answers, the index and the atomic weights included, is built by `Load` or
+`Parse`, so a loaded instance may be shared between threads without a lock
+(2026-09-14: the atomic weights used to be built on first use, the review's F-TD-10).
+Everything not listed here is internal and may change.
 
 ## Database ✅
 
@@ -16,8 +19,8 @@ public sealed class SpeciesDatabase
 
     public IReadOnlyList<Species> Products { get; }        // PRODUCTS section, file order
     public IReadOnlyList<Species> Reactants { get; }       // REACTANTS section, file order
-    public Species this[string name] { get; }              // exact name; products searched first
-    public bool TryGet(string name, out Species species);
+    public Species this[string name] { get; }              // exact name; the first record of the name, products searched first
+    public bool TryGet(string name, out Species species);  // the same first record
     public double AtomicWeight(string element);            // kg/kmol, from the monatomic gaseous species
     public TransportDatabase? Transport { get; }           // null when no trans file was given
     public DatabaseProvenance Provenance { get; }
@@ -63,6 +66,25 @@ upper bound not above the lower one (`Br2(cr)` 300..265.9); the node stores such
 bounds as they are, and the tests node lists the records in its approved anomaly list.
 Found when the loader first rejected them.
 
+⚠ 2026-09-14: the indexer's comment stood "exact name; products searched first" and
+said nothing of names that carry several records. The committed file has such groups
+(`Cr(cr)` twice, `Fe(a)`, `Cr2O3(I)`, the format fact in `BOOT.md`), the indexer
+returned the first silently, and `Thermo` had built an index of its own over
+`Products` to reach the others (the clean-code review's F-TD-06). `Records` below is
+this node's answer, and the indexer keeps returning the first.
+
+## Same-name records ⏳
+
+```csharp
+public sealed class SpeciesDatabase
+{
+    public IReadOnlyList<Species> Records(string name);    // every record of the name in file order, products first; empty when the name is unknown
+}
+```
+
+Declared 2026-09-14; the mark turns ✅ with the commit that implements it and moves
+the surface snapshot.
+
 ## Transport database ✅
 
 ```csharp
@@ -95,8 +117,8 @@ public sealed class DatabaseFormatException : Exception
 | Situation | Behaviour |
 |---|---|
 | a path does not exist | `FileNotFoundException` before anything is parsed |
-| a malformed line, a truncated record, a count that does not match the lines present | `DatabaseFormatException` with file name and line number; nothing is returned |
-| unknown species name in the indexer | `KeyNotFoundException`; `TryGet` returns `false` instead |
+| a malformed line, a truncated record, a count that does not match the lines present, a negative interval count (2026-09-14: it escaped as an `ArgumentOutOfRangeException` without file or line, F-TD-08) | `DatabaseFormatException` with file name and line number; nothing is returned |
+| unknown species name in the indexer | `KeyNotFoundException`; `TryGet` returns `false` and `Records` an empty list instead |
 | `AtomicWeight` of an element without a monatomic gaseous record | `KeyNotFoundException` |
 
 ## Side effects

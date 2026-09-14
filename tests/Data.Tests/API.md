@@ -12,6 +12,8 @@ points upward: it is what the parent may consider proven about `Data`.
 | a corrupted record fails the load with the line number of the bad field | L1: `CorruptionTests` | ✅ 2026-09-12 |
 | atomic weights come from the monatomic species records | L1: `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species` | ✅ 2026-09-12 |
 | interval bounds are stored as written, and the records whose first interval is not ascending are exactly those on the approved anomaly list | L1: `ThermoLoadTests.Interval_anomalies_equal_the_approved_list` | ✅ 2026-09-12 |
+| every record of a repeated name is reachable in file order through `Records`, and the indexer returns the first | L1: `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order` | ⏳ 2026-09-14 |
+| a negative interval count fails the load with the line number of the field | L1: `CorruptionTests.A_negative_interval_count_names_its_line` | ⏳ 2026-09-14 |
 
 ## What the tests rely on
 
