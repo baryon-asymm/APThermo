@@ -8,22 +8,12 @@ namespace AerospacePropellantThermodynamics.Transport.Tests;
 /// <summary>What one host call of the transport solver produced.</summary>
 internal sealed record TransportEvaluation(CaseStatus Status, TransportFigures Figures);
 
+/// <summary>One station of one fixture and what the solver made of it, with the label the messages carry.</summary>
+internal sealed record EvaluatedStation(string Label, JsonElement Station, TransportEvaluation Evaluation);
+
 /// <summary>Runs the transport solver on the host over CPU-accelerator buffers, and reads the fixtures it is checked against.</summary>
 internal static class TransportHost
 {
-    /// <summary>The station outputs the transport node computes, by fixture name and figure field.</summary>
-    public static readonly IReadOnlyList<(string Field, Func<TransportFigures, double> Value)> Figures =
-    [
-        ("viscosity", f => f.Viscosity),
-        ("frozenConductivity", f => f.FrozenConductivity),
-        ("reactingConductivity", f => f.ReactingConductivity),
-        ("frozenPrandtl", f => f.FrozenPrandtl),
-        ("reactingPrandtl", f => f.ReactingPrandtl),
-    ];
-
-    /// <summary>Fields that carry the reaction term: skipped where the reference's value is known to be defective (Fixtures BOOT.md).</summary>
-    public static readonly IReadOnlySet<string> ReactingFields = new HashSet<string> { "reactingConductivity", "reactingPrandtl" };
-
     public static string[] ElementsOf(CeaCase c) => c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name).ToArray();
 
     public static string[] ProductsOf(CeaCase c) => c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!).ToArray();
@@ -102,6 +92,29 @@ internal static class TransportHost
         var transportView = transport.View;
         var status = TransportSolver.Evaluate(in speciesView, in transportView, temperature, molesBuffer.View, in scratch, figures.View);
         return new TransportEvaluation(status, figures.GetAsArray1D()[0]);
+    }
+
+    /// <summary>Every station with transport of one rocket fixture, evaluated on the host over one upload of the given tables.</summary>
+    public static IReadOnlyList<EvaluatedStation> EvaluateStations(CpuFixture fixture, CeaCase c, SpeciesTable table, TransportTable transport)
+    {
+        using var speciesBuffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
+        using var transportBuffers = TransportTableBuffers.Upload(fixture.Accelerator, transport);
+        var evaluated = new List<EvaluatedStation>();
+        foreach (var station in StationsWithTransport(c))
+        {
+            var evaluation = Evaluate(fixture.Accelerator, speciesBuffers, transportBuffers,
+                                      station.GetProperty("temperature").GetDouble(), MolesOf(table, station));
+            evaluated.Add(new EvaluatedStation(c.Name + " " + station.GetProperty("station").GetString(), station, evaluation));
+        }
+
+        return evaluated;
+    }
+
+    /// <summary>The stations with transport of one rocket fixture, evaluated over the tables the case itself needs.</summary>
+    public static IReadOnlyList<EvaluatedStation> EvaluateStations(CpuFixture fixture, CeaCase c)
+    {
+        var (table, transport) = TablesOf(fixture, c);
+        return EvaluateStations(fixture, c, table, transport);
     }
 
     /// <summary>The rocket fixture files run with transport, as theory data: the file name without extension.</summary>

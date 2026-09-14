@@ -223,6 +223,22 @@ Decisions taken with the review of 2026-09-14:
   stage; the composition root may claim the declared exception only as a plain
   sequence of stage calls under 100 lines.
 
+As built, 2026-09-14. One file per stage class, named after it; the three carriers
+share `Carriers.cs`, as decided above, and the two collectors of the host-side table
+build (`SpeciesRuns`, `PairRuns`, which keep `AppendSpeciesRuns` and `AppendPairRuns`
+within the parameter rule) share `TableRuns.cs` beside the other descriptors
+(`Descriptors.cs`). Two predicates are called from a stage other than the one that
+owns them, and are internal for it: `TransportComponents.OfCase` from
+`TransportSetSelection` (the case's gas count asks the same question as the default
+species of a row) and `ReactionBasis.LocalIndex` from `ReactionSet`. The stages carry
+the bookkeeping into the figures where they count it — `TransportSetSelection` the
+species count and `Capped`, `SetSpeciesProperties.Fits` the estimated species and
+their fraction, `ReactionSet` the reaction count and the trace eliminations — and the
+composition root reads the species count back out of them, so that no stage returns a
+tuple. `StationEvaluation.Run` is 32 lines and holds no formula; the largest type of
+the node is now `TransportComponents` at 244 lines and the largest method
+`TransportScratch.Slice` at 53, against 794 and 640 before.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — Every rocket fixture run with transport (39 files, enumerated by
@@ -256,20 +272,37 @@ Decisions taken with the review of 2026-09-14:
       with the table's gas count in the thresholds on two of the three pairs (the
       LOX/RP-1 throat set of 14 species against 13, the N2O4/UDMH sets of 21 against
       26, every figure moved).
-- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node within
-      the root's code-shape constraint (the protocol tests node's `ShapeTests`; the
-      exceptions declared above), the public surface unchanged
-      (`Protocol.Tests.SurfaceTests` against the unchanged snapshot), and every
-      station's figures bit for bit those of `8e36a27` on the CPU accelerator: the
-      tests node's bit snapshot over every station of every rocket fixture run with
-      transport unchanged, `KernelEqualityTests` and `AbsentElementTests` green, every
-      criterion above still green, the execution tests node's CUDA sweep green once at
-      the end.
-- [ ] `SingularMatrix` writes the frozen figures and reacting figures equal to them, as
-      `API.md` promises: a test of the tests node drives `ReactionTerms` (through
-      `InternalsVisibleTo`) into a reaction system it cannot solve and asserts the
-      equalities and the status; seen red once against the code of `8e36a27`, where
-      the heat capacity survived a failed second solve.
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type of the node within
+      the root's code-shape constraint — measured over the node after the last step,
+      the largest type `TransportComponents` 244 lines and the largest method
+      `TransportScratch.Slice` 53 (the scratch descriptor, the declared exception to
+      the parameter rule), no control flow nested deeper than 3, no method with more
+      than six parameters — the public surface unchanged
+      (`Protocol.Tests.SurfaceTests` green against a `PublicSurface.approved.txt` that
+      did not move a line, every new type internal), and every station's figures bit
+      for bit those of `8e36a27` on the CPU accelerator: the tests node's
+      `Bits.approved.txt`, recorded before the first line of code moved, unchanged
+      through all eight steps, with `KernelEqualityTests`, `AbsentElementTests` and
+      every criterion above green after each of them, and the whole fast suite green
+      at the end (2144 tests). The protocol tests node's `ShapeTests`, which the
+      criterion named, does not exist yet; it re-measures this over the tree when that
+      node has it.
+- [ ] The execution tests node's CUDA sweep green once after the decomposition (the
+      long-running `CudaTests`, which this node's session does not run: the criterion
+      above was split on 2026-09-14 so that what is proven and what is still owed are
+      not one tick).
+- [x] 2026-09-14 — `SingularMatrix` writes the frozen figures and reacting figures
+      equal to them, as `API.md` promises:
+      `Transport.Tests.StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
+      drives `ReactionTerms` (through `InternalsVisibleTo`) over a set of three species
+      and two reactions whose second system is singular while the first is not — the
+      third species weighs nothing, so RT/(pD) vanishes for both pairs that hold it and
+      the one pair left gives the two reactions the same difference vector — and
+      asserts the three equalities and the status. Seen red against the code of
+      `8e36a27` (moved here unchanged before the fix): the status and the conductivity
+      were right and the equilibrium heat capacity was 10441.86 against the frozen
+      5001.70. `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight`
+      keeps the first test from passing because both systems fail.
 
 ## Taboos
 

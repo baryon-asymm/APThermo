@@ -1,4 +1,6 @@
 using AerospacePropellantThermodynamics.Thermo;
+using ILGPU;
+using ILGPU.Runtime;
 
 namespace AerospacePropellantThermodynamics.Transport.Tests;
 
@@ -81,13 +83,45 @@ public sealed class InputTests(CpuFixture fixture)
         var doubles = TransportLayout.DoublesPerCase(species.SpeciesCount, species.ElementCount);
         var ints = TransportLayout.IntsPerCase(species.SpeciesCount, species.ElementCount);
         var m = TransportLayout.MaxSpecies;
-        Assert.Equal(4 * m * m + species.ElementCount * m + 8 * m, doubles);
-        Assert.Equal(species.SpeciesCount + 4 * m + 4 * species.ElementCount, ints);
         using var doubleBuffer = fixture.Accelerator.Allocate1D<double>(doubles);
         using var intBuffer = fixture.Accelerator.Allocate1D<int>(ints);
         var scratch = TransportScratch.Slice(doubleBuffer.View, intBuffer.View, species.SpeciesCount, species.ElementCount);
         Assert.Equal(m, (int)scratch.Stx.Length);
         Assert.Equal(species.SpeciesCount, (int)scratch.Mark.Length);
         Assert.Equal(species.ElementCount, (int)scratch.RowActive.Length);
+
+        IReadOnlyList<ArrayView<double>> doubleSlices =
+            [scratch.Eta, scratch.Alpha, scratch.Matrix, scratch.MatrixReacting, scratch.Basis, scratch.Cond,
+             scratch.Xs, scratch.Cp, scratch.H, scratch.DeltaH, scratch.Rhs, scratch.RowScale, scratch.Stx];
+        AssertTilesTheBuffer(doubleSlices, doubles, doubleBuffer, i => (double)i);
+
+        IReadOnlyList<ArrayView<int>> intSlices =
+            [scratch.Mark, scratch.IndexList, scratch.CompLocal, scratch.CompRow, scratch.IsComponent,
+             scratch.Component, scratch.Default, scratch.RowTaken, scratch.RowActive];
+        AssertTilesTheBuffer(intSlices, ints, intBuffer, i => i);
+    }
+
+    /// <summary>
+    /// Writes 0, 1, 2, … across the slices in the order <see cref="TransportScratch.Slice"/> constructs them and reads the raw
+    /// buffer back: it equals the identity sequence only when the slices are contiguous and do not overlap. Proves the layout is
+    /// self-consistent instead of restating its arithmetic (Transport.Tests BOOT.md, F-TK-13).
+    /// </summary>
+    private static void AssertTilesTheBuffer<T>(IReadOnlyList<ArrayView<T>> slices, int total, MemoryBuffer1D<T, Stride1D.Dense> buffer,
+                                                 Func<int, T> of) where T : unmanaged
+    {
+        var offset = 0;
+        foreach (var slice in slices)
+        {
+            var length = (int)slice.Length;
+            for (var i = 0; i < length; i++)
+            {
+                slice[i] = of(offset + i);
+            }
+
+            offset += length;
+        }
+
+        Assert.Equal(total, offset);
+        Assert.Equal(Enumerable.Range(0, total).Select(of), buffer.GetAsArray1D());
     }
 }

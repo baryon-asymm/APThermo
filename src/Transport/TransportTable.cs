@@ -55,38 +55,51 @@ public sealed class TransportTable
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(species);
         var count = species.SpeciesCount;
-        var viscosityStart = new int[count];
-        var viscosityCount = new int[count];
-        var conductivityStart = new int[count];
-        var conductivityCount = new int[count];
+        var runs = new SpeciesRuns(count);
         var fits = new List<double>();
-        var withData = new List<string>();
-        var withoutData = new List<string>();
+        var pairs = new PairRuns(count);
+        AppendSpeciesRuns(database, species, fits, runs);
+        AppendPairRuns(database, species, fits, pairs);
+        if (fits.Count == 0)
+        {
+            fits.AddRange(new double[FitStride]);   // a view must not be empty; the padding fit is never addressed
+        }
+
+        var arrays = new TransportTableArrays(
+            runs.ViscosityStart, runs.ViscosityCount, runs.ConductivityStart, runs.ConductivityCount, fits.ToArray(),
+            pairs.Index, pairs.Start.Count == 0 ? [0] : pairs.Start.ToArray(), pairs.Count.Count == 0 ? [0] : pairs.Count.ToArray(),
+            pairs.Names.Count);
+        return new TransportTable(species, arrays, runs.WithData, runs.WithoutData, pairs.Names);
+    }
+
+    /// <summary>The viscosity and conductivity runs of every gaseous species of the table, in table order.</summary>
+    private static void AppendSpeciesRuns(TransportDatabase database, SpeciesTable species, List<double> fits, SpeciesRuns runs)
+    {
         var viscosityShift = Math.Log(ViscosityFactorToSi);
         var conductivityShift = Math.Log(ConductivityFactorToSi);
-
         for (var j = 0; j < species.GasCount; j++)
         {
             var name = species.Species[j];
             var entry = database.Find(name);
             if (entry is null || entry.Viscosity.Count == 0)
             {
-                withoutData.Add(name);
+                runs.WithoutData.Add(name);
                 continue;
             }
 
-            viscosityStart[j] = fits.Count / FitStride;
-            viscosityCount[j] = Append(fits, entry.Viscosity, viscosityShift);
-            conductivityStart[j] = fits.Count / FitStride;
-            conductivityCount[j] = Append(fits, entry.Conductivity, conductivityShift);
-            withData.Add(name);
+            runs.ViscosityStart[j] = fits.Count / FitStride;
+            runs.ViscosityCount[j] = Append(fits, entry.Viscosity, viscosityShift);
+            runs.ConductivityStart[j] = fits.Count / FitStride;
+            runs.ConductivityCount[j] = Append(fits, entry.Conductivity, conductivityShift);
+            runs.WithData.Add(name);
         }
+    }
 
-        var pairIndex = new int[count * count];
-        Array.Fill(pairIndex, -1);
-        var pairStart = new List<int>();
-        var pairCount = new List<int>();
-        var pairs = new List<(string First, string Second)>();
+    /// <summary>The interaction runs of every pair of the database whose two species are gaseous members of the table, in database order.</summary>
+    private static void AppendPairRuns(TransportDatabase database, SpeciesTable species, List<double> fits, PairRuns pairs)
+    {
+        var viscosityShift = Math.Log(ViscosityFactorToSi);
+        var count = species.SpeciesCount;
         foreach (var entry in database.Entries)
         {
             if (entry.Partner is null || entry.Viscosity.Count == 0)
@@ -97,27 +110,17 @@ public sealed class TransportTable
             var first = species.IndexOf(entry.Species);
             var second = species.IndexOf(entry.Partner);
             if (first < 0 || second < 0 || first >= species.GasCount || second >= species.GasCount || first == second
-                || pairIndex[first * count + second] >= 0)
+                || pairs.Index[first * count + second] >= 0)
             {
                 continue;
             }
 
-            pairIndex[first * count + second] = pairs.Count;
-            pairIndex[second * count + first] = pairs.Count;
-            pairStart.Add(fits.Count / FitStride);
-            pairCount.Add(Append(fits, entry.Viscosity, viscosityShift));
-            pairs.Add((entry.Species, entry.Partner));
+            pairs.Index[first * count + second] = pairs.Names.Count;
+            pairs.Index[second * count + first] = pairs.Names.Count;
+            pairs.Start.Add(fits.Count / FitStride);
+            pairs.Count.Add(Append(fits, entry.Viscosity, viscosityShift));
+            pairs.Names.Add((entry.Species, entry.Partner));
         }
-
-        if (fits.Count == 0)
-        {
-            fits.AddRange(new double[FitStride]);   // a view must not be empty; the padding fit is never addressed
-        }
-
-        var arrays = new TransportTableArrays(
-            viscosityStart, viscosityCount, conductivityStart, conductivityCount, fits.ToArray(),
-            pairIndex, pairStart.Count == 0 ? [0] : pairStart.ToArray(), pairCount.Count == 0 ? [0] : pairCount.ToArray(), pairs.Count);
-        return new TransportTable(species, arrays, withData, withoutData, pairs);
     }
 
     private static int Append(List<double> fits, IReadOnlyList<TransportFit> source, double shift)
