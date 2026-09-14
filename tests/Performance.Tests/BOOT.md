@@ -61,23 +61,41 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — L0 green:
-      `InvariantTests.Entropy_sonic_throat_area_ratio_and_frozen_composition_hold` over
-      the 89 rocket files, `An_area_ratio_below_one_fails_its_station_only`,
+- [x] 2026-09-14 — L0 green: `InvariantTests.The_throat_is_sonic`,
+      `Entropy_is_constant_along_the_nozzle`, `Velocity_follows_the_energy_equation`,
+      `Assigned_area_and_pressure_ratios_are_met`,
+      `The_composition_is_frozen_after_the_freezing_station` over the enumerated
+      rocket fixture directory, plus `An_area_ratio_below_one_fails_its_station_only`,
       `A_pressure_ratio_not_above_one_fails_its_station_only`,
       `A_case_without_exits_gives_the_chamber_and_the_throat`,
-      `A_non_positive_chamber_pressure_is_invalid_input`.
-- [x] 2026-09-12 — L1 green for every rocket fixture case, equilibrium and frozen:
+      `A_non_positive_chamber_pressure_is_invalid_input`. (Re-dated from 2026-09-12:
+      the F-TK-06 split below renamed the theory; the hand-typed file count is gone,
+      F-TK-03.)
+- [x] 2026-09-14 — L1 green for every rocket fixture case, equilibrium and frozen:
       `RocketFixtureTests.The_rocket_case_reproduces_the_reference` over the enumerated
-      directory (89 files: 34 shifting, 15 frozen at chamber, 40 frozen at throat);
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over its 6 batches.
-- [x] 2026-09-12 — Every check proven non-degenerate once, by mutation runs on the
-      reference machine, each restored afterwards: a reference `Isp` raised by 0.1 % at
-      one exit (1 red); the solver's sonic and area-ratio tolerances loosened to `1e-2`
-      and `4e-2` (88 of 89 fixture cases and 89 of 89 invariant cases red); the
-      frozen-at-chamber fixtures run as shifting flow (15 red); the kernel given a
-      different chamber temperature estimate (6 red); area ratios below 1 accepted by
-      the solver (1 red).
+      directory; `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over its
+      batches, each a family of fixtures sharing a table and an exit layout. (Re-dated
+      from 2026-09-12: the hand-typed file and batch counts are gone, F-TK-03.)
+- [x] 2026-09-14 — Every check proven non-degenerate once, by mutation runs, each
+      restored afterwards: a reference `Isp` raised by 0.1 % at one exit (that fixture
+      case red); the frozen-at-chamber fixtures run as shifting flow (every
+      frozen-at-chamber fixture red); the kernel given a different chamber temperature
+      estimate (every batch's `KernelEqualityTests` test red); area ratios below 1
+      accepted by the solver (that fixture case red). (Re-dated from 2026-09-12: the
+      hand-typed counts are gone, F-TK-03; the sonic/area-ratio mutation below moved
+      to its own paragraph.)
+
+      ⚠ 2026-09-14: this criterion stood "the solver's sonic and area-ratio tolerances
+      loosened to `1e-2` and `4e-2` (88 of 89 fixture cases and 89 of 89 invariant
+      cases red)". Re-run today before any other change, it turns nothing red: every
+      fixture's throat and exit search now reaches `RocketSolver.TightTolerance`
+      (`1e-10`) within `MaxThroatIterations`/`MaxAreaRatioIterations` before the loop
+      ever consults the report-tolerance fallback — a refinement that postdates the
+      2026-09-12 run and that this session's decomposition carried over unchanged (the
+      Bits level below is the proof it moved no formula). `SonicTolerance` and
+      `AreaRatioTolerance` are therefore dead code for every fixture of the current
+      tree; the criterion below mutates `TightTolerance` instead, the constant that
+      actually gates convergence, and records what it found.
 - [x] 2026-09-14 — Bits level green:
       `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` over the
       enumerated rocket directory against `Bits.approved.txt`, recorded before any
@@ -97,19 +115,38 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       after it. Seen red against the acceptance test of `8e36a27`, where the station
       came back `Ok`. The stage is driven over a `RocketCase`, the node's buffers of
       one case, which the host solve now uses as well.
-- [ ] The invariants are one type and one test each (2026-09-14, the test review's
+- [x] 2026-09-14 — The invariants are one type and one test each (the test review's
       F-TK-06 and F-TK-07): `RocketInvariants` returns the violated invariants of a
-      solution as messages, one private method per invariant, the two unnamed
-      tolerances (the energy equation, the pressure ratio) promoted to named
-      constants beside the three existing ones; the theory becomes one test per
-      invariant (`The_throat_is_sonic`, `Entropy_is_constant_along_the_nozzle`,
-      `Velocity_follows_the_energy_equation`, `Assigned_area_and_pressure_ratios_are_met`,
-      `The_composition_is_frozen_after_the_freezing_station`), and the mutation of the
-      sonic and area-ratio tolerances above turns exactly those two red;
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` is split at its two seams
-      (fill and launch the batch; assert the same bits) so that no method exceeds 60
-      lines. The hand-typed counts of files, flows and batches leave the criteria
-      above; the enumerated directory is the list.
+      solution as messages, one method per invariant (`SonicThroat`, `ConstantEntropy`,
+      `EnergyEquation`, `AssignedExit`, `FrozenComposition`), each under fifteen lines
+      and nesting at most two, with the two previously inline tolerances (the energy
+      equation, the pressure ratio) promoted to `VelocityTolerance` and
+      `PressureRatioTolerance` beside the three existing ones and their origin named.
+      `InvariantTests` becomes one test per invariant (`The_throat_is_sonic`,
+      `Entropy_is_constant_along_the_nozzle`, `Velocity_follows_the_energy_equation`,
+      `Assigned_area_and_pressure_ratios_are_met`,
+      `The_composition_is_frozen_after_the_freezing_station`) over the enumerated
+      rocket fixture directory, each a three-line body. Non-degeneracy: with
+      `RocketSolver.TightTolerance` loosened from `1e-10` to `1e-2` (the ⚠ above, in
+      place of the now-inert `SonicTolerance`/`AreaRatioTolerance`),
+      `The_throat_is_sonic` turns red on every fixture and
+      `Assigned_area_and_pressure_ratios_are_met` on every fixture that carries an
+      exit, while `Entropy_is_constant_along_the_nozzle`,
+      `Velocity_follows_the_energy_equation` and
+      `The_composition_is_frozen_after_the_freezing_station` stay green throughout —
+      a sharper proof than the single combined theory gave, because entropy and the
+      energy-equation identity are guaranteed by the equilibrium solve itself and the
+      frozen copy is bit-exact, none of the three sensitive to the throat/exit
+      search's own convergence. `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
+      is split at its two seams into `Fill` (`RocketBatchBuffers`: allocates and
+      uploads one batch) and `AssertSameBits` (the field-by-field comparison), each
+      under 60 lines; the kernel given a different chamber temperature estimate still
+      turns every batch red. The self-consistency comparisons of
+      `An_area_ratio_below_one_fails_its_station_only` name the `SelfConsistency`
+      constant instead of an inline `1e-9` (F-TK-10). The hand-typed counts of files,
+      flows and batches leave the criteria above; the enumerated directory is the
+      list. Every mutation restored afterwards; the Bits level did not move (no
+      `src/Performance` file changed for this criterion).
 
 ## Taboos
 
