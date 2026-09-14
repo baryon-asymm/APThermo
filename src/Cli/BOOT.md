@@ -141,9 +141,10 @@ one type per file, named after the type.
 | `JsonText` | a text parsed with its source label in the message |
 | `StrictObject` | unchanged: the mechanism of the strict-documents invariant |
 | `SweepValues` | a list or a `{from, to, step}` range into values, with the step tolerance named and derived (F-CL-12) |
-| `ProblemDocumentReader` | the `rocket` and `equilibrium` documents: dispatches to `PropellantDocumentReader` and `SweepDocumentReader`, reads the problem itself (one reader per problem type) |
-| `PropellantDocumentReader` | the propellant part: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
-| `SweepDocumentReader` | the sweep part, and finishes the document: the engine's accelerator choice and the assembly into `InputDocument`, so that `ProblemDocumentReader.Read` holds neither the sweep nor the accelerator itself (2026-09-14, split out by the same review) |
+| `ProblemDocumentReader` | the document's root: parses the text, reads `propellant` through `PropellantDocumentReader`, `problem` through `ProblemPartReader` and `sweep` through `SweepDocumentReader`; reads `engine` itself (the accelerator word), finishes the root and assembles the `InputDocument` (2026-09-14, kept the name: the API calls the file a problem document) |
+| `PropellantDocumentReader` | the `propellant` object only: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `ProblemPartReader` | the `problem` object only: one reader per problem kind (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `SweepDocumentReader` | the `sweep` object only: the ranges the batch's Cartesian product runs over (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
 | `StateRecordReader` | the record files, their shape decided by the first non-blank character (array, object, JSON Lines) with no exception as a probe (F-CL-13); each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
 | `InputDocuments` | the façade the tests node uses: delegations only |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
