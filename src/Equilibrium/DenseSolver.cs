@@ -14,6 +14,19 @@ public static class DenseSolver
     /// </summary>
     public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride)
     {
+        Scale(matrix, rowScale, n, stride);
+        if (!Eliminate(matrix, rhs, rowScale, n, stride))
+        {
+            return false;
+        }
+
+        BackSubstitute(matrix, rhs, n, stride);
+        return true;
+    }
+
+    /// <summary>Each row's largest entry, against which its pivot candidate is measured; rows keep their scale through the swaps.</summary>
+    private static void Scale(ArrayView<double> matrix, ArrayView<double> rowScale, int n, int stride)
+    {
         for (var r = 0; r < n; r++)
         {
             var scale = 0.0;
@@ -24,24 +37,15 @@ public static class DenseSolver
 
             rowScale[r] = scale;
         }
+    }
 
+    /// <summary>Forward elimination with scaled partial pivoting; false when the column has no usable pivot left.</summary>
+    private static bool Eliminate(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride)
+    {
         for (var k = 0; k < n; k++)
         {
-            // Partial pivoting on the scaled column.
-            var pivotRow = k;
-            var best = -1.0;
-            for (var r = k; r < n; r++)
-            {
-                var scale = rowScale[r];
-                var candidate = scale > 0.0 ? Math.Abs(matrix[r * stride + k]) / scale : 0.0;
-                if (candidate > best)
-                {
-                    best = candidate;
-                    pivotRow = r;
-                }
-            }
-
-            if (!(best > PivotTolerance))
+            var pivotRow = PivotRow(matrix, rowScale, k, n, stride);
+            if (pivotRow < 0)
             {
                 return false;
             }
@@ -50,17 +54,17 @@ public static class DenseSolver
             {
                 for (var c = 0; c < n; c++)
                 {
-                    var t = matrix[k * stride + c];
+                    var held = matrix[k * stride + c];
                     matrix[k * stride + c] = matrix[pivotRow * stride + c];
-                    matrix[pivotRow * stride + c] = t;
+                    matrix[pivotRow * stride + c] = held;
                 }
 
-                var tb = rhs[k];
+                var heldRhs = rhs[k];
                 rhs[k] = rhs[pivotRow];
-                rhs[pivotRow] = tb;
-                var ts = rowScale[k];
+                rhs[pivotRow] = heldRhs;
+                var heldScale = rowScale[k];
                 rowScale[k] = rowScale[pivotRow];
-                rowScale[pivotRow] = ts;
+                rowScale[pivotRow] = heldScale;
             }
 
             var pivot = matrix[k * stride + k];
@@ -82,6 +86,31 @@ public static class DenseSolver
             }
         }
 
+        return true;
+    }
+
+    /// <summary>The row of the largest scaled entry in column k, at or below the diagonal; −1 when even that is at rounding level.</summary>
+    private static int PivotRow(ArrayView<double> matrix, ArrayView<double> rowScale, int k, int n, int stride)
+    {
+        var pivotRow = k;
+        var best = -1.0;
+        for (var r = k; r < n; r++)
+        {
+            var scale = rowScale[r];
+            var candidate = scale > 0.0 ? Math.Abs(matrix[r * stride + k]) / scale : 0.0;
+            if (candidate > best)
+            {
+                best = candidate;
+                pivotRow = r;
+            }
+        }
+
+        return best > PivotTolerance ? pivotRow : -1;
+    }
+
+    /// <summary>Back substitution over the upper triangle; the solution replaces the right-hand side.</summary>
+    private static void BackSubstitute(ArrayView<double> matrix, ArrayView<double> rhs, int n, int stride)
+    {
         for (var k = n - 1; k >= 0; k--)
         {
             var sum = rhs[k];
@@ -92,7 +121,5 @@ public static class DenseSolver
 
             rhs[k] = sum / matrix[k * stride + k];
         }
-
-        return true;
     }
 }
