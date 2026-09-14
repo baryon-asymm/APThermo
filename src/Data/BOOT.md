@@ -226,11 +226,19 @@ Decisions taken with the review of 2026-09-14:
 - [x] 2026-09-14 — The decomposition of `## Structure`: no type over 400 lines (the
       largest new file, `SpeciesDatabase.cs`, 152), no method over 60, no nesting
       deeper than 3, no more than 6 parameters except the two record constructors
-      (measured by the protocol tests node's `ShapeTests`, root `BOOT.md`); the public
+      (measured by the coder's scan at the close of the decomposition, the longest
+      method `ThermoFile.Parse` at 57 lines and the highest efferent coupling
+      `SpeciesRecordReader` at 10; the protocol tests node's `ShapeTests`, root
+      `BOOT.md`, re-measures it once it exists); the public
       surface grown by `SpeciesDatabase.Records` only, `PublicSurface.approved.txt`
       moved in the same commit; every fixture, count, anomaly and corruption test of
       the tests node green unchanged (`dotnet test tests/Data.Tests`, 39 tests, the
       one new `Loading_the_full_file_takes_under_a_second` removal aside).
+
+      ⚠ 2026-09-14: the parenthetical above first read "measured by the protocol tests
+      node's `ShapeTests`". That test did not exist when the criterion was ticked (the
+      protocol tests node's Shape level is still planned): the figures came from the
+      coder's scan, which the parenthetical now names.
 - [x] 2026-09-14 — `Records(name)` returns the records of every same-name group in
       file order and the indexer the first of them (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)`
       among the names the tests node's own scan of the committed file finds

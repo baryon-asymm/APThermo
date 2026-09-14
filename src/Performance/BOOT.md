@@ -214,7 +214,8 @@ Decisions taken with the review of 2026-09-14:
       them individually near the limit); before, the single `RocketSolver` type was
       326 lines. Confirmed by the tree-wide inventory (nothing of this node in its
       list of types ≥ 250 or methods ≥ 60 lines) and by `Protocol.Tests` (9 of 9
-      green, `ShapeTests` included, run before and after this node's work). The
+      green, run before and after this node's work; its `ShapeTests` does not exist
+      yet and re-measures this over the tree when that node has it). The
       public surface is unchanged: `Protocol.Tests.SurfaceTests` green against the
       unchanged `PublicSurface.approved.txt`; every new type of the decomposition
       (`RocketContext`, `ChamberReference`, `ThroatReference`, `ExitEstimate`,
@@ -233,6 +234,11 @@ Decisions taken with the review of 2026-09-14:
       `Category=LongRunning`; this task's instructions direct leaving them to the
       orchestrator after the merge, so they were not run here — the one part of this
       criterion not verified in this session.
+
+      ⚠ 2026-09-14: the parenthetical on `Protocol.Tests` first read "9 of 9 green,
+      `ShapeTests` included". The protocol tests node had no `ShapeTests` then (its
+      Shape level is still planned): the nine were the existing reflection checks,
+      and the shape figures above come from the tree-wide inventory.
 - [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
       point is `NotConverged` and its neighbours are `Ok`:
       `Performance.Tests.SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
