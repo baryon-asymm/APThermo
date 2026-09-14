@@ -168,39 +168,7 @@ public sealed class Solver : IDisposable
             throw new ArgumentException("the state batch is empty", nameof(states));
         }
 
-        var mixtures = new List<ElementalMixture>(states.Count);
-        var problems = new List<EquilibriumProblem>(states.Count);
-        for (var i = 0; i < states.Count; i++)
-        {
-            var record = states[i] ?? throw new ArgumentException($"state record {i} is null", nameof(states));
-            var targets = (record.Enthalpy is not null ? 1 : 0) + (record.Temperature is not null ? 1 : 0) + (record.Entropy is not null ? 1 : 0);
-            if (targets != 1)
-            {
-                throw new ArgumentException($"state record {i}: exactly one of enthalpy, temperature and entropy must be given, not {targets}", nameof(states));
-            }
-
-            try
-            {
-                mixtures.Add(ElementalMixture.Create(record.Composition, record.Enthalpy, options.Omit, options.Only, options.MassTolerance));
-            }
-            catch (ArgumentException inner)
-            {
-                throw new ArgumentException($"state record {i}: {inner.Message}", nameof(states), inner);
-            }
-
-            problems.Add(new EquilibriumProblem
-            {
-                Kind = record.Temperature is not null ? ProblemKind.AssignedTemperaturePressure
-                     : record.Entropy is not null ? ProblemKind.AssignedEntropyPressure
-                     : ProblemKind.AssignedEnthalpyPressure,
-                Pressure = record.Pressure,
-                Temperature = record.Temperature ?? 0.0,
-                Enthalpy = record.Enthalpy,
-                Entropy = record.Entropy ?? 0.0,
-                Transport = options.Transport,
-            });
-        }
-
+        var (mixtures, problems) = StateRecords.ToProblems(states, options);
         return SolveEquilibrium(mixtures, problems, "state record");
     }
 
@@ -231,7 +199,7 @@ public sealed class Solver : IDisposable
         {
             var (mixture, problem, propellant, _) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
-            ValidateRocket(mixture, problem, k);
+            ProblemValidation.Rocket(Database, mixture, problem, k);
             masses[k] = CheckMass(mixture, propellant, "mixture", k);
             var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);
             if (!groups.TryGetValue(key, out var members))
@@ -312,7 +280,7 @@ public sealed class Solver : IDisposable
         {
             var (mixture, problem, propellant) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
-            var target = ValidateEquilibrium(mixture, problem, k);
+            var target = ProblemValidation.Equilibrium(Database, mixture, problem, k);
             masses[k] = CheckMass(mixture, propellant, noun, k);
             batch.Kind[k] = problem.Kind;
             batch.Pressure[k] = problem.Pressure;
@@ -339,37 +307,6 @@ public sealed class Solver : IDisposable
         return results;
     }
 
-    private void ValidateRocket(ElementalMixture mixture, RocketProblem problem, int index)
-    {
-        if (mixture.Enthalpy is null)
-        {
-            throw new ArgumentException($"rocket problem {index}: the mixture has no enthalpy; a rocket problem needs the reactant enthalpy");
-        }
-
-        if (!(problem.ChamberPressure > 0.0) || double.IsInfinity(problem.ChamberPressure))
-        {
-            throw new ArgumentException($"rocket problem {index}: the chamber pressure must be positive and finite, not {problem.ChamberPressure}");
-        }
-
-        if (problem.TemperatureEstimate < 0.0 || double.IsNaN(problem.TemperatureEstimate))
-        {
-            throw new ArgumentException($"rocket problem {index}: the temperature estimate must not be negative");
-        }
-
-        foreach (var value in problem.PressureRatios.Concat(problem.AreaRatios))
-        {
-            if (!(value > 0.0) || double.IsInfinity(value))
-            {
-                throw new ArgumentException($"rocket problem {index}: an exit value must be positive and finite, not {value}");
-            }
-        }
-
-        if (problem.Transport && Database.Transport is null)
-        {
-            throw new ArgumentException($"rocket problem {index}: transport properties were requested, but the database was loaded without a trans.inp file");
-        }
-    }
-
     /// <summary>
     /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance the mixture
     /// declares (BOOT.md), whichever front door it came through. A propellant fails this only when a reactant record's molar mass contradicts
@@ -377,53 +314,6 @@ public sealed class Solver : IDisposable
     /// </summary>
     private double CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index) =>
         MixtureMass.Check(Database, mixture, propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index);
-
-    private double ValidateEquilibrium(ElementalMixture mixture, EquilibriumProblem problem, int index)
-    {
-        if (!(problem.Pressure > 0.0) || double.IsInfinity(problem.Pressure))
-        {
-            throw new ArgumentException($"equilibrium problem {index}: the pressure must be positive and finite, not {problem.Pressure}");
-        }
-
-        if (problem.Temperature < 0.0 || double.IsNaN(problem.Temperature))
-        {
-            throw new ArgumentException($"equilibrium problem {index}: the temperature must not be negative");
-        }
-
-        if (problem.Transport && Database.Transport is null)
-        {
-            throw new ArgumentException($"equilibrium problem {index}: transport properties were requested, but the database was loaded without a trans.inp file");
-        }
-
-        switch (problem.Kind)
-        {
-            case ProblemKind.AssignedTemperaturePressure:
-                if (!(problem.Temperature > 0.0))
-                {
-                    throw new ArgumentException($"equilibrium problem {index}: an assigned-temperature problem needs a positive temperature");
-                }
-
-                return 0.0;
-            case ProblemKind.AssignedEnthalpyPressure:
-                var enthalpy = problem.Enthalpy ?? mixture.Enthalpy
-                               ?? throw new ArgumentException($"equilibrium problem {index}: neither the problem nor the mixture gives an enthalpy");
-                if (!double.IsFinite(enthalpy))
-                {
-                    throw new ArgumentException($"equilibrium problem {index}: the enthalpy must be finite");
-                }
-
-                return enthalpy;
-            case ProblemKind.AssignedEntropyPressure:
-                if (!double.IsFinite(problem.Entropy))
-                {
-                    throw new ArgumentException($"equilibrium problem {index}: the entropy must be finite");
-                }
-
-                return problem.Entropy;
-            default:
-                throw new ArgumentException($"equilibrium problem {index}: unknown problem kind {problem.Kind}");
-        }
-    }
 
     private static Station MakeStation(string name, SpeciesTable table, MixtureState state, PerformanceFigures? figures, double[] moles, long offset,
                                        TransportFigures? transport, CaseStatus? transportStatus, CaseStatus status)
