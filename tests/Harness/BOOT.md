@@ -61,16 +61,25 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
 
 ## Acceptance criteria
 
-- [ ] The node holds the types of `API.md` and the copies are gone (2026-09-14): the
+- [x] 2026-09-14 — The node holds the types of `API.md` and the copies are gone: the
       CPU fixtures of `Thermo.Tests`, `Equilibrium.Tests`, `Performance.Tests` and
       `Transport.Tests` (each keeps its collection definition, since xunit's
       collections are per assembly, and `Thermo.Tests` its upload helper); the
-      batch-family grouping of the kernel-equality tests; every `SameBits` and
-      `BitDifferences` of the test nodes; the hashing and approval code of the Bits
-      levels of `Thermo.Tests`, `Equilibrium.Tests`, `Performance.Tests`,
-      `Transport.Tests`, `Problems.Tests` and `Cli.Tests`. Every consumer's
+      batch-family grouping of the kernel-equality tests of `Equilibrium.Tests`,
+      `Performance.Tests` and `Transport.Tests` (the last kept to its members with
+      transport after the shared grouping, since a table key is independent of the
+      transport flag); every `SameBits` and `BitDifferences` of `Equilibrium.Tests`,
+      `Performance.Tests`, `Transport.Tests`, `Execution.Tests` (`BitEquality.cs`
+      deleted) and `Problems.Tests` (`StationEquality`'s composite `Station`
+      comparison stays, its own concern, but reads this node for the bit-exact
+      leaves); the hashing and approval code of the Bits levels of `Thermo.Tests`,
+      `Equilibrium.Tests`, `Performance.Tests`, `Transport.Tests`, `Problems.Tests`
+      and `Cli.Tests` (the last two needed `BitHash.Add(bool)`, a one-byte encoding
+      neither the four accelerator-comparison nodes' snapshots nor the fixtures node's
+      own hasher had needed, added the same commit as `Problems.Tests`, the surface
+      snapshot re-approved for it). Every one of the seven consumer nodes'
       `## Dependencies` links this node and the dependency check agrees; the surface
-      snapshot gains this node's section in the same commit.
+      snapshot gained this node's section in the commit that created it.
 - [ ] Nothing moved: every Bits level of the tree green with its approved file byte
       for byte unchanged, every kernel-equality and batch bit-equality test green. The
       node seen red through its consumers once, each mutation alone: `Bits.Same` made
