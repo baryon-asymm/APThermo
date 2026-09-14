@@ -68,33 +68,15 @@ public static class TransportSolver
         var inputs = new StationInputs(in species, in transport, in scratch, moles, temperature);
         var result = default(TransportFigures);
         figures[0] = result;
+        var inputStatus = TransportInput.Validate(in inputs, out var gasMoles);
+        if (inputStatus != CaseStatus.Ok)
+        {
+            return inputStatus;
+        }
+
         var speciesCount = species.SpeciesCount;
         var gasCount = species.GasCount;
         var elementCount = species.ElementCount;
-        if (!(temperature > 0.0) || speciesCount <= 0 || gasCount <= 0 || elementCount <= 0 || transport.SpeciesCount != speciesCount)
-        {
-            return CaseStatus.InvalidInput;
-        }
-
-        var gasMoles = 0.0;
-        for (var j = 0; j < speciesCount; j++)
-        {
-            var nj = moles[j];
-            if (!(nj >= 0.0))
-            {
-                return CaseStatus.InvalidInput;
-            }
-
-            if (j < gasCount)
-            {
-                gasMoles += nj;
-            }
-        }
-
-        if (gasMoles <= 0.0)
-        {
-            return CaseStatus.NoTransportData;
-        }
 
         // Active element rows and their default species: the monatomic gas, else the first gas containing the element.
         for (var i = 0; i < elementCount; i++)
