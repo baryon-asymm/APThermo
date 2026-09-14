@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace AerospacePropellantThermodynamics.Protocol.Tests;
 
 /// <summary>
@@ -10,53 +12,63 @@ public sealed class DependencyTests
     [Fact]
     public void Every_node_declares_the_neighbours_it_uses_and_no_other()
     {
-        var problems = new List<string>();
-        foreach (var (node, assembly) in Tree.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal))
+        var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
+            .SelectMany(pair => ProblemsOf(pair.Key, pair.Value))
+            .ToList();
+        Assert.True(problems.Count == 0, string.Join("\n", problems));
+    }
+
+    private static IEnumerable<string> ProblemsOf(Node node, Assembly assembly)
+    {
+        var (crossings, usedNodes) = Crossings(node, assembly);
+        var (declared, unresolved) = NodeDocuments.DeclaredDependencies(node);
+        var boot = Tree.Relative(node.Boot);
+        foreach (var link in unresolved)
         {
-            var crossings = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
-            var usedNodes = new Dictionary<string, Node>(StringComparer.Ordinal);
-            foreach (var type in assembly.GetTypes())
+            yield return $"{boot} links {link} under ## Dependencies, and no node has that API.md";
+        }
+
+        var declaredPaths = declared.Select(d => d.RelativePath).ToHashSet(StringComparer.Ordinal);
+        foreach (var used in crossings.Keys.Where(used => !declaredPaths.Contains(used)))
+        {
+            yield return $"{boot} does not declare {usedNodes[used].Name}, but {node.Name} uses its types: {string.Join(", ", crossings[used].Take(6))}" +
+                         (crossings[used].Count > 6 ? $" and {crossings[used].Count - 6} more" : string.Empty);
+        }
+
+        foreach (var unused in declared.Where(d => !crossings.ContainsKey(d.RelativePath)).OrderBy(d => d.RelativePath, StringComparer.Ordinal))
+        {
+            yield return unused.IsDescendantOf(node)
+                ? $"{boot} declares its descendant {unused.Name}; a parent owns its children and declares no dependency on them (AGENTS.md §6)"
+                : $"{boot} declares {unused.Name}, but no type of {node.Name} refers to it: the dependency went away and the document did not, or it was never real";
+        }
+    }
+
+    /// <summary>Every neighbour or ancestor node a node's assembly refers to, and the (type → referenced type) pairs that show it,
+    /// up to six per node.</summary>
+    private static (SortedDictionary<string, SortedSet<string>> Crossings, Dictionary<string, Node> UsedNodes) Crossings(Node node, Assembly assembly)
+    {
+        var crossings = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+        var usedNodes = new Dictionary<string, Node>(StringComparer.Ordinal);
+        foreach (var type in assembly.GetTypes())
+        {
+            foreach (var referenced in TypeShape.ReferencedTypes(type))
             {
-                foreach (var referenced in Tree.ReferencedTypes(type))
+                var target = NodeAssemblies.NodeOf(referenced);
+                if (target is null || target == node || target.IsDescendantOf(node))
                 {
-                    var target = Tree.NodeOf(referenced);
-                    if (target is null || target == node || target.IsDescendantOf(node))
-                    {
-                        continue;
-                    }
-
-                    usedNodes[target.RelativePath] = target;
-                    if (!crossings.TryGetValue(target.RelativePath, out var users))
-                    {
-                        crossings[target.RelativePath] = users = new SortedSet<string>(StringComparer.Ordinal);
-                    }
-
-                    users.Add(Tree.SimpleName(Tree.Outermost(type)) + " → " + Tree.SimpleName(referenced));
+                    continue;
                 }
-            }
 
-            var (declared, unresolved) = Tree.DeclaredDependencies(node);
-            var boot = Tree.Relative(node.Boot);
-            foreach (var link in unresolved)
-            {
-                problems.Add($"{boot} links {link} under ## Dependencies, and no node has that API.md");
-            }
+                usedNodes[target.RelativePath] = target;
+                if (!crossings.TryGetValue(target.RelativePath, out var users))
+                {
+                    crossings[target.RelativePath] = users = new SortedSet<string>(StringComparer.Ordinal);
+                }
 
-            var declaredPaths = declared.Select(d => d.RelativePath).ToHashSet(StringComparer.Ordinal);
-            foreach (var used in crossings.Keys.Where(used => !declaredPaths.Contains(used)))
-            {
-                problems.Add($"{boot} does not declare {usedNodes[used].Name}, but {node.Name} uses its types: {string.Join(", ", crossings[used].Take(6))}" +
-                             (crossings[used].Count > 6 ? $" and {crossings[used].Count - 6} more" : string.Empty));
-            }
-
-            foreach (var unused in declared.Where(d => !crossings.ContainsKey(d.RelativePath)).OrderBy(d => d.RelativePath, StringComparer.Ordinal))
-            {
-                problems.Add(unused.IsDescendantOf(node)
-                    ? $"{boot} declares its descendant {unused.Name}; a parent owns its children and declares no dependency on them (AGENTS.md §6)"
-                    : $"{boot} declares {unused.Name}, but no type of {node.Name} refers to it: the dependency went away and the document did not, or it was never real");
+                users.Add(TypeShape.SimpleName(TypeShape.Outermost(type)) + " → " + TypeShape.SimpleName(referenced));
             }
         }
 
-        Assert.True(problems.Count == 0, string.Join("\n", problems));
+        return (crossings, usedNodes);
     }
 }
