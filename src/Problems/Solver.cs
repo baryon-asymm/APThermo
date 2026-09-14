@@ -12,6 +12,8 @@ public sealed class Solver : IDisposable
 {
     private readonly Engine _engine;
     private readonly ChemicalSystemCache _systems;
+    private readonly RocketRunner _rocketRunner;
+    private readonly EquilibriumRunner _equilibriumRunner;
     private readonly Dictionary<Propellant, double[]> _reactantEnthalpies = new(ReferenceEqualityComparer.Instance);
     private bool _disposed;
 
@@ -20,6 +22,8 @@ public sealed class Solver : IDisposable
         Database = database;
         _engine = engine;
         _systems = new ChemicalSystemCache(database, engine);
+        _rocketRunner = new RocketRunner(database, engine);
+        _equilibriumRunner = new EquilibriumRunner(database, engine);
     }
 
     /// <summary>A solver over the database, bound to the accelerator the options select (Execution).</summary>
@@ -83,7 +87,7 @@ public sealed class Solver : IDisposable
     {
         ArgumentNullException.ThrowIfNull(problems);
         var mixture = Mixture(propellant);
-        return SolveRocket(GetSystem(mixture), problems.Select(p => new RocketCase(mixture, p, propellant, propellant.OxidizerToFuelRatio)).ToList());
+        return _rocketRunner.Solve(GetSystem(mixture), problems.Select(p => new RocketCase(mixture, p, propellant, propellant.OxidizerToFuelRatio)).ToList());
     }
 
     /// <summary>Every (ratio, chamber pressure) of the sweep as one batch; results ratio-major, then by pressure, with all area ratios as exits.</summary>
@@ -106,7 +110,7 @@ public sealed class Solver : IDisposable
             }
         }
 
-        return SolveRocket(GetSystem(cases[0].Mixture), cases);
+        return _rocketRunner.Solve(GetSystem(cases[0].Mixture), cases);
     }
 
     public EquilibriumResult Solve(Propellant propellant, EquilibriumProblem problem) => Solve(propellant, [problem])[0];
@@ -115,7 +119,7 @@ public sealed class Solver : IDisposable
     {
         ArgumentNullException.ThrowIfNull(problems);
         var mixture = Mixture(propellant);
-        return SolveEquilibrium(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, propellant)).ToList());
+        return _equilibriumRunner.Solve(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, propellant)).ToList());
     }
 
     public RocketResult Solve(ElementalMixture mixture, RocketProblem problem) => Solve(mixture, [problem])[0];
@@ -125,7 +129,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixture);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        return SolveRocket(GetSystem(mixture), problems.Select(p => new RocketCase(mixture, p, null, null)).ToList());
+        return _rocketRunner.Solve(GetSystem(mixture), problems.Select(p => new RocketCase(mixture, p, null, null)).ToList());
     }
 
     public EquilibriumResult Solve(ElementalMixture mixture, EquilibriumProblem problem) => Solve(mixture, [problem])[0];
@@ -135,7 +139,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixture);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        return SolveEquilibrium(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, null)).ToList());
+        return _equilibriumRunner.Solve(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, null)).ToList());
     }
 
     /// <summary>One rocket case per index over the union of the mixtures' elements; every mixture carries the same species lists.</summary>
@@ -145,7 +149,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
         var system = UnionSystem(mixtures, problems.Count, "rocket");
-        return SolveRocket(system, mixtures.Select((mixture, i) => new RocketCase(mixture, problems[i], null, null)).ToList());
+        return _rocketRunner.Solve(system, mixtures.Select((mixture, i) => new RocketCase(mixture, problems[i], null, null)).ToList());
     }
 
     /// <summary>One equilibrium case per index over the union of the mixtures' elements; every mixture carries the same species lists.</summary>
@@ -185,154 +189,12 @@ public sealed class Solver : IDisposable
         _engine.Dispose();
     }
 
-    private IReadOnlyList<RocketResult> SolveRocket(ChemicalSystem system, IReadOnlyList<RocketCase> cases)
-    {
-        if (cases.Count == 0)
-        {
-            throw new ArgumentException("no rocket problems were given");
-        }
-
-        var groups = new Dictionary<(int Pressures, int Areas), List<int>>();
-        var order = new List<(int Pressures, int Areas)>();
-        var masses = new double[cases.Count];
-        for (var k = 0; k < cases.Count; k++)
-        {
-            var (mixture, problem, propellant, _) = cases[k];
-            ArgumentNullException.ThrowIfNull(problem);
-            ProblemValidation.Rocket(Database, mixture, problem, k);
-            masses[k] = CheckMass(mixture, propellant, "mixture", k);
-            var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);
-            if (!groups.TryGetValue(key, out var members))
-            {
-                groups[key] = members = [];
-                order.Add(key);
-            }
-
-            members.Add(k);
-        }
-
-        var table = system.Table;
-        var speciesNames = StationFactory.SpeciesNames(table);
-        var results = new RocketResult[cases.Count];
-        foreach (var key in order)
-        {
-            var members = groups[key];
-            var kinds = Enumerable.Repeat(ExitSpecification.PressureRatio, key.Pressures).Concat(Enumerable.Repeat(ExitSpecification.AreaRatio, key.Areas)).ToArray();
-            var batch = new RocketBatch(members.Count, table.ElementCount, kinds);
-            var anyTransport = false;
-            for (var m = 0; m < members.Count; m++)
-            {
-                var (mixture, problem, _, _) = cases[members[m]];
-                batch.ChamberPressure[m] = problem.ChamberPressure;
-                batch.ReactantEnthalpy[m] = mixture.Enthalpy!.Value;
-                batch.TemperatureEstimate[m] = problem.TemperatureEstimate;
-                batch.Flow[m] = problem.Flow;
-                Array.Copy(mixture.KilomolesPerKilogram(system.Elements), 0, batch.ElementMoles, m * table.ElementCount, table.ElementCount);
-                var exits = problem.PressureRatios.Concat(problem.AreaRatios).ToArray();
-                Array.Copy(exits, 0, batch.ExitValues, m * batch.Exits, batch.Exits);
-                anyTransport |= problem.Transport;
-            }
-
-            var run = _engine.Run(system.Tables, batch);
-            var transport = anyTransport ? _engine.Run(system.Tables, TransportBatch.FromRocket(run)) : null;
-            var stationCount = run.StationCount;
-            for (var m = 0; m < members.Count; m++)
-            {
-                var (mixture, problem, propellant, ratio) = cases[members[m]];
-                var stations = new Station[stationCount];
-                for (var s = 0; s < stationCount; s++)
-                {
-                    var index = m * stationCount + s;
-                    var wantTransport = problem.Transport && run.StationStatus[index] == CaseStatus.Ok;
-                    var transportStatus = wantTransport ? transport!.Status[index] : (CaseStatus?)null;
-                    var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[index] : (TransportFigures?)null;
-                    var slice = new StationSlice
-                    {
-                        Table = table,
-                        State = run.Stations[index],
-                        Performance = run.Figures[index],
-                        Moles = run.Moles,
-                        Offset = (long)index * table.SpeciesCount,
-                        Transport = figures,
-                        TransportStatus = transportStatus,
-                        Status = run.StationStatus[index],
-                    };
-                    stations[s] = StationFactory.Create(StationFactory.NameOf(s), slice);
-                }
-
-                results[members[m]] = new RocketResult(propellant, mixture, masses[members[m]], problem, ratio, speciesNames, stations, run.Status[m], run.Accelerator);
-            }
-        }
-
-        return results;
-    }
-
     /// <summary>One case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>
     private IReadOnlyList<EquilibriumResult> SolveEquilibrium(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<EquilibriumProblem> problems, string noun)
     {
         var system = UnionSystem(mixtures, problems.Count, "equilibrium");
-        return SolveEquilibrium(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList(), noun);
+        return _equilibriumRunner.Solve(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList(), noun);
     }
-
-    private IReadOnlyList<EquilibriumResult> SolveEquilibrium(ChemicalSystem system, IReadOnlyList<EquilibriumCase> cases, string noun = "mixture")
-    {
-        if (cases.Count == 0)
-        {
-            throw new ArgumentException("no equilibrium problems were given");
-        }
-
-        var table = system.Table;
-        var batch = new EquilibriumBatch(cases.Count, table.ElementCount);
-        var anyTransport = false;
-        var masses = new double[cases.Count];
-        for (var k = 0; k < cases.Count; k++)
-        {
-            var (mixture, problem, propellant) = cases[k];
-            ArgumentNullException.ThrowIfNull(problem);
-            var target = ProblemValidation.Equilibrium(Database, mixture, problem, k);
-            masses[k] = CheckMass(mixture, propellant, noun, k);
-            batch.Kind[k] = problem.Kind;
-            batch.Pressure[k] = problem.Pressure;
-            batch.Temperature[k] = problem.Temperature;
-            batch.Target[k] = target;
-            Array.Copy(mixture.KilomolesPerKilogram(system.Elements), 0, batch.ElementMoles, k * table.ElementCount, table.ElementCount);
-            anyTransport |= problem.Transport;
-        }
-
-        var run = _engine.Run(system.Tables, batch);
-        var transport = anyTransport ? _engine.Run(system.Tables, TransportBatch.FromEquilibrium(run)) : null;
-        var results = new EquilibriumResult[cases.Count];
-        var speciesNames = StationFactory.SpeciesNames(table);
-        for (var k = 0; k < cases.Count; k++)
-        {
-            var (mixture, problem, propellant) = cases[k];
-            var wantTransport = problem.Transport && run.Status[k] == CaseStatus.Ok;
-            var transportStatus = wantTransport ? transport!.Status[k] : (CaseStatus?)null;
-            var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[k] : (TransportFigures?)null;
-            var slice = new StationSlice
-            {
-                Table = table,
-                State = run.State[k],
-                Moles = run.Moles,
-                Offset = (long)k * table.SpeciesCount,
-                Transport = figures,
-                TransportStatus = transportStatus,
-                Status = run.Status[k],
-            };
-            var state = StationFactory.Create("state", slice);
-            results[k] = new EquilibriumResult(propellant, mixture, masses[k], problem, speciesNames, state, run.Status[k], run.Accelerator);
-        }
-
-        return results;
-    }
-
-    /// <summary>
-    /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance the mixture
-    /// declares (BOOT.md), whichever front door it came through. A propellant fails this only when a reactant record's molar mass contradicts
-    /// its formula. Returns the mass, which the result reports.
-    /// </summary>
-    private double CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index) =>
-        MixtureMass.Check(Database, mixture, propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index);
 
     /// <summary>J per kilogram of every reactant at its temperature: the record's polynomial through the engine, or the assigned enthalpy.</summary>
     private double[] ReactantEnthalpies(Propellant propellant)
@@ -422,8 +284,4 @@ public sealed class Solver : IDisposable
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
-
-    private sealed record RocketCase(ElementalMixture Mixture, RocketProblem Problem, Propellant? Propellant, double? Ratio);
-
-    private sealed record EquilibriumCase(ElementalMixture Mixture, EquilibriumProblem Problem, Propellant? Propellant);
 }
