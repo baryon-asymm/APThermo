@@ -1,4 +1,5 @@
 using System.Reflection;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
@@ -14,7 +15,7 @@ internal static class StationEquality
     /// <summary>Field-by-field bit equality of two stations: state, figures, mole fractions, condensed mass fractions and transport figures.</summary>
     public static IEnumerable<string> BitDifferences(Station expected, Station actual, string label)
     {
-        foreach (var difference in BitDifferences(expected.State, actual.State, label + " state"))
+        foreach (var difference in Bits.Differences(expected.State, actual.State, label + " state"))
         {
             yield return difference;
         }
@@ -25,7 +26,7 @@ internal static class StationEquality
         }
         else if (expected.Performance is { } figures)
         {
-            foreach (var difference in BitDifferences(figures, actual.Performance!.Value, label + " figures"))
+            foreach (var difference in Bits.Differences(figures, actual.Performance!.Value, label + " figures"))
             {
                 yield return difference;
             }
@@ -37,7 +38,7 @@ internal static class StationEquality
         }
         else if (expected.Transport is { } transport)
         {
-            foreach (var difference in BitDifferences(transport, actual.Transport!.Value, label + " transport"))
+            foreach (var difference in Bits.Differences(transport, actual.Transport!.Value, label + " transport"))
             {
                 yield return difference;
             }
@@ -50,7 +51,7 @@ internal static class StationEquality
 
         foreach (var (name, x) in expected.MoleFractions)
         {
-            if (!actual.MoleFractions.TryGetValue(name, out var y) || !SameBits(x, y))
+            if (!actual.MoleFractions.TryGetValue(name, out var y) || !Bits.Same(x, y))
             {
                 yield return $"{label} x({name}): {x:R} vs {(actual.MoleFractions.TryGetValue(name, out var v) ? v.ToString("R") : "missing")}";
             }
@@ -58,14 +59,12 @@ internal static class StationEquality
 
         foreach (var (name, x) in expected.CondensedMassFractions)
         {
-            if (!actual.CondensedMassFractions.TryGetValue(name, out var y) || !SameBits(x, y))
+            if (!actual.CondensedMassFractions.TryGetValue(name, out var y) || !Bits.Same(x, y))
             {
                 yield return $"{label} w({name}) differs";
             }
         }
     }
-
-    public static bool SameBits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 
     /// <summary>
     /// Two stations within a relative tolerance on every double field (state, figures, transport), mole fractions above the floor
@@ -144,20 +143,6 @@ internal static class StationEquality
             if (!same)
             {
                 yield return $"{label} transport {field.Name}: {x} vs {y}";
-            }
-        }
-    }
-
-    private static IEnumerable<string> BitDifferences<T>(T expected, T actual, string label) where T : struct
-    {
-        foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
-        {
-            var a = field.GetValue(expected)!;
-            var b = field.GetValue(actual)!;
-            var same = a is double x && b is double y ? SameBits(x, y) : a.Equals(b);
-            if (!same)
-            {
-                yield return $"{label} {field.Name}: {a} vs {b}";
             }
         }
     }

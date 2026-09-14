@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
@@ -20,16 +20,19 @@ namespace AerospacePropellantThermodynamics.Problems.Tests;
 [Collection(SolverCollection.Name)]
 public sealed class BitSnapshotTests(SolverFixture fixture)
 {
+    public static string ApprovedPath => RepositoryPaths.Resolve("tests", "Problems.Tests", "Bits.approved.txt");
+
     [Fact]
     public void Every_fixture_gives_the_recorded_bits()
     {
-        var actual = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var snapshot = ApprovedSnapshot.Load(ApprovedPath);
+        var problems = new List<string>();
         foreach (var path in FixtureFiles.Enumerate("rocket"))
         {
             var c = CeaFixtures.Load(path);
             var propellant = FixtureCases.PropellantOf(fixture.Database, c);
             var result = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
-            actual[RelativePath(path)] = HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status);
+            Record(snapshot, problems, path, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
         }
 
         foreach (var kind in new[] { "tp", "hp", "sp" })
@@ -39,172 +42,89 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
                 var c = CeaFixtures.Load(path);
                 var propellant = FixtureCases.PropellantOf(fixture.Database, c);
                 var result = fixture.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
-                actual[RelativePath(path)] = HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status);
+                Record(snapshot, problems, path, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
             }
         }
 
-        CompareWithApproved(actual);
+        Assert.True(problems.Count == 0,
+            $"{problems.Count} fixture(s) changed bits or are missing from Bits.approved.txt:\n" + string.Join("\n", problems.Take(20)) +
+            (problems.Count > 20 ? $"\n… and {problems.Count - 20} more." : string.Empty));
     }
 
     /// <summary>The fixture path as the snapshot records it: relative to the repository root, forward slashes.</summary>
     private static string RelativePath(string fullPath) => Path.GetRelativePath(RepositoryPaths.Root, fullPath).Replace('\\', '/');
 
-    /// <summary>
-    /// Reads <c>Bits.approved.txt</c>, compares every recomputed hash against it, and fails naming every fixture that changed
-    /// or is missing, after writing the full recomputed snapshot to <c>Bits.actual.txt</c> (git-ignored) so that an intended
-    /// change can be reviewed and copied over the approved file in the same commit that explains it.
-    /// </summary>
-    private static void CompareWithApproved(IReadOnlyDictionary<string, string> actual)
+    private static void Record(ApprovedSnapshot snapshot, List<string> problems, string path, string hash)
     {
-        var approvedPath = RepositoryPaths.Resolve("tests", "Problems.Tests", "Bits.approved.txt");
-        var actualPath = RepositoryPaths.Resolve("tests", "Problems.Tests", "Bits.actual.txt");
-        var approved = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (File.Exists(approvedPath))
+        var problem = snapshot.Problem(RelativePath(path), hash);
+        if (problem is not null)
         {
-            foreach (var line in File.ReadAllLines(approvedPath))
-            {
-                if (line.Length == 0)
-                {
-                    continue;
-                }
-
-                var parts = line.Split(' ', 2);
-                approved[parts[0]] = parts[1];
-            }
+            problems.Add(problem);
         }
-
-        var mismatches = new List<string>();
-        foreach (var (path, hash) in actual)
-        {
-            if (!approved.TryGetValue(path, out var expected))
-            {
-                mismatches.Add($"{path}: not in Bits.approved.txt");
-            }
-            else if (!string.Equals(expected, hash, StringComparison.Ordinal))
-            {
-                mismatches.Add($"{path}: bits differ from Bits.approved.txt");
-            }
-        }
-
-        if (mismatches.Count > 0)
-        {
-            File.WriteAllLines(actualPath, actual.Select(kv => $"{kv.Key} {kv.Value}"));
-        }
-        else if (File.Exists(actualPath))
-        {
-            File.Delete(actualPath);
-        }
-
-        Assert.True(mismatches.Count == 0,
-            $"{mismatches.Count} fixture(s) changed bits or are missing from Bits.approved.txt: " +
-            string.Join("; ", mismatches.Take(20)) + (mismatches.Count > 20 ? "; …" : string.Empty) +
-            ". Bits.actual.txt was written next to Bits.approved.txt with the full recomputed snapshot (BOOT.md, Bits level); " +
-            "if every change is an intended numerical change, name it and copy Bits.actual.txt over Bits.approved.txt in the same commit.");
     }
 
     private static string HashOf(ElementalMixture mixture, double mixtureMass, IReadOnlyList<string> species, IReadOnlyList<Station> stations, CaseStatus caseStatus)
     {
-        using var buffer = new MemoryStream();
-        using (var writer = new BinaryWriter(buffer, System.Text.Encoding.UTF8, leaveOpen: true))
+        var hash = new BitHash();
+        foreach (var element in mixture.Elements)
         {
-            foreach (var element in mixture.Elements)
-            {
-                writer.Write(mixture.ElementMoles[element]);
-            }
-
-            writer.Write(mixture.Enthalpy!.Value);
-            writer.Write(mixtureMass);
-
-            foreach (var station in stations)
-            {
-                WriteState(writer, station.State);
-
-                writer.Write(station.Performance.HasValue);
-                if (station.Performance is { } figures)
-                {
-                    WriteFigures(writer, figures);
-                }
-
-                writer.Write(station.Transport.HasValue);
-                if (station.Transport is { } transport)
-                {
-                    WriteTransport(writer, transport);
-                }
-
-                foreach (var name in species)
-                {
-                    writer.Write(station.MoleFractions.GetValueOrDefault(name));
-                }
-
-                foreach (var name in species)
-                {
-                    if (station.CondensedMassFractions.TryGetValue(name, out var massFraction))
-                    {
-                        writer.Write(massFraction);
-                    }
-                }
-
-                writer.Write((int)station.Status);
-                writer.Write(station.TransportStatus.HasValue);
-                if (station.TransportStatus is { } transportStatus)
-                {
-                    writer.Write((int)transportStatus);
-                }
-            }
-
-            writer.Write((int)caseStatus);
+            hash.Add(mixture.ElementMoles[element]);
         }
 
-        return Convert.ToHexStringLower(SHA256.HashData(buffer.ToArray()));
+        hash.Add(mixture.Enthalpy!.Value);
+        hash.Add(mixtureMass);
+
+        foreach (var station in stations)
+        {
+            WriteState(hash, station.State);
+
+            hash.Add(station.Performance.HasValue);
+            if (station.Performance is { } figures)
+            {
+                WriteFigures(hash, figures);
+            }
+
+            hash.Add(station.Transport.HasValue);
+            if (station.Transport is { } transport)
+            {
+                WriteTransport(hash, transport);
+            }
+
+            foreach (var name in species)
+            {
+                hash.Add(station.MoleFractions.GetValueOrDefault(name));
+            }
+
+            foreach (var name in species)
+            {
+                if (station.CondensedMassFractions.TryGetValue(name, out var massFraction))
+                {
+                    hash.Add(massFraction);
+                }
+            }
+
+            hash.Add((int)station.Status);
+            hash.Add(station.TransportStatus.HasValue);
+            if (station.TransportStatus is { } transportStatus)
+            {
+                hash.Add((int)transportStatus);
+            }
+        }
+
+        hash.Add((int)caseStatus);
+        return hash.ToHex();
     }
 
-    private static void WriteState(BinaryWriter writer, MixtureState s)
-    {
-        writer.Write(s.Temperature);
-        writer.Write(s.Pressure);
-        writer.Write(s.Density);
-        writer.Write(s.Enthalpy);
-        writer.Write(s.InternalEnergy);
-        writer.Write(s.Entropy);
-        writer.Write(s.GibbsEnergy);
-        writer.Write(s.MolarMass);
-        writer.Write(s.MixtureMolarMass);
-        writer.Write(s.CpFrozen);
-        writer.Write(s.CpEquilibrium);
-        writer.Write(s.CvFrozen);
-        writer.Write(s.CvEquilibrium);
-        writer.Write(s.DlnVdlnT);
-        writer.Write(s.DlnVdlnP);
-        writer.Write(s.GammaS);
-        writer.Write(s.SoundSpeed);
-        writer.Write(s.Velocity);
-        writer.Write(s.Mach);
-    }
+    private static void WriteState(BitHash hash, MixtureState s) =>
+        hash.Add(s.Temperature).Add(s.Pressure).Add(s.Density).Add(s.Enthalpy).Add(s.InternalEnergy).Add(s.Entropy).Add(s.GibbsEnergy)
+            .Add(s.MolarMass).Add(s.MixtureMolarMass).Add(s.CpFrozen).Add(s.CpEquilibrium).Add(s.CvFrozen).Add(s.CvEquilibrium)
+            .Add(s.DlnVdlnT).Add(s.DlnVdlnP).Add(s.GammaS).Add(s.SoundSpeed).Add(s.Velocity).Add(s.Mach);
 
-    private static void WriteFigures(BinaryWriter writer, PerformanceFigures f)
-    {
-        writer.Write(f.AreaRatio);
-        writer.Write(f.PressureRatio);
-        writer.Write(f.CharacteristicVelocity);
-        writer.Write(f.ThrustCoefficient);
-        writer.Write(f.SpecificImpulse);
-        writer.Write(f.VacuumSpecificImpulse);
-    }
+    private static void WriteFigures(BitHash hash, PerformanceFigures f) =>
+        hash.Add(f.AreaRatio).Add(f.PressureRatio).Add(f.CharacteristicVelocity).Add(f.ThrustCoefficient).Add(f.SpecificImpulse).Add(f.VacuumSpecificImpulse);
 
-    private static void WriteTransport(BinaryWriter writer, TransportFigures t)
-    {
-        writer.Write(t.Viscosity);
-        writer.Write(t.FrozenConductivity);
-        writer.Write(t.ReactingConductivity);
-        writer.Write(t.FrozenPrandtl);
-        writer.Write(t.ReactingPrandtl);
-        writer.Write(t.FrozenHeatCapacity);
-        writer.Write(t.EquilibriumHeatCapacity);
-        writer.Write(t.EstimatedMoleFraction);
-        writer.Write(t.SpeciesCount);
-        writer.Write(t.ReactionCount);
-        writer.Write(t.EstimatedSpeciesCount);
-        writer.Write(t.TraceEliminations);
-        writer.Write(t.Capped);
-    }
+    private static void WriteTransport(BitHash hash, TransportFigures t) =>
+        hash.Add(t.Viscosity).Add(t.FrozenConductivity).Add(t.ReactingConductivity).Add(t.FrozenPrandtl).Add(t.ReactingPrandtl)
+            .Add(t.FrozenHeatCapacity).Add(t.EquilibriumHeatCapacity).Add(t.EstimatedMoleFraction).Add(t.SpeciesCount).Add(t.ReactionCount)
+            .Add(t.EstimatedSpeciesCount).Add(t.TraceEliminations).Add(t.Capped);
 }

@@ -35,6 +35,7 @@ public sealed class BitHash                                 // SHA-256 over litt
     public BitHash Add(ReadOnlySpan<double> values);
     public BitHash Add(int value);
     public BitHash Add(ReadOnlySpan<int> values);
+    public BitHash Add(bool value);                         // one byte, 1 or 0, as BinaryWriter.Write(bool) writes it
     public BitHash Add(string text);                        // its UTF-8 bytes, as the recorded snapshots hash a string
     public string ToHex();                                  // lowercase hexadecimal; releases the underlying algorithm
 }

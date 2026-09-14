@@ -417,6 +417,7 @@ sealed class AerospacePropellantThermodynamics.Harness.ApprovedSnapshot
 
 sealed class AerospacePropellantThermodynamics.Harness.BitHash
     .ctor()
+    BitHash Add(Boolean value)
     BitHash Add(Double value)
     BitHash Add(Int32 value)
     BitHash Add(ReadOnlySpan<Double> values)

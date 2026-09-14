@@ -51,6 +51,14 @@ public sealed class BitHash
         return this;
     }
 
+    /// <summary>One byte, 1 for true and 0 for false, as <see cref="BinaryWriter.Write(bool)"/> writes it (the front door tests node's presence flags).</summary>
+    public BitHash Add(bool value)
+    {
+        Span<byte> bytes = [value ? (byte)1 : (byte)0];
+        _hash.AppendData(bytes);
+        return this;
+    }
+
     /// <summary>Its UTF-8 bytes, as the recorded snapshots hash a string.</summary>
     public BitHash Add(string text)
     {

@@ -9,15 +9,6 @@ public sealed class RocketTests(SolverFixture fixture)
 {
     public static IEnumerable<object[]> Cases() => FixtureCases.Names("rocket");
 
-    /// <summary>
-    /// When the union of a batch reorders the elements of a case, the linear solves pivot in another order and the iterates differ by
-    /// rounding at every step; the converged state then agrees to what the polish threshold guarantees, as between the accelerators.
-    /// </summary>
-    public const double ReorderedElementsTolerance = 1e-9;
-
-    /// <summary>Below this mole fraction the reordered comparison does not look (the floor of the GPU/CPU table).</summary>
-    public const double MoleFractionFloor = 1e-8;
-
     /// <summary>A result's mole fractions are a sum over its own species table; two solves of the tree's own code agree to summation-order rounding.</summary>
     public const double MoleFractionSumTolerance = 1e-12;
 
@@ -309,6 +300,8 @@ public sealed class RocketTests(SolverFixture fixture)
         var (names, propellants, problems, mixtures, union) = ThreeMixturesOverTheUnion();
         var batch = fixture.Solver.Solve(mixtures, problems);
         Assert.Equal(names.Length, batch.Count);
+        var reorderedElementsTolerance = fixture.Tolerances.For("polishThresholdRelative").Relative;
+        var moleFractionFloor = fixture.Tolerances.For("moleFractionFloor").Absolute;
         for (var i = 0; i < names.Length; i++)
         {
             var single = fixture.Solver.Solve(propellants[i], problems[i]);
@@ -322,7 +315,7 @@ public sealed class RocketTests(SolverFixture fixture)
                 var label = $"{names[i]} station {s}";
                 var differences = kept
                     ? StationEquality.BitDifferences(single.Stations[s], batch[i].Stations[s], label).ToList()
-                    : StationEquality.RelativeDifferences(single.Stations[s], batch[i].Stations[s], ReorderedElementsTolerance, MoleFractionFloor, label).ToList();
+                    : StationEquality.RelativeDifferences(single.Stations[s], batch[i].Stations[s], reorderedElementsTolerance, moleFractionFloor, label).ToList();
                 Assert.True(differences.Count == 0, string.Join("; ", differences));
             }
         }
@@ -334,9 +327,12 @@ public sealed class RocketTests(SolverFixture fixture)
         var (names, propellants, _, mixtures, _) = ThreeMixturesOverTheUnion();
         var hp = new EquilibriumProblem { Kind = Equilibrium.ProblemKind.AssignedEnthalpyPressure, Pressure = 1.0e6 };
         var states = fixture.Solver.Solve(mixtures, Enumerable.Repeat(hp, names.Length).ToList());
+        var reorderedElementsTolerance = fixture.Tolerances.For("polishThresholdRelative").Relative;
+        var moleFractionFloor = fixture.Tolerances.For("moleFractionFloor").Absolute;
         for (var i = 0; i < names.Length; i++)
         {
-            var differences = StationEquality.RelativeDifferences(fixture.Solver.Solve(propellants[i], hp).State, states[i].State, ReorderedElementsTolerance, MoleFractionFloor, $"{names[i]} state").ToList();
+            var differences = StationEquality.RelativeDifferences(fixture.Solver.Solve(propellants[i], hp).State, states[i].State,
+                                                                   reorderedElementsTolerance, moleFractionFloor, $"{names[i]} state").ToList();
             Assert.True(differences.Count == 0, string.Join("; ", differences));
         }
     }

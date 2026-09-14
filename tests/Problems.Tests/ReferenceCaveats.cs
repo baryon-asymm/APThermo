@@ -6,8 +6,8 @@ namespace AerospacePropellantThermodynamics.Problems.Tests;
 /// <summary>
 /// The reference's documented caveats <see cref="ReferenceComparison"/> applies (Fixtures BOOT.md; this node's BOOT.md,
 /// invariants): which station outputs are neither state, performance nor transport fields, which fields carry transport, which
-/// are skipped at a frozen station or under a singular or defective reference, and the trace threshold below which the
-/// reference lists a species as trace.
+/// are skipped at a frozen station or under a singular or defective reference. The trace threshold below which the reference
+/// lists a mole fraction as trace is the fixtures node's own <c>ToleranceTable.MoleFractionField</c>, not retyped here.
 /// </summary>
 internal static class ReferenceCaveats
 {
@@ -34,13 +34,6 @@ internal static class ReferenceCaveats
 
     /// <summary>With transport on, the reference's frozen heat capacities of a station with condensed species are those of the transport set (Fixtures BOOT.md).</summary>
     public static readonly IReadOnlySet<string> GasPhaseWithTransport = new HashSet<string>(["cpFrozen", "cvFrozen"], StringComparer.Ordinal);
-
-    /// <summary>
-    /// Below this reference mole fraction the reference lists a species as trace: the tolerance table's own absolute floor for
-    /// mole fractions, read from it rather than retyped (2026-09-14: it stood as a literal 5e-6 under a comment naming the
-    /// table; the clean-code review's F-TF-11).
-    /// </summary>
-    public static double TracePrintThreshold(ToleranceTable tolerances) => tolerances.For("moleFraction").Absolute;
 
     /// <summary>
     /// The signature of the singular-tp defect (Fixtures BOOT.md): a tp assigned exactly at a bound two records of one
