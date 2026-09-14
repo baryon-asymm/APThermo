@@ -16,28 +16,23 @@ namespace AerospacePropellantThermodynamics.Execution;
 /// <summary>Runs the numerical programs of the tree over batches on one accelerator.</summary>
 public sealed class Engine : IDisposable
 {
-    private readonly Context _context;
-    private readonly Accelerator _accelerator;
-    private readonly NvvmAPI? _nvvm;
+    private readonly AcceleratorSession _session;
     private readonly EngineOptions _options;
     private readonly Dictionary<string, Delegate> _kernels = new(StringComparer.Ordinal);
     private readonly object _gate = new();
     private bool _disposed;
 
-    private Engine(Context context, Accelerator accelerator, NvvmAPI? nvvm, EngineOptions options, AcceleratorInfo info)
+    private Engine(AcceleratorSession session, EngineOptions options)
     {
-        _context = context;
-        _accelerator = accelerator;
-        _nvvm = nvvm;
+        _session = session;
         _options = options;
-        Accelerator = info;
     }
 
-    /// <summary>The accelerator this engine is bound to.</summary>
-    public AcceleratorInfo Accelerator { get; }
+    /// <summary>The accelerator this engine is bound to, and why it is that one.</summary>
+    public AcceleratorInfo Accelerator => _session.Info;
 
     /// <summary>True when the environment forbids CUDA (<see cref="EngineOptions.NoCudaVariable"/> is 1).</summary>
-    public static bool CudaForbidden => Environment.GetEnvironmentVariable(EngineOptions.NoCudaVariable)?.Trim() == "1";
+    public static bool CudaForbidden => AcceleratorChoice.CudaForbidden;
 
     /// <summary>Creates an engine bound to the accelerator the options select (BOOT.md, accelerator choice).</summary>
     public static Engine Create(EngineOptions? options = null)
@@ -54,87 +49,7 @@ public sealed class Engine : IDisposable
         }
 
         LibDevicePostLink.AssertIlgpu();
-        if (options.Accelerator == AcceleratorKind.Cpu)
-        {
-            return CreateCpu(options);
-        }
-
-        if (CudaForbidden)
-        {
-            if (options.Accelerator == AcceleratorKind.Cuda)
-            {
-                throw new AcceleratorUnavailableException($"CUDA was requested, but {EngineOptions.NoCudaVariable}=1 forbids it.", []);
-            }
-
-            return CreateCpu(options);
-        }
-
-        var (dll, bitcode, tried) = LibDeviceLocator.Locate(options);
-        if (dll is null || bitcode is null)
-        {
-            if (options.Accelerator == AcceleratorKind.Cuda)
-            {
-                throw new AcceleratorUnavailableException("libnvvm (nvvm64_40_0.dll) and libdevice (libdevice.10.bc) were not found.", tried);
-            }
-
-            return CreateCpu(options);
-        }
-
-        try
-        {
-            return CreateCuda(options, dll, bitcode);
-        }
-        catch (Exception exception) when (options.Accelerator == AcceleratorKind.Auto && exception is not OutOfMemoryException)
-        {
-            return CreateCpu(options);
-        }
-    }
-
-    private static Engine CreateCpu(EngineOptions options)
-    {
-        var context = Context.Create(builder => builder.CPU());
-        var accelerator = context.CreateCPUAccelerator(0);
-        var info = new AcceleratorInfo(AcceleratorKind.Cpu, accelerator.Name, LibDevicePostLink.IlgpuVersion, null, null, accelerator.NumThreads);
-        return new Engine(context, accelerator, null, options, info);
-    }
-
-    private static Engine CreateCuda(EngineOptions options, string dll, string bitcode)
-    {
-        Context? context = null;
-        Accelerator? accelerator = null;
-        NvvmAPI? nvvm = null;
-        try
-        {
-            try
-            {
-                context = Context.Create(builder => builder.Cuda().Math(MathMode.Default).LibDevice(dll, bitcode));
-            }
-            catch (Exception exception)
-            {
-                throw new AcceleratorUnavailableException("the CUDA context could not be created (driver or device problem): " + exception.Message, [dll, bitcode], exception);
-            }
-
-            var devices = context.GetCudaDevices();
-            if (options.CudaDeviceIndex < 0 || options.CudaDeviceIndex >= devices.Count)
-            {
-                throw new AcceleratorUnavailableException($"CUDA device {options.CudaDeviceIndex} was requested, but {devices.Count} device(s) exist.", [dll, bitcode]);
-            }
-
-            accelerator = context.CreateCudaAccelerator(options.CudaDeviceIndex);
-            nvvm = NvvmAPI.Create(dll, bitcode);
-            var info = new AcceleratorInfo(AcceleratorKind.Cuda, accelerator.Name, LibDevicePostLink.IlgpuVersion, dll, bitcode, accelerator.NumMultiprocessors);
-            var engine = new Engine(context, accelerator, nvvm, options, info);
-            context = null;
-            accelerator = null;
-            nvvm = null;
-            return engine;
-        }
-        finally
-        {
-            nvvm?.Dispose();
-            accelerator?.Dispose();
-            context?.Dispose();
-        }
+        return new Engine(AcceleratorChoice.Decide(options).Session, options);
     }
 
     /// <summary>Copies the tables to the accelerator; reusable across batches until disposed.</summary>
@@ -147,8 +62,8 @@ public sealed class Engine : IDisposable
             throw new ArgumentException("the transport table was built for another species table", nameof(transport));
         }
 
-        return new UploadedTables(this, species, transport, SpeciesTableBuffers.Upload(_accelerator, species),
-                                  transport is null ? null : TransportTableBuffers.Upload(_accelerator, transport));
+        return new UploadedTables(this, species, transport, SpeciesTableBuffers.Upload(_session.Accelerator, species),
+                                  transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport));
     }
 
     /// <summary>Solves every case of the batch.</summary>
@@ -175,18 +90,18 @@ public sealed class Engine : IDisposable
         var iterations = new int[count];
         var kinds = batch.Kind.Select(k => (int)k).ToArray();
 
-        using var kindBuffer = _accelerator.Allocate1D<int>(chunk);
-        using var pressureBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var temperatureBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var targetBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var elementBuffer = _accelerator.Allocate1D<double>((long)chunk * elementCount);
-        using var scratchDoubles = _accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
-        using var scratchInts = _accelerator.Allocate1D<int>((long)chunk * intsPerCase);
-        using var molesBuffer = _accelerator.Allocate1D<double>((long)chunk * speciesCount);
-        using var multiplierBuffer = _accelerator.Allocate1D<double>((long)chunk * elementCount);
-        using var stateBuffer = _accelerator.Allocate1D<MixtureState>(chunk);
-        using var statusBuffer = _accelerator.Allocate1D<int>(chunk);
-        using var iterationBuffer = _accelerator.Allocate1D<int>(chunk);
+        using var kindBuffer = _session.Accelerator.Allocate1D<int>(chunk);
+        using var pressureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var temperatureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var targetBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var elementBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * elementCount);
+        using var scratchDoubles = _session.Accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
+        using var scratchInts = _session.Accelerator.Allocate1D<int>((long)chunk * intsPerCase);
+        using var molesBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * speciesCount);
+        using var multiplierBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * elementCount);
+        using var stateBuffer = _session.Accelerator.Allocate1D<MixtureState>(chunk);
+        using var statusBuffer = _session.Accelerator.Allocate1D<int>(chunk);
+        using var iterationBuffer = _session.Accelerator.Allocate1D<int>(chunk);
         var views = new EquilibriumBatchViews(kindBuffer.View, pressureBuffer.View, temperatureBuffer.View, targetBuffer.View, elementBuffer.View,
                                               scratchDoubles.View, scratchInts.View, molesBuffer.View, multiplierBuffer.View, stateBuffer.View,
                                               statusBuffer.View, iterationBuffer.View);
@@ -207,8 +122,8 @@ public sealed class Engine : IDisposable
 
             using (timer.Launching())
             {
-                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-                _accelerator.Synchronize();
+                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+                _session.Accelerator.Synchronize();
             }
 
             using (timer.Downloading())
@@ -252,22 +167,22 @@ public sealed class Engine : IDisposable
         var flows = batch.Flow.Select(f => (int)f).ToArray();
         var exitKinds = batch.ExitKinds.Select(k => (int)k).ToArray();
 
-        using var pressureBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var enthalpyBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var estimateBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var flowBuffer = _accelerator.Allocate1D<int>(chunk);
-        using var elementBuffer = _accelerator.Allocate1D<double>((long)chunk * elementCount);
-        using var exitValueBuffer = _accelerator.Allocate1D<double>(Math.Max(1, (long)chunk * exits));
-        using var exitKindBuffer = _accelerator.Allocate1D<int>(Math.Max(1, exits));
-        using var scratchDoubles = _accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
-        using var scratchInts = _accelerator.Allocate1D<int>((long)chunk * intsPerCase);
-        using var stationBuffer = _accelerator.Allocate1D<MixtureState>((long)chunk * stationCount);
-        using var molesBuffer = _accelerator.Allocate1D<double>((long)chunk * stationCount * speciesCount);
-        using var multiplierBuffer = _accelerator.Allocate1D<double>((long)chunk * stationCount * elementCount);
-        using var figureBuffer = _accelerator.Allocate1D<PerformanceFigures>((long)chunk * stationCount);
-        using var stationStatusBuffer = _accelerator.Allocate1D<int>((long)chunk * stationCount);
-        using var iterationBuffer = _accelerator.Allocate1D<int>((long)chunk * stationCount);
-        using var statusBuffer = _accelerator.Allocate1D<int>(chunk);
+        using var pressureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var enthalpyBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var estimateBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var flowBuffer = _session.Accelerator.Allocate1D<int>(chunk);
+        using var elementBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * elementCount);
+        using var exitValueBuffer = _session.Accelerator.Allocate1D<double>(Math.Max(1, (long)chunk * exits));
+        using var exitKindBuffer = _session.Accelerator.Allocate1D<int>(Math.Max(1, exits));
+        using var scratchDoubles = _session.Accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
+        using var scratchInts = _session.Accelerator.Allocate1D<int>((long)chunk * intsPerCase);
+        using var stationBuffer = _session.Accelerator.Allocate1D<MixtureState>((long)chunk * stationCount);
+        using var molesBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * stationCount * speciesCount);
+        using var multiplierBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * stationCount * elementCount);
+        using var figureBuffer = _session.Accelerator.Allocate1D<PerformanceFigures>((long)chunk * stationCount);
+        using var stationStatusBuffer = _session.Accelerator.Allocate1D<int>((long)chunk * stationCount);
+        using var iterationBuffer = _session.Accelerator.Allocate1D<int>((long)chunk * stationCount);
+        using var statusBuffer = _session.Accelerator.Allocate1D<int>(chunk);
         if (exits > 0)
         {
             exitKindBuffer.CopyFromCPU(exitKinds);
@@ -300,8 +215,8 @@ public sealed class Engine : IDisposable
 
             using (timer.Launching())
             {
-                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-                _accelerator.Synchronize();
+                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+                _session.Accelerator.Synchronize();
             }
 
             using (timer.Downloading())
@@ -341,12 +256,12 @@ public sealed class Engine : IDisposable
 
         var figures = new TransportFigures[count];
         var status = new int[count];
-        using var temperatureBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var molesBuffer = _accelerator.Allocate1D<double>((long)chunk * speciesCount);
-        using var scratchDoubles = _accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
-        using var scratchInts = _accelerator.Allocate1D<int>((long)chunk * intsPerCase);
-        using var figureBuffer = _accelerator.Allocate1D<TransportFigures>(chunk);
-        using var statusBuffer = _accelerator.Allocate1D<int>(chunk);
+        using var temperatureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var molesBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * speciesCount);
+        using var scratchDoubles = _session.Accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
+        using var scratchInts = _session.Accelerator.Allocate1D<int>((long)chunk * intsPerCase);
+        using var figureBuffer = _session.Accelerator.Allocate1D<TransportFigures>(chunk);
+        using var statusBuffer = _session.Accelerator.Allocate1D<int>(chunk);
         var views = new TransportBatchViews(temperatureBuffer.View, molesBuffer.View, scratchDoubles.View, scratchInts.View, figureBuffer.View, statusBuffer.View);
 
         for (var offset = 0; offset < count; offset += chunk)
@@ -360,8 +275,8 @@ public sealed class Engine : IDisposable
 
             using (timer.Launching())
             {
-                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, transportBuffers.View, views);
-                _accelerator.Synchronize();
+                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, transportBuffers.View, views);
+                _session.Accelerator.Synchronize();
             }
 
             using (timer.Downloading())
@@ -392,12 +307,12 @@ public sealed class Engine : IDisposable
         var hOverRT = new double[count];
         var sOverR = new double[count];
         var inRange = new int[count];
-        using var speciesBuffer = _accelerator.Allocate1D<int>(chunk);
-        using var temperatureBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var cpBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var hBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var sBuffer = _accelerator.Allocate1D<double>(chunk);
-        using var rangeBuffer = _accelerator.Allocate1D<int>(chunk);
+        using var speciesBuffer = _session.Accelerator.Allocate1D<int>(chunk);
+        using var temperatureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var cpBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var hBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var sBuffer = _session.Accelerator.Allocate1D<double>(chunk);
+        using var rangeBuffer = _session.Accelerator.Allocate1D<int>(chunk);
         var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
 
         for (var offset = 0; offset < count; offset += chunk)
@@ -411,8 +326,8 @@ public sealed class Engine : IDisposable
 
             using (timer.Launching())
             {
-                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-                _accelerator.Synchronize();
+                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+                _session.Accelerator.Synchronize();
             }
 
             using (timer.Downloading())
@@ -439,10 +354,10 @@ public sealed class Engine : IDisposable
 
         var timer = new RunTimer();
         var launch = LoadKernel<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), timer);
-        using var inputBuffer = _accelerator.Allocate1D(inputs);
-        using var outputBuffer = _accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
-        launch(_accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
-        _accelerator.Synchronize();
+        using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
+        using var outputBuffer = _session.Accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
+        launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
+        _session.Accelerator.Synchronize();
         return outputBuffer.GetAsArray1D();
     }
 
@@ -455,12 +370,10 @@ public sealed class Engine : IDisposable
         }
 
         _disposed = true;
-        _nvvm?.Dispose();
-        _accelerator.Dispose();
-        _context.Dispose();
+        _session.Dispose();
     }
 
-    internal Accelerator IlgpuAccelerator => _accelerator;
+    internal Accelerator IlgpuAccelerator => _session.Accelerator;
 
     /// <summary>The largest number of cases per launch, by the one rule of <see cref="ChunkPlan"/>.</summary>
     private int ChunkSize(int count, long doublesPerCase, long intsPerCase) =>
@@ -479,16 +392,16 @@ public sealed class Engine : IDisposable
             var method = typeof(Kernels).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic)
                          ?? throw new InvalidOperationException($"no kernel named {name}");
             Kernel kernel;
-            if (_accelerator is CudaAccelerator cuda)
+            if (_session.Accelerator is CudaAccelerator cuda)
             {
                 // Every CUDA kernel goes through the post-link; the CPU accelerator loads the method as ILGPU does.
                 var entry = EntryPointDescription.FromImplicitlyGroupedKernel(method);
                 var compiled = (PTXCompiledKernel)cuda.Backend.Compile(entry, KernelSpecialization.Empty);
-                kernel = _accelerator.LoadAutoGroupedKernel(LibDevicePostLink.Link(cuda, _nvvm!, compiled));
+                kernel = _session.Accelerator.LoadAutoGroupedKernel(LibDevicePostLink.Link(cuda, _session.Nvvm!, compiled));
             }
             else
             {
-                kernel = _accelerator.LoadAutoGroupedKernel(method);
+                kernel = _session.Accelerator.LoadAutoGroupedKernel(method);
             }
 
             var launcher = kernel.CreateLauncherDelegate<TDelegate>();

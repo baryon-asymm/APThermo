@@ -46,7 +46,14 @@ public sealed record EngineOptions
 /// <summary>The accelerator that produced a batch result.</summary>
 public sealed record AcceleratorInfo(
     AcceleratorKind Kind, string DeviceName, string IlgpuVersion,
-    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors);
+    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors)
+{
+    /// <summary>
+    /// Why <see cref="AcceleratorKind.Auto"/> fell back to the CPU accelerator: the failure that turned the choice, with the paths
+    /// tried where they apply. Null when CUDA was bound or was never tried.
+    /// </summary>
+    public string? CudaSkippedBecause { get; init; }
+}
 
 /// <summary>Where the time of a run went. Warm-up is the kernel compilation on first use and is zero afterwards.</summary>
 public sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);

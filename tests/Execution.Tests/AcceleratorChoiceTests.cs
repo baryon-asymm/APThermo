@@ -19,6 +19,36 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Null(info.LibDevicePath);
         Assert.True(info.ThreadsOrMultiprocessors >= 1);
         Assert.False(string.IsNullOrWhiteSpace(info.DeviceName));
+        Assert.Null(info.CudaSkippedBecause);   // an engine asked for the CPU never tried CUDA
+    }
+
+    [Fact]
+    public void An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried()
+    {
+        const string dll = @"X:\nowhere\nvvm64_40_0.dll";
+        const string bitcode = @"X:\nowhere\libdevice.10.bc";
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Auto, LibNvvmPath = dll, LibDevicePath = bitcode, LibDeviceDiscovery = false };
+        using var engine = Engine.Create(options);
+        Assert.Equal(AcceleratorKind.Cpu, engine.Accelerator.Kind);
+        var reason = engine.Accelerator.CudaSkippedBecause;
+        Assert.NotNull(reason);
+        if (Engine.CudaForbidden)
+        {
+            Assert.Contains(EngineOptions.NoCudaVariable, reason, StringComparison.Ordinal);
+            return;
+        }
+
+        Assert.Contains("libdevice", reason, StringComparison.Ordinal);
+        Assert.Contains(dll, reason, StringComparison.Ordinal);
+        Assert.Contains(bitcode, reason, StringComparison.Ordinal);
+
+        // The reason survives the fallback as a value, not only as a sentence: the decision carries the paths it examined.
+        var decision = AcceleratorChoice.Decide(options);
+        using (decision.Session)
+        {
+            Assert.Equal(reason, decision.CudaSkippedBecause);
+            Assert.Equal([dll, bitcode], decision.PathsTried);
+        }
     }
 
     [Fact]

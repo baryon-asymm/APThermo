@@ -163,6 +163,7 @@ sealed class (record) AerospacePropellantThermodynamics.Execution.AcceleratorInf
     Int32 ThreadsOrMultiprocessors { get; init; }
     String DeviceName { get; init; }
     String IlgpuVersion { get; init; }
+    String? CudaSkippedBecause { get; init; }
     String? LibDevicePath { get; init; }
     String? LibNvvmPath { get; init; }
 
