@@ -130,9 +130,11 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         buffers.Figures = figures;
         buffers.StationStatus = stationStatus;
         buffers.Status = status;
-        buffers.Views = new RocketBatchViews(exitCount, chamberPressures.View, reactantEnthalpies.View, flows.View, elementMoles.View,
-                                             exitValues.View, exitKinds.View, scratchDoubles.View, scratchInts.View, stations.View,
-                                             moles.View, multipliers.View, figures.View, stationStatus.View, iterations.View, status.View);
+        buffers.Views = new RocketBatchViews(
+            exitCount: exitCount, chamberPressures: chamberPressures.View, reactantEnthalpies: reactantEnthalpies.View, flows: flows.View,
+            elementMoles: elementMoles.View, exitValues: exitValues.View, exitKinds: exitKinds.View, scratchDoubles: scratchDoubles.View,
+            scratchInts: scratchInts.View, stations: stations.View, moles: moles.View, multipliers: multipliers.View, figures: figures.View,
+            stationStatus: stationStatus.View, iterations: iterations.View, status: status.View);
         return buffers;
     }
 
