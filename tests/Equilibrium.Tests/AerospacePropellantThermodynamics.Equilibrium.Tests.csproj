@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\src\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
     <ProjectReference Include="..\..\src\Data\AerospacePropellantThermodynamics.Data.csproj" />
     <ProjectReference Include="..\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj" />
+    <ProjectReference Include="..\Harness\AerospacePropellantThermodynamics.Harness.csproj" />
   </ItemGroup>
 
   <ItemGroup>

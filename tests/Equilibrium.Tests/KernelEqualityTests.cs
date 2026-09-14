@@ -1,4 +1,5 @@
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
@@ -34,42 +35,18 @@ internal readonly record struct KernelBatchResult(double[] Moles, double[] Multi
 public sealed class KernelEqualityTests(CpuFixture fixture)
 {
     /// <summary>The families of fixture cases sharing one table (elements and products), largest first; each is one batch.</summary>
-    public static IEnumerable<object[]> Batches()
-    {
-        var families = new Dictionary<string, List<(string Kind, string Name)>>();
-        foreach (var kind in new[] { "tp", "hp", "sp" })
-        {
-            foreach (var row in HostSolver.Cases(kind))
-            {
-                var c = HostSolver.Load(kind, (string)row[0]);
-                var key = HostSolver.TableKey(c);
-                if (!families.TryGetValue(key, out var list))
-                {
-                    families[key] = list = [];
-                }
-
-                list.Add((kind, (string)row[0]));
-            }
-        }
-
-        foreach (var family in families.Values.OrderByDescending(f => f.Count).ThenBy(f => f[0].Name, StringComparer.Ordinal))
-        {
-            yield return [family[0].Name, family.Count, family.Select(m => m.Kind + ":" + m.Name).ToArray()];
-        }
-    }
+    public static IEnumerable<object[]> Batches() => FixtureFamilies.Of(["tp", "hp", "sp"], HostSolver.TableKey);
 
     [Theory]
     [MemberData(nameof(Batches))]
-    public void Kernel_and_host_give_the_same_bits(string family, int count, string[] members)
+    public void Kernel_and_host_give_the_same_bits(string key, int count, IReadOnlyList<CeaCase> cases)
     {
-        Assert.Equal(count, members.Length);
-        Assert.Equal(family, members[0][3..]);
-        var cases = members.Select(m => HostSolver.Load(m[..2], m[3..])).ToList();
+        Assert.Equal(count, cases.Count);
         var table = HostSolver.BuildTable(fixture.Database, cases[0]);
         var host = cases.Select(c => HostSolver.Solve(fixture.Accelerator, HostSolver.Of(table, c))).ToList();
 
         var kernel = FillAndLaunch(fixture.Accelerator, table, cases, count);
-        AssertSameBits(host, kernel, table, members);
+        AssertSameBits(host, kernel, table, cases, key);
     }
 
     /// <summary>Uploads the table and every case of the batch, launches the solve kernel, and downloads what it wrote.</summary>
@@ -102,32 +79,33 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
     }
 
     /// <summary>Every status, iteration count, mole, multiplier and state field of the batch, host against kernel, bit for bit.</summary>
-    private static void AssertSameBits(IReadOnlyList<HostSolution> host, KernelBatchResult kernel, SpeciesTable table, string[] members)
+    private static void AssertSameBits(IReadOnlyList<HostSolution> host, KernelBatchResult kernel, SpeciesTable table, IReadOnlyList<CeaCase> cases, string key)
     {
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
         var fields = typeof(MixtureState).GetFields();
         for (var k = 0; k < host.Count; k++)
         {
-            Assert.True(host[k].Status == CaseStatus.Ok, $"{members[k]}: host status {host[k].Status}");
-            Assert.True((int)host[k].Status == kernel.Statuses[k], $"{members[k]}: kernel status {(CaseStatus)kernel.Statuses[k]}");
-            Assert.True(host[k].Iterations == kernel.Iterations[k], $"{members[k]}: iterations host {host[k].Iterations}, kernel {kernel.Iterations[k]}");
+            var label = $"{key} {cases[k].Kind}:{cases[k].Name}";
+            Assert.True(host[k].Status == CaseStatus.Ok, $"{label}: host status {host[k].Status}");
+            Assert.True((int)host[k].Status == kernel.Statuses[k], $"{label}: kernel status {(CaseStatus)kernel.Statuses[k]}");
+            Assert.True(host[k].Iterations == kernel.Iterations[k], $"{label}: iterations host {host[k].Iterations}, kernel {kernel.Iterations[k]}");
             for (var j = 0; j < speciesCount; j++)
             {
-                Assert.True(SameBits(host[k].Moles[j], kernel.Moles[k * speciesCount + j]),
-                            $"{members[k]}: moles of {table.Species[j]} host {host[k].Moles[j]:R}, kernel {kernel.Moles[k * speciesCount + j]:R}");
+                Assert.True(Bits.Same(host[k].Moles[j], kernel.Moles[k * speciesCount + j]),
+                            $"{label}: moles of {table.Species[j]} host {host[k].Moles[j]:R}, kernel {kernel.Moles[k * speciesCount + j]:R}");
             }
 
             for (var i = 0; i < elementCount; i++)
             {
-                Assert.True(SameBits(host[k].Multipliers[i], kernel.Multipliers[k * elementCount + i]), $"{members[k]}: multiplier of {table.Elements[i]} differs");
+                Assert.True(Bits.Same(host[k].Multipliers[i], kernel.Multipliers[k * elementCount + i]), $"{label}: multiplier of {table.Elements[i]} differs");
             }
 
             foreach (var field in fields)
             {
                 var a = (double)field.GetValue(host[k].State)!;
                 var b = (double)field.GetValue(kernel.States[k])!;
-                Assert.True(SameBits(a, b), $"{members[k]}: {field.Name} host {a:R}, kernel {b:R}");
+                Assert.True(Bits.Same(a, b), $"{label}: {field.Name} host {a:R}, kernel {b:R}");
             }
         }
     }
@@ -147,6 +125,4 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
                                            batch.States.SubView(index, 1), batch.Statuses.SubView(index, 1), batch.Iterations.SubView(index, 1));
         EquilibriumSolver.Solve(in table, in problem, in scratch, in result, false);
     }
-
-    private static bool SameBits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 }

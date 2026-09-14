@@ -35,6 +35,17 @@ The definition of what "`Equilibrium` is ready" means.
   identity of one state have no entry in the fixtures node's table to ask, so their
   tolerance is a named constant of this node, `Tolerances.cs`, with its origin in a
   comment, rather than a literal at the assertion (F-TK-10).
+- **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
+  architecture review's F-AR-03): the field-name mapping (`StateComparison.StateFields`)
+  and the set of fields that belong to another node (`TransportFields`) stay here, not
+  in the harness, which holds no formula and no tolerance. `Performance.Tests` reads a
+  station with performance figures on top of the state this node reads alone, and
+  `Problems.Tests` a station with transport figures on top of that; a shared reader
+  would have to know all three shapes, which would put it above the nodes its readers'
+  own consumers test. Only the trace-threshold selection line moved out, to the
+  fixtures node's `ToleranceTable.MoleFractionField` (the same F-AR-03 finding: it stood
+  typed, with its selection line, in this node and in `Performance.Tests` and
+  `Problems.Tests` alike).
 
 ## Dependencies
 
@@ -42,6 +53,7 @@ The definition of what "`Equilibrium` is ready" means.
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
+- [Harness](../Harness/API.md) — the CPU host and the bit snapshot mechanics.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 

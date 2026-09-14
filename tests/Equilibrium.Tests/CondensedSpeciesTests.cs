@@ -29,7 +29,7 @@ public sealed class CondensedSpeciesTests(CpuFixture fixture)
         var c = HostSolver.Load(kind, name);
         var solution = HostSolver.Solve(fixture, c);
         Assert.Equal(CaseStatus.Ok, solution.Status);
-        var (present, absent) = StateComparison.CondensedSetOf(c, solution.Table);
+        var (present, absent) = StateComparison.CondensedSetOf(c, solution.Table, fixture.Tolerances);
         var missing = present.Where(s => !(solution.Table.IndicesOf(s).Sum(j => solution.Moles[j]) > 0.0)).ToList();
         var spurious = absent.Where(s => solution.Table.IndicesOf(s).Sum(j => solution.Moles[j]) != 0.0).ToList();
         Assert.True(missing.Count == 0 && spurious.Count == 0,
