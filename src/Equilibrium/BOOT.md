@@ -223,7 +223,7 @@ below) is the proof.
 | `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
 | `NewtonIteration` | one damped step: the corrections of (2.18), the control factor of (3.1)–(3.3), the application (3.4), the temperature update and its range check, the tests (3.5) and (3.6), the polish control and the singular remedies of section 3.6 | internal |
 | `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
-| `PhaseGeometry` | where two records of one formula meet: the record bounds, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
+| `PhaseGeometry` | where two records of one formula meet: the record bounds as `Thermo` answers them, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
 | `ElementBalance` | the residual `Σ a_ij n_j − b_i` (one place, used by the matrix and by the tests) and its two tolerance tests, as two named methods | internal |
 | `DerivativeSystem` | the derivative system of section 2.6 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
 | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
@@ -266,6 +266,15 @@ Decisions taken with the review of 2026-09-14:
   contract and the arithmetic path on CUDA (host-computed crossings against
   kernel-computed ones), so it is a later design session of the root, not part of
   this decomposition.
+- **The record bounds are asked of `Thermo`** (added 2026-09-14, after `Thermo`'s
+  range questions were merged; the architecture review's F-AR-01).
+  `PhaseGeometry.RecordLow` and `RecordHigh` decode `Thermo`'s interval layout a
+  second time (`IntervalStart`, `IntervalCount`, `IntervalBounds` and its stride of
+  two), and `Thermo` now answers the same two questions, kernel-compatible, as
+  `SpeciesFunctions.RecordLow` and `RecordHigh` (its `API.md`, range questions).
+  `PhaseGeometry` asks those and keeps no copy of the arithmetic, and no stage of
+  this node reads the three layout arrays. The bounds are table reads, not computed
+  values, so the tests node's bit snapshot may not move.
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
@@ -433,6 +442,14 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       tolerance (`PhaseGeometry`); the two element-balance tolerances
       (`ElementBalance`). Checked by reading at the close of the decomposition; the
       bit snapshot proves the reading moved no number.
+- [ ] The node decodes none of `Thermo`'s interval layout (F-AR-01): no
+      `IntervalStart`, `IntervalCount` or `IntervalBounds` in its source files, the
+      record bounds asked of `SpeciesFunctions.RecordLow` and `RecordHigh`; the tests
+      node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` unchanged
+      and `KernelEqualityTests` green. Non-degeneracy, applied alone in the worktree
+      and restored: `SpeciesFunctions.RecordHigh` made to return the record's lower
+      bound turns at least one case of the bit snapshot red, which a node still
+      holding its own copy would not.
 
 ## Taboos
 
