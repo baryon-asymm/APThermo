@@ -263,8 +263,8 @@ after the type; the public records keep their theme files.
 | `PropellantMixtures` | the propellant → `ElementalMixture` map: mass fractions, b_i, h_0, the reactant-enthalpy cache and its species-function batch; the piece of a cut record at a temperature is asked of the table (`SpeciesTable.PieceOf`, the Thermo node's; F-AR-01) | internal |
 | `ProblemValidation` | every "before any kernel runs" rule of a rocket and of an equilibrium problem; the subject of a refusal is a field of the case, not a defaulted parameter | internal static |
 | `StateRecords` | state records → mixtures and problems, and the rules of the shape: exactly one target; exits need an enthalpy; a flow only with exits; `SolveStates` takes no record with exits and `SolveRocketStates` none without; every refusal of a record (these rules, a negative abundance, an empty or duplicated symbol) is a `StateRecordException` with the record's index and a subject-free reason; the mass check keeps `MixtureMassException` | internal static |
-| `RocketRunner` | rocket cases grouped by exit layout and by the transport flag, the batch filling, the two engine runs, the per-group result loop; the transport pass runs only over the cases that asked (F-PR-08) | internal |
-| `EquilibriumRunner` | the same for equilibrium cases | internal |
+| `RocketRunner` | the composition root of the rocket pipeline: rocket cases grouped by exit layout and by the transport flag, the batch filled by field copy, the two engine runs, the stations assembled through `StationFactory`; the transport pass runs only over the cases that asked (F-PR-08); holds no formula. The declared exception to the coupling limit (the decision "The runners are the pipelines' composition roots", its figure under `## Shape exceptions`) | internal |
+| `EquilibriumRunner` | the same for equilibrium cases, with the same declared exception | internal |
 | `StationFactory` | one station from one slice of the engine's flat result, and the species-name list with the cut pieces summed under the record's name; the station names from `RocketLayout.FixedStations` (F-PR-11); the transport status and figures a station reports (`TransportOf`), stated once for both runners | internal static |
 | `StationSlice` | the aggregation that replaces the nine parameters of station assembly, with the flat offset computed once | internal readonly record struct |
 | `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
@@ -337,23 +337,39 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   session: `dotnet build` clean, the fast suite green unchanged (1111/1111 in this
   node), `Bits.approved.txt` and `PublicSurface.approved.txt` unmoved.
 
+- **The runners are the pipelines' composition roots** (added 2026-09-14 by the design
+  session, after the close measured them). `RocketRunner` and `EquilibriumRunner` name
+  both sides of the engine's boundary: the front door's cases, problems and records,
+  and the execution node's batch, result and transport types, with the thermo,
+  performance and transport structs a station carries; efferent coupling as the
+  protocol tests node defines it measures 26 and 24. They hold no formula: the numbers
+  they touch are copied into the batch or read back through `StationFactory`, the mass
+  through `MixtureMass`, the checks through `ProblemValidation`; what they decide is the
+  batching (by exit layout, by the transport flag) and the order of the engine runs.
+  The root's exception covers a composition root that holds no formula, as it covers
+  the execution node's four pipelines on the other side of the same boundary. A split
+  into a batch filler and a result assembler was weighed and not taken: the assembler
+  alone reads enough of the batch result to stay near the limit, for two more types
+  and no rule made clearer. The close's note that the two "hold real rules, the kind
+  the root's exception clause does not cover" read the clause as excluding any rule;
+  it excludes a formula. The scratch reproduction of the walk lists 27 and 25: it
+  counts `RocketResult[]` and `EquilibriumResult[]`, the result arrays `SolveContext`
+  holds, apart from `RocketResult` and `EquilibriumResult`, while an array of a type of
+  the tree adds no type of the tree.
+
 ## Shape exceptions
 
-The canonical table the root's `BOOT.md` prescribes (Constraints, "every exception is
-declared in the node's `BOOT.md`, as a row of its `## Shape exceptions` table with the
-measured figure and the reason"). Four declared here; none other in this node.
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Solver` | Ce ≤ 10 (root, textual) / ≤ 14 (walk-calibrated, integration branch `9facd7f`) | 22 (the root's dependency-check walk and this node's manual signature-and-body count agree, on this build at `ef54a4a`) | Composition root: owns the engine and every collaborator below it, turns each public entry point into (system, cases) and hands them to a runner; holds no formula or rule of its own (`## Structure` above). |
-| `RocketResult` | ≤ 6 constructor parameters | 9 | Published result record, shape field for field with the contract's `API.md` (`## Structure`, Size); constructed once, with named arguments (`RocketRunner.cs`, since `cc6ed49`). |
-| `Station` | ≤ 6 constructor parameters | 8 | Published result record, shape field for field with the contract's `API.md`; constructed once, with named arguments (`StationFactory.cs`, since `cc6ed49`). |
-| `EquilibriumResult` | ≤ 6 constructor parameters | 8 | Published result record, shape field for field with the contract's `API.md`; constructed once, with named arguments (`EquilibriumRunner.cs`, since `cc6ed49`). |
-
-Not in this table because not declared: `RocketRunner` (Ce 27) and `EquilibriumRunner`
-(Ce 25), both over the walk-calibrated limit, neither a composition root or registry,
-neither split to bring the figure down. Measured, not exempted; the open item of the
-first `## Acceptance criteria` row below, left to the design session.
+| `Solver` | efferent coupling | 22 | the composition root of the front door: owns the engine and the collaborators, turns each public entry point into a system and cases and hands them to a runner; holds no rule |
+| `RocketRunner` | efferent coupling | 26 | the composition root of the rocket pipeline: groups the cases, fills the batch, runs the engine and the transport pass, assembles the stations through `StationFactory`; holds no formula (the decision "The runners are the pipelines' composition roots") |
+| `EquilibriumRunner` | efferent coupling | 24 | the composition root of the equilibrium pipeline, as `RocketRunner` |
+| `RocketResult.RocketResult` | parameters | 9 | a published result record, the contract's shape field for field (the decision "Size"); created once, with named arguments |
+| `Station.Station` | parameters | 8 | a published result record, as `RocketResult` |
+| `EquilibriumResult.EquilibriumResult` | parameters | 8 | a published result record, as `RocketResult` |
 
 ## Acceptance criteria
 
@@ -445,45 +461,27 @@ first `## Acceptance criteria` row below, left to the design session.
       (`SplitRecordTests.An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`);
       and the sweep across the alumina plateau stays on the isentrope by either path
       (`SplitRecordTests.A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`).
-- [ ] The decomposition of `## Structure` (2026-09-14): every type within the root's
-      code-shape constraint (`Solver` the declared composition root, its measured Ce
-      written into the table); the tests node's front-door bit snapshot unchanged,
-      recorded before any code moved; every fixture theory green unchanged; the
-      surface moved only by the members `API.md` plans under 2026-09-14, in one
-      contract commit after the internal moves, with `PublicSurface.approved.txt`
+- [x] 2026-09-14 — The decomposition of `## Structure` (2026-09-14): every type within the
+      root's code-shape constraint (`Solver` and the two runners the declared composition
+      roots, their measured Ce written into the table); the tests node's front-door bit
+      snapshot unchanged, recorded before any code moved; every fixture theory green
+      unchanged; the surface moved only by the members `API.md` plans under 2026-09-14,
+      in one contract commit after the internal moves, with `PublicSurface.approved.txt`
       moved in it; the command line's call sites adapted to the renames and to
-      `CustomReactantDefinition`, nothing else of it touched.
+      `CustomReactantDefinition`, nothing else of it touched. Reformulated 2026-09-14: it
+      named `Solver` alone, the close measured the two runners over the limit, and the
+      design session declared them (the decision "The runners are the pipelines'
+      composition roots") rather than split them.
 
-      Measured 2026-09-14 on this node's build with the root's own dependency-check
-      walk (a scratch reproduction of it, not the earlier manual count), first at
-      `ef54a4a` and again after the parameter fix below: parameters are within the
-      root's limit everywhere in this node by the walk itself (every method and
-      constructor of the built assembly, none over six outside the three published
-      records' declared exception, constructed with named arguments since `cc6ed49`;
-      `RocketRunner.SolveGroup`, `EquilibriumRunner.SolveGroup` and `ResolvedReactant`,
-      all found over six and none a declared exception, fixed at this close,
-      `## Structure` above). Lines and nesting are not the walk's business — it reads
-      IL, not source text — so they stand on direct reading, not a tool run: no file of
-      this node over 270 lines (`Reactants.cs`, three types; a single-type file's own
-      type is smaller still), the longest method found `RocketRunner.SolveGroup` at 53
-      lines, no nesting past two levels seen anywhere touched or read this close (the
-      root's limits are 400, 60 and 3). The tree's own Roslyn-based `ShapeTests` is the
-      authority this stands in for; this node may not read it, and the root's own
-      criterion for the whole tree is still open. Ce is not, for two types: `RocketRunner`
-      measures 27 and `EquilibriumRunner` 25 by the walk (each one more than first
-      measured, from the parameter fix's own `SolveContext` type), both over the
-      walk-calibrated 14 the root records as of the integration branch's `9facd7f`
-      (and over the textual 10). Neither is a declared composition-root or registry
-      exception — both hold real rules (the grouping by exit layout and by the
-      transport flag, the per-group engine calls, the per-case result assembly), the
-      kind the root's exception clause does not cover — and neither was split further
-      to bring the figure down, on the coordinator's explicit instruction: this node's
-      `## Structure` table is the design as reviewed, the design session decides any
-      exception or further decomposition from what is measured here, and the
-      integration branch's own checker measures the walk again before the merge.
-      `Solver`'s own declared exception is unaffected by this gap: 22 by the same walk,
-      formalized below under `## Shape exceptions`. Left unticked for this reason; the
-      rest of the line holds and is evidenced next.
+      Shape, measured 2026-09-14 on the build of `a3b7d05`, merged as `765f4e2`: efferent
+      coupling by the dependency check's walk, `Solver` 22, `RocketRunner` 26 and
+      `EquilibriumRunner` 24 (the rows of `## Shape exceptions`), every other type of the
+      node 13 or below; no method or constructor declaring over six parameters outside
+      the three records' rows, whose single creations name their arguments; lines and
+      nesting by the close's reading until the protocol tests node's `ShapeTests` measures
+      them (no file over 270 lines, the longest method `RocketRunner.SolveGroup` at 53,
+      nesting at most 2). The merge's fast suite green (3007 tests, `Problems.Tests` 1111,
+      `Cli.Tests` 85).
 
       Bit snapshot: `git log --follow -- tests/Problems.Tests/Bits.approved.txt` names
       one commit, `8f8263c` itself — no commit since has touched the file — and the
