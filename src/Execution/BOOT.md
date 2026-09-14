@@ -288,6 +288,16 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       `APTHERMO_NO_CUDA=1`: 2147 passed, 0 failed, 0 skipped). The CUDA sweep and the
       throughput benchmark are the orchestrator's to run once at the end, after the
       merge, on the reference machine (not run from this worktree).
+
+      ⚠ 2026-09-14: this criterion's "no type or method of the node above the root's
+      code-shape limits" was evidenced only by `python inventory.py .`'s line counts
+      (type and method lines, plus the two declared Ce exceptions), not by nesting.
+      The protocol tests node's own measurement the same day found
+      `LibDeviceLocator.Locate` nesting 4 deep: the `if (File.Exists(bitcode))` inside
+      the `if (File.Exists(dll))` inside two `foreach` loops, over the root's limit of
+      3. This commit turns the inner check into a guard clause
+      (`if (!File.Exists(dll)) continue;`) and brings `Locate` to depth 3, examining
+      the same paths in the same order.
 - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
       off and the explicit paths pointing nowhere, the engine is the CPU one and
       `CudaSkippedBecause` names what was missing and the paths tried
