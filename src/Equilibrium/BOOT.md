@@ -298,6 +298,12 @@ Decisions taken with the review of 2026-09-14:
   this node's second composition root, its measured figure written into its row. Every
   expression keeps its form and its order of evaluation, so the tests node's bit
   snapshot may not move.
+- **The scratch descriptor keeps its constructor** (added 2026-09-14).
+  `EquilibriumScratch` (12 parameters) lists the slices of the batch-sized scratch
+  buffers `API.md` publishes, one argument per slice; grouping them would move the
+  contract and re-emit the kernels. It is this node's declared exception to the
+  parameter rule, on the root's condition that every creation names its arguments; a
+  scan of the construction sites found the one site, in `Slice`, positional.
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
@@ -502,6 +508,10 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       the same 463-test run; `Performance.Tests` green (699 tests, `SolveFrozen`'s
       kernel test included); the execution tests node's fast set green on CUDA (41
       tests, no `APTHERMO_NO_CUDA`).
+- [ ] Every creation of `EquilibriumScratch` in the tree names its arguments (the
+      decision "The scratch descriptor keeps its constructor"), the protocol tests
+      node's named-construction fact green once it exists; the tests node's bit
+      snapshot unchanged.
 
 ## Taboos
 
