@@ -288,34 +288,7 @@ public static class TransportSolver
         }
 
         // Per-species data of the set.
-        var estimatedCount = 0;
-        var estimatedFraction = 0.0;
-        for (var a = 0; a < nm; a++)
-        {
-            var j = scratch.IndexList[a];
-            scratch.Xs[a] = moles[j] / total;
-            scratch.Cp[a] = SpeciesFunctions.CpOverR(in species, j, temperature);
-            scratch.H[a] = SpeciesFunctions.HOverRT(in species, j, temperature);
-            scratch.Cond[a] = transport.ConductivityCount[j] > 0 ? PureConductivity(in transport, j, temperature) : 0.0;
-            if (transport.ViscosityCount[j] > 0)
-            {
-                scratch.Eta[a * Stride + a] = PureViscosity(in transport, j, temperature);
-            }
-            else
-            {
-                scratch.Eta[a * Stride + a] = 0.0;
-                estimatedCount++;
-                estimatedFraction += scratch.Xs[a];
-            }
-
-            for (var b = 0; b < a; b++)
-            {
-                var pair = transport.PairIndex[j * speciesCount + scratch.IndexList[b]];
-                var value = pair >= 0 ? PairViscosity(in transport, pair, temperature) : 0.0;
-                scratch.Eta[a * Stride + b] = value;
-                scratch.Eta[b * Stride + a] = value;
-            }
-        }
+        SetSpeciesProperties.Fits(in inputs, nm, total, ref result);
 
         // The component basis reduced over the columns of the set (row operations act on every column alike).
         for (var i = 0; i < elementCount; i++)
@@ -483,42 +456,7 @@ public static class TransportSolver
         }
 
         // Estimates for species and pairs without data: hard spheres with the reference's collision integral, modified Eucken.
-        for (var a = 0; a < nm; a++)
-        {
-            var molarMass = species.MolarMass[scratch.IndexList[a]];
-            if (scratch.Eta[a * Stride + a] == 0.0)
-            {
-                var omega = Math.Max(1.0, Math.Log(50.0 * Math.Pow(molarMass, 4.6) / Math.Pow(temperature, 1.4)));
-                scratch.Eta[a * Stride + a] = 0.3125 * Math.Sqrt(Boltzmann * molarMass * temperature / (Math.PI * Avogadro))
-                                              / (CollisionDiameter * CollisionDiameter * omega);
-            }
-
-            if (scratch.Cond[a] == 0.0)
-            {
-                scratch.Cond[a] = scratch.Eta[a * Stride + a] * (PhysicalConstants.R / molarMass) * (3.75 + 1.32 * (scratch.Cp[a] - 2.5));
-            }
-        }
-
-        for (var a = 0; a < nm - 1; a++)
-        {
-            var massA = species.MolarMass[scratch.IndexList[a]];
-            var etaA = scratch.Eta[a * Stride + a];
-            for (var b = a + 1; b < nm; b++)
-            {
-                if (scratch.Eta[a * Stride + b] != 0.0)
-                {
-                    continue;
-                }
-
-                var massB = species.MolarMass[scratch.IndexList[b]];
-                var ratio = Math.Sqrt(massB / massA);
-                var value = 4.0 * Math.Sqrt(2.0) * etaA * Math.Sqrt(massB / (massA + massB));
-                var root = 1.0 + Math.Sqrt(ratio * etaA / scratch.Eta[b * Stride + b]);
-                value /= root * root;
-                scratch.Eta[a * Stride + b] = value;
-                scratch.Eta[b * Stride + a] = value;
-            }
-        }
+        SetSpeciesProperties.Estimates(in inputs, nm);
 
         // Viscosity and frozen conductivity: equations (5.3) to (5.7).
         var mixture = MixtureRules.Evaluate(in inputs, nm);
@@ -527,10 +465,8 @@ public static class TransportSolver
         var reaction = ReactionTerms.Evaluate(in inputs, nm, nr);
 
         SetProperties.Fill(in inputs, nm, in mixture, in reaction, ref result);
-        result.EstimatedMoleFraction = estimatedFraction;
         result.SpeciesCount = nm;
         result.ReactionCount = nr;
-        result.EstimatedSpeciesCount = estimatedCount;
         result.TraceEliminations = traceEliminations;
         result.Capped = capped;
         figures[0] = result;
