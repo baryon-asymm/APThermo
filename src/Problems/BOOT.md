@@ -213,10 +213,24 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   larger table changes no figure. A
   state batch is a list of records, each with its own element moles, pressure and one
   target (enthalpy, temperature or entropy); its element set is the union over the
-  records.
+  records. A record with exits (area ratios or pressure ratios) is a rocket case: its
+  pressure is the chamber pressure, its enthalpy is required, and a flow model may be
+  named only on such a record; `SolveRocketStates` solves the records with exits and
+  `SolveStates` those without, each call one batch (2026-09-14: the state record is
+  this node's exchange shape, and the command line reads it without deciding a rule of
+  its own; decided at the root on the architecture review's F-AR-02).
 - Units at this boundary: element abundances are accepted in mol per kg and passed
-  to the numerical nodes in kmol per kg (the CEA convention), the one conversion this
-  node makes besides mass normalization; enthalpy in J/kg is passed unchanged.
+  to the numerical nodes in kmol per kg (the CEA convention); enthalpy in J/kg is
+  passed unchanged. The node's unit factors are two named constants
+  (`UnitFactors.MolesPerKilomole`, `UnitFactors.GramsPerKilogram`), and the
+  conversions it makes are three: the abundances above; a record's assigned enthalpy
+  from J/mol to J/kmol on its way to the per-kilogram sum; kilograms to grams in the
+  mass message.
+
+  ⚠ 2026-09-14: stood "the one conversion this node makes besides mass
+  normalization". The code held three, written as bare `1.0e3` and `1.0e-3` at five
+  sites (the clean-code review's F-PR-10): an absolute word without proof, the kind
+  `AGENTS.md` §8 names. Corrected to the list above, with the constants.
 - The mass tolerance is a declaration about the input, not a physical quantity: it
   travels with the mixture (2026-09-13), never with a problem, and the command line
   passes it as a run option, not as a field of a document.
@@ -225,6 +239,82 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Single-case calls are batches of one.
 - The solver keeps the uploaded tables of every element set and species list it has
   seen, and the reactant enthalpies of every propellant instance, until it is disposed.
+
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). `Solver`
+was one class of 663 lines with an efferent coupling of 34, holding eleven
+responsibilities (the review's F-PR-01); `PropellantBuilder.Build` validated the
+mixture rule and derived the element order in 77 lines (F-PR-03). The data flow is
+`Solver` → `PropellantMixtures` (the propellant front door only) →
+`ChemicalSystemCache` → `ProblemValidation` and `MixtureMass` per case →
+`RocketRunner` or `EquilibriumRunner` → the engine → `StationFactory` → the result
+records. Every type below is internal except where marked; one type per file, named
+after the type; the public records keep their theme files.
+
+| Type | Responsibility | Visibility |
+|---|---|---|
+| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators; its Ce is measured at the decomposition commit and written into this row | public |
+| `ChemicalSystem` | one element set with its table and its uploaded copy; disposable; no transport table kept (F-PR-12) | internal |
+| `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
+| `MixtureMass` | Σ n_i A_i with the database's atomic weights, and the refusal beyond the mixture's declared tolerance | internal static |
+| `UnitFactors` | `MolesPerKilomole` and `GramsPerKilogram`, the node's two unit constants with their origin | internal static |
+| `AtomicWeights` | the one translation of a missing atomic weight into an `ArgumentException` naming the element (F-PR-07) | internal static |
+| `PropellantMixtures` | the propellant → `ElementalMixture` map: mass fractions, b_i, h_0, the reactant-enthalpy cache and its species-function batch; the piece of a cut record at a temperature is asked of the table (`SpeciesTable.PieceOf`, the Thermo node's; F-AR-01) | internal |
+| `ProblemValidation` | every "before any kernel runs" rule of a rocket and of an equilibrium problem; the subject of a refusal is a field of the case, not a defaulted parameter | internal static |
+| `StateRecords` | state records → mixtures and problems, and the rules of the shape: exactly one target; exits need an enthalpy; a flow only with exits; `SolveStates` takes no record with exits and `SolveRocketStates` none without; every refusal of a record (these rules, a negative abundance, an empty or duplicated symbol) is a `StateRecordException` with the record's index and a subject-free reason; the mass check keeps `MixtureMassException` | internal static |
+| `RocketRunner` | rocket cases grouped by exit layout and by the transport flag, the batch filling, the two engine runs, the per-group result loop; the transport pass runs only over the cases that asked (F-PR-08) | internal |
+| `EquilibriumRunner` | the same for equilibrium cases | internal |
+| `StationFactory` | one station from one slice of the engine's flat result, and the species-name list with the cut pieces summed under the record's name; the station names from `RocketLayout.FixedStations` (F-PR-11) | internal static |
+| `StationSlice` | the aggregation that replaces the nine parameters of station assembly, with the flat offset computed once | internal readonly record struct |
+| `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
+| `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
+| `PropellantBuilder.Build` | four calls and a constructor | public, unchanged |
+
+Decisions taken with the review of 2026-09-14. The contract-moving ones are declared
+in `API.md` under the planned section of that day and move the surface snapshot in
+one commit, after the internal moves:
+
+- **The state record is this node's exchange shape** (F-AR-02, option a, decided at
+  the root). `StateRecord` keeps its five positional parameters and gains
+  `AreaRatios`, `PressureRatios` and a nullable `Flow` as init properties, so that no
+  construction site changes and its constructor stays within the parameter limit;
+  `HasExits` is the one statement of the kind rule; `SolveRocketStates` solves the
+  records with exits; `StateRecordException` carries `Index` and `Reason`, so that a
+  caller renames the subject without re-deciding a rule. The command line's copies of
+  the rules leave in its own design session.
+- **`RocketSweep` is retired** (F-PR-06). The command line expands its sweeps itself,
+  over a wider product (ratio, pressure and temperature, rocket and equilibrium), and
+  the library's batch is the list of mixtures with the list of problems. The sweep
+  overload built its system from the first case alone and bypassed the union path: a
+  second implementation of one rule, with its own behaviour and one consumer, its own
+  tests. The root `API.md`'s example follows in the same commit.
+- **`Reactant.Custom` takes a `CustomReactantDefinition`** (F-PR-05): formula,
+  enthalpy, temperature and the optional molar mass, the values that exist only
+  together on a custom reactant, travel as one record, which `Reactant.Definition`
+  exposes in place of the three nullable properties; the factory drops from eight
+  parameters to five, and the two adjacent doubles can no longer be swapped silently.
+- **`MixtureOf` and `CandidateSpeciesFor`** (F-PR-13): the two query methods read as
+  `MassOf` does, and `Mixture` no longer collides with `Propellant.Mixture`.
+- **`ElementalMixture.IsValidMassTolerance` is the one statement of the tolerance
+  rule** (finite and non-negative; the review's open question 2): `Create` refuses
+  with its message, the command line with its own, since it also refuses text that is
+  no number.
+- **The transport pass is narrowed, not the sentence** (F-PR-08): the runners group
+  by the transport flag as they group by exit layout, so the contract's "a second
+  pass over the stations of the cases that asked" holds.
+- **A failed station's compositions are no solution**: they are computed from the
+  moles the numerical nodes left for that station, the contract says so, and no test
+  pins them (the review's open question 5).
+- **Every public method of a disposed solver throws** (F-PR-09); the two properties
+  stay readable. The fact is one theory over the public methods whose coverage is
+  checked against the list reflection gives, so that a new method cannot be missed.
+- **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
+  more than 6 parameters. The published result records are the declared exception to
+  the parameter rule (the root's code-shape constraint counts a record's constructor
+  as a method): `RocketResult` (9), `Station` (8) and `EquilibriumResult` (8) are the
+  contract's shape field for field, and the node constructs each in one place with
+  named arguments.
 
 ## Acceptance criteria
 
@@ -316,6 +406,29 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (`SplitRecordTests.An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`);
       and the sweep across the alumina plateau stays on the isentrope by either path
       (`SplitRecordTests.A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`).
+- [ ] The decomposition of `## Structure` (2026-09-14): every type within the root's
+      code-shape constraint (`Solver` the declared composition root, its measured Ce
+      written into the table); the tests node's front-door bit snapshot unchanged,
+      recorded before any code moved; every fixture theory green unchanged; the
+      surface moved only by the members `API.md` plans under 2026-09-14, in one
+      contract commit after the internal moves, with `PublicSurface.approved.txt`
+      moved in it; the command line's call sites adapted to the renames and to
+      `CustomReactantDefinition`, nothing else of it touched.
+- [ ] The state record with exits: a rocket record through `SolveRocketStates`
+      equals the same mixture and problem through `Solve(mixtures, problems)` bit for
+      bit; `SolveStates` refuses a record with exits and `SolveRocketStates` one
+      without; a record with two targets, with exits and no enthalpy, or with a flow
+      and no exits is refused; each refusal a `StateRecordException` whose `Index` is
+      the record's and whose `Reason` names the rule (the tests node's
+      `EquilibriumTests`, `RejectionTests`).
+- [ ] The narrowed transport pass and the retired sweep: a batch of two rocket
+      problems with transport on one of them gives, for each, the result of that
+      problem solved alone bit for bit, transport figures included, and the other's
+      `TransportStatus` null; a ratio × chamber-pressure product given as a list of
+      mixtures and problems equals its cases solved one by one bit for bit (the fact
+      that proved the sweep); every public method of a disposed solver throws,
+      checked against the list of methods reflection gives (the tests node's
+      `RocketTests`, `RejectionTests`).
 
 ## Taboos
 

@@ -291,6 +291,12 @@ per index over the union of the mixtures' elements; every mixture must carry the
 `Omit` and `Only` lists, and `SolveStates` is that overload over state records. The uploaded tables of every element set and species list, and the
 reactant enthalpies of every propellant instance, are kept until `Dispose`.
 
+⚠ 2026-09-14: the sentence on the transport pass is not true of the code. A batch in
+which one case asks for transport runs the pass over every station of the batch, and
+the figures of the cases that did not ask are dropped afterwards (the clean-code
+review's F-PR-08): the reported figures are right, the work is not. The planned
+section below makes the sentence true rather than weakening it.
+
 ⚠ 2026-09-12: `Database`, `Mixture` and `CandidateSpecies` were added so that a
 caller (and the tests) can see the mixture a propellant implies and the species a
 selection produces without solving; `Solve(ElementalMixture, IReadOnlyList<EquilibriumProblem>)`
@@ -299,6 +305,87 @@ lists of mixtures were added on 2026-09-13 for the command line: a sweep over th
 oxidizer-to-fuel ratio with any exit layout, and the records of another simulation with
 exits, are one batch through them. `MassOf` was added the same day with the mass
 check (the elemental-mixtures section).
+
+## Contract changes of 2026-09-14 ⏳
+
+Planned by the design session of 2026-09-14 (the parent `BOOT.md`, `## Structure` and
+its decisions). The front door's decomposition codes them in one commit after its
+internal moves; that commit rewrites the blocks above and the errors table, keeps the
+reasons below as ⚠ paragraphs where the old declarations stood, removes this section
+and moves the surface snapshot.
+
+```csharp
+public sealed record CustomReactantDefinition(
+    IReadOnlyList<ElementCount> Formula,          // atoms per formula unit; not empty
+    double Enthalpy,                              // J/mol at Temperature; finite
+    double Temperature,                           // K; positive
+    double? MolarMass = null);                    // kg/kmol; null = from the formula and the atomic weights
+
+public sealed record Reactant
+{
+    public static Reactant Custom(string name, CustomReactantDefinition definition, ReactantRole role, double amount,
+                                  AmountKind amountKind = AmountKind.MassFraction);
+    public CustomReactantDefinition? Definition { get; }   // custom reactants only; null for a database record
+}
+
+public sealed record ElementalMixture
+{
+    public static bool IsValidMassTolerance(double massTolerance);   // finite and non-negative: the rule Create applies
+}
+
+public sealed record StateRecord                                 // the five positional parameters stay as they are
+{
+    public IReadOnlyList<double> AreaRatios { get; init; }       // supersonic A / A_t; empty by default
+    public IReadOnlyList<double> PressureRatios { get; init; }   // p_c / p_e; empty by default
+    public FlowModel? Flow { get; init; }                        // records with exits only; null = shifting equilibrium
+    public bool HasExits { get; }                                // AreaRatios or PressureRatios not empty: a rocket case whose Pressure is the chamber pressure
+}
+
+public sealed class StateRecordException : ArgumentException     // a state record refused by a rule of its shape
+{
+    public StateRecordException(int index, string reason);
+    public int Index { get; }                                    // the record's position in the list given
+    public string Reason { get; }                                // the message without the subject
+}
+
+public sealed class Solver
+{
+    public ElementalMixture MixtureOf(Propellant propellant, double? oxidizerToFuelRatio = null);
+    public IReadOnlyList<string> CandidateSpeciesFor(IReadOnlyList<string> elements, IReadOnlyList<string>? omit = null, IReadOnlyList<string>? only = null);
+    public IReadOnlyList<RocketResult> SolveRocketStates(IReadOnlyList<StateRecord> states, StateBatchOptions? options = null);
+}
+```
+
+Removed by the same commit: `RocketSweep` with `Solver.Solve(RocketSweep)`; the
+eight-parameter `Reactant.Custom` with `Reactant.Formula`, `Reactant.Enthalpy` and
+`Reactant.MolarMass`; `Solver.Mixture` and `Solver.CandidateSpecies`, renamed as above.
+
+Behaviour that changes with it:
+
+- `SolveStates` refuses a record with exits and `SolveRocketStates` a record without;
+  a record with no target or several, with exits and no enthalpy, or with a flow and
+  no exits is refused. Each such refusal is a `StateRecordException` whose message is
+  `state record i: ` followed by its `Reason`, and so is the refusal of a record's
+  composition (a negative abundance, an empty or duplicated symbol). The mass check
+  keeps `MixtureMassException`, which carries the index already.
+- Every method of a disposed solver throws `ObjectDisposedException`; `Database` and
+  `Accelerator` stay readable.
+- The transport pass evaluates the stations of the cases that asked for it and no
+  others.
+- `MoleFractions` and `CondensedMassFractions` of a station whose status is not `Ok`
+  are computed from the moles the numerical nodes left for that station: no solution,
+  for diagnosis only.
+
+Why, in the order of the lists above (the clean-code review of 2026-09-14): the command
+line re-decided three rules of the state record, because this shape had no exits and
+nobody owned it (F-AR-02); the sweep was a second implementation of the batch over
+mixtures that built its system from its first case alone (F-PR-06); the custom factory
+took eight parameters with two adjacent doubles a caller can swap silently (F-PR-05);
+two query methods were nouns, one colliding with `Propellant.Mixture` (F-PR-13); the
+tolerance rule was stated in two nodes with two messages (the review's open question 2);
+the disposal guard and the transport pass did not do what this contract said (F-PR-09,
+F-PR-08, the ⚠ paragraphs next to them); a failed station's composition had no stated
+meaning (the review's open question 5).
 
 ## Errors
 
@@ -314,6 +401,11 @@ check (the elemental-mixtures section).
 | accelerator unavailable or ILGPU mismatch | the `Execution` exceptions, unchanged |
 | per-case numerical failure | `Status` on the result and on the station; no exception |
 | a disposed solver | `ObjectDisposedException` |
+
+⚠ 2026-09-14: the last row holds for the solving methods and `Mixture` only:
+`CandidateSpecies` and `MassOf` answer on a disposed solver, and three of the `Solve`
+overloads refuse only because a method they call happens to check (the clean-code
+review's F-PR-09). The planned section above makes the row hold for every method.
 
 ## Side effects
 

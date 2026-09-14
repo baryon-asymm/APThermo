@@ -10,7 +10,16 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 | L0 | mass fractions, element moles and reactant enthalpy per kilogram; the oxidizer-to-fuel split; mole amounts; custom reactants; candidate species selection and order; input validation by name; the mass of a composition against one kilogram | the fixtures' recorded mass fractions, `elementMoles`, `reactantEnthalpy` / `enthalpy` and `products` (`PropellantTests`); documented behaviour, and the database's atomic weights for the mass a message reports (`RejectionTests`) | ✅ |
 | L1 | every rocket, tp, hp and sp fixture solved singly from its propellant through the library | the fixtures node's reference outputs and its tolerance table (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`, the three `EquilibriumTests` theories) | ✅ |
 | L2 | end to end over every rocket fixture with transport, in shifting and frozen flow; a sweep as one batch against its cases one by one; an elemental mixture against its propellant; identical problems alone and in one call; mixed exit layouts in one call; state batches over unions of elements; a failing station as a status | the fixtures; the single-case results of the same code, bit for bit, or to rounding where a union reorders a case's elements (`RocketTests`, `EquilibriumTests`) | ✅ |
+| L2 | the melting-plateau states through the front door: a cut record reported once under its database name; an assigned enthalpy inside the `ALN(L)` gap solves; a sweep across the alumina plateau stays on the isentrope by either path | the node's own rules where the reference cannot follow: the join-and-cut of the `Thermo` node, the plateau of the `Equilibrium` node, the isentrope of the station's own chamber (`SplitRecordTests`) | ✅ 2026-09-13 (the row written 2026-09-14, the ⚠ below) |
+| L2 | the contract of 2026-09-14: a state record with exits against its case through the batch over mixtures; the refusals of the record's shape; a batch mixing transport and none against each problem alone; a ratio and pressure product as one batch against its cases one by one; every public method of a disposed solver; the tolerance rule against `Create` | the same code's single-case results, bit for bit; the `Problems` `API.md`; reflection over the solver's methods (`RocketTests`, `RejectionTests`) | ⏳ (2026-09-14) |
+| Bits | the front door's result of every rocket, tp, hp and sp fixture solved singly from its propellant, as the L1 theories solve it, gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture path and the SHA-256 of the raw bits of the mixture's element moles in element order, its enthalpy and mass, then per station the state, the performance figures, the transport figures, the mole fractions and condensed mass fractions in the result's species order and the statuses, then the case status, in that order | the approved snapshot, recorded before any code of the front door's decomposition of 2026-09-14 moved | ⏳ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
+
+⚠ 2026-09-14: the plateau row was missing. `SplitRecordTests` came with the
+melting-plateau commit (`8e36a27`), whose criteria in the `Problems` node cite its three
+facts while this node's table, criteria and mutations did not name them; found by the
+clean-code review (F-TF-04). The evidence keeps the day it was obtained; the row and the
+criterion below carry the day they were written.
 
 ## Invariants
 
@@ -18,7 +27,9 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
   enumerated from the directory listing at run time (the theories' member data), so
   the root's first criterion is checked against a generated list.
 - The reference's documented caveats (Fixtures BOOT.md) are applied by one comparison
-  (`Comparison.cs`), never by a test of its own: no `cv` at a frozen station; with
+  (`ReferenceComparison`, the caveats themselves and their field sets in
+  `ReferenceCaveats`; both lived in `Comparison.cs` until the decomposition of
+  2026-09-14), never by a test of its own: no `cv` at a frozen station; with
   transport on and condensed species present, the frozen `cp` against the transport
   set's; the reacting conductivity and Prandtl number not compared where the
   reference's value is defective, and at such a station the defect must be visible
@@ -38,7 +49,30 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 - L2 runs on the CPU accelerator in the default command; the same cases on CUDA are
   the execution tests node's business.
 - No expected value is typed into a test: everything comes from the fixture files or
-  from another solve of the same code; `b_i` and `h_0` are the fixture's.
+  from another solve of the same code; `b_i` and `h_0` are the fixture's. The trace
+  threshold of the mole-fraction comparison is the tolerance table's `moleFraction`
+  entry, read, not typed (2026-09-14: it stood as `Comparison.TracePrintThreshold`,
+  5e-6 retyped under a comment naming the table, the review's F-TF-11).
+- **The node owns the tolerances of comparisons that are not with the reference**
+  (2026-09-14): two solves of the tree's own code that agree to rounding, a station on
+  its chamber's isentrope, a pinned temperature on its transition bound. They are named
+  constants of the node with their origin in a comment, never literals in an assertion
+  (the review's F-TF-10 found thirteen such literals).
+- **The bits are a tripwire, not a contract** (2026-09-14): the Bits level guards the
+  front door's orchestration against unnoticed change the way the surface snapshot
+  guards the contract (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is
+  legitimate only with the numerical change that moved it named in the same commit; a
+  decomposition, a regrouping of batches, a renaming or a reordering of code moves no
+  line. The snapshot is of the CPU accelerator on the reference machine's runtime; a
+  runtime update that moves lines is re-approved with that reason recorded here. A
+  fixture absent from the snapshot fails the test with instructions, as the surface
+  snapshot does.
+- ⚠ 2026-09-14, a declared duplication (`AGENTS.md` §12): the comparison of a case in
+  a union batch that reorders its elements uses the mole-fraction floor (1e-8) and the
+  polish-threshold tier (1e-9) of the GPU/CPU table, copied from the execution tests
+  node, whose code this node may not read. Decided at the root (the review's F-TF-05):
+  both entries move to the fixtures node's tolerance table as `moleFractionFloor` and
+  `polishThresholdRelative`, and the copy goes with that task.
 
 ## Dependencies
 
@@ -56,7 +90,9 @@ Outside the tree: xunit.
 ## Constraints
 
 - Part of the default test command; no CUDA.
-- Paths from the repository root; no writes into the working directory.
+- Paths from the repository root; the only write into the working directory is the
+  `Bits.actual.txt` of a failed bit comparison, next to the approved file and
+  git-ignored (2026-09-14; until that day the node wrote nothing).
 - One solver and one engine on the CPU accelerator are shared by the collection.
 
 ## Acceptance criteria
@@ -69,7 +105,7 @@ Outside the tree: xunit.
       `A_custom_reactant_derives_its_molar_mass_from_the_formula_and_the_atomic_weights`,
       `Candidates_are_gases_then_condensed_species_in_database_order`,
       `An_elemental_mixture_normalizes_symbols_and_keeps_the_order`); `RejectionTests`
-      (nine facts: unknown reactant, temperature out of range, mixture rules, custom
+      (the facts: unknown reactant, temperature out of range, mixture rules, custom
       reactant with an unknown element, the `Only` list, state records, problems
       without the data they need, a disposed solver; 2026-09-13, two more: the mass
       of a composition against one kilogram through every front door, with the grams
@@ -80,6 +116,9 @@ Outside the tree: xunit.
       mass contradicts its formula,
       `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`;
       that fact goes when the record is corrected upstream).
+
+  ⚠ 2026-09-14: stood "nine facts" over a list of eight; a number repeating the length
+  of a list, dropped (the clean-code review's F-TF-16).
 - [x] 2026-09-12 — L1 green for every fixture case, the list generated from the
       directory listing: `RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
       over `cases/rocket` (89 files that day),
@@ -136,6 +175,57 @@ Outside the tree: xunit.
       kilogram instead of the measured mass, and the rocket results likewise
       (`Results_carry_the_mass_of_their_mixture`, each; the first also the Cli tests
       node's option test through the reported mass).
+- [x] 2026-09-13 — The melting-plateau states through the front door (the level
+      table's plateau row, written 2026-09-14): `SplitRecordTests`
+      (`A_cut_species_reports_one_entry_under_its_database_name`,
+      `An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`,
+      `A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`), the
+      evidence the `Problems` node's criterion of that day cites. Their non-degeneracy
+      was never recorded; the last criterion below records it.
+- [ ] Bits level green: `BitSnapshotTests.Every_fixture_gives_the_recorded_bits` over
+      the enumerated rocket, tp, hp and sp directories against `Bits.approved.txt`,
+      recorded before any code of the front door's decomposition moved (on a tree
+      whose numerical nodes are bit for bit as at `8e36a27`, by their own Bits levels)
+      and unchanged after it; seen red once by a reactant enthalpy per kilogram
+      perturbed in its last digit (every propellant fixture red) and by a fixture file
+      absent from the snapshot (that fixture red with the instruction to approve).
+- [ ] The contract facts of 2026-09-14 (the level table's second new row):
+      `RocketTests.A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures`
+      (bit for bit, transport figures included);
+      `RejectionTests.A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index`
+      (one case per rule: no target, two targets, exits without an enthalpy, a flow
+      without exits, a record with exits given to `SolveStates`, one without given to
+      `SolveRocketStates`, a negative abundance, a duplicated symbol; each a
+      `StateRecordException` whose `Index` is the record's
+      and whose `Reason` names the rule);
+      `RocketTests.A_batch_mixing_transport_and_none_equals_each_problem_solved_alone`
+      (bit for bit, and `TransportStatus` null where none was asked) with
+      `Cases_are_grouped_by_exit_layout_and_transport_flag` over the runner's internal
+      grouping, which is where the narrowed pass is visible;
+      `RocketTests.A_ratio_and_pressure_product_as_one_batch_equals_its_cases_solved_one_by_one`,
+      the sweep's fact on the batch over mixtures, replacing
+      `A_sweep_equals_its_cases_solved_one_by_one`;
+      `RejectionTests.Every_public_method_of_a_disposed_solver_throws` with
+      `The_disposal_facts_cover_every_public_method_of_the_solver` (the list of methods
+      from reflection); `RejectionTests.The_tolerance_rule_is_the_one_Create_applies`
+      (`IsValidMassTolerance` false exactly where `Create` refuses). Each seen red once:
+      the kind check removed from `SolveRocketStates`; the grouping by the transport
+      flag removed; one method's disposal guard removed.
+- [ ] The support code in shape (the review's F-TF-01, F-TF-09, F-TF-10, F-TF-11,
+      F-TF-14): `Comparison` becomes `SpeciesList` (the names with the gas count),
+      `ReferenceCaveats` (the caveat facts of a station and their field sets, each
+      citing the fixtures node), `ReferenceComparison` (one station against one
+      fixture station in six parameters, split into the transport, the state and
+      performance, and the mole-fraction mismatches, the messages byte for byte as
+      before) and `StationEquality` (bit and relative equality of two stations of the
+      tree's own code); the union test becomes three facts (rocket problems over the
+      union, state problems over the union, and the refusal of a mismatched batch, the
+      last in `RejectionTests`); every tolerance of a comparison with the tree's own
+      code a named constant with its origin; no method over 60 lines or nested deeper
+      than 3. The recorded mutations "the defect signature disabled" and "mole
+      fractions taken over the gaseous phase" red again after the split, and each
+      plateau fact seen red once by a mutation of the front door's code or of this
+      node's, recorded here.
 
 ## Taboos
 
