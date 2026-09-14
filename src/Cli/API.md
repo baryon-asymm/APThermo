@@ -52,6 +52,12 @@ weights within the front door's tolerance (`ElementalMixture.MassTolerance`, 1 %
 record in mol/g, in kmol/kg or per two kilograms is refused naming the record, the mass
 found and the tolerance (the errors table below).
 
+⚠ 2026-09-14: "the exchange shape of the `Problems` node" was not true of the code.
+That node's `StateRecord` had no exits and no flow, and this node read a shape of its
+own and decided the target, exits and flow rules a second time (the architecture
+review's F-AR-02). Decided at the root: the front door's record gains exits and flow
+and owns the rules; the sentence is made true by the planned change below.
+
 ⚠ 2026-09-13: the example record stood with `"O": 31.2, "N": 4.1` at 1 MPa, an
 illustration that weighed 706 g and would now be refused; it is the record of another
 simulation that the mass check was written for (1000.015 g), and the tests node solves
@@ -277,6 +283,30 @@ load, `solve`), not the engine's, which the front door does not expose; `run` al
 names the command, the input files and the threshold. 2026-09-13: `run.massTolerance`
 and `mixture.mass` were added with `--mass-tolerance`, so that a raised tolerance
 never hides the figure the check compared.
+
+## Changes of 2026-09-14 ⏳
+
+Planned by the design session of 2026-09-14 (the parent `BOOT.md`, `## Structure`).
+The commit that codes them folds this section into the sections above and removes it.
+
+- **State records through the front door.** `states` hands the records to the front
+  door's `SolveStates` (records without exits) and `SolveRocketStates` (records with
+  exits); a record that breaks a rule of the shape is refused with the front door's
+  reason behind the record's source, `records.json: record 1: exactly one of
+  enthalpy, temperature and entropy must be given, not 2`, after the database is
+  loaded. The JSON shape of a record does not change.
+- **The fallback reason in the documents.** The accelerator object of `run` and of the
+  `devices` listing gains one field, the `Execution` node's `CudaSkippedBecause`:
+
+  ```json
+  "accelerator": { "kind": "cpu", "deviceName": "CPUAccelerator", "ilgpuVersion": "1.5.3", "libNvvmPath": null, "libDevicePath": null, "threadsOrMultiprocessors": 16, "cudaSkippedBecause": "APTHERMO_NO_CUDA=1 forbids CUDA" }
+  ```
+
+  a string when an `auto` run fell back to the CPU accelerator, `null` when CUDA was
+  bound or never tried.
+- **Exit code 3 for an unexpected failure**, as the errors table below states: until
+  now an `ArgumentException` raised by a defect of the tool itself was reported as
+  invalid input with exit code 2.
 
 ## Errors
 

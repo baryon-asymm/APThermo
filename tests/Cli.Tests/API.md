@@ -13,6 +13,8 @@ consider proven about `Cli`.
 | a state record or an elemental propellant whose composition does not weigh one kilogram is exit code 2 with the documented message naming the record (file and position, or the JSON path) and the mass; a record that does weigh one kilogram solves; the record examples of the `Cli` API solve | L0 (`InputDocumentTests`, `ExitCodeTests.A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`) | ✅ |
 | `--mass-tolerance` is the tolerance the run declares, echoed in `run`, and every case reports the mass of its mixture, exactly the library's | L0, L1, L2 (`CommandLineTests`, `OutputDocumentTests.The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture`, `ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`, `LibraryEqualityTests`) | ✅ |
 | sweeps expand in the documented order into one document, states files of every accepted form give the same cases in input order, the threshold and the transport flag act as documented, the CSV has the documented layout | L1 (`OutputDocumentTests`, `CsvTests` against the approved file) | ✅ |
+| the states example gives the library's numbers through the front door's state batches; an invalid record carries the front door's reason behind its source; an unexpected exception is exit code 3; a run that fell back to the CPU accelerator says why in its document | L0, L2 (`LibraryEqualityTests`, `ExitCodeTests`, `OutputDocumentTests`, the facts of 2026-09-14) | ⏳ 2026-09-14 |
+| every example's output is byte for byte what it was before the decomposition of 2026-09-14, the `run` section aside | Bits (`BitSnapshotTests`, `Bits.approved.txt`) | ⏳ 2026-09-14 |
 
 ## What the tests rely on
 
@@ -22,3 +24,5 @@ consider proven about `Cli`.
   the examples of the `Cli` API, read from `API.md` at run time; the approved CSV
   `documents/rocket-lox-lh2.approved.csv`.
 - The committed database and the CPU accelerator; the `dotnet` host for the process runs.
+- `Bits.approved.txt` in this node: one line per example output, the example and the
+  SHA-256 of its JSON document without `run`, or of its CSV text (2026-09-14).

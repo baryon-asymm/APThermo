@@ -132,7 +132,10 @@ linter; xunit for tests.
 - Code shape (2026-09-14, the clean-code pass): a type spans at most 400 physical
   lines from its declaration to its closing brace, a method at most 60, control flow
   nests at most 3 deep, a method takes at most 6 parameters (kernels aggregate through
-  their `in` view and scratch structs). A type names at most 10 distinct types of the
+  their `in` view and scratch structs; a constructor is a method for this count, a
+  record's primary constructor included, and a type that mirrors an external format or
+  a published shape field for field may exceed it as a declared exception, constructed
+  at its sites with named arguments). A type names at most 10 distinct types of the
   tree in its signatures and bodies (its efferent coupling, Ce), unless it is a
   registry or a composition root that holds no formula and is named as such in its
   node's `BOOT.md`. A type named by 10 or more types of the tree (its afferent

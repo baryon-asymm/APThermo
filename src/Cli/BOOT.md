@@ -96,7 +96,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   one result per record in the input order, with the record echoed under `inputs`;
   a record that fails keeps its place with its status. The records without exits are
   one equilibrium batch over the union of their elements, the records with exits one
-  rocket batch.
+  rocket batch. The rules of a record (exactly one target; exits need an enthalpy; a
+  flow only with exits; the composition's own rules) are the front door's: this node
+  reads the JSON shape only, hands the records to `SolveStates` and
+  `SolveRocketStates`, and names a refusal by the record's file and position
+  (2026-09-14, decided at the root on the architecture review's F-AR-02; until then
+  this node decided the first three rules a second time).
 
   ⚠ 2026-09-12: stood "one batch": a rocket case and an equilibrium case are
   different programs of the execution node, so a mixed file is two batches, still one
@@ -110,6 +115,92 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   ⚠ 2026-09-12: the sketch's timings were the engine's (`warmUp`, `upload`, `kernel`,
   `download`), which the front door does not expose; the tool reports its own phases
   (`database` load, `solve`).
+
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
+had grown four commands, two formats and two input shapes in five files without a
+split: `InputDocuments` at 399 lines with an efferent coupling of 18, `Solving` a hub
+of 27, `CommandLine.Parse` at 117 lines, and the station written once per format (the
+review's F-CL-02 to F-CL-10). One node, one directory: the split is into types, not
+into sub-nodes, which the root's one-assembly-per-node rule would turn into several
+assemblies for one adapter. Everything is internal except `Program` and `ExitCode`;
+one type per file, named after the type.
+
+| Type | Responsibility |
+|---|---|
+| `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
+| `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
+| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`) |
+| `CommandSpec`, `OptionSpec` | one command: name, arity, usage line, the options and formats that apply; one option: name, takes a value or not, usage line, how it folds into `CommandOptions` |
+| `CommandTable` | the two tables, and the usage text generated from them, the defaults read from `CommandOptions.DefaultThreshold` and `ElementalMixture.DefaultMassTolerance` (F-AR-04) |
+| `ArgumentScanner` | the token walk: `--name`, `--name=value`, `--help`, positionals, a repeated option |
+| `CommandLine` | scan, look up, check arity, apply the options, check what applies; keeps `Parse`, `Usage` and `Commands` as the tests node knows them |
+| `CommandOptions`, `OptionValues` | the parsed options; the number parser shared by `--threshold` and `--mass-tolerance`, the second validated by `ElementalMixture.IsValidMassTolerance` |
+| `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11) |
+| `JsonText` | a text parsed with its source label in the message |
+| `StrictObject` | unchanged: the mechanism of the strict-documents invariant |
+| `SweepValues` | a list or a `{from, to, step}` range into values, with the step tolerance named and derived (F-CL-12) |
+| `ProblemDocumentReader` | the `rocket` and `equilibrium` documents: propellant, reactants, the problem (one reader per problem type), the sweep |
+| `StateRecordReader` | the record files, their shape decided by the first non-blank character (array, object, JSON Lines) with no exception as a probe (F-CL-13); each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
+| `InputDocuments` | the façade the tests node uses: delegations only |
+| `SolverSession` | the database and the solver of one run, with their timings; disposable |
+| `ProblemCommand` | `rocket` and `equilibrium`: read, check the problem type against the command, build the mixtures, expand the sweep, solve, write |
+| `StatesCommand` | `states`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order |
+| `RecordNaming` | a refusal of the front door (`StateRecordException`, `MixtureMassException`) renamed from its index to the record's file and position |
+| `Sweeps` | the Cartesian product of a sweep, ratio-major, then pressure, then temperature: the rule of this node's input document |
+| `Propellants` | a propellant document into builder calls or an elemental mixture; a custom reactant as the front door's `CustomReactantDefinition` |
+| `RocketCases`, `EquilibriumCases` | combinations and a problem document into problems, and results into case outputs |
+| `CaseInputs` | the `inputs` echo of a case, written once |
+| `DatabaseFiles` | unchanged: where the database directory is found |
+| `StationFields` | the one projection of a station into named, typed cells (the state, the performance figures with the two conversions to seconds, the transport figures), from the library's structs by reflection; owns `StandardGravity` (F-CL-06, F-CL-07) |
+| `JsonOutput`, `CsvOutput` | the cells as nested objects with the compositions above the threshold; the same cells as columns, the header from the same source |
+| `RunSection` | the `run` object and the accelerator object, for every command that writes them |
+| `DocumentWriter` | delivery to the output file or the standard output, and the non-finite-number rule |
+| `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
+| `Names` | unchanged: camel-case names of statuses and kinds |
+| `SpeciesRow`, `SpeciesListing` | one species flattened once; the listing in JSON or CSV (F-CL-08) |
+| `DeviceProbe`, `DeviceReport`, `DeviceListing` | what the machine offers, asked once; the report; its rendering |
+
+Decisions taken with the review of 2026-09-14:
+
+- **The state record's rules are the front door's** (F-CL-01, F-AR-02). The reader
+  checks the JSON shape (an unknown field, a wrong type, the path) and nothing more, so
+  `states-two-targets.json` and `states-rocket-without-enthalpy.json` are refused with
+  the front door's reasons behind the record's source, after the database is loaded
+  instead of before.
+- **The library's refusals are translated where the library is called** (F-CL-13).
+  Building a propellant or a mixture and solving map `ArgumentException` and
+  `KeyNotFoundException` to `InputException`; `Failures` maps `InputException` to exit
+  code 2 and everything else to 3, so a defect of this node is no longer reported as
+  invalid input. The errors table of `API.md` already says so; the code did not.
+- **An empty `only` stays a reader's rule** (F-AR-04). A list that may not be empty is
+  a shape rule of the document, named with its JSON path before any library call; the
+  front door applies its own rule again, and the duplication of that one predicate is
+  declared here. The mass tolerance's predicate is the front door's
+  (`ElementalMixture.IsValidMassTolerance`), and the usage text reads both defaults
+  from their constants.
+- **The document's defaults are the library's**: a rocket document without `flow`
+  leaves `RocketProblem.Flow` unset, and a record without `flow` leaves it null
+  (F-CL-11).
+- **`run.accelerator` and the `devices` listing carry `cudaSkippedBecause`**: the
+  reason an `auto` run fell back to the CPU accelerator (the `Execution` API,
+  2026-09-14), `null` when CUDA was bound or never tried, so that a document says why
+  it ran on the CPU. A contract change, planned in `API.md`.
+- **No other byte of any output document changes.** The decomposition is proved by the
+  tests node's snapshot of the example outputs, recorded before any code moved; the
+  `run` sections of the `species` and `devices` listings stay as they are (the review's
+  open question 5 is answered by leaving the documents alone).
+- **Records take at most six positional parameters**: `StateDocument` becomes the front
+  door's `StateRecord` with its `RecordSource`; a reactant document carries its custom
+  part as a `CustomReactantDefinition`; `RunInfo` takes `Timings` and `RunLimits`;
+  `CaseOutput` is declared with init properties (F-CL-09).
+- **Names**: `CommandRegistry` and `CommandTable` instead of two `Commands`, and verbs
+  for the case builders (F-CL-14).
+- **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
+  more than 6 parameters, no type with an efferent coupling over 10; a type that
+  cannot stay under the coupling limit is declared here with its measured figure and
+  its reason, or split.
 
 ## Acceptance criteria
 
@@ -161,6 +252,18 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
       (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
       heavy, not light: the front door's BOOT.md records why).
+- [ ] The decomposition of `## Structure` (2026-09-14): every type within the root's
+      code-shape constraint; the tests node's snapshot of the example outputs unchanged
+      from before any code moved; every L0, L1, L2 and process fact green; the public
+      surface (`Program`, `ExitCode`) unchanged.
+- [ ] The documents follow the front door's contract of 2026-09-14: the `states`
+      example gives the library's numbers field by field through `SolveStates` and
+      `SolveRocketStates`; an invalid record is exit code 2 naming its file and
+      position with the front door's reason; an unexpected exception is exit code 3;
+      an `auto` run with CUDA forbidden writes the reason in
+      `run.accelerator.cudaSkippedBecause` and in the `devices` listing, and the schema
+      files list the field (the tests node's `LibraryEqualityTests`, `ExitCodeTests`,
+      `OutputDocumentTests`).
 
 ## Taboos
 
@@ -170,3 +273,5 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   separate decision.
 - No network, no telemetry.
 - No second list of the result fields: the structs are the list.
+- No rule of a state record here (2026-09-14): the front door owns them, and this node
+  names the record a refusal is about.
