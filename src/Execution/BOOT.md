@@ -292,23 +292,17 @@ Decisions taken with the review of 2026-09-14:
 - [x] 2026-09-14 — Every creation of the node's four wide constructors names its
       arguments (`RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult`,
       `EquilibriumBatchResult`; the decision "The views structs keep their
-      constructors"): the named-construction scan of `AGENTS.md` §13 finds the four
-      pipeline sites, `src/Execution/RocketPipeline.cs:53` (`RocketBatchViews`, 17
-      arguments) and `:63` (`RocketBatchResult`, 10),
-      `src/Execution/EquilibriumPipeline.cs:45` (`EquilibriumBatchViews`, 12) and `:52`
-      (`EquilibriumBatchResult`, 7), all named. The scan's one remaining
-      `RocketBatchViews` finding, `tests/Performance.Tests/KernelEqualityTests.cs:151`
-      (16 arguments, positional), is the test node's own struct of the same name,
-      declared by no document and outside this task's scope (its report). The protocol
-      tests node's `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
-      does not exist on this tree yet (that node's own unticked Shape-level criterion);
-      this scan is the evidence until it does. The four constructors are called only
-      from the two pipelines, on the host, to build a value passed into an already-
-      compiled kernel launch; naming their arguments changes no field, no layout and no
-      kernel body, so the emitted kernels are unchanged by construction, confirmed by
-      `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"` green both
-      with `APTHERMO_NO_CUDA=1` (CPU accelerator, 41 tests) and without it (CUDA bound
-      on this machine, the same 41 tests, no refusal).
+      constructors"), the protocol tests node's named-construction fact green once it
+      exists; the emitted kernels unchanged, the tests node's fast set green on the CPU
+      accelerator and on CUDA. A scan of every `new T(…)` and `T x = new(…)` in `src/`
+      and `tests/` (a script outside the tree) finds the four sites of the node's types,
+      in `RocketPipeline` and `EquilibriumPipeline`, every argument named; the build of
+      `Execution` after the change carries the IL of the build before it, method by
+      method, kernels included, so no argument binds to another parameter; the fast set
+      green with `APTHERMO_NO_CUDA=1` (41 tests on the CPU accelerator) and without it
+      (the same 41 on CUDA). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

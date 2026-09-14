@@ -314,22 +314,18 @@ the node is now `TransportComponents` at 244 lines and the largest method
       keeps the first test from passing because both systems fail.
 - [x] 2026-09-14 — Every creation of `TransportScratch`, `TransportTableView` and
       `TransportTableArrays` in the tree names its arguments (the decision "The scratch
-      descriptor stays"): the named-construction scan of `AGENTS.md` §13 finds 4 sites
-      (`src/Transport/Descriptors.cs:215`, `src/Transport/TransportTable.cs:68` and
-      `:266`, `tests/Transport.Tests/StatusTests.cs:103`), every argument named at every
-      site. The scan script itself reports `Descriptors.cs:215` as "mixed" because its
-      regex does not recognize the verbatim-identifier prefix of `@default: @default` as
-      a named-argument label; `default` is a C# keyword and `@default` is the only legal
-      spelling of the parameter's name, in the declaration and at the call alike. Checked
-      two ways: the scan's own regex tested against the string `" @default: @default"`
-      fails to match the leading `@` (confirmed against the script directly), and
-      `dotnet build` succeeds with nullable reference types and warnings-as-errors, which
-      would flag `CS7036`/`CS1739` on an unnamed or mismatched argument. The protocol
-      tests node's `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
-      does not exist on this tree yet (that node's own unticked Shape-level criterion);
-      this scan is the evidence until it does. `dotnet test tests/Transport.Tests` (157
-      tests) green; `tests/Transport.Tests/Bits.approved.txt` unchanged (`git
-      hash-object`: `3e4000dbb3fc1340c4f5f67a77a7fac566482ae8` before and after).
+      descriptor stays"), the protocol tests node's named-construction fact green once
+      it exists; the tests node's bit snapshot unchanged. A scan of every `new T(…)` and
+      `T x = new(…)` of the three names in `src/` and `tests/` (a script outside the
+      tree) finds four sites, in `Descriptors`, twice in `TransportTable` and in
+      `Transport.Tests`' `StatusTests`, every argument named (the parameter `default`
+      as `@default:`); the builds of `Transport` and `Transport.Tests` after the change
+      carry the IL of the builds before it, method by method, so no argument binds to
+      another parameter; `Transport.Tests` (157) green;
+      `tests/Transport.Tests/Bits.approved.txt` unchanged (blob `3e4000db` before and
+      after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

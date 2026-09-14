@@ -251,16 +251,18 @@ Decisions taken with the reviews of 2026-09-14:
       the rule the scan above decided: `JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`.
 - [x] 2026-09-14 — Every creation of `SpeciesTableView` and `SpeciesTableArrays` in the
       tree names its arguments (the decision on the constructors of the view and the
-      arrays): the named-construction scan of `AGENTS.md` §13 over the two names finds
-      4 sites (`src/Thermo/SpeciesTableView.cs:78`, `src/Thermo/TableLayout.cs:61`,
-      `tests/Equilibrium.Tests/InvalidInputTests.cs:26`,
-      `tests/Transport.Tests/StatusTests.cs:98`), all named, 0 positional. The protocol
-      tests node's `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
-      does not exist on this tree yet (that node's own unticked Shape-level criterion);
-      this scan is the evidence until it does. `dotnet test tests/Thermo.Tests` (378
-      tests), `tests/Equilibrium.Tests` (463) and `tests/Transport.Tests` (157) green;
-      `tests/Thermo.Tests/Bits.approved.txt` unchanged (`git hash-object`:
-      `8bd5068ebcd28a090a9ab1bd6b048f4c42da5d6b` before and after).
+      arrays), the protocol tests node's named-construction fact green once it exists;
+      the tests node's bit snapshot unchanged. A scan of every `new T(…)` and
+      `T x = new(…)` of the two names in `src/` and `tests/` (a script outside the tree)
+      finds four sites, in `SpeciesTableView`, `TableLayout`, `Equilibrium.Tests`'
+      `InvalidInputTests` and `Transport.Tests`' `StatusTests`, every argument named;
+      the builds of `Thermo`, `Equilibrium.Tests` and `Transport.Tests` after the change
+      carry the IL of the builds before it, method by method, so no argument binds to
+      another parameter; `Thermo.Tests` (378), `Equilibrium.Tests` (463) and
+      `Transport.Tests` (157) green; `tests/Thermo.Tests/Bits.approved.txt` unchanged
+      (blob `8bd5068e` before and after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

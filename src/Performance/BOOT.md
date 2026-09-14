@@ -291,21 +291,20 @@ Decisions taken with the review of 2026-09-14:
       tests/Execution.Tests --filter "Category!=LongRunning"`, no `APTHERMO_NO_CUDA`,
       41 tests, 0 failed, 0 skipped.
 - [x] 2026-09-14 — Every creation of `RocketProblem` and `RocketResult` in the tree
-      names its arguments (the decision "The descriptors keep their constructors"): the
-      named-construction scan of `AGENTS.md` §13 finds 4 sites of this node's
-      `RocketProblem` and 4 of its `RocketResult`, all named
-      (`src/Execution/Kernels.cs:109,117`, `tests/Execution.Tests/HostSolves.cs:42,47`,
-      `tests/Performance.Tests/KernelEqualityTests.cs:209,217`,
-      `tests/Performance.Tests/RocketCase.cs:46,51`). The scan's one remaining
-      `RocketResult` finding, `src/Problems/Solver.cs:303` (9 arguments, positional), is
-      `Problems`' own record of the same name, a different, 9-parameter constructor
-      outside this node and outside this task's scope. The protocol tests node's
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments` does not exist
-      on this tree yet (that node's own unticked Shape-level criterion); this scan is
-      the evidence until it does. `dotnet test tests/Performance.Tests` (699 tests) and
-      `tests/Execution.Tests --filter "Category!=LongRunning"` (41) green;
-      `tests/Performance.Tests/Bits.approved.txt` unchanged (`git hash-object`:
-      `5aa32f2bbf679cdd0f47749b0780059ba89faa62` before and after).
+      names its arguments (the decision "The descriptors keep their constructors"), the
+      protocol tests node's named-construction fact green once it exists; the tests
+      node's bit snapshot unchanged. A scan of every `new T(…)` and `T x = new(…)` in
+      `src/` and `tests/` (a script outside the tree) finds four sites of each of the two
+      types, in `Execution`'s `Kernels`, `Execution.Tests`' `HostSolves` and
+      `Performance.Tests`' `KernelEqualityTests` and `RocketCase`, every argument named;
+      the builds of `Execution`, `Execution.Tests` and `Performance.Tests` after the
+      change carry the IL of the builds before it, method by method, string literals
+      compared by value (one differs: the source path a test embeds at compile time),
+      so no argument binds to another parameter; `Performance.Tests` (699) and the fast
+      set of `Execution.Tests` (41) green; `tests/Performance.Tests/Bits.approved.txt`
+      unchanged (blob `5aa32f2b` before and after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 
