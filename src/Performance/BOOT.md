@@ -171,6 +171,13 @@ Decisions taken with the review of 2026-09-14:
   `AreaRatioIteration`, `RocketSolver` and `ThroatSearch` 13 and `StationSolve` 12.
   The root recalibrated its limit to 14 on that walk; `ExitStations` is the one stage
   above it.
+- **The descriptors keep their constructors** (added 2026-09-14). `RocketProblem` (7
+  parameters) and `RocketResult` (7) mirror, one argument per field, the case the
+  kernel reads and the views the solver writes into, as `API.md` publishes them;
+  grouping them would move the contract and re-emit the kernels. They are this node's
+  declared exception to the parameter rule, on the root's condition that every
+  creation names its arguments, wherever in the tree it stands; a scan of the
+  construction sites found every one positional.
 
 ## Acceptance criteria
 
@@ -283,6 +290,10 @@ Decisions taken with the review of 2026-09-14:
       tests node's fast set green on CUDA on the reference machine: `dotnet test
       tests/Execution.Tests --filter "Category!=LongRunning"`, no `APTHERMO_NO_CUDA`,
       41 tests, 0 failed, 0 skipped.
+- [ ] Every creation of `RocketProblem` and `RocketResult` in the tree names its
+      arguments (the decision "The descriptors keep their constructors"), the protocol
+      tests node's named-construction fact green once it exists; the tests node's bit
+      snapshot unchanged.
 
 ## Taboos
 

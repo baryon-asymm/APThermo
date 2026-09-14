@@ -152,7 +152,9 @@ Decisions taken with the reviews of 2026-09-14:
   parameter rule: `SpeciesTableView` (11 parameters) and `SpeciesTableArrays` (8) are
   the layout itself, the aggregation mechanism the root names for kernels; eight of
   the eleven are caught by the type system on a swap, and splitting them into column
-  structs would change the contract of four kernel nodes for no numerical gain.
+  structs would change the contract of four kernel nodes for no numerical gain. Every
+  creation of the two names its arguments, as the root requires of a mirrored shape
+  (added 2026-09-14: a scan of the construction sites found them positional).
 - **The join compares the formation enthalpy too**, if the committed file lets it:
   the same-name product groups are scanned first; where none disagrees, a disagreeing
   pair is refused like a differing formula or molar mass; where one does, the rule is
@@ -247,6 +249,10 @@ Decisions taken with the reviews of 2026-09-14:
       `OverloadPinningTests.Host_and_kernel_enthalpy_sums_give_the_same_bits`, 40
       species. The join refuses a same-name pair that disagrees in formation enthalpy,
       the rule the scan above decided: `JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`.
+- [ ] Every creation of `SpeciesTableView` and `SpeciesTableArrays` in the tree names
+      its arguments (the decision on the constructors of the view and the arrays), the
+      protocol tests node's named-construction fact green once it exists; the tests
+      node's bit snapshot unchanged.
 
 ## Taboos
 

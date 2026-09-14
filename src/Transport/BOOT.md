@@ -212,7 +212,9 @@ Decisions taken with the review of 2026-09-14:
   gain, and `Slice` is the only caller in the tree. The constructor is this node's
   declared exception to the parameter rule: a descriptor whose constructor enumerates
   the slices of a blittable struct. `TransportTableView`'s constructor (10 parameters)
-  and `TransportTableArrays`' (9) are the same case.
+  and `TransportTableArrays`' (9) are the same case. Every creation of the three names
+  its arguments, as the root requires of a mirrored shape (added 2026-09-14: a scan of
+  the construction sites found them positional).
 - **`TransportLayout.DoublesPerCase` keeps its species count.** The double scratch is
   `4·M² + E·M + 8·M` with `M = MaxSpecies` and does not grow with the table; the
   parameter mirrors `ScratchLayout` so that the execution node sizes every scratch the
@@ -310,6 +312,10 @@ the node is now `TransportComponents` at 244 lines and the largest method
       were right and the equilibrium heat capacity was 10441.86 against the frozen
       5001.70. `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight`
       keeps the first test from passing because both systems fail.
+- [ ] Every creation of `TransportScratch`, `TransportTableView` and
+      `TransportTableArrays` in the tree names its arguments (the decision "The scratch
+      descriptor stays"), the protocol tests node's named-construction fact green once
+      it exists; the tests node's bit snapshot unchanged.
 
 ## Taboos
 

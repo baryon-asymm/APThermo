@@ -176,11 +176,25 @@ Decisions taken with the review of 2026-09-14:
   declares, so `ScratchBytes` bounds the device bytes of a chunk by construction (until
   now only the scratch and the moles were counted); results do not depend on chunking
   (Invariants), so no result moves. `ScratchBytes` must be positive, like `ChunkSize`.
-- **The views structs keep their constructors.** `RocketBatchViews` (17 parameters),
+- **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
+  and `EquilibriumBatchViews` (12) are kernel parameter descriptors ILGPU requires to
+  be public; grouping their views would re-emit the kernels and move the contract.
+  They are this node's declared exception to the parameter rule, and so are the
+  constructors of `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which
+  mirror the batch results `API.md` publishes, one argument per property. The
+  pipelines are the only callers of the four, and every call names its arguments, as
+  the root requires of a mirrored shape. The other two views structs take six
+  parameters and are within the rule.
+
+  ⚠ 2026-09-14: this bullet stood "`RocketBatchViews` (17 parameters),
   `EquilibriumBatchViews` (12) and the other two are the kernel parameter descriptors
-  ILGPU requires to be public; grouping their views would re-emit the kernels and move
-  the contract. They are this node's declared exception to the parameter rule; the
-  pipelines are their only callers and fill them by name.
+  ILGPU requires to be public; … They are this node's declared exception to the
+  parameter rule; the pipelines are their only callers and fill them by name". Two
+  claims were wrong, found by a scan of every construction site after the coupling
+  measurement: `SpeciesFunctionBatchViews` and `TransportBatchViews` take six
+  parameters and need no exception, and the pipelines passed the views and the
+  results by position, not by name. The result constructors, over the rule as well,
+  were not declared.
 - **The unreachable checks go.** Every array of a batch is assigned once in its
   constructor from one count, so "arrays of inconsistent lengths" cannot happen; the
   four branches and the row of `API.md` go, replaced by the sentence that the
@@ -275,6 +289,12 @@ Decisions taken with the review of 2026-09-14:
       never a separate row of `API.md`'s error table by the time this branch started
       (already merged into the one row above it), and the four branches that could
       not fire are gone from `Batches.cs` (`23ccc1d`).
+- [ ] Every creation of the node's four wide constructors names its arguments
+      (`RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult`,
+      `EquilibriumBatchResult`; the decision "The views structs keep their
+      constructors"), the protocol tests node's named-construction fact green once it
+      exists; the emitted kernels unchanged, the tests node's fast set green on the CPU
+      accelerator and on CUDA.
 
 ## Taboos
 

@@ -158,6 +158,7 @@ thing:
 | stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
 | stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the project references; every reference points to a node whose I is not above the referrer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
+| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` with the type written as that type's simple name, or a target-typed `new(…)` initialising a variable, field or property declared with that name, passes every argument as `name: value`; any other target-typed creation is left to review |
 
 The test nodes obey the size, nesting, parameter and mechanics rules, since their
 support code is code; the coupling and stable-type rules apply to the `src` nodes, on
@@ -186,7 +187,11 @@ Why the numbers are what they are:
 - 3 levels of nesting: where the carried conditions exceed working memory, and the
   default of the usual analysers (SonarQube S134).
 - 6 parameters: the lower edge of Miller's 7 ± 2, past which positional arguments of one
-  type are swapped unnoticed; kernels aggregate through their `in` structs.
+  type are swapped unnoticed; kernels aggregate through their `in` structs. A type that
+  mirrors an external format or a published shape may exceed it as a row, on the root's
+  condition that every creation names its arguments: a named argument cannot be swapped
+  unnoticed, which is the hazard the six guard against (the named-construction rule,
+  added 2026-09-14 when a scan found that condition unchecked and broken at most sites).
 - 14 for efferent coupling: the maximum Sahraoui, Godin and Miceli suggest for CBO,
   above which a class's maintainability, stability and understandability suffer.
   Measured by this check's walk on the tree at `07aa9bb`, after the decompositions of
@@ -308,16 +313,18 @@ Why the numbers are what they are:
       `Every_stable_type_is_small_or_a_contract`,
       `No_src_dependency_points_to_a_less_stable_node`,
       `No_partial_type_region_or_helpers_class`,
+      `Every_wide_constructor_is_called_with_named_arguments`,
       `Every_shape_exception_is_measured_and_still_needed`) over the types and methods
       the check enumerates itself (the counts it measured written here when ticked).
       The nodes' `## Shape exceptions` tables transcribe the exceptions their
       `## Structure` sections declare; a violation no node declared is a finding for a
       design session, not a new row. Each fact seen red once, each mutation alone: a
       method padded to 61 lines; a fourth nesting level; a seventh parameter; an
-      internal `src` type made to name an eleventh type of the tree; an internal type
+      internal `src` type made to name a fifteenth type of the tree; an internal type
       with ten dependants grown past 100 lines; a synthetic project graph with a
       reference against instability given to the same rule; a `#region`; a row's
-      figure set below its measurement; a row for a member within its limits.
+      figure set below its measurement; a row for a member within its limits; one
+      argument of a declared wide constructor's creation passed by position.
 
 ## Taboos
 
