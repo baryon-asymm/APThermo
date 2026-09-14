@@ -212,7 +212,7 @@ public sealed class Solver : IDisposable
         }
 
         var table = system.Table;
-        var speciesNames = ResultSpecies(table);
+        var speciesNames = StationFactory.SpeciesNames(table);
         var results = new RocketResult[cases.Count];
         foreach (var key in order)
         {
@@ -243,12 +243,21 @@ public sealed class Solver : IDisposable
                 for (var s = 0; s < stationCount; s++)
                 {
                     var index = m * stationCount + s;
-                    var name = s == 0 ? "chamber" : s == 1 ? "throat" : $"exit{s - 1}";
                     var wantTransport = problem.Transport && run.StationStatus[index] == CaseStatus.Ok;
                     var transportStatus = wantTransport ? transport!.Status[index] : (CaseStatus?)null;
                     var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[index] : (TransportFigures?)null;
-                    stations[s] = MakeStation(name, table, run.Stations[index], run.Figures[index], run.Moles, (long)index * table.SpeciesCount,
-                                              figures, transportStatus, run.StationStatus[index]);
+                    var slice = new StationSlice
+                    {
+                        Table = table,
+                        State = run.Stations[index],
+                        Performance = run.Figures[index],
+                        Moles = run.Moles,
+                        Offset = (long)index * table.SpeciesCount,
+                        Transport = figures,
+                        TransportStatus = transportStatus,
+                        Status = run.StationStatus[index],
+                    };
+                    stations[s] = StationFactory.Create(StationFactory.NameOf(s), slice);
                 }
 
                 results[members[m]] = new RocketResult(propellant, mixture, masses[members[m]], problem, ratio, speciesNames, stations, run.Status[m], run.Accelerator);
@@ -293,14 +302,24 @@ public sealed class Solver : IDisposable
         var run = _engine.Run(system.Tables, batch);
         var transport = anyTransport ? _engine.Run(system.Tables, TransportBatch.FromEquilibrium(run)) : null;
         var results = new EquilibriumResult[cases.Count];
-        var speciesNames = ResultSpecies(table);
+        var speciesNames = StationFactory.SpeciesNames(table);
         for (var k = 0; k < cases.Count; k++)
         {
             var (mixture, problem, propellant) = cases[k];
             var wantTransport = problem.Transport && run.Status[k] == CaseStatus.Ok;
             var transportStatus = wantTransport ? transport!.Status[k] : (CaseStatus?)null;
             var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[k] : (TransportFigures?)null;
-            var state = MakeStation("state", table, run.State[k], null, run.Moles, (long)k * table.SpeciesCount, figures, transportStatus, run.Status[k]);
+            var slice = new StationSlice
+            {
+                Table = table,
+                State = run.State[k],
+                Moles = run.Moles,
+                Offset = (long)k * table.SpeciesCount,
+                Transport = figures,
+                TransportStatus = transportStatus,
+                Status = run.Status[k],
+            };
+            var state = StationFactory.Create("state", slice);
             results[k] = new EquilibriumResult(propellant, mixture, masses[k], problem, speciesNames, state, run.Status[k], run.Accelerator);
         }
 
@@ -314,51 +333,6 @@ public sealed class Solver : IDisposable
     /// </summary>
     private double CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index) =>
         MixtureMass.Check(Database, mixture, propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index);
-
-    private static Station MakeStation(string name, SpeciesTable table, MixtureState state, PerformanceFigures? figures, double[] moles, long offset,
-                                       TransportFigures? transport, CaseStatus? transportStatus, CaseStatus status)
-    {
-        var speciesCount = table.SpeciesCount;
-        var total = 0.0;
-        for (var j = 0; j < speciesCount; j++)
-        {
-            total += moles[offset + j];
-        }
-
-        var fractions = new Dictionary<string, double>(speciesCount, StringComparer.Ordinal);
-        var condensed = new Dictionary<string, double>(table.CondensedCount, StringComparer.Ordinal);
-        for (var j = 0; j < speciesCount; j++)
-        {
-            // A condensed record cut at a fit discontinuity reports the record's name, its pieces summed (BOOT.md, results).
-            var species = table.Records[j].Name;
-            var n = moles[offset + j];
-            var fraction = total > 0.0 ? n / total : 0.0;
-            fractions[species] = fractions.TryGetValue(species, out var f) ? f + fraction : fraction;
-            if (j >= table.GasCount)
-            {
-                var massFraction = n * table.Arrays.MolarMass[j];
-                condensed[species] = condensed.TryGetValue(species, out var w) ? w + massFraction : massFraction;
-            }
-        }
-
-        return new Station(name, state, figures, fractions, condensed, transport, transportStatus, status);
-    }
-
-    /// <summary>The species names a result reports: the table's, with the pieces of a cut condensed record collapsed to the record's name (BOOT.md, results).</summary>
-    private static IReadOnlyList<string> ResultSpecies(SpeciesTable table)
-    {
-        var names = new List<string>(table.SpeciesCount);
-        for (var i = 0; i < table.SpeciesCount; i++)
-        {
-            var name = table.Records[i].Name;
-            if (names.Count == 0 || !string.Equals(names[^1], name, StringComparison.Ordinal))
-            {
-                names.Add(name);
-            }
-        }
-
-        return names;
-    }
 
     /// <summary>J per kilogram of every reactant at its temperature: the record's polynomial through the engine, or the assigned enthalpy.</summary>
     private double[] ReactantEnthalpies(Propellant propellant)
