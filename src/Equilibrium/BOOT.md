@@ -221,7 +221,7 @@ below) is the proof.
 | `CaseSetup` | input validation, the element and species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
 | `Composition` | the four species functions at the case temperature; the retained gaseous moles (the trace rule, one place); the mixture sums the system and the state need (`MixtureSums`) | internal |
 | `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
-| `NewtonIteration` | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula" below) | internal |
+| `NewtonIteration` | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula" below). Named here as this node's second composition root, the root's Ce rule allows above its limit (Ce 17 by the dependency check's walk on 2026-09-14) | internal |
 | `DampedStep` | the multipliers and the gaseous corrections of (2.18), the control factor of (3.1)–(3.3), the application (3.4), the temperature update and its range check | internal |
 | `ConvergenceTests` | the tests (3.5) and (3.6) with the element balance, and the polish test, as one verdict | internal |
 | `SingularRemedies` | the remedies of section 3.6: the reset of vanished gaseous species, then the removal of the last condensed record | internal |
@@ -240,7 +240,9 @@ memories), passed by `ref`, or returned by value should the kernel compiler refu
 `ref` struct, which the kernel-equality test decides; `SystemLayout` (the unknown
 count, the stride, the rows of the total-moles and temperature equations, the
 problem kind); `MixtureSums`; `Derivatives`; the enums `EstimateSource`,
-`DerivativeKind` and `SpeciesMark`.
+`DerivativeKind`, `SpeciesMark` and `ConvergenceVerdict` (added 2026-09-14 with the
+Newton-loop split below, the verdict `ConvergenceTests` returns and `NewtonIteration`
+reads).
 
 Decisions taken with the review of 2026-09-14:
 
@@ -310,8 +312,14 @@ What the implementation settled, 2026-09-14, in the coding session that followed
   carrier - inside a CPU-accelerator kernel.
 - **The composition root fits.** `Solve` is 45 physical lines and `SolveFrozen` 54,
   both under the root's 60, so the exception this section reserved for `Solve` is not
-  claimed. The node's largest method is `NewtonIteration.Converge` at 56 lines and its
-  largest type `CondensedSet` at 250, against the root's 400.
+  claimed. The node's largest type is `CondensedSet` at 250 lines, against the root's
+  400.
+
+  ⚠ 2026-09-14: this bullet named `NewtonIteration.Converge` at 56 lines as the node's
+  largest method. The Newton-loop split below moved its formulas out: `Converge` is now
+  55 lines, tied with the new `DampedStep.ControlFactor` (also 55); both stay under the
+  root's 60, as does the next-longest, `IterationMatrix.AccumulateGaseous` (54,
+  unmoved by this split).
 - **The carriers are filled by name, not by position.** `MixtureSums` and
   `Derivatives` are structs whose fields are written at the one place that computes
   them and read through `in` afterwards, rather than readonly structs with a nine- and
@@ -463,21 +471,37 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       tolerance (`PhaseGeometry`); the two element-balance tolerances
       (`ElementBalance`). Checked by reading at the close of the decomposition; the
       bit snapshot proves the reading moved no number.
-- [ ] The node decodes none of `Thermo`'s interval layout (F-AR-01): no
-      `IntervalStart`, `IntervalCount` or `IntervalBounds` in its source files, the
-      record bounds asked of `SpeciesFunctions.RecordLow` and `RecordHigh`; the tests
+- [x] 2026-09-14 — The node decodes none of `Thermo`'s interval layout (F-AR-01): no
+      `IntervalStart`, `IntervalCount` or `IntervalBounds` in its source files (grep
+      over `src/Equilibrium/*.cs` empty), the record bounds asked of
+      `SpeciesFunctions.RecordLow` and `RecordHigh` from `PhaseGeometry` (`Adjacent`,
+      `EffectiveLow`, `EffectiveHigh`) and from `CondensedSet.Pinnable`; the tests
       node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` unchanged
-      and `KernelEqualityTests` green. Non-degeneracy, applied alone in the worktree
-      and restored: `SpeciesFunctions.RecordHigh` made to return the record's lower
-      bound turns at least one case of the bit snapshot red, which a node still
-      holding its own copy would not.
-- [ ] The Newton loop holds no formula (`## Structure`, the decision of that name):
-      `NewtonIteration`, `DampedStep`, `ConvergenceTests` and `SingularRemedies` as the
-      table says, each within the root's code shape; the efferent coupling of
-      `NewtonIteration` measured by the dependency check's walk and written into its
-      row; the tests node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
-      unchanged and `KernelEqualityTests` green, and the execution tests node's fast
-      set green on CUDA.
+      (463 tests green, the hash of `Bits.approved.txt` unmoved) and
+      `KernelEqualityTests` green in the same run. Non-degeneracy, applied alone in
+      the worktree and restored: `SpeciesFunctions.RecordHigh` made to return the
+      record's lower bound turned 29 fixture cases' recorded bits red
+      (`BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`), which a node
+      still holding its own copy would not.
+- [x] 2026-09-14 — The Newton loop holds no formula (`## Structure`, the decision of
+      that name): `NewtonIteration`, `DampedStep`, `ConvergenceTests` and
+      `SingularRemedies` as the table says, each within the root's code shape
+      (`NewtonIteration` 65 lines, `Converge` 55; `DampedStep` 98 lines,
+      `ControlFactor` 55, `Apply` 25; `ConvergenceTests` 59 lines, `Evaluate` 15,
+      `Worst` 25; `SingularRemedies` 39 lines, `Recover` 27; nesting at most 3, no
+      method over 6 parameters, against the root's 400/60/3/6). The efferent coupling
+      of the four, measured by the dependency check's walk of 2026-09-14:
+      `NewtonIteration` 17, `DampedStep` 7, `ConvergenceTests` 8, `SingularRemedies` 5
+      (`PhaseGeometry`, unaffected by this split, 3). `NewtonIteration`'s 17 is above
+      the root's limit of 14, so it is named as this node's second composition root in
+      its `## Structure` row above, as the decision foresaw (measured 16 there, on the
+      code before the split; the split itself adds the coupling of naming the four
+      stages it now calls, which the decision's own reasoning already accounted for).
+      The tests node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+      unchanged (`Bits.approved.txt` hash unmoved) and `KernelEqualityTests` green in
+      the same 463-test run; `Performance.Tests` green (699 tests, `SolveFrozen`'s
+      kernel test included); the execution tests node's fast set green on CUDA (41
+      tests, no `APTHERMO_NO_CUDA`).
 
 ## Taboos
 

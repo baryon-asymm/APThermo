@@ -22,13 +22,6 @@ internal static class PhaseGeometry
     /// <summary>Relative tolerance of the effective-range comparisons (BOOT.md).</summary>
     private const double RangeTolerance = 1.0e-9;
 
-    /// <summary>The record's own lower bound: the first interval's lower bound.</summary>
-    public static double RecordLow(in SpeciesTableView table, int j) => table.IntervalBounds[table.IntervalStart[j] * 2];
-
-    /// <summary>The record's own upper bound: the last interval's upper bound.</summary>
-    public static double RecordHigh(in SpeciesTableView table, int j) =>
-        table.IntervalBounds[(table.IntervalStart[j] + table.IntervalCount[j] - 1) * 2 + 1];
-
     /// <summary>True when two species have the same stoichiometry column: two records of one substance.</summary>
     public static bool SameFormula(in SpeciesTableView table, int j, int k)
     {
@@ -83,7 +76,8 @@ internal static class PhaseGeometry
                 continue;
             }
 
-            if (above ? RecordLow(table, k) == RecordHigh(table, j) : RecordHigh(table, k) == RecordLow(table, j))
+            if (above ? SpeciesFunctions.RecordLow(table, k) == SpeciesFunctions.RecordHigh(table, j)
+                      : SpeciesFunctions.RecordHigh(table, k) == SpeciesFunctions.RecordLow(table, j))
             {
                 return k;
             }
@@ -110,14 +104,14 @@ internal static class PhaseGeometry
     public static double EffectiveLow(in SpeciesTableView table, in EquilibriumScratch scratch, int j)
     {
         var below = Adjacent(table, scratch, j, false);
-        return below >= 0 ? Crossing(table, below, j, RecordLow(table, j)) : RecordLow(table, j);
+        return below >= 0 ? Crossing(table, below, j, SpeciesFunctions.RecordLow(table, j)) : SpeciesFunctions.RecordLow(table, j);
     }
 
     /// <summary>The record's upper bound, moved to the crossing when it touches an adjacent record of its formula.</summary>
     public static double EffectiveHigh(in SpeciesTableView table, in EquilibriumScratch scratch, int j)
     {
         var over = Adjacent(table, scratch, j, true);
-        return over >= 0 ? Crossing(table, j, over, RecordHigh(table, j)) : RecordHigh(table, j);
+        return over >= 0 ? Crossing(table, j, over, SpeciesFunctions.RecordHigh(table, j)) : SpeciesFunctions.RecordHigh(table, j);
     }
 
     /// <summary>Whether the temperature lies in the record's effective range, within the relative range tolerance.</summary>
