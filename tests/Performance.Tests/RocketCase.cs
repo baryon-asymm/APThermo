@@ -43,11 +43,14 @@ internal sealed class RocketCase : IDisposable
         _moles.MemSetToZero();
         _stations.MemSetToZero();
 
-        var problem = new RocketProblem(inputs.ChamberPressure, inputs.ReactantEnthalpy, 0.0, inputs.Flow, elements.View,
-                                        exitValues.View.SubView(0, inputs.ExitCount), exitKinds.View.SubView(0, inputs.ExitCount));
+        var problem = new RocketProblem(
+            chamberPressure: inputs.ChamberPressure, reactantEnthalpy: inputs.ReactantEnthalpy, temperatureEstimate: 0.0,
+            flow: inputs.Flow, elementMoles: elements.View,
+            exitValues: exitValues.View.SubView(0, inputs.ExitCount), exitKinds: exitKinds.View.SubView(0, inputs.ExitCount));
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
-        var result = new RocketResult(_stations.View, _moles.View, _multipliers.View, _figures.View, _stationStatus.View,
-                                      _iterations.View, _status.View);
+        var result = new RocketResult(
+            stations: _stations.View, moles: _moles.View, multipliers: _multipliers.View, figures: _figures.View,
+            stationStatus: _stationStatus.View, iterations: _iterations.View, status: _status.View);
         Context = new RocketContext(tableBuffers.View, problem, scratch, result);
     }
 

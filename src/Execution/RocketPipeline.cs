@@ -50,14 +50,19 @@ internal static class RocketPipeline
 
         var plan = ChunkPlan.For(count, buffers.BytesPerCase, options);
         buffers.Allocate(plan.Size);
-        var views = new RocketBatchViews(exits, pressureBuffer.View, enthalpyBuffer.View, estimateBuffer.View, flowBuffer.View, elementBuffer.View,
-                                         exitValueBuffer.View, exitKindBuffer.View, scratchDoubles.View, scratchInts.View, stationBuffer.View,
-                                         molesBuffer.View, multiplierBuffer.View, figureBuffer.View, stationStatusBuffer.View, iterationBuffer.View,
-                                         statusBuffer.View);
+        var views = new RocketBatchViews(
+            exitCount: exits, chamberPressures: pressureBuffer.View, reactantEnthalpies: enthalpyBuffer.View,
+            temperatureEstimates: estimateBuffer.View, flows: flowBuffer.View, elementMoles: elementBuffer.View,
+            exitValues: exitValueBuffer.View, exitKinds: exitKindBuffer.View, scratchDoubles: scratchDoubles.View,
+            scratchInts: scratchInts.View, stations: stationBuffer.View,
+            moles: molesBuffer.View, multipliers: multiplierBuffer.View, figures: figureBuffer.View,
+            stationStatus: stationStatusBuffer.View, iterations: iterationBuffer.View,
+            status: statusBuffer.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
-        return new RocketBatchResult(speciesCount, stations, stationStates, moles, figures,
-                                     stationStatus.Select(code => (CaseStatus)code).ToArray(), iterations,
-                                     status.Select(code => (CaseStatus)code).ToArray(), timer.Timings(), session.Info);
+        return new RocketBatchResult(
+            speciesCount: speciesCount, stationCount: stations, stations: stationStates, moles: moles, figures: figures,
+            stationStatus: stationStatus.Select(code => (CaseStatus)code).ToArray(), iterations: iterations,
+            status: status.Select(code => (CaseStatus)code).ToArray(), timings: timer.Timings(), accelerator: session.Info);
     }
 }

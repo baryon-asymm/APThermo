@@ -508,10 +508,18 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       the same 463-test run; `Performance.Tests` green (699 tests, `SolveFrozen`'s
       kernel test included); the execution tests node's fast set green on CUDA (41
       tests, no `APTHERMO_NO_CUDA`).
-- [ ] Every creation of `EquilibriumScratch` in the tree names its arguments (the
-      decision "The scratch descriptor keeps its constructor"), the protocol tests
-      node's named-construction fact green once it exists; the tests node's bit
-      snapshot unchanged.
+- [x] 2026-09-14 — Every creation of `EquilibriumScratch` in the tree names its
+      arguments (the decision "The scratch descriptor keeps its constructor"), the
+      protocol tests node's named-construction fact green once it exists; the tests
+      node's bit snapshot unchanged. A scan of every `new T(…)` and `T x = new(…)` of
+      the name in `src/` and `tests/` (a script outside the tree) finds the one site, in
+      `EquilibriumScratch.Slice`, every argument named; the build of `Equilibrium` after
+      the change carries the IL of the build before it, method by method, so no
+      argument binds to another parameter; `Equilibrium.Tests` (463) green;
+      `tests/Equilibrium.Tests/Bits.approved.txt` unchanged (blob `65788e23` before and
+      after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

@@ -42,12 +42,16 @@ internal static class EquilibriumPipeline
 
         var plan = ChunkPlan.For(count, buffers.BytesPerCase, options);
         buffers.Allocate(plan.Size);
-        var views = new EquilibriumBatchViews(kindBuffer.View, pressureBuffer.View, temperatureBuffer.View, targetBuffer.View, elementBuffer.View,
-                                              scratchDoubles.View, scratchInts.View, molesBuffer.View, multiplierBuffer.View, stateBuffer.View,
-                                              statusBuffer.View, iterationBuffer.View);
+        var views = new EquilibriumBatchViews(
+            kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
+            elementMoles: elementBuffer.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
+            moles: molesBuffer.View, multipliers: multiplierBuffer.View, states: stateBuffer.View,
+            status: statusBuffer.View, iterations: iterationBuffer.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
-        return new EquilibriumBatchResult(speciesCount, states, moles, status.Select(code => (CaseStatus)code).ToArray(), iterations,
-                                          timer.Timings(), session.Info);
+        return new EquilibriumBatchResult(
+            speciesCount: speciesCount, state: states, moles: moles,
+            status: status.Select(code => (CaseStatus)code).ToArray(), iterations: iterations,
+            timings: timer.Timings(), accelerator: session.Info);
     }
 }

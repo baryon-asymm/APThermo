@@ -290,10 +290,21 @@ Decisions taken with the review of 2026-09-14:
       tests node's fast set green on CUDA on the reference machine: `dotnet test
       tests/Execution.Tests --filter "Category!=LongRunning"`, no `APTHERMO_NO_CUDA`,
       41 tests, 0 failed, 0 skipped.
-- [ ] Every creation of `RocketProblem` and `RocketResult` in the tree names its
-      arguments (the decision "The descriptors keep their constructors"), the protocol
-      tests node's named-construction fact green once it exists; the tests node's bit
-      snapshot unchanged.
+- [x] 2026-09-14 — Every creation of `RocketProblem` and `RocketResult` in the tree
+      names its arguments (the decision "The descriptors keep their constructors"), the
+      protocol tests node's named-construction fact green once it exists; the tests
+      node's bit snapshot unchanged. A scan of every `new T(…)` and `T x = new(…)` in
+      `src/` and `tests/` (a script outside the tree) finds four sites of each of the two
+      types, in `Execution`'s `Kernels`, `Execution.Tests`' `HostSolves` and
+      `Performance.Tests`' `KernelEqualityTests` and `RocketCase`, every argument named;
+      the builds of `Execution`, `Execution.Tests` and `Performance.Tests` after the
+      change carry the IL of the builds before it, method by method, string literals
+      compared by value (one differs: the source path a test embeds at compile time),
+      so no argument binds to another parameter; `Performance.Tests` (699) and the fast
+      set of `Execution.Tests` (41) green; `tests/Performance.Tests/Bits.approved.txt`
+      unchanged (blob `5aa32f2b` before and after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

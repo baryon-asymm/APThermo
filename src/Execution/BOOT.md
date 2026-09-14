@@ -289,12 +289,20 @@ Decisions taken with the review of 2026-09-14:
       never a separate row of `API.md`'s error table by the time this branch started
       (already merged into the one row above it), and the four branches that could
       not fire are gone from `Batches.cs` (`23ccc1d`).
-- [ ] Every creation of the node's four wide constructors names its arguments
-      (`RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult`,
+- [x] 2026-09-14 — Every creation of the node's four wide constructors names its
+      arguments (`RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult`,
       `EquilibriumBatchResult`; the decision "The views structs keep their
       constructors"), the protocol tests node's named-construction fact green once it
       exists; the emitted kernels unchanged, the tests node's fast set green on the CPU
-      accelerator and on CUDA.
+      accelerator and on CUDA. A scan of every `new T(…)` and `T x = new(…)` in `src/`
+      and `tests/` (a script outside the tree) finds the four sites of the node's types,
+      in `RocketPipeline` and `EquilibriumPipeline`, every argument named; the build of
+      `Execution` after the change carries the IL of the build before it, method by
+      method, kernels included, so no argument binds to another parameter; the fast set
+      green with `APTHERMO_NO_CUDA=1` (41 tests on the CPU accelerator) and without it
+      (the same 41 on CUDA). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

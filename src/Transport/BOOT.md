@@ -312,10 +312,20 @@ the node is now `TransportComponents` at 244 lines and the largest method
       were right and the equilibrium heat capacity was 10441.86 against the frozen
       5001.70. `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight`
       keeps the first test from passing because both systems fail.
-- [ ] Every creation of `TransportScratch`, `TransportTableView` and
+- [x] 2026-09-14 — Every creation of `TransportScratch`, `TransportTableView` and
       `TransportTableArrays` in the tree names its arguments (the decision "The scratch
       descriptor stays"), the protocol tests node's named-construction fact green once
-      it exists; the tests node's bit snapshot unchanged.
+      it exists; the tests node's bit snapshot unchanged. A scan of every `new T(…)` and
+      `T x = new(…)` of the three names in `src/` and `tests/` (a script outside the
+      tree) finds four sites, in `Descriptors`, twice in `TransportTable` and in
+      `Transport.Tests`' `StatusTests`, every argument named (the parameter `default`
+      as `@default:`); the builds of `Transport` and `Transport.Tests` after the change
+      carry the IL of the builds before it, method by method, so no argument binds to
+      another parameter; `Transport.Tests` (157) green;
+      `tests/Transport.Tests/Bits.approved.txt` unchanged (blob `3e4000db` before and
+      after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
 
 ## Taboos
 

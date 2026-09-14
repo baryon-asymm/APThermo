@@ -23,7 +23,11 @@ public sealed class InvalidInputTests(CpuFixture fixture)
         using var status = accelerator.Allocate1D(new[] { -1 });
         using var iterations = accelerator.Allocate1D(new[] { -1 });
         using var elements = accelerator.Allocate1D(new[] { 1.0 });
-        var table = new SpeciesTableView(0, 0, 0, default, default, default, default, default, default, default, default);
+        var table = new SpeciesTableView(
+            speciesCount: 0, gasCount: 0, elementCount: 0,
+            molarMass: default, formationEnthalpy: default, stoichiometry: default,
+            intervalStart: default, intervalCount: default,
+            intervalBounds: default, exponents: default, coefficients: default);
         var problem = new EquilibriumProblem(ProblemKind.AssignedTemperaturePressure, 1e5, 3000.0, 0.0, elements.View);
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, 0, 0);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
