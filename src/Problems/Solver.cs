@@ -57,7 +57,7 @@ public sealed class Solver : IDisposable
         var byName = new Dictionary<string, double>(elements.Count, StringComparer.Ordinal);
         for (var i = 0; i < elements.Count; i++)
         {
-            byName[elements[i]] = moles[i] * 1.0e3;
+            byName[elements[i]] = moles[i] * UnitFactors.MolesPerKilomole;
         }
 
         return ElementalMixture.Create(byName, enthalpy, propellant.Omit, propellant.Only);
@@ -74,20 +74,7 @@ public sealed class Solver : IDisposable
     public double MassOf(ElementalMixture mixture)
     {
         ArgumentNullException.ThrowIfNull(mixture);
-        var mass = 0.0;
-        foreach (var (symbol, moles) in mixture.ElementMoles)
-        {
-            try
-            {
-                mass += moles * 1.0e-3 * Database.AtomicWeight(symbol);
-            }
-            catch (KeyNotFoundException inner)
-            {
-                throw new ArgumentException($"element '{symbol}' has no record in the database", inner);
-            }
-        }
-
-        return mass;
+        return MixtureMass.Of(Database, mixture);
     }
 
     public RocketResult Solve(Propellant propellant, RocketProblem problem) => Solve(propellant, [problem])[0];
@@ -388,16 +375,8 @@ public sealed class Solver : IDisposable
     /// declares (BOOT.md), whichever front door it came through. A propellant fails this only when a reactant record's molar mass contradicts
     /// its formula. Returns the mass, which the result reports.
     /// </summary>
-    private double CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index)
-    {
-        var mass = MassOf(mixture);
-        if (Math.Abs(mass - 1.0) > mixture.MassTolerance)
-        {
-            throw new MixtureMassException(propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index, mass, mixture.MassTolerance);
-        }
-
-        return mass;
-    }
+    private double CheckMass(ElementalMixture mixture, Propellant? propellant, string noun, int index) =>
+        MixtureMass.Check(Database, mixture, propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})", index);
 
     private double ValidateEquilibrium(ElementalMixture mixture, EquilibriumProblem problem, int index)
     {
@@ -511,7 +490,7 @@ public sealed class Solver : IDisposable
             }
             else
             {
-                perKilogram[k] = r.AssignedEnthalpy * 1.0e3 / r.MolarMass;
+                perKilogram[k] = r.AssignedEnthalpy * UnitFactors.MolesPerKilomole / r.MolarMass;
             }
         }
 

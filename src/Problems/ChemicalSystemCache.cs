@@ -54,14 +54,7 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
     {
         foreach (var element in elements)
         {
-            try
-            {
-                database.AtomicWeight(element);
-            }
-            catch (KeyNotFoundException inner)
-            {
-                throw new ArgumentException($"element '{element}' has no record in the database", inner);
-            }
+            AtomicWeights.Of(database, element);
         }
 
         var key = string.Join(",", elements) + "|" + string.Join(",", omit.Order(StringComparer.Ordinal)) + "|" + (only is null ? "*" : string.Join(",", only));

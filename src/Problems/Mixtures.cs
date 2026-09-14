@@ -95,7 +95,8 @@ public sealed record ElementalMixture
         var result = new double[elements.Count];
         for (var i = 0; i < elements.Count; i++)
         {
-            result[i] = ElementMoles.TryGetValue(elements[i], out var value) ? value * 1.0e-3 : 0.0;
+            // Multiplying by the reciprocal reproduces the pre-decomposition v * 1.0e-3 bit for bit; see MixtureMass.Of.
+            result[i] = ElementMoles.TryGetValue(elements[i], out var value) ? value * (1.0 / UnitFactors.MolesPerKilomole) : 0.0;
         }
 
         return result;
@@ -143,5 +144,5 @@ public sealed class MixtureMassException : ArgumentException
 
     private static string ReasonFor(double mass, double tolerance) => string.Create(
         CultureInfo.InvariantCulture,
-        $"the composition weighs {mass * 1.0e3:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {tolerance * 100.0:G3} %");
+        $"the composition weighs {mass * UnitFactors.GramsPerKilogram:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {tolerance * 100.0:G3} %");
 }
