@@ -37,8 +37,10 @@ public static class EquilibriumSolver
     private const double PolishTest = 1.0e-11;         // the steps after the report's tests, until the corrections are this small
     private const int MaxPolishSteps = 6;
     private const double DefaultTemperatureEstimate = 3800.0;
-    private const double MinTemperature = 100.0;
-    private const double MaxTemperature = 20000.0;
+    /// <summary>The temperature window of the node: an hp or sp iterate outside it is TemperatureOutOfRange. Shared with the frozen loop.</summary>
+    internal const double MinTemperature = 100.0;
+
+    internal const double MaxTemperature = 20000.0;
     private const double StandardPressure = 1.0e5;    // Pa; the thermodynamic data are for 1 bar
     private const double ResetMoles = 1.0e-6;          // section 3.6: the reset of vanished species on a singular matrix
     private const int MaxSingularResets = 2;
@@ -195,7 +197,7 @@ public static class EquilibriumSolver
             {
                 if (functionsAt != temperature)
                 {
-                    EvaluateFunctions(table, scratch, temperature);
+                    Composition.EvaluateFunctions(table, scratch, temperature);
                     functionsAt = temperature;
                 }
 
@@ -393,7 +395,7 @@ public static class EquilibriumSolver
             // The final iterate: the functions at the final temperature and the retained mole numbers.
             if (functionsAt != temperature)
             {
-                EvaluateFunctions(table, scratch, temperature);
+                Composition.EvaluateFunctions(table, scratch, temperature);
                 functionsAt = temperature;
             }
 
@@ -567,17 +569,15 @@ public static class EquilibriumSolver
     public static void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                    in EquilibriumResult result)
     {
-        var speciesCount = table.SpeciesCount;
-        var gasCount = table.GasCount;
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        if (speciesCount <= 0 || !(problem.Pressure > 0.0))
+        if (table.SpeciesCount <= 0 || !(problem.Pressure > 0.0))
         {
             return;
         }
 
         var sumGas = 0.0;
-        for (var j = 0; j < gasCount; j++)
+        for (var j = 0; j < table.GasCount; j++)
         {
             if (!(result.Moles[j] >= 0.0))
             {
@@ -599,141 +599,26 @@ public static class EquilibriumSolver
             return;
         }
 
-        var logN = Math.Log(sumGas);
+        var state = new IterationState { Temperature = temperature, LogN = Math.Log(sumGas) };
         var logPressure = Math.Log(problem.Pressure / StandardPressure);
-        var iterations = 0;
-        if (!isTp)
+        var status = isTp ? CaseStatus.Ok : FrozenTemperature.Solve(table, problem, scratch, result, logPressure, ref state);
+        if (status != CaseStatus.Ok)
         {
-            var target = problem.Kind == ProblemKind.AssignedEnthalpyPressure
-                ? problem.Target / PhysicalConstants.R       // h0/R, K·kmol/kg
-                : problem.Target / PhysicalConstants.R;      // s0/R, kmol/kg
-            var converged = false;
-            for (var step = 0; step < MaxNewtonSteps; step++)
-            {
-                EvaluateFunctions(table, scratch, temperature);
-                var value = 0.0;
-                var slope = 0.0;    // d(value)/dT
-                for (var j = 0; j < speciesCount; j++)
-                {
-                    var nj = result.Moles[j];
-                    if (nj == 0.0)
-                    {
-                        continue;
-                    }
-
-                    if (problem.Kind == ProblemKind.AssignedEnthalpyPressure)
-                    {
-                        value += nj * scratch.HOverRT[j] * temperature;
-                        slope += nj * scratch.CpOverR[j];
-                    }
-                    else
-                    {
-                        value += j < gasCount
-                            ? nj * (scratch.SOverR[j] - Math.Log(nj) + logN - logPressure)
-                            : nj * scratch.SOverR[j];
-                        slope += nj * scratch.CpOverR[j] / temperature;
-                    }
-                }
-
-                iterations++;
-                var deltaT = -(value - target) / slope;
-                if (Math.Abs(deltaT) > 0.4 * temperature)
-                {
-                    deltaT = 0.4 * temperature * (deltaT > 0.0 ? 1.0 : -1.0);
-                }
-
-                temperature += deltaT;
-                if (!(temperature >= MinTemperature) || !(temperature <= MaxTemperature))
-                {
-                    result.Iterations[0] = iterations;
-                    result.Status[0] = (int)CaseStatus.TemperatureOutOfRange;
-                    return;
-                }
-
-                if (Math.Abs(deltaT) <= FrozenTemperatureTest * temperature)
-                {
-                    converged = true;
-                    break;
-                }
-            }
-
-            if (!converged)
-            {
-                result.Iterations[0] = iterations;
-                result.Status[0] = (int)CaseStatus.NotConverged;
-                return;
-            }
+            result.Iterations[0] = state.Iterations;
+            result.Status[0] = (int)status;
+            return;
         }
 
-        EvaluateFunctions(table, scratch, temperature);
+        // The species functions are wanted at the settled temperature, not at the last one the Newton step tried.
+        Composition.EvaluateFunctions(table, scratch, state.Temperature);
         for (var i = 0; i < table.ElementCount; i++)
         {
             result.Multipliers[i] = 0.0;
         }
 
-        var state = new MixtureState();
-        var n = sumGas;
-        var hOverRT = 0.0;
-        var sOverR = 0.0;
-        var cpOverR = 0.0;
-        var condensedMoles = 0.0;
-        for (var j = 0; j < speciesCount; j++)
-        {
-            var nj = result.Moles[j];
-            if (nj == 0.0)
-            {
-                continue;
-            }
-
-            hOverRT += nj * scratch.HOverRT[j];
-            cpOverR += nj * scratch.CpOverR[j];
-            if (j < gasCount)
-            {
-                sOverR += nj * (scratch.SOverR[j] - Math.Log(nj) + logN - logPressure);
-            }
-            else
-            {
-                sOverR += nj * scratch.SOverR[j];
-                condensedMoles += nj;
-            }
-        }
-
-        var r = PhysicalConstants.R;
-        state.Temperature = temperature;
-        state.Pressure = problem.Pressure;
-        state.MolarMass = 1.0 / n;
-        state.MixtureMolarMass = 1.0 / (n + condensedMoles);
-        state.Density = problem.Pressure / (n * r * temperature);
-        state.Enthalpy = r * temperature * hOverRT;
-        state.InternalEnergy = state.Enthalpy - n * r * temperature;
-        state.Entropy = r * sOverR;
-        state.GibbsEnergy = state.Enthalpy - temperature * state.Entropy;
-        state.CpFrozen = r * cpOverR;
-        state.CvFrozen = state.CpFrozen - n * r;
-        state.CpEquilibrium = state.CpFrozen;
-        state.CvEquilibrium = state.CvFrozen;
-        state.DlnVdlnT = 1.0;
-        state.DlnVdlnP = -1.0;
-        state.GammaS = state.CpFrozen / state.CvFrozen;
-        state.SoundSpeed = Math.Sqrt(n * r * temperature * state.GammaS);
-        state.Velocity = 0.0;
-        state.Mach = 0.0;
-        result.State[0] = state;
-        result.Iterations[0] = iterations;
+        MixtureProperties.WriteFrozen(problem, result, Composition.FrozenSums(table, scratch, result, state, logPressure));
+        result.Iterations[0] = state.Iterations;
         result.Status[0] = (int)CaseStatus.Ok;
-    }
-
-    private static void EvaluateFunctions(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature)
-    {
-        for (var j = 0; j < table.SpeciesCount; j++)
-        {
-            var h = SpeciesFunctions.HOverRT(table, j, temperature);
-            var s = SpeciesFunctions.SOverR(table, j, temperature);
-            scratch.HOverRT[j] = h;
-            scratch.SOverR[j] = s;
-            scratch.CpOverR[j] = SpeciesFunctions.CpOverR(table, j, temperature);
-            scratch.GOverRT[j] = h - s;
-        }
     }
 
     /// <summary>Takes the condensed species at position <paramref name="position"/> out of the solution; returns the new count.</summary>

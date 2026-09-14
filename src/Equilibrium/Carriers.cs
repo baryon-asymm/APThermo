@@ -89,7 +89,7 @@ internal struct MixtureSums
     /// <summary>K.</summary>
     public double Temperature;
 
-    /// <summary>e^LogN: the total-moles unknown of the system, which equals SumGas only at convergence.</summary>
+    /// <summary>e^LogN: the total-moles unknown of the reduced system, equal to SumGas only at convergence; zero in the frozen path, which has no system.</summary>
     public double N;
 
     /// <summary>Σ n_j over the retained gaseous species, kmol per kg.</summary>
