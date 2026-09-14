@@ -291,169 +291,10 @@ public static class TransportSolver
         SetSpeciesProperties.Fits(in inputs, nm, total, ref result);
 
         // The component basis reduced over the columns of the set (row operations act on every column alike).
-        for (var i = 0; i < elementCount; i++)
-        {
-            if (scratch.RowActive[i] == 0)
-            {
-                continue;
-            }
+        ReactionBasis.Reduce(in inputs, nm);
 
-            for (var a = 0; a < nm; a++)
-            {
-                scratch.Basis[i * Stride + a] = species.Stoichiometry[i * speciesCount + scratch.IndexList[a]];
-            }
-        }
-
-        for (var i = 0; i < elementCount; i++)
-        {
-            if (scratch.RowActive[i] == 0 || scratch.Component[i] < 0)
-            {
-                continue;
-            }
-
-            var column = LocalIndex(in inputs, nm, scratch.Component[i]);
-            if (column < 0)
-            {
-                continue;
-            }
-
-            var pivot = scratch.Basis[i * Stride + column];
-            if (pivot == 0.0)
-            {
-                continue;
-            }
-
-            if (pivot != 1.0)
-            {
-                for (var a = 0; a < nm; a++)
-                {
-                    scratch.Basis[i * Stride + a] /= pivot;
-                }
-            }
-
-            for (var k = 0; k < elementCount; k++)
-            {
-                if (k == i || scratch.RowActive[k] == 0)
-                {
-                    continue;
-                }
-
-                var factor = scratch.Basis[k * Stride + column];
-                if (factor == 0.0)
-                {
-                    continue;
-                }
-
-                for (var a = 0; a < nm; a++)
-                {
-                    var value = scratch.Basis[k * Stride + a] - scratch.Basis[i * Stride + a] * factor;
-                    scratch.Basis[k * Stride + a] = Math.Abs(value) < BasisCleaningThreshold ? 0.0 : value;
-                }
-            }
-        }
-
-        // Reactions: every non-component of the set formed from the components.
-        var ncomp = 0;
-        for (var a = 0; a < nm; a++)
-        {
-            scratch.IsComponent[a] = 0;
-        }
-
-        for (var i = 0; i < elementCount; i++)
-        {
-            if (scratch.RowActive[i] == 0 || scratch.Component[i] < 0)
-            {
-                continue;
-            }
-
-            var a = LocalIndex(in inputs, nm, scratch.Component[i]);
-            if (a < 0 || scratch.IsComponent[a] == 1)
-            {
-                continue;
-            }
-
-            scratch.CompLocal[ncomp] = a;
-            scratch.CompRow[ncomp] = i;
-            scratch.IsComponent[a] = 1;
-            ncomp++;
-        }
-
-        var nr = 0;
-        if (ncomp > 0 && ncomp < nm)
-        {
-            for (var a = 0; a < nm; a++)
-            {
-                if (scratch.IsComponent[a] == 1)
-                {
-                    continue;
-                }
-
-                for (var b = 0; b < nm; b++)
-                {
-                    scratch.Alpha[nr * Stride + b] = 0.0;
-                }
-
-                scratch.Alpha[nr * Stride + a] = -1.0;
-                for (var k = 0; k < ncomp; k++)
-                {
-                    scratch.Alpha[nr * Stride + scratch.CompLocal[k]] = scratch.Basis[scratch.CompRow[k] * Stride + a];
-                }
-
-                nr++;
-            }
-        }
-
-        // A trace species leaves the reaction set: eliminated from every reaction through the first one containing it, which is dropped.
-        var traceEliminations = 0;
-        for (var a = 0; a < nm; a++)
-        {
-            if (scratch.Xs[a] >= TraceFraction)
-            {
-                continue;
-            }
-
-            var pivotRow = -1;
-            for (var r = 0; r < nr; r++)
-            {
-                var coefficient = scratch.Alpha[r * Stride + a];
-                if (Math.Abs(coefficient) <= EliminationThreshold)
-                {
-                    continue;
-                }
-
-                if (pivotRow < 0)
-                {
-                    pivotRow = r;
-                    for (var b = 0; b < nm; b++)
-                    {
-                        scratch.Stx[b] = scratch.Alpha[r * Stride + b] / coefficient;
-                    }
-                }
-                else
-                {
-                    for (var b = 0; b < nm; b++)
-                    {
-                        scratch.Alpha[r * Stride + b] = scratch.Alpha[r * Stride + b] / coefficient - scratch.Stx[b];
-                    }
-                }
-            }
-
-            if (pivotRow < 0)
-            {
-                continue;
-            }
-
-            for (var r = pivotRow; r < nr - 1; r++)
-            {
-                for (var b = 0; b < nm; b++)
-                {
-                    scratch.Alpha[r * Stride + b] = scratch.Alpha[(r + 1) * Stride + b];
-                }
-            }
-
-            nr--;
-            traceEliminations++;
-        }
+        // Reactions: every non-component of the set formed from the components, and the trace species taken out of them.
+        var nr = ReactionSet.Build(in inputs, nm, ref result);
 
         // Estimates for species and pairs without data: hard spheres with the reference's collision integral, modified Eucken.
         SetSpeciesProperties.Estimates(in inputs, nm);
@@ -466,8 +307,6 @@ public static class TransportSolver
 
         SetProperties.Fill(in inputs, nm, in mixture, in reaction, ref result);
         result.SpeciesCount = nm;
-        result.ReactionCount = nr;
-        result.TraceEliminations = traceEliminations;
         result.Capped = capped;
         figures[0] = result;
         return reaction.Status;
@@ -563,19 +402,5 @@ public static class TransportSolver
         }
 
         return true;
-    }
-
-    private static int LocalIndex(in StationInputs inputs, int nm, int speciesIndex)
-    {
-        var scratch = inputs.Scratch;
-        for (var a = 0; a < nm; a++)
-        {
-            if (scratch.IndexList[a] == speciesIndex)
-            {
-                return a;
-            }
-        }
-
-        return -1;
     }
 }
