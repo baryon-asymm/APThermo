@@ -5,7 +5,11 @@ using AerospacePropellantThermodynamics.Transport;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
-/// <summary>One station from one slice of the engine's flat result, and the species-name list a result reports (F-PR-11).</summary>
+/// <summary>
+/// What a result station reports, stated once for both runners: its name (<see cref="NameOf"/>, F-PR-11), its transport
+/// status and figures (<see cref="TransportOf"/>, F-PR-08), its compositions by database name from one slice of the
+/// engine's flat result (<see cref="Create"/>), and a result's species-name list (<see cref="SpeciesNames"/>).
+/// </summary>
 internal static class StationFactory
 {
     /// <summary>The names of the stations RocketLayout.FixedStations counts, in order; one entry per fixed station.</summary>
