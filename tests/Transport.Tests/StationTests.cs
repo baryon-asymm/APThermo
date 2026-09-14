@@ -5,7 +5,9 @@ namespace AerospacePropellantThermodynamics.Transport.Tests;
 
 /// <summary>
 /// L1: at every station of every rocket fixture run with transport, the solver evaluated on the reference composition reproduces
-/// the reference's viscosity, conductivities, Prandtl numbers and the gas heat capacity of the transport set within the tolerance table.
+/// the reference's viscosity, conductivities, Prandtl numbers and the gas heat capacity of the transport set within the tolerance
+/// table; and the node's own invariants (the defect at a trace elimination, the reacting conductivity never below the frozen,
+/// the estimated-species bookkeeping) hold beyond what the reference can check.
 /// </summary>
 [Collection(CpuCollection.Name)]
 public sealed class StationTests(CpuFixture fixture)
@@ -20,74 +22,52 @@ public sealed class StationTests(CpuFixture fixture)
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Stations_match_the_reference(string name)
+    public void Station_figures_match_the_reference(string name)
     {
-        var c = TransportHost.LoadRocket(name);
-        var (table, transport) = TransportHost.TablesOf(fixture, c);
-        using var speciesBuffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
-        using var transportBuffers = TransportTableBuffers.Upload(fixture.Accelerator, transport);
-        var stations = TransportHost.StationsWithTransport(c);
+        var stations = TransportHost.EvaluateStations(fixture, TransportHost.LoadRocket(name));
+        Assert.NotEmpty(stations);
+        var mismatches = stations.SelectMany(s => FigureComparison.Mismatches(s, fixture.Tolerances)).ToList();
+        Assert.True(mismatches.Count == 0, $"{name}:\n" + string.Join("\n", mismatches));
+    }
+
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void The_reference_cpFrozen_is_the_transport_set_heat_capacity(string name)
+    {
+        var stations = TransportHost.EvaluateStations(fixture, TransportHost.LoadRocket(name));
         Assert.NotEmpty(stations);
         var mismatches = new List<string>();
-        foreach (var station in stations)
+        foreach (var evaluated in stations.Where(s => s.Evaluation.Status == CaseStatus.Ok))
         {
-            var label = station.GetProperty("station").GetString();
-            var evaluation = TransportHost.Evaluate(fixture.Accelerator, speciesBuffers, transportBuffers,
-                                                    station.GetProperty("temperature").GetDouble(), TransportHost.MolesOf(table, station));
-            if (evaluation.Status != CaseStatus.Ok)
+            var expected = evaluated.Station.GetProperty("cpFrozen").GetDouble();
+            var actual = evaluated.Evaluation.Figures.FrozenHeatCapacity;
+            if (!fixture.Tolerances.Matches("cpFrozen", expected, actual))
             {
-                mismatches.Add($"{label}: status {evaluation.Status}");
-                continue;
-            }
-
-            var figures = evaluation.Figures;
-            var defective = figures.TraceEliminations > 0;
-            foreach (var (field, value) in TransportHost.Figures)
-            {
-                var expected = station.GetProperty(field).GetDouble();
-                var actual = value(figures);
-                if (defective && TransportHost.ReactingFields.Contains(field))
-                {
-                    // The reference keeps the reaction through the trace species (Fixtures BOOT.md): its reacting conductivity is inflated.
-                    if (field == "reactingConductivity" && fixture.Tolerances.Matches(field, expected, actual))
-                    {
-                        mismatches.Add($"{label} {field}: reference {expected:R} agrees with the tree's {actual:R}; the documented defect is gone");
-                    }
-
-                    continue;
-                }
-
-                if (!fixture.Tolerances.Matches(field, expected, actual))
-                {
-                    mismatches.Add($"{label} {field}: reference {expected:R}, tree {actual:R}");
-                }
-            }
-
-            var cpFrozen = station.GetProperty("cpFrozen").GetDouble();
-            if (!fixture.Tolerances.Matches("cpFrozen", cpFrozen, figures.FrozenHeatCapacity))
-            {
-                mismatches.Add($"{label} cpFrozen (transport set): reference {cpFrozen:R}, tree {figures.FrozenHeatCapacity:R}");
-            }
-
-            if (figures.ReactingConductivity < figures.FrozenConductivity)
-            {
-                mismatches.Add($"{label}: reacting conductivity {figures.ReactingConductivity:R} below the frozen {figures.FrozenConductivity:R}");
-            }
-
-            var gas = TransportHost.GasFractionsOf(table, station);
-            var surelyEstimated = transport.SpeciesWithoutData.Any(s => gas.TryGetValue(s, out var x) && x >= SurelySelectedFraction);
-            if (surelyEstimated && figures.EstimatedSpeciesCount == 0)
-            {
-                mismatches.Add($"{label}: a species without data above {SurelySelectedFraction} of the gas, yet nothing was estimated");
-            }
-
-            if (figures.EstimatedSpeciesCount == 0 != (figures.EstimatedMoleFraction == 0.0))
-            {
-                mismatches.Add($"{label}: {figures.EstimatedSpeciesCount} estimated species with mole fraction {figures.EstimatedMoleFraction:R}");
+                mismatches.Add($"{evaluated.Label} cpFrozen (transport set): reference {expected:R}, tree {actual:R}");
             }
         }
 
         Assert.True(mismatches.Count == 0, $"{name}:\n" + string.Join("\n", mismatches));
+    }
+
+    [Fact]
+    public void Reacting_conductivity_is_never_below_the_frozen_one()
+    {
+        var mismatches = new List<string>();
+        foreach (var row in Cases())
+        {
+            var c = TransportHost.LoadRocket((string)row[0]);
+            foreach (var evaluated in TransportHost.EvaluateStations(fixture, c).Where(s => s.Evaluation.Status == CaseStatus.Ok))
+            {
+                var figures = evaluated.Evaluation.Figures;
+                if (figures.ReactingConductivity < figures.FrozenConductivity)
+                {
+                    mismatches.Add($"{evaluated.Label}: reacting conductivity {figures.ReactingConductivity:R} below the frozen {figures.FrozenConductivity:R}");
+                }
+            }
+        }
+
+        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
     }
 
     [Fact]
@@ -98,26 +78,20 @@ public sealed class StationTests(CpuFixture fixture)
         foreach (var row in Cases())
         {
             var c = TransportHost.LoadRocket((string)row[0]);
-            var (table, transport) = TransportHost.TablesOf(fixture, c);
-            using var speciesBuffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
-            using var transportBuffers = TransportTableBuffers.Upload(fixture.Accelerator, transport);
-            foreach (var station in TransportHost.StationsWithTransport(c))
+            foreach (var evaluated in TransportHost.EvaluateStations(fixture, c))
             {
                 stationsSeen++;
-                var evaluation = TransportHost.Evaluate(fixture.Accelerator, speciesBuffers, transportBuffers,
-                                                        station.GetProperty("temperature").GetDouble(), TransportHost.MolesOf(table, station));
-                Assert.Equal(CaseStatus.Ok, evaluation.Status);
-                if (evaluation.Figures.TraceEliminations == 0)
+                Assert.Equal(CaseStatus.Ok, evaluated.Evaluation.Status);
+                if (evaluated.Evaluation.Figures.TraceEliminations == 0)
                 {
                     continue;
                 }
 
-                var label = $"{c.Name} {station.GetProperty("station").GetString()}";
-                defective.Add(label);
-                var reference = station.GetProperty("reactingConductivity").GetDouble();
-                var frozen = station.GetProperty("frozenConductivity").GetDouble();
-                Assert.True(reference > DefectRatio * frozen, $"{label}: the reference's reacting conductivity {reference:R} is not inflated over the frozen {frozen:R}");
-                Assert.True(evaluation.Figures.ReactingConductivity < reference, $"{label}: the tree's {evaluation.Figures.ReactingConductivity:R} is not below the reference");
+                defective.Add(evaluated.Label);
+                var reference = evaluated.Station.GetProperty("reactingConductivity").GetDouble();
+                var frozen = evaluated.Station.GetProperty("frozenConductivity").GetDouble();
+                Assert.True(reference > DefectRatio * frozen, $"{evaluated.Label}: the reference's reacting conductivity {reference:R} is not inflated over the frozen {frozen:R}");
+                Assert.True(evaluated.Evaluation.Figures.ReactingConductivity < reference, $"{evaluated.Label}: the tree's {evaluated.Evaluation.Figures.ReactingConductivity:R} is not below the reference");
             }
         }
 
@@ -138,5 +112,41 @@ public sealed class StationTests(CpuFixture fixture)
         Assert.InRange(evaluation.Figures.EstimatedMoleFraction, 1e-3, 0.1);
         Assert.Equal(TransportLayout.MaxSpecies, evaluation.Figures.SpeciesCount);
         Assert.Equal(1, evaluation.Figures.Capped);
+
+        var mismatches = new List<string>();
+        foreach (var row in Cases())
+        {
+            mismatches.AddRange(EstimationMismatches(TransportHost.LoadRocket((string)row[0])));
+        }
+
+        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
+    }
+
+    /// <summary>
+    /// Every station of one fixture: a species without data carrying <see cref="SurelySelectedFraction"/> or more of the gas
+    /// cannot have been left out of the estimate, and the estimated count and mole fraction must agree on whether anything was
+    /// estimated. The estimated-species consistency check the reference cannot settle (Transport.Tests BOOT.md, F-TK-05).
+    /// </summary>
+    private IReadOnlyList<string> EstimationMismatches(CeaCase c)
+    {
+        var (table, transport) = TransportHost.TablesOf(fixture, c);
+        var mismatches = new List<string>();
+        foreach (var evaluated in TransportHost.EvaluateStations(fixture, c, table, transport).Where(s => s.Evaluation.Status == CaseStatus.Ok))
+        {
+            var figures = evaluated.Evaluation.Figures;
+            var gas = TransportHost.GasFractionsOf(table, evaluated.Station);
+            var surelyEstimated = transport.SpeciesWithoutData.Any(name => gas.TryGetValue(name, out var x) && x >= SurelySelectedFraction);
+            if (surelyEstimated && figures.EstimatedSpeciesCount == 0)
+            {
+                mismatches.Add($"{evaluated.Label}: a species without data above {SurelySelectedFraction} of the gas, yet nothing was estimated");
+            }
+
+            if (figures.EstimatedSpeciesCount == 0 != (figures.EstimatedMoleFraction == 0.0))
+            {
+                mismatches.Add($"{evaluated.Label}: {figures.EstimatedSpeciesCount} estimated species with mole fraction {figures.EstimatedMoleFraction:R}");
+            }
+        }
+
+        return mismatches;
     }
 }

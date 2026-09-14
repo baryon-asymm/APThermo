@@ -59,35 +59,100 @@ dependency went away with it.
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — L0 green: `FitTests` (27 fit fixtures, two theories, plus the SI
-      factors, the species lists and the pair index), `InputTests`.
-- [x] 2026-09-12 — L1 green for every rocket fixture run with transport (39 files,
-      enumerated by `TransportHost.RocketCasesWithTransport`, 172 stations):
-      `StationTests.Stations_match_the_reference`,
+- [x] 2026-09-14 — L0 green: `FitTests` (every transport fit fixture, enumerated by
+      `TransportHost.FitCases`, two theories, plus the SI factors, the species lists
+      and the pair index), `InputTests`. Re-dated from 2026-09-12: the hand-typed "27
+      fit fixtures" left the wording (F-TK-03) — the count had not in fact drifted (27
+      on this date too), but a number beside an already-enumerated list is what drifts
+      silently the next time a fixture is added, so it is gone rather than re-typed.
+- [x] 2026-09-14 — L1 green for every rocket fixture run with transport, enumerated by
+      `TransportHost.RocketCasesWithTransport`:
+      `StationTests.Station_figures_match_the_reference`,
+      `StationTests.The_reference_cpFrozen_is_the_transport_set_heat_capacity`,
+      `StationTests.Reacting_conductivity_is_never_below_the_frozen_one`,
       `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`
       (nine defective stations), `StationTests.Species_without_data_are_estimated_on_the_aluminized_propellant`;
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` (five batches).
+      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` (five batches). Re-dated
+      from 2026-09-12: `Stations_match_the_reference` split into the first three by
+      F-TK-05 (below), and the hand-typed "39 files … 172 stations" left the wording
+      (F-TK-03) — the enumerated directory is the list; on this date it is 39 files
+      and 168 stations, so "172" had already fallen behind before this session.
 - [x] 2026-09-13 — `AbsentElementTests.A_table_with_the_species_of_absent_elements_gives_the_same_bits`
       (three pairs of propellants, the case's stations with transport, every field of
       the figures bit for bit); its mutation, the thresholds counting the table's
       gases, seen red on two of the three pairs (the LOX/RP-1 throat set of 14 species
       against 13, the N2O4/UDMH sets of 21 against 26, every figure).
-- [x] 2026-09-12 — Every check proven non-degenerate once, each mutation applied to a
-      copy and seen red: the viscosity SI factor 1e-6 (67 red in L0 and L1); the fit
-      rule taking the upper fit on a shared bound (26 red in L0); pair data ignored
-      (39 red); the hard-sphere constant 50 → 40 (the two AP/HTPB/Al cases red); A*
-      1.1 → 1.0 (39 red); the trace reaction kept as the reference keeps it (the
-      defect asserted gone); the coverage 0.99 (38 red); the kernel comparison perturbed
-      by one part in 1e15 (5 red); the table-mismatch check removed (1 red); the set's
-      heat capacity ×1.001 (39 red); a species without data not listed (1 red); the pair
-      index not symmetric (39 red); the ψ constant 2.41 → 2.4 (16 red); the estimated
-      pair viscosity ×1.01 (39 red). One mutation stays green: the set limit 40 → 50
-      changes the AP/HTPB/Al chamber and throat below 1e-6 relative, under the 5e-4 of
-      the tolerance table; the limit is the reference's number and is not a claim the
-      fixtures can prove.
+- [x] 2026-09-14 — Every check proven non-degenerate once, each mutation applied to a
+      copy, run alone and reverted; re-run on this date against the tests as split by
+      F-TK-05 (below), each landing on the test that names the fact it breaks
+      (superseding the 2026-09-12 record, which named only the levels L0/L1 and
+      predates the Bits level, so a mutation that changes a station's bits now also
+      reddens `BitSnapshotTests`, counted below alongside the reference comparison it
+      used to be reported with alone):
+      the viscosity SI factor 1e-7 → 1e-6 (`FitTests.Constant_terms_carry_the_si_factors`,
+      27× `Fit_values_match_the_independent_evaluation`, `BitSnapshotTests`, 39×
+      `Station_figures_match_the_reference`: 68 red, was "67 red in L0 and L1");
+      the fit rule taking the upper fit on a shared bound (26×
+      `Fit_values_match_the_independent_evaluation`: 26 red, unchanged — the tie-break
+      is exercised only by the fit fixtures, so the split does not touch it);
+      pair data ignored (`BitSnapshotTests`, 39× `Station_figures_match_the_reference`:
+      40 red, was "39 red");
+      the hard-sphere constant 50 → 40 (`BitSnapshotTests`, the two AP/HTPB/Al rows of
+      `Station_figures_match_the_reference`: 3 red, was "the two AP/HTPB/Al cases red");
+      A* 1.1 → 1.0 (`BitSnapshotTests`, 39× `Station_figures_match_the_reference`: 40 red,
+      was "39 red");
+      the trace reaction kept and only its pairs dropped, as cea 3.3.4's own no-op
+      keeps it (`BitSnapshotTests`, the six LOX/LH2 defective rows of
+      `Station_figures_match_the_reference` — `FigureComparison`'s "the documented
+      defect is gone" message — and `The_trace_component_stations_carry_the_documented_reference_defect`:
+      8 red; see the ⚠ below on the mutation actually run);
+      the coverage 0.999999999 → 0.99 (`BitSnapshotTests`,
+      `Species_without_data_are_estimated_on_the_aluminized_propellant`, 39×
+      `Station_figures_match_the_reference`, 25× `The_reference_cpFrozen_is_the_transport_set_heat_capacity`:
+      66 red, was "38 red" against the L1 of 2026-09-12, before either the Bits level
+      or the cpFrozen split existed to name the rest);
+      the kernel comparison perturbed by one part in 1e15
+      (`KernelEqualityTests.Kernel_and_host_give_the_same_bits`: 5 red, not re-run this
+      session — the mutation and its test are both untouched by the F-TK-05 split);
+      the table-mismatch check removed
+      (`InputTests.A_transport_table_of_another_species_table_is_invalid_input`: 1 red,
+      unchanged);
+      the set's heat capacity ×1.001 (`BitSnapshotTests`, 39×
+      `Station_figures_match_the_reference`, 39×
+      `The_reference_cpFrozen_is_the_transport_set_heat_capacity`: 79 red, was "39 red"
+      before the cpFrozen fact had its own test);
+      a species without data not listed
+      (`FitTests.Species_without_an_entry_have_no_fits_and_are_listed`: 1 red, unchanged);
+      the pair index not symmetric (`BitSnapshotTests`,
+      `FitTests.Pairs_are_those_of_the_database_with_both_species_gaseous_in_the_table`,
+      38× `Station_figures_match_the_reference`: 40 red, was "39 red" for the station
+      count alone);
+      the ψ constant 2.41 → 2.4 (`BitSnapshotTests`, 16×
+      `Station_figures_match_the_reference`: 17 red, was "16 red");
+      the estimated pair viscosity ×1.01 (`BitSnapshotTests`, 39×
+      `Station_figures_match_the_reference`: 40 red, was "39 red").
+      One mutation stays green on every reference comparison and reddens only the
+      tripwire: the set limit 40 → 50 changes the AP/HTPB/Al chamber and throat below
+      1e-6 relative, under the 5e-4 of the tolerance table, so every L0/L1 test
+      (`Station_figures_match_the_reference` included) stays green, exactly as in
+      2026-09-12 — but `BitSnapshotTests` is exact, not toleranced, and now catches the
+      same change (1 red), which is what the Bits level's own criterion says it is for;
+      the limit itself is the reference's number and not a claim the fixtures can prove.
 
       ⚠ 2026-09-12: the criterion named "the exclusion threshold changed in a copy":
       there is no exclusion (Transport `BOOT.md`); the estimate's constants are mutated instead.
+      ⚠ 2026-09-14: "the trace reaction kept" was first tried as "never eliminate any
+      species" (the trace-fraction guard replaced by a literal `true`). Two problems:
+      the compiler folds the literal and reports the rest of the loop body unreachable
+      (CS0162, an error under this tree's warnings-as-errors), and, worked around with
+      a runtime-true condition instead, it also disabled the `TraceEliminations` count
+      itself, reddening `The_trace_component_stations_carry_the_documented_reference_defect`
+      for losing its candidate stations rather than for the figures the criterion
+      names. The mutation actually run drops only the pivot row's removal
+      (`DropRow`/`nr--` in `ReactionSet.EliminateTraces`, keeping `traceEliminations++`):
+      the reaction through the trace species stays in the active set exactly as
+      cea 3.3.4 leaves it, while `ReactionTerms`' own trace check still drops that
+      species from the pair sums — the report's mechanism, not a stand-in for it.
 - [x] 2026-09-14 — Bits level green:
       `BitSnapshotTests.Every_fixture_with_transport_gives_the_recorded_bits` over the
       enumerated rocket fixtures with transport (the enumeration of `StationTests`,
@@ -114,19 +179,43 @@ dependency went away with it.
       construction to its purpose: with a mass for the third species both systems are
       solved and both contributions are positive, so the first test cannot pass by
       failing everything.
-- [ ] The station comparison is one type and the facts are one test each
-      (2026-09-14, the test review's F-TK-05): `FigureComparison` turns one station's
-      figures into the list of mismatches (the Transport counterpart of the sibling
-      nodes' comparison types), and `Stations_match_the_reference` becomes
+- [x] 2026-09-14 — The station comparison is one type and the facts are one test each
+      (the test review's F-TK-05): `FigureComparison` turns one station's figures into
+      the list of mismatches (the Transport counterpart of the sibling nodes'
+      comparison types), and `Stations_match_the_reference` became
       `Station_figures_match_the_reference`,
       `The_reference_cpFrozen_is_the_transport_set_heat_capacity` and
-      `Reacting_conductivity_is_never_below_the_frozen_one`, the estimated-species
-      consistency joining `Species_without_data_are_estimated_on_the_aluminized_propellant`;
-      no method over 60 lines or nested deeper than 3; the mutations above re-run and
-      each landing on the test that names its fact. The scratch-layout test of
-      `InputTests` proves the slices fit and do not overlap instead of restating the
-      formula (F-TK-13). The hand-typed counts of files and stations leave the
-      criteria above; the enumerated directory is the list.
+      `Reacting_conductivity_is_never_below_the_frozen_one`. The estimated-species
+      consistency joined `Species_without_data_are_estimated_on_the_aluminized_propellant`:
+      both the count/fraction cross-check the 2026-09-12 review counted as the fifth
+      fact, and the "a species above the surely-selected fraction must have been
+      estimated" check it did not name separately (F-TK-05's own measurement lists
+      five facts for a method that read six); neither is dropped, and both are
+      generalised from the one aluminized-propellant station to every station of every
+      fixture, so the split loses no coverage the monolithic test had. No method over
+      60 lines or nested deeper than 3 — measured by `inventory.py` over the node:
+      the longest method is still `FitTests.Fit_values_match_the_independent_evaluation`
+      at 48 lines (unchanged by this step); the new or changed ones are
+      `FigureComparison.Mismatches` 21, `StationTests.EstimationMismatches` 22,
+      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`
+      27 (nesting 3, `foreach` case → `foreach` station → `if` trace-eliminated),
+      `InputTests.Scratch_layout_slices_the_declared_sizes` 23 and its helper
+      `AssertTilesTheBuffer` 18 (nesting 2). The mutations criterion above is re-run
+      against the split, each mutation landing on the test that names the fact it
+      breaks. The scratch-layout test of `InputTests` proves the slices fit and do not
+      overlap instead of restating the formula (F-TK-13): it writes 0, 1, 2, … across
+      the slices in the order `TransportScratch.Slice` constructs them and reads the
+      raw buffer back — the identity sequence comes back only when the slices are
+      contiguous and do not overlap — rather than retyping `TransportLayout`'s
+      `4·M² + E·M + 8·M`. The hand-typed counts of files and stations left the two
+      criteria above (F-TK-03); the enumerated directories
+      (`TransportHost.FitCases`, `TransportHost.RocketCasesWithTransport`) are the
+      lists. F-TK-10 (unnamed tolerance literals): checked and already satisfied —
+      `DefectRatio` and `SurelySelectedFraction` are named constants with an origin
+      comment, and no self-consistency tolerance (the `1e-9`/`1e-12` pattern F-TK-10
+      found in the three sibling nodes) occurs anywhere in this node; the Invariants
+      above already record that the node owns such tolerances. No code changed for
+      F-TK-10 here.
 
 ## Taboos
 
