@@ -153,6 +153,15 @@ creation names its arguments; it passes them by position today (the criterion be
       `named-construction-scan.py . BatchViews` (one site, fully named); the node's
       bit snapshot unchanged (`Bits.approved.txt` hash `65788e23f4390305763c80ab1f66b2054ff1907a`,
       the fast suite 463/463 green).
+- [x] 2026-09-15 — `HostSolution` (`HostSolver.cs`) restructured from 7 to 3
+      parameters, within the root's limit, along the domain axis of input against
+      converged output: `Moles`, `Multipliers`, `State`, `Status` and `Iterations`
+      moved into a new `Convergence` record (5 parameters, also within the limit),
+      read back through forwarding properties (`HostSolution.Moles` and the rest) so
+      every existing read call site is unchanged; only the one construction site, in
+      `HostSolver.Run`, changed. Not a declared exception: no row added to
+      `## Shape exceptions`. 463/463 tests green, `Bits.approved.txt` hash unchanged
+      (`65788e23f4390305763c80ab1f66b2054ff1907a`).
 
 ## Taboos
 
