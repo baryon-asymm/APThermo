@@ -48,6 +48,11 @@ public sealed class Engine : IDisposable
             throw new ArgumentException("the chunk size must be positive", nameof(options));
         }
 
+        if (options.ScratchBytes <= 0)
+        {
+            throw new ArgumentException("the scratch bound must be positive", nameof(options));
+        }
+
         LibDevicePostLink.AssertIlgpu();
         if (options.Accelerator == AcceleratorKind.Cpu)
         {
@@ -158,7 +163,7 @@ public sealed class Engine : IDisposable
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
         var count = batch.Count;
-        var timer = new Timer();
+        var timer = new RunTimer();
         var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, EquilibriumBatchViews>>(nameof(Kernels.Equilibrium), timer);
         var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
@@ -189,27 +194,30 @@ public sealed class Engine : IDisposable
         for (var offset = 0; offset < count; offset += chunk)
         {
             var n = Math.Min(chunk, count - offset);
-            timer.Start();
-            Upload(kindBuffer, kinds, offset, n);
-            Upload(pressureBuffer, batch.Pressure, offset, n);
-            Upload(temperatureBuffer, batch.Temperature, offset, n);
-            Upload(targetBuffer, batch.Target, offset, n);
-            Upload(elementBuffer, batch.ElementMoles, (long)offset * elementCount, (long)n * elementCount);
-            molesBuffer.MemSetToZero();
-            stateBuffer.MemSetToZero();
-            timer.Stop(ref timer.Upload);
+            using (timer.Uploading())
+            {
+                Upload(kindBuffer, kinds, offset, n);
+                Upload(pressureBuffer, batch.Pressure, offset, n);
+                Upload(temperatureBuffer, batch.Temperature, offset, n);
+                Upload(targetBuffer, batch.Target, offset, n);
+                Upload(elementBuffer, batch.ElementMoles, (long)offset * elementCount, (long)n * elementCount);
+                molesBuffer.MemSetToZero();
+                stateBuffer.MemSetToZero();
+            }
 
-            timer.Start();
-            launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-            _accelerator.Synchronize();
-            timer.Stop(ref timer.Kernel);
+            using (timer.Launching())
+            {
+                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+                _accelerator.Synchronize();
+            }
 
-            timer.Start();
-            Download(stateBuffer, states, offset, n);
-            Download(molesBuffer, moles, (long)offset * speciesCount, (long)n * speciesCount);
-            Download(statusBuffer, status, offset, n);
-            Download(iterationBuffer, iterations, offset, n);
-            timer.Stop(ref timer.Download);
+            using (timer.Downloading())
+            {
+                Download(stateBuffer, states, offset, n);
+                Download(molesBuffer, moles, (long)offset * speciesCount, (long)n * speciesCount);
+                Download(statusBuffer, status, offset, n);
+                Download(iterationBuffer, iterations, offset, n);
+            }
         }
 
         return new EquilibriumBatchResult(speciesCount, states, moles, status.Select(s => (CaseStatus)s).ToArray(), iterations, timer.Timings(), Accelerator);
@@ -229,7 +237,7 @@ public sealed class Engine : IDisposable
         var count = batch.Count;
         var exits = batch.Exits;
         var stationCount = batch.StationCount;
-        var timer = new Timer();
+        var timer = new RunTimer();
         var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, RocketBatchViews>>(nameof(Kernels.Rocket), timer);
         var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
@@ -273,35 +281,38 @@ public sealed class Engine : IDisposable
         for (var offset = 0; offset < count; offset += chunk)
         {
             var n = Math.Min(chunk, count - offset);
-            timer.Start();
-            Upload(pressureBuffer, batch.ChamberPressure, offset, n);
-            Upload(enthalpyBuffer, batch.ReactantEnthalpy, offset, n);
-            Upload(estimateBuffer, batch.TemperatureEstimate, offset, n);
-            Upload(flowBuffer, flows, offset, n);
-            Upload(elementBuffer, batch.ElementMoles, (long)offset * elementCount, (long)n * elementCount);
-            if (exits > 0)
+            using (timer.Uploading())
             {
-                Upload(exitValueBuffer, batch.ExitValues, (long)offset * exits, (long)n * exits);
+                Upload(pressureBuffer, batch.ChamberPressure, offset, n);
+                Upload(enthalpyBuffer, batch.ReactantEnthalpy, offset, n);
+                Upload(estimateBuffer, batch.TemperatureEstimate, offset, n);
+                Upload(flowBuffer, flows, offset, n);
+                Upload(elementBuffer, batch.ElementMoles, (long)offset * elementCount, (long)n * elementCount);
+                if (exits > 0)
+                {
+                    Upload(exitValueBuffer, batch.ExitValues, (long)offset * exits, (long)n * exits);
+                }
+
+                molesBuffer.MemSetToZero();
+                stationBuffer.MemSetToZero();
+                figureBuffer.MemSetToZero();
             }
 
-            molesBuffer.MemSetToZero();
-            stationBuffer.MemSetToZero();
-            figureBuffer.MemSetToZero();
-            timer.Stop(ref timer.Upload);
+            using (timer.Launching())
+            {
+                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+                _accelerator.Synchronize();
+            }
 
-            timer.Start();
-            launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-            _accelerator.Synchronize();
-            timer.Stop(ref timer.Kernel);
-
-            timer.Start();
-            Download(stationBuffer, stations, (long)offset * stationCount, (long)n * stationCount);
-            Download(molesBuffer, moles, (long)offset * stationCount * speciesCount, (long)n * stationCount * speciesCount);
-            Download(figureBuffer, figures, (long)offset * stationCount, (long)n * stationCount);
-            Download(stationStatusBuffer, stationStatus, (long)offset * stationCount, (long)n * stationCount);
-            Download(iterationBuffer, iterations, (long)offset * stationCount, (long)n * stationCount);
-            Download(statusBuffer, status, offset, n);
-            timer.Stop(ref timer.Download);
+            using (timer.Downloading())
+            {
+                Download(stationBuffer, stations, (long)offset * stationCount, (long)n * stationCount);
+                Download(molesBuffer, moles, (long)offset * stationCount * speciesCount, (long)n * stationCount * speciesCount);
+                Download(figureBuffer, figures, (long)offset * stationCount, (long)n * stationCount);
+                Download(stationStatusBuffer, stationStatus, (long)offset * stationCount, (long)n * stationCount);
+                Download(iterationBuffer, iterations, (long)offset * stationCount, (long)n * stationCount);
+                Download(statusBuffer, status, offset, n);
+            }
         }
 
         return new RocketBatchResult(speciesCount, stationCount, stations, moles, figures,
@@ -322,7 +333,7 @@ public sealed class Engine : IDisposable
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
         var count = batch.Count;
-        var timer = new Timer();
+        var timer = new RunTimer();
         var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, TransportTableView, TransportBatchViews>>(nameof(Kernels.Transport), timer);
         var doublesPerCase = TransportLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = TransportLayout.IntsPerCase(speciesCount, elementCount);
@@ -341,20 +352,23 @@ public sealed class Engine : IDisposable
         for (var offset = 0; offset < count; offset += chunk)
         {
             var n = Math.Min(chunk, count - offset);
-            timer.Start();
-            Upload(temperatureBuffer, batch.Temperature, offset, n);
-            Upload(molesBuffer, batch.Moles, (long)offset * speciesCount, (long)n * speciesCount);
-            timer.Stop(ref timer.Upload);
+            using (timer.Uploading())
+            {
+                Upload(temperatureBuffer, batch.Temperature, offset, n);
+                Upload(molesBuffer, batch.Moles, (long)offset * speciesCount, (long)n * speciesCount);
+            }
 
-            timer.Start();
-            launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, transportBuffers.View, views);
-            _accelerator.Synchronize();
-            timer.Stop(ref timer.Kernel);
+            using (timer.Launching())
+            {
+                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, transportBuffers.View, views);
+                _accelerator.Synchronize();
+            }
 
-            timer.Start();
-            Download(figureBuffer, figures, offset, n);
-            Download(statusBuffer, status, offset, n);
-            timer.Stop(ref timer.Download);
+            using (timer.Downloading())
+            {
+                Download(figureBuffer, figures, offset, n);
+                Download(statusBuffer, status, offset, n);
+            }
         }
 
         return new TransportBatchResult(figures, status.Select(s => (CaseStatus)s).ToArray(), timer.Timings(), Accelerator);
@@ -370,7 +384,7 @@ public sealed class Engine : IDisposable
         var table = tables.Species;
         batch.Validate(table.SpeciesCount);
         var count = batch.Count;
-        var timer = new Timer();
+        var timer = new RunTimer();
         var launch = LoadKernel<Action<AcceleratorStream, Index1D, SpeciesTableView, SpeciesFunctionBatchViews>>(nameof(Kernels.Functions), timer);
         var chunk = ChunkSize(count, 3, 2);
 
@@ -389,22 +403,25 @@ public sealed class Engine : IDisposable
         for (var offset = 0; offset < count; offset += chunk)
         {
             var n = Math.Min(chunk, count - offset);
-            timer.Start();
-            Upload(speciesBuffer, batch.Species, offset, n);
-            Upload(temperatureBuffer, batch.Temperature, offset, n);
-            timer.Stop(ref timer.Upload);
+            using (timer.Uploading())
+            {
+                Upload(speciesBuffer, batch.Species, offset, n);
+                Upload(temperatureBuffer, batch.Temperature, offset, n);
+            }
 
-            timer.Start();
-            launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-            _accelerator.Synchronize();
-            timer.Stop(ref timer.Kernel);
+            using (timer.Launching())
+            {
+                launch(_accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
+                _accelerator.Synchronize();
+            }
 
-            timer.Start();
-            Download(cpBuffer, cpOverR, offset, n);
-            Download(hBuffer, hOverRT, offset, n);
-            Download(sBuffer, sOverR, offset, n);
-            Download(rangeBuffer, inRange, offset, n);
-            timer.Stop(ref timer.Download);
+            using (timer.Downloading())
+            {
+                Download(cpBuffer, cpOverR, offset, n);
+                Download(hBuffer, hOverRT, offset, n);
+                Download(sBuffer, sOverR, offset, n);
+                Download(rangeBuffer, inRange, offset, n);
+            }
         }
 
         return new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, inRange.Select(r => r != 0).ToArray(), timer.Timings(), Accelerator);
@@ -420,7 +437,7 @@ public sealed class Engine : IDisposable
             return [];
         }
 
-        var timer = new Timer();
+        var timer = new RunTimer();
         var launch = LoadKernel<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), timer);
         using var inputBuffer = _accelerator.Allocate1D(inputs);
         using var outputBuffer = _accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
@@ -445,15 +462,11 @@ public sealed class Engine : IDisposable
 
     internal Accelerator IlgpuAccelerator => _accelerator;
 
-    /// <summary>The largest number of cases per launch: the option's chunk size, bounded by the scratch memory the option allows.</summary>
-    internal int ChunkSize(int count, long doublesPerCase, long intsPerCase)
-    {
-        var bytesPerCase = doublesPerCase * sizeof(double) + intsPerCase * sizeof(int);
-        var byMemory = Math.Max(1L, _options.ScratchBytes / Math.Max(1L, bytesPerCase));
-        return (int)Math.Min(count, Math.Min(_options.ChunkSize, byMemory));
-    }
+    /// <summary>The largest number of cases per launch, by the one rule of <see cref="ChunkPlan"/>.</summary>
+    private int ChunkSize(int count, long doublesPerCase, long intsPerCase) =>
+        ChunkPlan.For(count, doublesPerCase * sizeof(double) + intsPerCase * sizeof(int), _options).Size;
 
-    private TDelegate LoadKernel<TDelegate>(string name, Timer timer) where TDelegate : Delegate
+    private TDelegate LoadKernel<TDelegate>(string name, RunTimer timer) where TDelegate : Delegate
     {
         lock (_gate)
         {
@@ -480,7 +493,7 @@ public sealed class Engine : IDisposable
 
             var launcher = kernel.CreateLauncherDelegate<TDelegate>();
             _kernels[name] = launcher;
-            timer.WarmUp += watch.Elapsed;
+            timer.AddWarmUp(watch.Elapsed);
             return launcher;
         }
     }
@@ -502,26 +515,6 @@ public sealed class Engine : IDisposable
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
-
-    /// <summary>Accumulates the timings of one run.</summary>
-    private sealed class Timer
-    {
-        public TimeSpan WarmUp;
-        public TimeSpan Upload;
-        public TimeSpan Kernel;
-        public TimeSpan Download;
-        private readonly Stopwatch _watch = new();
-
-        public void Start() => _watch.Restart();
-
-        public void Stop(ref TimeSpan total)
-        {
-            _watch.Stop();
-            total += _watch.Elapsed;
-        }
-
-        public RunTimings Timings() => new(WarmUp, Upload, Kernel, Download);
-    }
 }
 
 /// <summary>Device copies of the tables, owned by the engine that uploaded them.</summary>
