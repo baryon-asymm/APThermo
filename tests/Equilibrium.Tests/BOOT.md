@@ -9,7 +9,7 @@ The definition of what "`Equilibrium` is ready" means.
 | L0 | the internal dense solver on small systems; element conservation of a converged result; status codes on invalid input; the absent-element mask | analytic solutions; the invariant's tolerance; a table without the element | ✅ |
 | L1 | tp, hp and sp solves for the fixture mixtures: composition, temperature, `M`, `MW`, `Cp_eq`, `γ_s`, sound speed; condensed species inclusion (AP/binder/aluminium, RP-1311 example 14); frozen mode | the fixtures node's reference outputs and its tolerance table; the frozen stations of the reference rocket cases | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
-| Bits | the host solve of every tp, hp and sp fixture case gives the recorded bits: one line per case in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the moles, the multipliers, every field of the state, the status and the iteration count, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ⏳ |
+| Bits | the host solve of every tp, hp and sp fixture case gives the recorded bits: one line per case in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the moles, the multipliers, every field of the state, the status and the iteration count, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -78,12 +78,23 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       kernel given a different estimate flag (8 red); the conservation invariant
       tightened to `1e-20` (106 red); a frozen-station reference temperature raised by
       1 K (1 red); negative abundances accepted by the solver (1 red).
-- [ ] Bits level green: `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
-      over the enumerated tp, hp and sp directories against `Bits.approved.txt`,
-      recorded at `8e36a27` before any code of the decomposition moved, and
-      unchanged after it; seen red once by a solver constant perturbed in the last
-      digit (every case red) and by a fixture file absent from the snapshot (that
-      case red with the instruction to approve).
+- [x] 2026-09-14 — Bits level green:
+      `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over the
+      enumerated tp, hp and sp directories against `Bits.approved.txt`, recorded from
+      the code of `8e36a27` before any code of the decomposition moved (one line per
+      enumerated fixture file, the directories being the list). Seen red twice, each
+      mutation applied alone and restored: the solver's `StandardPressure` perturbed
+      by one ULP (`1.0e5` → `100000.00000000001`), which reported 22 cases with moved
+      hashes; and one line deleted from the approved file, which reported that case
+      with the instruction to approve.
+
+      ⚠ 2026-09-14: this criterion was written the same day predicting "every case
+      red" for the perturbed constant. Wrong: the Newton iteration polishes until its
+      corrections fall below `1e-11` and its fixed point absorbs a last-ULP change of
+      an input in 93 of the 115 cases — a one-ULP shift of `ln(p/p°)` is below the
+      rounding of the sums it enters. The 22 that did move are what makes the check
+      non-degenerate; the figure is recorded rather than the quantifier
+      (`AGENTS.md` §8: an absolute word needs proof or a caveat).
 
 ## Taboos
 
