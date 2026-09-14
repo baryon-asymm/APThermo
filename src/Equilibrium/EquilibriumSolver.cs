@@ -208,12 +208,7 @@ public static class EquilibriumSolver
                     sumGas += result.Moles[j];
                 }
 
-                var n = Math.Exp(logN);
-                var unknowns = elementCount + condensedCount + 1 + (isTp ? 0 : 1);
-                var nRow = elementCount + condensedCount;
-                var tRow = nRow + 1;
-                var hOverRT = 0.0;
-                var sOverR = 0.0;
+                var sums = new MixtureSums { LogN = logN, LogPressure = logPressure, Temperature = temperature, N = Math.Exp(logN), SumGas = sumGas };
                 for (var j = 0; j < speciesCount; j++)
                 {
                     var nj = result.Moles[j];
@@ -222,16 +217,21 @@ public static class EquilibriumSolver
                         continue;
                     }
 
-                    hOverRT += nj * scratch.HOverRT[j];
-                    sOverR += j < gasCount
+                    sums.HOverRT += nj * scratch.HOverRT[j];
+                    sums.SOverR += j < gasCount
                         ? nj * (scratch.SOverR[j] - scratch.LogMoles[j] + logN - logPressure)
                         : nj * scratch.SOverR[j];
+                    sums.CpOverR += nj * scratch.CpOverR[j];
+                    if (j >= gasCount)
+                    {
+                        sums.CondensedMoles += nj;
+                    }
                 }
 
-                Assemble(table, problem, scratch, result, unknowns, unknownStride, condensedCount, isTp, isHp,
-                         logN, logPressure, sumGas, n, hOverRT, sOverR, temperature);
+                var layout = new SystemLayout(problem.Kind, elementCount, condensedCount, unknownStride);
+                IterationMatrix.Assemble(table, problem, scratch, result, layout, sums);
 
-                var solved = DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, unknowns, unknownStride);
+                var solved = DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride);
                 if (!solved)
                 {
                     // Section 3.6: reset the vanished gaseous species, then drop the last condensed species, then give up.
@@ -270,8 +270,8 @@ public static class EquilibriumSolver
                     result.Multipliers[i] = scratch.RightHandSide[i];
                 }
 
-                var deltaLogN = scratch.RightHandSide[nRow];
-                var deltaLogT = isTp ? 0.0 : scratch.RightHandSide[tRow];
+                var deltaLogN = scratch.RightHandSide[layout.NRow];
+                var deltaLogT = isTp ? 0.0 : scratch.RightHandSide[layout.TRow];
 
                 // Corrections of the gaseous species, equation (2.18), and the control factor λ, equations (3.1)–(3.3).
                 var largest = Math.Max(5.0 * Math.Abs(deltaLogT), 5.0 * Math.Abs(deltaLogN));
@@ -350,7 +350,7 @@ public static class EquilibriumSolver
                     total += result.Moles[scratch.CondensedInSolution[c]];
                 }
 
-                var worst = n * Math.Abs(deltaLogN) / total;
+                var worst = sums.N * Math.Abs(deltaLogN) / total;
                 for (var j = 0; j < gasCount; j++)
                 {
                     if (result.Moles[j] > 0.0)
@@ -799,132 +799,6 @@ public static class EquilibriumSolver
         }
 
         return false;
-    }
-
-    /// <summary>Fills the reduced iteration matrix (RP-1311 table 2.1) and its right-hand side for the current estimate.</summary>
-    private static void Assemble(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                 in EquilibriumResult result, int unknowns, int stride, int condensedCount, bool isTp, bool isHp,
-                                 double logN, double logPressure, double sumGas, double n, double hOverRT, double sOverR, double temperature)
-    {
-        var speciesCount = table.SpeciesCount;
-        var gasCount = table.GasCount;
-        var elementCount = table.ElementCount;
-        var nRow = elementCount + condensedCount;
-        var tRow = nRow + 1;
-        for (var k = 0; k < unknowns * stride; k++)
-        {
-            scratch.Matrix[k] = 0.0;
-        }
-
-        for (var k = 0; k < unknowns; k++)
-        {
-            scratch.RightHandSide[k] = 0.0;
-        }
-
-        // Contributions of the gaseous species, accumulated species by species.
-        for (var j = 0; j < gasCount; j++)
-        {
-            var nj = result.Moles[j];
-            if (nj == 0.0)
-            {
-                continue;
-            }
-
-            var h = scratch.HOverRT[j];
-            var s = scratch.SOverR[j];
-            var mu = scratch.GOverRT[j] + scratch.LogMoles[j] - logN + logPressure;
-            // The entropy row weighs a gaseous species by its entropy in the mixture, mixing terms included.
-            var tWeight = isTp ? 0.0 : (isHp ? h : s - (scratch.LogMoles[j] - logN) - logPressure);
-            for (var k = 0; k < elementCount; k++)
-            {
-                var akj = table.Stoichiometry[k * speciesCount + j];
-                if (akj == 0.0)
-                {
-                    continue;
-                }
-
-                var akjn = akj * nj;
-                for (var i = 0; i < elementCount; i++)
-                {
-                    scratch.Matrix[k * stride + i] += akjn * table.Stoichiometry[i * speciesCount + j];
-                }
-
-                scratch.Matrix[k * stride + nRow] += akjn;
-                scratch.RightHandSide[k] += akjn * mu;
-                if (!isTp)
-                {
-                    scratch.Matrix[k * stride + tRow] += akjn * h;
-                    scratch.Matrix[tRow * stride + k] += akjn * tWeight;
-                }
-            }
-
-            scratch.RightHandSide[nRow] += nj * mu;
-            if (!isTp)
-            {
-                scratch.Matrix[nRow * stride + tRow] += nj * h;
-                scratch.Matrix[tRow * stride + nRow] += nj * tWeight;
-                scratch.Matrix[tRow * stride + tRow] += nj * scratch.CpOverR[j] + nj * tWeight * h;
-                scratch.RightHandSide[tRow] += nj * tWeight * mu;
-            }
-        }
-
-        // The n row shares its π coefficients with the Δln n column of the element rows.
-        for (var i = 0; i < elementCount; i++)
-        {
-            scratch.Matrix[nRow * stride + i] = scratch.Matrix[i * stride + nRow];
-        }
-
-        scratch.Matrix[nRow * stride + nRow] = sumGas - n;
-        scratch.RightHandSide[nRow] += n - sumGas;
-
-        // Element rows: b° − b, and the condensed columns; condensed rows.
-        for (var k = 0; k < elementCount; k++)
-        {
-            if (scratch.ElementActive[k] == 0)
-            {
-                scratch.Matrix[k * stride + k] = 1.0;
-                scratch.RightHandSide[k] = 0.0;
-                if (!isTp)
-                {
-                    scratch.Matrix[tRow * stride + k] = 0.0;
-                }
-
-                continue;
-            }
-
-            scratch.RightHandSide[k] += problem.ElementMoles[k] - ElementBalance.Residual(table, result, k);
-        }
-
-        for (var c = 0; c < condensedCount; c++)
-        {
-            var j = scratch.CondensedInSolution[c];
-            var row = elementCount + c;
-            var h = scratch.HOverRT[j];
-            var tWeight = isTp ? 0.0 : (isHp ? h : scratch.SOverR[j]);
-            for (var i = 0; i < elementCount; i++)
-            {
-                var aij = table.Stoichiometry[i * speciesCount + j];
-                scratch.Matrix[row * stride + i] = aij;
-                scratch.Matrix[i * stride + row] = aij;
-            }
-
-            scratch.RightHandSide[row] = scratch.GOverRT[j];
-            if (!isTp)
-            {
-                scratch.Matrix[row * stride + tRow] = h;
-                scratch.Matrix[tRow * stride + row] = tWeight;
-                scratch.Matrix[tRow * stride + tRow] += result.Moles[j] * scratch.CpOverR[j];
-            }
-        }
-
-        if (isHp)
-        {
-            scratch.RightHandSide[tRow] += problem.Target / (PhysicalConstants.R * temperature) - hOverRT;
-        }
-        else if (!isTp)
-        {
-            scratch.RightHandSide[tRow] += problem.Target / PhysicalConstants.R - sOverR + n - sumGas;
-        }
     }
 
     /// <summary>The mixture properties and the equilibrium derivatives (RP-1311 sections 2.5 and 2.6) at the converged composition.</summary>
