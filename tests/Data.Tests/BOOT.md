@@ -54,6 +54,19 @@ Outside the tree: xunit; Python 3 for `transcribe.py`; the committed data files
   directory". The approval comparison of the anomaly list writes its actual text next
   to the approved file, as approval tests do; reworded when that test was written.
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+these two constructors over the root's six parameters. Both records mirror, field for
+field, the JSON records `transcribe.py` writes into `records/`, and only the deserializer
+builds them, so no creation in code can swap an argument; grouping their fields would part
+them from the files they read.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Records.SpeciesRecord.SpeciesRecord` | parameters | 12 | the species record of `records/species/*.json`, field for field; built by the deserializer only |
+| `Records.IntervalRecord.IntervalRecord` | parameters | 7 | a temperature interval of the same records, field for field; built by the deserializer only |
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 green: `FortranNumberTests.Parses_every_form_of_the_files`,

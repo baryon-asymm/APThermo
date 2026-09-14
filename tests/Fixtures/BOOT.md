@@ -271,6 +271,17 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   | transport properties, Prandtl numbers | — | 5e-4 |
   | `thermo` function fixtures | — | 1e-12 |
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+this constructor over the root's six parameters. `Provenance` mirrors, field for field, the
+`generator` block every fixture file carries. On the root's condition for such a type its
+one creation names its arguments; it passes them by position today (the criterion below).
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Provenance.Provenance` | parameters | 11 | the `generator` block of a fixture file, field for field; its one creation names its arguments |
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — Every fixture regenerates byte-identically from the committed
@@ -338,6 +349,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       nodes read them instead of their copies; `Fixtures.Tests` proves the rule at the
       threshold and one ULP on each side, and seen red once with the threshold compared
       the other way round.
+- [ ] The creation of `Provenance` in `CeaFixtures` names its arguments, each bound to the
+      `generator` field its value is read from (the root's condition on a declared wide
+      constructor, the row of `## Shape exceptions`); every fixture theory of the tests
+      nodes green unchanged.
 
 ## Taboos
 

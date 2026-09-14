@@ -65,6 +65,19 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   `InternalsVisibleTo`; the batch struct of the kernel test is public because ILGPU
   compiles kernels only over public parameter types.
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+this constructor over the root's six parameters. `BatchViews` is the parameter struct of one
+kernel launch, one argument per view of the batch, as ILGPU takes a kernel's arguments and
+as the execution node's own views structs are declared; grouping the views would re-shape
+the launch the kernel equality tests mirror. On the root's condition for such a type its
+creation names its arguments; it passes them by position today (the criterion below).
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `BatchViews.BatchViews` | parameters | 12 | the parameter struct of one kernel launch, one argument per view; its creation names its arguments |
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — L0 green: `DenseSolverTests` (5 tests), `InvalidInputTests` (8),
@@ -122,6 +135,9 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       rounding of the sums it enters. The 22 that did move are what makes the check
       non-degenerate; the figure is recorded rather than the quantifier
       (`AGENTS.md` §8: an absolute word needs proof or a caveat).
+- [ ] The creation of `BatchViews` in `KernelEqualityTests` names its arguments, in the
+      order of the parameters (the root's condition on a declared wide constructor, the
+      row of `## Shape exceptions`); the node's bit snapshot unchanged.
 
 ## Taboos
 

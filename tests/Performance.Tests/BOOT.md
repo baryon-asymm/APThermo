@@ -59,6 +59,20 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   over public parameter types; a batch is a family of fixtures sharing a table and an
   exit layout.
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+this constructor over the root's six parameters. This node's own `RocketBatchViews` is the
+parameter struct of one rocket kernel launch, one argument per view of the batch, as ILGPU
+takes a kernel's arguments and as the execution node's struct of the same name is declared;
+grouping the views would re-shape the launch the kernel equality tests mirror. On the
+root's condition for such a type its creation names its arguments; it passes them by
+position today (the criterion below).
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `RocketBatchViews.RocketBatchViews` | parameters | 16 | the parameter struct of one rocket kernel launch, one argument per view; its creation names its arguments |
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — L0 green: `InvariantTests.The_throat_is_sonic`,
@@ -147,6 +161,9 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       flows and batches leave the criteria above; the enumerated directory is the
       list. Every mutation restored afterwards; the Bits level did not move (no
       `src/Performance` file changed for this criterion).
+- [ ] The creation of this node's `RocketBatchViews` in `KernelEqualityTests` names its
+      arguments, in the order of the parameters (the root's condition on a declared wide
+      constructor, the row of `## Shape exceptions`); the node's bit snapshot unchanged.
 
 ## Taboos
 
