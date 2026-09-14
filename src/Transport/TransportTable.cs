@@ -66,9 +66,11 @@ public sealed class TransportTable
         }
 
         var arrays = new TransportTableArrays(
-            runs.ViscosityStart, runs.ViscosityCount, runs.ConductivityStart, runs.ConductivityCount, fits.ToArray(),
-            pairs.Index, pairs.Start.Count == 0 ? [0] : pairs.Start.ToArray(), pairs.Count.Count == 0 ? [0] : pairs.Count.ToArray(),
-            pairs.Names.Count);
+            viscosityStart: runs.ViscosityStart, viscosityCount: runs.ViscosityCount,
+            conductivityStart: runs.ConductivityStart, conductivityCount: runs.ConductivityCount, fits: fits.ToArray(),
+            pairIndex: pairs.Index, pairStart: pairs.Start.Count == 0 ? [0] : pairs.Start.ToArray(),
+            pairCount: pairs.Count.Count == 0 ? [0] : pairs.Count.ToArray(),
+            pairTotal: pairs.Names.Count);
         return new TransportTable(species, arrays, runs.WithData, runs.WithoutData, pairs.Names);
     }
 
@@ -264,9 +266,10 @@ public sealed class TransportTableBuffers : IDisposable
         _pairCount = accelerator.Allocate1D(arrays.PairCount);
         Table = table;
         View = new TransportTableView(
-            table.SpeciesCount, arrays.PairTotal,
-            _viscosityStart.View, _viscosityCount.View, _conductivityStart.View, _conductivityCount.View,
-            _fits.View, _pairIndex.View, _pairStart.View, _pairCount.View);
+            speciesCount: table.SpeciesCount, pairTotal: arrays.PairTotal,
+            viscosityStart: _viscosityStart.View, viscosityCount: _viscosityCount.View,
+            conductivityStart: _conductivityStart.View, conductivityCount: _conductivityCount.View,
+            fits: _fits.View, pairIndex: _pairIndex.View, pairStart: _pairStart.View, pairCount: _pairCount.View);
     }
 
     /// <summary>The table the buffers hold.</summary>

@@ -100,8 +100,11 @@ public sealed class StatusTests(CpuFixture fixture)
                 molarMass: _molarMass.View, formationEnthalpy: _spare.View, stoichiometry: _spare.View,
                 intervalStart: _spareInts.View, intervalCount: _spareInts.View,
                 intervalBounds: _spare.View, exponents: _spare.View, coefficients: _spare.View);
-            var transport = new TransportTableView(SetSpecies, 0, _spareInts.View, _spareInts.View, _spareInts.View, _spareInts.View,
-                                                   _spare.View, _spareInts.View, _spareInts.View, _spareInts.View);
+            var transport = new TransportTableView(
+                speciesCount: SetSpecies, pairTotal: 0,
+                viscosityStart: _spareInts.View, viscosityCount: _spareInts.View,
+                conductivityStart: _spareInts.View, conductivityCount: _spareInts.View,
+                fits: _spare.View, pairIndex: _spareInts.View, pairStart: _spareInts.View, pairCount: _spareInts.View);
             Inputs = new StationInputs(in species, in transport, in scratch, _spare.View, 3000.0);
         }
 
