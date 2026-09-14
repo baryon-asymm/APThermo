@@ -45,12 +45,3 @@ public sealed record EquilibriumProblem
 
     public bool Transport { get; init; }
 }
-
-/// <summary>A batch over one propellant: every combination of ratio and chamber pressure, with all area ratios as exits.</summary>
-public sealed record RocketSweep(
-    Propellant Propellant,
-    IReadOnlyList<double> OxidizerToFuelRatios,
-    IReadOnlyList<double> ChamberPressures,
-    IReadOnlyList<double> AreaRatios,
-    FlowModel Flow = FlowModel.ShiftingEquilibrium,
-    bool Transport = false);

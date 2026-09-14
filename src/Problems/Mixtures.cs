@@ -1,4 +1,5 @@
 using System.Globalization;
+using AerospacePropellantThermodynamics.Performance;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
@@ -42,7 +43,7 @@ public sealed record ElementalMixture
             throw new ArgumentException("the enthalpy must be finite", nameof(enthalpy));
         }
 
-        if (!double.IsFinite(massTolerance) || massTolerance < 0.0)
+        if (!IsValidMassTolerance(massTolerance))
         {
             throw new ArgumentException($"the mass tolerance must be a finite non-negative number, not {massTolerance}", nameof(massTolerance));
         }
@@ -89,30 +90,75 @@ public sealed record ElementalMixture
     /// <summary>The mass tolerance this mixture declares: how far Σ n_i A_i may lie from one kilogram, relative; the solver checks it.</summary>
     public double MassTolerance { get; }
 
+    /// <summary>Whether a mass tolerance is one <see cref="Create"/> accepts (finite and non-negative); the one statement of the rule (the clean-code review's open question 2).</summary>
+    public static bool IsValidMassTolerance(double massTolerance) => double.IsFinite(massTolerance) && massTolerance >= 0.0;
+
     /// <summary>The abundances in the numerical nodes' unit, kmol per kg, in the order of the given element list; absent elements are zero.</summary>
     internal double[] KilomolesPerKilogram(IReadOnlyList<string> elements)
     {
         var result = new double[elements.Count];
         for (var i = 0; i < elements.Count; i++)
         {
-            result[i] = ElementMoles.TryGetValue(elements[i], out var value) ? value * 1.0e-3 : 0.0;
+            // Multiplying by the reciprocal reproduces the pre-decomposition v * 1.0e-3 bit for bit; see MixtureMass.Of.
+            result[i] = ElementMoles.TryGetValue(elements[i], out var value) ? value * (1.0 / UnitFactors.MolesPerKilomole) : 0.0;
         }
 
         return result;
     }
 }
 
-/// <summary>The exchange record of another simulation: one state of a mixture, with exactly one of enthalpy, temperature and entropy given.</summary>
+/// <summary>
+/// The exchange record of another simulation: one state of a mixture, with exactly one of enthalpy, temperature and entropy
+/// given. A record with exits (<see cref="AreaRatios"/> or <see cref="PressureRatios"/>) is a rocket case whose
+/// <see cref="Pressure"/> is the chamber pressure and whose enthalpy is required (F-AR-02, decided at the root); it solves
+/// through <see cref="Solver.SolveRocketStates"/>, and one without exits through <see cref="Solver.SolveStates"/>.
+/// </summary>
 public sealed record StateRecord(
     double Pressure,                                  // Pa
     IReadOnlyDictionary<string, double> Composition,  // element moles, mol per kg
-    double? Enthalpy = null,                          // J/kg: an assigned-enthalpy problem
+    double? Enthalpy = null,                          // J/kg: an assigned-enthalpy problem, or every rocket case
     double? Temperature = null,                       // K: an assigned-temperature problem
-    double? Entropy = null);                          // J/(kg·K): an assigned-entropy problem
+    double? Entropy = null)                           // J/(kg·K): an assigned-entropy problem
+{
+    /// <summary>Supersonic A / A_t, reported after the pressure-ratio exits; empty by default.</summary>
+    public IReadOnlyList<double> AreaRatios { get; init; } = [];
+
+    /// <summary>p_c / p_e, reported first; empty by default.</summary>
+    public IReadOnlyList<double> PressureRatios { get; init; } = [];
+
+    /// <summary>Records with exits only; null means shifting equilibrium. Meaningless, and refused, on a record without exits.</summary>
+    public FlowModel? Flow { get; init; }
+
+    /// <summary>Whether this record names an exit: the fact <see cref="StateRecords"/> reads to route it to the rocket or to the equilibrium path.</summary>
+    public bool HasExits => AreaRatios.Count > 0 || PressureRatios.Count > 0;
+}
 
 /// <summary>Options of a state batch: transport at every state, the species lists applied to the batch's table, and the mass tolerance every record declares.</summary>
 public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null,
                                        double MassTolerance = ElementalMixture.DefaultMassTolerance);
+
+/// <summary>
+/// A state record refused by a rule of its shape (`StateRecords`, BOOT.md): none or several of enthalpy, temperature and
+/// entropy given; exits without an enthalpy; a flow named without exits; a record with exits given to
+/// <see cref="Solver.SolveStates"/> or one without given to <see cref="Solver.SolveRocketStates"/>; or a composition rule
+/// (a negative abundance, an empty or duplicated symbol). Not the mass rule, which keeps <see cref="MixtureMassException"/>,
+/// carrying the index already.
+/// </summary>
+public sealed class StateRecordException : ArgumentException
+{
+    public StateRecordException(int index, string reason)
+        : base($"state record {index}: {reason}")
+    {
+        Index = index;
+        Reason = reason;
+    }
+
+    /// <summary>The record's position in the list given.</summary>
+    public int Index { get; }
+
+    /// <summary>The message without the subject, for a caller that names the record its own way.</summary>
+    public string Reason { get; }
+}
 
 /// <summary>
 /// A mixture whose element moles do not describe one kilogram: their mass with the database's atomic weights differs from 1 kg by more
@@ -143,5 +189,5 @@ public sealed class MixtureMassException : ArgumentException
 
     private static string ReasonFor(double mass, double tolerance) => string.Create(
         CultureInfo.InvariantCulture,
-        $"the composition weighs {mass * 1.0e3:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {tolerance * 100.0:G3} %");
+        $"the composition weighs {mass * UnitFactors.GramsPerKilogram:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {tolerance * 100.0:G3} %");
 }

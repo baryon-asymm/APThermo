@@ -72,7 +72,8 @@ internal static class Propellants
             if (r.Formula is not null)
             {
                 var formula = r.Formula.Select(pair => new ElementCount(pair.Key, pair.Value)).ToList();
-                builder.Custom(Reactant.Custom(r.Name, formula, r.Enthalpy!.Value, r.Temperature!.Value, r.Role, r.Amount, r.MolarMass, r.AmountKind));
+                var definition = new CustomReactantDefinition(formula, r.Enthalpy!.Value, r.Temperature!.Value, r.MolarMass);
+                builder.Custom(Reactant.Custom(r.Name, definition, r.Role, r.Amount, r.AmountKind));
             }
             else
             {
@@ -128,7 +129,7 @@ internal static class Solving
         {
             var propellant = Propellants.Build(database, reactants);
             ownRatio = propellant.OxidizerToFuelRatio;
-            mixtures = combinations.Select(c => solver.Mixture(propellant, c.OxidizerToFuel)).ToList();
+            mixtures = combinations.Select(c => solver.MixtureOf(propellant, c.OxidizerToFuel)).ToList();
         }
         else
         {

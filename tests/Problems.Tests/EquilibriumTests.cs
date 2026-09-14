@@ -33,8 +33,8 @@ public sealed class EquilibriumTests(SolverFixture fixture)
         Assert.Equal("state", result.State.Name);
         Assert.Null(result.State.Performance);
         Assert.Same(propellant, result.Propellant);
-        var mismatches = Comparison.Compare(c.Outputs, result.State, result.Species, Comparison.GasCountOf(result.Species), false, false, name, fixture.Tolerances,
-                                            singularReference: Comparison.SingularTp(c)).ToList();
+        var caveats = new StationCaveats(Transport: false, Frozen: false, SingularReference: ReferenceCaveats.SingularTp(c));
+        var mismatches = ReferenceComparison.Compare(c.Outputs, result.State, SpeciesList.Of(result.Species), name, fixture.Tolerances, caveats).ToList();
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
     }
 
@@ -68,8 +68,8 @@ public sealed class EquilibriumTests(SolverFixture fixture)
                 }
 
                 Assert.Null(results[k].Propellant);
-                mismatches.AddRange(Comparison.Compare(c.Outputs, results[k].State, results[k].Species, Comparison.GasCountOf(results[k].Species), false, false, c.Name, fixture.Tolerances,
-                                                       singularReference: Comparison.SingularTp(c)));
+                var caveats = new StationCaveats(Transport: false, Frozen: false, SingularReference: ReferenceCaveats.SingularTp(c));
+                mismatches.AddRange(ReferenceComparison.Compare(c.Outputs, results[k].State, SpeciesList.Of(results[k].Species), c.Name, fixture.Tolerances, caveats));
                 solved++;
             }
         }
@@ -121,6 +121,6 @@ public sealed class EquilibriumTests(SolverFixture fixture)
         var without = fixture.Solver.Solve(propellant, new EquilibriumProblem { Kind = ProblemKind.AssignedEnthalpyPressure, Pressure = pressure });
         Assert.Null(without.State.Transport);
         Assert.Null(without.State.TransportStatus);
-        Assert.Empty(Comparison.BitDifferences(without.State with { Transport = null, TransportStatus = null }, result.State with { Transport = null, TransportStatus = null }, "state"));
+        Assert.Empty(StationEquality.BitDifferences(without.State with { Transport = null, TransportStatus = null }, result.State with { Transport = null, TransportStatus = null }, "state"));
     }
 }

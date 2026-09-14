@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Equilibrium;
@@ -26,6 +27,15 @@ public sealed class RejectionTests(SolverFixture fixture)
 
     private const double RecordEnthalpy = -1527829.408385985;   // J/kg
     internal const double RecordPressure = 6.5e6;                 // Pa
+
+    /// <summary>e.Mass is the unit-factor scaling of an independently-summed composition; the two solves of the tree's own code agree to rounding.</summary>
+    private const double MassBitRoundingTolerance = 1.0e-15;
+
+    /// <summary>The exception's message prints the mass to seven significant digits (G7); parsing it back loses precision beyond that.</summary>
+    private const double ReportedMassPrintTolerance = 1.0e-6;
+
+    /// <summary>A reactant record's implied mass ratio (its formula's atomic-weight sum over its molar mass) against the exception's own Mass: two solves of the tree's own code, agreeing to rounding.</summary>
+    private const double FormulaMassRoundingTolerance = 1.0e-12;
 
     /// <summary>One kilogram of water as element moles (55.508 mol of H2O), for the facts that need a composition and not a mixture in particular.</summary>
     private static readonly IReadOnlyDictionary<string, double> Water = new Dictionary<string, double>(StringComparer.Ordinal) { ["H"] = 111.0168, ["O"] = 55.5084 };
@@ -57,9 +67,9 @@ public sealed class RejectionTests(SolverFixture fixture)
             Assert.StartsWith("state record 0: the composition weighs ", e.Message, StringComparison.Ordinal);
             Assert.Equal("state record 0: " + e.Reason, e.Message);
             var grams = GramsOf(composition);
-            Assert.Equal(grams * 1.0e-3, e.Mass, grams * 1.0e-15);
+            Assert.Equal(grams * 1.0e-3, e.Mass, grams * MassBitRoundingTolerance);
             var reported = double.Parse(Regex.Match(e.Message, @"weighs ([0-9.E+-]+) g").Groups[1].Value, CultureInfo.InvariantCulture);
-            Assert.Equal(grams, reported, grams * 1.0e-6);
+            Assert.Equal(grams, reported, grams * ReportedMassPrintTolerance);
             Assert.Contains("element moles are per kilogram of mixture", e.Message, StringComparison.Ordinal);
             Assert.Contains("must weigh 1000 g within 1 %", e.Message, StringComparison.Ordinal);
         }
@@ -107,12 +117,32 @@ public sealed class RejectionTests(SolverFixture fixture)
         Assert.EndsWith("must weigh 1000 g within 3 %", beyond.Message, StringComparison.Ordinal);
 
         // The propellant path and a mixture that names no tolerance declare the default; a tolerance that is no tolerance is refused by name.
-        Assert.Equal(ElementalMixture.DefaultMassTolerance, fixture.Solver.Mixture(LoxLh2().OxidizerToFuelRatio(6.0).Build()).MassTolerance);
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, fixture.Solver.MixtureOf(LoxLh2().OxidizerToFuelRatio(6.0).Build()).MassTolerance);
         Assert.Equal(ElementalMixture.DefaultMassTolerance, ElementalMixture.Create(OneKilogram).MassTolerance);
         foreach (var invalid in new[] { -0.01, double.NaN, double.PositiveInfinity })
         {
             var e = Assert.Throws<ArgumentException>(() => ElementalMixture.Create(OneKilogram, massTolerance: invalid));
             Assert.Equal("massTolerance", e.ParamName);
+        }
+    }
+
+    /// <summary><see cref="ElementalMixture.IsValidMassTolerance"/> is the one statement of the rule (BOOT.md, the review's open question 2): false exactly where Create refuses.</summary>
+    [Fact]
+    public void The_tolerance_rule_is_the_one_Create_applies()
+    {
+        double[] tolerances = [-0.01, double.NaN, double.PositiveInfinity, double.NegativeInfinity, 0.0, ElementalMixture.DefaultMassTolerance, 0.03, 1.0];
+        foreach (var tolerance in tolerances)
+        {
+            var valid = ElementalMixture.IsValidMassTolerance(tolerance);
+            if (valid)
+            {
+                Assert.Equal(tolerance, ElementalMixture.Create(OneKilogram, massTolerance: tolerance).MassTolerance);
+            }
+            else
+            {
+                var e = Assert.Throws<ArgumentException>(() => ElementalMixture.Create(OneKilogram, massTolerance: tolerance));
+                Assert.Equal("massTolerance", e.ParamName);
+            }
         }
     }
 
@@ -127,7 +157,7 @@ public sealed class RejectionTests(SolverFixture fixture)
         var e = Assert.Throws<MixtureMassException>(() => fixture.Solver.Solve(propellant, new EquilibriumProblem { Kind = ProblemKind.AssignedTemperaturePressure, Pressure = 1.0e6, Temperature = 2000.0 }));
         Assert.StartsWith("the propellant's mixture (case 0): the composition weighs ", e.Message, StringComparison.Ordinal);
         var formulaMass = adn.Formula.Sum(pair => pair.Count * fixture.Database.AtomicWeight(pair.Symbol));
-        Assert.Equal(formulaMass / adn.MolarMass, e.Mass, 1.0e-12);
+        Assert.Equal(formulaMass / adn.MolarMass, e.Mass, FormulaMassRoundingTolerance);
         Assert.True(e.Mass < 0.25, $"the ADN mixture weighs {e.Mass} kg");
     }
 
@@ -167,19 +197,18 @@ public sealed class RejectionTests(SolverFixture fixture)
 
         var monopropellant = Propellant.From(fixture.Database).Fuel("C2H8N2(L),UDMH").Build();
         Assert.IsType<MixtureSpecification.MassFractions>(monopropellant.Mixture);
-        Assert.Throws<ArgumentException>(() => fixture.Solver.Mixture(monopropellant, 2.0));
-        Assert.Throws<ArgumentException>(() => fixture.Solver.Solve(new RocketSweep(monopropellant, [2.0], [1.0e6], [10.0])));
+        Assert.Throws<ArgumentException>(() => fixture.Solver.MixtureOf(monopropellant, 2.0));
     }
 
     [Fact]
     public void A_custom_reactant_with_an_unknown_element_is_rejected_by_name()
     {
-        var binder = Reactant.Custom("Binder", [new ElementCount("C", 1.0), new ElementCount("Xx", 0.5)], -1000.0, 298.15, ReactantRole.Fuel, 1.0);
+        var binder = Reactant.Custom("Binder", new CustomReactantDefinition([new ElementCount("C", 1.0), new ElementCount("Xx", 0.5)], -1000.0, 298.15), ReactantRole.Fuel, 1.0);
         var unknown = Assert.Throws<ArgumentException>(() => Propellant.From(fixture.Database).Custom(binder).Build());
         Assert.Contains("Binder", unknown.Message, StringComparison.Ordinal);
         Assert.Contains("XX", unknown.Message, StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", [], -1000.0, 298.15, ReactantRole.Fuel, 1.0));
-        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", [new ElementCount("C", 0.0)], -1000.0, 298.15, ReactantRole.Fuel, 1.0));
+        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", new CustomReactantDefinition([], -1000.0, 298.15), ReactantRole.Fuel, 1.0));
+        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", new CustomReactantDefinition([new ElementCount("C", 0.0)], -1000.0, 298.15), ReactantRole.Fuel, 1.0));
     }
 
     [Fact]
@@ -198,11 +227,13 @@ public sealed class RejectionTests(SolverFixture fixture)
     public void Invalid_state_records_are_rejected_by_index_or_element()
     {
         var composition = Water;
-        var two = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Enthalpy: 0.0, Temperature: 3000.0)]));
+        var two = Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Enthalpy: 0.0, Temperature: 3000.0)]));
         Assert.Contains("record 0", two.Message, StringComparison.Ordinal);
-        var none = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Temperature: 3000.0), new StateRecord(1.0e6, composition)]));
+        Assert.Equal(0, two.Index);
+        var none = Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Temperature: 3000.0), new StateRecord(1.0e6, composition)]));
         Assert.Contains("record 1", none.Message, StringComparison.Ordinal);
-        var negative = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["H"] = -1.0 }, Temperature: 3000.0)]));
+        Assert.Equal(1, none.Index);
+        var negative = Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["H"] = -1.0 }, Temperature: 3000.0)]));
         Assert.Contains("'H'", negative.Message, StringComparison.Ordinal);
         var unknown = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["XX"] = 1.0 }, Temperature: 3000.0)]));
         Assert.Contains("XX", unknown.Message, StringComparison.Ordinal);
@@ -210,6 +241,31 @@ public sealed class RejectionTests(SolverFixture fixture)
         Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(0.0, composition, Temperature: 3000.0)]));
         Assert.Throws<ArgumentException>(() => ElementalMixture.Create(new Dictionary<string, double>()));
         Assert.Throws<ArgumentException>(() => ElementalMixture.Create(new Dictionary<string, double> { ["h"] = 1.0, ["H"] = 2.0 }));
+    }
+
+    public static IEnumerable<object[]> ShapeViolations()
+    {
+        yield return [new StateRecord(1.0e6, Water), false, "exactly one of enthalpy, temperature and entropy must be given, not 0"];
+        yield return [new StateRecord(1.0e6, Water, Enthalpy: 0.0, Temperature: 3000.0), false, "exactly one of enthalpy, temperature and entropy must be given, not 2"];
+        yield return [new StateRecord(1.0e6, Water, Temperature: 3000.0) { AreaRatios = [20.0] }, true, "a record with exits needs an enthalpy"];
+        yield return [new StateRecord(1.0e6, Water, Enthalpy: -1.0e6) { Flow = FlowModel.FrozenAtThroat }, false, "a flow model needs exits"];
+        yield return [new StateRecord(1.0e6, Water, Enthalpy: -1.0e6) { AreaRatios = [20.0] }, false, "the record has exits; call SolveRocketStates"];
+        yield return [new StateRecord(1.0e6, Water, Enthalpy: -1.0e6), true, "the record has no exits; call SolveStates"];
+        yield return [new StateRecord(1.0e6, new Dictionary<string, double> { ["H"] = -1.0 }, Temperature: 3000.0), false, "abundance"];
+        yield return [new StateRecord(1.0e6, new Dictionary<string, double> { ["h"] = 1.0, ["H"] = 2.0 }, Temperature: 3000.0), false, "given twice"];
+    }
+
+    /// <summary>Every rule of a state record's shape (BOOT.md, StateRecords) refuses by index, naming the rule in Reason, through the batch method that owns it.</summary>
+    [Theory]
+    [MemberData(nameof(ShapeViolations))]
+    public void A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index(StateRecord record, bool rocket, string reasonContains)
+    {
+        var e = rocket
+            ? Assert.Throws<StateRecordException>(() => fixture.Solver.SolveRocketStates([record]))
+            : Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([record]));
+        Assert.Equal(0, e.Index);
+        Assert.Contains(reasonContains, e.Reason, StringComparison.Ordinal);
+        Assert.Equal($"state record 0: {e.Reason}", e.Message);
     }
 
     [Fact]
@@ -233,6 +289,81 @@ public sealed class RejectionTests(SolverFixture fixture)
         Assert.Equal(CaseStatus.Ok, thermoOnly.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6, Flow = FlowModel.FrozenAtThroat }).Status);
     }
 
+    /// <summary>Several mixtures with one problem each are one batch only when their counts and their species lists agree (Problems BOOT.md, Solving); moved here from the union fact it used to close (BOOT.md, the union test becomes three facts).</summary>
+    [Fact]
+    public void A_batch_over_mismatched_mixtures_or_problem_counts_is_rejected()
+    {
+        var propellant = LoxLh2().OxidizerToFuelRatio(6.0).Build();
+        var mixture = fixture.Solver.MixtureOf(propellant);
+        var problem = new EquilibriumProblem { Pressure = 7.0e6 };
+        Assert.Throws<ArgumentException>(() => fixture.Solver.Solve([mixture, mixture], [problem]));
+        var restricted = ElementalMixture.Create(mixture.ElementMoles, mixture.Enthalpy, omit: ["HO2"]);
+        Assert.Throws<ArgumentException>(() => fixture.Solver.Solve([mixture, restricted], [problem, problem]));
+    }
+
+    /// <summary>Every public instance method of Solver but Dispose, which is idempotent, and the properties that stay readable.</summary>
+    private static IEnumerable<MethodInfo> DisposalGuardedMethods() =>
+        typeof(Solver).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                      .Where(m => !m.IsSpecialName && m.Name != nameof(Solver.Dispose));
+
+    /// <summary>One invocation per overload of every method reflection finds, so that a call reaching a disposed solver is observed for each.</summary>
+    private List<(string Name, Action<Solver> Invoke)> DisposedInvocations()
+    {
+        var propellant = LoxLh2().OxidizerToFuelRatio(6.0).Build();
+        var mixture = ElementalMixture.Create(Water, RecordEnthalpy);
+        var mixtures = new List<ElementalMixture> { mixture };
+        var rocketProblem = new RocketProblem { ChamberPressure = RecordPressure };
+        var rocketProblems = new List<RocketProblem> { rocketProblem };
+        var equilibriumProblem = new EquilibriumProblem { Pressure = RecordPressure };
+        var equilibriumProblems = new List<EquilibriumProblem> { equilibriumProblem };
+        var stateRecord = new StateRecord(RecordPressure, Water, Temperature: 3000.0);
+        var rocketStateRecord = new StateRecord(RecordPressure, Water, Enthalpy: RecordEnthalpy) { AreaRatios = [20.0] };
+
+        return
+        [
+            (nameof(Solver.MixtureOf), s => s.MixtureOf(propellant)),
+            (nameof(Solver.CandidateSpeciesFor), s => s.CandidateSpeciesFor(["H", "O"])),
+            (nameof(Solver.MassOf), s => s.MassOf(mixture)),
+            (nameof(Solver.Solve), s => s.Solve(propellant, rocketProblem)),
+            (nameof(Solver.Solve), s => s.Solve(propellant, rocketProblems)),
+            (nameof(Solver.Solve), s => s.Solve(propellant, equilibriumProblem)),
+            (nameof(Solver.Solve), s => s.Solve(propellant, equilibriumProblems)),
+            (nameof(Solver.Solve), s => s.Solve(mixture, rocketProblem)),
+            (nameof(Solver.Solve), s => s.Solve(mixture, rocketProblems)),
+            (nameof(Solver.Solve), s => s.Solve(mixture, equilibriumProblem)),
+            (nameof(Solver.Solve), s => s.Solve(mixture, equilibriumProblems)),
+            (nameof(Solver.Solve), s => s.Solve(mixtures, rocketProblems)),
+            (nameof(Solver.Solve), s => s.Solve(mixtures, equilibriumProblems)),
+            (nameof(Solver.SolveStates), s => s.SolveStates([stateRecord])),
+            (nameof(Solver.SolveRocketStates), s => s.SolveRocketStates([rocketStateRecord])),
+        ];
+    }
+
+    /// <summary>The hand-written list above names every overload reflection finds, once each, so that a new method cannot be missed (BOOT.md, F-PR-09).</summary>
+    [Fact]
+    public void The_disposal_facts_cover_every_public_method_of_the_solver()
+    {
+        var reflected = DisposalGuardedMethods().Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+        var covered = DisposedInvocations().Select(i => i.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+        Assert.Equal(reflected, covered);
+    }
+
+    /// <summary>Every public method of a disposed solver throws (BOOT.md, F-PR-09); Database and Accelerator name no device resource and stay readable.</summary>
+    [Fact]
+    public void Every_public_method_of_a_disposed_solver_throws()
+    {
+        var solver = Solver.Create(fixture.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        solver.Dispose();
+        foreach (var (name, invoke) in DisposedInvocations())
+        {
+            var action = invoke;
+            Assert.Throws<ObjectDisposedException>(() => action(solver));
+        }
+
+        _ = solver.Database;
+        _ = solver.Accelerator;
+    }
+
     [Fact]
     public void A_disposed_solver_refuses_work()
     {
@@ -240,7 +371,7 @@ public sealed class RejectionTests(SolverFixture fixture)
         var propellant = LoxLh2().OxidizerToFuelRatio(6.0).Build();
         solver.Dispose();
         solver.Dispose();
-        Assert.Throws<ObjectDisposedException>(() => solver.Mixture(propellant));
+        Assert.Throws<ObjectDisposedException>(() => solver.MixtureOf(propellant));
         Assert.Throws<ObjectDisposedException>(() => solver.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6 }));
     }
 }
