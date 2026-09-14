@@ -44,14 +44,23 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   the count everywhere) cannot hide behind the second tier. The root's invariant
   carries the same note.
 
-  ⚠ 2026-09-14: "in one file" was not true: the front door tests node copies the
+  ⚠ 2026-09-14: "in one file" was not true: the front door tests node copied the
   mole-fraction floor (1e-8) and the polish-threshold tier (1e-9) for its reordered
   union batches, and the protocol forbids it to read this node's code. Found by the
-  clean-code review (F-TF-05). Decided at the root: the two entries move to the
-  fixtures node's tolerance table, which both nodes already depend on, as
-  `moleFractionFloor` and `polishThresholdRelative` with their derivations, and this
-  node's table keeps the GPU-specific entries; until that task lands the copy stands
-  as a declared duplication.
+  clean-code review (F-TF-05). Resolved the same day: the two entries moved to the
+  fixtures node's tolerance table, which both nodes already depend on
+  (`tests/Fixtures/tolerances.json`, `moleFractionFloor` and
+  `polishThresholdRelative`, with their derivations); `GpuCpuTolerances.MoleFractionFloor`
+  and `MoleFractionRelative` now take that table and read the two entries from it, and
+  this node's own table keeps only the GPU-specific entries (temperature, moleFraction,
+  state, figures, transport, functions) that have no place in a table of comparisons
+  with the reference.
+- **Bit comparison goes through the harness** (2026-09-14): `BitEquality.cs`'s
+  `SameBits` and `BitDifferences<T>` were, field for field, the harness's `Bits.Same`
+  and `Bits.Differences<T>`; the file is gone and every call site of this node reads
+  `AerospacePropellantThermodynamics.Harness.Bits` instead, so the acceptance
+  criterion below that names `BitEquality.cs` as one of the F-TF-06 split's four files
+  now names a file this node no longer has.
 - **CUDA tests are marked** `Category=Cuda` and the sweep and the benchmark also
   `Category=LongRunning`; when `APTHERMO_NO_CUDA=1` is set a CUDA-category test
   verifies the refusal of an explicit CUDA request and returns, so the full suite
@@ -73,7 +82,9 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 - [Performance](../../src/Performance/API.md) — `PerformanceFigures`, the rocket solver called on the host, flow models.
 - [Transport](../../src/Transport/API.md) — the transport table and evaluation called on the host, `TransportFigures`.
 - [Data](../../src/Data/API.md) — the database.
-- [Fixtures](../Fixtures/API.md) — the reference propellant inputs used to build the batches.
+- [Fixtures](../Fixtures/API.md) — the reference propellant inputs used to build the
+  batches, and the mole-fraction floor and polish-threshold tier of the tolerance table.
+- [Harness](../Harness/API.md) — bit comparison (`Bits.Same`, `Bits.Differences`).
 
 Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with driver, libnvvm and
 libdevice for the CUDA category.
@@ -151,6 +162,36 @@ libdevice for the CUDA category.
       `Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`; both reverted
       and the suite green again before committing. The hand-typed fact counts left
       the criteria above; the listed names are the list.
+- [x] 2026-09-15 — Two more constructions restructured to the root's parameter limit
+      (the harness-wiring task's Step 4): `RocketInputs` (`FixtureBatches.cs`) fell
+      from 9 to 6 parameters, split along the domain axes of a rocket fixture's
+      chemical system (`ChemicalSystem`: elements, element moles, products - 3
+      parameters) and its exit layout (`ExitPlan`: values, kinds - 2 parameters), the
+      combustion conditions and the transport flag kept flat; the old field names
+      stay as forwarding properties, so every read call site is unchanged and only
+      the one construction site, in `RocketInputs.Of`, changed. `CudaTests.CompareMoles`
+      fell from 8 to 5 parameters: the two mole arrays under comparison, the index
+      into them and the species table that reads them became `MoleSample` (4
+      parameters), a type local to `CudaTests.cs`; its two call sites (one in
+      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`, the other in the
+      private `CompareRocket`, itself called from the rocket-family and the sweep
+      tests) construct it in place of the four separate parameters.
+
+      Two nesting-depth-4 violations found by the same review were fixed alongside:
+      `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`'s
+      species-by-species mole loop, four levels deep inside the case loop, the
+      station loop and its own species loop, moved to `StationMoleDifferences`
+      (nesting 2 on its own); `SpeciesFunctionTests.Cuda_matches_the_cpu_accelerator_within_the_table`'s
+      three-function comparison, four levels deep inside the family loop, the entry
+      loop and its own function loop, moved to `CompareFunctions` (nesting 2 on its
+      own). Neither method nests deeper than 3 now.
+
+      Verified: build clean, 0 warnings; 41 of 41 fast tests green
+      (`AerospacePropellantThermodynamics.Execution.Tests.dll`); `protocol_lint`
+      0 errors, 0 warnings; `Protocol.Tests` 9 of 9 green. This node keeps no
+      `Bits.approved.txt` of its own (its bit comparisons run the host call inside
+      the same test, not against a recorded snapshot), so there is no hash to
+      compare before and after.
 
 ## Taboos
 

@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Execution.Tests\AerospacePropellantThermodynamics.Execution.Tests.csproj" />
     <ProjectReference Include="..\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj" />
     <ProjectReference Include="..\Fixtures.Tests\AerospacePropellantThermodynamics.Fixtures.Tests.csproj" />
+    <ProjectReference Include="..\Harness\AerospacePropellantThermodynamics.Harness.csproj" />
     <ProjectReference Include="..\Performance.Tests\AerospacePropellantThermodynamics.Performance.Tests.csproj" />
     <ProjectReference Include="..\Problems.Tests\AerospacePropellantThermodynamics.Problems.Tests.csproj" />
     <ProjectReference Include="..\Thermo.Tests\AerospacePropellantThermodynamics.Thermo.Tests.csproj" />

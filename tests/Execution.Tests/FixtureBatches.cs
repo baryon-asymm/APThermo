@@ -8,11 +8,25 @@ using AerospacePropellantThermodynamics.Transport;
 
 namespace AerospacePropellantThermodynamics.Execution.Tests;
 
+/// <summary>The element list, the element moles and the candidate species of one rocket fixture's chemical system.</summary>
+internal sealed record ChemicalSystem(string[] Elements, double[] ElementMoles, string[] Products);
+
+/// <summary>The exits of one rocket fixture: a value and a kind (pressure or area ratio) per exit, in the reference's station order.</summary>
+internal sealed record ExitPlan(double[] Values, ExitSpecification[] Kinds);
+
 /// <summary>The inputs of one rocket fixture as the solver takes them.</summary>
-internal sealed record RocketInputs(
-    string[] Elements, double[] ElementMoles, string[] Products, double ChamberPressure, double ReactantEnthalpy,
-    FlowModel Flow, double[] ExitValues, ExitSpecification[] ExitKinds, bool Transport)
+internal sealed record RocketInputs(ChemicalSystem System, double ChamberPressure, double ReactantEnthalpy, FlowModel Flow, ExitPlan Exits, bool Transport)
 {
+    public string[] Elements => System.Elements;
+
+    public double[] ElementMoles => System.ElementMoles;
+
+    public string[] Products => System.Products;
+
+    public double[] ExitValues => Exits.Values;
+
+    public ExitSpecification[] ExitKinds => Exits.Kinds;
+
     public string BatchKey => string.Join(",", Elements) + "|" + string.Join(",", Products) + "|" + string.Join(",", ExitKinds);
 
     public static RocketInputs Of(CeaCase c)
@@ -30,10 +44,10 @@ internal sealed record RocketInputs(
             "frozenAtThroat" => FlowModel.FrozenAtThroat,
             var other => throw new ArgumentException($"unknown flow model {other}"),
         };
-        return new RocketInputs(elements, elementMoles, products, inputs.GetProperty("chamberPressure").GetDouble(),
-                                inputs.GetProperty("reactantEnthalpy").GetDouble(), flow,
-                                pressureRatios.Concat(areaRatios).ToArray(),
-                                pressureRatios.Select(_ => ExitSpecification.PressureRatio).Concat(areaRatios.Select(_ => ExitSpecification.AreaRatio)).ToArray(),
+        var exitValues = pressureRatios.Concat(areaRatios).ToArray();
+        var exitKinds = pressureRatios.Select(_ => ExitSpecification.PressureRatio).Concat(areaRatios.Select(_ => ExitSpecification.AreaRatio)).ToArray();
+        return new RocketInputs(new ChemicalSystem(elements, elementMoles, products), inputs.GetProperty("chamberPressure").GetDouble(),
+                                inputs.GetProperty("reactantEnthalpy").GetDouble(), flow, new ExitPlan(exitValues, exitKinds),
                                 inputs.GetProperty("transport").GetBoolean());
     }
 }

@@ -1,38 +1,29 @@
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
 
 namespace AerospacePropellantThermodynamics.Transport.Tests;
 
-/// <summary>One ILGPU context with the CPU accelerator, the committed databases (thermo and transport) and the tolerance table, shared by the collection.</summary>
+/// <summary>The harness's CPU host (context, accelerator, database, tolerance table) plus the transport database, shared by the collection.</summary>
 public sealed class CpuFixture : IDisposable
 {
-    public CpuFixture()
-    {
-        Context = Context.Create(builder => builder.CPU());
-        Accelerator = Context.CreateCPUAccelerator(0);
-        Database = SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Path.Combine(RepositoryPaths.Data, "trans.inp"));
-        Transport = Database.Transport ?? throw new InvalidOperationException("the transport database was not loaded");
-        Tolerances = ToleranceTable.Load();
-    }
+    private readonly CpuHost _host = new();
 
-    public Context Context { get; }
+    public CpuFixture() => Transport = _host.Database.Transport ?? throw new InvalidOperationException("the transport database was not loaded");
 
-    public Accelerator Accelerator { get; }
+    public Context Context => _host.Context;
 
-    public SpeciesDatabase Database { get; }
+    public Accelerator Accelerator => _host.Accelerator;
+
+    public SpeciesDatabase Database => _host.Database;
 
     public TransportDatabase Transport { get; }
 
-    public ToleranceTable Tolerances { get; }
+    public ToleranceTable Tolerances => _host.Tolerances;
 
-    public void Dispose()
-    {
-        Accelerator.Dispose();
-        Context.Dispose();
-    }
+    public void Dispose() => _host.Dispose();
 }
 
 [CollectionDefinition(Name)]

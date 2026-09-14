@@ -52,6 +52,7 @@ and the criterion below carry the day they were written.
 - [Thermo](../../src/Thermo/API.md) — what is being checked.
 - [Data](../../src/Data/API.md) — loading the database the tables are built from.
 - [Fixtures](../Fixtures/API.md) — the generated function values and the R value.
+- [Harness](../Harness/API.md) — the CPU host (context, accelerator, database, tolerance table) and the bit snapshot mechanics.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 

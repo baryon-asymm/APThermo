@@ -1,7 +1,6 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
@@ -14,48 +13,22 @@ namespace AerospacePropellantThermodynamics.Cli.Tests;
 public sealed class BitSnapshotTests(CliFixture fixture)
 {
     private static readonly string ApprovedPath = Path.Combine(CliFixture.NodeDirectory, "Bits.approved.txt");
-    private static readonly string ActualPath = Path.Combine(CliFixture.NodeDirectory, "Bits.actual.txt");
 
     [Fact]
     public void Every_example_gives_the_recorded_output()
     {
-        var approved = BitFile.Read(ApprovedPath);
-        var actual = BitExamples.ComputeAll(fixture);
-        var mismatches = Mismatches(approved, actual);
-        if (mismatches.Count == 0)
+        var snapshot = ApprovedSnapshot.Load(ApprovedPath);
+        var problems = new List<string>();
+        foreach (var example in BitExamples.ComputeAll(fixture))
         {
-            if (File.Exists(ActualPath))
+            var problem = snapshot.Problem(example.Name, $"{example.JsonSha256}\t{example.CsvSha256}");
+            if (problem is not null)
             {
-                File.Delete(ActualPath);
-            }
-
-            return;
-        }
-
-        BitFile.Write(ActualPath, actual);
-        Assert.Fail(
-            $"{mismatches.Count} example(s) moved from {ApprovedPath}:\n{string.Join("\n", mismatches)}\n" +
-            $"A decomposition, a renaming or a reordering of code must move no line here; if the documents themselves " +
-            $"changed on purpose, in the same commit as that change, review {ActualPath} and copy it over {ApprovedPath}.");
-    }
-
-    private static IReadOnlyList<string> Mismatches(IReadOnlyDictionary<string, BitExample> approved, IReadOnlyList<BitExample> actual)
-    {
-        var messages = new List<string>();
-        foreach (var example in actual)
-        {
-            if (!approved.TryGetValue(example.Name, out var expected))
-            {
-                messages.Add($"  {example.Name}: absent from Bits.approved.txt");
-            }
-            else if (expected.JsonSha256 != example.JsonSha256 || expected.CsvSha256 != example.CsvSha256)
-            {
-                messages.Add($"  {example.Name}: json {(expected.JsonSha256 == example.JsonSha256 ? "matches" : "differs")}, " +
-                             $"csv {(expected.CsvSha256 == example.CsvSha256 ? "matches" : "differs")}");
+                problems.Add(problem);
             }
         }
 
-        return messages;
+        Assert.True(problems.Count == 0, $"{problems.Count} example(s) no longer give the recorded output:\n" + string.Join("\n", problems));
     }
 }
 
@@ -136,34 +109,5 @@ internal static class BitExamples
         return document.ToJsonString();
     }
 
-    private static string Sha256(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
-}
-
-/// <summary>The line format of Bits.approved.txt: one line per example, its name, then its JSON and CSV SHA-256, tab-separated.</summary>
-internal static class BitFile
-{
-    public static IReadOnlyDictionary<string, BitExample> Read(string path)
-    {
-        var map = new Dictionary<string, BitExample>(StringComparer.Ordinal);
-        if (!File.Exists(path))
-        {
-            return map;
-        }
-
-        foreach (var line in File.ReadAllLines(path))
-        {
-            if (line.Length == 0)
-            {
-                continue;
-            }
-
-            var parts = line.Split('\t');
-            map[parts[0]] = new BitExample(parts[0], parts[1], parts[2]);
-        }
-
-        return map;
-    }
-
-    public static void Write(string path, IReadOnlyList<BitExample> examples) =>
-        File.WriteAllLines(path, examples.Select(e => $"{e.Name}\t{e.JsonSha256}\t{e.CsvSha256}"));
+    private static string Sha256(string text) => new BitHash().Add(text).ToHex();
 }

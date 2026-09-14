@@ -62,10 +62,12 @@ internal sealed class RocketCase : IDisposable
     public RocketContext Context { get; }
 
     /// <summary>Downloads what the solver has written so far.</summary>
-    public RocketSolution Read() =>
-        new(Table, Inputs, _stations.GetAsArray1D(), _moles.GetAsArray1D(), _multipliers.GetAsArray1D(), _figures.GetAsArray1D(),
-            _stationStatus.GetAsArray1D().Select(s => (CaseStatus)s).ToArray(), _iterations.GetAsArray1D(),
-            (CaseStatus)_status.GetAsArray1D()[0]);
+    public RocketSolution Read()
+    {
+        var outcome = new RocketOutcome(_stations.GetAsArray1D(), _moles.GetAsArray1D(), _multipliers.GetAsArray1D(), _figures.GetAsArray1D(),
+                                        _stationStatus.GetAsArray1D().Select(s => (CaseStatus)s).ToArray(), _iterations.GetAsArray1D());
+        return new RocketSolution(Table, Inputs, outcome, (CaseStatus)_status.GetAsArray1D()[0]);
+    }
 
     public void Dispose()
     {

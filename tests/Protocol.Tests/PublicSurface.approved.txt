@@ -402,10 +402,43 @@ sealed class AerospacePropellantThermodynamics.Fixtures.ToleranceTable
     Boolean Matches(String field, Double expected, Double actual)
     IReadOnlyList<String> Fields { get; }
     String Derivation(String field)
+    String MoleFractionField(Double referenceValue)
     Tolerance For(String field)
     static String Path { get; }
     static ToleranceTable Load()
     static ToleranceTable Load(String path)
+
+== AerospacePropellantThermodynamics.Harness
+
+sealed class AerospacePropellantThermodynamics.Harness.ApprovedSnapshot
+    IReadOnlyList<String> StaleKeys(IEnumerable<String> producedKeys)
+    String? Problem(String key, String actualLine)
+    static ApprovedSnapshot Load(String approvedPath)
+
+sealed class AerospacePropellantThermodynamics.Harness.BitHash
+    .ctor()
+    BitHash Add(Boolean value)
+    BitHash Add(Double value)
+    BitHash Add(Int32 value)
+    BitHash Add(ReadOnlySpan<Double> values)
+    BitHash Add(ReadOnlySpan<Int32> values)
+    BitHash Add(String text)
+    String ToHex()
+
+static class AerospacePropellantThermodynamics.Harness.Bits
+    static Boolean Same(Double expected, Double actual)
+    static IEnumerable<String> Differences<T>(T expected, T actual, String label)
+
+sealed class AerospacePropellantThermodynamics.Harness.CpuHost : IDisposable
+    .ctor()
+    Accelerator Accelerator { get; }
+    Context Context { get; }
+    SpeciesDatabase Database { get; }
+    ToleranceTable Tolerances { get; }
+    Void Dispose()
+
+static class AerospacePropellantThermodynamics.Harness.FixtureFamilies
+    static IEnumerable<Object[]> Of(IEnumerable<String> kinds, Func<CeaCase, String> key)
 
 == AerospacePropellantThermodynamics.Performance
 

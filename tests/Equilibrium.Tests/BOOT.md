@@ -35,6 +35,17 @@ The definition of what "`Equilibrium` is ready" means.
   identity of one state have no entry in the fixtures node's table to ask, so their
   tolerance is a named constant of this node, `Tolerances.cs`, with its origin in a
   comment, rather than a literal at the assertion (F-TK-10).
+- **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
+  architecture review's F-AR-03): the field-name mapping (`StateComparison.StateFields`)
+  and the set of fields that belong to another node (`TransportFields`) stay here, not
+  in the harness, which holds no formula and no tolerance. `Performance.Tests` reads a
+  station with performance figures on top of the state this node reads alone, and
+  `Problems.Tests` a station with transport figures on top of that; a shared reader
+  would have to know all three shapes, which would put it above the nodes its readers'
+  own consumers test. Only the trace-threshold selection line moved out, to the
+  fixtures node's `ToleranceTable.MoleFractionField` (the same F-AR-03 finding: it stood
+  typed, with its selection line, in this node and in `Performance.Tests` and
+  `Problems.Tests` alike).
 
 ## Dependencies
 
@@ -42,6 +53,7 @@ The definition of what "`Equilibrium` is ready" means.
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
+- [Harness](../Harness/API.md) — the CPU host and the bit snapshot mechanics.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
@@ -135,9 +147,23 @@ creation names its arguments; it passes them by position today (the criterion be
       rounding of the sums it enters. The 22 that did move are what makes the check
       non-degenerate; the figure is recorded rather than the quantifier
       (`AGENTS.md` §8: an absolute word needs proof or a caveat).
-- [ ] The creation of `BatchViews` in `KernelEqualityTests` names its arguments, in the
-      order of the parameters (the root's condition on a declared wide constructor, the
-      row of `## Shape exceptions`); the node's bit snapshot unchanged.
+- [x] 2026-09-15 — The creation of `BatchViews` in `KernelEqualityTests` names its
+      arguments, in the order of the parameters (the root's condition on a declared
+      wide constructor, the row of `## Shape exceptions`), verified by
+      `ShapeMechanics.Constructions` (the protocol tests node's own tool, run through
+      a temporary, uncommitted test): one site, `KernelEqualityTests.cs:72`, fully
+      named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
+      `65788e23f4390305763c80ab1f66b2054ff1907a`, the fast suite 463/463 green).
+
+- [x] 2026-09-15 — `HostSolution` (`HostSolver.cs`) restructured from 7 to 3
+      parameters, within the root's limit, along the domain axis of input against
+      converged output: `Moles`, `Multipliers`, `State`, `Status` and `Iterations`
+      moved into a new `Convergence` record (5 parameters, also within the limit),
+      read back through forwarding properties (`HostSolution.Moles` and the rest) so
+      every existing read call site is unchanged; only the one construction site, in
+      `HostSolver.Run`, changed. Not a declared exception: no row added to
+      `## Shape exceptions`. 463/463 tests green, `Bits.approved.txt` hash unchanged
+      (`65788e23f4390305763c80ab1f66b2054ff1907a`).
 
 ## Taboos
 

@@ -113,7 +113,6 @@ internal static class ReferenceComparison
 
     private static IEnumerable<string> MoleFractionMismatches(JsonElement moleFractions, Station station, string label, ToleranceTable tolerances)
     {
-        var traceThreshold = ReferenceCaveats.TracePrintThreshold(tolerances);
         foreach (var entry in moleFractions.EnumerateObject())
         {
             var expected = entry.Value.GetDouble();
@@ -123,7 +122,7 @@ internal static class ReferenceComparison
                 continue;
             }
 
-            var tolerance = expected >= traceThreshold ? "moleFraction" : "moleFractionTrace";
+            var tolerance = tolerances.MoleFractionField(expected);
             if (!tolerances.Matches(tolerance, expected, actual))
             {
                 yield return $"{label} x({entry.Name}): reference {expected:R}, tree {actual:R} [{tolerance}]";

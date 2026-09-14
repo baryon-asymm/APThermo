@@ -7,11 +7,25 @@ using ILGPU.Runtime;
 
 namespace AerospacePropellantThermodynamics.Performance.Tests;
 
+/// <summary>The element list, the element moles and the candidate species of one case's chemical system.</summary>
+internal sealed record ChemicalSystem(string[] Elements, double[] ElementMoles, string[] Products);
+
+/// <summary>The exits of one rocket case: a value and a kind (pressure or area ratio) per exit, in the reference's station order.</summary>
+internal sealed record ExitPlan(double[] Values, ExitSpecification[] Kinds);
+
 /// <summary>The inputs of one rocket case as the solver takes them, read from a fixture or given directly.</summary>
-internal sealed record RocketInputs(
-    string[] Elements, double[] ElementMoles, string[] Products, double ChamberPressure, double ReactantEnthalpy,
-    FlowModel Flow, double[] ExitValues, ExitSpecification[] ExitKinds)
+internal sealed record RocketInputs(ChemicalSystem System, double ChamberPressure, double ReactantEnthalpy, FlowModel Flow, ExitPlan Exits)
 {
+    public string[] Elements => System.Elements;
+
+    public double[] ElementMoles => System.ElementMoles;
+
+    public string[] Products => System.Products;
+
+    public double[] ExitValues => Exits.Values;
+
+    public ExitSpecification[] ExitKinds => Exits.Kinds;
+
     public int ExitCount => ExitValues.Length;
 
     /// <summary>A key identifying the table and the exit layout: cases with equal keys can share a batch.</summary>
@@ -39,8 +53,8 @@ internal sealed record RocketInputs(
         var areaRatios = inputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble()).ToArray();
         var values = pressureRatios.Concat(areaRatios).ToArray();
         var kinds = pressureRatios.Select(_ => ExitSpecification.PressureRatio).Concat(areaRatios.Select(_ => ExitSpecification.AreaRatio)).ToArray();
-        return new RocketInputs(elements, elementMoles, products, inputs.GetProperty("chamberPressure").GetDouble(),
-                                inputs.GetProperty("reactantEnthalpy").GetDouble(), FlowOf(inputs.GetProperty("flow").GetString()!), values, kinds);
+        return new RocketInputs(new ChemicalSystem(elements, elementMoles, products), inputs.GetProperty("chamberPressure").GetDouble(),
+                                inputs.GetProperty("reactantEnthalpy").GetDouble(), FlowOf(inputs.GetProperty("flow").GetString()!), new ExitPlan(values, kinds));
     }
 
     /// <summary>The fixture stations the solver's stations correspond to, in solver order: chamber, throat, then the exits without the subsonic ones.</summary>
@@ -50,11 +64,25 @@ internal sealed record RocketInputs(
             .ToList();
 }
 
+/// <summary>The per-station numerical outcome of one rocket solve: the state, the composition and the performance figures.</summary>
+internal sealed record RocketOutcome(
+    MixtureState[] Stations, double[] Moles, double[] Multipliers, PerformanceFigures[] Figures, CaseStatus[] StationStatus, int[] Iterations);
+
 /// <summary>What one host call of the rocket solver produced.</summary>
-internal sealed record RocketSolution(
-    SpeciesTable Table, RocketInputs Inputs, MixtureState[] Stations, double[] Moles, double[] Multipliers,
-    PerformanceFigures[] Figures, CaseStatus[] StationStatus, int[] Iterations, CaseStatus Status)
+internal sealed record RocketSolution(SpeciesTable Table, RocketInputs Inputs, RocketOutcome Outcome, CaseStatus Status)
 {
+    public MixtureState[] Stations => Outcome.Stations;
+
+    public double[] Moles => Outcome.Moles;
+
+    public double[] Multipliers => Outcome.Multipliers;
+
+    public PerformanceFigures[] Figures => Outcome.Figures;
+
+    public CaseStatus[] StationStatus => Outcome.StationStatus;
+
+    public int[] Iterations => Outcome.Iterations;
+
     public int StationCount => Stations.Length;
 
     public double TotalMoles(int station) => Enumerable.Range(0, Table.SpeciesCount).Sum(j => Moles[station * Table.SpeciesCount + j]);

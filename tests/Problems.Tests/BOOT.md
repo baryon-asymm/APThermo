@@ -50,9 +50,22 @@ criterion below carry the day they were written.
   the execution tests node's business.
 - No expected value is typed into a test: everything comes from the fixture files or
   from another solve of the same code; `b_i` and `h_0` are the fixture's. The trace
-  threshold of the mole-fraction comparison is the tolerance table's `moleFraction`
-  entry, read, not typed (2026-09-14: it stood as `Comparison.TracePrintThreshold`,
-  5e-6 retyped under a comment naming the table, the review's F-TF-11).
+  threshold of the mole-fraction comparison is the fixtures node's
+  `ToleranceTable.MoleFractionField` (2026-09-14: it first stood as
+  `Comparison.TracePrintThreshold`, 5e-6 retyped under a comment naming the table, the
+  review's F-TF-11; then as this node's own `ReferenceCaveats.TracePrintThreshold`
+  reading the table's `moleFraction` entry and a selection line typed at the one call
+  site; the architecture review's F-AR-03 found the same selection line typed here and
+  in `Equilibrium.Tests` and `Performance.Tests` alike, and moved it to the fixtures
+  node once for all three).
+- **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
+  architecture review's F-AR-03): the field-name mapping (`ReferenceComparison.FieldValue`)
+  and the set of fields that carry transport (`ReferenceCaveats.TransportFields`) stay
+  here, not in the harness, which holds no formula and no tolerance. This node reads a
+  station with transport figures on top of the state `Equilibrium.Tests` reads alone
+  and the performance figures `Performance.Tests` reads on top of that; a shared
+  reader would have to know all three shapes, which would put it above the nodes its
+  readers' own consumers test.
 - **The node owns the tolerances of comparisons that are not with the reference**
   (2026-09-14): two solves of the tree's own code that agree to rounding, a station on
   its chamber's isentrope, a pinned temperature on its transition bound. They are named
@@ -67,12 +80,25 @@ criterion below carry the day they were written.
   runtime update that moves lines is re-approved with that reason recorded here. A
   fixture absent from the snapshot fails the test with instructions, as the surface
   snapshot does.
+- **Bit comparison goes through the harness** (2026-09-14): `StationEquality`'s
+  internal field-by-field bit comparison of `MixtureState`, `PerformanceFigures` and
+  `TransportFigures` was, field for field, the harness's `Bits.Differences<T>`; its
+  own `SameBits` was `Bits.Same`. `StationEquality.BitDifferences` and
+  `RelativeDifferences` keep their signatures (a `Station` is not a flat struct: mole
+  fractions and condensed mass fractions are dictionaries, and performance and
+  transport figures are optional), but read the harness for the bit-exact leaves
+  instead of repeating the comparison locally.
 - ⚠ 2026-09-14, a declared duplication (`AGENTS.md` §12): the comparison of a case in
-  a union batch that reorders its elements uses the mole-fraction floor (1e-8) and the
+  a union batch that reorders its elements used the mole-fraction floor (1e-8) and the
   polish-threshold tier (1e-9) of the GPU/CPU table, copied from the execution tests
-  node, whose code this node may not read. Decided at the root (the review's F-TF-05):
-  both entries move to the fixtures node's tolerance table as `moleFractionFloor` and
-  `polishThresholdRelative`, and the copy goes with that task.
+  node, whose code this node may not read. Resolved the same day (the review's
+  F-TF-05): `RocketTests`' own `ReorderedElementsTolerance` and `MoleFractionFloor`
+  constants are gone; the two facts that used them
+  (`Rocket_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`,
+  `Equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`)
+  now read `polishThresholdRelative` and `moleFractionFloor` from the fixtures node's
+  tolerance table, the same two entries the execution tests node's own table also
+  stopped duplicating.
 
 ## Dependencies
 
@@ -84,6 +110,7 @@ criterion below carry the day they were written.
 - [Transport](../../src/Transport/API.md) — `TransportTable` for that evaluation, `TransportFigures`.
 - [Performance](../../src/Performance/API.md) — `FlowModel`, `PerformanceFigures`.
 - [Equilibrium](../../src/Equilibrium/API.md) — `ProblemKind`.
+- [Harness](../Harness/API.md) — bit comparison (`Bits.Same`, `Bits.Differences`).
 
 Outside the tree: xunit.
 

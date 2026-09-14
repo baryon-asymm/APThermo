@@ -51,6 +51,16 @@ The definition of what "`Cli` is ready" means.
   change of the documents that moved it named in the same commit; a decomposition, a
   renaming or a reordering of code moves no line. An example absent from the snapshot
   fails the test with instructions, as the surface snapshot does.
+- **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
+  tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
+  wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,
+  tab-separated: the one format of the tree's bit snapshots a fixture path never
+  needs, since an example name can hold a space) are gone; `BitSnapshotTests` reads
+  `Harness.ApprovedSnapshot`, whose own delimiter detection reads a file exactly this
+  shape. The two SHA-256 digests per example are still this node's own
+  (`BitExamples.Sha256`), now through `Harness.BitHash` instead of a local call to
+  `System.Security.Cryptography`, since a plain string's UTF-8 bytes hash the same
+  way either way.
 
 ## Dependencies
 
@@ -63,6 +73,7 @@ The definition of what "`Cli` is ready" means.
 - [Performance](../../src/Performance/API.md) — `PerformanceFigures`.
 - [Transport](../../src/Transport/API.md) — `TransportFigures`.
 - [Equilibrium](../../src/Equilibrium/API.md) — `ProblemKind`.
+- [Harness](../Harness/API.md) — the bit-snapshot mechanics (`BitHash`, `ApprovedSnapshot`).
 
 Outside the tree: xunit; the `dotnet` host for the process-level runs.
 

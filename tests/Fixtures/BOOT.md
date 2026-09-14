@@ -341,18 +341,28 @@ one creation names its arguments; it passes them by position today (the criterio
       (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`), every tp, hp
       and sp file singly and as state records in batches over unions of elements
       (`EquilibriumTests`).
-- [ ] The shared rules of 2026-09-14: `ToleranceTable.MoleFractionField` picks the
-      entry by the table's own `moleFraction` threshold, and the equilibrium,
-      performance and front door tests nodes call it instead of a constant and a
-      selection line of their own; `moleFractionFloor` and `polishThresholdRelative`
-      stand in the table with their derivations, and the execution and front door tests
-      nodes read them instead of their copies; `Fixtures.Tests` proves the rule at the
-      threshold and one ULP on each side, and seen red once with the threshold compared
-      the other way round.
-- [ ] The creation of `Provenance` in `CeaFixtures` names its arguments, each bound to the
-      `generator` field its value is read from (the root's condition on a declared wide
-      constructor, the row of `## Shape exceptions`); every fixture theory of the tests
-      nodes green unchanged.
+- [x] 2026-09-14 — The shared rules of 2026-09-14: `ToleranceTable.MoleFractionField`
+      picks the entry by the table's own `moleFraction` threshold, and the equilibrium
+      (`Equilibrium.Tests/StateComparison.cs`), performance
+      (`Performance.Tests/StationComparison.cs`) and front door
+      (`Problems.Tests/ReferenceComparison.cs`) tests nodes call it instead of a
+      constant and a selection line of their own; `moleFractionFloor` and
+      `polishThresholdRelative` stand in the table with their derivations, and the
+      execution (`Execution.Tests/GpuCpuTolerances.cs`) and front door
+      (`Problems.Tests/RocketTests.cs`) tests nodes read them instead of their copies;
+      `Fixtures.Tests.ToleranceTableTests.MoleFractionField_picks_by_the_threshold_and_one_ulp_on_each_side`
+      proves the rule at the threshold and one ULP on each side, seen red once with the
+      comparison reversed (`<` for `>=`), reverted before that test was committed, the
+      evidence recorded in the test's own doc comment.
+- [x] 2026-09-15 — The creation of `Provenance` in `CeaFixtures` names its arguments,
+      each bound to the `generator` field its value is read from (the root's condition
+      on a declared wide constructor, the row of `## Shape exceptions`), verified by
+      `ShapeMechanics.Constructions` (the protocol tests node's own tool, run through
+      a temporary, uncommitted test): one site, `CeaFixtures.cs:92`, fully named;
+      every fixture theory of the tests nodes green unchanged: the full-solution fast
+      suite (10 projects, 3014 tests) green, every consumer's `Bits.approved.txt`
+      hash unmoved.
+
 
 ## Taboos
 

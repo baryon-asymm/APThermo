@@ -9,11 +9,22 @@ namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
 internal sealed record EquilibriumCase(
     SpeciesTable Table, ProblemKind Kind, double Pressure, double Temperature, double Target, double[] ElementMoles);
 
+/// <summary>What the solver converged to: the moles, the multipliers, the state, the status and the iteration count of one solve.</summary>
+internal sealed record Convergence(double[] Moles, double[] Multipliers, MixtureState State, CaseStatus Status, int Iterations);
+
 /// <summary>What one host call of the solver produced, copied out of the accelerator buffers.</summary>
-internal sealed record HostSolution(
-    SpeciesTable Table, double[] ElementMoles, double[] Moles, double[] Multipliers,
-    MixtureState State, CaseStatus Status, int Iterations)
+internal sealed record HostSolution(SpeciesTable Table, double[] ElementMoles, Convergence Convergence)
 {
+    public double[] Moles => Convergence.Moles;
+
+    public double[] Multipliers => Convergence.Multipliers;
+
+    public MixtureState State => Convergence.State;
+
+    public CaseStatus Status => Convergence.Status;
+
+    public int Iterations => Convergence.Iterations;
+
     /// <summary>Gaseous plus condensed moles per kilogram: the denominator of the reference's mole fractions.</summary>
     public double TotalMoles => Moles.Sum();
 
@@ -109,8 +120,9 @@ internal static class HostSolver
             EquilibriumSolver.Solve(in view, in input, in scratch, in result, moles is not null);
         }
 
-        return new HostSolution(table, problem.ElementMoles, molesBuffer.GetAsArray1D(), multipliers.GetAsArray1D(),
-                                state.GetAsArray1D()[0], (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
+        var convergence = new Convergence(molesBuffer.GetAsArray1D(), multipliers.GetAsArray1D(),
+                                          state.GetAsArray1D()[0], (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
+        return new HostSolution(table, problem.ElementMoles, convergence);
     }
 
     /// <summary>The fixture files of a kind as theory data: the file name without extension; <see cref="Load"/> reads it back.</summary>

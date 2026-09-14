@@ -45,6 +45,7 @@ The definition of what "`Transport` is ready" means.
 - [Thermo](../../src/Thermo/API.md) — species tables and their upload.
 - [Data](../../src/Data/API.md) — the databases.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
+- [Harness](../Harness/API.md) — the CPU host, bit comparison, bit snapshots and fixture families.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 

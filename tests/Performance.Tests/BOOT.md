@@ -32,6 +32,17 @@ The definition of what "`Performance` is ready" means.
   invariants' tolerances and the self-consistency and identity tolerances are named
   constants of the node with their origin in a comment, never literals in an
   assertion (2026-09-14).
+- **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
+  architecture review's F-AR-03): the field-name mapping (`StationComparison.Fields`)
+  and the set of fields that belong to another node (`TransportFields`) stay here, not
+  in the harness, which holds no formula and no tolerance. This node reads a station
+  with performance figures on top of the state `Equilibrium.Tests` reads alone, and
+  `Problems.Tests` reads a station with transport figures on top of that; a shared
+  reader would have to know all three shapes, which would put it above the nodes its
+  readers' own consumers test. Only the trace-threshold selection line moved out, to
+  the fixtures node's `ToleranceTable.MoleFractionField` (the same F-AR-03 finding: it
+  stood typed, with its selection line, in this node and in `Equilibrium.Tests` and
+  `Problems.Tests` alike).
 
 ## Dependencies
 
@@ -40,6 +51,7 @@ The definition of what "`Performance` is ready" means.
 - [Thermo](../../src/Thermo/API.md) — tables.
 - [Data](../../src/Data/API.md) — the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
+- [Harness](../Harness/API.md) — the CPU host, bit comparison and fixture families.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
@@ -161,9 +173,38 @@ position today (the criterion below).
       flows and batches leave the criteria above; the enumerated directory is the
       list. Every mutation restored afterwards; the Bits level did not move (no
       `src/Performance` file changed for this criterion).
-- [ ] The creation of this node's `RocketBatchViews` in `KernelEqualityTests` names its
-      arguments, in the order of the parameters (the root's condition on a declared wide
-      constructor, the row of `## Shape exceptions`); the node's bit snapshot unchanged.
+- [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
+      `KernelEqualityTests` names its arguments, in the order of the parameters (the
+      root's condition on a declared wide constructor, the row of
+      `## Shape exceptions`), verified by `ShapeMechanics.Constructions` (the
+      protocol tests node's own tool, run through a temporary, uncommitted test):
+      two sites tree-wide, this node's (`KernelEqualityTests.cs:133`) and the
+      execution node's own type of the same name (`src/Execution/RocketPipeline.cs:53`),
+      both fully named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
+      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green).
+
+- [x] 2026-09-15 — `RocketInputs` (8 parameters) and `RocketSolution` (9), both in
+      `RocketHost.cs`, restructured within the root's limit, along domain axes;
+      neither is a declared exception, so no row was added to `## Shape exceptions`.
+      `RocketInputs` split into the case's chemical system (`ChemicalSystem`:
+      `Elements`, `ElementMoles`, `Products`, 3 parameters), its combustion
+      conditions (`ChamberPressure`, `ReactantEnthalpy`, `Flow`, kept directly), and
+      its exit layout (`ExitPlan`: `Values`, `Kinds`, 2 parameters), for 5 parameters
+      on `RocketInputs` itself. `RocketSolution` split into its per-station numerical
+      outcome (`RocketOutcome`: `Stations`, `Moles`, `Multipliers`, `Figures`,
+      `StationStatus`, `Iterations`, 6 parameters) alongside `Table`, `Inputs` and the
+      overall `Status`, for 4 parameters on `RocketSolution` itself. Both keep the old
+      field names as forwarding properties, so the ~25 existing read call sites across
+      `RocketCase.cs`, `KernelEqualityTests.cs`, `StationComparison.cs`,
+      `SubsonicStationTests.cs`, `RocketInvariants.cs` and `RocketFixtureTests.cs` are
+      unchanged; only the two construction sites (`RocketInputs.Of`,
+      `RocketCase.Read`) and the three `with { ExitValues = …, ExitKinds = … }`
+      expressions of `InvariantTests.cs` (rewritten as `with { Exits = new
+      ExitPlan(…) }`, since a computed forwarding property has no `init` accessor for
+      `with` to target) changed.
+
+      Verified: 699/699 tests green, `Bits.approved.txt` hash unchanged
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
 
 ## Taboos
 

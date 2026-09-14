@@ -59,18 +59,35 @@ public sealed class ToleranceTableTests
                 : new[] { c.Outputs }.AsEnumerable();
             foreach (var state in states)
             {
-                foreach (var property in state.EnumerateObject())
-                {
-                    if (property.Value.ValueKind == JsonValueKind.Number && !NotCompared.Contains(property.Name))
-                    {
-                        fields.Add(property.Name);
-                    }
-                }
+                fields.UnionWith(ComparedFieldsOf(state));
             }
         }
 
         Assert.NotEmpty(fields);
         var missing = fields.Where(f => !table.Fields.Contains(f)).ToArray();
         Assert.True(missing.Length == 0, $"fields without a tolerance: {string.Join(", ", missing)}");
+    }
+
+    /// <summary>The numeric, compared property names of one fixture state (<see cref="NotCompared"/> excluded).</summary>
+    private static IEnumerable<string> ComparedFieldsOf(JsonElement state) =>
+        state.EnumerateObject()
+            .Where(property => property.Value.ValueKind == JsonValueKind.Number && !NotCompared.Contains(property.Name))
+            .Select(property => property.Name);
+
+    /// <summary>
+    /// The rule that picks which entry compares a reference mole fraction (BOOT.md, the tolerance-table invariant): at the
+    /// threshold itself and one ULP above, "moleFraction"; one ULP below, "moleFractionTrace". Seen red once with the
+    /// comparison reversed (<c>&lt;</c> for <c>&gt;=</c> in <see cref="ToleranceTable.MoleFractionField"/>), which turned the
+    /// threshold and the ULP-above case red (both then answered "moleFractionTrace") while the ULP-below case stayed green
+    /// by coincidence of the reversed rule; reverted before this test was committed.
+    /// </summary>
+    [Fact]
+    public void MoleFractionField_picks_by_the_threshold_and_one_ulp_on_each_side()
+    {
+        var table = ToleranceTable.Load();
+        var threshold = table.For("moleFraction").Absolute;
+        Assert.Equal("moleFraction", table.MoleFractionField(threshold));
+        Assert.Equal("moleFraction", table.MoleFractionField(Math.BitIncrement(threshold)));
+        Assert.Equal("moleFractionTrace", table.MoleFractionField(Math.BitDecrement(threshold)));
     }
 }

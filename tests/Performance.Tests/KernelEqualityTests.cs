@@ -1,4 +1,6 @@
 using AerospacePropellantThermodynamics.Equilibrium;
+using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
@@ -75,34 +77,14 @@ internal sealed class RocketBatchBuffers : IDisposable
 public sealed class KernelEqualityTests(CpuFixture fixture)
 {
     /// <summary>The families of rocket fixtures sharing one table and one exit layout, largest first; each is one batch.</summary>
-    public static IEnumerable<object[]> Batches()
-    {
-        var families = new Dictionary<string, List<string>>();
-        foreach (var row in RocketHost.Cases())
-        {
-            var name = (string)row[0];
-            var key = RocketInputs.Of(RocketHost.Load(name)).BatchKey;
-            if (!families.TryGetValue(key, out var list))
-            {
-                families[key] = list = [];
-            }
-
-            list.Add(name);
-        }
-
-        foreach (var family in families.Values.OrderByDescending(f => f.Count).ThenBy(f => f[0], StringComparer.Ordinal))
-        {
-            yield return [family[0], family.Count, family.ToArray()];
-        }
-    }
+    public static IEnumerable<object[]> Batches() => FixtureFamilies.Of(["rocket"], c => RocketInputs.Of(c).BatchKey);
 
     [Theory]
     [MemberData(nameof(Batches))]
-    public void Kernel_and_host_give_the_same_bits(string family, int count, string[] members)
+    public void Kernel_and_host_give_the_same_bits(string key, int count, IReadOnlyList<CeaCase> cases)
     {
-        Assert.Equal(count, members.Length);
-        Assert.Equal(family, members[0]);
-        var inputs = members.Select(m => RocketInputs.Of(RocketHost.Load(m))).ToList();
+        Assert.Equal(count, cases.Count);
+        var inputs = cases.Select(RocketInputs.Of).ToList();
         var table = SpeciesTable.Build(fixture.Database, inputs[0].Elements, inputs[0].Products);
         var host = inputs.Select(i => RocketHost.Solve(fixture.Accelerator, table, i)).ToList();
 
@@ -111,7 +93,7 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         kernel(count, buffers.Table, buffers.Views);
         fixture.Accelerator.Synchronize();
 
-        AssertSameBits(host, table, buffers, members);
+        AssertSameBits(host, table, buffers, cases, key);
     }
 
     /// <summary>Allocates and uploads one batch: the cases' inputs, their scratch and their station rows.</summary>
@@ -148,14 +130,16 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         buffers.Figures = figures;
         buffers.StationStatus = stationStatus;
         buffers.Status = status;
-        buffers.Views = new RocketBatchViews(exitCount, chamberPressures.View, reactantEnthalpies.View, flows.View, elementMoles.View,
-                                             exitValues.View, exitKinds.View, scratchDoubles.View, scratchInts.View, stations.View,
-                                             moles.View, multipliers.View, figures.View, stationStatus.View, iterations.View, status.View);
+        buffers.Views = new RocketBatchViews(
+            exitCount: exitCount, chamberPressures: chamberPressures.View, reactantEnthalpies: reactantEnthalpies.View, flows: flows.View,
+            elementMoles: elementMoles.View, exitValues: exitValues.View, exitKinds: exitKinds.View, scratchDoubles: scratchDoubles.View,
+            scratchInts: scratchInts.View, stations: stations.View, moles: moles.View, multipliers: multipliers.View, figures: figures.View,
+            stationStatus: stationStatus.View, iterations: iterations.View, status: status.View);
         return buffers;
     }
 
     /// <summary>Every station's state, figures and moles, bit for bit, host against kernel; the fields come from reflection.</summary>
-    private static void AssertSameBits(IReadOnlyList<RocketSolution> host, SpeciesTable table, RocketBatchBuffers buffers, string[] members)
+    private static void AssertSameBits(IReadOnlyList<RocketSolution> host, SpeciesTable table, RocketBatchBuffers buffers, IReadOnlyList<CeaCase> cases, string key)
     {
         var stationCount = RocketLayout.StationCount(buffers.Views.ExitCount);
         var speciesCount = table.SpeciesCount;
@@ -168,31 +152,32 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var figureFields = typeof(PerformanceFigures).GetFields();
         for (var k = 0; k < host.Count; k++)
         {
-            Assert.True(host[k].Status == CaseStatus.Ok, $"{members[k]}: host status {host[k].Status}");
-            Assert.True((int)host[k].Status == kernelStatus[k], $"{members[k]}: kernel status {(CaseStatus)kernelStatus[k]}");
+            var label = $"{key} {cases[k].Kind}:{cases[k].Name}";
+            Assert.True(host[k].Status == CaseStatus.Ok, $"{label}: host status {host[k].Status}");
+            Assert.True((int)host[k].Status == kernelStatus[k], $"{label}: kernel status {(CaseStatus)kernelStatus[k]}");
             for (var s = 0; s < stationCount; s++)
             {
                 var offset = k * stationCount + s;
-                Assert.True((int)host[k].StationStatus[s] == kernelStationStatus[offset], $"{members[k]} station {s}: status differs");
+                Assert.True((int)host[k].StationStatus[s] == kernelStationStatus[offset], $"{label} station {s}: status differs");
                 foreach (var field in stateFields)
                 {
                     var a = (double)field.GetValue(host[k].Stations[s])!;
                     var b = (double)field.GetValue(kernelStations[offset])!;
-                    Assert.True(SameBits(a, b), $"{members[k]} station {s}: {field.Name} host {a:R}, kernel {b:R}");
+                    Assert.True(Bits.Same(a, b), $"{label} station {s}: {field.Name} host {a:R}, kernel {b:R}");
                 }
 
                 foreach (var field in figureFields)
                 {
                     var a = (double)field.GetValue(host[k].Figures[s])!;
                     var b = (double)field.GetValue(kernelFigures[offset])!;
-                    Assert.True(SameBits(a, b), $"{members[k]} station {s}: {field.Name} host {a:R}, kernel {b:R}");
+                    Assert.True(Bits.Same(a, b), $"{label} station {s}: {field.Name} host {a:R}, kernel {b:R}");
                 }
 
                 for (var j = 0; j < speciesCount; j++)
                 {
                     var a = host[k].Moles[s * speciesCount + j];
                     var b = kernelMoles[(long)offset * speciesCount + j];
-                    Assert.True(SameBits(a, b), $"{members[k]} station {s}: moles of {table.Species[j]} host {a:R}, kernel {b:R}");
+                    Assert.True(Bits.Same(a, b), $"{label} station {s}: moles of {table.Species[j]} host {a:R}, kernel {b:R}");
                 }
             }
         }
@@ -224,6 +209,4 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
             status: batch.Status.SubView(index, 1));
         RocketSolver.Solve(in table, in problem, in scratch, in result);
     }
-
-    private static bool SameBits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
 }
