@@ -58,6 +58,7 @@ public sealed class ToleranceTable
     public Tolerance For(string field);                              // KeyNotFoundException for an unknown field
     public string Derivation(string field);
     public bool Matches(string field, double expected, double actual); // |expected − actual| ≤ Absolute + Relative·|expected|
+    public string MoleFractionField(double referenceValue);          // "moleFraction" when referenceValue is not below For("moleFraction").Absolute, else "moleFractionTrace"
 }
 
 public sealed class FixtureFormatException : Exception
@@ -75,20 +76,6 @@ a kind carries, and the caveats of the reference's fields (`mixtureMolarMass`, t
 frozen-station `cv`, the frozen `cp` of the transport set when transport is on, the
 reacting conductivity at the trace-component stations), are described in `BOOT.md`
 and used by the test nodes.
-
-## Shared comparison rules ⏳
-
-```csharp
-public sealed class ToleranceTable
-{
-    public string MoleFractionField(double referenceValue);   // "moleFraction" when the reference value is not below For("moleFraction").Absolute, else "moleFractionTrace"
-}
-```
-
-Planned 2026-09-14 (the parent `BOOT.md`, the tolerance-table invariant): the rule
-stood in three test nodes, each with the threshold typed again; `tolerances.json` gains
-`moleFractionFloor` and `polishThresholdRelative` in the same commit. The mark turns ✅
-with the commit that implements it.
 
 ## Generator ✅
 

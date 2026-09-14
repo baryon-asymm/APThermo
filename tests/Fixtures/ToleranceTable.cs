@@ -62,6 +62,15 @@ public sealed class ToleranceTable
         return Math.Abs(expected - actual) <= tolerance.Absolute + tolerance.Relative * Math.Abs(expected);
     }
 
+    /// <summary>
+    /// "moleFraction" when <paramref name="referenceValue"/> is not below the reference's own print threshold
+    /// (<c>moleFraction</c>'s absolute tolerance), else "moleFractionTrace": the rule that picks which entry compares a
+    /// reference mole fraction, written once so the print threshold is not typed again at each of its call sites
+    /// (BOOT.md, the tolerance-table invariant).
+    /// </summary>
+    public string MoleFractionField(double referenceValue) =>
+        referenceValue >= For("moleFraction").Absolute ? "moleFraction" : "moleFractionTrace";
+
     private static double Number(string path, JsonElement entry, string field, string property)
     {
         if (!entry.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.Number)

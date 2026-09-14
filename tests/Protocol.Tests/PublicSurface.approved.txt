@@ -402,6 +402,7 @@ sealed class AerospacePropellantThermodynamics.Fixtures.ToleranceTable
     Boolean Matches(String field, Double expected, Double actual)
     IReadOnlyList<String> Fields { get; }
     String Derivation(String field)
+    String MoleFractionField(Double referenceValue)
     Tolerance For(String field)
     static String Path { get; }
     static ToleranceTable Load()
