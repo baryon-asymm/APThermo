@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Equilibrium;
@@ -6,7 +5,6 @@ using AerospacePropellantThermodynamics.Fixtures;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
-using ILGPU.Runtime;
 
 namespace AerospacePropellantThermodynamics.Execution.Tests;
 
@@ -60,8 +58,8 @@ internal sealed record RocketFamily(string Name, SpeciesTable Table, TransportTa
     }
 }
 
-/// <summary>Builds batches from the fixtures and solves cases one at a time on the host for comparison.</summary>
-internal static class BatchBuilders
+/// <summary>Fixtures to families and batches: nothing here runs a solver, on the host or the accelerator.</summary>
+internal static class FixtureBatches
 {
     /// <summary>Every rocket fixture, grouped into families; the largest family first.</summary>
     public static IReadOnlyList<RocketFamily> RocketFamilies(SpeciesDatabase database)
@@ -163,130 +161,5 @@ internal static class BatchBuilders
         }
 
         return (batch, table, cases);
-    }
-
-    /// <summary>One rocket case solved on the host over the accelerator's buffers, as the numerical node is called directly.</summary>
-    public static (MixtureState[] Stations, double[] Moles, PerformanceFigures[] Figures, CaseStatus[] StationStatus, int[] Iterations, CaseStatus Status)
-        SolveRocketOnHost(Accelerator accelerator, SpeciesTableBuffers buffers, RocketBatch batch, int k)
-    {
-        var table = buffers.Table;
-        var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        var stationCount = batch.StationCount;
-        using var elements = accelerator.Allocate1D(batch.ElementMoles.AsSpan(k * elementCount, elementCount).ToArray());
-        using var exitValues = accelerator.Allocate1D(batch.Exits == 0 ? new[] { 0.0 } : batch.ExitValues.AsSpan(k * batch.Exits, batch.Exits).ToArray());
-        using var exitKinds = accelerator.Allocate1D(batch.Exits == 0 ? new[] { 0 } : batch.ExitKinds.Select(x => (int)x).ToArray());
-        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        using var stations = accelerator.Allocate1D<MixtureState>(stationCount);
-        using var moles = accelerator.Allocate1D<double>((long)stationCount * speciesCount);
-        using var multipliers = accelerator.Allocate1D<double>((long)stationCount * elementCount);
-        using var figures = accelerator.Allocate1D<PerformanceFigures>(stationCount);
-        using var stationStatus = accelerator.Allocate1D<int>(stationCount);
-        using var iterations = accelerator.Allocate1D<int>(stationCount);
-        using var status = accelerator.Allocate1D<int>(1);
-        moles.MemSetToZero();
-        stations.MemSetToZero();
-        figures.MemSetToZero();
-        var problem = new RocketProblem(batch.ChamberPressure[k], batch.ReactantEnthalpy[k], batch.TemperatureEstimate[k], batch.Flow[k], elements.View,
-                                        exitValues.View.SubView(0, batch.Exits), exitKinds.View.SubView(0, batch.Exits));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
-        var result = new RocketResult(stations.View, moles.View, multipliers.View, figures.View, stationStatus.View, iterations.View, status.View);
-        var view = buffers.View;
-        RocketSolver.Solve(in view, in problem, in scratch, in result);
-        return (stations.GetAsArray1D(), moles.GetAsArray1D(), figures.GetAsArray1D(),
-                stationStatus.GetAsArray1D().Select(s => (CaseStatus)s).ToArray(), iterations.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0]);
-    }
-
-    /// <summary>One equilibrium case solved on the host.</summary>
-    public static (MixtureState State, double[] Moles, CaseStatus Status, int Iterations) SolveEquilibriumOnHost(Accelerator accelerator, SpeciesTableBuffers buffers, EquilibriumBatch batch, int k)
-    {
-        var table = buffers.Table;
-        var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        using var elements = accelerator.Allocate1D(batch.ElementMoles.AsSpan(k * elementCount, elementCount).ToArray());
-        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        using var moles = accelerator.Allocate1D<double>(speciesCount);
-        using var multipliers = accelerator.Allocate1D<double>(elementCount);
-        using var state = accelerator.Allocate1D<MixtureState>(1);
-        using var status = accelerator.Allocate1D<int>(1);
-        using var iterations = accelerator.Allocate1D<int>(1);
-        moles.MemSetToZero();
-        state.MemSetToZero();
-        var problem = new EquilibriumProblem(batch.Kind[k], batch.Pressure[k], batch.Temperature[k], batch.Target[k], elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
-        var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
-        var view = buffers.View;
-        EquilibriumSolver.Solve(in view, in problem, in scratch, in result, false);
-        return (state.GetAsArray1D()[0], moles.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
-    }
-
-    /// <summary>One station's transport evaluated on the host.</summary>
-    public static (CaseStatus Status, TransportFigures Figures) EvaluateTransportOnHost(Accelerator accelerator, SpeciesTableBuffers species, TransportTableBuffers transport,
-                                                                                         double temperature, double[] moles, int offset)
-    {
-        var speciesCount = species.Table.SpeciesCount;
-        var elementCount = species.Table.ElementCount;
-        using var molesBuffer = accelerator.Allocate1D(moles.AsSpan(offset, speciesCount).ToArray());
-        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(speciesCount, elementCount));
-        using var ints = accelerator.Allocate1D<int>(TransportLayout.IntsPerCase(speciesCount, elementCount));
-        using var figures = accelerator.Allocate1D<TransportFigures>(1);
-        var scratch = TransportScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
-        var speciesView = species.View;
-        var transportView = transport.View;
-        var status = TransportSolver.Evaluate(in speciesView, in transportView, temperature, molesBuffer.View, in scratch, figures.View);
-        return (status, figures.GetAsArray1D()[0]);
-    }
-
-    public static bool SameBits(double a, double b) => BitConverter.DoubleToInt64Bits(a) == BitConverter.DoubleToInt64Bits(b);
-
-    /// <summary>Field-by-field bit equality of two structs.</summary>
-    public static IEnumerable<string> BitDifferences<T>(T expected, T actual, string label) where T : struct
-    {
-        foreach (var field in typeof(T).GetFields())
-        {
-            var a = field.GetValue(expected)!;
-            var b = field.GetValue(actual)!;
-            var same = a is double x && b is double y ? SameBits(x, y) : a.Equals(b);
-            if (!same)
-            {
-                yield return $"{label} {field.Name}: {a} vs {b}";
-            }
-        }
-    }
-}
-
-/// <summary>The long-running sweep: the same batch on the CPU accelerator and on CUDA (twice), with the times.</summary>
-internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, RocketBatchResult? Cuda, RocketBatchResult? CudaAgain, TimeSpan CpuSeconds, TimeSpan CudaSeconds)
-{
-    public const int LongRunningCases = 100_000;
-    public const string FamilyName = "lox-lh2_of4_pc10MPa_frozenAtChamber";
-    public const string From = "lox-lh2_of4_pc7MPa_shiftingEquilibrium";
-    public const string To = "lox-lh2_of8_pc7MPa_shiftingEquilibrium";
-
-    public static SweepRun Run(EngineFixture fixture, int count)
-    {
-        var family = BatchBuilders.Family(fixture.Database, FamilyName);
-        var batch = BatchBuilders.Sweep(family, From, To, count, 5.0e6, 10.0e6);
-        using var cpuTables = fixture.Cpu.Upload(family.Table);
-        fixture.Cpu.Run(cpuTables, BatchBuilders.Sweep(family, From, To, 64, 5.0e6, 10.0e6));   // warm-up
-        var watch = Stopwatch.StartNew();
-        var cpu = fixture.Cpu.Run(cpuTables, batch);
-        var cpuSeconds = watch.Elapsed;
-        RocketBatchResult? cuda = null;
-        RocketBatchResult? again = null;
-        var cudaSeconds = TimeSpan.Zero;
-        if (fixture.Cuda is { } engine)
-        {
-            using var cudaTables = engine.Upload(family.Table);
-            engine.Run(cudaTables, BatchBuilders.Sweep(family, From, To, 64, 5.0e6, 10.0e6));   // warm-up
-            watch.Restart();
-            cuda = engine.Run(cudaTables, batch);
-            cudaSeconds = watch.Elapsed;
-            again = engine.Run(cudaTables, batch);
-        }
-
-        return new SweepRun(batch, cpu, cuda, again, cpuSeconds, cudaSeconds);
     }
 }

@@ -144,7 +144,7 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
     [Fact]
     public void Inconsistent_batches_are_refused_before_any_kernel_runs()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
         var wrongElements = new RocketBatch(2, family.Table.ElementCount + 1, family.Inputs[0].ExitKinds);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongElements));
@@ -158,7 +158,7 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Throws<ArgumentException>(() => other.Run(tables, family.Batch()));
         using var withoutTransport = fixture.Cpu.Upload(family.Table);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(withoutTransport, new TransportBatch(1, family.Table.SpeciesCount)));
-        var otherTable = BatchBuilders.RocketFamilies(fixture.Database)[1].Table;
+        var otherTable = FixtureBatches.RocketFamilies(fixture.Database)[1].Table;
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Upload(otherTable, family.Transport));
     }
 
@@ -180,7 +180,7 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
     [Fact]
     public void Result_layouts_follow_the_station_and_species_counts()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
         var batch = family.Batch();
         var result = fixture.Cpu.Run(tables, batch);

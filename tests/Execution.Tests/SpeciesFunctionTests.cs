@@ -30,7 +30,7 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
     public void The_cpu_accelerator_equals_the_host_functions_bit_for_bit()
     {
         var checkedEntries = 0;
-        foreach (var family in BatchBuilders.RocketFamilies(fixture.Database))
+        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database))
         {
             using var tables = fixture.Cpu.Upload(family.Table);
             var batch = BatchOf(family.Table);
@@ -42,9 +42,9 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
                 var j = batch.Species[i];
                 var t = batch.Temperature[i];
                 var label = $"{family.Table.Species[j]} at {t} K";
-                Assert.True(BatchBuilders.SameBits(SpeciesFunctions.CpOverR(in view, j, t), result.CpOverR[i]), $"{label}: Cp/R");
-                Assert.True(BatchBuilders.SameBits(SpeciesFunctions.HOverRT(in view, j, t), result.HOverRT[i]), $"{label}: H/RT");
-                Assert.True(BatchBuilders.SameBits(SpeciesFunctions.SOverR(in view, j, t), result.SOverR[i]), $"{label}: S/R");
+                Assert.True(BitEquality.SameBits(SpeciesFunctions.CpOverR(in view, j, t), result.CpOverR[i]), $"{label}: Cp/R");
+                Assert.True(BitEquality.SameBits(SpeciesFunctions.HOverRT(in view, j, t), result.HOverRT[i]), $"{label}: H/RT");
+                Assert.True(BitEquality.SameBits(SpeciesFunctions.SOverR(in view, j, t), result.SOverR[i]), $"{label}: S/R");
                 Assert.Equal(SpeciesFunctions.IsInRange(in view, j, t), result.InRange[i]);
                 checkedEntries++;
             }
@@ -66,7 +66,7 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
         var relative = GpuCpuTolerances.Entries["functions"].Relative;
         var worst = 0.0;
         var mismatches = new List<string>();
-        foreach (var family in BatchBuilders.RocketFamilies(fixture.Database))
+        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database))
         {
             using var cpuTables = fixture.Cpu.Upload(family.Table);
             using var cudaTables = cuda.Upload(family.Table);
@@ -100,7 +100,7 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
     [Fact]
     public void A_species_index_outside_the_table_is_refused_before_any_kernel_runs()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table);
         var batch = new SpeciesFunctionBatch(2);
         batch.Species[1] = family.Table.SpeciesCount;

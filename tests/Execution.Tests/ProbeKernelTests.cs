@@ -48,7 +48,7 @@ public sealed class ProbeKernelTests(EngineFixture fixture)
             };
             for (var f = 0; f < MathProbe.FunctionCount; f++)
             {
-                Assert.True(BatchBuilders.SameBits(expected[f], outputs[i * MathProbe.FunctionCount + f]),
+                Assert.True(BitEquality.SameBits(expected[f], outputs[i * MathProbe.FunctionCount + f]),
                             $"{MathProbe.Functions[f]}({v:R}): host {expected[f]:R}, cpu accelerator {outputs[i * MathProbe.FunctionCount + f]:R}");
             }
         }
