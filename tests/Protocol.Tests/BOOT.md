@@ -64,9 +64,10 @@ warning fails the test too.
 
 None.
 
-Outside the tree: xunit; Microsoft.CodeAnalysis.CSharp (Roslyn, the version that
-parses the tree's C# 14, pinned in the project file) for the syntax trees of the shape
-check (2026-09-14); Python 3.8+ on the path for the linter process; the reference
+Outside the tree: xunit; Microsoft.CodeAnalysis.CSharp 5.0.0 (Roslyn, the first stable
+package version built for C# 14, matching the compiler this SDK ships; pinned in the
+root `Directory.Packages.props`) for the syntax trees of the shape check (2026-09-14);
+Python 3.8+ on the path for the linter process; the reference
 implementation of the checks in the protocol kit (`reference/dotnet/`), adapted as its
 README requires: English headings, node by path, several assemblies, parent and
 children rule, links check removed (the linter has it).
@@ -106,7 +107,9 @@ nothing leaked.
 | `NodeDocuments` | what a node's own `BOOT.md` declares: the links of `## Dependencies` and the rows of `## Shape exceptions` |
 | `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests` |
 | `SourceSyntax` | the C# syntax trees of a node's source files, the build directories and generated files skipped |
-| `ShapeMeasures` | the measurements of the shape check over the syntax trees and the assemblies |
+| `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
+| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the project graph |
+| `ShapeMechanics` | the two limitless rules read from syntax: no `partial`/`#region`/banned-suffix type name, and every creation of a declared wide constructor names its arguments |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
 Decisions taken with the review:
@@ -122,12 +125,37 @@ Decisions taken with the review:
 
 Phase 1 (2026-09-14, the clean-code pass) split `Tree`, moved `DeclarationTests`'s grammar into
 `ApiDeclarations`, and flattened every fact to a problems-yielding helper plus one
-assertion; `SourceSyntax` and `ShapeMeasures` are the Shape level's and stay undone
-(the row below stays ⏳). Two small record types the table above does not name, because
+assertion; `SourceSyntax` and `ShapeMeasures` were the Shape level's and stayed undone
+(the row below stayed ⏳). Two small record types the table above does not name, because
 they are data the split types carry rather than a responsibility of their own, got a
 file each too, one type per file throughout: `Node` (a directory of the tree; `Tree`'s
 own vocabulary) and `Instruction` (one opcode and the member its token names;
 `IlBody`'s own vocabulary).
+
+Phase 2 (2026-09-14, the measurements) wrote `SourceSyntax` and `ShapeMeasures` as
+planned, extended `NodeDocuments` to read `## Shape exceptions` rows, and split the
+coupling and the two limitless rules into `CouplingMeasures` and `ShapeMechanics`
+(not part of the phase 1 plan; kept apart so that no file crosses the root's own size
+limit and so that "read from IL" and "read from syntax" stay two files). A third small
+record type joined `Node` and `Instruction` for the same reason: `ShapeException` (one
+row of a `## Shape exceptions` table; `NodeDocuments`' own vocabulary). Building
+`CouplingMeasures` found `TypeShape.Unwrap` folding a by-reference-to-array type
+(`T[]&`, the shape of an `out T[]` parameter — a record's compiler-generated
+`Deconstruct` takes one for every array-typed positional parameter) only one layer
+deep, leaving `T[]` where the walk's own contract promises `T`; fixed to loop until
+nothing byref, array or pointer is left, which is what let `RocketRunner` and
+`EquilibriumRunner` measure 26 and 24 instead of 27 and 25 (`src/Problems/BOOT.md`'s
+own note on the scratch tool's differing count, now explained rather than only
+observed). A second, unrelated finding of the same build: a compiler-synthesized,
+non-nested collection-expression helper type (`<>z__ReadOnlySingleElementList` and
+alike) carries `[CompilerGenerated]` but no `DeclaringType` to fold into, so it passed
+both the self-reference and the outside-the-tree filters; `CouplingMeasures` excludes
+any compiler-generated type on either side of an edge, matching how `CoverageTests` and
+`InvariantTests` already treat the same category. Neither finding moved a single
+existing fact's answer: `DependencyTests`, `CoverageTests`, `InvariantTests` and
+`SurfaceTests` stayed green throughout, because a byref-to-array or a free-floating
+compiler-generated helper resolves to the same *node* either way — only a *type* count
+sees the difference, which is this phase's own new territory.
 
 `ApiDeclarations`'s "named in the `API.md`" turned out to need more than "declared in
 a ✅ block": `Execution`'s `API.md` names `EquilibriumBatchViews`, `RocketBatchViews`,
