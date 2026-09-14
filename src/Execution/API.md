@@ -28,7 +28,10 @@ public sealed record EngineOptions
 
 public sealed record AcceleratorInfo(
     AcceleratorKind Kind, string DeviceName, string IlgpuVersion,
-    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors);
+    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors)
+{
+    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, with the paths tried where they apply; null when CUDA was bound or never tried
+}
 
 public sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
 
@@ -80,28 +83,13 @@ is the only synchronised piece.
 ⚠ 2026-09-14 (the clean-code review): `Create` with `Auto` swallowed every CUDA
 failure into a discarded exception and returned a CPU engine whose description said
 nothing, so a machine with a broken CUDA installation ran the 56× slower path without
-a word. The fallback stays; `AcceleratorInfo.CudaSkippedBecause` (planned below)
-carries the reason, and the snapshot moves with it. The chunk bound counted only the scratch and
+a word. The fallback stays; `AcceleratorInfo.CudaSkippedBecause` now carries the
+reason, and the snapshot moved with it. The chunk bound counted only the scratch and
 the moles; it now counts every buffer of the chunk, and a `ScratchBytes` of zero or
 less is refused like a `ChunkSize` of zero (it used to shrink every launch to one case
 silently). The error table's "batch arrays of inconsistent lengths" described a state
 the batch constructors make impossible and is gone with the branches that could not
 fire.
-
-## Fallback reason ⏳
-
-```csharp
-public sealed record AcceleratorInfo
-{
-    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, with the paths tried where they apply; null when CUDA was bound or never tried
-}
-```
-
-⚠ 2026-09-14: the design session first wrote this member into the ✅ block above,
-before the code had it, and the declaration check of the protocol tests node went red
-on the branch at the next full run (`AGENTS.md` §7: a ✅ is placed only after what it
-declares exists). Moved here; the commit that implements it moves the line back into
-the block above and removes this section.
 
 ## Batches ✅
 
