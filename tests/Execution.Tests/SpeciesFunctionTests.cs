@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Execution.Tests;
@@ -42,9 +43,9 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
                 var j = batch.Species[i];
                 var t = batch.Temperature[i];
                 var label = $"{family.Table.Species[j]} at {t} K";
-                Assert.True(BitEquality.SameBits(SpeciesFunctions.CpOverR(in view, j, t), result.CpOverR[i]), $"{label}: Cp/R");
-                Assert.True(BitEquality.SameBits(SpeciesFunctions.HOverRT(in view, j, t), result.HOverRT[i]), $"{label}: H/RT");
-                Assert.True(BitEquality.SameBits(SpeciesFunctions.SOverR(in view, j, t), result.SOverR[i]), $"{label}: S/R");
+                Assert.True(Bits.Same(SpeciesFunctions.CpOverR(in view, j, t), result.CpOverR[i]), $"{label}: Cp/R");
+                Assert.True(Bits.Same(SpeciesFunctions.HOverRT(in view, j, t), result.HOverRT[i]), $"{label}: H/RT");
+                Assert.True(Bits.Same(SpeciesFunctions.SOverR(in view, j, t), result.SOverR[i]), $"{label}: S/R");
                 Assert.Equal(SpeciesFunctions.IsInRange(in view, j, t), result.InRange[i]);
                 checkedEntries++;
             }

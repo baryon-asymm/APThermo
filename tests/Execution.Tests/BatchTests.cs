@@ -1,4 +1,5 @@
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
 
@@ -34,8 +35,8 @@ public sealed class BatchTests(EngineFixture fixture)
             for (var s = 0; s < stationCount; s++)
             {
                 var index = k * stationCount + s;
-                differences.AddRange(BitEquality.BitDifferences(host.Stations[s], result.Stations[index], $"{label} station {s}"));
-                differences.AddRange(BitEquality.BitDifferences(host.Figures[s], result.Figures[index], $"{label} station {s}"));
+                differences.AddRange(Bits.Differences(host.Stations[s], result.Stations[index], $"{label} station {s}"));
+                differences.AddRange(Bits.Differences(host.Figures[s], result.Figures[index], $"{label} station {s}"));
                 if (host.StationStatus[s] != result.StationStatus[index] || host.Iterations[s] != result.Iterations[index])
                 {
                     differences.Add($"{label} station {s}: status or iterations differ");
@@ -43,7 +44,7 @@ public sealed class BatchTests(EngineFixture fixture)
 
                 for (var j = 0; j < speciesCount; j++)
                 {
-                    if (!BitEquality.SameBits(host.Moles[s * speciesCount + j], result.Moles[(long)index * speciesCount + j]))
+                    if (!Bits.Same(host.Moles[s * speciesCount + j], result.Moles[(long)index * speciesCount + j]))
                     {
                         differences.Add($"{label} station {s}: moles of {family.Table.Species[j]} differ");
                     }
@@ -80,7 +81,7 @@ public sealed class BatchTests(EngineFixture fixture)
         for (var i = 0; i < transport.Count; i++)
         {
             Assert.Equal(transportFirst.Status[i], transportChunked.Status[i]);
-            Assert.Empty(BitEquality.BitDifferences(transportFirst.Figures[i], transportChunked.Figures[i], $"station {i}"));
+            Assert.Empty(Bits.Differences(transportFirst.Figures[i], transportChunked.Figures[i], $"station {i}"));
         }
     }
 
@@ -101,7 +102,7 @@ public sealed class BatchTests(EngineFixture fixture)
                 var host = HostSolves.Transport(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, tables.TransportBuffers!,
                                                                  transport.Temperature[i], transport.Moles, i * family.Table.SpeciesCount);
                 Assert.Equal(host.Status, result.Status[i]);
-                Assert.Empty(BitEquality.BitDifferences(host.Figures, result.Figures[i], $"{family.Name} station {i}"));
+                Assert.Empty(Bits.Differences(host.Figures, result.Figures[i], $"{family.Name} station {i}"));
                 if (rocket.StationStatus[i] == CaseStatus.Ok)
                 {
                     Assert.Equal(CaseStatus.Ok, result.Status[i]);
@@ -126,10 +127,10 @@ public sealed class BatchTests(EngineFixture fixture)
             Assert.Equal(CaseStatus.Ok, host.Status);
             Assert.Equal(host.Status, result.Status[k]);
             Assert.Equal(host.Iterations, result.Iterations[k]);
-            Assert.Empty(BitEquality.BitDifferences(host.State, result.State[k], cases[k].Name));
+            Assert.Empty(Bits.Differences(host.State, result.State[k], cases[k].Name));
             for (var j = 0; j < table.SpeciesCount; j++)
             {
-                Assert.True(BitEquality.SameBits(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
+                Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
             }
 
             var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
@@ -148,13 +149,13 @@ public sealed class BatchTests(EngineFixture fixture)
         Assert.Equal(expected.Iterations, actual.Iterations);
         for (var i = 0; i < expected.Stations.Length; i++)
         {
-            Assert.Empty(BitEquality.BitDifferences(expected.Stations[i], actual.Stations[i], $"station {i}"));
-            Assert.Empty(BitEquality.BitDifferences(expected.Figures[i], actual.Figures[i], $"station {i}"));
+            Assert.Empty(Bits.Differences(expected.Stations[i], actual.Stations[i], $"station {i}"));
+            Assert.Empty(Bits.Differences(expected.Figures[i], actual.Figures[i], $"station {i}"));
         }
 
         for (long j = 0; j < expected.Moles.LongLength; j++)
         {
-            Assert.True(BitEquality.SameBits(expected.Moles[j], actual.Moles[j]), $"moles differ at {j}");
+            Assert.True(Bits.Same(expected.Moles[j], actual.Moles[j]), $"moles differ at {j}");
         }
     }
 }

@@ -44,14 +44,23 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   the count everywhere) cannot hide behind the second tier. The root's invariant
   carries the same note.
 
-  ⚠ 2026-09-14: "in one file" was not true: the front door tests node copies the
+  ⚠ 2026-09-14: "in one file" was not true: the front door tests node copied the
   mole-fraction floor (1e-8) and the polish-threshold tier (1e-9) for its reordered
   union batches, and the protocol forbids it to read this node's code. Found by the
-  clean-code review (F-TF-05). Decided at the root: the two entries move to the
-  fixtures node's tolerance table, which both nodes already depend on, as
-  `moleFractionFloor` and `polishThresholdRelative` with their derivations, and this
-  node's table keeps the GPU-specific entries; until that task lands the copy stands
-  as a declared duplication.
+  clean-code review (F-TF-05). Resolved the same day: the two entries moved to the
+  fixtures node's tolerance table, which both nodes already depend on
+  (`tests/Fixtures/tolerances.json`, `moleFractionFloor` and
+  `polishThresholdRelative`, with their derivations); `GpuCpuTolerances.MoleFractionFloor`
+  and `MoleFractionRelative` now take that table and read the two entries from it, and
+  this node's own table keeps only the GPU-specific entries (temperature, moleFraction,
+  state, figures, transport, functions) that have no place in a table of comparisons
+  with the reference.
+- **Bit comparison goes through the harness** (2026-09-14): `BitEquality.cs`'s
+  `SameBits` and `BitDifferences<T>` were, field for field, the harness's `Bits.Same`
+  and `Bits.Differences<T>`; the file is gone and every call site of this node reads
+  `AerospacePropellantThermodynamics.Harness.Bits` instead, so the acceptance
+  criterion below that names `BitEquality.cs` as one of the F-TF-06 split's four files
+  now names a file this node no longer has.
 - **CUDA tests are marked** `Category=Cuda` and the sweep and the benchmark also
   `Category=LongRunning`; when `APTHERMO_NO_CUDA=1` is set a CUDA-category test
   verifies the refusal of an explicit CUDA request and returns, so the full suite
@@ -73,7 +82,9 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 - [Performance](../../src/Performance/API.md) — `PerformanceFigures`, the rocket solver called on the host, flow models.
 - [Transport](../../src/Transport/API.md) — the transport table and evaluation called on the host, `TransportFigures`.
 - [Data](../../src/Data/API.md) — the database.
-- [Fixtures](../Fixtures/API.md) — the reference propellant inputs used to build the batches.
+- [Fixtures](../Fixtures/API.md) — the reference propellant inputs used to build the
+  batches, and the mole-fraction floor and polish-threshold tier of the tolerance table.
+- [Harness](../Harness/API.md) — bit comparison (`Bits.Same`, `Bits.Differences`).
 
 Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with driver, libnvvm and
 libdevice for the CUDA category.

@@ -1,3 +1,5 @@
+using AerospacePropellantThermodynamics.Harness;
+
 namespace AerospacePropellantThermodynamics.Execution.Tests;
 
 /// <summary>L1: the probe kernel of the root's math list loads on CUDA through the post-link and matches the CPU accelerator within the ULP bound.</summary>
@@ -48,7 +50,7 @@ public sealed class ProbeKernelTests(EngineFixture fixture)
             };
             for (var f = 0; f < MathProbe.FunctionCount; f++)
             {
-                Assert.True(BitEquality.SameBits(expected[f], outputs[i * MathProbe.FunctionCount + f]),
+                Assert.True(Bits.Same(expected[f], outputs[i * MathProbe.FunctionCount + f]),
                             $"{MathProbe.Functions[f]}({v:R}): host {expected[f]:R}, cpu accelerator {outputs[i * MathProbe.FunctionCount + f]:R}");
             }
         }

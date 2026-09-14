@@ -21,9 +21,12 @@ GPU/CPU tolerance table and the approved throughput figures.
 - The fixtures node's reference propellant inputs for building the batches: every
   rocket fixture grouped into families by element list, product list and exit layout,
   and the tp, hp and sp fixtures of one propellant as an equilibrium batch.
-- `GpuCpuTolerances.cs` in this node: the GPU/CPU table with derivations, the
-  mole-fraction floor, the ULP bound of the probe and the bound on the share of
-  stations at which the accelerators stop after different numbers of Newton steps.
+- `GpuCpuTolerances.cs` in this node: the GPU/CPU table with derivations, the ULP
+  bound of the probe and the bound on the share of stations at which the accelerators
+  stop after different numbers of Newton steps; the mole-fraction floor and the
+  different-step relative tier are read from the fixtures node's tolerance table
+  (`moleFractionFloor`, `polishThresholdRelative`), which this node's own table no
+  longer duplicates (2026-09-14, F-TF-05).
 - `Throughput.approved.txt` in this node: device name, ILGPU version, CPU accelerator
   and threads, cases, stations, species, CUDA time, CPU time, ratio, CUDA kernel time,
   date.
