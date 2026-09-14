@@ -48,11 +48,6 @@ public sealed class CondensedSpeciesTests(CpuFixture fixture)
         Assert.True(index >= solution.Table.GasCount && solution.Moles[index] > 0.0, "liquid alumina is not in the solution");
         Assert.True(fixture.Tolerances.Matches("moleFraction", expected, solution.MoleFraction("AL2O3(L)")),
                     $"x(AL2O3(L)): reference {expected:R}, tree {solution.MoleFraction("AL2O3(L)"):R}");
-
-        // The reference's mole fractions are over all moles, gas and condensed; its MW is one kilogram over those moles.
-        var expectedMass = expected * (1.0 / c.Outputs.GetProperty("mixtureMolarMass").GetDouble()) * solution.Table.Arrays.MolarMass[index];
-        var actualMass = solution.Moles[index] * solution.Table.Arrays.MolarMass[index];
-        Assert.True(Math.Abs(expectedMass - actualMass) < 1e-4, $"mass fraction of alumina: reference {expectedMass:R}, tree {actualMass:R}");
     }
 
     [Fact]

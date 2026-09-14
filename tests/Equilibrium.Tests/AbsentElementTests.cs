@@ -21,17 +21,16 @@ public sealed class AbsentElementTests(CpuFixture fixture)
 
         var masked = (double[])elementMoles.Clone();
         masked[removed] = 0.0;
-        var full = HostSolver.Solve(fixture.Accelerator, HostSolver.BuildTable(fixture.Database, c), HostSolver.KindOf(c),
-                                    HostSolver.PressureOf(c), HostSolver.TemperatureOf(c), HostSolver.TargetOf(c), masked);
+        var full = HostSolver.Solve(fixture.Accelerator,
+                                    HostSolver.Of(HostSolver.BuildTable(fixture.Database, c), c) with { ElementMoles = masked });
 
         var keptElements = elements.Where(e => e != element).ToArray();
         var keptProducts = products.Where(p => fixture.Database[p].Formula.All(
             f => !string.Equals(f.Symbol, element, StringComparison.OrdinalIgnoreCase))).ToArray();
         Assert.True(keptProducts.Length < products.Length, "the element must remove at least one species");
         var reducedTable = SpeciesTable.Build(fixture.Database, keptElements, keptProducts);
-        var reduced = HostSolver.Solve(fixture.Accelerator, reducedTable, HostSolver.KindOf(c),
-                                       HostSolver.PressureOf(c), HostSolver.TemperatureOf(c), HostSolver.TargetOf(c),
-                                       masked.Where((_, i) => i != removed).ToArray());
+        var reducedMoles = masked.Where((_, i) => i != removed).ToArray();
+        var reduced = HostSolver.Solve(fixture.Accelerator, HostSolver.Of(reducedTable, c) with { ElementMoles = reducedMoles });
 
         Assert.Equal(CaseStatus.Ok, full.Status);
         Assert.Equal(reduced.Status, full.Status);

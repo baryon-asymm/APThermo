@@ -26,6 +26,9 @@ public readonly struct BatchViews(
     public readonly ArrayView<int> Iterations = iterations;
 }
 
+/// <summary>What the kernel wrote for one batch, downloaded once, so that the host call and the kernel call may be compared.</summary>
+internal readonly record struct KernelBatchResult(double[] Moles, double[] Multipliers, MixtureState[] States, int[] Statuses, int[] Iterations);
+
 /// <summary>L1: the solver inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
 [Collection(CpuCollection.Name)]
 public sealed class KernelEqualityTests(CpuFixture fixture)
@@ -63,10 +66,15 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         Assert.Equal(family, members[0][3..]);
         var cases = members.Select(m => HostSolver.Load(m[..2], m[3..])).ToList();
         var table = HostSolver.BuildTable(fixture.Database, cases[0]);
-        var host = cases.Select(c => HostSolver.Solve(fixture.Accelerator, table, HostSolver.KindOf(c), HostSolver.PressureOf(c),
-                                                      HostSolver.TemperatureOf(c), HostSolver.TargetOf(c), HostSolver.ElementMolesOf(c))).ToList();
+        var host = cases.Select(c => HostSolver.Solve(fixture.Accelerator, HostSolver.Of(table, c))).ToList();
 
-        var accelerator = fixture.Accelerator;
+        var kernel = FillAndLaunch(fixture.Accelerator, table, cases, count);
+        AssertSameBits(host, kernel, table, members);
+    }
+
+    /// <summary>Uploads the table and every case of the batch, launches the solve kernel, and downloads what it wrote.</summary>
+    private static KernelBatchResult FillAndLaunch(Accelerator accelerator, SpeciesTable table, IReadOnlyList<CeaCase> cases, int count)
+    {
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
         using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
@@ -90,32 +98,35 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         kernel(count, buffers.View, batch);
         accelerator.Synchronize();
 
-        var kernelMoles = moles.GetAsArray1D();
-        var kernelMultipliers = multipliers.GetAsArray1D();
-        var kernelStates = states.GetAsArray1D();
-        var kernelStatuses = statuses.GetAsArray1D();
-        var kernelIterations = iterations.GetAsArray1D();
+        return new KernelBatchResult(moles.GetAsArray1D(), multipliers.GetAsArray1D(), states.GetAsArray1D(), statuses.GetAsArray1D(), iterations.GetAsArray1D());
+    }
+
+    /// <summary>Every status, iteration count, mole, multiplier and state field of the batch, host against kernel, bit for bit.</summary>
+    private static void AssertSameBits(IReadOnlyList<HostSolution> host, KernelBatchResult kernel, SpeciesTable table, string[] members)
+    {
+        var speciesCount = table.SpeciesCount;
+        var elementCount = table.ElementCount;
         var fields = typeof(MixtureState).GetFields();
-        for (var k = 0; k < count; k++)
+        for (var k = 0; k < host.Count; k++)
         {
             Assert.True(host[k].Status == CaseStatus.Ok, $"{members[k]}: host status {host[k].Status}");
-            Assert.True((int)host[k].Status == kernelStatuses[k], $"{members[k]}: kernel status {(CaseStatus)kernelStatuses[k]}");
-            Assert.True(host[k].Iterations == kernelIterations[k], $"{members[k]}: iterations host {host[k].Iterations}, kernel {kernelIterations[k]}");
+            Assert.True((int)host[k].Status == kernel.Statuses[k], $"{members[k]}: kernel status {(CaseStatus)kernel.Statuses[k]}");
+            Assert.True(host[k].Iterations == kernel.Iterations[k], $"{members[k]}: iterations host {host[k].Iterations}, kernel {kernel.Iterations[k]}");
             for (var j = 0; j < speciesCount; j++)
             {
-                Assert.True(SameBits(host[k].Moles[j], kernelMoles[k * speciesCount + j]),
-                            $"{members[k]}: moles of {table.Species[j]} host {host[k].Moles[j]:R}, kernel {kernelMoles[k * speciesCount + j]:R}");
+                Assert.True(SameBits(host[k].Moles[j], kernel.Moles[k * speciesCount + j]),
+                            $"{members[k]}: moles of {table.Species[j]} host {host[k].Moles[j]:R}, kernel {kernel.Moles[k * speciesCount + j]:R}");
             }
 
             for (var i = 0; i < elementCount; i++)
             {
-                Assert.True(SameBits(host[k].Multipliers[i], kernelMultipliers[k * elementCount + i]), $"{members[k]}: multiplier of {table.Elements[i]} differs");
+                Assert.True(SameBits(host[k].Multipliers[i], kernel.Multipliers[k * elementCount + i]), $"{members[k]}: multiplier of {table.Elements[i]} differs");
             }
 
             foreach (var field in fields)
             {
                 var a = (double)field.GetValue(host[k].State)!;
-                var b = (double)field.GetValue(kernelStates[k])!;
+                var b = (double)field.GetValue(kernel.States[k])!;
                 Assert.True(SameBits(a, b), $"{members[k]}: {field.Name} host {a:R}, kernel {b:R}");
             }
         }
