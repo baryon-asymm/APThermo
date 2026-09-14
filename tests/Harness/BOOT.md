@@ -80,12 +80,57 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
       snapshot re-approved for it). Every one of the seven consumer nodes'
       `## Dependencies` links this node and the dependency check agrees; the surface
       snapshot gained this node's section in the commit that created it.
-- [ ] Nothing moved: every Bits level of the tree green with its approved file byte
-      for byte unchanged, every kernel-equality and batch bit-equality test green. The
-      node seen red through its consumers once, each mutation alone: `Bits.Same` made
-      to answer false (every bit-equality test red); a double added to `BitHash` in
-      big-endian order (every Bits level red); a line for a fixture that does not exist
-      added to an approved file (that Bits level red, naming the key).
+- [x] 2026-09-15 — Nothing moved: the whole tree's fast suite (10 projects, 3014
+      tests) green, every `Bits.approved.txt` byte for byte unchanged (hashes below),
+      every kernel-equality and batch bit-equality test green. The node seen red
+      through its consumers three times, each mutation alone, restored immediately
+      after and the fast suite confirmed green again:
+
+      `Bits.Same` made to answer `false` (`Bits.cs`): 88 bit-equality tests red across
+      six of the ten projects - Thermo.Tests 41 of 378, Transport.Tests 8 of 157,
+      Equilibrium.Tests 9 of 463, Performance.Tests 8 of 699, Problems.Tests 9 of
+      1111, Execution.Tests 13 of 41 - every one a test that calls `Bits.Same` or
+      `Bits.Differences` directly. Data.Tests, Fixtures.Tests, Cli.Tests and
+      Protocol.Tests stayed green: the first two do not depend on this node, and
+      Cli.Tests calls neither method (its Bits level hashes rendered text; below).
+
+      A double added to `BitHash.Add(double)` in big-endian order (`BitHash.cs`): 314
+      Bits-level tests red across five of the six nodes with a `Bits.approved.txt` -
+      Thermo.Tests 213 of 378, Performance.Tests 98 of 699 (both a theory per fixture
+      case), Transport.Tests 1 of 157, Equilibrium.Tests 1 of 463, Problems.Tests 1 of
+      1111 (each one fact over every fixture, so one assertion carries every moved
+      hash). `Cli.Tests` (91 tests) stayed green: its Bits level hashes the CLI's
+      rendered JSON and CSV text (`BitSnapshotTests.Sha256`, `BitHash.Add(string)`
+      only, never a raw double), so this mutation does not reach it.
+
+      A line for a fixture that does not exist added to
+      `Transport.Tests/Bits.approved.txt` (a fabricated key and hash):
+      `Every_fixture_with_transport_gives_the_recorded_bits` red, one problem naming
+      the key - "tests/Fixtures/cases/rocket/does-not-exist_pc1MPa_shiftingEquilibrium.json:
+      recorded in the approved snapshot, but no such fixture is run with transport"
+      (`ApprovedSnapshot.StaleKeys`, wired by `Transport.Tests` and `Equilibrium.Tests`
+      only; the other four Bits-level consumers key their theories from the fixture
+      directory alone and do not check for an orphaned approved line - a gap recorded
+      here rather than closed silently, since fixing it edits four foreign nodes'
+      own test code, outside this task).
+
+      `Bits.approved.txt` hashes, all six unmoved through the whole exercise:
+      Cli.Tests `483c979b75b5c98b5e11ddc4359f28812e225e15`, Equilibrium.Tests
+      `65788e23f4390305763c80ab1f66b2054ff1907a`, Performance.Tests
+      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, Problems.Tests
+      `26840f83c9be5a405b22afa49cd519a2b2413e37`, Thermo.Tests
+      `8bd5068ebcd28a090a9ab1bd6b048f4c42da5d6b`, Transport.Tests
+      `3e4000dbb3fc1340c4f5f67a77a7fac566482ae8`. The whole tree's fast suite
+      confirmed 3014 of 3014 green again after every revert; `protocol_lint` 0
+      errors, 0 warnings throughout.
+
+      ⚠ 2026-09-15: the criterion as first written predicted "every Bits level red"
+      for the big-endian mutation. Wrong for `Cli.Tests`: its Bits level hashes the
+      adapter's rendered text output, not a raw double, by design (hashing the
+      formatted text is the stricter check for a text-rendering node, since it also
+      catches a formatting change no bit difference would) - a real, verified
+      exception, not an oversight, recorded rather than forced to fit the absolute
+      word (`AGENTS.md` §8).
 
 ## Taboos
 
