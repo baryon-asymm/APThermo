@@ -69,8 +69,10 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         using var iterations = accelerator.Allocate1D<int>(count);
         moles.MemSetToZero();
 
-        var batch = new BatchViews(kinds.View, pressures.View, temperatures.View, targets.View, elementMoles.View,
-                                   scratchDoubles.View, scratchInts.View, moles.View, multipliers.View, states.View, statuses.View, iterations.View);
+        var batch = new BatchViews(
+            kinds: kinds.View, pressures: pressures.View, temperatures: temperatures.View, targets: targets.View,
+            elementMoles: elementMoles.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
+            moles: moles.View, multipliers: multipliers.View, states: states.View, statuses: statuses.View, iterations: iterations.View);
         var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, BatchViews>(SolveKernel);
         kernel(count, buffers.View, batch);
         accelerator.Synchronize();

@@ -147,9 +147,12 @@ creation names its arguments; it passes them by position today (the criterion be
       rounding of the sums it enters. The 22 that did move are what makes the check
       non-degenerate; the figure is recorded rather than the quantifier
       (`AGENTS.md` §8: an absolute word needs proof or a caveat).
-- [ ] The creation of `BatchViews` in `KernelEqualityTests` names its arguments, in the
-      order of the parameters (the root's condition on a declared wide constructor, the
-      row of `## Shape exceptions`); the node's bit snapshot unchanged.
+- [x] 2026-09-15 — The creation of `BatchViews` in `KernelEqualityTests` names its
+      arguments, in the order of the parameters (the root's condition on a declared
+      wide constructor, the row of `## Shape exceptions`), verified by
+      `named-construction-scan.py . BatchViews` (one site, fully named); the node's
+      bit snapshot unchanged (`Bits.approved.txt` hash `65788e23f4390305763c80ab1f66b2054ff1907a`,
+      the fast suite 463/463 green).
 
 ## Taboos
 
