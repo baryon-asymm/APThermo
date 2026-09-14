@@ -175,7 +175,7 @@ internal static class CondensedSet
             return false;
         }
 
-        var bound = above ? PhaseGeometry.RecordHigh(table, j) : PhaseGeometry.RecordLow(table, j);
+        var bound = above ? SpeciesFunctions.RecordHigh(table, j) : SpeciesFunctions.RecordLow(table, j);
         var latent = Math.Abs(SpeciesFunctions.HOverRT(table, j, bound) - SpeciesFunctions.HOverRT(table, neighbour, bound));
         if (latent < SpeciesFunctions.LatentHeatThreshold)
         {

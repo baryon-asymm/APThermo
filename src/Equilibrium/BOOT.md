@@ -463,14 +463,18 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       tolerance (`PhaseGeometry`); the two element-balance tolerances
       (`ElementBalance`). Checked by reading at the close of the decomposition; the
       bit snapshot proves the reading moved no number.
-- [ ] The node decodes none of `Thermo`'s interval layout (F-AR-01): no
-      `IntervalStart`, `IntervalCount` or `IntervalBounds` in its source files, the
-      record bounds asked of `SpeciesFunctions.RecordLow` and `RecordHigh`; the tests
+- [x] 2026-09-14 — The node decodes none of `Thermo`'s interval layout (F-AR-01): no
+      `IntervalStart`, `IntervalCount` or `IntervalBounds` in its source files (grep
+      over `src/Equilibrium/*.cs` empty), the record bounds asked of
+      `SpeciesFunctions.RecordLow` and `RecordHigh` from `PhaseGeometry` (`Adjacent`,
+      `EffectiveLow`, `EffectiveHigh`) and from `CondensedSet.Pinnable`; the tests
       node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` unchanged
-      and `KernelEqualityTests` green. Non-degeneracy, applied alone in the worktree
-      and restored: `SpeciesFunctions.RecordHigh` made to return the record's lower
-      bound turns at least one case of the bit snapshot red, which a node still
-      holding its own copy would not.
+      (463 tests green, the hash of `Bits.approved.txt` unmoved) and
+      `KernelEqualityTests` green in the same run. Non-degeneracy, applied alone in
+      the worktree and restored: `SpeciesFunctions.RecordHigh` made to return the
+      record's lower bound turned 29 fixture cases' recorded bits red
+      (`BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`), which a node
+      still holding its own copy would not.
 - [ ] The Newton loop holds no formula (`## Structure`, the decision of that name):
       `NewtonIteration`, `DampedStep`, `ConvergenceTests` and `SingularRemedies` as the
       table says, each within the root's code shape; the efferent coupling of
