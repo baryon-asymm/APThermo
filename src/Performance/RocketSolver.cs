@@ -50,12 +50,13 @@ public static class RocketSolver
             return;
         }
 
+        var context = new RocketContext(in table, in problem, in scratch, in result);
         var pressureChamber = problem.ChamberPressure;
 
         // Chamber: assigned enthalpy and pressure (6.3.1).
         var chamberProblem = new EquilibriumProblem(ProblemKind.AssignedEnthalpyPressure, pressureChamber, problem.TemperatureEstimate,
                                                     problem.ReactantEnthalpy, problem.ElementMoles);
-        var chamber = StationResult(result, Chamber, speciesCount, elementCount);
+        var chamber = StationResult(in context, Chamber);
         EquilibriumSolver.Solve(in table, in chamberProblem, in scratch, in chamber, false);
         if (result.StationStatus[Chamber] != (int)CaseStatus.Ok)
         {
@@ -84,13 +85,13 @@ public static class RocketSolver
         // Throat: the pressure ratio for which the velocity equals the sound speed (6.3.3).
         var gammaChamber = chamberState.GammaS;
         var pressureThroat = pressureChamber / Math.Pow(0.5 * (gammaChamber + 1.0), gammaChamber / (gammaChamber - 1.0));
-        CopyRow(result.Moles, Chamber, Throat, speciesCount);
+        CopyRow(in context, Chamber, Throat);
         var temperatureEstimate = chamberState.Temperature;
         var sonicRatio = 0.0;
         var throatConverged = false;
         for (var k = 0; k < MaxThroatIterations; k++)
         {
-            if (!SolveStation(table, problem, scratch, result, Throat, pressureThroat, temperatureEstimate, entropyChamber, frozenAtChamber))
+            if (!SolveStation(in context, Throat, pressureThroat, temperatureEstimate, entropyChamber, frozenAtChamber))
             {
                 result.Status[0] = result.StationStatus[Throat];
                 return;
@@ -127,7 +128,7 @@ public static class RocketSolver
         var velocityThroat = Math.Sqrt(2.0 * (enthalpyChamber - throatState.Enthalpy));
         var massFluxThroat = throatState.Density * velocityThroat;
         var characteristicVelocity = pressureChamber / massFluxThroat;
-        FinishStation(result, Throat, velocityThroat, 1.0, pressureChamber / pressureThroat, characteristicVelocity);
+        FinishStation(in context, Throat, velocityThroat, 1.0, pressureChamber / pressureThroat, characteristicVelocity);
         var chamberFigures = result.Figures[Chamber];
         chamberFigures.PressureRatio = 1.0;
         chamberFigures.CharacteristicVelocity = characteristicVelocity;
@@ -150,7 +151,7 @@ public static class RocketSolver
             var value = problem.ExitValues[k];
             var kind = (ExitSpecification)problem.ExitKinds[k];
             var source = frozen ? freezingStation : lastSolved;
-            CopyRow(result.Moles, source, station, speciesCount);
+            CopyRow(in context, source, station);
             var previousState = result.Stations[lastSolved];
             var extrapolable = false;
             if (kind == ExitSpecification.PressureRatio)
@@ -162,12 +163,12 @@ public static class RocketSolver
                 else
                 {
                     var pressure = pressureChamber / value;
-                    if (SolveStation(table, problem, scratch, result, station, pressure, previousState.Temperature, entropyChamber, frozen))
+                    if (SolveStation(in context, station, pressure, previousState.Temperature, entropyChamber, frozen))
                     {
                         var state = result.Stations[station];
                         var velocity = Math.Sqrt(Math.Max(2.0 * (enthalpyChamber - state.Enthalpy), 0.0));
                         var areaRatio = massFluxThroat / (state.Density * velocity);
-                        FinishStation(result, station, velocity, areaRatio, value, characteristicVelocity);
+                        FinishStation(in context, station, velocity, areaRatio, value, characteristicVelocity);
                     }
                 }
             }
@@ -202,7 +203,7 @@ public static class RocketSolver
                 for (var iteration = 0; iteration < MaxAreaRatioIterations; iteration++)
                 {
                     var pressure = pressureChamber * Math.Exp(-logPressureRatio);
-                    if (!SolveStation(table, problem, scratch, result, station, pressure, estimate, entropyChamber, frozen))
+                    if (!SolveStation(in context, station, pressure, estimate, entropyChamber, frozen))
                     {
                         failed = true;
                         break;
@@ -241,7 +242,7 @@ public static class RocketSolver
                         var state = result.Stations[station];
                         var velocity = Math.Sqrt(2.0 * (enthalpyChamber - state.Enthalpy));
                         var areaRatio = massFluxThroat / (state.Density * velocity);
-                        FinishStation(result, station, velocity, areaRatio, pressureChamber / state.Pressure, characteristicVelocity);
+                        FinishStation(in context, station, velocity, areaRatio, pressureChamber / state.Pressure, characteristicVelocity);
                         extrapolable = value > ExtrapolationAreaRatio;
                         previousLogPressureRatio = Math.Log(pressureChamber / state.Pressure);
                         previousLogAreaRatio = logAreaRatio;
@@ -269,27 +270,28 @@ public static class RocketSolver
     }
 
     /// <summary>The equilibrium (sp) or frozen solve of one station at a pressure, from the composition already in its row; true when Ok.</summary>
-    private static bool SolveStation(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result,
-                                     int station, double pressure, double temperatureEstimate, double entropy, bool frozen)
+    private static bool SolveStation(in RocketContext context, int station, double pressure, double temperatureEstimate, double entropy, bool frozen)
     {
-        var equilibriumProblem = new EquilibriumProblem(ProblemKind.AssignedEntropyPressure, pressure, temperatureEstimate, entropy, problem.ElementMoles);
-        var stationResult = StationResult(result, station, table.SpeciesCount, table.ElementCount);
+        var equilibriumProblem = new EquilibriumProblem(ProblemKind.AssignedEntropyPressure, pressure, temperatureEstimate, entropy,
+                                                        context.Problem.ElementMoles);
+        var stationResult = StationResult(in context, station);
         if (frozen)
         {
-            EquilibriumSolver.SolveFrozen(in table, in equilibriumProblem, in scratch, in stationResult);
+            EquilibriumSolver.SolveFrozen(in context.Table, in equilibriumProblem, in context.Scratch, in stationResult);
         }
         else
         {
-            EquilibriumSolver.Solve(in table, in equilibriumProblem, in scratch, in stationResult, true);
+            EquilibriumSolver.Solve(in context.Table, in equilibriumProblem, in context.Scratch, in stationResult, true);
         }
 
-        return result.StationStatus[station] == (int)CaseStatus.Ok;
+        return context.Result.StationStatus[station] == (int)CaseStatus.Ok;
     }
 
     /// <summary>Writes the velocity and Mach number into the station's state and its performance figures (6.2).</summary>
-    private static void FinishStation(in RocketResult result, int station, double velocity, double areaRatio, double pressureRatio,
+    private static void FinishStation(in RocketContext context, int station, double velocity, double areaRatio, double pressureRatio,
                                       double characteristicVelocity)
     {
+        var result = context.Result;
         var state = result.Stations[station];
         state.Velocity = velocity;
         state.Mach = velocity / state.SoundSpeed;
@@ -304,20 +306,27 @@ public static class RocketSolver
         result.Figures[station] = figures;
     }
 
-    private static EquilibriumResult StationResult(in RocketResult result, int station, int speciesCount, int elementCount) =>
-        new(result.Moles.SubView(station * speciesCount, speciesCount),
-            result.Multipliers.SubView(station * elementCount, elementCount),
-            result.Stations.SubView(station, 1),
-            result.StationStatus.SubView(station, 1),
-            result.Iterations.SubView(station, 1));
+    private static EquilibriumResult StationResult(in RocketContext context, int station)
+    {
+        var result = context.Result;
+        var speciesCount = context.Table.SpeciesCount;
+        var elementCount = context.Table.ElementCount;
+        return new EquilibriumResult(result.Moles.SubView(station * speciesCount, speciesCount),
+                                     result.Multipliers.SubView(station * elementCount, elementCount),
+                                     result.Stations.SubView(station, 1),
+                                     result.StationStatus.SubView(station, 1),
+                                     result.Iterations.SubView(station, 1));
+    }
 
-    private static void CopyRow(ArrayView<double> moles, int from, int to, int speciesCount)
+    private static void CopyRow(in RocketContext context, int from, int to)
     {
         if (from == to)
         {
             return;
         }
 
+        var moles = context.Result.Moles;
+        var speciesCount = context.Table.SpeciesCount;
         for (var j = 0; j < speciesCount; j++)
         {
             moles[to * speciesCount + j] = moles[from * speciesCount + j];
