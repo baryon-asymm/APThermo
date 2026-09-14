@@ -120,7 +120,7 @@ Decisions taken with the review:
   door tests node's comparison split.
 - **Size**: the root's constraint, this node's own code included.
 
-Phase 1 (2026-09-14, this session) split `Tree`, moved `DeclarationTests`'s grammar into
+Phase 1 (2026-09-14, the clean-code pass) split `Tree`, moved `DeclarationTests`'s grammar into
 `ApiDeclarations`, and flattened every fact to a problems-yielding helper plus one
 assertion; `SourceSyntax` and `ShapeMeasures` are the Shape level's and stay undone
 (the row below stays ⏳). Two small record types the table above does not name, because
@@ -260,11 +260,17 @@ Why the numbers are what they are:
       a static field that is neither const nor readonly"; (9) the namespace check red,
       "is in namespace AerospacePropellantThermodynamics.Thermo.Weird"; (10)
       Declarations and Lint red, "declares the type MutationNonexistentType under ✅,
-      and no assembly of the tree has it". One pre-existing, unrelated failure ran
-      alongside every check above and after: Declarations red on
-      `src/Execution/API.md`'s `AcceleratorInfo`/`CudaSkippedBecause` (fixed upstream
-      at `431e684`, not in this worktree's base; out of this node's subtree, left
-      alone, `AGENTS.md` §3).
+      and no assembly of the tree has it". One unrelated failure ran alongside every
+      check above and after, in the coder's worktree only: Declarations red on
+      `src/Execution/API.md`'s `AcceleratorInfo`/`CudaSkippedBecause`, a member the
+      design had declared under ✅ before the execution node's code added it (out of
+      this node's subtree, left alone, `AGENTS.md` §3). On the integration branch the
+      member exists since the execution node's merge, and the check holds there.
+
+      ⚠ 2026-09-14: the parenthetical above first read "fixed upstream at `431e684`".
+      That commit moved the member to a planned section while the execution node's
+      coder was still at work, and `356d2ef` reverted it once the merge `8f051d8`
+      brought the member: the member fixed the check, not the move.
 - [x] 2026-09-14 — The two uncovered diagnostics seen red (F-TF-15), each mutation
       alone: (3c) `tests/Fixtures/BOOT.md` linking its descendant `./generate/API.md`:
       Dependencies red, "declares its descendant tests/Fixtures/generate; a parent
