@@ -11,7 +11,7 @@ namespace AerospacePropellantThermodynamics.Problems;
 public sealed class Solver : IDisposable
 {
     private readonly Engine _engine;
-    private readonly Dictionary<string, ChemicalSystem> _systems = new(StringComparer.Ordinal);
+    private readonly ChemicalSystemCache _systems;
     private readonly Dictionary<Propellant, double[]> _reactantEnthalpies = new(ReferenceEqualityComparer.Instance);
     private bool _disposed;
 
@@ -19,6 +19,7 @@ public sealed class Solver : IDisposable
     {
         Database = database;
         _engine = engine;
+        _systems = new ChemicalSystemCache(database, engine);
     }
 
     /// <summary>A solver over the database, bound to the accelerator the options select (Execution).</summary>
@@ -225,12 +226,7 @@ public sealed class Solver : IDisposable
         }
 
         _disposed = true;
-        foreach (var system in _systems.Values)
-        {
-            system.Dispose();
-        }
-
-        _systems.Clear();
+        _systems.Dispose();
         _engine.Dispose();
     }
 
@@ -545,79 +541,10 @@ public sealed class Solver : IDisposable
         return perKilogram;
     }
 
-    private ChemicalSystem GetSystem(ElementalMixture mixture) => GetSystem(mixture.Elements, mixture.Omit, mixture.Only);
+    private ChemicalSystem GetSystem(ElementalMixture mixture) => _systems.Get(mixture);
 
     /// <summary>The system over the union of the mixtures' elements, in order of first appearance, under the species lists they all share.</summary>
-    private ChemicalSystem UnionSystem(IReadOnlyList<ElementalMixture> mixtures, int problemCount, string kind)
-    {
-        if (mixtures.Count != problemCount)
-        {
-            throw new ArgumentException($"{mixtures.Count} mixtures were given for {problemCount} {kind} problems; a batch over mixtures takes one mixture per problem");
-        }
-
-        if (mixtures.Count == 0)
-        {
-            throw new ArgumentException($"no {kind} problems were given");
-        }
-
-        var first = mixtures[0] ?? throw new ArgumentException("mixture 0 is null");
-        var elements = new List<string>();
-        for (var i = 0; i < mixtures.Count; i++)
-        {
-            var mixture = mixtures[i] ?? throw new ArgumentException($"mixture {i} is null");
-            if (!SameNames(mixture.Omit, first.Omit) || !SameNames(mixture.Only, first.Only))
-            {
-                throw new ArgumentException($"mixture {i}: its Omit or Only list differs from mixture 0's; a batch has one species selection");
-            }
-
-            foreach (var symbol in mixture.Elements)
-            {
-                if (!elements.Contains(symbol, StringComparer.Ordinal))
-                {
-                    elements.Add(symbol);
-                }
-            }
-        }
-
-        return GetSystem(elements, first.Omit, first.Only);
-    }
-
-    private static bool SameNames(IReadOnlyList<string>? a, IReadOnlyList<string>? b) =>
-        a is null ? b is null : b is not null && a.Count == b.Count && a.ToHashSet(StringComparer.Ordinal).SetEquals(b);
-
-    private ChemicalSystem GetSystem(IReadOnlyList<string> elements, IReadOnlyList<string> omit, IReadOnlyList<string>? only)
-    {
-        ThrowIfDisposed();
-        foreach (var element in elements)
-        {
-            try
-            {
-                Database.AtomicWeight(element);
-            }
-            catch (KeyNotFoundException inner)
-            {
-                throw new ArgumentException($"element '{element}' has no record in the database", inner);
-            }
-        }
-
-        var key = string.Join(",", elements) + "|" + string.Join(",", omit.Order(StringComparer.Ordinal)) + "|" + (only is null ? "*" : string.Join(",", only));
-        if (_systems.TryGetValue(key, out var system))
-        {
-            return system;
-        }
-
-        var candidates = SpeciesSelection.Candidates(Database, elements, omit, only);
-        if (candidates.Count == 0)
-        {
-            throw new ArgumentException($"no product species of the database consists of the elements {string.Join(", ", elements)} alone");
-        }
-
-        var table = SpeciesTable.Build(Database, elements.ToList(), candidates);
-        var transport = Database.Transport is null ? null : TransportTable.Build(Database.Transport, table);
-        system = new ChemicalSystem(elements.ToList(), table, transport, _engine.Upload(table, transport));
-        _systems[key] = system;
-        return system;
-    }
+    private ChemicalSystem UnionSystem(IReadOnlyList<ElementalMixture> mixtures, int problemCount, string kind) => _systems.Union(mixtures, problemCount, kind);
 
     /// <summary>
     /// The table entry of a record name at a temperature: the first piece of a species cut at a fit discontinuity
@@ -656,18 +583,4 @@ public sealed class Solver : IDisposable
     private sealed record RocketCase(ElementalMixture Mixture, RocketProblem Problem, Propellant? Propellant, double? Ratio);
 
     private sealed record EquilibriumCase(ElementalMixture Mixture, EquilibriumProblem Problem, Propellant? Propellant);
-
-    /// <summary>A table over one element set with its species selection, uploaded to the engine once.</summary>
-    private sealed class ChemicalSystem(IReadOnlyList<string> elements, SpeciesTable table, TransportTable? transport, UploadedTables tables) : IDisposable
-    {
-        public IReadOnlyList<string> Elements { get; } = elements;
-
-        public SpeciesTable Table { get; } = table;
-
-        public TransportTable? Transport { get; } = transport;
-
-        public UploadedTables Tables { get; } = tables;
-
-        public void Dispose() => Tables.Dispose();
-    }
 }
