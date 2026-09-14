@@ -125,6 +125,61 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the CPU accelerator with 16 threads, 56–65×. These bound expectations; they are
   not requirements.
 
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The engine
+is a composition root over internal types, one class per file in this directory and
+namespace. The kernel entry points and the calls into the numerical nodes are untouched
+by the split, so the emitted PTX, the post-link and the kernel time cannot move.
+
+| Type | Responsibility | Visibility |
+|---|---|---|
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath`, `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above 10: four typed `Run` overloads name twelve types by themselves, so its Ce stays near 20 | public, contract as `API.md` says |
+| `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
+| `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
+| `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
+| `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
+| `ChunkPlan` | the one rule deciding how many cases a launch takes, from the case count, the device bytes per case and the options; enumerates the chunks | internal |
+| `ChunkBuffers` | the device side of one program's chunk: each buffer declared once with its host array, its direction and its per-case stride; uploads and downloads a chunk | internal |
+| `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
+| `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result | internal |
+| `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above 10 (Ce 22 on 2026-09-14: one views struct, one layout class and one solver per program, which no split removes) | internal |
+| `MathProbe` | the probe of the root's math list, in a file of its own; `FunctionCount` is the constant the kernel strides by, and the function list is asserted to have that length | public, contract unchanged |
+| `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the NVVM module from the fragments, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load | internal |
+
+Decisions taken with the review of 2026-09-14:
+
+- **The fallback says why.** `Auto` keeps falling back to the CPU accelerator, and the
+  reason no longer dies in a discarded exception: `AcceleratorInfo` gains
+  `CudaSkippedBecause` (null when CUDA was not tried or was bound), the message of the
+  failure that turned the choice, with the paths tried where they apply. A contract
+  change, recorded in `API.md` with its ⚠, the snapshot moving in the same commit; the
+  command line prints it in the `devices` listing and in every document's
+  `run.accelerator` (a later change of that node).
+- **The missing-definition guard names the wrapper.** The check parses the wrapper text
+  libnvvm returned for its `.func` definitions and compares the set with the names the
+  kernel calls; it is testable without a GPU by handing it a wrapper body with one
+  definition removed, and the tests node does exactly that.
+- **The chunk bound counts every buffer.** `ChunkBuffers` sums the per-case strides it
+  declares, so `ScratchBytes` bounds the device bytes of a chunk by construction (until
+  now only the scratch and the moles were counted); results do not depend on chunking
+  (Invariants), so no result moves. `ScratchBytes` must be positive, like `ChunkSize`.
+- **The views structs keep their constructors.** `RocketBatchViews` (17 parameters),
+  `EquilibriumBatchViews` (12) and the other two are the kernel parameter descriptors
+  ILGPU requires to be public; grouping their views would re-emit the kernels and move
+  the contract. They are this node's declared exception to the parameter rule; the
+  pipelines are their only callers and fill them by name.
+- **The unreachable checks go.** Every array of a batch is assigned once in its
+  constructor from one count, so "arrays of inconsistent lengths" cannot happen; the
+  four branches and the row of `API.md` go, replaced by the sentence that the
+  constructor guarantees it. The element- and species-count checks stay.
+- **One thread at a time.** An engine is used from one thread at a time; the kernel
+  cache is the only synchronised piece. Said in `API.md`.
+- **The probe's stride** is `MathProbe.FunctionCount`; the two literals of the
+  species-function chunk are the strides the pipeline declares.
+- **Size.** No method over 60 lines, no control flow nested deeper than 3, no more than
+  6 parameters (the views structs aside).
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — Probe kernel with every function of the root's math list: loads on
@@ -167,6 +222,25 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       `The_cpu_accelerator_equals_the_host_functions_bit_for_bit`,
       `Cuda_matches_the_cpu_accelerator_within_the_table`,
       `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
+- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node within
+      the root's code-shape constraint (the protocol tests node's `ShapeTests`; the
+      exceptions declared above), the public surface changed only by
+      `AcceleratorInfo.CudaSkippedBecause` with `PublicSurface.approved.txt` moved in
+      the same commit; `BatchTests.Chunking_and_repetition_do_not_change_a_bit`, the
+      probe, species-function and accelerator-choice tests green; the fast suite
+      green; the CUDA sweep and the throughput benchmark green once at the end, the
+      throughput within the approved file's margin (the kernels are byte-identical).
+- [ ] The fallback names its reason: with `Auto`, `LibDeviceDiscovery` off and the
+      explicit paths pointing nowhere, the engine is the CPU one and
+      `CudaSkippedBecause` names what was missing and the paths tried
+      (`AcceleratorChoiceTests`, the mirror of the explicit-request test); seen red
+      against the code of `8e36a27`, where the info said nothing.
+- [ ] The missing-definition guard of the post-link is proven non-degenerate: a
+      wrapper body with one definition removed makes the check name that wrapper,
+      without a GPU (the tests node, `PostLinkTests`).
+- [ ] `ScratchBytes` of zero or less is refused at `Create` naming the option, like
+      `ChunkSize` (the tests node); the "inconsistent lengths" row is gone from
+      `API.md` with the branches that could not fire.
 
 ## Taboos
 

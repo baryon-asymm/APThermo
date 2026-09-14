@@ -23,12 +23,15 @@ public sealed record EngineOptions
     public string? LibDevicePath { get; init; }        // explicit libdevice.10.bc, tried first
     public bool LibDeviceDiscovery { get; init; } = true;   // CUDA_PATH and the toolkit directories after the explicit pair
     public int ChunkSize { get; init; } = DefaultChunkSize;         // cases (or stations) per launch
-    public long ScratchBytes { get; init; } = DefaultScratchBytes;  // a chunk shrinks so that its scratch stays within this
+    public long ScratchBytes { get; init; } = DefaultScratchBytes;  // a chunk shrinks so that its device bytes (every buffer of the chunk) stay within this; positive
 }
 
 public sealed record AcceleratorInfo(
     AcceleratorKind Kind, string DeviceName, string IlgpuVersion,
-    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors);
+    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors)
+{
+    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, with the paths tried where they apply; null when CUDA was bound or never tried
+}
 
 public sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
 
@@ -73,8 +76,20 @@ CUDA context cannot be created. With `Cuda` every one of those failures is an
 `AcceleratorUnavailableException`. The kernel of each program is compiled (and on
 CUDA post-linked) on its first run per engine and cached; that time is the run's
 `WarmUp`. Batches are processed in chunks of at most `ChunkSize` cases, and fewer
-when a chunk's scratch would exceed `ScratchBytes`; the results of a batch do not
-depend on the chunking.
+when a chunk's device bytes would exceed `ScratchBytes`; the results of a batch do not
+depend on the chunking. An engine is used from one thread at a time; its kernel cache
+is the only synchronised piece.
+
+⚠ 2026-09-14 (the clean-code review): `Create` with `Auto` swallowed every CUDA
+failure into a discarded exception and returned a CPU engine whose description said
+nothing, so a machine with a broken CUDA installation ran the 56× slower path without
+a word. The fallback stays; `AcceleratorInfo.CudaSkippedBecause` now carries the
+reason, and the snapshot moved with it. The chunk bound counted only the scratch and
+the moles; it now counts every buffer of the chunk, and a `ScratchBytes` of zero or
+less is refused like a `ChunkSize` of zero (it used to shrink every launch to one case
+silently). The error table's "batch arrays of inconsistent lengths" described a state
+the batch constructors make impossible and is gone with the branches that could not
+fire.
 
 ## Batches ✅
 
@@ -207,7 +222,7 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | `AcceleratorKind.Cuda` requested and CUDA forbidden, no libnvvm or libdevice, no device at the index, or the context cannot be created | `AcceleratorUnavailableException` naming the missing piece and every path tried |
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create`, naming the ILGPU version |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
-| batch arrays of inconsistent lengths, a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size of zero | `ArgumentException` before any kernel runs |
+| a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
 | a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX | `InvalidOperationException` naming the wrapper or carrying the compiler's log, on the first run of that program |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |

@@ -7,7 +7,8 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
-| L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch array validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
+| L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
+| L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ⏳ |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file (`Throughput.approved.txt`), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`) | ✅ |
@@ -42,6 +43,15 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   that a systematic divergence (a single-precision or CORDIC function would flip
   the count everywhere) cannot hide behind the second tier. The root's invariant
   carries the same note.
+
+  ⚠ 2026-09-14: "in one file" was not true: the front door tests node copies the
+  mole-fraction floor (1e-8) and the polish-threshold tier (1e-9) for its reordered
+  union batches, and the protocol forbids it to read this node's code. Found by the
+  clean-code review (F-TF-05). Decided at the root: the two entries move to the
+  fixtures node's tolerance table, which both nodes already depend on, as
+  `moleFractionFloor` and `polishThresholdRelative` with their derivations, and this
+  node's table keeps the GPU-specific entries; until that task lands the copy stands
+  as a declared duplication.
 - **CUDA tests are marked** `Category=Cuda` and the sweep and the benchmark also
   `Category=LongRunning`; when `APTHERMO_NO_CUDA=1` is set a CUDA-category test
   verifies the refusal of an explicit CUDA request and returns, so the full suite
@@ -110,6 +120,23 @@ libdevice for the CUDA category.
       of different step counts set to zero, the second mole-fraction tier set back to
       1e-10, and the determinism check pointed at the CPU result (each: the sweep
       test).
+- [ ] The three facts of 2026-09-14 (the level table's second L0 row): the `Auto`
+      fallback with discovery off and the explicit paths nowhere yields the CPU engine
+      and `CudaSkippedBecause` naming what was missing and the paths tried (the
+      mirror of `An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`),
+      seen red against `8e36a27`; `ScratchBytes` of zero or less refused at `Create`
+      naming the option; the post-link's missing-definition check names the wrapper
+      when handed a wrapper body with one definition removed (`PostLinkTests`, no
+      GPU) — the first non-degeneracy proof of the guard behind the node's third
+      invariant.
+- [ ] The support code in shape (the test review's F-TF-06 and F-TF-13):
+      `BatchBuilders` becomes `FixtureBatches` (fixtures to families and batches),
+      `HostSolves` (one case through the numerical nodes over the accelerator's own
+      buffers, returning named record structs instead of tuples) and `BitEquality`
+      (`SameBits`, `BitDifferences<T>`); no method over 60 lines or nested deeper
+      than 3; every L2 fact green bit for bit and the node's mutations above still
+      red. The hand-typed fact counts leave the criteria above; the listed names are
+      the list.
 
 ## Taboos
 
