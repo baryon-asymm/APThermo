@@ -1,5 +1,7 @@
+using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
+using AerospacePropellantThermodynamics.Transport;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
@@ -12,6 +14,18 @@ internal static class StationFactory
     /// <summary>The rocket station name at a flat station index: the fixed names, then "exit1", "exit2", … after them.</summary>
     public static string NameOf(int stationIndex) =>
         stationIndex < RocketLayout.FixedStations ? FixedNames[stationIndex] : $"exit{stationIndex - RocketLayout.FixedStations + 1}";
+
+    /// <summary>
+    /// The transport status and figures one station reports, stated once for both runners (BOOT.md, F-PR-08): null when its
+    /// case did not ask for transport or the station's own status was not Ok, and the figures only when the transport pass
+    /// itself was Ok too.
+    /// </summary>
+    public static (CaseStatus? Status, TransportFigures? Figures) TransportOf(bool wantsTransport, CaseStatus stationStatus, TransportBatchResult? transport, int index)
+    {
+        var status = wantsTransport && stationStatus == CaseStatus.Ok ? transport!.Status[index] : (CaseStatus?)null;
+        var figures = status == CaseStatus.Ok ? transport!.Figures[index] : (TransportFigures?)null;
+        return (status, figures);
+    }
 
     /// <summary>One station: mole fractions and condensed mass fractions over the whole table, a cut record's pieces summed under its database name (BOOT.md, results).</summary>
     public static Station Create(string name, in StationSlice slice)
@@ -42,7 +56,15 @@ internal static class StationFactory
             }
         }
 
-        return new Station(name, slice.State, slice.Performance, fractions, condensed, slice.Transport, slice.TransportStatus, slice.Status);
+        return new Station(
+            Name: name,
+            State: slice.State,
+            Performance: slice.Performance,
+            MoleFractions: fractions,
+            CondensedMassFractions: condensed,
+            Transport: slice.Transport,
+            TransportStatus: slice.TransportStatus,
+            Status: slice.Status);
     }
 
     /// <summary>The species names a result reports: the table's, with the pieces of a cut condensed record collapsed to the record's name (BOOT.md, results).</summary>

@@ -2,7 +2,6 @@ using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
@@ -30,7 +29,7 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
             var (mixture, problem, propellant, _) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             ProblemValidation.Rocket(database, mixture, problem, k);
-            masses[k] = MixtureMass.Check(database, mixture, Subject(propellant, noun, k), k);
+            masses[k] = MixtureMass.Check(database, mixture, MixtureMass.Subject(propellant, noun, k), k);
             var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);
             if (!groups.TryGetValue(key, out var members))
             {
@@ -82,9 +81,7 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
             for (var s = 0; s < stationCount; s++)
             {
                 var index = m * stationCount + s;
-                var wantStationTransport = wantsTransport && run.StationStatus[index] == CaseStatus.Ok;
-                var transportStatus = wantStationTransport ? transport!.Status[index] : (CaseStatus?)null;
-                var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[index] : (TransportFigures?)null;
+                var (transportStatus, figures) = StationFactory.TransportOf(wantsTransport, run.StationStatus[index], transport, index);
                 var slice = new StationSlice
                 {
                     Table = table,
@@ -99,10 +96,16 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
                 stations[s] = StationFactory.Create(StationFactory.NameOf(s), slice);
             }
 
-            results[members[m]] = new RocketResult(propellant, mixture, masses[members[m]], problem, ratio, speciesNames, stations, run.Status[m], run.Accelerator);
+            results[members[m]] = new RocketResult(
+                Propellant: propellant,
+                Mixture: mixture,
+                MixtureMass: masses[members[m]],
+                Problem: problem,
+                OxidizerToFuelRatio: ratio,
+                Species: speciesNames,
+                Stations: stations,
+                Status: run.Status[m],
+                Accelerator: run.Accelerator);
         }
     }
-
-    private static string Subject(Propellant? propellant, string noun, int index) =>
-        propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})";
 }

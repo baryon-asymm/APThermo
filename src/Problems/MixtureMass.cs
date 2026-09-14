@@ -20,6 +20,10 @@ internal static class MixtureMass
         return mass;
     }
 
+    /// <summary>The subject a mass-check exception names, stated once for both runners: the propellant's own indexed mixture, or the caller's noun ("mixture", "state record") at the case index, when there is no propellant.</summary>
+    public static string Subject(Propellant? propellant, string noun, int index) =>
+        propellant is null ? $"{noun} {index}" : $"the propellant's mixture (case {index})";
+
     /// <summary>
     /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance
     /// the mixture declares (BOOT.md), whichever front door it came through. Returns the mass, which the result reports.

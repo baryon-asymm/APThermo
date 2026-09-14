@@ -1,7 +1,6 @@
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
@@ -26,7 +25,7 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
             var (mixture, problem, propellant) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             targets[k] = ProblemValidation.Equilibrium(database, mixture, problem, k);
-            masses[k] = MixtureMass.Check(database, mixture, propellant is null ? $"{noun} {k}" : $"the propellant's mixture (case {k})", k);
+            masses[k] = MixtureMass.Check(database, mixture, MixtureMass.Subject(propellant, noun, k), k);
         }
 
         var speciesNames = StationFactory.SpeciesNames(table);
@@ -58,9 +57,7 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
         for (var m = 0; m < members.Count; m++)
         {
             var (mixture, problem, propellant) = cases[members[m]];
-            var wantStationTransport = wantsTransport && run.Status[m] == CaseStatus.Ok;
-            var transportStatus = wantStationTransport ? transport!.Status[m] : (CaseStatus?)null;
-            var figures = transportStatus == CaseStatus.Ok ? transport!.Figures[m] : (TransportFigures?)null;
+            var (transportStatus, figures) = StationFactory.TransportOf(wantsTransport, run.Status[m], transport, m);
             var slice = new StationSlice
             {
                 Table = table,
@@ -72,7 +69,15 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
                 Status = run.Status[m],
             };
             var state = StationFactory.Create("state", slice);
-            results[members[m]] = new EquilibriumResult(propellant, mixture, masses[members[m]], problem, speciesNames, state, run.Status[m], run.Accelerator);
+            results[members[m]] = new EquilibriumResult(
+                Propellant: propellant,
+                Mixture: mixture,
+                MixtureMass: masses[members[m]],
+                Problem: problem,
+                Species: speciesNames,
+                State: state,
+                Status: run.Status[m],
+                Accelerator: run.Accelerator);
         }
     }
 }
