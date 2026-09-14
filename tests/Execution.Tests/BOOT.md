@@ -162,6 +162,36 @@ libdevice for the CUDA category.
       `Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`; both reverted
       and the suite green again before committing. The hand-typed fact counts left
       the criteria above; the listed names are the list.
+- [x] 2026-09-15 — Two more constructions restructured to the root's parameter limit
+      (the harness-wiring task's Step 4): `RocketInputs` (`FixtureBatches.cs`) fell
+      from 9 to 6 parameters, split along the domain axes of a rocket fixture's
+      chemical system (`ChemicalSystem`: elements, element moles, products - 3
+      parameters) and its exit layout (`ExitPlan`: values, kinds - 2 parameters), the
+      combustion conditions and the transport flag kept flat; the old field names
+      stay as forwarding properties, so every read call site is unchanged and only
+      the one construction site, in `RocketInputs.Of`, changed. `CudaTests.CompareMoles`
+      fell from 8 to 5 parameters: the two mole arrays under comparison, the index
+      into them and the species table that reads them became `MoleSample` (4
+      parameters), a type local to `CudaTests.cs`; its two call sites (one in
+      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`, the other in the
+      private `CompareRocket`, itself called from the rocket-family and the sweep
+      tests) construct it in place of the four separate parameters.
+
+      Two nesting-depth-4 violations found by the same review were fixed alongside:
+      `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`'s
+      species-by-species mole loop, four levels deep inside the case loop, the
+      station loop and its own species loop, moved to `StationMoleDifferences`
+      (nesting 2 on its own); `SpeciesFunctionTests.Cuda_matches_the_cpu_accelerator_within_the_table`'s
+      three-function comparison, four levels deep inside the family loop, the entry
+      loop and its own function loop, moved to `CompareFunctions` (nesting 2 on its
+      own). Neither method nests deeper than 3 now.
+
+      Verified: build clean, 0 warnings; 41 of 41 fast tests green
+      (`AerospacePropellantThermodynamics.Execution.Tests.dll`); `protocol_lint`
+      0 errors, 0 warnings; `Protocol.Tests` 9 of 9 green. This node keeps no
+      `Bits.approved.txt` of its own (its bit comparisons run the host call inside
+      the same test, not against a recorded snapshot), so there is no hash to
+      compare before and after.
 
 ## Taboos
 

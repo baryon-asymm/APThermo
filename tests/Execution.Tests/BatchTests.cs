@@ -20,7 +20,6 @@ public sealed class BatchTests(EngineFixture fixture)
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
         var result = fixture.Cpu.Run(tables, batch);
         var differences = new List<string>();
-        var speciesCount = family.Table.SpeciesCount;
         var stationCount = result.StationCount;
         for (var k = 0; k < batch.Count; k++)
         {
@@ -42,17 +41,24 @@ public sealed class BatchTests(EngineFixture fixture)
                     differences.Add($"{label} station {s}: status or iterations differ");
                 }
 
-                for (var j = 0; j < speciesCount; j++)
-                {
-                    if (!Bits.Same(host.Moles[s * speciesCount + j], result.Moles[(long)index * speciesCount + j]))
-                    {
-                        differences.Add($"{label} station {s}: moles of {family.Table.Species[j]} differ");
-                    }
-                }
+                differences.AddRange(StationMoleDifferences(host.Moles, result.Moles, s, index, family.Table, label));
             }
         }
 
         Assert.True(differences.Count == 0, string.Join("\n", differences.Take(30)));
+    }
+
+    /// <summary>The moles of one station, species by species, bit for bit against the host solve.</summary>
+    private static IEnumerable<string> StationMoleDifferences(double[] hostMoles, double[] engineMoles, int station, long index, SpeciesTable table, string label)
+    {
+        var speciesCount = table.SpeciesCount;
+        for (var j = 0; j < speciesCount; j++)
+        {
+            if (!Bits.Same(hostMoles[station * speciesCount + j], engineMoles[index * speciesCount + j]))
+            {
+                yield return $"{label} station {station}: moles of {table.Species[j]} differ";
+            }
+        }
     }
 
     [Fact]
