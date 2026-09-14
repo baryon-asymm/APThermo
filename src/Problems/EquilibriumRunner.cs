@@ -10,6 +10,11 @@ internal sealed record EquilibriumCase(ElementalMixture Mixture, EquilibriumProb
 /// <summary>Equilibrium cases as one batch, further grouped by the transport flag so that the transport pass runs only over the cases that asked (BOOT.md, F-PR-08).</summary>
 internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
 {
+    /// <summary>What is fixed for the whole of one <see cref="Solve"/> call, built once and passed to every group instead of six parameters each.</summary>
+    private readonly record struct SolveContext(
+        ChemicalSystem System, SpeciesTable Table, IReadOnlyList<EquilibriumCase> Cases,
+        double[] Masses, IReadOnlyList<string> SpeciesNames, EquilibriumResult[] Results);
+
     public IReadOnlyList<EquilibriumResult> Solve(ChemicalSystem system, IReadOnlyList<EquilibriumCase> cases, string noun = "mixture")
     {
         if (cases.Count == 0)
@@ -30,33 +35,34 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
 
         var speciesNames = StationFactory.SpeciesNames(table);
         var results = new EquilibriumResult[cases.Count];
+        var context = new SolveContext(system, table, cases, masses, speciesNames, results);
         foreach (var transportGroup in Enumerable.Range(0, cases.Count).GroupBy(k => cases[k].Problem.Transport))
         {
-            SolveGroup(system, table, cases, transportGroup.ToList(), transportGroup.Key, targets, masses, speciesNames, results);
+            SolveGroup(context, transportGroup.ToList(), transportGroup.Key, targets);
         }
 
         return results;
     }
 
-    private void SolveGroup(ChemicalSystem system, SpeciesTable table, IReadOnlyList<EquilibriumCase> cases, IReadOnlyList<int> members, bool wantsTransport,
-                            double[] targets, double[] masses, IReadOnlyList<string> speciesNames, EquilibriumResult[] results)
+    private void SolveGroup(SolveContext context, IReadOnlyList<int> members, bool wantsTransport, double[] targets)
     {
+        var table = context.Table;
         var batch = new EquilibriumBatch(members.Count, table.ElementCount);
         for (var m = 0; m < members.Count; m++)
         {
-            var (mixture, problem, _) = cases[members[m]];
+            var (mixture, problem, _) = context.Cases[members[m]];
             batch.Kind[m] = problem.Kind;
             batch.Pressure[m] = problem.Pressure;
             batch.Temperature[m] = problem.Temperature;
             batch.Target[m] = targets[members[m]];
-            Array.Copy(mixture.KilomolesPerKilogram(system.Elements), 0, batch.ElementMoles, m * table.ElementCount, table.ElementCount);
+            Array.Copy(mixture.KilomolesPerKilogram(context.System.Elements), 0, batch.ElementMoles, m * table.ElementCount, table.ElementCount);
         }
 
-        var run = engine.Run(system.Tables, batch);
-        var transport = wantsTransport ? engine.Run(system.Tables, TransportBatch.FromEquilibrium(run)) : null;
+        var run = engine.Run(context.System.Tables, batch);
+        var transport = wantsTransport ? engine.Run(context.System.Tables, TransportBatch.FromEquilibrium(run)) : null;
         for (var m = 0; m < members.Count; m++)
         {
-            var (mixture, problem, propellant) = cases[members[m]];
+            var (mixture, problem, propellant) = context.Cases[members[m]];
             var (transportStatus, figures) = StationFactory.TransportOf(wantsTransport, run.Status[m], transport, m);
             var slice = new StationSlice
             {
@@ -69,12 +75,12 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
                 Status = run.Status[m],
             };
             var state = StationFactory.Create("state", slice);
-            results[members[m]] = new EquilibriumResult(
+            context.Results[members[m]] = new EquilibriumResult(
                 Propellant: propellant,
                 Mixture: mixture,
-                MixtureMass: masses[members[m]],
+                MixtureMass: context.Masses[members[m]],
                 Problem: problem,
-                Species: speciesNames,
+                Species: context.SpeciesNames,
                 State: state,
                 Status: run.Status[m],
                 Accelerator: run.Accelerator);

@@ -254,7 +254,7 @@ after the type; the public records keep their theme files.
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: `RocketRunner` (Ce = 26) and `EquilibriumRunner` (Ce = 24) measure higher by the same walk, both over the textual limit of 10 and the walk-calibrated 14 the root records as of the integration branch's `9facd7f`; not this node's declaration to make, left to the design session after the merge | public |
+| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: `RocketRunner` (Ce = 27) and `EquilibriumRunner` (Ce = 25) measure higher by the same walk, both over the textual limit of 10 and the walk-calibrated 14 the root records as of the integration branch's `9facd7f`; not this node's declaration to make, left to the design session after the merge. The two runners' Ce moved by one each, after this row was first measured, when their `SolveGroup` dropped from nine parameters to four (the parameter fix below): a `SolveContext` record struct now carries what `SolveGroup` used to take by six separate parameters, and it is one more type in each runner's own vocabulary | public |
 | `ChemicalSystem` | one element set with its table and its uploaded copy; disposable; no transport table kept (F-PR-12) | internal |
 | `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
 | `MixtureMass` | Σ n_i A_i with the database's atomic weights, the refusal beyond the mixture's declared tolerance, and the subject a refusal names (`Subject`), stated once for both runners | internal static |
@@ -316,6 +316,44 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   as a method): `RocketResult` (9), `Station` (8) and `EquilibriumResult` (8) are the
   contract's shape field for field, and the node constructs each in one place with
   named arguments.
+
+  ⚠ 2026-09-14, found at this close, by the root's IL walk over parameters
+  (`parameters.tsv`): two members over six parameters that were never declared an
+  exception and are not one — a plain oversight of the internal decomposition, not a
+  design decision. `RocketRunner.SolveGroup` and `EquilibriumRunner.SolveGroup` each
+  took nine (`system, table, cases, members, wantsTransport, kinds`/`targets, masses,
+  speciesNames, results`); what is fixed for the whole of one `Solve` call
+  (`system, table, cases, masses, speciesNames, results`) is now a private
+  `SolveContext` record struct built once, and each `SolveGroup` takes it plus the two
+  or three arguments that vary per group (`members, wantsTransport` and `kinds` or
+  `targets`) — four parameters. `ResolvedReactant` took eight; its enthalpy source
+  (`HasFits`, `AssignedEnthalpy`, always set together by `ReactantResolver`'s two
+  factory methods) is now init properties in the record's body, on `StateRecord`'s own
+  precedent, leaving six in the primary constructor. Both of `ReactantResolver`'s
+  construction sites updated to the object-initializer syntax the split needs; every
+  other read of either type's fields is unchanged (`resolved[k].HasFits`,
+  `r.AssignedEnthalpy` and the like read an init property exactly as they read a
+  constructor-set one). Neither is a coupling question, so neither waits on the design
+  session: `dotnet build` clean, the fast suite green unchanged (1111/1111 in this
+  node), `Bits.approved.txt` and `PublicSurface.approved.txt` unmoved.
+
+## Shape exceptions
+
+The canonical table the root's `BOOT.md` prescribes (Constraints, "every exception is
+declared in the node's `BOOT.md`, as a row of its `## Shape exceptions` table with the
+measured figure and the reason"). Four declared here; none other in this node.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Solver` | Ce ≤ 10 (root, textual) / ≤ 14 (walk-calibrated, integration branch `9facd7f`) | 22 (the root's dependency-check walk and this node's manual signature-and-body count agree, on this build at `ef54a4a`) | Composition root: owns the engine and every collaborator below it, turns each public entry point into (system, cases) and hands them to a runner; holds no formula or rule of its own (`## Structure` above). |
+| `RocketResult` | ≤ 6 constructor parameters | 9 | Published result record, shape field for field with the contract's `API.md` (`## Structure`, Size); constructed once, with named arguments (`RocketRunner.cs`, since `cc6ed49`). |
+| `Station` | ≤ 6 constructor parameters | 8 | Published result record, shape field for field with the contract's `API.md`; constructed once, with named arguments (`StationFactory.cs`, since `cc6ed49`). |
+| `EquilibriumResult` | ≤ 6 constructor parameters | 8 | Published result record, shape field for field with the contract's `API.md`; constructed once, with named arguments (`EquilibriumRunner.cs`, since `cc6ed49`). |
+
+Not in this table because not declared: `RocketRunner` (Ce 27) and `EquilibriumRunner`
+(Ce 25), both over the walk-calibrated limit, neither a composition root or registry,
+neither split to bring the figure down. Measured, not exempted; the open item of the
+first `## Acceptance criteria` row below, left to the design session.
 
 ## Acceptance criteria
 
@@ -415,21 +453,69 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
       contract commit after the internal moves, with `PublicSurface.approved.txt`
       moved in it; the command line's call sites adapted to the renames and to
       `CustomReactantDefinition`, nothing else of it touched.
-- [ ] The state record with exits: a rocket record through `SolveRocketStates`
-      equals the same mixture and problem through `Solve(mixtures, problems)` bit for
-      bit; `SolveStates` refuses a record with exits and `SolveRocketStates` one
-      without; a record with two targets, with exits and no enthalpy, or with a flow
-      and no exits is refused; each refusal a `StateRecordException` whose `Index` is
-      the record's and whose `Reason` names the rule (the tests node's
-      `EquilibriumTests`, `RejectionTests`).
-- [ ] The narrowed transport pass and the retired sweep: a batch of two rocket
-      problems with transport on one of them gives, for each, the result of that
-      problem solved alone bit for bit, transport figures included, and the other's
-      `TransportStatus` null; a ratio × chamber-pressure product given as a list of
-      mixtures and problems equals its cases solved one by one bit for bit (the fact
-      that proved the sweep); every public method of a disposed solver throws,
-      checked against the list of methods reflection gives (the tests node's
-      `RocketTests`, `RejectionTests`).
+
+      Measured 2026-09-14 on this node's build with the root's own dependency-check
+      walk (a scratch reproduction of it, not the earlier manual count), first at
+      `ef54a4a` and again after the parameter fix below: lines, nesting and parameters
+      are within the root's limits everywhere in this node (every type and method of
+      the built assembly, none over 400/60/3/6; the three published records' declared
+      exception to the parameter count constructed with named arguments since
+      `cc6ed49`; `RocketRunner.SolveGroup`, `EquilibriumRunner.SolveGroup` and
+      `ResolvedReactant`, all found over six and none a declared exception, fixed at
+      this close, `## Structure` above). Ce is not, for two types: `RocketRunner`
+      measures 27 and `EquilibriumRunner` 25 by the walk (each one more than first
+      measured, from the parameter fix's own `SolveContext` type), both over the
+      walk-calibrated 14 the root records as of the integration branch's `9facd7f`
+      (and over the textual 10). Neither is a declared composition-root or registry
+      exception — both hold real rules (the grouping by exit layout and by the
+      transport flag, the per-group engine calls, the per-case result assembly), the
+      kind the root's exception clause does not cover — and neither was split further
+      to bring the figure down, on the coordinator's explicit instruction: this node's
+      `## Structure` table is the design as reviewed, the design session decides any
+      exception or further decomposition from what is measured here, and the
+      integration branch's own checker measures the walk again before the merge.
+      `Solver`'s own declared exception is unaffected by this gap: 22 by the same walk,
+      formalized below under `## Shape exceptions`. Left unticked for this reason; the
+      rest of the line holds and is evidenced next.
+
+      Bit snapshot: `git log --follow -- tests/Problems.Tests/Bits.approved.txt` names
+      one commit, `8f8263c` itself — no commit since has touched the file — and the
+      working tree carries no further diff against it either, checked repeatedly
+      through this close. Fixture theories: every L0–L2 theory of the tests
+      node green throughout the decomposition, 1111/1111 in `Problems.Tests` at the
+      close (no fixture skipped, none removed). Surface: `PublicSurface.approved.txt`
+      regenerated once, in the contract commit, its diff read in full against the
+      contract's `API.md` before approving (net +6: `CustomReactantDefinition` and
+      `StateRecordException` gained, `RocketSweep` dropped, `Reactant.Custom` and four
+      `Solver` members changed signature); unmoved since. Command line: `git diff
+      --stat 8f8263c..HEAD -- src/Cli` names only `src/Cli/Solving.cs`, the two
+      authorized mechanical fixes (`MixtureOf`/`CandidateSpeciesFor` renames,
+      `CustomReactantDefinition` construction), no rule of the command line changed.
+- [x] 2026-09-14 — The state record with exits: a rocket record through
+      `SolveRocketStates` equals the same mixture and problem through
+      `Solve(mixtures, problems)` bit for bit, transport included
+      (`RocketTests.A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures`);
+      `SolveStates` refuses a record with exits and `SolveRocketStates` one without; a
+      record with two targets, with exits and no enthalpy, or with a flow and no exits
+      is refused; each refusal a `StateRecordException` whose `Index` is the record's
+      and whose `Reason` names the rule
+      (`RejectionTests.A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index`,
+      the `ShapeViolations` theory data, eight rows — correcting this line's citation
+      of `EquilibriumTests`, which carries no fact of this criterion).
+- [x] 2026-09-14 — The narrowed transport pass and the retired sweep: a batch of two
+      rocket problems with transport on one of them gives, for each, the result of
+      that problem solved alone bit for bit, transport figures included, and the
+      other's `TransportStatus` null
+      (`RocketTests.A_batch_mixing_transport_and_none_equals_each_problem_solved_alone`,
+      with `Cases_are_grouped_by_exit_layout_and_transport_flag` over a four-case
+      interleaved batch for the grouping itself); a ratio and pressure product given as
+      a list of mixtures and problems equals its cases solved one by one bit for bit,
+      the fact that replaced the sweep
+      (`RocketTests.A_ratio_and_pressure_product_as_one_batch_equals_its_cases_solved_one_by_one`);
+      every public method of a disposed solver throws, checked against the list of
+      methods reflection gives so a new overload cannot be missed
+      (`RejectionTests.Every_public_method_of_a_disposed_solver_throws` with
+      `The_disposal_facts_cover_every_public_method_of_the_solver`).
 
 ## Taboos
 

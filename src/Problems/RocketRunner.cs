@@ -14,6 +14,12 @@ internal sealed record RocketCase(ElementalMixture Mixture, RocketProblem Proble
 /// </summary>
 internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
 {
+    /// <summary>What is fixed for the whole of one <see cref="Solve"/> call, built once and passed to every group instead of six parameters each.</summary>
+    private readonly record struct SolveContext(
+        ChemicalSystem System, SpeciesTable Table, IReadOnlyList<RocketCase> Cases,
+        double[] Masses, IReadOnlyList<string> SpeciesNames, RocketResult[] Results);
+
+
     public IReadOnlyList<RocketResult> Solve(ChemicalSystem system, IReadOnlyList<RocketCase> cases, string noun = "mixture")
     {
         if (cases.Count == 0)
@@ -43,40 +49,41 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
         var table = system.Table;
         var speciesNames = StationFactory.SpeciesNames(table);
         var results = new RocketResult[cases.Count];
+        var context = new SolveContext(system, table, cases, masses, speciesNames, results);
         foreach (var key in order)
         {
             var kinds = Enumerable.Repeat(ExitSpecification.PressureRatio, key.Pressures).Concat(Enumerable.Repeat(ExitSpecification.AreaRatio, key.Areas)).ToArray();
             foreach (var transportGroup in groups[key].GroupBy(k => cases[k].Problem.Transport))
             {
-                SolveGroup(system, table, cases, transportGroup.ToList(), transportGroup.Key, kinds, masses, speciesNames, results);
+                SolveGroup(context, transportGroup.ToList(), transportGroup.Key, kinds);
             }
         }
 
         return results;
     }
 
-    private void SolveGroup(ChemicalSystem system, SpeciesTable table, IReadOnlyList<RocketCase> cases, IReadOnlyList<int> members, bool wantsTransport,
-                            ExitSpecification[] kinds, double[] masses, IReadOnlyList<string> speciesNames, RocketResult[] results)
+    private void SolveGroup(SolveContext context, IReadOnlyList<int> members, bool wantsTransport, ExitSpecification[] kinds)
     {
+        var table = context.Table;
         var batch = new RocketBatch(members.Count, table.ElementCount, kinds);
         for (var m = 0; m < members.Count; m++)
         {
-            var (mixture, problem, _, _) = cases[members[m]];
+            var (mixture, problem, _, _) = context.Cases[members[m]];
             batch.ChamberPressure[m] = problem.ChamberPressure;
             batch.ReactantEnthalpy[m] = mixture.Enthalpy!.Value;
             batch.TemperatureEstimate[m] = problem.TemperatureEstimate;
             batch.Flow[m] = problem.Flow;
-            Array.Copy(mixture.KilomolesPerKilogram(system.Elements), 0, batch.ElementMoles, m * table.ElementCount, table.ElementCount);
+            Array.Copy(mixture.KilomolesPerKilogram(context.System.Elements), 0, batch.ElementMoles, m * table.ElementCount, table.ElementCount);
             var exits = problem.PressureRatios.Concat(problem.AreaRatios).ToArray();
             Array.Copy(exits, 0, batch.ExitValues, m * batch.Exits, batch.Exits);
         }
 
-        var run = engine.Run(system.Tables, batch);
-        var transport = wantsTransport ? engine.Run(system.Tables, TransportBatch.FromRocket(run)) : null;
+        var run = engine.Run(context.System.Tables, batch);
+        var transport = wantsTransport ? engine.Run(context.System.Tables, TransportBatch.FromRocket(run)) : null;
         var stationCount = run.StationCount;
         for (var m = 0; m < members.Count; m++)
         {
-            var (mixture, problem, propellant, ratio) = cases[members[m]];
+            var (mixture, problem, propellant, ratio) = context.Cases[members[m]];
             var stations = new Station[stationCount];
             for (var s = 0; s < stationCount; s++)
             {
@@ -96,13 +103,13 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
                 stations[s] = StationFactory.Create(StationFactory.NameOf(s), slice);
             }
 
-            results[members[m]] = new RocketResult(
+            context.Results[members[m]] = new RocketResult(
                 Propellant: propellant,
                 Mixture: mixture,
-                MixtureMass: masses[members[m]],
+                MixtureMass: context.Masses[members[m]],
                 Problem: problem,
                 OxidizerToFuelRatio: ratio,
-                Species: speciesNames,
+                Species: context.SpeciesNames,
                 Stations: stations,
                 Status: run.Status[m],
                 Accelerator: run.Accelerator);

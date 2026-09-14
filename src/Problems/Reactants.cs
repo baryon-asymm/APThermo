@@ -158,16 +158,25 @@ public sealed record Propellant
     internal IReadOnlyList<ResolvedReactant> Resolved { get; }
 }
 
-/// <summary>A reactant with its database record resolved: the formula in database spelling, the molar mass, the temperature and the enthalpy source.</summary>
+/// <summary>
+/// A reactant with its database record resolved: the formula in database spelling, the molar mass, the temperature and the
+/// enthalpy source. A record with a body, not a nine-parameter constructor (the root's code-shape constraint): the enthalpy
+/// source is two related fields the two factory methods of <see cref="ReactantResolver"/> always set together.
+/// </summary>
 internal sealed record ResolvedReactant(
     Reactant Reactant,
     Species? Record,                                   // null for a custom reactant
     IReadOnlyList<(string Symbol, double Count)> Formula,
     double MolarMass,                                  // kg/kmol
     double Temperature,                                // K, the default applied
-    bool HasFits,                                      // the enthalpy comes from the record's polynomial at Temperature
-    double AssignedEnthalpy,                           // J/mol, used when HasFits is false
-    double Mass);                                      // the amount as a mass, before normalization
+    double Mass)                                        // the amount as a mass, before normalization
+{
+    /// <summary>True when the enthalpy comes from the record's polynomial at <see cref="Temperature"/>, false when it is <see cref="AssignedEnthalpy"/>.</summary>
+    public required bool HasFits { get; init; }
+
+    /// <summary>J/mol, used when <see cref="HasFits"/> is false.</summary>
+    public required double AssignedEnthalpy { get; init; }
+}
 
 /// <summary>Builds a propellant against a database: names are resolved, temperatures checked and amounts converted to masses when Build runs.</summary>
 public sealed class PropellantBuilder
