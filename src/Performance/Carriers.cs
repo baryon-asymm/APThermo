@@ -23,6 +23,23 @@ internal readonly struct RocketContext
     }
 }
 
+/// <summary>What the chamber fixes for every station downstream of it: its pressure, enthalpy, entropy and isentropic exponent.</summary>
+internal readonly struct ChamberReference
+{
+    public readonly double Pressure;
+    public readonly double Enthalpy;
+    public readonly double Entropy;
+    public readonly double GammaS;
+
+    public ChamberReference(double pressure, double enthalpy, double entropy, double gammaS)
+    {
+        Pressure = pressure;
+        Enthalpy = enthalpy;
+        Entropy = entropy;
+        GammaS = gammaS;
+    }
+}
+
 /// <summary>Which solver a station is solved with: the composition follows the equilibrium, or it stays the one already in the station's row.</summary>
 internal enum StationFlow
 {

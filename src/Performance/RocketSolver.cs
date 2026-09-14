@@ -27,8 +27,9 @@ public static class RocketSolver
     /// <summary>Above this area ratio the report's analytic extrapolation from the previous station gives the initial estimate.</summary>
     private const double ExtrapolationAreaRatio = 2.0;
 
-    private const int Chamber = 0;
-    private const int Throat = 1;
+    /// <summary>The station indices of the two fixed stations; the k-th exit is <see cref="RocketLayout.FixedStations"/> + k.</summary>
+    internal const int Chamber = 0;
+    internal const int Throat = 1;
 
     /// <summary>Solves the case; every station's state, composition, figures and status are written, then the case status.</summary>
     public static void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
@@ -53,41 +54,23 @@ public static class RocketSolver
         var context = new RocketContext(in table, in problem, in scratch, in result);
         var pressureChamber = problem.ChamberPressure;
 
-        // Chamber: assigned enthalpy and pressure (6.3.1).
-        var chamberProblem = new EquilibriumProblem(ProblemKind.AssignedEnthalpyPressure, pressureChamber, problem.TemperatureEstimate,
-                                                    problem.ReactantEnthalpy, problem.ElementMoles);
-        var chamber = StationSolve.ViewsOf(in context, Chamber);
-        EquilibriumSolver.Solve(in table, in chamberProblem, in scratch, in chamber, false);
-        if (result.StationStatus[Chamber] != (int)CaseStatus.Ok)
+        var chamberStatus = ChamberSolve.At(in context, out var chamber);
+        if (chamberStatus != CaseStatus.Ok)
         {
-            result.Status[0] = result.StationStatus[Chamber];
+            result.Status[0] = (int)chamberStatus;
             return;
         }
 
-        var chamberState = result.Stations[Chamber];
-        chamberState.Velocity = 0.0;
-        chamberState.Mach = 0.0;
         var frozenAtChamber = problem.Flow == FlowModel.FrozenAtChamber;
         var chamberFlow = frozenAtChamber ? StationFlow.Frozen : StationFlow.Shifting;
-        if (frozenAtChamber)
-        {
-            // The expansion is frozen from the chamber on: its isentropic exponent, sound speed and derivatives are the
-            // frozen ones (6.5.3), as the reference reports them; the equilibrium heat capacities stay.
-            chamberState.GammaS = chamberState.CpFrozen / chamberState.CvFrozen;
-            chamberState.SoundSpeed = Math.Sqrt(chamberState.GammaS * PhysicalConstants.R * chamberState.Temperature / chamberState.MolarMass);
-            chamberState.DlnVdlnT = 1.0;
-            chamberState.DlnVdlnP = -1.0;
-        }
-
-        result.Stations[Chamber] = chamberState;
-        var enthalpyChamber = chamberState.Enthalpy;
-        var entropyChamber = chamberState.Entropy;
+        var enthalpyChamber = chamber.Enthalpy;
+        var entropyChamber = chamber.Entropy;
 
         // Throat: the pressure ratio for which the velocity equals the sound speed (6.3.3).
-        var gammaChamber = chamberState.GammaS;
+        var gammaChamber = chamber.GammaS;
         var pressureThroat = pressureChamber / Math.Pow(0.5 * (gammaChamber + 1.0), gammaChamber / (gammaChamber - 1.0));
         StationSolve.CopyComposition(in context, Chamber, Throat);
-        var temperatureEstimate = chamberState.Temperature;
+        var temperatureEstimate = result.Stations[Chamber].Temperature;
         var sonicRatio = 0.0;
         var throatConverged = false;
         for (var k = 0; k < MaxThroatIterations; k++)
