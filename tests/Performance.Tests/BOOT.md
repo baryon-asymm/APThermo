@@ -9,6 +9,8 @@ The definition of what "`Performance` is ready" means.
 | L0 | the invariants on a converged case: constant entropy, sonic throat, area ratio met, frozen composition, velocity from the energy equation; status on invalid exits and inputs | the invariants' tolerances | ✅ |
 | L1 | rocket cases of the fixtures node (LOX/LH2 example 8, MMH/NTO example 12 equilibrium and frozen, the four reference propellants): stations, `c*`, `C_F`, `Isp`, `Ivac`, area and pressure ratios, compositions | the fixtures node's reference outputs and its tolerance table | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
+| L0 | an exit station that never leaves the subsonic side is `NotConverged` and its neighbours `Ok`, driven through the `AreaRatioIteration` stage from an estimate deep on the subsonic side (2026-09-14) | the `API.md` of `Performance` | ⏳ |
+| Bits | the host solve of every rocket fixture gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of the stations' states, moles, multipliers, figures, station statuses, iteration counts and the case status, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ⏳ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -18,6 +20,18 @@ The definition of what "`Performance` is ready" means.
 - The compared fields are enumerated by reflection over `MixtureState` and
   `PerformanceFigures`, so a new field is compared without a code change or fails
   loudly if the fixture lacks it.
+- **The bits are a tripwire, not a contract** (2026-09-14): the Bits level guards the
+  numerics against unnoticed change the way the surface snapshot guards the contract
+  (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the
+  numerical change that moved it named in the same commit; a decomposition, a
+  renaming or a reordering of code moves no line. The snapshot is of the CPU
+  accelerator on the reference machine's runtime; a runtime update that moves lines
+  is re-approved with that reason recorded here. A fixture absent from the snapshot
+  fails the test with instructions, as the surface snapshot does.
+- The node owns the tolerances of comparisons that are not with the reference: the
+  invariants' tolerances and the self-consistency and identity tolerances are named
+  constants of the node with their origin in a comment, never literals in an
+  assertion (2026-09-14).
 
 ## Dependencies
 
@@ -64,6 +78,29 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       frozen-at-chamber fixtures run as shifting flow (15 red); the kernel given a
       different chamber temperature estimate (6 red); area ratios below 1 accepted by
       the solver (1 red).
+- [ ] Bits level green: `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits`
+      over the enumerated rocket directory against `Bits.approved.txt`, recorded at
+      `8e36a27` before any code of the decomposition moved, and unchanged after it;
+      seen red once by a solver constant perturbed in the last digit (every fixture
+      red) and by a fixture absent from the snapshot (that fixture red with the
+      instruction to approve).
+- [ ] The never-supersonic outcome: a test drives `AreaRatioIteration` (through the
+      node's new `InternalsVisibleTo`) from an estimate deep on the subsonic side and
+      asserts `NotConverged` for that station and `Ok` for its neighbours; seen red
+      against the code of `8e36a27`, where the station came back `Ok`.
+- [ ] The invariants are one type and one test each (2026-09-14, the test review's
+      F-TK-06 and F-TK-07): `RocketInvariants` returns the violated invariants of a
+      solution as messages, one private method per invariant, the two unnamed
+      tolerances (the energy equation, the pressure ratio) promoted to named
+      constants beside the three existing ones; the theory becomes one test per
+      invariant (`The_throat_is_sonic`, `Entropy_is_constant_along_the_nozzle`,
+      `Velocity_follows_the_energy_equation`, `Assigned_area_and_pressure_ratios_are_met`,
+      `The_composition_is_frozen_after_the_freezing_station`), and the mutation of the
+      sonic and area-ratio tolerances above turns exactly those two red;
+      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` is split at its two seams
+      (fill and launch the batch; assert the same bits) so that no method exceeds 60
+      lines. The hand-typed counts of files, flows and batches leave the criteria
+      above; the enumerated directory is the list.
 
 ## Taboos
 

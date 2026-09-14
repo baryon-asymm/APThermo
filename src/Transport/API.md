@@ -157,14 +157,33 @@ needed (`BOOT.md`); the scratch is a struct of named slices with ints as well, l
 the figures are written into a view, as every numerical node does, and report the
 estimated species and the set's bookkeeping instead of an excluded fraction.
 
+Two slots of the scratch are shared between stages of the evaluation and hold
+nothing across a call: `Stx` is the normalised pivot row of the trace elimination
+and, later, the per-pair difference vector of the reaction terms; `Mark` carries
+"seen by the component search" and "in the set" for every species. A caller slices
+the scratch and reads nothing from it. `TransportLayout.DoublesPerCase` takes the
+species count and does not use it: the double scratch is `4·M² + E·M + 8·M` with
+`M = MaxSpecies`, and the set is capped at `MaxSpecies`, so the doubles per case do not
+grow with the table; the parameter mirrors `Equilibrium`'s `ScratchLayout` so that the
+execution node sizes every scratch the same way (recorded 2026-09-14, the clean-code
+review's F-TP-06 and F-TP-07).
+
 ## Errors
 
 Never throws. `Evaluate` returns `Ok`; `InvalidInput` (non-positive or NaN
 temperature, a negative or NaN mole number, a transport table whose species count is
 not the species table's, an empty or gas-free table); `NoTransportData` (no gaseous
 species with positive moles); `SingularMatrix` (a reaction system could not be solved:
-the frozen figures are written and the reacting ones equal them). `figures[0]` is
-written on every status, zero on `InvalidInput` and `NoTransportData`. `Build` throws
+the frozen figures are written and the reacting ones equal them, the reacting
+conductivity, the equilibrium heat capacity and the reacting Prandtl number alike).
+`figures[0]` is written on every status, zero on `InvalidInput` and `NoTransportData`.
+
+⚠ 2026-09-14: the sentence was the contract, and the code kept only half of it: when
+the second of the two reaction systems could not be solved, the reacting conductivity
+fell back to the frozen one while the reaction heat capacity of the first system
+survived into `EquilibriumHeatCapacity` and `ReactingPrandtl`. Found by the
+clean-code review (F-TP-01); the code now obeys the sentence, and the tests node
+holds the status to it (the parent's `BOOT.md`, acceptance criteria). `Build` throws
 `ArgumentNullException` for a null argument and nothing else: a species without an
 entry is not an error.
 

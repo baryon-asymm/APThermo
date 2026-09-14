@@ -86,6 +86,65 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   arbitrary station, the report's stop of a frozen expansion 50 K below the range of
   a condensed species present at the chamber (section 6.5.1).
 
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The rocket
+solve of one case is one public entry over internal static stage classes, all
+kernel-compatible, one class per file in this directory and namespace, sharing the
+existing view, scratch and result structs. Every floating-point expression keeps its
+present form and its present order of evaluation; the bit snapshot of the tests node
+(the acceptance criteria below) is the proof that the decomposition moved code and
+rewrote no formula.
+
+| Class | Responsibility | Visibility |
+|---|---|---|
+| `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | public, contract unchanged |
+| `ChamberSolve` | the chamber state at assigned enthalpy and pressure, made frozen where the flow model says so (sections 6.3.1 and 6.5.3); returns `ChamberReference` | internal |
+| `ThroatSearch` | the sonic throat, equations (6.15)–(6.17), and what it defines: the mass flux and `c*`; returns `ThroatReference` | internal |
+| `ExitStations` | the loop over the exits, the dispatch on `ExitSpecification`, the estimate chain from station to station, the case status | internal |
+| `AreaRatioIteration` | one exit assigned by area ratio: the initial `ln(p_c/p_e)` of (6.21)–(6.23), the correction of (6.24)–(6.25), an explicit outcome | internal |
+| `StationSolve` | one station's sp or frozen solve: the sub-views, the estimate composition copied in, the call into `Equilibrium` | internal |
+| `StationFigures` | the energy equation, the area ratio and the figures of section 6.2, each written once | internal |
+
+Carriers (`Carriers.cs`): `RocketContext` (the table view, the problem, the scratch
+and the result, built once in `Solve`), `ChamberReference` (pressure, enthalpy,
+entropy, `γ_s`), `ThroatReference` (pressure, mass flux, `c*`, the logarithm of the
+pressure ratio, `γ_s`), `StationRequest` (the station index, pressure, temperature
+estimate, entropy and flow), `ExitEstimate` (the extrapolation state carried between
+exits), and the enums `StationFlow { Shifting, Frozen }` (in place of the boolean that
+picked the solver) and `ExitOutcome { Converged, WithinReportTolerance,
+NeverSupersonic, SolveFailed }`.
+
+Decisions taken with the review of 2026-09-14:
+
+- **A station that never went supersonic is `NotConverged`.** The area-ratio iteration
+  accepted a station whose correction was never computed, because its acceptance test
+  read an initial value of zero (the review's F-PF-01). The outcome is now a value:
+  `NeverSupersonic` ends the station as `NotConverged`, as `API.md` always said, and
+  the subsonic step of `0.1` in `ln(p_c/p_e)` is the named constant `SubsonicStep`. No
+  fixture reaches the path; the tests node drives it through `AreaRatioIteration` from
+  an estimate deep on the subsonic side.
+- **Two velocity formulas, both named.** `u = sqrt(2(h_c − h))` was written five times,
+  once clamped at zero for a pressure-ratio station. `StationFigures.Velocity` and
+  `StationFigures.VelocityClamped` are the two, extracted verbatim; whether a negative
+  radicand should be a clamp or a `NotConverged` station is one rule with the outcome
+  above and is decided in a later session with its own test, not inside the
+  decomposition.
+- **The frozen chamber keeps its four lines: a declared deviation (AGENTS.md §12) from
+  the one-source rule of the clean-code criteria (A5) and from this node's own
+  taboo.** In `FrozenAtChamber` flow the chamber's `γ_s = Cp/Cv` and
+  `a = sqrt(γ_s R T/M)` are computed here, a second time in the tree, because the
+  reference reports the frozen exponent and sound speed on an otherwise equilibrium
+  chamber state, which `Equilibrium`'s frozen solve cannot produce without also
+  freezing the heat capacities. What lifts it: a public frozen-state helper in
+  `Equilibrium`'s `MixtureProperties`, a root decision once that node's decomposition
+  has landed. Until then `ChamberSolve` carries the four lines verbatim.
+- **`InternalsVisibleTo` for the tests node** is added to the project, as `Transport`
+  and `Equilibrium` have it, so that the stages are testable directly.
+- **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
+  stage; no composition-root exception is expected, `ExitStations` staying at or under
+  Ce 10 with `AreaRatioIteration` split from it.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — For the reference rocket cases of the four propellants and
@@ -125,6 +184,20 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       the same results as the host call: `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
       over the 6 batches of fixtures sharing a table and an exit layout (89 cases; states,
       figures, moles and statuses bit for bit).
+- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node within
+      the root's code-shape constraint (the protocol tests node's `ShapeTests`), the
+      public surface unchanged (`Protocol.Tests.SurfaceTests` against the unchanged
+      snapshot), and every rocket fixture bit for bit as at `8e36a27` on the CPU
+      accelerator: the tests node's bit snapshot over every rocket fixture (the
+      stations' states, moles, multipliers, figures, station statuses, iteration
+      counts and the case status, hashed per fixture) unchanged, `KernelEqualityTests`
+      green, every criterion above still green, the execution tests node's CUDA sweep
+      and throughput benchmark green once at the end.
+- [ ] An exit station that never leaves the subsonic side of the sonic point is
+      `NotConverged` and its neighbours are `Ok`: a test of the tests node drives
+      `AreaRatioIteration` (through `InternalsVisibleTo`) from an estimate deep on
+      the subsonic side; seen red once against the code of `8e36a27`, where the
+      station came back `Ok`.
 
 ## Taboos
 

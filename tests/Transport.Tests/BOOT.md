@@ -10,12 +10,25 @@ The definition of what "`Transport` is ready" means.
 | L1 | mixture viscosity, frozen and reacting conductivity, both Prandtl numbers and the reference's `cpFrozen` at every station of every rocket fixture run with transport, evaluated on the reference composition; the estimate for species without data on the aluminized propellant | the fixtures node's reference outputs and its tolerance table | ✅ |
 | L1 | the evaluation inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
 | L1 | a table that also holds the species of elements the case lacks gives the same bits as the case's own table, at every station with transport | the evaluation on the case's own table | ✅ |
-| Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits | the `API.md` of `Transport` | ✅ |
+| Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits; a reaction system that cannot be solved is `SingularMatrix` with the reacting figures equal to the frozen ones, driven through the `ReactionTerms` stage (2026-09-14) | the `API.md` of `Transport` | ✅ (the singular case ⏳) |
+| Bits | the host evaluation of every station of every rocket fixture run with transport gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of every field of every station's figures and status, in station order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ⏳ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
 
 - Reference is files; tolerances from the fixtures node; every fixture case enumerated.
+- **The bits are a tripwire, not a contract** (2026-09-14): the Bits level guards the
+  numerics against unnoticed change the way the surface snapshot guards the contract
+  (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the
+  numerical change that moved it named in the same commit; a decomposition, a
+  renaming or a reordering of code moves no line. The snapshot is of the CPU
+  accelerator on the reference machine's runtime; a runtime update that moves lines
+  is re-approved with that reason recorded here. A fixture absent from the snapshot
+  fails the test with instructions, as the surface snapshot does.
+- The node owns the tolerances of comparisons that are not with the reference (a
+  self-consistency of two paths through the same arithmetic, an algebraic identity);
+  they are named constants of the node with their origin in a comment, never literals
+  in an assertion (2026-09-14).
 - The reacting conductivity is checked to be no less than the frozen one at every station.
 - The station composition is the reference's (its mole fractions over the reference's
   MW), so that the node is verified alone; the comparison with the tree's own
@@ -75,6 +88,30 @@ dependency went away with it.
 
       ⚠ 2026-09-12: the criterion named "the exclusion threshold changed in a copy":
       there is no exclusion (Transport `BOOT.md`); the estimate's constants are mutated instead.
+- [ ] Bits level green: `BitSnapshotTests.Every_fixture_with_transport_gives_the_recorded_bits`
+      over the enumerated rocket fixtures with transport against `Bits.approved.txt`,
+      recorded at `8e36a27` before any code of the decomposition moved, and unchanged
+      after it; seen red once by a solver constant perturbed in the last digit (every
+      fixture red) and by a fixture absent from the snapshot (that fixture red with
+      the instruction to approve).
+- [ ] The `SingularMatrix` status holds the contract: `StatusTests` (or the existing
+      `InputTests`) drives `ReactionTerms` into a reaction system it cannot solve and
+      asserts that the reacting conductivity, the equilibrium heat capacity and the
+      reacting Prandtl number equal the frozen ones and the status is
+      `SingularMatrix`; seen red against the code of `8e36a27`.
+- [ ] The station comparison is one type and the facts are one test each
+      (2026-09-14, the test review's F-TK-05): `FigureComparison` turns one station's
+      figures into the list of mismatches (the Transport counterpart of the sibling
+      nodes' comparison types), and `Stations_match_the_reference` becomes
+      `Station_figures_match_the_reference`,
+      `The_reference_cpFrozen_is_the_transport_set_heat_capacity` and
+      `Reacting_conductivity_is_never_below_the_frozen_one`, the estimated-species
+      consistency joining `Species_without_data_are_estimated_on_the_aluminized_propellant`;
+      no method over 60 lines or nested deeper than 3; the mutations above re-run and
+      each landing on the test that names its fact. The scratch-layout test of
+      `InputTests` proves the slices fit and do not overlap instead of restating the
+      formula (F-TK-13). The hand-typed counts of files and stations leave the
+      criteria above; the enumerated directory is the list.
 
 ## Taboos
 

@@ -107,9 +107,11 @@ linter; xunit for tests.
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
   the case index is the thread index.
 - Math in numerical nodes: only the `double` overloads of `System.Math` from this
-  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Min`, `Max`, `Floor`, `Ceiling`.
-  Adding a function is a root decision, because the execution node must provide its
-  libdevice wrapper.
+  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Min`, `Max`, `Floor`, `Ceiling`,
+  plus the constant `Math.PI`, which the compiler inlines and which needs no wrapper
+  (the transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
+  architecture review found the eleventh name unlisted). Adding a function is a root
+  decision, because the execution node must provide its libdevice wrapper.
 - ILGPU 1.5.3 is pinned, and its libdevice support is defective with libnvvm 12.9 and
   13.3: it emits the NVVM version metadata before the target lines, libnvvm rejects the
   module, and ILGPU silently drops the wrappers. The execution node links the libdevice
@@ -261,8 +263,9 @@ batches on the GPU.
 - `src/Problems` is the front door: reactants, chemical system assembly (elements,
   species selection, element moles and enthalpy per kilogram of propellant), problem
   and result types, orchestration of `Data`, `Thermo`, `Transport` and `Execution`,
-  with the result types of `Performance`. Propellant conventions are knowledge about
-  CEA and rockets, not about solving.
+  with the flow model, the exit specification and the result figures of
+  `Performance`. Propellant conventions are knowledge about CEA and rockets, not
+  about solving.
 
   ⚠ 2026-09-12: it also names `Equilibrium`'s `ProblemKind` in its equilibrium
   problem type, the kind the execution node's batch takes; the dependency list below
@@ -271,7 +274,9 @@ batches on the GPU.
   never depends on console or serialization concerns.
 
   ⚠ 2026-09-13: it also uses `Execution` (engine options, the accelerator description,
-  the unavailable exception) and reads the result structs of `Thermo`, `Performance`
+  the unavailable exception, the CUDA flag, and engine creation of its own for the
+  `devices` listing, as its `API.md` records under Side effects; the last two added
+  here on 2026-09-14 by the architecture review) and reads the result structs of `Thermo`, `Performance`
   and `Transport` and the problem kind of `Equilibrium`, field by field into the
   documents; the dependency list below carries those links, which its first version
   lacked.
