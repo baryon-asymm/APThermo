@@ -59,13 +59,7 @@ public sealed class ToleranceTableTests
                 : new[] { c.Outputs }.AsEnumerable();
             foreach (var state in states)
             {
-                foreach (var property in state.EnumerateObject())
-                {
-                    if (property.Value.ValueKind == JsonValueKind.Number && !NotCompared.Contains(property.Name))
-                    {
-                        fields.Add(property.Name);
-                    }
-                }
+                fields.UnionWith(ComparedFieldsOf(state));
             }
         }
 
@@ -73,6 +67,12 @@ public sealed class ToleranceTableTests
         var missing = fields.Where(f => !table.Fields.Contains(f)).ToArray();
         Assert.True(missing.Length == 0, $"fields without a tolerance: {string.Join(", ", missing)}");
     }
+
+    /// <summary>The numeric, compared property names of one fixture state (<see cref="NotCompared"/> excluded).</summary>
+    private static IEnumerable<string> ComparedFieldsOf(JsonElement state) =>
+        state.EnumerateObject()
+            .Where(property => property.Value.ValueKind == JsonValueKind.Number && !NotCompared.Contains(property.Name))
+            .Select(property => property.Name);
 
     /// <summary>
     /// The rule that picks which entry compares a reference mole fraction (BOOT.md, the tolerance-table invariant): at the
