@@ -187,6 +187,21 @@ Decisions taken with the review of 2026-09-14:
   recalibrated on the dependency check's walk, by which the protocol tests node's
   `ShapeTests` measures this node.
 
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Species.Species` | parameters | 11 | mirrors the file's fields one to one (the decision "The record constructors are the declared exception to the parameter rule"); its single construction site names its arguments |
+| `TemperatureInterval.TemperatureInterval` | parameters | 7 | mirrors the file's fields one to one, as `Species` above; its single construction site names its arguments |
+
+No type of this node names more than 9 distinct types of the tree by the dependency
+check's walk (`SpeciesRecordReader` and `SpeciesDatabase` tie at 9), below the root's
+limit of 14: no efferent coupling row is needed, and the `## Structure` sentence
+above, dated to the old textual count of 10, is superseded by this figure.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — The number of product species and of reactant records parsed equals

@@ -179,6 +179,22 @@ Decisions taken with the review of 2026-09-14:
   creation names its arguments, wherever in the tree it stands; a scan of the
   construction sites found every one positional.
 
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `RocketProblem.RocketProblem` | parameters | 7 | mirrors, one argument per field, the case the kernel reads, as `API.md` publishes it; grouping it would move the contract and re-emit the kernels (the decision "The descriptors keep their constructors"); every creation names its arguments |
+| `RocketResult.RocketResult` | parameters | 7 | mirrors, one argument per field, the views the solver writes into, as `RocketProblem` above |
+
+No type of this node names more than 14 distinct types of the tree by the dependency
+check's walk (`ExitStations` and `ChamberSolve` tie at 14, the ceiling): the Size
+bullet's composition-root exception, reserved above for `ExitStations` before
+`PressureRatioStation` was split from it, is not claimed, and this node needs no
+efferent-coupling row.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — For the reference rocket cases of the four propellants and

@@ -206,6 +206,27 @@ Decisions taken with the review of 2026-09-14:
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more than
   6 parameters (the views structs aside).
 
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Engine` | efferent coupling | 26 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath`, `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Kernels` | efferent coupling | 25 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
+| `RocketPipeline` | efferent coupling | 23 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
+| `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
+| `EquilibriumPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
+| `SpeciesFunctionPipeline` | efferent coupling | 17 | the same case as `RocketPipeline` above |
+| `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor ILGPU requires to be public; grouping its views would re-emit the kernels and move the contract (the decision "The views structs keep their constructors"); every creation names its arguments |
+| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 12 | the same case as `RocketBatchViews` above |
+| `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
+| `EquilibriumBatchResult.EquilibriumBatchResult` | parameters | 7 | the same case as `RocketBatchResult` above |
+
+`SpeciesFunctionBatchViews` and `TransportBatchViews`, the other two views structs
+`## Structure` names, take six parameters each and need no row, as it already says.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — Probe kernel with every function of the root's math list: loads on
