@@ -14,7 +14,7 @@ public sealed class Solver : IDisposable
     private readonly ChemicalSystemCache _systems;
     private readonly RocketRunner _rocketRunner;
     private readonly EquilibriumRunner _equilibriumRunner;
-    private readonly Dictionary<Propellant, double[]> _reactantEnthalpies = new(ReferenceEqualityComparer.Instance);
+    private readonly PropellantMixtures _mixtures;
     private bool _disposed;
 
     private Solver(SpeciesDatabase database, Engine engine)
@@ -24,6 +24,7 @@ public sealed class Solver : IDisposable
         _systems = new ChemicalSystemCache(database, engine);
         _rocketRunner = new RocketRunner(database, engine);
         _equilibriumRunner = new EquilibriumRunner(database, engine);
+        _mixtures = new PropellantMixtures(database, engine);
     }
 
     /// <summary>A solver over the database, bound to the accelerator the options select (Execution).</summary>
@@ -42,29 +43,7 @@ public sealed class Solver : IDisposable
     {
         ArgumentNullException.ThrowIfNull(propellant);
         ThrowIfDisposed();
-        var fractions = propellant.MassFractionsFor(oxidizerToFuelRatio);
-        var perKilogram = ReactantEnthalpies(propellant);
-        var elements = propellant.Elements;
-        var moles = new double[elements.Count];
-        var enthalpy = 0.0;
-        for (var k = 0; k < propellant.Resolved.Count; k++)
-        {
-            var r = propellant.Resolved[k];
-            foreach (var (symbol, count) in r.Formula)
-            {
-                moles[IndexOf(elements, symbol)] += fractions[k] * count / r.MolarMass;
-            }
-
-            enthalpy += fractions[k] * perKilogram[k];
-        }
-
-        var byName = new Dictionary<string, double>(elements.Count, StringComparer.Ordinal);
-        for (var i = 0; i < elements.Count; i++)
-        {
-            byName[elements[i]] = moles[i] * UnitFactors.MolesPerKilomole;
-        }
-
-        return ElementalMixture.Create(byName, enthalpy, propellant.Omit, propellant.Only);
+        return _mixtures.Of(propellant, oxidizerToFuelRatio);
     }
 
     /// <summary>The candidate product species of an element set under the selection rule (BOOT.md).</summary>
@@ -196,92 +175,10 @@ public sealed class Solver : IDisposable
         return _equilibriumRunner.Solve(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList(), noun);
     }
 
-    /// <summary>J per kilogram of every reactant at its temperature: the record's polynomial through the engine, or the assigned enthalpy.</summary>
-    private double[] ReactantEnthalpies(Propellant propellant)
-    {
-        if (_reactantEnthalpies.TryGetValue(propellant, out var cached))
-        {
-            return cached;
-        }
-
-        var resolved = propellant.Resolved;
-        var perKilogram = new double[resolved.Count];
-        var fitted = new List<int>();
-        for (var k = 0; k < resolved.Count; k++)
-        {
-            var r = resolved[k];
-            if (r.HasFits)
-            {
-                fitted.Add(k);
-            }
-            else
-            {
-                perKilogram[k] = r.AssignedEnthalpy * UnitFactors.MolesPerKilomole / r.MolarMass;
-            }
-        }
-
-        if (fitted.Count > 0)
-        {
-            var names = fitted.Select(k => resolved[k].Record!.Name).Distinct(StringComparer.Ordinal).ToList();
-            var elements = fitted.SelectMany(k => resolved[k].Formula.Select(pair => pair.Symbol)).Distinct(StringComparer.Ordinal).ToList();
-            var table = SpeciesTable.Build(Database, elements, names);
-            using var tables = _engine.Upload(table);
-            var batch = new SpeciesFunctionBatch(fitted.Count);
-            for (var i = 0; i < fitted.Count; i++)
-            {
-                var r = resolved[fitted[i]];
-                batch.Species[i] = PieceAt(table, r.Record!.Name, r.Temperature);
-                batch.Temperature[i] = r.Temperature;
-            }
-
-            var functions = _engine.Run(tables, batch);
-            for (var i = 0; i < fitted.Count; i++)
-            {
-                var r = resolved[fitted[i]];
-                perKilogram[fitted[i]] = functions.HOverRT[i] * PhysicalConstants.R * r.Temperature / r.MolarMass;
-            }
-        }
-
-        _reactantEnthalpies[propellant] = perKilogram;
-        return perKilogram;
-    }
-
     private ChemicalSystem GetSystem(ElementalMixture mixture) => _systems.Get(mixture);
 
     /// <summary>The system over the union of the mixtures' elements, in order of first appearance, under the species lists they all share.</summary>
     private ChemicalSystem UnionSystem(IReadOnlyList<ElementalMixture> mixtures, int problemCount, string kind) => _systems.Union(mixtures, problemCount, kind);
-
-    /// <summary>
-    /// The table entry of a record name at a temperature: the first piece of a species cut at a fit discontinuity
-    /// (the Thermo API's join-and-cut) whose last bound is not below it, else the last piece.
-    /// </summary>
-    private static int PieceAt(SpeciesTable table, string name, double temperature)
-    {
-        var indices = table.IndicesOf(name);
-        for (var k = 0; k < indices.Count - 1; k++)
-        {
-            var last = table.Arrays.IntervalStart[indices[k]] + table.Arrays.IntervalCount[indices[k]] - 1;
-            if (temperature <= table.Arrays.IntervalBounds[last * 2 + 1])
-            {
-                return indices[k];
-            }
-        }
-
-        return indices[^1];
-    }
-
-    private static int IndexOf(IReadOnlyList<string> elements, string symbol)
-    {
-        for (var i = 0; i < elements.Count; i++)
-        {
-            if (string.Equals(elements[i], symbol, StringComparison.Ordinal))
-            {
-                return i;
-            }
-        }
-
-        throw new InvalidOperationException($"element {symbol} is not in the propellant's element list");
-    }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 }
