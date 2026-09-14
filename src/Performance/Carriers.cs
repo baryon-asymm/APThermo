@@ -40,6 +40,25 @@ internal readonly struct ChamberReference
     }
 }
 
+/// <summary>What the throat fixes for the exit stations: its pressure and isentropic exponent, the mass flux, the characteristic velocity and ln(p_c/p_t).</summary>
+internal readonly struct ThroatReference
+{
+    public readonly double Pressure;
+    public readonly double MassFlux;
+    public readonly double CharacteristicVelocity;
+    public readonly double LogPressureRatio;
+    public readonly double GammaS;
+
+    public ThroatReference(double pressure, double massFlux, double characteristicVelocity, double logPressureRatio, double gammaS)
+    {
+        Pressure = pressure;
+        MassFlux = massFlux;
+        CharacteristicVelocity = characteristicVelocity;
+        LogPressureRatio = logPressureRatio;
+        GammaS = gammaS;
+    }
+}
+
 /// <summary>Which solver a station is solved with: the composition follows the equilibrium, or it stays the one already in the station's row.</summary>
 internal enum StationFlow
 {

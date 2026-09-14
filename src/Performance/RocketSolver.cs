@@ -19,7 +19,7 @@ public static class RocketSolver
     public const double AreaRatioTolerance = 4.0e-5;
 
     /// <summary>Iterations continue past the report's tolerances until the correction is this small, so that the reported station is at rounding level.</summary>
-    private const double TightTolerance = 1.0e-10;
+    internal const double TightTolerance = 1.0e-10;
 
     public const int MaxThroatIterations = 20;
     public const int MaxAreaRatioIterations = 20;
@@ -61,70 +61,25 @@ public static class RocketSolver
             return;
         }
 
-        var frozenAtChamber = problem.Flow == FlowModel.FrozenAtChamber;
-        var chamberFlow = frozenAtChamber ? StationFlow.Frozen : StationFlow.Shifting;
-        var enthalpyChamber = chamber.Enthalpy;
-        var entropyChamber = chamber.Entropy;
-
-        // Throat: the pressure ratio for which the velocity equals the sound speed (6.3.3).
-        var gammaChamber = chamber.GammaS;
-        var pressureThroat = pressureChamber / Math.Pow(0.5 * (gammaChamber + 1.0), gammaChamber / (gammaChamber - 1.0));
-        StationSolve.CopyComposition(in context, Chamber, Throat);
-        var temperatureEstimate = result.Stations[Chamber].Temperature;
-        var sonicRatio = 0.0;
-        var throatConverged = false;
-        for (var k = 0; k < MaxThroatIterations; k++)
+        var throatStatus = ThroatSearch.At(in context, in chamber, out var throat);
+        if (throatStatus != CaseStatus.Ok)
         {
-            var throatRequest = new StationRequest(Throat, pressureThroat, temperatureEstimate, entropyChamber, chamberFlow);
-            if (!StationSolve.At(in context, in throatRequest))
-            {
-                result.Status[0] = result.StationStatus[Throat];
-                return;
-            }
-
-            var state = result.Stations[Throat];
-            var velocitySquared = StationFigures.VelocitySquared(enthalpyChamber, in state);
-            var soundSquared = state.SoundSpeed * state.SoundSpeed;
-            sonicRatio = velocitySquared / soundSquared;
-            if (!(velocitySquared > 0.0) || !(soundSquared > 0.0))
-            {
-                break;
-            }
-
-            if (Math.Abs(sonicRatio - 1.0) <= TightTolerance)
-            {
-                throatConverged = true;
-                break;
-            }
-
-            // Equation (6.17): the momentum relation from the current estimate to the sonic point.
-            pressureThroat *= (1.0 + state.GammaS * sonicRatio) / (1.0 + state.GammaS);
-            temperatureEstimate = state.Temperature;
-        }
-
-        if (!throatConverged && !(Math.Abs(sonicRatio - 1.0) <= SonicTolerance))
-        {
-            result.StationStatus[Throat] = (int)CaseStatus.ThroatNotFound;
-            result.Status[0] = (int)CaseStatus.ThroatNotFound;
+            result.Status[0] = (int)throatStatus;
             return;
         }
 
-        var throatState = result.Stations[Throat];
-        var velocityThroat = StationFigures.Velocity(enthalpyChamber, in throatState);
-        var massFluxThroat = throatState.Density * velocityThroat;
-        var characteristicVelocity = pressureChamber / massFluxThroat;
-        StationFigures.Write(in context, Throat, velocityThroat, 1.0, pressureChamber / pressureThroat, characteristicVelocity);
-        var chamberFigures = result.Figures[Chamber];
-        chamberFigures.PressureRatio = 1.0;
-        chamberFigures.CharacteristicVelocity = characteristicVelocity;
-        result.Figures[Chamber] = chamberFigures;
+        var frozenAtChamber = problem.Flow == FlowModel.FrozenAtChamber;
+        var enthalpyChamber = chamber.Enthalpy;
+        var entropyChamber = chamber.Entropy;
+        var massFluxThroat = throat.MassFlux;
+        var characteristicVelocity = throat.CharacteristicVelocity;
 
         // Exit stations, in the order given (6.3.2, 6.3.5 to 6.3.7).
         var frozen = problem.Flow != FlowModel.ShiftingEquilibrium;
         var exitFlow = frozen ? StationFlow.Frozen : StationFlow.Shifting;
         var freezingStation = frozenAtChamber ? Chamber : Throat;
-        var logPressureRatioThroat = Math.Log(pressureChamber / pressureThroat);
-        var gammaThroat = throatState.GammaS;
+        var logPressureRatioThroat = throat.LogPressureRatio;
+        var gammaThroat = throat.GammaS;
         var previousExtrapolable = false;
         var previousLogPressureRatio = 0.0;
         var previousLogAreaRatio = 0.0;
