@@ -208,7 +208,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
     private static void AssertStation(Station station, JsonElement element)
     {
         Assert.Equal(station.Name, element.GetProperty("name").GetString());
-        Assert.Equal(Names.Camel(station.Status.ToString()), element.GetProperty("status").GetString());
+        Assert.Equal(CliFixture.Camel(station.Status.ToString()), element.GetProperty("status").GetString());
         AssertFields(station.State, element, $"{station.Name} state");
         if (station.Performance is { } figures)
         {
@@ -225,7 +225,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         if (station.TransportStatus is { } transportStatus)
         {
             var transport = element.GetProperty("transport");
-            Assert.Equal(Names.Camel(transportStatus.ToString()), transport.GetProperty("status").GetString());
+            Assert.Equal(CliFixture.Camel(transportStatus.ToString()), transport.GetProperty("status").GetString());
             if (station.Transport is { } figures2)
             {
                 AssertFields(figures2, transport, $"{station.Name} transport");
@@ -263,12 +263,12 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         Assert.Equal(species.Count(name => station.MoleFractions[name] >= threshold), moleFractions.EnumerateObject().Count());
     }
 
-    /// <summary>Every public field of the struct, by reflection, against the property of the same camel-case name (Names.Camel): exact.</summary>
+    /// <summary>Every public field of the struct, by reflection, against the property of the same camel-case name (CliFixture.Camel): exact.</summary>
     private static void AssertFields<T>(T value, JsonElement element, string label) where T : struct
     {
         foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
         {
-            var name = Names.Camel(field.Name);
+            var name = CliFixture.Camel(field.Name);
             Assert.True(element.TryGetProperty(name, out var property), $"{label}: {name} is missing");
             var expected = field.GetValue(value)!;
             if (expected is double number)

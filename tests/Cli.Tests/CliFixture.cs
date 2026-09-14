@@ -65,6 +65,16 @@ public sealed class CliFixture : IDisposable
     public static IReadOnlyDictionary<string, double> CompositionOf(JsonNode node) =>
         node.AsObject().ToDictionary(p => p.Key, p => p.Value!.GetValue<double>(), StringComparer.Ordinal);
 
+    /// <summary>
+    /// The one camel-case rule of this node: a field or status name of the library into the document's own spelling,
+    /// written independently of the adapter's <c>Names.Camel</c>. An L2 or schema check that instead called the
+    /// adapter's own rule to derive its expectation could never see that rule go wrong, since the actual document and
+    /// the expected name would always agree by construction; this is the check's independent half. Both
+    /// <c>LibraryEqualityTests</c> and <c>OutputDocumentTests</c> read this one method rather than each carrying its
+    /// own copy or, as before, calling into the adapter.
+    /// </summary>
+    public static string Camel(string name) => name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
+
     public string Temp { get; }
 
     public string Document(string name) => Path.Combine(DocumentsDirectory, name);

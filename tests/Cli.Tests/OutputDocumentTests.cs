@@ -247,14 +247,14 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         AssertSchemaListsFields<TransportFigures>(definitions.GetProperty("transport"), required: false);
     }
 
-    /// <summary>Every public field of the struct is one of the schema's declared properties, by the same camel-case rule the document itself is written with (Names.Camel); required when the field is never omitted.</summary>
+    /// <summary>Every public field of the struct is one of the schema's declared properties, by this node's own camel-case rule (CliFixture.Camel); required when the field is never omitted.</summary>
     private static void AssertSchemaListsFields<T>(JsonElement definition, bool required) where T : struct
     {
         var properties = definition.GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
         var requiredNames = definition.GetProperty("required").EnumerateArray().Select(e => e.GetString()!).ToHashSet(StringComparer.Ordinal);
         foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
         {
-            var name = Names.Camel(field.Name);
+            var name = CliFixture.Camel(field.Name);
             Assert.True(properties.Contains(name), $"{typeof(T).Name}.{field.Name} is not in the schema's properties as {name}");
             if (required)
             {

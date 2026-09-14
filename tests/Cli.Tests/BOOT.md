@@ -178,18 +178,29 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       `LibraryEqualityTests.AssertCase` split into `AssertMixture`, `AssertStation` and
       `AssertComposition`; the schema-declaration `AssertFields<T>` of
       `OutputDocumentTests` renamed `AssertSchemaListsFields<T>` so only one method of
-      the node keeps that name, both it and `LibraryEqualityTests`' one reading the
-      library's own camel-case rule (`Names.Camel`) instead of each carrying its own
-      copy; the grams of the four refusal messages that report one derived from the
-      document's own composition (`CliFixture.GramsOf`), compared numerically rather
-      than as text since the message itself rounds the figure it reports
-      (`InputDocumentTests.AssertMassReported`); the tolerance literals of
-      `OutputDocumentTests`, `ExitCodeTests` and `InputDocumentTests` named constants
-      with their origin in a comment; no method over 60 lines or nested deeper than 3,
-      measured over both nodes by the close's scratch tool. The recorded mutations
-      still red, each proven again and reverted: a field renamed in the output schema
-      (both the schema validator and the reflection-based field-list test red) and g0
-      changed (both rocket-example tests red).
+      the node keeps that name, both it and `LibraryEqualityTests` reading one
+      camel-case rule of this node (`CliFixture.Camel`); the grams of the four refusal
+      messages that report one derived from the document's own composition
+      (`CliFixture.GramsOf`), compared numerically rather than as text since the
+      message itself rounds the figure it reports (`InputDocumentTests.AssertMassReported`);
+      the tolerance literals of `OutputDocumentTests`, `ExitCodeTests` and
+      `InputDocumentTests` named constants with their origin in a comment; no method
+      over 60 lines or nested deeper than 3, measured over both nodes by the close's
+      scratch tool. The recorded mutations still red, each proven again and reverted:
+      a field renamed in the output schema (both the schema validator and the
+      reflection-based field-list test red) and g0 changed (both rocket-example tests
+      red).
+
+  ⚠ 2026-09-14: `CliFixture.Camel` first called the adapter's own `Names.Camel`
+      instead of carrying an independent rule. The coordinator's review found that an
+      L2 or schema check deriving its expected name the same way the code under test
+      derives the actual one can never see that rule go wrong: the two agree by
+      construction regardless of what the rule computes. `CliFixture.Camel` is now
+      written independently (the same one-line lowercase-the-first-character rule, but
+      typed a second time rather than called), and both `LibraryEqualityTests` and
+      `OutputDocumentTests` read it instead of `Names.Camel`. Proven with `Names.Camel`
+      changed to return its argument unchanged: all three `LibraryEqualityTests` facts
+      red (a station's or a transport status's camel case no longer matched), reverted.
 
 ## Taboos
 
