@@ -55,6 +55,7 @@ sealed class AerospacePropellantThermodynamics.Data.SpeciesDatabase
     Double AtomicWeight(String element)
     IReadOnlyList<Species> Products { get; }
     IReadOnlyList<Species> Reactants { get; }
+    IReadOnlyList<Species> Records(String name)
     Species this[String name] { get; }
     TransportDatabase? Transport { get; }
     static SpeciesDatabase Load(String thermoPath, String? transPath = null)

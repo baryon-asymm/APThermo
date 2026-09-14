@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 using AerospacePropellantThermodynamics.Fixtures;
 
@@ -41,6 +40,44 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
         Assert.True(products > 1000, "the independent scan found too few product records to be meaningful");
         Assert.Equal(products, _loaded.Database.Products.Count);
         Assert.Equal(reactants, _loaded.Database.Reactants.Count);
+    }
+
+    /// <summary>
+    /// L1: several records under one name (thermo.inp splits some condensed species into one record per temperature
+    /// range) are all reachable through <see cref="SpeciesDatabase.Records"/>, in file order; the indexer and
+    /// <see cref="SpeciesDatabase.TryGet"/> keep returning the first. The repeated names come from this test's own
+    /// scan of the file text, generated, not typed.
+    /// </summary>
+    [Fact]
+    public void Every_record_of_a_repeated_name_is_returned_in_file_order()
+    {
+        var lines = File.ReadAllLines(_loaded.ThermoPath, System.Text.Encoding.Latin1);
+        var endProducts = Array.FindIndex(lines, l => l.StartsWith("END PRODUCTS", StringComparison.Ordinal));
+        var names = new List<string>();
+        for (var i = 0; i < endProducts; i++)
+        {
+            var isName = lines[i].Length > 0 && lines[i][0] != ' ' && lines[i][0] != '!' && !lines[i].StartsWith("END", StringComparison.Ordinal) && !lines[i].StartsWith("thermo", StringComparison.Ordinal);
+            if (isName && i + 1 < lines.Length && RecordSecondLine().IsMatch(lines[i + 1]))
+            {
+                names.Add((lines[i].Length >= 18 ? lines[i][..18] : lines[i]).TrimEnd());
+            }
+        }
+
+        var repeated = names.GroupBy(n => n, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key).ToArray();
+        Assert.Contains("Cr(cr)", repeated);
+        Assert.Contains("Fe(a)", repeated);
+        Assert.Contains("Cr2O3(I)", repeated);
+        Assert.True(repeated.Length >= 3, "the scan found too few repeated names to be meaningful");
+
+        foreach (var name in repeated)
+        {
+            var expectedRecords = _loaded.Database.Products.Where(p => p.Name == name).ToList();
+            var records = _loaded.Database.Records(name);
+            Assert.Equal(expectedRecords, records);
+            Assert.True(_loaded.Database.TryGet(name, out var first));
+            Assert.Same(expectedRecords[0], first);
+            Assert.Same(expectedRecords[0], _loaded.Database[name]);
+        }
     }
 
     [Fact]
@@ -151,15 +188,7 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
         var e = Assert.Throws<KeyNotFoundException>(() => _loaded.Database["NoSuchSpecies"]);
         Assert.Contains("NoSuchSpecies", e.Message, StringComparison.Ordinal);
         Assert.False(_loaded.Database.TryGet("NoSuchSpecies", out _));
-    }
-
-    [Fact]
-    public void Loading_the_full_file_takes_under_a_second()
-    {
-        var watch = Stopwatch.StartNew();
-        _ = SpeciesDatabase.Load(_loaded.ThermoPath, _loaded.TransPath);
-        watch.Stop();
-        Assert.True(watch.ElapsedMilliseconds < 1000, $"load took {watch.ElapsedMilliseconds} ms");
+        Assert.Empty(_loaded.Database.Records("NoSuchSpecies"));
     }
 }
 

@@ -209,16 +209,28 @@ Decisions taken with the review of 2026-09-14:
 - [x] 2026-09-12 — `AtomicWeight("AL")` equals the molar mass of the record `AL`;
       `AtomicWeight` of a symbol without a monatomic record throws:
       `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species`.
-- [ ] The decomposition of `## Structure` (2026-09-14): no type over 400 lines, no
-      method over 60, no nesting deeper than 3, no more than 6 parameters except the
-      two record constructors; the public surface grown by `SpeciesDatabase.Records`
-      only, the snapshot moved in the same commit; every fixture, count, anomaly and
-      corruption test of the tests node green unchanged.
-- [ ] `Records(name)` returns the records of every same-name group in file order and
-      the indexer the first of them (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` as the list of the
-      format facts); a negative interval count fails the load naming its line, the
-      seventh corruption case; the atomic weights are built at load, so that a loaded
-      database is immutable (the tests node's `ThermoLoadTests`, `CorruptionTests`).
+- [x] 2026-09-14 — The decomposition of `## Structure`: no type over 400 lines (the
+      largest new file, `SpeciesDatabase.cs`, 152), no method over 60, no nesting
+      deeper than 3, no more than 6 parameters except the two record constructors
+      (measured by the protocol tests node's `ShapeTests`, root `BOOT.md`); the public
+      surface grown by `SpeciesDatabase.Records` only, `PublicSurface.approved.txt`
+      moved in the same commit; every fixture, count, anomaly and corruption test of
+      the tests node green unchanged (`dotnet test tests/Data.Tests`, 39 tests, the
+      one new `Loading_the_full_file_takes_under_a_second` removal aside).
+- [x] 2026-09-14 — `Records(name)` returns the records of every same-name group in
+      file order and the indexer the first of them (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)`
+      among the names the tests node's own scan of the committed file finds
+      repeated): `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order`.
+      A negative interval count fails the load naming its line, the seventh
+      corruption case: `CorruptionTests.A_negative_interval_count_names_its_line`.
+      The atomic weights are built once at load from a single pass over `Products`,
+      so a loaded database is immutable and needs no lock; the existing
+      `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species` covers the
+      values unchanged. Both new checks seen red once, reverted: `Records` made to
+      return only the first record turned the repeated-name test red on every
+      repeated name found; the negative-count check removed from
+      `SpeciesRecordReader.ReadProperties` turned the corruption test red with the
+      bare `ArgumentOutOfRangeException` the wording above describes.
 
 ## Taboos
 

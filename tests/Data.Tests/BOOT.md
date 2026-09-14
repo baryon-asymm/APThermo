@@ -10,7 +10,7 @@ code" (AGENTS.md §1): it is the readiness criterion, moved into a node of its o
 |---|---|---|---|
 | L0 | numeric field reading: `D`/`E`/blank exponents, a sign in place of the exponent letter, bare decimals, blank fields, non-numeric text | expected doubles in the theory data of `FortranNumberTests` (the one place a number is typed: the forms are the subject, not the data) | ✅ 2026-09-12 |
 | L1 | full loads of the committed `data/thermo.inp` and `data/trans.inp`: counts, fixture records, interval ordering and contiguity, anomaly list, transport blocks, atomic weights, failure on corrupted copies | an independent line scan in the test, the approved anomaly list, the fixture records written by `transcribe.py` | ✅ 2026-09-12 |
-| L1 | the same-name groups of the committed file: `Records` returns every record of a name in file order and the indexer the first of them; a negative interval count fails as a format error with its line, the seventh corruption case | the test's own scan of the file for repeated names (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` among them), the minimal in-memory file (`ThermoLoadTests`, `CorruptionTests`) | ⏳ (2026-09-14) |
+| L1 | the same-name groups of the committed file: `Records` returns every record of a name in file order and the indexer the first of them; a negative interval count fails as a format error with its line, the seventh corruption case | the test's own scan of the file for repeated names (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` among them), the minimal in-memory file (`ThermoLoadTests`, `CorruptionTests`) | ✅ 2026-09-14 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 Each next level makes sense only when the previous one is green.
@@ -85,14 +85,14 @@ Outside the tree: xunit; Python 3 for `transcribe.py`; the committed data files
   behind it, red on a cold or loaded machine for no defect (the clean-code review's
   F-TK-14). The root states no latency target for version 1, and the `Data` node
   records the load time as a measurement; the test is deleted.
-- [ ] The facts of 2026-09-14 (the level table's second L1 row):
+- [x] 2026-09-14 — The facts of 2026-09-14 (the level table's second L1 row):
       `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order`
       over the repeated names found by the test's own scan of the file (generated,
       not typed; `Cr(cr)`, `Fe(a)` and `Cr2O3(I)` are among them), with the indexer
       and `TryGet` returning the first of each and `Records` of an unknown name
       empty; `CorruptionTests.A_negative_interval_count_names_its_line`; each seen
       red once (`Records` made to return the first record only; the count check
-      removed from the reader).
+      removed from the reader) and reverted.
 
 ## Taboos
 
