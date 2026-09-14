@@ -1,21 +1,19 @@
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.Runtime.CPU;
 
 namespace AerospacePropellantThermodynamics.Thermo.Tests;
 
-/// <summary>One ILGPU context with the CPU accelerator, the loaded database and the tolerance table, shared by a test class.</summary>
+/// <summary>
+/// The shared CPU host (the harness node's context, accelerator, database and tolerance table), plus what only this
+/// node needs from it: the rounding bound of a self-consistency check and the table-upload helper. The harness holds
+/// no tolerance (its own BOOT.md), so <see cref="RoundingBound"/> lives here, the node that owns the comparison.
+/// </summary>
 public sealed class CpuFixture : IDisposable
 {
-    public CpuFixture()
-    {
-        Context = Context.Create(builder => builder.CPU());
-        Accelerator = Context.CreateCPUAccelerator(0);
-        Database = SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"));
-        Tolerances = ToleranceTable.Load();
-    }
+    private readonly CpuHost _host = new();
 
     /// <summary>
     /// The rounding floor for a comparison that is not against an independent reference but against a fit's own
@@ -27,13 +25,13 @@ public sealed class CpuFixture : IDisposable
     /// </summary>
     public const double RoundingBound = 1e-9;
 
-    public Context Context { get; }
+    public Context Context => _host.Context;
 
-    public Accelerator Accelerator { get; }
+    public Accelerator Accelerator => _host.Accelerator;
 
-    public SpeciesDatabase Database { get; }
+    public SpeciesDatabase Database => _host.Database;
 
-    public ToleranceTable Tolerances { get; }
+    public ToleranceTable Tolerances => _host.Tolerances;
 
     /// <summary>A table of the given species with exactly the elements their formulas use, uploaded to the CPU accelerator.</summary>
     public SpeciesTableBuffers Upload(params string[] species)
@@ -42,9 +40,5 @@ public sealed class CpuFixture : IDisposable
         return SpeciesTableBuffers.Upload(Accelerator, SpeciesTable.Build(Database, elements, species));
     }
 
-    public void Dispose()
-    {
-        Accelerator.Dispose();
-        Context.Dispose();
-    }
+    public void Dispose() => _host.Dispose();
 }

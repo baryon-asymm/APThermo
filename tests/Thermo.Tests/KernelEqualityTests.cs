@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Harness;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -67,9 +68,8 @@ public sealed class KernelEqualityTests : IClassFixture<CpuFixture>
             ];
             for (var k = 0; k < ValuesPerPoint; k++)
             {
-                var expected = BitConverter.DoubleToInt64Bits(host[k]);
-                var actual = BitConverter.DoubleToInt64Bits(results[i * ValuesPerPoint + k]);
-                Assert.True(expected == actual, $"{names[j]} at {t} K, value {k}: host {host[k]:R}, kernel {results[i * ValuesPerPoint + k]:R}");
+                Assert.True(Bits.Same(host[k], results[i * ValuesPerPoint + k]),
+                            $"{names[j]} at {t} K, value {k}: host {host[k]:R}, kernel {results[i * ValuesPerPoint + k]:R}");
                 compared++;
             }
         }

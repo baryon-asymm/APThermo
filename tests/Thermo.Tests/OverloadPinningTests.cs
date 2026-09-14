@@ -1,6 +1,7 @@
 using System.Reflection;
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 
 namespace AerospacePropellantThermodynamics.Thermo.Tests;
 
@@ -63,7 +64,7 @@ public sealed class OverloadPinningTests : IClassFixture<CpuFixture>
                 Assert.True(piece >= 0, $"{name} at {temperature} K: PieceOf found no piece");
                 var host = HostEnthalpyAccessor.HOverRT(interval, temperature);
                 var kernel = SpeciesFunctions.HOverRT(view, piece, temperature);
-                Assert.Equal(BitConverter.DoubleToInt64Bits(host), BitConverter.DoubleToInt64Bits(kernel));
+                Assert.True(Bits.Same(host, kernel), $"{name} at {temperature} K: host {host:R}, kernel {kernel:R}");
                 compared++;
             }
         }

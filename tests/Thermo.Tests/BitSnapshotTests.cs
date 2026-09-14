@@ -28,26 +28,7 @@ public sealed class BitSnapshotTests : IClassFixture<BitSnapshot>
     [MemberData(nameof(Cases))]
     public void Every_fixture_case_gives_the_recorded_bits(string fixtureCase)
     {
-        if (_snapshot.NoApprovedFile)
-        {
-            Assert.Fail(
-                $"No approved bit snapshot of the fixture cases' tables existed, so one was written to {BitSnapshot.ApprovedPath}. " +
-                $"Read it, satisfy yourself that it is what the builder produces today, commit it, and re-run. Case: {fixtureCase}.");
-        }
-
-        var recorded = _snapshot.Recorded(fixtureCase);
-        if (recorded is null)
-        {
-            Assert.Fail(
-                $"{fixtureCase} has no line in {BitSnapshot.ApprovedPath}. What the tables are now was written to " +
-                $"{BitSnapshot.ActualPath}; if the case is new, replace the approved file with it in the same commit.");
-        }
-
-        var current = _snapshot.Current(fixtureCase);
-        Assert.True(
-            recorded == current,
-            $"The table of {fixtureCase} is now {current}, the snapshot records {recorded}. A decomposition, a rename or a " +
-            $"reordering of code must move no line here (BOOT.md, the Bits level). If the builder's output really changed, " +
-            $"name the change in the commit and replace {BitSnapshot.ApprovedPath} with {BitSnapshot.ActualPath}.");
+        var problem = _snapshot.Problem(fixtureCase);
+        Assert.True(problem is null, problem);
     }
 }
