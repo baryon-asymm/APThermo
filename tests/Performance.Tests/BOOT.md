@@ -32,6 +32,17 @@ The definition of what "`Performance` is ready" means.
   invariants' tolerances and the self-consistency and identity tolerances are named
   constants of the node with their origin in a comment, never literals in an
   assertion (2026-09-14).
+- **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
+  architecture review's F-AR-03): the field-name mapping (`StationComparison.Fields`)
+  and the set of fields that belong to another node (`TransportFields`) stay here, not
+  in the harness, which holds no formula and no tolerance. This node reads a station
+  with performance figures on top of the state `Equilibrium.Tests` reads alone, and
+  `Problems.Tests` reads a station with transport figures on top of that; a shared
+  reader would have to know all three shapes, which would put it above the nodes its
+  readers' own consumers test. Only the trace-threshold selection line moved out, to
+  the fixtures node's `ToleranceTable.MoleFractionField` (the same F-AR-03 finding: it
+  stood typed, with its selection line, in this node and in `Equilibrium.Tests` and
+  `Problems.Tests` alike).
 
 ## Dependencies
 
@@ -40,6 +51,7 @@ The definition of what "`Performance` is ready" means.
 - [Thermo](../../src/Thermo/API.md) — tables.
 - [Data](../../src/Data/API.md) — the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
+- [Harness](../Harness/API.md) — the CPU host, bit comparison and fixture families.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 

@@ -8,9 +8,6 @@ namespace AerospacePropellantThermodynamics.Performance.Tests;
 /// <summary>Compares the solver's stations with a rocket fixture's, the field lists taken from the fixture and the result structs.</summary>
 internal static class StationComparison
 {
-    /// <summary>Below this reference mole fraction the reference lists a species as trace (the derivation of moleFractionTrace in the tolerance table).</summary>
-    public const double TracePrintThreshold = 5e-6;
-
     /// <summary>Outputs of the transport node, which this node does not compute.</summary>
     private static readonly HashSet<string> TransportFields =
         ["viscosity", "frozenConductivity", "reactingConductivity", "frozenPrandtl", "reactingPrandtl"];
@@ -96,7 +93,7 @@ internal static class StationComparison
                 }
 
                 var actual = solution.MoleFraction(s, species.Name);
-                var tolerance = expected >= TracePrintThreshold ? "moleFraction" : "moleFractionTrace";
+                var tolerance = tolerances.MoleFractionField(expected);
                 if (!tolerances.Matches(tolerance, expected, actual))
                 {
                     mismatches.Add($"{label} x({species.Name}): reference {expected:R}, tree {actual:R} [{tolerance}]");
