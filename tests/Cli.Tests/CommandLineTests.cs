@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
 /// <summary>L0: option parsing and the usage text.</summary>
@@ -81,5 +83,26 @@ public sealed class CommandLineTests(CliFixture fixture)
         Assert.Equal(Execution.AcceleratorKind.Cpu, invocation.Options.Accelerator);
         Assert.Equal(CommandOptions.DefaultThreshold, CommandLine.Parse(["devices"]).Options.Threshold);
         Assert.Equal(Problems.ElementalMixture.DefaultMassTolerance, CommandLine.Parse(["states", "r.json"]).Options.MassTolerance);
+    }
+
+    [Fact]
+    public void The_usage_states_the_library_defaults()
+    {
+        // The usage text reads the numbers from the same constants the parser defaults to (F-AR-04), not a second typing of them.
+        Assert.Contains($"default {CommandOptions.DefaultThreshold.ToString(CultureInfo.InvariantCulture)}", CommandLine.Usage);
+        Assert.Contains($"default {Problems.ElementalMixture.DefaultMassTolerance.ToString(CultureInfo.InvariantCulture)}", CommandLine.Usage);
+    }
+
+    [Fact]
+    public void Every_command_of_the_table_has_a_handler()
+    {
+        // CommandTable (what the parser accepts) and CommandRegistry (what dispatches) are two tables that could drift
+        // apart; a command accepted by the first but missing from the second would fail here as "unknown command".
+        foreach (var command in CommandLine.Commands)
+        {
+            var args = command is "species" or "devices" ? new[] { command } : new[] { command, fixture.TempFile("missing.json") };
+            var run = fixture.Invoke(args);
+            Assert.DoesNotContain("unknown command", run.Error);
+        }
     }
 }

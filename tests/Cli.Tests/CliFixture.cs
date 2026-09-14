@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Data;
+using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
@@ -46,6 +49,21 @@ public sealed class CliFixture : IDisposable
 
     /// <summary>The committed database, loaded once for the library calls the documents are compared with.</summary>
     public SpeciesDatabase Database => _database.Value;
+
+    /// <summary>
+    /// The mass in grams a composition weighs with the database's atomic weights (<c>Solver.MassOf</c>, kg to g): what
+    /// a refusal message reports, derived here so a test never types the number the library also computes (the
+    /// review's F-TF-12: "2000.03 g" was typed in two files).
+    /// </summary>
+    public double GramsOf(IReadOnlyDictionary<string, double> elementMoles)
+    {
+        using var solver = Solver.Create(Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        return solver.MassOf(ElementalMixture.Create(elementMoles)) * 1000.0;
+    }
+
+    /// <summary>A `composition` or `elementMoles` object already navigated to, as element moles per kilogram.</summary>
+    public static IReadOnlyDictionary<string, double> CompositionOf(JsonNode node) =>
+        node.AsObject().ToDictionary(p => p.Key, p => p.Value!.GetValue<double>(), StringComparer.Ordinal);
 
     public string Temp { get; }
 
