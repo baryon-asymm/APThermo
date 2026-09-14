@@ -44,7 +44,6 @@ public static class EquilibriumSolver
     private const double StandardPressure = 1.0e5;    // Pa; the thermodynamic data are for 1 bar
     private const double ResetMoles = 1.0e-6;          // section 3.6: the reset of vanished species on a singular matrix
     private const int MaxSingularResets = 2;
-    private const double PhaseTransitionWindow = 50.0; // K, section 3.5: closer than this to a transition, both phases are kept
     private const double FrozenTemperatureTest = 1.0e-10; // relative, on the Newton step of the frozen temperature
 
     /// <summary>Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's temperature) are the initial estimate.</summary>
@@ -89,17 +88,17 @@ public static class EquilibriumSolver
         var activeGases = 0;
         for (var j = 0; j < speciesCount; j++)
         {
-            var active = 1;
+            var present = true;
             for (var i = 0; i < elementCount; i++)
             {
                 if (table.Stoichiometry[i * speciesCount + j] != 0.0 && scratch.ElementActive[i] == 0)
                 {
-                    active = 0;
+                    present = false;
                 }
             }
 
-            scratch.SpeciesActive[j] = active;
-            if (active == 1 && j < gasCount)
+            CaseSetup.Mark(scratch, j, present ? SpeciesMark.Active : SpeciesMark.Absent);
+            if (present && j < gasCount)
             {
                 activeGases++;
             }
@@ -115,14 +114,18 @@ public static class EquilibriumSolver
         var logPressure = Math.Log(problem.Pressure / StandardPressure);
 
         // Initial estimates (section 3.1) or the caller's.
-        var temperature = isTp ? problem.Temperature : (problem.Temperature > 0.0 ? problem.Temperature : DefaultTemperatureEstimate);
-        var condensedCount = 0;
+        var state = new IterationState
+        {
+            Temperature = isTp ? problem.Temperature : (problem.Temperature > 0.0 ? problem.Temperature : DefaultTemperatureEstimate),
+            FunctionsAt = -1.0,
+            LastSwitchedOut = -1,
+            LastRemovedForRange = -1,
+        };
         for (var c = 0; c < ScratchLayout.MaxCondensedInSolution; c++)
         {
             scratch.CondensedInSolution[c] = -1;
         }
 
-        double logN;
         if (useMolesAsEstimate)
         {
             var estimate = 0.0;
@@ -139,19 +142,19 @@ public static class EquilibriumSolver
                 estimate = 0.1;
             }
 
-            logN = Math.Log(estimate);
+            state.LogN = Math.Log(estimate);
             for (var j = 0; j < gasCount; j++)
             {
                 scratch.LogMoles[j] = scratch.SpeciesActive[j] == 1 && result.Moles[j] > 0.0
                     ? Math.Log(result.Moles[j])
-                    : logN - TraceThreshold - 1.0;
+                    : state.LogN - TraceThreshold - 1.0;
             }
 
             for (var j = gasCount; j < speciesCount; j++)
             {
-                if (scratch.SpeciesActive[j] == 1 && result.Moles[j] > 0.0 && condensedCount < ScratchLayout.MaxCondensedInSolution)
+                if (scratch.SpeciesActive[j] == 1 && result.Moles[j] > 0.0 && state.CondensedCount < ScratchLayout.MaxCondensedInSolution)
                 {
-                    scratch.CondensedInSolution[condensedCount++] = j;
+                    scratch.CondensedInSolution[state.CondensedCount++] = j;
                 }
                 else
                 {
@@ -161,7 +164,7 @@ public static class EquilibriumSolver
         }
         else
         {
-            logN = Math.Log(0.1);
+            state.LogN = Math.Log(0.1);
             var each = Math.Log(0.1 / activeGases);
             for (var j = 0; j < gasCount; j++)
             {
@@ -180,12 +183,7 @@ public static class EquilibriumSolver
         }
 
         var unknownStride = ScratchLayout.MaxUnknowns(elementCount);
-        var iterations = 0;
-        var setChanges = 0;
         var status = CaseStatus.NotConverged;
-        var functionsAt = -1.0;
-        var lastSwitchedOut = -1;
-        var lastRemovedForRange = -1;
 
         while (true)
         {
@@ -195,22 +193,22 @@ public static class EquilibriumSolver
             var steps = 0;
             while (steps < MaxNewtonSteps + MaxPolishSteps)
             {
-                if (functionsAt != temperature)
+                if (state.FunctionsAt != state.Temperature)
                 {
-                    Composition.EvaluateFunctions(table, scratch, temperature);
-                    functionsAt = temperature;
+                    Composition.EvaluateFunctions(table, scratch, state.Temperature);
+                    state.FunctionsAt = state.Temperature;
                 }
 
                 // Gaseous moles retained in the sums (section 3.2).
                 var sumGas = 0.0;
                 for (var j = 0; j < gasCount; j++)
                 {
-                    var retained = scratch.SpeciesActive[j] == 1 && scratch.LogMoles[j] - logN > -TraceThreshold;
+                    var retained = scratch.SpeciesActive[j] == 1 && scratch.LogMoles[j] - state.LogN > -TraceThreshold;
                     result.Moles[j] = retained ? Math.Exp(scratch.LogMoles[j]) : 0.0;
                     sumGas += result.Moles[j];
                 }
 
-                var sums = new MixtureSums { LogN = logN, LogPressure = logPressure, Temperature = temperature, N = Math.Exp(logN), SumGas = sumGas };
+                var sums = new MixtureSums { LogN = state.LogN, LogPressure = logPressure, Temperature = state.Temperature, N = Math.Exp(state.LogN), SumGas = sumGas };
                 for (var j = 0; j < speciesCount; j++)
                 {
                     var nj = result.Moles[j];
@@ -221,7 +219,7 @@ public static class EquilibriumSolver
 
                     sums.HOverRT += nj * scratch.HOverRT[j];
                     sums.SOverR += j < gasCount
-                        ? nj * (scratch.SOverR[j] - scratch.LogMoles[j] + logN - logPressure)
+                        ? nj * (scratch.SOverR[j] - scratch.LogMoles[j] + state.LogN - logPressure)
                         : nj * scratch.SOverR[j];
                     sums.CpOverR += nj * scratch.CpOverR[j];
                     if (j >= gasCount)
@@ -230,7 +228,7 @@ public static class EquilibriumSolver
                     }
                 }
 
-                var layout = new SystemLayout(problem.Kind, elementCount, condensedCount, unknownStride);
+                var layout = new SystemLayout(problem.Kind, elementCount, state.CondensedCount, unknownStride);
                 IterationMatrix.Assemble(table, problem, scratch, result, layout, sums);
 
                 var solved = DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride);
@@ -251,12 +249,12 @@ public static class EquilibriumSolver
                         continue;
                     }
 
-                    if (condensedCount > 0)
+                    if (state.CondensedCount > 0)
                     {
-                        condensedCount--;
-                        result.Moles[scratch.CondensedInSolution[condensedCount]] = 0.0;
-                        scratch.CondensedInSolution[condensedCount] = -1;
-                        setChanges++;
+                        state.CondensedCount--;
+                        result.Moles[scratch.CondensedInSolution[state.CondensedCount]] = 0.0;
+                        scratch.CondensedInSolution[state.CondensedCount] = -1;
+                        state.SetChanges++;
                         singularResets = 0;
                         continue;
                     }
@@ -266,7 +264,7 @@ public static class EquilibriumSolver
                 }
 
                 steps++;
-                iterations++;
+                state.Iterations++;
                 for (var i = 0; i < elementCount; i++)
                 {
                     result.Multipliers[i] = scratch.RightHandSide[i];
@@ -292,11 +290,11 @@ public static class EquilibriumSolver
                         sum += table.Stoichiometry[i * speciesCount + j] * result.Multipliers[i];
                     }
 
-                    var mu = scratch.GOverRT[j] + scratch.LogMoles[j] - logN + logPressure;
+                    var mu = scratch.GOverRT[j] + scratch.LogMoles[j] - state.LogN + logPressure;
                     var delta = sum - mu;
                     scratch.Corrections[j] = delta;
                     // Only growth is limited, as in CEA: a species on its way out may shrink by any factor in one step.
-                    var logFraction = scratch.LogMoles[j] - logN;
+                    var logFraction = scratch.LogMoles[j] - state.LogN;
                     if (delta <= 0.0)
                     {
                         continue;
@@ -329,16 +327,16 @@ public static class EquilibriumSolver
                     }
                 }
 
-                for (var c = 0; c < condensedCount; c++)
+                for (var c = 0; c < state.CondensedCount; c++)
                 {
                     result.Moles[scratch.CondensedInSolution[c]] += lambda * scratch.RightHandSide[elementCount + c];
                 }
 
-                logN += lambda * deltaLogN;
+                state.LogN += lambda * deltaLogN;
                 if (!isTp)
                 {
-                    temperature = Math.Exp(Math.Log(temperature) + lambda * deltaLogT);
-                    if (!(temperature >= MinTemperature) || !(temperature <= MaxTemperature))
+                    state.Temperature = Math.Exp(Math.Log(state.Temperature) + lambda * deltaLogT);
+                    if (!(state.Temperature >= MinTemperature) || !(state.Temperature <= MaxTemperature))
                     {
                         status = CaseStatus.TemperatureOutOfRange;
                         goto Finish;
@@ -347,7 +345,7 @@ public static class EquilibriumSolver
 
                 // Convergence tests, equations (3.5) and (3.6), on the undamped corrections.
                 var total = sumGas;
-                for (var c = 0; c < condensedCount; c++)
+                for (var c = 0; c < state.CondensedCount; c++)
                 {
                     total += result.Moles[scratch.CondensedInSolution[c]];
                 }
@@ -361,7 +359,7 @@ public static class EquilibriumSolver
                     }
                 }
 
-                for (var c = 0; c < condensedCount; c++)
+                for (var c = 0; c < state.CondensedCount; c++)
                 {
                     worst = Math.Max(worst, Math.Abs(scratch.RightHandSide[elementCount + c]) / total);
                 }
@@ -392,150 +390,30 @@ public static class EquilibriumSolver
                 goto Finish;
             }
 
-            // The final iterate: the functions at the final temperature and the retained mole numbers.
-            if (functionsAt != temperature)
+            // The final iterate: the functions at the final state.Temperature and the retained mole numbers.
+            if (state.FunctionsAt != state.Temperature)
             {
-                Composition.EvaluateFunctions(table, scratch, temperature);
-                functionsAt = temperature;
+                Composition.EvaluateFunctions(table, scratch, state.Temperature);
+                state.FunctionsAt = state.Temperature;
             }
 
             for (var j = 0; j < gasCount; j++)
             {
-                var retained = scratch.SpeciesActive[j] == 1 && scratch.LogMoles[j] - logN > -TraceThreshold;
+                var retained = scratch.SpeciesActive[j] == 1 && scratch.LogMoles[j] - state.LogN > -TraceThreshold;
                 result.Moles[j] = retained ? Math.Exp(scratch.LogMoles[j]) : 0.0;
             }
 
-            // Condensed species, one change per convergence (sections 3.4 and 3.5): a negative mole number removes the
-            // species; a phase outside its temperature range is switched for the other phase of the same substance, or
-            // joined by it within 50 K of the transition when the temperature is a variable; else the inclusion test.
-            var changed = false;
-            var skipInclusion = lastRemovedForRange;
-            lastRemovedForRange = -1;
-            for (var c = 0; c < condensedCount && !changed; c++)
-            {
-                if (result.Moles[scratch.CondensedInSolution[c]] < 0.0)
-                {
-                    condensedCount = RemoveCondensed(scratch, result, condensedCount, c);
-                    changed = true;
-                }
-            }
-
-            for (var c = 0; c < condensedCount && !changed; c++)
-            {
-                var j = scratch.CondensedInSolution[c];
-                if (PhaseGeometry.InEffectiveRange(table, scratch, j, temperature))
-                {
-                    continue;
-                }
-
-                if (PhaseGeometry.PartnerInSolution(table, scratch, condensedCount, j) >= 0)
-                {
-                    continue;
-                }
-
-                var above = temperature > PhaseGeometry.EffectiveHigh(table, scratch, j);
-                var adjacent = PhaseGeometry.Adjacent(table, scratch, j, above);
-                var k = PhaseGeometry.PhaseAt(table, scratch, condensedCount, j, temperature);
-                if (k < 0 && adjacent >= 0 && !PhaseGeometry.InSolution(scratch, condensedCount, adjacent))
-                {
-                    k = adjacent;
-                }
-
-                var bound = above ? PhaseGeometry.RecordHigh(table, j) : PhaseGeometry.RecordLow(table, j);
-                var neighbour = k >= 0 && k == adjacent;
-                var crossing = neighbour ? PhaseGeometry.Crossing(table, j, k, bound) : bound;
-                var latent = neighbour ? Math.Abs(SpeciesFunctions.HOverRT(table, j, bound) - SpeciesFunctions.HOverRT(table, k, bound)) : 0.0;
-                var pair = neighbour && !isTp && latent >= SpeciesFunctions.LatentHeatThreshold && condensedCount < ScratchLayout.MaxCondensedInSolution
-                           && (Math.Abs(temperature - crossing) <= PhaseTransitionWindow || k == lastSwitchedOut);
-                if (pair)
-                {
-                    scratch.CondensedInSolution[condensedCount++] = k;
-                    result.Moles[k] = 0.0;
-                }
-                else
-                {
-                    condensedCount = RemoveCondensed(scratch, result, condensedCount, c);
-                    if (k >= 0 && condensedCount < ScratchLayout.MaxCondensedInSolution)
-                    {
-                        scratch.CondensedInSolution[condensedCount++] = k;
-                        result.Moles[k] = 0.0;
-                        lastSwitchedOut = j;
-                    }
-                    else if (k < 0)
-                    {
-                        // Anti-cycling (BOOT.md): the first escape through its own bound is forgiven and only
-                        // skipped for one inclusion pass; a species that escapes twice in one solve chases a
-                        // temperature the solution keeps leaving and stands down for the rest of the solve.
-                        if (scratch.SpeciesActive[j] == 2)
-                        {
-                            scratch.SpeciesActive[j] = 0;
-                        }
-                        else
-                        {
-                            scratch.SpeciesActive[j] = 2;
-                            lastRemovedForRange = j;
-                        }
-                    }
-                }
-
-                changed = true;
-            }
-
-            if (!changed && condensedCount < ScratchLayout.MaxCondensedInSolution)
-            {
-                var best = -1;
-                var bestGain = 0.0;
-                var skippedGain = 0.0;
-                for (var j = gasCount; j < speciesCount; j++)
-                {
-                    if (scratch.SpeciesActive[j] == 0 || PhaseGeometry.InSolution(scratch, condensedCount, j)
-                        || !PhaseGeometry.InEffectiveRange(table, scratch, j, temperature)
-                        || PhaseGeometry.PartnerInSolution(table, scratch, condensedCount, j) >= 0)
-                    {
-                        continue;
-                    }
-
-                    var gain = -scratch.GOverRT[j];
-                    for (var i = 0; i < elementCount; i++)
-                    {
-                        gain += table.Stoichiometry[i * speciesCount + j] * result.Multipliers[i];
-                    }
-
-                    if (j == skipInclusion)
-                    {
-                        skippedGain = gain;
-                        continue;
-                    }
-
-                    if (gain > bestGain)
-                    {
-                        bestGain = gain;
-                        best = j;
-                    }
-                }
-
-                if (best < 0 && skippedGain > 0.0)
-                {
-                    best = skipInclusion;
-                    bestGain = skippedGain;
-                }
-
-                if (best >= 0)
-                {
-                    scratch.CondensedInSolution[condensedCount++] = best;
-                    result.Moles[best] = 0.0;
-                    changed = true;
-                }
-            }
-
+            // Condensed species: at most one change of the set per convergence (sections 3.4 and 3.5, and the
+            // condensed-species rule of BOOT.md), after which the case is converged again.
+            var changed = CondensedSet.Update(table, problem, scratch, result, ref state);
             if (!changed)
             {
                 status = CaseStatus.Ok;
                 break;
             }
 
-            setChanges++;
-            if (setChanges > MaxCondensedSetChanges)
+            state.SetChanges++;
+            if (state.SetChanges > MaxCondensedSetChanges)
             {
                 status = CaseStatus.NotConverged;
                 break;
@@ -547,18 +425,18 @@ public static class EquilibriumSolver
             status = CaseStatus.NotConverged;
         }
 
-        if (status == CaseStatus.Ok && StoodDownCandidateRemains(table, scratch, result, condensedCount, temperature))
+        if (status == CaseStatus.Ok && CondensedSet.StoodDownCandidateRemains(table, scratch, result, state))
         {
             status = CaseStatus.NotConverged;
         }
 
         if (status == CaseStatus.Ok)
         {
-            status = FinishState(table, problem, scratch, result, condensedCount, logN, logPressure, temperature, unknownStride);
+            status = FinishState(table, problem, scratch, result, state.CondensedCount, state.LogN, logPressure, state.Temperature, unknownStride);
         }
 
     Finish:
-        result.Iterations[0] = iterations;
+        result.Iterations[0] = state.Iterations;
         result.Status[0] = (int)status;
     }
 
@@ -619,71 +497,6 @@ public static class EquilibriumSolver
         MixtureProperties.WriteFrozen(problem, result, Composition.FrozenSums(table, scratch, result, state, logPressure));
         result.Iterations[0] = state.Iterations;
         result.Status[0] = (int)CaseStatus.Ok;
-    }
-
-    /// <summary>Takes the condensed species at position <paramref name="position"/> out of the solution; returns the new count.</summary>
-    private static int RemoveCondensed(in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int position)
-    {
-        result.Moles[scratch.CondensedInSolution[position]] = 0.0;
-        for (var d = position; d + 1 < condensedCount; d++)
-        {
-            scratch.CondensedInSolution[d] = scratch.CondensedInSolution[d + 1];
-        }
-
-        condensedCount--;
-        scratch.CondensedInSolution[condensedCount] = -1;
-        return condensedCount;
-    }
-
-    /// <summary>
-    /// A positive per-mole inclusion gain this far above zero is real at a converged state; below it is the rounding
-    /// of the polished multipliers. Used only for the stand-down honesty check at an Ok exit.
-    /// </summary>
-    private const double ResidualGainLimit = 1.0e-9;
-
-    /// <summary>
-    /// True when a species stood down by the anti-cycling rule would qualify for inclusion at the final state: its
-    /// elements present, inside its effective range at the final temperature, no phase partner in the solution and a
-    /// per-mole gain above <see cref="ResidualGainLimit"/>. An Ok status must not hide such a candidate (BOOT.md):
-    /// the caller turns it into <see cref="CaseStatus.NotConverged"/>.
-    /// </summary>
-    private static bool StoodDownCandidateRemains(in SpeciesTableView table, in EquilibriumScratch scratch,
-                                                  in EquilibriumResult result, int condensedCount, double temperature)
-    {
-        var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        for (var j = table.GasCount; j < speciesCount; j++)
-        {
-            if (scratch.SpeciesActive[j] != 0 || PhaseGeometry.InSolution(scratch, condensedCount, j))
-            {
-                continue;
-            }
-
-            var present = true;
-            for (var i = 0; i < elementCount && present; i++)
-            {
-                present = table.Stoichiometry[i * speciesCount + j] == 0.0 || scratch.ElementActive[i] == 1;
-            }
-
-            if (!present || !PhaseGeometry.InEffectiveRange(table, scratch, j, temperature)
-                || PhaseGeometry.PartnerInSolution(table, scratch, condensedCount, j) >= 0)
-            {
-                continue;
-            }
-
-            var gain = -scratch.GOverRT[j];
-            for (var i = 0; i < elementCount; i++)
-            {
-                gain += table.Stoichiometry[i * speciesCount + j] * result.Multipliers[i];
-            }
-
-            if (gain > ResidualGainLimit)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>The mixture properties and the equilibrium derivatives (RP-1311 sections 2.5 and 2.6) at the converged composition.</summary>
