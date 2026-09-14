@@ -12,6 +12,12 @@ namespace AerospacePropellantThermodynamics.Problems.Tests;
 [Collection(SolverCollection.Name)]
 public sealed class SplitRecordTests(SolverFixture fixture)
 {
+    /// <summary>How far a pinned station's temperature may lie from a species record's transition bound: two solves of the tree's own code, the numerical solver's own convergence floor at a pinned pair.</summary>
+    private const double TransitionBoundTolerance = 0.01;   // K
+
+    /// <summary>Two solves of the tree's own code on the same isentrope, or the same station reached by two paths (sequential sweep vs. alone): relative agreement to rounding at every step.</summary>
+    private const double OwnCodeIsentropeTolerance = 1e-9;
+
     [Fact]
     public void A_cut_species_reports_one_entry_under_its_database_name()
     {
@@ -35,7 +41,7 @@ public sealed class SplitRecordTests(SolverFixture fixture)
         var result = Assert.Single(fixture.Solver.SolveStates(
             [new StateRecord(RejectionTests.RecordPressure, RejectionTests.OneKilogram, Enthalpy: -1.7e6)]));
         Assert.Equal(CaseStatus.Ok, result.Status);
-        Assert.True(Math.Abs(result.State.State.Temperature - bound) <= 0.01,
+        Assert.True(Math.Abs(result.State.State.Temperature - bound) <= TransitionBoundTolerance,
                     $"T = {result.State.State.Temperature:R} against the cut at {bound}");
         Assert.True(result.State.MoleFractions["ALN(L)"] > 0.0, "the pinned pieces sum under the database name");
         Assert.Equal(0.0, result.State.State.CpEquilibrium);
@@ -65,12 +71,12 @@ public sealed class SplitRecordTests(SolverFixture fixture)
         foreach (var station in sequential.Stations)
         {
             Assert.Equal(CaseStatus.Ok, station.Status);
-            Assert.True(Math.Abs(station.State.Entropy - chamber.Entropy) <= 1e-9 * chamber.Entropy,
+            Assert.True(Math.Abs(station.State.Entropy - chamber.Entropy) <= OwnCodeIsentropeTolerance * chamber.Entropy,
                         $"{station.Name}: {station.State.Entropy:R} J/(kg K) leaves the chamber isentrope at {chamber.Entropy:R}");
             if (station.MoleFractions["AL2O3(a)"] > 0.0 && station.MoleFractions["AL2O3(L)"] > 0.0)
             {
                 pinned++;
-                Assert.True(Math.Abs(station.State.Temperature - bound) <= 0.01,
+                Assert.True(Math.Abs(station.State.Temperature - bound) <= TransitionBoundTolerance,
                             $"{station.Name}: pinned at {station.State.Temperature:R}, the transition bound is {bound}");
                 Assert.True(station.State.GammaS is > 0.0 and < 1.0, $"{station.Name}: gamma_s {station.State.GammaS:R} on the plateau");
                 Assert.Equal(0.0, station.State.CpEquilibrium);
@@ -88,7 +94,7 @@ public sealed class SplitRecordTests(SolverFixture fixture)
             Assert.Equal(CaseStatus.Ok, single.Status);
             var alone = single.Stations[^1];
             var swept = sequential.Stations[2 + k];
-            Assert.True(Math.Abs(alone.State.Temperature - swept.State.Temperature) <= 1e-9 * swept.State.Temperature,
+            Assert.True(Math.Abs(alone.State.Temperature - swept.State.Temperature) <= OwnCodeIsentropeTolerance * swept.State.Temperature,
                         $"p_c/p {ratios[k]}: {alone.State.Temperature:R} K alone against {swept.State.Temperature:R} K in the sweep");
             var pairAlone = alone.MoleFractions["AL2O3(a)"] > 0.0 && alone.MoleFractions["AL2O3(L)"] > 0.0;
             var pairSwept = swept.MoleFractions["AL2O3(a)"] > 0.0 && swept.MoleFractions["AL2O3(L)"] > 0.0;

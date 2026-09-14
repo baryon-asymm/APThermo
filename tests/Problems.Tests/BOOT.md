@@ -11,8 +11,8 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 | L1 | every rocket, tp, hp and sp fixture solved singly from its propellant through the library | the fixtures node's reference outputs and its tolerance table (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`, the three `EquilibriumTests` theories) | ✅ |
 | L2 | end to end over every rocket fixture with transport, in shifting and frozen flow; a sweep as one batch against its cases one by one; an elemental mixture against its propellant; identical problems alone and in one call; mixed exit layouts in one call; state batches over unions of elements; a failing station as a status | the fixtures; the single-case results of the same code, bit for bit, or to rounding where a union reorders a case's elements (`RocketTests`, `EquilibriumTests`) | ✅ |
 | L2 | the melting-plateau states through the front door: a cut record reported once under its database name; an assigned enthalpy inside the `ALN(L)` gap solves; a sweep across the alumina plateau stays on the isentrope by either path | the node's own rules where the reference cannot follow: the join-and-cut of the `Thermo` node, the plateau of the `Equilibrium` node, the isentrope of the station's own chamber (`SplitRecordTests`) | ✅ 2026-09-13 (the row written 2026-09-14, the ⚠ below) |
-| L2 | the contract of 2026-09-14: a state record with exits against its case through the batch over mixtures; the refusals of the record's shape; a batch mixing transport and none against each problem alone; a ratio and pressure product as one batch against its cases one by one; every public method of a disposed solver; the tolerance rule against `Create` | the same code's single-case results, bit for bit; the `Problems` `API.md`; reflection over the solver's methods (`RocketTests`, `RejectionTests`) | ⏳ (2026-09-14) |
-| Bits | the front door's result of every rocket, tp, hp and sp fixture solved singly from its propellant, as the L1 theories solve it, gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture path and the SHA-256 of the raw bits of the mixture's element moles in element order, its enthalpy and mass, then per station the state, the performance figures, the transport figures, the mole fractions and condensed mass fractions in the result's species order and the statuses, then the case status, in that order | the approved snapshot, recorded before any code of the front door's decomposition of 2026-09-14 moved | ⏳ |
+| L2 | the contract of 2026-09-14: a state record with exits against its case through the batch over mixtures; the refusals of the record's shape; a batch mixing transport and none against each problem alone; a ratio and pressure product as one batch against its cases one by one; every public method of a disposed solver; the tolerance rule against `Create` | the same code's single-case results, bit for bit; the `Problems` `API.md`; reflection over the solver's methods (`RocketTests`, `RejectionTests`) | ✅ 2026-09-14 |
+| Bits | the front door's result of every rocket, tp, hp and sp fixture solved singly from its propellant, as the L1 theories solve it, gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture path and the SHA-256 of the raw bits of the mixture's element moles in element order, its enthalpy and mass, then per station the state, the performance figures, the transport figures, the mole fractions and condensed mass fractions in the result's species order and the statuses, then the case status, in that order | the approved snapshot, recorded before any code of the front door's decomposition of 2026-09-14 moved | ✅ 2026-09-14 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ⚠ 2026-09-14: the plateau row was missing. `SplitRecordTests` came with the
@@ -182,14 +182,20 @@ Outside the tree: xunit.
       `A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`), the
       evidence the `Problems` node's criterion of that day cites. Their non-degeneracy
       was never recorded; the last criterion below records it.
-- [ ] Bits level green: `BitSnapshotTests.Every_fixture_gives_the_recorded_bits` over
-      the enumerated rocket, tp, hp and sp directories against `Bits.approved.txt`,
-      recorded before any code of the front door's decomposition moved (on a tree
-      whose numerical nodes are bit for bit as at `8e36a27`, by their own Bits levels)
-      and unchanged after it; seen red once by a reactant enthalpy per kilogram
-      perturbed in its last digit (every propellant fixture red) and by a fixture file
-      absent from the snapshot (that fixture red with the instruction to approve).
-- [ ] The contract facts of 2026-09-14 (the level table's second new row):
+- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.Every_fixture_gives_the_recorded_bits`
+      over the enumerated rocket, tp, hp and sp directories against `Bits.approved.txt`
+      (213 fixtures), recorded before any code of the front door's decomposition moved
+      (on a tree whose numerical nodes are bit for bit as at `8e36a27`, by their own
+      Bits levels) and confirmed unchanged after every step of it:
+      `git diff 8f8263c HEAD -- tests/Problems.Tests/Bits.approved.txt` and the
+      working-tree diff both empty, checked repeatedly through steps 2 to 4 and last
+      after the contract commit's collaborator-DRY pass and the mutation testing
+      below; the test itself green in every fast-suite run of this node (1111/1111 the
+      last time). Seen red once, at the snapshot's own commit (`8f8263c`, 2026-09-14):
+      a reactant enthalpy per kilogram perturbed by a relative 1e-9 turned every one of
+      the 213 fixtures red; a fixture line removed from `Bits.approved.txt` turned only
+      that fixture red, naming it as missing. Both reverted before the commit.
+- [x] 2026-09-14 — The contract facts of 2026-09-14 (the level table's second new row):
       `RocketTests.A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures`
       (bit for bit, transport figures included);
       `RejectionTests.A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index`
@@ -208,24 +214,79 @@ Outside the tree: xunit.
       `RejectionTests.Every_public_method_of_a_disposed_solver_throws` with
       `The_disposal_facts_cover_every_public_method_of_the_solver` (the list of methods
       from reflection); `RejectionTests.The_tolerance_rule_is_the_one_Create_applies`
-      (`IsValidMassTolerance` false exactly where `Create` refuses). Each seen red once:
-      the kind check removed from `SolveRocketStates`; the grouping by the transport
-      flag removed; one method's disposal guard removed.
-- [ ] The support code in shape (the review's F-TF-01, F-TF-09, F-TF-10, F-TF-11,
-      F-TF-14): `Comparison` becomes `SpeciesList` (the names with the gas count),
-      `ReferenceCaveats` (the caveat facts of a station and their field sets, each
-      citing the fixtures node), `ReferenceComparison` (one station against one
-      fixture station in six parameters, split into the transport, the state and
-      performance, and the mole-fraction mismatches, the messages byte for byte as
-      before) and `StationEquality` (bit and relative equality of two stations of the
-      tree's own code); the union test becomes three facts (rocket problems over the
-      union, state problems over the union, and the refusal of a mismatched batch, the
-      last in `RejectionTests`); every tolerance of a comparison with the tree's own
-      code a named constant with its origin; no method over 60 lines or nested deeper
-      than 3. The recorded mutations "the defect signature disabled" and "mole
-      fractions taken over the gaseous phase" red again after the split, and each
-      plateau fact seen red once by a mutation of the front door's code or of this
-      node's, recorded here.
+      (`IsValidMassTolerance` false exactly where `Create` refuses). Each seen red once,
+      reverted after: the kind check — `StateRecords.Validate`'s
+      `record.HasExits != expectsExits` — removed, both rows of
+      `A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index` for the
+      two routing reasons red ("no exception was thrown"), the other six rows
+      unaffected; the grouping by the transport flag removed — `RocketRunner.Solve`'s
+      per-layout `GroupBy(k => cases[k].Problem.Transport)` collapsed to one flag per
+      exit-layout group (`groups[key].Any(...)`) — both
+      `A_batch_mixing_transport_and_none_equals_each_problem_solved_alone` and
+      `Cases_are_grouped_by_exit_layout_and_transport_flag` red, transport figures
+      attached to a station whose own case never asked; one method's disposal guard
+      removed — `CandidateSpeciesFor`'s `ThrowIfDisposed()` taken out,
+      `Every_public_method_of_a_disposed_solver_throws` red for that entry ("no
+      exception was thrown"). The same removal tried first on `SolveRocketStates`
+      stayed green: its own guard is masked by the engine's disposal check reached
+      through `RocketRunner.Solve`, so the fact the criterion asks for — every public
+      method throws — still held; recorded here so a guard whose own removal is
+      unobservable is not mistaken for one never tried. `dotnet test` on
+      `Problems.Tests` after every revert: 1111/1111, `Bits.approved.txt` and
+      `PublicSurface.approved.txt` unmoved.
+- [x] 2026-09-14 — The support code in shape (the review's F-TF-01, F-TF-09, F-TF-10,
+      F-TF-11, F-TF-14): `Comparison` becomes `SpeciesList` (the names with the gas
+      count, `SpeciesList.cs`), `ReferenceCaveats` (the caveat facts of a station and
+      their field sets, each citing the fixtures node, `ReferenceCaveats.cs`),
+      `ReferenceComparison` (one station against one fixture station in six parameters
+      — `reference, station, species, label, tolerances, caveats` — split into
+      `TransportMismatches`, `StateAndPerformanceMismatches` and
+      `MoleFractionMismatches`, the messages byte for byte as before,
+      `ReferenceComparison.cs`) and `StationEquality` (bit and relative equality of two
+      stations of the tree's own code, `StationEquality.cs`); the union test becomes
+      three facts:
+      `RocketTests.Rocket_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`,
+      `Equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`
+      and `RejectionTests.A_batch_over_mismatched_mixtures_or_problem_counts_is_rejected`;
+      every tolerance of a comparison with the tree's own code a named constant with its
+      origin (eight added: `MoleFractionSumTolerance`, `MassBitRoundingTolerance`,
+      `ReportedMassPrintTolerance`, `FormulaMassRoundingTolerance`,
+      `MassOfSummationTolerance`, `ScaledMassSummationTolerance`,
+      `TransitionBoundTolerance`, `OwnCodeIsentropeTolerance`, each with an origin
+      comment, across ten former bare-literal sites); no method over 60 lines or nested
+      deeper than 3 (unchanged by `dotnet build`, run clean every commit).
+
+      The recorded mutations "the defect signature disabled"
+      (`FixtureCases.DefectiveStationsOf`'s `TraceEliminations > 0` check disabled) and
+      "mole fractions taken over the gaseous phase" (`StationFactory.Create`'s
+      fractions loop narrowed from `speciesCount` to `table.GasCount`) red again after
+      the split, both on `The_rocket_case_reproduces_the_reference_end_to_end`: the
+      first over the three `lox-lh2_of4_*` and three `lox-lh2_of5_*` shifting-flow
+      cases with transport (the reacting-conductivity and Prandtl skip no longer
+      guarded, the tree's figures compared against the reference's own documented
+      defect and found to disagree with it, as the skip exists to catch); the second
+      over all ten `ap-htpb-al*` cases (every condensed species "not in the table",
+      `Species` and `MoleFractions` collapsed to the gas phase). Each reverted; the
+      fast suite green unchanged after (1111/1111 `Problems.Tests`).
+
+      Each plateau fact of `SplitRecordTests` seen red once, none previously recorded
+      (the level table's ⚠ of 2026-09-14 above): the cut-species collapsing in
+      `StationFactory.SpeciesNames` disabled (always appended instead of collapsed) —
+      `A_cut_species_reports_one_entry_under_its_database_name` red, `ALN(L)` counted
+      twice, not once; the state record's pressure doubled on its way into the
+      equilibrium problem in `StateRecords.ToEquilibriumProblems` (its enthalpy tried
+      first: passing `null` instead of `record.Enthalpy` left the fact green, because
+      `ProblemValidation.Equilibrium` defaults an unset assigned-enthalpy target to the
+      mixture's own enthalpy, which for a state record is `record.Enthalpy` again — a
+      finding in itself, recorded so the same non-mutation is not retried) —
+      `An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door` red, T =
+      2770.839051872195 K against the 2700 K cut, no longer pinned;
+      `TransitionBoundTolerance` tightened from 0.01 to 0 —
+      `A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path` red, a
+      pinned station at 2327.000012414645 K against the exact bound 2327, the residual
+      the 0.01 K tolerance exists to absorb. Each reverted; `dotnet test` on
+      `Problems.Tests` after every revert: 1111/1111, `Bits.approved.txt` unmoved
+      throughout (`git diff` empty against `8f8263c` and in the working tree).
 
 ## Taboos
 

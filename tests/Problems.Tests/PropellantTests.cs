@@ -25,6 +25,12 @@ public sealed class PropellantTests(SolverFixture fixture)
     /// </summary>
     public const double FixtureMassDeviation = 1.7e-5;
 
+    /// <summary>MassOf and an independent sum over the atomic weights are the same arithmetic, scaled by the unit factor; two solves of the tree's own code agree to summation-order rounding.</summary>
+    public const double MassOfSummationTolerance = 1e-14;
+
+    /// <summary>MassOf of a mixture scaled by a known factor against that factor times the original MassOf: two solves of the tree's own code, agreeing to rounding.</summary>
+    public const double ScaledMassSummationTolerance = 1e-12;
+
     public static IEnumerable<object[]> Cases() => FixtureCases.NamesWithReactants();
 
     [Theory]
@@ -35,7 +41,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         var moles = FixtureCases.ElementMolesOf(c).ToDictionary(kv => kv.Key, kv => kv.Value * FixtureCases.KilomolesToMoles, StringComparer.Ordinal);
         var expected = moles.Sum(kv => kv.Value * 1.0e-3 * fixture.Database.AtomicWeight(kv.Key));
         var mass = fixture.Solver.MassOf(ElementalMixture.Create(moles));
-        Assert.True(Math.Abs(mass - expected) <= 1e-14 * expected, $"MassOf {mass:R} kg, the sum over the atomic weights {expected:R} kg");
+        Assert.True(Math.Abs(mass - expected) <= MassOfSummationTolerance * expected, $"MassOf {mass:R} kg, the sum over the atomic weights {expected:R} kg");
         Assert.True(Math.Abs(mass - 1.0) <= FixtureMassDeviation, $"the recorded element moles weigh {mass:R} kg");
     }
 
@@ -57,7 +63,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         // The figure is the measured one, not one kilogram: the same mixture made 0.5 % heavy, within the default tolerance, reports 1.005.
         var heavy = ElementalMixture.Create(rocket.Mixture.ElementMoles.ToDictionary(kv => kv.Key, kv => kv.Value * 1.005, StringComparer.Ordinal), rocket.Mixture.Enthalpy);
         var expected = fixture.Solver.MassOf(heavy);
-        Assert.True(Math.Abs(expected - 1.005 * rocket.MixtureMass) <= 1e-12, $"{expected:R} kg");
+        Assert.True(Math.Abs(expected - 1.005 * rocket.MixtureMass) <= ScaledMassSummationTolerance, $"{expected:R} kg");
         Assert.Equal(expected, fixture.Solver.Solve(heavy, FixtureCases.RocketProblemOf(c)).MixtureMass);
         Assert.Equal(expected, fixture.Solver.Solve(heavy, new EquilibriumProblem { Pressure = 7.0e6 }).MixtureMass);
     }
