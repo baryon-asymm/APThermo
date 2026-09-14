@@ -1,16 +1,15 @@
 using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
 /// <summary>
-/// The states command: the records split by whether they name an exit, one call over the records without exits and
-/// one over the records with exits, cases placed back in input order. Step 2 of the clean-code decomposition keeps
-/// this node's own record rules and the general list-of-mixtures solve; the front door's state batches follow in
-/// step 3.
+/// The states command: the records split by <see cref="StateRecord.HasExits"/>, one call to
+/// <see cref="Solver.SolveStates"/> over the records without exits and one to
+/// <see cref="Solver.SolveRocketStates"/> over the records with exits, cases placed back in input order. The front
+/// door owns the record's own rules and its mapping to a problem (F-AR-02); this command only reads the file shape
+/// (<see cref="StateRecordReader"/>) and renames a refusal (<see cref="RecordNaming"/>).
 /// </summary>
 internal static class StatesCommand
 {
@@ -21,73 +20,64 @@ internal static class StatesCommand
         var options = invocation.Options;
         using var session = SolverSession.Open(options.Database, options.Accelerator ?? AcceleratorKind.Auto);
         var cases = new CaseOutput[records.Count];
-        SolveEquilibrium(session.Solver, records.Where(r => !r.IsRocket).ToList(), options, cases);
-        SolveRockets(session.Solver, records.Where(r => r.IsRocket).ToList(), options, cases);
+        var batch = new StateBatchOptions(options.Transport, MassTolerance: options.MassTolerance);
+        SolveEquilibrium(session.Solver, records.Where(r => !r.Record.HasExits).ToList(), batch, cases);
+        SolveRockets(session.Solver, records.Where(r => r.Record.HasExits).ToList(), batch, cases);
         var run = session.Stop("states", invocation.Arguments, new RunLimits(options.Threshold, options.MassTolerance));
         return DocumentWriter.Write(run, cases, options, output);
     }
 
-    private static void SolveEquilibrium(Solver solver, IReadOnlyList<StateDocument> records, CommandOptions options, CaseOutput[] cases)
+    private static void SolveEquilibrium(
+        Solver solver, IReadOnlyList<(StateRecord Record, RecordSource Source)> group, StateBatchOptions options, CaseOutput[] cases)
     {
-        if (records.Count == 0)
+        if (group.Count == 0)
         {
             return;
         }
 
-        var mixtures = records.Select(r => RecordNaming.MixtureOf(r, options.MassTolerance)).ToList();
-        var problems = records.Select(r => new EquilibriumProblem
+        var sources = group.Select(g => g.Source).ToList();
+        var results = RecordNaming.Named(sources, () => solver.SolveStates(group.Select(g => g.Record).ToList(), options));
+        for (var k = 0; k < group.Count; k++)
         {
-            Kind = r.Temperature is not null ? ProblemKind.AssignedTemperaturePressure
-                 : r.Entropy is not null ? ProblemKind.AssignedEntropyPressure
-                 : ProblemKind.AssignedEnthalpyPressure,
-            Pressure = r.Pressure,
-            Temperature = r.Temperature ?? 0.0,
-            Enthalpy = r.Enthalpy,
-            Entropy = r.Entropy ?? 0.0,
-            Transport = options.Transport,
-        }).ToList();
-        var results = RecordNaming.Named(records, () => solver.Solve(mixtures, problems));
-        for (var k = 0; k < records.Count; k++)
-        {
-            Place(cases, records[k], results[k].Status, results[k].Mixture, results[k].MixtureMass, results[k].Species, [results[k].State]);
+            var source = group[k].Source;
+            var result = results[k];
+            cases[source.Index] = new CaseOutput
+            {
+                Index = source.Index,
+                Inputs = JsonNode.Parse(source.Raw.GetRawText())!,
+                Status = result.Status,
+                Mixture = result.Mixture,
+                MixtureMass = result.MixtureMass,
+                Species = result.Species,
+                Stations = [result.State],
+            };
         }
     }
 
-    private static void SolveRockets(Solver solver, IReadOnlyList<StateDocument> records, CommandOptions options, CaseOutput[] cases)
+    private static void SolveRockets(
+        Solver solver, IReadOnlyList<(StateRecord Record, RecordSource Source)> group, StateBatchOptions options, CaseOutput[] cases)
     {
-        if (records.Count == 0)
+        if (group.Count == 0)
         {
             return;
         }
 
-        var mixtures = records.Select(r => RecordNaming.MixtureOf(r, options.MassTolerance)).ToList();
-        var problems = records.Select(r => new RocketProblem
+        var sources = group.Select(g => g.Source).ToList();
+        var results = RecordNaming.Named(sources, () => solver.SolveRocketStates(group.Select(g => g.Record).ToList(), options));
+        for (var k = 0; k < group.Count; k++)
         {
-            ChamberPressure = r.Pressure,
-            Flow = r.Flow,
-            AreaRatios = r.AreaRatios,
-            PressureRatios = r.PressureRatios,
-            Transport = options.Transport,
-        }).ToList();
-        var results = RecordNaming.Named(records, () => solver.Solve(mixtures, problems));
-        for (var k = 0; k < records.Count; k++)
-        {
-            Place(cases, records[k], results[k].Status, results[k].Mixture, results[k].MixtureMass, results[k].Species, results[k].Stations);
+            var source = group[k].Source;
+            var result = results[k];
+            cases[source.Index] = new CaseOutput
+            {
+                Index = source.Index,
+                Inputs = JsonNode.Parse(source.Raw.GetRawText())!,
+                Status = result.Status,
+                Mixture = result.Mixture,
+                MixtureMass = result.MixtureMass,
+                Species = result.Species,
+                Stations = result.Stations,
+            };
         }
-    }
-
-    private static void Place(CaseOutput[] cases, StateDocument record, CaseStatus status, ElementalMixture mixture, double mass,
-        IReadOnlyList<string> species, IReadOnlyList<Station> stations)
-    {
-        cases[record.Index] = new CaseOutput
-        {
-            Index = record.Index,
-            Inputs = JsonNode.Parse(record.Record.GetRawText())!,
-            Status = status,
-            Mixture = mixture,
-            MixtureMass = mass,
-            Species = species,
-            Stations = stations,
-        };
     }
 }

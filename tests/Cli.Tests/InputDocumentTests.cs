@@ -22,7 +22,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
         ["ratio-sweep-without-ratio.json"] = "sweep over oxidizerToFuel",
         ["states-two-targets.json"] = "exactly one of enthalpy, temperature and entropy",
         ["states-unknown-field.json"] = "unknown field 'pressureBar'",
-        ["states-rocket-without-enthalpy.json"] = "needs 'enthalpy'",
+        ["states-rocket-without-enthalpy.json"] = "a record with exits needs an enthalpy",
         ["states-two-kilograms.json"] = "record 0: the composition weighs 2000.03 g with the database's atomic weights",
         ["states-mol-per-gram.json"] = "record 0: the composition weighs 1.000015 g",
         ["states-kmol-per-kg.json"] = "record 0: the composition weighs 1 g",
@@ -121,13 +121,13 @@ public sealed class InputDocumentTests(CliFixture fixture)
         Assert.Equal(3, fromArray.Count);
         foreach (var other in new[] { fromLines, fromFiles })
         {
-            Assert.Equal(fromArray.Select(r => r.Pressure), other.Select(r => r.Pressure));
-            Assert.Equal(fromArray.Select(r => r.Enthalpy), other.Select(r => r.Enthalpy));
-            Assert.Equal(fromArray.Select(r => r.Index), other.Select(r => r.Index));
+            Assert.Equal(fromArray.Select(r => r.Record.Pressure), other.Select(r => r.Record.Pressure));
+            Assert.Equal(fromArray.Select(r => r.Record.Enthalpy), other.Select(r => r.Record.Enthalpy));
+            Assert.Equal(fromArray.Select(r => r.Source.Index), other.Select(r => r.Source.Index));
         }
 
-        Assert.True(fromArray[2].IsRocket);
-        Assert.False(fromArray[0].IsRocket);
+        Assert.True(fromArray[2].Record.HasExits);
+        Assert.False(fromArray[0].Record.HasExits);
     }
 
     [Fact]

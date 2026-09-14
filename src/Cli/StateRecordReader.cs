@@ -1,21 +1,25 @@
 using System.Text.Json;
+using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
 /// <summary>
 /// Reads the state-record files of the states command: a JSON array, a single object, or JSON Lines (API.md, Command
-/// line). The shape is decided without an exception as a probe (<see cref="JsonText.TryParseWhole"/>, F-CL-13).
+/// line). The shape is decided without an exception as a probe (<see cref="JsonText.TryParseWhole"/>, F-CL-13). Only
+/// the record's JSON shape is read here, into the front door's own <see cref="StateRecord"/>; the rules of a record
+/// (exactly one target, exits needing an enthalpy, a flow only with exits) are the front door's, left to
+/// <see cref="Solver.SolveStates"/> and <see cref="Solver.SolveRocketStates"/> (F-AR-02).
 /// </summary>
 internal static class StateRecordReader
 {
-    public static IReadOnlyList<StateDocument> Read(IReadOnlyList<(string Source, string Text)> files)
+    public static IReadOnlyList<(StateRecord Record, RecordSource Source)> Read(IReadOnlyList<(string Source, string Text)> files)
     {
-        var records = new List<StateDocument>();
+        var records = new List<(StateRecord, RecordSource)>();
         foreach (var (source, text) in files)
         {
             foreach (var (element, label) in RecordElements(text, source))
             {
-                records.Add(ReadState(element, label, records.Count));
+                records.Add((ReadRecord(element, label), new RecordSource(records.Count, label, element)));
             }
         }
 
@@ -70,7 +74,7 @@ internal static class StateRecordReader
         return records;
     }
 
-    private static StateDocument ReadState(JsonElement element, string label, int index)
+    private static StateRecord ReadRecord(JsonElement element, string label)
     {
         try
         {
@@ -84,41 +88,16 @@ internal static class StateRecordReader
             var pressureRatios = record.OptionalNumberList("pressureRatios") ?? [];
             var flowName = record.OptionalString("flow");
             record.Finish();
-            CheckExactlyOneTarget(enthalpy, temperature, entropy);
-            var isRocket = areaRatios.Count + pressureRatios.Count > 0;
-            if (isRocket && enthalpy is null)
+            return new StateRecord(pressure, composition, enthalpy, temperature, entropy)
             {
-                throw new InputException("a record with exits is a rocket case and needs 'enthalpy'");
-            }
-
-            if (flowName is not null && !isRocket)
-            {
-                throw new InputException("'flow' belongs to a record with exits");
-            }
-
-            var flow = DocumentWords.ParseFlow(flowName ?? DocumentWords.FlowShifting, "$.flow");
-            return new StateDocument(index, label, element, pressure, composition)
-            {
-                Enthalpy = enthalpy,
-                Temperature = temperature,
-                Entropy = entropy,
                 AreaRatios = areaRatios,
                 PressureRatios = pressureRatios,
-                Flow = flow,
+                Flow = flowName is null ? null : DocumentWords.ParseFlow(flowName, "$.flow"),
             };
         }
         catch (InputException e)
         {
             throw new InputException($"{label}: {e.Message}");
-        }
-    }
-
-    private static void CheckExactlyOneTarget(double? enthalpy, double? temperature, double? entropy)
-    {
-        var targets = (enthalpy is null ? 0 : 1) + (temperature is null ? 0 : 1) + (entropy is null ? 0 : 1);
-        if (targets != 1)
-        {
-            throw new InputException($"exactly one of enthalpy, temperature and entropy must be given, not {targets}");
         }
     }
 }
