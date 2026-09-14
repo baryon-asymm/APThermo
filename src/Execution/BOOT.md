@@ -234,25 +234,47 @@ Decisions taken with the review of 2026-09-14:
       `The_cpu_accelerator_equals_the_host_functions_bit_for_bit`,
       `Cuda_matches_the_cpu_accelerator_within_the_table`,
       `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
-- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node within
-      the root's code-shape constraint (the protocol tests node's `ShapeTests`; the
-      exceptions declared above), the public surface changed only by
-      `AcceleratorInfo.CudaSkippedBecause` with `PublicSurface.approved.txt` moved in
-      the same commit; `BatchTests.Chunking_and_repetition_do_not_change_a_bit`, the
-      probe, species-function and accelerator-choice tests green; the fast suite
-      green; the CUDA sweep and the throughput benchmark green once at the end, the
-      throughput within the approved file's margin (the kernels are byte-identical).
-- [ ] The fallback names its reason: with `Auto`, `LibDeviceDiscovery` off and the
-      explicit paths pointing nowhere, the engine is the CPU one and
+- [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): no type or method
+      of the node above the root's code-shape limits (`python inventory.py .`: no
+      `src/Execution` type at or above 250 lines, largest method
+      `RocketPipeline.Run` at 51 lines; the declared exceptions are the four views
+      structs' constructors and `Engine`'s and `Kernels`' Ce, both named in `##
+      Structure`; the protocol tests node's `ShapeTests` does not exist on this
+      branch yet, so this reading is the inventory script the task names, not yet the
+      reflection check) — the public surface changed only by
+      `AcceleratorInfo.CudaSkippedBecause`, in `c10ab0e` alone
+      (`git diff 6af23b1..HEAD -- tests/Protocol.Tests/PublicSurface.approved.txt`:
+      one line added, that property; `Protocol.Tests.SurfaceTests` green against it
+      unchanged since); `BatchTests.Chunking_and_repetition_do_not_change_a_bit`, the
+      probe, species-function and accelerator-choice tests green
+      (`AerospacePropellantThermodynamics.Execution.Tests.dll`: 41 passed); the fast
+      suite of the whole solution green (`dotnet test
+      AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"` with
+      `APTHERMO_NO_CUDA=1`: 2147 passed, 0 failed, 0 skipped). The CUDA sweep and the
+      throughput benchmark are the orchestrator's to run once at the end, after the
+      merge, on the reference machine (not run from this worktree).
+- [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
+      off and the explicit paths pointing nowhere, the engine is the CPU one and
       `CudaSkippedBecause` names what was missing and the paths tried
-      (`AcceleratorChoiceTests`, the mirror of the explicit-request test); seen red
-      against the code of `8e36a27`, where the info said nothing.
-- [ ] The missing-definition guard of the post-link is proven non-degenerate: a
-      wrapper body with one definition removed makes the check name that wrapper,
-      without a GPU (the tests node, `PostLinkTests`).
-- [ ] `ScratchBytes` of zero or less is refused at `Create` naming the option, like
-      `ChunkSize` (the tests node); the "inconsistent lengths" row is gone from
-      `API.md` with the branches that could not fire.
+      (`AcceleratorChoiceTests.An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried`,
+      the mirror of `An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`);
+      committed in `c10ab0e`, where the equivalent test against the code of `8e36a27`
+      (where `AcceleratorInfo` said nothing) would have been red.
+- [x] 2026-09-14 — The missing-definition guard of the post-link is proven
+      non-degenerate: a wrapper body with one definition removed makes the check name
+      that wrapper, without a GPU
+      (`PostLinkTests.A_wrapper_body_with_one_definition_removed_names_that_wrapper`,
+      `..._with_every_definition_removed_names_every_wrapper`, and
+      `A_call_site_is_not_mistaken_for_a_definition` against the two-substring-search
+      shape the guard had before `23ccc1d`, which read the whole linked text instead
+      of the wrapper body alone).
+- [x] 2026-09-14 — `ScratchBytes` of zero or less is refused at `Create` naming the
+      option, like `ChunkSize`
+      (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`,
+      committed in `fcb1128` with the chunk-plan extraction); the "inconsistent lengths" row was
+      never a separate row of `API.md`'s error table by the time this branch started
+      (already merged into the one row above it), and the four branches that could
+      not fire are gone from `Batches.cs` (`23ccc1d`).
 
 ## Taboos
 
