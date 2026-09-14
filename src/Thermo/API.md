@@ -168,7 +168,7 @@ provided its first interval; records of one name that cannot concatenate are ref
 with an `ArgumentException` naming them. The rule and the threshold's derivation are
 in `BOOT.md`.
 
-## Range questions ⏳
+## Range questions ✅
 
 ```csharp
 public static class SpeciesFunctions
@@ -189,8 +189,8 @@ cut record covering a temperature, and the equilibrium solver read a record's fi
 lower and last upper bound (the architecture review's F-AR-01). They evaluate the
 identical expressions and are the only supported way to ask a table about a species'
 temperature range; the strides of `SpeciesTableArrays` stay published for the upload
-and the tests, not for that. The mark turns ✅ with the commit that implements them
-and moves the surface snapshot.
+and the tests, not for that. Implemented the same day, `IsInRange` rewritten through
+them; the surface snapshot moves in the same commit.
 
 ## Errors
 

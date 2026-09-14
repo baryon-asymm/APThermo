@@ -157,6 +157,16 @@ Decisions taken with the reviews of 2026-09-14:
   the same-name product groups are scanned first; where none disagrees, a disagreeing
   pair is refused like a differing formula or molar mass; where one does, the rule is
   recorded here instead and the first record's value stands (the review's F-TD-09).
+
+  Confirmed 2026-09-14 by a scan of `data/thermo.inp` (2 030 product records; the
+  scan's own count matches `ThermoLoadTests.Every_record_of_the_file_is_parsed`):
+  ten names repeat in the PRODUCTS section — `Co(b)`, `Cr(cr)`, `Cr2O3(I)`, `Fe(a)`,
+  `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`, the same ten
+  the concatenation list above already named — and none disagrees in
+  `FormationEnthalpy`. The join therefore refuses a disagreeing pair exactly as it
+  refuses a differing formula or molar mass (`CondensedAssembly.Touches`); the tests
+  node exercises the refusal on a synthetic pair, since no real one disagrees
+  (`JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`).
 - **`MixtureMolarMass`'s summary in the code** says what `API.md` has said since
   2026-09-12: one kilogram over the moles of all species, condensed included (the
   review's F-TD-04: the rename of that day changed the field and the document and
@@ -218,19 +228,25 @@ Decisions taken with the reviews of 2026-09-14:
       fixtures, the generator joining records the same way); and every species of
       the four reference propellants' tables builds and compares as before (the
       Equilibrium, Performance and Problems fixture suites of the same day).
-- [ ] The decomposition of 2026-09-14 (`## Structure`): every type of the node within
-      the root's code-shape constraint (the protocol tests node's `ShapeTests`; the
-      two constructors declared above), the public surface grown only by `PieceOf`,
-      `RecordLow` and `RecordHigh` with `PublicSurface.approved.txt` moved in the same
-      commit, and every table bit for bit as at `8e36a27`: the tests node's bit
-      snapshot over every fixture case's table (the eight arrays hashed) unchanged,
-      `KernelEqualityTests` and the fixture tests green, the fast suite green.
-- [ ] `PieceOf`, `RecordLow` and `RecordHigh` agree with `IntervalOf` and `IsInRange`
-      over every fixture species (the tests node), and the two `H°/RT` overloads agree
-      bit for bit over the thermo fixtures' species and temperatures (the declared
-      deviation under Invariants); the join refuses, or the rule records, a same-name
-      pair that disagrees in formation enthalpy, whichever the scan of the committed
-      file decided.
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type of the node within
+      the root's code-shape constraint (measured by hand pending the protocol tests
+      node's `ShapeTests`, root `BOOT.md`; the largest new file, `SpeciesTable.cs`,
+      179 lines; the two constructors declared above the only exceptions), the public
+      surface grown only by `PieceOf`, `RecordLow` and `RecordHigh` (with `Records` of
+      the `Data` node, the snapshot moves by exactly four lines over the whole task),
+      `PublicSurface.approved.txt` moved in the same commit, and every table bit for
+      bit as at `8e36a27`: the tests node's bit snapshot over every fixture case's
+      table unchanged (`dotnet test tests/Thermo.Tests`, 378 tests), `KernelEqualityTests`
+      and the fixture tests green, the fast suite green.
+- [x] 2026-09-14 — `PieceOf`, `RecordLow` and `RecordHigh` agree with `IntervalOf` and
+      `IsInRange` over every fixture species: `RangeQuestionTests`
+      (`PieceOf_names_the_piece_the_interval_rule_chooses` over `ALN(L)`, the one cut
+      name of the thermo fixtures, `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses`
+      over all 40). The two `H°/RT` overloads agree bit for bit over the thermo
+      fixtures' species and temperatures (the declared deviation under Invariants):
+      `OverloadPinningTests.Host_and_kernel_enthalpy_sums_give_the_same_bits`, 40
+      species. The join refuses a same-name pair that disagrees in formation enthalpy,
+      the rule the scan above decided: `JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`.
 
 ## Taboos
 

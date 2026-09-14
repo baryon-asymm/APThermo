@@ -670,6 +670,8 @@ static class AerospacePropellantThermodynamics.Thermo.SpeciesFunctions
     static Double CpOverR(in SpeciesTableView table, Int32 species, Double temperature)
     static Double GOverRT(in SpeciesTableView table, Int32 species, Double temperature)
     static Double HOverRT(in SpeciesTableView table, Int32 species, Double temperature)
+    static Double RecordHigh(in SpeciesTableView table, Int32 species)
+    static Double RecordLow(in SpeciesTableView table, Int32 species)
     static Double SOverR(in SpeciesTableView table, Int32 species, Double temperature)
     static Int32 IntervalOf(in SpeciesTableView table, Int32 species, Double temperature)
 
@@ -682,6 +684,7 @@ sealed class AerospacePropellantThermodynamics.Thermo.SpeciesTable
     Int32 ElementCount { get; }
     Int32 GasCount { get; }
     Int32 IndexOf(String species)
+    Int32 PieceOf(String species, Double temperature)
     Int32 SpeciesCount { get; }
     SpeciesTableArrays Arrays { get; }
     static SpeciesTable Build(SpeciesDatabase database, IReadOnlyList<String> elements, IReadOnlyList<String> species)

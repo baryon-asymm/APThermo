@@ -34,7 +34,7 @@ public struct MixtureState
     /// <summary>kg/kmol, CEA's M = 1/n: the whole mixture's mass per kilomole of gas.</summary>
     public double MolarMass;
 
-    /// <summary>kg/kmol, CEA's MW: the gaseous part's mass per kilomole of gas; equals MolarMass without condensed species.</summary>
+    /// <summary>kg/kmol, CEA's MW: one kilogram of mixture over the moles of all species, condensed included.</summary>
     public double MixtureMolarMass;
 
     /// <summary>J/(kg·K), composition held fixed.</summary>

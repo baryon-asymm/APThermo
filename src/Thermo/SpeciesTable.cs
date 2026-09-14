@@ -1,4 +1,3 @@
-using System.Globalization;
 using AerospacePropellantThermodynamics.Data;
 
 namespace AerospacePropellantThermodynamics.Thermo;
@@ -48,7 +47,12 @@ public sealed class SpeciesTableArrays
     public int IntervalTotal => IntervalCount.Length == 0 ? 0 : IntervalBounds.Length / 2;
 }
 
-/// <summary>An immutable, ordered species table: a chosen subset of the database flattened for the kernels.</summary>
+/// <summary>
+/// An immutable, ordered species table: a chosen subset of the database flattened for the kernels.
+/// <see cref="Build"/> checks the request (<see cref="TableRequest"/>), resolves each name to a gas entry or to
+/// condensed pieces (<see cref="CondensedAssembly"/>, BOOT.md's join-and-cut), concatenates gaseous then
+/// condensed, checks the species limit, and flattens the result (<see cref="TableLayout"/>).
+/// </summary>
 public sealed class SpeciesTable
 {
     private readonly Dictionary<string, int> _index;
@@ -117,225 +121,59 @@ public sealed class SpeciesTable
     public IReadOnlyList<int> IndicesOf(string species) => _pieces.TryGetValue(species, out var indices) ? indices : [];
 
     /// <summary>
+    /// The piece of a database name that covers <paramref name="temperature"/>, by the same rule
+    /// <see cref="SpeciesFunctions.IntervalOf"/> uses within one species: the first piece whose last (highest)
+    /// bound is not below the temperature, else the last piece. −1 when the table does not hold the name.
+    /// </summary>
+    public int PieceOf(string species, double temperature)
+    {
+        var indices = IndicesOf(species);
+        if (indices.Count == 0)
+        {
+            return -1;
+        }
+
+        for (var k = 0; k < indices.Count - 1; k++)
+        {
+            var j = indices[k];
+            if (temperature <= Arrays.IntervalBounds[(Arrays.IntervalStart[j] + Arrays.IntervalCount[j] - 1) * TableLayout.BoundsStride + 1])
+            {
+                return j;
+            }
+        }
+
+        return indices[^1];
+    }
+
+    /// <summary>
     /// Builds a table from database records. Unknown names throw <see cref="KeyNotFoundException"/>; a species with an
     /// element outside <paramref name="elements"/>, without polynomial intervals, or beyond <see cref="TableLimits"/>
     /// throws <see cref="ArgumentException"/> naming it. Condensed records are joined and cut (BOOT.md): product
-    /// records sharing one name are concatenated into one species when their formulas and molar masses agree and
-    /// their ranges touch, and a species whose adjacent fits disagree at a shared internal bound by
-    /// |ΔH°/RT| ≥ <see cref="SpeciesFunctions.LatentHeatThreshold"/> is cut there into one entry per piece.
+    /// records sharing one name are concatenated into one species when their formulas, molar masses and formation
+    /// enthalpies agree and their ranges touch, and a species whose adjacent fits disagree at a shared internal bound
+    /// by |ΔH°/RT| ≥ <see cref="SpeciesFunctions.LatentHeatThreshold"/> is cut there into one entry per piece.
     /// </summary>
     public static SpeciesTable Build(SpeciesDatabase database, IReadOnlyList<string> elements, IReadOnlyList<string> species)
     {
         ArgumentNullException.ThrowIfNull(database);
-        ArgumentNullException.ThrowIfNull(elements);
-        ArgumentNullException.ThrowIfNull(species);
-        if (elements.Count == 0)
-        {
-            throw new ArgumentException("a table needs at least one element", nameof(elements));
-        }
+        var elementIndex = TableRequest.Validate(elements, species);
 
-        if (elements.Count > TableLimits.MaxElements)
-        {
-            throw new ArgumentException($"{elements.Count} elements exceed the limit of {TableLimits.MaxElements}", nameof(elements));
-        }
-
-        if (species.Count == 0)
-        {
-            throw new ArgumentException("a table needs at least one species", nameof(species));
-        }
-
-        if (species.Count > TableLimits.MaxSpecies)
-        {
-            throw new ArgumentException($"{species.Count} species exceed the limit of {TableLimits.MaxSpecies}", nameof(species));
-        }
-
-        var elementIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < elements.Count; i++)
-        {
-            if (!elementIndex.TryAdd(elements[i], i))
-            {
-                throw new ArgumentException($"element '{elements[i]}' is listed twice", nameof(elements));
-            }
-        }
-
-        var products = new Dictionary<string, List<Species>>(StringComparer.Ordinal);
-        foreach (var record in database.Products)
-        {
-            if (!products.TryGetValue(record.Name, out var list))
-            {
-                products[record.Name] = list = new List<Species>(1);
-            }
-
-            list.Add(record);
-        }
-
-        var gaseous = new List<Entry>();
-        var condensed = new List<Entry>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var gaseous = new List<TablePiece>();
+        var condensed = new List<TablePiece>();
         foreach (var name in species)
         {
-            if (!seen.Add(name))
-            {
-                throw new ArgumentException($"species '{name}' is listed twice", nameof(species));
-            }
-
-            var group = products.TryGetValue(name, out var found) ? found : [database[name]];
-            var first = group[0];
-            foreach (var pair in first.Formula)
-            {
-                if (!elementIndex.ContainsKey(pair.Symbol))
-                {
-                    throw new ArgumentException($"species '{name}' contains the element '{pair.Symbol}', which is not among the table's elements", nameof(species));
-                }
-            }
-
-            if (first.Phase == SpeciesPhase.Gas)
-            {
-                // A gaseous name resolves to its first record, as the database index does; gases are never joined or split (BOOT.md).
-                RequireIntervals(first, name);
-                RequireIntervalLimit(first.Intervals.Count, name);
-                gaseous.Add(new Entry(name, first, first.Intervals.Select(interval => (interval, first)).ToList()));
-                continue;
-            }
-
-            // Join: concatenate the records of the name into one contiguous interval list.
-            var intervals = new List<(TemperatureInterval Interval, Species Source)>();
-            Species? previous = null;
-            foreach (var record in group)
-            {
-                RequireIntervals(record, name);
-                if (previous is not null
-                    && (record.Phase != SpeciesPhase.Condensed || !SameFormula(previous, record)
-                        || record.MolarMass != previous.MolarMass || record.Intervals[0].TLow != previous.Intervals[^1].THigh))
-                {
-                    throw new ArgumentException(
-                        $"species '{name}' has {group.Count} records that cannot be joined into one species: they must share the formula and the molar mass, and their ranges must touch",
-                        nameof(species));
-                }
-
-                intervals.AddRange(record.Intervals.Select(interval => (interval, record)));
-                previous = record;
-            }
-
-            RequireIntervalLimit(intervals.Count, name);
-
-            // Cut: a shared internal bound where the two fits disagree by a real latent heat starts a new piece.
-            var pieces = new List<List<(TemperatureInterval Interval, Species Source)>>();
-            var piece = new List<(TemperatureInterval Interval, Species Source)> { intervals[0] };
-            for (var k = 1; k < intervals.Count; k++)
-            {
-                var bound = intervals[k - 1].Interval.THigh;
-                if (bound == intervals[k].Interval.TLow
-                    && Math.Abs(SpeciesFunctions.HOverRT(intervals[k].Interval, bound) - SpeciesFunctions.HOverRT(intervals[k - 1].Interval, bound))
-                       >= SpeciesFunctions.LatentHeatThreshold)
-                {
-                    pieces.Add(piece);
-                    piece = [];
-                }
-
-                piece.Add(intervals[k]);
-            }
-
-            pieces.Add(piece);
-            foreach (var part in pieces)
-            {
-                var entryName = pieces.Count == 1
-                    ? name
-                    : $"{name}[{Bound(part[0].Interval.TLow)}-{Bound(part[^1].Interval.THigh)}]";
-                condensed.Add(new Entry(entryName, part[0].Source, part));
-            }
+            var pieces = CondensedAssembly.Resolve(database, elementIndex, name);
+            (pieces[0].Record.Phase == SpeciesPhase.Gas ? gaseous : condensed).AddRange(pieces);
         }
 
         var entries = gaseous.Concat(condensed).ToArray();
-        var count = entries.Length;
-        if (count > TableLimits.MaxSpecies)
+        if (entries.Length > TableLimits.MaxSpecies)
         {
-            throw new ArgumentException($"{count} species after joining and cutting exceed the limit of {TableLimits.MaxSpecies}", nameof(species));
+            throw new ArgumentException($"{entries.Length} species after joining and cutting exceed the limit of {TableLimits.MaxSpecies}", nameof(species));
         }
 
-        var molarMass = new double[count];
-        var formationEnthalpy = new double[count];
-        var stoichiometry = new double[elements.Count * count];
-        var intervalStart = new int[count];
-        var intervalCount = new int[count];
-        var total = entries.Sum(e => e.Intervals.Count);
-        var bounds = new double[total * 2];
-        var exponents = new double[total * 8];
-        var coefficients = new double[total * 9];
-        var next = 0;
-        for (var j = 0; j < count; j++)
-        {
-            var record = entries[j].Record;
-            molarMass[j] = record.MolarMass;
-            formationEnthalpy[j] = record.FormationEnthalpy;
-            foreach (var pair in record.Formula)
-            {
-                stoichiometry[elementIndex[pair.Symbol] * count + j] += pair.Count;
-            }
-
-            intervalStart[j] = next;
-            intervalCount[j] = entries[j].Intervals.Count;
-            foreach (var (interval, _) in entries[j].Intervals)
-            {
-                bounds[next * 2] = interval.TLow;
-                bounds[next * 2 + 1] = interval.THigh;
-                for (var k = 0; k < 8; k++)
-                {
-                    exponents[next * 8 + k] = k < interval.Exponents.Count ? interval.Exponents[k] : 0.0;
-                }
-
-                for (var k = 0; k < 7; k++)
-                {
-                    coefficients[next * 9 + k] = interval.Coefficients[k];
-                }
-
-                coefficients[next * 9 + 7] = interval.B1;
-                coefficients[next * 9 + 8] = interval.B2;
-                next++;
-            }
-        }
-
-        var arrays = new SpeciesTableArrays(molarMass, formationEnthalpy, stoichiometry, intervalStart, intervalCount, bounds, exponents, coefficients);
+        var arrays = TableLayout.Flatten(elements, elementIndex, entries);
         return new SpeciesTable(
             elements.ToArray(), entries.Select(e => e.Name).ToArray(), entries.Select(e => e.Record).ToArray(), gaseous.Count, arrays);
     }
-
-    private readonly record struct Entry(string Name, Species Record, List<(TemperatureInterval Interval, Species Source)> Intervals);
-
-    private static void RequireIntervals(Species record, string name)
-    {
-        if (record.Intervals.Count == 0)
-        {
-            throw new ArgumentException($"species '{name}' has no polynomial intervals (a reactant-only record) and cannot enter a table", "species");
-        }
-    }
-
-    private static void RequireIntervalLimit(int intervals, string name)
-    {
-        if (intervals > TableLimits.MaxIntervalsPerSpecies)
-        {
-            throw new ArgumentException($"species '{name}' has {intervals} intervals, more than the limit of {TableLimits.MaxIntervalsPerSpecies}", "species");
-        }
-    }
-
-    private static bool SameFormula(Species a, Species b)
-    {
-        if (a.Formula.Count != b.Formula.Count)
-        {
-            return false;
-        }
-
-        foreach (var pair in a.Formula)
-        {
-            if (!b.Formula.Any(other => string.Equals(other.Symbol, pair.Symbol, StringComparison.OrdinalIgnoreCase) && other.Count == pair.Count))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>A range bound in a piece name: kelvin, up to four decimals, invariant.</summary>
-    private static string Bound(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 }
