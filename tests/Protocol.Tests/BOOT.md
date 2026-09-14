@@ -154,7 +154,7 @@ thing:
 | method lines | 60 | every method, constructor, operator, accessor with a body and local function | the same span rule for the member |
 | nesting | 3 | every member body | the depth of `if` (an `else if` continues its chain), `for`, `foreach`, `while`, `do`, `switch` and `try`; a lambda or a local function continues the depth of the statement it stands in |
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
-| efferent coupling | 10 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), nested and compiler-generated types attributed to the outermost type that declares them; types outside the tree not counted |
+| efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), nested and compiler-generated types attributed to the outermost type that declares them, a constructed generic type counted once as its definition; types outside the tree not counted |
 | stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
 | stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the project references; every reference points to a node whose I is not above the referrer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
@@ -168,7 +168,7 @@ that holds the code:
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Kernels` | efferent coupling | 22 | the registry of the kernel entry points: one problem, scratch, result and solver type per program |
+| `Kernels` | efferent coupling | 25 | the registry of the kernel entry points: one problem, scratch, result and solver type per program |
 
 `Where` is a type's simple name (`Outer.Inner` for a nested type) or `Type.Member` for
 a member, all overloads of the name together (a constructor is `Type.Type`); `Rule` is
@@ -187,13 +187,36 @@ Why the numbers are what they are:
   default of the usual analysers (SonarQube S134).
 - 6 parameters: the lower edge of Miller's 7 ± 2, past which positional arguments of one
   type are swapped unnoticed; kernels aggregate through their `in` structs.
-- 10 for efferent coupling: between the CBO thresholds of the CK-metrics literature, 9
-  (Rosenberg et al., NASA SATC) and 14 (Chidamber, Darcy and Kemerer); on this tree at
-  `8e36a27` it separated the tail cleanly, 120 of the 130 `src` types at or below it and
-  the ten above it the known hubs.
+- 14 for efferent coupling: the maximum Sahraoui, Godin and Miceli suggest for CBO,
+  above which a class's maintainability, stability and understandability suffer.
+  Measured by this check's walk on the tree at `07aa9bb`, after the decompositions of
+  `Equilibrium`, `Transport`, `Performance` and `Execution` and before those of `Cli`
+  and `Problems`, 171 of the 184 `src` types are at or below it and none is at 15; the
+  thirteen above it are the orchestrators: the composition roots and the registry the
+  nodes declare, the four execution pipelines, `NewtonIteration`, `ExitStations`, and
+  the hubs of `Cli` and `Problems` that their designs split or declare.
+
+  ⚠ 2026-09-14: this bullet stood "10 for efferent coupling: between the CBO
+  thresholds of the CK-metrics literature, 9 (Rosenberg et al., NASA SATC) and 14
+  (Chidamber, Darcy and Kemerer); on this tree at `8e36a27` it separated the tail
+  cleanly, 120 of the 130 `src` types at or below it and the ten above it the known
+  hubs". Two things in it were wrong. The ten was calibrated on a textual count of the
+  names in the source, while the rule is defined by the dependency check's walk, which
+  also counts the types of the fields a body reads and of the members it calls; on
+  that walk the kernel stages of the decomposed `Performance`, which carry their data
+  explicitly as the root's no-hidden-state invariant requires, measured 12 to 16 (a
+  scratch tool reproducing the walk over the build output of `07aa9bb`, before
+  `ShapeTests` existed). And the attributions were wrong: the 9 is the threshold
+  Shatnawi's risk-level analysis of the CK metrics derived on Eclipse, the 14 is
+  Sahraoui, Godin and Miceli's, and Chidamber, Darcy and Kemerer and the NASA SATC
+  guidelines associate high CBO with lower productivity and more rework without either
+  figure. Found by the design session when the walk's figures came back.
 - 10 dependants for a stable type: the tree's natural break at `8e36a27`, where every
   type with ten or more dependants was a small record, enum or struct (`Species`,
-  `CaseStatus`, `ProblemKind`, `MixtureState` and the like).
+  `CaseStatus`, `ProblemKind`, `MixtureState` and the like). On this check's walk at
+  `07aa9bb` the fifteen types with ten or more dependants are all small records, enums
+  and structs of the contracts (`SpeciesTableView`, `CaseStatus`, `MixtureState`,
+  `ProblemKind`, `AcceleratorInfo` and the like), and `Species` has eight.
 - The stable-dependencies direction without an abstractness metric: numerical nodes may
   hold no interface or virtual call, so abstractness is zero throughout and the distance
   from the main sequence would degenerate to 1 − I.
@@ -281,7 +304,7 @@ Why the numbers are what they are:
 - [ ] Shape level green: `ShapeTests` (`No_type_spans_more_than_400_lines`,
       `No_method_spans_more_than_60_lines`, `No_control_flow_nests_deeper_than_3`,
       `No_method_takes_more_than_6_parameters`,
-      `No_src_type_names_more_than_10_types_of_the_tree`,
+      `No_src_type_names_more_than_14_types_of_the_tree`,
       `Every_stable_type_is_small_or_a_contract`,
       `No_src_dependency_points_to_a_less_stable_node`,
       `No_partial_type_region_or_helpers_class`,

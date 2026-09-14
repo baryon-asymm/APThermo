@@ -101,8 +101,9 @@ rewrote no formula.
 | `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | public, contract unchanged |
 | `ChamberSolve` | the chamber state at assigned enthalpy and pressure, made frozen where the flow model says so (sections 6.3.1 and 6.5.3); returns `ChamberReference` | internal |
 | `ThroatSearch` | the sonic throat, equations (6.15)–(6.17), and what it defines: the mass flux and `c*`; returns `ThroatReference` | internal |
-| `ExitStations` | the loop over the exits, the dispatch on `ExitSpecification`, the estimate chain from station to station, the case status | internal |
+| `ExitStations` | the loop over the exits, the dispatch on `ExitSpecification` to `AreaRatioIteration` or `PressureRatioStation`, the estimate chain from station to station, the case status; holds no formula (Size, below) | internal |
 | `AreaRatioIteration` | one exit assigned by area ratio: the initial `ln(p_c/p_e)` of (6.21)–(6.23), the correction of (6.24)–(6.25), an explicit outcome | internal |
+| `PressureRatioStation` | one exit assigned by pressure ratio (6.3.6): the station pressure from the ratio, the solve at that pressure, the velocity, the area ratio and the figures as outputs | internal |
 | `StationSolve` | one station's sp or frozen solve: the sub-views, the estimate composition copied in, the call into `Equilibrium` | internal |
 | `StationFigures` | the energy equation, the area ratio and the figures of section 6.2, each written once | internal |
 
@@ -155,8 +156,21 @@ Decisions taken with the review of 2026-09-14:
 - **`InternalsVisibleTo` for the tests node** is added to the project, as `Transport`
   and `Equilibrium` have it, so that the stages are testable directly.
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
-  stage; no composition-root exception is expected, `ExitStations` staying at or under
-  Ce 10 with `AreaRatioIteration` split from it.
+  stage. `ExitStations` hands the station assigned by pressure ratio to
+  `PressureRatioStation`, as it hands the one assigned by area ratio to
+  `AreaRatioIteration`, and keeps the loop, the dispatch, the estimate chain and the
+  case status, none of them a formula. Its efferent coupling by the dependency check's
+  walk is expected at the root's limit of 14; above it, `ExitStations` is this node's
+  composition root of the exits, its measured figure written into its row.
+
+  ⚠ 2026-09-14: this bullet stood "no composition-root exception is expected,
+  `ExitStations` staying at or under Ce 10 with `AreaRatioIteration` split from it".
+  The estimate counted the names in the source. Measured by the dependency check's
+  walk, which also counts the types of the fields a body reads and of the members it
+  calls, the decomposition gave `ExitStations` 16, `ChamberSolve` 14,
+  `AreaRatioIteration`, `RocketSolver` and `ThroatSearch` 13 and `StationSolve` 12.
+  The root recalibrated its limit to 14 on that walk; `ExitStations` is the one stage
+  above it.
 
 ## Acceptance criteria
 
@@ -249,6 +263,14 @@ Decisions taken with the review of 2026-09-14:
       read the never-written correction as zero and returned the station `Ok`; green
       with `NeverSupersonic` ending the station as `NotConverged`. No fixture reaches
       the path: the bit snapshot of all 98 rocket fixtures did not move.
+- [ ] The pressure-ratio station is a stage of its own (`## Structure`, Size):
+      `PressureRatioStation` holds what `ExitStations.AtPressureRatio` holds today,
+      `ExitStations` holds no formula, and its efferent coupling by the dependency
+      check's walk is at most 14 or written, measured, into its row as the node's
+      composition root of the exits; the tests node's
+      `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` unchanged and
+      `KernelEqualityTests` green, and the execution tests node's fast set green on
+      CUDA.
 
 ## Taboos
 

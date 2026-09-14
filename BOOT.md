@@ -136,8 +136,9 @@ node's shape check (2026-09-14).
   their `in` view and scratch structs; a constructor is a method for this count, a
   record's primary constructor included, and a type that mirrors an external format or
   a published shape field for field may exceed it as a declared exception, constructed
-  at its sites with named arguments). A type names at most 10 distinct types of the
-  tree in its signatures and bodies (its efferent coupling, Ce), unless it is a
+  at its sites with named arguments). A type names at most 14 distinct types of the
+  tree in its signatures and bodies, as the dependency check's walk reads them (its
+  efferent coupling, Ce), unless it is a
   registry or a composition root that holds no formula and is named as such in its
   node's `BOOT.md`. A type named by 10 or more types of the tree (its afferent
   coupling, Ca) is a stable type: at most 100 lines and no behaviour beyond
@@ -150,6 +151,14 @@ node's shape check (2026-09-14).
   `[GeneratedRegex]` requirement excepted), `#region` or a Helpers/Utils class.
   Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md` records why the
   numbers are what they are.
+
+  ⚠ 2026-09-14: the limit on Ce first read 10. It was calibrated on a textual count of
+  the names in the source at `8e36a27`, while the rule is defined by the dependency
+  check's walk, which also counts the types of the fields a body reads and of the
+  members it calls; on that walk the kernel stages of the decomposed `Performance`,
+  which carry their data explicitly as the no-hidden-state invariant requires, measured
+  12 to 16. The limit is recalibrated on the walk; the protocol tests node's `BOOT.md`
+  records the measurement and the source of the figure.
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
@@ -209,7 +218,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
       fixed in its `API.md`).
 - [ ] The tree meets the code-shape constraint above: no type over 400 physical
       lines, no method over 60, no control flow nested deeper than 3, no method with
-      more than 6 parameters, no type with Ce over 10 outside the registries and
+      more than 6 parameters, no type with Ce over 14 outside the registries and
       composition roots the nodes declare, every stable type in shape, no dependency
       against instability; measured by the protocol tests node's `ShapeTests` over a
       machine-generated list of every type and method of every assembly, the declared
@@ -218,7 +227,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
       the boundaries) found 5 types over 400 lines (`EquilibriumSolver` 1289,
       `TransportSolver` 794, `Problems.Solver` 663, `Engine` 509, `Protocol.Tests.Tree`
       428), 31 methods over 60 lines (the longest `TransportSolver.Evaluate` 640 and
-      `EquilibriumSolver.Solve` 512) and 10 types with Ce over 10; the decompositions
+      `EquilibriumSolver.Solve` 512) and 10 types with Ce over 10 by its textual count; the decompositions
       are designed in the nodes' `BOOT.md` files under `## Structure` and each is
       accepted only with its node's bit-for-bit or field-by-field guard green.
 

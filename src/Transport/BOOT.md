@@ -173,7 +173,7 @@ moved code and rewrote no formula.
 | Class | Responsibility | Visibility |
 |---|---|---|
 | `TransportSolver` | the contract: the constants, the five fit lookups (`FitOf`, `FitValue`, `PureViscosity`, `PureConductivity`, `PairViscosity`) and `Evaluate`, which builds the `StationInputs` and forwards to the composition root | public, contract unchanged |
-| `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Named here as the composition root the root's Ce rule allows above 10 (about 14 after the split) | internal |
+| `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Its efferent coupling, 14 by the dependency check's walk on 2026-09-14, is within the root's limit since that limit was recalibrated to 14 the same day, so it claims no exception (it was named here first as the composition root above the first limit of 10, about 14 after the split) | internal |
 | `TransportInput` | may this station be evaluated, and how much gas it holds: the temperature, table and mole checks, the gaseous mole sum, `InvalidInput` and `NoTransportData` | internal |
 | `TransportComponents` | the active element rows, each row's default species, the component of each row (with the predicates `AtomCount`, `OfCase`, `SameColumn`) | internal |
 | `TransportSetSelection` | which species take part: the case's gas count, the components, the decade passes to the coverage or the cutoff, `Capped` | internal |

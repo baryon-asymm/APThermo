@@ -182,8 +182,10 @@ Decisions taken with the review of 2026-09-14:
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
   than 6 parameters (the two constructors aside); no type names more than 10 distinct
   types of the tree (its efferent coupling, Ce) — measured by a scan of every file of
-  this node and the tests node, `SpeciesRecordReader` at the limit and no other type
-  above 10 (the root's code-shape constraint).
+  this node and the tests node, `SpeciesRecordReader` at 10 and no other type above it
+  (the root's code-shape constraint). The root's limit became 14 the same day,
+  recalibrated on the dependency check's walk, by which the protocol tests node's
+  `ShapeTests` measures this node.
 
 ## Acceptance criteria
 

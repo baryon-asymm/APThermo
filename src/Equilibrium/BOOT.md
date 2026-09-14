@@ -217,11 +217,14 @@ below) is the proof.
 
 | Class | Responsibility | Visibility |
 |---|---|---|
-| `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above 10 | public, contract unchanged |
+| `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above its limit (Ce 19 by the dependency check's walk on 2026-09-14) | public, contract unchanged |
 | `CaseSetup` | input validation, the element and species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
 | `Composition` | the four species functions at the case temperature; the retained gaseous moles (the trace rule, one place); the mixture sums the system and the state need (`MixtureSums`) | internal |
 | `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
-| `NewtonIteration` | one damped step: the corrections of (2.18), the control factor of (3.1)–(3.3), the application (3.4), the temperature update and its range check, the tests (3.5) and (3.6), the polish control and the singular remedies of section 3.6 | internal |
+| `NewtonIteration` | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula" below) | internal |
+| `DampedStep` | the multipliers and the gaseous corrections of (2.18), the control factor of (3.1)–(3.3), the application (3.4), the temperature update and its range check | internal |
+| `ConvergenceTests` | the tests (3.5) and (3.6) with the element balance, and the polish test, as one verdict | internal |
+| `SingularRemedies` | the remedies of section 3.6: the reset of vanished gaseous species, then the removal of the last condensed record | internal |
 | `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
 | `PhaseGeometry` | where two records of one formula meet: the record bounds as `Thermo` answers them, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
 | `ElementBalance` | the residual `Σ a_ij n_j − b_i` (one place, used by the matrix and by the tests) and its two tolerance tests, as two named methods | internal |
@@ -275,6 +278,24 @@ Decisions taken with the review of 2026-09-14:
   `PhaseGeometry` asks those and keeps no copy of the arithmetic, and no stage of
   this node reads the three layout arrays. The bounds are table reads, not computed
   values, so the tests node's bit snapshot may not move.
+- **The Newton loop holds no formula** (added 2026-09-14, after the efferent coupling
+  was measured by the dependency check's walk: `NewtonIteration` 16 against the root's
+  recalibrated limit of 14). `NewtonIteration` keeps `Converge`: the step and polish
+  counts, the order of the calls, the status. What it computes moves to three stages
+  named after the sections of RP-1311 chapter 3 they implement: `DampedStep`, the
+  multipliers and the gaseous corrections of equation (2.18), the control factor of
+  (3.1)–(3.3) and its application (3.4) with the temperature window (today
+  `ControlFactor` and `Apply`); `ConvergenceTests`, equation (3.5) on the undamped
+  corrections, (3.6) on Δln T with the element balance, and the polish test, as one
+  verdict the loop reads (today `Worst` and the conditions inside `Converge`);
+  `SingularRemedies`, the remedies of section 3.6 (today `Recover`). Each named
+  constant moves with the stage that uses it; the polish-step cap stays with the loop.
+  The loop's coupling is the width of the data it carries (the table, the problem, the
+  scratch, the result, the iteration state, the sums, the layout) and of the stages it
+  calls, which no split removes: should it stay above the limit, `NewtonIteration` is
+  this node's second composition root, its measured figure written into its row. Every
+  expression keeps its form and its order of evaluation, so the tests node's bit
+  snapshot may not move.
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
@@ -450,6 +471,13 @@ What the implementation settled, 2026-09-14, in the coding session that followed
       and restored: `SpeciesFunctions.RecordHigh` made to return the record's lower
       bound turns at least one case of the bit snapshot red, which a node still
       holding its own copy would not.
+- [ ] The Newton loop holds no formula (`## Structure`, the decision of that name):
+      `NewtonIteration`, `DampedStep`, `ConvergenceTests` and `SingularRemedies` as the
+      table says, each within the root's code shape; the efferent coupling of
+      `NewtonIteration` measured by the dependency check's walk and written into its
+      row; the tests node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+      unchanged and `KernelEqualityTests` green, and the execution tests node's fast
+      set green on CUDA.
 
 ## Taboos
 
