@@ -15,7 +15,7 @@ internal sealed class PropellantMixtures(SpeciesDatabase database, Engine engine
     /// <summary>The element moles and the enthalpy per kilogram a propellant implies, for its own ratio or the one given.</summary>
     public ElementalMixture Of(Propellant propellant, double? oxidizerToFuelRatio)
     {
-        var fractions = propellant.MassFractionsFor(oxidizerToFuelRatio);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, oxidizerToFuelRatio);
         var perKilogram = ReactantEnthalpies(propellant);
         var elements = propellant.Elements;
         var moles = new double[elements.Count];

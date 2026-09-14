@@ -156,47 +156,6 @@ public sealed record Propellant
     public double? OxidizerToFuelRatio => Mixture is MixtureSpecification.OxidizerToFuel ratio ? ratio.Ratio : null;
 
     internal IReadOnlyList<ResolvedReactant> Resolved { get; }
-
-    /// <summary>The mass fraction of every reactant in one kilogram, for the propellant's ratio or the one given.</summary>
-    internal double[] MassFractionsFor(double? oxidizerToFuelRatio)
-    {
-        var count = Resolved.Count;
-        var fractions = new double[count];
-        double? ratio = oxidizerToFuelRatio ?? OxidizerToFuelRatio;
-        if (ratio is null)
-        {
-            var total = Resolved.Sum(r => r.Mass);
-            for (var k = 0; k < count; k++)
-            {
-                fractions[k] = Resolved[k].Mass / total;
-            }
-
-            return fractions;
-        }
-
-        if (Mixture is MixtureSpecification.MassFractions)
-        {
-            throw new ArgumentException("the propellant is given by total mass fractions; it has no oxidizer-to-fuel ratio to set", nameof(oxidizerToFuelRatio));
-        }
-
-        var of = ratio.Value;
-        if (!(of > 0.0) || double.IsInfinity(of))
-        {
-            throw new ArgumentException($"the oxidizer-to-fuel ratio must be positive and finite, not {of}", nameof(oxidizerToFuelRatio));
-        }
-
-        var oxidizerShare = of / (1.0 + of);
-        var fuelShare = 1.0 / (1.0 + of);
-        var oxidizerMass = Resolved.Where(r => r.Reactant.Role == ReactantRole.Oxidizer).Sum(r => r.Mass);
-        var fuelMass = Resolved.Where(r => r.Reactant.Role == ReactantRole.Fuel).Sum(r => r.Mass);
-        for (var k = 0; k < count; k++)
-        {
-            var r = Resolved[k];
-            fractions[k] = r.Reactant.Role == ReactantRole.Oxidizer ? oxidizerShare * r.Mass / oxidizerMass : fuelShare * r.Mass / fuelMass;
-        }
-
-        return fractions;
-    }
 }
 
 /// <summary>A reactant with its database record resolved: the formula in database spelling, the molar mass, the temperature and the enthalpy source.</summary>
@@ -272,54 +231,11 @@ public sealed class PropellantBuilder
             throw new ArgumentException("a propellant needs at least one reactant");
         }
 
-        var resolved = _reactants.Select(Resolve).ToList();
+        var resolved = _reactants.Select(r => ReactantResolver.Resolve(_database, r)).ToList();
         var oxidizers = resolved.Where(r => r.Reactant.Role == ReactantRole.Oxidizer).ToList();
         var fuels = resolved.Where(r => r.Reactant.Role == ReactantRole.Fuel).ToList();
         var named = resolved.Where(r => r.Reactant.Role == ReactantRole.Named).ToList();
-        MixtureSpecification mixture;
-        if (_ratio is { } ratio)
-        {
-            if (!(ratio > 0.0) || double.IsInfinity(ratio))
-            {
-                throw new ArgumentException($"the oxidizer-to-fuel ratio must be positive and finite, not {ratio}");
-            }
-
-            if (oxidizers.Count == 0 || fuels.Count == 0)
-            {
-                throw new ArgumentException("an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel");
-            }
-
-            if (named.Count > 0)
-            {
-                throw new ArgumentException($"reactant '{named[0].Reactant.Name}' is named with a total mass fraction, which cannot be combined with an oxidizer-to-fuel ratio");
-            }
-
-            if (!(oxidizers.Sum(r => r.Mass) > 0.0))
-            {
-                throw new ArgumentException("the oxidizer group has zero mass");
-            }
-
-            if (!(fuels.Sum(r => r.Mass) > 0.0))
-            {
-                throw new ArgumentException("the fuel group has zero mass");
-            }
-
-            mixture = new MixtureSpecification.OxidizerToFuel(ratio);
-        }
-        else
-        {
-            if (oxidizers.Count > 0 && fuels.Count > 0)
-            {
-                throw new ArgumentException("oxidizers and fuels were given without an oxidizer-to-fuel ratio; set the ratio, or name every reactant with a total mass fraction");
-            }
-
-            if (!(resolved.Sum(r => r.Mass) > 0.0))
-            {
-                throw new ArgumentException("the reactants have zero total mass");
-            }
-
-            mixture = new MixtureSpecification.MassFractions();
-        }
+        var mixture = MixtureRule.Validate(oxidizers, fuels, named, _ratio);
 
         var elements = new List<string>();
         foreach (var r in oxidizers.Concat(fuels).Concat(named))
@@ -342,61 +258,4 @@ public sealed class PropellantBuilder
 
         return new Propellant(_reactants.ToList(), mixture, elements, omit, only, resolved);
     }
-
-    private ResolvedReactant Resolve(Reactant reactant)
-    {
-        if (reactant.IsCustom)
-        {
-            var formula = reactant.Formula!.Select(pair => (SpeciesSelection.Spelling(pair.Symbol), pair.Count)).ToList();
-            var molarMass = 0.0;
-            foreach (var (symbol, count) in formula)
-            {
-                double weight;
-                try
-                {
-                    weight = _database.AtomicWeight(symbol);
-                }
-                catch (KeyNotFoundException inner)
-                {
-                    throw new ArgumentException($"reactant '{reactant.Name}': element '{symbol}' has no atomic weight in the database", inner);
-                }
-
-                molarMass += count * weight;
-            }
-
-            molarMass = reactant.MolarMass ?? molarMass;
-            var temperature = reactant.Temperature!.Value;
-            return new ResolvedReactant(reactant, null, formula, molarMass, temperature, false, reactant.Enthalpy!.Value, MassOf(reactant, molarMass));
-        }
-
-        if (!_database.TryGet(reactant.Name, out var record))
-        {
-            throw new KeyNotFoundException($"reactant '{reactant.Name}' is not in the database");
-        }
-
-        var hasFits = record.Intervals.Count > 0;
-        var t = reactant.Temperature ?? (hasFits ? Reactant.DefaultTemperature : record.AssignedTemperature);
-        double low, high;
-        if (hasFits)
-        {
-            low = record.Intervals.Min(i => i.TLow);
-            high = record.Intervals.Max(i => i.THigh);
-        }
-        else
-        {
-            low = high = record.AssignedTemperature;
-        }
-
-        if (t < low - TemperatureMargin || t > high + TemperatureMargin)
-        {
-            throw new ArgumentException(
-                $"reactant '{reactant.Name}': temperature {t} K is outside the record's range {low}–{high} K (up to {TemperatureMargin} K beyond it is accepted)");
-        }
-
-        var pairs = record.Formula.Select(pair => (SpeciesSelection.Spelling(pair.Symbol), pair.Count)).ToList();
-        return new ResolvedReactant(reactant, record, pairs, record.MolarMass, t, hasFits, record.FormationEnthalpy, MassOf(reactant, record.MolarMass));
-    }
-
-    private static double MassOf(Reactant reactant, double molarMass) =>
-        reactant.AmountKind == AmountKind.Moles ? reactant.Amount * molarMass : reactant.Amount;
 }

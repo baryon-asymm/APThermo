@@ -69,7 +69,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         var c = FixtureCases.Load(kind, name);
         var propellant = FixtureCases.PropellantOf(fixture.Database, c, byMassFractions: true);
         Assert.IsType<MixtureSpecification.MassFractions>(propellant.Mixture);
-        var fractions = propellant.MassFractionsFor(null);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var massFractions = FixtureCases.ReactantMassFractionsOf(c);
         for (var k = 0; k < propellant.Reactants.Count; k++)
         {
@@ -111,7 +111,7 @@ public sealed class PropellantTests(SolverFixture fixture)
 
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
         Assert.Equal(ratio, propellant.OxidizerToFuelRatio);
-        var fractions = propellant.MassFractionsFor(null);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var massFractions = FixtureCases.ReactantMassFractionsOf(c);
         for (var k = 0; k < propellant.Reactants.Count; k++)
         {
@@ -156,7 +156,7 @@ public sealed class PropellantTests(SolverFixture fixture)
             .Add(Reactant.FromDatabase("H2(L)", ReactantRole.Named, fuelMoles, amountKind: AmountKind.Moles))
             .Add(Reactant.FromDatabase("O2(L)", ReactantRole.Named, oxidantMoles, amountKind: AmountKind.Moles))
             .Build();
-        var fractions = propellant.MassFractionsFor(null);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var reference = FixtureCases.ReactantMassFractionsOf(c);
         Assert.True(Math.Abs(fractions[0] - reference["H2(L)"]) <= MassFractionTolerance, $"H2(L): {fractions[0]:R} vs {reference["H2(L)"]:R}");
         Assert.True(Math.Abs(fractions[1] - reference["O2(L)"]) <= MassFractionTolerance, $"O2(L): {fractions[1]:R} vs {reference["O2(L)"]:R}");
