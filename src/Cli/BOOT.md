@@ -141,7 +141,10 @@ one type per file, named after the type.
 | `JsonText` | a text parsed with its source label in the message |
 | `StrictObject` | unchanged: the mechanism of the strict-documents invariant |
 | `SweepValues` | a list or a `{from, to, step}` range into values, with the step tolerance named and derived (F-CL-12) |
-| `ProblemDocumentReader` | the `rocket` and `equilibrium` documents: propellant, reactants, the problem (one reader per problem type), the sweep |
+| `ProblemDocumentReader` | the document's root: parses the text, reads `propellant` through `PropellantDocumentReader`, `problem` through `ProblemPartReader` and `sweep` through `SweepDocumentReader`; reads `engine` itself (the accelerator word), finishes the root and assembles the `InputDocument` (2026-09-14, kept the name: the API calls the file a problem document) |
+| `PropellantDocumentReader` | the `propellant` object only: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `ProblemPartReader` | the `problem` object only: one reader per problem kind (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `SweepDocumentReader` | the `sweep` object only: the ranges the batch's Cartesian product runs over (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
 | `StateRecordReader` | the record files, their shape decided by the first non-blank character (array, object, JSON Lines) with no exception as a probe (F-CL-13); each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
 | `InputDocuments` | the façade the tests node uses: delegations only |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
@@ -159,7 +162,9 @@ one type per file, named after the type.
 | `DocumentWriter` | delivery to the output file or the standard output, and the non-finite-number rule |
 | `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
 | `Names` | unchanged: camel-case names of statuses and kinds |
-| `SpeciesRow`, `SpeciesListing` | one species flattened once; the listing in JSON or CSV (F-CL-08) |
+| `SpeciesRow` | one species flattened once (F-CL-08) |
+| `SpeciesCommand` | the `species` command: the database, the name filter, the rows, the run and the delivery (2026-09-14, split out of `SpeciesListing` by the coordinator's review, the way `DeviceListing` already separated the probe from the rendering) |
+| `SpeciesListing` | the rendering of `SpeciesCommand`'s rows: JSON or CSV (2026-09-14, kept to rendering only) |
 | `DeviceProbe`, `DeviceReport`, `DeviceListing` | what the machine offers, asked once; the report; its rendering |
 
 Decisions taken with the review of 2026-09-14:
@@ -197,10 +202,43 @@ Decisions taken with the review of 2026-09-14:
   `CaseOutput` is declared with init properties (F-CL-09).
 - **Names**: `CommandRegistry` and `CommandTable` instead of two `Commands`, and verbs
   for the case builders (F-CL-14).
+- **The commands are composition roots.** `ProblemCommand`, `StatesCommand` and
+  `SpeciesCommand` turn one command into calls of their collaborators: the input read,
+  the cases solved through the front door or the database listed, the run written. They
+  hold no formula and no rule of a document or a record, so each names every type its
+  path passes through, and a coupling above the root's limit is declared in
+  `## Shape exceptions` (the root's exception for a composition root). A reader, a
+  rendering or a mapper is not one: above the limit it is split along the document's
+  sections or the output's parts, never by moving a responsibility to where the count
+  fits.
 - **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
-  more than 6 parameters, no type with an efferent coupling over 10; a type that
-  cannot stay under the coupling limit is declared here with its measured figure and
-  its reason, or split.
+  more than 6 parameters, no type with an efferent coupling over 14; a composition root
+  or a registry that holds no formula and cannot stay under the coupling limit is
+  declared in `## Shape exceptions` with its measured figure and its reason, and any
+  other type is split.
+
+  ⚠ 2026-09-14: this bullet stood "over 10" after the root's own limit was recalibrated
+  to 14 the same day (the root `BOOT.md`, Constraints): the root's number moved and this
+  copy of it did not. It also let any type that could not stay under the coupling limit
+  be declared, where the root allows the exception only to a registry or a composition
+  root that holds no formula. The protocol tests node's measurement over the tree with
+  this decomposition merged found `ProblemDocumentReader` at 21 and `SpeciesListing` at
+  17; both were split instead (`PropellantDocumentReader`, `ProblemPartReader` and
+  `SweepDocumentReader` out of the first; `SpeciesCommand` and `SpeciesListing`).
+
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `ProblemCommand` | efferent coupling | 30 | the composition root of `rocket` and `equilibrium`: the document read, the problem type checked, the mixtures and the sweep built by their types, the cases solved through `RocketCases` or `EquilibriumCases`, the run written; holds no formula (the decision "The commands are composition roots") |
+| `StatesCommand` | efferent coupling | 21 | the composition root of `states`, as `ProblemCommand`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates`, the cases back in input order |
+| `SpeciesCommand` | efferent coupling | 15 | the composition root of `species`, as `ProblemCommand`: the database loaded, the entries filtered and flattened, the rows rendered by `SpeciesListing` |
+
+Every other type of the node measures 14 or below by the dependency check's walk
+(`JsonOutput`, the highest of the rest), within the root's limit of 14.
 
 ## Acceptance criteria
 
@@ -252,18 +290,32 @@ Decisions taken with the review of 2026-09-14:
       code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
       (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
       heavy, not light: the front door's BOOT.md records why).
-- [ ] The decomposition of `## Structure` (2026-09-14): every type within the root's
-      code-shape constraint; the tests node's snapshot of the example outputs unchanged
-      from before any code moved; every L0, L1, L2 and process fact green; the public
-      surface (`Program`, `ExitCode`) unchanged.
-- [ ] The documents follow the front door's contract of 2026-09-14: the `states`
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type within the root's
+      code-shape constraint except the rows of `## Shape exceptions`, measured by the
+      protocol tests node's measurements (`ShapeMeasures`, `CouplingMeasures`) over the
+      tree with this decomposition merged, 66 types and 134 methods of the node: no type
+      over 400 lines, no method over 60, no nesting deeper than 3, no method over 6
+      parameters; the tests node's snapshot of the example outputs unchanged from before
+      any code moved (`tests/Cli.Tests/Bits.approved.txt`, empty diff against the
+      version recorded by `f795f3c`, before the decomposition); every L0, L1, L2 and
+      process fact green (`dotnet test tests/Cli.Tests`: 91 passed, 0 failed); the
+      public surface unchanged (`Program`, `ExitCode` the only public types of the
+      assembly; `Protocol.Tests.SurfaceTests` green against
+      `PublicSurface.approved.txt`).
+- [x] 2026-09-14 — The documents follow the front door's contract: the `states`
       example gives the library's numbers field by field through `SolveStates` and
-      `SolveRocketStates`; an invalid record is exit code 2 naming its file and
-      position with the front door's reason; an unexpected exception is exit code 3;
-      an `auto` run with CUDA forbidden writes the reason in
-      `run.accelerator.cudaSkippedBecause` and in the `devices` listing, and the schema
-      files list the field (the tests node's `LibraryEqualityTests`, `ExitCodeTests`,
-      `OutputDocumentTests`).
+      `SolveRocketStates` (`LibraryEqualityTests.The_states_example_equals_the_library_field_by_field`,
+      a records file with and without exits); an invalid record is exit code 2 naming
+      its file and position with the front door's reason (the pinned fragments of
+      `InputDocumentTests`, `states-two-targets.json` and `states-rocket-without-enthalpy.json`);
+      the exception → exit code rule maps an input refusal to 2 and an accelerator
+      failure or any other exception to 3
+      (`ExitCodeTests.An_exception_maps_to_its_documented_exit_code`); an `auto` run
+      with CUDA forbidden writes the reason in `run.accelerator.cudaSkippedBecause` and
+      the `devices` listing names the variable too, both schema files listing the field
+      (`OutputDocumentTests.An_auto_run_that_fell_back_says_why`, a separate process
+      with `APTHERMO_NO_CUDA=1`). Each fact seen red once and reverted: the fallback
+      reason not written, an unexpected exception mapped to 2.
 
 ## Taboos
 

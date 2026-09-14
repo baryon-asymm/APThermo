@@ -55,8 +55,15 @@ found and the tolerance (the errors table below).
 ⚠ 2026-09-14: "the exchange shape of the `Problems` node" was not true of the code.
 That node's `StateRecord` had no exits and no flow, and this node read a shape of its
 own and decided the target, exits and flow rules a second time (the architecture
-review's F-AR-02). Decided at the root: the front door's record gains exits and flow
-and owns the rules; the sentence is made true by the planned change below.
+review's F-AR-02). Decided at the root: the front door's record gained exits and flow
+and owns the rules; this node now reads the JSON shape only and hands the records to
+`Solver.SolveStates` (records without exits) and `Solver.SolveRocketStates` (records
+with exits), so a record that breaks a rule of the shape — none or several of
+`enthalpy`, `temperature` and `entropy` given, exits without an `enthalpy`, a `flow`
+named without exits — is refused with the front door's reason behind the record's
+source, after the database is loaded rather than before: `records.json: record 1:
+exactly one of enthalpy, temperature and entropy must be given, not 2`. The JSON
+shape of a record does not change.
 
 ⚠ 2026-09-13: the example record stood with `"O": 31.2, "N": 4.1` at 1 MPa, an
 illustration that weighed 706 g and would now be refused; it is the record of another
@@ -219,7 +226,7 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
   "run": {
     "tool": "apthermo", "version": "1.0.0", "command": "rocket", "inputs": ["problem.json"],
     "database": { "thermoPath": "data/thermo.inp", "transPath": "data/trans.inp", "thermoSha256": "…", "transSha256": "…" },
-    "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70 },
+    "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70, "cudaSkippedBecause": null },
     "timings": { "database": 0.31, "solve": 1.2 },
     "threshold": 5e-6,
     "massTolerance": 0.01
@@ -249,6 +256,12 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
   ]
 }
 ```
+
+`run.accelerator` carries `cudaSkippedBecause`, the `Execution` node's
+`AcceleratorInfo.CudaSkippedBecause`: a string when an `auto` run fell back to the CPU
+accelerator (`"cudaSkippedBecause": "APTHERMO_NO_CUDA=1 forbids CUDA"`), `null` when
+CUDA was bound or never tried. The `devices` listing's `cpu` and `cuda` accelerator
+objects carry the same field.
 
 Every case carries `index` (its position), `inputs` (the values that vary in the
 batch: the ratio and the chamber pressure of a rocket case; the ratio, `kind`,
@@ -282,31 +295,10 @@ document without a second list. The `run.timings` are the tool's phases (`databa
 load, `solve`), not the engine's, which the front door does not expose; `run` also
 names the command, the input files and the threshold. 2026-09-13: `run.massTolerance`
 and `mixture.mass` were added with `--mass-tolerance`, so that a raised tolerance
-never hides the figure the check compared.
-
-## Changes of 2026-09-14 ⏳
-
-Planned by the design session of 2026-09-14 (the parent `BOOT.md`, `## Structure`).
-The commit that codes them folds this section into the sections above and removes it.
-
-- **State records through the front door.** `states` hands the records to the front
-  door's `SolveStates` (records without exits) and `SolveRocketStates` (records with
-  exits); a record that breaks a rule of the shape is refused with the front door's
-  reason behind the record's source, `records.json: record 1: exactly one of
-  enthalpy, temperature and entropy must be given, not 2`, after the database is
-  loaded. The JSON shape of a record does not change.
-- **The fallback reason in the documents.** The accelerator object of `run` and of the
-  `devices` listing gains one field, the `Execution` node's `CudaSkippedBecause`:
-
-  ```json
-  "accelerator": { "kind": "cpu", "deviceName": "CPUAccelerator", "ilgpuVersion": "1.5.3", "libNvvmPath": null, "libDevicePath": null, "threadsOrMultiprocessors": 16, "cudaSkippedBecause": "APTHERMO_NO_CUDA=1 forbids CUDA" }
-  ```
-
-  a string when an `auto` run fell back to the CPU accelerator, `null` when CUDA was
-  bound or never tried.
-- **Exit code 3 for an unexpected failure**, as the errors table below states: until
-  now an `ArgumentException` raised by a defect of the tool itself was reported as
-  invalid input with exit code 2.
+never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
+`devices` listing's accelerator objects gained `cudaSkippedBecause`, the reason an
+`auto` run fell back to the CPU accelerator (the `Execution` node's
+`AcceleratorInfo.CudaSkippedBecause`), so that a document says why it ran on the CPU.
 
 ## Errors
 

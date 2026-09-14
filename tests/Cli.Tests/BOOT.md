@@ -10,9 +10,9 @@ The definition of what "`Cli` is ready" means.
 | L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | schema files; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
 | L2 | the LOX/LH2 rocket document, the LOX/RP-1 hp document and the elemental tp document give the library's numbers field by field | the `Problems` result of the same case, built from the fixture the document encodes, over reflection-enumerated fields (`LibraryEqualityTests`) | ✅ |
 | Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
-| L0 | the exception → exit code rule; the usage's defaults are the library's constants; every command of the table has a handler; `cudaSkippedBecause` in `run.accelerator` and in the devices listing; the invalid state records refused with the front door's reasons behind their source | the `Cli` `API.md` of 2026-09-14 (`ExitCodeTests`, `CommandLineTests`, `OutputDocumentTests`, `InputDocumentTests`) | ⏳ (2026-09-14) |
-| L2 | the states example gives the library's numbers field by field: the records without exits through `SolveStates`, the records with exits through `SolveRocketStates`, the library call built from the fixtures the records encode | the `Problems` results (`LibraryEqualityTests`) | ⏳ (2026-09-14) |
-| Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the JSON document without its `run` section and the CSV text, one SHA-256 each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved | ⏳ |
+| L0 | the exception → exit code rule; the usage's defaults are the library's constants; every command of the table has a handler; `cudaSkippedBecause` in `run.accelerator` and in the devices listing; the invalid state records refused with the front door's reasons behind their source | the `Cli` `API.md` of 2026-09-14 (`ExitCodeTests`, `CommandLineTests`, `OutputDocumentTests`, `InputDocumentTests`) | ✅ (2026-09-14) |
+| L2 | the states example gives the library's numbers field by field: the records without exits through `SolveStates`, the records with exits through `SolveRocketStates`, the library call built from the fixtures the records encode | the `Problems` results (`LibraryEqualityTests`) | ✅ (2026-09-14) |
+| Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the JSON document without its `run` section and the CSV text, one SHA-256 each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved | ✅ (2026-09-14) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -146,13 +146,14 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       `ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares` seen
       red (the echo test stays green, as it should: the echo is not the check); the
       same test also red under the front door's own mutations (that node's BOOT.md).
-- [ ] Bits level green: `BitSnapshotTests.Every_example_gives_the_recorded_output` over
-      the examples the level table lists (enumerated from `documents/` and from the
-      `Cli` API, not typed), against `Bits.approved.txt`, recorded before any code of the
-      decomposition moved and unchanged after it; seen red once by a CSV column moved
-      (that example's CSV line red) and by an example absent from the snapshot (red with
-      the instruction to approve).
-- [ ] The facts of 2026-09-14 (the level table's new L0 and L2 rows):
+- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.Every_example_gives_the_recorded_output`
+      over the examples the level table lists (enumerated from `documents/` and from
+      the `Cli` API, not typed), against `Bits.approved.txt`, recorded before any code
+      of the decomposition moved (`f795f3c`) and unchanged after it (empty diff at the
+      close); seen red once by a CSV column moved (that example's CSV line red) and by
+      an example absent from the snapshot (red with the instruction to approve), both
+      at the recording commit.
+- [x] 2026-09-14 — The facts of 2026-09-14 (the level table's new L0 and L2 rows):
       `LibraryEqualityTests.The_states_example_equals_the_library_field_by_field` (a
       records file with and without exits); `ExitCodeTests.An_exception_maps_to_its_documented_exit_code`
       (an input refusal 2, an accelerator failure 3, an unexpected exception 3);
@@ -162,17 +163,35 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       `APTHERMO_NO_CUDA=1`: `run.accelerator.cudaSkippedBecause` and the devices
       listing name the variable, the schema files list the field); the pinned messages
       of `states-two-targets.json` and `states-rocket-without-enthalpy.json` the front
-      door's reasons behind the record's source. Each seen red once: the fallback reason
-      not written; an unexpected exception mapped to 2.
-- [ ] The support code in shape (the review's F-TF-03, F-TF-07, F-TF-10, F-TF-12,
-      F-TF-13): `JsonSchema.Check` split by the kind of the instance (keywords, value,
-      number, object, array, combinators), the keyword whitelist unchanged;
-      `LibraryEqualityTests.AssertCase` split into the mixture, the station and the
-      composition; one `AssertFields<T>` and one camel-case rule for the two copies in
-      `LibraryEqualityTests` and `OutputDocumentTests`; the grams of the refusal
-      messages derived (`CliFixture.GramsOf`); the tolerance literals named; no method
-      over 60 lines or nested deeper than 3. The recorded mutations still red, "a field
-      renamed in the output schema" and "g0 changed" among them.
+      door's reasons behind the record's source. Each of the five facts seen red once
+      and reverted: `StatesCommand.SolveRockets` writing a with-exits case to the
+      batch's first slot instead of its own index (the states example's rocket case
+      overwrites its equilibrium one); an unexpected exception mapped to 2; the
+      threshold's usage line typed as a literal instead of read from
+      `CommandOptions.DefaultThreshold`; `states` dropped from `CommandRegistry`'s
+      table (`unknown command 'states'`, exactly the drift the test guards against);
+      the fallback reason not written.
+- [x] 2026-09-14 — The support code in shape (the review's F-TF-03, F-TF-07, F-TF-10,
+      F-TF-12, F-TF-13): `JsonSchema.Check` split into `CheckKeywords`, `CheckType`,
+      `CheckValue`, `CheckNumber`, `CheckObject` (with `CheckProperty`), `CheckArray`
+      and `CheckCombinators`, the keyword whitelist unchanged;
+      `LibraryEqualityTests.AssertCase` split into `AssertMixture`, `AssertStation` and
+      `AssertComposition`; the schema-declaration `AssertFields<T>` of
+      `OutputDocumentTests` renamed `AssertSchemaListsFields<T>` so only one method of
+      the node keeps that name, both it and `LibraryEqualityTests` reading one
+      camel-case rule of this node (`CliFixture.Camel`); the grams of the four refusal
+      messages that report one derived from the document's own composition
+      (`CliFixture.GramsOf`), compared numerically rather than as text since the message
+      itself rounds the figure it reports (`InputDocumentTests.AssertMassReported`); the
+      tolerance literals of `OutputDocumentTests`, `ExitCodeTests` and
+      `InputDocumentTests` named constants with their origin in a comment; no method
+      over 60 lines or nested deeper than 3 (the protocol tests node's `ShapeMeasures`
+      over the tree with this pass merged, 15 types and 102 methods of the node). The
+      recorded mutations still red, each proven again and reverted: a field renamed in
+      the output schema (both the schema validator and the reflection-based field-list
+      test red) and g0 changed (both rocket-example tests red); and, for the camel-case
+      rule, `Names.Camel` returning its argument unchanged (the three
+      `LibraryEqualityTests` facts red).
 
 ## Taboos
 

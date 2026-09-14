@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AerospacePropellantThermodynamics.Execution;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
@@ -7,6 +9,12 @@ namespace AerospacePropellantThermodynamics.Cli.Tests;
 [Collection(CliCollection.Name)]
 public sealed class ExitCodeTests(CliFixture fixture)
 {
+    /// <summary>Relative slack on a mass read back from a message (as InputDocumentTests.GramsTolerance): the message rounds it to about 7 significant figures.</summary>
+    private const double GramsTolerance = 1e-6;
+
+    /// <summary>Relative slack on a mass read back from a document against the factor a fixture composition was scaled by: rounding of the scaling itself, far above double's own rounding floor.</summary>
+    private const double ScaledMassTolerance = 1e-3;
+
     [Fact]
     public void A_good_document_is_exit_0_and_writes_the_document_to_the_output_path()
     {
@@ -89,7 +97,16 @@ public sealed class ExitCodeTests(CliFixture fixture)
         File.WriteAllText(lines, good.ToJsonString() + "\n" + doubled.ToJsonString() + "\n");
         var run = fixture.Invoke(fixture.Solving("states", lines));
         Assert.Equal(2, run.Code);
-        Assert.Contains($"{lines}:2: the composition weighs 2000.03 g with the database's atomic weights", run.Error);
+        var prefix = $"{lines}:2: the composition weighs ";
+        Assert.Contains(prefix, run.Error);
+        var start = run.Error.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
+        var end = run.Error.IndexOf(" g with the database's atomic weights", start, StringComparison.Ordinal);
+        Assert.True(end > start, $"no ' g with the database's atomic weights' after the record's source in: {run.Error}");
+        var reported = double.Parse(run.Error[start..end], CultureInfo.InvariantCulture);
+        // Read numerically rather than matched as text (InputDocumentTests.AssertMassReported): the message rounds
+        // the mass it reports, so a full-precision, independently derived mass matches it only up to a relative tolerance.
+        var expectedGrams = fixture.GramsOf(CliFixture.CompositionOf(doubled["composition"]!));
+        Assert.True(Math.Abs(reported - expectedGrams) <= GramsTolerance * Math.Max(1.0, Math.Abs(expectedGrams)), $"reported {reported:R} g, derived {expectedGrams:R} g");
         Assert.Empty(run.Output);
     }
 
@@ -122,12 +139,22 @@ public sealed class ExitCodeTests(CliFixture fixture)
         using var document = run.Json();
         Assert.Equal(0.03, document.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
         var mass = document.RootElement.GetProperty("cases")[0].GetProperty("mixture").GetProperty("mass").GetDouble();
-        Assert.True(Math.Abs(mass - 1.02) < 1e-3, $"mass {mass:R} kg");
+        Assert.True(Math.Abs(mass - 1.02) < ScaledMassTolerance, $"mass {mass:R} kg");
 
         run = fixture.Invoke(fixture.Solving("states", Scaled(1.05, "heavy-5pct.json"), "--mass-tolerance", "0.03"));
         Assert.Equal(2, run.Code);
         Assert.Contains("within 3 %", run.Error);
         Assert.Empty(run.Output);
+    }
+
+    [Fact]
+    public void An_exception_maps_to_its_documented_exit_code()
+    {
+        // The rule itself (Failures.Handle), directly: an input refusal is 2; an accelerator failure and every
+        // other, unexpected exception are 3 (F-CL-13), so a defect of this node is never mistaken for invalid input.
+        Assert.Equal(ExitCode.InvalidInput, Failures.Handle(new InputException("bad input"), TextWriter.Null));
+        Assert.Equal(ExitCode.Infrastructure, Failures.Handle(new AcceleratorUnavailableException("no cuda", []), TextWriter.Null));
+        Assert.Equal(ExitCode.Infrastructure, Failures.Handle(new InvalidOperationException("a defect of this node"), TextWriter.Null));
     }
 
     [Fact]

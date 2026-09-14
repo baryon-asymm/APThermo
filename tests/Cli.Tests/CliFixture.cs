@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Data;
+using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
@@ -33,6 +36,12 @@ public sealed class CliFixture : IDisposable
     public static IReadOnlyList<string> ProblemDocumentNames() =>
         Directory.GetFiles(DocumentsDirectory, "*.json").Select(p => Path.GetFileName(p)).Where(n => !n.StartsWith("states", StringComparison.Ordinal)).Order(StringComparer.Ordinal).ToList();
 
+    /// <summary>The names of the states example documents of the directory (JSON and JSON Lines), each solvable on its own.</summary>
+    public static IReadOnlyList<string> StatesDocumentNames() =>
+        Directory.GetFiles(DocumentsDirectory).Select(p => Path.GetFileName(p)!)
+            .Where(n => n.StartsWith("states", StringComparison.Ordinal) && (n.EndsWith(".json", StringComparison.Ordinal) || n.EndsWith(".jsonl", StringComparison.Ordinal)))
+            .Order(StringComparer.Ordinal).ToList();
+
     public static IReadOnlyList<string> InvalidDocumentNames() =>
         Directory.GetFiles(Path.Combine(DocumentsDirectory, "invalid"), "*.json").Select(p => Path.GetFileName(p)).Order(StringComparer.Ordinal).ToList();
 
@@ -40,6 +49,31 @@ public sealed class CliFixture : IDisposable
 
     /// <summary>The committed database, loaded once for the library calls the documents are compared with.</summary>
     public SpeciesDatabase Database => _database.Value;
+
+    /// <summary>
+    /// The mass in grams a composition weighs with the database's atomic weights (<c>Solver.MassOf</c>, kg to g): what
+    /// a refusal message reports, derived here so a test never types the number the library also computes (the
+    /// review's F-TF-12: "2000.03 g" was typed in two files).
+    /// </summary>
+    public double GramsOf(IReadOnlyDictionary<string, double> elementMoles)
+    {
+        using var solver = Solver.Create(Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        return solver.MassOf(ElementalMixture.Create(elementMoles)) * 1000.0;
+    }
+
+    /// <summary>A `composition` or `elementMoles` object already navigated to, as element moles per kilogram.</summary>
+    public static IReadOnlyDictionary<string, double> CompositionOf(JsonNode node) =>
+        node.AsObject().ToDictionary(p => p.Key, p => p.Value!.GetValue<double>(), StringComparer.Ordinal);
+
+    /// <summary>
+    /// The one camel-case rule of this node: a field or status name of the library into the document's own spelling,
+    /// written independently of the adapter's <c>Names.Camel</c>. An L2 or schema check that instead called the
+    /// adapter's own rule to derive its expectation could never see that rule go wrong, since the actual document and
+    /// the expected name would always agree by construction; this is the check's independent half. Both
+    /// <c>LibraryEqualityTests</c> and <c>OutputDocumentTests</c> read this one method rather than each carrying its
+    /// own copy or, as before, calling into the adapter.
+    /// </summary>
+    public static string Camel(string name) => name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
 
     public string Temp { get; }
 
