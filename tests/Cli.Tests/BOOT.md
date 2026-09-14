@@ -163,8 +163,14 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       `APTHERMO_NO_CUDA=1`: `run.accelerator.cudaSkippedBecause` and the devices
       listing name the variable, the schema files list the field); the pinned messages
       of `states-two-targets.json` and `states-rocket-without-enthalpy.json` the front
-      door's reasons behind the record's source. Each seen red once: the fallback reason
-      not written; an unexpected exception mapped to 2.
+      door's reasons behind the record's source. Each of the five facts seen red once
+      and reverted: `StatesCommand.SolveRockets` writing a with-exits case to the
+      batch's first slot instead of its own index (the states example's rocket case
+      overwrites its equilibrium one); an unexpected exception mapped to 2; the
+      threshold's usage line typed as a literal instead of read from
+      `CommandOptions.DefaultThreshold`; `states` dropped from `CommandRegistry`'s
+      table (`unknown command 'states'`, exactly the drift the test guards against);
+      the fallback reason not written.
 - [x] 2026-09-14 — The support code in shape (the review's F-TF-03, F-TF-07, F-TF-10,
       F-TF-12, F-TF-13): `JsonSchema.Check` split into `CheckKeywords`, `CheckType`,
       `CheckValue`, `CheckNumber`, `CheckObject` (with `CheckProperty`), `CheckArray`
