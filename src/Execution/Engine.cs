@@ -77,110 +77,15 @@ public sealed class Engine : IDisposable
     /// <summary>Evaluates the transport properties of every station of the batch.</summary>
     public TransportBatchResult Run(UploadedTables tables, TransportBatch batch)
     {
-        ArgumentNullException.ThrowIfNull(tables);
-        ArgumentNullException.ThrowIfNull(batch);
-        ThrowIfDisposed();
-        tables.ThrowIfNotOwned(this);
-        var transportBuffers = tables.TransportBuffers ?? throw new ArgumentException("the tables were uploaded without a transport table", nameof(tables));
-        var table = tables.Species;
-        batch.Validate(table.SpeciesCount);
-        var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        var count = batch.Count;
-        var timer = new RunTimer();
-        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, TransportTableView, TransportBatchViews>>(nameof(Kernels.Transport), out var warmUp);
-        timer.AddWarmUp(warmUp);
-        var doublesPerCase = TransportLayout.DoublesPerCase(speciesCount, elementCount);
-        var intsPerCase = TransportLayout.IntsPerCase(speciesCount, elementCount);
-        var chunk = ChunkSize(count, doublesPerCase + speciesCount, intsPerCase);
-
-        var figures = new TransportFigures[count];
-        var status = new int[count];
-        using var temperatureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var molesBuffer = _session.Accelerator.Allocate1D<double>((long)chunk * speciesCount);
-        using var scratchDoubles = _session.Accelerator.Allocate1D<double>((long)chunk * doublesPerCase);
-        using var scratchInts = _session.Accelerator.Allocate1D<int>((long)chunk * intsPerCase);
-        using var figureBuffer = _session.Accelerator.Allocate1D<TransportFigures>(chunk);
-        using var statusBuffer = _session.Accelerator.Allocate1D<int>(chunk);
-        var views = new TransportBatchViews(temperatureBuffer.View, molesBuffer.View, scratchDoubles.View, scratchInts.View, figureBuffer.View, statusBuffer.View);
-
-        for (var offset = 0; offset < count; offset += chunk)
-        {
-            var n = Math.Min(chunk, count - offset);
-            using (timer.Uploading())
-            {
-                Upload(temperatureBuffer, batch.Temperature, offset, n);
-                Upload(molesBuffer, batch.Moles, (long)offset * speciesCount, (long)n * speciesCount);
-            }
-
-            using (timer.Launching())
-            {
-                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, transportBuffers.View, views);
-                _session.Accelerator.Synchronize();
-            }
-
-            using (timer.Downloading())
-            {
-                Download(figureBuffer, figures, offset, n);
-                Download(statusBuffer, status, offset, n);
-            }
-        }
-
-        return new TransportBatchResult(figures, status.Select(s => (CaseStatus)s).ToArray(), timer.Timings(), Accelerator);
+        Guard(tables, batch);
+        return TransportPipeline.Run(_session, _kernels, _options, tables, batch);
     }
 
     /// <summary>Evaluates Cp/R, H/RT and S/R of table species at temperatures, one entry per thread.</summary>
     public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch)
     {
-        ArgumentNullException.ThrowIfNull(tables);
-        ArgumentNullException.ThrowIfNull(batch);
-        ThrowIfDisposed();
-        tables.ThrowIfNotOwned(this);
-        var table = tables.Species;
-        batch.Validate(table.SpeciesCount);
-        var count = batch.Count;
-        var timer = new RunTimer();
-        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, SpeciesFunctionBatchViews>>(nameof(Kernels.Functions), out var warmUp);
-        timer.AddWarmUp(warmUp);
-        var chunk = ChunkSize(count, 3, 2);
-
-        var cpOverR = new double[count];
-        var hOverRT = new double[count];
-        var sOverR = new double[count];
-        var inRange = new int[count];
-        using var speciesBuffer = _session.Accelerator.Allocate1D<int>(chunk);
-        using var temperatureBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var cpBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var hBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var sBuffer = _session.Accelerator.Allocate1D<double>(chunk);
-        using var rangeBuffer = _session.Accelerator.Allocate1D<int>(chunk);
-        var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
-
-        for (var offset = 0; offset < count; offset += chunk)
-        {
-            var n = Math.Min(chunk, count - offset);
-            using (timer.Uploading())
-            {
-                Upload(speciesBuffer, batch.Species, offset, n);
-                Upload(temperatureBuffer, batch.Temperature, offset, n);
-            }
-
-            using (timer.Launching())
-            {
-                launch(_session.Accelerator.DefaultStream, n, tables.SpeciesBuffers.View, views);
-                _session.Accelerator.Synchronize();
-            }
-
-            using (timer.Downloading())
-            {
-                Download(cpBuffer, cpOverR, offset, n);
-                Download(hBuffer, hOverRT, offset, n);
-                Download(sBuffer, sOverR, offset, n);
-                Download(rangeBuffer, inRange, offset, n);
-            }
-        }
-
-        return new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, inRange.Select(r => r != 0).ToArray(), timer.Timings(), Accelerator);
+        Guard(tables, batch);
+        return SpeciesFunctionPipeline.Run(_session, _kernels, _options, tables, batch);
     }
 
     /// <summary>Runs the probe of the root's math list: <c>[input * MathProbe.FunctionCount + function]</c>.</summary>
