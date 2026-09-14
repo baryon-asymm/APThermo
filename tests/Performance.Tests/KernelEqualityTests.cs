@@ -206,19 +206,22 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var stationCount = RocketLayout.StationCount(exitCount);
         var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
-        var problem = new RocketProblem(batch.ChamberPressures[index], batch.ReactantEnthalpies[index], 0.0, (FlowModel)batch.Flows[index],
-                                        batch.ElementMoles.SubView(index * elementCount, elementCount),
-                                        batch.ExitValues.SubView(index * exitCount, exitCount),
-                                        batch.ExitKinds.SubView(index * exitCount, exitCount));
+        var problem = new RocketProblem(
+            chamberPressure: batch.ChamberPressures[index], reactantEnthalpy: batch.ReactantEnthalpies[index],
+            temperatureEstimate: 0.0, flow: (FlowModel)batch.Flows[index],
+            elementMoles: batch.ElementMoles.SubView(index * elementCount, elementCount),
+            exitValues: batch.ExitValues.SubView(index * exitCount, exitCount),
+            exitKinds: batch.ExitKinds.SubView(index * exitCount, exitCount));
         var scratch = EquilibriumScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
                                                batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
-        var result = new RocketResult(batch.Stations.SubView(index * stationCount, stationCount),
-                                      batch.Moles.SubView(index * stationCount * speciesCount, stationCount * speciesCount),
-                                      batch.Multipliers.SubView(index * stationCount * elementCount, stationCount * elementCount),
-                                      batch.Figures.SubView(index * stationCount, stationCount),
-                                      batch.StationStatus.SubView(index * stationCount, stationCount),
-                                      batch.Iterations.SubView(index * stationCount, stationCount),
-                                      batch.Status.SubView(index, 1));
+        var result = new RocketResult(
+            stations: batch.Stations.SubView(index * stationCount, stationCount),
+            moles: batch.Moles.SubView(index * stationCount * speciesCount, stationCount * speciesCount),
+            multipliers: batch.Multipliers.SubView(index * stationCount * elementCount, stationCount * elementCount),
+            figures: batch.Figures.SubView(index * stationCount, stationCount),
+            stationStatus: batch.StationStatus.SubView(index * stationCount, stationCount),
+            iterations: batch.Iterations.SubView(index * stationCount, stationCount),
+            status: batch.Status.SubView(index, 1));
         RocketSolver.Solve(in table, in problem, in scratch, in result);
     }
 
