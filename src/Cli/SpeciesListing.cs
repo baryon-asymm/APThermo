@@ -3,24 +3,10 @@ using System.Text.Json;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
-/// <summary>The species command: the database's entries, filtered by name, flattened once and rendered in JSON or CSV.</summary>
+/// <summary>The rendering of the species command's rows (<see cref="SpeciesCommand"/>): flattened once, in JSON or CSV.</summary>
 internal static class SpeciesListing
 {
-    public static ExitCode Execute(Invocation invocation, TextWriter output)
-    {
-        var options = invocation.Options;
-        var (database, info, databaseSeconds) = DatabaseFiles.Load(options.Database);
-        var rows = database.Products.Concat(database.Reactants)
-            .Where(s => options.Find is null || s.Name.Contains(options.Find, StringComparison.OrdinalIgnoreCase))
-            .Select(s => SpeciesRow.From(s, database))
-            .ToList();
-        var run = new RunInfo("species", [], info, null, new Timings(databaseSeconds, 0.0), new RunLimits(options.Threshold, options.MassTolerance));
-        var text = options.Format == OutputFormat.Csv ? Csv(rows) : Json(run, rows);
-        DocumentWriter.Deliver(text, options.Output, output);
-        return ExitCode.Ok;
-    }
-
-    private static string Json(RunInfo run, IReadOnlyList<SpeciesRow> rows) => DocumentWriter.Render(writer =>
+    public static string Json(RunInfo run, IReadOnlyList<SpeciesRow> rows) => DocumentWriter.Render(writer =>
     {
         writer.WriteStartObject();
         RunSection.Write(writer, run);
@@ -66,7 +52,7 @@ internal static class SpeciesListing
         writer.WriteEndObject();
     }
 
-    private static string Csv(IReadOnlyList<SpeciesRow> rows)
+    public static string Csv(IReadOnlyList<SpeciesRow> rows)
     {
         var text = new StringBuilder("name,section,phase,formula,molarMass,formationEnthalpy,temperatureLow,temperatureHigh,transportData\n");
         foreach (var row in rows)

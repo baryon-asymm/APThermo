@@ -161,7 +161,9 @@ one type per file, named after the type.
 | `DocumentWriter` | delivery to the output file or the standard output, and the non-finite-number rule |
 | `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
 | `Names` | unchanged: camel-case names of statuses and kinds |
-| `SpeciesRow`, `SpeciesListing` | one species flattened once; the listing in JSON or CSV (F-CL-08) |
+| `SpeciesRow` | one species flattened once (F-CL-08) |
+| `SpeciesCommand` | the `species` command: the database, the name filter, the rows, the run and the delivery (2026-09-14, split out of `SpeciesListing` by the coordinator's review, the way `DeviceListing` already separated the probe from the rendering) |
+| `SpeciesListing` | the rendering of `SpeciesCommand`'s rows: JSON or CSV (2026-09-14, kept to rendering only) |
 | `DeviceProbe`, `DeviceReport`, `DeviceListing` | what the machine offers, asked once; the report; its rendering |
 
 Decisions taken with the review of 2026-09-14:

@@ -9,7 +9,7 @@ internal static class CommandRegistry
             ["rocket"] = ProblemCommand.Execute,
             ["equilibrium"] = ProblemCommand.Execute,
             ["states"] = StatesCommand.Execute,
-            ["species"] = SpeciesListing.Execute,
+            ["species"] = SpeciesCommand.Execute,
             ["devices"] = DeviceListing.Execute,
         };
 
