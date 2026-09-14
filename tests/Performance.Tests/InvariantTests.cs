@@ -65,7 +65,7 @@ public sealed class InvariantTests(CpuFixture fixture)
     public void An_area_ratio_below_one_fails_its_station_only()
     {
         var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
-        var mutated = inputs with { ExitValues = [0.5, inputs.ExitValues[0]], ExitKinds = [ExitSpecification.AreaRatio, ExitSpecification.AreaRatio] };
+        var mutated = inputs with { Exits = new ExitPlan([0.5, inputs.ExitValues[0]], [ExitSpecification.AreaRatio, ExitSpecification.AreaRatio]) };
         var solution = RocketHost.Solve(fixture, mutated);
         Assert.Equal(CaseStatus.AreaRatioInvalid, solution.Status);
         Assert.Equal(CaseStatus.Ok, solution.StationStatus[0]);
@@ -83,7 +83,7 @@ public sealed class InvariantTests(CpuFixture fixture)
     public void A_pressure_ratio_not_above_one_fails_its_station_only()
     {
         var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
-        var mutated = inputs with { ExitValues = [1.0, inputs.ExitValues[0]], ExitKinds = [ExitSpecification.PressureRatio, ExitSpecification.AreaRatio] };
+        var mutated = inputs with { Exits = new ExitPlan([1.0, inputs.ExitValues[0]], [ExitSpecification.PressureRatio, ExitSpecification.AreaRatio]) };
         var solution = RocketHost.Solve(fixture, mutated);
         Assert.Equal(CaseStatus.InvalidInput, solution.Status);
         Assert.Equal(CaseStatus.InvalidInput, solution.StationStatus[2]);
@@ -94,7 +94,7 @@ public sealed class InvariantTests(CpuFixture fixture)
     public void A_case_without_exits_gives_the_chamber_and_the_throat()
     {
         var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
-        var solution = RocketHost.Solve(fixture, inputs with { ExitValues = [], ExitKinds = [] });
+        var solution = RocketHost.Solve(fixture, inputs with { Exits = new ExitPlan([], []) });
         Assert.Equal(CaseStatus.Ok, solution.Status);
         Assert.Equal(2, solution.StationCount);
         Assert.True(solution.Figures[1].CharacteristicVelocity > 0.0);

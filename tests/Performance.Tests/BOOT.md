@@ -180,6 +180,28 @@ position today (the criterion below).
       (two sites tree-wide, this node's and the execution node's own type of the same
       name, both fully named); the node's bit snapshot unchanged (`Bits.approved.txt`
       hash `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green).
+- [x] 2026-09-15 — `RocketInputs` (8 parameters) and `RocketSolution` (9), both in
+      `RocketHost.cs`, restructured within the root's limit, along domain axes;
+      neither is a declared exception, so no row was added to `## Shape exceptions`.
+      `RocketInputs` split into the case's chemical system (`ChemicalSystem`:
+      `Elements`, `ElementMoles`, `Products`, 3 parameters), its combustion
+      conditions (`ChamberPressure`, `ReactantEnthalpy`, `Flow`, kept directly), and
+      its exit layout (`ExitPlan`: `Values`, `Kinds`, 2 parameters), for 5 parameters
+      on `RocketInputs` itself. `RocketSolution` split into its per-station numerical
+      outcome (`RocketOutcome`: `Stations`, `Moles`, `Multipliers`, `Figures`,
+      `StationStatus`, `Iterations`, 6 parameters) alongside `Table`, `Inputs` and the
+      overall `Status`, for 4 parameters on `RocketSolution` itself. Both keep the old
+      field names as forwarding properties, so the ~25 existing read call sites across
+      `RocketCase.cs`, `KernelEqualityTests.cs`, `StationComparison.cs`,
+      `SubsonicStationTests.cs`, `RocketInvariants.cs` and `RocketFixtureTests.cs` are
+      unchanged; only the two construction sites (`RocketInputs.Of`,
+      `RocketCase.Read`) and the three `with { ExitValues = …, ExitKinds = … }`
+      expressions of `InvariantTests.cs` (rewritten as `with { Exits = new
+      ExitPlan(…) }`, since a computed forwarding property has no `init` accessor for
+      `with` to target) changed.
+
+      Verified: 699/699 tests green, `Bits.approved.txt` hash unchanged
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
 
 ## Taboos
 
