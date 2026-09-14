@@ -182,11 +182,20 @@ Decisions taken with the review of 2026-09-14:
 - [x] 2026-09-12 — Frozen flow at the throat and at the chamber both reproduce the
       reference: the same test over the 15 `frozenAtChamber` and 40 `frozenAtThroat`
       propellant cases and example 12 (`nfz = 2`).
-- [x] 2026-09-12 — The invariants' tolerances (entropy, sonic condition, area ratio,
+- [x] 2026-09-14 — The invariants' tolerances (entropy, sonic condition, area ratio,
       frozen composition bit for bit, velocity from the energy equation) hold for every
-      converged fixture case:
-      `InvariantTests.Entropy_sonic_throat_area_ratio_and_frozen_composition_hold` over
-      the 89 files.
+      converged case of the enumerated rocket fixtures, one test per invariant:
+      `InvariantTests.The_throat_is_sonic`,
+      `InvariantTests.Entropy_is_constant_along_the_nozzle`,
+      `InvariantTests.Velocity_follows_the_energy_equation`,
+      `InvariantTests.Assigned_area_and_pressure_ratios_are_met`,
+      `InvariantTests.The_composition_is_frozen_after_the_freezing_station`; green on
+      the decomposed code at `5cb2664`. Re-dated from 2026-09-12, when one theory,
+      `InvariantTests.Entropy_sonic_throat_area_ratio_and_frozen_composition_hold`,
+      held them over the 89 files of that day: the tests node split it (its F-TK-06
+      and F-TK-07) and left the typed count out (F-TK-03), and this node's code was
+      decomposed on this date, which a tick of an earlier date cannot prove
+      (AGENTS.md §6).
 - [x] 2026-09-12 — An area ratio below 1 returns `AreaRatioInvalid` for that station
       and leaves the other stations unaffected:
       `InvariantTests.An_area_ratio_below_one_fails_its_station_only` (and

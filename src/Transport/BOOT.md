@@ -241,14 +241,21 @@ the node is now `TransportComponents` at 244 lines and the largest method
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — Every rocket fixture run with transport (39 files, enumerated by
-      the test, 4 to 11 stations each) reproduces viscosity, frozen and reacting
-      conductivity, both Prandtl numbers and the reference's `cpFrozen` on the
-      reference composition within the tolerance table, the worst deviation 3.4e-8
-      relative; the reacting fields are skipped at the nine defective stations, where
-      the test asserts the defect is still visible (`Transport.Tests`,
-      `StationTests.Stations_match_the_reference`,
-      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`).
+- [x] 2026-09-14 — Every rocket fixture run with transport (enumerated by the tests
+      node) reproduces viscosity, frozen and reacting conductivity, both Prandtl
+      numbers and the reference's `cpFrozen` on the reference composition within the
+      tolerance table; the reacting fields are skipped at the nine defective stations,
+      where the test asserts the defect is still visible (`Transport.Tests`,
+      `StationTests.Station_figures_match_the_reference`,
+      `StationTests.The_reference_cpFrozen_is_the_transport_set_heat_capacity`,
+      `StationTests.Reacting_conductivity_is_never_below_the_frozen_one`,
+      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`;
+      green on the decomposed code at `5cb2664`). Re-dated from 2026-09-12, when the
+      evidence was one test, `StationTests.Stations_match_the_reference`, over 39
+      files of 4 to 11 stations with the worst deviation 3.4e-8 relative: the tests
+      node split that test (its F-TK-05) and left the typed counts out (F-TK-03), and
+      this node's code was decomposed on this date, which a tick of an earlier date
+      cannot prove (AGENTS.md §6).
 - [x] 2026-09-12 — The 27 fit fixtures (pure species and pairs) reproduce the
       independent Python evaluation within `transportFit`, the fit intervals of the
       table equal the file's, the fit rule agrees with the fixture on the shared bounds
