@@ -35,3 +35,20 @@ internal readonly struct StationInputs
         Temperature = temperature;
     }
 }
+
+/// <summary>The mixture viscosity and frozen conductivity of the transport set, SI: what <see cref="MixtureRules"/> returns.</summary>
+internal readonly struct MixtureTransport
+{
+    /// <summary>Mixture viscosity, Pa·s.</summary>
+    public readonly double Viscosity;
+
+    /// <summary>Frozen thermal conductivity, W/(m·K).</summary>
+    public readonly double FrozenConductivity;
+
+    /// <summary>Wraps the two figures of the mixture rules.</summary>
+    public MixtureTransport(double viscosity, double frozenConductivity)
+    {
+        Viscosity = viscosity;
+        FrozenConductivity = frozenConductivity;
+    }
+}

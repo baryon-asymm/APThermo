@@ -53,7 +53,8 @@ public static class TransportSolver
     /// <summary>Collision diameter of the hard-sphere estimate for a species without data, m.</summary>
     public const double CollisionDiameter = 1e-10;
 
-    private const int Stride = MaxSpecies;
+    /// <summary>The row stride of every MaxSpecies × MaxSpecies matrix of the scratch; the stages share it.</summary>
+    internal const int Stride = MaxSpecies;
 
     /// <summary>
     /// Evaluates the station: the transport set is chosen from <paramref name="moles"/> as the reference does, the species without
@@ -520,31 +521,7 @@ public static class TransportSolver
         }
 
         // Viscosity and frozen conductivity: equations (5.3) to (5.7).
-        var viscosity = 0.0;
-        var frozenConductivity = 0.0;
-        for (var a = 0; a < nm; a++)
-        {
-            var massA = species.MolarMass[scratch.IndexList[a]];
-            var etaA = scratch.Eta[a * Stride + a];
-            var sumViscosity = scratch.Xs[a];
-            var sumConductivity = scratch.Xs[a];
-            for (var b = 0; b < nm; b++)
-            {
-                if (b == a)
-                {
-                    continue;
-                }
-
-                var massB = species.MolarMass[scratch.IndexList[b]];
-                var phi = 2.0 * massB * etaA / (scratch.Eta[a * Stride + b] * (massA + massB));
-                var psi = phi * (1.0 + 2.41 * (massA - massB) * (massA - 0.142 * massB) / ((massA + massB) * (massA + massB)));
-                sumViscosity += phi * scratch.Xs[b];
-                sumConductivity += psi * scratch.Xs[b];
-            }
-
-            viscosity += etaA * scratch.Xs[a] / sumViscosity;
-            frozenConductivity += scratch.Cond[a] * scratch.Xs[a] / sumConductivity;
-        }
+        var mixture = MixtureRules.Evaluate(in inputs, nm);
 
         // Reaction contributions: Butler and Brokaw over the pairs of the set, equations (5.8) to (5.12).
         var status = CaseStatus.Ok;
@@ -658,24 +635,7 @@ public static class TransportSolver
             }
         }
 
-        var massOfSet = 0.0;
-        var cpOfSet = 0.0;
-        for (var a = 0; a < nm; a++)
-        {
-            massOfSet += scratch.Xs[a] * species.MolarMass[scratch.IndexList[a]];
-            cpOfSet += scratch.Xs[a] * scratch.Cp[a];
-        }
-
-        var frozenHeatCapacity = PhysicalConstants.R * cpOfSet / massOfSet;
-        var equilibriumHeatCapacity = frozenHeatCapacity + reactionHeatCapacity / massOfSet;
-        var reactingConductivity = frozenConductivity + reactionConductivity;
-        result.Viscosity = viscosity;
-        result.FrozenConductivity = frozenConductivity;
-        result.ReactingConductivity = reactingConductivity;
-        result.FrozenPrandtl = viscosity * frozenHeatCapacity / frozenConductivity;
-        result.ReactingPrandtl = viscosity * equilibriumHeatCapacity / reactingConductivity;
-        result.FrozenHeatCapacity = frozenHeatCapacity;
-        result.EquilibriumHeatCapacity = equilibriumHeatCapacity;
+        SetProperties.Fill(in inputs, nm, in mixture, reactionHeatCapacity, reactionConductivity, ref result);
         result.EstimatedMoleFraction = estimatedFraction;
         result.SpeciesCount = nm;
         result.ReactionCount = nr;
