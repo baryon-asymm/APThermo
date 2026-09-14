@@ -33,13 +33,15 @@ internal static class LibDeviceLocator
             foreach (var dll in new[] { Path.Combine(root, "nvvm", "bin", DllName), Path.Combine(root, "nvvm", "bin", "x64", DllName) })
             {
                 tried.Add(dll);
-                if (File.Exists(dll))
+                if (!File.Exists(dll))
                 {
-                    tried.Add(bitcode);
-                    if (File.Exists(bitcode))
-                    {
-                        return (dll, bitcode, tried);
-                    }
+                    continue;
+                }
+
+                tried.Add(bitcode);
+                if (File.Exists(bitcode))
+                {
+                    return (dll, bitcode, tried);
                 }
             }
         }
