@@ -357,9 +357,19 @@ one creation names its arguments; it passes them by position today (the criterio
 - [x] 2026-09-15 — The creation of `Provenance` in `CeaFixtures` names its arguments,
       each bound to the `generator` field its value is read from (the root's condition
       on a declared wide constructor, the row of `## Shape exceptions`), verified by
-      `named-construction-scan.py . Provenance` (one site, fully named); every fixture
-      theory of the tests nodes green unchanged: the full-solution fast suite (10
-      projects, 3014 tests) green, every consumer's `Bits.approved.txt` hash unmoved.
+      `ShapeMechanics.Constructions` (the protocol tests node's own tool, run through
+      a temporary, uncommitted test): one site, `CeaFixtures.cs:92`, fully named;
+      every fixture theory of the tests nodes green unchanged: the full-solution fast
+      suite (10 projects, 3014 tests) green, every consumer's `Bits.approved.txt`
+      hash unmoved.
+
+      ⚠ 2026-09-15: first verified with a hand-written scratch script
+      (`named-construction-scan.py`), against the root's own rule that shape is
+      measured with the protocol tool, never a scratch script. The fact did not
+      change - the site was and stays fully named - only the evidence: the protocol
+      tests node already carries this exact check (`ShapeMechanics.Constructions`,
+      built for `ShapeTests` to use), reading the same syntax trees by the same rule,
+      and it confirms the one call site above.
 
 ## Taboos
 
