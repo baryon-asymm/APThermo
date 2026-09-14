@@ -297,7 +297,13 @@ efferent-coupling row.
       13, `RocketSolver` 13, `ThroatSearch` 13, `StationSolve` 12,
       `PressureRatioStation` 11 — every stage at or under the root's limit of 14, so
       `ExitStations` does not need the composition-root exception the Size bullet
-      allowed for, and this node needs no `## Shape exceptions` table.
+      allowed for, and this node needs no efferent-coupling row.
+
+      ⚠ 2026-09-14: the last clause stood "this node needs no `## Shape exceptions`
+      table". It was true when written, of the coupling rule this criterion measures;
+      later the same day the descriptors' constructors became a declared exception to
+      the parameter rule (the decision "The descriptors keep their constructors"), and
+      the table now carries their two rows, while no coupling row is needed.
       `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` green with
       `Bits.approved.txt` unmoved (byte for byte before and after this step) and
       `KernelEqualityTests` green: `dotnet test tests/Performance.Tests`, 699 tests,

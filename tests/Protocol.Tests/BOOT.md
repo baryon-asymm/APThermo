@@ -182,11 +182,32 @@ thing:
 | method lines | 60 | every method, constructor, operator, accessor with a body and local function | the same span rule for the member |
 | nesting | 3 | every member body | the depth of `if` (an `else if` continues its chain), `for`, `foreach`, `while`, `do`, `switch` and `try`; a lambda or a local function continues the depth of the statement it stands in |
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
-| efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), nested and compiler-generated types attributed to the outermost type that declares them, a constructed generic type counted once as its definition; types outside the tree not counted |
+| efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), the nested and compiler-generated types of the naming type attributed to the outermost type that declares them, a nested type it names counted as itself, a constructed generic type counted once as its definition, an array, by-reference or pointer type counted as its element type; types outside the tree, and compiler-generated types no type declares, not counted |
 | stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
 | stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the project references; every reference points to a node whose I is not above the referrer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
-| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` with the type written as that type's simple name, or a target-typed `new(…)` initialising a variable, field or property declared with that name, passes every argument as `name: value`; any other target-typed creation is left to review |
+| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier is N; any other target-typed creation is left to review |
+
+⚠ 2026-09-14, after the measurements of phase 2: the efferent coupling row read "nested
+and compiler-generated types attributed to the outermost type that declares them" without
+saying on which side of a reference, and named neither arrays nor compiler-generated types
+that no type declares. The scratch measurement the limit was calibrated on folded a named
+nested type into its outer type as well; the dependency walk, and the measurement code
+built on it, fold only the naming type's own nested types, and the two readings differ by
+one on `SpeciesDatabase` (9 against 8, both under the limit). The row now states the
+walk's reading, with the unwrap of arrays, by-reference and pointer types and the
+exclusion of undeclared compiler-generated helpers the measurement code applies; no row's
+figure and no type's standing against the limit moves.
+
+⚠ 2026-09-14, after the measurements of phase 2: the named construction row matched a
+creation by the simple name alone, and two names are declared twice in the tree:
+`EquilibriumResult` (in `Equilibrium`, five parameters, and in `Problems`, a row) and
+`RocketBatchViews` (in `Execution`, a row, and in `Performance.Tests`, that tests node's
+own type). Read literally, the rule took six positional creations of `Equilibrium`'s type
+and one of `Performance.Tests`' type for creations of the rows' types. The row now
+resolves the name through the file's namespace, its `using` directives and its node's own
+declarations, which gives the compiler's binding at every creation of the two names; every
+creation of a row's type still falls under it.
 
 The test nodes obey the size, nesting, parameter and mechanics rules, since their
 support code is code; the coupling and stable-type rules apply to the `src` nodes, on
