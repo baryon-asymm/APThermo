@@ -141,7 +141,9 @@ one type per file, named after the type.
 | `JsonText` | a text parsed with its source label in the message |
 | `StrictObject` | unchanged: the mechanism of the strict-documents invariant |
 | `SweepValues` | a list or a `{from, to, step}` range into values, with the step tolerance named and derived (F-CL-12) |
-| `ProblemDocumentReader` | the `rocket` and `equilibrium` documents: propellant, reactants, the problem (one reader per problem type), the sweep |
+| `ProblemDocumentReader` | the `rocket` and `equilibrium` documents: dispatches to `PropellantDocumentReader` and `SweepDocumentReader`, reads the problem itself (one reader per problem type) |
+| `PropellantDocumentReader` | the propellant part: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `SweepDocumentReader` | the sweep part, and finishes the document: the engine's accelerator choice and the assembly into `InputDocument`, so that `ProblemDocumentReader.Read` holds neither the sweep nor the accelerator itself (2026-09-14, split out by the same review) |
 | `StateRecordReader` | the record files, their shape decided by the first non-blank character (array, object, JSON Lines) with no exception as a probe (F-CL-13); each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
 | `InputDocuments` | the façade the tests node uses: delegations only |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
