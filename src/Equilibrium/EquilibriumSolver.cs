@@ -20,9 +20,6 @@ namespace AerospacePropellantThermodynamics.Equilibrium;
 /// </remarks>
 public static class EquilibriumSolver
 {
-    private const double CrossingLimit = 1.0;      // K: a crossing farther from the shared bound means inconsistent fits (BOOT.md)
-    private const double RangeTolerance = 1.0e-9;  // relative, on the effective-range comparisons
-
     /// <summary>−ln(1e-8): gaseous species below this mole fraction are held at zero in the sums but keep their logarithms.</summary>
     public const double TraceThreshold = 18.420681;
 
@@ -36,7 +33,6 @@ public static class EquilibriumSolver
     public const int MaxCondensedSetChanges = 3 * ScratchLayout.MaxCondensedInSolution;
 
     private const double CorrectionTest = 0.5e-5;      // equation (3.5)
-    private const double BalanceTest = 1.0e-6;         // equation (3.6a), relative to the largest abundance
     private const double TemperatureTest = 1.0e-4;     // equation (3.6b)
     private const double PolishTest = 1.0e-11;         // the steps after the report's tests, until the corrections are this small
     private const int MaxPolishSteps = 6;
@@ -46,7 +42,6 @@ public static class EquilibriumSolver
     private const double StandardPressure = 1.0e5;    // Pa; the thermodynamic data are for 1 bar
     private const double ResetMoles = 1.0e-6;          // section 3.6: the reset of vanished species on a singular matrix
     private const int MaxSingularResets = 2;
-    private const double BalanceInvariant = 1.0e-12;   // the node's element-conservation invariant, on max(1, b_i)
     private const double PhaseTransitionWindow = 50.0; // K, section 3.5: closer than this to a transition, both phases are kept
     private const double FrozenTemperatureTest = 1.0e-10; // relative, on the Newton step of the frozen temperature
 
@@ -369,7 +364,7 @@ public static class EquilibriumSolver
                     worst = Math.Max(worst, Math.Abs(scratch.RightHandSide[elementCount + c]) / total);
                 }
 
-                var balanced = ElementBalanceWithin(table, problem, scratch, result, BalanceTest, true);
+                var balanced = ElementBalance.WithinReportTest(table, problem, scratch, result);
                 var reportConverged = worst <= CorrectionTest && balanced && (isTp || Math.Abs(deltaLogT) <= TemperatureTest);
                 if (reportConverged)
                 {
@@ -426,27 +421,27 @@ public static class EquilibriumSolver
             for (var c = 0; c < condensedCount && !changed; c++)
             {
                 var j = scratch.CondensedInSolution[c];
-                if (InEffectiveRange(table, scratch, j, temperature))
+                if (PhaseGeometry.InEffectiveRange(table, scratch, j, temperature))
                 {
                     continue;
                 }
 
-                if (PartnerInSolution(table, scratch, condensedCount, j) >= 0)
+                if (PhaseGeometry.PartnerInSolution(table, scratch, condensedCount, j) >= 0)
                 {
                     continue;
                 }
 
-                var above = temperature > EffectiveHigh(table, scratch, j);
-                var adjacent = Adjacent(table, scratch, j, above);
-                var k = PhaseAt(table, scratch, condensedCount, j, temperature);
-                if (k < 0 && adjacent >= 0 && !InSolution(scratch, condensedCount, adjacent))
+                var above = temperature > PhaseGeometry.EffectiveHigh(table, scratch, j);
+                var adjacent = PhaseGeometry.Adjacent(table, scratch, j, above);
+                var k = PhaseGeometry.PhaseAt(table, scratch, condensedCount, j, temperature);
+                if (k < 0 && adjacent >= 0 && !PhaseGeometry.InSolution(scratch, condensedCount, adjacent))
                 {
                     k = adjacent;
                 }
 
-                var bound = above ? RecordHigh(table, j) : RecordLow(table, j);
+                var bound = above ? PhaseGeometry.RecordHigh(table, j) : PhaseGeometry.RecordLow(table, j);
                 var neighbour = k >= 0 && k == adjacent;
-                var crossing = neighbour ? Crossing(table, j, k, bound) : bound;
+                var crossing = neighbour ? PhaseGeometry.Crossing(table, j, k, bound) : bound;
                 var latent = neighbour ? Math.Abs(SpeciesFunctions.HOverRT(table, j, bound) - SpeciesFunctions.HOverRT(table, k, bound)) : 0.0;
                 var pair = neighbour && !isTp && latent >= SpeciesFunctions.LatentHeatThreshold && condensedCount < ScratchLayout.MaxCondensedInSolution
                            && (Math.Abs(temperature - crossing) <= PhaseTransitionWindow || k == lastSwitchedOut);
@@ -491,8 +486,9 @@ public static class EquilibriumSolver
                 var skippedGain = 0.0;
                 for (var j = gasCount; j < speciesCount; j++)
                 {
-                    if (scratch.SpeciesActive[j] == 0 || InSolution(scratch, condensedCount, j) || !InEffectiveRange(table, scratch, j, temperature)
-                        || PartnerInSolution(table, scratch, condensedCount, j) >= 0)
+                    if (scratch.SpeciesActive[j] == 0 || PhaseGeometry.InSolution(scratch, condensedCount, j)
+                        || !PhaseGeometry.InEffectiveRange(table, scratch, j, temperature)
+                        || PhaseGeometry.PartnerInSolution(table, scratch, condensedCount, j) >= 0)
                     {
                         continue;
                     }
@@ -544,7 +540,7 @@ public static class EquilibriumSolver
             }
         }
 
-        if (status == CaseStatus.Ok && !ElementBalanceWithin(table, problem, scratch, result, BalanceInvariant, false))
+        if (status == CaseStatus.Ok && !ElementBalance.WithinInvariant(table, problem, scratch, result))
         {
             status = CaseStatus.NotConverged;
         }
@@ -754,123 +750,6 @@ public static class EquilibriumSolver
         return condensedCount;
     }
 
-    private static double RecordLow(in SpeciesTableView table, int j) => table.IntervalBounds[table.IntervalStart[j] * 2];
-
-    private static double RecordHigh(in SpeciesTableView table, int j) =>
-        table.IntervalBounds[(table.IntervalStart[j] + table.IntervalCount[j] - 1) * 2 + 1];
-
-    private static bool SameFormula(in SpeciesTableView table, int j, int k)
-    {
-        var speciesCount = table.SpeciesCount;
-        for (var i = 0; i < table.ElementCount; i++)
-        {
-            if (table.Stoichiometry[i * speciesCount + k] != table.Stoichiometry[i * speciesCount + j])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>Another record of the same formula in the solution; −1 if none.</summary>
-    private static int PartnerInSolution(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, int species)
-    {
-        for (var c = 0; c < condensedCount; c++)
-        {
-            var k = scratch.CondensedInSolution[c];
-            if (k != species && SameFormula(table, k, species))
-            {
-                return k;
-            }
-        }
-
-        return -1;
-    }
-
-    /// <summary>The active record of the same formula whose range begins where j's ends (above) or ends where j's begins; −1 if none.</summary>
-    private static int Adjacent(in SpeciesTableView table, in EquilibriumScratch scratch, int j, bool above)
-    {
-        for (var k = table.GasCount; k < table.SpeciesCount; k++)
-        {
-            if (k == j || scratch.SpeciesActive[k] == 0 || !SameFormula(table, j, k))
-            {
-                continue;
-            }
-
-            if (above ? RecordLow(table, k) == RecordHigh(table, j) : RecordHigh(table, k) == RecordLow(table, j))
-            {
-                return k;
-            }
-        }
-
-        return -1;
-    }
-
-    /// <summary>Where G°/RT of two adjacent records cross, linearized at their shared bound; the bound when there is no latent heat or the fits disagree.</summary>
-    private static double Crossing(in SpeciesTableView table, int j, int k, double bound)
-    {
-        var dg = SpeciesFunctions.GOverRT(table, j, bound) - SpeciesFunctions.GOverRT(table, k, bound);
-        var dh = SpeciesFunctions.HOverRT(table, j, bound) - SpeciesFunctions.HOverRT(table, k, bound);
-        if (Math.Abs(dh) < SpeciesFunctions.LatentHeatThreshold)
-        {
-            return bound;
-        }
-
-        var crossing = bound * (1.0 + dg / dh);
-        return Math.Abs(crossing - bound) <= CrossingLimit ? crossing : bound;
-    }
-
-    /// <summary>The record's lower bound, moved to the crossing when it touches an adjacent record of its formula.</summary>
-    private static double EffectiveLow(in SpeciesTableView table, in EquilibriumScratch scratch, int j)
-    {
-        var below = Adjacent(table, scratch, j, false);
-        return below >= 0 ? Crossing(table, below, j, RecordLow(table, j)) : RecordLow(table, j);
-    }
-
-    /// <summary>The record's upper bound, moved to the crossing when it touches an adjacent record of its formula.</summary>
-    private static double EffectiveHigh(in SpeciesTableView table, in EquilibriumScratch scratch, int j)
-    {
-        var over = Adjacent(table, scratch, j, true);
-        return over >= 0 ? Crossing(table, j, over, RecordHigh(table, j)) : RecordHigh(table, j);
-    }
-
-    private static bool InEffectiveRange(in SpeciesTableView table, in EquilibriumScratch scratch, int j, double temperature)
-    {
-        var tolerance = RangeTolerance * temperature;
-        return temperature >= EffectiveLow(table, scratch, j) - tolerance && temperature <= EffectiveHigh(table, scratch, j) + tolerance;
-    }
-
-    /// <summary>A record of the same formula, active, not in the solution, whose effective range holds the temperature; −1 if none.</summary>
-    private static int PhaseAt(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, int j, double temperature)
-    {
-        for (var k = table.GasCount; k < table.SpeciesCount; k++)
-        {
-            if (k == j || scratch.SpeciesActive[k] == 0 || InSolution(scratch, condensedCount, k) || !SameFormula(table, j, k)
-                || !InEffectiveRange(table, scratch, k, temperature))
-            {
-                continue;
-            }
-
-            return k;
-        }
-
-        return -1;
-    }
-
-    private static bool InSolution(in EquilibriumScratch scratch, int condensedCount, int species)
-    {
-        for (var c = 0; c < condensedCount; c++)
-        {
-            if (scratch.CondensedInSolution[c] == species)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /// <summary>
     /// A positive per-mole inclusion gain this far above zero is real at a converged state; below it is the rounding
     /// of the polished multipliers. Used only for the stand-down honesty check at an Ok exit.
@@ -890,7 +769,7 @@ public static class EquilibriumSolver
         var elementCount = table.ElementCount;
         for (var j = table.GasCount; j < speciesCount; j++)
         {
-            if (scratch.SpeciesActive[j] != 0 || InSolution(scratch, condensedCount, j))
+            if (scratch.SpeciesActive[j] != 0 || PhaseGeometry.InSolution(scratch, condensedCount, j))
             {
                 continue;
             }
@@ -901,8 +780,8 @@ public static class EquilibriumSolver
                 present = table.Stoichiometry[i * speciesCount + j] == 0.0 || scratch.ElementActive[i] == 1;
             }
 
-            if (!present || !InEffectiveRange(table, scratch, j, temperature)
-                || PartnerInSolution(table, scratch, condensedCount, j) >= 0)
+            if (!present || !PhaseGeometry.InEffectiveRange(table, scratch, j, temperature)
+                || PhaseGeometry.PartnerInSolution(table, scratch, condensedCount, j) >= 0)
             {
                 continue;
             }
@@ -920,40 +799,6 @@ public static class EquilibriumSolver
         }
 
         return false;
-    }
-
-    /// <summary>Element balance over the retained species: |b_i° − Σ a_ij n_j| against the tolerance times (relative: b_max; absolute: max(1, b_i)).</summary>
-    private static bool ElementBalanceWithin(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                             in EquilibriumResult result, double tolerance, bool relativeToLargest)
-    {
-        var speciesCount = table.SpeciesCount;
-        var largest = 0.0;
-        for (var i = 0; i < table.ElementCount; i++)
-        {
-            largest = Math.Max(largest, problem.ElementMoles[i]);
-        }
-
-        for (var i = 0; i < table.ElementCount; i++)
-        {
-            if (scratch.ElementActive[i] == 0)
-            {
-                continue;
-            }
-
-            var b = 0.0;
-            for (var j = 0; j < speciesCount; j++)
-            {
-                b += table.Stoichiometry[i * speciesCount + j] * result.Moles[j];
-            }
-
-            var bound = relativeToLargest ? tolerance * largest : tolerance * Math.Max(1.0, problem.ElementMoles[i]);
-            if (Math.Abs(problem.ElementMoles[i] - b) > bound)
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /// <summary>Fills the reduced iteration matrix (RP-1311 table 2.1) and its right-hand side for the current estimate.</summary>
@@ -1047,13 +892,7 @@ public static class EquilibriumSolver
                 continue;
             }
 
-            var b = 0.0;
-            for (var j = 0; j < speciesCount; j++)
-            {
-                b += table.Stoichiometry[k * speciesCount + j] * result.Moles[j];
-            }
-
-            scratch.RightHandSide[k] += problem.ElementMoles[k] - b;
+            scratch.RightHandSide[k] += problem.ElementMoles[k] - ElementBalance.Residual(table, result, k);
         }
 
         for (var c = 0; c < condensedCount; c++)
@@ -1132,7 +971,7 @@ public static class EquilibriumSolver
         {
             for (var d = c + 1; d < condensedCount; d++)
             {
-                if (SameFormula(table, scratch.CondensedInSolution[c], scratch.CondensedInSolution[d]))
+                if (PhaseGeometry.SameFormula(table, scratch.CondensedInSolution[c], scratch.CondensedInSolution[d]))
                 {
                     pairSecond = d;
                     break;
