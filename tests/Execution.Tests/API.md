@@ -14,7 +14,7 @@ GPU/CPU tolerance table and the approved throughput figures.
 | batches are deterministic and independent of chunking | L2 | ✅ |
 | CUDA is at least 5× faster than the CPU accelerator with all cores on the reference machine, and the measured figure is recorded | Benchmark, `Throughput.approved.txt` | ✅ |
 | CUDA can be forbidden and the node then never touches the CUDA driver; an explicit CUDA request that cannot be met names every path tried | L0 | ✅ |
-| an `Auto` fallback to the CPU accelerator says why on the accelerator description; a scratch bound of zero or less is refused; the post-link names a wrapper whose definition is missing | L0 (2026-09-14: `AcceleratorChoiceTests`, `PostLinkTests`) | ⏳ |
+| an `Auto` fallback to the CPU accelerator says why on the accelerator description; a scratch bound of zero or less is refused; the post-link names a wrapper whose definition is missing | L0 (2026-09-14: `AcceleratorChoiceTests`, `PostLinkTests`) | ✅ |
 
 ## What the tests rely on
 

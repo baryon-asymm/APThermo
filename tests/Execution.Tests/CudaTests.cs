@@ -8,7 +8,7 @@ namespace AerospacePropellantThermodynamics.Execution.Tests;
 [Collection(EngineCollection.Name)]
 public sealed class CudaTests(EngineFixture fixture)
 {
-    public static IEnumerable<object[]> Families() => BatchBuilders.FamilyNames(EngineFixture.SharedDatabase);
+    public static IEnumerable<object[]> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
 
     [Theory]
     [MemberData(nameof(Families))]
@@ -21,7 +21,7 @@ public sealed class CudaTests(EngineFixture fixture)
             return;
         }
 
-        var family = BatchBuilders.Family(fixture.Database, name);
+        var family = FixtureBatches.Family(fixture.Database, name);
         var batch = family.Batch();
         using var cpuTables = fixture.Cpu.Upload(family.Table, family.Transport);
         using var cudaTables = cuda.Upload(family.Table, family.Transport);
@@ -60,7 +60,7 @@ public sealed class CudaTests(EngineFixture fixture)
             return;
         }
 
-        var (batch, table, cases) = BatchBuilders.EquilibriumFamily(fixture.Database, "lox-rp1_of2.6_pc10MPa");
+        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(fixture.Database, "lox-rp1_of2.6_pc10MPa");
         using var cpuTables = fixture.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
         var cpu = fixture.Cpu.Run(cpuTables, batch);
@@ -106,7 +106,7 @@ public sealed class CudaTests(EngineFixture fixture)
         Assert.NotNull(sweep.Cuda);
         Assert.NotNull(sweep.CudaAgain);
         Assert.Equal(SweepRun.LongRunningCases, sweep.Batch.Count);
-        var family = BatchBuilders.Family(fixture.Database, SweepRun.FamilyName);
+        var family = FixtureBatches.Family(fixture.Database, SweepRun.FamilyName);
         var worst = new Dictionary<string, double>(StringComparer.Ordinal);
         var differentSteps = 0;
         var mismatches = CompareRocket(sweep.Cpu, sweep.Cuda, family, worst, ref differentSteps);
@@ -117,13 +117,13 @@ public sealed class CudaTests(EngineFixture fixture)
         Assert.Equal(sweep.Cuda.Status, sweep.CudaAgain.Status);
         for (var i = 0; i < sweep.Cuda.Stations.Length; i++)
         {
-            Assert.Empty(BatchBuilders.BitDifferences(sweep.Cuda.Stations[i], sweep.CudaAgain.Stations[i], $"station {i}"));
-            Assert.Empty(BatchBuilders.BitDifferences(sweep.Cuda.Figures[i], sweep.CudaAgain.Figures[i], $"station {i}"));
+            Assert.Empty(BitEquality.BitDifferences(sweep.Cuda.Stations[i], sweep.CudaAgain.Stations[i], $"station {i}"));
+            Assert.Empty(BitEquality.BitDifferences(sweep.Cuda.Figures[i], sweep.CudaAgain.Figures[i], $"station {i}"));
         }
 
         for (long j = 0; j < sweep.Cuda.Moles.LongLength; j++)
         {
-            Assert.True(BatchBuilders.SameBits(sweep.Cuda.Moles[j], sweep.CudaAgain.Moles[j]), $"moles differ at {j}");
+            Assert.True(BitEquality.SameBits(sweep.Cuda.Moles[j], sweep.CudaAgain.Moles[j]), $"moles differ at {j}");
         }
 
         Assert.True(sweep.Cpu.Status.All(s => s == CaseStatus.Ok), $"{sweep.Cpu.Status.Count(s => s != CaseStatus.Ok)} cases failed on the CPU accelerator");

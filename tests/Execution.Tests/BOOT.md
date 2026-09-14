@@ -8,7 +8,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
 | L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
-| L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ⏳ |
+| L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ✅ (2026-09-14) |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file (`Throughput.approved.txt`), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`) | ✅ |
@@ -90,9 +90,9 @@ libdevice for the CUDA category.
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — L0 and L1 green: `AcceleratorChoiceTests` (ten facts: the CPU
-      engine's description, paths nowhere, discovery paths, the variable forbids CUDA
-      and `Auto` falls back, no driver loaded when forbidden, the ILGPU assertion,
+- [x] 2026-09-12 — L0 and L1 green: `AcceleratorChoiceTests` (the CPU engine's
+      description, paths nowhere, discovery paths, the variable forbids CUDA and
+      `Auto` falls back, no driver loaded when forbidden, the ILGPU assertion,
       wrapper names, inconsistent batches refused, chunk bounds, result layouts),
       `ProbeKernelTests` (`The_cpu_accelerator_reproduces_dotnet_math_exactly`,
       `Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`).
@@ -120,23 +120,37 @@ libdevice for the CUDA category.
       of different step counts set to zero, the second mole-fraction tier set back to
       1e-10, and the determinism check pointed at the CPU result (each: the sweep
       test).
-- [ ] The three facts of 2026-09-14 (the level table's second L0 row): the `Auto`
-      fallback with discovery off and the explicit paths nowhere yields the CPU engine
-      and `CudaSkippedBecause` naming what was missing and the paths tried (the
-      mirror of `An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`),
-      seen red against `8e36a27`; `ScratchBytes` of zero or less refused at `Create`
-      naming the option; the post-link's missing-definition check names the wrapper
-      when handed a wrapper body with one definition removed (`PostLinkTests`, no
-      GPU) — the first non-degeneracy proof of the guard behind the node's third
-      invariant.
-- [ ] The support code in shape (the test review's F-TF-06 and F-TF-13):
-      `BatchBuilders` becomes `FixtureBatches` (fixtures to families and batches),
-      `HostSolves` (one case through the numerical nodes over the accelerator's own
-      buffers, returning named record structs instead of tuples) and `BitEquality`
-      (`SameBits`, `BitDifferences<T>`); no method over 60 lines or nested deeper
-      than 3; every L2 fact green bit for bit and the node's mutations above still
-      red. The hand-typed fact counts leave the criteria above; the listed names are
-      the list.
+- [x] 2026-09-14 — The three facts of 2026-09-14 (the level table's second L0 row):
+      the `Auto` fallback with discovery off and the explicit paths nowhere yields
+      the CPU engine and `CudaSkippedBecause` naming what was missing and the paths
+      tried (`AcceleratorChoiceTests.An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried`,
+      the mirror of `An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`),
+      red against the code of `8e36a27` (where `AcceleratorInfo` said nothing) before
+      `c10ab0e`; `ScratchBytes` of zero or less refused at `Create` naming the option
+      (`Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`); the post-link's
+      missing-definition check names the wrapper when handed a wrapper body with one
+      definition removed, without a GPU (`PostLinkTests.A_wrapper_body_with_one_definition_removed_names_that_wrapper`
+      and its two siblings) — the first non-degeneracy proof of the guard behind the
+      node's third invariant.
+- [x] 2026-09-14 — The support code in shape (the test review's F-TF-06 and F-TF-13):
+      `BatchBuilders` is gone, replaced by `FixtureBatches.cs` (`RocketInputs`,
+      `RocketFamily`, fixtures to families and batches), `HostSolves.cs` (one case
+      through the numerical nodes over the accelerator's own buffers, returning the
+      named record structs `HostRocketCase`, `HostEquilibriumCase`,
+      `HostTransportStation` instead of tuples), `BitEquality.cs` (`SameBits`,
+      `BitDifferences<T>`) and `SweepRun.cs` (the long-running sweep, not named by
+      F-TF-06 but sharing none of the three axes above); no method over 60 lines or
+      nested deeper than 3 (`python inventory.py .`: nothing of this node listed);
+      every L2 fact green bit for bit after the split
+      (`AerospacePropellantThermodynamics.Execution.Tests.dll`: 41 passed) and the
+      node's mutations re-run alone and seen red where the touched code moved: the
+      rocket kernel's chamber pressure perturbed by a relative `1e-12`
+      (`batch.ChamberPressures[index] * (1.0 + 1e-12)` in `Kernels.Rocket`) reddened
+      `A_rocket_family_equals_the_host_solver_bit_for_bit` for every family, and the
+      chunk bound with its memory clamp removed from `ChunkPlan.For` reddened
+      `Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`; both reverted
+      and the suite green again before committing. The hand-typed fact counts left
+      the criteria above; the listed names are the list.
 
 ## Taboos
 
