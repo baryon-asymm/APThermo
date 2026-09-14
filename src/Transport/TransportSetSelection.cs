@@ -33,7 +33,7 @@ internal static class TransportSetSelection
         var count = 0;
         for (var j = 0; j < inputs.Species.GasCount; j++)
         {
-            if (TransportSolver.OfCase(in inputs, j))
+            if (TransportComponents.OfCase(in inputs, j))
             {
                 count++;
             }
