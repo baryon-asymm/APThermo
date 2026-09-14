@@ -263,14 +263,26 @@ Decisions taken with the review of 2026-09-14:
       read the never-written correction as zero and returned the station `Ok`; green
       with `NeverSupersonic` ending the station as `NotConverged`. No fixture reaches
       the path: the bit snapshot of all 98 rocket fixtures did not move.
-- [ ] The pressure-ratio station is a stage of its own (`## Structure`, Size):
-      `PressureRatioStation` holds what `ExitStations.AtPressureRatio` holds today,
-      `ExitStations` holds no formula, and its efferent coupling by the dependency
-      check's walk is at most 14 or written, measured, into its row as the node's
-      composition root of the exits; the tests node's
-      `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` unchanged and
-      `KernelEqualityTests` green, and the execution tests node's fast set green on
-      CUDA.
+- [x] 2026-09-14 — The pressure-ratio station is a stage of its own (`## Structure`,
+      Size): `PressureRatioStation` holds what `ExitStations.AtPressureRatio` held,
+      moved with every expression in its form and its order of evaluation (its own
+      file, `PressureRatioStation.cs`); `ExitStations` keeps the loop, the dispatch,
+      the estimate chain and the case status, holding no formula. Efferent coupling
+      by the dependency check's walk, measured by the scratch tool that reproduces
+      it (`AGENTS.md` §13; the tool used for the root's recalibration to 14) run over
+      this step's build: `ExitStations` 14, `ChamberSolve` 14, `AreaRatioIteration`
+      13, `RocketSolver` 13, `ThroatSearch` 13, `StationSolve` 12,
+      `PressureRatioStation` 11 — every stage at or under the root's limit of 14, so
+      `ExitStations` does not need the composition-root exception the Size bullet
+      allowed for, and this node needs no `## Shape exceptions` table.
+      `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` green with
+      `Bits.approved.txt` unmoved (byte for byte before and after this step) and
+      `KernelEqualityTests` green: `dotnet test tests/Performance.Tests`, 699 tests,
+      0 failed, 0 skipped. The public surface is unchanged
+      (`Protocol.Tests.SurfaceTests` green; the new type is internal). The execution
+      tests node's fast set green on CUDA on the reference machine: `dotnet test
+      tests/Execution.Tests --filter "Category!=LongRunning"`, no `APTHERMO_NO_CUDA`,
+      41 tests, 0 failed, 0 skipped.
 
 ## Taboos
 

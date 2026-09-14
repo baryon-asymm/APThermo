@@ -51,7 +51,7 @@ internal static class ExitStations
         if (kind == ExitSpecification.PressureRatio)
         {
             estimate.Extrapolable = false;
-            AtPressureRatio(in context, in chamber, in throat, value, station, estimate.Temperature);
+            PressureRatioStation.At(in context, in chamber, in throat, value, station, estimate.Temperature);
             return;
         }
 
@@ -65,30 +65,5 @@ internal static class ExitStations
 
         // The station carries the verdict of the iteration: its figures when the area ratio was met, its status when it was not.
         AreaRatioIteration.At(in context, in chamber, in throat, value, station, ref estimate);
-    }
-
-    /// <summary>One exit station assigned by the pressure ratio p_c/p_e (6.3.6): a single solve at that pressure, the area ratio an output.</summary>
-    private static void AtPressureRatio(in RocketContext context, in ChamberReference chamber, in ThroatReference throat,
-                                        double value, int station, double temperatureEstimate)
-    {
-        var result = context.Result;
-        if (!(value > 1.0))
-        {
-            result.StationStatus[station] = (int)CaseStatus.InvalidInput;
-            return;
-        }
-
-        var flow = context.Problem.Flow == FlowModel.ShiftingEquilibrium ? StationFlow.Shifting : StationFlow.Frozen;
-        var pressure = chamber.Pressure / value;
-        var request = new StationRequest(station, pressure, temperatureEstimate, chamber.Entropy, flow);
-        if (!StationSolve.At(in context, in request))
-        {
-            return;
-        }
-
-        var state = result.Stations[station];
-        var velocity = StationFigures.VelocityClamped(chamber.Enthalpy, in state);
-        var areaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
-        StationFigures.Write(in context, station, velocity, areaRatio, value, throat.CharacteristicVelocity);
     }
 }
