@@ -130,8 +130,9 @@ node's shape check (2026-09-14).
   text data and text fixtures. Nothing secret exists in this repository.
 - Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, CUDA
   Toolkits 12.9 and 13.3, 16 logical CPU cores. Recorded, not required.
-- Code shape (2026-09-14, the clean-code pass): a type spans at most 400 physical
-  lines from its declaration to its closing brace, a method at most 60, control flow
+- Code shape (2026-09-14, the clean-code pass): a type spans at most 400 lines of
+  code from its declaration to its closing brace, a method at most 60 (a line of code
+  holds more than white space and comments), control flow
   nests at most 3 deep, a method takes at most 6 parameters (kernels aggregate through
   their `in` view and scratch structs; a constructor is a method for this count, a
   record's primary constructor included, and a type that mirrors an external format or
@@ -159,6 +160,14 @@ node's shape check (2026-09-14).
   which carry their data explicitly as the no-hidden-state invariant requires, measured
   12 to 16. The limit is recalibrated on the walk; the protocol tests node's `BOOT.md`
   records the measurement and the source of the figure.
+
+  ⚠ 2026-09-14, evening: the size limits first counted physical lines, the blank and
+  comment lines inside a span included, so the documentation comments of a type's
+  members counted toward the type's 400 and an explanatory comment toward a method's
+  60. A limit that charges for documentation invites deleting it, and the user asked
+  that comments not count. The limits now count the lines that hold code; the figures
+  stay 400 and 60, which can only lower a measurement, so no type or method that met
+  them stops meeting them. The protocol tests node's `BOOT.md` defines the count.
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
@@ -216,15 +225,16 @@ There is no external ancestor: the tree root is the repository root, and the loa
       `tests/Protocol.Tests/PublicSurface.approved.txt`. The first run over the tree
       found one undocumented public type (`Execution`'s `SpeciesFunctionBatchViews`,
       fixed in its `API.md`).
-- [ ] The tree meets the code-shape constraint above: no type over 400 physical
-      lines, no method over 60, no control flow nested deeper than 3, no method with
+- [ ] The tree meets the code-shape constraint above: no type over 400 lines of
+      code, no method over 60, no control flow nested deeper than 3, no method with
       more than 6 parameters, no type with Ce over 14 outside the registries and
       composition roots the nodes declare, every stable type in shape, no dependency
       against instability; measured by the protocol tests node's `ShapeTests` over a
       machine-generated list of every type and method of every assembly, the declared
       exceptions read from the nodes' `BOOT.md`. The review of 2026-09-14 (nine
       read-only reviews over the tree at `8e36a27`, one per node group and one across
-      the boundaries) found 5 types over 400 lines (`EquilibriumSolver` 1289,
+      the boundaries, counting physical lines) found 5 types over 400 lines
+      (`EquilibriumSolver` 1289,
       `TransportSolver` 794, `Problems.Solver` 663, `Engine` 509, `Protocol.Tests.Tree`
       428), 31 methods over 60 lines (the longest `TransportSolver.Evaluate` 640 and
       `EquilibriumSolver.Solve` 512) and 10 types with Ce over 10 by its textual count; the decompositions

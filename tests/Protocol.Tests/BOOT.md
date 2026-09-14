@@ -178,12 +178,12 @@ thing:
 
 | Rule | Limit | Over | Definition |
 |---|---|---|---|
-| type lines | 400 | every type of every node | physical lines from the line of the type's modifiers or keyword to its closing brace, blank and comment lines included, attributes and the documentation comment above it excluded; a nested type counts inside its outer type and on its own |
+| type lines | 400 | every type of every node | the lines that hold code from the line of the type's modifiers or keyword to its closing brace: a line counts when it holds a token, whatever comment shares it, and a line of only white space or only comment (`//`, `///`, or a block comment's line) does not; attributes and the documentation comment above the type are outside the span; a nested type counts inside its outer type and on its own |
 | method lines | 60 | every method, constructor, operator, accessor with a body and local function | the same span rule for the member |
 | nesting | 3 | every member body | the depth of `if` (an `else if` continues its chain), `for`, `foreach`, `while`, `do`, `switch` and `try`; a lambda or a local function continues the depth of the statement it stands in |
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
 | efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), the nested and compiler-generated types of the naming type attributed to the outermost type that declares them, a nested type it names counted as itself, a constructed generic type counted once as its definition, an array, by-reference or pointer type counted as its element type; types outside the tree, and compiler-generated types no type declares, not counted |
-| stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
+| stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
 | stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the project references; every reference points to a node whose I is not above the referrer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
 | named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier is N; any other target-typed creation is left to review |
@@ -209,6 +209,14 @@ resolves the name through the file's namespace, its `using` directives and its n
 declarations, which gives the compiler's binding at every creation of the two names; every
 creation of a row's type still falls under it.
 
+⚠ 2026-09-14, evening: the type-lines row read "physical lines …, blank and comment
+lines included". A type or a method could then be brought within its limit by deleting
+its documentation or its explanatory comments, and the documentation comments of a
+type's members counted toward the type's own figure. The user asked that comments not
+count; the row now counts the lines that hold code, with the figures unchanged, so every
+measurement can only fall and no row moves (no row declares a line rule). `ShapeMeasures`
+is brought to this row together with the Shape facts.
+
 The test nodes obey the size, nesting, parameter and mechanics rules, since their
 support code is code; the coupling and stable-type rules apply to the `src` nodes, on
 which their thresholds were calibrated. Python and the linter are outside the check.
@@ -228,11 +236,12 @@ and when a row's type or member no longer exceeds the limit.
 
 Why the numbers are what they are:
 
-- 400 lines per type: about eight editor screens, past which no reader holds a type at
-  once; the protocol decomposes a node when it "no longer has to be held in the head as
-  a whole", and the user's figure agreed.
-- 60 lines per method: one editor screen, so that a method's control flow is seen
-  without scrolling.
+- 400 lines of code per type: about eight editor screens of code, past which no reader
+  holds a type at once; the protocol decomposes a node when it "no longer has to be held
+  in the head as a whole", and the user's figure agreed. Comment and blank lines are not
+  counted (2026-09-14): a limit that charges for documentation invites deleting it.
+- 60 lines of code per method: about one editor screen, so that a method's control flow
+  is seen without scrolling.
 - 3 levels of nesting: where the carried conditions exceed working memory, and the
   default of the usual analysers (SonarQube S134).
 - 6 parameters: the lower edge of Miller's 7 ± 2, past which positional arguments of one
@@ -364,11 +373,11 @@ Why the numbers are what they are:
       `No_partial_type_region_or_helpers_class`,
       `Every_wide_constructor_is_called_with_named_arguments`,
       `Every_shape_exception_is_measured_and_still_needed`) over the types and methods
-      the check enumerates itself (the counts it measured written here when ticked).
-      The nodes' `## Shape exceptions` tables transcribe the exceptions their
-      `## Structure` sections declare; a violation no node declared is a finding for a
-      design session, not a new row. Each fact seen red once, each mutation alone: a
-      type padded to 401 lines; a method padded to 61 lines; a fourth nesting level; a
+      the check enumerates itself (the counts it measured written here when ticked). The
+      nodes' `## Shape exceptions` tables transcribe the exceptions their `## Structure`
+      sections declare; a violation no node declared is a finding for a design session,
+      not a new row. Each fact seen red once, each mutation alone: a type padded to 401
+      lines of code; a method padded to 61 lines of code; a fourth nesting level; a
       seventh parameter; an internal `src` type made to name a fifteenth type of the
       tree; an internal type with ten dependants grown past 100 lines; a synthetic
       project graph with a reference against instability given to the same rule; a
@@ -376,7 +385,10 @@ Why the numbers are what they are:
       limits; one argument of a declared wide constructor's creation passed by position.
       The named-construction fact also stays green when a creation of another node's
       type that shares a row type's simple name passes an argument by position (the
-      resolution its definition settled on 2026-09-14).
+      resolution its definition settled on 2026-09-14). The line facts also stay green
+      when a type within 400 lines of code spans more than 400 physical lines through
+      its comment and blank lines, and a method within 60 lines of code spans more than
+      60 the same way.
 
 ## Taboos
 
