@@ -17,14 +17,23 @@ public enum AmountKind
     Moles,
 }
 
+/// <summary>
+/// The facts that exist only together on a custom reactant (F-PR-05): its formula, its enthalpy and the temperature it was
+/// fitted at, and optionally its molar mass; travel as one record instead of four adjacent parameters of <see cref="Reactant.Custom"/>.
+/// </summary>
+public sealed record CustomReactantDefinition(
+    IReadOnlyList<ElementCount> Formula,   // atoms per formula unit; not empty
+    double Enthalpy,                       // J/mol at Temperature; finite
+    double Temperature,                    // K; positive
+    double? MolarMass = null);             // kg/kmol; null = from the formula and the atomic weights
+
 /// <summary>One reactant of a propellant: a database record by name, or a custom definition by formula and enthalpy (a binder such as HTPB).</summary>
 public sealed record Reactant
 {
     /// <summary>The temperature assumed for a database record with polynomial intervals when none is given, as the reference assumes it.</summary>
     public const double DefaultTemperature = 298.15;
 
-    private Reactant(string name, ReactantRole role, double amount, AmountKind amountKind, double? temperature,
-                     IReadOnlyList<ElementCount>? formula, double? enthalpy, double? molarMass)
+    private Reactant(string name, ReactantRole role, double amount, AmountKind amountKind, double? temperature, CustomReactantDefinition? definition)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         if (!(amount >= 0.0) || double.IsInfinity(amount))
@@ -37,29 +46,29 @@ public sealed record Reactant
             throw new ArgumentException($"reactant '{name}': the temperature must be positive and finite", nameof(temperature));
         }
 
-        if (formula is not null)
+        if (definition is not null)
         {
-            if (formula.Count == 0)
+            if (definition.Formula.Count == 0)
             {
-                throw new ArgumentException($"reactant '{name}': the formula is empty", nameof(formula));
+                throw new ArgumentException($"reactant '{name}': the formula is empty", nameof(definition));
             }
 
-            foreach (var pair in formula)
+            foreach (var pair in definition.Formula)
             {
                 if (string.IsNullOrWhiteSpace(pair.Symbol) || !(pair.Count > 0.0) || double.IsInfinity(pair.Count))
                 {
-                    throw new ArgumentException($"reactant '{name}': the formula entry '{pair.Symbol}' must have a symbol and a positive count", nameof(formula));
+                    throw new ArgumentException($"reactant '{name}': the formula entry '{pair.Symbol}' must have a symbol and a positive count", nameof(definition));
                 }
             }
 
-            if (enthalpy is null || !double.IsFinite(enthalpy.Value))
+            if (!double.IsFinite(definition.Enthalpy))
             {
-                throw new ArgumentException($"reactant '{name}': the enthalpy must be finite", nameof(enthalpy));
+                throw new ArgumentException($"reactant '{name}': the enthalpy must be finite", nameof(definition));
             }
 
-            if (molarMass is { } m && !(m > 0.0 && double.IsFinite(m)))
+            if (definition.MolarMass is { } m && !(m > 0.0 && double.IsFinite(m)))
             {
-                throw new ArgumentException($"reactant '{name}': the molar mass must be positive", nameof(molarMass));
+                throw new ArgumentException($"reactant '{name}': the molar mass must be positive", nameof(definition));
             }
         }
 
@@ -68,21 +77,18 @@ public sealed record Reactant
         Amount = amount;
         AmountKind = amountKind;
         Temperature = temperature;
-        Formula = formula;
-        Enthalpy = enthalpy;
-        MolarMass = molarMass;
+        Definition = definition;
     }
 
     /// <summary>A reactant of the database by exact name; the temperature defaults to the record's assigned temperature, or to 298.15 K for a record with polynomial intervals.</summary>
     public static Reactant FromDatabase(string name, ReactantRole role, double amount, double? temperature = null, AmountKind amountKind = AmountKind.MassFraction) =>
-        new(name, role, amount, amountKind, temperature, null, null, null);
+        new(name, role, amount, amountKind, temperature, null);
 
-    /// <summary>A reactant defined by its formula and its enthalpy (J/mol) at a temperature, as the reference defines exploded-formula reactants.</summary>
-    public static Reactant Custom(string name, IReadOnlyList<ElementCount> formula, double enthalpy, double temperature, ReactantRole role, double amount,
-                                  double? molarMass = null, AmountKind amountKind = AmountKind.MassFraction)
+    /// <summary>A reactant defined by its <paramref name="definition"/> (formula, enthalpy and temperature), as the reference defines exploded-formula reactants.</summary>
+    public static Reactant Custom(string name, CustomReactantDefinition definition, ReactantRole role, double amount, AmountKind amountKind = AmountKind.MassFraction)
     {
-        ArgumentNullException.ThrowIfNull(formula);
-        return new Reactant(name, role, amount, amountKind, temperature, formula, enthalpy, molarMass);
+        ArgumentNullException.ThrowIfNull(definition);
+        return new Reactant(name, role, amount, amountKind, definition.Temperature, definition);
     }
 
     public string Name { get; }
@@ -97,16 +103,10 @@ public sealed record Reactant
     /// <summary>K; null means the record's default.</summary>
     public double? Temperature { get; }
 
-    public bool IsCustom => Formula is not null;
+    public bool IsCustom => Definition is not null;
 
-    /// <summary>Custom reactants only: atoms per formula unit.</summary>
-    public IReadOnlyList<ElementCount>? Formula { get; }
-
-    /// <summary>Custom reactants only: J/mol at <see cref="Temperature"/>.</summary>
-    public double? Enthalpy { get; }
-
-    /// <summary>Custom reactants only: kg/kmol; null means the sum over the formula with the database's atomic weights.</summary>
-    public double? MolarMass { get; }
+    /// <summary>Custom reactants only: the formula, enthalpy, temperature and molar mass that exist only together (F-PR-05).</summary>
+    public CustomReactantDefinition? Definition { get; }
 }
 
 /// <summary>How the reactants' amounts make up one kilogram of propellant.</summary>

@@ -254,7 +254,7 @@ after the type; the public records keep their theme files.
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 23 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `RocketSweep`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 on the internal decomposition, down from 34 before it | public |
+| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either. Still the tree's largest Ce and the reason for the declared exception, whether measured against the textual limit of 10 or the walk-calibrated 14 the root records as of the integration branch's `9facd7f` | public |
 | `ChemicalSystem` | one element set with its table and its uploaded copy; disposable; no transport table kept (F-PR-12) | internal |
 | `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
 | `MixtureMass` | Σ n_i A_i with the database's atomic weights, and the refusal beyond the mixture's declared tolerance | internal static |
@@ -271,9 +271,10 @@ after the type; the public records keep their theme files.
 | `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
 | `PropellantBuilder.Build` | four calls and a constructor | public, unchanged |
 
-Decisions taken with the review of 2026-09-14. The contract-moving ones are declared
-in `API.md` under the planned section of that day and move the surface snapshot in
-one commit, after the internal moves:
+Decisions taken with the review of 2026-09-14. The contract-moving ones are coded in
+the contract commit, after the internal moves: `API.md` rewritten with these as real
+✅ blocks and ⚠ corrections where the old declarations stood, and
+`PublicSurface.approved.txt` moved in the same commit.
 
 - **The state record is this node's exchange shape** (F-AR-02, option a, decided at
   the root). `StateRecord` keeps its five positional parameters and gains

@@ -61,7 +61,8 @@ internal static class FixtureCases
             if (r.TryGetProperty("custom", out var custom) && custom.GetBoolean())
             {
                 var formula = r.GetProperty("formula").EnumerateObject().Select(p => new ElementCount(p.Name, p.Value.GetDouble())).ToList();
-                builder.Custom(Reactant.Custom(name, formula, r.GetProperty("enthalpy").GetDouble(), temperature!.Value, role, massFraction));
+                var definition = new CustomReactantDefinition(formula, r.GetProperty("enthalpy").GetDouble(), temperature!.Value);
+                builder.Custom(Reactant.Custom(name, definition, role, massFraction));
             }
             else
             {

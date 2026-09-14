@@ -10,7 +10,8 @@ internal static class ReactantResolver
 
     private static ResolvedReactant Custom(SpeciesDatabase database, Reactant reactant)
     {
-        var formula = reactant.Formula!.Select(pair => (SpeciesSelection.Spelling(pair.Symbol), pair.Count)).ToList();
+        var definition = reactant.Definition!;
+        var formula = definition.Formula.Select(pair => (SpeciesSelection.Spelling(pair.Symbol), pair.Count)).ToList();
         var molarMass = 0.0;
         foreach (var (symbol, count) in formula)
         {
@@ -27,9 +28,9 @@ internal static class ReactantResolver
             molarMass += count * weight;
         }
 
-        molarMass = reactant.MolarMass ?? molarMass;
+        molarMass = definition.MolarMass ?? molarMass;
         var temperature = reactant.Temperature!.Value;
-        return new ResolvedReactant(reactant, null, formula, molarMass, temperature, false, reactant.Enthalpy!.Value, MassOf(reactant, molarMass));
+        return new ResolvedReactant(reactant, null, formula, molarMass, temperature, false, definition.Enthalpy, MassOf(reactant, molarMass));
     }
 
     private static ResolvedReactant FromDatabase(SpeciesDatabase database, Reactant reactant)

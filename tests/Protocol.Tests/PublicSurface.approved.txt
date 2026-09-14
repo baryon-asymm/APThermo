@@ -463,6 +463,13 @@ enum AerospacePropellantThermodynamics.Problems.AmountKind : Int32
     MassFraction = 0
     Moles = 1
 
+sealed class (record) AerospacePropellantThermodynamics.Problems.CustomReactantDefinition : IEquatable<CustomReactantDefinition>
+    .ctor(IReadOnlyList<ElementCount> Formula, Double Enthalpy, Double Temperature, Double? MolarMass = null)
+    Double Enthalpy { get; init; }
+    Double Temperature { get; init; }
+    Double? MolarMass { get; init; }
+    IReadOnlyList<ElementCount> Formula { get; init; }
+
 sealed class (record) AerospacePropellantThermodynamics.Problems.ElementalMixture : IEquatable<ElementalMixture>
     Double MassTolerance { get; }
     Double? Enthalpy { get; }
@@ -471,6 +478,7 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.ElementalMixtur
     IReadOnlyList<String> Omit { get; }
     IReadOnlyList<String>? Only { get; }
     const Double DefaultMassTolerance = 0.01
+    static Boolean IsValidMassTolerance(Double massTolerance)
     static ElementalMixture Create(IReadOnlyDictionary<String, Double> elementMoles, Double? enthalpy = null, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null, Double massTolerance = 0.01)
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumProblem : IEquatable<EquilibriumProblem>
@@ -535,15 +543,13 @@ sealed class AerospacePropellantThermodynamics.Problems.PropellantBuilder
 sealed class (record) AerospacePropellantThermodynamics.Problems.Reactant : IEquatable<Reactant>
     AmountKind AmountKind { get; }
     Boolean IsCustom { get; }
+    CustomReactantDefinition? Definition { get; }
     Double Amount { get; }
-    Double? Enthalpy { get; }
-    Double? MolarMass { get; }
     Double? Temperature { get; }
-    IReadOnlyList<ElementCount>? Formula { get; }
     ReactantRole Role { get; }
     String Name { get; }
     const Double DefaultTemperature = 298.15
-    static Reactant Custom(String name, IReadOnlyList<ElementCount> formula, Double enthalpy, Double temperature, ReactantRole role, Double amount, Double? molarMass = null, AmountKind amountKind = MassFraction)
+    static Reactant Custom(String name, CustomReactantDefinition definition, ReactantRole role, Double amount, AmountKind amountKind = MassFraction)
     static Reactant FromDatabase(String name, ReactantRole role, Double amount, Double? temperature = null, AmountKind amountKind = MassFraction)
 
 enum AerospacePropellantThermodynamics.Problems.ReactantRole : Int32
@@ -573,19 +579,10 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.RocketResult : 
     Propellant? Propellant { get; init; }
     RocketProblem Problem { get; init; }
 
-sealed class (record) AerospacePropellantThermodynamics.Problems.RocketSweep : IEquatable<RocketSweep>
-    .ctor(Propellant Propellant, IReadOnlyList<Double> OxidizerToFuelRatios, IReadOnlyList<Double> ChamberPressures, IReadOnlyList<Double> AreaRatios, FlowModel Flow = ShiftingEquilibrium, Boolean Transport = false)
-    Boolean Transport { get; init; }
-    FlowModel Flow { get; init; }
-    IReadOnlyList<Double> AreaRatios { get; init; }
-    IReadOnlyList<Double> ChamberPressures { get; init; }
-    IReadOnlyList<Double> OxidizerToFuelRatios { get; init; }
-    Propellant Propellant { get; init; }
-
 sealed class AerospacePropellantThermodynamics.Problems.Solver : IDisposable
     AcceleratorInfo Accelerator { get; }
     Double MassOf(ElementalMixture mixture)
-    ElementalMixture Mixture(Propellant propellant, Double? oxidizerToFuelRatio = null)
+    ElementalMixture MixtureOf(Propellant propellant, Double? oxidizerToFuelRatio = null)
     EquilibriumResult Solve(ElementalMixture mixture, EquilibriumProblem problem)
     EquilibriumResult Solve(Propellant propellant, EquilibriumProblem problem)
     IReadOnlyList<EquilibriumResult> Solve(ElementalMixture mixture, IReadOnlyList<EquilibriumProblem> problems)
@@ -595,8 +592,8 @@ sealed class AerospacePropellantThermodynamics.Problems.Solver : IDisposable
     IReadOnlyList<RocketResult> Solve(ElementalMixture mixture, IReadOnlyList<RocketProblem> problems)
     IReadOnlyList<RocketResult> Solve(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<RocketProblem> problems)
     IReadOnlyList<RocketResult> Solve(Propellant propellant, IReadOnlyList<RocketProblem> problems)
-    IReadOnlyList<RocketResult> Solve(RocketSweep sweep)
-    IReadOnlyList<String> CandidateSpecies(IReadOnlyList<String> elements, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null)
+    IReadOnlyList<RocketResult> SolveRocketStates(IReadOnlyList<StateRecord> states, StateBatchOptions? options = null)
+    IReadOnlyList<String> CandidateSpeciesFor(IReadOnlyList<String> elements, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null)
     RocketResult Solve(ElementalMixture mixture, RocketProblem problem)
     RocketResult Solve(Propellant propellant, RocketProblem problem)
     SpeciesDatabase Database { get; }
@@ -612,11 +609,20 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.StateBatchOptio
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.StateRecord : IEquatable<StateRecord>
     .ctor(Double Pressure, IReadOnlyDictionary<String, Double> Composition, Double? Enthalpy = null, Double? Temperature = null, Double? Entropy = null)
+    Boolean HasExits { get; }
     Double Pressure { get; init; }
     Double? Enthalpy { get; init; }
     Double? Entropy { get; init; }
     Double? Temperature { get; init; }
+    FlowModel? Flow { get; init; }
     IReadOnlyDictionary<String, Double> Composition { get; init; }
+    IReadOnlyList<Double> AreaRatios { get; init; }
+    IReadOnlyList<Double> PressureRatios { get; init; }
+
+sealed class AerospacePropellantThermodynamics.Problems.StateRecordException : ArgumentException, ISerializable
+    .ctor(Int32 index, String reason)
+    Int32 Index { get; }
+    String Reason { get; }
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.Station : IEquatable<Station>
     .ctor(String Name, MixtureState State, PerformanceFigures? Performance, IReadOnlyDictionary<String, Double> MoleFractions, IReadOnlyDictionary<String, Double> CondensedMassFractions, TransportFigures? Transport, CaseStatus? TransportStatus, CaseStatus Status)

@@ -107,7 +107,7 @@ public sealed class RejectionTests(SolverFixture fixture)
         Assert.EndsWith("must weigh 1000 g within 3 %", beyond.Message, StringComparison.Ordinal);
 
         // The propellant path and a mixture that names no tolerance declare the default; a tolerance that is no tolerance is refused by name.
-        Assert.Equal(ElementalMixture.DefaultMassTolerance, fixture.Solver.Mixture(LoxLh2().OxidizerToFuelRatio(6.0).Build()).MassTolerance);
+        Assert.Equal(ElementalMixture.DefaultMassTolerance, fixture.Solver.MixtureOf(LoxLh2().OxidizerToFuelRatio(6.0).Build()).MassTolerance);
         Assert.Equal(ElementalMixture.DefaultMassTolerance, ElementalMixture.Create(OneKilogram).MassTolerance);
         foreach (var invalid in new[] { -0.01, double.NaN, double.PositiveInfinity })
         {
@@ -167,19 +167,18 @@ public sealed class RejectionTests(SolverFixture fixture)
 
         var monopropellant = Propellant.From(fixture.Database).Fuel("C2H8N2(L),UDMH").Build();
         Assert.IsType<MixtureSpecification.MassFractions>(monopropellant.Mixture);
-        Assert.Throws<ArgumentException>(() => fixture.Solver.Mixture(monopropellant, 2.0));
-        Assert.Throws<ArgumentException>(() => fixture.Solver.Solve(new RocketSweep(monopropellant, [2.0], [1.0e6], [10.0])));
+        Assert.Throws<ArgumentException>(() => fixture.Solver.MixtureOf(monopropellant, 2.0));
     }
 
     [Fact]
     public void A_custom_reactant_with_an_unknown_element_is_rejected_by_name()
     {
-        var binder = Reactant.Custom("Binder", [new ElementCount("C", 1.0), new ElementCount("Xx", 0.5)], -1000.0, 298.15, ReactantRole.Fuel, 1.0);
+        var binder = Reactant.Custom("Binder", new CustomReactantDefinition([new ElementCount("C", 1.0), new ElementCount("Xx", 0.5)], -1000.0, 298.15), ReactantRole.Fuel, 1.0);
         var unknown = Assert.Throws<ArgumentException>(() => Propellant.From(fixture.Database).Custom(binder).Build());
         Assert.Contains("Binder", unknown.Message, StringComparison.Ordinal);
         Assert.Contains("XX", unknown.Message, StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", [], -1000.0, 298.15, ReactantRole.Fuel, 1.0));
-        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", [new ElementCount("C", 0.0)], -1000.0, 298.15, ReactantRole.Fuel, 1.0));
+        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", new CustomReactantDefinition([], -1000.0, 298.15), ReactantRole.Fuel, 1.0));
+        Assert.Throws<ArgumentException>(() => Reactant.Custom("Binder", new CustomReactantDefinition([new ElementCount("C", 0.0)], -1000.0, 298.15), ReactantRole.Fuel, 1.0));
     }
 
     [Fact]
@@ -198,11 +197,13 @@ public sealed class RejectionTests(SolverFixture fixture)
     public void Invalid_state_records_are_rejected_by_index_or_element()
     {
         var composition = Water;
-        var two = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Enthalpy: 0.0, Temperature: 3000.0)]));
+        var two = Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Enthalpy: 0.0, Temperature: 3000.0)]));
         Assert.Contains("record 0", two.Message, StringComparison.Ordinal);
-        var none = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Temperature: 3000.0), new StateRecord(1.0e6, composition)]));
+        Assert.Equal(0, two.Index);
+        var none = Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, composition, Temperature: 3000.0), new StateRecord(1.0e6, composition)]));
         Assert.Contains("record 1", none.Message, StringComparison.Ordinal);
-        var negative = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["H"] = -1.0 }, Temperature: 3000.0)]));
+        Assert.Equal(1, none.Index);
+        var negative = Assert.Throws<StateRecordException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["H"] = -1.0 }, Temperature: 3000.0)]));
         Assert.Contains("'H'", negative.Message, StringComparison.Ordinal);
         var unknown = Assert.Throws<ArgumentException>(() => fixture.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["XX"] = 1.0 }, Temperature: 3000.0)]));
         Assert.Contains("XX", unknown.Message, StringComparison.Ordinal);
@@ -240,7 +241,7 @@ public sealed class RejectionTests(SolverFixture fixture)
         var propellant = LoxLh2().OxidizerToFuelRatio(6.0).Build();
         solver.Dispose();
         solver.Dispose();
-        Assert.Throws<ObjectDisposedException>(() => solver.Mixture(propellant));
+        Assert.Throws<ObjectDisposedException>(() => solver.MixtureOf(propellant));
         Assert.Throws<ObjectDisposedException>(() => solver.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6 }));
     }
 }

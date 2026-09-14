@@ -15,7 +15,7 @@ internal sealed record RocketCase(ElementalMixture Mixture, RocketProblem Proble
 /// </summary>
 internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
 {
-    public IReadOnlyList<RocketResult> Solve(ChemicalSystem system, IReadOnlyList<RocketCase> cases)
+    public IReadOnlyList<RocketResult> Solve(ChemicalSystem system, IReadOnlyList<RocketCase> cases, string noun = "mixture")
     {
         if (cases.Count == 0)
         {
@@ -30,7 +30,7 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
             var (mixture, problem, propellant, _) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
             ProblemValidation.Rocket(database, mixture, problem, k);
-            masses[k] = MixtureMass.Check(database, mixture, Subject(propellant, "mixture", k), k);
+            masses[k] = MixtureMass.Check(database, mixture, Subject(propellant, noun, k), k);
             var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);
             if (!groups.TryGetValue(key, out var members))
             {

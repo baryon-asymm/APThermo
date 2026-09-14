@@ -47,15 +47,32 @@ public sealed class RocketTests(SolverFixture fixture)
         Assert.Same(propellant, result.Propellant);
     }
 
+    /// <summary>
+    /// The library retired <c>RocketSweep</c> (BOOT.md, F-PR-06): a ratio × chamber-pressure product is a list of mixtures
+    /// (one per ratio, built through <see cref="Solver.MixtureOf"/>) with a list of problems (one per pressure), the same
+    /// batch mechanism as any other call over a union of mixtures, and it equals its cases solved one by one bit for bit.
+    /// </summary>
     [Fact]
-    public void A_sweep_equals_its_cases_solved_one_by_one()
+    public void A_ratio_by_pressure_product_over_a_list_of_mixtures_equals_its_cases_solved_one_by_one()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         double[] ratios = [4.0, 5.5, 7.0];
         double[] pressures = [5.0e6, 8.0e6];
         double[] areas = [20.0, 77.5];
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-        var results = fixture.Solver.Solve(new RocketSweep(propellant, ratios, pressures, areas, FlowModel.ShiftingEquilibrium, Transport: true));
+        var mixtures = new List<ElementalMixture>();
+        var problems = new List<RocketProblem>();
+        foreach (var ratio in ratios)
+        {
+            var mixture = fixture.Solver.MixtureOf(propellant, ratio);
+            foreach (var pressure in pressures)
+            {
+                mixtures.Add(mixture);
+                problems.Add(new RocketProblem { ChamberPressure = pressure, AreaRatios = areas, Flow = FlowModel.ShiftingEquilibrium, Transport = true });
+            }
+        }
+
+        var results = fixture.Solver.Solve(mixtures, problems);
         Assert.Equal(ratios.Length * pressures.Length, results.Count);
         var i = 0;
         foreach (var ratio in ratios)
@@ -66,7 +83,6 @@ public sealed class RocketTests(SolverFixture fixture)
                 var one = fixture.Solver.Solve(withRatio, new RocketProblem { ChamberPressure = pressure, AreaRatios = areas, Transport = true });
                 Assert.Equal(CaseStatus.Ok, one.Status);
                 Assert.Equal(one.Status, results[i].Status);
-                Assert.Equal(ratio, results[i].OxidizerToFuelRatio);
                 Assert.Equal(one.Mixture.ElementMoles, results[i].Mixture.ElementMoles);
                 Assert.Equal(one.Mixture.Enthalpy, results[i].Mixture.Enthalpy);
                 Assert.Equal(one.Stations.Count, results[i].Stations.Count);
@@ -201,7 +217,7 @@ public sealed class RocketTests(SolverFixture fixture)
         var cases = names.Select(n => FixtureCases.Load("rocket", n)).ToList();
         var propellants = cases.Select(c => FixtureCases.PropellantOf(fixture.Database, c)).ToList();
         var problems = cases.Select(FixtureCases.RocketProblemOf).ToList();
-        var mixtures = propellants.Select(p => fixture.Solver.Mixture(p)).ToList();
+        var mixtures = propellants.Select(p => fixture.Solver.MixtureOf(p)).ToList();
         var union = new List<string>();
         foreach (var symbol in mixtures.SelectMany(m => m.Elements))
         {
