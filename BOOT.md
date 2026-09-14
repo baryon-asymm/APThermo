@@ -88,7 +88,8 @@ used); for the GPU path an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
 keeps the DLL under `nvvm/bin/x64`); NASA CEA data `thermo.inp` and `trans.inp` from
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
-linter; xunit for tests.
+linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
+node's shape check (2026-09-14).
 
 ## Constraints
 
@@ -142,8 +143,9 @@ linter; xunit for tests.
   coupling, Ca) is a stable type: at most 100 lines and no behaviour beyond
   construction and validation, or a contract in its node's `API.md`. The instability
   `I = Ce / (Ca + Ce)` of the `src` nodes over their project graph never rises along a
-  dependency. Every exception is declared in the node's `BOOT.md` with the measured
-  figure and the reason. Decomposition goes along the domain's axes (stages of an
+  dependency. Every exception is declared in the node's `BOOT.md`, as a row of its
+  `## Shape exceptions` table with the measured figure and the reason. Decomposition
+  goes along the domain's axes (stages of an
   algorithm, entities, phases of a pipeline), never through `partial` (the
   `[GeneratedRegex]` requirement excepted), `#region` or a Helpers/Utils class.
   Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md` records why the
