@@ -193,6 +193,14 @@ The bookkeeping the figures already carry (`SpeciesCount`, `ReactionCount`,
 `EstimatedSpeciesCount`, `EstimatedMoleFraction`, `TraceEliminations`, `Capped`)
 travels as `ref TransportFigures`, the stack local `Evaluate` uses today.
 
+⚠ 2026-09-15: this paragraph used to justify `StationInputs` by "every stage takes it,
+so no stage signature exceeds four parameters". `SetProperties.Fill` and
+`TransportSetSelection.Passes` already take five parameters each; the count was wrong
+and, being a number repeating a property of the code rather than a fact the machine
+checks, could only drift further. Reworded to say what `StationInputs` is instead of a
+figure the code does not hold to. Found by the repair review of 2026-09-15
+(R-Transport-3).
+
 Every stage's XML comment lists the scratch slots it reads and the slots it writes.
 `Stx` and `Mark` are shared scratch: `Stx` is the normalised pivot row of the trace
 elimination in `ReactionSet` and the per-pair difference vector in `ReactionTerms`,
