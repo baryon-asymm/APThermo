@@ -4,13 +4,15 @@ namespace AerospacePropellantThermodynamics.Protocol.Tests;
 
 /// <summary>
 /// Shape level: the root's code-shape constraint (`tests/Protocol.Tests/BOOT.md`, "Shape check") over the C# syntax trees and
-/// the assemblies' IL of every node with a project. Five rules carry a numeric limit and a possible declared exception (type
-/// lines, method lines, nesting, parameters, efferent coupling): a measurement over its limit needs a row of its own node's
-/// `## Shape exceptions` table naming the same <c>Where</c> and <c>Rule</c> with a <c>Measured</c> figure at least the current
-/// one, or the fact fails; the reverse fact below fails a row that no longer exceeds its limit or whose figure has fallen
-/// behind. Stable type, stable dependencies, mechanics and named construction have their own pass conditions, spelled out at
-/// each fact. The coupling and stable-type rules apply to the `src` nodes only, on which their thresholds were calibrated;
-/// every other rule applies everywhere a project builds, this node's own code included.
+/// the assemblies' IL of every node whose code lives in one of the tree's assemblies (<see cref="NodeAssemblies.CodeNodes"/>:
+/// a node with its own project, or a project-less child node compiled into its nearest ancestor's). Five rules carry a numeric
+/// limit and a possible declared exception (type lines, method lines, nesting, parameters, efferent coupling): a measurement
+/// over its limit needs a row of its own node's `## Shape exceptions` table naming the same <c>Where</c> and <c>Rule</c> with
+/// a <c>Measured</c> figure at least the current one, or the fact fails; the reverse fact below fails a row that no longer
+/// exceeds its limit or whose figure has fallen behind. Stable type, stable dependencies, mechanics and named construction
+/// have their own pass conditions, spelled out at each fact. The coupling and stable-type rules apply to the `src` nodes
+/// only, on which their thresholds were calibrated; every other rule applies everywhere a node's code lives, this node's own
+/// code included.
 /// </summary>
 public sealed class ShapeTests
 {
@@ -18,7 +20,7 @@ public sealed class ShapeTests
     public void No_type_spans_more_than_400_lines()
     {
         Assert.True(MeasurementCount("type lines") > 0, "no type of the tree was measured for type lines; this fact has nothing to check");
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "type lines")).ToList();
+        var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "type lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
@@ -26,7 +28,7 @@ public sealed class ShapeTests
     public void No_method_spans_more_than_60_lines()
     {
         Assert.True(MeasurementCount("method lines") > 0, "no method of the tree was measured for method lines; this fact has nothing to check");
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "method lines")).ToList();
+        var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "method lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
@@ -34,7 +36,7 @@ public sealed class ShapeTests
     public void No_control_flow_nests_deeper_than_3()
     {
         Assert.True(MeasurementCount("nesting") > 0, "no member of the tree was measured for nesting; this fact has nothing to check");
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "nesting")).ToList();
+        var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "nesting")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
@@ -42,7 +44,7 @@ public sealed class ShapeTests
     public void No_method_takes_more_than_6_parameters()
     {
         Assert.True(MeasurementCount("parameters") > 0, "no method of the tree was measured for parameters; this fact has nothing to check");
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "parameters")).ToList();
+        var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "parameters")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
@@ -86,8 +88,8 @@ public sealed class ShapeTests
     [Fact]
     public void No_partial_type_region_or_helpers_class()
     {
-        Assert.True(ProjectNodes().Any(node => SourceSyntax.Trees(node).Any()), "no source file of the tree was read for the mechanics rule; this fact has nothing to check");
-        var problems = ProjectNodes()
+        Assert.True(CodeNodes().Any(node => SourceSyntax.Trees(node).Any()), "no source file of the tree was read for the mechanics rule; this fact has nothing to check");
+        var problems = CodeNodes()
             .SelectMany(node => ShapeMechanics.Findings(node).Select(f => $"{node.Name}: {f.Where} ({Tree.Relative(f.File)}:{f.Line}) {f.Problem}"))
             .ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
@@ -118,21 +120,24 @@ public sealed class ShapeTests
     [Fact]
     public void Every_shape_exception_is_measured_and_still_needed()
     {
-        var exceptions = ProjectNodes().SelectMany(node => NodeDocuments.ShapeExceptions(node).Select(exception => (Node: node, Exception: exception))).ToList();
+        var exceptions = CodeNodes().SelectMany(node => NodeDocuments.ShapeExceptions(node).Select(exception => (Node: node, Exception: exception))).ToList();
         Assert.True(exceptions.Count > 0, "no node declares a Shape exceptions row anywhere in the tree; this fact has nothing to re-measure");
 
         var problems = exceptions.SelectMany(pair => RowProblems(pair.Node, pair.Exception)).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
-    private static IEnumerable<Node> ProjectNodes() => Tree.Nodes.Where(node => node.AssemblyName is not null);
+    /// <summary>Every node whose code lives in one of the tree's assemblies (<see cref="NodeAssemblies.CodeNodes"/>): a node
+    /// with its own project, or a project-less child node compiled into its nearest ancestor's (root BOOT.md, Constraints,
+    /// 2026-09-15). The Shape level measures every one of them, this node's own code included.</summary>
+    private static IEnumerable<Node> CodeNodes() => NodeAssemblies.CodeNodes;
 
-    private static IEnumerable<Node> SrcNodes() => ProjectNodes().Where(node => node.IsSrc);
+    private static IEnumerable<Node> SrcNodes() => CodeNodes().Where(node => node.IsSrc);
 
     /// <summary>The total measurements <see cref="RuleMeasurements"/> reports for one over-limit rule, across every project
     /// node (R-Protocol.Tests-14 (e)): the population <see cref="OverLimitProblems"/> compares against its limit, asserted
     /// non-empty by the four size/nesting/parameters facts before they assert zero problems over it.</summary>
-    private static int MeasurementCount(string rule) => ProjectNodes().Sum(node => RuleMeasurements(node, rule).Measurements.Count());
+    private static int MeasurementCount(string rule) => CodeNodes().Sum(node => RuleMeasurements(node, rule).Measurements.Count());
 
     /// <summary>The limit and the current measurements of one over-limit "Shape check" rule, over one node: the same lookup
     /// <see cref="OverLimitProblems"/> compares a measurement against and <see cref="RowProblems"/> re-measures a declared
