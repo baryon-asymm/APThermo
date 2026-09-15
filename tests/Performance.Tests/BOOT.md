@@ -143,8 +143,7 @@ position today (the criterion below).
       (`tests/Fixtures/cases/rocket/MUTATION-GHOST-FIXTURE.json`, a zero hash)
       appended to `Bits.approved.txt` turned this fact red naming exactly that key;
       the line removed again, `git hash-object tests/Performance.Tests/Bits.approved.txt`
-      equal to the value recorded at the start of this task
-      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
+      unchanged (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
 - [x] 2026-09-14 — The never-supersonic outcome:
       `SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
       drives `AreaRatioIteration` (through the node's new `InternalsVisibleTo`) from an
@@ -187,20 +186,22 @@ position today (the criterion below).
       list. Every mutation restored afterwards; the Bits level did not move (no
       `src/Performance` file changed for this criterion).
 
-      ⚠ 2026-09-15: "each under fifteen lines" was not true: of the lines within each
-      method's own physical span, `FrozenComposition` (`RocketInvariants.cs:90-109`)
-      holds 18 that are not blank, `AssignedExit` (`:70-87`) 17, `EnergyEquation`
-      (`:52-67`) 15 — at or, for two of the three, above the claimed bound. Found by
-      the repair review (R-Performance.Tests-6); the bullet now states a bound every
-      method meets, under twenty lines of code.
+      ⚠ 2026-09-15: "each under fifteen lines" was not true: `FrozenComposition` held
+      18 lines that were not blank, `AssignedExit` 17, `EnergyEquation` 15 — at or,
+      for two of the three, above the claimed bound. Found by the repair review
+      (R-Performance.Tests-6); the bullet now states a bound every method meets,
+      under twenty lines of code, re-measured on the merged tree by the protocol
+      tests node's own tool (`ShapeMeasures.MethodLines`, run through a temporary,
+      uncommitted test): `SonicThroat` 6, `ConstantEntropy` 14, `EnergyEquation` 15,
+      `AssignedExit` 17, `FrozenComposition` 18 lines of code, all under the bound.
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
-      `## Shape exceptions`), verified by `ShapeMechanics.Constructions` (the
-      protocol tests node's own tool, run through a temporary, uncommitted test):
-      two sites tree-wide, this node's (`KernelEqualityTests.cs:71`, moved from
-      `:133` by the R-Performance.Tests-4 cut below; re-verified in place) and the
-      execution node's own type of the same name (`src/Execution/RocketPipeline.cs:53`),
+      `## Shape exceptions`); `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
+      now covers this on the merged tree: two sites tree-wide, this node's (the
+      `RocketBatchViews` construction inside the `RocketBatchBuffers` constructor,
+      re-verified in place after the R-Performance.Tests-4 cut below moved it) and
+      the execution node's own type of the same name (inside `RocketPipeline.Run`),
       both fully named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
       `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green that day).
 
@@ -264,9 +265,10 @@ position today (the criterion below).
       assigned once, inside the constructor. `AssertSameBits` is unchanged but for its
       caller: it still calls `.GetAsArray1D()` on `buffers.Stations`, `.Moles`,
       `.Figures`, `.StationStatus`, `.Status` itself, exactly as before the cut.
-      Measured by the protocol tests node's own tool (`ShapeMeasures`, run through the
-      same temporary test): the type 67 lines, its constructor 33, both well inside
-      the type's 400 and the method's 60; its own Ce fell to 13.
+      `ShapeTests.No_type_spans_more_than_400_lines` and
+      `ShapeTests.No_method_spans_more_than_60_lines` both hold for it; its own
+      efferent coupling, recorded by `CouplingMeasures` (not limited — the root's
+      coupling rule holds only for `src` types), fell to 13.
 
       This moved four call sites in `RocketCase.cs` from `inputs.ElementMoles` /
       `.ExitValues` / `.ExitKinds` / `.ReactantEnthalpy` to `inputs.Mixture.ElementMoles`
@@ -275,14 +277,10 @@ position today (the criterion below).
       which is why `RocketCase`'s own efferent coupling is noted here rather than left
       silent: `CouplingMeasures` puts it at Ce=19 today (`Mixture` and `ExitPlan` newly
       named — direct now, where the removed forwarding properties on `RocketInputs`
-      used to hide them from `RocketCase`'s own body). `RocketCase` was already over
-      the root's cap of 14 before this task's first commit today (Ce=17, by the same
-      reasoning applied to the pre-split source at `5d1ccd3`): a pre-existing gap in
-      this node's `## Shape exceptions` table, not named by the repair review, made
-      two worse by the call-site changes above. Left unfixed and undeclared here
-      deliberately: decomposing `RocketCase` or declaring it an exception is a design
-      decision this task's mandate (apply the review's findings, no more) does not
-      extend to; flagged for the next design session in this task's own report.
+      used to hide them from `RocketCase`'s own body), up from Ce=17 at `5d1ccd3`, the
+      pre-split source, by the same coupling-walk reasoning. The root limits the
+      efferent coupling of the `src` types only, so a test type's figure is recorded,
+      not limited.
 
       Verified: 700/700 tests green, `Bits.approved.txt` hash unchanged
       (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
