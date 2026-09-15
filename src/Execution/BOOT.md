@@ -139,8 +139,7 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
-| `ChunkPlan` | the one rule deciding how many cases a launch takes, from the case count, the device bytes per case and the options; enumerates the chunks | internal |
-| `ChunkBuffers` | the device side of one program's chunk: each buffer declared once with its host array, its direction and its per-case stride; uploads and downloads a chunk | internal |
+| `Chunks/` (child node, `AerospacePropellantThermodynamics.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
@@ -158,6 +157,35 @@ beside it for the kernel to stride by (a `const` inlines into kernel-compatible 
 the managed string array `Functions` does not), and
 `ProbeKernelTests.The_kernels_stride_constant_matches_the_function_list` asserts `StrideCount ==
 FunctionCount` so the two cannot drift silently.
+
+Decided 2026-09-15 (the child-nodes phase; root `BOOT.md`, 0aa7e60): a cluster of this
+node earns its own child directory, `BOOT.md` and `API.md` when the rest of the node
+reaches it through a contract narrower than its code, it has a reason of its own to
+change, and it holds about five types or more (root `BOOT.md`, the child-nodes
+decision), no public type moving into the child namespace.
+
+- **`Chunks/` passes.** `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`,
+  `ChunkTransfer` and `IChunkBuffer` — six internal types — become
+  `AerospacePropellantThermodynamics.Execution.Chunks`. The rest of this node reaches
+  them through `ChunkPlan.For`/`.Chunks()`, `ChunkBuffers`'s declaration methods and
+  `ChunkBuffer<T>.View`; `IChunkBuffer`, `ChunkTransfer` and the `Chunk` record are
+  never named outside the cluster. Its reason to change — the chunking and transfer
+  policy — is its own, distinct from the kernel loop (`BatchRun`, staying here) and
+  the accelerator session it runs on. Its own `BOOT.md` and `API.md` hold the
+  contract; this row of the table above points to them instead of repeating them.
+- **`LibDevice/` fails, and stays here.** `LibDeviceLocator` and `LibDevicePostLink`
+  hold three types between them (the two named classes and `LibDevicePostLink`'s
+  private nested `NvvmOptions`), short of "about five types or more"; splitting three
+  types into a child for a contract of one method each (`Locate`, `Link`) would add a
+  directory and a document pair without narrowing anything. They stay as two files of
+  this node's own directory, unchanged by this phase.
+- **The ILGPU version constant stays on `LibDevicePostLink`.** `ExpectedIlgpuVersion`
+  names the ILGPU release `LibDevicePostLink`'s own reflection (`AssertIlgpu`) was
+  written against; every reader of it — the lazy member lookup inside the same type,
+  `AcceleratorChoice`'s `AcceleratorInfo.IlgpuVersion` field, and the tests that prove
+  the assertion fails loudly on a mismatch — is either inside the post-link mechanism
+  or reads it as a diagnostic string, not as a general engine constant a second type
+  would need to own. Nothing moves.
 
 Decisions taken with the review of 2026-09-14:
 

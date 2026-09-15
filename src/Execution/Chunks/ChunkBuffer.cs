@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace AerospacePropellantThermodynamics.Execution.Chunks;
 
 /// <summary>
 /// One device buffer of a chunk, declared once with its host array, its direction and its per-case stride, so that the stride is

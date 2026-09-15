@@ -1,6 +1,6 @@
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace AerospacePropellantThermodynamics.Execution.Chunks;
 
 /// <summary>
 /// The device side of one program's chunk. Every buffer is declared once — its host array, its direction and its per-case stride —

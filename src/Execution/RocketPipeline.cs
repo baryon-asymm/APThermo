@@ -1,4 +1,5 @@
 using AerospacePropellantThermodynamics.Equilibrium;
+using AerospacePropellantThermodynamics.Execution.Chunks;
 using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
 using ILGPU;
