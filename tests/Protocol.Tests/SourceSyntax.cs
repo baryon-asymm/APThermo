@@ -9,9 +9,9 @@ namespace AerospacePropellantThermodynamics.Protocol.Tests;
 /// a node (AGENTS.md §1) excluded too, because that subtree belongs to the descendant, not to this node. There is no separate
 /// "generated files" filter beyond that: the tree's one source generator (the <c>[GeneratedRegex]</c> partial method) writes its
 /// implementation under <c>obj/</c>, already a skipped directory, and no other generated file is committed outside it.
-/// Parsed at the language version the tree actually builds with (root BOOT.md, Constraints: <c>LangVersion</c> is <c>latest</c>
-/// in <c>Directory.Build.props</c>, which the .NET 10 SDK resolves to C# 14), named explicitly rather than as "latest" so that a
-/// future bump of the pinned Roslyn package cannot silently change what this node parses.
+/// Parsed at the language version the tree actually builds with (<c>Directory.Build.props</c> sets <c>LangVersion</c> to
+/// <c>latest</c>, which the .NET 10 SDK resolves to C# 14, root <c>BOOT.md</c>, Dependencies), named explicitly rather than as
+/// "latest" so that a future bump of the pinned Roslyn package cannot silently change what this node parses.
 /// </summary>
 internal static class SourceSyntax
 {

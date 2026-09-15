@@ -71,9 +71,10 @@ internal static class IlBody
     }
 
     /// <summary>
-    /// The types a method's body binds to: the members its instructions name, with the types those members' signatures carry.
-    /// The signatures matter: an enum used only through its literals is an integer in the IL and appears in no token of its own,
-    /// yet the property it is assigned to names it, and that is where the use is caught.
+    /// The types a method's body binds to: the members its instructions name, with the types those members' signatures carry and
+    /// the generic arguments of the methods it calls. The signatures matter: an enum used only through its literals is an integer
+    /// in the IL and appears in no token of its own, yet the property it is assigned to names it, and that is where the use is
+    /// caught.
     /// </summary>
     public static IEnumerable<Type> BoundTypes(MethodBase method)
     {

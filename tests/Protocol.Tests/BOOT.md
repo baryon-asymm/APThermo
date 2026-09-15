@@ -92,11 +92,12 @@ children rule, links check removed (the linter has it).
 
 ## Structure
 
-Decided 2026-09-14 (the review's F-TF-02, F-TF-08, F-TF-17). `Tree` was 428 lines with
-four reflection responsibilities, and `DeclarationTests` held a grammar of `API.md`
-inside a check that nested five deep. One type per file, all internal and in this
-node's namespace; `PublicSurface.approved.txt` does not move, which is the proof that
-nothing leaked.
+Decided 2026-09-14 (the review's F-TF-02, F-TF-08, F-TF-17). `Tree` was 428 physical
+lines at `8e36a27` (the review's count; within 400 under the lines-of-code rule of
+2026-09-14) with four reflection responsibilities, and `DeclarationTests` held a
+grammar of `API.md` inside a check that nested five deep. One type per file, all
+internal and in this node's namespace; `PublicSurface.approved.txt` does not move,
+which is the proof that nothing leaked.
 
 | Type | Responsibility |
 |---|---|
@@ -108,8 +109,9 @@ nothing leaked.
 | `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests` |
 | `SourceSyntax` | the C# syntax trees of a node's source files, the build directories and generated files skipped |
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
-| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the project graph |
-| `ShapeMechanics` | the two limitless rules read from syntax: no `partial`/`#region`/banned-suffix type name, and every creation of a declared wide constructor names its arguments |
+| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the declared dependency graph |
+| `ShapeMechanics` | the mechanics rule read from syntax: no `partial`/`#region`/banned-suffix type name |
+| `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
@@ -127,7 +129,8 @@ Decisions taken with the review:
 Phase 1 (2026-09-14, the clean-code pass) split `Tree`, moved `DeclarationTests`'s grammar into
 `ApiDeclarations`, and flattened every fact to a problems-yielding helper plus one
 assertion; `SourceSyntax` and `ShapeMeasures` were the Shape level's and stayed undone
-(the row below stayed ⏳). Two small record types the table above does not name, because
+(the Shape row of the level table stayed planned until 2026-09-15). Two small record
+types the table above does not name, because
 they are data the split types carry rather than a responsibility of their own, got a
 file each too, one type per file throughout: `Node` (a directory of the tree; `Tree`'s
 own vocabulary) and `Instruction` (one opcode and the member its token names;
@@ -136,8 +139,8 @@ own vocabulary) and `Instruction` (one opcode and the member its token names;
 Phase 2 (2026-09-14, the measurements) wrote `SourceSyntax` and `ShapeMeasures` as
 planned, extended `NodeDocuments` to read `## Shape exceptions` rows, and split the
 coupling and the two limitless rules into `CouplingMeasures` and `ShapeMechanics`
-(not part of the phase 1 plan; kept apart so that no file crosses the root's own size
-limit and so that "read from IL" and "read from syntax" stay two files). A third small
+(not part of the phase 1 plan; kept apart so that "read from IL" and "read from
+syntax" stay two files). A third small
 record type joined `Node` and `Instruction` for the same reason: `ShapeException` (one
 row of a `## Shape exceptions` table; `NodeDocuments`' own vocabulary). Building
 `CouplingMeasures` found `TypeShape.Unwrap` folding a by-reference-to-array type
@@ -152,11 +155,33 @@ non-nested collection-expression helper type (`<>z__ReadOnlySingleElementList` a
 alike) carries `[CompilerGenerated]` but no `DeclaringType` to fold into, so it passed
 both the self-reference and the outside-the-tree filters; `CouplingMeasures` excludes
 any compiler-generated type on either side of an edge, matching how `CoverageTests` and
-`InvariantTests` already treat the same category. Neither finding moved a single
-existing fact's answer: `DependencyTests`, `CoverageTests`, `InvariantTests` and
-`SurfaceTests` stayed green throughout, because a byref-to-array or a free-floating
+`InvariantTests` already treat the same category. Neither finding moved `DependencyTests`,
+`CoverageTests` or `SurfaceTests`' answer: a byref-to-array or a free-floating
 compiler-generated helper resolves to the same *node* either way — only a *type* count
 sees the difference, which is this phase's own new territory.
+
+⚠ 2026-09-15: this paragraph also named `InvariantTests` among the facts the byref-to-array
+fix left unmoved, with the same "resolves to the same node" reasoning. That reasoning never
+applied to it: the single-precision check compares an unwrapped type against `float` and
+`Half` directly and never attributes a type to a node at all. The real reason
+`InvariantTests` was untouched by this phase's fix is that its precision check
+(`IsSinglePrecision`) held its own separate, one-layer-only copy of the unwrap walk,
+independent of `TypeShape.Unwrap` and never reached by the fix described above; that copy
+carried the very same missed cases (a by-reference-to-array parameter, a jagged array) this
+paragraph's fix corrected here, undetected until R-Protocol.Tests-17 of the repair phase
+made `IsSinglePrecision` reuse `TypeShape.Unwrap` itself, closing the gap between the two
+copies for good.
+
+⚠ 2026-09-15: `ShapeMechanics` held the two limitless rules (mechanics and named
+construction) in one type, and this paragraph gave the file-count limit as a second
+reason beside "read from IL" against "read from syntax" — but both rules read syntax;
+the size limit was never the axis that told them apart. At 129 lines of code
+(`ShapeMeasures.TypeLines`, well under 400), the combined type was nowhere near the
+root's size limit, so the limit was not why keeping the two rules apart mattered — a
+rule with no numeric limit of its own sharing a file with an unrelated rule was.
+`NamedConstruction` (`Candidates`, `Creations`, and the resolution helpers
+`Constructions` used) is now its own file, one type per rule read from syntax as
+`## Structure` states elsewhere; `ShapeMechanics` keeps only the mechanics rule.
 
 `ApiDeclarations`'s "named in the `API.md`" turned out to need more than "declared in
 a ✅ block": `Execution`'s `API.md` names `EquilibriumBatchViews`, `RocketBatchViews`,
@@ -173,8 +198,9 @@ distinguish), and unchanged in the other (a name in ✅ prose still counts, as i
 did).
 
 Phase 3 (2026-09-15, the two settled definitions and the facts) fixed the two things
-phase 2 had left for later. `ShapeMechanics.Constructions` matched a creation by simple
-name alone, so `EquilibriumResult` (declared in `Equilibrium`, five parameters, and in
+phase 2 had left for later. `ShapeMechanics.Constructions` (now `NamedConstruction.Creations`,
+the named-construction split below) matched a creation by simple name alone, so
+`EquilibriumResult` (declared in `Equilibrium`, five parameters, and in
 `Problems`, a row) and `RocketBatchViews` (declared in `Execution`, a row, and in
 `Performance.Tests`, that node's own type) were not told apart; it now resolves a
 written name the way the compiler would (namespace, enclosing namespaces, `using`
@@ -182,6 +208,7 @@ directives, the file's own node's declarations for a simple name; the qualifier 
 for a qualified one), against a `WideConstructorType` per candidate (the node plus the
 simple name) rather than a bare string — a fourth small record type joining `Node`,
 `Instruction` and `ShapeException`, the file each convention held. `ShapeMeasures.Span`
+(since consolidated into `BoundaryTokens` and `StartLine`, this repair phase's own cut)
 kept reporting the span's boundary lines; a new `CodeLines` walks the token stream
 between them and counts only the lines a token touches, so a comment or blank line
 inside the span no longer counts toward the 400 or the 60. `ShapeTests` then asserts
@@ -192,9 +219,10 @@ stable dependencies, mechanics and named construction read directly off their ow
 measurement; a tenth, reverse fact re-measures every declared row and fails one that no
 longer exceeds its limit or that understates a rising one. A fresh whole-tree
 measurement through a temporary, uncommitted test, run once every earlier fact was
-green and again once `ShapeTests` existed, found nothing the three findings would have
-caught: every declared row still matches its live figure, and no unmatched violation
-exists anywhere in the tree.
+green and again once `ShapeTests` existed, found no over-limit measurement without a
+row, no row below its measurement and no row past its member's need: every declared
+row still matches its live figure, and no unmatched violation exists anywhere in the
+tree.
 
 ## Shape check
 
@@ -208,10 +236,10 @@ thing:
 | nesting | 3 | every member body | the depth of `if` (an `else if` continues its chain), `for`, `foreach`, `while`, `do`, `switch` and `try`; a lambda or a local function continues the depth of the statement it stands in |
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
 | efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), the nested and compiler-generated types of the naming type attributed to the outermost type that declares them, a nested type it names counted as itself, a constructed generic type counted once as its definition, an array, by-reference or pointer type counted as its element type; types outside the tree, and compiler-generated types no type declares, not counted |
-| stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
-| stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the project references; every reference points to a node whose I is not above the referrer's |
+| stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the `src` nodes spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
+| stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the dependencies its `## Dependencies` declares (held equal to the nodes its code uses by the Dependencies level; project files are not read); every declared dependency points to a node whose I is not above the declarer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
-| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier is N; any other target-typed creation is left to review |
+| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier names N followed by the row's nesting path (empty for a top-level type, `Outer` for a row declared `Outer.Inner.Inner`), written in full, or relative to the file's own namespace or one of its enclosing namespaces, or via a `using`; any other target-typed creation is left to review |
 
 ⚠ 2026-09-14, after the measurements of phase 2: the efferent coupling row read "nested
 and compiler-generated types attributed to the outermost type that declares them" without
@@ -234,6 +262,22 @@ resolves the name through the file's namespace, its `using` directives and its n
 declarations, which gives the compiler's binding at every creation of the two names; every
 creation of a row's type still falls under it.
 
+⚠ 2026-09-15: a qualified name's resolution read "when its qualifier is N" (the candidate's
+namespace) and nothing else, which never matched two declared rows: `Records.SpeciesRecord`
+and `Records.IntervalRecord` of `tests/Data.Tests`, both nested inside `internal static
+class Records`, are written `Records.SpeciesRecord` and `Records.IntervalRecord` from
+outside that class, a qualifier of a nested type's own enclosing type, never of the
+namespace alone. A qualifier relative to an enclosing namespace escaped the same way:
+`Execution.RocketBatchViews(…)` written from namespace `AerospacePropellantThermodynamics.
+Problems` needs no `using` at all, since C# searches the enclosing namespaces of the
+writing file. Both positional creations these two rows' types would therefore have gone
+unreported had one existed. `WideConstructorType` now carries the row's nesting path
+alongside its simple name, and a qualified name resolves against the candidate's namespace
+followed by that path, written in full, relative to the file's own namespace or one of its
+enclosing namespaces, or via a `using`. On the real tree the fix moves no verdict: every
+existing qualified creation of a row's type already names every argument (`dotnet test
+tests/Protocol.Tests` green before and after), which is what let the gap stand unnoticed.
+
 ⚠ 2026-09-14, evening: the type-lines row read "physical lines …, blank and comment
 lines included". A type or a method could then be brought within its limit by deleting
 its documentation or its explanatory comments, and the documentation comments of a
@@ -242,9 +286,40 @@ count; the row now counts the lines that hold code, with the figures unchanged, 
 measurement can only fall and no row moves (no row declares a line rule). `ShapeMeasures`
 is brought to this row together with the Shape facts.
 
-The test nodes obey the size, nesting, parameter and mechanics rules, since their
-support code is code; the coupling and stable-type rules apply to the `src` nodes, on
-which their thresholds were calibrated. Python and the linter are outside the check.
+⚠ 2026-09-15: the stable-dependencies row's Definition cell read "I = Ce / (Ca + Ce) of
+each node over the project references", as if `NodeCoupling` measured the csproj
+`ProjectReference` items themselves. It reads the nodes' own `## Dependencies` sections
+instead (`NodeDocuments.DeclaredDependencies`), which the Dependencies level already
+holds equal to the nodes whose types a node's code actually uses (`DependencyTests`);
+the project files are never opened by this check. Every `src` node's declared graph and
+its real `ProjectReference` list coincide at `c5aed4d`, so no I figure and no
+dependency-direction verdict moves; a `ProjectReference` with no matching declared
+dependency would make the two graphs differ, and this check would not notice. The row
+now states what the code reads.
+
+⚠ 2026-09-15 (repair phase, R-Protocol.Tests-9): the stable-type row's Definition cell
+and `CouplingMeasures.AfferentCoupling` counted a dependant of any node of the tree, test
+nodes included, against the ten-dependant threshold — a type used by nothing but its own
+node's tests, or by a neighbour's tests, could read as "stable" from that use alone,
+which a test assembly's own churn does not make true. The root's own stable-type sentence
+already read "a type of the `src` nodes named by 10 or more types of the tree" without
+saying the *naming* types were also read that widely; the coupling and stable-type rules
+were calibrated on the `src` project graph throughout (this table's own heading: "Every
+`src` type with an afferent coupling"), so counting a test node's use was never the
+intended measure, only an unnoticed gap in the walk. `AfferentCoupling` now keeps an edge
+only when its naming type's own node is a `src` node; the root's stable-type sentence is
+corrected the same way, with its own warning. Ca can only fall under the narrower count,
+never rise, so no type newly becomes a stable type by this fix; twenty-seven of the
+fifty-three previously listed dropped back under 10 (`AcceleratorSession` among them,
+`src/Execution`, old Ca 10 now 9), and the table below carries the twenty-six that remain,
+re-measured the same way. No stable type over 100 lines and undocumented in its node's
+`API.md` exists under either count (`Every_stable_type_is_small_or_a_contract` was green
+before this fix and stays green after).
+
+The test nodes obey the size, nesting, parameter, mechanics and named-construction
+rules, since their support code is code; the coupling and stable-type rules apply to
+the `src` nodes, on which their thresholds were calibrated. Python and the linter are
+outside the check.
 
 An exception is a row of a `## Shape exceptions` table in the `BOOT.md` of the node
 that holds the code:
@@ -257,7 +332,9 @@ that holds the code:
 a member, all overloads of the name together (a constructor is `Type.Type`); `Rule` is
 a name of the table above; `Measured` is the figure the check measures. The check fails
 when a measurement exceeds its limit without a row, when it exceeds its row's figure,
-and when a row's type or member no longer exceeds the limit.
+and when a row's type or member no longer exceeds the limit. The nodes' `## Shape
+exceptions` tables transcribe the exceptions their `## Structure` sections declare; a
+violation no node declared is a finding for a design session, not a new row.
 
 Why the numbers are what they are:
 
@@ -305,6 +382,17 @@ Why the numbers are what they are:
   `07aa9bb` the fifteen types with ten or more dependants are all small records, enums
   and structs of the contracts (`SpeciesTableView`, `CaseStatus`, `MixtureState`,
   `ProblemKind`, `AcceleratorInfo` and the like), and `Species` has eight.
+
+  ⚠ 2026-09-15 (repair phase, R-Protocol.Tests-9): both walks cited above counted a
+  dependant of any node of the tree, test nodes included; "ten dependants" now means
+  ten `src`-node dependants (the same fix as the stable-type row's Definition cell,
+  above). The break the two walks found does not move by this alone: every type they
+  name as being at or over ten stays a small record, enum or struct under the
+  narrower count too. On the current, `src`-only walk `Species` measures 14, not
+  eight — the two figures were never the same measurement to begin with, the earlier
+  one taken before the tree's later decomposition added the dependants the current
+  walk counts, and neither counted only `src` nodes. The live figures, `src`-only and
+  dated to this repair's own commit, are the table below.
 - The stable-dependencies direction without an abstractness metric: numerical nodes may
   hold no interface or virtual call, so abstractness is zero throughout and the distance
   from the main sequence would degenerate to 1 − I.
@@ -320,63 +408,42 @@ over, taken through a temporary test calling only `CouplingMeasures`, `ShapeMeas
 `ApiDeclarations`, never committed, so that proof is not read against a measurement that
 could stay green were every coupling zero.
 
-Every `src` type with an afferent coupling (Ca) of 10 or more:
+Every `src` type with an afferent coupling (Ca) of 10 or more, counting only `src`-node
+dependants (R-Protocol.Tests-9; the table read every dependant of the tree, test nodes
+included, before this repair's fix — twenty-seven of the fifty-three rows it listed then
+dropped under 10 on the narrower count and are gone from the table below, none of them
+over 100 lines and undocumented either way). Re-measured at the coder's commit `e3f2507`
+(2026-09-15), the commit that narrowed `CouplingMeasures.AfferentCoupling` to `src`-node
+dependants; no commit after it changes any type's Ce, Ca or line count:
 
 | Node | Type | Ca | Lines | Named in `API.md` |
 |---|---|---|---|---|
-| `src/Cli` | `InputException` | 20 | 1 | no |
-| `src/Cli` | `CommandOptions` | 10 | 13 | no |
-| `src/Cli` | `ExitCode` | 10 | 7 | yes |
-| `src/Data` | `SpeciesDatabase` | 65 | 108 | yes |
-| `src/Data` | `Species` | 29 | 12 | yes |
-| `src/Data` | `ElementCount` | 21 | 1 | yes |
-| `src/Data` | `TemperatureInterval` | 17 | 8 | yes |
-| `src/Data` | `TransportDatabase` | 13 | 27 | yes |
-| `src/Data` | `SpeciesPhase` | 12 | 5 | yes |
-| `src/Equilibrium` | `ProblemKind` | 36 | 6 | yes |
-| `src/Equilibrium` | `EquilibriumScratch` | 25 | 63 | yes |
-| `src/Equilibrium` | `EquilibriumResult` | 20 | 17 | yes |
-| `src/Equilibrium` | `EquilibriumProblem` | 16 | 16 | yes |
-| `src/Equilibrium` | `ScratchLayout` | 12 | 11 | yes |
-| `src/Execution` | `AcceleratorInfo` | 26 | 6 | yes |
-| `src/Execution` | `AcceleratorKind` | 22 | 6 | yes |
-| `src/Execution` | `EngineOptions` | 18 | 13 | yes |
-| `src/Execution` | `Engine` | 17 | 95 | yes |
-| `src/Execution` | `UploadedTables` | 16 | 35 | yes |
-| `src/Execution` | `RunTimings` | 11 | 1 | yes |
-| `src/Execution` | `AcceleratorSession` | 10 | 46 | no |
-| `src/Execution` | `RocketBatch` | 10 | 35 | yes |
-| `src/Performance` | `PerformanceFigures` | 36 | 9 | yes |
-| `src/Performance` | `FlowModel` | 29 | 6 | yes |
-| `src/Performance` | `ExitSpecification` | 16 | 5 | yes |
-| `src/Performance` | `RocketResult` | 14 | 21 | yes |
-| `src/Performance` | `RocketProblem` | 13 | 21 | yes |
-| `src/Performance` | `RocketContext` | 11 | 14 | no |
-| `src/Problems` | `ElementalMixture` | 26 | 68 | yes |
-| `src/Problems` | `Propellant` | 20 | 21 | yes |
-| `src/Problems` | `Station` | 19 | 9 | yes |
-| `src/Problems` | `EquilibriumProblem` | 15 | 9 | yes |
-| `src/Problems` | `Solver` | 14 | 134 | yes |
-| `src/Problems` | `RocketProblem` | 14 | 10 | yes |
-| `src/Problems` | `StateRecord` | 13 | 12 | yes |
-| `src/Problems` | `ReactantRole` | 11 | 6 | yes |
-| `src/Problems` | `AmountKind` | 11 | 5 | yes |
-| `src/Problems` | `EquilibriumResult` | 11 | 9 | yes |
-| `src/Problems` | `Reactant` | 10 | 58 | yes |
-| `src/Problems` | `RocketResult` | 10 | 10 | yes |
-| `src/Thermo` | `CaseStatus` | 79 | 11 | yes |
-| `src/Thermo` | `MixtureState` | 63 | 22 | yes |
-| `src/Thermo` | `SpeciesTable` | 58 | 75 | yes |
-| `src/Thermo` | `SpeciesTableView` | 54 | 32 | yes |
-| `src/Thermo` | `SpeciesTableBuffers` | 27 | 48 | yes |
-| `src/Thermo` | `SpeciesFunctions` | 16 | 104 | yes |
-| `src/Thermo` | `SpeciesTableArrays` | 11 | 25 | yes |
-| `src/Transport` | `TransportFigures` | 43 | 16 | yes |
-| `src/Transport` | `TransportTable` | 20 | 100 | yes |
-| `src/Transport` | `TransportScratch` | 16 | 111 | yes |
-| `src/Transport` | `TransportTableView` | 13 | 29 | yes |
-| `src/Transport` | `StationInputs` | 12 | 17 | no |
-| `src/Transport` | `TransportTableBuffers` | 11 | 48 | yes |
+| `src/Cli` | `InputException` | 19 | 1 | no |
+| `src/Data` | `SpeciesDatabase` | 20 | 108 | yes |
+| `src/Data` | `Species` | 14 | 12 | yes |
+| `src/Data` | `ElementCount` | 12 | 1 | yes |
+| `src/Data` | `TemperatureInterval` | 10 | 8 | yes |
+| `src/Equilibrium` | `ProblemKind` | 23 | 6 | yes |
+| `src/Equilibrium` | `EquilibriumScratch` | 19 | 63 | yes |
+| `src/Equilibrium` | `EquilibriumResult` | 16 | 17 | yes |
+| `src/Equilibrium` | `EquilibriumProblem` | 12 | 16 | yes |
+| `src/Execution` | `AcceleratorInfo` | 23 | 6 | yes |
+| `src/Execution` | `AcceleratorKind` | 13 | 6 | yes |
+| `src/Execution` | `EngineOptions` | 11 | 13 | yes |
+| `src/Execution` | `UploadedTables` | 10 | 35 | yes |
+| `src/Performance` | `FlowModel` | 18 | 6 | yes |
+| `src/Performance` | `PerformanceFigures` | 15 | 9 | yes |
+| `src/Performance` | `RocketResult` | 10 | 21 | yes |
+| `src/Problems` | `ElementalMixture` | 21 | 68 | yes |
+| `src/Problems` | `Propellant` | 12 | 21 | yes |
+| `src/Problems` | `Station` | 12 | 9 | yes |
+| `src/Thermo` | `CaseStatus` | 35 | 11 | yes |
+| `src/Thermo` | `SpeciesTableView` | 34 | 32 | yes |
+| `src/Thermo` | `MixtureState` | 26 | 22 | yes |
+| `src/Thermo` | `SpeciesTable` | 15 | 75 | yes |
+| `src/Transport` | `TransportFigures` | 18 | 16 | yes |
+| `src/Transport` | `TransportScratch` | 11 | 111 | yes |
+| `src/Transport` | `StationInputs` | 11 | 17 | no |
 
 Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli`, `Data`,
 `Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`, `Transport`):
@@ -483,7 +550,8 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       `Every_shape_exception_is_measured_and_still_needed`) over the types and methods
       the check enumerates itself: 422 types, 1301 methods, all ten facts green
       (`dotnet test tests/Protocol.Tests`: 19 passed). The nodes' `## Shape exceptions`
-      tables transcribe the exceptions their `## Structure` sections declare.
+      tables transcribe the exceptions their `## Structure` sections declare; a
+      violation no node declared is a finding for a design session, not a new row.
 
       The five over-limit facts and the reverse fact
       (`Every_shape_exception_is_measured_and_still_needed`) are themselves the
@@ -534,8 +602,10 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       dependencies: the tables in `## Shape check` above are the real Ca, lines and
       `API.md`-naming, and the real Ce, Ca and I, that
       `Every_stable_type_is_small_or_a_contract` and
-      `No_src_dependency_points_to_a_less_stable_node` measure — fifty-three `src`
-      types at Ca ≥ 10 (none over 100 lines without being named) and the eight `src`
+      `No_src_dependency_points_to_a_less_stable_node` measure — twenty-six `src`
+      types at Ca ≥ 10, counting only `src`-node dependants (fifty-three before the
+      repair phase's R-Protocol.Tests-9 narrowed the count the same way below; none
+      over 100 lines without being named, under either count) and the eight `src`
       nodes' instability (never rising along a declared dependency), taken through a
       temporary test calling only `CouplingMeasures`, `ShapeMeasures` and
       `ApiDeclarations`, never committed.
@@ -561,6 +631,171 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       (`dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
       with `APTHERMO_NO_CUDA=1`: 3024 passed, up from 3014 before it, none skipped); the
       linter 0 errors, 0 warnings; `git status` clean after every mutation was reverted.
+- [x] 2026-09-15 — The Shape level's non-degeneracy gaps closed (repair phase,
+      R-Protocol.Tests-14), by the review's own letters, each guard seen red once with
+      a temporary, uncommitted mutation and reverted:
+      - **(a)** "if `SrcNodes()` is empty, facts 5 and 6 pass vacuously": the Ce fact
+        (`No_src_type_names_more_than_14_types_of_the_tree`) and the stable-type fact
+        (`Every_stable_type_is_small_or_a_contract`) each now assert `SrcNodes().Any()`
+        before asserting zero problems, so an empty `src` node set fails loudly on its
+        own rather than passing over nothing to check;
+      - **(b)** "if `IsSrcNode` is false, `NodeCoupling()` is empty and fact 7 passes
+        vacuously; 'src node' is written twice": the src-node predicate
+        `CouplingMeasures` and `ShapeTests` each kept their own copy of, unified onto
+        one definition, `Node.IsSrc`, both now read; the stable-dependencies fact
+        (`No_src_dependency_points_to_a_less_stable_node`) now also asserts
+        `coupling.Values.Sum(v => v.Dependencies.Count) > 0` before asserting zero
+        problems;
+      - **(c)** "`StableTypeProblems` silently skips a stable type whose reflection
+        name has no syntax entry": it now reports such a type instead of skipping it;
+      - **(e)** "no Shape fact asserts a non-empty input": every fact now does — the
+        four size/nesting/parameters facts assert `MeasurementCount(rule) > 0`, the
+        mechanics fact asserts at least one source file was read, named construction
+        asserts `NamedConstruction.Candidates()` is not empty, and the reverse fact
+        asserts the tree-wide declared-row list is not empty; (a), (b) and (c) above
+        are the same guard where the population is the `src` node set specifically.
+
+      The review's own mutation for (a) and (b), applied together as it asks (the
+      shared definition means one edit reaches both): `Node.IsSrc` changed from
+      `"src/"` to `"source/"`, with R-Protocol.Tests-12's Ce mutation applied alongside
+      it (a scratch type, `Cli.MutationMeasureCe`, naming fifteen real types, added to
+      `src/Cli` and never declared as a row). Without the (a)/(b) guards this mutation
+      would leave `No_src_type_names_more_than_14_types_of_the_tree`,
+      `Every_stable_type_is_small_or_a_contract` and
+      `No_src_dependency_points_to_a_less_stable_node` all green — `SrcNodes()` and
+      `NodeCoupling()` both empty, so none of the three would even look at `src/Cli`,
+      and the real Ce violation sitting there would go unreported. With them, all
+      three red on the emptiness message: `No_src_type_names_more_than_14_types_of_the_tree`
+      and `Every_stable_type_is_small_or_a_contract`, "no `src` node exists in the
+      tree; this fact has nothing to check"; `No_src_dependency_points_to_a_less_stable_node`,
+      "the src node graph has no declared dependency edge; this fact has nothing to
+      check". Both files reverted (`git status` clean); `dotnet test
+      tests/Protocol.Tests` green again (19 passed).
+
+      (c) was seen red by renaming `InputException` alone (`src/Cli`, Ca 19,
+      undocumented) to `InputExceptionMUTATED` in `QualifiedName`, so it matches no
+      syntax entry: "src/Cli: InputExceptionMUTATED is named by 19 types of the `src`
+      nodes (a stable type) and matches no syntax entry of src/Cli/BOOT.md's own node
+      to measure its lines against" — the review's own suggestion for this branch,
+      `src/Execution`'s `AcceleratorSession`, no longer qualifies as a stable type at
+      all after R-Protocol.Tests-9's src-only recount above took its Ca from 10 to 9,
+      so this reflection-rename substitute reaches the same code path on a type that
+      still does qualify; accepted as (c)'s proof for that reason.
+
+      (e)'s named-construction and reverse-fact branches were seen red first (before
+      the review's letters reached this node): `NamedConstruction.Candidates()`
+      filtered to nothing, red, "no node declares a parameters row on its own
+      constructor; this fact has nothing to check"; `NodeDocuments.ShapeExceptions`
+      matched against a nonexistent heading, red, "no node declares a Shape exceptions
+      row anywhere in the tree; this fact has nothing to re-measure". Each mutation
+      applied alone, `dotnet test tests/Protocol.Tests` run, the message above the only
+      failure, then reverted; green again after every revert. The whole-tree dump
+      (`TypeLines`, `MethodLines`, `Nesting`, `Parameters`, `EfferentCoupling`,
+      `AfferentCoupling`, `NodeCoupling`, the Coverage and Declarations sections) taken
+      before and after the permanent guard changes is byte-identical from
+      `EfferentCoupling` onward; the only lines that move are the `TypeLines`/`MethodLines`
+      rows of `ShapeTests` itself and the line numbers of the members below the edit,
+      both the expected, mechanical consequence of this node's own file growing, not a
+      change of what any rule measures on the real tree.
+- [x] 2026-09-15 — R-Protocol.Tests-12 (repair phase): the three rules that name only
+      `src` types were, until now, proved red only through synthetic inputs fed
+      straight to their own comparison helpers (the paragraph above the two tables of
+      `## Shape check`), because a mutation confined to this node cannot reach the
+      `src`-node code they measure. The decisions authorized a temporary, reverted
+      mutation of the real `src` nodes for this evidence alone; each of the three now
+      has one, applied in this node's own worktree, seen red, and reverted (`git status`
+      clean, `git diff --stat` empty, after each):
+      - efferent coupling: a scratch type, `Cli.MutationMeasureCe`, added to
+        `src/Cli` naming fifteen distinct real types of seven other `src` nodes
+        (already-declared dependencies of `Cli`, so no dependency line moved) and
+        removed again; `No_src_type_names_more_than_14_types_of_the_tree` red,
+        "src/Cli: MutationMeasureCe (src/Cli/MutationMeasureCe.cs:6) measures 15 for
+        efferent coupling, over 14, and no row of src/Cli/BOOT.md declares it";
+      - stable type: `src/Transport`'s `StationInputs` (Ca 11, undocumented, the only
+        `src/Transport` row of the re-measured Ca table below the 100-line limit)
+        padded with ninety `private const int` fields from 17 to 107 lines of code and
+        restored; `Every_stable_type_is_small_or_a_contract` red, "src/Transport:
+        StationInputs is named by 11 types of the `src` nodes (a stable type) and spans
+        107 lines, over 100, without being named in src/Transport/API.md". The review's
+        own suggestion, `src/Execution`'s `AcceleratorSession`, no longer qualifies:
+        R-Protocol.Tests-9's src-only recount (above) took its Ca from 10 to 9, so it
+        dropped out of the stable-type table before this mutation was chosen; every
+        `src/Execution` type of the re-measured table is named in its `API.md`, leaving
+        none to pad there undocumented, hence `StationInputs`;
+      - stable dependencies: `src/Thermo/BOOT.md`'s `## Dependencies` given a second
+        line, `[Cli](../Cli/API.md)`, never used by any type of `src/Thermo` (the same
+        shape as the node's own historical mutation 3b, reused here for the Shape level
+        rather than the Dependencies level), and removed again;
+        `No_src_dependency_points_to_a_less_stable_node` red with two lines at once,
+        "src/Equilibrium (I=0.167) depends on src/Thermo (I=0.250), which is less
+        stable" and "src/Thermo (I=0.250) depends on src/Cli (I=0.875), which is less
+        stable" (Thermo's own Ce rose 1 → 2 and Cli's Ca 0 → 1 on the declared graph);
+        `DependencyTests.Every_node_declares_the_neighbours_it_uses_and_no_other` red
+        alongside it, "src/Thermo/BOOT.md declares src/Cli, but no type of src/Thermo
+        refers to it: the dependency went away and the document did not, or it was
+        never real" — the same mutation shape genuinely breaking both levels at once,
+        as the node's own history already found for the Dependencies level alone.
+
+      `dotnet test tests/Protocol.Tests` green (20 passed) after each revert and after
+      all three; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0
+      errors after each revert; the linter 0 errors, 0 warnings; no file outside this
+      node carries a trace of any of the three once reverted.
+- [x] 2026-09-15 — R-Protocol.Tests-13 (repair phase): eight branches the original
+      ten-mutation proof (2026-09-13/14) and the Phase-3 proof (above) never exercised,
+      each seen red once with a mutation applied alone and reverted, `dotnet test
+      tests/Protocol.Tests` green again after each (20 passed while the temporary
+      measurement dump tool was still present for the first seven; 19 for the eighth,
+      added after that tool was deleted):
+      - mechanics, the partial-type branch (only `#region` had been tried): a scratch
+        `partial class` with no `[GeneratedRegex]` member, red, "partial type without a
+        [GeneratedRegex] member";
+      - mechanics, the banned-suffix branch: a scratch class named `MutationMeasureHelper`,
+        red, "type name ends in the banned suffix implied by 'MutationMeasureHelper'";
+      - nesting, a local function's depth reaching its enclosing member and back (the
+        doc comment's "does not lower either figure", never itself tried): a method
+        with no nesting of its own calling a local function with four nested `if`s, red
+        on both at once, "MutationNestingLeak.Outer ... measures 4 for nesting, over 3"
+        and "MutationNestingLeak.Local ... measures 4 for nesting, over 3" — the outer
+        method carries the local function's own depth even though its own body holds no
+        control flow;
+      - the reverse fact, the "names nothing" branch (only the below-limit and
+        understated branches had been tried): a temporary row for
+        `MutationNonexistentType.MutationNonexistentType`, red, "the row for
+        MutationNonexistentType.MutationNonexistentType (parameters) names nothing this
+        fact can re-measure";
+      - named construction, the target-typed `new(…)` branch (the original proof's
+        "called positionally" does not say which form): `MutationWideCtor value =
+        new(1, 2, 3, 4, 5, 6, 7);`, a temporary row on `MutationWideCtor.MutationWideCtor`,
+        red, "MutationWideCtor created at ... without naming every argument";
+      - Coverage, the ⏳-scoping `ApiDeclarations`/R-Protocol.Tests-7 gave `NamesType`
+        (never itself proven red: mutation 1 of 2026-09-13 tested an undocumented type
+        added to `Data`, not an existing type's only mention losing ✅ status): `src/Data/API.md`'s
+        `## Database ✅` heading changed to `⏳` alone, red on five of its seven types at
+        once, "src/Data/API.md never names DatabaseProvenance, which
+        AerospacePropellantThermodynamics.Data exports" (`ElementCount`, `SpeciesPhase`,
+        `SpeciesSection`, `TemperatureInterval` alongside it); `SpeciesDatabase` and
+        `Species` stayed unreported, each named again in the document's other ✅
+        sections, showing the fact is exact and not merely triggered by the heading
+        edit itself;
+      - the root's no-hidden-state invariant, the static-readonly-array branch (mutation
+        8 of 2026-09-13 used a plain mutable field, not a readonly array): a scratch
+        `private static readonly int[]` field added to `src/Equilibrium`, red,
+        "MutationReadonlyArray.Values is a static readonly array, whose elements are
+        mutable state";
+      - the reverse fact, its efferent-coupling path specifically (the "names nothing",
+        below-limit and understated branches proven above and at Phase 3 all happened
+        to be `parameters` rows): `src/Execution/BOOT.md`'s real `Kernels` row (Ce 25,
+        the tree's largest declared efferent-coupling exception) set to 24, red,
+        "src/Execution/BOOT.md: Kernels's row states 24 for efferent coupling, below
+        the current measurement of 25".
+
+      Every mutation confined to a temporary, uncommitted addition (a scratch type in
+      this node, `src/Cli` or `src/Equilibrium`; a temporary row of this node's own
+      `## Shape exceptions`; a single status mark of `src/Data/API.md`; a single figure
+      of `src/Execution/BOOT.md`'s own declared row) and reverted
+      before this commit; `git status` clean and `git diff --stat` empty for every
+      touched file once reverted; `dotnet build AerospacePropellantThermodynamics.sln`
+      0 warnings, 0 errors and the linter 0 errors, 0 warnings after every revert.
 
 ## Taboos
 

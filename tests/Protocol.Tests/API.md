@@ -19,7 +19,12 @@ What it does not guarantee: that a document tells the truth about the code it na
 correctly (`AGENTS.md` §13); that a signature under ✅ matches the code (names are
 checked here, signatures by the snapshot); a dependency carried only by constants,
 which the compiler inlines (a node reading nothing but `const` values of a neighbour
-leaves no trace in its assembly); the surface of the test assemblies.
+leaves no trace in its assembly); the surface of the test assemblies; that a stable
+type holds no behaviour beyond construction and validation; that a type or member a
+`## Shape exceptions` row excuses is what its reason says (the Shape level reads a
+row's `Where`, `Rule` and `Measured`, never its `Reason`); the target-typed creations
+the named-construction rule leaves to review; that a decomposition follows the
+domain's axes.
 
 ## What the tests rely on
 

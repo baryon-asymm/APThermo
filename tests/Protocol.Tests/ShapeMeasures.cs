@@ -19,8 +19,7 @@ internal static class ShapeMeasures
         {
             foreach (var declaration in tree.GetRoot().DescendantNodes().Where(IsTypeLike))
             {
-                var (start, _) = Span(tree, declaration);
-                yield return (QualifiedTypeName(declaration), path, start + 1, CodeLines(tree, declaration));
+                yield return (QualifiedTypeName(declaration), path, StartLine(tree, declaration), CodeLines(tree, declaration));
             }
         }
     }
@@ -34,8 +33,7 @@ internal static class ShapeMeasures
         {
             foreach (var member in tree.GetRoot().DescendantNodes().Where(IsMeasuredMember))
             {
-                var (start, _) = Span(tree, member);
-                yield return (MemberName(member), path, start + 1, CodeLines(tree, member));
+                yield return (MemberName(member), path, StartLine(tree, member), CodeLines(tree, member));
             }
         }
     }
@@ -61,8 +59,7 @@ internal static class ShapeMeasures
 
             foreach (var member in members)
             {
-                var line = tree.GetLineSpan(FirstTokenAfterAttributes(member).Span).StartLinePosition.Line;
-                yield return (MemberName(member), path, line + 1, depths[member]);
+                yield return (MemberName(member), path, StartLine(tree, member), depths[member]);
             }
         }
     }
@@ -76,8 +73,7 @@ internal static class ShapeMeasures
             var root = tree.GetRoot();
             foreach (var member in root.DescendantNodes().Where(IsParameterized))
             {
-                var (start, _) = Span(tree, member);
-                yield return (MemberName(member), path, start + 1, ParameterListOf(member)!.Parameters.Count);
+                yield return (MemberName(member), path, StartLine(tree, member), ParameterListOf(member)!.Parameters.Count);
             }
 
             foreach (var type in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
@@ -87,8 +83,7 @@ internal static class ShapeMeasures
                     continue;
                 }
 
-                var (start, _) = Span(tree, type);
-                yield return (QualifiedTypeName(type) + "." + type.Identifier.Text, path, start + 1, primaryConstructor.Parameters.Count);
+                yield return (QualifiedTypeName(type) + "." + type.Identifier.Text, path, StartLine(tree, type), primaryConstructor.Parameters.Count);
             }
         }
     }
@@ -173,28 +168,26 @@ internal static class ShapeMeasures
         return string.Join(".", names);
     }
 
-    /// <summary>The 0-based start and end line of a declaration: from its first token after any attribute lists (so that
-    /// attributes and the documentation comment above, which is leading trivia, are excluded) to its very last token (the
-    /// closing brace, or the semicolon of a bodyless or expression-bodied declaration). The span's start and end are these
-    /// two lines regardless of how many of the lines between them hold code; <see cref="CodeLines"/> counts those.</summary>
-    private static (int Start, int End) Span(SyntaxTree tree, SyntaxNode node)
-    {
-        var start = tree.GetLineSpan(FirstTokenAfterAttributes(node).Span).StartLinePosition.Line;
-        var end = tree.GetLineSpan(node.GetLastToken().Span).EndLinePosition.Line;
-        return (start, end);
-    }
+    /// <summary>The two boundary tokens of a declaration's own span: its first token after any attribute lists (so that
+    /// attributes and the documentation comment above, which is leading trivia, are excluded) and its very last token (the
+    /// closing brace, or the semicolon of a bodyless or expression-bodied declaration). <see cref="StartLine"/> and
+    /// <see cref="CodeLines"/> both walk from these same two tokens, so the boundary itself is computed once.</summary>
+    private static (SyntaxToken First, SyntaxToken Last) BoundaryTokens(SyntaxNode node) => (FirstTokenAfterAttributes(node), node.GetLastToken());
+
+    /// <summary>The 1-based line of a declaration's first boundary token (<see cref="BoundaryTokens"/>): the place
+    /// reported for a type-lines, method-lines, parameters or nesting row ("Shape check").</summary>
+    private static int StartLine(SyntaxTree tree, SyntaxNode node) => tree.GetLineSpan(BoundaryTokens(node).First.Span).StartLinePosition.Line + 1;
 
     /// <summary>
-    /// The count of lines of the same span (<see cref="Span"/>) that hold code ("Shape check", type lines, the 2026-09-14
-    /// exclusion): a line counts once any token of the declaration's own span falls on it, whatever comment trivia shares
-    /// that line; a line of only white space or only comment (<c>//</c>, <c>///</c>, or a block comment's line) does not,
-    /// because no token touches it. A token that itself spans several lines (a raw string literal) counts every line it
-    /// occupies, since those lines hold that token's own text, not a comment.
+    /// The count of lines between the same boundary tokens (<see cref="BoundaryTokens"/>) that hold code ("Shape check",
+    /// type lines, the 2026-09-14 exclusion): a line counts once any token of the declaration's own span falls on it,
+    /// whatever comment trivia shares that line; a line of only white space or only comment (<c>//</c>, <c>///</c>, or a
+    /// block comment's line) does not, because no token touches it. A token that itself spans several lines (a raw string
+    /// literal) counts every line it occupies, since those lines hold that token's own text, not a comment.
     /// </summary>
     private static int CodeLines(SyntaxTree tree, SyntaxNode node)
     {
-        var first = FirstTokenAfterAttributes(node);
-        var last = node.GetLastToken();
+        var (first, last) = BoundaryTokens(node);
         var lines = new HashSet<int>();
         for (var token = first; ; token = token.GetNextToken())
         {
