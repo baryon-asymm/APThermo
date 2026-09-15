@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Cli.Documents;
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Problems;
 

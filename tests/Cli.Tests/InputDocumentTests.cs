@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AerospacePropellantThermodynamics.Cli.Documents;
 using AerospacePropellantThermodynamics.Fixtures;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;

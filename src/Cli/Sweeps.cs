@@ -1,3 +1,5 @@
+using AerospacePropellantThermodynamics.Cli.Documents;
+
 namespace AerospacePropellantThermodynamics.Cli;
 
 /// <summary>The Cartesian product of a sweep, ratio-major, then chamber pressure, then pressure, then temperature: the order of the cases in the batch and in the document (API.md, `sweep`).</summary>

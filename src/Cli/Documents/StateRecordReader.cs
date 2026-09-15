@@ -1,7 +1,7 @@
 using System.Text.Json;
 using AerospacePropellantThermodynamics.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Documents;
 
 /// <summary>
 /// Reads the state-record files of the states command: a JSON array, a single object, or JSON Lines (API.md, Command

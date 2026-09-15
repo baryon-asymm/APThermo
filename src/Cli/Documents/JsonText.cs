@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Documents;
 
 /// <summary>A text parsed as JSON with its source label folded into the message: a file path, or a file and a line.</summary>
 internal static class JsonText

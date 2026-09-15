@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Cli.Documents;
 using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;

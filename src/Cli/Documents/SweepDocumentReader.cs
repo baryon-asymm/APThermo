@@ -1,6 +1,6 @@
 using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Documents;
 
 /// <summary>Reads the `sweep` object of a problem document (API.md, Input document): the ranges the batch's Cartesian product runs over.</summary>
 internal static class SweepDocumentReader

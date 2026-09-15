@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Documents;
 
 /// <summary>A JSON object read strictly: every field is known, every value has the expected type, and the path names the offender.</summary>
 internal sealed class StrictObject
