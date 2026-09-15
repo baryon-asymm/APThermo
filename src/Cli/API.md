@@ -13,13 +13,16 @@ $ apthermo states records.json [more files...] [--output results.json] [--format
 $ apthermo species [--find TEXT] [--database DIR] [--output PATH] [--format json|csv]
 $ apthermo devices [--output PATH]
 $ apthermo --help
+$ apthermo --version
 ```
 
 Options take their value as the next argument or after `=`; every option applies only
 to the commands listed above it. `--database` names a directory with `thermo.inp`
-and, optionally, `trans.inp`; without it the tool looks for `data/` next to the
-executable, then `data/` under the current directory, then the current directory
-itself. `--accelerator` overrides the document's `engine.accelerator`; the default is
+and, optionally, `trans.inp`; without it the tool uses the NASA database embedded in
+`APThermo` (`Data.SpeciesDatabase.LoadBundled()`), the same bytes as the committed
+`data/thermo.inp` and `data/trans.inp`. `--version` prints the tool's informational
+version (`Program.Version`) and exits; it applies to no command and may be given
+without one. `--accelerator` overrides the document's `engine.accelerator`; the default is
 `auto`. `--threshold` omits mole fractions below its value from the compositions
 (default 5e-6, the reference's print threshold). `--mass-tolerance` (a finite
 non-negative number, relative to one kilogram; default the library's
@@ -224,7 +227,7 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
 ```json
 {
   "run": {
-    "tool": "apthermo", "version": "1.0.0", "command": "rocket", "inputs": ["problem.json"],
+    "tool": "apthermo", "version": "0.1.0", "command": "rocket", "inputs": ["problem.json"],
     "database": { "thermoPath": "data/thermo.inp", "transPath": "data/trans.inp", "thermoSha256": "…", "transSha256": "…" },
     "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70, "cudaSkippedBecause": null },
     "timings": { "database": 0.31, "solve": 1.2 },
@@ -262,6 +265,21 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
 accelerator (`"cudaSkippedBecause": "APTHERMO_NO_CUDA=1 forbids CUDA"`), `null` when
 CUDA was bound or never tried. The `devices` listing's `cpu` and `cuda` accelerator
 objects carry the same field.
+
+`run.database.thermoPath` and `.transPath` are real file paths when `--database DIR`
+was given; without it they are the path-like markers `"embedded:thermo.inp"` and
+`"embedded:trans.inp"`, naming the database embedded in `APThermo` rather than a path
+on disk. `thermoSha256`/`transSha256` are the same hashes either way (the embedded
+bytes equal the committed `data/` files, `Data`'s `API.md`), so a run's provenance is
+complete without a database directory.
+
+⚠ 2026-09-15 (distribution phase): `--database`'s default used to be a search — `data/`
+next to the executable, then `data/` under the current directory, then the current
+directory itself — and `run.database` then carried whichever of those held the files.
+A NuGet package and a .NET tool have no `data/` beside them (root `BOOT.md`,
+`## Delivery`, `Data`), so the search is gone; `--database` still names a directory
+unchanged, and without it the tool now uses the database `Data.SpeciesDatabase`
+embeds.
 
 Every case carries `index` (its position), `inputs` (the values that vary in the
 batch: the ratio and the chamber pressure of a rocket case; the ratio, `kind`,

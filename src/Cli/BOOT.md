@@ -78,15 +78,27 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Commands: `rocket <input.json>`, `equilibrium <input.json>`, `states <records>...`,
   `species [--find TEXT]`, `devices`; options `--output PATH`, `--format json|csv`,
   `--accelerator auto|cpu|cuda`, `--database DIR` (directory with `thermo.inp` and
-  `trans.inp`; default `data/` next to the executable, then `data/` under the current
-  directory, then the current directory), `--threshold X` (mole fractions below X are
+  `trans.inp`; without it, the database embedded in `APThermo`,
+  `Data.SpeciesDatabase.LoadBundled()`), `--threshold X` (mole fractions below X are
   omitted from the composition tables; default 5e-6, the reference's print threshold),
-  `--transport` (states), `--find TEXT` (species), `--help`. Every option applies to
-  the commands `API.md` lists it with; an option that does not apply is an error.
-  2026-09-13: `--mass-tolerance X` on the solving commands, the mass tolerance
-  declared for every mixture built from element moles (default the library's, 1e-2;
-  a propellant by reactants keeps the default); a run option, not a document field,
-  because it describes the caller's records and not the physics.
+  `--transport` (states), `--find TEXT` (species), `--help`, `--version` (prints
+  `Program.Version` and exits; applies to no command and may be given alone). Every
+  option applies to the commands `API.md` lists it with; an option that does not
+  apply is an error. 2026-09-13: `--mass-tolerance X` on the solving commands, the
+  mass tolerance declared for every mixture built from element moles (default the
+  library's, 1e-2; a propellant by reactants keeps the default); a run option, not a
+  document field, because it describes the caller's records and not the physics.
+
+  ⚠ 2026-09-15 (distribution phase): `--database`'s default stood "`data/` next to
+  the executable, then `data/` under the current directory, then the current
+  directory" (`DatabaseFiles.Resolve`, since removed). A NuGet package and a .NET
+  tool have no `data/` directory beside them (root `BOOT.md`, `## Delivery`, `Data`),
+  so every consumer without `--database` would first have to find NASA files
+  themselves. The search is gone; `DatabaseFiles.Load` now reads
+  `SpeciesDatabase.LoadBundled()` when no directory is given, and `run.database`
+  reports the path-like markers `"embedded:thermo.inp"`/`"embedded:trans.inp"`
+  (`API.md`, Output document) instead of a file path, with the same provenance
+  hashes a caller who pointed `--database` at the committed `data/` would get.
 - The assembly is named after its namespace, as the root requires; `apthermo` is the
   tool command name of the package (`dotnet pack` produces a tool package whose
   command is `apthermo`), and a direct run is `dotnet APThermo.Cli.dll`.
@@ -208,7 +220,7 @@ Types that stayed at this node's own level:
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
 | `ProblemCommand` | `rocket` and `equilibrium`: read (`Documents`), check the problem type against the command, build the mixtures, expand the sweep, solve (`Cases`), write (`Output`) |
 | `StatesCommand` | `states`: the records split by `HasExits` (`Documents`), one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order, written (`Output`) |
-| `DatabaseFiles`, `DatabaseInfo` | unchanged: where the database directory is found, and the record of what was found |
+| `DatabaseFiles`, `DatabaseInfo` | where the database is found: `--database DIR`, or (2026-09-15) `Data.SpeciesDatabase.LoadBundled()` when no directory is given, reported as the `"embedded:…"` markers; and the record of what was found |
 | `RunInfo`, `RunLimits`, `Timings` | a run's own bookkeeping, assembled by `SolverSession.Stop`; read by `Output` and `Listings` through their fields only |
 | `Names` | camel case of the library's names and of statuses; read by `Output` and `Listings`, and by `DocumentWords`' own fallback branch (see the warning above) |
 | `SpeciesCommand` | the `species` command: the database, the name filter, the rows (`Listings.SpeciesRow`), the run and the delivery (`Listings.SpeciesListing`, `Output.DocumentWriter`) |
@@ -394,6 +406,29 @@ Every other type of the node measures 14 or below by the dependency check's walk
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 — `apthermo --version` prints `Program.Version` and exits 0, in
+      process and as a separate process
+      (`CommandLineTests.Version_prints_the_tool_version_and_exits_0`,
+      `ProcessTests.The_executable_prints_its_version_with_exit_0`). Without
+      `--database`, a run's `run.database.thermoPath`/`.transPath` are the embedded
+      markers `"embedded:thermo.inp"`/`"embedded:trans.inp"` with 64-character SHA-256
+      hashes, in process and from an empty working directory as a separate process
+      (`CommandLineTests.Without_database_the_run_uses_the_embedded_database`,
+      `ProcessTests.The_executable_uses_the_embedded_database_from_an_empty_working_directory`).
+      Both facts seen red once (AGENTS.md §13): making `DatabaseFiles.Load` call
+      `LoadFromDirectory` on the current directory instead of `LoadEmbedded` when no
+      `--database` is given turned the embedded-database fact red, exit code 2, `no
+      thermo.inp in the database directory '…'`; disabling the `--version` branch of
+      `Program.Run` turned the version fact red, exit code 2, `no command given`
+      (`--version` alone then falls through to the ordinary "no command" refusal).
+      Reverted, nothing of either mutation committed. `Bits.approved.txt` unchanged: the
+      JSON hash of every example is taken with its top-level `run` property cut out
+      first (`RunPropertyCut`, above), and the CSV form never carries `run` at all
+      (`Output.CsvOutput`), so the database path this criterion moves from a directory
+      to the embedded markers reaches neither hash. Proved directly too: the packing
+      proof of `Problems`' BOOT.md ran an approved CSV example
+      (`documents/rocket-lox-lh2.approved.csv`) from an empty directory without
+      `--database`, through the packed tool, and found it byte-for-byte unchanged.
 
 ## Taboos
 
