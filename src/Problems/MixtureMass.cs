@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>Σ n_i A_i with the database's atomic weights, and the refusal of a mixture beyond its declared tolerance (BOOT.md, invariants).</summary>
 internal static class MixtureMass

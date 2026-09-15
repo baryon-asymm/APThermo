@@ -1,11 +1,11 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Execution;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>The library's entry point: turns propellants and mixtures into chemical systems and runs the problems on one engine.</summary>
 public sealed class Solver : IDisposable

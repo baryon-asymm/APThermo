@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// What a node's own <c>BOOT.md</c> declares: the links of its <c>## Dependencies</c> section, and the rows of its

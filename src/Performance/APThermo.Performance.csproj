@@ -2,8 +2,8 @@
 
   <!-- Node src/Performance: the rocket problem of one case with an infinite-area chamber (RP-1311 chapter 6). Kernel-compatible. -->
   <ItemGroup>
-    <ProjectReference Include="..\Equilibrium\AerospacePropellantThermodynamics.Equilibrium.csproj" />
-    <ProjectReference Include="..\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="AerospacePropellantThermodynamics.Performance.Tests" />
+    <InternalsVisibleTo Include="APThermo.Performance.Tests" />
   </ItemGroup>
 
 </Project>

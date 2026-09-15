@@ -1,7 +1,7 @@
-# API.md — AerospacePropellantThermodynamics
+# API.md — APThermo
 
 Tree root. The system is a .NET library under the root namespace
-`AerospacePropellantThermodynamics`, whose front door is the `Problems` node, plus a
+`APThermo`, whose front door is the `Problems` node, plus a
 command-line tool over it. Everything not named here is internal and may change.
 
 ## How the system is used
@@ -25,10 +25,10 @@ The command line does the same with JSON files (`Cli`).
 ## Entry points ✅
 
 ```csharp
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Performance;
+using APThermo.Problems;
 
 var database = SpeciesDatabase.Load(thermoPath, transPath);                 // Data node
 
@@ -71,7 +71,7 @@ $ apthermo devices                                           # the accelerators
 ```
 
 `apthermo` is the tool command name of the `Cli` node's package; a direct run is
-`dotnet AerospacePropellantThermodynamics.Cli.dll …`. Exit codes: 0 every case ok, 1 a
+`dotnet APThermo.Cli.dll …`. Exit codes: 0 every case ok, 1 a
 case failed numerically (document written), 2 invalid input, 3 accelerator or
 infrastructure error.
 

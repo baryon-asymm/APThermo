@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>The NASA thermodynamic database (and optionally the transport database) as an immutable object model.</summary>
 public sealed class SpeciesDatabase

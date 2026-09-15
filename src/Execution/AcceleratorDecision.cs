@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>
 /// What <see cref="AcceleratorChoice"/> decided: the session to run on, and — when <see cref="AcceleratorKind.Auto"/> fell back to

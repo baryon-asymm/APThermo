@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L1: every tp, hp and sp fixture case is solved and compared with the reference, field by field and species by species.</summary>
 [Collection(CpuCollection.Name)]

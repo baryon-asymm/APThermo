@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>
 /// What a case needs before its first Newton step: the input checked, the element and species marks written, and the initial

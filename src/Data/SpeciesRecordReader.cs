@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// One species record of <c>thermo.inp</c>, whole or absent: the identity line, the properties line (interval count,

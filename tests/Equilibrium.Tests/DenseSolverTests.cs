@@ -1,6 +1,6 @@
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: the internal dense solver against systems with known solutions.</summary>
 [Collection(CpuCollection.Name)]

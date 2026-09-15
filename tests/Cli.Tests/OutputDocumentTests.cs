@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
+using APThermo.Performance;
+using APThermo.Problems;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>L1: every example document runs end to end and its result validates against the output schema; sweeps, states, thresholds, listings.</summary>
 [Collection(CliCollection.Name)]

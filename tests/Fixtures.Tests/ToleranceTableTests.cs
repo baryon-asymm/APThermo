@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Fixtures.Tests;
+namespace APThermo.Fixtures.Tests;
 
 /// <summary>L1: the tolerance table loads, covers the fields the fixtures report, and compares as documented.</summary>
 public sealed class ToleranceTableTests

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 /// <summary>The token walk: --name, --name=value, --help/-h, positionals, a repeated option; knows nothing of commands.</summary>
 internal static class ArgumentScanner

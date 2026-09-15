@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>The phases of one run as named scopes, and the warm-up of its kernel; produces the timings the result carries.</summary>
 internal sealed class RunTimer

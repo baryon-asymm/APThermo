@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Cli.Documents;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli.Documents;
+using APThermo.Data;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Cases;
+namespace APThermo.Cli.Cases;
 
 /// <summary>Propellant documents into the library's definitions.</summary>
 internal static class Propellants

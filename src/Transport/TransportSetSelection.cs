@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Stages 4 and 5 of the evaluation: which species take part. The components seed the set, then every gaseous species of the

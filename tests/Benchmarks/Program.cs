@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Running;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// The command-line entry point (API.md, Entry point): a plain `BenchmarkSwitcher`
 /// over the groups of `BOOT.md`, Constraints, run with the one job of

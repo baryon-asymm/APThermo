@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Equilibrium;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>Device views of one equilibrium chunk. Public only because ILGPU requires kernel parameter types to be.</summary>
 public readonly struct EquilibriumBatchViews(

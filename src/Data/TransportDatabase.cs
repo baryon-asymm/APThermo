@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>The transport fits of <c>trans.inp</c>, addressed by species name or by pair.</summary>
 public sealed class TransportDatabase

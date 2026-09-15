@@ -1,11 +1,11 @@
-using AerospacePropellantThermodynamics.Cli.Cases;
-using AerospacePropellantThermodynamics.Cli.Documents;
-using AerospacePropellantThermodynamics.Cli.Output;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli.Cases;
+using APThermo.Cli.Documents;
+using APThermo.Cli.Output;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>The rocket and equilibrium commands: read the document, check its problem type, build the mixtures, expand the sweep, solve, write.</summary>
 internal static class ProblemCommand

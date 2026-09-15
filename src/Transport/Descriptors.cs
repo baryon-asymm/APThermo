@@ -1,6 +1,6 @@
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>The transport properties of one station, SI, with the bookkeeping of the transport set the reference reports.</summary>
 public struct TransportFigures

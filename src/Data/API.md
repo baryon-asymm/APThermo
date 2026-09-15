@@ -1,6 +1,6 @@
 # API.md — Data
 
-Namespace `AerospacePropellantThermodynamics.Data`. The node exposes the NASA
+Namespace `APThermo.Data`. The node exposes the NASA
 databases as an immutable object model addressed by species name: everything a
 database answers, the index and the atomic weights included, is built by `Load` or
 `Parse`, so a loaded instance may be shared between threads without a lock
@@ -10,7 +10,7 @@ Everything not listed here is internal and may change.
 ## Database ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 public sealed class SpeciesDatabase
 {

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>
 /// One phase of a run, measured for as long as the scope lives. The phase is named where the work is done instead of being chosen

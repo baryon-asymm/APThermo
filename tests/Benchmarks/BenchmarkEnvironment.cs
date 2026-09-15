@@ -3,7 +3,7 @@ using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.NoEmit;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// One job for every group (BOOT.md, Constraints): Release, x64, the in-process
 /// toolchain, so that ILGPU's native libraries and the CUDA post-link load as in the

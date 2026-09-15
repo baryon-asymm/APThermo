@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Equilibrium;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>One rocket case solved on the host over the accelerator's buffers, as the numerical node is called directly.</summary>
 internal readonly record struct HostRocketCase(MixtureState[] Stations, double[] Moles, PerformanceFigures[] Figures, CaseStatus[] StationStatus, int[] Iterations, CaseStatus Status);

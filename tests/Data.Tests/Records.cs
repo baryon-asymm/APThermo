@@ -1,8 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Data.Tests;
+namespace APThermo.Data.Tests;
 
 /// <summary>The JSON fixture records written by <c>transcribe.py</c> of this node into <c>records/</c>.</summary>
 internal static class Records

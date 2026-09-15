@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// Theoretical rocket performance of one case with an infinite-area chamber, RP-1311 Part I chapter 6: the chamber at

@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>
 /// The node's invariants (Performance BOOT.md) as predicates over one host solve: each returns the stations that violate it as

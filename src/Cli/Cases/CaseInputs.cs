@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Problems;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
+using APThermo.Problems;
+using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
-namespace AerospacePropellantThermodynamics.Cli.Cases;
+namespace APThermo.Cli.Cases;
 
 /// <summary>The `inputs` echo of a case, written once, as API.md (Output document) defines it for a rocket or an equilibrium case.</summary>
 internal static class CaseInputs

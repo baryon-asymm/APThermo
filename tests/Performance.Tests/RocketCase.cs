@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>
 /// One rocket case on an accelerator: its buffers, the context the node's stages take, and the solution read back. The whole

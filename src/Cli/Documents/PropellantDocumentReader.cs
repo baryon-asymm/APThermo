@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Data;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>Reads the propellant part of a problem document (API.md, Input document): reactants or element moles, a custom reactant's formula.</summary>
 internal static class PropellantDocumentReader

@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>Equilibrium cases grouped by the transport flag, one batch per group, so that the transport pass runs only over the cases that asked (BOOT.md, F-PR-08).</summary>
 internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)

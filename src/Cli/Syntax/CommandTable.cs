@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 /// <summary>
 /// The two tables of the command line: every command and every option, with the usage text generated from them

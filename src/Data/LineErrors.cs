@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>A field-level format error, stamped with the 0-based index of the line it was read from.</summary>
 internal sealed class FieldException(int lineIndex, string message, Exception? inner) : FormatException(message, inner)

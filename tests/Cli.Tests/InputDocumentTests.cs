@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Cli.Documents;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Cli.Documents;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>L0: the strict readers of the input documents, their messages, and the examples of the API document.</summary>
 [Collection(CliCollection.Name)]

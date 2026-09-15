@@ -43,7 +43,7 @@ warning fails the test too.
   (`[CallerFilePath]`).
 - **A type belongs to the deepest node whose namespace equals, or prefixes at a dot
   boundary, the type's own namespace** (`AGENTS.md` §1; `NodeAssemblies.NodeOf(Type)`,
-  2026-09-15): a node's own namespace is the root's (`AerospacePropellantThermodynamics`)
+  2026-09-15): a node's own namespace is the root's (`APThermo`)
   plus its directory path from the tree root, `src` and `tests` transparent
   (`Node.Namespace`), and equals the project's own name for a node that holds one — the
   only definition a project-less child node has, since such a node compiles into its
@@ -342,7 +342,7 @@ and `Records.IntervalRecord` of `tests/Data.Tests`, both nested inside `internal
 class Records`, are written `Records.SpeciesRecord` and `Records.IntervalRecord` from
 outside that class, a qualifier of a nested type's own enclosing type, never of the
 namespace alone. A qualifier relative to an enclosing namespace escaped the same way:
-`Execution.RocketBatchViews(…)` written from namespace `AerospacePropellantThermodynamics.
+`Execution.RocketBatchViews(…)` written from namespace `APThermo.
 Problems` needs no `using` at all, since C# searches the enclosing namespaces of the
 writing file. Both positional creations these two rows' types would therefore have gone
 unreported had one existed. `WideConstructorType` now carries the row's nesting path
@@ -640,7 +640,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       Convert(value) is Single"; (7) the CUDA check red, "names
       ILGPU.Runtime.Cuda.CudaAccelerator"; (8) the static-field check red, "Counter is
       a static field that is neither const nor readonly"; (9) the namespace check red,
-      "is in namespace AerospacePropellantThermodynamics.Thermo.Weird"; (10)
+      "is in namespace APThermo.Thermo.Weird"; (10)
       Declarations and Lint red, "declares the type MutationNonexistentType under ✅,
       and no assembly of the tree has it". One unrelated failure ran alongside every
       check above and after, in the coder's worktree only: Declarations red on
@@ -747,9 +747,9 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       blank-line padding (verified: 353 code lines over a 413-line physical span) and
       for a method the same way at 60 (50 code lines over a 65-line physical span).
 
-      `dotnet build AerospacePropellantThermodynamics.sln`: 0 warnings, 0 errors
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors
       throughout; the fast suite green throughout
-      (`dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
+      (`dotnet test APThermo.sln --filter "Category!=LongRunning"`
       with `APTHERMO_NO_CUDA=1`: 3024 passed, up from 3014 before it, none skipped); the
       linter 0 errors, 0 warnings; `git status` clean after every mutation was reverted.
 - [x] 2026-09-15 — The Shape level's non-degeneracy gaps closed (repair phase,
@@ -858,7 +858,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         as the node's own history already found for the Dependencies level alone.
 
       `dotnet test tests/Protocol.Tests` green (20 passed) after each revert and after
-      all three; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0
+      all three; `dotnet build APThermo.sln` 0 warnings, 0
       errors after each revert; the linter 0 errors, 0 warnings; no file outside this
       node carries a trace of any of the three once reverted.
 - [x] 2026-09-15 — R-Protocol.Tests-13 (repair phase): eight branches the original
@@ -893,7 +893,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         added to `Data`, not an existing type's only mention losing ✅ status): `src/Data/API.md`'s
         `## Database ✅` heading changed to `⏳` alone, red on five of its seven types at
         once, "src/Data/API.md never names DatabaseProvenance, which
-        AerospacePropellantThermodynamics.Data exports" (`ElementCount`, `SpeciesPhase`,
+        APThermo.Data exports" (`ElementCount`, `SpeciesPhase`,
         `SpeciesSection`, `TemperatureInterval` alongside it); `SpeciesDatabase` and
         `Species` stayed unreported, each named again in the document's other ✅
         sections, showing the fact is exact and not merely triggered by the heading
@@ -915,7 +915,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       `## Shape exceptions`; a single status mark of `src/Data/API.md`; a single figure
       of `src/Execution/BOOT.md`'s own declared row) and reverted
       before this commit; `git status` clean and `git diff --stat` empty for every
-      touched file once reverted; `dotnet build AerospacePropellantThermodynamics.sln`
+      touched file once reverted; `dotnet build APThermo.sln`
       0 warnings, 0 errors and the linter 0 errors, 0 warnings after every revert.
 - [x] 2026-09-15 — Child nodes (root `BOOT.md`, Constraints, 2026-09-15): every check
       reads one attribution (`NodeAssemblies.NodeOf(Type)`, `Node.Namespace`, `## Structure`,
@@ -941,7 +941,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       falls back to the project node of the type's own physical assembly when the
       namespace walk finds nothing, and the dump matched again.
 
-      `dotnet build AerospacePropellantThermodynamics.sln`: 0 warnings, 0 errors;
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors;
       `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests`: 19 passed; the linter 0
       errors, 0 warnings; `PublicSurface.approved.txt` unchanged
       (`git hash-object`: `35d15ae5ff2f8b189290d88d3728716e8f1b051c` before and after).
@@ -957,7 +957,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       - **(b)** a public type, `MutationUndocumented`, not named in the child's own
         `API.md`: `Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api`
         red, "src/Cli/MutationChild/API.md never names MutationUndocumented, which
-        AerospacePropellantThermodynamics.Cli.MutationChild exports (root BOOT.md,
+        APThermo.Cli.MutationChild exports (root BOOT.md,
         Taboos: no public type outside its node's API.md)", naming the child node; the
         namespace fact stayed green, since the type's own namespace resolves exactly to
         the child node that exists for it;
@@ -975,7 +975,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         implied by naming the child, confirmed by querying the measurement itself.
 
       Each proof's directory and file deleted before this commit; `git status --short`
-      empty; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0 errors
+      empty; `dotnet build APThermo.sln` 0 warnings, 0 errors
       and the linter 0 errors, 0 warnings after every revert.
 - [x] 2026-09-15 (child-nodes phase) — The stable-dependencies measure moved from one
       component per `src` node to one component per `src` node that holds a project
@@ -992,7 +992,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       second walk) and dropping an edge that folds back onto the same project node;
       `dotnet test tests/Protocol.Tests` green after the fix (19 passed, the fact
       above among them), `dotnet test tests/Cli.Tests` green (99 passed), `dotnet build
-      AerospacePropellantThermodynamics.sln` 0 warnings 0 errors, the linter 0 errors 0
+      APThermo.sln` 0 warnings 0 errors, the linter 0 errors 0
       warnings, `PublicSurface.approved.txt` unchanged (`git hash-object`:
       `35d15ae5ff2f8b189290d88d3728716e8f1b051c`, same before and after — the change
       touches no public member). The node-level table above is the re-measurement on

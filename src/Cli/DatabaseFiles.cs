@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>Finding and loading the database files.</summary>
 internal static class DatabaseFiles

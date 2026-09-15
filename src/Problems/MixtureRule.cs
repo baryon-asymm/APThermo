@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>
 /// The role composition and the ratio guard (its one owner, F-PR-07): validates the resolved reactants' roles against an

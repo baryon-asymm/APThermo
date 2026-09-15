@@ -4,7 +4,7 @@
 
 Renders a run's cases into the output document, in JSON or CSV, and delivers it to a
 file or to standard output. A child node of `src/Cli`
-(`AerospacePropellantThermodynamics.Cli.Output`, compiled into the parent's assembly,
+(`APThermo.Cli.Output`, compiled into the parent's assembly,
 root `BOOT.md`, Constraints, 2026-09-15): it has its own reason to change — a field
 added to the document, a new document form — and the rest of the node reaches it
 through `DocumentWriter.Write` (a full run), `DocumentWriter.Deliver`/`Render` (a
@@ -57,7 +57,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The moved types compile unchanged under
-      `AerospacePropellantThermodynamics.Cli.Output` and every test of
+      `APThermo.Cli.Output` and every test of
       `tests/Cli.Tests` that exercised them before the move (`BitSnapshotTests`,
       `CsvTests`, the rendering cases of `OutputDocumentTests` and `ExitCodeTests`)
       passes after it, same count as before the split

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Problems: the front door. Propellants, chemical systems, problems and results, orchestration of the numerical nodes through Execution. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\Transport\APThermo.Transport.csproj" />
+    <ProjectReference Include="..\Execution\APThermo.Execution.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Problems.Tests" />
+  </ItemGroup>
+
+</Project>

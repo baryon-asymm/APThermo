@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// One station's solve: the sub-views of the station's row in the case's result, the composition it starts from, and the call

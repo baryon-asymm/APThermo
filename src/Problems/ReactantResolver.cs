@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>
 /// One <see cref="Reactant"/> resolved against the database (BOOT.md, invariants): a database record by exact name, its

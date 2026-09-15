@@ -9,7 +9,7 @@ undocumented (root taboo).
 ## Entry point ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 // dotnet run -c Release --project tests/Benchmarks -- [BenchmarkDotNet arguments]
 // e.g. --list flat, --filter *UserStates*, --job Dry
@@ -27,7 +27,7 @@ excepted: it has no benchmark of its own and rides on the `MemoryDiagnoser` of
 path.
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 // Group 1: the LOX/LH2 rocket sweep family at 1 000, 10 000 and 100 000 cases, on the
 // CPU accelerator and on CUDA, through the raw Execution.Engine batch API.

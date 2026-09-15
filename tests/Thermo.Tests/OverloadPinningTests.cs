@@ -1,9 +1,9 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
+using APThermo.Data;
+using APThermo.Fixtures;
+using APThermo.Harness;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>
 /// Reaches the internal host-side H°/RT overload the table builder's join-and-cut uses (<c>SpeciesFunctions.HOverRT(TemperatureInterval, double)</c>,

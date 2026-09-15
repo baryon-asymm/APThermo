@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// The inputs of one station, built once by <see cref="TransportSolver.Evaluate"/> and given to every stage of the evaluation,

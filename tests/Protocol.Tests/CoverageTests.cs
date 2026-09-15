@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// Coverage level: every type a library assembly exports is named in the API.md of its node (asking <see cref="ApiDeclarations"/>,

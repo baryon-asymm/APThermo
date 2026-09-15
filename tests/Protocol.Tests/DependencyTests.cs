@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// Dependencies level: the `## Dependencies` of every node with an assembly equals the nodes whose types its code uses, in the

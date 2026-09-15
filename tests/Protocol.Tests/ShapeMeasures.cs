@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// The size, nesting and parameter measurements of the Shape level (`tests/Protocol.Tests/BOOT.md`, "Shape check"), read from

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>The phases of one run that <see cref="RunTimings"/> reports separately.</summary>
 internal enum RunPhase

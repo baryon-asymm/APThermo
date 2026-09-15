@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>
 /// L1: at every station of every rocket fixture run with transport, the solver evaluated on the reference composition reproduces

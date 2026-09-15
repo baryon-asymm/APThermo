@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// The skeleton of <c>thermo.inp</c> (NASA Glenn format, TP-2002-211556): comments before the <c>thermo</c> line,

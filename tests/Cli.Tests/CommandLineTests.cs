@@ -1,7 +1,7 @@
 using System.Globalization;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>L0: option parsing and the usage text.</summary>
 [Collection(CliCollection.Name)]

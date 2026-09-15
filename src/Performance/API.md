@@ -1,13 +1,13 @@
 # API.md — Performance
 
-Namespace `AerospacePropellantThermodynamics.Performance`. The node exposes one
+Namespace `APThermo.Performance`. The node exposes one
 kernel-compatible rocket solver for one case and the descriptors of its inputs and
 outputs. Everything not listed here is internal and may change.
 
 ## Rocket solver ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 public enum FlowModel { ShiftingEquilibrium, FrozenAtChamber, FrozenAtThroat }
 public enum ExitSpecification { AreaRatio, PressureRatio }

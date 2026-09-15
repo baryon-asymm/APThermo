@@ -1,13 +1,13 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Problems;
+using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Group 4 of `BOOT.md`, Constraints: the one-time costs a .NET caller pays once per
 /// process (database load, chemical-system assembly, kernel compilation on the CPU

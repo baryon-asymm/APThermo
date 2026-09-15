@@ -2,7 +2,7 @@ using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>
 /// One ILGPU context, the accelerator built on it, the libnvvm binding the CUDA path needs, and the description of all three.

@@ -1,7 +1,7 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>
 /// Reads a rocket or equilibrium problem document (API.md, Input document): the root of the document. Reads

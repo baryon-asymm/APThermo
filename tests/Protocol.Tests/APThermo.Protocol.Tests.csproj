@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Node tests/Protocol.Tests: the reflection half of the machine checks of AGENTS.md §13 and the wiring of the linter.
+    Every project of the tree is referenced so that its assembly lands in this build output and can be loaded by name;
+    none of their types is used (this node's BOOT.md: Dependencies, None).
+  -->
+  <ItemGroup>
+    <!-- Roslyn: syntax trees only, for the Shape level's SourceSyntax (tests/Protocol.Tests/BOOT.md, Dependencies). -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cli\APThermo.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\..\src\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\..\src\Execution\APThermo.Execution.csproj" />
+    <ProjectReference Include="..\..\src\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\..\src\Problems\APThermo.Problems.csproj" />
+    <ProjectReference Include="..\..\src\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Transport\APThermo.Transport.csproj" />
+    <ProjectReference Include="..\Benchmarks\APThermo.Benchmarks.csproj" />
+    <ProjectReference Include="..\Cli.Tests\APThermo.Cli.Tests.csproj" />
+    <ProjectReference Include="..\Data.Tests\APThermo.Data.Tests.csproj" />
+    <ProjectReference Include="..\Equilibrium.Tests\APThermo.Equilibrium.Tests.csproj" />
+    <ProjectReference Include="..\Execution.Tests\APThermo.Execution.Tests.csproj" />
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
+    <ProjectReference Include="..\Fixtures.Tests\APThermo.Fixtures.Tests.csproj" />
+    <ProjectReference Include="..\Harness\APThermo.Harness.csproj" />
+    <ProjectReference Include="..\Performance.Tests\APThermo.Performance.Tests.csproj" />
+    <ProjectReference Include="..\Problems.Tests\APThermo.Problems.Tests.csproj" />
+    <ProjectReference Include="..\Thermo.Tests\APThermo.Thermo.Tests.csproj" />
+    <ProjectReference Include="..\Transport.Tests\APThermo.Transport.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

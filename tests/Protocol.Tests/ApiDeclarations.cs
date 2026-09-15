@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// The grammar of an API.md: its ✅ C# blocks and the declarations in them, and the text that sits under ✅ more broadly. The one

@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Cli.Listings;
-using AerospacePropellantThermodynamics.Cli.Output;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Listings;
+using APThermo.Cli.Output;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>The species command: the database, the name filter, the rows, the run and the delivery; the rendering is <see cref="SpeciesListing"/>.</summary>
 internal static class SpeciesCommand

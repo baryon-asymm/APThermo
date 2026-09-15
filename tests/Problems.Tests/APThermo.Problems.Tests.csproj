@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Problems.Tests: the readiness criterion of src/Problems and the end-to-end comparison with the reference. CPU accelerator only. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Problems\APThermo.Problems.csproj" />
+    <ProjectReference Include="..\..\src\Execution\APThermo.Execution.csproj" />
+    <ProjectReference Include="..\..\src\Transport\APThermo.Transport.csproj" />
+    <ProjectReference Include="..\..\src\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\..\src\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\..\src\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
+    <ProjectReference Include="..\Harness\APThermo.Harness.csproj" />
+  </ItemGroup>
+
+</Project>

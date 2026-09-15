@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>The flat host arrays of a species table, in the layout the kernels read. Do not modify them after the build.</summary>
 public sealed class SpeciesTableArrays

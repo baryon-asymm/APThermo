@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>L0: invalid inputs are rejected by name, before any kernel runs.</summary>
 [Collection(SolverCollection.Name)]

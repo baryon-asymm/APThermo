@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>A 1-based Fortran-style column field, for both <c>thermo.inp</c> and <c>trans.inp</c>.</summary>
 internal static class FixedColumns

@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>Which two state functions are assigned.</summary>
 public enum ProblemKind

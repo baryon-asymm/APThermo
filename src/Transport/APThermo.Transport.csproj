@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Transport: mixture viscosity, thermal conductivity and Prandtl number of one station (RP-1311 chapter 5). Kernel-compatible. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Transport.Tests" />
+  </ItemGroup>
+
+</Project>

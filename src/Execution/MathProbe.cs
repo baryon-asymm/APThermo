@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>The probe of the root's math list: one value per function per input.</summary>
 public static class MathProbe

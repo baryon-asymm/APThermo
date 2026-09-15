@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>
 /// The bytes of a JSON object with its top-level `run` property cut out (BOOT.md, the Bits level): the property's

@@ -1,7 +1,7 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>The entry point of apthermo: arguments in, documents and messages out, an exit code back.</summary>
 public static class Program

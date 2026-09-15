@@ -1,6 +1,6 @@
 # API.md — Equilibrium
 
-Namespace `AerospacePropellantThermodynamics.Equilibrium`. The node exposes one
+Namespace `APThermo.Equilibrium`. The node exposes one
 kernel-compatible solver for the equilibrium composition of one case, plus the
 descriptors of its inputs, scratch and outputs. Everything not listed here is internal
 and may change.
@@ -8,7 +8,7 @@ and may change.
 ## Solver ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 public enum ProblemKind { AssignedTemperaturePressure, AssignedEnthalpyPressure, AssignedEntropyPressure }
 

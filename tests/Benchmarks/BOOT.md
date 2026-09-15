@@ -120,7 +120,7 @@ only the arguments a call site supplies.
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
-- **Project.** `AerospacePropellantThermodynamics.Benchmarks`, an executable in the
+- **Project.** `APThermo.Benchmarks`, an executable in the
   solution. It builds with the solution, so the protocol checks cover it. It has no
   test SDK, so `dotnet test` runs nothing of it.
   - BenchmarkDotNet requires public benchmark classes; each is named in `API.md`.
@@ -217,7 +217,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The node builds in Release with the solution
-      (`dotnet build AerospacePropellantThermodynamics.sln -c Release`, 0 errors), and
+      (`dotnet build APThermo.sln -c Release`, 0 errors), and
       `dotnet run -c Release --project tests/Benchmarks -- --list flat` lists all nine
       `[Benchmark]` methods of the five classes (group 5 rides on the `MemoryDiagnoser`
       of groups 1 and 6, `API.md`'s note on `## Groups`). The protocol checks stay

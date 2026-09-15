@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// The small JSON readers every group that builds its case from a fixture's
 /// `case.inputs` shares (BOOT.md, Invariants: fixture-based benchmarks read

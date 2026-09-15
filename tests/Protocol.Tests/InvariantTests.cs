@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// Root invariants that the root BOOT.md says are checked by reflection: double precision only and no mutable static field in the

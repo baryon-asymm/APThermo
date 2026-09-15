@@ -1,10 +1,10 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>The one table of CUDA against the CPU accelerator, with a derivation per entry (Execution.Tests BOOT.md).</summary>
 public static class GpuCpuTolerances

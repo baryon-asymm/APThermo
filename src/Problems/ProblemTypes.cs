@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
+using APThermo.Equilibrium;
+using APThermo.Performance;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>A rocket problem: chamber pressure, flow model and the exit stations, pressure-ratio exits before area-ratio exits.</summary>
 public sealed record RocketProblem

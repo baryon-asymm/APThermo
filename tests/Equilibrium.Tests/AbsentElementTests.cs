@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: an element with zero abundance masks its species; the result equals a table without them, bit for bit.</summary>
 [Collection(CpuCollection.Name)]

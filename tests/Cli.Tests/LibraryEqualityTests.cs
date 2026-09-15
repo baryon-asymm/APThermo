@@ -1,16 +1,16 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
-using PerformanceFigures = AerospacePropellantThermodynamics.Performance.PerformanceFigures;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Problems;
+using APThermo.Thermo;
+using APThermo.Transport;
+using PerformanceFigures = APThermo.Performance.PerformanceFigures;
+using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>
 /// L2: the executable's numbers are the library's numbers. The library call is built from the fixture the example document

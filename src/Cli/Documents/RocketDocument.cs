@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Performance;
+using APThermo.Performance;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>A rocket problem document: chamber pressure, flow model and exit stations.</summary>
 internal sealed record RocketDocument(double ChamberPressure, FlowModel Flow, IReadOnlyList<double> AreaRatios, IReadOnlyList<double> PressureRatios,

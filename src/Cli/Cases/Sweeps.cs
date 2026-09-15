@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Cli.Documents;
+using APThermo.Cli.Documents;
 
-namespace AerospacePropellantThermodynamics.Cli.Cases;
+namespace APThermo.Cli.Cases;
 
 /// <summary>The Cartesian product of a sweep, ratio-major, then chamber pressure, then pressure, then temperature: the order of the cases in the batch and in the document (API.md, `sweep`).</summary>
 internal static class Sweeps

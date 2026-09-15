@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Data;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>
 /// L1: the table's and the kernel functions' answers to a species' temperature range agree with the interval rule

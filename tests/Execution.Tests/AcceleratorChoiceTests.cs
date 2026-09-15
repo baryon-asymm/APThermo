@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using AerospacePropellantThermodynamics.Execution.Chunks;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Execution.Chunks;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>L0: accelerator choice, the environment variable, libdevice discovery messages, the ILGPU assertion, batch validation.</summary>
 [Collection(EngineCollection.Name)]

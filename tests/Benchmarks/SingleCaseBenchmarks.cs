@@ -1,14 +1,14 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Problems;
 using BenchmarkDotNet.Attributes;
-using EquilibriumProblem = AerospacePropellantThermodynamics.Problems.EquilibriumProblem;
-using EquilibriumResult = AerospacePropellantThermodynamics.Problems.EquilibriumResult;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
+using EquilibriumProblem = APThermo.Problems.EquilibriumProblem;
+using EquilibriumResult = APThermo.Problems.EquilibriumResult;
+using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Group 3 of `BOOT.md`, Constraints: one case through `Problems.Solver`'s single-case
 /// overload, the latency a .NET caller sees, on the CPU accelerator. Reads the

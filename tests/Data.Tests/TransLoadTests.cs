@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace AerospacePropellantThermodynamics.Data.Tests;
+namespace APThermo.Data.Tests;
 
 /// <summary>L1: the committed data/trans.inp, loaded in full.</summary>
 public sealed partial class TransLoadTests : IClassFixture<LoadedDatabase>

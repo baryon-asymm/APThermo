@@ -1,16 +1,16 @@
 # API.md — Cli.Output
 
-Namespace `AerospacePropellantThermodynamics.Cli.Output`, compiled into the
-`AerospacePropellantThermodynamics.Cli` assembly (root `BOOT.md`, Constraints,
+Namespace `APThermo.Cli.Output`, compiled into the
+`APThermo.Cli` assembly (root `BOOT.md`, Constraints,
 2026-09-15). Every type is `internal`; visible throughout the `Cli` assembly and to
-`AerospacePropellantThermodynamics.Cli.Tests`, but the parent and the sibling child
+`APThermo.Cli.Tests`, but the parent and the sibling child
 node `Cli.Listings` use only what is named below. `JsonOutput`, `ExitCodes`,
 `StationFields` and `Cell` are this node's own and may change.
 
 ## Writing ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli.Output;
+namespace APThermo.Cli.Output;
 
 internal static class DocumentWriter
 {

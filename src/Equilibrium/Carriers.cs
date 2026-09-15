@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>Where the initial estimate of a solve comes from (the translation of the entry point's flag).</summary>
 internal enum EstimateSource

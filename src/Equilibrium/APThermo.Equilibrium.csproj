@@ -2,7 +2,7 @@
 
   <!-- Node src/Equilibrium: the equilibrium composition of one case by Gibbs minimization (RP-1311 chapters 2 and 3). Kernel-compatible. -->
   <ItemGroup>
-    <ProjectReference Include="..\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <!-- The tests node checks the internal dense solver on small systems (its BOOT.md, level L0). -->
-    <InternalsVisibleTo Include="AerospacePropellantThermodynamics.Equilibrium.Tests" />
+    <InternalsVisibleTo Include="APThermo.Equilibrium.Tests" />
   </ItemGroup>
 
 </Project>

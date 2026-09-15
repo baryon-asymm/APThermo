@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>
 /// The equilibrium composition of one case by minimization of the Gibbs energy: the reduced Newton–Raphson iteration of

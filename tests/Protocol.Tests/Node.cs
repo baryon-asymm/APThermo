@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// A node of the tree: a directory holding both documents. <see cref="RelativePath"/> is the directory path from the tree root
@@ -8,7 +8,7 @@ internal sealed record Node(string RelativePath, string Directory, string? Assem
 {
     /// <summary>The root namespace of the tree (root <c>BOOT.md</c>, Constraints): every node's <see cref="Namespace"/> starts
     /// from here, and it is the one place that name is written.</summary>
-    private const string RootNamespace = "AerospacePropellantThermodynamics";
+    private const string RootNamespace = "APThermo";
 
     public string Name => RelativePath.Length == 0 ? "the root" : RelativePath;
 

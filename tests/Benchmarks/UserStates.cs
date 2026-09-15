@@ -1,7 +1,7 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Reads `data/user-states.json` (BOOT.md, Invariants: the user's state records are a
 /// data file of this node, with the pressures given as a rule — first, step, count —

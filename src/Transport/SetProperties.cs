@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Stage 13 of the evaluation: the mass and the heat capacities of one kilogram of the set's gas, the two Prandtl numbers, and

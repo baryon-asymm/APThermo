@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>Where the composition stops following the equilibrium.</summary>
 public enum FlowModel

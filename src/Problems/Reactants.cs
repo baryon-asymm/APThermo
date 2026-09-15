@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>The group a reactant belongs to: oxidizers and fuels are split by the oxidizer-to-fuel ratio; a named reactant carries a total mass fraction.</summary>
 public enum ReactantRole

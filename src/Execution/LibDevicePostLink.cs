@@ -6,7 +6,7 @@ using ILGPU;
 using ILGPU.Backends.PTX;
 using ILGPU.Runtime.Cuda;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>
 /// Links ILGPU's libdevice wrappers into a compiled CUDA kernel, the one place in the tree that knows ILGPU's internals: ILGPU

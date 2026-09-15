@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Data;
+using APThermo.Fixtures;
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 /// <summary>
 /// One ILGPU context with the CPU accelerator, the committed database (with <c>trans.inp</c>) and the tolerance table,

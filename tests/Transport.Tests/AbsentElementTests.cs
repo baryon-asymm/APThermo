@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Harness;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>
 /// L1: a table that holds, besides the case's species in their order, the species of elements the case lacks changes nothing: every

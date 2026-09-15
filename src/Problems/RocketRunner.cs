@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Performance;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>
 /// Rocket cases grouped by exit layout (pressure- and area-ratio counts) and, within a layout, by the transport flag, so

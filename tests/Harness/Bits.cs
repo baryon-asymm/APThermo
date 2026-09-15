@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 /// <summary>
 /// Bit-for-bit equality of doubles and structs: the standard the tree's kernel-equality and accelerator-equality facts

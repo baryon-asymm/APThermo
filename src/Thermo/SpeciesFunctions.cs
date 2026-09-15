@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>
 /// The NASA polynomials evaluated for one species at one temperature. Kernel-compatible: static, no allocation, no

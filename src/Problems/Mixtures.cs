@@ -1,7 +1,7 @@
 using System.Globalization;
-using AerospacePropellantThermodynamics.Performance;
+using APThermo.Performance;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>A mixture given by its element abundances and enthalpy per kilogram: what every solve starts from, whatever the input was.</summary>
 public sealed record ElementalMixture

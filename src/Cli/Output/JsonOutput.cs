@@ -1,8 +1,8 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Cases;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli.Cases;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Output;
+namespace APThermo.Cli.Output;
 
 /// <summary>The JSON output document (API.md): the cells of <see cref="StationFields"/> as nested objects, compositions above the threshold.</summary>
 internal static class JsonOutput

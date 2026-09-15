@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Fixtures;
+namespace APThermo.Fixtures;
 
 /// <summary>An absolute and a relative tolerance; a value matches when |expected − actual| ≤ Absolute + Relative·|expected|.</summary>
 public readonly record struct Tolerance(double Absolute, double Relative);

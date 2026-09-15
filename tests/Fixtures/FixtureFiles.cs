@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Fixtures;
+namespace APThermo.Fixtures;
 
 /// <summary>Where the reference cases live and how they are enumerated.</summary>
 public static class FixtureFiles

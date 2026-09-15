@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>L2 on the CPU accelerator: the engine's batches equal the numerical nodes called case by case, bit for bit, whatever the chunking.</summary>
 [Collection(EngineCollection.Name)]

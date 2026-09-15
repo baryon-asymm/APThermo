@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>The batch views of one kernel launch: one station per thread.</summary>
 public readonly struct TransportBatchViews(

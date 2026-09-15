@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Execution.Chunks;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Execution.Chunks;
+using APThermo.Thermo;
+using APThermo.Transport;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>The transport program: its host arrays, its device buffers and views struct, and the result it assembles.</summary>
 internal static class TransportPipeline

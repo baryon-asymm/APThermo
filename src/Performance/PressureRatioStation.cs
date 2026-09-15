@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// One exit station assigned by the pressure ratio p_c/p_e (RP-1311 section 6.3.6): the station pressure from the ratio, the

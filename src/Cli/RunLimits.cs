@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>
 /// The two run parameters the <c>run</c> section records beside the timings: the mole-fraction threshold of the

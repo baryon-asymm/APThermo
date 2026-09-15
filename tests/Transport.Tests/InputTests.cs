@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>Statuses are values: bad inputs are reported, never thrown.</summary>
 [Collection(CpuCollection.Name)]

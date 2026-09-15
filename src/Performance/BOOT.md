@@ -278,7 +278,7 @@ efferent-coupling row.
       tests-node refactor of the criterion below.
       `KernelEqualityTests` green (post its own F-TK-07 split). Every criterion above
       still green, and every criterion of `tests/Performance.Tests/BOOT.md`: the full
-      fast suite, `dotnet test AerospacePropellantThermodynamics.sln --filter
+      fast suite, `dotnet test APThermo.sln --filter
       "Category!=LongRunning"` with `APTHERMO_NO_CUDA=1`, 2632 tests, 0 failed, 0
       skipped. The execution tests node's CUDA sweep and throughput benchmark are
       `Category=LongRunning`; the 2026-09-14 coding session's instructions directed

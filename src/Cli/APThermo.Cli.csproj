@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Cli: the apthermo command line. JSON in, JSON or CSV out; a thin adapter over Problems. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Version>1.0.0</Version>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>apthermo</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Problems\APThermo.Problems.csproj" />
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Execution\APThermo.Execution.csproj" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\Transport\APThermo.Transport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Cli.Tests" />
+  </ItemGroup>
+
+</Project>

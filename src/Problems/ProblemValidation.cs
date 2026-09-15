@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
+using APThermo.Data;
+using APThermo.Equilibrium;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>Every "before any kernel runs" rule of a rocket and of an equilibrium problem; the subject of a refusal is a field of the case.</summary>
 internal static class ProblemValidation

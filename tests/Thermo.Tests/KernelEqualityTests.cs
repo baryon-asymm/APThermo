@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Harness;
+using APThermo.Harness;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>L1: the species functions inside an ILGPU kernel on the CPU accelerator give the same bits as the host calls.</summary>
 public sealed class KernelEqualityTests : IClassFixture<CpuFixture>

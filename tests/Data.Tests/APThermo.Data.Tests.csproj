@@ -2,8 +2,8 @@
 
   <!-- Node tests/Data.Tests: the readiness criterion of src/Data. -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Data\AerospacePropellantThermodynamics.Data.csproj" />
-    <ProjectReference Include="..\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj" />
+    <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
   </ItemGroup>
 
   <ItemGroup>

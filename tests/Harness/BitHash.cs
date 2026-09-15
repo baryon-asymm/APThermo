@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 /// <summary>
 /// SHA-256 over the little-endian bytes of the values added, in the order they were added; a string enters as its

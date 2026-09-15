@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace AerospacePropellantThermodynamics.Data.Tests;
+namespace APThermo.Data.Tests;
 
 /// <summary>L1: a corrupted record fails the load with the line number, on copies in memory.</summary>
 public sealed class CorruptionTests : IClassFixture<LoadedDatabase>

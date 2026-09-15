@@ -1,11 +1,11 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Equilibrium;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>Runs the numerical programs of the tree over batches on one accelerator.</summary>
 public sealed class Engine : IDisposable

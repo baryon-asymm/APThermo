@@ -1,10 +1,10 @@
 using System.Reflection;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>One caveat set applied to one comparison: transport requested, a frozen station, a singular or defective reference (Problems.Tests BOOT.md, invariants).</summary>
 internal readonly record struct StationCaveats(bool Transport, bool Frozen, bool ReferenceDefective = false, bool SingularReference = false);

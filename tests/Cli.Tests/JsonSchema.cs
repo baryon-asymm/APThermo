@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>
 /// The part of JSON Schema the schema files of this node use: type, enum, const, properties, required, additionalProperties,

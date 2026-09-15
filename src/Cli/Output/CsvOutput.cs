@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Cli.Cases;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli.Cases;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Output;
+namespace APThermo.Cli.Output;
 
 /// <summary>
 /// The CSV form: one row per case and station, the scalar inputs, the state, the figures and the transport figures; no
