@@ -148,7 +148,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         var c = HostSolver.Load(kind, name);
         var equilibrium = HostSolver.Solve(fixture, c);
         Assert.Equal(CaseStatus.Ok, equilibrium.Status);
-        var held = HostSolver.Of(equilibrium.Table, c);
+        var held = HostSolver.Of(equilibrium.Case.Table, c);
         var state = equilibrium.State;
         var byEnthalpy = held with { Kind = ProblemKind.AssignedEnthalpyPressure, Pressure = state.Pressure, Temperature = 0.0, Target = state.Enthalpy };
         var byEntropy = held with { Kind = ProblemKind.AssignedEntropyPressure, Pressure = state.Pressure, Temperature = 0.0, Target = state.Entropy };

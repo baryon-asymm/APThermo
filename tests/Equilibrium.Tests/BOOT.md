@@ -164,6 +164,28 @@ creation names its arguments; it passes them by position today (the criterion be
       `HostSolver.Run`, changed. Not a declared exception: no row added to
       `## Shape exceptions`. 463/463 tests green, `Bits.approved.txt` hash unchanged
       (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+
+      ⚠ 2026-09-15, the same day: this tick recorded a cut made to fit the root's
+      parameter limit, not the domain's axes — `Convergence` was never read as a value
+      anywhere in the tree, only through the five forwarding properties, and it also
+      held `InvalidInput` results with zero iterations and every `SolveFrozen` result,
+      for which "what the solver converged to" was false. Found by the repair review
+      (R-Equilibrium.Tests-1). Reformulated below rather than deleted, since the
+      history of a criterion is part of the context (AGENTS.md §6).
+- [x] 2026-09-15 — `HostSolution` re-cut along the domain axis the first attempt
+      missed: the case solved (`EquilibriumCase Case`) plus the five views of
+      `EquilibriumResult` copied out directly (`Moles`, `Multipliers`, `State`,
+      `Status`, `Iterations`), 6 parameters, within the root's limit without an
+      exception. `Convergence` and the five forwarding properties deleted; every
+      existing output read (`.Moles`, `.Multipliers`, `.State`, `.Status`,
+      `.Iterations`) is unchanged, and the 14 `.Table` reads and 2 `.ElementMoles`
+      reads become `.Case.Table` and `.Case.ElementMoles` (`AbsentElementTests.cs`,
+      `CondensedSpeciesTests.cs`, `ElementConservationTests.cs`, `FrozenModeTests.cs`,
+      `StateComparison.cs`, and `HostSolver.cs`'s own `MoleFraction`); only the one
+      construction site, in `HostSolver.Run`, changed. 464/464 tests green (463 plus
+      the defect fact below), `tests/Equilibrium.Tests/Bits.approved.txt` unchanged
+      (`65788e23f4390305763c80ab1f66b2054ff1907a`); the public surface does not move,
+      `HostSolution` and `EquilibriumCase` both internal.
 - [x] 2026-09-15 — L2: `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
       proves the node's own defect fix (`src/Equilibrium/BOOT.md`, the acceptance
       criterion of the same date): seen red on the code before the fix

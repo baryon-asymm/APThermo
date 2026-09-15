@@ -37,7 +37,7 @@ public sealed class AbsentElementTests(CpuFixture fixture)
         Assert.Equal(reduced.Iterations, full.Iterations);
         foreach (var species in products)
         {
-            var fullMoles = full.Moles[full.Table.IndexOf(species)];
+            var fullMoles = full.Moles[full.Case.Table.IndexOf(species)];
             var reducedIndex = reducedTable.IndexOf(species);
             var expected = reducedIndex < 0 ? 0.0 : reduced.Moles[reducedIndex];
             Assert.True(BitConverter.DoubleToInt64Bits(expected) == BitConverter.DoubleToInt64Bits(fullMoles),

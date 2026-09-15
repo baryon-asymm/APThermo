@@ -29,9 +29,9 @@ public sealed class CondensedSpeciesTests(CpuFixture fixture)
         var c = HostSolver.Load(kind, name);
         var solution = HostSolver.Solve(fixture, c);
         Assert.Equal(CaseStatus.Ok, solution.Status);
-        var (present, absent) = StateComparison.CondensedSetOf(c, solution.Table, fixture.Tolerances);
-        var missing = present.Where(s => !(solution.Table.IndicesOf(s).Sum(j => solution.Moles[j]) > 0.0)).ToList();
-        var spurious = absent.Where(s => solution.Table.IndicesOf(s).Sum(j => solution.Moles[j]) != 0.0).ToList();
+        var (present, absent) = StateComparison.CondensedSetOf(c, solution.Case.Table, fixture.Tolerances);
+        var missing = present.Where(s => !(solution.Case.Table.IndicesOf(s).Sum(j => solution.Moles[j]) > 0.0)).ToList();
+        var spurious = absent.Where(s => solution.Case.Table.IndicesOf(s).Sum(j => solution.Moles[j]) != 0.0).ToList();
         Assert.True(missing.Count == 0 && spurious.Count == 0,
                     $"missing [{string.Join(", ", missing)}], spurious [{string.Join(", ", spurious)}]; reference present [{string.Join(", ", present)}]");
     }
@@ -44,8 +44,8 @@ public sealed class CondensedSpeciesTests(CpuFixture fixture)
         Assert.Equal(CaseStatus.Ok, solution.Status);
         var expected = c.Outputs.GetProperty("moleFractions").GetProperty("AL2O3(L)").GetDouble();
         Assert.True(expected > 0.0, "the reference has no liquid alumina in the chamber");
-        var index = solution.Table.IndexOf("AL2O3(L)");
-        Assert.True(index >= solution.Table.GasCount && solution.Moles[index] > 0.0, "liquid alumina is not in the solution");
+        var index = solution.Case.Table.IndexOf("AL2O3(L)");
+        Assert.True(index >= solution.Case.Table.GasCount && solution.Moles[index] > 0.0, "liquid alumina is not in the solution");
         Assert.True(fixture.Tolerances.Matches("moleFraction", expected, solution.MoleFraction("AL2O3(L)")),
                     $"x(AL2O3(L)): reference {expected:R}, tree {solution.MoleFraction("AL2O3(L)"):R}");
     }
@@ -66,7 +66,7 @@ public sealed class CondensedSpeciesTests(CpuFixture fixture)
             var c = HostSolver.Load("tp", name);
             var solution = HostSolver.Solve(fixture, c);
             Assert.Equal(CaseStatus.Ok, solution.Status);
-            var liquid = solution.Moles[solution.Table.IndexOf("H2O(L)")] > 0.0;
+            var liquid = solution.Moles[solution.Case.Table.IndexOf("H2O(L)")] > 0.0;
             var referenceLiquid = c.Outputs.GetProperty("moleFractions").GetProperty("H2O(L)").GetDouble() > 0.0;
             Assert.True(liquid == referenceLiquid, $"{name}: liquid water present {liquid}, reference {referenceLiquid}");
             (liquid ? withLiquid : dry).Add(name);
