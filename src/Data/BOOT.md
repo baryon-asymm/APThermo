@@ -179,12 +179,23 @@ Decisions taken with the review of 2026-09-14:
   `FieldException` propagate, and `ThermoFile` catches it there. `Read`'s Ce drops to
   10 (at the limit); `ThermoFile`'s rises to 5. No behaviour changed — the corruption
   tests assert the same file, line and message before and after.
+
+  ⚠ 2026-09-15: this decision is reversed. Its "Ce 12" and the "10 (at the limit)" it
+  produced were both textual counts against that day's Ce limit of 10; the dependency
+  check's own walk, not written until the protocol tests node's `ShapeTests` phase,
+  gives `SpeciesRecordReader` 9 with the wrap moved out (the figure this node's own
+  `## Shape exceptions` section recorded once that walk existed) and 11 with the wrap
+  back inside — both under the root's limit of 14, the same day recalibrated to the
+  walk instead of the text (root `BOOT.md`). The premise for the move was gone before
+  this node's own figures were next read against it. The wrap is back inside
+  `SpeciesRecordReader.Read` (its `fcab80e` form, with `var first = i` held at entry),
+  `ThermoFile.Parse` calling `Read` directly again: `Read` measures Ce 11 by the walk,
+  `ThermoFile` 4. No behaviour changed — the corruption tests assert the same file,
+  line and message before and after. Found by the clean-code repair review (R-Data-1).
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
-  than 6 parameters (the two constructors aside); no type names more than 10 distinct
-  types of the tree (its efferent coupling, Ce) — measured by a scan of every file of
-  this node and the tests node, `SpeciesRecordReader` at 10 and no other type above it
-  (the root's code-shape constraint). The root's limit became 14 the same day,
-  recalibrated on the dependency check's walk, by which the protocol tests node's
+  than 6 parameters (the two constructors aside); no type names more than 14 distinct
+  types of the tree (its efferent coupling, Ce) — the root's own limit, recalibrated
+  the same day on the dependency check's walk, by which the protocol tests node's
   `ShapeTests` measures this node.
 
 ## Shape exceptions
@@ -197,10 +208,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `Species.Species` | parameters | 11 | mirrors the file's fields one to one (the decision "The record constructors are the declared exception to the parameter rule"); its single construction site names its arguments |
 | `TemperatureInterval.TemperatureInterval` | parameters | 7 | mirrors the file's fields one to one, as `Species` above; its single construction site names its arguments |
 
-No type of this node names more than 9 distinct types of the tree by the dependency
-check's walk (`SpeciesRecordReader` and `SpeciesDatabase` tie at 9), below the root's
-limit of 14: no efferent coupling row is needed, and the `## Structure` sentence
-above, dated to the old textual count of 10, is superseded by this figure.
+No type of this node names more than 11 distinct types of the tree by the dependency
+check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move of
+2026-09-14), below the root's limit of 14: no efferent coupling row is needed.
 
 ## Acceptance criteria
 
