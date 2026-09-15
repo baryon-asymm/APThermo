@@ -157,8 +157,11 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
   `BOOT.md`. A type of the `src` nodes named by 10 or more types of the `src` nodes
   (its afferent coupling, Ca) is a stable type: at most 100 lines of code and no
   behaviour beyond construction and validation, or a contract in its node's `API.md`.
-  The instability `I = Ce / (Ca + Ce)` of the `src` nodes over the dependency graph
-  their `## Dependencies` declare never rises along a dependency. Every exception is
+  The instability `I = Ce / (Ca + Ce)` of the `src` nodes that hold a project, over the
+  dependency graph their `## Dependencies` declare, never rises along a dependency; a
+  child node without a project counts as part of its nearest ancestor with one, its
+  declared dependencies joined to that ancestor's and its dependencies inside that
+  ancestor's subtree dropped. Every exception is
   declared in the node's `BOOT.md`, as a
   row of its `## Shape exceptions` table with the measured figure and the reason.
   Decomposition goes along the domain's axes (stages of an
@@ -210,6 +213,17 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
   check. The two graphs coincide on this tree, so no instability figure or
   dependency-direction verdict moves; the sentence now names the graph the check
   actually reads, matching the protocol tests node's own Shape-check table.
+
+  ⚠ 2026-09-15 (child-nodes phase): the stable-dependencies sentence read "the
+  instability of the `src` nodes", which from the child-nodes decision above on counted
+  every child node as a component of its own. Splitting `src/Cli` into five children,
+  four of which use `Execution` in their own code, took `Execution`'s afferent count from
+  2 to 6 and its instability from 0.667 to 0.400, below `Transport`'s 0.500. That turned
+  `ShapeTests.No_src_dependency_points_to_a_less_stable_node` red although no dependency
+  between the assemblies changed. Stability is a property of what is built and released
+  together, and a child node compiles into its ancestor's assembly (the language-and-build
+  constraint above). It is not a component, so the sentence now measures the nodes that
+  hold a project. The type-level figures (Ce, Ca, the stable type) do not change.
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
