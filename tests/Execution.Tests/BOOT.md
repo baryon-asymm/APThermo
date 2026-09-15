@@ -220,23 +220,19 @@ libdevice for the CUDA category.
       `ExitKinds`) are gone; the four read call sites this document said were
       unchanged (`RocketFamily.Batch`, `RocketFamilies`, `Sweep`, all in
       `FixtureBatches.cs`) and the fifth this document did not mention
-      (`AcceleratorChoiceTests.cs:149`) all name `.System.` or `.Mixture.` or
-      `.Exits.` directly now. No behaviour changed: the same fields, on the same two
-      records, under new names one level down.
+      (`AcceleratorChoiceTests.Inconsistent_batches_are_refused_before_any_kernel_runs`)
+      all name `.System.` or `.Mixture.` or `.Exits.` directly now. No behaviour
+      changed: the same fields, on the same two records, under new names one level
+      down.
 
-      By the same `CouplingMeasures` run, `FixtureBatches` itself moved from Ce=14 (at
-      the root's cap) to Ce=17 (`ChemicalSystem`, `Mixture` and `ExitPlan` newly named
-      directly in `RocketFamilies` and `Sweep`, for the same reason as `RocketCase` in
-      the Performance.Tests node). This node has no `## Shape exceptions` table today,
-      and every one of its test-fixture classes already sits far above the cap
-      undeclared (`AcceleratorChoiceTests` Ce=32, `BatchTests` Ce=31, `CudaTests`
-      Ce=26, `HostSolves` Ce=28, `SpeciesFunctionTests` Ce=16, none touched by this
-      cut): the scaffolding surface of this node as a whole is not yet in shape, which
-      is consistent with the root's code-shape criterion still being unticked.
-      `FixtureBatches` joining that same undeclared population is this cut's
-      contribution to a pre-existing, node-wide gap, not a new kind of problem; left
-      unfixed and undeclared for the same reason as `RocketCase` — bringing this
-      node's scaffolding into shape is not one of the repair review's findings.
+      By the same `CouplingMeasures` run, `FixtureBatches` itself moved from Ce=14 to
+      Ce=17 (`ChemicalSystem`, `Mixture` and `ExitPlan` newly named directly in
+      `RocketFamilies` and `Sweep`, for the same reason as `RocketCase` in the
+      Performance.Tests node); its test-fixture neighbours measure
+      `AcceleratorChoiceTests` Ce=32, `BatchTests` Ce=31, `CudaTests` Ce=26,
+      `HostSolves` Ce=28, `SpeciesFunctionTests` Ce=16, none touched by this cut. The
+      root limits the efferent coupling of the `src` types only, so a test type's
+      figure is recorded, not limited.
 
       Verified: build clean, 0 warnings; 41 of 41 fast tests green; `protocol_lint`
       0 errors, 0 warnings.
@@ -264,12 +260,11 @@ libdevice for the CUDA category.
       method's rocket-then-transport phases
       (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`) is still one dictionary
       shared the same way, now the one instance's private field instead of a local
-      passed to both phases. Measured by the protocol tests node's own tool
-      (`ShapeMeasures`, through the same temporary test): `CudaTests` 165 lines (from
-      258), `GpuCpuComparison` 100, both types and every method well inside the
-      400/60 limits; `GpuCpuComparison`'s own Ce is 8, `CudaTests`' own Ce is 26,
-      unchanged from before the cut — neither is a concern next to this node's
-      pre-existing, undeclared test-fixture Ce figures noted above.
+      passed to both phases. `ShapeTests.No_type_spans_more_than_400_lines` and
+      `ShapeTests.No_method_spans_more_than_60_lines` both hold for `CudaTests` and
+      `GpuCpuComparison`; `GpuCpuComparison`'s own Ce is 8, `CudaTests`' own Ce is 26,
+      unchanged from before the cut, both recorded by `CouplingMeasures` and not
+      limited, since the root's coupling rule holds for `src` types only.
 
       This is a mechanical port: `Rocket`/`Moles`/`CountSteps` cannot be exercised
       without a CUDA device, so the CPU-only fast suite (`APTHERMO_NO_CUDA=1`, which
