@@ -89,7 +89,8 @@ keeps the DLL under `nvvm/bin/x64`); NASA CEA data `thermo.inp` and `trans.inp` 
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
-node's shape check (2026-09-14).
+node's shape check (2026-09-14); BenchmarkDotNet for the benchmarks node
+(2026-09-15, the version pinned in `Directory.Packages.props`).
 
 ## Constraints
 
@@ -352,4 +353,6 @@ outputs generated with NASA's `cea` package, their provenance, the generator scr
 and the tolerance table, and `tests/Fixtures.Tests` proves the form and provenance of
 those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes share
 (one CPU host, bit comparison, bit snapshots, fixture families) and names nothing above
-`Data` and `Fixtures`. The node list with links is in `API.md`.
+`Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
+computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
+and never asserted. The node list with links is in `API.md`.
