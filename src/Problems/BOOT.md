@@ -255,6 +255,19 @@ mixture rule and derived the element order in 77 lines (F-PR-03). The data flow 
 records. Every type below is internal except where marked; one type per file, named
 after the type; the public records keep their theme files.
 
+⚠ 2026-09-15 (distribution phase): the API review of that day
+(`SCRATCH/api-review-report.md`, M1 and M2) found two things this table did not
+record. `MixtureSpecification` (`MixtureRule`'s own file) had no consumer beyond this
+node's tests, since `Propellant.OxidizerToFuelRatio` already carries what a consumer
+needs without loss; it moved into `API.md`'s tree-contract section, and
+`Propellant.Mixture` became internal with it. `Station`, `RocketResult` and
+`EquilibriumResult` had public positional constructors no other assembly called; they
+are nominal now, with an internal constructor (`Station`'s properties `init`, for this
+node's own comparison-copy tests; the other two get-only). Neither change moves a row
+of the table below: `Propellant` stays `public, contract as API.md says` (it names no
+row of its own; see `API.md`) and `Station`/`RocketResult`/`EquilibriumResult` are
+result-record themes, not rows here either.
+
 | Type | Responsibility | Visibility |
 |---|---|---|
 | `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: the two runners are declared composition roots as well (the decision "The runners are the pipelines' composition roots") | public |

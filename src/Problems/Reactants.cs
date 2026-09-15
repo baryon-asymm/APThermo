@@ -109,8 +109,12 @@ public sealed record Reactant
     public CustomReactantDefinition? Definition { get; }
 }
 
-/// <summary>How the reactants' amounts make up one kilogram of propellant.</summary>
-public abstract record MixtureSpecification
+/// <summary>
+/// How the reactants' amounts make up one kilogram of propellant. Internal (root <c>BOOT.md</c>, Delivery:
+/// Tree contracts, M2): exposed only through <see cref="Propellant.Mixture"/>, and <see
+/// cref="Propellant.OxidizerToFuelRatio"/> carries the same information without loss for a consumer.
+/// </summary>
+internal abstract record MixtureSpecification
 {
     private MixtureSpecification()
     {
@@ -141,7 +145,8 @@ public sealed record Propellant
 
     public IReadOnlyList<Reactant> Reactants { get; }
 
-    public MixtureSpecification Mixture { get; }
+    /// <summary>Internal (M2): a consumer reads <see cref="OxidizerToFuelRatio"/> instead.</summary>
+    internal MixtureSpecification Mixture { get; }
 
     /// <summary>Database spelling, in order of first appearance: oxidizers, then fuels, then named reactants, each in the order given.</summary>
     public IReadOnlyList<string> Elements { get; }

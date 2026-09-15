@@ -104,15 +104,15 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
             }
 
             results[m] = new RocketResult(
-                Propellant: propellant,
-                Mixture: mixture,
-                MixtureMass: group[m].Mass,
-                Problem: problem,
-                OxidizerToFuelRatio: ratio,
-                Species: speciesNames,
-                Stations: stations,
-                Status: run.Status[m],
-                Accelerator: run.Accelerator);
+                propellant: propellant,
+                mixture: mixture,
+                mixtureMass: group[m].Mass,
+                problem: problem,
+                oxidizerToFuelRatio: ratio,
+                species: speciesNames,
+                stations: stations,
+                status: run.Status[m],
+                accelerator: run.Accelerator);
         }
 
         return results;

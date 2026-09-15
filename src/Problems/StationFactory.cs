@@ -61,14 +61,14 @@ internal static class StationFactory
         }
 
         return new Station(
-            Name: name,
-            State: slice.State,
-            Performance: slice.Performance,
-            MoleFractions: fractions,
-            CondensedMassFractions: condensed,
-            Transport: slice.Transport,
-            TransportStatus: slice.TransportStatus,
-            Status: slice.Status);
+            name: name,
+            state: slice.State,
+            performance: slice.Performance,
+            moleFractions: fractions,
+            condensedMassFractions: condensed,
+            transport: slice.Transport,
+            transportStatus: slice.TransportStatus,
+            status: slice.Status);
     }
 
     /// <summary>The species names a result reports: the table's, with the pieces of a cut condensed record collapsed to the record's name (BOOT.md, results).</summary>
