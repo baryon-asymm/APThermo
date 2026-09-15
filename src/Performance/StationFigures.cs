@@ -4,7 +4,8 @@ namespace AerospacePropellantThermodynamics.Performance;
 
 /// <summary>
 /// The quantities RP-1311 section 6.2 defines at a station: the velocity from the energy equation, the area ratio from the
-/// throat's mass flux, and the performance figures written into the result. Every one of them is written here once.
+/// throat's mass flux, and the figures of the throat and of every exit, each formula here once. The characteristic velocity is the
+/// throat's; <see cref="ThroatSearch"/> writes it, with p_c/p = 1, into the chamber's figures.
 /// </summary>
 internal static class StationFigures
 {
