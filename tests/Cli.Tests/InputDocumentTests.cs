@@ -20,6 +20,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
     private static readonly IReadOnlyDictionary<string, string> Expected = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["malformed.json"] = "malformed JSON",
+        ["states-malformed.json"] = "malformed JSON",
         ["unknown-field.json"] = "unknown field 'expansionRatio' at $.problem",
         ["missing-field.json"] = "missing field 'chamberPressure' at $.problem",
         ["wrong-unit.json"] = "unknown field 'chamberPressureBar' at $.problem",
