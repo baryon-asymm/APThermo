@@ -17,36 +17,35 @@ public sealed class ShapeTests
     [Fact]
     public void No_type_spans_more_than_400_lines()
     {
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "type lines", 400, ShapeMeasures.TypeLines(node))).ToList();
+        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "type lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     [Fact]
     public void No_method_spans_more_than_60_lines()
     {
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "method lines", 60, ShapeMeasures.MethodLines(node))).ToList();
+        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "method lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     [Fact]
     public void No_control_flow_nests_deeper_than_3()
     {
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "nesting", 3, ShapeMeasures.Nesting(node))).ToList();
+        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "nesting")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     [Fact]
     public void No_method_takes_more_than_6_parameters()
     {
-        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "parameters", 6, ShapeMeasures.Parameters(node))).ToList();
+        var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "parameters")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     [Fact]
     public void No_src_type_names_more_than_14_types_of_the_tree()
     {
-        var efferent = CouplingMeasures.EfferentCoupling();
-        var problems = SrcNodes().SelectMany(node => CeProblems(node, efferent)).ToList();
+        var problems = SrcNodes().SelectMany(node => OverLimitProblems(node, "efferent coupling")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
@@ -99,9 +98,8 @@ public sealed class ShapeTests
     [Fact]
     public void Every_shape_exception_is_measured_and_still_needed()
     {
-        var efferent = CouplingMeasures.EfferentCoupling();
         var problems = ProjectNodes()
-            .SelectMany(node => NodeDocuments.ShapeExceptions(node).SelectMany(exception => RowProblems(node, exception, efferent)))
+            .SelectMany(node => NodeDocuments.ShapeExceptions(node).SelectMany(exception => RowProblems(node, exception)))
             .ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
@@ -110,11 +108,36 @@ public sealed class ShapeTests
 
     private static IEnumerable<Node> SrcNodes() => ProjectNodes().Where(node => node.RelativePath.StartsWith("src/", StringComparison.Ordinal));
 
+    /// <summary>The limit and the current measurements of one over-limit "Shape check" rule, over one node: the same lookup
+    /// <see cref="OverLimitProblems"/> compares a measurement against and <see cref="RowProblems"/> re-measures a declared
+    /// row against, so the two facts can never read a rule's limit or its measurements differently. An unrecognised rule
+    /// name (a stray row of a rule this lookup does not cover) yields no measurements, which <see cref="RowProblems"/> reads
+    /// as "nothing to re-measure".</summary>
+    private static (int Limit, IEnumerable<(string Where, string File, int Line, int Measured)> Measurements) RuleMeasurements(Node node, string rule) => rule switch
+    {
+        "type lines" => (400, ShapeMeasures.TypeLines(node).Select(m => (m.Where, m.File, m.Line, Measured: m.Lines))),
+        "method lines" => (60, ShapeMeasures.MethodLines(node).Select(m => (m.Where, m.File, m.Line, Measured: m.Lines))),
+        "nesting" => (3, ShapeMeasures.Nesting(node).Select(m => (m.Where, m.File, m.Line, Measured: m.Depth))),
+        "parameters" => (6, ShapeMeasures.Parameters(node).Select(m => (m.Where, m.File, m.Line, Measured: m.Count))),
+        "efferent coupling" => (14, EfferentMeasurements(node)),
+        _ => (int.MaxValue, Enumerable.Empty<(string Where, string File, int Line, int Measured)>()),
+    };
+
+    private static IEnumerable<(string Where, string File, int Line, int Measured)> EfferentMeasurements(Node node)
+    {
+        var lines = ShapeMeasures.TypeLines(node).ToDictionary(t => t.Where, t => (t.File, t.Line));
+        return CouplingMeasures.EfferentCoupling().Where(pair => NodeAssemblies.NodeOf(pair.Key) == node).Select(pair => CeMeasurement(pair.Key, pair.Value, lines));
+    }
+
     /// <summary>Every measurement over its limit, matched against the node's own declared rows by <c>Where</c>: unmatched
     /// (no row) or matched with a figure below the current measurement are both problems; a row that still covers the
-    /// current measurement is silent here (<see cref="RowProblems"/> checks the row itself, the other way around).</summary>
-    private static IEnumerable<string> OverLimitProblems(Node node, string rule, int limit, IEnumerable<(string Where, string File, int Line, int Measured)> measurements)
+    /// current measurement is silent here (<see cref="RowProblems"/> checks the row itself, the other way around). A
+    /// <c>Where</c> with more than one measurement (overloads, or a record's primary and an explicit constructor sharing
+    /// <c>Type.Type</c>) is matched against each of its measurements in turn, so the worst one is never shadowed by a
+    /// smaller one found first.</summary>
+    private static IEnumerable<string> OverLimitProblems(Node node, string rule)
     {
+        var (limit, measurements) = RuleMeasurements(node, rule);
         var rows = NodeDocuments.ShapeExceptions(node).Where(exception => exception.Rule == rule).ToList();
         foreach (var (where, file, line, measured) in measurements.Where(m => m.Measured > limit))
         {
@@ -128,13 +151,6 @@ public sealed class ShapeTests
                 yield return $"{node.Name}: {where} measures {measured} for {rule}, over its row's {row.Measured} ({Tree.Relative(node.Boot)})";
             }
         }
-    }
-
-    private static IEnumerable<string> CeProblems(Node node, IReadOnlyDictionary<Type, int> efferent)
-    {
-        var lines = ShapeMeasures.TypeLines(node).ToDictionary(t => t.Where, t => (t.File, t.Line));
-        var measurements = efferent.Where(pair => NodeAssemblies.NodeOf(pair.Key) == node).Select(pair => CeMeasurement(pair.Key, pair.Value, lines));
-        return OverLimitProblems(node, "efferent coupling", 14, measurements);
     }
 
     private static (string Where, string File, int Line, int Measured) CeMeasurement(Type type, int value, IReadOnlyDictionary<string, (string File, int Line)> lines)
@@ -176,38 +192,29 @@ public sealed class ShapeTests
 
     private static double Instability(int ce, int ca) => (double)ce / Math.Max(1, ce + ca);
 
-    private static IEnumerable<string> RowProblems(Node node, ShapeException exception, IReadOnlyDictionary<Type, int> efferent)
+    /// <summary>The reverse check for one declared row: re-measures every current measurement at the row's own
+    /// <c>Where</c> (<see cref="RuleMeasurements"/>, the same lookup <see cref="OverLimitProblems"/> uses) and compares
+    /// the row against the largest of them, so a row naming a record's primary constructor cannot be pronounced
+    /// unnecessary by an explicit constructor of the same name that happens to be smaller.</summary>
+    private static IEnumerable<string> RowProblems(Node node, ShapeException exception)
     {
-        var current = exception.Rule switch
-        {
-            "parameters" => ShapeMeasures.Parameters(node).Where(p => p.Where == exception.Where).Select(p => (int?)p.Count).FirstOrDefault(),
-            "efferent coupling" => CurrentCe(node, exception.Where, efferent),
-            _ => null,
-        };
-        var limit = exception.Rule == "parameters" ? 6 : 14;
-        if (current is not { } value)
+        var (limit, measurements) = RuleMeasurements(node, exception.Rule);
+        var matches = measurements.Where(m => m.Where == exception.Where).Select(m => m.Measured).ToList();
+        if (matches.Count == 0)
         {
             yield return $"{Tree.Relative(node.Boot)}: the row for {exception.Where} ({exception.Rule}) names nothing this fact can re-measure";
-        }
-        else if (value <= limit)
-        {
-            yield return $"{Tree.Relative(node.Boot)}: {exception.Where} now measures {value} for {exception.Rule}, at or below the limit of {limit}, and no longer needs its row";
-        }
-        else if (exception.Measured < value)
-        {
-            yield return $"{Tree.Relative(node.Boot)}: {exception.Where}'s row states {exception.Measured} for {exception.Rule}, below the current measurement of {value}";
-        }
-    }
-
-    private static int? CurrentCe(Node node, string where, IReadOnlyDictionary<Type, int> efferent)
-    {
-        if (!NodeAssemblies.Assemblies.TryGetValue(node, out var assembly))
-        {
-            return null;
+            yield break;
         }
 
-        var type = assembly.GetTypes().FirstOrDefault(candidate => QualifiedName(candidate) == where);
-        return type is null ? null : efferent.GetValueOrDefault(type);
+        var current = matches.Max();
+        if (current <= limit)
+        {
+            yield return $"{Tree.Relative(node.Boot)}: {exception.Where} now measures {current} for {exception.Rule}, at or below the limit of {limit}, and no longer needs its row";
+        }
+        else if (exception.Measured < current)
+        {
+            yield return $"{Tree.Relative(node.Boot)}: {exception.Where}'s row states {exception.Measured} for {exception.Rule}, below the current measurement of {current}";
+        }
     }
 
     private static string QualifiedName(Type type)
