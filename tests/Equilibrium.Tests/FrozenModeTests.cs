@@ -76,7 +76,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         foreach (var state in frozen)
         {
             Assert.Equal(equilibrium.Temperature, state.Temperature, equilibrium.Temperature * Tolerances.SelfConsistency);
-            Assert.Equal(equilibrium.Enthalpy, state.Enthalpy, Math.Abs(equilibrium.Enthalpy) * Tolerances.SelfConsistency + 1e-3);
+            Assert.Equal(equilibrium.Enthalpy, state.Enthalpy, Math.Abs(equilibrium.Enthalpy) * Tolerances.SelfConsistency + Tolerances.EnthalpyFloor);
             Assert.Equal(equilibrium.Entropy, state.Entropy, equilibrium.Entropy * Tolerances.SelfConsistency);
             Assert.Equal(equilibrium.CpFrozen, state.CpFrozen, equilibrium.CpFrozen * Tolerances.SelfConsistency);
             Assert.Equal(equilibrium.CvFrozen, state.CvFrozen, equilibrium.CvFrozen * Tolerances.SelfConsistency);

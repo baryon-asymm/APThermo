@@ -35,6 +35,16 @@ The definition of what "`Equilibrium` is ready" means.
   identity of one state have no entry in the fixtures node's table to ask, so their
   tolerance is a named constant of this node, `Tolerances.cs`, with its origin in a
   comment, rather than a literal at the assertion (F-TK-10).
+
+  ⚠ 2026-09-15: read unconditionally, while `DenseSolverTests` compares the internal
+  dense solver against hand-solved analytic systems with a literal bound at each
+  assertion (`1e-14`, `1e-15`, `1e-9`), not against another path of this tree. Found by
+  the repair review (R-Equilibrium.Tests-3): those are unit facts of a small algebraic
+  routine, one system apiece, outside the two-paths and identity cases this invariant
+  names — naming each its own constant in `Tolerances.cs` would turn a policy of the
+  node into a list of one-off numbers with nothing to compare against. The invariant now
+  excludes `DenseSolverTests`; its bounds stay at their assertions, each with its origin
+  in a comment beside it.
 - **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
   architecture review's F-AR-03): the field-name mapping (`StateComparison.StateFields`)
   and the set of fields that belong to another node (`TransportFields`) stay here, not

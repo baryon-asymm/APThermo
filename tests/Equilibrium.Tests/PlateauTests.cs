@@ -40,7 +40,7 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
         Assert.Equal(CaseStatus.Ok, pinned.Status);
         Assert.True(pinned.Moles[pieces[0]] > 0.0 && pinned.Moles[pieces[1]] > 0.0,
                     $"both pieces must stand in the solution (n = {pinned.Moles[pieces[0]]:R}, {pinned.Moles[pieces[1]]:R})");
-        Assert.True(Math.Abs(pinned.State.Temperature - bound) <= 0.01, $"T = {pinned.State.Temperature:R} against the cut at {bound}");
+        Assert.True(Math.Abs(pinned.State.Temperature - bound) <= Tolerances.PlateauCutTolerance, $"T = {pinned.State.Temperature:R} against the cut at {bound}");
         Assert.True(Math.Abs(pinned.State.Enthalpy - target) <= Tolerances.SelfConsistency * Math.Abs(target), "the assigned enthalpy is met on the plateau");
         Assert.Equal(0.0, pinned.State.CpEquilibrium);
         Assert.Equal(0.0, pinned.State.CvEquilibrium);
@@ -111,7 +111,7 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
                 gain += table.Arrays.Stoichiometry[i * count + j] * solution.Multipliers[i];
             }
 
-            Assert.True(gain <= Tolerances.SelfConsistency, $"{name}: {table.Species[j]} left out with inclusion gain {gain:R} at {t} K");
+            Assert.True(gain <= Tolerances.ResidualInclusionGain, $"{name}: {table.Species[j]} left out with inclusion gain {gain:R} at {t} K");
         }
     }
 
