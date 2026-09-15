@@ -129,10 +129,18 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - Release, x64, the in-process toolchain, so that ILGPU's native libraries and the
     CUDA post-link load as in the library;
   - `MemoryDiagnoser` on;
-  - iteration counts bounded so that a full run on the reference machine takes about
-    an hour or less.
+  - 5 warmup iterations, 20 measured iterations, invocation count 1, unroll factor 1,
+    bounded so that a full run on the reference machine takes about an hour or less.
 
   One-time costs run as cold starts.
+
+  ⚠ 2026-09-15: the job first read 1 warmup iteration and 3 measured iterations. The
+  first timed comparison run (after, before, after) found BenchmarkDotNet's 99.9 %
+  half-interval as wide as the mean or wider for most benchmarks on three samples
+  (`ProblemKind` hp without transport, 0.358 ± 0.507 ms; tp, 1.321 ± 1.300 ms), and the
+  two after runs drifted apart (100 000 CPU-accelerator cases: 5346.96 ± 154.96 ms,
+  then 3461.43 ± 457.66 ms) — nothing could be compared on that. Found by the first
+  comparison run, 2026-09-15.
 - **Groups.** Every group gets its own class.
   1. **Batch throughput.** The LOX/LH2 rocket sweep family at 1 000, 10 000 and 100 000
      cases, on the CPU accelerator with all cores and on CUDA, through the `Engine`
