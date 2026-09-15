@@ -12,9 +12,16 @@ numerical node stays testable without it.
 
 ## Invariants
 
-- **No CUDA type leaves this node.** The public surface names ILGPU only through
-  this node's own types and, in the kernel parameter structs, ILGPU's `ArrayView`;
-  `ILGPU.Runtime.Cuda` appears in no signature.
+- **No CUDA type leaves this node.** `ILGPU.Runtime.Cuda` appears in no signature.
+
+  ⚠ 2026-09-15 (distribution phase): this invariant went on to say the public surface
+  "names ILGPU only through this node's own types and, in the kernel parameter
+  structs, ILGPU's `ArrayView`". The API review of that day
+  (`SCRATCH/api-review-report.md`) demoted `Engine`, the batch types and the four
+  views structs into the tree contract; the package surface (`AcceleratorKind`,
+  `EngineOptions`, `AcceleratorInfo`, `AcceleratorUnavailableException`,
+  `AcceleratorProbe`) now names no ILGPU type at all, so the second sentence no longer
+  describes anything and is dropped rather than corrected in place.
 - **The same kernels everywhere.** A kernel is one static entry point per program; it
   is loaded on the CPU accelerator and on CUDA from the same method; there is no
   accelerator-specific numerical code.
@@ -159,9 +166,23 @@ is a composition root over internal types, one class per file in this directory 
 namespace. The kernel entry points and the calls into the numerical nodes are untouched
 by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 
+⚠ 2026-09-15 (distribution phase): `Engine` and `MathProbe` were the node's only
+public composition types, per the table below; the API review of that day
+(`SCRATCH/api-review-report.md`, section 4, D1 and F1) found no consumer scenario for
+either. `Engine` became internal and `AcceleratorProbe` (`AcceleratorProbe.cs`)
+replaces it on the package surface for the two questions a consumer actually asked of
+it: what a set of `EngineOptions` binds to (`Describe`), and whether the environment
+forbids CUDA (`CudaForbidden`); `Solver.Create` (`Problems`) keeps creating its own
+`Engine` internally. `MathProbe`, the eight batch and batch-result types, `UploadedTables`
+and `RunTimings` became internal with it. `APThermo.Execution.csproj` grants
+`InternalsVisibleTo` to `Problems` (the only `src` node whose `## Dependencies` names
+this one; `Cli` goes through `AcceleratorProbe` and receives no grant), to
+`Execution.Tests` and `Problems.Tests`, to `Benchmarks`, and to `ILGPURuntime` for the
+four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
+
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | public, contract as `API.md` says |
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
 | `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
@@ -170,7 +191,7 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
-| `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | public, contract unchanged |
+| `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the NVVM module from the fragments, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load | internal |
 
 ⚠ 2026-09-14: this row first read "`FunctionCount` is the constant the kernel strides by" (F-EX-07's own
@@ -243,14 +264,24 @@ Decisions taken with the review of 2026-09-14:
   now only the scratch and the moles were counted); results do not depend on chunking
   (Invariants), so no result moves. `ScratchBytes` must be positive, like `ChunkSize`.
 - **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
-  and `EquilibriumBatchViews` (12) are kernel parameter descriptors ILGPU requires to
-  be public; grouping their views would re-emit the kernels and move the contract.
-  They are this node's declared exception to the parameter rule, and so are the
-  constructors of `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which
-  mirror the batch results `API.md` publishes, one argument per property. The
-  pipelines are the only callers of the four, and every call names its arguments, as
-  the root requires of a mirrored shape. The other two views structs take six
-  parameters and are within the rule.
+  and `EquilibriumBatchViews` (12) are kernel parameter descriptors; grouping their
+  views would re-emit the kernels and move the contract. They are this node's
+  declared exception to the parameter rule, and so are the constructors of
+  `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which mirror the batch
+  results `API.md` publishes, one argument per property. The pipelines are the only
+  callers of the four, and every call names its arguments, as the root requires of a
+  mirrored shape. The other two views structs take six parameters and are within the
+  rule.
+
+  ⚠ 2026-09-15 (distribution phase): this bullet said the two views structs "are
+  kernel parameter descriptors ILGPU requires to be public". Wrong: ILGPU 1.5.3 needs
+  only `[assembly: InternalsVisibleTo("ILGPURuntime")]` on the declaring assembly, not
+  a public type (the API review of that day, `SCRATCH/api-review-report.md`, section
+  3, ran the failure and the fix on the CPU accelerator and on CUDA; the claim entered
+  with `f2e5de7` and `53ec9fb` on 2026-09-12 from an observed failure that never tried
+  the grant). All four views structs are internal now, with that grant on
+  `APThermo.Execution.csproj`; the reason for the declared parameter-count exception
+  is unchanged.
 
   ⚠ 2026-09-14: this bullet stood "`RocketBatchViews` (17 parameters),
   `EquilibriumBatchViews` (12) and the other two are the kernel parameter descriptors
@@ -285,7 +316,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
 | `EquilibriumPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
 | `SpeciesFunctionPipeline` | efferent coupling | 17 | the same case as `RocketPipeline` above |
-| `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor ILGPU requires to be public; grouping its views would re-emit the kernels and move the contract (the decision "The views structs keep their constructors"); every creation names its arguments |
+| `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
 | `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 12 | the same case as `RocketBatchViews` above |
 | `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
 | `EquilibriumBatchResult.EquilibriumBatchResult` | parameters | 7 | the same case as `RocketBatchResult` above |
