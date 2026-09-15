@@ -92,7 +92,8 @@ Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the proto
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
 node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
 (2026-09-15, the newest stable release on NuGet supporting net10.0 through
-`RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`).
+`RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`); GitHub Actions and nuget.org for
+delivery (2026-09-15, `## Delivery` below).
 
 ## Constraints
 
@@ -161,8 +162,19 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
   than the CPU accelerator path using all cores. There is no single-case latency target
   in version 1.
 - Data: the NASA files are committed verbatim under `data/` with a `NOTICE`
-  (Apache-2.0) and the upstream commit hash; they are read at run time from that
-  directory or from a path given by the caller.
+  (Apache-2.0) and the upstream commit hash. The data node embeds those same files in
+  its assembly (2026-09-15): they are linked from `data/`, never copied in the tree, and a
+  test proves by SHA-256 that the embedded bytes equal the files. At run time a database
+  is read from the embedded copy or from a path given by the caller.
+
+  ⚠ 2026-09-15 (distribution phase): stood "they are read at run time from that
+  directory or from a path given by the caller". A NuGet package and a .NET tool have
+  no `data/` directory beside them, so every consumer would have to find NASA files
+  before the first call. Embedding the committed files keeps the data-from-files
+  invariant, because the bytes are the committed ones with their hash recorded. The
+  caller's path stays for other databases. The command line's search for `data/`
+  beside the executable and in the current directory goes with it; its `API.md`
+  records the change.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
@@ -327,6 +339,21 @@ There is no external ancestor: the tree root is the repository root, and the loa
       nodes' `BOOT.md` files under `## Structure` and each is accepted only with its
       node's bit-for-bit or field-by-field guard green.
 
+- [ ] Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
+      the execution tests node is green on CUDA, its long-running sweep included, under
+      WSL2 on the reference machine. The outcome for the bit snapshots is recorded under
+      the platform constraint above.
+- [ ] The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
+      from a local feed into every sample, and each sample reproduces its approved
+      output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
+      .NET tool and runs an approved example without `--database`. A debugger steps
+      from a sample into the library's source through SourceLink, and the step is
+      recorded.
+- [ ] The documentation (2026-09-15), proven by the docs tests node: every code block
+      of the guide equals its sample region, and every command-line example's output is
+      approved. Every relative link resolves, and every sample document validates
+      against its schema.
+
 ## Taboos
 
 - No second implementation of a formula "for convenience on the CPU": it drifts.
@@ -407,3 +434,57 @@ those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes s
 `Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
 and never asserted. The node list with links is in `API.md`.
+
+## Delivery
+
+Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first release.
+
+- **Packages.**
+  - `APThermo` is packed from `src/Problems`, the front door. It carries every library
+    assembly in one package (`Data`, `Thermo`, `Equilibrium`, `Performance`, `Transport`,
+    `Execution`, `Problems`), because the nodes are never released apart. Its only
+    package dependency is ILGPU.
+  - `APThermo.Cli` is packed from `src/Cli` as a .NET tool with the command `apthermo`.
+  - No other project is packable. The version and the package metadata live once, in
+    `Directory.Build.props`, and a release tag `v<version>` must equal that version.
+  - The license expression is `MIT AND Apache-2.0` (the NASA data), with `NOTICE`
+    packed.
+- **Symbols.**
+  - Every packed assembly ships its portable PDB in a `.snupkg`, with SourceLink to the
+    GitHub commit, from a deterministic CI build.
+  - The library assemblies ship their XML documentation; a public member without a
+    documentation comment fails the build.
+- **Public surface.** Everything public in a packed assembly is a promise to consumers.
+  - Before 0.1.0 the surface is reviewed, and whatever no consumer scenario needs
+    becomes internal.
+  - Below 1.0.0 a minor version may break the surface; `CHANGELOG.md` names the break.
+- **Documentation.** Two layers, each with one source of truth.
+  - The contracts are the nodes' `API.md` and the XML comments.
+  - The guide (`README.md`, `docs/guide/`, the package READMEs under `docs/nuget/`) is
+    task-oriented and restates no signature.
+  - Every code block of the guide is a region of a compiled and executed sample under
+    `samples/`, and every command-line example runs with its output approved. A docs
+    tests node proves both, and that every relative link resolves.
+  - `llms.txt` at the root is the entry for agents: a summary, and links to the guide
+    pages, to the JSON Schemas of the command line's documents (`docs/schemas/`) and to
+    the nodes' `API.md`.
+  - Guide pages share one shape (purpose, when to use, steps, errors, see also), so a
+    human and an agent navigate them alike.
+- **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
+  configuration and is not a node.
+  - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
+    the build, the fast suite with `APTHERMO_NO_CUDA=1`, packing, the samples run against
+    the fresh packages from a local feed, and the docs tests.
+  - A nightly run adds the long-running tests on the CPU accelerator.
+- **Release**, on a tag `v*`, in order:
+  1. the hosted matrix;
+  2. the CUDA tests, the long-running ones included, on two self-hosted runners of the
+     reference machine (Windows, and Linux under WSL2);
+  3. packing;
+  4. a push to nuget.org through Trusted Publishing, behind an environment the owner
+     approves;
+  5. a GitHub release with the notes of `CHANGELOG.md`.
+- **Self-hosted runners** never run a pull request's code. GPU jobs trigger only on tags
+  and on manual dispatch, and the runners run under an account without administrator
+  rights, started for a release rather than kept as services.
+- Nothing is pushed to GitHub or nuget.org without the owner's word.
