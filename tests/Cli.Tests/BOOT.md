@@ -12,7 +12,7 @@ The definition of what "`Cli` is ready" means.
 | Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
 | L0 | the exception → exit code rule; the usage's defaults are the library's constants; every command of the table has a handler; `cudaSkippedBecause` in `run.accelerator` and in the devices listing; the invalid state records refused with the front door's reasons behind their source | the `Cli` `API.md` of 2026-09-14 (`ExitCodeTests`, `CommandLineTests`, `OutputDocumentTests`, `InputDocumentTests`) | ✅ (2026-09-14) |
 | L2 | the states example gives the library's numbers field by field: the records without exits through `SolveStates`, the records with exits through `SolveRocketStates`, the library call built from the fixtures the records encode | the `Problems` results (`LibraryEqualityTests`) | ✅ (2026-09-14) |
-| Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the JSON document without its `run` section and the CSV text, one SHA-256 each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved | ✅ (2026-09-14) |
+| Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the SHA-256 of the bytes the command line delivers for the JSON document with the top-level `run` property cut out (`RunPropertyCut`, the span found with a `Utf8JsonReader`, never by searching the text), and the SHA-256 of the CSV text as written, one of each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved and re-approved 2026-09-15 for the hash definition alone (the criterion below) | ✅ (2026-09-15) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -169,6 +169,34 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       close); seen red once by a CSV column moved (that example's CSV line red) and by
       an example absent from the snapshot (red with the instruction to approve), both
       at the recording commit.
+- [x] 2026-09-15 — The Bits level's JSON half hashes the delivered bytes with `run` cut
+      by span, not the review's compact re-serialization (R-Cli.Tests-2): the bytes
+      hashed are the bytes captured in process, proven equal to what `--output` writes
+      to a file for the LOX/LH2 rocket example
+      (`BitSnapshotTests.The_captured_text_matches_the_bytes_delivered_to_the_output_file`,
+      cutting `run` from both before comparing, since `run.timings` alone differs run to
+      run); the cut is exact with `run` first, in the middle and last, each against the
+      same document written without it
+      (`RunPropertyCutTests.The_top_level_run_property_is_cut_wherever_it_appears`),
+      seen red once with the cut's span shifted by one byte
+      (`RunPropertyCut.Cut`, `document.AsSpan((int)cutEnd + 1)`): all three cases failed
+      on `Assert.Equal() Failure: Strings differ`, each missing exactly the one byte
+      immediately after the removed span, reverted; a document with no top-level `run`
+      property or with more than one fails instead of hashing
+      (`RunPropertyCutTests.A_missing_top_level_run_property_fails_instead_of_hashing`,
+      `A_duplicated_top_level_run_property_fails_instead_of_hashing`). Every line of
+      `Bits.approved.txt` re-approved once, with two proofs, both over all 18 examples:
+      the same run computed the old, compact-reserialization hash and the new one for
+      every example from the same captured text, and every old hash still equalled its
+      approved line (the values, keys and order were still the approved ones at the
+      moment of re-approval; a temporary fact, never committed); the JSON document of
+      every example produced at `f795f3c`, before the clean-code decomposition, in a
+      scratch worktree of that commit removed afterward, hashes under the new
+      definition to the same 18 new lines, no example present on only one side (a
+      temporary fact, never committed). The CSV half of every line is unchanged in both
+      proofs, since its hash definition did not change. `git hash-object
+      tests/Cli.Tests/Bits.approved.txt`: `483c979b75b5c98b5e11ddc4359f28812e225e15`
+      (18 lines) before, `b6e7844aa27ee16b9e2c1cbb84396d043e44386d` (18 lines) after.
 - [x] 2026-09-14 — The facts of 2026-09-14 (the level table's new L0 and L2 rows):
       `LibraryEqualityTests.The_states_example_equals_the_library_field_by_field` (a
       records file with and without exits); `ExitCodeTests.An_exception_maps_to_its_documented_exit_code`
