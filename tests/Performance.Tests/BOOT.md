@@ -198,10 +198,11 @@ position today (the criterion below).
       root's condition on a declared wide constructor, the row of
       `## Shape exceptions`), verified by `ShapeMechanics.Constructions` (the
       protocol tests node's own tool, run through a temporary, uncommitted test):
-      two sites tree-wide, this node's (`KernelEqualityTests.cs:133`) and the
+      two sites tree-wide, this node's (`KernelEqualityTests.cs:80`, moved from
+      `:133` by the R-Performance.Tests-4 cut below; re-verified in place) and the
       execution node's own type of the same name (`src/Execution/RocketPipeline.cs:53`),
       both fully named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
-      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green).
+      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green that day).
 
 - [x] 2026-09-15 — `RocketInputs` (8 parameters) and `RocketSolution` (9), both in
       `RocketHost.cs`, restructured within the root's limit, along domain axes;
@@ -253,6 +254,37 @@ position today (the criterion below).
       down. Verified: 700/700 tests green (699 plus R-Performance.Tests-1's stale-key
       fact), `Bits.approved.txt` hash unchanged
       (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
+
+- [x] 2026-09-15 — `RocketBatchBuffers` (`KernelEqualityTests.cs`) is built by its own
+      constructor, `(Accelerator, SpeciesTable, IReadOnlyList<RocketInputs>)`, 3
+      parameters, exactly as `RocketCase` next to it builds one case's buffers. The
+      settable `Table`/`Views`/`Stations`/`Moles`/`Figures`/`StationStatus`/`Status`
+      properties and the `Fill` method that mutated them from outside are gone;
+      `Stations`, `Moles`, `Figures`, `StationStatus` and `Status` are private fields
+      assigned once, inside the constructor, and a new `Download()` method returns
+      them as a new `RocketBatchResults` record (5 fields), the batch counterpart of
+      `RocketOutcome`, for `AssertSameBits` to compare. Measured by the protocol tests
+      node's own tool (`ShapeMeasures`, run through the same temporary test): the type
+      66 lines, its constructor 33, both well inside the type's 400 and the method's 60.
+
+      This moved four call sites in `RocketCase.cs` from `inputs.ElementMoles` /
+      `.ExitValues` / `.ExitKinds` / `.ReactantEnthalpy` to `inputs.Mixture.ElementMoles`
+      / `inputs.Exits.Values` / `inputs.Exits.Kinds` / `inputs.Mixture.ReactantEnthalpy`,
+      as part of the same commit as the `Mixture`/forwarding-properties cut above,
+      which is why `RocketCase`'s own efferent coupling is noted here rather than left
+      silent: `CouplingMeasures` puts it at Ce=19 today (`Mixture` and `ExitPlan` newly
+      named — direct now, where the removed forwarding properties on `RocketInputs`
+      used to hide them from `RocketCase`'s own body). `RocketCase` was already over
+      the root's cap of 14 before this task's first commit today (Ce=17, by the same
+      reasoning applied to the pre-split source at `5d1ccd3`): a pre-existing gap in
+      this node's `## Shape exceptions` table, not named by the repair review, made
+      two worse by the call-site changes above. Left unfixed and undeclared here
+      deliberately: decomposing `RocketCase` or declaring it an exception is a design
+      decision this task's mandate (apply the review's findings, no more) does not
+      extend to; flagged for the next design session in this task's own report.
+
+      Verified: 700/700 tests green, `Bits.approved.txt` hash unchanged
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
 
 ## Taboos
 
