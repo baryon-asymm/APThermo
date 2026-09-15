@@ -26,7 +26,7 @@ public sealed class CpuHost : IDisposable                  // one per test assem
 public static class Bits
 {
     public static bool Same(double expected, double actual);                  // DoubleToInt64Bits equal
-    public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct;   // one line per public double or int field whose bits differ: "label.Field: expected E, actual A", doubles in round-trip form
+    public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct;   // one line per public field whose value differs: doubles by their bits, any other field by Equals
 }
 
 public sealed class BitHash                                 // SHA-256 over little-endian bytes, in the order added; one instance computes one digest

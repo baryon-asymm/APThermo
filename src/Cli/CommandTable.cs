@@ -53,6 +53,8 @@ internal static class CommandTable
 
     public static readonly string Usage = BuildUsage();
 
+    public static readonly IReadOnlyList<string> Names = Commands.Select(c => c.Name).ToList();
+
     public static CommandSpec? Find(string name) => Commands.FirstOrDefault(c => c.Name == name);
 
     public static OptionSpec? FindOption(string name) => Options.FirstOrDefault(o => o.Name == name);

@@ -28,8 +28,8 @@ internal static class RecordColumns
     public const int FormationEnthalpyStart = 66;
     public const int FormationEnthalpyLength = 15;
 
-    // thermo.inp, a record without intervals (N = 0): the assigned-enthalpy temperature is the line's first
-    // whitespace token, not a fixed column, so it has no entry here.
+    // thermo.inp, a record without intervals (N = 0): the assigned-enthalpy temperature (columns 1-11 by the
+    // format facts) is read as the line's first whitespace token, so it has no entry here.
 
     // thermo.inp, an interval's header line: bounds, coefficient count, eight exponents, the enthalpy offset.
     public const int TLowStart = 1;

@@ -137,21 +137,22 @@ node's shape check (2026-09-14).
   their `in` view and scratch structs; a constructor is a method for this count, a
   record's primary constructor included, and a type that mirrors an external format or
   a published shape field for field may exceed it as a declared exception, constructed
-  at its sites with named arguments). A type names at most 14 distinct types of the
-  tree in its signatures and bodies, as the dependency check's walk reads them (its
-  efferent coupling, Ce), unless it is a
-  registry or a composition root that holds no formula and is named as such in its
-  node's `BOOT.md`. A type named by 10 or more types of the tree (its afferent
-  coupling, Ca) is a stable type: at most 100 lines and no behaviour beyond
-  construction and validation, or a contract in its node's `API.md`. The instability
-  `I = Ce / (Ca + Ce)` of the `src` nodes over their project graph never rises along a
-  dependency. Every exception is declared in the node's `BOOT.md`, as a row of its
-  `## Shape exceptions` table with the measured figure and the reason. Decomposition
-  goes along the domain's axes (stages of an
+  at its sites with named arguments). A type of the `src` nodes names at most 14
+  distinct types of the tree in its signatures and bodies, as the dependency check's
+  walk reads them (its efferent coupling, Ce), unless it is a registry or a
+  composition root that holds no formula and is named as such in its node's
+  `BOOT.md`. A type of the `src` nodes named by 10 or more types of the tree (its
+  afferent coupling, Ca) is a stable type: at most 100 lines of code and no behaviour
+  beyond construction and validation, or a contract in its node's `API.md`. The
+  instability `I = Ce / (Ca + Ce)` of the `src` nodes over their project graph never
+  rises along a dependency. Every exception is declared in the node's `BOOT.md`, as a
+  row of its `## Shape exceptions` table with the measured figure and the reason.
+  Decomposition goes along the domain's axes (stages of an
   algorithm, entities, phases of a pipeline), never through `partial` (the
   `[GeneratedRegex]` requirement excepted), `#region` or a Helpers/Utils class.
-  Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md` records why the
-  numbers are what they are.
+  Everything else in this constraint holds for every type of the tree, the test
+  nodes' included. Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md`
+  records why the numbers are what they are.
 
   ⚠ 2026-09-14: the limit on Ce first read 10. It was calibrated on a textual count of
   the names in the source at `8e36a27`, while the rule is defined by the dependency
@@ -168,6 +169,15 @@ node's shape check (2026-09-14).
   that comments not count. The limits now count the lines that hold code; the figures
   stay 400 and 60, which can only lower a measurement, so no type or method that met
   them stops meeting them. The protocol tests node's `BOOT.md` defines the count.
+
+  ⚠ 2026-09-15: the coupling and stable-type sentences read "A type names at most 14"
+  and "A type named by 10 or more", as if they held for every type of the tree. The
+  limits were calibrated on the types of the `src` nodes, and the protocol tests node's
+  shape check, designed with them on 2026-09-14, applies them to those types only, for
+  the reason its `BOOT.md` gives. The wording was found wider than the check at the
+  review of `ShapeTests`. It now states the scope the check holds, and the acceptance
+  criterion below follows it. A stable type's 100 lines are lines of code, counted as
+  the size limits count them.
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
@@ -227,9 +237,9 @@ There is no external ancestor: the tree root is the repository root, and the loa
       fixed in its `API.md`).
 - [ ] The tree meets the code-shape constraint above: no type over 400 lines of
       code, no method over 60, no control flow nested deeper than 3, no method with
-      more than 6 parameters, no type with Ce over 14 outside the registries and
-      composition roots the nodes declare, every stable type in shape, no dependency
-      against instability; measured by the protocol tests node's `ShapeTests` over a
+      more than 6 parameters, no `src` type with Ce over 14 outside the registries and
+      composition roots the nodes declare, every stable `src` type in shape, no
+      dependency against instability; measured by the protocol tests node's `ShapeTests` over a
       machine-generated list of every type and method of every assembly, the declared
       exceptions read from the nodes' `BOOT.md`. The review of 2026-09-14 (nine
       read-only reviews over the tree at `8e36a27`, one per node group and one across

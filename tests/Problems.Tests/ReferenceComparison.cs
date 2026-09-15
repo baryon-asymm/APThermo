@@ -16,6 +16,7 @@ internal readonly record struct StationCaveats(bool Transport, bool Frozen, bool
 /// </summary>
 internal static class ReferenceComparison
 {
+    /// <summary>The mismatches of one result station against one fixture station or state; empty when they agree.</summary>
     public static IEnumerable<string> Compare(JsonElement reference, Station station, SpeciesList species, string label, ToleranceTable tolerances, StationCaveats caveats)
     {
         var moleFractions = reference.GetProperty("moleFractions");
@@ -36,6 +37,12 @@ internal static class ReferenceComparison
         }
     }
 
+    /// <summary>
+    /// The transport fields of the fixture station. At a station whose reference reacting conductivity is defective
+    /// (<see cref="StationCaveats.ReferenceDefective"/>, or a trace component the tree's transport pass eliminated), the reacting
+    /// fields are not compared, but the defect must still be visible: a reacting conductivity that agrees with the inflated
+    /// reference is itself a mismatch.
+    /// </summary>
     private static IEnumerable<string> TransportMismatches(JsonElement reference, Station station, string label, ToleranceTable tolerances, StationCaveats caveats)
     {
         foreach (var property in reference.EnumerateObject())

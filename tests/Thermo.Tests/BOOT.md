@@ -11,7 +11,7 @@ The definition of what "`Thermo` is ready" means.
 | L1 | the same functions inside an ILGPU kernel on the CPU accelerator give the same bits as the host call | the host call | ✅ 2026-09-12 |
 | L1 | the join-and-cut of condensed records: touching same-name records build one species, a real latent heat cuts a species into range-named pieces, records that cannot join are refused by name | the committed file's records (`Cr(cr)`, `ALN(L)`) and the rule of the `Thermo` node's `BOOT.md` (`JoinAndCutTests`) | ✅ 2026-09-13 (the row written 2026-09-14, the ⚠ below) |
 | L1 | the range questions of a table: `PieceOf` against the interval rule over the pieces of a cut name, `RecordLow` and `RecordHigh` against `IsInRange`; the host-side `H°/RT` overload against the kernel-side one bit for bit; the join's formation-enthalpy rule | the interval rule, the kernel-side functions, the committed file (`RangeQuestionTests`, `OverloadPinningTests`) | ✅ 2026-09-14 |
-| Bits | the table of every fixture case gives the recorded bits: one line per case file in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the eight arrays of `SpeciesTableArrays` in their declared order, the species names joined by commas hashed first | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ 2026-09-14 |
+| Bits | the table of every fixture case gives the recorded bits: one line per case file in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the eight arrays of `SpeciesTableArrays` in their declared order, the species names joined by commas hashed first; and the reverse, an approved line no enumerated case produces, fails the test naming the stale key | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ 2026-09-14 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ⚠ 2026-09-14: the join-and-cut row was missing. `JoinAndCutTests` came with the
@@ -44,7 +44,11 @@ and the criterion below carry the day they were written.
   with the change of the builder's output named in the same commit; a decomposition,
   a renaming or a reordering of code moves no line. The bits are those of host
   arrays, so no accelerator and no runtime enters the snapshot. A fixture case absent
-  from the snapshot fails the test with instructions, as the surface snapshot does.
+  from the snapshot fails the test with instructions, as the surface snapshot does; and
+  the reverse, an approved line no enumerated case produces (a deleted or renamed
+  fixture, invisible to a theory with no case for it), fails
+  `Every_recorded_line_is_a_fixture_case` naming the stale key
+  (`BitSnapshot.StaleKeys`, the harness's `ApprovedSnapshot.StaleKeys`).
 - Kernel tests create their own ILGPU context with the CPU accelerator; no CUDA.
 
 ## Dependencies
@@ -104,6 +108,20 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       stoichiometry entry offset by one in the builder (every case red, step 1) and by a
       fixture file absent from the snapshot (that case red with the instruction to
       approve, step 1).
+
+      2026-09-15 (the clean-code repair's R-Thermo.Tests-1): the reverse direction
+      closed — a fixture the theory has no case for (a deleted or renamed one) left an
+      approved line unchecked, the gap the Harness `BOOT.md` already recorded. Added
+      `BitSnapshot.StaleKeys()` over the run's own case keys and one new fact,
+      `BitSnapshotTests.Every_recorded_line_is_a_fixture_case`, asserting it empty.
+      Seen red once: a fabricated line
+      (`tests/Fixtures/cases/tp/__mutation-stale-key-does-not-exist.json`, a fake hash)
+      appended to `Bits.approved.txt` turned the new fact red alone, naming exactly
+      that key ("1 line(s) of Bits.approved.txt name no enumerated fixture case"), the
+      213 theory cases unaffected; reverted, 214/214 green again
+      (`dotnet test tests/Thermo.Tests --filter FullyQualifiedName~BitSnapshotTests`).
+      `Bits.approved.txt` itself unchanged (219 lines, six header comments and 213
+      case lines).
 - [x] 2026-09-14 — The range questions and the overload pinning green: `RangeQuestionTests`
       (`PieceOf_names_the_piece_the_interval_rule_chooses` over `ALN(L)`, the one cut
       name the fixture tables contain (found by the test's own scan, not typed), at

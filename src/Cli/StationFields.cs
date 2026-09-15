@@ -9,7 +9,8 @@ namespace AerospacePropellantThermodynamics.Cli;
 /// The one projection of a station into named, typed cells (the state, the performance figures with the two
 /// conversions to seconds, the transport figures), from the library's structs by reflection (F-CL-06, F-CL-07).
 /// Both <see cref="JsonOutput"/> and <see cref="CsvOutput"/> read a case through this one source, so a field added
-/// to a library struct reaches both document forms without a second list.
+/// to a library struct reaches both document forms without a second list. The public fields of the library's result
+/// structs, in declaration order, with their document names.
 /// </summary>
 internal static class StationFields
 {
@@ -44,5 +45,11 @@ internal static class StationFields
         return value is double d ? Cell.Of(name, d) : Cell.Of(name, (int)value);
     }).ToList();
 
-    private static IReadOnlyList<FieldInfo> FieldsOf<T>() where T : struct => typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance);
+    /// <summary>
+    /// <see cref="Type.GetFields()"/> does not document its order; declaration order is made explicit and guaranteed
+    /// here, through the metadata token the compiler assigns in source order, so that the document's field and
+    /// column order cannot depend on a runtime detail (the CSV column order and the JSON key order, API.md).
+    /// </summary>
+    private static IReadOnlyList<FieldInfo> FieldsOf<T>() where T : struct =>
+        typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken).ToList();
 }

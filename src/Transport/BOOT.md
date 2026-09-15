@@ -184,13 +184,22 @@ moved code and rewrote no formula.
 | `ReactionTerms` | the reaction contribution to conductivity and heat capacity (Butler and Brokaw): the enthalpy differences, the two matrices, the two dense solves, `SingularMatrix` | internal |
 | `SetProperties` | the set's mass and heat capacities and the two Prandtl numbers; fills the figures | internal |
 
-Carriers (`Carriers.cs`): `StationInputs` (the species view, the transport view, the
-scratch, the moles and the temperature, built once in `Evaluate`; every stage takes
-it, so no stage signature exceeds four parameters), `MixtureTransport` (viscosity,
+Carriers (`Carriers.cs`): `StationInputs` (the station under evaluation: its tables, its
+composition, its temperature and its scratch, built once in `Evaluate` and read by
+every stage, so that a stage's signature names only what is particular to it: the set
+size, the reaction count, the carriers it reads and the figures it fills), `MixtureTransport` (viscosity,
 frozen conductivity) and `ReactionContribution` (heat capacity, conductivity, status).
 The bookkeeping the figures already carry (`SpeciesCount`, `ReactionCount`,
 `EstimatedSpeciesCount`, `EstimatedMoleFraction`, `TraceEliminations`, `Capped`)
 travels as `ref TransportFigures`, the stack local `Evaluate` uses today.
+
+⚠ 2026-09-15: this paragraph used to justify `StationInputs` by "every stage takes it,
+so no stage signature exceeds four parameters". `SetProperties.Fill` and
+`TransportSetSelection.Passes` already take five parameters each; the count was wrong
+and, being a number repeating a property of the code rather than a fact the machine
+checks, could only drift further. Reworded to say what `StationInputs` is instead of a
+figure the code does not hold to. Found by the repair review of 2026-09-15
+(R-Transport-3).
 
 Every stage's XML comment lists the scratch slots it reads and the slots it writes.
 `Stx` and `Mark` are shared scratch: `Stx` is the normalised pivot row of the trace
@@ -227,8 +236,9 @@ Decisions taken with the review of 2026-09-14:
 
 As built, 2026-09-14. One file per stage class, named after it; the three carriers
 share `Carriers.cs`, as decided above, and the two collectors of the host-side table
-build (`SpeciesRuns`, `PairRuns`, which keep `AppendSpeciesRuns` and `AppendPairRuns`
-within the parameter rule) share `TableRuns.cs` beside the other descriptors
+build (`SpeciesRuns`, `PairRuns`: the two sections of the table as the build collects
+them: the per-species runs with the lists of species with and without data, and the
+pair index with the pair runs) share `TableRuns.cs` beside the other descriptors
 (`Descriptors.cs`). Two predicates are called from a stage other than the one that
 owns them, and are internal for it: `TransportComponents.OfCase` from
 `TransportSetSelection` (the case's gas count asks the same question as the default
@@ -319,6 +329,14 @@ row.
       at the end (2144 tests). The protocol tests node's `ShapeTests`, which the
       criterion named, does not exist yet; it re-measures this over the tree when that
       node has it.
+
+      ⚠ 2026-09-15: this criterion named `TransportScratch.Slice` at 53 lines. The
+      `## Structure` section's own warning above (superseded by the named-construction
+      fix) already corrected it to 58 once the return statement was rewritten to name
+      its arguments, but only there, not beside this criterion; the file
+      (`Descriptors.cs:165-222`) still measures 58 physical lines. Found by the repair
+      review (R-Transport-4). The figure is physical, not lines of code, and gives way
+      to the protocol tests node's `ShapeTests` once it exists.
 - [ ] The execution tests node's CUDA sweep green once after the decomposition (the
       long-running `CudaTests`, which this node's session does not run: the criterion
       above was split on 2026-09-14 so that what is proven and what is still owed are

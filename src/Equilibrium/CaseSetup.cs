@@ -29,22 +29,6 @@ internal static class CaseSetup
             ? problem.Temperature
             : (problem.Temperature > 0.0 ? problem.Temperature : DefaultTemperatureEstimate);
 
-    /// <summary>The mark of a species in the scratch (the domain is in the node's API.md).</summary>
-    public static SpeciesMark Mark(in EquilibriumScratch scratch, int species) => (SpeciesMark)scratch.SpeciesActive[species];
-
-    /// <summary>Writes a species' mark.</summary>
-    public static void Mark(in EquilibriumScratch scratch, int species, SpeciesMark mark) => scratch.SpeciesActive[species] = (int)mark;
-
-    /// <summary>
-    /// Whether the species takes part in this case at all: its elements are present and the anti-cycling rule has not stood
-    /// it down. A record forgiven once is still in play — it may be skipped by one inclusion pass, not removed from the case.
-    /// </summary>
-    public static bool InPlay(in EquilibriumScratch scratch, int species)
-    {
-        var mark = Mark(scratch, species);
-        return mark == SpeciesMark.Active || mark == SpeciesMark.ForgivenOnce;
-    }
-
     /// <summary>
     /// Checks the input, masks the absent elements and their species, and writes the initial estimate and the carried state.
     /// InvalidInput leaves every output view untouched; the caller has already written that status.
@@ -125,7 +109,7 @@ internal static class CaseSetup
                 }
             }
 
-            Mark(scratch, j, present ? SpeciesMark.Active : SpeciesMark.Absent);
+            SpeciesMarks.Set(scratch, j, present ? SpeciesMark.Active : SpeciesMark.Absent);
             if (present && j < table.GasCount)
             {
                 activeGases++;
@@ -181,7 +165,7 @@ internal static class CaseSetup
         var estimate = 0.0;
         for (var j = 0; j < gasCount; j++)
         {
-            if (InPlay(scratch, j) && result.Moles[j] > 0.0)
+            if (SpeciesMarks.InPlay(scratch, j) && result.Moles[j] > 0.0)
             {
                 estimate += result.Moles[j];
             }
@@ -195,14 +179,14 @@ internal static class CaseSetup
         state.LogN = Math.Log(estimate);
         for (var j = 0; j < gasCount; j++)
         {
-            scratch.LogMoles[j] = InPlay(scratch, j) && result.Moles[j] > 0.0
+            scratch.LogMoles[j] = SpeciesMarks.InPlay(scratch, j) && result.Moles[j] > 0.0
                 ? Math.Log(result.Moles[j])
                 : state.LogN - EquilibriumSolver.TraceThreshold - UnestimatedOffset;
         }
 
         for (var j = gasCount; j < table.SpeciesCount; j++)
         {
-            if (InPlay(scratch, j) && result.Moles[j] > 0.0 && state.CondensedCount < ScratchLayout.MaxCondensedInSolution)
+            if (SpeciesMarks.InPlay(scratch, j) && result.Moles[j] > 0.0 && state.CondensedCount < ScratchLayout.MaxCondensedInSolution)
             {
                 scratch.CondensedInSolution[state.CondensedCount++] = j;
             }

@@ -5,9 +5,10 @@ using AerospacePropellantThermodynamics.Transport;
 namespace AerospacePropellantThermodynamics.Problems;
 
 /// <summary>
-/// One station's slice of the engine's flat batch result: the table it was solved over, the flat offset into the moles array
-/// computed once, and the fields <see cref="StationFactory"/> assembles into a <see cref="Station"/>. Built with init
-/// properties, not a positional constructor, so that assembling a station takes a name and one slice instead of nine parameters.
+/// One station as the engine's flat batch result reports it: the table it was solved over, the batch's moles with this
+/// station's offset computed once, and the state, figures and statuses the result carries. Both runners build one and
+/// <see cref="StationFactory.Create"/> turns it into the published <see cref="Station"/>, so that record is constructed in
+/// one place with named arguments (BOOT.md, the decision "Size"); the init properties name every field at both building sites.
 /// </summary>
 internal readonly record struct StationSlice
 {

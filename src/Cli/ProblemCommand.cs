@@ -9,7 +9,7 @@ internal static class ProblemCommand
     public static ExitCode Execute(Invocation invocation, TextWriter output)
     {
         var path = invocation.Arguments[0];
-        var document = InputDocuments.ReadProblem(InputFile.ReadAllText(path), path);
+        var document = ProblemDocumentReader.Read(InputFile.ReadAllText(path), path);
         CheckProblemType(document.Problem, invocation.Command, path);
         var options = invocation.Options;
         var accelerator = options.Accelerator ?? document.Accelerator ?? AcceleratorKind.Auto;

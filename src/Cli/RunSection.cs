@@ -47,7 +47,7 @@ internal static class RunSection
     public static void WriteAccelerator(Utf8JsonWriter writer, AcceleratorInfo accelerator)
     {
         writer.WriteStartObject();
-        writer.WriteString("kind", Names.Accelerator(accelerator.Kind));
+        writer.WriteString("kind", DocumentWords.Accelerator(accelerator.Kind));
         writer.WriteString("deviceName", accelerator.DeviceName);
         writer.WriteString("ilgpuVersion", accelerator.IlgpuVersion);
         writer.WriteString("libNvvmPath", accelerator.LibNvvmPath);

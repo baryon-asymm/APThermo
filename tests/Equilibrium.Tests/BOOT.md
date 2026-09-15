@@ -35,6 +35,16 @@ The definition of what "`Equilibrium` is ready" means.
   identity of one state have no entry in the fixtures node's table to ask, so their
   tolerance is a named constant of this node, `Tolerances.cs`, with its origin in a
   comment, rather than a literal at the assertion (F-TK-10).
+
+  ⚠ 2026-09-15: read unconditionally, while `DenseSolverTests` compares the internal
+  dense solver against hand-solved analytic systems with a literal bound at each
+  assertion (`1e-14`, `1e-15`, `1e-9`), not against another path of this tree. Found by
+  the repair review (R-Equilibrium.Tests-3): those are unit facts of a small algebraic
+  routine, one system apiece, outside the two-paths and identity cases this invariant
+  names — naming each its own constant in `Tolerances.cs` would turn a policy of the
+  node into a list of one-off numbers with nothing to compare against. The invariant now
+  excludes `DenseSolverTests`; its bounds stay at their assertions, each with its origin
+  in a comment beside it.
 - **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
   architecture review's F-AR-03): the field-name mapping (`StateComparison.StateFields`)
   and the set of fields that belong to another node (`TransportFields`) stay here, not
@@ -134,11 +144,24 @@ creation names its arguments; it passes them by position today (the criterion be
       `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over the
       enumerated tp, hp and sp directories against `Bits.approved.txt`, recorded from
       the code of `8e36a27` before any code of the decomposition moved (one line per
-      enumerated fixture file, the directories being the list). Seen red twice, each
-      mutation applied alone and restored: the solver's `StandardPressure` perturbed
-      by one ULP (`1.0e5` → `100000.00000000001`), which reported 22 cases with moved
-      hashes; and one line deleted from the approved file, which reported that case
-      with the instruction to approve.
+      enumerated fixture file, the directories being the list). Seen red three times,
+      each mutation applied alone and restored: the solver's `StandardPressure`
+      perturbed by one ULP (`1.0e5` → `100000.00000000001`), which reported 22 cases
+      with moved hashes; one line deleted from the approved file, which reported that
+      case with the instruction to approve; and, 2026-09-15, a line added for a tp
+      fixture that does not exist (`tp/does-not-exist_pc1MPa_shiftingEquilibrium.json`
+      with a zero hash), which reported "1 fixture case(s) no longer give the recorded
+      bits:\ntp/does-not-exist_pc1MPa_shiftingEquilibrium.json: recorded in the
+      approved snapshot, but no longer a fixture case" — the check `AGENTS.md` §13
+      requires every check be shown red, not run before on this node's own
+      `Bits.approved.txt` (R-Equilibrium.Tests-4). Reverted immediately after; the
+      approved file's hash unmoved (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+
+      The failure message listed stale keys after the hash mismatches, capped at 20
+      entries, so a run with 20 or more hash mismatches could hide an orphan key behind
+      "… and N more"; the message now lists stale keys first, so the cap cannot hide
+      them (the fact above shows the reworded message). A change of a test's own
+      failure message, not of what it checks.
 
       ⚠ 2026-09-14: this criterion was written the same day predicting "every case
       red" for the perturbed constant. Wrong: the Newton iteration polishes until its
@@ -164,6 +187,33 @@ creation names its arguments; it passes them by position today (the criterion be
       `HostSolver.Run`, changed. Not a declared exception: no row added to
       `## Shape exceptions`. 463/463 tests green, `Bits.approved.txt` hash unchanged
       (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+
+      ⚠ 2026-09-15, the same day: this tick recorded a cut made to fit the root's
+      parameter limit, not the domain's axes — `Convergence` was never read as a value
+      anywhere in the tree, only through the five forwarding properties, and it also
+      held `InvalidInput` results with zero iterations and every `SolveFrozen` result,
+      for which "what the solver converged to" was false. Found by the repair review
+      (R-Equilibrium.Tests-1). Reformulated below rather than deleted, since the
+      history of a criterion is part of the context (AGENTS.md §6).
+- [x] 2026-09-15 — `HostSolution` re-cut along the domain axis the first attempt
+      missed: the case solved (`EquilibriumCase Case`) plus the five views of
+      `EquilibriumResult` copied out directly (`Moles`, `Multipliers`, `State`,
+      `Status`, `Iterations`), 6 parameters, within the root's limit without an
+      exception. `Convergence` and the five forwarding properties deleted; every
+      existing output read (`.Moles`, `.Multipliers`, `.State`, `.Status`,
+      `.Iterations`) is unchanged, and the 14 `.Table` reads and 2 `.ElementMoles`
+      reads become `.Case.Table` and `.Case.ElementMoles` (`AbsentElementTests.cs`,
+      `CondensedSpeciesTests.cs`, `ElementConservationTests.cs`, `FrozenModeTests.cs`,
+      `StateComparison.cs`, and `HostSolver.cs`'s own `MoleFraction`); only the one
+      construction site, in `HostSolver.Run`, changed. 464/464 tests green (463 plus
+      the defect fact below), `tests/Equilibrium.Tests/Bits.approved.txt` unchanged
+      (`65788e23f4390305763c80ab1f66b2054ff1907a`); the public surface does not move,
+      `HostSolution` and `EquilibriumCase` both internal.
+- [x] 2026-09-15 — L2: `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
+      proves the node's own defect fix (`src/Equilibrium/BOOT.md`, the acceptance
+      criterion of the same date): seen red on the code before the fix
+      (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
+      instead of −1) and green after it, with no bit of `Bits.approved.txt` moved.
 
 ## Taboos
 

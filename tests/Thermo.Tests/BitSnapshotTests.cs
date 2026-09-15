@@ -31,4 +31,12 @@ public sealed class BitSnapshotTests : IClassFixture<BitSnapshot>
         var problem = _snapshot.Problem(fixtureCase);
         Assert.True(problem is null, problem);
     }
+
+    /// <summary>The reverse of the theory above: an approved line whose fixture was deleted or renamed, which a theory has no case for and so cannot fail on, fails this fact instead.</summary>
+    [Fact]
+    public void Every_recorded_line_is_a_fixture_case()
+    {
+        var stale = _snapshot.StaleKeys();
+        Assert.True(stale.Count == 0, $"{stale.Count} line(s) of Bits.approved.txt name no enumerated fixture case:\n" + string.Join("\n", stale));
+    }
 }

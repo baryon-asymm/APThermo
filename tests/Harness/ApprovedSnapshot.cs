@@ -3,47 +3,49 @@ namespace AerospacePropellantThermodynamics.Harness;
 /// <summary>
 /// A snapshot file of "key value" lines: a tripwire, not a contract, the way <c>PublicSurface.approved.txt</c> is one
 /// over the contract (BOOT.md; AGENTS.md §13). Blank lines and lines starting with <c>#</c> are comments and are
-/// skipped; a line's key is everything before its first tab, or, when the line holds no tab, everything before its
-/// first space. The recorded snapshots of the tree use both conventions: a fixture path never holds a space, so five
-/// of them separate the key from the hash with one; the front door's Cli node's example names can (<c>"API.md input
-/// example 0"</c>), so its lines are tab-separated and its value itself holds a further tab. This node never rewrites
-/// the approved file; it only ever writes the actual file beside it, and never over it.
+/// skipped; a line's key is everything before the file's delimiter: a tab when any line of the file holds one, else a
+/// space; a line without it is skipped. Snapshots keyed by a fixture path use a space, since a path never holds one;
+/// the command-line adapter's example names can (<c>"API.md input example 0"</c>), so the Cli tests node's snapshot is
+/// tab-separated and its value holds a further tab. When the approved file is absent or empty, the delimiter is chosen
+/// the same way from what this run is writing: a tab when any key holds a space or any value holds a tab, else a
+/// space, so that the first-ever approval already separates a key that needs it. This node never rewrites the
+/// approved file; it only ever writes the actual file beside it, and never over it.
 /// </summary>
 public sealed class ApprovedSnapshot
 {
     private readonly string _approvedPath;
     private readonly string _actualPath;
-    private readonly char _delimiter;
+    private readonly char? _approvedDelimiter;
     private readonly IReadOnlyDictionary<string, string> _approved;
-    private readonly List<string> _actualLines = [];
+    private readonly List<(string Key, string Value)> _actualPairs = [];
     private bool _dirty;
 
-    private ApprovedSnapshot(string approvedPath, char delimiter, IReadOnlyDictionary<string, string> approved)
+    private ApprovedSnapshot(string approvedPath, char? approvedDelimiter, IReadOnlyDictionary<string, string> approved)
     {
         _approvedPath = approvedPath;
         _actualPath = ActualPathOf(approvedPath);
-        _delimiter = delimiter;
+        _approvedDelimiter = approvedDelimiter;
         _approved = approved;
     }
 
-    /// <summary>Reads the approved file at <paramref name="approvedPath"/>; an absent file is an empty snapshot.</summary>
+    /// <summary>Reads the approved file at <paramref name="approvedPath"/>; an absent or empty file is an empty snapshot.</summary>
     public static ApprovedSnapshot Load(string approvedPath)
     {
         if (!File.Exists(approvedPath))
         {
-            return new ApprovedSnapshot(approvedPath, ' ', new Dictionary<string, string>(StringComparer.Ordinal));
+            return new ApprovedSnapshot(approvedPath, null, new Dictionary<string, string>(StringComparer.Ordinal));
         }
 
-        var lines = File.ReadAllLines(approvedPath);
-        var delimiter = lines.Any(line => line.Length > 0 && line[0] != '#' && line.Contains('\t')) ? '\t' : ' ';
-        var approved = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var line in lines)
+        var contentLines = File.ReadAllLines(approvedPath).Where(line => line.Length > 0 && line[0] != '#').ToList();
+        if (contentLines.Count == 0)
         {
-            if (line.Length == 0 || line[0] == '#')
-            {
-                continue;
-            }
+            return new ApprovedSnapshot(approvedPath, null, new Dictionary<string, string>(StringComparer.Ordinal));
+        }
 
+        var delimiter = contentLines.Any(line => line.Contains('\t')) ? '\t' : ' ';
+        var approved = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var line in contentLines)
+        {
             var at = line.IndexOf(delimiter);
             if (at < 0)
             {
@@ -64,7 +66,7 @@ public sealed class ApprovedSnapshot
     /// </summary>
     public string? Problem(string key, string actualLine)
     {
-        _actualLines.Add(key + _delimiter + actualLine);
+        _actualPairs.Add((key, actualLine));
         string? problem = null;
         if (!_approved.TryGetValue(key, out var recorded))
         {
@@ -85,7 +87,8 @@ public sealed class ApprovedSnapshot
 
         if (_dirty)
         {
-            File.WriteAllLines(_actualPath, _actualLines);
+            var delimiter = _approvedDelimiter ?? DelimiterFor(_actualPairs);
+            File.WriteAllLines(_actualPath, _actualPairs.Select(pair => pair.Key + delimiter + pair.Value));
         }
 
         return problem;
@@ -97,6 +100,14 @@ public sealed class ApprovedSnapshot
         var produced = new HashSet<string>(producedKeys, StringComparer.Ordinal);
         return _approved.Keys.Where(key => !produced.Contains(key)).OrderBy(key => key, StringComparer.Ordinal).ToArray();
     }
+
+    /// <summary>
+    /// The delimiter for a snapshot with no approved delimiter of its own (the approved file was absent or empty): a
+    /// tab when a key so far holds a space or a value so far holds a tab (either would otherwise be swallowed into
+    /// the wrong side of the split on the next load), else a space.
+    /// </summary>
+    private static char DelimiterFor(IReadOnlyList<(string Key, string Value)> pairs) =>
+        pairs.Any(pair => pair.Key.Contains(' ') || pair.Value.Contains('\t')) ? '\t' : ' ';
 
     private static string ActualPathOf(string approvedPath)
     {

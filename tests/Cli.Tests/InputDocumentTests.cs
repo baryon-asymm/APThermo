@@ -20,6 +20,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
     private static readonly IReadOnlyDictionary<string, string> Expected = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["malformed.json"] = "malformed JSON",
+        ["states-malformed.json"] = "malformed JSON",
         ["unknown-field.json"] = "unknown field 'expansionRatio' at $.problem",
         ["missing-field.json"] = "missing field 'chamberPressure' at $.problem",
         ["wrong-unit.json"] = "unknown field 'chamberPressureBar' at $.problem",
@@ -134,7 +135,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
         var inputSchema = JsonSchema.Load(fixture.Schema("input.schema.json"));
         for (var i = 0; i < inputs.Count; i++)
         {
-            InputDocuments.ReadProblem(inputs[i], $"API.md input example {i}");
+            ProblemDocumentReader.Read(inputs[i], $"API.md input example {i}");
             using var document = JsonDocument.Parse(inputs[i]);
             Assert.Empty(inputSchema.Validate(document.RootElement));
         }
@@ -143,7 +144,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
         Assert.NotEmpty(records);
         for (var i = 0; i < records.Count; i++)
         {
-            Assert.NotEmpty(InputDocuments.ReadStates([($"API.md record example {i}", records[i])]));
+            Assert.NotEmpty(StateRecordReader.Read([($"API.md record example {i}", records[i])]));
 
             // An example record is a real record: it solves, and in particular it weighs one kilogram (2026-09-13: the earlier example did not).
             var path = fixture.TempFile($"api-record-{i}.json");
@@ -162,9 +163,9 @@ public sealed class InputDocumentTests(CliFixture fixture)
     [Fact]
     public void State_records_may_come_as_an_array_a_single_object_or_lines()
     {
-        var fromArray = InputDocuments.ReadStates([("states.json", File.ReadAllText(fixture.Document("states.json")))]);
-        var fromLines = InputDocuments.ReadStates([("states.jsonl", File.ReadAllText(fixture.Document("states.jsonl")))]);
-        var fromFiles = InputDocuments.ReadStates([
+        var fromArray = StateRecordReader.Read([("states.json", File.ReadAllText(fixture.Document("states.json")))]);
+        var fromLines = StateRecordReader.Read([("states.jsonl", File.ReadAllText(fixture.Document("states.jsonl")))]);
+        var fromFiles = StateRecordReader.Read([
             ("states-part1.json", File.ReadAllText(fixture.Document("states-part1.json"))),
             ("states-part2.json", File.ReadAllText(fixture.Document("states-part2.json"))),
         ]);
@@ -184,14 +185,14 @@ public sealed class InputDocumentTests(CliFixture fixture)
     public void A_range_expands_inclusively_and_lands_on_its_end()
     {
         using var whole = JsonDocument.Parse("""{ "from": 4.0, "to": 7.0, "step": 1.0 }""");
-        Assert.Equal([4.0, 5.0, 6.0, 7.0], InputDocuments.ReadValues(whole.RootElement, "$.sweep.oxidizerToFuel"));
+        Assert.Equal([4.0, 5.0, 6.0, 7.0], SweepValues.Read(whole.RootElement, "$.sweep.oxidizerToFuel"));
         using var fine = JsonDocument.Parse("""{ "from": 4.0, "to": 8.0, "step": 0.25 }""");
-        var values = InputDocuments.ReadValues(fine.RootElement, "$.sweep.oxidizerToFuel");
+        var values = SweepValues.Read(fine.RootElement, "$.sweep.oxidizerToFuel");
         Assert.Equal(17, values.Count);
         Assert.Equal(8.0, values[^1]);
         using var list = JsonDocument.Parse("[5.0e6, 7.0e6]");
-        Assert.Equal([5.0e6, 7.0e6], InputDocuments.ReadValues(list.RootElement, "$.sweep.chamberPressure"));
+        Assert.Equal([5.0e6, 7.0e6], SweepValues.Read(list.RootElement, "$.sweep.chamberPressure"));
         using var empty = JsonDocument.Parse("[]");
-        Assert.Throws<InputException>(() => InputDocuments.ReadValues(empty.RootElement, "$.sweep.chamberPressure"));
+        Assert.Throws<InputException>(() => SweepValues.Read(empty.RootElement, "$.sweep.chamberPressure"));
     }
 }

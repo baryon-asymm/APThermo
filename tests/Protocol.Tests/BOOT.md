@@ -17,7 +17,7 @@ dependencies against the real ones.
 | Declarations | every type and member under ✅ in any `API.md` exists | the assemblies (`DeclarationTests`) | ✅ |
 | Dependencies | `## Dependencies` of every node with an assembly equals the nodes whose types its code uses, in signatures and method bodies; ancestors allowed, descendants never | the assemblies' IL (`DependencyTests`) | ✅ |
 | Root invariants | double precision only and no mutable static field in the numerical nodes; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL (`InvariantTests`) | ✅ |
-| Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ⏳ (2026-09-14) |
+| Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
 
 ⚠ 2026-09-13: the sketch had five levels. The root `BOOT.md` claimed three of its
 invariants "checked by reflection" while no node held such a check; they are of the
@@ -110,6 +110,7 @@ nothing leaked.
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
 | `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the project graph |
 | `ShapeMechanics` | the two limitless rules read from syntax: no `partial`/`#region`/banned-suffix type name, and every creation of a declared wide constructor names its arguments |
+| `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
 Decisions taken with the review:
@@ -170,6 +171,30 @@ own reading is. Strictly tighter than the check it replaces in one respect (a na
 inside a ⏳ block no longer counts, where the old whole-document regex did not
 distinguish), and unchanged in the other (a name in ✅ prose still counts, as it always
 did).
+
+Phase 3 (2026-09-15, the two settled definitions and the facts) fixed the two things
+phase 2 had left for later. `ShapeMechanics.Constructions` matched a creation by simple
+name alone, so `EquilibriumResult` (declared in `Equilibrium`, five parameters, and in
+`Problems`, a row) and `RocketBatchViews` (declared in `Execution`, a row, and in
+`Performance.Tests`, that node's own type) were not told apart; it now resolves a
+written name the way the compiler would (namespace, enclosing namespaces, `using`
+directives, the file's own node's declarations for a simple name; the qualifier alone
+for a qualified one), against a `WideConstructorType` per candidate (the node plus the
+simple name) rather than a bare string — a fourth small record type joining `Node`,
+`Instruction` and `ShapeException`, the file each convention held. `ShapeMeasures.Span`
+kept reporting the span's boundary lines; a new `CodeLines` walks the token stream
+between them and counts only the lines a token touches, so a comment or blank line
+inside the span no longer counts toward the 400 or the 60. `ShapeTests` then asserts
+what `ShapeMeasures`, `CouplingMeasures` and `ShapeMechanics` already measured: the five
+over-limit rules share one `OverLimitProblems` helper (a measurement over its limit
+needs a row, a row below the measurement is the same problem restated); stable type,
+stable dependencies, mechanics and named construction read directly off their own
+measurement; a tenth, reverse fact re-measures every declared row and fails one that no
+longer exceeds its limit or that understates a rising one. A fresh whole-tree
+measurement through a temporary, uncommitted test, run once every earlier fact was
+green and again once `ShapeTests` existed, found nothing the three findings would have
+caught: every declared row still matches its live figure, and no unmatched violation
+exists anywhere in the tree.
 
 ## Shape check
 
@@ -284,6 +309,89 @@ Why the numbers are what they are:
   hold no interface or virtual call, so abstractness is zero throughout and the distance
   from the main sequence would degenerate to 1 − I.
 
+The three rules above that name only `src` types (efferent coupling, stable type, stable
+dependencies) lie outside this node: a mutation of this node's own documents and code
+cannot reach the `src`-node code they measure. The facts that guard them
+(`No_src_type_names_more_than_14_types_of_the_tree`,
+`Every_stable_type_is_small_or_a_contract`, `No_src_dependency_points_to_a_less_stable_node`)
+are proved red only through synthetic inputs to their own comparison helpers (the
+acceptance criterion below); the two tables here are the real inputs those same facts run
+over, taken through a temporary test calling only `CouplingMeasures`, `ShapeMeasures` and
+`ApiDeclarations`, never committed, so that proof is not read against a measurement that
+could stay green were every coupling zero.
+
+Every `src` type with an afferent coupling (Ca) of 10 or more:
+
+| Node | Type | Ca | Lines | Named in `API.md` |
+|---|---|---|---|---|
+| `src/Cli` | `InputException` | 20 | 1 | no |
+| `src/Cli` | `CommandOptions` | 10 | 13 | no |
+| `src/Cli` | `ExitCode` | 10 | 7 | yes |
+| `src/Data` | `SpeciesDatabase` | 65 | 108 | yes |
+| `src/Data` | `Species` | 29 | 12 | yes |
+| `src/Data` | `ElementCount` | 21 | 1 | yes |
+| `src/Data` | `TemperatureInterval` | 17 | 8 | yes |
+| `src/Data` | `TransportDatabase` | 13 | 27 | yes |
+| `src/Data` | `SpeciesPhase` | 12 | 5 | yes |
+| `src/Equilibrium` | `ProblemKind` | 36 | 6 | yes |
+| `src/Equilibrium` | `EquilibriumScratch` | 25 | 63 | yes |
+| `src/Equilibrium` | `EquilibriumResult` | 20 | 17 | yes |
+| `src/Equilibrium` | `EquilibriumProblem` | 16 | 16 | yes |
+| `src/Equilibrium` | `ScratchLayout` | 12 | 11 | yes |
+| `src/Execution` | `AcceleratorInfo` | 26 | 6 | yes |
+| `src/Execution` | `AcceleratorKind` | 22 | 6 | yes |
+| `src/Execution` | `EngineOptions` | 18 | 13 | yes |
+| `src/Execution` | `Engine` | 17 | 95 | yes |
+| `src/Execution` | `UploadedTables` | 16 | 35 | yes |
+| `src/Execution` | `RunTimings` | 11 | 1 | yes |
+| `src/Execution` | `AcceleratorSession` | 10 | 46 | no |
+| `src/Execution` | `RocketBatch` | 10 | 35 | yes |
+| `src/Performance` | `PerformanceFigures` | 36 | 9 | yes |
+| `src/Performance` | `FlowModel` | 29 | 6 | yes |
+| `src/Performance` | `ExitSpecification` | 16 | 5 | yes |
+| `src/Performance` | `RocketResult` | 14 | 21 | yes |
+| `src/Performance` | `RocketProblem` | 13 | 21 | yes |
+| `src/Performance` | `RocketContext` | 11 | 14 | no |
+| `src/Problems` | `ElementalMixture` | 26 | 68 | yes |
+| `src/Problems` | `Propellant` | 20 | 21 | yes |
+| `src/Problems` | `Station` | 19 | 9 | yes |
+| `src/Problems` | `EquilibriumProblem` | 15 | 9 | yes |
+| `src/Problems` | `Solver` | 14 | 134 | yes |
+| `src/Problems` | `RocketProblem` | 14 | 10 | yes |
+| `src/Problems` | `StateRecord` | 13 | 12 | yes |
+| `src/Problems` | `ReactantRole` | 11 | 6 | yes |
+| `src/Problems` | `AmountKind` | 11 | 5 | yes |
+| `src/Problems` | `EquilibriumResult` | 11 | 9 | yes |
+| `src/Problems` | `Reactant` | 10 | 58 | yes |
+| `src/Problems` | `RocketResult` | 10 | 10 | yes |
+| `src/Thermo` | `CaseStatus` | 79 | 11 | yes |
+| `src/Thermo` | `MixtureState` | 63 | 22 | yes |
+| `src/Thermo` | `SpeciesTable` | 58 | 75 | yes |
+| `src/Thermo` | `SpeciesTableView` | 54 | 32 | yes |
+| `src/Thermo` | `SpeciesTableBuffers` | 27 | 48 | yes |
+| `src/Thermo` | `SpeciesFunctions` | 16 | 104 | yes |
+| `src/Thermo` | `SpeciesTableArrays` | 11 | 25 | yes |
+| `src/Transport` | `TransportFigures` | 43 | 16 | yes |
+| `src/Transport` | `TransportTable` | 20 | 100 | yes |
+| `src/Transport` | `TransportScratch` | 16 | 111 | yes |
+| `src/Transport` | `TransportTableView` | 13 | 29 | yes |
+| `src/Transport` | `StationInputs` | 12 | 17 | no |
+| `src/Transport` | `TransportTableBuffers` | 11 | 48 | yes |
+
+Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli`, `Data`,
+`Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`, `Transport`):
+
+| Node | Ce | Ca | I = Ce/(Ca+Ce) |
+|---|---|---|---|
+| `src/Cli` | 7 | 0 | 1.000 |
+| `src/Data` | 0 | 4 | 0.000 |
+| `src/Equilibrium` | 1 | 5 | 0.167 |
+| `src/Execution` | 4 | 2 | 0.667 |
+| `src/Performance` | 2 | 3 | 0.400 |
+| `src/Problems` | 6 | 1 | 0.857 |
+| `src/Thermo` | 1 | 6 | 0.143 |
+| `src/Transport` | 3 | 3 | 0.500 |
+
 ## Acceptance criteria
 
 - [x] 2026-09-13 — Lint wired:
@@ -364,7 +472,7 @@ Why the numbers are what they are:
       descendant"); (3d) `src/Data/BOOT.md` linking `../Nowhere/API.md`: Dependencies
       red, "links ../Nowhere/API.md under ## Dependencies, and no node has that
       API.md", Lint red (error: "resolves to nothing").
-- [ ] Shape level green: `ShapeTests` (`No_type_spans_more_than_400_lines`,
+- [x] 2026-09-15 — Shape level green: `ShapeTests` (`No_type_spans_more_than_400_lines`,
       `No_method_spans_more_than_60_lines`, `No_control_flow_nests_deeper_than_3`,
       `No_method_takes_more_than_6_parameters`,
       `No_src_type_names_more_than_14_types_of_the_tree`,
@@ -373,22 +481,86 @@ Why the numbers are what they are:
       `No_partial_type_region_or_helpers_class`,
       `Every_wide_constructor_is_called_with_named_arguments`,
       `Every_shape_exception_is_measured_and_still_needed`) over the types and methods
-      the check enumerates itself (the counts it measured written here when ticked). The
-      nodes' `## Shape exceptions` tables transcribe the exceptions their `## Structure`
-      sections declare; a violation no node declared is a finding for a design session,
-      not a new row. Each fact seen red once, each mutation alone: a type padded to 401
-      lines of code; a method padded to 61 lines of code; a fourth nesting level; a
-      seventh parameter; an internal `src` type made to name a fifteenth type of the
-      tree; an internal type with ten dependants grown past 100 lines; a synthetic
-      project graph with a reference against instability given to the same rule; a
-      `#region`; a row's figure set below its measurement; a row for a member within its
-      limits; one argument of a declared wide constructor's creation passed by position.
-      The named-construction fact also stays green when a creation of another node's
-      type that shares a row type's simple name passes an argument by position (the
-      resolution its definition settled on 2026-09-14). The line facts also stay green
-      when a type within 400 lines of code spans more than 400 physical lines through
-      its comment and blank lines, and a method within 60 lines of code spans more than
-      60 the same way.
+      the check enumerates itself: 422 types, 1301 methods, all ten facts green
+      (`dotnet test tests/Protocol.Tests`: 19 passed). The nodes' `## Shape exceptions`
+      tables transcribe the exceptions their `## Structure` sections declare.
+
+      The five over-limit facts and the reverse fact
+      (`Every_shape_exception_is_measured_and_still_needed`) are themselves the
+      evidence that every one of the 36 declared rows matches its live figure and that
+      no over-limit measurement anywhere in the tree lacks a row: the former fail an
+      unmatched measurement, the latter fails a row below its measurement or past its
+      member's need, and all are green. A second source, the same whole-tree
+      measurement named by its tool (`ShapeMeasures`, `CouplingMeasures`,
+      `ShapeMechanics`), confirms it independently: no type or method exceeds 400/60
+      lines of code, no nesting exceeds 3, no mechanics violation exists anywhere in
+      the tree, every stable type is within 100 lines or named in its node's `API.md`,
+      and the I ordering holds along every `src` dependency.
+
+      Each fact seen red once, each mutation applied alone and reverted, never
+      committed: (type lines) a scratch type padded to 401 lines of code, "measures 401
+      for type lines, over 400, and no row ... declares it"; (method lines) a scratch
+      method padded to 61 lines of code, the same message form; (nesting) four nested
+      `if` statements, "measures 4 for nesting, over 3"; (parameters) a
+      seven-parameter method, "measures 7 for parameters, over 6"; (mechanics) a
+      `#region`, "contains a #region"; (named construction) a scratch seven-parameter
+      constructor named by a temporary row of this file's own `## Shape exceptions`,
+      called positionally, "created at ... without naming every argument"; (row
+      bookkeeping, the reverse fact) the same temporary row first understated against
+      the real seven, "states 5 for parameters, below the current measurement of 7",
+      then left standing over a constructor shrunk to three parameters, "now measures 3
+      for parameters, at or below the limit of 6, and no longer needs its row". The
+      three rules that name only `src` types (efferent coupling, stable type, stable
+      dependencies) lie outside this node, so a mutation of this node's documents and
+      code cannot reach them; each was seen red instead by feeding a synthetic
+      measurement straight into its private comparison helper from a temporary,
+      uncommitted addition to `ShapeTests.cs`: a real internal `src/Thermo` type given a
+      synthetic efferent coupling of 15, unmatched by any row; a real internal,
+      undocumented type already over 100 lines given a synthetic afferent coupling of
+      10; a synthetic two-node graph (a "stable" node of I=0 declared to depend on an
+      "unstable" one of I=1) — each fed to `CeProblems`, `StableTypeProblems` or
+      `DependencyProblems` and each producing exactly one problem.
+
+      That these three rules also run over live, non-degenerate figures — not only the
+      synthetic ones above — is shown three ways. Efferent coupling: the reverse fact
+      re-measures the 14 declared efferent-coupling rows (`src/Cli` `ProblemCommand`
+      30, `StatesCommand` 21, `SpeciesCommand` 15; `src/Equilibrium`
+      `EquilibriumSolver` 19, `NewtonIteration` 17; `src/Execution` `Engine` 26,
+      `Kernels` 25, `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline`
+      21, `SpeciesFunctionPipeline` 17; `src/Problems` `RocketRunner` 26,
+      `EquilibriumRunner` 24, `Solver` 22) at exactly those figures, through the same
+      `CouplingMeasures.EfferentCoupling` fact 5 reads: had that measurement been
+      degenerate, this re-measurement would have failed. Stable type and stable
+      dependencies: the tables in `## Shape check` above are the real Ca, lines and
+      `API.md`-naming, and the real Ce, Ca and I, that
+      `Every_stable_type_is_small_or_a_contract` and
+      `No_src_dependency_points_to_a_less_stable_node` measure — fifty-three `src`
+      types at Ca ≥ 10 (none over 100 lines without being named) and the eight `src`
+      nodes' instability (never rising along a declared dependency), taken through a
+      temporary test calling only `CouplingMeasures`, `ShapeMeasures` and
+      `ApiDeclarations`, never committed.
+
+      The named-construction fact stays green through the collision case the
+      definition settled on 2026-09-14: on the real tree, six positional creations a
+      simple-name match would have attributed to `Problems`' eight-parameter
+      `EquilibriumResult` row (`src/Execution/Kernels.cs:95`,
+      `src/Performance/StationSolve.cs:36`, `tests/Equilibrium.Tests/HostSolver.cs:112`,
+      `tests/Equilibrium.Tests/InvalidInputTests.cs:33`,
+      `tests/Equilibrium.Tests/KernelEqualityTests.cs:125`,
+      `tests/Execution.Tests/HostSolves.cs:73`) resolve instead to `Equilibrium`'s own
+      five-parameter `EquilibriumResult`, which needs no row, and are correctly not
+      reported; the two rows named `RocketBatchViews` (`Execution`, `Performance.Tests`)
+      and the two named `RocketResult` (`Performance`, `Problems`) each resolve to their
+      own node's creation sites. The line facts stay green for a type within 400
+      lines of code spanning more than 400 physical lines through comment and
+      blank-line padding (verified: 353 code lines over a 413-line physical span) and
+      for a method the same way at 60 (50 code lines over a 65-line physical span).
+
+      `dotnet build AerospacePropellantThermodynamics.sln`: 0 warnings, 0 errors
+      throughout; the fast suite green throughout
+      (`dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
+      with `APTHERMO_NO_CUDA=1`: 3024 passed, up from 3014 before it, none skipped); the
+      linter 0 errors, 0 warnings; `git status` clean after every mutation was reverted.
 
 ## Taboos
 

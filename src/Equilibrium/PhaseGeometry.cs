@@ -71,7 +71,7 @@ internal static class PhaseGeometry
     {
         for (var k = table.GasCount; k < table.SpeciesCount; k++)
         {
-            if (k == j || scratch.SpeciesActive[k] == 0 || !SameFormula(table, j, k))
+            if (k == j || !SpeciesMarks.InPlay(scratch, k) || !SameFormula(table, j, k))
             {
                 continue;
             }
@@ -126,7 +126,7 @@ internal static class PhaseGeometry
     {
         for (var k = table.GasCount; k < table.SpeciesCount; k++)
         {
-            if (k == j || scratch.SpeciesActive[k] == 0 || InSolution(scratch, condensedCount, k) || !SameFormula(table, j, k)
+            if (k == j || !SpeciesMarks.InPlay(scratch, k) || InSolution(scratch, condensedCount, k) || !SameFormula(table, j, k)
                 || !InEffectiveRange(table, scratch, k, temperature))
             {
                 continue;

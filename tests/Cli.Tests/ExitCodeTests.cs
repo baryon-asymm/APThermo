@@ -12,7 +12,11 @@ public sealed class ExitCodeTests(CliFixture fixture)
     /// <summary>Relative slack on a mass read back from a message (as InputDocumentTests.GramsTolerance): the message rounds it to about 7 significant figures.</summary>
     private const double GramsTolerance = 1e-6;
 
-    /// <summary>Relative slack on a mass read back from a document against the factor a fixture composition was scaled by: rounding of the scaling itself, far above double's own rounding floor.</summary>
+    /// <summary>
+    /// Absolute slack, kg, on the mass of the record of another simulation scaled by a factor, against the factor:
+    /// the record weighs 1000.015 g, so scaled by 1.02 it weighs 1.0200153 kg; 1e-3 covers that and stays far below
+    /// the 1 % steps the test tells apart.
+    /// </summary>
     private const double ScaledMassTolerance = 1e-3;
 
     [Fact]
@@ -63,6 +67,17 @@ public sealed class ExitCodeTests(CliFixture fixture)
         run = fixture.Invoke("rocket", fixture.Document("rocket-lox-lh2.json"), "--database", fixture.TempFile("nowhere"), "--accelerator", "cpu");
         Assert.Equal(2, run.Code);
         Assert.Contains("thermo.inp", run.Error);
+    }
+
+    [Fact]
+    public void A_missing_output_directory_is_exit_2()
+    {
+        var output = fixture.TempFile(Path.Combine("nowhere", "out.json"));
+        var run = fixture.Invoke(fixture.Solving("rocket", fixture.Document("rocket-lox-lh2.json"), "--output", output));
+        Assert.Equal(2, run.Code);
+        Assert.Contains(output, run.Error);
+        Assert.Contains("directory not found", run.Error);
+        Assert.False(File.Exists(output));
     }
 
     [Fact]

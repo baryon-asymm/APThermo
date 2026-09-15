@@ -2,7 +2,13 @@ using AerospacePropellantThermodynamics.Data;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
-/// <summary>One <see cref="Reactant"/> resolved against the database: the database and custom paths as two named methods.</summary>
+/// <summary>
+/// One <see cref="Reactant"/> resolved against the database (BOOT.md, invariants): a database record by exact name, its
+/// temperature defaulted (298.15 K for a record with intervals, its assigned temperature for one without) and accepted
+/// within the record's range widened by <see cref="PropellantBuilder.TemperatureMargin"/>; or a custom definition, its
+/// molar mass from the formula and the database's atomic weights unless the definition gives one. Either way the formula
+/// in database spelling and the amount as a mass.
+/// </summary>
 internal static class ReactantResolver
 {
     public static ResolvedReactant Resolve(SpeciesDatabase database, Reactant reactant) =>
@@ -30,11 +36,7 @@ internal static class ReactantResolver
 
         molarMass = definition.MolarMass ?? molarMass;
         var temperature = reactant.Temperature!.Value;
-        return new ResolvedReactant(reactant, null, formula, molarMass, temperature, MassOf(reactant, molarMass))
-        {
-            HasFits = false,
-            AssignedEnthalpy = definition.Enthalpy,
-        };
+        return new ResolvedReactant(reactant, null, formula, molarMass, temperature, MassOf(reactant, molarMass));
     }
 
     private static ResolvedReactant FromDatabase(SpeciesDatabase database, Reactant reactant)
@@ -64,11 +66,7 @@ internal static class ReactantResolver
         }
 
         var pairs = record.Formula.Select(pair => (SpeciesSelection.Spelling(pair.Symbol), pair.Count)).ToList();
-        return new ResolvedReactant(reactant, record, pairs, record.MolarMass, t, MassOf(reactant, record.MolarMass))
-        {
-            HasFits = hasFits,
-            AssignedEnthalpy = record.FormationEnthalpy,
-        };
+        return new ResolvedReactant(reactant, record, pairs, record.MolarMass, t, MassOf(reactant, record.MolarMass));
     }
 
     private static double MassOf(Reactant reactant, double molarMass) =>

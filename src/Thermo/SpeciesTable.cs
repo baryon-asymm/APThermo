@@ -50,7 +50,7 @@ public sealed class SpeciesTableArrays
 /// <summary>
 /// An immutable, ordered species table: a chosen subset of the database flattened for the kernels.
 /// <see cref="Build"/> checks the request (<see cref="TableRequest"/>), resolves each name to a gas entry or to
-/// condensed pieces (<see cref="CondensedAssembly"/>, BOOT.md's join-and-cut), concatenates gaseous then
+/// condensed pieces (<see cref="SpeciesResolution"/>, BOOT.md's join-and-cut), concatenates gaseous then
 /// condensed, checks the species limit, and flattens the result (<see cref="TableLayout"/>).
 /// </summary>
 public sealed class SpeciesTable
@@ -162,7 +162,7 @@ public sealed class SpeciesTable
         var condensed = new List<TablePiece>();
         foreach (var name in species)
         {
-            var pieces = CondensedAssembly.Resolve(database, elementIndex, name);
+            var pieces = SpeciesResolution.Resolve(database, elementIndex, name);
             (pieces[0].Record.Phase == SpeciesPhase.Gas ? gaseous : condensed).AddRange(pieces);
         }
 

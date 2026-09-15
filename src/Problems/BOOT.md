@@ -254,22 +254,40 @@ after the type; the public records keep their theme files.
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: `RocketRunner` (Ce = 27) and `EquilibriumRunner` (Ce = 25) measure higher by the same walk, both over the textual limit of 10 and the walk-calibrated 14 the root records as of the integration branch's `9facd7f`; not this node's declaration to make, left to the design session after the merge. The two runners' Ce moved by one each, after this row was first measured, when their `SolveGroup` dropped from nine parameters to four (the parameter fix below): a `SolveContext` record struct now carries what `SolveGroup` used to take by six separate parameters, and it is one more type in each runner's own vocabulary | public |
+| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: the two runners are declared composition roots as well (the decision "The runners are the pipelines' composition roots") | public |
 | `ChemicalSystem` | one element set with its table and its uploaded copy; disposable; no transport table kept (F-PR-12) | internal |
 | `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
 | `MixtureMass` | Σ n_i A_i with the database's atomic weights, the refusal beyond the mixture's declared tolerance, and the subject a refusal names (`Subject`), stated once for both runners | internal static |
 | `UnitFactors` | `MolesPerKilomole` and `GramsPerKilogram`, the node's two unit constants with their origin | internal static |
-| `AtomicWeights` | the one translation of a missing atomic weight into an `ArgumentException` naming the element (F-PR-07) | internal static |
+| `AtomicWeights` | a missing atomic weight as an `ArgumentException` naming the element, for the element check of a chemical system and the mass of a mixture (F-PR-07); a custom reactant's resolution translates the same miss naming the reactant too (`ReactantResolver`) | internal static |
 | `PropellantMixtures` | the propellant → `ElementalMixture` map: mass fractions, b_i, h_0, the reactant-enthalpy cache and its species-function batch; the piece of a cut record at a temperature is asked of the table (`SpeciesTable.PieceOf`, the Thermo node's; F-AR-01) | internal |
 | `ProblemValidation` | every "before any kernel runs" rule of a rocket and of an equilibrium problem; the subject of a refusal is a field of the case, not a defaulted parameter | internal static |
 | `StateRecords` | state records → mixtures and problems, and the rules of the shape: exactly one target; exits need an enthalpy; a flow only with exits; `SolveStates` takes no record with exits and `SolveRocketStates` none without; every refusal of a record (these rules, a negative abundance, an empty or duplicated symbol) is a `StateRecordException` with the record's index and a subject-free reason; the mass check keeps `MixtureMassException` | internal static |
 | `RocketRunner` | the composition root of the rocket pipeline: rocket cases grouped by exit layout and by the transport flag, the batch filled by field copy, the two engine runs, the stations assembled through `StationFactory`; the transport pass runs only over the cases that asked (F-PR-08); holds no formula. The declared exception to the coupling limit (the decision "The runners are the pipelines' composition roots", its figure under `## Shape exceptions`) | internal |
 | `EquilibriumRunner` | the same for equilibrium cases, with the same declared exception | internal |
 | `StationFactory` | one station from one slice of the engine's flat result, and the species-name list with the cut pieces summed under the record's name; the station names from `RocketLayout.FixedStations` (F-PR-11); the transport status and figures a station reports (`TransportOf`), stated once for both runners | internal static |
-| `StationSlice` | the aggregation that replaces the nine parameters of station assembly, with the flat offset computed once | internal readonly record struct |
+| `StationSlice` | one station of the engine's flat result, the input of the one construction site of `Station`, the flat offset computed once | internal readonly record struct |
 | `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
 | `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
-| `PropellantBuilder.Build` | four calls and a constructor | public, unchanged |
+| `PropellantBuilder.Build` | the guard clause, resolving and splitting reactants by role, the mixture rule, the element order (`ElementOrder.OfFirstAppearance`, shared with `ChemicalSystemCache.Union`) and the `Only` validation, then the constructor: a sequence of calls, no loop of its own, nesting 1 | public, unchanged |
+
+⚠ 2026-09-15: the `Solver` row's last sentence stood "`RocketRunner` (Ce = 27) and
+`EquilibriumRunner` (Ce = 25) measure higher by the same walk, both over the textual
+limit of 10 and the walk-calibrated 14 the root records as of the integration branch's
+`9facd7f`; not this node's declaration to make, left to the design session after the
+merge. The two runners' Ce moved by one each, after this row was first measured, when
+their `SolveGroup` dropped from nine parameters to four (the parameter fix below): a
+`SolveContext` record struct now carries what `SolveGroup` used to take by six separate
+parameters, and it is one more type in each runner's own vocabulary". Stale since the
+design session actually held (the decision "The runners are the pipelines' composition
+roots" below, and the `## Shape exceptions` rows of 26 and 24): the sentence still read
+as if the runners' coupling were undecided and cited the pre-merge scratch figures
+(27/25) and the superseded textual limit (10), duplicating — and disagreeing with —
+what the rest of this document already states correctly. Found by the clean-code
+repair review (R-Problems-9); cut to a cross-reference instead of retold, per
+AGENTS.md SS8 ("claims about a foreign node… go stale without the author's knowledge;
+link instead of retelling"), here applied to a claim about a different part of the
+same document.
 
 Decisions taken with the review of 2026-09-14. The contract-moving ones are coded in
 the contract commit, after the internal moves: `API.md` rewritten with these as real
@@ -337,6 +355,42 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   session: `dotnet build` clean, the fast suite green unchanged (1111/1111 in this
   node), `Bits.approved.txt` and `PublicSurface.approved.txt` unmoved.
 
+  ⚠ 2026-09-15: `HasFits` and `AssignedEnthalpy` are gone as stored properties (the
+  clean-code repair's R-Problems-2). Both were exactly what `ReactantResolver`'s two
+  factory methods could already derive from the constructor's own `Record` and
+  `Reactant.Definition` — `Record is { Intervals.Count: > 0 }`, and
+  `Record?.FormationEnthalpy ?? Reactant.Definition!.Enthalpy` — so storing them
+  duplicated state instead of reading it once (a record with a body, not a
+  parameter-count device: the primary constructor already counted six, without them,
+  as above). They are now computed properties; both construction sites drop their
+  object-initializer clause, and every read (`resolved[k].HasFits`,
+  `r.AssignedEnthalpy`) is unchanged, a computed property read exactly as an init one.
+  `dotnet test tests/Problems.Tests`: 1111/1111; `Bits.approved.txt` unmoved
+  (26840f83).
+
+  ⚠ 2026-09-15: `SolveContext` and its `SolveGroup` split are gone (the clean-code
+  repair's R-Problems-1). The "vary per group" description above was inaccurate before
+  the rewrite too, for `targets`: `Solve` built it once, the same length as `masses`
+  (`cases.Count`), and passed that one array unchanged to every `SolveGroup` call,
+  which read it by `targets[members[m]]` — exactly how `context.Masses[members[m]]`
+  read the field `SolveContext` did hold. Nothing about `targets` varied per group; it
+  belonged with `masses` among "what is fixed for the whole of one `Solve` call", not
+  beside `kinds`, which really was rebuilt per group (`RocketRunner` only: a fresh
+  `Enumerable.Repeat(...)` array inside `foreach (var key in order)`, one exit layout
+  at a time). The rewrite does not inherit the mistake by choosing a side of a
+  distinction it no longer draws: the case, the mass and, for equilibrium, the target
+  that admitting a case measured are one `AdmittedCase` record struct per case, built
+  once in `Solve`; each `SolveGroup` takes `system`, the group's own
+  `IReadOnlyList<AdmittedCase>`, `wantsTransport`, `speciesNames` and, for
+  `RocketRunner` only, `kinds` — and **returns** `RocketResult[]`/`EquilibriumResult[]`
+  for that group, instead of writing into a `results` array shared with every other
+  group the way `context.Results[members[m]] = ...` did; `Solve` places each group's
+  results back at their original indices. `RocketRunner.SolveGroup`: 5 parameters, 56
+  lines, nests 2. `EquilibriumRunner.SolveGroup`: 4 parameters, 45 lines, nests 1.
+  Efferent coupling unchanged at 26 and 24 (a nested record struct folds into its
+  runner, `AdmittedCase` exactly as `SolveContext` did). `dotnet test
+  tests/Problems.Tests`: 1111/1111; `Bits.approved.txt` unmoved (26840f83).
+
 - **The runners are the pipelines' composition roots** (added 2026-09-14 by the design
   session, after the close measured them). `RocketRunner` and `EquilibriumRunner` name
   both sides of the engine's boundary: the front door's cases, problems and records,
@@ -356,6 +410,43 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   counts `RocketResult[]` and `EquilibriumResult[]`, the result arrays `SolveContext`
   holds, apart from `RocketResult` and `EquilibriumResult`, while an array of a type of
   the tree adds no type of the tree.
+
+  ⚠ 2026-09-15: `SolveContext` is gone (the clean-code repair's R-Problems-1), so "the
+  result arrays `SolveContext` holds" no longer names anything: `SolveGroup` now
+  returns `RocketResult[]`/`EquilibriumResult[]` for its own group, and `Solve`
+  assembles the full `results` array itself from what each group returns; no field of
+  any type holds either array between calls any more. The over-count this sentence
+  explained has the same source as before and is independent of `SolveContext`'s
+  removal: `RocketResult`/`EquilibriumResult` (the object each loop inside
+  `SolveGroup` builds) and its array form (now the method's own return type, and the
+  type of `Solve`'s `results` local) name one type of the tree, not two, on the
+  protocol tests node's walk — which is why the measured coupling stayed 26 and 24
+  after the rewrite, unchanged from before it (`CouplingMeasures.EfferentCoupling`,
+  `RocketRunner`/`EquilibriumRunner`, above).
+
+  ⚠ 2026-09-15: `AtomicWeights`' row and its own summary read "the one translation of a
+  missing atomic weight into an `ArgumentException` naming the element". Wrong from the
+  type's introduction: `ReactantResolver.Custom` translates the same miss a second time,
+  naming the reactant as well as the element (present already at 7661ea9,
+  `Reactants.cs:354-362`, carried through every decomposition since). Unifying the two
+  into one call site would change a message, which is out of scope here; the row and
+  the type's summary now say what both translations do (the repair review's
+  R-Problems-8). Found by the clean-code repair review.
+- **The element order of first appearance is stated once** (2026-09-15, the clean-code
+  repair's R-Problems-4). `Build`'s design named it one of the method's two duties
+  (F-PR-03: "validated the mixture rule and derived the element order"), but e15d02f
+  moved only the mixture rule out, to `MixtureRule.Validate`; the order itself stayed a
+  nested loop inline in `Build` (nesting 3), and the same rule (BOOT.md, Constraints)
+  was written a second time inside `ChemicalSystemCache.Union` (also nesting 3) for the
+  union of several mixtures' elements. `ElementOrder.OfFirstAppearance(IEnumerable<IEnumerable<string>>)`
+  states the rule once — every distinct symbol of a sequence of symbol lists, in the
+  order first seen — and both call it: `Build` over each resolved reactant's formula
+  symbols, `Union` over each mixture's own element list. Neither method's own loop
+  survives: `Build` now nests 1, `Union` 2 (its own validation loop, unrelated to the
+  element order, stays). Ce of `PropellantBuilder` and `ChemicalSystemCache` moves from
+  10 to 11, both still under the root's limit of 14, no `## Shape exceptions` row
+  needed. No behaviour change: `dotnet test tests/Problems.Tests`, 1111/1111;
+  `Bits.approved.txt` unmoved (26840f83).
 
 ## Shape exceptions
 
@@ -480,8 +571,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       the three records' rows, whose single creations name their arguments; lines and
       nesting by the close's reading until the protocol tests node's `ShapeTests` measures
       them (no file over 270 lines, the longest method `RocketRunner.SolveGroup` at 53,
-      nesting at most 2). The merge's fast suite green (3007 tests, `Problems.Tests` 1111,
-      `Cli.Tests` 85).
+      nesting at most 3, within the limit). The merge's fast suite green (3007 tests,
+      `Problems.Tests` 1111, `Cli.Tests` 85).
 
       Bit snapshot: `git log --follow -- tests/Problems.Tests/Bits.approved.txt` names
       one commit, `8f8263c` itself — no commit since has touched the file — and the
@@ -496,6 +587,15 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       --stat 8f8263c..HEAD -- src/Cli` names only `src/Cli/Solving.cs`, the two
       authorized mechanical fixes (`MixtureOf`/`CandidateSpeciesFor` renames,
       `CustomReactantDefinition` construction), no rule of the command line changed.
+
+      ⚠ 2026-09-15: this criterion's Shape paragraph read "nesting at most 2". Wrong
+      already at the close: `ChemicalSystemCache.Union`, `Reactant.Reactant` and
+      `PropellantBuilder.Build` each nest 3 (an `if`/`for` chain), within the root's
+      limit of 3 but above what this paragraph claimed. Corrected to the true figure;
+      found by the clean-code repair review (R-Problems-10). The same review found
+      `RocketCase` and `EquilibriumCase` declared inside their runners' files, against
+      this section's own "one type per file"; moved to `RocketCase.cs` and
+      `EquilibriumCase.cs`, needing no further correction here.
 - [x] 2026-09-14 — The state record with exits: a rocket record through
       `SolveRocketStates` equals the same mixture and problem through
       `Solve(mixtures, problems)` bit for bit, transport included

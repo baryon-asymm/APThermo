@@ -9,9 +9,10 @@ namespace AerospacePropellantThermodynamics.Equilibrium;
 /// </summary>
 internal static class DampedStep
 {
-    /// <summary>Equation (3.1): the weight of Δln n and Δln T in the largest correction, and the numerator of the factor.</summary>
+    /// <summary>Equation (3.1): the weight of the magnitudes of Δln n and Δln T in the largest correction the factor is measured against.</summary>
     private const double ControlFactorWeight = 5.0;
 
+    /// <summary>Equation (3.1): the numerator of the factor, λ = min(1, ControlFactorLimit / largest).</summary>
     private const double ControlFactorLimit = 2.0;
 
     /// <summary>−ln(1e-4), the bound of equation (3.2) on the growth of a small species in one step.</summary>
@@ -20,7 +21,9 @@ internal static class DampedStep
     /// <summary>
     /// The multipliers of this step, the gaseous corrections of equation (2.18) into the scratch, and the control factor λ
     /// of equations (3.1)–(3.3) that damps them all. Only growth is limited, as in the reference's code: a species on its
-    /// way out may shrink by any factor in one step (BOOT.md).
+    /// way out may shrink by any factor in one step (BOOT.md). Writes the multipliers into <c>result.Multipliers</c> and the
+    /// undamped gaseous corrections into <c>scratch.Corrections</c>; <see cref="Apply"/>, <see cref="ConvergenceTests"/> and,
+    /// after convergence, <see cref="CondensedSet.InclusionGain"/> read them.
     /// </summary>
     public static double ControlFactor(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                        in SystemLayout layout, in MixtureSums sums)
@@ -38,7 +41,7 @@ internal static class DampedStep
         var lambda2 = double.MaxValue;
         for (var j = 0; j < table.GasCount; j++)
         {
-            if (!CaseSetup.InPlay(scratch, j))
+            if (!SpeciesMarks.InPlay(scratch, j))
             {
                 scratch.Corrections[j] = 0.0;
                 continue;
@@ -84,7 +87,7 @@ internal static class DampedStep
     {
         for (var j = 0; j < table.GasCount; j++)
         {
-            if (CaseSetup.InPlay(scratch, j))
+            if (SpeciesMarks.InPlay(scratch, j))
             {
                 scratch.LogMoles[j] += lambda * scratch.Corrections[j];
             }

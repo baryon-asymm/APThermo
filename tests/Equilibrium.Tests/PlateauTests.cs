@@ -40,7 +40,7 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
         Assert.Equal(CaseStatus.Ok, pinned.Status);
         Assert.True(pinned.Moles[pieces[0]] > 0.0 && pinned.Moles[pieces[1]] > 0.0,
                     $"both pieces must stand in the solution (n = {pinned.Moles[pieces[0]]:R}, {pinned.Moles[pieces[1]]:R})");
-        Assert.True(Math.Abs(pinned.State.Temperature - bound) <= 0.01, $"T = {pinned.State.Temperature:R} against the cut at {bound}");
+        Assert.True(Math.Abs(pinned.State.Temperature - bound) <= Tolerances.PlateauCutTolerance, $"T = {pinned.State.Temperature:R} against the cut at {bound}");
         Assert.True(Math.Abs(pinned.State.Enthalpy - target) <= Tolerances.SelfConsistency * Math.Abs(target), "the assigned enthalpy is met on the plateau");
         Assert.Equal(0.0, pinned.State.CpEquilibrium);
         Assert.Equal(0.0, pinned.State.CvEquilibrium);
@@ -111,8 +111,44 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
                 gain += table.Arrays.Stoichiometry[i * count + j] * solution.Multipliers[i];
             }
 
-            Assert.True(gain <= Tolerances.SelfConsistency, $"{name}: {table.Species[j]} left out with inclusion gain {gain:R} at {t} K");
+            Assert.True(gain <= Tolerances.ResidualInclusionGain, $"{name}: {table.Species[j]} left out with inclusion gain {gain:R} at {t} K");
         }
+    }
+
+    /// <summary>
+    /// A record stood down by the anti-cycling rule is out of play "for the rest of it" (BOOT.md): it may not be found as an
+    /// adjacent record of its own formula, nor as a phase at a temperature inside its own range, so it cannot be paired or
+    /// switched back in. Exercised directly on the geometry, since no fixture reaches a state where a stood-down record has
+    /// an adjacent, in-play record of its own formula to be wrongly rediscovered beside (BOOT.md, the defect note on this
+    /// rule's own history).
+    /// </summary>
+    [Fact]
+    public void A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner()
+    {
+        var c = HostSolver.Load("hp", "ap-htpb-al-fuelrich_of0.5_pc7MPa");
+        var table = HostSolver.BuildTable(fixture.Database, c);
+        var pieces = table.IndicesOf("ALN(L)");
+        Assert.Equal(2, pieces.Count);
+        var lower = pieces[0];
+        var upper = pieces[1];
+
+        using var buffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
+        var speciesCount = table.SpeciesCount;
+        var elementCount = table.ElementCount;
+        using var doubles = fixture.Accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        using var ints = fixture.Accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        for (var j = 0; j < speciesCount; j++)
+        {
+            SpeciesMarks.Set(scratch, j, SpeciesMark.Active);
+        }
+
+        var view = buffers.View;
+        var effectiveHigh = PhaseGeometry.EffectiveHigh(in view, in scratch, lower);
+        SpeciesMarks.Set(scratch, lower, SpeciesMark.StoodDown);
+
+        Assert.Equal(-1, PhaseGeometry.Adjacent(in view, in scratch, upper, above: false));
+        Assert.Equal(-1, PhaseGeometry.PhaseAt(in view, in scratch, 0, upper, effectiveHigh - 0.001));
     }
 
     /// <summary>A condensed species with the same stoichiometry column and positive moles: the other phase of a pinned pair.</summary>

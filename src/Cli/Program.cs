@@ -24,7 +24,7 @@ public static class Program
             var invocation = CommandLine.Parse(args);
             if (invocation.Help)
             {
-                output.Write(CommandLine.Usage);
+                output.Write(CommandTable.Usage);
                 return (int)ExitCode.Ok;
             }
 

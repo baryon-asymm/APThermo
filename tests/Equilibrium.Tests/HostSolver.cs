@@ -9,27 +9,15 @@ namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
 internal sealed record EquilibriumCase(
     SpeciesTable Table, ProblemKind Kind, double Pressure, double Temperature, double Target, double[] ElementMoles);
 
-/// <summary>What the solver converged to: the moles, the multipliers, the state, the status and the iteration count of one solve.</summary>
-internal sealed record Convergence(double[] Moles, double[] Multipliers, MixtureState State, CaseStatus Status, int Iterations);
-
-/// <summary>What one host call of the solver produced, copied out of the accelerator buffers.</summary>
-internal sealed record HostSolution(SpeciesTable Table, double[] ElementMoles, Convergence Convergence)
+/// <summary>The case solved and the five views of <see cref="EquilibriumResult"/> copied out of the accelerator buffers.</summary>
+internal sealed record HostSolution(
+    EquilibriumCase Case, double[] Moles, double[] Multipliers, MixtureState State, CaseStatus Status, int Iterations)
 {
-    public double[] Moles => Convergence.Moles;
-
-    public double[] Multipliers => Convergence.Multipliers;
-
-    public MixtureState State => Convergence.State;
-
-    public CaseStatus Status => Convergence.Status;
-
-    public int Iterations => Convergence.Iterations;
-
     /// <summary>Gaseous plus condensed moles per kilogram: the denominator of the reference's mole fractions.</summary>
     public double TotalMoles => Moles.Sum();
 
     /// <summary>The reference reports one fraction per database name: the pieces of a cut species sum under it.</summary>
-    public double MoleFraction(string species) => Table.IndicesOf(species).Sum(index => Moles[index]) / TotalMoles;
+    public double MoleFraction(string species) => Case.Table.IndicesOf(species).Sum(index => Moles[index]) / TotalMoles;
 }
 
 /// <summary>Runs the solver on the host over CPU-accelerator buffers, with the inputs of a fixture case or given directly.</summary>
@@ -120,9 +108,9 @@ internal static class HostSolver
             EquilibriumSolver.Solve(in view, in input, in scratch, in result, moles is not null);
         }
 
-        var convergence = new Convergence(molesBuffer.GetAsArray1D(), multipliers.GetAsArray1D(),
-                                          state.GetAsArray1D()[0], (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
-        return new HostSolution(table, problem.ElementMoles, convergence);
+        return new HostSolution(
+            Case: problem, Moles: molesBuffer.GetAsArray1D(), Multipliers: multipliers.GetAsArray1D(),
+            State: state.GetAsArray1D()[0], Status: (CaseStatus)status.GetAsArray1D()[0], Iterations: iterations.GetAsArray1D()[0]);
     }
 
     /// <summary>The fixture files of a kind as theory data: the file name without extension; <see cref="Load"/> reads it back.</summary>

@@ -13,7 +13,7 @@ internal sealed class FieldException(int lineIndex, string message, Exception? i
 /// </summary>
 internal static class LineErrors
 {
-    /// <summary>Runs <paramref name="read"/>, a line's field reads that produce a value.</summary>
+    /// <summary>Runs one line's field reads and stamps any format error with that line.</summary>
     public static T OnLine<T>(int lineIndex, Func<T> read)
     {
         try

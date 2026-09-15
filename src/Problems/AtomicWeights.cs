@@ -2,7 +2,9 @@ using AerospacePropellantThermodynamics.Data;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
-/// <summary>The one translation of a missing atomic weight into an <see cref="ArgumentException"/> naming the element (F-PR-07).</summary>
+/// <summary>A missing atomic weight as an <see cref="ArgumentException"/> naming the element, for the element check of a chemical
+/// system and the mass of a mixture (F-PR-07); a custom reactant's resolution translates the same miss naming the reactant too
+/// (<see cref="ReactantResolver"/>).</summary>
 internal static class AtomicWeights
 {
     public static double Of(SpeciesDatabase database, string element)

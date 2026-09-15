@@ -52,9 +52,29 @@ internal enum SpeciesMark
     StoodDown = 3,
 }
 
+/// <summary>The mark accessors of <c>scratch.SpeciesActive</c> (<see cref="SpeciesMark"/>), used by every stage of the iteration.</summary>
+internal static class SpeciesMarks
+{
+    /// <summary>The mark of a species in the scratch (the domain is in the node's API.md).</summary>
+    public static SpeciesMark Of(in EquilibriumScratch scratch, int species) => (SpeciesMark)scratch.SpeciesActive[species];
+
+    /// <summary>Writes a species' mark.</summary>
+    public static void Set(in EquilibriumScratch scratch, int species, SpeciesMark mark) => scratch.SpeciesActive[species] = (int)mark;
+
+    /// <summary>
+    /// Whether the species takes part in this case at all: its elements are present and the anti-cycling rule has not stood
+    /// it down. A record forgiven once is still in play — it may be skipped by one inclusion pass, not removed from the case.
+    /// </summary>
+    public static bool InPlay(in EquilibriumScratch scratch, int species)
+    {
+        var mark = Of(scratch, species);
+        return mark == SpeciesMark.Active || mark == SpeciesMark.ForgivenOnce;
+    }
+}
+
 /// <summary>
 /// The shape of the reduced system of one convergence: how many unknowns, where the total-moles and temperature rows sit,
-/// and which problem is being solved. The derivative system of section 2.6 is a tp-shaped layout over the same scratch.
+/// and which problem is being solved. The derivative system of section 2.5 is a tp-shaped layout over the same scratch.
 /// </summary>
 internal readonly struct SystemLayout
 {
@@ -90,9 +110,12 @@ internal readonly struct SystemLayout
 }
 
 /// <summary>
-/// The sums over the composition that the iteration matrix and the state record need, accumulated in one pass in ascending
-/// species order. Built field by field by <see cref="Composition"/> and read through <c>in</c> afterwards, so that no caller
-/// has to line up nine positional doubles (the swap hazard the root's parameter rule is about).
+/// The point one Newton step is linearized at and the sums over the composition taken there, in ascending species order.
+/// <c>LogN</c> and <c>Temperature</c> are the iterate the system was assembled at; <see cref="DampedStep.Apply"/> then moves
+/// <see cref="IterationState"/> while this copy stays put, so the convergence tests read the n and the gaseous sum of the
+/// step's own linearization, as the report's tests do. The state record reads the same sums at the converged iterate; the
+/// frozen path fills them from a given composition, with no system and <c>N</c> zero. Built field by field by
+/// <see cref="Composition"/> and read through <c>in</c> afterwards.
 /// </summary>
 internal struct MixtureSums
 {
@@ -124,7 +147,7 @@ internal struct MixtureSums
     public double CondensedMoles;
 }
 
-/// <summary>The equilibrium derivatives of RP-1311 section 2.6 at the converged composition.</summary>
+/// <summary>The equilibrium derivatives of RP-1311 section 2.5 at the converged composition.</summary>
 internal struct Derivatives
 {
     /// <summary>(∂ln n/∂ln T)_p; zero at a pinned pair, where the constant-pressure derivatives do not exist.</summary>
