@@ -109,8 +109,9 @@ which is the proof that nothing leaked.
 | `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests` |
 | `SourceSyntax` | the C# syntax trees of a node's source files, the build directories and generated files skipped |
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
-| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the project graph |
-| `ShapeMechanics` | the two limitless rules read from syntax: no `partial`/`#region`/banned-suffix type name, and every creation of a declared wide constructor names its arguments |
+| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the declared dependency graph |
+| `ShapeMechanics` | the mechanics rule read from syntax: no `partial`/`#region`/banned-suffix type name |
+| `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
@@ -138,8 +139,8 @@ own vocabulary) and `Instruction` (one opcode and the member its token names;
 Phase 2 (2026-09-14, the measurements) wrote `SourceSyntax` and `ShapeMeasures` as
 planned, extended `NodeDocuments` to read `## Shape exceptions` rows, and split the
 coupling and the two limitless rules into `CouplingMeasures` and `ShapeMechanics`
-(not part of the phase 1 plan; kept apart so that no file crosses the root's own size
-limit and so that "read from IL" and "read from syntax" stay two files). A third small
+(not part of the phase 1 plan; kept apart so that "read from IL" and "read from
+syntax" stay two files). A third small
 record type joined `Node` and `Instruction` for the same reason: `ShapeException` (one
 row of a `## Shape exceptions` table; `NodeDocuments`' own vocabulary). Building
 `CouplingMeasures` found `TypeShape.Unwrap` folding a by-reference-to-array type
@@ -160,6 +161,17 @@ existing fact's answer: `DependencyTests`, `CoverageTests`, `InvariantTests` and
 compiler-generated helper resolves to the same *node* either way — only a *type* count
 sees the difference, which is this phase's own new territory.
 
+⚠ 2026-09-15: `ShapeMechanics` held the two limitless rules (mechanics and named
+construction) in one type, and this paragraph gave the file-count limit as a second
+reason beside "read from IL" against "read from syntax" — but both rules read syntax;
+the size limit was never the axis that told them apart. At 129 lines of code
+(`ShapeMeasures.TypeLines`, well under 400), the combined type was nowhere near the
+root's size limit, so the limit was not why keeping the two rules apart mattered — a
+rule with no numeric limit of its own sharing a file with an unrelated rule was.
+`NamedConstruction` (`Candidates`, `Creations`, and the resolution helpers
+`Constructions` used) is now its own file, one type per rule read from syntax as
+`## Structure` states elsewhere; `ShapeMechanics` keeps only the mechanics rule.
+
 `ApiDeclarations`'s "named in the `API.md`" turned out to need more than "declared in
 a ✅ block": `Execution`'s `API.md` names `EquilibriumBatchViews`, `RocketBatchViews`,
 `SpeciesFunctionBatchViews` and `TransportBatchViews` only in a sentence ("public only
@@ -175,8 +187,9 @@ distinguish), and unchanged in the other (a name in ✅ prose still counts, as i
 did).
 
 Phase 3 (2026-09-15, the two settled definitions and the facts) fixed the two things
-phase 2 had left for later. `ShapeMechanics.Constructions` matched a creation by simple
-name alone, so `EquilibriumResult` (declared in `Equilibrium`, five parameters, and in
+phase 2 had left for later. `ShapeMechanics.Constructions` (now `NamedConstruction.Creations`,
+the named-construction split below) matched a creation by simple name alone, so
+`EquilibriumResult` (declared in `Equilibrium`, five parameters, and in
 `Problems`, a row) and `RocketBatchViews` (declared in `Execution`, a row, and in
 `Performance.Tests`, that node's own type) were not told apart; it now resolves a
 written name the way the compiler would (namespace, enclosing namespaces, `using`

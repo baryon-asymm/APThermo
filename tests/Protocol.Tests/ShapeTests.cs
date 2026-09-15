@@ -81,11 +81,11 @@ public sealed class ShapeTests
     }
 
     /// <summary>"Shape check", named construction: every creation resolving to a type with a declared parameters exception
-    /// passes every argument as <c>name: value</c> (<see cref="ShapeMechanics.Constructions"/> does the resolution).</summary>
+    /// passes every argument as <c>name: value</c> (<see cref="NamedConstruction.Creations"/> does the resolution).</summary>
     [Fact]
     public void Every_wide_constructor_is_called_with_named_arguments()
     {
-        var problems = ShapeMechanics.Constructions(WideConstructorTypes())
+        var problems = NamedConstruction.Creations(NamedConstruction.Candidates())
             .Where(c => !c.AllArgumentsNamed)
             .Select(c => $"{c.Node.Name}: {c.TypeName} created at {Tree.Relative(c.File)}:{c.Line} without naming every argument")
             .ToList();
@@ -175,17 +175,6 @@ public sealed class ShapeTests
     }
 
     private static double Instability(int ce, int ca) => (double)ce / Math.Max(1, ce + ca);
-
-    private static IReadOnlyCollection<WideConstructorType> WideConstructorTypes() => ProjectNodes()
-        .SelectMany(node => NodeDocuments.ShapeExceptions(node).Where(exception => exception.Rule == "parameters" && IsConstructorPattern(exception.Where))
-            .Select(exception => new WideConstructorType(node, exception.Where.Split('.')[^1])))
-        .ToList();
-
-    private static bool IsConstructorPattern(string where)
-    {
-        var segments = where.Split('.');
-        return segments.Length >= 2 && segments[^1] == segments[^2];
-    }
 
     private static IEnumerable<string> RowProblems(Node node, ShapeException exception, IReadOnlyDictionary<Type, int> efferent)
     {
