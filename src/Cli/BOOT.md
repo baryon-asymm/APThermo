@@ -122,10 +122,22 @@ Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The 
 had grown four commands, two formats and two input shapes in five files without a
 split: `InputDocuments` at 399 lines with an efferent coupling of 18, `Solving` a hub
 of 27, `CommandLine.Parse` at 117 lines, and the station written once per format (the
-review's F-CL-02 to F-CL-10). One node, one directory: the split is into types, not
-into sub-nodes, which the root's one-assembly-per-node rule would turn into several
-assemblies for one adapter. Everything is internal except `Program` and `ExitCode`;
-one type per file, named after the type.
+review's F-CL-02 to F-CL-10; the review's measures at `8e36a27`: physical lines and a
+textual count of names; 351 and 101 lines of code by the current rule). One node, one
+directory: the split is into types, not into sub-nodes, which the root's
+one-assembly-per-node rule would turn into several assemblies for one adapter.
+Everything is internal except `Program` and `ExitCode`; one type per file, named after
+the type.
+
+⚠ 2026-09-15: two rows of the table below had drifted from the code they describe.
+`StateRecordReader`'s row said the record files' shape was decided "by the first
+non-blank character"; the code decides it by attempting to parse the first JSON value
+and checking what follows it (`JsonText.TryParseWhole`), not by inspecting characters.
+`DocumentWriter`'s row said only "delivery to the output file or the standard output,
+and the non-finite-number rule", omitting that it also renders a case document in the
+requested format and decides its exit code, and that the JSON writer the listings
+(`species`, `devices`) render through is this type's too. Found by the repair review of
+2026-09-15 reading the code against the table.
 
 | Type | Responsibility |
 |---|---|
@@ -145,7 +157,7 @@ one type per file, named after the type.
 | `PropellantDocumentReader` | the `propellant` object only: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
 | `ProblemPartReader` | the `problem` object only: one reader per problem kind (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
 | `SweepDocumentReader` | the `sweep` object only: the ranges the batch's Cartesian product runs over (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
-| `StateRecordReader` | the record files, their shape decided by the first non-blank character (array, object, JSON Lines) with no exception as a probe (F-CL-13); each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
+| `StateRecordReader` | the record files, their shape decided by reading the first JSON value and what follows it (`JsonText.TryParseWhole`): one value alone is an array or an object, more is JSON Lines; each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
 | `InputDocuments` | the façade the tests node uses: delegations only |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
 | `ProblemCommand` | `rocket` and `equilibrium`: read, check the problem type against the command, build the mixtures, expand the sweep, solve, write |
@@ -159,7 +171,7 @@ one type per file, named after the type.
 | `StationFields` | the one projection of a station into named, typed cells (the state, the performance figures with the two conversions to seconds, the transport figures), from the library's structs by reflection; owns `StandardGravity` (F-CL-06, F-CL-07) |
 | `JsonOutput`, `CsvOutput` | the cells as nested objects with the compositions above the threshold; the same cells as columns, the header from the same source |
 | `RunSection` | the `run` object and the accelerator object, for every command that writes them |
-| `DocumentWriter` | delivery to the output file or the standard output, and the non-finite-number rule |
+| `DocumentWriter` | a case document rendered in the requested format with the exit code of its cases (`ExitCodes`); the JSON writer the listings render through, with the non-finite-number rule; delivery to the output file or standard output |
 | `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
 | `Names` | unchanged: camel-case names of statuses and kinds |
 | `SpeciesRow` | one species flattened once (F-CL-08) |
