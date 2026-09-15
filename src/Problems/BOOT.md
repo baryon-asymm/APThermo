@@ -285,7 +285,7 @@ as if the runners' coupling were undecided and cited the pre-merge scratch figur
 (27/25) and the superseded textual limit (10), duplicating — and disagreeing with —
 what the rest of this document already states correctly. Found by the clean-code
 repair review (R-Problems-9); cut to a cross-reference instead of retold, per
-AGENTS.md SS8 ("claims about a foreign node… go stale without the author's knowledge;
+AGENTS.md §8 ("claims about a foreign node… go stale without the author's knowledge;
 link instead of retelling"), here applied to a claim about a different part of the
 same document.
 

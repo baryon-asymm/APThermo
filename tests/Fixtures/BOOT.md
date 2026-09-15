@@ -367,8 +367,8 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       each bound to the `generator` field its value is read from (the root's condition
       on a declared wide constructor, the row of `## Shape exceptions`), verified by
       `ShapeMechanics.Constructions` (the protocol tests node's own tool, run through
-      a temporary, uncommitted test): one site, `CeaFixtures.ReadProvenance`
-      (`CeaFixtures.cs:102`), fully named; every fixture theory of the tests nodes
+      a temporary, uncommitted test): one site, `CeaFixtures.ReadProvenance`,
+      fully named; every fixture theory of the tests nodes
       green unchanged: the full-solution fast suite (10 projects, 3014 tests) green,
       every consumer's `Bits.approved.txt` hash unmoved.
 

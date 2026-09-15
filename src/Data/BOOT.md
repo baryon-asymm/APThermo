@@ -182,16 +182,24 @@ Decisions taken with the review of 2026-09-14:
 
   ⚠ 2026-09-15: this decision is reversed. Its "Ce 12" and the "10 (at the limit)" it
   produced were both textual counts against that day's Ce limit of 10; the dependency
-  check's own walk, not written until the protocol tests node's `ShapeTests` phase,
-  gives `SpeciesRecordReader` 9 with the wrap moved out (the figure this node's own
-  `## Shape exceptions` section recorded once that walk existed) and 11 with the wrap
-  back inside — both under the root's limit of 14, the same day recalibrated to the
-  walk instead of the text (root `BOOT.md`). The premise for the move was gone before
-  this node's own figures were next read against it. The wrap is back inside
-  `SpeciesRecordReader.Read` (its `fcab80e` form, with `var first = i` held at entry),
-  `ThermoFile.Parse` calling `Read` directly again: `Read` measures Ce 11 by the walk,
-  `ThermoFile` 4. No behaviour changed — the corruption tests assert the same file,
-  line and message before and after. Found by the clean-code repair review (R-Data-1).
+  check's own walk, first used to measure Ce by the protocol tests node's
+  `CouplingMeasures` on 2026-09-14, gives `SpeciesRecordReader` 9 with the wrap moved
+  out (the figure this node's own `## Shape exceptions` section recorded once the walk
+  measured Ce) and 11 with the wrap back inside — both under the root's limit of 14,
+  the same day recalibrated to the walk instead of the text (root `BOOT.md`). The
+  premise for the move was gone before this node's own figures were next read against
+  it. The wrap is back inside `SpeciesRecordReader.Read` (its `fcab80e` form, with
+  `var first = i` held at entry), `ThermoFile.Parse` calling `Read` directly again:
+  `Read` measures Ce 11 by the walk, `ThermoFile` 4. No behaviour changed — the
+  corruption tests assert the same file, line and message before and after. Found by
+  the clean-code repair review (R-Data-1).
+
+  ⚠ 2026-09-15: the paragraph above first said the walk was "not written until the
+  protocol tests node's `ShapeTests` phase" and that the `## Shape exceptions` figure
+  came "once that walk existed". The walk is the dependency check's, written with that
+  node's reflection checks on 2026-09-13 (`DependencyTests`); what came on 2026-09-14
+  was its use for Ce (`CouplingMeasures`, which reads the same walk). Found at the end
+  sweep of the clean-code pass, from the commits that added the two files.
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
   than 6 parameters (the two constructors aside); no type names more than 14 distinct
   types of the tree (its efferent coupling, Ce) — the root's own limit, recalibrated
