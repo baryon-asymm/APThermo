@@ -14,49 +14,70 @@ internal static class ApiDeclarations
 {
     /// <summary>Whether a type of the given simple name is named anywhere in the document's ✅-marked text (prose or code alike;
     /// a document without a single status mark counts as ✅ throughout, AGENTS.md §7).</summary>
-    public static bool NamesType(string document, string simpleName) => Regex.IsMatch(ImplementedText(document), $@"\b{Regex.Escape(simpleName)}\b");
-
-    /// <summary>The lines of the document that sit under the nearest status mark above them being ✅ (or no mark at all), prose
-    /// and code alike; the counterpart of <see cref="ImplementedCsharpBlocks"/>, which keeps only the code.</summary>
-    private static string ImplementedText(string document)
-    {
-        var implemented = true;
-        var lines = new List<string>();
-        foreach (var line in document.ReplaceLineEndings("\n").Split('\n'))
-        {
-            if (line.Contains('⏳', StringComparison.Ordinal))
-            {
-                implemented = false;
-            }
-            else if (line.Contains('✅', StringComparison.Ordinal))
-            {
-                implemented = true;
-            }
-
-            if (implemented)
-            {
-                lines.Add(line);
-            }
-        }
-
-        return string.Join("\n", lines);
-    }
+    public static bool NamesType(string document, string simpleName) =>
+        Regex.IsMatch(string.Join("\n", Classify(document).Where(line => line.Implemented).Select(line => line.Text)), $@"\b{Regex.Escape(simpleName)}\b");
 
     /// <summary>The C# blocks of a document that sit under the nearest status mark above them being ✅ (or no mark at all).</summary>
     public static IEnumerable<string> ImplementedCsharpBlocks(string document)
     {
+        var block = new List<string>();
+        var blockImplemented = false;
+        var wasInsideBlock = false;
+        foreach (var (text, implemented, insideBlock) in Classify(document))
+        {
+            if (insideBlock)
+            {
+                block.Add(text);
+                blockImplemented = implemented;
+                wasInsideBlock = true;
+                continue;
+            }
+
+            if (wasInsideBlock)
+            {
+                if (blockImplemented)
+                {
+                    yield return string.Join("\n", block);
+                }
+
+                block.Clear();
+                wasInsideBlock = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every line of the document, classified by the one status-mark state machine AGENTS.md §7 describes: whether the line
+    /// sits under an effective ✅ (or no mark at all) rather than ⏳, and whether the line itself lies inside a ```csharp fence
+    /// (the fence marker lines do not). A mark is read only outside such a fence — the nearest mark above a code block decides
+    /// the block's fate, not a character that happens to look like a mark inside the example code the block holds — so a line
+    /// inside a fence carries the state as of the line that opened it, frozen for the whole block. <see cref="NamesType"/> and
+    /// <see cref="ImplementedCsharpBlocks"/> both read this one walk, so the mark rule is written once.
+    /// </summary>
+    private static IEnumerable<(string Text, bool Implemented, bool InsideCSharpBlock)> Classify(string document)
+    {
         var implemented = true;
         var inside = false;
-        var block = new List<string>();
         foreach (var line in document.ReplaceLineEndings("\n").Split('\n'))
         {
-            if (!line.StartsWith("```", StringComparison.Ordinal))
+            if (line.StartsWith("```", StringComparison.Ordinal))
             {
                 if (inside)
                 {
-                    block.Add(line);
+                    inside = false;
                 }
-                else if (line.Contains('⏳', StringComparison.Ordinal))
+                else if (line.Contains("csharp", StringComparison.Ordinal))
+                {
+                    inside = true;
+                }
+
+                yield return (line, implemented, false);
+                continue;
+            }
+
+            if (!inside)
+            {
+                if (line.Contains('⏳', StringComparison.Ordinal))
                 {
                     implemented = false;
                 }
@@ -64,24 +85,9 @@ internal static class ApiDeclarations
                 {
                     implemented = true;
                 }
-
-                continue;
             }
 
-            if (inside)
-            {
-                if (implemented)
-                {
-                    yield return string.Join("\n", block);
-                }
-
-                block.Clear();
-                inside = false;
-            }
-            else if (line.Contains("csharp", StringComparison.Ordinal))
-            {
-                inside = true;
-            }
+            yield return (line, implemented, inside);
         }
     }
 
