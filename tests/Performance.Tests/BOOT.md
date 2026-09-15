@@ -144,8 +144,8 @@ position today (the criterion below).
 - [x] 2026-09-14 — The invariants are one type and one test each (the test review's
       F-TK-06 and F-TK-07): `RocketInvariants` returns the violated invariants of a
       solution as messages, one method per invariant (`SonicThroat`, `ConstantEntropy`,
-      `EnergyEquation`, `AssignedExit`, `FrozenComposition`), each under fifteen lines
-      and nesting at most two, with the two previously inline tolerances (the energy
+      `EnergyEquation`, `AssignedExit`, `FrozenComposition`), each under twenty lines
+      of code and nesting at most two, with the two previously inline tolerances (the energy
       equation, the pressure ratio) promoted to `VelocityTolerance` and
       `PressureRatioTolerance` beside the three existing ones and their origin named.
       `InvariantTests` becomes one test per invariant (`The_throat_is_sonic`,
@@ -173,6 +173,13 @@ position today (the criterion below).
       flows and batches leave the criteria above; the enumerated directory is the
       list. Every mutation restored afterwards; the Bits level did not move (no
       `src/Performance` file changed for this criterion).
+
+      ⚠ 2026-09-15: "each under fifteen lines" was not true: of the lines within each
+      method's own physical span, `FrozenComposition` (`RocketInvariants.cs:90-109`)
+      holds 18 that are not blank, `AssignedExit` (`:70-87`) 17, `EnergyEquation`
+      (`:52-67`) 15 — at or, for two of the three, above the claimed bound. Found by
+      the repair review (R-Performance.Tests-6); the bullet now states a bound every
+      method meets, under twenty lines of code.
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
