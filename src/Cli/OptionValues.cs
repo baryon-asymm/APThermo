@@ -1,4 +1,5 @@
 using System.Globalization;
+using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
@@ -7,8 +8,19 @@ internal static class OptionValues
 {
     public static double ParseThreshold(string value) => ParseNonNegative(value, "threshold");
 
-    /// <summary>Validated a second time by <see cref="Problems.ElementalMixture.IsValidMassTolerance"/> where the front door builds the mixture.</summary>
-    public static double ParseMassTolerance(string value) => ParseNonNegative(value, "mass tolerance");
+    /// <summary>
+    /// The predicate is the front door's (<see cref="ElementalMixture.IsValidMassTolerance"/>), so the option and the
+    /// library cannot disagree on a valid tolerance (BOOT.md, F-AR-04).
+    /// </summary>
+    public static double ParseMassTolerance(string value)
+    {
+        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !ElementalMixture.IsValidMassTolerance(number))
+        {
+            throw new InputException($"the mass tolerance must be a finite non-negative number, not '{value}'");
+        }
+
+        return number;
+    }
 
     public static OutputFormat ParseFormat(string value) => value switch
     {
