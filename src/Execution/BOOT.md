@@ -134,7 +134,7 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath`, `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 26 by the dependency check's walk on 2026-09-14) | public, contract as `API.md` says |
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | public, contract as `API.md` says |
 | `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
@@ -224,7 +224,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Engine` | efferent coupling | 26 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath`, `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Engine` | efferent coupling | 25 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
 | `Kernels` | efferent coupling | 25 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
 | `RocketPipeline` | efferent coupling | 23 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
 | `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |

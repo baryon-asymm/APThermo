@@ -98,9 +98,7 @@ public sealed class Engine : IDisposable
             return [];
         }
 
-        var timer = new RunTimer();
-        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out var warmUp);
-        timer.AddWarmUp(warmUp);
+        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out _);
         using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
         using var outputBuffer = _session.Accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
         launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
