@@ -484,6 +484,16 @@ Every other type of the node measures 10 or below by the dependency check's walk
       sweep and throughput benchmark are long-running and belong to the root's own
       criteria; they are run on the merge, not here, and this node's evidence is of
       the CPU accelerator.
+
+      ⚠ 2026-09-15: this criterion named `NewtonIteration.Converge` at 56 lines and
+      said no shape exception was declared or needed. Both went stale the same day,
+      after this tick was written: the Newton-loop split (`29c2200`) moved `Converge`'s
+      formulas into `DampedStep`, `ConvergenceTests` and `SingularRemedies`, leaving it
+      at 55 lines (the `## Structure` warning above already says so); and the coupling
+      recalibration (`9facd7f`) and the named-construction rule (`0c33d1e`) produced the
+      three rows `## Shape exceptions` now declares. Found by the repair review of
+      2026-09-14 (R-Equilibrium-4). The line figures here are physical, not lines of
+      code, and give way to the protocol tests node's `ShapeTests` once it exists.
 - [x] 2026-09-14 - The rules the review of 2026-09-14 found written twice exist once
       each: the inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, called by
       the inclusion test and by the honesty guard), the element abundance
