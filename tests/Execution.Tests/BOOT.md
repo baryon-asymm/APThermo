@@ -77,6 +77,8 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 ## Dependencies
 
 - [Execution](../../src/Execution/API.md) — what is being checked.
+- [Execution.Chunks](../../src/Execution/Chunks/API.md) — `Chunk` and `ChunkPlan`, in
+  the chunk-plan unit facts (a child node of `Execution`, 2026-09-15).
 - [Thermo](../../src/Thermo/API.md) — tables, `MixtureState`, `CaseStatus`.
 - [Equilibrium](../../src/Equilibrium/API.md) — the solver and scratch layout called case by case on the host.
 - [Performance](../../src/Performance/API.md) — `PerformanceFigures`, the rocket solver called on the host, flow models.
