@@ -68,8 +68,13 @@ internal struct ExitEstimate
     /// <summary>Whether the previous station may be extrapolated from: it converged and its area ratio exceeds <see cref="RocketSolver.ExtrapolationAreaRatio"/>.</summary>
     public bool Extrapolable;
 
+    /// <summary>ln(p_c/p_e) of the last exit accepted by area ratio; read only while <see cref="Extrapolable"/>.</summary>
     public double LogPressureRatio;
+
+    /// <summary>ln(A/A_t) of that exit, meaningful only while <see cref="Extrapolable"/>.</summary>
     public double LogAreaRatio;
+
+    /// <summary>∂ln(A/A_t)/∂ln(p_c/p_e) at constant entropy at that exit, equation (6.23), meaningful only while <see cref="Extrapolable"/>.</summary>
     public double Derivative;
 }
 
