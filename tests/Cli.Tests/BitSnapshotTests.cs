@@ -71,7 +71,7 @@ internal static class BitExamples
         for (var i = 0; i < inputs.Count; i++)
         {
             var name = $"API.md input example {i}";
-            var isRocket = InputDocuments.ReadProblem(inputs[i], name).Problem is RocketDocument;
+            var isRocket = ProblemDocumentReader.Read(inputs[i], name).Problem is RocketDocument;
             var path = fixture.TempFile($"bits-input-{i}.json");
             File.WriteAllText(path, inputs[i]);
             var command = isRocket ? "rocket" : "equilibrium";

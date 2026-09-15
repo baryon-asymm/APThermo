@@ -16,7 +16,7 @@ internal static class StatesCommand
     public static ExitCode Execute(Invocation invocation, TextWriter output)
     {
         var files = invocation.Arguments.Select(path => (path, InputFile.ReadAllText(path))).ToList();
-        var records = InputDocuments.ReadStates(files);
+        var records = StateRecordReader.Read(files);
         var options = invocation.Options;
         using var session = SolverSession.Open(options.Database, options.Accelerator ?? AcceleratorKind.Auto);
         var cases = new CaseOutput[records.Count];

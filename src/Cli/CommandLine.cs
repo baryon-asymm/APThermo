@@ -3,15 +3,10 @@ namespace AerospacePropellantThermodynamics.Cli;
 /// <summary>
 /// Hand-written parsing of the command line (BOOT.md: no dependency for it): scan, look up the command, check its
 /// arity, fold the options into <see cref="CommandOptions"/>, then check that every option given applies to the
-/// command and that the command supports the requested format. Keeps <see cref="Parse"/>, <see cref="Usage"/> and
-/// <see cref="Commands"/> as the tests node knows them.
+/// command and that the command supports the requested format.
 /// </summary>
 internal static class CommandLine
 {
-    public static IReadOnlyList<string> Commands { get; } = CommandTable.Commands.Select(c => c.Name).ToList();
-
-    public static string Usage => CommandTable.Usage;
-
     public static Invocation Parse(IReadOnlyList<string> args)
     {
         var scanned = ArgumentScanner.Scan(args, CommandTable.Options);
@@ -23,11 +18,11 @@ internal static class CommandLine
 
         if (scanned.Positional.Count == 0)
         {
-            throw new InputException("no command given\n" + Usage);
+            throw new InputException("no command given\n" + CommandTable.Usage);
         }
 
         var command = scanned.Positional[0];
-        var spec = CommandTable.Find(command) ?? throw new InputException($"unknown command '{command}'; commands: {string.Join(", ", Commands)}");
+        var spec = CommandTable.Find(command) ?? throw new InputException($"unknown command '{command}'; commands: {string.Join(", ", CommandTable.Names)}");
         var arguments = scanned.Positional.Skip(1).ToList();
         if (spec.CheckArity(arguments.Count) is { } arityError)
         {
