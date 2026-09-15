@@ -30,7 +30,7 @@ internal static class CouplingMeasures
     /// a nested type: the "stable type" rule is asked of every type of the <c>src</c> nodes, nested ones included.
     /// </summary>
     public static IReadOnlyDictionary<Type, int> AfferentCoupling() => EdgesLazy.Value
-        .Where(edge => NodeAssemblies.NodeOf(edge.Source) is { } source && IsSrcNode(source))
+        .Where(edge => NodeAssemblies.NodeOf(edge.Source) is { IsSrc: true })
         .GroupBy(edge => edge.Target)
         .ToDictionary(group => group.Key, group => group.Select(edge => edge.Source).Distinct().Count());
 
@@ -44,7 +44,7 @@ internal static class CouplingMeasures
     /// </summary>
     public static IReadOnlyDictionary<Node, (int Ce, int Ca, IReadOnlySet<Node> Dependencies)> NodeCoupling()
     {
-        var srcNodes = Tree.Nodes.Where(IsSrcNode).ToHashSet();
+        var srcNodes = Tree.Nodes.Where(node => node.IsSrc).ToHashSet();
         var dependencies = srcNodes.ToDictionary(node => node, DependenciesOf);
         return srcNodes.ToDictionary(node => node, node => Coupling(node, srcNodes, dependencies));
 
@@ -57,8 +57,6 @@ internal static class CouplingMeasures
         var dependents = srcNodes.Count(other => dependencies[other].Contains(node));
         return (dependencies[node].Count, dependents, dependencies[node]);
     }
-
-    private static bool IsSrcNode(Node node) => node.RelativePath.StartsWith("src/", StringComparison.Ordinal);
 
     private static IReadOnlyList<(Type Source, Type Target)> BuildEdges()
     {

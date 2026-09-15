@@ -629,6 +629,48 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       (`dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
       with `APTHERMO_NO_CUDA=1`: 3024 passed, up from 3014 before it, none skipped); the
       linter 0 errors, 0 warnings; `git status` clean after every mutation was reverted.
+- [x] 2026-09-15 — Four non-degeneracy gaps of the Shape level closed (repair phase,
+      R-Protocol.Tests-14), each guard seen red once with a temporary, uncommitted
+      mutation and reverted:
+      - the src-node predicate `CouplingMeasures` and `ShapeTests` each kept their own
+        copy of unified onto one definition, `Node.IsSrc`; mutated to `=> true`, two
+        facts red at once on the real tree (proving the two really share the one
+        definition rather than two copies that happen to agree): `No_src_type_names_more_than_14_types_of_the_tree`,
+        "tests/Cli.Tests: LibraryEqualityTests ... measures 28 for efferent coupling,
+        over 14, and no row ... declares it" (23 more test-node types alongside it),
+        and `Every_stable_type_is_small_or_a_contract`, "tests/Cli.Tests: CliFixture is
+        named by 10 types of the tree (a stable type) and spans 131 lines, over 100,
+        without being named in tests/Cli.Tests/API.md";
+      - `Every_wide_constructor_is_called_with_named_arguments` now asserts
+        `NamedConstruction.Candidates()` is not empty before asserting zero problems,
+        so an empty candidate list (every node's `## Shape exceptions` silently
+        returning nothing) fails loudly instead of passing over nothing to check;
+        mutated `NamedConstruction.Candidates()` to filter to nothing, red: "no node
+        declares a parameters row on its own constructor; this fact has nothing to
+        check";
+      - `Every_shape_exception_is_measured_and_still_needed` now asserts the tree-wide
+        declared-row list is not empty the same way; mutated `NodeDocuments.ShapeExceptions`
+        to match against a nonexistent heading, red: "no node declares a Shape
+        exceptions row anywhere in the tree; this fact has nothing to re-measure";
+      - `StableTypeProblems` reported nothing for a Ca ≥ 10 type whose reflection-read
+        qualified name matched no entry of `ShapeMeasures.TypeLines`, silently treating
+        an unmeasurable type as compliant; it now reports such a type instead. Mutated
+        `QualifiedName` to rename `InputException` alone (`src/Cli`, Ca 19, undocumented)
+        to `InputExceptionMUTATED` so it matches no syntax entry, red:
+        "src/Cli: InputExceptionMUTATED is named by 19 types of the `src` nodes (a
+        stable type) and matches no syntax entry of src/Cli/BOOT.md's own node to
+        measure its lines against".
+
+      Each mutation applied alone, `dotnet test tests/Protocol.Tests` run, the message
+      above the only failure, then reverted; `dotnet test tests/Protocol.Tests` green
+      again after every revert (20 passed). The whole-tree dump (`TypeLines`,
+      `MethodLines`, `Nesting`, `Parameters`, `EfferentCoupling`, `AfferentCoupling`,
+      `NodeCoupling`, the Coverage and Declarations sections) taken before and after the
+      four permanent guard changes is byte-identical from `EfferentCoupling` onward; the
+      only lines that move are the `TypeLines`/`MethodLines` rows of `ShapeTests` itself
+      and the line numbers of the members below the edit, both the expected, mechanical
+      consequence of this node's own file growing, not a change of what any rule
+      measures on the real tree.
 
 ## Taboos
 

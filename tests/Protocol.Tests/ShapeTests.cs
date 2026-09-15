@@ -80,11 +80,16 @@ public sealed class ShapeTests
     }
 
     /// <summary>"Shape check", named construction: every creation resolving to a type with a declared parameters exception
-    /// passes every argument as <c>name: value</c> (<see cref="NamedConstruction.Creations"/> does the resolution).</summary>
+    /// passes every argument as <c>name: value</c> (<see cref="NamedConstruction.Creations"/> does the resolution). Asserts
+    /// the candidate list is not empty first (R-Protocol.Tests-14): with nothing to resolve creations against, the fact
+    /// below would pass over zero creations rather than over a real, checked set.</summary>
     [Fact]
     public void Every_wide_constructor_is_called_with_named_arguments()
     {
-        var problems = NamedConstruction.Creations(NamedConstruction.Candidates())
+        var candidates = NamedConstruction.Candidates();
+        Assert.True(candidates.Count > 0, "no node declares a parameters row on its own constructor; this fact has nothing to check");
+
+        var problems = NamedConstruction.Creations(candidates)
             .Where(c => !c.AllArgumentsNamed)
             .Select(c => $"{c.Node.Name}: {c.TypeName} created at {Tree.Relative(c.File)}:{c.Line} without naming every argument")
             .ToList();
@@ -94,19 +99,21 @@ public sealed class ShapeTests
     /// <summary>The reverse of the five over-limit facts above: every declared `## Shape exceptions` row still exceeds its
     /// rule's limit, and its own figure is not below the current measurement, so the tables cannot go stale in either
     /// direction ("Shape check": "the check fails ... when it exceeds its row's figure, and when a row's type or member no
-    /// longer exceeds the limit").</summary>
+    /// longer exceeds the limit"). Asserts the declared-row list is not empty first (R-Protocol.Tests-14): with no row
+    /// anywhere in the tree, the fact below would pass over zero rows rather than over a real, checked set.</summary>
     [Fact]
     public void Every_shape_exception_is_measured_and_still_needed()
     {
-        var problems = ProjectNodes()
-            .SelectMany(node => NodeDocuments.ShapeExceptions(node).SelectMany(exception => RowProblems(node, exception)))
-            .ToList();
+        var exceptions = ProjectNodes().SelectMany(node => NodeDocuments.ShapeExceptions(node).Select(exception => (Node: node, Exception: exception))).ToList();
+        Assert.True(exceptions.Count > 0, "no node declares a Shape exceptions row anywhere in the tree; this fact has nothing to re-measure");
+
+        var problems = exceptions.SelectMany(pair => RowProblems(pair.Node, pair.Exception)).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     private static IEnumerable<Node> ProjectNodes() => Tree.Nodes.Where(node => node.AssemblyName is not null);
 
-    private static IEnumerable<Node> SrcNodes() => ProjectNodes().Where(node => node.RelativePath.StartsWith("src/", StringComparison.Ordinal));
+    private static IEnumerable<Node> SrcNodes() => ProjectNodes().Where(node => node.IsSrc);
 
     /// <summary>The limit and the current measurements of one over-limit "Shape check" rule, over one node: the same lookup
     /// <see cref="OverLimitProblems"/> compares a measurement against and <see cref="RowProblems"/> re-measures a declared
@@ -160,6 +167,10 @@ public sealed class ShapeTests
         return (where, file, line, value);
     }
 
+    /// <summary>Every Ca ≥ 10 type of a `src` node that is neither named in its `API.md` nor within the 100-line stable-type
+    /// limit; also every such type this fact cannot even measure against the limit, because no syntax entry of its own node
+    /// matches its reflection-read qualified name (R-Protocol.Tests-14: a lookup miss used to be silently treated as
+    /// compliant, which would have let a real violation the syntax walk cannot see escape unreported).</summary>
     private static IEnumerable<string> StableTypeProblems(Node node, IReadOnlyDictionary<Type, int> afferent)
     {
         var lines = ShapeMeasures.TypeLines(node).ToDictionary(t => t.Where, t => t.Lines);
@@ -167,12 +178,19 @@ public sealed class ShapeTests
         foreach (var (type, count) in afferent.Where(pair => NodeAssemblies.NodeOf(pair.Key) == node && pair.Value >= 10))
         {
             var where = QualifiedName(type);
-            if (ApiDeclarations.NamesType(api, TypeShape.SimpleName(type)) || !lines.TryGetValue(where, out var span) || span <= 100)
+            if (ApiDeclarations.NamesType(api, TypeShape.SimpleName(type)))
             {
                 continue;
             }
 
-            yield return $"{node.Name}: {where} is named by {count} types of the tree (a stable type) and spans {span} lines, over 100, without being named in {Tree.Relative(node.Api)}";
+            if (!lines.TryGetValue(where, out var span))
+            {
+                yield return $"{node.Name}: {where} is named by {count} types of the `src` nodes (a stable type) and matches no syntax entry of {Tree.Relative(node.Boot)}'s own node to measure its lines against";
+            }
+            else if (span > 100)
+            {
+                yield return $"{node.Name}: {where} is named by {count} types of the `src` nodes (a stable type) and spans {span} lines, over 100, without being named in {Tree.Relative(node.Api)}";
+            }
         }
     }
 
