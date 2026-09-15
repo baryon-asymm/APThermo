@@ -6,8 +6,8 @@ command-line tool over it. Everything not named here is internal and may change.
 
 ## How the system is used
 
-1. Load the NASA database once (`Data` node) from `data/` or from a path supplied by
-   the caller.
+1. Load the NASA database once (`Data` node). Either take the copy embedded in the
+   package, or read files from a path supplied by the caller.
 2. Describe a propellant (`Problems` node): reactants by database name or by formula
    and enthalpy, amounts by mass fraction, by moles or by oxidizer-to-fuel ratio,
    reactant temperatures where they differ from the records' own; or hand over a
@@ -30,7 +30,7 @@ using APThermo.Execution;
 using APThermo.Performance;
 using APThermo.Problems;
 
-var database = SpeciesDatabase.Load(thermoPath, transPath);                 // Data node
+var database = SpeciesDatabase.LoadBundled();                               // Data node; or SpeciesDatabase.Load(thermoPath, transPath)
 
 var propellant = Propellant.From(database)
     .Oxidizer("O2(L)", temperature: 90.17)                                  // K
@@ -83,12 +83,22 @@ filled result.
 
 - [Problems](./src/Problems/API.md) — the front door: propellants, problems, results, the solver.
 - [Cli](./src/Cli/API.md) — the `apthermo` command line: JSON in, JSON or CSV out.
-- [Data](./src/Data/API.md) — the NASA databases as an object model (used directly to load and query the database).
-- [Execution](./src/Execution/API.md) — engines, accelerators, batches (used directly by advanced callers who build batches themselves).
+- [Data](./src/Data/API.md) — the NASA databases as an object model: the embedded database or database files, and queries over them.
+- [Execution](./src/Execution/API.md) — the accelerator options and their description (`EngineOptions`, `AcceleratorProbe`). The engine and its batches are its tree contract, and consumers run them through `Problems`.
 
-Internal nodes, not used from outside the tree: [Thermo](./src/Thermo/API.md),
+Nodes whose package surface is only the vocabulary that problems and results use
+(`CaseStatus`, `MixtureState`, `ProblemKind`, `FlowModel`, `PerformanceFigures`,
+`TransportFigures`), their formulas internal: [Thermo](./src/Thermo/API.md),
 [Equilibrium](./src/Equilibrium/API.md), [Performance](./src/Performance/API.md),
 [Transport](./src/Transport/API.md).
+
+⚠ 2026-09-15 (distribution phase): this list said that `Execution` is "used directly by
+advanced callers who build batches themselves". It also called the four nodes above
+"internal nodes, not used from outside the tree". The review of the package surface
+found two things: consumers name those four nodes' result structs and enums, and no
+consumer scenario needs the batch path. That path became internal, and `Solver` is the
+batch entry (root `BOOT.md`, `## Delivery`, Tree contracts). The database loading
+above read files only until the NASA files were embedded the same day.
 
 ## Test nodes ✅
 

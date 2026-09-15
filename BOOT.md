@@ -442,7 +442,10 @@ those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes s
 (one CPU host, bit comparison, bit snapshots, fixture families) and names nothing above
 `Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
-and never asserted. The node list with links is in `API.md`.
+and never asserted; `samples/Samples` (2026-09-15) shows each consumer scenario as a
+running program over the package surface, the source of the guide's code, and
+`tests/Docs.Tests` holds the guide to the samples, the approved outputs and the
+schemas (`## Delivery`, Documentation). The node list with links is in `API.md`.
 
 ## Delivery
 
@@ -501,12 +504,31 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   - The contracts are the nodes' `API.md` and the XML comments.
   - The guide (`README.md`, `docs/guide/`, the package READMEs under `docs/nuget/`) is
     task-oriented and restates no signature.
-  - Every code block of the guide is a region of a compiled and executed sample under
-    `samples/`, and every command-line example runs with its output approved. A docs
-    tests node proves both, and that every relative link resolves.
+  - Every C# block of the guide is a snippet of the samples node `samples/Samples`: a
+    console project in the solution, one class per consumer scenario, each printing its
+    figures. Its snippets are delimited by `// snippet-start: <name>` and
+    `// snippet-end` comments; `#region` stays forbidden by the code-shape constraint.
+    The samples reference the library projects by default. With
+    `-p:APThermoPackageVersion=<version>` they reference the `APThermo` package instead,
+    so one source serves the build and the check of the packed package. They use the
+    package surface only, as the command line does.
+  - Every command-line example of the guide takes its input documents from
+    `samples/cli/`, and its shown output is approved.
+  - The docs tests node `tests/Docs.Tests` proves:
+    - every C# block equals its snippet;
+    - every sample prints its approved output;
+    - every command-line example produces its approved output, the run section cut as
+      the command line's tests cut it;
+    - every relative link of `README.md`, `llms.txt`, `docs/` and the package READMEs
+      resolves;
+    - every document under `samples/cli/` validates against its schema;
+    - every guide page has the shared shape.
+  - The JSON Schemas of the command line's documents belong to the command line
+    (2026-09-15). They move from its tests node to `src/Cli/Schemas/`, are embedded in
+    the tool (`apthermo schema <name>` prints one), and are validated there by the
+    command line's tests. No copy of them lives under `docs/`.
   - `llms.txt` at the root is the entry for agents: a summary, and links to the guide
-    pages, to the JSON Schemas of the command line's documents (`docs/schemas/`) and to
-    the nodes' `API.md`.
+    pages, the schemas, the samples and the nodes' `API.md`.
   - Guide pages share one shape (purpose, when to use, steps, errors, see also), so a
     human and an agent navigate them alike.
 - **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
