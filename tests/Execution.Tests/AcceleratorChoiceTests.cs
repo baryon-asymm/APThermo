@@ -146,7 +146,7 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
     {
         var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
-        var wrongElements = new RocketBatch(2, family.Table.ElementCount + 1, family.Inputs[0].ExitKinds);
+        var wrongElements = new RocketBatch(2, family.Table.ElementCount + 1, family.Inputs[0].Exits.Kinds);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongElements));
         var wrongSpecies = new TransportBatch(2, family.Table.SpeciesCount + 1);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongSpecies));

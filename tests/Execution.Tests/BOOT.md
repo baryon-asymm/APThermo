@@ -200,6 +200,43 @@ libdevice for the CUDA category.
       the same test, not against a recorded snapshot), so there is no hash to
       compare before and after.
 
+      ⚠ 2026-09-15: "the old field names stay as forwarding properties, so every read
+      call site is unchanged" did not age well, for the same reason the equivalent
+      shortcut in the Performance.Tests node did not: `ChemicalSystem` mixed a
+      family's shared axis with one fixture's own. `RocketFamilies` groups fixtures by
+      `BatchKey`, and `BatchKey` never read `ElementMoles` — only `Elements`,
+      `Products` and the exit kinds — confirming `ElementMoles` was never part of what
+      a family shares; it is one fixture's own starting composition, exactly like
+      `ReactantEnthalpy`, which already sat outside `ChemicalSystem`. Found by the
+      repair review (R-Execution.Tests-1). `ChemicalSystem` narrowed to `Elements`,
+      `Products` (2 parameters); a new `Mixture` record holds `ElementMoles` and
+      `ReactantEnthalpy` (2 parameters); `RocketInputs` keeps `System`, `Mixture`,
+      `ChamberPressure`, `Flow`, `Exits`, `Transport`, still 6 parameters. The
+      forwarding properties (`Elements`, `ElementMoles`, `Products`, `ExitValues`,
+      `ExitKinds`) are gone; the four read call sites this document said were
+      unchanged (`RocketFamily.Batch`, `RocketFamilies`, `Sweep`, all in
+      `FixtureBatches.cs`) and the fifth this document did not mention
+      (`AcceleratorChoiceTests.cs:149`) all name `.System.` or `.Mixture.` or
+      `.Exits.` directly now. No behaviour changed: the same fields, on the same two
+      records, under new names one level down.
+
+      By the same `CouplingMeasures` run, `FixtureBatches` itself moved from Ce=14 (at
+      the root's cap) to Ce=17 (`ChemicalSystem`, `Mixture` and `ExitPlan` newly named
+      directly in `RocketFamilies` and `Sweep`, for the same reason as `RocketCase` in
+      the Performance.Tests node). This node has no `## Shape exceptions` table today,
+      and every one of its test-fixture classes already sits far above the cap
+      undeclared (`AcceleratorChoiceTests` Ce=32, `BatchTests` Ce=31, `CudaTests`
+      Ce=26, `HostSolves` Ce=28, `SpeciesFunctionTests` Ce=16, none touched by this
+      cut): the scaffolding surface of this node as a whole is not yet in shape, which
+      is consistent with the root's code-shape criterion still being unticked.
+      `FixtureBatches` joining that same undeclared population is this cut's
+      contribution to a pre-existing, node-wide gap, not a new kind of problem; left
+      unfixed and undeclared for the same reason as `RocketCase` — bringing this
+      node's scaffolding into shape is not one of the repair review's findings.
+
+      Verified: build clean, 0 warnings; 41 of 41 fast tests green; `protocol_lint`
+      0 errors, 0 warnings.
+
 ## Taboos
 
 - Do not loosen the GPU/CPU tolerance for green: a divergence is a finding about
