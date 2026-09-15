@@ -254,7 +254,7 @@ after the type; the public records keep their theme files.
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: `RocketRunner` (Ce = 27) and `EquilibriumRunner` (Ce = 25) measure higher by the same walk, both over the textual limit of 10 and the walk-calibrated 14 the root records as of the integration branch's `9facd7f`; not this node's declaration to make, left to the design session after the merge. The two runners' Ce moved by one each, after this row was first measured, when their `SolveGroup` dropped from nine parameters to four (the parameter fix below): a `SolveContext` record struct now carries what `SolveGroup` used to take by six separate parameters, and it is one more type in each runner's own vocabulary | public |
+| `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit: it names the public problem and result types, the engine and its collaborators. Ce = 22 (`AcceleratorInfo`, `ChemicalSystem`, `ChemicalSystemCache`, `ElementalMixture`, `Engine`, `EngineOptions`, `EquilibriumCase`, `EquilibriumProblem`, `EquilibriumResult`, `EquilibriumRunner`, `MixtureMass`, `Propellant`, `PropellantMixtures`, `RocketCase`, `RocketProblem`, `RocketResult`, `RocketRunner`, `SpeciesDatabase`, `SpeciesSelection`, `StateBatchOptions`, `StateRecord`, `StateRecords`), measured 2026-09-14 after the contract commit (a manual signature-and-body count, `RocketSweep` dropping out with its removal), down from 23 after the internal decomposition and 34 before either; the dependency check's own IL walk (fields read and members called, not only signatures) agrees at 22, run on this node's build at `ef54a4a` with the root's scratch tool. The reason for the declared exception is what it names, not a superlative: the two runners are declared composition roots as well (the decision "The runners are the pipelines' composition roots") | public |
 | `ChemicalSystem` | one element set with its table and its uploaded copy; disposable; no transport table kept (F-PR-12) | internal |
 | `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
 | `MixtureMass` | Σ n_i A_i with the database's atomic weights, the refusal beyond the mixture's declared tolerance, and the subject a refusal names (`Subject`), stated once for both runners | internal static |
@@ -270,6 +270,24 @@ after the type; the public records keep their theme files.
 | `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
 | `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
 | `PropellantBuilder.Build` | four calls and a constructor | public, unchanged |
+
+⚠ 2026-09-15: the `Solver` row's last sentence stood "`RocketRunner` (Ce = 27) and
+`EquilibriumRunner` (Ce = 25) measure higher by the same walk, both over the textual
+limit of 10 and the walk-calibrated 14 the root records as of the integration branch's
+`9facd7f`; not this node's declaration to make, left to the design session after the
+merge. The two runners' Ce moved by one each, after this row was first measured, when
+their `SolveGroup` dropped from nine parameters to four (the parameter fix below): a
+`SolveContext` record struct now carries what `SolveGroup` used to take by six separate
+parameters, and it is one more type in each runner's own vocabulary". Stale since the
+design session actually held (the decision "The runners are the pipelines' composition
+roots" below, and the `## Shape exceptions` rows of 26 and 24): the sentence still read
+as if the runners' coupling were undecided and cited the pre-merge scratch figures
+(27/25) and the superseded textual limit (10), duplicating — and disagreeing with —
+what the rest of this document already states correctly. Found by the clean-code
+repair review (R-Problems-9); cut to a cross-reference instead of retold, per
+AGENTS.md SS8 ("claims about a foreign node… go stale without the author's knowledge;
+link instead of retelling"), here applied to a claim about a different part of the
+same document.
 
 Decisions taken with the review of 2026-09-14. The contract-moving ones are coded in
 the contract commit, after the internal moves: `API.md` rewritten with these as real
