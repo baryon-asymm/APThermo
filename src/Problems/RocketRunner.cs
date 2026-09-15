@@ -5,9 +5,6 @@ using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
-/// <summary>One rocket case as the runner sees it: its mixture, problem, and the propellant and ratio it came from, if any.</summary>
-internal sealed record RocketCase(ElementalMixture Mixture, RocketProblem Problem, Propellant? Propellant, double? Ratio);
-
 /// <summary>
 /// Rocket cases grouped by exit layout (pressure- and area-ratio counts) and, within a layout, by the transport flag, so
 /// that the transport pass runs only over the cases that asked for it (BOOT.md, F-PR-08).

@@ -4,9 +4,6 @@ using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Problems;
 
-/// <summary>One equilibrium case as the runner sees it: its mixture, problem and the propellant it came from, if any.</summary>
-internal sealed record EquilibriumCase(ElementalMixture Mixture, EquilibriumProblem Problem, Propellant? Propellant);
-
 /// <summary>Equilibrium cases as one batch, further grouped by the transport flag so that the transport pass runs only over the cases that asked (BOOT.md, F-PR-08).</summary>
 internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
 {

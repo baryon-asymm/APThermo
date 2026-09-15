@@ -507,8 +507,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       the three records' rows, whose single creations name their arguments; lines and
       nesting by the close's reading until the protocol tests node's `ShapeTests` measures
       them (no file over 270 lines, the longest method `RocketRunner.SolveGroup` at 53,
-      nesting at most 2). The merge's fast suite green (3007 tests, `Problems.Tests` 1111,
-      `Cli.Tests` 85).
+      nesting at most 3, within the limit). The merge's fast suite green (3007 tests,
+      `Problems.Tests` 1111, `Cli.Tests` 85).
 
       Bit snapshot: `git log --follow -- tests/Problems.Tests/Bits.approved.txt` names
       one commit, `8f8263c` itself — no commit since has touched the file — and the
@@ -523,6 +523,15 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       --stat 8f8263c..HEAD -- src/Cli` names only `src/Cli/Solving.cs`, the two
       authorized mechanical fixes (`MixtureOf`/`CandidateSpeciesFor` renames,
       `CustomReactantDefinition` construction), no rule of the command line changed.
+
+      ⚠ 2026-09-15: this criterion's Shape paragraph read "nesting at most 2". Wrong
+      already at the close: `ChemicalSystemCache.Union`, `Reactant.Reactant` and
+      `PropellantBuilder.Build` each nest 3 (an `if`/`for` chain), within the root's
+      limit of 3 but above what this paragraph claimed. Corrected to the true figure;
+      found by the clean-code repair review (R-Problems-10). The same review found
+      `RocketCase` and `EquilibriumCase` declared inside their runners' files, against
+      this section's own "one type per file"; moved to `RocketCase.cs` and
+      `EquilibriumCase.cs`, needing no further correction here.
 - [x] 2026-09-14 — The state record with exits: a rocket record through
       `SolveRocketStates` equals the same mixture and problem through
       `Solve(mixtures, problems)` bit for bit, transport included
