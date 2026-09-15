@@ -68,15 +68,19 @@ public sealed class DeclarationTests
         }
     }
 
-    /// <summary>The type of the given simple name: in the node's own assembly first, then in any assembly of the tree.</summary>
+    /// <summary>The type of the given simple name: attributed to the node itself first, then anywhere in its own effective
+    /// assembly (<see cref="NodeAssemblies.AssemblyOf"/>, a project-less child node's own types included), then in any
+    /// assembly of the tree — the generalisation of "the node's own assembly first" once a node's code need not be its own
+    /// assembly (root BOOT.md, Constraints, 2026-09-15).</summary>
     private static Type? Find(Node node, string simpleName)
     {
-        var own = NodeAssemblies.Assemblies.TryGetValue(node, out var assembly) ? assembly : null;
-        return NodeAssemblies.Assemblies.Values
-            .OrderBy(candidate => candidate == own ? 0 : 1)
-            .ThenBy(candidate => candidate.GetName().Name, StringComparer.Ordinal)
+        var ownAssembly = NodeAssemblies.AssemblyOf(node);
+        return NodeAssemblies.Assemblies.Values.Distinct()
             .SelectMany(candidate => candidate.GetTypes())
-            .FirstOrDefault(type => TypeShape.SimpleName(type) == simpleName);
+            .Where(type => TypeShape.SimpleName(type) == simpleName)
+            .OrderBy(type => NodeAssemblies.NodeOf(type) == node ? 0 : type.Assembly == ownAssembly ? 1 : 2)
+            .ThenBy(type => type.Assembly.GetName().Name, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     private static bool HasMember(Type type, string name)

@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace AerospacePropellantThermodynamics.Protocol.Tests;
 
 /// <summary>
@@ -12,15 +10,13 @@ public sealed class DependencyTests
     [Fact]
     public void Every_node_declares_the_neighbours_it_uses_and_no_other()
     {
-        var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
-            .SelectMany(pair => ProblemsOf(pair.Key, pair.Value))
-            .ToList();
+        var problems = NodeAssemblies.CodeNodes.SelectMany(ProblemsOf).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
-    private static IEnumerable<string> ProblemsOf(Node node, Assembly assembly)
+    private static IEnumerable<string> ProblemsOf(Node node)
     {
-        var (crossings, usedNodes) = Crossings(node, assembly);
+        var (crossings, usedNodes) = Crossings(node);
         var (declared, unresolved) = NodeDocuments.DeclaredDependencies(node);
         var boot = Tree.Relative(node.Boot);
         foreach (var link in unresolved)
@@ -43,13 +39,14 @@ public sealed class DependencyTests
         }
     }
 
-    /// <summary>Every neighbour or ancestor node a node's assembly refers to, and every (type → referenced type) pair that shows
-    /// it; <see cref="ProblemsOf"/> names the first six in its message.</summary>
-    private static (SortedDictionary<string, SortedSet<string>> Crossings, Dictionary<string, Node> UsedNodes) Crossings(Node node, Assembly assembly)
+    /// <summary>Every neighbour or ancestor node a node's own types (<see cref="NodeAssemblies.TypesOf"/>, not the whole
+    /// assembly it compiles into, which a project-less child node may share with others) refer to, and every
+    /// (type → referenced type) pair that shows it; <see cref="ProblemsOf"/> names the first six in its message.</summary>
+    private static (SortedDictionary<string, SortedSet<string>> Crossings, Dictionary<string, Node> UsedNodes) Crossings(Node node)
     {
         var crossings = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
         var usedNodes = new Dictionary<string, Node>(StringComparer.Ordinal);
-        foreach (var type in assembly.GetTypes())
+        foreach (var type in NodeAssemblies.TypesOf(node))
         {
             foreach (var referenced in TypeShape.ReferencedTypes(type))
             {
