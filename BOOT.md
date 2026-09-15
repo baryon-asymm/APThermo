@@ -458,6 +458,36 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   - Before 0.1.0 the surface is reviewed, and whatever no consumer scenario needs
     becomes internal.
   - Below 1.0.0 a minor version may break the surface; `CHANGELOG.md` names the break.
+  - The review of 2026-09-15 (`clean-code-reviewer` over `ed5213b`) found 82 public types.
+    38 serve a consumer scenario, and 44 exist only for the composition inside the tree:
+    kernel descriptors, views, tables, the engine and its batches.
+  - Decided that day: the package surface is the consumer scenarios' types only, and no
+    ILGPU type appears on it.
+- **Tree contracts.** A type another node uses but no consumer needs is `internal` to its
+  assembly (decided 2026-09-15).
+  - The assembly grants `InternalsVisibleTo` to exactly the assemblies whose nodes
+    declare it in their `## Dependencies`, and to the test and benchmark nodes that use
+    it. No grant goes against a declared dependency.
+  - An assembly whose internal types reach a kernel as parameters or view elements also
+    grants `InternalsVisibleTo("ILGPURuntime")`. ILGPU 1.5.3 emits its kernel wrappers
+    into a dynamic assembly of that name. It does not require kernel types to be public,
+    as three node documents claimed; the review proved it on the CPU accelerator and on
+    CUDA.
+  - A node's `API.md` keeps two parts, marked in the section headings: the package
+    surface, and the tree contract.
+  - A friend assembly may name an internal type of another node only when that node's
+    tree contract declares it; the protocol tests node checks this. A grant exposes
+    every internal, and the check holds the grant to the contract.
+  - The command line is a consumer like any other: it receives no grant and uses the
+    package surface only.
+  - Records the library creates for consumers (results, database records, the
+    accelerator description) have internal constructors. A field added in 0.x then
+    breaks no consumer.
+  - The batch path of the execution node (engine, batches, uploaded tables) leaves the
+    package surface together with the rest of the tree contract. `Solver` stays the
+    consumer's batch entry. How `Solver` compares with the engine at 100 000 states is
+    measured by the benchmarks node before 0.1.0. A columnar result on the front door
+    would be added only if that figure asks for it, and adding it breaks nobody.
 - **Documentation.** Two layers, each with one source of truth.
   - The contracts are the nodes' `API.md` and the XML comments.
   - The guide (`README.md`, `docs/guide/`, the package READMEs under `docs/nuget/`) is
