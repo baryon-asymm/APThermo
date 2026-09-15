@@ -5,7 +5,11 @@ using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
-/// <summary>The CSV form: the cells of <see cref="StationFields"/> as columns, one row per case and station; no compositions.</summary>
+/// <summary>
+/// The CSV form: one row per case and station, the scalar inputs, the state, the figures and the transport figures; no
+/// compositions. The cells after <c>station</c> and <c>status</c> are those of <see cref="StationFields"/>, with
+/// <c>transportStatus</c> before the transport cells.
+/// </summary>
 internal static class CsvOutput
 {
     public static string Render(IReadOnlyList<CaseOutput> cases)
@@ -25,6 +29,10 @@ internal static class CsvOutput
         return text.ToString();
     }
 
+    /// <summary>
+    /// Every scalar of the cases' <c>inputs</c> (numbers, strings, booleans; a record's objects and lists are not
+    /// columns), in the order first seen; a case without one leaves its cell empty.
+    /// </summary>
     private static IReadOnlyList<string> InputColumnsOf(IReadOnlyList<CaseOutput> cases)
     {
         var columns = new List<string>();
