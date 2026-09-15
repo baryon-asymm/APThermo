@@ -1,3 +1,5 @@
+using AerospacePropellantThermodynamics.Cli.Syntax;
+
 namespace AerospacePropellantThermodynamics.Cli;
 
 /// <summary>Command name to handler, no logic (it was the class `Commands`).</summary>

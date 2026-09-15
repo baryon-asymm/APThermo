@@ -1,7 +1,7 @@
 using System.Globalization;
 using AerospacePropellantThermodynamics.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Syntax;
 
 /// <summary>Parsing of the command-line option values: the number parser shared by --threshold and --mass-tolerance, and the format word.</summary>
 internal static class OptionValues

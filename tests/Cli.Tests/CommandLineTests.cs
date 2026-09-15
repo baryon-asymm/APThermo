@@ -1,4 +1,5 @@
 using System.Globalization;
+using AerospacePropellantThermodynamics.Cli.Syntax;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 

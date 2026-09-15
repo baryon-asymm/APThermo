@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Syntax;
 
 /// <summary>
 /// One command: its name, its usage line, the options that apply to it, the formats it supports, and its arity
