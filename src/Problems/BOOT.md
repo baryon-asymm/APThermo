@@ -427,8 +427,9 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   ⚠ 2026-09-15: `AtomicWeights`' row and its own summary read "the one translation of a
   missing atomic weight into an `ArgumentException` naming the element". Wrong from the
   type's introduction: `ReactantResolver.Custom` translates the same miss a second time,
-  naming the reactant as well as the element (present already at 7661ea9,
-  `Reactants.cs:354-362`, carried through every decomposition since). Unifying the two
+  naming the reactant as well as the element (present already in the
+  pre-decomposition `Reactants.cs` at `7661ea9`, carried through every decomposition
+  since). Unifying the two
   into one call site would change a message, which is out of scope here; the row and
   the type's summary now say what both translations do (the repair review's
   R-Problems-8). Found by the clean-code repair review.

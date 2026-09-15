@@ -485,13 +485,10 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       sweeps of both plateaus from both starts; the eight-ratio band and the
       four-exit example are that promise's committed form.
 - [x] 2026-09-14 - The decomposition of `## Structure` is in place and changed no
-      number. Shape: the node's largest type is `CondensedSet` at 250 physical lines
-      against the root's 400 and its largest method `NewtonIteration.Converge` at 56
-      against 60, with no control flow deeper than 3 and no method over six
-      parameters; measured over every type and method of the tree by the inventory
-      pass of the review, no exception declared or needed. (The protocol tests node's
-      `ShapeTests`, which is to hold this by machine, is the root's own unticked
-      criterion and does not exist yet.) Surface: `Protocol.Tests.SurfaceTests`
+      number. Shape: no type or method of this node over the root's size limits, no
+      control flow deeper than 3 and no method over six parameters, no exception
+      declared or needed; covered by the protocol tests node's `ShapeTests`, all ten
+      facts green at `62cd99e`. Surface: `Protocol.Tests.SurfaceTests`
       against `tests/Protocol.Tests/PublicSurface.approved.txt`, which this work did
       not touch - every new type is internal. Numbers: the tests node's
       `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over every
@@ -510,8 +507,9 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       at 55 lines (the `## Structure` warning above already says so); and the coupling
       recalibration (`9facd7f`) and the named-construction rule (`0c33d1e`) produced the
       three rows `## Shape exceptions` now declares. Found by the repair review of
-      2026-09-15 (R-Equilibrium-4). The line figures here are physical, not lines of
-      code, and give way to the protocol tests node's `ShapeTests` once it exists.
+      2026-09-15 (R-Equilibrium-4). The line figures named that day were physical,
+      not lines of code; the criterion above now cites the protocol tests node's
+      `ShapeTests` instead, which holds this by machine at `62cd99e`.
 - [x] 2026-09-14 - The rules the review of 2026-09-14 found written twice exist once
       each: the inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, called by
       the inclusion test and by the honesty guard), the element abundance
@@ -578,7 +576,8 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       the rest of it" (the condensed-species rule above): `PhaseGeometry.Adjacent` and
       `PhaseGeometry.PhaseAt` test `!SpeciesMarks.InPlay(scratch, k)`, not the raw
       `scratch.SpeciesActive[k] == 0` the clean-code pass carried over unchanged from
-      `EquilibriumSolver.cs:796` and `:849` at `7661ea9` (a test that was correct only
+      the bodies of `Adjacent` and `PhaseAt` in the pre-decomposition
+      `EquilibriumSolver.cs`, at `7661ea9` (a test that was correct only
       while `Absent` was the sole value skipped, before `SpeciesMark.StoodDown` existed;
       found by the repair review, R-Equilibrium-1). No `SpeciesActive[` remains outside
       `SpeciesMarks.Of` and `.Set` (`grep` over `src/Equilibrium/*.cs`, two matches, both
@@ -590,7 +589,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       pair of the ALN-gap tests above) and asserts `Adjacent` and `PhaseAt` return −1
       for it; before the fix `Adjacent` returned the stood-down piece's own table index
       (231) instead of −1 (`Assert.Equal() Failure: Expected: -1, Actual: 231`, the
-      first assertion, `PlateauTests.cs:150`) — `PhaseAt` was not reached, the same
+      fact's first assertion, on `Adjacent`) — `PhaseAt` was not reached, the same
       defect the report names for both methods.
 
       No fixture reaches the buggy path (BOOT.md's defect note on the condensed-species

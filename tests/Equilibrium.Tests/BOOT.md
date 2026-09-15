@@ -172,10 +172,10 @@ creation names its arguments; it passes them by position today (the criterion be
       (`AGENTS.md` §8: an absolute word needs proof or a caveat).
 - [x] 2026-09-15 — The creation of `BatchViews` in `KernelEqualityTests` names its
       arguments, in the order of the parameters (the root's condition on a declared
-      wide constructor, the row of `## Shape exceptions`), verified by
-      `ShapeMechanics.Constructions` (the protocol tests node's own tool, run through
-      a temporary, uncommitted test): one site, `KernelEqualityTests.cs:72`, fully
-      named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
+      wide constructor, the row of `## Shape exceptions`); one site,
+      `KernelEqualityTests.FillAndLaunch`, fully named; covered by
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, green at
+      `62cd99e`; the node's bit snapshot unchanged (`Bits.approved.txt` hash
       `65788e23f4390305763c80ab1f66b2054ff1907a`, the fast suite 463/463 green).
 
 - [x] 2026-09-15 — `HostSolution` (`HostSolver.cs`) restructured from 7 to 3

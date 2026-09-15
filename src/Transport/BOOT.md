@@ -315,28 +315,27 @@ row.
       LOX/RP-1 throat set of 14 species against 13, the N2O4/UDMH sets of 21 against
       26, every figure moved).
 - [x] 2026-09-14 — The decomposition of `## Structure`: every type of the node within
-      the root's code-shape constraint — measured over the node after the last step,
-      the largest type `TransportComponents` 244 lines and the largest method
-      `TransportScratch.Slice` 53 (the scratch descriptor, the declared exception to
-      the parameter rule), no control flow nested deeper than 3, no method with more
-      than six parameters — the public surface unchanged
-      (`Protocol.Tests.SurfaceTests` green against a `PublicSurface.approved.txt` that
-      did not move a line, every new type internal), and every station's figures bit
-      for bit those of `8e36a27` on the CPU accelerator: the tests node's
-      `Bits.approved.txt`, recorded before the first line of code moved, unchanged
-      through all eight steps, with `KernelEqualityTests`, `AbsentElementTests` and
-      every criterion above green after each of them, and the whole fast suite green
-      at the end (2144 tests). The protocol tests node's `ShapeTests`, which the
-      criterion named, does not exist yet; it re-measures this over the tree when that
-      node has it.
+      the root's code-shape constraint, `TransportScratch.Slice` (the scratch
+      descriptor) the declared exception to the parameter rule, no control flow
+      nested deeper than 3, no method with more than six parameters — the public
+      surface unchanged (`Protocol.Tests.SurfaceTests` green against a
+      `PublicSurface.approved.txt` that did not move a line, every new type
+      internal), and every station's figures bit for bit those of `8e36a27` on the
+      CPU accelerator: the tests node's `Bits.approved.txt`, recorded before the
+      first line of code moved, unchanged through all eight steps, with
+      `KernelEqualityTests`, `AbsentElementTests` and every criterion above green
+      after each of them, and the whole fast suite green at the end (2144 tests).
+      Covered by the protocol tests node's `ShapeTests`, all ten facts green at
+      `62cd99e`.
 
       ⚠ 2026-09-15: this criterion named `TransportScratch.Slice` at 53 lines. The
       `## Structure` section's own warning above (superseded by the named-construction
       fix) already corrected it to 58 once the return statement was rewritten to name
-      its arguments, but only there, not beside this criterion; the file
-      (`Descriptors.cs:165-222`) still measures 58 physical lines. Found by the repair
-      review (R-Transport-4). The figure is physical, not lines of code, and gives way
-      to the protocol tests node's `ShapeTests` once it exists.
+      its arguments, but only there, not beside this criterion; `TransportScratch.Slice`
+      itself still measured 58 physical lines. Found by the repair review
+      (R-Transport-4). The figure was physical, not lines of code; the criterion above
+      now cites the protocol tests node's `ShapeTests` instead, which holds this by
+      machine at `62cd99e`.
 - [ ] The execution tests node's CUDA sweep green once after the decomposition (the
       long-running `CudaTests`, which this node's session does not run: the criterion
       above was split on 2026-09-14 so that what is proven and what is still owed are

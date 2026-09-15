@@ -281,9 +281,9 @@ efferent-coupling row.
       fast suite, `dotnet test AerospacePropellantThermodynamics.sln --filter
       "Category!=LongRunning"` with `APTHERMO_NO_CUDA=1`, 2632 tests, 0 failed, 0
       skipped. The execution tests node's CUDA sweep and throughput benchmark are
-      `Category=LongRunning`; this task's instructions direct leaving them to the
-      orchestrator after the merge, so they were not run here — the one part of this
-      criterion not verified in this session.
+      `Category=LongRunning`; the 2026-09-14 coding session's instructions directed
+      leaving them to the orchestrator after the merge, so they were not run then —
+      the one part of this criterion not verified that session.
 
       ⚠ 2026-09-14: the parenthetical on `Protocol.Tests` first read "9 of 9 green,
       `ShapeTests` included". The protocol tests node had no `ShapeTests` then (its
@@ -291,8 +291,10 @@ efferent-coupling row.
       and the shape figures above come from the tree-wide inventory.
 
       ⚠ 2026-09-15: this bullet named `AreaRatioIteration.At` at 53 physical lines
-      (`ThroatSearch.At` next, at 52 physical lines): that day's `ShapeMeasures` still
-      counted blank and comment lines toward the span. `At` was 53 lines only because
+      (`ThroatSearch.At` next, at 52 physical lines): the 53 came from the tree-wide
+      inventory (`inventory.py` at `5281b7e`), where `ShapeMeasures` did not yet
+      exist, and it still counted blank and comment lines toward the span. `At` was
+      53 lines only because
       `a2a891b`, later the same day, split its verdict into a separate `Close` to fit
       the then-current physical-line rule; the repair review found the split
       count-driven, writing a station's extrapolation state before its verdict for no

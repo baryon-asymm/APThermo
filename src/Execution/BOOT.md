@@ -281,13 +281,10 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       `Cuda_matches_the_cpu_accelerator_within_the_table`,
       `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): no type or method
-      of the node above the root's code-shape limits (`python inventory.py .`: no
-      `src/Execution` type at or above 250 lines, largest method
-      `RocketPipeline.Run` at 51 lines; the declared exceptions are the four views
-      structs' constructors and `Engine`'s and `Kernels`' Ce, both named in `##
-      Structure`; the protocol tests node's `ShapeTests` does not exist on this
-      branch yet, so this reading is the inventory script the task names, not yet the
-      reflection check) — the public surface changed only by
+      of the node above the root's code-shape limits, the declared exceptions being
+      the four views structs' constructors and `Engine`'s and `Kernels`' Ce, both
+      named in `## Structure`; covered by the protocol tests node's `ShapeTests`, all
+      ten facts green at `62cd99e` — the public surface changed only by
       `AcceleratorInfo.CudaSkippedBecause`, in `c10ab0e` alone
       (`git diff 6af23b1..HEAD -- tests/Protocol.Tests/PublicSurface.approved.txt`:
       one line added, that property; `Protocol.Tests.SurfaceTests` green against it
@@ -306,11 +303,11 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       The protocol tests node's own measurement the same day found
       `LibDeviceLocator.Locate` nesting 4 deep: the `if (File.Exists(bitcode))` inside
       the `if (File.Exists(dll))` inside two `foreach` loops, over the root's limit of
-      3. This commit turns the inner check into a guard clause
+      3. `5e3a24b` turns the inner check into a guard clause
       (`if (!File.Exists(dll)) continue;`) and brings `Locate` to depth 3, examining
       the same paths in the same order.
 
-      ⚠ 2026-09-15: these figures described that day's branch, before `e453063`
+      ⚠ 2026-09-15: these figures described the code at `42efbe7`, before `e453063`
       reformatted `RocketPipeline.Run`'s two wide constructor calls onto named
       arguments; `## Shape exceptions` now holds ten rows: six efferent-coupling
       rows, the four pipelines among them, and the constructors of
@@ -337,7 +334,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       option, like `ChunkSize`
       (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`,
       committed in `fcb1128` with the chunk-plan extraction); the "inconsistent lengths" row was
-      never a separate row of `API.md`'s error table by the time this branch started
+      never a separate row of `API.md`'s error table by 2026-09-14
       (already merged into the one row above it), and the four branches that could
       not fire are gone from `Batches.cs` (`23ccc1d`).
 - [x] 2026-09-14 — Every creation of the node's four wide constructors names its

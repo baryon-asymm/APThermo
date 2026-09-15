@@ -204,14 +204,8 @@ dependency went away with it.
       five facts for a method that read six); neither is dropped, and both are
       generalised from the one aluminized-propellant station to every station of every
       fixture, so the split loses no coverage the monolithic test had. No method over
-      60 lines or nested deeper than 3 — measured by `inventory.py` over the node:
-      the longest method is still `FitTests.Fit_values_match_the_independent_evaluation`
-      at 48 lines (unchanged by this step); the new or changed ones are
-      `FigureComparison.Mismatches` 21, `StationTests.EstimationMismatches` 22,
-      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`
-      27 (nesting 3, `foreach` case → `foreach` station → `if` trace-eliminated),
-      `InputTests.Scratch_layout_slices_the_declared_sizes` 23 and its helper
-      `AssertTilesTheBuffer` 18 (nesting 2). The mutations criterion above is re-run
+      60 lines or nested deeper than 3, covered by the protocol tests node's
+      `ShapeTests`, all ten facts green at `62cd99e`. The mutations criterion above is re-run
       against the split, each mutation landing on the test that names the fact it
       breaks. The scratch-layout test of `InputTests` proves the slices fit and do not
       overlap instead of restating the formula (F-TK-13): it writes 0, 1, 2, … across
