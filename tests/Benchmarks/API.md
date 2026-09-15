@@ -125,7 +125,10 @@ for the library to see it) and marks the section ✅.
 
 ## Results
 
-`results/<yyyy-mm-dd>-<commit>/` (BenchmarkDotNet markdown and CSV, `run.md`) and
-`results/comparison-<yyyy-mm-dd>.md`, as `BOOT.md` describes. Text files; nothing reads
-them but a person. Not yet written: the comparison run is the coordinator's, not this
-commit's (BOOT.md, Acceptance criteria).
+`results/<yyyy-mm-dd>-<commit>-run<n>/` (BenchmarkDotNet markdown and CSV, `run.md`)
+and `results/comparison-<yyyy-mm-dd>.md`, as `BOOT.md` describes. Text files; nothing
+reads them but a person.
+
+⚠ 2026-09-15: written by the comparison run (`results/2026-09-15-8f99d11-run1/`,
+`results/2026-09-15-427fc0d-run2/`, `results/2026-09-15-8f99d11-run3/`,
+`results/comparison-2026-09-15.md`); this section previously read "not yet written".
