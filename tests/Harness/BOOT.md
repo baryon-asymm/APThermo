@@ -145,6 +145,18 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
       exception, not an oversight, recorded rather than forced to fit the absolute
       word (`AGENTS.md` §8).
 
+      ⚠ 2026-09-15 (later the same day): "catches a formatting change no bit
+      difference would" held for the CSV half only. Until this second correction
+      `Cli.Tests`' JSON half hashed a compact re-serialization of the document
+      (`JsonNode.Parse(json).AsObject()` with `run` removed, then `ToJsonString()`),
+      which itself let the document's indentation, line breaks, the final newline and
+      string escaping change unnoticed - exactly the kind of formatting change this
+      sentence claimed hashing text caught. Found by the repair review of 2026-09-15
+      (R-Cli.Tests-2). The JSON half now hashes the bytes the command line delivers for
+      the document, with the top-level `run` property cut out by span rather than by
+      re-serializing (`Cli.Tests` BOOT.md, the Bits level and the criterion of
+      2026-09-15), so the sentence now holds for both halves of every line.
+
 ## Taboos
 
 - No formula, no tolerance, no type of a numerical node, of the front door or of the

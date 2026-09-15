@@ -215,6 +215,14 @@ Decisions taken with the review of 2026-09-14:
   tests node's snapshot of the example outputs, recorded before any code moved; the
   `run` sections of the `species` and `devices` listings stay as they are (the review's
   open question 5 is answered by leaving the documents alone).
+
+  ⚠ 2026-09-15: for a JSON document's formatting — indentation, line breaks, the final
+  newline, string escaping — this claim was not held from 2026-09-14, when the
+  decomposition landed, to 2026-09-15: the tests node's snapshot hashed a compact
+  re-serialization of the document, which left that formatting unguarded (the repair
+  review's R-Cli.Tests-2). It holds now: the snapshot hashes the bytes the command line
+  delivers, with `run` cut out by span (`tests/Cli.Tests/BOOT.md`, the Bits level and
+  the criterion of 2026-09-15).
 - **Records take at most six positional parameters**: `StateDocument` becomes the front
   door's `StateRecord` with its `RecordSource`; a reactant document carries its custom
   part as a `CustomReactantDefinition`; `RunInfo` takes `Timings` and `RunLimits`;
