@@ -257,7 +257,9 @@ that holds the code:
 a member, all overloads of the name together (a constructor is `Type.Type`); `Rule` is
 a name of the table above; `Measured` is the figure the check measures. The check fails
 when a measurement exceeds its limit without a row, when it exceeds its row's figure,
-and when a row's type or member no longer exceeds the limit.
+and when a row's type or member no longer exceeds the limit. The nodes' `## Shape
+exceptions` tables transcribe the exceptions their `## Structure` sections declare; a
+violation no node declared is a finding for a design session, not a new row.
 
 Why the numbers are what they are:
 
@@ -483,7 +485,8 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       `Every_shape_exception_is_measured_and_still_needed`) over the types and methods
       the check enumerates itself: 422 types, 1301 methods, all ten facts green
       (`dotnet test tests/Protocol.Tests`: 19 passed). The nodes' `## Shape exceptions`
-      tables transcribe the exceptions their `## Structure` sections declare.
+      tables transcribe the exceptions their `## Structure` sections declare; a
+      violation no node declared is a finding for a design session, not a new row.
 
       The five over-limit facts and the reverse fact
       (`Every_shape_exception_is_measured_and_still_needed`) are themselves the
