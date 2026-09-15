@@ -4,15 +4,16 @@ using AerospacePropellantThermodynamics.Data;
 namespace AerospacePropellantThermodynamics.Thermo;
 
 /// <summary>
-/// Resolves one requested species name against the database (BOOT.md, the join-and-cut of condensed records): a
-/// gaseous name to its single record (gases are never joined or split), a condensed name to one or more
-/// <see cref="TablePiece"/>s. Product records sharing the name are joined into one contiguous piece when their
-/// formulas, molar masses and formation enthalpies agree and their ranges touch — F-TD-09: the committed file's
-/// repeated product-name groups never disagree in formation enthalpy, so the join refuses a pair that does, exactly
-/// as it already refuses a differing formula or molar mass — and the joined intervals are cut at a shared bound
-/// where two adjacent fits disagree by a real latent heat.
+/// Resolves one requested species name into its table pieces (BOOT.md, the join-and-cut of condensed records): the
+/// name's product records, or the database's own record for a name no product carries; every element of its formula
+/// among the table's, or the name is refused. A gaseous name resolves to its first product record, as the database
+/// indexer does, and is never joined or split. The records of a condensed name are joined into one contiguous piece
+/// when their formulas, molar masses and formation enthalpies agree and their ranges touch (F-TD-09: no same-name
+/// group of the committed file disagrees in formation enthalpy, so a pair that does is refused like a differing formula
+/// or molar mass), and the joined intervals are cut at a shared bound where two adjacent fits disagree by a real latent
+/// heat.
 /// </summary>
-internal static class CondensedAssembly
+internal static class SpeciesResolution
 {
     /// <summary>The gas piece of a gaseous name, or the condensed pieces of a condensed one.</summary>
     public static IReadOnlyList<TablePiece> Resolve(SpeciesDatabase database, IReadOnlyDictionary<string, int> elementIndex, string name)
@@ -49,7 +50,7 @@ internal static class CondensedAssembly
         foreach (var record in group)
         {
             RequireIntervals(record, name);
-            if (previous is not null && !Touches(previous, record))
+            if (previous is not null && !Joins(previous, record))
             {
                 throw new ArgumentException(
                     $"species '{name}' has {group.Count} records that cannot be joined into one species: they must share the formula, the molar mass and the formation enthalpy, and their ranges must touch",
@@ -64,7 +65,7 @@ internal static class CondensedAssembly
         return intervals;
     }
 
-    private static bool Touches(Species previous, Species record) =>
+    private static bool Joins(Species previous, Species record) =>
         record.Phase == SpeciesPhase.Condensed
         && SameFormula(previous, record)
         && record.MolarMass == previous.MolarMass
