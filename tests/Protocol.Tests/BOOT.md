@@ -412,7 +412,9 @@ Every `src` type with an afferent coupling (Ca) of 10 or more, counting only `sr
 dependants (R-Protocol.Tests-9; the table read every dependant of the tree, test nodes
 included, before this repair's fix — twenty-seven of the fifty-three rows it listed then
 dropped under 10 on the narrower count and are gone from the table below, none of them
-over 100 lines and undocumented either way):
+over 100 lines and undocumented either way). Re-measured at the coder's commit `e3f2507`
+(2026-09-15), the commit that narrowed `CouplingMeasures.AfferentCoupling` to `src`-node
+dependants; no commit after it changes any type's Ce, Ca or line count:
 
 | Node | Type | Ca | Lines | Named in `API.md` |
 |---|---|---|---|---|
