@@ -54,7 +54,7 @@ internal enum SpeciesMark
 
 /// <summary>
 /// The shape of the reduced system of one convergence: how many unknowns, where the total-moles and temperature rows sit,
-/// and which problem is being solved. The derivative system of section 2.6 is a tp-shaped layout over the same scratch.
+/// and which problem is being solved. The derivative system of section 2.5 is a tp-shaped layout over the same scratch.
 /// </summary>
 internal readonly struct SystemLayout
 {
@@ -90,9 +90,12 @@ internal readonly struct SystemLayout
 }
 
 /// <summary>
-/// The sums over the composition that the iteration matrix and the state record need, accumulated in one pass in ascending
-/// species order. Built field by field by <see cref="Composition"/> and read through <c>in</c> afterwards, so that no caller
-/// has to line up nine positional doubles (the swap hazard the root's parameter rule is about).
+/// The point one Newton step is linearized at and the sums over the composition taken there, in ascending species order.
+/// <c>LogN</c> and <c>Temperature</c> are the iterate the system was assembled at; <see cref="DampedStep.Apply"/> then moves
+/// <see cref="IterationState"/> while this copy stays put, so the convergence tests read the n and the gaseous sum of the
+/// step's own linearization, as the report's tests do. The state record reads the same sums at the converged iterate; the
+/// frozen path fills them from a given composition, with no system and <c>N</c> zero. Built field by field by
+/// <see cref="Composition"/> and read through <c>in</c> afterwards.
 /// </summary>
 internal struct MixtureSums
 {
@@ -124,7 +127,7 @@ internal struct MixtureSums
     public double CondensedMoles;
 }
 
-/// <summary>The equilibrium derivatives of RP-1311 section 2.6 at the converged composition.</summary>
+/// <summary>The equilibrium derivatives of RP-1311 section 2.5 at the converged composition.</summary>
 internal struct Derivatives
 {
     /// <summary>(∂ln n/∂ln T)_p; zero at a pinned pair, where the constant-pressure derivatives do not exist.</summary>

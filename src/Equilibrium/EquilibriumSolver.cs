@@ -141,7 +141,7 @@ public static class EquilibriumSolver
 
     /// <summary>
     /// The exit guards of an Ok status and the state record: element conservation at the node's invariant, no condensed
-    /// candidate hidden by the anti-cycling rule, then the derivatives of section 2.6 and the mixture properties.
+    /// candidate hidden by the anti-cycling rule, then the derivatives of section 2.5 and the mixture properties of section 2.6.
     /// </summary>
     private static CaseStatus Close(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                     in EquilibriumResult result, double logPressure, in IterationState state)

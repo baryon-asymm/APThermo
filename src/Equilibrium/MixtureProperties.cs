@@ -7,13 +7,13 @@ namespace AerospacePropellantThermodynamics.Equilibrium;
 /// pinned-pair) closure or the frozen one. Kernel-compatible; it writes <c>result.State[0]</c> and nothing else.
 /// </summary>
 /// <remarks>
-/// Property definitions as in RP-1311 section 2.6: M = 1/n over the gaseous moles, MW = 1 kg over the moles of all species
-/// (the reference's MW), γ_s = −(∂ln p/∂ln V)_s and a² = n R T γ_s per unit mass. At a pinned pair the state carries the
+/// Property definitions of RP-1311: M = 1/n over the gaseous moles (2.3a), MW = 1 kg over the moles of all species (2.4a;
+/// the reference's MW), γ_s = −(∂ln p/∂ln V)_s and a² = n R T γ_s per unit mass (2.71, 2.74, section 2.6). At a pinned pair the state carries the
 /// reference's convention cp_eq = cv_eq = (∂ln V/∂ln T)_p = 0 with the real (∂ln V/∂ln p)_T (BOOT.md, API.md).
 /// </remarks>
 internal static class MixtureProperties
 {
-    /// <summary>The converged equilibrium state, with the derivatives of section 2.6 or the plateau convention of a pinned pair.</summary>
+    /// <summary>The converged equilibrium state, with the derivatives of section 2.5 or the plateau convention of a pinned pair.</summary>
     public static void WriteEquilibrium(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums,
                                         in Derivatives derivatives)
     {

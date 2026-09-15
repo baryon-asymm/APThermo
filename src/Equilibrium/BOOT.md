@@ -13,10 +13,21 @@ on its own against the reference implementation.
 ⚠ Declared deviation (`AGENTS.md` §6, §12): the algorithm is the one of NASA RP-1311
 Part I (Gordon and McBride, 1994), chapter 2 (equations of the minimization and of the
 iteration), chapter 3 (convergence, control factors, condensed species, trace species)
-and section 2.6 (derivatives). This document fixes every choice the report leaves open
+and sections 2.5 (the derivatives from the matrix solutions) and 2.6 (the other
+derivatives). This document fixes every choice the report leaves open
 and every limit the implementation needs; it does not restate the report. Whoever
 codes this node reads the report's chapters named here. What would lift the deviation:
 a full restatement of the equations in this document, which nobody has asked for.
+
+⚠ 2026-09-15: this paragraph, the "Property definitions" bullet of the Constraints
+below and the `## Structure` row of `DerivativeSystem` all read "section 2.6" for the
+derivatives the matrix solutions produce. RP-1311's section 2.5, "Thermodynamic
+Derivatives From Matrix Solutions", holds the system (2.56)–(2.58), cp by (2.59) and
+the pressure system (2.64)–(2.66); section 2.6, "Other Thermodynamic Derivatives",
+holds cv, γ_s (2.71, 2.73) and the sound speed (2.74) — figures read off the converged
+state, not solved for. `API.md`, which already said 2.5, was the one place the
+disagreement could be checked against; the repair review found it and the design
+session checked both sections of the report. Corrected at every place named above.
 
 ## Invariants
 
@@ -190,9 +201,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   (`MixtureState`: T, p, ρ, h, u, s, g, M, MW, frozen and equilibrium Cp and Cv, the two
   derivatives, γ_s, sound speed), the Lagrange multipliers (needed by `Transport` for
   the reacting conductivity), the iteration count and the status.
-- Property definitions as in RP-1311 section 2.6: `Cp_eq` includes the composition
-  derivatives; `γ_s = −(∂ln p/∂ln V)_s`; `a² = n R T γ_s` per unit mass; `M = 1/n`
-  with `n` the total gaseous moles per kilogram; `MW = 1/Σ n_j` over all species with
+- Property definitions of RP-1311: `Cp_eq` includes the reaction contribution of the
+  composition derivatives ((2.49), (2.59), section 2.5); `γ_s = −(∂ln p/∂ln V)_s` and
+  `a² = n R T γ_s` per unit mass (2.71, 2.74, section 2.6); `M = 1/n` (2.3a) with `n`
+  the total gaseous moles per kilogram; `MW = 1/Σ n_j` (2.4a) over all species with
   the condensed ones counted as moles (the reference's MW, see the Thermo `API.md`);
   the condensed species are included in h, s and Cp of the mixture as in CEA.
   At a pinned pair the constant-pressure derivatives do not exist: the derivative
@@ -228,7 +240,7 @@ below) is the proof.
 | `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
 | `PhaseGeometry` | where two records of one formula meet: the record bounds as `Thermo` answers them, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
 | `ElementBalance` | the residual `Σ a_ij n_j − b_i` (one place, used by the matrix and by the tests) and its two tolerance tests, as two named methods | internal |
-| `DerivativeSystem` | the derivative system of section 2.6 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
+| `DerivativeSystem` | the derivative system of section 2.5 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
 | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
 | `FrozenTemperature` | Newton on the temperature at a fixed composition, to the frozen test, with its own step cap | internal |
 | `DenseSolver` | contract unchanged; `Solve` split into scaling, elimination and back substitution | public, contract unchanged |

@@ -3,7 +3,7 @@ using AerospacePropellantThermodynamics.Thermo;
 namespace AerospacePropellantThermodynamics.Equilibrium;
 
 /// <summary>
-/// The equilibrium derivatives of RP-1311 section 2.6 at the converged composition: the tp-shaped matrix solved with the two
+/// The equilibrium derivatives of RP-1311 section 2.5 at the converged composition: the tp-shaped matrix solved with the two
 /// right-hand sides of tables 2.3 (temperature) and 2.4 (pressure), and the reaction part of cp/R of equation (2.59).
 /// Kernel-compatible; it reuses the iteration's matrix, right-hand side and row scales.
 /// </summary>
