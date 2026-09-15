@@ -1,3 +1,5 @@
+using AerospacePropellantThermodynamics.Execution.Chunks;
+
 namespace AerospacePropellantThermodynamics.Execution;
 
 /// <summary>The loop of a batch, and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope.</summary>

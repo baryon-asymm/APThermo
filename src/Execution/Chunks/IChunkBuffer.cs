@@ -1,6 +1,6 @@
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace AerospacePropellantThermodynamics.Execution.Chunks;
 
 /// <summary>One device buffer of a chunk, whatever it holds: what it costs per case, and how it moves around a launch.</summary>
 internal interface IChunkBuffer : IDisposable
