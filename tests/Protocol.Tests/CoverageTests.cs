@@ -13,36 +13,42 @@ public sealed class CoverageTests
     [Fact]
     public void Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api()
     {
-        var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
-            .Where(pair => !NodeAssemblies.IsTestAssembly(pair.Value))
-            .SelectMany(pair => UndocumentedTypeProblems(pair.Key, pair.Value))
+        var problems = NodeAssemblies.CodeNodes
+            .Where(node => !NodeAssemblies.IsTestAssembly(NodeAssemblies.AssemblyOf(node)!))
+            .SelectMany(UndocumentedTypeProblems)
             .ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>Every type of every assembly resolves, by its own namespace, to exactly one node's own namespace (not merely
+    /// a deeper, undeclared corner of an ancestor's), and that node's own code compiles into the assembly the type was found
+    /// in — the generalisation AGENTS.md §1 needs once several nodes can share one assembly (root BOOT.md, Constraints,
+    /// 2026-09-15): a type whose namespace only a prefix of some node matches, with no node of the exact deeper path, is
+    /// still misplaced.</summary>
     [Fact]
     public void Every_type_of_every_assembly_lives_in_the_namespace_of_its_node()
     {
-        var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
-            .SelectMany(pair => MisplacedTypeProblems(pair.Key, pair.Value))
+        var problems = NodeAssemblies.Assemblies.Values.Distinct().OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal)
+            .SelectMany(MisplacedTypeProblems)
             .ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
-    private static IEnumerable<string> UndocumentedTypeProblems(Node node, Assembly assembly)
+    private static IEnumerable<string> UndocumentedTypeProblems(Node node)
     {
         var api = File.ReadAllText(node.Api);
-        foreach (var type in assembly.GetExportedTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
+        var exported = NodeAssemblies.AssemblyOf(node)!.GetExportedTypes().ToHashSet();
+        foreach (var type in NodeAssemblies.TypesOf(node).Where(exported.Contains).OrderBy(type => type.FullName, StringComparer.Ordinal))
         {
             var name = TypeShape.SimpleName(type);
             if (!ApiDeclarations.NamesType(api, name))
             {
-                yield return $"{Tree.Relative(node.Api)} never names {name}, which {node.AssemblyName} exports (root BOOT.md, Taboos: no public type outside its node's API.md)";
+                yield return $"{Tree.Relative(node.Api)} never names {name}, which {node.Namespace} exports (root BOOT.md, Taboos: no public type outside its node's API.md)";
             }
         }
     }
 
-    private static IEnumerable<string> MisplacedTypeProblems(Node node, Assembly assembly)
+    private static IEnumerable<string> MisplacedTypeProblems(Assembly assembly)
     {
         foreach (var type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
         {
@@ -51,9 +57,15 @@ public sealed class CoverageTests
                 continue;
             }
 
-            if (type.Namespace != node.AssemblyName)
+            var owner = NodeAssemblies.NodeOf(type);
+            if (owner is null || owner.Namespace != type.Namespace)
             {
-                yield return $"{type.FullName} is in namespace {type.Namespace}; the node {node.Name} is the namespace {node.AssemblyName} (AGENTS.md §1)";
+                yield return $"{type.FullName} is in namespace {type.Namespace}, and no node of the tree is exactly that namespace (AGENTS.md §1)";
+            }
+            else if (NodeAssemblies.AssemblyOf(owner) != assembly)
+            {
+                yield return $"{type.FullName} is in namespace {type.Namespace}; its node {owner.Name} compiles into " +
+                             $"{NodeAssemblies.AssemblyOf(owner)!.GetName().Name}, not {assembly.GetName().Name} (AGENTS.md §1)";
             }
         }
     }

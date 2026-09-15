@@ -35,20 +35,30 @@ internal static class CouplingMeasures
         .ToDictionary(group => group.Key, group => group.Select(edge => edge.Source).Distinct().Count());
 
     /// <summary>
-    /// The "stable dependencies" measure over the `src` project graph: for every `src` node, the other `src` nodes it depends
-    /// on (`Ce`, its out-degree), the other `src` nodes that depend on it (`Ca`, its in-degree), and the set of nodes it
-    /// depends on, so that a caller can both compute `I = Ce / (Ca + Ce)` and walk every edge. Read from the declared
-    /// dependencies (<see cref="NodeDocuments"/>), which the Dependencies level holds equal to the nodes whose types each
-    /// node's code uses; the project references themselves are not read. Test nodes and the ancestors/descendants a node's
-    /// own dependency section may never name play no part.
+    /// The "stable dependencies" measure over the `src` nodes that hold a project (root <c>BOOT.md</c>, Constraints,
+    /// 2026-09-15, child-nodes phase): for every such node, the other project-holding `src` nodes it depends on (`Ce`, its
+    /// out-degree), the other project-holding `src` nodes that depend on it (`Ca`, its in-degree), and the set of nodes it
+    /// depends on, so that a caller can both compute `I = Ce / (Ca + Ce)` and walk every edge. A project-less child node is
+    /// not a component of its own: it compiles into its nearest ancestor's assembly (<see cref="NodeAssemblies.ProjectNodeOf"/>,
+    /// the same walk <see cref="NodeAssemblies.AssemblyOf"/> uses), so its declared dependencies (<see cref="NodeDocuments"/>)
+    /// join that ancestor's, each mapped to its own project node the same way; an edge that folds back onto the same project
+    /// node — a child naming its own ancestor, or two children of one parent naming each other — is dropped, since it never
+    /// crosses a project boundary. Test nodes and the ancestors/descendants a node's own dependency section may never name
+    /// play no part.
     /// </summary>
     public static IReadOnlyDictionary<Node, (int Ce, int Ca, IReadOnlySet<Node> Dependencies)> NodeCoupling()
     {
-        var srcNodes = Tree.Nodes.Where(node => node.IsSrc).ToHashSet();
-        var dependencies = srcNodes.ToDictionary(node => node, DependenciesOf);
-        return srcNodes.ToDictionary(node => node, node => Coupling(node, srcNodes, dependencies));
+        var projectNodes = Tree.Nodes.Where(node => node.IsSrc && NodeAssemblies.Assemblies.ContainsKey(node)).ToHashSet();
+        var dependencies = projectNodes.ToDictionary(node => node, DependenciesOf);
+        return projectNodes.ToDictionary(node => node, node => Coupling(node, projectNodes, dependencies));
 
-        IReadOnlySet<Node> DependenciesOf(Node node) => NodeDocuments.DeclaredDependencies(node).Nodes.Where(srcNodes.Contains).ToHashSet();
+        IReadOnlySet<Node> DependenciesOf(Node projectNode) => Tree.Nodes
+            .Where(member => member == projectNode || (member.IsDescendantOf(projectNode) && NodeAssemblies.ProjectNodeOf(member) == projectNode))
+            .SelectMany(member => NodeDocuments.DeclaredDependencies(member).Nodes)
+            .Select(NodeAssemblies.ProjectNodeOf)
+            .Where(target => target is not null && target != projectNode && projectNodes.Contains(target))
+            .Select(target => target!)
+            .ToHashSet();
     }
 
     private static (int Ce, int Ca, IReadOnlySet<Node> Dependencies) Coupling(

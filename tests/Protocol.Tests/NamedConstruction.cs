@@ -18,7 +18,7 @@ internal static class NamedConstruction
     /// <summary>Every type a node's `## Shape exceptions` table declares a `parameters` row for on its own constructor
     /// (`Type.Type` in the row's `Where`, or `Outer.Inner.Inner` for a nested type: the last two dotted segments equal): the
     /// candidates <see cref="Creations"/> resolves a written name against.</summary>
-    public static IReadOnlyCollection<WideConstructorType> Candidates() => Tree.Nodes.Where(node => node.AssemblyName is not null)
+    public static IReadOnlyCollection<WideConstructorType> Candidates() => NodeAssemblies.CodeNodes
         .SelectMany(node => NodeDocuments.ShapeExceptions(node).Where(exception => exception.Rule == "parameters" && IsConstructorPattern(exception.Where))
             .Select(exception => ToCandidate(node, exception.Where)))
         .ToList();
@@ -53,8 +53,8 @@ internal static class NamedConstruction
         IReadOnlyCollection<WideConstructorType> candidates)
     {
         var bySimpleName = candidates.ToLookup(type => type.SimpleName, StringComparer.Ordinal);
-        var declaredNames = Tree.Nodes.Where(node => node.AssemblyName is not null).ToDictionary(node => node, DeclaredTypeNames);
-        foreach (var node in Tree.Nodes.Where(node => node.AssemblyName is not null))
+        var declaredNames = NodeAssemblies.CodeNodes.ToDictionary(node => node, DeclaredTypeNames);
+        foreach (var node in NodeAssemblies.CodeNodes)
         {
             foreach (var (path, tree) in SourceSyntax.Trees(node))
             {
@@ -110,7 +110,7 @@ internal static class NamedConstruction
         (string? Qualifier, string SimpleName) written, FileScope scope, WideConstructorType candidate,
         IReadOnlyDictionary<Node, IReadOnlySet<string>> declaredNames)
     {
-        var candidateNamespace = candidate.Node.AssemblyName!;
+        var candidateNamespace = candidate.Node.Namespace;
         if (written.Qualifier is { } qualifier)
         {
             var target = candidate.NestingPath.Length > 0 ? candidateNamespace + "." + candidate.NestingPath : candidateNamespace;

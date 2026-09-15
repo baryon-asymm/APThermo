@@ -47,9 +47,8 @@ depends on console, serialization or file-layout concerns.
 - [Data](../Data/API.md) — loading the database and listing species.
 - [Execution](../Execution/API.md) — the engine options, the accelerator description, the unavailable exception, the CUDA flag.
 - [Thermo](../Thermo/API.md) — `MixtureState` and `CaseStatus` of every station.
-- [Performance](../Performance/API.md) — `FlowModel`, `PerformanceFigures`.
-- [Transport](../Transport/API.md) — `TransportFigures`.
-- [Equilibrium](../Equilibrium/API.md) — `ProblemKind`.
+- [Performance](../Performance/API.md) — `FlowModel` (`DocumentWords`' flow words).
+- [Equilibrium](../Equilibrium/API.md) — `ProblemKind` (`DocumentWords`' kind words).
 
 Outside the tree: the .NET base class library (`System.Text.Json`); command-line
 parsing is hand-written to avoid a dependency (revisited if the surface grows).
@@ -59,6 +58,18 @@ execution node's options and reports its accelerator, and the result records car
 the numerical nodes' structs, which this node reads field by field; the reflection
 dependency check reads types in method bodies, so the links are declared. The root's
 decomposition carries the same.
+
+⚠ 2026-09-15: this list carried `Transport` (`TransportFigures`) and read
+`Performance` as `FlowModel, PerformanceFigures`. The clean-code decomposition moved
+`StationFields` and every direct reader of `TransportFigures` and
+`PerformanceFigures` into the child node `Output` (its own `BOOT.md` declares
+`Transport` and `Performance` now); this node's own remaining code reaches
+`Performance` only through `DocumentWords`' flow words. Found by the protocol tests
+node's `DependencyTests` after the move (`src/Cli/BOOT.md declares src/Transport, but
+no type of src/Cli refers to it`); the child-node attribution
+(root `BOOT.md`, Constraints, 2026-09-15) means a dependency used only by a child is
+declared there, not repeated at the parent's own level, unless the parent's own code
+also uses it.
 
 ## Constraints
 
@@ -129,6 +140,45 @@ one-assembly-per-node rule would turn into several assemblies for one adapter.
 Everything is internal except `Program` and `ExitCode`; one type per file, named after
 the type.
 
+⚠ 2026-09-15: "the split is into types, not into sub-nodes" no longer holds whole.
+The root's own-assembly-per-node rule was the reason for it, and the root `BOOT.md`
+(Constraints, 2026-09-14 for the decision, dated 2026-09-15 in its own text) now lets a
+child node compile into its nearest ancestor's assembly instead of forcing one of its
+own, precisely so a large node like this one could be cut into sub-nodes without
+widening its public surface. Five clusters of this node passed the child-node test (the
+root `BOOT.md`, `## Decomposition`, the "child nodes phase"): `Syntax/`,
+`Documents/`, `Cases/`, `Output/` and `Listings/`, each with its own `BOOT.md` and
+`API.md` and the namespace of its path
+(`AerospacePropellantThermodynamics.Cli.Syntax` and so on), compiled into this
+node's own assembly. `Program`, `CommandRegistry`, `Failures`, `SolverSession`, the
+three command types (`ProblemCommand`, `StatesCommand`, `SpeciesCommand`) and the
+shared vocabulary and run-bookkeeping types with no single owning cluster
+(`DocumentWords`, `Names`, `InputException`, `InputFile`, `DatabaseFiles`,
+`DatabaseInfo`, `RunInfo`, `RunLimits`, `Timings`) stayed at this node's own level.
+`DocumentWords` was weighed for `Syntax/` and for `Documents/` (both read it,
+`CommandTable` for `--accelerator`, the readers for `flow`, `role`, `amountKind` and
+`kind`) and, on inspection, also for `Cases/` (`CaseInputs`'s echo of `kind`) and for
+`Output/` (`RunSection`'s echo of the accelerator): four clusters, no dominant owner,
+so moving it into any one would turn the other three into its dependents for one
+lookup table. It stays here, at this node's own level: every child already names this
+node as its ancestor (`[Cli](../API.md)` in its own `## Dependencies`), so reading
+`DocumentWords` from any of them costs no new edge. `Names` and the run-bookkeeping
+records (`RunInfo` and what it carries) were kept for the same reason, one level less
+sharply split: `Names` reaches `Output/` and `Listings/`, `RunInfo` is `SolverSession`'s
+own return value read by `Output/`, `Listings/` and the command types alike, and moving
+either would still leave at least two of the three as its dependents. `OutputFormat`
+and `CaseOutput`/`Combination` moved instead of staying, because each has a genuine
+majority owner (`Syntax/` and `Cases/` respectively) that the rest of the node
+reaches only through a field already carried by a wider record (`CommandOptions.Format`,
+the case's own shape); their own `BOOT.md` records the reasoning. `Syntax/` is not
+named `CommandLine/`: its own `BOOT.md` records why (a namespace and a same-named type
+inside it force a doubled qualification on every caller in the `Cli` tree).
+
+The move itself was mechanical: `git mv` and a namespace edit per moved file, no logic
+touched, one commit per child (`## Structure` of each child names its own moved
+types). No `## Shape exceptions` row moved, because the three rows below all name a
+composition root that stayed at this node's own level.
+
 ⚠ 2026-09-15: four rows of the table below had drifted from the code they describe.
 `StateRecordReader`'s row said the record files' shape was decided "by the first
 non-blank character"; the code decides it by attempting to parse the first JSON value
@@ -147,44 +197,40 @@ code of the last two to match the row each already claimed (`Sweeps.Expand` is o
 query over the four axes; `CaseInputs.Rocket` and `CaseInputs.Equilibrium` own the
 whole echo, `AddTarget` moved in from `EquilibriumCases`).
 
+Types that stayed at this node's own level:
+
 | Type | Responsibility |
 |---|---|
 | `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
 | `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
-| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`) |
-| `CommandSpec`, `OptionSpec` | one command: name, arity, usage line, the options and formats that apply; one option: name, takes a value or not, usage line, how it folds into `CommandOptions` |
-| `CommandTable` | the two tables, and the usage text generated from them, the defaults read from `CommandOptions.DefaultThreshold` and `ElementalMixture.DefaultMassTolerance` (F-AR-04) |
-| `ArgumentScanner` | the token walk: `--name`, `--name=value`, `--help`, positionals, a repeated option |
-| `CommandLine` | `Parse`: scan, look up, check arity, apply the options, check what applies (2026-09-15, R-Cli-5: dropped the `Usage` and `Commands` members that only forwarded to `CommandTable`; `Program` and the tests node read `CommandTable.Usage` and `CommandTable.Names` directly) |
-| `CommandOptions`, `OptionValues` | the parsed options; the number parser shared by `--threshold` and `--mass-tolerance`, the second validated by `ElementalMixture.IsValidMassTolerance` |
-| `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11) |
-| `JsonText` | a text parsed with its source label in the message |
-| `StrictObject` | unchanged: the mechanism of the strict-documents invariant |
-| `SweepValues` | a list or a `{from, to, step}` range into values, with the step tolerance named and derived (F-CL-12) |
-| `ProblemDocumentReader` | the document's root: parses the text, reads `propellant` through `PropellantDocumentReader`, `problem` through `ProblemPartReader` and `sweep` through `SweepDocumentReader`; reads `engine` itself (the accelerator word), finishes the root and assembles the `InputDocument` (2026-09-14, kept the name: the API calls the file a problem document) |
-| `PropellantDocumentReader` | the `propellant` object only: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
-| `ProblemPartReader` | the `problem` object only: one reader per problem kind (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
-| `SweepDocumentReader` | the `sweep` object only: the ranges the batch's Cartesian product runs over (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
-| `StateRecordReader` | the record files, their shape decided by reading the first JSON value and what follows it (`JsonText.TryParseWhole`): one value alone is an array or an object, more is JSON Lines; each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
+| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand` and `Listings.DeviceListing` |
+| `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11); read by all four clusters below, no dominant owner (see the warning above) |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
-| `ProblemCommand` | `rocket` and `equilibrium`: read, check the problem type against the command, build the mixtures, expand the sweep, solve, write |
-| `StatesCommand` | `states`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order |
-| `RecordNaming` | a refusal of the front door (`StateRecordException`, `MixtureMassException`) renamed from its index to the record's file and position |
-| `Sweeps` | the Cartesian product of a sweep, ratio-major, then chamber pressure, then pressure, then temperature: the rule of this node's input document (2026-09-15, R-Cli-7: `CrossedWith`'s fold replaced by one query over the four axes; see the warning above) |
-| `Propellants` | a propellant document into builder calls or an elemental mixture; a custom reactant as the front door's `CustomReactantDefinition` |
-| `RocketCases`, `EquilibriumCases` | combinations and a problem document into problems, and results into case outputs |
-| `CaseInputs` | the whole `inputs` echo of a case, written once, for a rocket and for an equilibrium case (2026-09-15, R-Cli-3: `AddTarget` moved in from `EquilibriumCases`; see the warning above) |
-| `DatabaseFiles` | unchanged: where the database directory is found |
-| `StationFields` | the one projection of a station into named, typed cells (the state, the performance figures with the two conversions to seconds, the transport figures), from the library's structs by reflection; owns `StandardGravity` (F-CL-06, F-CL-07) |
-| `JsonOutput`, `CsvOutput` | the cells as nested objects with the compositions above the threshold; the same cells as columns, the header from the same source |
-| `RunSection` | the `run` object and the accelerator object, for every command that writes them |
-| `DocumentWriter` | a case document rendered in the requested format with the exit code of its cases (`ExitCodes`); the JSON writer the listings render through, with the non-finite-number rule; delivery to the output file or standard output |
-| `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
-| `Names` | camel case of the library's names and of statuses; the flow, accelerator and problem-kind words are `DocumentWords`' own, both directions (2026-09-15, R-Cli-4: `Kind` and `Accelerator` moved there beside their parsers) |
-| `SpeciesRow` | one species flattened once (F-CL-08) |
-| `SpeciesCommand` | the `species` command: the database, the name filter, the rows, the run and the delivery (2026-09-14, split out of `SpeciesListing` by the coordinator's review, the way `DeviceListing` already separated the probe from the rendering) |
-| `SpeciesListing` | the rendering of `SpeciesCommand`'s rows: JSON or CSV (2026-09-14, kept to rendering only) |
-| `DeviceProbe`, `DeviceReport`, `DeviceListing` | what the machine offers, asked once; the report; its rendering |
+| `ProblemCommand` | `rocket` and `equilibrium`: read (`Documents`), check the problem type against the command, build the mixtures, expand the sweep, solve (`Cases`), write (`Output`) |
+| `StatesCommand` | `states`: the records split by `HasExits` (`Documents`), one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order, written (`Output`) |
+| `DatabaseFiles`, `DatabaseInfo` | unchanged: where the database directory is found, and the record of what was found |
+| `RunInfo`, `RunLimits`, `Timings` | a run's own bookkeeping, assembled by `SolverSession.Stop`; read by `Output` and `Listings` through their fields only |
+| `Names` | camel case of the library's names and of statuses; read by `Output` and `Listings`, and by `DocumentWords`' own fallback branch (see the warning above) |
+| `SpeciesCommand` | the `species` command: the database, the name filter, the rows (`Listings.SpeciesRow`), the run and the delivery (`Listings.SpeciesListing`, `Output.DocumentWriter`) |
+| `InputException`, `InputFile` | the node's own exception, raised throughout; a user-named file read with the missing-file message this node documents |
+
+## Children
+
+Five clusters of `## Structure` above passed the child-node test (the root `BOOT.md`,
+`## Decomposition`; the warning above records why each was cut where it was, and why
+`DocumentWords`, `Names` and the run-bookkeeping types were not moved). Each child's
+own `BOOT.md` names the types it holds and why; the `AGENTS.md` §1 access rules apply
+between this node and each of them exactly as between neighbours: reading a child's
+code from a sibling child, or from this node past its `API.md`, is not this document's
+business to forbid twice.
+
+| Child | Namespace | Holds |
+|---|---|---|
+| [`Syntax/`](Syntax/BOOT.md) | `Cli.Syntax` | the token walk, the command and option tables, `Invocation`, `CommandOptions`, `OutputFormat` |
+| [`Documents/`](Documents/BOOT.md) | `Cli.Documents` | the problem-document and state-record readers, the strict-object mechanism, the document shapes |
+| [`Cases/`](Cases/BOOT.md) | `Cli.Cases` | the sweep expansion, the propellant and case builders, `CaseOutput` |
+| [`Output/`](Output/BOOT.md) | `Cli.Output` | the JSON and CSV renderers, the station field projection, delivery, the exit-code rule |
+| [`Listings/`](Listings/BOOT.md) | `Cli.Listings` | the `species` row and its rendering, the `devices` probe and its rendering |
 
 Decisions taken with the review of 2026-09-14:
 

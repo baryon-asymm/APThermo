@@ -39,5 +39,7 @@ domain's axes.
 - The linter invoked as `python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates --strict`
   from the tree root, with Python found on the path; absence of Python is a failure,
   not a skip.
-- The C# syntax trees of the source files of every node with a project, and the
-  `## Shape exceptions` tables of the nodes' `BOOT.md` (2026-09-14).
+- The C# syntax trees of the source files of every node whose code lives in one of the
+  tree's assemblies — a node with its own project, or a project-less child node
+  compiled into its nearest ancestor's (2026-09-14; child nodes, 2026-09-15) — and the
+  `## Shape exceptions` tables of the nodes' `BOOT.md`.
