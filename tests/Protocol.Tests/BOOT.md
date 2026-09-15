@@ -671,6 +671,49 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       and the line numbers of the members below the edit, both the expected, mechanical
       consequence of this node's own file growing, not a change of what any rule
       measures on the real tree.
+- [x] 2026-09-15 — R-Protocol.Tests-12 (repair phase): the three rules that name only
+      `src` types were, until now, proved red only through synthetic inputs fed
+      straight to their own comparison helpers (the paragraph above the two tables of
+      `## Shape check`), because a mutation confined to this node cannot reach the
+      `src`-node code they measure. The decisions authorized a temporary, reverted
+      mutation of the real `src` nodes for this evidence alone; each of the three now
+      has one, applied in this node's own worktree, seen red, and reverted (`git status`
+      clean, `git diff --stat` empty, after each):
+      - efferent coupling: a scratch type, `Cli.MutationMeasureCe`, added to
+        `src/Cli` naming fifteen distinct real types of seven other `src` nodes
+        (already-declared dependencies of `Cli`, so no dependency line moved) and
+        removed again; `No_src_type_names_more_than_14_types_of_the_tree` red,
+        "src/Cli: MutationMeasureCe (src/Cli/MutationMeasureCe.cs:6) measures 15 for
+        efferent coupling, over 14, and no row of src/Cli/BOOT.md declares it";
+      - stable type: `src/Transport`'s `StationInputs` (Ca 11, undocumented, the only
+        `src/Transport` row of the re-measured Ca table below the 100-line limit)
+        padded with ninety `private const int` fields from 17 to 107 lines of code and
+        restored; `Every_stable_type_is_small_or_a_contract` red, "src/Transport:
+        StationInputs is named by 11 types of the `src` nodes (a stable type) and spans
+        107 lines, over 100, without being named in src/Transport/API.md". The review's
+        own suggestion, `src/Execution`'s `AcceleratorSession`, no longer qualifies:
+        R-Protocol.Tests-9's src-only recount (above) took its Ca from 10 to 9, so it
+        dropped out of the stable-type table before this mutation was chosen; every
+        `src/Execution` type of the re-measured table is named in its `API.md`, leaving
+        none to pad there undocumented, hence `StationInputs`;
+      - stable dependencies: `src/Thermo/BOOT.md`'s `## Dependencies` given a second
+        line, `[Cli](../Cli/API.md)`, never used by any type of `src/Thermo` (the same
+        shape as the node's own historical mutation 3b, reused here for the Shape level
+        rather than the Dependencies level), and removed again;
+        `No_src_dependency_points_to_a_less_stable_node` red with two lines at once,
+        "src/Equilibrium (I=0.167) depends on src/Thermo (I=0.250), which is less
+        stable" and "src/Thermo (I=0.250) depends on src/Cli (I=0.875), which is less
+        stable" (Thermo's own Ce rose 1 → 2 and Cli's Ca 0 → 1 on the declared graph);
+        `DependencyTests.Every_node_declares_the_neighbours_it_uses_and_no_other` red
+        alongside it, "src/Thermo/BOOT.md declares src/Cli, but no type of src/Thermo
+        refers to it: the dependency went away and the document did not, or it was
+        never real" — the same mutation shape genuinely breaking both levels at once,
+        as the node's own history already found for the Dependencies level alone.
+
+      `dotnet test tests/Protocol.Tests` green (20 passed) after each revert and after
+      all three; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0
+      errors after each revert; the linter 0 errors, 0 warnings; no file outside this
+      node carries a trace of any of the three once reverted.
 
 ## Taboos
 
