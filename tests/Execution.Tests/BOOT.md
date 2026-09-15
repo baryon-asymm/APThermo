@@ -162,8 +162,15 @@ libdevice for the CUDA category.
       `Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`; both reverted
       and the suite green again before committing. The hand-typed fact counts left
       the criteria above; the listed names are the list.
-- [x] 2026-09-15 — Two more constructions restructured to the root's parameter limit
-      (the harness-wiring task's Step 4): `RocketInputs` (`FixtureBatches.cs`) fell
+
+      ⚠ 2026-09-15: "nested deeper than 3" was not measured: `inventory.py` counts
+      lines only, and `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`
+      and `SpeciesFunctionTests.Cuda_matches_the_cpu_accelerator_within_the_table`
+      nested 4 deep at this tick's commit (`7a3dedb`). Found by the repair review
+      (R-Execution.Tests-4); both were brought to 3 on 2026-09-15 (the criterion
+      below), where this document's earlier silence on the point is corrected.
+- [x] 2026-09-15 — Two more constructions restructured to the root's parameter limit:
+      `RocketInputs` (`FixtureBatches.cs`) fell
       from 9 to 6 parameters, split along the domain axes of a rocket fixture's
       chemical system (`ChemicalSystem`: elements, element moles, products - 3
       parameters) and its exit layout (`ExitPlan`: values, kinds - 2 parameters), the
