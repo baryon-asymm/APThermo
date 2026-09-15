@@ -1,8 +1,14 @@
 # API.md — Cli
 
 Namespace `APThermo.Cli`, tool command `apthermo`. The node
-exposes a command line, an in-process entry point, and the JSON document shapes it
-reads and writes. Everything not listed here is internal and may change.
+exposes a command line and the JSON document shapes it reads and writes. Everything
+not listed here, in a package-surface section (one whose heading carries no
+`(tree contract)` mark), is internal and may change without notice (root `BOOT.md`,
+Delivery: Public surface). This node's own entry point (`Program`, `ExitCode`) is its
+only tree contract, read by no other assembly but its own tests: `Cli` itself
+receives no grant from any neighbour and uses their package surfaces only (root
+`BOOT.md`, Delivery: Tree contracts, "the command line is a consumer like any
+other").
 
 ## Command line ✅
 
@@ -85,14 +91,14 @@ The sketch's `species` and `devices` had no output form; they write JSON (CSV fo
 too, and `--output` and `--format` to the listings. `--mass-tolerance` was added on
 2026-09-13 after the design session on the mass check (the `Problems` API.md).
 
-## Entry point ✅
+## Entry point (tree contract) ✅
 
 ```csharp
 namespace APThermo.Cli;
 
-public enum ExitCode { Ok = 0, CaseFailed = 1, InvalidInput = 2, Infrastructure = 3 }
+internal enum ExitCode { Ok = 0, CaseFailed = 1, InvalidInput = 2, Infrastructure = 3 }
 
-public static class Program
+internal static class Program
 {
     public const string ToolName = "apthermo";
     public static string Version { get; }                                   // the assembly's informational version
@@ -100,6 +106,15 @@ public static class Program
     public static int Run(string[] args, TextWriter output, TextWriter error);   // in-process: documents to output or the --output file, messages to error
 }
 ```
+
+⚠ 2026-09-15 (distribution phase): `ExitCode` and `Program` were the assembly's only
+two public types (`Protocol.Tests.SurfaceTests`, the acceptance criteria of `BOOT.md`).
+The API review of that day (`SCRATCH/api-review-report.md`, "other risks") found that
+nothing outside `Cli.Tests`, which already has `InternalsVisibleTo`, references either:
+the .NET tool's host process calls `Main` by its entry-point mechanism, not as public
+API. Both are internal now; this section is marked as this node's own tree contract,
+though the only reader of it is this node's own tests (AGENTS.md §6), since a .NET tool
+publishes no scenario for another assembly to consume here at all.
 
 ## Input document ✅
 

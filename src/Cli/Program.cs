@@ -4,7 +4,7 @@ using APThermo.Cli.Syntax;
 namespace APThermo.Cli;
 
 /// <summary>The entry point of apthermo: arguments in, documents and messages out, an exit code back.</summary>
-public static class Program
+internal static class Program
 {
     public const string ToolName = "apthermo";
 

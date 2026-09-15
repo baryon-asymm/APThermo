@@ -418,6 +418,15 @@ batches on the GPU.
   documents; the dependency list below carries those links, which its first version
   lacked.
 
+  ⚠ 2026-09-15 (distribution phase): "engine creation of its own for the `devices`
+  listing" stood after the public surface review (`SCRATCH/api-review-report.md`, F1)
+  made `Execution`'s `Engine` internal: `Cli` receives no grant (`## Delivery` below,
+  "Tree contracts") and now calls the new public `AcceleratorProbe.Describe` instead,
+  which binds and releases an engine of its own inside `Execution`. `Cli` still uses
+  `Execution` for `EngineOptions`, `AcceleratorInfo`, `AcceleratorUnavailableException`
+  and `AcceleratorProbe` itself, all on the package surface; `src/Cli/API.md` records
+  the change under Side effects.
+
 Dependencies point downward only: `Cli` → {`Problems`, `Data`, `Execution`, `Thermo`,
 `Equilibrium`, `Performance`, `Transport`}; `Problems` → {`Data`,
 `Thermo`, `Equilibrium`, `Performance`, `Transport`, `Execution`}; `Execution` → {`Thermo`,

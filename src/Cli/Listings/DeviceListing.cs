@@ -24,7 +24,7 @@ internal static class DeviceListing
         writer.WriteString("version", Program.Version);
         writer.WriteString("command", "devices");
         writer.WriteEndObject();
-        writer.WriteBoolean("cudaForbidden", Engine.CudaForbidden);
+        writer.WriteBoolean("cudaForbidden", AcceleratorProbe.CudaForbidden);
         writer.WritePropertyName("cpu");
         RunSection.WriteAccelerator(writer, report.Cpu);
         writer.WritePropertyName("cuda");
