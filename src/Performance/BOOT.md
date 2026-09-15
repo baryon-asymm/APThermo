@@ -96,9 +96,19 @@ present form and its present order of evaluation; the bit snapshot of the tests 
 (the acceptance criteria below) is the proof that the decomposition moved code and
 rewrote no formula.
 
+⚠ 2026-09-15 (distribution phase): "one public entry" and `RocketSolver`'s row below
+stood before the API review of that day (`SCRATCH/api-review-report.md`) found no
+consumer scenario for it, `ExitSpecification`, `RocketProblem`, `RocketLayout` or
+`RocketResult`: every use is `Execution` composing the kernel, `Problems` building a
+batch, or this node's own tests. All five moved into `API.md`'s tree-contract
+section; `APThermo.Performance.csproj` grants `InternalsVisibleTo` to `Execution`,
+`Problems`, `Execution.Tests` and `Benchmarks`. `FlowModel` and `PerformanceFigures`
+stay public. The entry point is internal now, reached only through the grant; the
+decomposition itself (one class per stage) is unaffected.
+
 | Class | Responsibility | Visibility |
 |---|---|---|
-| `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | public, contract unchanged |
+| `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | internal (2026-09-15, distribution phase), contract unchanged |
 | `ChamberSolve` | the chamber state at assigned enthalpy and pressure, made frozen where the flow model says so (sections 6.3.1 and 6.5.3); returns `ChamberReference` | internal |
 | `ThroatSearch` | the sonic throat, equations (6.15)–(6.17), and what it defines: the mass flux and `c*`; returns `ThroatReference` | internal |
 | `ExitStations` | the loop over the exits, the dispatch on `ExitSpecification` to `AreaRatioIteration` or `PressureRatioStation`, the estimate chain from station to station, the case status; holds no formula (Size, below) | internal |

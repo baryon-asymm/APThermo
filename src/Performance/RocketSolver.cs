@@ -14,7 +14,7 @@ namespace APThermo.Performance;
 /// <see cref="ThroatSearch"/>, <see cref="ExitStations"/>, <see cref="AreaRatioIteration"/>, <see cref="PressureRatioStation"/>,
 /// <see cref="StationSolve"/> and <see cref="StationFigures"/> — as the node's BOOT.md sets out under Structure.
 /// </remarks>
-public static class RocketSolver
+internal static class RocketSolver
 {
     /// <summary>Equation (6.16): the throat is sonic when |u² − a²|/u² is within this.</summary>
     public const double SonicTolerance = 4.0e-5;

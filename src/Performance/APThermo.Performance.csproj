@@ -10,8 +10,14 @@
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 
+  <!-- The tree contract of src/Performance (root BOOT.md, Delivery: Tree contracts): the src nodes that
+       declare Performance in their ## Dependencies, and their mirroring test nodes plus Benchmarks. -->
   <ItemGroup>
     <InternalsVisibleTo Include="APThermo.Performance.Tests" />
+    <InternalsVisibleTo Include="APThermo.Execution" />
+    <InternalsVisibleTo Include="APThermo.Execution.Tests" />
+    <InternalsVisibleTo Include="APThermo.Problems" />
+    <InternalsVisibleTo Include="APThermo.Benchmarks" />
   </ItemGroup>
 
 </Project>
