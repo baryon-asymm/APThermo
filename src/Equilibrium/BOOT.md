@@ -239,7 +239,7 @@ below) is the proof.
 | `SingularRemedies` | the remedies of section 3.6: the reset of vanished gaseous species, then the removal of the last condensed record | internal |
 | `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
 | `PhaseGeometry` | where two records of one formula meet: the record bounds as `Thermo` answers them, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
-| `ElementBalance` | the residual `Σ a_ij n_j − b_i` (one place, used by the matrix and by the tests) and its two tolerance tests, as two named methods | internal |
+| `ElementBalance` | the abundance `Σ a_ij n_j` of an element in the composition (one place, used by the matrix's residual `b_i° − Σ a_ij n_j` and by both tests) and its two tolerance tests, as two named methods | internal |
 | `DerivativeSystem` | the derivative system of section 2.5 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
 | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
 | `FrozenTemperature` | Newton on the temperature at a fixed composition, to the frozen test, with its own step cap | internal |
@@ -486,8 +486,8 @@ Every other type of the node measures 10 or below by the dependency check's walk
       the CPU accelerator.
 - [x] 2026-09-14 - The rules the review of 2026-09-14 found written twice exist once
       each: the inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, called by
-      the inclusion test and by the honesty guard), the element residual
-      (`ElementBalance.Residual`, called by the element rows of `IterationMatrix` and
+      the inclusion test and by the honesty guard), the element abundance
+      (`ElementBalance.Abundance`, called by the element rows of `IterationMatrix` and
       by both tolerance tests), the trace retention (`Composition.Retain`, called by
       the sums of every step and by the final iterate of every convergence), the state
       record (`MixtureProperties.Common`, called by the equilibrium and the frozen

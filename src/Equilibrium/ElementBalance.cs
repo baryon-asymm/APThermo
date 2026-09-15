@@ -20,7 +20,7 @@ internal static class ElementBalance
     private const double Invariant = 1.0e-12;
 
     /// <summary>The element's abundance in the composition: Σ a_ij n_j in kmol per kilogram.</summary>
-    public static double Residual(in SpeciesTableView table, in EquilibriumResult result, int element)
+    public static double Abundance(in SpeciesTableView table, in EquilibriumResult result, int element)
     {
         var speciesCount = table.SpeciesCount;
         var b = 0.0;
@@ -49,7 +49,7 @@ internal static class ElementBalance
                 continue;
             }
 
-            if (Math.Abs(problem.ElementMoles[i] - Residual(table, result, i)) > ReportTest * largest)
+            if (Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i)) > ReportTest * largest)
             {
                 return false;
             }
@@ -69,7 +69,7 @@ internal static class ElementBalance
                 continue;
             }
 
-            if (Math.Abs(problem.ElementMoles[i] - Residual(table, result, i)) > Invariant * Math.Max(1.0, problem.ElementMoles[i]))
+            if (Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i)) > Invariant * Math.Max(1.0, problem.ElementMoles[i]))
             {
                 return false;
             }
