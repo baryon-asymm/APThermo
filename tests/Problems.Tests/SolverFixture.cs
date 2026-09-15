@@ -26,7 +26,7 @@ public sealed class SolverFixture : IDisposable
     public Solver Solver { get; }
 
     /// <summary>A CPU engine of the execution node, to evaluate the transport solver on the reference's own composition (the defect signature).</summary>
-    public Engine Engine { get; }
+    internal Engine Engine { get; }
 
     public void Dispose()
     {

@@ -1,7 +1,7 @@
 namespace APThermo.Execution;
 
 /// <summary>The probe of the root's math list: one value per function per input.</summary>
-public static class MathProbe
+internal static class MathProbe
 {
     /// <summary>The functions of the root's list, in the order of the probe's outputs.</summary>
     public static readonly IReadOnlyList<string> Functions =

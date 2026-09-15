@@ -11,8 +11,18 @@
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 
+  <!-- The tree contract of src/Transport (root BOOT.md, Delivery: Tree contracts): the src nodes that
+       declare Transport in their ## Dependencies, their mirroring test nodes plus Benchmarks and
+       Problems.Tests, and ILGPURuntime for TransportTableView, a kernel parameter type
+       (API.md, ## Transport tables (tree contract)). -->
   <ItemGroup>
     <InternalsVisibleTo Include="APThermo.Transport.Tests" />
+    <InternalsVisibleTo Include="APThermo.Execution" />
+    <InternalsVisibleTo Include="APThermo.Execution.Tests" />
+    <InternalsVisibleTo Include="APThermo.Problems" />
+    <InternalsVisibleTo Include="APThermo.Problems.Tests" />
+    <InternalsVisibleTo Include="APThermo.Benchmarks" />
+    <InternalsVisibleTo Include="ILGPURuntime" />
   </ItemGroup>
 
 </Project>

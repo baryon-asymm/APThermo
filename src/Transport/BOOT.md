@@ -170,9 +170,21 @@ line order of `Evaluate` even where two of them look independent: the bit snapsh
 the tests node (the acceptance criteria below) is the proof that the decomposition
 moved code and rewrote no formula.
 
+⚠ 2026-09-15 (distribution phase): "one public entry" and `TransportSolver`'s row
+below stood before the API review of that day (`SCRATCH/api-review-report.md`) found
+no consumer scenario for it, `TransportTable`, `TransportTableArrays`,
+`TransportTableView`, `TransportTableBuffers`, `TransportLayout` or
+`TransportScratch`: every use is `Execution` composing the kernel, `Problems`
+building a table, or this node's own tests. All seven moved into `API.md`'s
+tree-contract sections; `APThermo.Transport.csproj` grants `InternalsVisibleTo` to
+`Execution`, `Problems`, `Execution.Tests`, `Problems.Tests`, `Benchmarks` and, for
+`TransportTableView`, `ILGPURuntime`. `TransportFigures` stays public. The entry
+point is internal now, reached only through the grant; the decomposition itself (one
+class per stage) is unaffected.
+
 | Class | Responsibility | Visibility |
 |---|---|---|
-| `TransportSolver` | the contract: the constants, the five fit lookups (`FitOf`, `FitValue`, `PureViscosity`, `PureConductivity`, `PairViscosity`) and `Evaluate`, which builds the `StationInputs` and forwards to the composition root | public, contract unchanged |
+| `TransportSolver` | the contract: the constants, the five fit lookups (`FitOf`, `FitValue`, `PureViscosity`, `PureConductivity`, `PairViscosity`) and `Evaluate`, which builds the `StationInputs` and forwards to the composition root | internal (2026-09-15, distribution phase), contract unchanged |
 | `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Its efferent coupling, 14 by the dependency check's walk on 2026-09-14, is within the root's limit since that limit was recalibrated to 14 the same day, so it claims no exception (it was named here first as the composition root above the first limit of 10, about 14 after the split) | internal |
 | `TransportInput` | may this station be evaluated, and how much gas it holds: the temperature, table and mole checks, the gaseous mole sum, `InvalidInput` and `NoTransportData` | internal |
 | `TransportComponents` | the active element rows, each row's default species, the component of each row (with the predicates `AtomCount`, `OfCase`, `SameColumn`) | internal |

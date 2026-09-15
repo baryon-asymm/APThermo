@@ -84,8 +84,17 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   composition of the last equilibrium station (moles from its mole fractions and `M`)
   is expanded at constant entropy to each frozen station's pressure.
 - The dense solver is internal to `Equilibrium` and reached through
-  `InternalsVisibleTo`; the batch struct of the kernel test is public because ILGPU
-  compiles kernels only over public parameter types.
+  `InternalsVisibleTo`; the batch struct of the kernel test is public.
+
+  ⚠ 2026-09-15 (distribution phase): this bullet gave the reason "because ILGPU
+  compiles kernels only over public parameter types". Wrong: ILGPU 1.5.3 needs only
+  `[assembly: InternalsVisibleTo("ILGPURuntime")]` on the declaring assembly to load an
+  internal kernel parameter type, method or view element; public is only one way to
+  satisfy it (the API review of 2026-09-15, `SCRATCH/api-review-report.md`, section 3,
+  proved it on the CPU accelerator and on CUDA — Execution's own four views structs
+  are internal now, with that grant). The claim entered with `f2e5de7`/`53ec9fb` on
+  2026-09-12. The struct stays public here; nothing in this node's own scope required
+  the change.
 
 ## Shape exceptions
 

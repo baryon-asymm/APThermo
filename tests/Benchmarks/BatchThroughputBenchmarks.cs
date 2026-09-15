@@ -45,8 +45,10 @@ public class BatchThroughputBenchmarks
         RecordDiagnostics(_engine.Run(_tables, _batch));
     }
 
+    private RocketBatchResult? _lastResult;
+
     [Benchmark]
-    public RocketBatchResult SolveBatch() => _engine.Run(_tables, _batch);
+    public void SolveBatch() => _lastResult = _engine.Run(_tables, _batch);
 
     [GlobalCleanup]
     public void Cleanup()

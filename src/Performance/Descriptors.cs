@@ -12,14 +12,14 @@ public enum FlowModel
 }
 
 /// <summary>How an exit station is assigned.</summary>
-public enum ExitSpecification
+internal enum ExitSpecification
 {
     AreaRatio,       // A_e/A_t ≥ 1, supersonic branch
     PressureRatio,   // p_c/p_e > 1
 }
 
 /// <summary>One rocket case: the propellant as element moles and enthalpy per kilogram, the chamber pressure, the flow model and the exit stations.</summary>
-public readonly struct RocketProblem
+internal readonly struct RocketProblem
 {
     /// <summary>Pa.</summary>
     public readonly double ChamberPressure;
@@ -66,7 +66,7 @@ public struct PerformanceFigures
 }
 
 /// <summary>Sizes of a case's station arrays.</summary>
-public static class RocketLayout
+internal static class RocketLayout
 {
     /// <summary>Chamber and throat.</summary>
     public const int FixedStations = 2;
@@ -75,7 +75,7 @@ public static class RocketLayout
 }
 
 /// <summary>The views the rocket solver writes into; station 0 is the chamber, 1 the throat, 2 + k the k-th exit.</summary>
-public readonly struct RocketResult
+internal readonly struct RocketResult
 {
     public readonly ArrayView<MixtureState> Stations;      // [stations]
     public readonly ArrayView<double> Moles;               // [stations * species], kmol per kg

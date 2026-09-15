@@ -76,14 +76,14 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
             };
             var state = StationFactory.Create("state", slice);
             results[m] = new EquilibriumResult(
-                Propellant: propellant,
-                Mixture: mixture,
-                MixtureMass: group[m].Mass,
-                Problem: problem,
-                Species: speciesNames,
-                State: state,
-                Status: run.Status[m],
-                Accelerator: run.Accelerator);
+                propellant: propellant,
+                mixture: mixture,
+                mixtureMass: group[m].Mass,
+                problem: problem,
+                species: speciesNames,
+                state: state,
+                status: run.Status[m],
+                accelerator: run.Accelerator);
         }
 
         return results;

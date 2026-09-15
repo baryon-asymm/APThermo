@@ -34,7 +34,7 @@ public sealed class CpuFixture : IDisposable
     public ToleranceTable Tolerances => _host.Tolerances;
 
     /// <summary>A table of the given species with exactly the elements their formulas use, uploaded to the CPU accelerator.</summary>
-    public SpeciesTableBuffers Upload(params string[] species)
+    internal SpeciesTableBuffers Upload(params string[] species)
     {
         var elements = species.SelectMany(s => Database[s].Formula.Select(p => p.Symbol)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         return SpeciesTableBuffers.Upload(Accelerator, SpeciesTable.Build(Database, elements, species));

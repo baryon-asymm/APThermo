@@ -3,7 +3,7 @@ using APThermo.Data;
 namespace APThermo.Thermo;
 
 /// <summary>The flat host arrays of a species table, in the layout the kernels read. Do not modify them after the build.</summary>
-public sealed class SpeciesTableArrays
+internal sealed class SpeciesTableArrays
 {
     internal SpeciesTableArrays(
         double[] molarMass, double[] formationEnthalpy, double[] stoichiometry,
@@ -53,7 +53,7 @@ public sealed class SpeciesTableArrays
 /// condensed pieces (<see cref="SpeciesResolution"/>, BOOT.md's join-and-cut), concatenates gaseous then
 /// condensed, checks the species limit, and flattens the result (<see cref="TableLayout"/>).
 /// </summary>
-public sealed class SpeciesTable
+internal sealed class SpeciesTable
 {
     private readonly Dictionary<string, int> _index;
 

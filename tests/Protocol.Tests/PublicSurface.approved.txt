@@ -8,9 +8,9 @@ class APThermo.Benchmarks.BatchThroughputBenchmarks
     .ctor()
     AcceleratorKind Accelerator { get; set; }
     Int32 CaseCount { get; set; }
-    RocketBatchResult SolveBatch()
     Void Cleanup()
     Void Setup()
+    Void SolveBatch()
 
 enum APThermo.Benchmarks.BenchmarkProblemKind : Int32
     Hp = 1
@@ -22,18 +22,18 @@ enum APThermo.Benchmarks.BenchmarkProblemKind : Int32
 
 class APThermo.Benchmarks.OneTimeCostBenchmarks
     .ctor()
-    EquilibriumBatchResult CompileCpuKernel()
-    EquilibriumBatchResult CompileCudaKernel()
     SpeciesDatabase LoadDatabase()
-    SpeciesTable AssembleChemicalSystem()
-    UploadedTables UploadSpeciesTable()
+    Void AssembleChemicalSystem()
     Void Cleanup()
     Void CleanupCpuCompile()
     Void CleanupCudaCompile()
+    Void CompileCpuKernel()
+    Void CompileCudaKernel()
     Void Setup()
     Void SetupCpuCompile()
     Void SetupCudaCompile()
     Void SetupUpload()
+    Void UploadSpeciesTable()
 
 class APThermo.Benchmarks.ProblemKindBenchmarks
     .ctor()
@@ -77,18 +77,6 @@ class APThermo.Benchmarks.UserStatesBenchmarks
 
 == APThermo.Cli
 
-enum APThermo.Cli.ExitCode : Int32
-    CaseFailed = 1
-    Infrastructure = 3
-    InvalidInput = 2
-    Ok = 0
-
-static class APThermo.Cli.Program
-    const String ToolName = "apthermo"
-    static Int32 Main(String[] args)
-    static Int32 Run(String[] args, TextWriter output, TextWriter error)
-    static String Version { get; }
-
 == APThermo.Data
 
 sealed class APThermo.Data.DatabaseFormatException : Exception, ISerializable
@@ -97,11 +85,10 @@ sealed class APThermo.Data.DatabaseFormatException : Exception, ISerializable
     String? FileName { get; }
 
 sealed class (record) APThermo.Data.DatabaseProvenance : IEquatable<DatabaseProvenance>
-    .ctor(String HeaderDate, IReadOnlyList<Double> DefaultIntervalBounds, String ThermoSha256, String? TransSha256)
-    IReadOnlyList<Double> DefaultIntervalBounds { get; init; }
-    String HeaderDate { get; init; }
-    String ThermoSha256 { get; init; }
-    String? TransSha256 { get; init; }
+    IReadOnlyList<Double> DefaultIntervalBounds { get; }
+    String HeaderDate { get; }
+    String ThermoSha256 { get; }
+    String? TransSha256 { get; }
 
 readonly struct APThermo.Data.ElementCount : IEquatable<ElementCount>
     .ctor(String Symbol, Double Count)
@@ -109,18 +96,17 @@ readonly struct APThermo.Data.ElementCount : IEquatable<ElementCount>
     String Symbol { get; init; }
 
 sealed class (record) APThermo.Data.Species : IEquatable<Species>
-    .ctor(String Name, String Comment, String DateCode, IReadOnlyList<ElementCount> Formula, SpeciesPhase Phase, Double MolarMass, Double FormationEnthalpy, Double AssignedTemperature, IReadOnlyList<TemperatureInterval> Intervals, SpeciesSection Section, Boolean IsInert)
-    Boolean IsInert { get; init; }
-    Double AssignedTemperature { get; init; }
-    Double FormationEnthalpy { get; init; }
-    Double MolarMass { get; init; }
-    IReadOnlyList<ElementCount> Formula { get; init; }
-    IReadOnlyList<TemperatureInterval> Intervals { get; init; }
-    SpeciesPhase Phase { get; init; }
-    SpeciesSection Section { get; init; }
-    String Comment { get; init; }
-    String DateCode { get; init; }
-    String Name { get; init; }
+    Boolean IsInert { get; }
+    Double AssignedTemperature { get; }
+    Double FormationEnthalpy { get; }
+    Double MolarMass { get; }
+    IReadOnlyList<ElementCount> Formula { get; }
+    IReadOnlyList<TemperatureInterval> Intervals { get; }
+    SpeciesPhase Phase { get; }
+    SpeciesSection Section { get; }
+    String Comment { get; }
+    String DateCode { get; }
+    String Name { get; }
 
 sealed class APThermo.Data.SpeciesDatabase
     Boolean TryGet(String name, out Species species)
@@ -145,14 +131,13 @@ enum APThermo.Data.SpeciesSection : Int32
     Reactants = 1
 
 sealed class (record) APThermo.Data.TemperatureInterval : IEquatable<TemperatureInterval>
-    .ctor(Double TLow, Double THigh, IReadOnlyList<Double> Exponents, IReadOnlyList<Double> Coefficients, Double B1, Double B2, Double EnthalpyOffset)
-    Double B1 { get; init; }
-    Double B2 { get; init; }
-    Double EnthalpyOffset { get; init; }
-    Double THigh { get; init; }
-    Double TLow { get; init; }
-    IReadOnlyList<Double> Coefficients { get; init; }
-    IReadOnlyList<Double> Exponents { get; init; }
+    Double B1 { get; }
+    Double B2 { get; }
+    Double EnthalpyOffset { get; }
+    Double THigh { get; }
+    Double TLow { get; }
+    IReadOnlyList<Double> Coefficients { get; }
+    IReadOnlyList<Double> Exponents { get; }
 
 sealed class APThermo.Data.TransportDatabase
     IReadOnlyList<TransportEntry> Entries { get; }
@@ -160,109 +145,50 @@ sealed class APThermo.Data.TransportDatabase
     TransportEntry? FindPair(String first, String second)
 
 sealed class (record) APThermo.Data.TransportEntry : IEquatable<TransportEntry>
-    .ctor(String Species, String? Partner, String Reference, IReadOnlyList<TransportFit> Viscosity, IReadOnlyList<TransportFit> Conductivity)
-    IReadOnlyList<TransportFit> Conductivity { get; init; }
-    IReadOnlyList<TransportFit> Viscosity { get; init; }
-    String Reference { get; init; }
-    String Species { get; init; }
-    String? Partner { get; init; }
+    IReadOnlyList<TransportFit> Conductivity { get; }
+    IReadOnlyList<TransportFit> Viscosity { get; }
+    String Reference { get; }
+    String Species { get; }
+    String? Partner { get; }
 
 sealed class (record) APThermo.Data.TransportFit : IEquatable<TransportFit>
-    .ctor(Double TLow, Double THigh, Double A, Double B, Double C, Double D)
-    Double A { get; init; }
-    Double B { get; init; }
-    Double C { get; init; }
-    Double D { get; init; }
-    Double THigh { get; init; }
-    Double TLow { get; init; }
+    Double A { get; }
+    Double B { get; }
+    Double C { get; }
+    Double D { get; }
+    Double THigh { get; }
+    Double TLow { get; }
 
 == APThermo.Equilibrium
-
-static class APThermo.Equilibrium.DenseSolver
-    static Boolean Solve(ArrayView<Double> matrix, ArrayView<Double> rhs, ArrayView<Double> rowScale, Int32 n, Int32 stride)
-
-readonly struct APThermo.Equilibrium.EquilibriumProblem
-    .ctor(ProblemKind kind, Double pressure, Double temperature, Double target, ArrayView<Double> elementMoles)
-    readonly ArrayView<Double> ElementMoles
-    readonly Double Pressure
-    readonly Double Target
-    readonly Double Temperature
-    readonly ProblemKind Kind
-
-readonly struct APThermo.Equilibrium.EquilibriumResult
-    .ctor(ArrayView<Double> moles, ArrayView<Double> multipliers, ArrayView<MixtureState> state, ArrayView<Int32> status, ArrayView<Int32> iterations)
-    readonly ArrayView<Double> Moles
-    readonly ArrayView<Double> Multipliers
-    readonly ArrayView<Int32> Iterations
-    readonly ArrayView<Int32> Status
-    readonly ArrayView<MixtureState> State
-
-readonly struct APThermo.Equilibrium.EquilibriumScratch
-    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution)
-    readonly ArrayView<Double> Corrections
-    readonly ArrayView<Double> CpOverR
-    readonly ArrayView<Double> GOverRT
-    readonly ArrayView<Double> HOverRT
-    readonly ArrayView<Double> LogMoles
-    readonly ArrayView<Double> Matrix
-    readonly ArrayView<Double> RightHandSide
-    readonly ArrayView<Double> RowScale
-    readonly ArrayView<Double> SOverR
-    readonly ArrayView<Int32> CondensedInSolution
-    readonly ArrayView<Int32> ElementActive
-    readonly ArrayView<Int32> SpeciesActive
-    static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
-
-static class APThermo.Equilibrium.EquilibriumSolver
-    const Double TraceThreshold = 18.420681
-    const Int32 MaxCondensedSetChanges = 24
-    const Int32 MaxNewtonSteps = 50
-    static Void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, Boolean useMolesAsEstimate)
-    static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
 
 enum APThermo.Equilibrium.ProblemKind : Int32
     AssignedEnthalpyPressure = 1
     AssignedEntropyPressure = 2
     AssignedTemperaturePressure = 0
 
-static class APThermo.Equilibrium.ScratchLayout
-    const Int32 MaxCondensedInSolution = 8
-    static Int32 DoublesPerCase(Int32 speciesCount, Int32 elementCount)
-    static Int32 IntsPerCase(Int32 speciesCount, Int32 elementCount)
-    static Int32 MaxUnknowns(Int32 elementCount)
-
 == APThermo.Execution
 
 sealed class (record) APThermo.Execution.AcceleratorInfo : IEquatable<AcceleratorInfo>
-    .ctor(AcceleratorKind Kind, String DeviceName, String IlgpuVersion, String? LibNvvmPath, String? LibDevicePath, Int32 ThreadsOrMultiprocessors)
-    AcceleratorKind Kind { get; init; }
-    Int32 ThreadsOrMultiprocessors { get; init; }
-    String DeviceName { get; init; }
-    String IlgpuVersion { get; init; }
+    AcceleratorKind Kind { get; }
+    Int32 ThreadsOrMultiprocessors { get; }
+    String DeviceName { get; }
+    String IlgpuVersion { get; }
     String? CudaSkippedBecause { get; init; }
-    String? LibDevicePath { get; init; }
-    String? LibNvvmPath { get; init; }
+    String? LibDevicePath { get; }
+    String? LibNvvmPath { get; }
 
 enum APThermo.Execution.AcceleratorKind : Int32
     Auto = 0
     Cpu = 1
     Cuda = 2
 
+static class APThermo.Execution.AcceleratorProbe
+    static AcceleratorInfo Describe(EngineOptions? options = null)
+    static Boolean CudaForbidden { get; }
+
 sealed class APThermo.Execution.AcceleratorUnavailableException : Exception, ISerializable
     .ctor(String message, IReadOnlyList<String> pathsTried, Exception? inner = null)
     IReadOnlyList<String> PathsTried { get; }
-
-sealed class APThermo.Execution.Engine : IDisposable
-    AcceleratorInfo Accelerator { get; }
-    Double[] ProbeMath(Double[] inputs)
-    EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch)
-    RocketBatchResult Run(UploadedTables tables, RocketBatch batch)
-    SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch)
-    TransportBatchResult Run(UploadedTables tables, TransportBatch batch)
-    UploadedTables Upload(SpeciesTable species, TransportTable? transport = null)
-    Void Dispose()
-    static Boolean CudaForbidden { get; }
-    static Engine Create(EngineOptions? options = null)
 
 sealed class (record) APThermo.Execution.EngineOptions : IEquatable<EngineOptions>
     .ctor()
@@ -276,154 +202,6 @@ sealed class (record) APThermo.Execution.EngineOptions : IEquatable<EngineOption
     const Int32 DefaultChunkSize = 16384
     const Int64 DefaultScratchBytes = 268435456
     const String NoCudaVariable = "APTHERMO_NO_CUDA"
-
-sealed class APThermo.Execution.EquilibriumBatch
-    .ctor(Int32 count, Int32 elementCount)
-    Double[] ElementMoles { get; }
-    Double[] Pressure { get; }
-    Double[] Target { get; }
-    Double[] Temperature { get; }
-    Int32 Count { get; }
-    Int32 ElementCount { get; }
-    ProblemKind[] Kind { get; }
-
-sealed class APThermo.Execution.EquilibriumBatchResult
-    AcceleratorInfo Accelerator { get; }
-    CaseStatus[] Status { get; }
-    Double[] Moles { get; }
-    Int32 Count { get; }
-    Int32 SpeciesCount { get; }
-    Int32[] Iterations { get; }
-    MixtureState[] State { get; }
-    RunTimings Timings { get; }
-
-readonly struct APThermo.Execution.EquilibriumBatchViews
-    .ctor(ArrayView<Int32> kinds, ArrayView<Double> pressures, ArrayView<Double> temperatures, ArrayView<Double> targets, ArrayView<Double> elementMoles, ArrayView<Double> scratchDoubles, ArrayView<Int32> scratchInts, ArrayView<Double> moles, ArrayView<Double> multipliers, ArrayView<MixtureState> states, ArrayView<Int32> status, ArrayView<Int32> iterations)
-    readonly ArrayView<Double> ElementMoles
-    readonly ArrayView<Double> Moles
-    readonly ArrayView<Double> Multipliers
-    readonly ArrayView<Double> Pressures
-    readonly ArrayView<Double> ScratchDoubles
-    readonly ArrayView<Double> Targets
-    readonly ArrayView<Double> Temperatures
-    readonly ArrayView<Int32> Iterations
-    readonly ArrayView<Int32> Kinds
-    readonly ArrayView<Int32> ScratchInts
-    readonly ArrayView<Int32> Status
-    readonly ArrayView<MixtureState> States
-
-static class APThermo.Execution.MathProbe
-    const Double PowExponent = 1.37
-    static Int32 FunctionCount { get; }
-    static readonly IReadOnlyList<String> Functions
-
-sealed class APThermo.Execution.RocketBatch
-    .ctor(Int32 count, Int32 elementCount, ExitSpecification[] exitKinds)
-    Double[] ChamberPressure { get; }
-    Double[] ElementMoles { get; }
-    Double[] ExitValues { get; }
-    Double[] ReactantEnthalpy { get; }
-    Double[] TemperatureEstimate { get; }
-    ExitSpecification[] ExitKinds { get; }
-    FlowModel[] Flow { get; }
-    Int32 Count { get; }
-    Int32 ElementCount { get; }
-    Int32 Exits { get; }
-    Int32 StationCount { get; }
-
-sealed class APThermo.Execution.RocketBatchResult
-    AcceleratorInfo Accelerator { get; }
-    CaseStatus[] StationStatus { get; }
-    CaseStatus[] Status { get; }
-    Double[] Moles { get; }
-    Int32 Count { get; }
-    Int32 SpeciesCount { get; }
-    Int32 StationCount { get; }
-    Int32[] Iterations { get; }
-    MixtureState[] Stations { get; }
-    PerformanceFigures[] Figures { get; }
-    RunTimings Timings { get; }
-
-readonly struct APThermo.Execution.RocketBatchViews
-    .ctor(Int32 exitCount, ArrayView<Double> chamberPressures, ArrayView<Double> reactantEnthalpies, ArrayView<Double> temperatureEstimates, ArrayView<Int32> flows, ArrayView<Double> elementMoles, ArrayView<Double> exitValues, ArrayView<Int32> exitKinds, ArrayView<Double> scratchDoubles, ArrayView<Int32> scratchInts, ArrayView<MixtureState> stations, ArrayView<Double> moles, ArrayView<Double> multipliers, ArrayView<PerformanceFigures> figures, ArrayView<Int32> stationStatus, ArrayView<Int32> iterations, ArrayView<Int32> status)
-    readonly ArrayView<Double> ChamberPressures
-    readonly ArrayView<Double> ElementMoles
-    readonly ArrayView<Double> ExitValues
-    readonly ArrayView<Double> Moles
-    readonly ArrayView<Double> Multipliers
-    readonly ArrayView<Double> ReactantEnthalpies
-    readonly ArrayView<Double> ScratchDoubles
-    readonly ArrayView<Double> TemperatureEstimates
-    readonly ArrayView<Int32> ExitKinds
-    readonly ArrayView<Int32> Flows
-    readonly ArrayView<Int32> Iterations
-    readonly ArrayView<Int32> ScratchInts
-    readonly ArrayView<Int32> StationStatus
-    readonly ArrayView<Int32> Status
-    readonly ArrayView<MixtureState> Stations
-    readonly ArrayView<PerformanceFigures> Figures
-    readonly Int32 ExitCount
-
-sealed class (record) APThermo.Execution.RunTimings : IEquatable<RunTimings>
-    .ctor(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download)
-    TimeSpan Download { get; init; }
-    TimeSpan Kernel { get; init; }
-    TimeSpan Upload { get; init; }
-    TimeSpan WarmUp { get; init; }
-
-sealed class APThermo.Execution.SpeciesFunctionBatch
-    .ctor(Int32 count)
-    Double[] Temperature { get; }
-    Int32 Count { get; }
-    Int32[] Species { get; }
-
-sealed class APThermo.Execution.SpeciesFunctionBatchResult
-    AcceleratorInfo Accelerator { get; }
-    Boolean[] InRange { get; }
-    Double[] CpOverR { get; }
-    Double[] HOverRT { get; }
-    Double[] SOverR { get; }
-    Int32 Count { get; }
-    RunTimings Timings { get; }
-
-readonly struct APThermo.Execution.SpeciesFunctionBatchViews
-    .ctor(ArrayView<Int32> species, ArrayView<Double> temperatures, ArrayView<Double> cpOverR, ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Int32> inRange)
-    readonly ArrayView<Double> CpOverR
-    readonly ArrayView<Double> HOverRT
-    readonly ArrayView<Double> SOverR
-    readonly ArrayView<Double> Temperatures
-    readonly ArrayView<Int32> InRange
-    readonly ArrayView<Int32> Species
-
-sealed class APThermo.Execution.TransportBatch
-    .ctor(Int32 stationCount, Int32 speciesCount)
-    Double[] Moles { get; }
-    Double[] Temperature { get; }
-    Int32 Count { get; }
-    Int32 SpeciesCount { get; }
-    static TransportBatch FromEquilibrium(EquilibriumBatchResult result)
-    static TransportBatch FromRocket(RocketBatchResult result)
-
-sealed class APThermo.Execution.TransportBatchResult
-    AcceleratorInfo Accelerator { get; }
-    CaseStatus[] Status { get; }
-    Int32 Count { get; }
-    RunTimings Timings { get; }
-    TransportFigures[] Figures { get; }
-
-readonly struct APThermo.Execution.TransportBatchViews
-    .ctor(ArrayView<Double> temperatures, ArrayView<Double> moles, ArrayView<Double> scratchDoubles, ArrayView<Int32> scratchInts, ArrayView<TransportFigures> figures, ArrayView<Int32> status)
-    readonly ArrayView<Double> Moles
-    readonly ArrayView<Double> ScratchDoubles
-    readonly ArrayView<Double> Temperatures
-    readonly ArrayView<Int32> ScratchInts
-    readonly ArrayView<Int32> Status
-    readonly ArrayView<TransportFigures> Figures
-
-sealed class APThermo.Execution.UploadedTables : IDisposable
-    SpeciesTable Species { get; }
-    TransportTable? Transport { get; }
-    Void Dispose()
 
 == APThermo.Fixtures
 
@@ -517,10 +295,6 @@ static class APThermo.Harness.FixtureFamilies
 
 == APThermo.Performance
 
-enum APThermo.Performance.ExitSpecification : Int32
-    AreaRatio = 0
-    PressureRatio = 1
-
 enum APThermo.Performance.FlowModel : Int32
     FrozenAtChamber = 1
     FrozenAtThroat = 2
@@ -533,37 +307,6 @@ struct APThermo.Performance.PerformanceFigures
     Double SpecificImpulse
     Double ThrustCoefficient
     Double VacuumSpecificImpulse
-
-static class APThermo.Performance.RocketLayout
-    const Int32 FixedStations = 2
-    static Int32 StationCount(Int32 exitCount)
-
-readonly struct APThermo.Performance.RocketProblem
-    .ctor(Double chamberPressure, Double reactantEnthalpy, Double temperatureEstimate, FlowModel flow, ArrayView<Double> elementMoles, ArrayView<Double> exitValues, ArrayView<Int32> exitKinds)
-    readonly ArrayView<Double> ElementMoles
-    readonly ArrayView<Double> ExitValues
-    readonly ArrayView<Int32> ExitKinds
-    readonly Double ChamberPressure
-    readonly Double ReactantEnthalpy
-    readonly Double TemperatureEstimate
-    readonly FlowModel Flow
-
-readonly struct APThermo.Performance.RocketResult
-    .ctor(ArrayView<MixtureState> stations, ArrayView<Double> moles, ArrayView<Double> multipliers, ArrayView<PerformanceFigures> figures, ArrayView<Int32> stationStatus, ArrayView<Int32> iterations, ArrayView<Int32> status)
-    readonly ArrayView<Double> Moles
-    readonly ArrayView<Double> Multipliers
-    readonly ArrayView<Int32> Iterations
-    readonly ArrayView<Int32> StationStatus
-    readonly ArrayView<Int32> Status
-    readonly ArrayView<MixtureState> Stations
-    readonly ArrayView<PerformanceFigures> Figures
-
-static class APThermo.Performance.RocketSolver
-    const Double AreaRatioTolerance = 4E-05
-    const Double SonicTolerance = 4E-05
-    const Int32 MaxAreaRatioIterations = 20
-    const Int32 MaxThroatIterations = 20
-    static Void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
 
 == APThermo.Problems
 
@@ -599,15 +342,14 @@ sealed class (record) APThermo.Problems.EquilibriumProblem : IEquatable<Equilibr
     ProblemKind Kind { get; init; }
 
 sealed class (record) APThermo.Problems.EquilibriumResult : IEquatable<EquilibriumResult>
-    .ctor(Propellant? Propellant, ElementalMixture Mixture, Double MixtureMass, EquilibriumProblem Problem, IReadOnlyList<String> Species, Station State, CaseStatus Status, AcceleratorInfo Accelerator)
-    AcceleratorInfo Accelerator { get; init; }
-    CaseStatus Status { get; init; }
-    Double MixtureMass { get; init; }
-    ElementalMixture Mixture { get; init; }
-    EquilibriumProblem Problem { get; init; }
-    IReadOnlyList<String> Species { get; init; }
-    Propellant? Propellant { get; init; }
-    Station State { get; init; }
+    AcceleratorInfo Accelerator { get; }
+    CaseStatus Status { get; }
+    Double MixtureMass { get; }
+    ElementalMixture Mixture { get; }
+    EquilibriumProblem Problem { get; }
+    IReadOnlyList<String> Species { get; }
+    Propellant? Propellant { get; }
+    Station State { get; }
 
 sealed class APThermo.Problems.MixtureMassException : ArgumentException, ISerializable
     .ctor(String subject, Int32 index, Double mass, Double tolerance)
@@ -616,24 +358,12 @@ sealed class APThermo.Problems.MixtureMassException : ArgumentException, ISerial
     Int32 Index { get; }
     String Reason { get; }
 
-abstract class (record) APThermo.Problems.MixtureSpecification : IEquatable<MixtureSpecification>
-    nested MassFractions
-    nested OxidizerToFuel
-
-sealed class (record) APThermo.Problems.MixtureSpecification+MassFractions : MixtureSpecification, IEquatable<MixtureSpecification.MassFractions>, IEquatable<MixtureSpecification>
-    .ctor()
-
-sealed class (record) APThermo.Problems.MixtureSpecification+OxidizerToFuel : MixtureSpecification, IEquatable<MixtureSpecification.OxidizerToFuel>, IEquatable<MixtureSpecification>
-    .ctor(Double Ratio)
-    Double Ratio { get; init; }
-
 sealed class (record) APThermo.Problems.Propellant : IEquatable<Propellant>
     Double? OxidizerToFuelRatio { get; }
     IReadOnlyList<Reactant> Reactants { get; }
     IReadOnlyList<String> Elements { get; }
     IReadOnlyList<String> Omit { get; }
     IReadOnlyList<String>? Only { get; }
-    MixtureSpecification Mixture { get; }
     static PropellantBuilder From(SpeciesDatabase database)
 
 sealed class APThermo.Problems.PropellantBuilder
@@ -676,16 +406,15 @@ sealed class (record) APThermo.Problems.RocketProblem : IEquatable<RocketProblem
     Int32 ExitCount { get; }
 
 sealed class (record) APThermo.Problems.RocketResult : IEquatable<RocketResult>
-    .ctor(Propellant? Propellant, ElementalMixture Mixture, Double MixtureMass, RocketProblem Problem, Double? OxidizerToFuelRatio, IReadOnlyList<String> Species, IReadOnlyList<Station> Stations, CaseStatus Status, AcceleratorInfo Accelerator)
-    AcceleratorInfo Accelerator { get; init; }
-    CaseStatus Status { get; init; }
-    Double MixtureMass { get; init; }
-    Double? OxidizerToFuelRatio { get; init; }
-    ElementalMixture Mixture { get; init; }
-    IReadOnlyList<Station> Stations { get; init; }
-    IReadOnlyList<String> Species { get; init; }
-    Propellant? Propellant { get; init; }
-    RocketProblem Problem { get; init; }
+    AcceleratorInfo Accelerator { get; }
+    CaseStatus Status { get; }
+    Double MixtureMass { get; }
+    Double? OxidizerToFuelRatio { get; }
+    ElementalMixture Mixture { get; }
+    IReadOnlyList<Station> Stations { get; }
+    IReadOnlyList<String> Species { get; }
+    Propellant? Propellant { get; }
+    RocketProblem Problem { get; }
 
 sealed class APThermo.Problems.Solver : IDisposable
     AcceleratorInfo Accelerator { get; }
@@ -733,7 +462,6 @@ sealed class APThermo.Problems.StateRecordException : ArgumentException, ISerial
     String Reason { get; }
 
 sealed class (record) APThermo.Problems.Station : IEquatable<Station>
-    .ctor(String Name, MixtureState State, PerformanceFigures? Performance, IReadOnlyDictionary<String, Double> MoleFractions, IReadOnlyDictionary<String, Double> CondensedMassFractions, TransportFigures? Transport, CaseStatus? TransportStatus, CaseStatus Status)
     CaseStatus Status { get; init; }
     CaseStatus? TransportStatus { get; init; }
     IReadOnlyDictionary<String, Double> CondensedMassFractions { get; init; }
@@ -776,70 +504,6 @@ struct APThermo.Thermo.MixtureState
     Double Temperature
     Double Velocity
 
-static class APThermo.Thermo.PhysicalConstants
-    const Double R = 8314.51
-
-static class APThermo.Thermo.SpeciesFunctions
-    const Double LatentHeatThreshold = 0.001
-    static Boolean IsInRange(in SpeciesTableView table, Int32 species, Double temperature)
-    static Double CpOverR(in SpeciesTableView table, Int32 species, Double temperature)
-    static Double GOverRT(in SpeciesTableView table, Int32 species, Double temperature)
-    static Double HOverRT(in SpeciesTableView table, Int32 species, Double temperature)
-    static Double RecordHigh(in SpeciesTableView table, Int32 species)
-    static Double RecordLow(in SpeciesTableView table, Int32 species)
-    static Double SOverR(in SpeciesTableView table, Int32 species, Double temperature)
-    static Int32 IntervalOf(in SpeciesTableView table, Int32 species, Double temperature)
-
-sealed class APThermo.Thermo.SpeciesTable
-    IReadOnlyList<Int32> IndicesOf(String species)
-    IReadOnlyList<Species> Records { get; }
-    IReadOnlyList<String> Elements { get; }
-    IReadOnlyList<String> Species { get; }
-    Int32 CondensedCount { get; }
-    Int32 ElementCount { get; }
-    Int32 GasCount { get; }
-    Int32 IndexOf(String species)
-    Int32 PieceOf(String species, Double temperature)
-    Int32 SpeciesCount { get; }
-    SpeciesTableArrays Arrays { get; }
-    static SpeciesTable Build(SpeciesDatabase database, IReadOnlyList<String> elements, IReadOnlyList<String> species)
-
-sealed class APThermo.Thermo.SpeciesTableArrays
-    Double[] Coefficients { get; }
-    Double[] Exponents { get; }
-    Double[] FormationEnthalpy { get; }
-    Double[] IntervalBounds { get; }
-    Double[] MolarMass { get; }
-    Double[] Stoichiometry { get; }
-    Int32 IntervalTotal { get; }
-    Int32[] IntervalCount { get; }
-    Int32[] IntervalStart { get; }
-
-sealed class APThermo.Thermo.SpeciesTableBuffers : IDisposable
-    SpeciesTable Table { get; }
-    SpeciesTableView View { get; }
-    Void Dispose()
-    static SpeciesTableBuffers Upload(Accelerator accelerator, SpeciesTable table)
-
-readonly struct APThermo.Thermo.SpeciesTableView
-    .ctor(Int32 speciesCount, Int32 gasCount, Int32 elementCount, ArrayView<Double> molarMass, ArrayView<Double> formationEnthalpy, ArrayView<Double> stoichiometry, ArrayView<Int32> intervalStart, ArrayView<Int32> intervalCount, ArrayView<Double> intervalBounds, ArrayView<Double> exponents, ArrayView<Double> coefficients)
-    readonly ArrayView<Double> Coefficients
-    readonly ArrayView<Double> Exponents
-    readonly ArrayView<Double> FormationEnthalpy
-    readonly ArrayView<Double> IntervalBounds
-    readonly ArrayView<Double> MolarMass
-    readonly ArrayView<Double> Stoichiometry
-    readonly ArrayView<Int32> IntervalCount
-    readonly ArrayView<Int32> IntervalStart
-    readonly Int32 ElementCount
-    readonly Int32 GasCount
-    readonly Int32 SpeciesCount
-
-static class APThermo.Thermo.TableLimits
-    const Int32 MaxElements = 20
-    const Int32 MaxIntervalsPerSpecies = 5
-    const Int32 MaxSpecies = 2048
-
 == APThermo.Transport
 
 struct APThermo.Transport.TransportFigures
@@ -856,99 +520,3 @@ struct APThermo.Transport.TransportFigures
     Int32 ReactionCount
     Int32 SpeciesCount
     Int32 TraceEliminations
-
-static class APThermo.Transport.TransportLayout
-    const Int32 MaxSpecies = 40
-    static Int32 DoublesPerCase(Int32 speciesCount, Int32 elementCount)
-    static Int32 IntsPerCase(Int32 speciesCount, Int32 elementCount)
-
-readonly struct APThermo.Transport.TransportScratch
-    .ctor(ArrayView<Double> eta, ArrayView<Double> alpha, ArrayView<Double> matrix, ArrayView<Double> matrixReacting, ArrayView<Double> basis, ArrayView<Double> cond, ArrayView<Double> xs, ArrayView<Double> cp, ArrayView<Double> h, ArrayView<Double> deltaH, ArrayView<Double> rhs, ArrayView<Double> rowScale, ArrayView<Double> stx, ArrayView<Int32> mark, ArrayView<Int32> indexList, ArrayView<Int32> compLocal, ArrayView<Int32> compRow, ArrayView<Int32> isComponent, ArrayView<Int32> component, ArrayView<Int32> default, ArrayView<Int32> rowTaken, ArrayView<Int32> rowActive)
-    readonly ArrayView<Double> Alpha
-    readonly ArrayView<Double> Basis
-    readonly ArrayView<Double> Cond
-    readonly ArrayView<Double> Cp
-    readonly ArrayView<Double> DeltaH
-    readonly ArrayView<Double> Eta
-    readonly ArrayView<Double> H
-    readonly ArrayView<Double> Matrix
-    readonly ArrayView<Double> MatrixReacting
-    readonly ArrayView<Double> Rhs
-    readonly ArrayView<Double> RowScale
-    readonly ArrayView<Double> Stx
-    readonly ArrayView<Double> Xs
-    readonly ArrayView<Int32> CompLocal
-    readonly ArrayView<Int32> CompRow
-    readonly ArrayView<Int32> Component
-    readonly ArrayView<Int32> Default
-    readonly ArrayView<Int32> IndexList
-    readonly ArrayView<Int32> IsComponent
-    readonly ArrayView<Int32> Mark
-    readonly ArrayView<Int32> RowActive
-    readonly ArrayView<Int32> RowTaken
-    static TransportScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
-
-static class APThermo.Transport.TransportSolver
-    const Double AStar = 1.1
-    const Double Avogadro = 6.0221367E+26
-    const Double BasisCleaningThreshold = 1E-05
-    const Double Boltzmann = 1.380658E-23
-    const Double CollisionDiameter = 1E-10
-    const Double CoverageFraction = 0.999999999
-    const Double CoverageTolerance = 1E-06
-    const Double CutoffFraction = 1E-11
-    const Double EliminationThreshold = 1E-05
-    const Double ReactionCoefficientThreshold = 1E-06
-    const Double StoichiometryThreshold = 1E-10
-    const Double TraceFraction = 1E-10
-    const Double UnitCountTolerance = 1E-08
-    const Int32 MaxSpecies = 40
-    static CaseStatus Evaluate(in SpeciesTableView species, in TransportTableView transport, Double temperature, ArrayView<Double> moles, in TransportScratch scratch, ArrayView<TransportFigures> figures)
-    static Double FitValue(in TransportTableView transport, Int32 fit, Double temperature)
-    static Double PairViscosity(in TransportTableView transport, Int32 pair, Double temperature)
-    static Double PureConductivity(in TransportTableView transport, Int32 species, Double temperature)
-    static Double PureViscosity(in TransportTableView transport, Int32 species, Double temperature)
-    static Int32 FitOf(in TransportTableView transport, Int32 start, Int32 count, Double temperature)
-
-sealed class APThermo.Transport.TransportTable
-    IReadOnlyList<String> SpeciesWithData { get; }
-    IReadOnlyList<String> SpeciesWithoutData { get; }
-    IReadOnlyList<ValueTuple<String, String>> Pairs { get; }
-    Int32 SpeciesCount { get; }
-    SpeciesTable Species { get; }
-    TransportTableArrays Arrays { get; }
-    const Double ConductivityFactorToSi = 0.0001
-    const Double ViscosityFactorToSi = 1E-07
-    const Int32 FitStride = 6
-    static TransportTable Build(TransportDatabase database, SpeciesTable species)
-
-sealed class APThermo.Transport.TransportTableArrays
-    Double[] Fits { get; }
-    Int32 FitTotal { get; }
-    Int32 PairTotal { get; }
-    Int32[] ConductivityCount { get; }
-    Int32[] ConductivityStart { get; }
-    Int32[] PairCount { get; }
-    Int32[] PairIndex { get; }
-    Int32[] PairStart { get; }
-    Int32[] ViscosityCount { get; }
-    Int32[] ViscosityStart { get; }
-
-sealed class APThermo.Transport.TransportTableBuffers : IDisposable
-    TransportTable Table { get; }
-    TransportTableView View { get; }
-    Void Dispose()
-    static TransportTableBuffers Upload(Accelerator accelerator, TransportTable table)
-
-readonly struct APThermo.Transport.TransportTableView
-    .ctor(Int32 speciesCount, Int32 pairTotal, ArrayView<Int32> viscosityStart, ArrayView<Int32> viscosityCount, ArrayView<Int32> conductivityStart, ArrayView<Int32> conductivityCount, ArrayView<Double> fits, ArrayView<Int32> pairIndex, ArrayView<Int32> pairStart, ArrayView<Int32> pairCount)
-    readonly ArrayView<Double> Fits
-    readonly ArrayView<Int32> ConductivityCount
-    readonly ArrayView<Int32> ConductivityStart
-    readonly ArrayView<Int32> PairCount
-    readonly ArrayView<Int32> PairIndex
-    readonly ArrayView<Int32> PairStart
-    readonly ArrayView<Int32> ViscosityCount
-    readonly ArrayView<Int32> ViscosityStart
-    readonly Int32 PairTotal
-    readonly Int32 SpeciesCount

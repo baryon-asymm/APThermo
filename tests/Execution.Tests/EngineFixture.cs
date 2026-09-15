@@ -27,10 +27,10 @@ public sealed class EngineFixture : IDisposable
     public ToleranceTable Tolerances { get; }
 
     /// <summary>The CPU accelerator engine.</summary>
-    public Engine Cpu { get; }
+    internal Engine Cpu { get; }
 
     /// <summary>The CUDA engine, created on first use; null when the environment forbids CUDA.</summary>
-    public Engine? Cuda => _cuda.Value;
+    internal Engine? Cuda => _cuda.Value;
 
     /// <summary>The 100 000-case sweep on both accelerators, run once for the long-running tests.</summary>
     internal SweepRun Sweep => _sweep.Value;
@@ -39,7 +39,7 @@ public sealed class EngineFixture : IDisposable
     /// The CUDA engine for a CUDA-category test. When CUDA is forbidden by the environment the test verifies the refusal instead and
     /// returns null, so that the full suite passes under APTHERMO_NO_CUDA=1; on a machine without CUDA the creation fails loudly.
     /// </summary>
-    public Engine? RequireCuda()
+    internal Engine? RequireCuda()
     {
         if (!Engine.CudaForbidden)
         {

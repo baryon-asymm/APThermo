@@ -6,7 +6,7 @@ using APThermo.Transport;
 namespace APThermo.Execution;
 
 /// <summary>A batch of equilibrium cases, structure of arrays, one entry per case; the element order is the table's.</summary>
-public sealed class EquilibriumBatch
+internal sealed class EquilibriumBatch
 {
     public EquilibriumBatch(int count, int elementCount)
     {
@@ -48,7 +48,7 @@ public sealed class EquilibriumBatch
 }
 
 /// <summary>A batch of rocket cases: every case has the same exit specification kinds, in station order.</summary>
-public sealed class RocketBatch
+internal sealed class RocketBatch
 {
     public RocketBatch(int count, int elementCount, ExitSpecification[] exitKinds)
     {
@@ -103,7 +103,7 @@ public sealed class RocketBatch
 }
 
 /// <summary>A batch of stations for the transport pass: a temperature and a composition each.</summary>
-public sealed class TransportBatch
+internal sealed class TransportBatch
 {
     public TransportBatch(int stationCount, int speciesCount)
     {
@@ -155,7 +155,7 @@ public sealed class TransportBatch
 }
 
 /// <summary>What an equilibrium batch produced.</summary>
-public sealed class EquilibriumBatchResult
+internal sealed class EquilibriumBatchResult
 {
     internal EquilibriumBatchResult(int speciesCount, MixtureState[] state, double[] moles, CaseStatus[] status, int[] iterations,
                                     RunTimings timings, AcceleratorInfo accelerator)
@@ -189,7 +189,7 @@ public sealed class EquilibriumBatchResult
 }
 
 /// <summary>What a rocket batch produced; stations are chamber, throat, then the exits, per case.</summary>
-public sealed class RocketBatchResult
+internal sealed class RocketBatchResult
 {
     internal RocketBatchResult(int speciesCount, int stationCount, MixtureState[] stations, double[] moles, PerformanceFigures[] figures,
                                CaseStatus[] stationStatus, int[] iterations, CaseStatus[] status, RunTimings timings, AcceleratorInfo accelerator)
@@ -237,7 +237,7 @@ public sealed class RocketBatchResult
 }
 
 /// <summary>What a transport batch produced, one entry per station of the batch.</summary>
-public sealed class TransportBatchResult
+internal sealed class TransportBatchResult
 {
     internal TransportBatchResult(TransportFigures[] figures, CaseStatus[] status, RunTimings timings, AcceleratorInfo accelerator)
     {
@@ -259,7 +259,7 @@ public sealed class TransportBatchResult
 }
 
 /// <summary>A batch of species-function evaluations: a table species and a temperature per entry.</summary>
-public sealed class SpeciesFunctionBatch
+internal sealed class SpeciesFunctionBatch
 {
     public SpeciesFunctionBatch(int count)
     {
@@ -289,7 +289,7 @@ public sealed class SpeciesFunctionBatch
 }
 
 /// <summary>What a species-function batch produced, one entry per evaluation; the functions are dimensionless.</summary>
-public sealed class SpeciesFunctionBatchResult
+internal sealed class SpeciesFunctionBatchResult
 {
     internal SpeciesFunctionBatchResult(double[] cpOverR, double[] hOverRT, double[] sOverR, bool[] inRange, RunTimings timings, AcceleratorInfo accelerator)
     {

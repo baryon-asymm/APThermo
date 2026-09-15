@@ -2,17 +2,39 @@
 
 Namespace `APThermo.Equilibrium`. The node exposes one
 kernel-compatible solver for the equilibrium composition of one case, plus the
-descriptors of its inputs, scratch and outputs. Everything not listed here is internal
-and may change.
+descriptors of its inputs, scratch and outputs. Everything not listed here, in a
+package-surface section (one whose heading carries no `(tree contract)` mark), is
+internal and may change without notice (root `BOOT.md`, Delivery: Public surface). The
+tree-contract section below lists the internal types `Performance`, `Transport` and
+`Execution` use (root `BOOT.md`, Delivery: Tree contracts); the assembly grants
+`InternalsVisibleTo` to exactly those nodes and to `Execution.Tests` and
+`Performance.Tests` (`APThermo.Equilibrium.csproj`).
 
-## Solver ✅
+⚠ 2026-09-15 (distribution phase): the review of that day
+(`SCRATCH/api-review-report.md`) found no consumer scenario for `EquilibriumProblem`,
+`EquilibriumScratch`, `EquilibriumResult`, `EquilibriumSolver`, `ScratchLayout` or
+`DenseSolver`: every use is a neighbour numerical node composing the kernel layer, or
+this node's own tests. They moved from the package surface into the tree contract
+below; only `ProblemKind` stays public, because a consumer builds it into the
+`EquilibriumProblem` of `Problems` (a distinct, same-named type: the CS0104 clash the
+review found is a defect of every option except this one, section 4, D3 — a consumer
+never sees this node's own `EquilibriumProblem` at all now that it is internal). The
+correction also fixes a wrong claim: `DenseSolver`'s own ⚠ below said it "became
+public" for `Transport` on 2026-09-12; `InternalsVisibleTo` does the same job without
+widening the package surface, so it is internal again.
+
+## Problem kind ✅
 
 ```csharp
 namespace APThermo.Equilibrium;
 
 public enum ProblemKind { AssignedTemperaturePressure, AssignedEnthalpyPressure, AssignedEntropyPressure }
+```
 
-public readonly struct EquilibriumProblem              // one case
+## Solver (tree contract) ✅
+
+```csharp
+internal readonly struct EquilibriumProblem              // one case
 {
     public readonly ProblemKind Kind;
     public readonly double Pressure;                   // Pa
@@ -22,7 +44,7 @@ public readonly struct EquilibriumProblem              // one case
     public EquilibriumProblem(ProblemKind kind, double pressure, double temperature, double target, ArrayView<double> elementMoles);
 }
 
-public readonly struct EquilibriumScratch              // slices of batch-sized buffers, sized by ScratchLayout
+internal readonly struct EquilibriumScratch              // slices of batch-sized buffers, sized by ScratchLayout
 {
     public readonly ArrayView<double> HOverRT;         // [species], the species functions at the current temperature
     public readonly ArrayView<double> SOverR;          // [species]
@@ -44,7 +66,7 @@ public readonly struct EquilibriumScratch              // slices of batch-sized 
         // cuts one case's scratch from views of at least DoublesPerCase and IntsPerCase elements
 }
 
-public readonly struct EquilibriumResult               // views the solver writes into
+internal readonly struct EquilibriumResult               // views the solver writes into
 {
     public readonly ArrayView<double> Moles;           // [species], kmol per kg; zero for absent, trace and unincluded condensed species
     public readonly ArrayView<double> Multipliers;     // [element], Lagrange multipliers π_i (dimensionless); zero for an absent element
@@ -55,7 +77,7 @@ public readonly struct EquilibriumResult               // views the solver write
                              ArrayView<int> status, ArrayView<int> iterations);
 }
 
-public static class EquilibriumSolver                  // kernel-compatible
+internal static class EquilibriumSolver                  // kernel-compatible
 {
     public const double TraceThreshold = 18.420681;    // −ln(1e-8): below this mole fraction a gaseous species is reported as zero
     public const int MaxNewtonSteps = 50;              // after the last change of the condensed set
@@ -69,7 +91,7 @@ public static class EquilibriumSolver                  // kernel-compatible
         // composition fixed to result.Moles; solves for the temperature (hp, sp) or evaluates at it (tp)
 }
 
-public static class ScratchLayout
+internal static class ScratchLayout
 {
     public const int MaxCondensedInSolution = 8;
     public static int MaxUnknowns(int elementCount);                          // elementCount + MaxCondensedInSolution + 2
@@ -77,7 +99,7 @@ public static class ScratchLayout
     public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + MaxCondensedInSolution
 }
 
-public static class DenseSolver                        // kernel-compatible; shared with Transport
+internal static class DenseSolver                        // kernel-compatible; shared with Transport
 {
     public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride);
         // Gaussian elimination with scaled partial pivoting, in place, on the row-major n×n system held with the given stride;

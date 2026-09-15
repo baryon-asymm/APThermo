@@ -16,7 +16,7 @@ internal static class IntervalReader
 
         i += 3;
         return new TemperatureInterval(
-            TLow: tLow, THigh: tHigh, Exponents: exponents, Coefficients: coefficients, B1: b1, B2: b2, EnthalpyOffset: enthalpyOffset);
+            tLow: tLow, tHigh: tHigh, exponents: exponents, coefficients: coefficients, b1: b1, b2: b2, enthalpyOffset: enthalpyOffset);
     }
 
     private static (double TLow, double THigh, double[] Exponents, double EnthalpyOffset) ReadHeader(string line)

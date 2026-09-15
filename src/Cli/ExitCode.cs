@@ -1,7 +1,7 @@
 namespace APThermo.Cli;
 
 /// <summary>Exit codes of the command line (BOOT.md, invariants).</summary>
-public enum ExitCode
+internal enum ExitCode
 {
     /// <summary>Every case and station is Ok.</summary>
     Ok = 0,

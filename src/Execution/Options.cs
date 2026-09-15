@@ -43,11 +43,38 @@ public sealed record EngineOptions
     public long ScratchBytes { get; init; } = DefaultScratchBytes;
 }
 
-/// <summary>The accelerator that produced a batch result.</summary>
-public sealed record AcceleratorInfo(
-    AcceleratorKind Kind, string DeviceName, string IlgpuVersion,
-    string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors)
+/// <summary>
+/// The accelerator that produced a batch result. Nominal, with an internal constructor (root <c>BOOT.md</c>,
+/// Delivery: Tree contracts, "records the library creates for consumers ... have internal constructors"): no
+/// consumer builds one, only reads it from <c>Solver.Accelerator</c> or a batch result's <c>Accelerator</c>, so
+/// a field added in 0.x breaks nobody.
+/// </summary>
+public sealed record AcceleratorInfo
 {
+    internal AcceleratorInfo(
+        AcceleratorKind kind, string deviceName, string ilgpuVersion,
+        string? libNvvmPath, string? libDevicePath, int threadsOrMultiprocessors)
+    {
+        Kind = kind;
+        DeviceName = deviceName;
+        IlgpuVersion = ilgpuVersion;
+        LibNvvmPath = libNvvmPath;
+        LibDevicePath = libDevicePath;
+        ThreadsOrMultiprocessors = threadsOrMultiprocessors;
+    }
+
+    public AcceleratorKind Kind { get; }
+
+    public string DeviceName { get; }
+
+    public string IlgpuVersion { get; }
+
+    public string? LibNvvmPath { get; }
+
+    public string? LibDevicePath { get; }
+
+    public int ThreadsOrMultiprocessors { get; }
+
     /// <summary>
     /// Why <see cref="AcceleratorKind.Auto"/> fell back to the CPU accelerator: the failure that turned the choice, the forbidding
     /// variable included, with the paths tried where they apply. Null when CUDA was bound or the options asked for the CPU.
@@ -56,7 +83,7 @@ public sealed record AcceleratorInfo(
 }
 
 /// <summary>Where the time of a run went. Warm-up is the kernel compilation on first use and is zero afterwards.</summary>
-public sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
+internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
 
 /// <summary>A requested accelerator cannot be created; the message names the missing piece and every path that was tried.</summary>
 public sealed class AcceleratorUnavailableException : Exception

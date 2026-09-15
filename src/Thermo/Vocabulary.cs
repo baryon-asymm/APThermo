@@ -1,7 +1,7 @@
 namespace APThermo.Thermo;
 
 /// <summary>The one physical constant of the tree.</summary>
-public static class PhysicalConstants
+internal static class PhysicalConstants
 {
     /// <summary>Universal gas constant in J/(kmol·K), the value NASA CEA computes with.</summary>
     public const double R = 8314.51;
@@ -82,7 +82,7 @@ public enum CaseStatus
 }
 
 /// <summary>Size limits of a species table; they size the scratch of every consumer.</summary>
-public static class TableLimits
+internal static class TableLimits
 {
     public const int MaxElements = 20;
 
