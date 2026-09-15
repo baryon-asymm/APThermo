@@ -11,31 +11,31 @@ namespace AerospacePropellantThermodynamics.Protocol.Tests;
 /// </summary>
 internal static class ShapeMeasures
 {
-    /// <summary>Every type or delegate, top-level and nested, its own physical span (a nested type counts inside its outer
-    /// type's span and on its own, "Shape check", type lines).</summary>
+    /// <summary>Every type or delegate, top-level and nested, the count of its own span's lines that hold code (a nested
+    /// type counts inside its outer type's count and on its own, "Shape check", type lines).</summary>
     public static IEnumerable<(string Where, string File, int Line, int Lines)> TypeLines(Node node)
     {
         foreach (var (path, tree) in SourceSyntax.Trees(node))
         {
             foreach (var declaration in tree.GetRoot().DescendantNodes().Where(IsTypeLike))
             {
-                var (start, end) = Span(tree, declaration);
-                yield return (QualifiedTypeName(declaration), path, start + 1, end - start + 1);
+                var (start, _) = Span(tree, declaration);
+                yield return (QualifiedTypeName(declaration), path, start + 1, CodeLines(tree, declaration));
             }
         }
     }
 
-    /// <summary>Every method, constructor, operator, conversion operator, accessor with a body, and local function; its own
-    /// physical span ("Shape check", method lines). A record's primary constructor has no block to span and is not a method;
-    /// <see cref="Parameters"/> counts its parameters separately.</summary>
+    /// <summary>Every method, constructor, operator, conversion operator, accessor with a body, and local function; the
+    /// count of its own span's lines that hold code ("Shape check", method lines). A record's primary constructor has no
+    /// block to span and is not a method; <see cref="Parameters"/> counts its parameters separately.</summary>
     public static IEnumerable<(string Where, string File, int Line, int Lines)> MethodLines(Node node)
     {
         foreach (var (path, tree) in SourceSyntax.Trees(node))
         {
             foreach (var member in tree.GetRoot().DescendantNodes().Where(IsMeasuredMember))
             {
-                var (start, end) = Span(tree, member);
-                yield return (MemberName(member), path, start + 1, end - start + 1);
+                var (start, _) = Span(tree, member);
+                yield return (MemberName(member), path, start + 1, CodeLines(tree, member));
             }
         }
     }
@@ -175,12 +175,40 @@ internal static class ShapeMeasures
 
     /// <summary>The 0-based start and end line of a declaration: from its first token after any attribute lists (so that
     /// attributes and the documentation comment above, which is leading trivia, are excluded) to its very last token (the
-    /// closing brace, or the semicolon of a bodyless or expression-bodied declaration).</summary>
+    /// closing brace, or the semicolon of a bodyless or expression-bodied declaration). The span's start and end are these
+    /// two lines regardless of how many of the lines between them hold code; <see cref="CodeLines"/> counts those.</summary>
     private static (int Start, int End) Span(SyntaxTree tree, SyntaxNode node)
     {
         var start = tree.GetLineSpan(FirstTokenAfterAttributes(node).Span).StartLinePosition.Line;
         var end = tree.GetLineSpan(node.GetLastToken().Span).EndLinePosition.Line;
         return (start, end);
+    }
+
+    /// <summary>
+    /// The count of lines of the same span (<see cref="Span"/>) that hold code ("Shape check", type lines, the 2026-09-14
+    /// exclusion): a line counts once any token of the declaration's own span falls on it, whatever comment trivia shares
+    /// that line; a line of only white space or only comment (<c>//</c>, <c>///</c>, or a block comment's line) does not,
+    /// because no token touches it. A token that itself spans several lines (a raw string literal) counts every line it
+    /// occupies, since those lines hold that token's own text, not a comment.
+    /// </summary>
+    private static int CodeLines(SyntaxTree tree, SyntaxNode node)
+    {
+        var first = FirstTokenAfterAttributes(node);
+        var last = node.GetLastToken();
+        var lines = new HashSet<int>();
+        for (var token = first; ; token = token.GetNextToken())
+        {
+            var span = tree.GetLineSpan(token.Span);
+            for (var line = span.StartLinePosition.Line; line <= span.EndLinePosition.Line; line++)
+            {
+                lines.Add(line);
+            }
+
+            if (token == last)
+            {
+                return lines.Count;
+            }
+        }
     }
 
     private static SyntaxToken FirstTokenAfterAttributes(SyntaxNode node)

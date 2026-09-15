@@ -13,7 +13,7 @@ consider guaranteed about the agreement between its documents and its code.
 | every declaration under ✅ exists, the type and the member | Declarations level (`DeclarationTests`) | ✅ |
 | declared dependencies match the real ones, in both directions, from signatures and method bodies | Dependencies level (`DependencyTests`) | ✅ |
 | the numerical nodes hold no single-precision value or operation and no mutable static field; no node but the execution node and its tests names a CUDA type | Root invariants level (`InvariantTests`) | ✅ |
-| the tree meets the root's code-shape constraint (sizes, nesting, parameters, the coupling of the `src` types, stable types, the stable-dependencies direction, no `partial`, `#region` or helpers class), every exception a measured row of its node's `## Shape exceptions` table | Shape level (`ShapeTests`) | ⏳ 2026-09-14 |
+| the tree meets the root's code-shape constraint (sizes, nesting, parameters, the coupling of the `src` types, stable types, the stable-dependencies direction, no `partial`, `#region` or helpers class), every exception a measured row of its node's `## Shape exceptions` table | Shape level (`ShapeTests`) | ✅ 2026-09-15 |
 
 What it does not guarantee: that a document tells the truth about the code it names
 correctly (`AGENTS.md` §13); that a signature under ✅ matches the code (names are
