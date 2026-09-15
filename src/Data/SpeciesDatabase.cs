@@ -6,6 +6,10 @@ namespace APThermo.Data;
 /// <summary>The NASA thermodynamic database (and optionally the transport database) as an immutable object model.</summary>
 public sealed class SpeciesDatabase
 {
+    private const string ThermoResourceName = "APThermo.Data.Bundled.thermo.inp";
+    private const string TransResourceName = "APThermo.Data.Bundled.trans.inp";
+    private const string NoticeResourceName = "APThermo.Data.Bundled.NOTICE";
+
     private readonly Dictionary<string, List<Species>> _recordsByName;
     private readonly Dictionary<string, double> _atomicWeights;
 
@@ -71,6 +75,24 @@ public sealed class SpeciesDatabase
             transPath is null ? null : Path.GetFileName(transPath),
             transBytes is null ? null : Sha256(transBytes));
     }
+
+    /// <summary>
+    /// Loads the databases from the files embedded in this assembly: the same bytes as <c>data/thermo.inp</c> and
+    /// <c>data/trans.inp</c>, committed verbatim from NASA CEA (a test proves the embedded bytes' SHA-256 equals the
+    /// committed files'). <see cref="Provenance"/> carries the same hashes <see cref="Load"/> would give the
+    /// committed files, so a caller with no <c>data/</c> directory beside it still gets full provenance.
+    /// </summary>
+    public static SpeciesDatabase LoadBundled()
+    {
+        var thermoBytes = ReadResource(ThermoResourceName);
+        var transBytes = ReadResource(TransResourceName);
+        return Build(
+            Encoding.Latin1.GetString(thermoBytes), "thermo.inp", Sha256(thermoBytes),
+            Encoding.Latin1.GetString(transBytes), "trans.inp", Sha256(transBytes));
+    }
+
+    /// <summary>The NASA data attribution notice embedded in this assembly, the same text as the committed <c>data/NOTICE</c>.</summary>
+    public static string BundledNotice() => Encoding.UTF8.GetString(ReadResource(NoticeResourceName));
 
     /// <summary>Parses the databases from text. The hashes in <see cref="Provenance"/> are those of the UTF-8 encoding of the text.</summary>
     public static SpeciesDatabase Parse(TextReader thermo, TextReader? trans = null)
@@ -149,4 +171,13 @@ public sealed class SpeciesDatabase
     }
 
     private static string Sha256(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
+
+    private static byte[] ReadResource(string logicalName)
+    {
+        using var stream = typeof(SpeciesDatabase).Assembly.GetManifestResourceStream(logicalName)
+            ?? throw new InvalidOperationException($"embedded resource '{logicalName}' is missing from the assembly");
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
+    }
 }

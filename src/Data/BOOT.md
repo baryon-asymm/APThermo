@@ -206,6 +206,24 @@ Decisions taken with the review of 2026-09-14:
   the same day on the dependency check's walk, by which the protocol tests node's
   `ShapeTests` measures this node.
 
+Decided 2026-09-15 (distribution phase, root `BOOT.md`, `## Delivery`, `Data`):
+
+- **The bundled database is three `EmbeddedResource` items, not a fourth parser.**
+  `data/thermo.inp`, `data/trans.inp` and `data/NOTICE` are linked into
+  `APThermo.Data.csproj` from `data/` (never copied) under the manifest names
+  `APThermo.Data.Bundled.thermo.inp`, `.trans.inp`, `.NOTICE`, chosen once and
+  independent of the project's file layout so a later reshuffle of `## Structure`
+  cannot silently rename them out from under a consumer.
+  `SpeciesDatabase.LoadBundled()` reads the two database resources as raw bytes,
+  decodes them Latin1 exactly as `Load` decodes files, hashes the same raw bytes, and
+  calls the private `Build` both `Load` and `Parse` already call: the embedding adds a
+  byte source, not a second reading of the format. `BundledNotice()` reads the third
+  resource as UTF-8 text (the file is 7-bit ASCII, so the two encodings agree).
+- **No new public type.** `LoadBundled` and `BundledNotice` are two more static
+  members of `SpeciesDatabase`; no `EmbeddedResource` name is public, so the manifest
+  names may still change without an API break as long as the two methods keep
+  reading the same files.
+
 ## Shape exceptions
 
 The rows below are this node's declared exceptions to the root's code-shape constraint,
@@ -293,6 +311,19 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 — The bundled database: the SHA-256 of each of the three embedded
+      resources (`thermo.inp`, `trans.inp`, `NOTICE`) equals the SHA-256 of the
+      matching file under `data/`
+      (`BundledDatabaseTests.Embedded_resource_bytes_equal_the_committed_files`);
+      `LoadBundled()` produces a database equal, species by species and coefficient
+      by coefficient (Products, Reactants, every transport entry and fit, the
+      provenance hashes and header), to `Load(data/thermo.inp, data/trans.inp)`
+      (`BundledDatabaseTests.LoadBundled_equals_Load_on_every_species_and_coefficient`);
+      `BundledNotice()` equals the text of `data/NOTICE`
+      (`BundledDatabaseTests.BundledNotice_equals_the_committed_file`). Each seen red
+      once (AGENTS.md §13): the embedded `thermo.inp` truncated to its first 100
+      lines turned the hash test and the equality test both red; reverted, nothing of
+      the mutation committed.
 
 ## Taboos
 

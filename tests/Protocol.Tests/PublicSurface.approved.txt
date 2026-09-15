@@ -124,7 +124,9 @@ sealed class APThermo.Data.SpeciesDatabase
     Species this[String name] { get; }
     TransportDatabase? Transport { get; }
     static SpeciesDatabase Load(String thermoPath, String? transPath = null)
+    static SpeciesDatabase LoadBundled()
     static SpeciesDatabase Parse(TextReader thermo, TextReader? trans = null)
+    static String BundledNotice()
 
 enum APThermo.Data.SpeciesPhase : Int32
     Condensed = 1
