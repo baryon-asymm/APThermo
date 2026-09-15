@@ -236,7 +236,7 @@ thing:
 | nesting | 3 | every member body | the depth of `if` (an `else if` continues its chain), `for`, `foreach`, `while`, `do`, `switch` and `try`; a lambda or a local function continues the depth of the statement it stands in |
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
 | efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), the nested and compiler-generated types of the naming type attributed to the outermost type that declares them, a nested type it names counted as itself, a constructed generic type counted once as its definition, an array, by-reference or pointer type counted as its element type; types outside the tree, and compiler-generated types no type declares, not counted |
-| stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
+| stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the `src` nodes spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
 | stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the dependencies its `## Dependencies` declares (held equal to the nodes its code uses by the Dependencies level; project files are not read); every declared dependency points to a node whose I is not above the declarer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
 | named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier names N followed by the row's nesting path (empty for a top-level type, `Outer` for a row declared `Outer.Inner.Inner`), written in full, or relative to the file's own namespace or one of its enclosing namespaces, or via a `using`; any other target-typed creation is left to review |
@@ -296,6 +296,25 @@ its real `ProjectReference` list coincide at `c5aed4d`, so no I figure and no
 dependency-direction verdict moves; a `ProjectReference` with no matching declared
 dependency would make the two graphs differ, and this check would not notice. The row
 now states what the code reads.
+
+⚠ 2026-09-15 (repair phase, R-Protocol.Tests-9): the stable-type row's Definition cell
+and `CouplingMeasures.AfferentCoupling` counted a dependant of any node of the tree, test
+nodes included, against the ten-dependant threshold — a type used by nothing but its own
+node's tests, or by a neighbour's tests, could read as "stable" from that use alone,
+which a test assembly's own churn does not make true. The root's own stable-type sentence
+already read "a type of the `src` nodes named by 10 or more types of the tree" without
+saying the *naming* types were also read that widely; the coupling and stable-type rules
+were calibrated on the `src` project graph throughout (this table's own heading: "Every
+`src` type with an afferent coupling"), so counting a test node's use was never the
+intended measure, only an unnoticed gap in the walk. `AfferentCoupling` now keeps an edge
+only when its naming type's own node is a `src` node; the root's stable-type sentence is
+corrected the same way, with its own warning. Ca can only fall under the narrower count,
+never rise, so no type newly becomes a stable type by this fix; twenty-seven of the
+fifty-three previously listed dropped back under 10 (`AcceleratorSession` among them,
+`src/Execution`, old Ca 10 now 9), and the table below carries the twenty-six that remain,
+re-measured the same way. No stable type over 100 lines and undocumented in its node's
+`API.md` exists under either count (`Every_stable_type_is_small_or_a_contract` was green
+before this fix and stays green after).
 
 The test nodes obey the size, nesting, parameter, mechanics and named-construction
 rules, since their support code is code; the coupling and stable-type rules apply to
@@ -363,6 +382,17 @@ Why the numbers are what they are:
   `07aa9bb` the fifteen types with ten or more dependants are all small records, enums
   and structs of the contracts (`SpeciesTableView`, `CaseStatus`, `MixtureState`,
   `ProblemKind`, `AcceleratorInfo` and the like), and `Species` has eight.
+
+  ⚠ 2026-09-15 (repair phase, R-Protocol.Tests-9): both walks cited above counted a
+  dependant of any node of the tree, test nodes included; "ten dependants" now means
+  ten `src`-node dependants (the same fix as the stable-type row's Definition cell,
+  above). The break the two walks found does not move by this alone: every type they
+  name as being at or over ten stays a small record, enum or struct under the
+  narrower count too. On the current, `src`-only walk `Species` measures 14, not
+  eight — the two figures were never the same measurement to begin with, the earlier
+  one taken before the tree's later decomposition added the dependants the current
+  walk counts, and neither counted only `src` nodes. The live figures, `src`-only and
+  dated to this repair's own commit, are the table below.
 - The stable-dependencies direction without an abstractness metric: numerical nodes may
   hold no interface or virtual call, so abstractness is zero throughout and the distance
   from the main sequence would degenerate to 1 − I.
@@ -378,63 +408,40 @@ over, taken through a temporary test calling only `CouplingMeasures`, `ShapeMeas
 `ApiDeclarations`, never committed, so that proof is not read against a measurement that
 could stay green were every coupling zero.
 
-Every `src` type with an afferent coupling (Ca) of 10 or more:
+Every `src` type with an afferent coupling (Ca) of 10 or more, counting only `src`-node
+dependants (R-Protocol.Tests-9; the table read every dependant of the tree, test nodes
+included, before this repair's fix — twenty-seven of the fifty-three rows it listed then
+dropped under 10 on the narrower count and are gone from the table below, none of them
+over 100 lines and undocumented either way):
 
 | Node | Type | Ca | Lines | Named in `API.md` |
 |---|---|---|---|---|
-| `src/Cli` | `InputException` | 20 | 1 | no |
-| `src/Cli` | `CommandOptions` | 10 | 13 | no |
-| `src/Cli` | `ExitCode` | 10 | 7 | yes |
-| `src/Data` | `SpeciesDatabase` | 65 | 108 | yes |
-| `src/Data` | `Species` | 29 | 12 | yes |
-| `src/Data` | `ElementCount` | 21 | 1 | yes |
-| `src/Data` | `TemperatureInterval` | 17 | 8 | yes |
-| `src/Data` | `TransportDatabase` | 13 | 27 | yes |
-| `src/Data` | `SpeciesPhase` | 12 | 5 | yes |
-| `src/Equilibrium` | `ProblemKind` | 36 | 6 | yes |
-| `src/Equilibrium` | `EquilibriumScratch` | 25 | 63 | yes |
-| `src/Equilibrium` | `EquilibriumResult` | 20 | 17 | yes |
-| `src/Equilibrium` | `EquilibriumProblem` | 16 | 16 | yes |
-| `src/Equilibrium` | `ScratchLayout` | 12 | 11 | yes |
-| `src/Execution` | `AcceleratorInfo` | 26 | 6 | yes |
-| `src/Execution` | `AcceleratorKind` | 22 | 6 | yes |
-| `src/Execution` | `EngineOptions` | 18 | 13 | yes |
-| `src/Execution` | `Engine` | 17 | 95 | yes |
-| `src/Execution` | `UploadedTables` | 16 | 35 | yes |
-| `src/Execution` | `RunTimings` | 11 | 1 | yes |
-| `src/Execution` | `AcceleratorSession` | 10 | 46 | no |
-| `src/Execution` | `RocketBatch` | 10 | 35 | yes |
-| `src/Performance` | `PerformanceFigures` | 36 | 9 | yes |
-| `src/Performance` | `FlowModel` | 29 | 6 | yes |
-| `src/Performance` | `ExitSpecification` | 16 | 5 | yes |
-| `src/Performance` | `RocketResult` | 14 | 21 | yes |
-| `src/Performance` | `RocketProblem` | 13 | 21 | yes |
-| `src/Performance` | `RocketContext` | 11 | 14 | no |
-| `src/Problems` | `ElementalMixture` | 26 | 68 | yes |
-| `src/Problems` | `Propellant` | 20 | 21 | yes |
-| `src/Problems` | `Station` | 19 | 9 | yes |
-| `src/Problems` | `EquilibriumProblem` | 15 | 9 | yes |
-| `src/Problems` | `Solver` | 14 | 134 | yes |
-| `src/Problems` | `RocketProblem` | 14 | 10 | yes |
-| `src/Problems` | `StateRecord` | 13 | 12 | yes |
-| `src/Problems` | `ReactantRole` | 11 | 6 | yes |
-| `src/Problems` | `AmountKind` | 11 | 5 | yes |
-| `src/Problems` | `EquilibriumResult` | 11 | 9 | yes |
-| `src/Problems` | `Reactant` | 10 | 58 | yes |
-| `src/Problems` | `RocketResult` | 10 | 10 | yes |
-| `src/Thermo` | `CaseStatus` | 79 | 11 | yes |
-| `src/Thermo` | `MixtureState` | 63 | 22 | yes |
-| `src/Thermo` | `SpeciesTable` | 58 | 75 | yes |
-| `src/Thermo` | `SpeciesTableView` | 54 | 32 | yes |
-| `src/Thermo` | `SpeciesTableBuffers` | 27 | 48 | yes |
-| `src/Thermo` | `SpeciesFunctions` | 16 | 104 | yes |
-| `src/Thermo` | `SpeciesTableArrays` | 11 | 25 | yes |
-| `src/Transport` | `TransportFigures` | 43 | 16 | yes |
-| `src/Transport` | `TransportTable` | 20 | 100 | yes |
-| `src/Transport` | `TransportScratch` | 16 | 111 | yes |
-| `src/Transport` | `TransportTableView` | 13 | 29 | yes |
-| `src/Transport` | `StationInputs` | 12 | 17 | no |
-| `src/Transport` | `TransportTableBuffers` | 11 | 48 | yes |
+| `src/Cli` | `InputException` | 19 | 1 | no |
+| `src/Data` | `SpeciesDatabase` | 20 | 108 | yes |
+| `src/Data` | `Species` | 14 | 12 | yes |
+| `src/Data` | `ElementCount` | 12 | 1 | yes |
+| `src/Data` | `TemperatureInterval` | 10 | 8 | yes |
+| `src/Equilibrium` | `ProblemKind` | 23 | 6 | yes |
+| `src/Equilibrium` | `EquilibriumScratch` | 19 | 63 | yes |
+| `src/Equilibrium` | `EquilibriumResult` | 16 | 17 | yes |
+| `src/Equilibrium` | `EquilibriumProblem` | 12 | 16 | yes |
+| `src/Execution` | `AcceleratorInfo` | 23 | 6 | yes |
+| `src/Execution` | `AcceleratorKind` | 13 | 6 | yes |
+| `src/Execution` | `EngineOptions` | 11 | 13 | yes |
+| `src/Execution` | `UploadedTables` | 10 | 35 | yes |
+| `src/Performance` | `FlowModel` | 18 | 6 | yes |
+| `src/Performance` | `PerformanceFigures` | 15 | 9 | yes |
+| `src/Performance` | `RocketResult` | 10 | 21 | yes |
+| `src/Problems` | `ElementalMixture` | 21 | 68 | yes |
+| `src/Problems` | `Propellant` | 12 | 21 | yes |
+| `src/Problems` | `Station` | 12 | 9 | yes |
+| `src/Thermo` | `CaseStatus` | 35 | 11 | yes |
+| `src/Thermo` | `SpeciesTableView` | 34 | 32 | yes |
+| `src/Thermo` | `MixtureState` | 26 | 22 | yes |
+| `src/Thermo` | `SpeciesTable` | 15 | 75 | yes |
+| `src/Transport` | `TransportFigures` | 18 | 16 | yes |
+| `src/Transport` | `TransportScratch` | 11 | 111 | yes |
+| `src/Transport` | `StationInputs` | 11 | 17 | no |
 
 Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli`, `Data`,
 `Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`, `Transport`):
@@ -593,8 +600,10 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       dependencies: the tables in `## Shape check` above are the real Ca, lines and
       `API.md`-naming, and the real Ce, Ca and I, that
       `Every_stable_type_is_small_or_a_contract` and
-      `No_src_dependency_points_to_a_less_stable_node` measure — fifty-three `src`
-      types at Ca ≥ 10 (none over 100 lines without being named) and the eight `src`
+      `No_src_dependency_points_to_a_less_stable_node` measure — twenty-six `src`
+      types at Ca ≥ 10, counting only `src`-node dependants (fifty-three before the
+      repair phase's R-Protocol.Tests-9 narrowed the count the same way below; none
+      over 100 lines without being named, under either count) and the eight `src`
       nodes' instability (never rising along a declared dependency), taken through a
       temporary test calling only `CouplingMeasures`, `ShapeMeasures` and
       `ApiDeclarations`, never committed.

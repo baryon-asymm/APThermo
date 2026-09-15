@@ -23,11 +23,14 @@ internal static class CouplingMeasures
         .ToDictionary(group => group.Key, group => group.Select(edge => edge.Target).Distinct().Count());
 
     /// <summary>
-    /// Every type's afferent coupling: the distinct outermost types of the tree that name it, by the same edges as
-    /// <see cref="EfferentCoupling"/> read the other way around. Unlike the source side, a target keeps its own identity even
-    /// when it is a nested type: the "stable type" rule is asked of every type of the tree, nested ones included.
+    /// Every type's afferent coupling: the distinct outermost types of the <c>src</c> nodes that name it, by the same edges
+    /// as <see cref="EfferentCoupling"/> read the other way around, kept only where the naming type's own node is a
+    /// <c>src</c> node (root BOOT.md, the stable-type sentence: "named by 10 or more types of the `src` nodes"; a test
+    /// node's use of a type never makes it stable). Unlike the source side, a target keeps its own identity even when it is
+    /// a nested type: the "stable type" rule is asked of every type of the <c>src</c> nodes, nested ones included.
     /// </summary>
     public static IReadOnlyDictionary<Type, int> AfferentCoupling() => EdgesLazy.Value
+        .Where(edge => NodeAssemblies.NodeOf(edge.Source) is { } source && IsSrcNode(source))
         .GroupBy(edge => edge.Target)
         .ToDictionary(group => group.Key, group => group.Select(edge => edge.Source).Distinct().Count());
 
