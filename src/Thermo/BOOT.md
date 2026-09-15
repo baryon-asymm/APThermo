@@ -123,12 +123,21 @@ table is built into are bit for bit those of `8e36a27`: the tests node's bit sna
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `SpeciesTable` | the contract; `Build` reduced to the sequence: check the request, resolve each name to a gas entry or to condensed pieces, concatenate gaseous then condensed, check the limits, flatten, construct | public, contract grown by `PieceOf` |
+| `SpeciesTable` | the contract; `Build` reduced to the sequence: check the request, resolve each name to a gas entry or to condensed pieces, concatenate gaseous then condensed, check the limits, flatten, construct | internal (2026-09-15, distribution phase), contract grown by `PieceOf` |
 | `TableRequest` | the request is well formed: counts, `TableLimits`, duplicate elements and species, each refused by name; the element index | internal |
 | `SpeciesResolution` | one requested name resolved into its table pieces: a gas entry (its first product record, or the database's own record for a name no product carries) or, for a condensed name, the join (the records of one name are one contiguous piece, or the name is refused) and the cut (a shared bound with `|ΔH°/RT| ≥ LatentHeatThreshold` starts a new piece named `NAME[TLow-THigh]`); every name's formula checked against the table's elements first | internal |
 | `TableLayout` | the flat layout in one place: the strides and slots (the bounds stride 2, the exponents per interval 8, the coefficient stride 9, the `b1` and `b2` slots) as constants the writer and the reader (`SpeciesFunctions`) both use, and the flattening of the pieces into `SpeciesTableArrays` | internal |
 | `TablePiece` | one table species in the making: the name, the record that provided its first interval, its intervals (today's private entry record, promoted so that the stages can pass it) | internal |
-| `SpeciesFunctions` | code unchanged, reading the layout through `TableLayout`; gains `RecordLow` and `RecordHigh` (below) | public |
+| `SpeciesFunctions` | code unchanged, reading the layout through `TableLayout`; gains `RecordLow` and `RecordHigh` (below) | internal (2026-09-15, distribution phase) |
+
+⚠ 2026-09-15 (distribution phase): the Visibility column read "public" for `SpeciesTable`
+and `SpeciesFunctions`. The API review of that day (`SCRATCH/api-review-report.md`) found
+no consumer scenario for either: every use is a neighbour numerical node composing the
+kernel layer, or this node's own tests. Both, with `PhysicalConstants`,
+`SpeciesTableArrays`, `SpeciesTableBuffers`, `SpeciesTableView` and `TableLimits`, became
+`internal`, with `InternalsVisibleTo` grants to the nodes that use them
+(`APThermo.Thermo.csproj`; `API.md`'s tree-contract sections list them). `MixtureState`
+and `CaseStatus` stay public: a consumer reads them from the result records of `Problems`.
 
 Decisions taken with the reviews of 2026-09-14:
 
