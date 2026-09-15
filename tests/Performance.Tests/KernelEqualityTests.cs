@@ -97,6 +97,7 @@ internal sealed class RocketBatchBuffers : IDisposable
         }
     }
 
+    /// <summary>Adds a buffer to the set this batch releases on Dispose, and returns it.</summary>
     private T Own<T>(T buffer)
         where T : IDisposable
     {
