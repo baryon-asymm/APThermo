@@ -98,8 +98,19 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
 - Platform: Windows 11 x64 is the only supported platform of version 1. Nothing but
   the CUDA library discovery paths may be Windows-specific.
 - Language and build: C#, .NET 10, nullable reference types enabled, warnings are
-  errors. One assembly per node directory, named after its namespace. One solution
+  errors. One assembly per node directory that holds a project, named after its namespace; a
+  child node without a project of its own (2026-09-15) compiles into the assembly of its
+  nearest ancestor that has one, under its own namespace. One solution
   file at the repository root.
+
+  ⚠ 2026-09-15: stood "One assembly per node directory". A node is a directory
+  (AGENTS.md §1). A cluster of a large node with a contract narrower than its code and
+  a reason of its own to change earns its own pair of documents, but an assembly of its
+  own would widen the public surface and the project graph for types that are internal
+  today. A child node therefore compiles into its nearest ancestor's project, and the
+  protocol tests node attributes a type to the deepest node whose namespace it carries,
+  as AGENTS.md §1 already defines membership by the directory of a file. Decided with
+  the user on 2026-09-14 for the phase after the clean-code pass.
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
   namespace is `AerospacePropellantThermodynamics`; the grouping directories `src/`
   and `tests/` are transparent: `src/Equilibrium` is
