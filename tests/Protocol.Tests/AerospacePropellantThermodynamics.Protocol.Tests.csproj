@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\src\Problems\AerospacePropellantThermodynamics.Problems.csproj" />
     <ProjectReference Include="..\..\src\Thermo\AerospacePropellantThermodynamics.Thermo.csproj" />
     <ProjectReference Include="..\..\src\Transport\AerospacePropellantThermodynamics.Transport.csproj" />
+    <ProjectReference Include="..\Benchmarks\AerospacePropellantThermodynamics.Benchmarks.csproj" />
     <ProjectReference Include="..\Cli.Tests\AerospacePropellantThermodynamics.Cli.Tests.csproj" />
     <ProjectReference Include="..\Data.Tests\AerospacePropellantThermodynamics.Data.Tests.csproj" />
     <ProjectReference Include="..\Equilibrium.Tests\AerospacePropellantThermodynamics.Equilibrium.Tests.csproj" />

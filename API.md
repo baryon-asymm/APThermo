@@ -99,4 +99,5 @@ Internal nodes, not used from outside the tree: [Thermo](./src/Thermo/API.md),
   [Transport.Tests](./tests/Transport.Tests/API.md), [Execution.Tests](./tests/Execution.Tests/API.md),
   [Problems.Tests](./tests/Problems.Tests/API.md), [Cli.Tests](./tests/Cli.Tests/API.md) — what each node proves.
 - [Harness](./tests/Harness/API.md) — the scaffolding the test nodes share: a CPU host, bit comparison, bit snapshots, fixture families.
+- [Benchmarks](./tests/Benchmarks/API.md) — the speed benchmarks (BenchmarkDotNet), run by hand; figures recorded, never asserted.
 - [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13) and the root invariants that need reflection.

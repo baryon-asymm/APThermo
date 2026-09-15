@@ -2,6 +2,7 @@
 
   <!-- Every package version of the tree is pinned here (root BOOT.md, Dependencies). -->
   <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="ILGPU" Version="1.5.3" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
