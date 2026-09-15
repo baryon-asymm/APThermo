@@ -3,7 +3,7 @@ using ILGPU;
 namespace APThermo.Equilibrium;
 
 /// <summary>Gaussian elimination with partial pivoting on a small dense system, in place. Kernel-compatible. Shared with the transport node.</summary>
-public static class DenseSolver
+internal static class DenseSolver
 {
     /// <summary>A pivot smaller than this fraction of its row's largest initial entry marks the matrix singular.</summary>
     private const double PivotTolerance = 1.0e-13;

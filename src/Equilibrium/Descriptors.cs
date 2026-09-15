@@ -12,7 +12,7 @@ public enum ProblemKind
 }
 
 /// <summary>One case: the assigned state and the element abundances of one kilogram of mixture.</summary>
-public readonly struct EquilibriumProblem
+internal readonly struct EquilibriumProblem
 {
     public readonly ProblemKind Kind;
 
@@ -39,7 +39,7 @@ public readonly struct EquilibriumProblem
 }
 
 /// <summary>Sizes of the per-case scratch; the caller allocates batch-sized buffers and slices them.</summary>
-public static class ScratchLayout
+internal static class ScratchLayout
 {
     /// <summary>Condensed species that may be in the solution at once.</summary>
     public const int MaxCondensedInSolution = 8;
@@ -59,7 +59,7 @@ public static class ScratchLayout
 }
 
 /// <summary>Per-case scratch views. <see cref="Slice"/> cuts them from one double and one int view of the sizes in <see cref="ScratchLayout"/>.</summary>
-public readonly struct EquilibriumScratch
+internal readonly struct EquilibriumScratch
 {
     public readonly ArrayView<double> HOverRT;             // [species]
     public readonly ArrayView<double> SOverR;              // [species]
@@ -128,7 +128,7 @@ public readonly struct EquilibriumScratch
 }
 
 /// <summary>The views a solve writes into.</summary>
-public readonly struct EquilibriumResult
+internal readonly struct EquilibriumResult
 {
     public readonly ArrayView<double> Moles;               // [species], kmol per kg; zero for absent species
     public readonly ArrayView<double> Multipliers;         // [element], the dimensionless π_i of RP-1311

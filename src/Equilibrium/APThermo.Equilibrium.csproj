@@ -9,9 +9,17 @@
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 
+  <!-- The tree contract of src/Equilibrium (root BOOT.md, Delivery: Tree contracts): the src nodes that
+       declare Equilibrium in their ## Dependencies, and their mirroring test nodes. No kernel parameter or
+       view element of this node is internal, so no ILGPURuntime grant is needed. -->
   <ItemGroup>
     <!-- The tests node checks the internal dense solver on small systems (its BOOT.md, level L0). -->
     <InternalsVisibleTo Include="APThermo.Equilibrium.Tests" />
+    <InternalsVisibleTo Include="APThermo.Performance" />
+    <InternalsVisibleTo Include="APThermo.Performance.Tests" />
+    <InternalsVisibleTo Include="APThermo.Transport" />
+    <InternalsVisibleTo Include="APThermo.Execution" />
+    <InternalsVisibleTo Include="APThermo.Execution.Tests" />
   </ItemGroup>
 
 </Project>

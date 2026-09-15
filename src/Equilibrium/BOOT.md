@@ -230,7 +230,7 @@ below) is the proof.
 
 | Class | Responsibility | Visibility |
 |---|---|---|
-| `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above its limit (Ce 19 by the dependency check's walk on 2026-09-14) | public, contract unchanged |
+| `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above its limit (Ce 19 by the dependency check's walk on 2026-09-14) | internal (2026-09-15, distribution phase), contract unchanged |
 | `CaseSetup` | input validation, the element mask, the initial species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
 | `Composition` | the four species functions at the case temperature; the retained gaseous moles (the trace rule, one place); the mixture sums the system and the state need (`MixtureSums`) | internal |
 | `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
@@ -245,7 +245,18 @@ below) is the proof.
 | `DerivativeSystem` | the derivative system of section 2.5 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
 | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
 | `FrozenTemperature` | Newton on the temperature at a fixed composition, to the frozen test, with its own step cap | internal |
-| `DenseSolver` | contract unchanged; `Solve` split into scaling, elimination and back substitution | public, contract unchanged |
+| `DenseSolver` | contract unchanged; `Solve` split into scaling, elimination and back substitution | internal (2026-09-15, distribution phase), contract unchanged |
+
+⚠ 2026-09-15 (distribution phase): the Visibility column read "public" for
+`EquilibriumSolver` and `DenseSolver`, and `API.md` published `EquilibriumProblem`,
+`EquilibriumScratch`, `EquilibriumResult` and `ScratchLayout` too. The API review of
+that day (`SCRATCH/api-review-report.md`) found no consumer scenario for any of the
+six: every use is a neighbour numerical node composing the kernel layer, or this
+node's own tests, and `DenseSolver`'s public status also clashed with `Problems`'
+same-named `EquilibriumProblem` (CS0104). All six became `internal`, with
+`InternalsVisibleTo` grants to `Performance`, `Transport`, `Execution` and their
+mirroring test nodes (`APThermo.Equilibrium.csproj`; `API.md`'s tree-contract section
+lists them); `ProblemKind` stays public.
 
 Carriers (`Carriers.cs`): `IterationState`, the per-case state carried between the
 stages (temperature, `ln n`, the condensed count, the temperature the functions were
