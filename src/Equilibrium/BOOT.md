@@ -25,9 +25,10 @@ derivatives the matrix solutions produce. RP-1311's section 2.5, "Thermodynamic
 Derivatives From Matrix Solutions", holds the system (2.56)–(2.58), cp by (2.59) and
 the pressure system (2.64)–(2.66); section 2.6, "Other Thermodynamic Derivatives",
 holds cv, γ_s (2.71, 2.73) and the sound speed (2.74) — figures read off the converged
-state, not solved for. `API.md`, which already said 2.5, was the one place the
-disagreement could be checked against; the repair review found it and the design
-session checked both sections of the report. Corrected at every place named above.
+state, not solved for. `API.md` and the solver's own summary (`EquilibriumSolver.cs`),
+which already said 2.5, disagreed with them; the repair review found the disagreement
+and the design session checked both sections against the report. Corrected at every
+place named above.
 
 ## Invariants
 
@@ -509,7 +510,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       at 55 lines (the `## Structure` warning above already says so); and the coupling
       recalibration (`9facd7f`) and the named-construction rule (`0c33d1e`) produced the
       three rows `## Shape exceptions` now declares. Found by the repair review of
-      2026-09-14 (R-Equilibrium-4). The line figures here are physical, not lines of
+      2026-09-15 (R-Equilibrium-4). The line figures here are physical, not lines of
       code, and give way to the protocol tests node's `ShapeTests` once it exists.
 - [x] 2026-09-14 - The rules the review of 2026-09-14 found written twice exist once
       each: the inclusion gain of section 3.4 (`CondensedSet.InclusionGain`, called by
