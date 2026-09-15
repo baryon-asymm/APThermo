@@ -197,7 +197,7 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       tolerance literals of `OutputDocumentTests`, `ExitCodeTests` and
       `InputDocumentTests` named constants with their origin in a comment; no method
       over 60 lines or nested deeper than 3 (the protocol tests node's `ShapeMeasures`
-      over the tree with this pass merged, 15 types and 102 methods of the node). The
+      over the tree with this pass merged). The
       recorded mutations still red, each proven again and reverted: a field renamed in
       the output schema (both the schema validator and the reflection-based field-list
       test red) and g0 changed (both rocket-example tests red); and, for the camel-case

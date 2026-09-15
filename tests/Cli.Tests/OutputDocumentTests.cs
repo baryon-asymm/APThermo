@@ -13,10 +13,18 @@ namespace AerospacePropellantThermodynamics.Cli.Tests;
 [Collection(CliCollection.Name)]
 public sealed class OutputDocumentTests(CliFixture fixture)
 {
-    /// <summary>Relative slack on a pressure or area ratio read back from a rocket station against the sweep or record document's own value: double's rounding floor is far below this, so any looser value would hide a real mismatch instead of a rounding one.</summary>
-    private const double RatioTolerance = 1e-6;
+    /// <summary>Relative slack on an area ratio read back from a rocket station against the sweep or record document's own value: the performance node iterates an area-ratio exit past the report's tolerance to 1e-10 when it can (Performance API.md), so a reported station is at rounding level.</summary>
+    private const double AreaRatioTolerance = 1e-9;
 
-    /// <summary>Absolute slack, kg, on a mixture's mass read back from a document against one kilogram, coarser than <see cref="Problems.ElementalMixture.DefaultMassTolerance"/> so that a mixture accepted at the default never fails this check by rounding alone.</summary>
+    /// <summary>Relative slack on a pressure ratio read back from a rocket station against the sweep or record document's own value: double's rounding floor is far below this, so any looser value would hide a real mismatch instead of a rounding one.</summary>
+    private const double PressureRatioTolerance = 1e-6;
+
+    /// <summary>
+    /// Absolute slack, kg, on the mass of a mixture built from database reactants against one kilogram: a hundred
+    /// times tighter than <see cref="Problems.ElementalMixture.DefaultMassTolerance"/>, since such a mixture is
+    /// expected to weigh one kilogram far more closely than the mass check requires, and this assertion checks
+    /// exactly that.
+    /// </summary>
     private const double MassRoundingTolerance = 1e-4;
 
     /// <summary>A --threshold coarser than the default (CommandOptions.DefaultThreshold, 5e-6), chosen only to omit more species than the default does, for the omission test below.</summary>
@@ -62,8 +70,8 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.Equal(["state"], cases[1].GetProperty("stations").EnumerateArray().Select(s => s.GetProperty("name").GetString()));
         var rocket = cases[2].GetProperty("stations").EnumerateArray().ToList();
         Assert.Equal(["chamber", "throat", "exit1", "exit2"], rocket.Select(s => s.GetProperty("name").GetString()));
-        Assert.Equal(10.0, rocket[2].GetProperty("performance").GetProperty("pressureRatio").GetDouble(), RatioTolerance);
-        Assert.Equal(20.0, rocket[3].GetProperty("performance").GetProperty("areaRatio").GetDouble(), RatioTolerance);
+        Assert.Equal(10.0, rocket[2].GetProperty("performance").GetProperty("pressureRatio").GetDouble(), PressureRatioTolerance);
+        Assert.Equal(20.0, rocket[3].GetProperty("performance").GetProperty("areaRatio").GetDouble(), AreaRatioTolerance);
         Assert.False(cases[0].GetProperty("stations")[0].TryGetProperty("performance", out _), "an equilibrium state has no performance figures");
     }
 
@@ -101,8 +109,8 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         {
             var stations = c.GetProperty("stations").EnumerateArray().ToList();
             Assert.Equal(["chamber", "throat", "exit1", "exit2"], stations.Select(s => s.GetProperty("name").GetString()));
-            Assert.Equal(10.0, stations[2].GetProperty("performance").GetProperty("pressureRatio").GetDouble(), RatioTolerance);
-            Assert.Equal(20.0, stations[3].GetProperty("performance").GetProperty("areaRatio").GetDouble(), RatioTolerance);
+            Assert.Equal(10.0, stations[2].GetProperty("performance").GetProperty("pressureRatio").GetDouble(), PressureRatioTolerance);
+            Assert.Equal(20.0, stations[3].GetProperty("performance").GetProperty("areaRatio").GetDouble(), AreaRatioTolerance);
             Assert.Equal(c.GetProperty("inputs").GetProperty("chamberPressure").GetDouble(), stations[0].GetProperty("pressure").GetDouble());
         }
     }
