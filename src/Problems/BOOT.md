@@ -269,7 +269,7 @@ after the type; the public records keep their theme files.
 | `StationSlice` | one station of the engine's flat result, the input of the one construction site of `Station`, the flat offset computed once | internal readonly record struct |
 | `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
 | `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
-| `PropellantBuilder.Build` | four calls and a constructor | public, unchanged |
+| `PropellantBuilder.Build` | the guard clause, resolving and splitting reactants by role, the mixture rule, the element order (`ElementOrder.OfFirstAppearance`, shared with `ChemicalSystemCache.Union`) and the `Only` validation, then the constructor: a sequence of calls, no loop of its own, nesting 1 | public, unchanged |
 
 ⚠ 2026-09-15: the `Solver` row's last sentence stood "`RocketRunner` (Ce = 27) and
 `EquilibriumRunner` (Ce = 25) measure higher by the same walk, both over the textual
@@ -396,6 +396,21 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   into one call site would change a message, which is out of scope here; the row and
   the type's summary now say what both translations do (the repair review's
   R-Problems-8). Found by the clean-code repair review.
+- **The element order of first appearance is stated once** (2026-09-15, the clean-code
+  repair's R-Problems-4). `Build`'s design named it one of the method's two duties
+  (F-PR-03: "validated the mixture rule and derived the element order"), but e15d02f
+  moved only the mixture rule out, to `MixtureRule.Validate`; the order itself stayed a
+  nested loop inline in `Build` (nesting 3), and the same rule (BOOT.md, Constraints)
+  was written a second time inside `ChemicalSystemCache.Union` (also nesting 3) for the
+  union of several mixtures' elements. `ElementOrder.OfFirstAppearance(IEnumerable<IEnumerable<string>>)`
+  states the rule once — every distinct symbol of a sequence of symbol lists, in the
+  order first seen — and both call it: `Build` over each resolved reactant's formula
+  symbols, `Union` over each mixture's own element list. Neither method's own loop
+  survives: `Build` now nests 1, `Union` 2 (its own validation loop, unrelated to the
+  element order, stays). Ce of `PropellantBuilder` and `ChemicalSystemCache` moves from
+  10 to 11, both still under the root's limit of 14, no `## Shape exceptions` row
+  needed. No behaviour change: `dotnet test tests/Problems.Tests`, 1111/1111;
+  `Bits.approved.txt` unmoved (26840f83).
 
 ## Shape exceptions
 

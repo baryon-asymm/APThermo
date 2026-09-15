@@ -247,17 +247,7 @@ public sealed class PropellantBuilder
         var named = resolved.Where(r => r.Reactant.Role == ReactantRole.Named).ToList();
         var mixture = MixtureRule.Validate(oxidizers, fuels, named, _ratio);
 
-        var elements = new List<string>();
-        foreach (var r in oxidizers.Concat(fuels).Concat(named))
-        {
-            foreach (var (symbol, _) in r.Formula)
-            {
-                if (!elements.Contains(symbol, StringComparer.Ordinal))
-                {
-                    elements.Add(symbol);
-                }
-            }
-        }
+        var elements = ElementOrder.OfFirstAppearance(oxidizers.Concat(fuels).Concat(named).Select(r => r.Formula.Select(pair => pair.Symbol)));
 
         var omit = _omit.Distinct(StringComparer.Ordinal).ToList();
         var only = _only?.Distinct(StringComparer.Ordinal).ToList();
