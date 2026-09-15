@@ -351,6 +351,31 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (the same 41 on CUDA). The fact,
       `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
       and not yet written; it takes over as the evidence when it is.
+- [x] 2026-09-15 — `Engine.ProbeMath`'s dead `RunTimer` (a `KernelCache.Get` overload
+      once needed it; `a2a1d6e`'s `out warmUp` overload made it unreachable, and the
+      two lines allocating and discarding one stayed) is gone: `out var warmUp` is
+      `out _`. `RunTimer` was the method's only use of that type, so `Engine`'s
+      efferent coupling fell from 26 to 25, the figure the Shape exceptions row above
+      now carries; the Structure row's own wording is unchanged, since it already
+      described `ProbeMath` correctly. Found by the repair review (R-Execution-1).
+      Verified: the CPU-accelerator fast suite green (`APTHERMO_NO_CUDA=1`), the
+      re-measured Ce confirmed by the protocol tests node's own tool
+      (`CouplingMeasures`, through a temporary test).
+- [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice`, extracted from
+      `CompileWrappers` in `23ccc1d` "bringing its nesting back to 3", took every
+      parameter and local of its caller (six, the root's limit) and existed only to
+      hold the `unsafe`/`fixed` block: the nesting measure counts only
+      `if`/`for`/`foreach`/`while`/`do`/`switch`/`try`, so the extraction bought
+      nothing the measure itself cares about. Merged back into one `CompileWrappers`
+      (create the program, build the options, add both modules under one `fixed`,
+      compile, log and throw, read the compiled result, destroy the program in
+      `finally`); `NvvmOptions`, which owns the unmanaged allocations, is unchanged.
+      Nests 2 deep now, about 31 lines of code. Found by the repair review
+      (R-Execution-2). Verified on the reference machine, `APTHERMO_NO_CUDA` unset:
+      `tests/Execution.Tests/ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
+      green, exercising this exact method on real hardware (the probe kernel's
+      wrappers compiled by it, linked, run, and matching the CPU accelerator within
+      the ULP bound).
 
 ## Taboos
 

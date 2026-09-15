@@ -241,7 +241,7 @@ libdevice for the CUDA category.
       Verified: build clean, 0 warnings; 41 of 41 fast tests green; `protocol_lint`
       0 errors, 0 warnings.
 
-- [ ] The GPU/CPU comparison logic `CudaTests.cs` carried alongside its `[Fact]`/
+- [x] 2026-09-15 — The GPU/CPU comparison logic `CudaTests.cs` carried alongside its `[Fact]`/
       `[Theory]` methods — `MoleSample`, `CompareRocket`, `CompareMoles`, `Record`,
       `Worst` — moved to a new file, `GpuCpuComparison.cs`: one stateful type,
       `GpuCpuComparison`, built from the tolerance table once per test and holding the
@@ -276,11 +276,20 @@ libdevice for the CUDA category.
       makes `RequireCuda()` return null and every CUDA-marked test return before
       reaching this code) proves only that it builds and that every other fact stays
       green; the actual arithmetic is unchanged from the moved code, read side by
-      side at the move. Applies R-Execution.Tests-2 of the repair review. To tick:
-      the two CUDA-category tests that reach it
-      (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`,
-      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`) and the sweep,
-      run on the reference machine without the variable, green.
+      side at the move. Applies R-Execution.Tests-2 of the repair review.
+
+      Verified on the reference machine, `APTHERMO_NO_CUDA` unset, one run at a
+      time: `ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
+      green (R-Execution-2's own guard, exercising the merged `CompileWrappers`);
+      `CudaTests.A_rocket_family_on_cuda_matches_the_cpu_accelerator` and
+      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator` together, 9 of 9
+      green (every rocket family plus the equilibrium family, through `Rocket`,
+      `Moles`, `CountSteps` and `Record` on real hardware); then
+      `The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
+      alone, green (400 000 stations through `Rocket`, both accelerators agreeing
+      within the tolerance table, CUDA deterministic across two runs).
+      `Throughput_is_recorded_and_not_below_the_approved_ratio` was not run, as the
+      decision records.
 
 ## Taboos
 
