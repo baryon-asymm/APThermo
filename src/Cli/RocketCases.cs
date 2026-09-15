@@ -21,8 +21,7 @@ internal static class RocketCases
         var cases = new List<CaseOutput>(results.Count);
         for (var i = 0; i < results.Count; i++)
         {
-            var inputs = CaseInputs.Start(combinations[i].OxidizerToFuel, ownRatio);
-            inputs["chamberPressure"] = problems[i].ChamberPressure;
+            var inputs = CaseInputs.Rocket(combinations[i].OxidizerToFuel ?? ownRatio, problems[i]);
             cases.Add(new CaseOutput
             {
                 Index = i,

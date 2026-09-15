@@ -50,7 +50,12 @@ The definition of what "`Cli` is ready" means.
   (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the
   change of the documents that moved it named in the same commit; a decomposition, a
   renaming or a reordering of code moves no line. An example absent from the snapshot
-  fails the test with instructions, as the surface snapshot does.
+  fails the test with instructions, as the surface snapshot does. The reverse direction
+  is checked too (2026-09-15, R-Cli.Tests-1): an approved line whose example no longer
+  runs is a stale key, found through `Harness.ApprovedSnapshot.StaleKeys` and reported
+  the same way, `{key}: recorded in {ApprovedPath}, but no example produces it; delete
+  the line in the commit that removed the example`, so a deleted example's line cannot
+  survive unnoticed either.
 - **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
   tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
   wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,
@@ -197,7 +202,7 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       tolerance literals of `OutputDocumentTests`, `ExitCodeTests` and
       `InputDocumentTests` named constants with their origin in a comment; no method
       over 60 lines or nested deeper than 3 (the protocol tests node's `ShapeMeasures`
-      over the tree with this pass merged, 15 types and 102 methods of the node). The
+      over the tree with this pass merged). The
       recorded mutations still red, each proven again and reverted: a field renamed in
       the output schema (both the schema validator and the reflection-based field-list
       test red) and g0 changed (both rocket-example tests red); and, for the camel-case

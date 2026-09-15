@@ -32,18 +32,26 @@ internal static class JsonText
 
     /// <summary>
     /// Whether <paramref name="text"/> is one JSON value (an object or an array), decided by attempting the parse and
-    /// checking that nothing but whitespace follows it, with no exception used as the probe: a text of several JSON
-    /// values with no separator (JSON Lines) fails this check without throwing, so that the caller falls back to
-    /// reading it line by line.
+    /// checking that nothing but whitespace follows it: a text of several JSON values with no separator (JSON Lines)
+    /// fails this check by running out of data, without throwing, so that the caller falls back to reading it line by
+    /// line; a text whose first value is itself malformed throws (<c>JsonDocument.TryParseValue</c> returns false only
+    /// when data runs out), caught here and reported as an <see cref="InputException"/> naming <paramref name="source"/>.
     /// </summary>
-    public static bool TryParseWhole(string text, out JsonDocument document)
+    public static bool TryParseWhole(string text, string source, out JsonDocument document)
     {
         var bytes = Encoding.UTF8.GetBytes(text);
         var reader = new Utf8JsonReader(bytes, new JsonReaderOptions { CommentHandling = JsonCommentHandling.Disallow });
-        if (!JsonDocument.TryParseValue(ref reader, out document!))
+        try
         {
-            document = null!;
-            return false;
+            if (!JsonDocument.TryParseValue(ref reader, out document!))
+            {
+                document = null!;
+                return false;
+            }
+        }
+        catch (JsonException e)
+        {
+            throw new InputException($"{source}: malformed JSON: {e.Message}");
         }
 
         for (var i = (int)reader.BytesConsumed; i < bytes.Length; i++)

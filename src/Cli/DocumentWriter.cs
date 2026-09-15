@@ -24,7 +24,14 @@ internal static class DocumentWriter
             return;
         }
 
-        File.WriteAllText(path, text, new UTF8Encoding(false));
+        try
+        {
+            File.WriteAllText(path, text, new UTF8Encoding(false));
+        }
+        catch (DirectoryNotFoundException)
+        {
+            throw new InputException($"{path}: directory not found");
+        }
     }
 
     public static string Render(Action<Utf8JsonWriter> write)

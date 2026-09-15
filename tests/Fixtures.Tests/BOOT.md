@@ -61,13 +61,14 @@ Outside the tree: xunit.
       `Every_state_field_of_the_fixtures_has_a_tolerance` red for `rocket`, `tp`, `hp` and
       `sp` with the field named. Mutations reverted; `regenerate.py --check` confirmed the
       fixtures unchanged afterwards.
-- [x] 2026-09-15 — `Every_state_field_of_the_fixtures_has_a_tolerance`'s nesting fixed
-      (the harness-wiring task's Step 4): the numeric-property check, four levels deep
-      inside the case loop, the state loop and the property loop, moved to
-      `ComparedFieldsOf`, a single filter-and-project expression with no nested control
-      flow of its own; the outer test calls it once per state and now nests no deeper
-      than 2. Verified: build clean, 0 warnings; the full suite 26 of 26 green;
-      `protocol_lint` 0 errors, 0 warnings.
+- [x] 2026-09-15 — `Every_state_field_of_the_fixtures_has_a_tolerance`'s nesting fixed:
+      the numeric-property check, four levels deep inside the case loop, the state loop
+      and the property loop, moved to `ComparedFieldsOf`, a single filter-and-project
+      expression with no nested control flow of its own; the outer test calls it once
+      per state and now nests no deeper than 2, measured by the protocol tests node's
+      `ShapeMeasures.Nesting` (`Every_state_field_of_the_fixtures_has_a_tolerance` 2,
+      `ComparedFieldsOf` 0). Verified: build clean, 0 warnings; `dotnet test
+      tests/Fixtures.Tests`: 26 of 26 green; `protocol_lint` 0 errors, 0 warnings.
 
 ## Taboos
 

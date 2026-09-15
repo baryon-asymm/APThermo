@@ -311,8 +311,18 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 | a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the tolerance in force (`--mass-tolerance`, default 1 %: a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document; `within 3 %` under `--mass-tolerance 0.03`), exit code 2, no document |
 | `--mass-tolerance` with a value that is not a finite non-negative number, or on a listing command | `the mass tolerance must be a finite non-negative number, not 'X'`, or the option named as not applying; exit code 2 |
 | input file or database directory not found | message with the path, exit code 2 |
+| `--output` names a path whose directory does not exist | `PATH: directory not found`, exit code 2 |
 | accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3; for an accelerator, every path tried |
 | a case or station failed numerically | the document is written with the status per case and station; exit code 1 |
+
+⚠ 2026-09-15: `--output` into a missing directory had drifted to exit code 3 (an
+undocumented case, silently caught by the generic "unexpected failure" branch);
+`ExitCode.InvalidInput`'s own doc comment already put "an invalid … option" under 2,
+matching the behaviour before the clean-code pass. `DocumentWriter.Deliver` now turns
+that one failure of the output path into the documented exit code 2 naming the path;
+every other I/O failure (a permissions error, a full disk) still falls to exit code 3.
+Found by the repair review of 2026-09-15; pinned by
+`ExitCodeTests.A_missing_output_directory_is_exit_2`.
 
 ## Side effects
 

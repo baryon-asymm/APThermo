@@ -1,6 +1,4 @@
-using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Problems;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
 
 namespace AerospacePropellantThermodynamics.Cli;
 
@@ -23,10 +21,7 @@ internal static class EquilibriumCases
         var cases = new List<CaseOutput>(results.Count);
         for (var i = 0; i < results.Count; i++)
         {
-            var inputs = CaseInputs.Start(combinations[i].OxidizerToFuel, ownRatio);
-            inputs["kind"] = Names.Kind(document.Kind);
-            inputs["pressure"] = problems[i].Pressure;
-            AddTarget(inputs, document.Kind, problems[i], mixtures[i]);
+            var inputs = CaseInputs.Equilibrium(combinations[i].OxidizerToFuel ?? ownRatio, problems[i], mixtures[i]);
             cases.Add(new CaseOutput
             {
                 Index = i,
@@ -40,25 +35,5 @@ internal static class EquilibriumCases
         }
 
         return cases;
-    }
-
-    private static void AddTarget(JsonObject inputs, ProblemKind kind, EquilibriumProblem problem, ElementalMixture mixture)
-    {
-        switch (kind)
-        {
-            case ProblemKind.AssignedTemperaturePressure:
-                inputs["temperature"] = problem.Temperature;
-                break;
-            case ProblemKind.AssignedEnthalpyPressure:
-                if ((problem.Enthalpy ?? mixture.Enthalpy) is { } enthalpy)
-                {
-                    inputs["enthalpy"] = enthalpy;
-                }
-
-                break;
-            default:
-                inputs["entropy"] = problem.Entropy;
-                break;
-        }
     }
 }

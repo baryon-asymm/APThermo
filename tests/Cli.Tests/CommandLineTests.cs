@@ -58,17 +58,17 @@ public sealed class CommandLineTests(CliFixture fixture)
     [Fact]
     public void The_usage_names_every_command_and_option()
     {
-        foreach (var command in CommandLine.Commands)
+        foreach (var command in CommandTable.Names)
         {
-            Assert.Contains($"  {command}", CommandLine.Usage);
+            Assert.Contains($"  {command}", CommandTable.Usage);
         }
 
         foreach (var option in new[] { "--output", "--format", "--accelerator", "--database", "--threshold", "--mass-tolerance", "--transport", "--find", "--help" })
         {
-            Assert.Contains(option, CommandLine.Usage);
+            Assert.Contains(option, CommandTable.Usage);
         }
 
-        Assert.Contains("exit codes: 0", CommandLine.Usage);
+        Assert.Contains("exit codes: 0", CommandTable.Usage);
     }
 
     [Fact]
@@ -89,8 +89,8 @@ public sealed class CommandLineTests(CliFixture fixture)
     public void The_usage_states_the_library_defaults()
     {
         // The usage text reads the numbers from the same constants the parser defaults to (F-AR-04), not a second typing of them.
-        Assert.Contains($"default {CommandOptions.DefaultThreshold.ToString(CultureInfo.InvariantCulture)}", CommandLine.Usage);
-        Assert.Contains($"default {Problems.ElementalMixture.DefaultMassTolerance.ToString(CultureInfo.InvariantCulture)}", CommandLine.Usage);
+        Assert.Contains($"default {CommandOptions.DefaultThreshold.ToString(CultureInfo.InvariantCulture)}", CommandTable.Usage);
+        Assert.Contains($"default {Problems.ElementalMixture.DefaultMassTolerance.ToString(CultureInfo.InvariantCulture)}", CommandTable.Usage);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class CommandLineTests(CliFixture fixture)
     {
         // CommandTable (what the parser accepts) and CommandRegistry (what dispatches) are two tables that could drift
         // apart; a command accepted by the first but missing from the second would fail here as "unknown command".
-        foreach (var command in CommandLine.Commands)
+        foreach (var command in CommandTable.Names)
         {
             var args = command is "species" or "devices" ? new[] { command } : new[] { command, fixture.TempFile("missing.json") };
             var run = fixture.Invoke(args);

@@ -33,7 +33,7 @@ internal static class StateRecordReader
 
     private static IReadOnlyList<(JsonElement Element, string Label)> RecordElements(string text, string source)
     {
-        if (JsonText.TryParseWhole(text, out var whole))
+        if (JsonText.TryParseWhole(text, source, out var whole))
         {
             using (whole)
             {
