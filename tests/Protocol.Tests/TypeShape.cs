@@ -106,9 +106,9 @@ internal static class TypeShape
     }
 
     /// <summary>
-    /// Every type the given type mentions, in its shape and in the bodies of its methods (<see cref="IlBody"/>), unwrapped from
-    /// arrays, references, pointers and generic arguments; generic parameters dropped. Types from any assembly: the callers keep
-    /// the ones they care about.
+    /// Every type the given type mentions, in its shape and in the bodies of its methods (the members its instructions name and
+    /// the generic arguments of the methods it calls, read by <see cref="IlBody"/>), unwrapped from arrays, references, pointers
+    /// and generic arguments; generic parameters dropped. Types from any assembly: the callers keep the ones they care about.
     /// </summary>
     public static IEnumerable<Type> ReferencedTypes(Type type)
     {
