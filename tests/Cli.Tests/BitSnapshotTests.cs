@@ -1,4 +1,5 @@
 using System.Text;
+using AerospacePropellantThermodynamics.Cli.Documents;
 using AerospacePropellantThermodynamics.Fixtures;
 using AerospacePropellantThermodynamics.Harness;
 
