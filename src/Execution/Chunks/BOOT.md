@@ -79,19 +79,24 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 
 ## Acceptance criteria
 
-- [ ] The split changes no result: `tests/Execution.Tests`' bit-for-bit chunking test
-      still passes after the move, chunked against unchunked, on the CPU accelerator
-      (`BatchTests.Chunking_and_repetition_do_not_change_a_bit`) and its chunk-plan
-      unit facts (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`).
-- [ ] `dotnet build AerospacePropellantThermodynamics.sln` is clean and
-      `dotnet test tests/Execution.Tests` and `dotnet test tests/Protocol.Tests` are
-      green with `APTHERMO_NO_CUDA=1`, the protocol lint at 0 errors / 0 warnings, and
-      every `Bits.approved.txt` and `PublicSurface.approved.txt` unchanged by
-      `git hash-object` before and after the move.
-- [ ] `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"` is green
-      with `APTHERMO_NO_CUDA` unset, on the reference machine, at the same test count
-      as before the move: the libdevice post-link runs on the kernel module this
-      node's buffers feed, and the namespace change does not touch it.
+- [x] 2026-09-15 — The split changes no result: `tests/Execution.Tests`' bit-for-bit
+      chunking test passes after the move, chunked against unchunked, on the CPU
+      accelerator (`BatchTests.Chunking_and_repetition_do_not_change_a_bit`) and its
+      chunk-plan unit facts
+      (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`),
+      part of the 43/43 green run below.
+- [x] 2026-09-15 — `dotnet build AerospacePropellantThermodynamics.sln` clean;
+      `dotnet test tests/Execution.Tests` 43/43 and `dotnet test tests/Protocol.Tests`
+      19/19, both green with `APTHERMO_NO_CUDA=1`; the protocol lint (`python -X utf8
+      tools/protocol-lint/protocol_lint.py . --exclude templates`) at 0 errors,
+      0 warnings; every `Bits.approved.txt` and `PublicSurface.approved.txt`
+      unchanged by `git hash-object` before and after the move (this node's own
+      coding-task report, `SCRATCH/child-nodes-execution-report.md`).
+- [x] 2026-09-15 — `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"`
+      green at 41/41 with `APTHERMO_NO_CUDA` unset, on the reference machine, the same
+      count as the pre-split tree (no test method added or removed by this split): the
+      libdevice post-link ran on the kernel module this node's buffers feed, and the
+      namespace change did not touch it.
 
 ## Taboos
 
