@@ -84,8 +84,9 @@ None.
 
 Outside the tree: .NET SDK 10.0 (C# 14); ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
 used); for the GPU path an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
-(`nvvm64_40_0.dll`) and `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x
-keeps the DLL under `nvvm/bin/x64`); NASA CEA data `thermo.inp` and `trans.inp` from
+(`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
+`libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
+`nvvm/bin/x64`; on Linux, and under WSL2, the toolkit's `nvvm/lib64`); NASA CEA data `thermo.inp` and `trans.inp` from
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
@@ -95,8 +96,19 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
 
 ## Constraints
 
-- Platform: Windows 11 x64 is the only supported platform of version 1. Nothing but
-  the CUDA library discovery paths may be Windows-specific.
+- Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
+  accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
+  and file names may be platform-specific. Every test runs on both platforms.
+
+  ⚠ 2026-09-15 (distribution phase): stood "Windows 11 x64 is the only supported
+  platform of version 1. Nothing but the CUDA library discovery paths may be
+  Windows-specific." The user decided to ship the library as a NuGet package and the
+  command line as a .NET tool for Windows and Linux, with full support on Linux,
+  CUDA included. On Linux the GPU path is verified under WSL2 on the reference
+  machine. One question stays open until it is measured: whether the CPU accelerator
+  reproduces the Windows bit snapshots on Linux. `System.Math` calls the platform's C
+  runtime, which may round the last ULP differently. The first Linux run of the suite
+  decides it, and that decision is recorded here.
 - Language and build: C#, .NET 10, nullable reference types enabled, warnings are
   errors. One assembly per node directory that holds a project, named after its namespace; a
   child node without a project of its own (2026-09-15) compiles into the assembly of its
@@ -112,10 +124,23 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
   as AGENTS.md §1 already defines membership by the directory of a file. Decided with
   the user on 2026-09-14 for the phase after the clean-code pass.
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
-  namespace is `AerospacePropellantThermodynamics`; the grouping directories `src/`
+  namespace is `APThermo`; the grouping directories `src/`
   and `tests/` are transparent: `src/Equilibrium` is
-  `AerospacePropellantThermodynamics.Equilibrium`, `tests/Equilibrium.Tests` is
-  `AerospacePropellantThermodynamics.Equilibrium.Tests`.
+  `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is
+  `APThermo.Equilibrium.Tests`. Projects, assemblies and the solution (`APThermo.sln`)
+  carry the same names. The product's name in prose stays Aerospace Propellant
+  Thermodynamics, and APThermo is its short name and the name of its packages.
+
+  ⚠ 2026-09-15 (distribution phase): the root namespace, the projects, the assemblies
+  and the solution were `AerospacePropellantThermodynamics`. The user named the
+  packages APThermo (NuGet ID `APThermo`, the tool `APThermo.Cli` with the command
+  `apthermo`) and asked that everything be renamed before the first release, 0.1.0.
+  With no users yet the rename costs nothing, while after publication it would break
+  every consumer; a package ID that differs from the namespaces its users write would
+  also be a lasting inconsistency. The rename changes names only: bit snapshots,
+  benchmark result hashes and the surface snapshot (up to the name) are unchanged.
+  Historical records keep the old name, namely the benchmark results under
+  `tests/Benchmarks/results/` and the `bench/before-clean-code` branch.
 - Kernel-compatible C# in numerical nodes: static methods, blittable structs,
   `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
