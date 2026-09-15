@@ -3,9 +3,6 @@ using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Execution.Tests;
 
-/// <summary>One case's or station's moles on each accelerator, located within the batch's parallel arrays by its table and index.</summary>
-internal sealed record MoleSample(double[] CpuMoles, double[] GpuMoles, long Index, SpeciesTable Table);
-
 /// <summary>
 /// One CUDA-against-CPU-accelerator comparison: the worst deviation seen so far per field, and how many stations compared so far
 /// stopped after a different number of Newton steps on the two accelerators, both accumulated across however many calls the
@@ -46,15 +43,12 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
                 }
 
                 var sameSteps = cpu.Iterations[index] == gpu.Iterations[index];
-                if (!sameSteps)
-                {
-                    DifferentSteps++;
-                }
+                CountSteps(sameSteps);
 
                 var where = $"{label} station {s} ({cpu.Iterations[index]}/{gpu.Iterations[index]} steps)";
                 mismatches.AddRange(GpuCpuTolerances.Compare(cpu.Stations[index], gpu.Stations[index], where, Record));
                 mismatches.AddRange(GpuCpuTolerances.Compare(cpu.Figures[index], gpu.Figures[index], where, Record));
-                mismatches.AddRange(Moles(new MoleSample(cpu.Moles, gpu.Moles, index, family.Table), sameSteps, where));
+                mismatches.AddRange(Moles(cpu.Moles, gpu.Moles, index, family.Table, sameSteps, where));
             }
         }
 
@@ -62,24 +56,24 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
     }
 
     /// <summary>Mole fractions of one case or station, relative to the total moles, within the tier of the mole-fraction tolerance above the floor.</summary>
-    public IEnumerable<string> Moles(MoleSample sample, bool sameSteps, string label)
+    public IEnumerable<string> Moles(double[] cpuMoles, double[] gpuMoles, long index, SpeciesTable table, bool sameSteps, string label)
     {
-        var speciesCount = sample.Table.SpeciesCount;
-        var offset = sample.Index * speciesCount;
+        var speciesCount = table.SpeciesCount;
+        var offset = index * speciesCount;
         var cpuTotal = 0.0;
         var gpuTotal = 0.0;
         for (var j = 0; j < speciesCount; j++)
         {
-            cpuTotal += sample.CpuMoles[offset + j];
-            gpuTotal += sample.GpuMoles[offset + j];
+            cpuTotal += cpuMoles[offset + j];
+            gpuTotal += gpuMoles[offset + j];
         }
 
         var relative = GpuCpuTolerances.MoleFractionRelative(tolerances, sameSteps);
         var floor = GpuCpuTolerances.MoleFractionFloor(tolerances);
         for (var j = 0; j < speciesCount; j++)
         {
-            var x = sample.CpuMoles[offset + j] / cpuTotal;
-            var y = sample.GpuMoles[offset + j] / gpuTotal;
+            var x = cpuMoles[offset + j] / cpuTotal;
+            var y = gpuMoles[offset + j] / gpuTotal;
             if (x < floor && y < floor)
             {
                 continue;
@@ -88,7 +82,7 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
             Record(sameSteps ? "moleFraction" : "moleFractionAfterDifferentSteps", Math.Abs(x - y) / Math.Max(x, y));
             if (!GpuCpuTolerances.Matches(relative, x, y))
             {
-                yield return $"{label} x({sample.Table.Species[j]}): cpu {x:R}, cuda {y:R}";
+                yield return $"{label} x({table.Species[j]}): cpu {x:R}, cuda {y:R}";
             }
         }
     }
@@ -99,6 +93,15 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
         if (!_worst.TryGetValue(field, out var current) || deviation > current)
         {
             _worst[field] = deviation;
+        }
+    }
+
+    /// <summary>Counts a station or case whose two accelerators stopped after a different number of Newton steps.</summary>
+    public void CountSteps(bool sameSteps)
+    {
+        if (!sameSteps)
+        {
+            DifferentSteps++;
         }
     }
 

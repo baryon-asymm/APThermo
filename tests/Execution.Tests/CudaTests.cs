@@ -67,7 +67,6 @@ public sealed class CudaTests(EngineFixture fixture)
         var gpu = cuda.Run(cudaTables, batch);
         var comparison = new GpuCpuComparison(fixture.Tolerances);
         var mismatches = new List<string>();
-        var differentSteps = 0;
         for (var k = 0; k < batch.Count; k++)
         {
             Assert.Equal(CaseStatus.Ok, cpu.Status[k]);
@@ -78,17 +77,14 @@ public sealed class CudaTests(EngineFixture fixture)
             }
 
             var sameSteps = cpu.Iterations[k] == gpu.Iterations[k];
-            if (!sameSteps)
-            {
-                differentSteps++;
-            }
+            comparison.CountSteps(sameSteps);
 
             mismatches.AddRange(GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], cases[k].Name, comparison.Record));
-            mismatches.AddRange(comparison.Moles(new MoleSample(cpu.Moles, gpu.Moles, k, table), sameSteps, cases[k].Name));
+            mismatches.AddRange(comparison.Moles(cpu.Moles, gpu.Moles, k, table, sameSteps, cases[k].Name));
         }
 
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
-        AssertDifferentStepShare(differentSteps, batch.Count);
+        AssertDifferentStepShare(comparison.DifferentSteps, batch.Count);
     }
 
     [Fact]

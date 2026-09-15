@@ -246,28 +246,38 @@ libdevice for the CUDA category.
       `Worst` — moved to a new file, `GpuCpuComparison.cs`: one stateful type,
       `GpuCpuComparison`, built from the tolerance table once per test and holding the
       worst deviation per field and the different-step count as it accumulates them,
-      with `Rocket` (was `CompareRocket`), `Moles` (was `CompareMoles`), `Record` and
-      `Worst` as its methods; the three CUDA test methods that owned a `worst`
-      dictionary and, for the rocket family test, a `differentSteps` local passed by
-      `ref`, now own one `GpuCpuComparison` instead and read `.DifferentSteps` back.
-      No behaviour change: the same comparisons, the same tolerance calls, the same
-      accumulation — `worst` shared across a test method's rocket-then-transport
-      phases (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`) is still one
-      dictionary shared the same way, now the one instance's private field instead of
-      a local passed to both phases. Measured by the protocol tests node's own tool
-      (`ShapeMeasures`, through the same temporary test): `CudaTests` 169 lines (from
-      258), `GpuCpuComparison` 94, both types and every method well inside the 400/60
-      limits; `GpuCpuComparison`'s own Ce is 9, `CudaTests`' own Ce moved from 26 to
-      27 (it now also names `GpuCpuComparison`) — neither is a concern next to this
-      node's pre-existing, undeclared test-fixture Ce figures noted above.
+      with `Rocket(RocketBatchResult, RocketBatchResult, RocketFamily)` (was
+      `CompareRocket`, 3 parameters), `Moles(double[], double[], long, SpeciesTable,
+      bool, string)` (was `CompareMoles`, 6 parameters, its four `MoleSample` fields
+      unpacked back to plain parameters — `MoleSample` had one caller-supplied field
+      per call and was never kept, so it named no concept of its own), `Record` (the
+      `GpuCpuTolerances.Compare` callback), a new `CountSteps(bool)` and `Worst()` as
+      its methods. `MoleSample` is gone. The three CUDA test methods that owned a
+      `worst` dictionary, and either a `differentSteps` local incremented inline
+      (the equilibrium family test) or passed by `ref` into `CompareRocket` (the
+      rocket family and sweep tests), now own one `GpuCpuComparison` instead, call
+      `.CountSteps(sameSteps)` where they used to increment their own local, and read
+      `.DifferentSteps` back: the equilibrium test's step count moved from a local
+      variable to the same shared counter `Rocket` itself feeds, so all three tests
+      now count steps the same way. No behaviour change: the same comparisons, the
+      same tolerance calls, the same accumulation — `worst` shared across a test
+      method's rocket-then-transport phases
+      (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`) is still one dictionary
+      shared the same way, now the one instance's private field instead of a local
+      passed to both phases. Measured by the protocol tests node's own tool
+      (`ShapeMeasures`, through the same temporary test): `CudaTests` 165 lines (from
+      258), `GpuCpuComparison` 100, both types and every method well inside the
+      400/60 limits; `GpuCpuComparison`'s own Ce is 8, `CudaTests`' own Ce is 26,
+      unchanged from before the cut — neither is a concern next to this node's
+      pre-existing, undeclared test-fixture Ce figures noted above.
 
-      This is a mechanical port: `Rocket`/`Moles` cannot be exercised without a CUDA
-      device, so the CPU-only fast suite (`APTHERMO_NO_CUDA=1`, which makes
-      `RequireCuda()` return null and every CUDA-marked test return before reaching
-      this code) proves only that it builds and that every other fact stays green;
-      the actual arithmetic is unchanged from the moved code, read side by side at
-      the move. Applies R-Execution.Tests-2 of the repair review. To tick: the two
-      CUDA-category tests that reach it
+      This is a mechanical port: `Rocket`/`Moles`/`CountSteps` cannot be exercised
+      without a CUDA device, so the CPU-only fast suite (`APTHERMO_NO_CUDA=1`, which
+      makes `RequireCuda()` return null and every CUDA-marked test return before
+      reaching this code) proves only that it builds and that every other fact stays
+      green; the actual arithmetic is unchanged from the moved code, read side by
+      side at the move. Applies R-Execution.Tests-2 of the repair review. To tick:
+      the two CUDA-category tests that reach it
       (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`,
       `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`) and the sweep,
       run on the reference machine without the variable, green.
