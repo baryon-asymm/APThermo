@@ -1,6 +1,6 @@
 using AerospacePropellantThermodynamics.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Listings;
 
 /// <summary>What the machine offers, asked once: a CPU engine always, a CUDA one tried and its failure kept if it does not bind.</summary>
 internal static class DeviceProbe

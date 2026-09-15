@@ -3,7 +3,7 @@ using AerospacePropellantThermodynamics.Cli.Output;
 using AerospacePropellantThermodynamics.Cli.Syntax;
 using AerospacePropellantThermodynamics.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Listings;
 
 /// <summary>The devices command: its rendering of a <see cref="DeviceReport"/>.</summary>
 internal static class DeviceListing
