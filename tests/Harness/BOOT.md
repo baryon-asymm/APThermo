@@ -33,10 +33,20 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   approved file of the tree stays byte for byte, and an encoding one snapshot needs and
   another does not is a second method of `BitHash`, never a re-approval.
 - **An approval file is a tripwire, not a contract.** A snapshot line is keyed by its
-  first field; a key missing from the approved file, a differing line and an approved
-  key that no run produced are each a problem naming the key and how to approve; on a
-  problem the actual lines are written next to the approved file as `*.actual.txt`
-  (git-ignored), never over it.
+  first field; `Problem` reports a key missing from the approved file or a differing
+  line as a problem naming the key and how to approve, and writes the actual lines next
+  to the approved file as `*.actual.txt` (git-ignored), never over it, from the first
+  such problem on. `StaleKeys` reports the approved keys no run produced, as bare keys:
+  wording the problem and deciding whether to write anything of its own is the
+  consumer's, as the acceptance criteria below record for each one.
+
+  ⚠ 2026-09-15: this bullet read "a key missing from the approved file, a differing
+  line and an approved key that no run produced are each a problem naming the key and
+  how to approve; on a problem the actual lines are written". True of `Problem`, not of
+  `StaleKeys`: that method only returns bare keys (`ApprovedSnapshot.cs`), and wording
+  them into a problem and writing an actual file is left to the caller, which is why two
+  consumers word it themselves and, until this repair task, four never called it at all.
+  Found by the repair review of 2026-09-15 reading the code against the claim.
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.
@@ -100,7 +110,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
       case), Transport.Tests 1 of 157, Equilibrium.Tests 1 of 463, Problems.Tests 1 of
       1111 (each one fact over every fixture, so one assertion carries every moved
       hash). `Cli.Tests` (91 tests) stayed green: its Bits level hashes the CLI's
-      rendered JSON and CSV text (`BitSnapshotTests.Sha256`, `BitHash.Add(string)`
+      rendered JSON and CSV text (`BitExamples.Sha256`, `BitHash.Add(string)`
       only, never a raw double), so this mutation does not reach it.
 
       A line for a fixture that does not exist added to
