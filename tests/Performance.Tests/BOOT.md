@@ -27,7 +27,9 @@ The definition of what "`Performance` is ready" means.
   renaming or a reordering of code moves no line. The snapshot is of the CPU
   accelerator on the reference machine's runtime; a runtime update that moves lines
   is re-approved with that reason recorded here. A fixture absent from the snapshot
-  fails the test with instructions, as the surface snapshot does.
+  fails the test with instructions, as the surface snapshot does; a line of the
+  snapshot that names no current fixture fails a test of its own instead of staying
+  silent (`Every_approved_line_names_a_rocket_fixture`, 2026-09-15).
 - The node owns the tolerances of comparisons that are not with the reference: the
   invariants' tolerances and the self-consistency and identity tolerances are named
   constants of the node with their origin in a comment, never literals in an
@@ -132,6 +134,17 @@ position today (the criterion below).
       ulp to `0.5000000000000001` — every one of the enumerated fixtures red; one line
       removed from `Bits.approved.txt` — that fixture red, naming it, with the
       instruction to approve, and the other fixtures green.
+- [x] 2026-09-15 — Bits level, the other direction: `BitSnapshotTests.Every_approved_line_names_a_rocket_fixture`
+      builds its keys from `FixtureFiles.Enumerate("rocket")` (no solve) and fails on
+      any key `Harness.ApprovedSnapshot.StaleKeys` reports, naming it. Repair-review
+      finding R-Performance.Tests-1: until this fact existed, a deleted or renamed
+      fixture left its line in `Bits.approved.txt` untouched and unread, green by
+      silence. Seen red once, restored afterwards: a fabricated line
+      (`tests/Fixtures/cases/rocket/MUTATION-GHOST-FIXTURE.json`, a zero hash)
+      appended to `Bits.approved.txt` turned this fact red naming exactly that key;
+      the line removed again, `git hash-object tests/Performance.Tests/Bits.approved.txt`
+      equal to the value recorded at the start of this task
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
 - [x] 2026-09-14 — The never-supersonic outcome:
       `SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
       drives `AreaRatioIteration` (through the node's new `InternalsVisibleTo`) from an

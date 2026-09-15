@@ -73,10 +73,23 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     {
         var c = RocketHost.Load(name);
         var bits = RocketBits.Hash(RocketHost.Solve(fixture, c));
-        var problem = Snapshot.Problem(PathOf(c), bits);
+        var problem = Snapshot.Problem(PathOf(c.Path), bits);
         Assert.True(problem is null, problem);
     }
 
+    /// <summary>
+    /// The Bits invariant's other direction (BOOT.md): every approved line still names a rocket fixture. Without this, a
+    /// deleted or renamed fixture would leave its line in place, read by no case and never failing.
+    /// </summary>
+    [Fact]
+    public void Every_approved_line_names_a_rocket_fixture()
+    {
+        var keys = FixtureFiles.Enumerate("rocket").Select(PathOf).ToList();
+        var stale = Snapshot.StaleKeys(keys);
+        Assert.True(stale.Count == 0,
+                    string.Join("\n", stale.Select(key => $"{key}: recorded in the approved snapshot, but no longer a rocket fixture")));
+    }
+
     /// <summary>The fixture's path from the repository root, with forward slashes, as the snapshot spells it.</summary>
-    private static string PathOf(CeaCase c) => Path.GetRelativePath(RepositoryPaths.Root, c.Path).Replace('\\', '/');
+    private static string PathOf(string path) => Path.GetRelativePath(RepositoryPaths.Root, path).Replace('\\', '/');
 }
