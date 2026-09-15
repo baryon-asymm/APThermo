@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AerospacePropellantThermodynamics.Cli.Output;
 using AerospacePropellantThermodynamics.Cli.Syntax;
 using AerospacePropellantThermodynamics.Execution;
 

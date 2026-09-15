@@ -1,7 +1,7 @@
 using System.Text.Json;
 using AerospacePropellantThermodynamics.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Output;
 
 /// <summary>The `run` object and the accelerator object, for every command that writes them.</summary>
 internal static class RunSection

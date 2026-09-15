@@ -4,7 +4,7 @@ using System.Text.Json;
 using AerospacePropellantThermodynamics.Cli.Cases;
 using AerospacePropellantThermodynamics.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Output;
 
 /// <summary>Renders a document through a callback, delivers it to the output file or standard output, and decides the exit code.</summary>
 internal static class DocumentWriter

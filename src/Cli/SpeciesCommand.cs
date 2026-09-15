@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Cli.Output;
 using AerospacePropellantThermodynamics.Cli.Syntax;
 
 namespace AerospacePropellantThermodynamics.Cli;

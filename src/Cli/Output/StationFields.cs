@@ -3,7 +3,7 @@ using AerospacePropellantThermodynamics.Performance;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Output;
 
 /// <summary>
 /// The one projection of a station into named, typed cells (the state, the performance figures with the two

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Cli.Cases;
 using AerospacePropellantThermodynamics.Cli.Documents;
+using AerospacePropellantThermodynamics.Cli.Output;
 using AerospacePropellantThermodynamics.Cli.Syntax;
 using AerospacePropellantThermodynamics.Execution;
 using AerospacePropellantThermodynamics.Problems;

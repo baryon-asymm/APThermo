@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using AerospacePropellantThermodynamics.Cli.Output;
 
 namespace AerospacePropellantThermodynamics.Cli;
 

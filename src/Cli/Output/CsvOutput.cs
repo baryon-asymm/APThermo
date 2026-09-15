@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using AerospacePropellantThermodynamics.Cli.Cases;
 using AerospacePropellantThermodynamics.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Output;
 
 /// <summary>
 /// The CSV form: one row per case and station, the scalar inputs, the state, the figures and the transport figures; no
