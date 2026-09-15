@@ -45,8 +45,15 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   how to approve; on a problem the actual lines are written". True of `Problem`, not of
   `StaleKeys`: that method only returns bare keys (`ApprovedSnapshot.cs`), and wording
   them into a problem and writing an actual file is left to the caller, which is why two
-  consumers word it themselves and, until this repair task, four never called it at all.
+  consumers word it themselves and, until 2026-09-15, four never called it at all.
   Found by the repair review of 2026-09-15 reading the code against the claim.
+- **`*.actual.txt` is CRLF; the repository is LF.** `Problem`'s write
+  (`ApprovedSnapshot.cs`, the `File.WriteAllLines` call in the dirty-write branch)
+  joins lines with `Environment.NewLine`, CRLF on the Windows platform this tree
+  targets (`## Constraints` of the root), while `.gitattributes` keeps every
+  committed text file LF. Whoever approves a change by copying the actual file over
+  the approved one normalizes the line endings first; the Cli.Tests re-approval of
+  2026-09-15 did so.
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.
@@ -125,7 +132,16 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
       `Problems.Tests` still key their theories from the fixture directory alone and
       do not check for an orphaned approved line - a gap recorded here rather than
       closed silently, since fixing it edits three foreign nodes' own test code,
-      outside this task).
+      outside 2026-09-15).
+
+      ⚠ 2026-09-15: the gap named above in `Thermo.Tests`, `Performance.Tests` and
+      `Problems.Tests` closed the same day, each in its own repair review
+      (R-Thermo.Tests-1, R-Performance.Tests-1, R-Problems.Tests-1), citing this
+      paragraph as the record of the gap. All six test nodes with a
+      `Bits.approved.txt` (`Cli.Tests`, `Equilibrium.Tests`, `Performance.Tests`,
+      `Problems.Tests`, `Thermo.Tests`, `Transport.Tests`) now call
+      `ApprovedSnapshot.StaleKeys` (`git grep -n "StaleKeys" -- tests`, verified at
+      the end sweep of 2026-09-15). No gap remains.
 
       `Bits.approved.txt` hashes, all six unmoved through the whole exercise:
       Cli.Tests `483c979b75b5c98b5e11ddc4359f28812e225e15`, Equilibrium.Tests
