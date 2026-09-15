@@ -197,6 +197,7 @@ directives, the file's own node's declarations for a simple name; the qualifier 
 for a qualified one), against a `WideConstructorType` per candidate (the node plus the
 simple name) rather than a bare string — a fourth small record type joining `Node`,
 `Instruction` and `ShapeException`, the file each convention held. `ShapeMeasures.Span`
+(since consolidated into `BoundaryTokens` and `StartLine`, this repair phase's own cut)
 kept reporting the span's boundary lines; a new `CodeLines` walks the token stream
 between them and counts only the lines a token touches, so a comment or blank line
 inside the span no longer counts toward the 400 or the 60. `ShapeTests` then asserts
