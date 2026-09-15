@@ -92,6 +92,15 @@ internal static class NodeAssemblies
     public static bool IsTestAssembly(Assembly assembly) =>
         assembly.GetReferencedAssemblies().Any(reference => reference.Name is { } name && name.StartsWith("xunit", StringComparison.Ordinal));
 
+    /// <summary>The simple names an assembly grants <c>InternalsVisibleTo</c> to (root <c>BOOT.md</c>, Delivery: Tree
+    /// contracts), the attribute's own public-key suffix stripped: <c>TreeContractTests</c> reads these against the
+    /// dependency graph and the tree-contract sections of the grantee's own <c>API.md</c>.</summary>
+    public static IReadOnlyList<string> InternalsVisibleTo(Assembly assembly) =>
+        assembly.GetCustomAttributesData()
+            .Where(attribute => attribute.AttributeType.FullName == "System.Runtime.CompilerServices.InternalsVisibleToAttribute")
+            .Select(attribute => ((string)attribute.ConstructorArguments[0].Value!).Split(',')[0].Trim())
+            .ToList();
+
     private static IReadOnlyDictionary<Node, Assembly> Load()
     {
         var assemblies = new Dictionary<Node, Assembly>();

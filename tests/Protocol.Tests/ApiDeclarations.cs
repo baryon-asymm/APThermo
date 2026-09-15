@@ -17,18 +17,43 @@ internal static class ApiDeclarations
     public static bool NamesType(string document, string simpleName) =>
         Regex.IsMatch(string.Join("\n", Classify(document).Where(line => line.Implemented).Select(line => line.Text)), $@"\b{Regex.Escape(simpleName)}\b");
 
+    /// <summary>Whether a type of the given simple name is named in the document's ✅-marked, package-surface text (root
+    /// <c>BOOT.md</c>, Delivery: Tree contracts) — a section whose heading carries no <c>(tree contract)</c> mark.</summary>
+    public static bool NamesTypeInPackageSurface(string document, string simpleName) => NamesTypeInSection(document, simpleName, treeContract: false);
+
+    /// <summary>Whether a type of the given simple name is named in the document's ✅-marked, tree-contract text (root
+    /// <c>BOOT.md</c>, Delivery: Tree contracts) — a section whose heading carries the <c>(tree contract)</c> mark.</summary>
+    public static bool NamesTypeInTreeContract(string document, string simpleName) => NamesTypeInSection(document, simpleName, treeContract: true);
+
+    private static bool NamesTypeInSection(string document, string simpleName, bool treeContract) =>
+        Regex.IsMatch(
+            string.Join("\n", Classify(document).Where(line => line.Implemented && line.TreeContract == treeContract).Select(line => line.Text)),
+            $@"\b{Regex.Escape(simpleName)}\b");
+
     /// <summary>The C# blocks of a document that sit under the nearest status mark above them being ✅ (or no mark at all).</summary>
-    public static IEnumerable<string> ImplementedCsharpBlocks(string document)
+    public static IEnumerable<string> ImplementedCsharpBlocks(string document) => ImplementedCsharpBlocksBySection(document).Select(pair => pair.Block);
+
+    /// <summary>The names a document's ✅-marked C# blocks declare as types, paired with whether the block's own section is a
+    /// tree contract (root <c>BOOT.md</c>, Delivery: Tree contracts).</summary>
+    public static IEnumerable<(string Name, bool TreeContract)> DeclaredTypeSections(string document) =>
+        ImplementedCsharpBlocksBySection(document).SelectMany(pair => Declarations(pair.Block).Where(d => d.IsType).Select(d => (d.Name, pair.TreeContract)));
+
+    /// <summary>The C# blocks of a document that sit under the nearest status mark above them being ✅ (or no mark at all), each
+    /// paired with whether its own section is a tree contract: the state <see cref="Classify"/> reads from the heading line that
+    /// opened the block's section, frozen for the whole block the same way the ✅/⏳ state is.</summary>
+    private static IEnumerable<(string Block, bool TreeContract)> ImplementedCsharpBlocksBySection(string document)
     {
         var block = new List<string>();
         var blockImplemented = false;
+        var blockTreeContract = false;
         var wasInsideBlock = false;
-        foreach (var (text, implemented, insideBlock) in Classify(document))
+        foreach (var (text, implemented, insideBlock, treeContract) in Classify(document))
         {
             if (insideBlock)
             {
                 block.Add(text);
                 blockImplemented = implemented;
+                blockTreeContract = treeContract;
                 wasInsideBlock = true;
                 continue;
             }
@@ -37,7 +62,7 @@ internal static class ApiDeclarations
             {
                 if (blockImplemented)
                 {
-                    yield return string.Join("\n", block);
+                    yield return (string.Join("\n", block), blockTreeContract);
                 }
 
                 block.Clear();
@@ -47,17 +72,26 @@ internal static class ApiDeclarations
     }
 
     /// <summary>
-    /// Every line of the document, classified by the one status-mark state machine AGENTS.md §7 describes: whether the line
-    /// sits under an effective ✅ (or no mark at all) rather than ⏳, and whether the line itself lies inside a ```csharp fence
-    /// (the fence marker lines do not). A mark is read only outside such a fence — the nearest mark above a code block decides
-    /// the block's fate, not a character that happens to look like a mark inside the example code the block holds — so a line
-    /// inside a fence carries the state as of the line that opened it, frozen for the whole block. <see cref="NamesType"/> and
-    /// <see cref="ImplementedCsharpBlocks"/> both read this one walk, so the mark rule is written once.
+    /// Every line of the document, classified by two independent state machines: the ✅/⏳ status-mark one AGENTS.md §7
+    /// describes (whether the line sits under an effective ✅, or no mark at all, rather than ⏳), and the tree-contract one
+    /// (root <c>BOOT.md</c>, Delivery: Tree contracts): whether the line sits under a section heading (a line starting
+    /// <c>"## "</c>) that carries the text <c>(tree contract)</c>, package surface otherwise. Both machines read a mark only on
+    /// a heading line or, for ✅/⏳, anywhere outside a ```csharp fence; the two differ in how a mark's absence is read.
+    /// ✅/⏳ persists until the next mark, so a heading with neither leaves it as the nearest mark above left it. The
+    /// tree-contract mark does not persist across headings: every <c>"## "</c> line resets it, marked or not, because a
+    /// section's own heading is where AGENTS.md §7's own state-of-the-art model has nothing to say and the split needs its own,
+    /// simpler rule — a section is a tree contract only when its own heading says so. Also tracks whether the line itself lies
+    /// inside a ```csharp fence (the fence marker lines do not); a mark is read only outside such a fence — the nearest mark
+    /// above a code block decides the block's fate, not a character that happens to look like a mark inside the example code
+    /// the block holds — so a line inside a fence carries the state as of the line that opened it, frozen for the whole block.
+    /// <see cref="NamesType"/>, <see cref="NamesTypeInSection"/> and <see cref="ImplementedCsharpBlocksBySection"/> all read
+    /// this one walk, so both mark rules are written once.
     /// </summary>
-    private static IEnumerable<(string Text, bool Implemented, bool InsideCSharpBlock)> Classify(string document)
+    private static IEnumerable<(string Text, bool Implemented, bool InsideCSharpBlock, bool TreeContract)> Classify(string document)
     {
         var implemented = true;
         var inside = false;
+        var treeContract = false;
         foreach (var line in document.ReplaceLineEndings("\n").Split('\n'))
         {
             if (line.StartsWith("```", StringComparison.Ordinal))
@@ -71,7 +105,7 @@ internal static class ApiDeclarations
                     inside = true;
                 }
 
-                yield return (line, implemented, false);
+                yield return (line, implemented, false, treeContract);
                 continue;
             }
 
@@ -85,9 +119,14 @@ internal static class ApiDeclarations
                 {
                     implemented = true;
                 }
+
+                if (line.StartsWith("## ", StringComparison.Ordinal))
+                {
+                    treeContract = line.Contains("(tree contract)", StringComparison.Ordinal);
+                }
             }
 
-            yield return (line, implemented, inside);
+            yield return (line, implemented, inside, treeContract);
         }
     }
 
