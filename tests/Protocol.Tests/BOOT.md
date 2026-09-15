@@ -714,6 +714,53 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       all three; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0
       errors after each revert; the linter 0 errors, 0 warnings; no file outside this
       node carries a trace of any of the three once reverted.
+- [x] 2026-09-15 — R-Protocol.Tests-13 (repair phase): seven branches the original
+      ten-mutation proof (2026-09-13/14) and the Phase-3 proof (above) never exercised,
+      each seen red once with a mutation applied alone and reverted, `dotnet test
+      tests/Protocol.Tests` green again after each (20 passed):
+      - mechanics, the partial-type branch (only `#region` had been tried): a scratch
+        `partial class` with no `[GeneratedRegex]` member, red, "partial type without a
+        [GeneratedRegex] member";
+      - mechanics, the banned-suffix branch: a scratch class named `MutationMeasureHelper`,
+        red, "type name ends in the banned suffix implied by 'MutationMeasureHelper'";
+      - nesting, a local function's depth reaching its enclosing member and back (the
+        doc comment's "does not lower either figure", never itself tried): a method
+        with no nesting of its own calling a local function with four nested `if`s, red
+        on both at once, "MutationNestingLeak.Outer ... measures 4 for nesting, over 3"
+        and "MutationNestingLeak.Local ... measures 4 for nesting, over 3" — the outer
+        method carries the local function's own depth even though its own body holds no
+        control flow;
+      - the reverse fact, the "names nothing" branch (only the below-limit and
+        understated branches had been tried): a temporary row for
+        `MutationNonexistentType.MutationNonexistentType`, red, "the row for
+        MutationNonexistentType.MutationNonexistentType (parameters) names nothing this
+        fact can re-measure";
+      - named construction, the target-typed `new(…)` branch (the original proof's
+        "called positionally" does not say which form): `MutationWideCtor value =
+        new(1, 2, 3, 4, 5, 6, 7);`, a temporary row on `MutationWideCtor.MutationWideCtor`,
+        red, "MutationWideCtor created at ... without naming every argument";
+      - Coverage, the ⏳-scoping `ApiDeclarations`/R-Protocol.Tests-7 gave `NamesType`
+        (never itself proven red: mutation 1 of 2026-09-13 tested an undocumented type
+        added to `Data`, not an existing type's only mention losing ✅ status): `src/Data/API.md`'s
+        `## Database ✅` heading changed to `⏳` alone, red on five of its seven types at
+        once, "src/Data/API.md never names DatabaseProvenance, which
+        AerospacePropellantThermodynamics.Data exports" (`ElementCount`, `SpeciesPhase`,
+        `SpeciesSection`, `TemperatureInterval` alongside it); `SpeciesDatabase` and
+        `Species` stayed unreported, each named again in the document's other ✅
+        sections, showing the fact is exact and not merely triggered by the heading
+        edit itself;
+      - the root's no-hidden-state invariant, the static-readonly-array branch (mutation
+        8 of 2026-09-13 used a plain mutable field, not a readonly array): a scratch
+        `private static readonly int[]` field added to `src/Equilibrium`, red,
+        "MutationReadonlyArray.Values is a static readonly array, whose elements are
+        mutable state".
+
+      Every mutation confined to a temporary, uncommitted addition (a scratch type in
+      this node, `src/Cli` or `src/Equilibrium`; a temporary row of this node's own
+      `## Shape exceptions`; a single status mark of `src/Data/API.md`) and reverted
+      before this commit; `git status` clean and `git diff --stat` empty for every
+      touched file once reverted; `dotnet build AerospacePropellantThermodynamics.sln`
+      0 warnings, 0 errors and the linter 0 errors, 0 warnings after every revert.
 
 ## Taboos
 
