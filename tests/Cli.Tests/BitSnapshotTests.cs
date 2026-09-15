@@ -18,8 +18,9 @@ public sealed class BitSnapshotTests(CliFixture fixture)
     public void Every_example_gives_the_recorded_output()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
+        var examples = BitExamples.ComputeAll(fixture);
         var problems = new List<string>();
-        foreach (var example in BitExamples.ComputeAll(fixture))
+        foreach (var example in examples)
         {
             var problem = snapshot.Problem(example.Name, $"{example.JsonSha256}\t{example.CsvSha256}");
             if (problem is not null)
@@ -27,6 +28,9 @@ public sealed class BitSnapshotTests(CliFixture fixture)
                 problems.Add(problem);
             }
         }
+
+        problems.AddRange(snapshot.StaleKeys(examples.Select(e => e.Name))
+            .Select(key => $"{key}: recorded in {ApprovedPath}, but no example produces it; delete the line in the commit that removed the example"));
 
         Assert.True(problems.Count == 0, $"{problems.Count} example(s) no longer give the recorded output:\n" + string.Join("\n", problems));
     }

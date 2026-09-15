@@ -50,7 +50,12 @@ The definition of what "`Cli` is ready" means.
   (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the
   change of the documents that moved it named in the same commit; a decomposition, a
   renaming or a reordering of code moves no line. An example absent from the snapshot
-  fails the test with instructions, as the surface snapshot does.
+  fails the test with instructions, as the surface snapshot does. The reverse direction
+  is checked too (2026-09-15, R-Cli.Tests-1): an approved line whose example no longer
+  runs is a stale key, found through `Harness.ApprovedSnapshot.StaleKeys` and reported
+  the same way, `{key}: recorded in {ApprovedPath}, but no example produces it; delete
+  the line in the commit that removed the example`, so a deleted example's line cannot
+  survive unnoticed either.
 - **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
   tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
   wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,
