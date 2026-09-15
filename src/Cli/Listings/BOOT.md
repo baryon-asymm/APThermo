@@ -35,7 +35,7 @@ a composition root, holding no formula of its own.
 ## Dependencies
 
 [Output](../Output/API.md)
-[CommandLine](../CommandLine/API.md)
+[Syntax](../Syntax/API.md)
 [Cli](../API.md)
 [Data](../../Data/API.md)
 [Execution](../../Execution/API.md)

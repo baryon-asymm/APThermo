@@ -74,7 +74,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 
 ## Taboos
 
-- No command-line concern: an option or the argument tables are `Cli.CommandLine`'s.
+- No command-line concern: an option or the argument tables are `Cli.Syntax`'s.
 - No case building or result document: turning a document into a library problem, or a
   library result into an output document, is `Cli.Cases`'s and `Cli.Output`'s.
 - No reaction to a library refusal beyond naming its source: the translation of the

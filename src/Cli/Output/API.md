@@ -33,7 +33,7 @@ internal static class CsvOutput
 }
 ```
 
-`RunInfo` is the parent's own; `CommandOptions` is `Cli.CommandLine`'s; `CaseOutput` is
+`RunInfo` is the parent's own; `CommandOptions` is `Cli.Syntax`'s; `CaseOutput` is
 `Cli.Cases`'; `AcceleratorInfo` is `Execution`'s.
 
 `DocumentWriter.Write` renders `cases` in `options.Format` (JSON through `JsonOutput`,

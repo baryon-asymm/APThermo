@@ -135,16 +135,16 @@ The root's own-assembly-per-node rule was the reason for it, and the root `BOOT.
 child node compile into its nearest ancestor's assembly instead of forcing one of its
 own, precisely so a large node like this one could be cut into sub-nodes without
 widening its public surface. Five clusters of this node passed the child-node test (the
-root `BOOT.md`, `## Decomposition`, the "child nodes phase"): `CommandLine/`,
+root `BOOT.md`, `## Decomposition`, the "child nodes phase"): `Syntax/`,
 `Documents/`, `Cases/`, `Output/` and `Listings/`, each with its own `BOOT.md` and
 `API.md` and the namespace of its path
-(`AerospacePropellantThermodynamics.Cli.CommandLine` and so on), compiled into this
+(`AerospacePropellantThermodynamics.Cli.Syntax` and so on), compiled into this
 node's own assembly. `Program`, `CommandRegistry`, `Failures`, `SolverSession`, the
 three command types (`ProblemCommand`, `StatesCommand`, `SpeciesCommand`) and the
 shared vocabulary and run-bookkeeping types with no single owning cluster
 (`DocumentWords`, `Names`, `InputException`, `InputFile`, `DatabaseFiles`,
 `DatabaseInfo`, `RunInfo`, `RunLimits`, `Timings`) stayed at this node's own level.
-`DocumentWords` was weighed for `CommandLine/` and for `Documents/` (both read it,
+`DocumentWords` was weighed for `Syntax/` and for `Documents/` (both read it,
 `CommandTable` for `--accelerator`, the readers for `flow`, `role`, `amountKind` and
 `kind`) and, on inspection, also for `Cases/` (`CaseInputs`'s echo of `kind`) and for
 `Output/` (`RunSection`'s echo of the accelerator): four clusters, no dominant owner,
@@ -157,9 +157,11 @@ sharply split: `Names` reaches `Output/` and `Listings/`, `RunInfo` is `SolverSe
 own return value read by `Output/`, `Listings/` and the command types alike, and moving
 either would still leave at least two of the three as its dependents. `OutputFormat`
 and `CaseOutput`/`Combination` moved instead of staying, because each has a genuine
-majority owner (`CommandLine/` and `Cases/` respectively) that the rest of the node
+majority owner (`Syntax/` and `Cases/` respectively) that the rest of the node
 reaches only through a field already carried by a wider record (`CommandOptions.Format`,
-the case's own shape); their own `BOOT.md` records the reasoning.
+the case's own shape); their own `BOOT.md` records the reasoning. `Syntax/` is not
+named `CommandLine/`: its own `BOOT.md` records why (a namespace and a same-named type
+inside it force a doubled qualification on every caller in the `Cli` tree).
 
 The move itself was mechanical: `git mv` and a namespace edit per moved file, no logic
 touched, one commit per child (`## Structure` of each child names its own moved
@@ -190,7 +192,7 @@ Types that stayed at this node's own level:
 |---|---|
 | `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
 | `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
-| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are `CommandLine.ProblemCommand`/`StatesCommand`/`SpeciesCommand` (this node's own) and `Listings.DeviceListing` |
+| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand` and `Listings.DeviceListing` |
 | `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11); read by all four clusters below, no dominant owner (see the warning above) |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
 | `ProblemCommand` | `rocket` and `equilibrium`: read (`Documents`), check the problem type against the command, build the mixtures, expand the sweep, solve (`Cases`), write (`Output`) |
@@ -213,7 +215,7 @@ business to forbid twice.
 
 | Child | Namespace | Holds |
 |---|---|---|
-| [`CommandLine/`](CommandLine/BOOT.md) | `Cli.CommandLine` | the token walk, the command and option tables, `Invocation`, `CommandOptions`, `OutputFormat` |
+| [`Syntax/`](Syntax/BOOT.md) | `Cli.Syntax` | the token walk, the command and option tables, `Invocation`, `CommandOptions`, `OutputFormat` |
 | [`Documents/`](Documents/BOOT.md) | `Cli.Documents` | the problem-document and state-record readers, the strict-object mechanism, the document shapes |
 | [`Cases/`](Cases/BOOT.md) | `Cli.Cases` | the sweep expansion, the propellant and case builders, `CaseOutput` |
 | [`Output/`](Output/BOOT.md) | `Cli.Output` | the JSON and CSV renderers, the station field projection, delivery, the exit-code rule |

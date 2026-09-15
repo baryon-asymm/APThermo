@@ -33,7 +33,7 @@ edit only, no logic touched.
 ## Dependencies
 
 [Cases](../Cases/API.md)
-[CommandLine](../CommandLine/API.md)
+[Syntax](../Syntax/API.md)
 [Cli](../API.md)
 [Problems](../../Problems/API.md)
 [Execution](../../Execution/API.md)
@@ -69,7 +69,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Taboos
 
 - No case building: turning a document into a library problem is `Cli.Cases`'s.
-- No command-line concern: `DocumentWriter.Write` takes `Cli.CommandLine`'s
+- No command-line concern: `DocumentWriter.Write` takes `Cli.Syntax`'s
   `CommandOptions` by value and reads only `Format` and `Output`; the threshold comes
   from the run's own `RunLimits` (the parent's own `RunInfo.Limits`), not from the
   options directly. This node does not parse or validate an option.

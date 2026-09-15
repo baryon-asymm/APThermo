@@ -1,15 +1,22 @@
-# BOOT.md — Cli.CommandLine
+# BOOT.md — Cli.Syntax
 
 ## Purpose
 
-The command line of `apthermo`, decoupled from every command's own logic: the token
-walk, the two tables of commands and options, folding the options into one record, and
-the checks that a command and its options agree. A child node of `src/Cli`
-(`AerospacePropellantThermodynamics.Cli.CommandLine`, compiled into the parent's
-assembly, root `BOOT.md`, Constraints, 2026-09-15) because it has its own reason to
-change — a new option or command — and the rest of the node uses it through one
-function (`CommandLine.Parse`) and two small records (`Invocation`, `CommandOptions`),
-never through its token walk or its tables directly.
+The command-line grammar of `apthermo`, decoupled from every command's own logic: the
+token walk, the two tables of commands and options, folding the options into one
+record, and the checks that a command and its options agree. A child node of `src/Cli`
+(`AerospacePropellantThermodynamics.Cli.Syntax`, compiled into the parent's assembly,
+root `BOOT.md`, Constraints, 2026-09-15) because it has its own reason to change — a
+new option or command — and the rest of the node uses it through one function
+(`CommandLine.Parse`) and two small records (`Invocation`, `CommandOptions`), never
+through its token walk or its tables directly.
+
+The folder is not named `CommandLine`, though its central type is: a namespace and a
+type sharing a name inside it forces `CommandLine.CommandLine.Parse(...)` on every
+caller inside the `Cli` namespace tree (C# resolves the bare `CommandLine` to the
+namespace there, before any `using` directive is even consulted), a cost the .NET
+design guidelines advise against and this node does not need to pay. `Syntax` names the
+same cluster — the command line's grammar — without colliding with the type.
 
 Split out of the parent's `## Structure` review of 2026-09-15 (the child-nodes phase,
 root `BOOT.md`): `ArgumentScanner`, `ScannedArguments`, `CommandLine`, `CommandOptions`,
@@ -18,7 +25,7 @@ root `BOOT.md`): `ArgumentScanner`, `ScannedArguments`, `CommandLine`, `CommandO
 touched. `OutputFormat` moved with this cluster rather than staying at the parent's own
 level: it is declared and read by four of this cluster's own types (`CommandOptions`,
 `CommandSpec`, `CommandTable`, `OptionValues`) and reaches the rest of the node only as
-one value already carried by `CommandOptions.Format`, so its own cluster is CommandLine,
+one value already carried by `CommandOptions.Format`, so its own cluster is `Syntax`,
 not wherever a `==` check on it happens to sit (`Output/DocumentWriter.cs`,
 `SpeciesCommand.cs`).
 
@@ -64,13 +71,13 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The moved types compile unchanged under
-      `AerospacePropellantThermodynamics.Cli.CommandLine` and every test of
+      `AerospacePropellantThermodynamics.Cli.Syntax` and every test of
       `tests/Cli.Tests` that exercised them before the move (`CommandLineTests`,
       the option and format cases of `OutputDocumentTests` and `ExitCodeTests`)
       passes after it, same count as before the split
       (`tests/Cli.Tests/BOOT.md`, the Bits and process levels).
 - [x] 2026-09-15 — The protocol tests node attributes every type of this directory to
-      `Cli.CommandLine` by namespace, not to `Cli` (`Protocol.Tests`,
+      `Cli.Syntax` by namespace, not to `Cli` (`Protocol.Tests`,
       `CoverageTests`/`DeclarationTests`, the child-node attribution of 8c3c77f).
 
 ## Taboos

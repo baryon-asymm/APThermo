@@ -76,5 +76,5 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 
 - No document parsing: a problem or record document's JSON shape is `Cli.Documents`'.
 - No rendering: turning a `CaseOutput` into JSON or CSV cells is `Cli.Output`'s.
-- No command-line concern: an option belongs to `Cli.CommandLine`'s `CommandOptions`,
+- No command-line concern: an option belongs to `Cli.Syntax`'s `CommandOptions`,
   read by the parent's command types, not here.

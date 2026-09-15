@@ -1,6 +1,6 @@
-# API.md — Cli.CommandLine
+# API.md — Cli.Syntax
 
-Namespace `AerospacePropellantThermodynamics.Cli.CommandLine`, compiled into the
+Namespace `AerospacePropellantThermodynamics.Cli.Syntax`, compiled into the
 `AerospacePropellantThermodynamics.Cli` assembly (root `BOOT.md`, Constraints,
 2026-09-15: a child node without a project of its own compiles into its nearest
 ancestor's). Every type is `internal`; visible throughout the `Cli` assembly and to
@@ -13,7 +13,7 @@ change.
 ## Command line ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli.CommandLine;
+namespace AerospacePropellantThermodynamics.Cli.Syntax;
 
 internal static class CommandLine
 {

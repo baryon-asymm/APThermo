@@ -48,7 +48,7 @@ internal static class DeviceListing
 }
 ```
 
-`Invocation` is `Cli.CommandLine`'s. `DeviceListing.Execute` is the `devices` command
+`Invocation` is `Cli.Syntax`'s. `DeviceListing.Execute` is the `devices` command
 in full: it probes the machine, renders the `cpu` and `cuda` accelerator objects (the
 parent's `API.md`, "Output document", `run.accelerator`'s own fields, and
 `cudaForbidden` next to them), delivers the document, and always returns
