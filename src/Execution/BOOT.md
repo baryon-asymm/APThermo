@@ -310,11 +310,14 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (`if (!File.Exists(dll)) continue;`) and brings `Locate` to depth 3, examining
       the same paths in the same order.
 
-      ⚠ 2026-09-15: these figures described that day's branch; `e453063` brought
-      `RocketPipeline.Run` to 53 lines of code, and `## Shape exceptions` holds ten
-      rows: six efferent-coupling rows, the four pipelines among them, and the
-      constructors of `RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult`
-      and `EquilibriumBatchResult`. Found by the repair review (R-Execution-5).
+      ⚠ 2026-09-15: these figures described that day's branch, before `e453063`
+      reformatted `RocketPipeline.Run`'s two wide constructor calls onto named
+      arguments; `## Shape exceptions` now holds ten rows: six efferent-coupling
+      rows, the four pipelines among them, and the constructors of
+      `RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult` and
+      `EquilibriumBatchResult`. `RocketPipeline.Run`'s size afterward is
+      `ShapeTests.No_method_spans_more_than_60_lines`'s to state; this node records
+      no line figure of its own. Found by the repair review (R-Execution-5).
 - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
       off and the explicit paths pointing nowhere, the engine is the CPU one and
       `CudaSkippedBecause` names what was missing and the paths tried
@@ -359,8 +362,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       now carries; the Structure row's own wording is unchanged, since it already
       described `ProbeMath` correctly. Found by the repair review (R-Execution-1).
       Verified: the CPU-accelerator fast suite green (`APTHERMO_NO_CUDA=1`), the
-      re-measured Ce confirmed by the protocol tests node's own tool
-      (`CouplingMeasures`, through a temporary test).
+      re-measured Ce confirmed by
+      `ShapeTests.Every_shape_exception_is_measured_and_still_needed`, which holds
+      the `Engine` row at 25 on the merged tree.
 - [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice`, extracted from
       `CompileWrappers` in `23ccc1d` "bringing its nesting back to 3", took every
       parameter and local of its caller (six, the root's limit) and existed only to
@@ -370,7 +374,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (create the program, build the options, add both modules under one `fixed`,
       compile, log and throw, read the compiled result, destroy the program in
       `finally`); `NvvmOptions`, which owns the unmanaged allocations, is unchanged.
-      Nests 2 deep now, about 31 lines of code. Found by the repair review
+      The merged method now satisfies both
+      `ShapeTests.No_control_flow_nests_deeper_than_3` and
+      `ShapeTests.No_method_spans_more_than_60_lines`. Found by the repair review
       (R-Execution-2). Verified on the reference machine, `APTHERMO_NO_CUDA` unset:
       `tests/Execution.Tests/ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
       green, exercising this exact method on real hardware (the probe kernel's
