@@ -52,6 +52,14 @@ class APThermo.Benchmarks.SingleCaseBenchmarks
     Void Cleanup()
     Void Setup()
 
+class APThermo.Benchmarks.SolverBatchBenchmarks
+    .ctor()
+    AcceleratorKind Accelerator { get; set; }
+    IReadOnlyList<RocketResult> SolveBatch()
+    Int32 CaseCount { get; set; }
+    Void Cleanup()
+    Void Setup()
+
 enum APThermo.Benchmarks.UserStateSelection : Int32
     All = 0
     Record1 = 1

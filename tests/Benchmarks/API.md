@@ -23,8 +23,8 @@ public static class Program
 
 One class per group of `BOOT.md`, Constraints, group 5 (allocations on the batch path)
 excepted: it has no benchmark of its own and rides on the `MemoryDiagnoser` of
-`BatchThroughputBenchmarks` and `UserStatesBenchmarks`, the two groups on the batch
-path.
+`BatchThroughputBenchmarks`, `UserStatesBenchmarks` and `SolverBatchBenchmarks`, the
+three groups on the batch path.
 
 ```csharp
 namespace APThermo.Benchmarks;
@@ -100,9 +100,25 @@ public class UserStatesBenchmarks
     public IReadOnlyList<EquilibriumResult> SolveStates();      // [Benchmark]
     public void Cleanup();                                      // [GlobalCleanup]
 }
+
+// Group 7: the same LOX/LH2 rocket sweep family as group 1, at the same case counts
+// and on the same accelerators, through Problems.Solver's batch overload over
+// RocketProblem instead of the raw Execution.Engine batch API — what a consumer pays
+// end to end, compared against group 1 at equal case counts. [GlobalSetup] also runs
+// group 1's engine path over the identical batch once and logs which relation holds
+// against it (BOOT.md, group 7's invariant): "equalsEngine=bitwise" or
+// "equalsEngine=tolerance".
+public class SolverBatchBenchmarks
+{
+    public int CaseCount { get; set; }                       // [Params] 1000, 10000, 100000
+    public AcceleratorKind Accelerator { get; set; }          // [Params] Cpu, Cuda
+    public void Setup();                                      // [GlobalSetup]
+    public IReadOnlyList<RocketResult> SolveBatch();          // [Benchmark]
+    public void Cleanup();                                    // [GlobalCleanup]
+}
 ```
 
-`AcceleratorKind` is `Execution`'s; `EquilibriumResult` is `Problems`'s.
+`AcceleratorKind` is `Execution`'s; `EquilibriumResult` and `RocketResult` are `Problems`'s.
 `BatchThroughputBenchmarks` and `OneTimeCostBenchmarks` bypass `Problems.Solver`
 entirely for the raw `Execution.Engine` batch API, so their `Accelerator` axis maps
 `Cuda` to `EngineOptions { Accelerator = AcceleratorKind.Auto }` (`AcceleratorSelection`,

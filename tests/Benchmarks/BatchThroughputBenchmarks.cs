@@ -1,9 +1,7 @@
-using System.Text.Json;
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Fixtures;
 using APThermo.Harness;
-using APThermo.Performance;
 using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
 
@@ -42,7 +40,7 @@ public class BatchThroughputBenchmarks
 
         _engine = Engine.Create(AcceleratorSelection.OptionsFor(Accelerator));
         _tables = _engine.Upload(table);
-        _batch = BuildBatch(inputs, elements.Count, molesPerKilogram);
+        _batch = RocketBatches.Build(inputs, elements.Count, molesPerKilogram, CaseCount);
 
         RecordDiagnostics(_engine.Run(_tables, _batch));
     }
@@ -55,32 +53,6 @@ public class BatchThroughputBenchmarks
     {
         _tables.Dispose();
         _engine.Dispose();
-    }
-
-    private RocketBatch BuildBatch(JsonElement inputs, int elementCount, IReadOnlyList<double> molesPerKilogram)
-    {
-        var pressure = inputs.GetProperty("chamberPressure").GetDouble();
-        var enthalpy = inputs.GetProperty("reactantEnthalpy").GetDouble();
-        var flow = FixtureStateRecords.ReadFlow(inputs);
-        var areaRatios = FixtureJson.ReadDoubles(inputs, "areaRatios");
-        var exitKinds = areaRatios.Select(_ => ExitSpecification.AreaRatio).ToArray();
-
-        var batch = new RocketBatch(CaseCount, elementCount, exitKinds);
-        for (var i = 0; i < CaseCount; i++)
-        {
-            batch.ChamberPressure[i] = pressure;
-            batch.ReactantEnthalpy[i] = enthalpy;
-            batch.Flow[i] = flow;
-            for (var e = 0; e < elementCount; e++)
-            {
-                batch.ElementMoles[i * elementCount + e] = molesPerKilogram[e];
-            }
-            for (var x = 0; x < areaRatios.Count; x++)
-            {
-                batch.ExitValues[i * areaRatios.Count + x] = areaRatios[x];
-            }
-        }
-        return batch;
     }
 
     private void RecordDiagnostics(RocketBatchResult result)

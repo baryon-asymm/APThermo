@@ -60,6 +60,28 @@ hand, never by `dotnet test`. It records figures and asserts none.
   into `NvvmOptions`, `TargetArch`, `WrapperBody`, `CompileWrappers`,
   `InsertAfterHeader`, `AssertEveryWrapperDefined` and `TrialLoad`), never in the
   compiler input. The invariant now reads as above.
+- **Group 7 compares `Solver` against the engine on a proven baseline, not an
+  assumption.** `SolverBatchBenchmarks`'s `[GlobalSetup]` also runs group 1's engine
+  path over the identical batch once and compares the two results field by field
+  (`EngineSolverComparison`), then logs which relation holds. On the CPU accelerator
+  a dry run found `Solver` and the engine bit-for-bit equal — every `MixtureState`
+  and `PerformanceFigures` field and every mole fraction, at every case of every case
+  count (2026-09-15, `## Acceptance criteria`). On CUDA the same dry run found the two
+  paths *not* bit-for-bit identical, even though both call the identical kernel on the
+  identical batch: the same last-ULP pattern the root `BOOT.md`'s GPU-equals-CPU
+  invariant documents for CUDA against the CPU accelerator. A CUDA configuration is
+  therefore held to the GPU/CPU tolerance tiers this node's own invariant above
+  already quotes from the execution tests node (relative 1e-10 on temperature, 1e-9 on
+  every other `MixtureState`/`PerformanceFigures` field — repeated as constants in
+  `EngineSolverComparison`, since `Execution.Tests`' `GpuCpuTolerances` exposes
+  nothing outward for Benchmarks to call) and, for the one field `Solver` derives by a
+  division a summation order can round differently (a mole fraction, `n_j` over the
+  moles of all species, `Problems/API.md`), to the fixtures node's own tolerance table
+  for two paths of the tree's own code reaching the same mole fraction
+  (`moleFractionFloor`, `polishThresholdRelative`, loaded from `Fixtures.ToleranceTable`,
+  a declared dependency already). Measured 2026-09-15: worst observed 4.963e-13
+  relative on a state or performance field, 3.488e-12 on a mole fraction, both three
+  orders of magnitude inside their tier, at every CUDA case count.
 - **Data come from files.** The user's state records are a data file of this node
   (`data/user-states.json`), with the pressures given as a rule: first, step, count.
   The code computes the pressure `first + i × step` by index, never by accumulation.
@@ -167,6 +189,23 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
        together, and each record's 12 alone.
      - Record 4 reaches the 2700 K region of the `ALN(L)` enthalpy gap at 6.5 MPa, so
        its per-record figure is watched.
+  7. **Solver against the engine** (2026-09-15). The same LOX/LH2 rocket sweep family
+     as group 1, at the same case counts (1 000, 10 000, 100 000) and on the same
+     accelerators, through the consumer path `Problems.Solver`'s
+     `Solve(ElementalMixture, IReadOnlyList<RocketProblem>)` — the one mixture of
+     group 1's fixture case with `CaseCount` identical `RocketProblem`s, `Only` set to
+     the fixture's own product list so the two groups' species tables match — instead
+     of the raw `Execution.Engine` batch API. What group 1 measures is the engine
+     alone; this group measures what a .NET caller pays end to end: building the
+     inputs (`ElementalMixture.Create`, the `RocketProblem` list), the solve, and
+     materialising the `RocketResult`/`Station` records. The comparison between the
+     two groups is read at equal case counts; group 1 is unchanged. `[GlobalSetup]`
+     also runs group 1's engine path over the identical batch once (`RocketBatches`,
+     shared with `BatchThroughputBenchmarks` so "the same cases" are built by one
+     piece of code) and compares field by field against it (`EngineSolverComparison`,
+     the invariant above): temperature, pressure, the mole fractions and the
+     performance figures, logged as `equalsEngine=bitwise` or `equalsEngine=tolerance`
+     beside the statuses and the results hash.
 - **Results.** Text, committed.
   - BenchmarkDotNet's GitHub markdown and CSV go under
     `results/<yyyy-mm-dd>-<commit>-run<n>/`, together with a `run.md` that records the
@@ -218,18 +257,41 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - [x] 2026-09-15 — The node builds in Release with the solution
       (`dotnet build APThermo.sln -c Release`, 0 errors), and
-      `dotnet run -c Release --project tests/Benchmarks -- --list flat` lists all nine
-      `[Benchmark]` methods of the five classes (group 5 rides on the `MemoryDiagnoser`
-      of groups 1 and 6, `API.md`'s note on `## Groups`). The protocol checks stay
+      `dotnet run -c Release --project tests/Benchmarks -- --list flat` lists all ten
+      `[Benchmark]` methods of the six classes (group 5 rides on the `MemoryDiagnoser`
+      of groups 1, 6 and 7, `API.md`'s note on `## Groups`). The protocol checks stay
       green: `protocol_lint` 0 errors/0 warnings, and `APTHERMO_NO_CUDA=1 dotnet test
       tests/Protocol.Tests -c Release` 19/19 (surface, coverage, declarations,
       dependencies, shape).
+
+      ⚠ 2026-09-15 (group 7): this bullet read "nine ... five classes ... groups 1
+      and 6" before `SolverBatchBenchmarks` (group 7) was added; the historical
+      `bench/before-clean-code` branch criterion below still names nine, correctly,
+      since that branch was never touched by this addition.
 - [x] 2026-09-15 — Every solving benchmark records its statuses and results hash. One
       dry run of every group (`--job Dry`, this machine, CUDA available) logged every
       case `ok`: group 1, 6/6 configurations (1 000/10 000/100 000 cases × CPU/CUDA)
       100 % `ok`; group 2, 12/12 configurations (six kinds × transport) `status=Ok`;
       group 3, `status=Ok`; group 6, 10/10 configurations (five selections × CPU/CUDA)
+      100 % `ok`; group 7, 6/6 configurations (1 000/10 000/100 000 cases × CPU/CUDA)
       100 % `ok`. No case failed.
+- [x] 2026-09-15 — Group 7 (`SolverBatchBenchmarks`) agrees with group 1's engine
+      path on the same batch, at every case count, on both accelerators
+      (`--job Dry --filter '*SolverBatch*'`, this machine, CUDA available;
+      `EngineSolverComparison`, the invariant above): on the CPU accelerator every
+      `MixtureState` field, every `PerformanceFigures` field and every mole fraction
+      of every case was bit-for-bit equal to group 1's engine result
+      (`equalsEngine=bitwise (same kernels, same accelerator)`, 1 000/10 000/100 000
+      cases, 0 mismatches). On CUDA the two paths were not bit-for-bit identical, so
+      the comparison fell back to the GPU/CPU tolerance tiers and the fixtures node's
+      `moleFractionFloor`/`polishThresholdRelative`
+      (`equalsEngine=tolerance ...`, 1 000/10 000/100 000 cases, 0 mismatches over
+      either tier): worst observed 4.963e-13 relative on a state or performance
+      field (tier 1e-10 on temperature, 1e-9 on every other field) and 3.488e-12 on a
+      mole fraction (tier 1e-9, `polishThresholdRelative`), both about three orders of
+      magnitude inside their tier at every CUDA case count. No timing figure was
+      recorded from this dry run (`## Constraints`, the job); the timed comparison
+      between group 1 and group 7 is a later run on a quiet machine.
 - [x] 2026-09-15 — The user's state runs read `data/user-states.json`. Its four records
       and the pressure rule are the ones given to this coding session, verbatim; its 48
       states (first + i × step by index, record order, pressure index ascending within
