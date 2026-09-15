@@ -130,14 +130,14 @@ which is the proof that nothing leaked.
 | Type | Responsibility |
 |---|---|
 | `Tree` | where the tree is and what its nodes are: the root from `[CallerFilePath]`, the nodes by directory path, `Relative` |
-| `NodeAssemblies` | the assembly each node's project builds, loaded from this project's build output; the deepest node a type's own namespace attributes it to (2026-09-15: a project-less child node included, its own effective assembly found by walking up its ancestors) |
+| `NodeAssemblies` | the assembly each node's project builds, loaded from this project's build output; the deepest node a type's own namespace attributes it to (2026-09-15: a project-less child node included, its own effective assembly found by walking up its ancestors); `ProjectNodeOf` (2026-09-15, child-nodes phase) is that same upward walk exposed as the nearest-project-node lookup `CouplingMeasures` reuses |
 | `TypeShape` | what a type names in its declarations, its methods, its outermost declaring type, what the compiler generated |
 | `IlBody` | the instructions of a method body, the operand width from the runtime's opcode table, and the types they bind to; takes methods, so that `TypeShape` → `IlBody` is one-way |
 | `NodeDocuments` | what a node's own `BOOT.md` declares: the links of `## Dependencies` and the rows of `## Shape exceptions` |
 | `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests` |
 | `SourceSyntax` | the C# syntax trees of a node's source files, the build directories and generated files skipped |
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
-| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node over the declared dependency graph |
+| `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node that holds a project over the declared dependency graph, a project-less child's own declared dependencies folded into its nearest project ancestor's (`NodeAssemblies.ProjectNodeOf`, root `BOOT.md`, Constraints, 2026-09-15 child-nodes phase) |
 | `ShapeMechanics` | the mechanics rule read from syntax: no `partial`/`#region`/banned-suffix type name |
 | `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
@@ -311,7 +311,7 @@ thing:
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
 | efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), the nested and compiler-generated types of the naming type attributed to the outermost type that declares them, a nested type it names counted as itself, a constructed generic type counted once as its definition, an array, by-reference or pointer type counted as its element type; types outside the tree, and compiler-generated types no type declares, not counted |
 | stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the `src` nodes spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
-| stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the dependencies its `## Dependencies` declares (held equal to the nodes its code uses by the Dependencies level; project files are not read); every declared dependency points to a node whose I is not above the declarer's |
+| stable dependencies | I never rises | the `src` nodes that hold a project | I = Ce / (Ca + Ce) of each project-holding node over the dependencies its `## Dependencies` declares (held equal to the nodes its code uses by the Dependencies level; project files are not read), a project-less child's own declared dependencies joined to its nearest project ancestor's and mapped to their own project nodes, an edge that folds back onto the same project node dropped (root `BOOT.md`, Constraints, 2026-09-15 child-nodes phase); every declared dependency points to a node whose I is not above the declarer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
 | named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier names N followed by the row's nesting path (empty for a top-level type, `Outer` for a row declared `Outer.Inner.Inner`), written in full, or relative to the file's own namespace or one of its enclosing namespaces, or via a `using`; any other target-typed creation is left to review |
 
@@ -389,6 +389,45 @@ fifty-three previously listed dropped back under 10 (`AcceleratorSession` among 
 re-measured the same way. No stable type over 100 lines and undocumented in its node's
 `API.md` exists under either count (`Every_stable_type_is_small_or_a_contract` was green
 before this fix and stays green after).
+
+⚠ 2026-09-15 (child-nodes phase): the stable-dependencies row read "the `src` project
+graph", one component per `src` node. The root `BOOT.md`'s own stable-dependencies
+sentence carries the same correction, with the reason: splitting `src/Cli` into five
+project-less children, four of which use `Execution` in their own code, took
+`Execution`'s afferent count from 2 to 6 under the one-component-per-node reading and
+its instability from 0.667 to 0.400, below `Transport`'s 0.500, turning
+`No_src_dependency_points_to_a_less_stable_node` red although no dependency between
+the assemblies changed — a project-less child compiles into its ancestor's assembly
+(root `BOOT.md`, Constraints), so it is not a component of its own. `CouplingMeasures.NodeCoupling`
+now measures the `src` nodes that hold a project only, a child's own declared
+dependencies joined to its nearest project ancestor's (`NodeAssemblies.ProjectNodeOf`,
+the same walk `AssemblyOf` already used) and mapped to their own project nodes; an
+edge that folds back onto the same project node — a child naming its own ancestor, or
+two children of one parent naming each other — is dropped, since it never crosses a
+project boundary. The per-type figures (`EfferentCoupling`, `AfferentCoupling`, the
+stable-type rule) are untouched: only the node-level fold changed. The node-level table
+below is re-measured on the merged tree (`src/Cli` split into `Syntax`, `Documents`,
+`Cases`, `Output` and `Listings`; `src/Execution/Chunks` already folded) and equals the
+same dump taken at `85743de`, before the `Cli` split, with today's fix applied there
+too: both give `src/Cli` Ce 7 Ca 0 (I=1.000), `src/Data` Ce 0 Ca 4 (I=0.000),
+`src/Equilibrium` Ce 1 Ca 5 (I=0.167), `src/Execution` Ce 4 Ca 2 (I=0.667),
+`src/Performance` Ce 2 Ca 3 (I=0.400), `src/Problems` Ce 6 Ca 1 (I=0.857), `src/Thermo`
+Ce 1 Ca 6 (I=0.143), `src/Transport` Ce 3 Ca 3 (I=0.500) — none of the eight figures
+moves. That the fold does not silently drop a real edge is shown by a mutation on the
+child level specifically, seen red and reverted: `src/Execution/Chunks/BOOT.md`'s
+`## Dependencies` given a second line, `[Problems](../../Problems/API.md)` (declared
+only on the child, never on `src/Execution`'s own document), folds to `src/Execution`
+depending on `src/Problems`; `No_src_dependency_points_to_a_less_stable_node` red,
+"src/Execution (I=0.714) depends on src/Problems (I=0.750), which is less stable" (the
+mutation raises both nodes' Ce, moving their I figures with it). No matching code
+reference was added: `Execution`'s project has no reference to `Problems`'s (`Problems`
+already references `Execution`, root `BOOT.md`'s dependency list), so a real one would
+be a circular `ProjectReference` the build would refuse; the same declared-but-unused
+shape as the node's own historical Thermo→Cli mutation for this same fact
+(R-Protocol.Tests-12, above), reused here for the same reason — `NodeCoupling` reads
+declared dependencies, never code, so the declaration alone is the whole input this
+fact takes. Reverted; `dotnet test tests/Protocol.Tests` green again (19 passed),
+`git status --short` empty.
 
 The test nodes obey the size, nesting, parameter, mechanics and named-construction
 rules, since their support code is code; the coupling and stable-type rules apply to
@@ -519,10 +558,16 @@ dependants; no commit after it changes any type's Ce, Ca or line count:
 | `src/Transport` | `TransportScratch` | 11 | 111 | yes |
 | `src/Transport` | `StationInputs` | 11 | 17 | no |
 
-Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli`, `Data`,
-`Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`, `Transport`); measured
-2026-09-15 at `c5aed4d`, unmoved by the later afferent-coupling narrowing of `e3f2507`,
-which touched only the per-type Ca table above, not this node-level walk:
+Every `src` node that holds a project (root `BOOT.md`, Constraints, 2026-09-15
+child-nodes phase), over the dependency graph `## Dependencies` declares, a
+project-less child's own dependencies folded in (eight project nodes throughout:
+`Cli`, `Data`, `Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`,
+`Transport`); measured 2026-09-15 at `c5aed4d`, unmoved by the later
+afferent-coupling narrowing of `e3f2507`, which touched only the per-type Ca table
+above, not this node-level walk, and unmoved again by the child-nodes fold on the
+merged tree at `697e48d` (`src/Cli` split into five project-less children,
+`src/Execution/Chunks` already folded), verified equal to the same measurement taken
+at `85743de` with the fold applied there too (this section's own ⚠, above):
 
 | Node | Ce | Ca | I = Ce/(Ca+Ce) |
 |---|---|---|---|
@@ -932,6 +977,36 @@ which touched only the per-type Ca table above, not this node-level walk:
       Each proof's directory and file deleted before this commit; `git status --short`
       empty; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0 errors
       and the linter 0 errors, 0 warnings after every revert.
+- [x] 2026-09-15 (child-nodes phase) — The stable-dependencies measure moved from one
+      component per `src` node to one component per `src` node that holds a project
+      (root `BOOT.md`, Constraints, and this node's own ⚠ above): after merging the
+      `Cli` child-nodes branch (`src/Cli` split into `Syntax`, `Documents`, `Cases`,
+      `Output` and `Listings`, none holding a project) onto a tree that already carried
+      `src/Execution/Chunks` the same way, `No_src_dependency_points_to_a_less_stable_node`
+      was red on the merged tree before this fix, "src/Execution (I=0.364) depends on
+      src/Transport (I=0.500), which is less stable" (four of the five `Cli` children
+      naming `Execution` inflated its afferent count under the one-component-per-node
+      reading). `CouplingMeasures.NodeCoupling` now measures the eight `src` nodes that
+      hold a project, folding a project-less child's own declared dependencies into its
+      nearest project ancestor (`NodeAssemblies.ProjectNodeOf`, reused rather than a
+      second walk) and dropping an edge that folds back onto the same project node;
+      `dotnet test tests/Protocol.Tests` green after the fix (19 passed, the fact
+      above among them), `dotnet test tests/Cli.Tests` green (99 passed), `dotnet build
+      AerospacePropellantThermodynamics.sln` 0 warnings 0 errors, the linter 0 errors 0
+      warnings, `PublicSurface.approved.txt` unchanged (`git hash-object`:
+      `35d15ae5ff2f8b189290d88d3728716e8f1b051c`, same before and after — the change
+      touches no public member). The node-level table above is the re-measurement on
+      the merged tree, equal to the same measurement taken at `85743de` (before the
+      `Cli` split) with today's fix applied there too, through a scratch worktree; the
+      per-type figures (`CouplingMeasures.EfferentCoupling`, `AfferentCoupling`, the
+      stable-type rule) are untouched by this change, since neither method was edited.
+      The fold's non-degeneracy — that it does not drop a real edge, only a self-loop —
+      is shown by the mutation this node's own ⚠ above records: a second `## Dependencies`
+      line on `src/Execution/Chunks/BOOT.md` alone (never on `src/Execution`'s own
+      document), `[Problems](../../Problems/API.md)`, folded into `src/Execution`'s Ce
+      and turned the fact red, "src/Execution (I=0.714) depends on src/Problems
+      (I=0.750), which is less stable"; reverted, `git status --short` empty, the fact
+      green again.
 
 ## Taboos
 
