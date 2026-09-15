@@ -9,17 +9,11 @@ namespace AerospacePropellantThermodynamics.Performance;
 /// </summary>
 internal static class PressureRatioStation
 {
-    /// <summary>Solves the station at the pressure the ratio fixes and writes its figures; leaves the station's status otherwise.</summary>
+    /// <summary>Solves the station at the pressure the ratio fixes and writes its figures; leaves the station's status otherwise. The caller has already checked that the ratio exceeds 1.</summary>
     public static void At(in RocketContext context, in ChamberReference chamber, in ThroatReference throat,
                           double value, int station, double temperatureEstimate)
     {
         var result = context.Result;
-        if (!(value > 1.0))
-        {
-            result.StationStatus[station] = (int)CaseStatus.InvalidInput;
-            return;
-        }
-
         var flow = context.Problem.Flow == FlowModel.ShiftingEquilibrium ? StationFlow.Shifting : StationFlow.Frozen;
         var pressure = chamber.Pressure / value;
         var request = new StationRequest(station, pressure, temperatureEstimate, chamber.Entropy, flow);

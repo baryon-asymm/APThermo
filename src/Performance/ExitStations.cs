@@ -51,6 +51,13 @@ internal static class ExitStations
         if (kind == ExitSpecification.PressureRatio)
         {
             estimate.Extrapolable = false;
+            if (!(value > 1.0))
+            {
+                // p_c/p_e must exceed 1: a ratio at or below 1 fixes no station downstream of the chamber.
+                context.Result.StationStatus[station] = (int)CaseStatus.InvalidInput;
+                return;
+            }
+
             PressureRatioStation.At(in context, in chamber, in throat, value, station, estimate.Temperature);
             return;
         }
