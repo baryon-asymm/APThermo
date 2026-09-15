@@ -27,12 +27,13 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
         var problems = new List<string>();
+        var keys = new List<string>();
         foreach (var path in FixtureFiles.Enumerate("rocket"))
         {
             var c = CeaFixtures.Load(path);
             var propellant = FixtureCases.PropellantOf(fixture.Database, c);
             var result = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
-            Record(snapshot, problems, path, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
+            Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
         }
 
         foreach (var kind in new[] { "tp", "hp", "sp" })
@@ -42,21 +43,28 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
                 var c = CeaFixtures.Load(path);
                 var propellant = FixtureCases.PropellantOf(fixture.Database, c);
                 var result = fixture.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
-                Record(snapshot, problems, path, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
+                Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
             }
         }
 
+        foreach (var stale in snapshot.StaleKeys(keys))
+        {
+            problems.Add($"{stale}: recorded in Bits.approved.txt but no enumerated fixture produced it");
+        }
+
         Assert.True(problems.Count == 0,
-            $"{problems.Count} fixture(s) changed bits or are missing from Bits.approved.txt:\n" + string.Join("\n", problems.Take(20)) +
+            $"{problems.Count} problem(s) with Bits.approved.txt (changed bits, missing from the file, or stale):\n" + string.Join("\n", problems.Take(20)) +
             (problems.Count > 20 ? $"\n… and {problems.Count - 20} more." : string.Empty));
     }
 
     /// <summary>The fixture path as the snapshot records it: relative to the repository root, forward slashes.</summary>
     private static string RelativePath(string fullPath) => Path.GetRelativePath(RepositoryPaths.Root, fullPath).Replace('\\', '/');
 
-    private static void Record(ApprovedSnapshot snapshot, List<string> problems, string path, string hash)
+    private static void Record(ApprovedSnapshot snapshot, List<string> problems, List<string> keys, string path, string hash)
     {
-        var problem = snapshot.Problem(RelativePath(path), hash);
+        var key = RelativePath(path);
+        keys.Add(key);
+        var problem = snapshot.Problem(key, hash);
         if (problem is not null)
         {
             problems.Add(problem);
