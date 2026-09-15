@@ -55,7 +55,7 @@ internal static class AcceleratorChoice
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(options);
         if (dll is null || bitcode is null)
         {
-            throw new AcceleratorUnavailableException("libnvvm (nvvm64_40_0.dll) and libdevice (libdevice.10.bc) were not found.", tried);
+            throw new AcceleratorUnavailableException($"libnvvm ({LibDeviceLocator.LibraryFileName}) and libdevice (libdevice.10.bc) were not found.", tried);
         }
 
         return AcceleratorSession.Build(CudaContext(dll, bitcode), session =>

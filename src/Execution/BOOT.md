@@ -42,8 +42,13 @@ numerical node stays testable without it.
 - [Transport](../Transport/API.md) — the transport table and evaluation.
 
 Outside the tree: ILGPU 1.5.3 (NuGet); for CUDA an NVIDIA driver with CUDA 12.8 or
-newer, libnvvm (`nvvm64_40_0.dll`) and `libdevice.10.bc` from a CUDA Toolkit 12.8 or
-newer.
+newer, libnvvm (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
+`libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
+
+⚠ 2026-09-15 (distribution phase): stood "libnvvm (`nvvm64_40_0.dll`)", naming the
+Windows file only, before the root's Platform constraint (`cf87211`) added Linux as a
+supported platform, CUDA included. Linux ships the same library as `libnvvm.so`; the
+line now names both.
 
 ## Constraints
 
@@ -54,13 +59,35 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the context and accelerator can be created; otherwise the CPU accelerator with all
   cores. `AcceleratorKind.Cuda` fails instead of falling back and names what was
   missing, with every path tried. `AcceleratorKind.Cpu` never looks for CUDA.
-- **libdevice discovery order**: an explicit path pair in the options; then, unless
-  `LibDeviceDiscovery` is off, the `CUDA_PATH` directory; then
-  `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v*` from the newest version
-  down; in each root both `nvvm\bin\nvvm64_40_0.dll` (12.x layout) and
+- **libdevice discovery order**: an explicit path pair in the options is tried first,
+  on every platform. Unless `LibDeviceDiscovery` is off, the platform is then chosen
+  with `OperatingSystem.IsWindows()` / `IsLinux()`; any other OS does no discovery (the
+  explicit pair is still tried, and the CPU accelerator is used when it is absent
+  too).
+
+  On **Windows**: the roots are the `CUDA_PATH` directory, then
+  `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v*` from the newest version down;
+  in each root both `nvvm\bin\nvvm64_40_0.dll` (12.x layout) and
   `nvvm\bin\x64\nvvm64_40_0.dll` (13.x layout) are tried, with
-  `nvvm\libdevice\libdevice.10.bc`. The context is created with
-  `LibDevice(dllPath, bitcodePath)` so that ILGPU emits the intrinsic calls.
+  `nvvm\libdevice\libdevice.10.bc`.
+
+  On **Linux**: the roots are `CUDA_PATH`, then `CUDA_HOME`, then `/usr/local/cuda`,
+  then `/usr/local/cuda-*` from the newest version down; in each root
+  `nvvm/lib64/libnvvm.so` is tried, with `nvvm/libdevice/libdevice.10.bc`.
+
+  On both platforms a root already tried (`CUDA_PATH` repeated among the versioned
+  roots, or equal to `CUDA_HOME` on Linux) is skipped, and a root whose library exists
+  but whose bitcode does not is passed over rather than accepted.
+
+  The context is created with `LibDevice(dllPath, bitcodePath)` so that ILGPU emits
+  the intrinsic calls.
+
+  ⚠ 2026-09-15 (distribution phase): this bullet named only the Windows roots and
+  `nvvm64_40_0.dll`, matching the root's Platform constraint before `cf87211` made
+  Linux x64 a supported platform, CUDA included, and fixed the discovery order for it.
+  `LibDeviceLocator` now branches on the platform; every other stage of discovery and
+  of the post-link is unchanged, since the root constraint restricts the platform
+  split to library discovery paths and file names.
 - **The post-link**, the one place in the tree that knows ILGPU internals: compile
   the entry point with the CUDA accelerator's backend; collect the distinct
   `__ilgpu__nv_*` names from the PTX; build an NVVM module from ILGPU's own wrapper
@@ -412,6 +439,47 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 (distribution phase) — Linux libdevice discovery, added for the root's
+      Platform constraint (`cf87211`): `LibDeviceLocator` branches on
+      `OperatingSystem.IsWindows()` / `IsLinux()` and, on Linux, tries `CUDA_PATH`, then
+      `CUDA_HOME`, then `/usr/local/cuda`, then `/usr/local/cuda-*` newest first, each
+      root's `nvvm/lib64/libnvvm.so` paired with `nvvm/libdevice/libdevice.10.bc`; on
+      any other OS no discovery runs and the CPU accelerator is used. Covered by
+      `tests/Execution.Tests/LibDeviceDiscoveryTests.cs`, driven through the internal
+      seam (`LibDeviceLocator.Locate(EngineOptions, LocatorPlatform, Func<string,
+      string?>, string)`) so both platforms and both Windows dll layouts (12.x
+      `nvvm\bin`, 13.x `nvvm\bin\x64`) are exercised from one host OS, over fake
+      toolkit trees under a temp directory: explicit paths win and are tried first;
+      an unsupported platform does no discovery; `CUDA_PATH` before the toolkit
+      directories on Windows and before `CUDA_HOME`, the fixed root and the versions
+      on Linux; both platforms order their versioned toolkit directories by parsed
+      `Version`, newest first (proven against a case where numeric and alphabetical
+      order disagree, `v13.3`/`v9.0` and `cuda-13.3`/`cuda-9.0`); a library present
+      without its bitcode is passed over for the next root; a root named twice (by
+      `CUDA_PATH` or `CUDA_HOME` repeating an already-tried directory) is tried once —
+      12 facts, `dotnet test tests/Execution.Tests --filter
+      "FullyQualifiedName~LibDeviceDiscoveryTests"`, all green. The ordering fact was
+      shown red once and reverted (AGENTS.md §13): `VersionedDirectories`'s
+      `OrderByDescending` flipped to `OrderBy` reddened both
+      `Windows_orders_the_toolkit_directories_newest_version_first` and
+      `Linux_orders_the_versioned_directories_newest_first`, reverted before
+      committing. The unavailable-accelerator message and the `EngineOptions` doc
+      comments now name the platform's library instead of `nvvm64_40_0.dll`
+      unconditionally (`LibDeviceLocator.LibraryFileName`); `AcceleratorChoiceTests`
+      unchanged in behaviour, its one hard-coded `nvvm64_40_0.dll` assertion now reads
+      the same property. `LibDevicePostLink` and every other file of this node were
+      checked for Windows-only assumptions (path separators, `.dll` literals,
+      case-insensitive comparisons) and none were found outside `LibDeviceLocator`,
+      `AcceleratorChoice`'s message and `Options.cs`'s doc comment, all covered above.
+      Verified on the reference machine, CUDA present: build clean, 0 warnings;
+      `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"`, 53 of 53
+      green (41 pre-existing plus these 12), including the CUDA-category tests, so
+      real discovery still finds the installed toolkit through the unchanged default
+      `Locate(EngineOptions)` entry point; the whole solution's fast set green (3047
+      tests, 0 failed, `Category!=LongRunning`, CUDA-category tests exercised since
+      the machine has a device); `protocol_lint` 0 errors, 0 warnings; every
+      `Bits.approved.txt` and the surface snapshot unchanged (the seam is internal, no
+      public type added).
 
 ## Taboos
 

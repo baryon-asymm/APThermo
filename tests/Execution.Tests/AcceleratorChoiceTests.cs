@@ -80,7 +80,7 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         {
             Assert.True(File.Exists(dll), dll);
             Assert.True(File.Exists(bitcode!), bitcode);
-            Assert.EndsWith("nvvm64_40_0.dll", dll, StringComparison.OrdinalIgnoreCase);
+            Assert.EndsWith(LibDeviceLocator.LibraryFileName, dll, StringComparison.OrdinalIgnoreCase);
         }
     }
 
