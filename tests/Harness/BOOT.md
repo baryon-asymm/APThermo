@@ -118,11 +118,14 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
       `Every_fixture_with_transport_gives_the_recorded_bits` red, one problem naming
       the key - "tests/Fixtures/cases/rocket/does-not-exist_pc1MPa_shiftingEquilibrium.json:
       recorded in the approved snapshot, but no such fixture is run with transport"
-      (`ApprovedSnapshot.StaleKeys`, wired by `Transport.Tests` and `Equilibrium.Tests`
-      only; the other four Bits-level consumers key their theories from the fixture
-      directory alone and do not check for an orphaned approved line - a gap recorded
-      here rather than closed silently, since fixing it edits four foreign nodes'
-      own test code, outside this task).
+      (`ApprovedSnapshot.StaleKeys`; wired by `Transport.Tests`, `Equilibrium.Tests`
+      and, since 2026-09-15, `Cli.Tests` (this repair's R-Cli.Tests-1:
+      `Every_example_gives_the_recorded_output` now calls `StaleKeys` too, worded the
+      way `Problem`'s own messages are). `Thermo.Tests`, `Performance.Tests` and
+      `Problems.Tests` still key their theories from the fixture directory alone and
+      do not check for an orphaned approved line - a gap recorded here rather than
+      closed silently, since fixing it edits three foreign nodes' own test code,
+      outside this task).
 
       `Bits.approved.txt` hashes, all six unmoved through the whole exercise:
       Cli.Tests `483c979b75b5c98b5e11ddc4359f28812e225e15`, Equilibrium.Tests
