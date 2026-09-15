@@ -368,6 +368,29 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   `dotnet test tests/Problems.Tests`: 1111/1111; `Bits.approved.txt` unmoved
   (26840f83).
 
+  ⚠ 2026-09-15: `SolveContext` and its `SolveGroup` split are gone (the clean-code
+  repair's R-Problems-1). The "vary per group" description above was inaccurate before
+  the rewrite too, for `targets`: `Solve` built it once, the same length as `masses`
+  (`cases.Count`), and passed that one array unchanged to every `SolveGroup` call,
+  which read it by `targets[members[m]]` — exactly how `context.Masses[members[m]]`
+  read the field `SolveContext` did hold. Nothing about `targets` varied per group; it
+  belonged with `masses` among "what is fixed for the whole of one `Solve` call", not
+  beside `kinds`, which really was rebuilt per group (`RocketRunner` only: a fresh
+  `Enumerable.Repeat(...)` array inside `foreach (var key in order)`, one exit layout
+  at a time). The rewrite does not inherit the mistake by choosing a side of a
+  distinction it no longer draws: the case, the mass and, for equilibrium, the target
+  that admitting a case measured are one `AdmittedCase` record struct per case, built
+  once in `Solve`; each `SolveGroup` takes `system`, the group's own
+  `IReadOnlyList<AdmittedCase>`, `wantsTransport`, `speciesNames` and, for
+  `RocketRunner` only, `kinds` — and **returns** `RocketResult[]`/`EquilibriumResult[]`
+  for that group, instead of writing into a `results` array shared with every other
+  group the way `context.Results[members[m]] = ...` did; `Solve` places each group's
+  results back at their original indices. `RocketRunner.SolveGroup`: 5 parameters, 56
+  lines, nests 2. `EquilibriumRunner.SolveGroup`: 4 parameters, 45 lines, nests 1.
+  Efferent coupling unchanged at 26 and 24 (a nested record struct folds into its
+  runner, `AdmittedCase` exactly as `SolveContext` did). `dotnet test
+  tests/Problems.Tests`: 1111/1111; `Bits.approved.txt` unmoved (26840f83).
+
 - **The runners are the pipelines' composition roots** (added 2026-09-14 by the design
   session, after the close measured them). `RocketRunner` and `EquilibriumRunner` name
   both sides of the engine's boundary: the front door's cases, problems and records,
@@ -387,6 +410,19 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   counts `RocketResult[]` and `EquilibriumResult[]`, the result arrays `SolveContext`
   holds, apart from `RocketResult` and `EquilibriumResult`, while an array of a type of
   the tree adds no type of the tree.
+
+  ⚠ 2026-09-15: `SolveContext` is gone (the clean-code repair's R-Problems-1), so "the
+  result arrays `SolveContext` holds" no longer names anything: `SolveGroup` now
+  returns `RocketResult[]`/`EquilibriumResult[]` for its own group, and `Solve`
+  assembles the full `results` array itself from what each group returns; no field of
+  any type holds either array between calls any more. The over-count this sentence
+  explained has the same source as before and is independent of `SolveContext`'s
+  removal: `RocketResult`/`EquilibriumResult` (the object each loop inside
+  `SolveGroup` builds) and its array form (now the method's own return type, and the
+  type of `Solve`'s `results` local) name one type of the tree, not two, on the
+  protocol tests node's walk — which is why the measured coupling stayed 26 and 24
+  after the rewrite, unchanged from before it (`CouplingMeasures.EfferentCoupling`,
+  `RocketRunner`/`EquilibriumRunner`, above).
 
   ⚠ 2026-09-15: `AtomicWeights`' row and its own summary read "the one translation of a
   missing atomic weight into an `ArgumentException` naming the element". Wrong from the
