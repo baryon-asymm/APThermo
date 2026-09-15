@@ -61,8 +61,8 @@ public sealed class ShapeTests
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
-    /// <summary>"Shape check", stable dependencies: I = Ce / (Ca + Ce) of every `src` node over the project graph never rises
-    /// along a declared dependency. No exception applies.</summary>
+    /// <summary>"Shape check", stable dependencies: I = Ce / (Ca + Ce) of every `src` node over the declared dependency graph
+    /// never rises along a declared dependency. No exception applies.</summary>
     [Fact]
     public void No_src_dependency_points_to_a_less_stable_node()
     {

@@ -209,7 +209,7 @@ thing:
 | parameters | 6 | every method, constructor (a record's primary constructor included), local function and delegate | the declared parameters; lambdas not counted |
 | efferent coupling | 14 | every type of the `src` nodes | the distinct types of the tree a type names in its signatures and method bodies (the dependency check's walk), the nested and compiler-generated types of the naming type attributed to the outermost type that declares them, a nested type it names counted as itself, a constructed generic type counted once as its definition, an array, by-reference or pointer type counted as its element type; types outside the tree, and compiler-generated types no type declares, not counted |
 | stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
-| stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the project references; every reference points to a node whose I is not above the referrer's |
+| stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the dependencies its `## Dependencies` declares (held equal to the nodes its code uses by the Dependencies level; project files are not read); every declared dependency points to a node whose I is not above the declarer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
 | named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier is N; any other target-typed creation is left to review |
 
@@ -241,6 +241,17 @@ type's members counted toward the type's own figure. The user asked that comment
 count; the row now counts the lines that hold code, with the figures unchanged, so every
 measurement can only fall and no row moves (no row declares a line rule). `ShapeMeasures`
 is brought to this row together with the Shape facts.
+
+⚠ 2026-09-15: the stable-dependencies row's Definition cell read "I = Ce / (Ca + Ce) of
+each node over the project references", as if `NodeCoupling` measured the csproj
+`ProjectReference` items themselves. It reads the nodes' own `## Dependencies` sections
+instead (`NodeDocuments.DeclaredDependencies`), which the Dependencies level already
+holds equal to the nodes whose types a node's code actually uses (`DependencyTests`);
+the project files are never opened by this check. Every `src` node's declared graph and
+its real `ProjectReference` list coincide at `c5aed4d`, so no I figure and no
+dependency-direction verdict moves; a `ProjectReference` with no matching declared
+dependency would make the two graphs differ, and this check would not notice. The row
+now states what the code reads.
 
 The test nodes obey the size, nesting, parameter and mechanics rules, since their
 support code is code; the coupling and stable-type rules apply to the `src` nodes, on
