@@ -43,8 +43,8 @@ public sealed class DependencyTests
         }
     }
 
-    /// <summary>Every neighbour or ancestor node a node's assembly refers to, and the (type → referenced type) pairs that show it,
-    /// up to six per node.</summary>
+    /// <summary>Every neighbour or ancestor node a node's assembly refers to, and every (type → referenced type) pair that shows
+    /// it; <see cref="ProblemsOf"/> names the first six in its message.</summary>
     private static (SortedDictionary<string, SortedSet<string>> Crossings, Dictionary<string, Node> UsedNodes) Crossings(Node node, Assembly assembly)
     {
         var crossings = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
