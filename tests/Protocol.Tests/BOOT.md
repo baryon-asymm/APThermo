@@ -92,11 +92,12 @@ children rule, links check removed (the linter has it).
 
 ## Structure
 
-Decided 2026-09-14 (the review's F-TF-02, F-TF-08, F-TF-17). `Tree` was 428 lines with
-four reflection responsibilities, and `DeclarationTests` held a grammar of `API.md`
-inside a check that nested five deep. One type per file, all internal and in this
-node's namespace; `PublicSurface.approved.txt` does not move, which is the proof that
-nothing leaked.
+Decided 2026-09-14 (the review's F-TF-02, F-TF-08, F-TF-17). `Tree` was 428 physical
+lines at `8e36a27` (the review's count; within 400 under the lines-of-code rule of
+2026-09-14) with four reflection responsibilities, and `DeclarationTests` held a
+grammar of `API.md` inside a check that nested five deep. One type per file, all
+internal and in this node's namespace; `PublicSurface.approved.txt` does not move,
+which is the proof that nothing leaked.
 
 | Type | Responsibility |
 |---|---|
