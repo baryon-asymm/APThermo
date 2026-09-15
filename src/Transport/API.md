@@ -2,15 +2,27 @@
 
 Namespace `APThermo.Transport`. The node exposes a compact
 transport table for the species of a species table and a kernel-compatible evaluation
-of the mixture transport properties at one station. Everything not listed here is
-internal and may change.
+of the mixture transport properties at one station. Everything not listed here, in a
+package-surface section (one whose heading carries no `(tree contract)` mark), is
+internal and may change without notice (root `BOOT.md`, Delivery: Public surface).
+The tree-contract sections below list the internal types `Execution` and `Problems`
+use (root `BOOT.md`, Delivery: Tree contracts); the assembly grants
+`InternalsVisibleTo` to those nodes, to `Execution.Tests`, `Problems.Tests` and
+`Benchmarks`, and to `ILGPURuntime` for `TransportTableView`, a kernel parameter type
+(`APThermo.Transport.csproj`).
 
-## Transport table ✅
+⚠ 2026-09-15 (distribution phase): the review of that day
+(`SCRATCH/api-review-report.md`) found no consumer scenario for `TransportTable`,
+`TransportTableArrays`, `TransportTableView`, `TransportTableBuffers`,
+`TransportLayout`, `TransportScratch` or `TransportSolver`: every use is `Execution`
+composing the kernel, `Problems` building a table, or this node's own tests. They
+moved from the package surface into the tree contract below; only `TransportFigures`
+stays public, because a consumer reads it from `Station.Transport` of `Problems`.
+
+## Transport table (tree contract) ✅
 
 ```csharp
-namespace APThermo.Transport;
-
-public sealed class TransportTable                       // host side, immutable
+internal sealed class TransportTable                       // host side, immutable
 {
     public const double ViscosityFactorToSi = 1e-7;      // 1 μP in Pa·s, folded into the constant term of every viscosity fit
     public const double ConductivityFactorToSi = 1e-4;   // 1 μW/(cm·K) in W/(m·K), likewise for conductivity fits
@@ -24,7 +36,7 @@ public sealed class TransportTable                       // host side, immutable
     public int SpeciesCount { get; }
 }
 
-public sealed class TransportTableArrays                 // do not modify after the build
+internal sealed class TransportTableArrays                 // do not modify after the build
 {
     public int[] ViscosityStart { get; }        // [species]
     public int[] ViscosityCount { get; }        // [species], 0 = no data (and for condensed species)
@@ -38,7 +50,7 @@ public sealed class TransportTableArrays                 // do not modify after 
     public int FitTotal { get; }
 }
 
-public readonly struct TransportTableView                // blittable; the same layout over accelerator memory
+internal readonly struct TransportTableView                // blittable; the same layout over accelerator memory
 {
     public readonly int SpeciesCount, PairTotal;
     public readonly ArrayView<int> ViscosityStart, ViscosityCount, ConductivityStart, ConductivityCount;
@@ -50,7 +62,7 @@ public readonly struct TransportTableView                // blittable; the same 
                               ArrayView<double> fits, ArrayView<int> pairIndex, ArrayView<int> pairStart, ArrayView<int> pairCount);
 }
 
-public sealed class TransportTableBuffers : IDisposable  // the table uploaded to one accelerator; owns the buffers
+internal sealed class TransportTableBuffers : IDisposable  // the table uploaded to one accelerator; owns the buffers
 {
     public static TransportTableBuffers Upload(Accelerator accelerator, TransportTable table);
     public TransportTable Table { get; }
@@ -88,15 +100,19 @@ public struct TransportFigures                           // one station; SI
     public int TraceEliminations;                        // species of the set below TraceFraction removed from the reaction set
     public int Capped;                                   // 1 when a species was refused because the set was full
 }
+```
 
-public static class TransportLayout
+## Solver (tree contract) ✅
+
+```csharp
+internal static class TransportLayout
 {
     public const int MaxSpecies = 40;                                          // the reference's limit on the set
     public static int DoublesPerCase(int speciesCount, int elementCount);      // 4 · MaxSpecies² + elements · MaxSpecies + 8 · MaxSpecies
     public static int IntsPerCase(int speciesCount, int elementCount);         // species + 4 · MaxSpecies + 4 · elements
 }
 
-public readonly struct TransportScratch                  // slices of batch-sized buffers, sized by TransportLayout
+internal readonly struct TransportScratch                  // slices of batch-sized buffers, sized by TransportLayout
 {
     public readonly ArrayView<double> Eta, Alpha, Matrix, MatrixReacting;      // [MaxSpecies²] each, row-major, stride MaxSpecies
     public readonly ArrayView<double> Basis;                                   // [elements · MaxSpecies]
@@ -113,7 +129,7 @@ public readonly struct TransportScratch                  // slices of batch-size
     public static TransportScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount);
 }
 
-public static class TransportSolver                      // kernel-compatible
+internal static class TransportSolver                      // kernel-compatible
 {
     public const int MaxSpecies = TransportLayout.MaxSpecies;
     public const double CoverageFraction = 0.999999999;  // the set is complete when it carries this fraction of the gaseous moles …

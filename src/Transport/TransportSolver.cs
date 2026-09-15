@@ -9,7 +9,7 @@ namespace APThermo.Transport;
 /// temperature: NASA RP-1311 Part I, chapter 5, in the form the reference program (NASA CEA) applies it, see BOOT.md.
 /// Kernel-compatible: no allocation, no exception, the listed Math functions only.
 /// </summary>
-public static class TransportSolver
+internal static class TransportSolver
 {
     /// <summary>The largest transport set (the reference's limit).</summary>
     public const int MaxSpecies = TransportLayout.MaxSpecies;

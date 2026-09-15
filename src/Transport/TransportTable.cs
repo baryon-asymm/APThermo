@@ -10,7 +10,7 @@ namespace APThermo.Transport;
 /// build. Host side, immutable. A gaseous species without an entry in the transport database has zero fits and is estimated
 /// by the solver; condensed species never take part.
 /// </summary>
-public sealed class TransportTable
+internal sealed class TransportTable
 {
     /// <summary>1 micropoise in Pa·s: the factor folded into the constant term of every viscosity fit.</summary>
     public const double ViscosityFactorToSi = 1e-7;
@@ -142,7 +142,7 @@ public sealed class TransportTable
 }
 
 /// <summary>The flat host arrays of a <see cref="TransportTable"/>. Do not modify after the build.</summary>
-public sealed class TransportTableArrays
+internal sealed class TransportTableArrays
 {
     internal TransportTableArrays(int[] viscosityStart, int[] viscosityCount, int[] conductivityStart, int[] conductivityCount,
                                   double[] fits, int[] pairIndex, int[] pairStart, int[] pairCount, int pairTotal)
@@ -190,7 +190,7 @@ public sealed class TransportTableArrays
 }
 
 /// <summary>The transport table over accelerator memory: blittable, the same layout as the arrays.</summary>
-public readonly struct TransportTableView
+internal readonly struct TransportTableView
 {
     /// <summary>The species count of the species table the fits are indexed by.</summary>
     public readonly int SpeciesCount;
@@ -242,7 +242,7 @@ public readonly struct TransportTableView
 }
 
 /// <summary>A transport table uploaded to one accelerator; owns the buffers.</summary>
-public sealed class TransportTableBuffers : IDisposable
+internal sealed class TransportTableBuffers : IDisposable
 {
     private readonly MemoryBuffer1D<int, Stride1D.Dense> _viscosityStart;
     private readonly MemoryBuffer1D<int, Stride1D.Dense> _viscosityCount;

@@ -46,7 +46,7 @@ public struct TransportFigures
 }
 
 /// <summary>Sizes of the per-case scratch of the transport solver.</summary>
-public static class TransportLayout
+internal static class TransportLayout
 {
     /// <summary>The largest transport set: the reference's limit on the species taking part.</summary>
     public const int MaxSpecies = 40;
@@ -61,7 +61,7 @@ public static class TransportLayout
 }
 
 /// <summary>Slices of batch-sized buffers for one case of the transport solver, sized by <see cref="TransportLayout"/>.</summary>
-public readonly struct TransportScratch
+internal readonly struct TransportScratch
 {
     /// <summary>[MaxSpecies²] η_ij of the set, row-major with stride MaxSpecies; the diagonal holds the pure viscosities.</summary>
     public readonly ArrayView<double> Eta;
