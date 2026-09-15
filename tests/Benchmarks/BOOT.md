@@ -169,8 +169,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
        its per-record figure is watched.
 - **Results.** Text, committed.
   - BenchmarkDotNet's GitHub markdown and CSV go under
-    `results/<yyyy-mm-dd>-<commit>/`, together with a `run.md` that records the
+    `results/<yyyy-mm-dd>-<commit>-run<n>/`, together with a `run.md` that records the
     machine, the driver, the commit, the build and what else was running (nothing).
+    The run number distinguishes same-commit runs of one timed comparison sequence
+    (`## Run conditions`: after, before, after), since the date and commit alone
+    repeat within it.
   - A comparison goes in `results/comparison-<yyyy-mm-dd>.md`: the mean and the 99 %
     confidence interval of each benchmark on each side, and the ratio. A change whose
     intervals do not overlap is marked.
@@ -252,14 +255,23 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       difference is within the tolerance table the invariant now asks of CUDA, so the
       branch was committed, with the figures in its commit message, and the scratch
       worktree removed.
-- [ ] The comparison run: after, before, after on the reference machine with nothing
-      else running.
-      - The results and `run.md` of each run are committed.
+- [x] 2026-09-15 — The comparison run: after, before, after on the reference machine
+      with nothing else running (`SCRATCH/bench-runs/conditions.txt`: build servers
+      shut down, `CUDA_CACHE_DISABLE=1`, no other dotnet process but the editor's C#
+      Dev Kit and its test host).
+      - The results and `run.md` of each run are committed:
+        `results/2026-09-15-8f99d11-run1/`, `results/2026-09-15-427fc0d-run2/`,
+        `results/2026-09-15-8f99d11-run3/`.
       - The CPU-accelerator results hashes of before and after are equal, group by
-        group; the CUDA-side comparison follows the procedure under `## Constraints`
-        and its per-field figures are recorded beside the timings.
-      - `results/comparison-<date>.md` marks every change beyond the confidence
-        intervals, and each marked change is explained or handed to a design session.
+        group, for every configuration of groups 1, 2, 3 and 6 (`results/comparison
+        -2026-09-15.md`, `## Same-work verdict`); the CUDA-side comparison follows
+        the procedure under `## Constraints` and its per-field figures are recorded
+        beside the timings (`results/comparison-2026-09-15.md`, `## The CUDA
+        comparison procedure`) — every figure at machine epsilon, inside the
+        tolerance table's first tier, no status or iteration-count mismatch.
+      - `results/comparison-2026-09-15.md` marks every change beyond the confidence
+        intervals (`## Marked changes`) and hands the list to a design session
+        without guessing a cause.
 
 ## Taboos
 
