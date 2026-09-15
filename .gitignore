@@ -10,6 +10,9 @@ artifacts/
 # Protocol checks: the actual snapshot is regenerated on every run; only the approved one is committed
 *.actual.txt
 
+# BenchmarkDotNet's default output directory for an ad hoc run outside tests/Benchmarks/results/
+BenchmarkDotNet.Artifacts/
+
 # Python
 __pycache__/
 

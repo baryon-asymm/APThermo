@@ -89,8 +89,9 @@ keeps the DLL under `nvvm/bin/x64`); NASA CEA data `thermo.inp` and `trans.inp` 
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
-node's shape check (2026-09-14); BenchmarkDotNet for the benchmarks node
-(2026-09-15, the version pinned in `Directory.Packages.props`).
+node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
+(2026-09-15, the newest stable release on NuGet supporting net10.0 through
+`RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`).
 
 ## Constraints
 
