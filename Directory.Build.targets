@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Package metadata and symbols (root BOOT.md, ## Delivery), applied only to the packable projects
+    (src/Problems, src/Cli). This lives in a .targets file, not in Directory.Build.props: props files
+    import before a project's own body, so a condition on IsPackable there would still see the SDK's
+    default (false) — a project sets IsPackable in its own body, which only a .targets file (imported
+    after that body) can react to.
+  -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <Authors>Eduard Burachek</Authors>
+    <PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>rocket-propulsion;combustion;thermodynamics;chemical-equilibrium;nasa-cea;ilgpu;cuda</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsPackable)' == 'true' and '$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- data/NOTICE (Apache-2.0, the NASA data) packed at the root of every package. -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)data\NOTICE" Pack="true" PackagePath="NOTICE" Visible="false" />
+  </ItemGroup>
+
+</Project>

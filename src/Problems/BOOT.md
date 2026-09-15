@@ -154,7 +154,10 @@ why they are a node of their own.
 - [Transport](../Transport/API.md) — transport table building and `TransportFigures`.
 - [Execution](../Execution/API.md) — the engine, the batch containers and the species-function batch.
 
-Outside the tree: the .NET base class library.
+Outside the tree: the .NET base class library; ILGPU (2026-09-15, distribution
+phase), a direct `PackageReference` of this node's own project so that it is the
+package's one real dependency once packed (`## Structure`, Packing) — this node's
+code still names no ILGPU type itself.
 
 ⚠ 2026-09-12: the root's decomposition listed this node's dependencies without
 `Equilibrium`. The kind of an equilibrium problem is `Equilibrium`'s `ProblemKind`,
@@ -449,6 +452,50 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   needed. No behaviour change: `dotnet test tests/Problems.Tests`, 1111/1111;
   `Bits.approved.txt` unmoved (26840f83).
 
+**Packing (2026-09-15, distribution phase, root `BOOT.md`, `## Delivery`, Packages).**
+This node's project is the one packed as `APThermo`: `IsPackable=true`,
+`PackageId=APThermo`, the version and the shared package metadata (author, license
+expression, tags, symbols, SourceLink) from the root's `Directory.Build.targets`. The
+six nodes it depends on (`Data`, `Thermo`, `Equilibrium`, `Performance`, `Transport`,
+`Execution`) are never released apart from this one (root `BOOT.md`), so their
+assemblies are merged into this one package instead of becoming six more packages:
+
+- every `ProjectReference` to them carries `PrivateAssets="all"`, so none of them (or
+  anything they in turn reference) becomes a `<dependency>` of the `APThermo` nuspec;
+- a direct, unprivated `PackageReference` to `ILGPU` makes it the package's one real
+  dependency, since it would otherwise be suppressed along with the six nodes above
+  (`PrivateAssets="all"` on a `ProjectReference` suppresses everything that flows
+  through it, ILGPU included, unless the consuming project also references it
+  directly);
+- two MSBuild targets, hooked through `TargetsForTfmSpecificBuildOutput` and
+  `TargetsForTfmSpecificDebugSymbolsInPackage`, add the six referenced assemblies'
+  `.dll` to the package's `lib/net10.0` and their `.pdb` to the `.snupkg`, reading
+  `@(ReferenceCopyLocalPaths)` filtered to `ReferenceSourceTarget == 'ProjectReference'`
+  (this excludes ILGPU, a NuGet-sourced reference, from the merge). Both targets
+  declare `DependsOnTargets="ResolveReferences"` explicitly: `dotnet pack` invokes
+  each through its own narrow MSBuild sub-invocation of just that target, which
+  otherwise leaves `ReferenceCopyLocalPaths` empty. The `.pdb` list is derived from
+  the resolved `.dll` paths (`%(Filename).pdb` beside each, kept only if it exists)
+  rather than filtered from `ReferenceCopyLocalPaths` a second time: that item was
+  observed to carry the `.dll` entries but not their `.pdb` companions in this same
+  narrow sub-invocation, although a plain `dotnet build` of this project lists both;
+  the two entry points agree on every other fact used here (the extension, the
+  `ReferenceSourceTarget`, and the path itself once found).
+- the package's `README.md` (`docs/nuget/APThermo.md`) and the root's `data/NOTICE`
+  are packed as `None` items with `Pack="true"`; `NOTICE` comes from the shared
+  `Directory.Build.targets` (every packable project packs it the same way), the
+  README from this project alone (its `PackagePath` is the same `README.md` in every
+  package, but the source file differs per package).
+
+Proved once, read-only (a proof, not a permanent test: packing is not part of
+`dotnet test`): `dotnet pack src/Problems/APThermo.Problems.csproj -c Release`
+produced `APThermo.0.1.0.nupkg` with exactly the seven assemblies of this node's
+subtree in `lib/net10.0`, `README.md`, `NOTICE` and a nuspec naming only `ILGPU` as a
+dependency; `APThermo.0.1.0.snupkg` with the matching seven `.pdb` files; no warning
+on a machine with no git remote (`PublishRepositoryUrl=true` without a resolvable
+`RepositoryUrl` produced no diagnostic, checked because `TreatWarningsAsErrors=true`
+would have turned one into a build failure).
+
 ## Shape exceptions
 
 The rows below are this node's declared exceptions to the root's code-shape constraint,
@@ -627,6 +674,23 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 — Packing (`## Structure`, Packing): `dotnet pack
+      APThermo.sln -c Release -o <feed>` from a clean build produces exactly
+      `APThermo.0.1.0.nupkg`/`.snupkg` and `APThermo.Cli.0.1.0.nupkg`/`.snupkg`, no
+      warning; the nupkg holds the seven merged assemblies in `lib/net10.0`, `README.md`,
+      `NOTICE`, and a nuspec dependency list of exactly `ILGPU`; the snupkg the matching
+      seven `.pdb`. `dotnet tool install APThermo.Cli --tool-path <dir> --add-source
+      <feed> --version 0.1.0` then `apthermo --version` prints `0.1.0`, and running an
+      approved Cli-node example (`rocket documents/rocket-lox-lh2.json --format csv
+      --accelerator cpu`, no `--database`) from an empty directory reproduces
+      `tests/Cli.Tests/documents/rocket-lox-lh2.approved.csv` byte for byte (the CSV
+      form carries no database path field to differ). A throwaway console project
+      referencing `APThermo` 0.1.0 from the feed, restored with ILGPU from nuget.org,
+      calls `SpeciesDatabase.LoadBundled()` and solves the LOX/LH2 rocket case of the
+      examples above through `Solver` on the CPU accelerator, printing the same chamber
+      temperature the library gives directly (3485.023295679567 K). Verified by hand
+      (packing is not part of `dotnet test`; the distribution phase's report has the
+      transcript), not by a committed test.
 
 ## Taboos
 

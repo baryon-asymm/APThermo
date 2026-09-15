@@ -311,6 +311,29 @@ Decisions taken with the review of 2026-09-14:
   17; both were split instead (`PropellantDocumentReader`, `ProblemPartReader` and
   `SweepDocumentReader` out of the first; `SpeciesCommand` and `SpeciesListing`).
 
+**Packing (2026-09-15, distribution phase, root `BOOT.md`, `## Delivery`, Packages).**
+This node's project packs as `APThermo.Cli`, a .NET tool (`PackAsTool=true`,
+`ToolCommandName=apthermo`, both already set before this phase): `IsPackable=true`
+already stood, `PackageId=APThermo.Cli` is new, and the version and the shared
+package metadata come from the root's `Directory.Build.targets`, as for `Problems`.
+
+Unlike `Problems`, none of this node's seven `ProjectReference`s need
+`PrivateAssets` or a merge target: `PackAsTool` packs the *published* output
+(`tools/net10.0/any/`), which already carries every referenced assembly (including
+`APThermo.Problems.dll` and, through it, the six it merges) and `ILGPU.dll` as plain
+files, not as nuspec dependencies — a tool has no consumer to declare dependencies
+to. Proved once, read-only: the packed nuspec's `<dependencies>` is absent
+entirely, and `tools/net10.0/any/` holds `APThermo.Cli.dll` plus the seven library
+assemblies and `ILGPU.dll`, nineteen files including the `.deps.json`,
+`.runtimeconfig.json` and `DotnetToolSettings.xml` the SDK's tool packaging adds.
+
+`<Version>1.0.0</Version>`, hardcoded before this phase, is removed: the version is
+now the one place, `Directory.Build.props`' `VersionPrefix` (0.1.0), like every other
+project; `Program.Version` (already reading the assembly's informational version, `##
+Structure` above) needed no change; `ProcessTests` and `CommandLineTests` compare
+against it rather than a typed string, so the version's value never had to be pinned
+in a test.
+
 ## Shape exceptions
 
 The rows below are this node's declared exceptions to the root's code-shape constraint,

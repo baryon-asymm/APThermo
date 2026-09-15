@@ -16,4 +16,9 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!-- The one version of every package (root BOOT.md, ## Delivery, Packages): a release tag v<version> must equal it. -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+  </PropertyGroup>
+
 </Project>

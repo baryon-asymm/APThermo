@@ -3,11 +3,16 @@
   <!-- Node src/Cli: the apthermo command line. JSON in, JSON or CSV out; a thin adapter over Problems. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Version>1.0.0</Version>
     <IsPackable>true</IsPackable>
+    <PackageId>APThermo.Cli</PackageId>
+    <Description>The apthermo command line: rocket propellant chemical equilibrium and performance (NASA CEA's class of computation), JSON in, JSON or CSV out.</Description>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>apthermo</ToolCommandName>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\nuget\APThermo.Cli.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Problems\APThermo.Problems.csproj" />
