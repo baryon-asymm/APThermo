@@ -276,7 +276,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 Added 2026-09-14 by the design session, after the protocol tests node's measurements found
 this constructor over the root's six parameters. `Provenance` mirrors, field for field, the
 `generator` block every fixture file carries. On the root's condition for such a type its
-one creation names its arguments; it passes them by position today (the criterion below).
+one creation names its arguments (the criterion of 2026-09-15 below).
+
+⚠ 2026-09-15: this paragraph read "it passes them by position today (the criterion
+below)", true when it was written but not of the code: the constructor's one call site
+already named every argument then, through an index into a side array kept in step with
+the parameter order by hand (`ProvenanceStrings`), which the root's named-argument
+condition does not by itself rule out but which is exactly the swap hazard the condition
+exists to guard against. Re-cut by the repair review of 2026-09-15
+(`CeaFixtures.ReadProvenance`): each argument now reads its own named field of the
+`generator` block directly, with no side array to keep in step.
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
@@ -358,10 +367,19 @@ one creation names its arguments; it passes them by position today (the criterio
       each bound to the `generator` field its value is read from (the root's condition
       on a declared wide constructor, the row of `## Shape exceptions`), verified by
       `ShapeMechanics.Constructions` (the protocol tests node's own tool, run through
-      a temporary, uncommitted test): one site, `CeaFixtures.cs:92`, fully named;
-      every fixture theory of the tests nodes green unchanged: the full-solution fast
-      suite (10 projects, 3014 tests) green, every consumer's `Bits.approved.txt`
-      hash unmoved.
+      a temporary, uncommitted test): one site, `CeaFixtures.ReadProvenance`
+      (`CeaFixtures.cs:102`), fully named; every fixture theory of the tests nodes
+      green unchanged: the full-solution fast suite (10 projects, 3014 tests) green,
+      every consumer's `Bits.approved.txt` hash unmoved.
+
+      ⚠ 2026-09-15: this tick first cited `CeaFixtures.cs:92`, the one call site as it
+      stood that day, each argument bound to an index of a side array
+      (`ProvenanceStrings`) kept in step with `Provenance`'s parameter order by hand —
+      already named, so this criterion's own check passed, but the swap hazard the
+      named-argument condition exists to guard against was still there one level up, in
+      the array. Re-cut the same day by the repair review (R-Fixtures-1) into
+      `ReadProvenance`, each argument now reading its own named field directly; the
+      re-verification is this tick's own evidence, not a new one.
 
 
 ## Taboos
