@@ -1,4 +1,5 @@
 using System.Reflection;
+using AerospacePropellantThermodynamics.Cli.Syntax;
 
 namespace AerospacePropellantThermodynamics.Cli;
 

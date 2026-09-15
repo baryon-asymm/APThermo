@@ -22,21 +22,24 @@ internal static class NodeAssemblies
     /// Dependencies levels iterate instead of the project nodes alone, now that a node's code need not be its own assembly.</summary>
     public static IReadOnlyList<Node> CodeNodes => CodeNodesLazy.Value;
 
+    /// <summary>The node whose project holds a node's compiled types: itself if it has a project, or the nearest ancestor
+    /// that does (root <c>BOOT.md</c>, Constraints, 2026-09-15). Null only for a node with no project anywhere in its own
+    /// chain up to the root — the tree root itself, which holds no code of its own. The one "nearest ancestor with a
+    /// project" walk every caller needing that attribution reads, <see cref="AssemblyOf"/> and
+    /// <see cref="CouplingMeasures.NodeCoupling"/> (the stable-dependencies measure, root <c>BOOT.md</c>, Constraints,
+    /// 2026-09-15 child-nodes phase) included.</summary>
+    public static Node? ProjectNodeOf(Node node) =>
+        Tree.Nodes.Where(candidate => candidate == node || node.IsDescendantOf(candidate))
+            .OrderByDescending(candidate => candidate.RelativePath.Length)
+            .FirstOrDefault(candidate => Assemblies.ContainsKey(candidate));
+
     /// <summary>The assembly that holds a node's compiled types: its own project's assembly if it has one, or the nearest
-    /// ancestor's that does (root <c>BOOT.md</c>, Constraints, 2026-09-15). Null only for a node with no project anywhere in
-    /// its own chain up to the root — the tree root itself, which holds no code of its own.</summary>
+    /// ancestor's that does (<see cref="ProjectNodeOf"/>). Null only for a node with no project anywhere in its own chain up
+    /// to the root — the tree root itself, which holds no code of its own.</summary>
     public static Assembly? AssemblyOf(Node node)
     {
-        foreach (var candidate in Tree.Nodes.Where(candidate => candidate == node || node.IsDescendantOf(candidate))
-                     .OrderByDescending(candidate => candidate.RelativePath.Length))
-        {
-            if (Assemblies.TryGetValue(candidate, out var assembly))
-            {
-                return assembly;
-            }
-        }
-
-        return null;
+        var projectNode = ProjectNodeOf(node);
+        return projectNode is null ? null : Assemblies[projectNode];
     }
 
     /// <summary>The node whose project built the assembly, or null for an assembly from outside the tree. Distinct from

@@ -70,6 +70,8 @@ The definition of what "`Cli` is ready" means.
 ## Dependencies
 
 - [Cli](../../src/Cli/API.md) — what is being checked.
+- [Cli.Syntax](../../src/Cli/Syntax/API.md) — `CommandLine.Parse`, `CommandTable`, `CommandOptions`, `Invocation`, `OutputFormat`, exercised directly by `CommandLineTests`.
+- [Cli.Documents](../../src/Cli/Documents/API.md) — `ProblemDocumentReader`, `StateRecordReader`, `SweepValues`, the document shapes, exercised directly by `InputDocumentTests` and `BitSnapshotTests`.
 - [Problems](../../src/Problems/API.md) — the library result the document is compared with.
 - [Data](../../src/Data/API.md) — the database.
 - [Fixtures](../Fixtures/API.md) — the reference cases the documents encode, and the repository paths.
