@@ -128,7 +128,8 @@ Decisions taken with the review:
 Phase 1 (2026-09-14, the clean-code pass) split `Tree`, moved `DeclarationTests`'s grammar into
 `ApiDeclarations`, and flattened every fact to a problems-yielding helper plus one
 assertion; `SourceSyntax` and `ShapeMeasures` were the Shape level's and stayed undone
-(the row below stayed ⏳). Two small record types the table above does not name, because
+(the Shape row of the level table stayed planned until 2026-09-15). Two small record
+types the table above does not name, because
 they are data the split types carry rather than a responsibility of their own, got a
 file each too, one type per file throughout: `Node` (a directory of the tree; `Tree`'s
 own vocabulary) and `Instruction` (one opcode and the member its token names;
@@ -193,9 +194,10 @@ stable dependencies, mechanics and named construction read directly off their ow
 measurement; a tenth, reverse fact re-measures every declared row and fails one that no
 longer exceeds its limit or that understates a rising one. A fresh whole-tree
 measurement through a temporary, uncommitted test, run once every earlier fact was
-green and again once `ShapeTests` existed, found nothing the three findings would have
-caught: every declared row still matches its live figure, and no unmatched violation
-exists anywhere in the tree.
+green and again once `ShapeTests` existed, found no over-limit measurement without a
+row, no row below its measurement and no row past its member's need: every declared
+row still matches its live figure, and no unmatched violation exists anywhere in the
+tree.
 
 ## Shape check
 
@@ -254,9 +256,10 @@ dependency-direction verdict moves; a `ProjectReference` with no matching declar
 dependency would make the two graphs differ, and this check would not notice. The row
 now states what the code reads.
 
-The test nodes obey the size, nesting, parameter and mechanics rules, since their
-support code is code; the coupling and stable-type rules apply to the `src` nodes, on
-which their thresholds were calibrated. Python and the linter are outside the check.
+The test nodes obey the size, nesting, parameter, mechanics and named-construction
+rules, since their support code is code; the coupling and stable-type rules apply to
+the `src` nodes, on which their thresholds were calibrated. Python and the linter are
+outside the check.
 
 An exception is a row of a `## Shape exceptions` table in the `BOOT.md` of the node
 that holds the code:
