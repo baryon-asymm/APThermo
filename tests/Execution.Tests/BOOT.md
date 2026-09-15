@@ -151,8 +151,8 @@ libdevice for the CUDA category.
       `HostTransportStation` instead of tuples), `BitEquality.cs` (`SameBits`,
       `BitDifferences<T>`) and `SweepRun.cs` (the long-running sweep, not named by
       F-TF-06 but sharing none of the three axes above); no method over 60 lines or
-      nested deeper than 3 (`python inventory.py .`: nothing of this node listed);
-      every L2 fact green bit for bit after the split
+      nested deeper than 3, covered by the protocol tests node's `ShapeTests`, all
+      ten facts green at `62cd99e`; every L2 fact green bit for bit after the split
       (`AerospacePropellantThermodynamics.Execution.Tests.dll`: 41 passed) and the
       node's mutations re-run alone and seen red where the touched code moved: the
       rocket kernel's chamber pressure perturbed by a relative `1e-12`

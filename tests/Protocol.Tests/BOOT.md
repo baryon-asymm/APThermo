@@ -446,7 +446,9 @@ dependants; no commit after it changes any type's Ce, Ca or line count:
 | `src/Transport` | `StationInputs` | 11 | 17 | no |
 
 Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli`, `Data`,
-`Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`, `Transport`):
+`Equilibrium`, `Execution`, `Performance`, `Problems`, `Thermo`, `Transport`); measured
+2026-09-15 at `c5aed4d`, unmoved by the later afferent-coupling narrowing of `e3f2507`,
+which touched only the per-type Ca table above, not this node-level walk:
 
 | Node | Ce | Ca | I = Ce/(Ca+Ce) |
 |---|---|---|---|

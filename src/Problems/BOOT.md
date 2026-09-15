@@ -427,8 +427,9 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   ⚠ 2026-09-15: `AtomicWeights`' row and its own summary read "the one translation of a
   missing atomic weight into an `ArgumentException` naming the element". Wrong from the
   type's introduction: `ReactantResolver.Custom` translates the same miss a second time,
-  naming the reactant as well as the element (present already at 7661ea9,
-  `Reactants.cs:354-362`, carried through every decomposition since). Unifying the two
+  naming the reactant as well as the element (present already in the
+  pre-decomposition `Reactants.cs` at `7661ea9`, carried through every decomposition
+  since). Unifying the two
   into one call site would change a message, which is out of scope here; the row and
   the type's summary now say what both translations do (the repair review's
   R-Problems-8). Found by the clean-code repair review.
@@ -621,6 +622,11 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       methods reflection gives so a new overload cannot be missed
       (`RejectionTests.Every_public_method_of_a_disposed_solver_throws` with
       `The_disposal_facts_cover_every_public_method_of_the_solver`).
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 

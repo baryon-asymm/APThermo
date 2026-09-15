@@ -226,12 +226,16 @@ There is no external ancestor: the tree root is the repository root, and the loa
       by reflection over the result type
       (`CudaTests.The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
       in the execution tests node, long-running; the table's second tier for mole
-      fractions is described under the GPU-equals-CPU invariant above).
+      fractions is described under the GPU-equals-CPU invariant above). Re-verified
+      2026-09-15 on the decomposed code at `62cd99e`, same test, green on the
+      reference machine.
 - [x] 2026-09-12 — On the reference machine the CUDA path is at least 5× faster than
       the CPU accelerator path with all cores on the 100 000-state batch; the measured
       figure is recorded in the benchmark's approved file
       (`tests/Execution.Tests/Throughput.approved.txt`: 56.28×, CUDA 0.170 s against
       9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
+      Re-verified 2026-09-15 on the decomposed code at `62cd99e`, same test,
+      `Throughput.approved.txt` unchanged.
 - [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
       (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
       `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1742
@@ -239,8 +243,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
       the Problems node, 850 after the Execution node; 1749 on 2026-09-13 after the
       front door's mass check and 1951 after its declared tolerance and mass report,
       the `Problems` BOOT.md; 2143 on 2026-09-14 after the melting-plateau rule, the
-      `Equilibrium` BOOT.md), none skipped, the CUDA-category tests verifying the
-      refusal instead.
+      `Equilibrium` BOOT.md; 3037 on 2026-09-15 after the clean-code pass, at
+      `62cd99e`), none skipped, the CUDA-category tests verifying the refusal instead.
 - [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
       of `CLAUDE.md`, run after every node and by `Protocol.Tests.LintTests` in
       every test run, last after the protocol tests node: 0 errors,
@@ -254,21 +258,22 @@ There is no external ancestor: the tree root is the repository root, and the loa
       `tests/Protocol.Tests/PublicSurface.approved.txt`. The first run over the tree
       found one undocumented public type (`Execution`'s `SpeciesFunctionBatchViews`,
       fixed in its `API.md`).
-- [ ] The tree meets the code-shape constraint above: no type over 400 lines of
-      code, no method over 60, no control flow nested deeper than 3, no method with
-      more than 6 parameters, no `src` type with Ce over 14 outside the registries and
-      composition roots the nodes declare, every stable `src` type in shape, no
-      dependency against instability; measured by the protocol tests node's `ShapeTests` over a
-      machine-generated list of every type and method of every assembly, the declared
-      exceptions read from the nodes' `BOOT.md`. The review of 2026-09-14 (nine
-      read-only reviews over the tree at `8e36a27`, one per node group and one across
-      the boundaries, counting physical lines) found 5 types over 400 lines
-      (`EquilibriumSolver` 1289,
-      `TransportSolver` 794, `Problems.Solver` 663, `Engine` 509, `Protocol.Tests.Tree`
-      428), 31 methods over 60 lines (the longest `TransportSolver.Evaluate` 640 and
-      `EquilibriumSolver.Solve` 512) and 10 types with Ce over 10 by its textual count; the decompositions
-      are designed in the nodes' `BOOT.md` files under `## Structure` and each is
-      accepted only with its node's bit-for-bit or field-by-field guard green.
+- [x] 2026-09-15 — The tree meets the code-shape constraint above: no type over 400
+      lines of code, no method over 60, no control flow nested deeper than 3, no
+      method with more than 6 parameters, no `src` type with Ce over 14 outside the
+      registries and composition roots the nodes declare, every stable `src` type in
+      shape, no dependency against instability; measured by the protocol tests node's
+      `ShapeTests`, all ten facts green at `62cd99e`, over a machine-generated list of
+      every type and method of every assembly, the declared exceptions read from the
+      nodes' `BOOT.md`. The review of 2026-09-14 (nine read-only reviews over the tree
+      at `8e36a27`, one per node group and one across the boundaries, counting
+      physical lines) found 5 types over 400 lines (`EquilibriumSolver` 1289,
+      `TransportSolver` 794, `Problems.Solver` 663, `Engine` 509,
+      `Protocol.Tests.Tree` 428), 31 methods over 60 lines (the longest
+      `TransportSolver.Evaluate` 640 and `EquilibriumSolver.Solve` 512) and 10 types
+      with Ce over 10 by its textual count; the decompositions are designed in the
+      nodes' `BOOT.md` files under `## Structure` and each is accepted only with its
+      node's bit-for-bit or field-by-field guard green.
 
 ## Taboos
 
