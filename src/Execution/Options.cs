@@ -29,7 +29,7 @@ public sealed record EngineOptions
 
     public int CudaDeviceIndex { get; init; }
 
-    /// <summary>Explicit path of <c>nvvm64_40_0.dll</c>; tried first.</summary>
+    /// <summary>Explicit path of the libnvvm library (<c>nvvm64_40_0.dll</c> on Windows, <c>libnvvm.so</c> on Linux); tried first.</summary>
     public string? LibNvvmPath { get; init; }
 
     /// <summary>Explicit path of <c>libdevice.10.bc</c>; tried first.</summary>

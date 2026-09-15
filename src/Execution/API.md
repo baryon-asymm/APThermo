@@ -19,7 +19,7 @@ public sealed record EngineOptions
     public const long DefaultScratchBytes = 256L << 20;
     public AcceleratorKind Accelerator { get; init; } = AcceleratorKind.Auto;
     public int CudaDeviceIndex { get; init; } = 0;
-    public string? LibNvvmPath { get; init; }          // explicit nvvm64_40_0.dll, tried first
+    public string? LibNvvmPath { get; init; }          // explicit libnvvm path (nvvm64_40_0.dll on Windows, libnvvm.so on Linux), tried first
     public string? LibDevicePath { get; init; }        // explicit libdevice.10.bc, tried first
     public bool LibDeviceDiscovery { get; init; } = true;   // CUDA_PATH and the toolkit directories after the explicit pair
     public int ChunkSize { get; init; } = DefaultChunkSize;         // cases (or stations) per launch
@@ -230,8 +230,12 @@ station and a fixed chunk of 16 384 would take 700 MB.
 ## Side effects
 
 Creates an ILGPU context and accelerator; reads the environment variables
-`APTHERMO_NO_CUDA`, `CUDA_PATH` and `ProgramFiles`; loads native libraries (the CUDA
-driver, libnvvm) only when CUDA is chosen. No files are written.
+`APTHERMO_NO_CUDA`, `CUDA_PATH`, `ProgramFiles` (Windows discovery) and `CUDA_HOME`
+(Linux discovery); loads native libraries (the CUDA driver, libnvvm) only when CUDA is
+chosen. No files are written.
+
+⚠ 2026-09-15 (distribution phase): this row named `CUDA_PATH` and `ProgramFiles` only,
+before Linux discovery (`CUDA_HOME`, root BOOT.md's Platform constraint) was added.
 
 ## Out of scope
 
