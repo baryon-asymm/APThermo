@@ -5,8 +5,9 @@ namespace AerospacePropellantThermodynamics.Transport;
 /// element, else the first gas of the case that holds it) and the component of each row — the gaseous species in decreasing
 /// moles, each given the first free row it can serve, provided its stoichiometry column is not that of an earlier component
 /// and stays independent of the rows' default species (<c>BOOT.md</c>, Constraints).
-/// Scratch: reads nothing; writes <c>RowActive</c>, <c>Default</c>, <c>Component</c>, <c>RowTaken</c> and the "seen by the
-/// component search" bit of <c>Mark</c>.
+/// Scratch: reads nothing; writes <c>RowActive</c>, <c>Default</c>, <c>Component</c>, <c>RowTaken</c>, and <c>Mark</c> for
+/// every species of the table: both bits cleared, then the "seen by the component search" bit set;
+/// <see cref="TransportSetSelection"/> relies on the cleared "in the set" bit.
 /// </summary>
 internal static class TransportComponents
 {

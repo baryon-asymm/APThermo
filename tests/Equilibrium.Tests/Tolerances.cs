@@ -16,4 +16,22 @@ internal static class Tolerances
 
     /// <summary>An algebraic identity between two numbers of one state, where only the rounding of the arithmetic separates them.</summary>
     public const double Exact = 1.0e-12;
+
+    /// <summary>
+    /// The largest positive per-mole inclusion gain an Ok state may leave on a condensed candidate outside the solution: the
+    /// rounding of the polished multipliers, not a missed equilibrium.
+    /// </summary>
+    public const double ResidualInclusionGain = 1.0e-9;
+
+    /// <summary>
+    /// J/kg: an absolute floor added to the enthalpy self-consistency bound. <see cref="SelfConsistency"/> alone is relative
+    /// to the enthalpy and gives no bound where the two paths' enthalpies are compared near zero.
+    /// </summary>
+    public const double EnthalpyFloor = 1.0e-3;
+
+    /// <summary>
+    /// K: how far a pinned pair's temperature may sit from the record's shared bound at the cut — generous next to the
+    /// crossing T* the fits' own disagreement moves it by (Equilibrium BOOT.md, effective range).
+    /// </summary>
+    public const double PlateauCutTolerance = 0.01;
 }

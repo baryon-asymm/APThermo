@@ -81,7 +81,7 @@ internal static class StateComparison
         foreach (var species in c.Outputs.GetProperty("moleFractions").EnumerateObject())
         {
             var expected = species.Value.GetDouble();
-            if (solution.Table.IndicesOf(species.Name).Count == 0)
+            if (solution.Case.Table.IndicesOf(species.Name).Count == 0)
             {
                 mismatches.Add($"{species.Name}: not in the table");
                 continue;

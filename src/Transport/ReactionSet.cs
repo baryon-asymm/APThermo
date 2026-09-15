@@ -118,7 +118,8 @@ internal static class ReactionSet
         return nr;
     }
 
-    /// <summary>Eliminates species <paramref name="a"/> from every reaction through the first one that holds it, which is returned.</summary>
+    /// <summary>Eliminates species <paramref name="a"/> from every reaction through the first one that holds it: that reaction,
+    /// normalised by the coefficient of <paramref name="a"/>, is kept in Stx and subtracted from each later one; returns its row.</summary>
     private static int EliminateFrom(in StationInputs inputs, int nm, int nr, int a)
     {
         var scratch = inputs.Scratch;
@@ -134,35 +135,21 @@ internal static class ReactionSet
             if (pivotRow < 0)
             {
                 pivotRow = r;
-                Normalise(in inputs, nm, r, coefficient);
+                for (var b = 0; b < nm; b++)
+                {
+                    scratch.Stx[b] = scratch.Alpha[r * Stride + b] / coefficient;
+                }
             }
             else
             {
-                Subtract(in inputs, nm, r, coefficient);
+                for (var b = 0; b < nm; b++)
+                {
+                    scratch.Alpha[r * Stride + b] = scratch.Alpha[r * Stride + b] / coefficient - scratch.Stx[b];
+                }
             }
         }
 
         return pivotRow;
-    }
-
-    /// <summary>Keeps the pivot reaction, normalised by the coefficient of the trace species, in the shared vector.</summary>
-    private static void Normalise(in StationInputs inputs, int nm, int r, double coefficient)
-    {
-        var scratch = inputs.Scratch;
-        for (var b = 0; b < nm; b++)
-        {
-            scratch.Stx[b] = scratch.Alpha[r * Stride + b] / coefficient;
-        }
-    }
-
-    /// <summary>Takes the trace species out of one reaction with the normalised pivot row.</summary>
-    private static void Subtract(in StationInputs inputs, int nm, int r, double coefficient)
-    {
-        var scratch = inputs.Scratch;
-        for (var b = 0; b < nm; b++)
-        {
-            scratch.Alpha[r * Stride + b] = scratch.Alpha[r * Stride + b] / coefficient - scratch.Stx[b];
-        }
     }
 
     /// <summary>Drops the pivot reaction by moving every later one up.</summary>

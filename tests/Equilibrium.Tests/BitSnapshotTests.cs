@@ -23,7 +23,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
         var keys = new List<string>();
-        var problems = new List<string>();
+        var hashProblems = new List<string>();
         foreach (var kind in Kinds)
         {
             foreach (var path in FixtureFiles.Enumerate(kind))
@@ -34,15 +34,15 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
                 var problem = snapshot.Problem(key, Hash(HostSolver.Solve(fixture, HostSolver.Load(kind, name))));
                 if (problem is not null)
                 {
-                    problems.Add(problem);
+                    hashProblems.Add(problem);
                 }
             }
         }
 
-        foreach (var stale in snapshot.StaleKeys(keys))
-        {
-            problems.Add($"{stale}: recorded in the approved snapshot, but no longer a fixture case");
-        }
+        // Stale keys first, so the cap below cannot hide them behind a run of hash mismatches.
+        var problems = snapshot.StaleKeys(keys)
+            .Select(stale => $"{stale}: recorded in the approved snapshot, but no longer a fixture case").ToList();
+        problems.AddRange(hashProblems);
 
         Assert.True(problems.Count == 0,
             $"{problems.Count} fixture case(s) no longer give the recorded bits:\n" + string.Join("\n", problems.Take(20)) +

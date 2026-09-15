@@ -127,7 +127,7 @@ internal static class IterationMatrix
                 continue;
             }
 
-            scratch.RightHandSide[k] += problem.ElementMoles[k] - ElementBalance.Residual(table, result, k);
+            scratch.RightHandSide[k] += problem.ElementMoles[k] - ElementBalance.Abundance(table, result, k);
         }
     }
 

@@ -28,10 +28,10 @@ public sealed class ElementConservationTests(CpuFixture fixture)
         var solution = HostSolver.Solve(fixture, c);
         Assert.Equal(CaseStatus.Ok, solution.Status);
 
-        var arrays = solution.Table.Arrays;
-        var speciesCount = solution.Table.SpeciesCount;
+        var arrays = solution.Case.Table.Arrays;
+        var speciesCount = solution.Case.Table.SpeciesCount;
         var violations = new List<string>();
-        for (var i = 0; i < solution.Table.ElementCount; i++)
+        for (var i = 0; i < solution.Case.Table.ElementCount; i++)
         {
             var b = 0.0;
             for (var j = 0; j < speciesCount; j++)
@@ -39,11 +39,11 @@ public sealed class ElementConservationTests(CpuFixture fixture)
                 b += arrays.Stoichiometry[i * speciesCount + j] * solution.Moles[j];
             }
 
-            var residual = Math.Abs(b - solution.ElementMoles[i]);
-            var bound = Invariant * Math.Max(1.0, solution.ElementMoles[i]);
+            var residual = Math.Abs(b - solution.Case.ElementMoles[i]);
+            var bound = Invariant * Math.Max(1.0, solution.Case.ElementMoles[i]);
             if (residual > bound)
             {
-                violations.Add($"{solution.Table.Elements[i]}: residual {residual:E3} above {bound:E3}");
+                violations.Add($"{solution.Case.Table.Elements[i]}: residual {residual:E3} above {bound:E3}");
             }
         }
 

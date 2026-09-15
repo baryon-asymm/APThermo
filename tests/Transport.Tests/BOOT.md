@@ -159,15 +159,25 @@ dependency went away with it.
       enumerated rocket fixtures with transport (the enumeration of `StationTests`,
       one line each in `Bits.approved.txt`) against the snapshot recorded before any
       code of the decomposition moved: the code of `8e36a27`, which `e3e75a1` (the
-      base of the decomposition branch) changes in documents only. Seen red twice:
-      `TransportSolver.AStar` 1.1 → 1.1000000001 turned every one of the fixtures red
-      while the other tests of the node stayed green, which is the tripwire's point —
-      a relative 1e-10 is far under every tolerance of the reference comparison; and a
-      line deleted from the approved file turned that fixture red with the instruction
-      to approve. The last-digit perturbation `AStar` 1.1 → 1.1000000000000003 moves
-      31 of the fixtures and not all: at the other stations the one-ulp difference is
-      absorbed in rounding, so the criterion states the perturbation it was seen red
-      with.
+      base of the decomposition branch) changes in documents only. Seen red three
+      times: `TransportSolver.AStar` 1.1 → 1.1000000001 turned every one of the
+      fixtures red while the other tests of the node stayed green, which is the
+      tripwire's point — a relative 1e-10 is far under every tolerance of the
+      reference comparison; a line deleted from the approved file turned that fixture
+      red with the instruction to approve; and, 2026-09-15, a line added for a rocket
+      fixture that does not exist
+      (`tests/Fixtures/cases/rocket/does-not-exist_pc1MPa_shiftingEquilibrium.json`
+      with a zero hash — the same key the Harness criterion of that date, `tests/Harness/BOOT.md`,
+      used for the same check at its own level) reported "1 fixture(s) no longer give
+      the recorded bits:\ntests/Fixtures/cases/rocket/does-not-exist_pc1MPa_shiftingEquilibrium.json:
+      recorded in the approved snapshot, but no such fixture is run with transport",
+      naming exactly the fabricated key; the criterion had never run this mutation on
+      this node's own snapshot before (`AGENTS.md` §13; R-Transport.Tests-1). Reverted
+      immediately after; the approved file's hash unmoved
+      (`3e4000dbb3fc1340c4f5f67a77a7fac566482ae8`). The last-digit perturbation `AStar`
+      1.1 → 1.1000000000000003 moves 31 of the fixtures and not all: at the other
+      stations the one-ulp difference is absorbed in rounding, so the criterion states
+      the perturbation it was seen red with.
 - [x] 2026-09-14 — The `SingularMatrix` status holds the contract:
       `StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
       drives `ReactionTerms` over a synthetic set of three species and two reactions

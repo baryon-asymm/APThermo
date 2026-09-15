@@ -5,7 +5,8 @@ namespace AerospacePropellantThermodynamics.Transport;
 /// case above a threshold descending by decades joins it, until the set carries the coverage fraction of the gaseous moles, is
 /// full, or the threshold falls under the cutoff (<c>BOOT.md</c>, Constraints). The thresholds count the gases of the case —
 /// those whose every element is active — and not the gases of the table, which may hold the species of other cases.
-/// Scratch: reads <c>RowActive</c>, <c>Component</c>; writes <c>IndexList</c> and the "in the set" bit of <c>Mark</c>.
+/// Scratch: reads <c>RowActive</c>, <c>Component</c> and the "in the set" bit of <c>Mark</c>, cleared by
+/// <see cref="TransportComponents"/>; writes <c>IndexList</c> and that bit.
 /// </summary>
 internal static class TransportSetSelection
 {
@@ -27,7 +28,10 @@ internal static class TransportSetSelection
         return total;
     }
 
-    /// <summary>The gaseous species the case can form: the reference's ng.</summary>
+    /// <summary>
+    /// The gaseous species the case can form: the reference's ng. The reference's ng counts the gaseous products of the
+    /// problem; a table shared by cases with different elements holds more, and they must not lower the thresholds.
+    /// </summary>
     private static int CaseGasCount(in StationInputs inputs)
     {
         var count = 0;

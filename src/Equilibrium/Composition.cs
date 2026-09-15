@@ -43,7 +43,7 @@ internal static class Composition
         var sumGas = 0.0;
         for (var j = 0; j < table.GasCount; j++)
         {
-            var retained = CaseSetup.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -EquilibriumSolver.TraceThreshold;
+            var retained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -EquilibriumSolver.TraceThreshold;
             result.Moles[j] = retained ? Math.Exp(scratch.LogMoles[j]) : 0.0;
             sumGas += result.Moles[j];
         }

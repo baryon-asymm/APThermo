@@ -5,7 +5,7 @@ namespace AerospacePropellantThermodynamics.Transport;
 
 /// <summary>
 /// The composition root of the evaluation of one station: the order of the stages and the status, and no formula of its own
-/// (<c>BOOT.md</c>, ## Structure, where it is named as the composition root the root's coupling rule allows above ten). The
+/// (<c>BOOT.md</c>, ## Structure, where it is named as the node's composition root). The
 /// stages run in this order even where two of them look independent, because it is the order the figures were recorded in.
 /// Scratch: none of its own; each stage's summary names the slots it reads and writes.
 /// </summary>
