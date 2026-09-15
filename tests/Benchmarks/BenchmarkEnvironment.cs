@@ -18,8 +18,8 @@ internal static class BenchmarkEnvironment
     public static IConfig Config { get; } = ManualConfig.Create(DefaultConfig.Instance)
         .AddJob(Job.Default
             .WithToolchain(InProcessNoEmitToolchain.Instance)
-            .WithWarmupCount(1)
-            .WithIterationCount(3)
+            .WithWarmupCount(5)
+            .WithIterationCount(20)
             .WithInvocationCount(1)
             .WithUnrollFactor(1))
         .AddDiagnoser(MemoryDiagnoser.Default);
