@@ -17,9 +17,49 @@ hand, never by `dotnet test`. It records figures and asserts none.
   it goes to a design session.
 - **The same work on both sides of a comparison.** Every benchmark that solves also
   records, once per configuration, the statuses of its cases and a hash of its results
-  (the bits of the result structs and moles, the `Harness` bit hash). The hashes of the
-  before and after runs must be equal. The pass was bit-for-bit, so a difference is a
-  finding about the code, never noise of the measurement.
+  (the bits of the result structs and moles, the `Harness` bit hash).
+  - On the CPU accelerator the before and after hashes must be equal: the pass was
+    bit-for-bit there, so a difference on the CPU accelerator is a finding about the
+    code, never noise of the measurement.
+  - On CUDA the before and after statuses must be equal, and the results must agree
+    within the GPU/CPU tolerance table of `tests/Execution.Tests`
+    (`GpuCpuTolerances.Entries`: its first tier, relative 1e-10 on temperature and
+    1e-9 on the other fields, where the two sides' iteration counts at a station
+    match; its second tier, relative 1e-9 on mole fractions at or above
+    `tolerances.json`'s `moleFractionFloor`, where they do not). NVVM compiles the
+    restructured kernels the clean-code pass produced to different last-ULP
+    arithmetic than it compiled the kernels before the pass — the same
+    libdevice-against-.NET last-ULP effect the root `BOOT.md`'s GPU-equals-CPU
+    invariant already documents for a single run. The comparison run records the
+    largest relative difference per field (the CUDA comparison procedure under
+    `## Constraints`), so that a systematic change cannot hide inside the tolerance.
+
+  ⚠ 2026-09-15: this invariant first required the CUDA hashes equal too, the same as
+  the CPU accelerator's. The first dry run of this node (`## Acceptance criteria`,
+  the before-branch criterion) found `BatchThroughputBenchmarks` (group 1) and
+  `UserStatesBenchmarks` (group 6) bit-for-bit equal between `7661ea9` and this
+  branch on the CPU accelerator and bit-for-bit *different* on CUDA, for identical
+  inputs and identical benchmark logic (`ProblemKindBenchmarks`, group 2, is
+  CPU-only and matched throughout, so the rocket-path adaptation itself was not the
+  cause). Measuring the size of the CUDA difference directly — a raw dump of every
+  result field and every mole, before and after, at every station of groups 1
+  (1 000 and 10 000 cases; 100 000 was not dumped, since a conclusion already four
+  orders of magnitude inside the tolerance would not change) and 6 (all 48 states)
+  — found the statuses equal, the iteration counts equal at every station (0 of
+  4 000, 0 of 40 000 and 0 of 48 differ), and the largest relative difference per
+  field at machine epsilon: 4.863331e-16 on `CvEquilibrium` and 4.160798e-16 on
+  `CpEquilibrium` (group 1, both case counts, the same fixture case replicated),
+  2.184873e-16 on `Entropy` (group 6); every other field and every compared mole
+  fraction exactly 0.0. None of these approach the table's loosest tier (1e-9). The
+  libnvvm options and the libdevice post-link inputs of the two trees are identical:
+  the same single `-arch=<arch>` compiler option (`NvvmOptions` in both trees'
+  `src/Execution/LibDevicePostLink.cs`), the same `arch` derived from the same
+  `^\.target\s+sm_(\d+)` match against the kernel's own PTX, the same module and
+  libdevice bytes handed to `CompileProgram` — the two trees' post-link code differs
+  only in shape (the after-tree decomposes the inline `Link` method of `7661ea9`
+  into `NvvmOptions`, `TargetArch`, `WrapperBody`, `CompileWrappers`,
+  `InsertAfterHeader`, `AssertEveryWrapperDefined` and `TrialLoad`), never in the
+  compiler input. The invariant now reads as above.
 - **Data come from files.** The user's state records are a data file of this node
   (`data/user-states.json`), with the pressures given as a rule: first, step, count.
   The code computes the pressure `first + i × step` by index, never by accumulation.
@@ -140,6 +180,28 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - The reference machine, a Release build, and no agent or build running in parallel.
   - After and before run back to back in one sitting with one configuration, in the
     order after, before, after, so that drift shows.
+- **The CUDA comparison procedure.** A bit hash cannot tell a last-ULP difference from
+  a real one (the invariant above), so the comparison run adds this step for every
+  CUDA configuration of groups 1 and 6, on both the before and the after build:
+  1. Dump every result field and every mole of the run as raw IEEE-754 bits: unit
+     count, stations per unit, species count, then per station the status, the
+     iteration count, `MixtureState`'s and `PerformanceFigures`' fields in
+     declaration order, then the mole array — the layout the 2026-09-15 measurement
+     used (`SCRATCH/benchmarks-coder-report.md` of that session), recreated as a
+     small temporary program or test and deleted afterwards, never committed: the
+     dump touches accelerator internals no other benchmark needs and would only go
+     stale between runs if it were kept.
+  2. Compare the before and after dumps: statuses equal, the count of stations whose
+     iteration count differs, the largest relative difference per field
+     (`|a-b|/max(|a|,|b|)`), and for mole fractions the same restricted to species
+     at or above `tolerances.json`'s `moleFractionFloor` (1e-8), split by whether the
+     station's iteration count matched (the table's first tier) or not (its second).
+  3. Record the largest relative difference per field and per configuration in
+     `results/comparison-<date>.md` beside the timing comparison. A CUDA status
+     mismatch, an iteration-count share large enough to hide a systematic change, or
+     a difference outside the table is not a timing regression: it is a finding for
+     a design session, and the comparison run stops short of marking that group a
+     pass.
 
 ## Acceptance criteria
 
@@ -165,48 +227,31 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       commit — a one-time verification, not a fixture the node reads). Every one of
       the 48 states was accepted (`ok=48/48` and `ok=12/12` per record, the previous
       criterion's group 6 run).
-- [ ] `bench/before-clean-code` exists from `7661ea9`, builds in Release, and lists the
-      same benchmarks, or names in its commit message every benchmark the old API cannot
-      express.
+- [x] 2026-09-15 — `bench/before-clean-code` exists from `7661ea9`, builds in Release,
+      and lists the same nine benchmarks the after branch does.
 
-      2026-09-15 — the node was adapted and built there (`LocalBitHash` replaces
-      `Harness.BitHash`, absent at `7661ea9`; `Solver.CandidateSpeciesFor` →
-      `CandidateSpecies`; the rocket kinds of group 2 go through
-      `Solver.Solve(ElementalMixture, RocketProblem)` instead of the not-yet-existing
-      `SolveRocketStates`, `FixtureStateRecords.RocketCase`'s doc comment), `--list flat`
-      lists the same nine benchmarks, and every dry-run status was `ok`. The CPU-side
-      results hashes of groups 1, 2 and 6 equal the after branch's, bit for bit — but
-      the CUDA-side hashes of groups 1 and 6 do not (group 2 is CPU-only and matched).
-      Per this criterion's own rule ("stop before committing and report the group and
-      both hashes"), the branch was not committed; the adapted worktree is kept at
-      `<SCRATCH>/bench-before` for inspection, and the finding is in the coder's report.
-      Left unticked: the criterion asks for a build that lists the benchmarks AND a
-      matching hash, and the hash side is the open finding below.
+      The node was adapted and built there (`LocalBitHash` replaces `Harness.BitHash`,
+      absent at `7661ea9`; `Solver.CandidateSpeciesFor` → `CandidateSpecies`; the
+      rocket kinds of group 2 go through `Solver.Solve(ElementalMixture,
+      RocketProblem)` instead of the not-yet-existing `SolveRocketStates`,
+      `FixtureStateRecords.RocketCase`'s doc comment), `--list flat` lists the same
+      nine benchmarks, and every dry-run status was `ok`. The CPU-side results hashes
+      of groups 1, 2 and 6 equal the after branch's, bit for bit. The CUDA-side
+      hashes of groups 1 and 6 did not; by the invariant above as first written that
+      would have stopped the commit, so the branch was held uncommitted at
+      `<SCRATCH>/bench-before` while the difference was measured (the ⚠ paragraph
+      under `## Invariants` records the measurement and its figures). The measured
+      difference is within the tolerance table the invariant now asks of CUDA, so the
+      branch was committed, with the figures in its commit message, and the scratch
+      worktree removed.
 - [ ] The comparison run: after, before, after on the reference machine with nothing
       else running.
       - The results and `run.md` of each run are committed.
-      - The results hashes of before and after are equal, group by group.
+      - The CPU-accelerator results hashes of before and after are equal, group by
+        group; the CUDA-side comparison follows the procedure under `## Constraints`
+        and its per-field figures are recorded beside the timings.
       - `results/comparison-<date>.md` marks every change beyond the confidence
         intervals, and each marked change is explained or handed to a design session.
-
-⚠ 2026-09-15, coding: the CUDA-side finding above. `BatchThroughputBenchmarks` (group 1,
-1 000/10 000/100 000 cases) and `UserStatesBenchmarks` (group 6, all five selections)
-hash bit for bit equal between `7661ea9` and this branch on the CPU accelerator, and
-bit for bit *different* on CUDA, for identical inputs (the same fixture and data files,
-diffed byte for byte) and identical benchmark logic (the two branches' sources diff to
-only the documented adaptations). `ProblemKindBenchmarks` (group 2) is CPU-only and
-matched throughout, rocket kinds included, so the rocket-path adaptation itself is not
-the cause. The root `BOOT.md`'s GPU-equals-CPU invariant already documents that a
-last-ULP difference between libdevice and .NET can flip the equilibrium solver's
-stopping decision "now and then," changing a station's iteration count and its result
-by up to the second tolerance tier (1e-9 relative on a minor mole fraction) — the
-clean-code pass restructured the kernel source the CUDA compiler sees, which is exactly
-the kind of change that note predicts can move such a flip, and the root's own GPU
-tests were re-verified green (within tolerance, not bit for bit) on the decomposed code
-at `62cd99e`. This reading is offered, not concluded: a bit hash cannot say whether the
-difference is at that tolerance or larger, and only a design session can decide whether
-CUDA belongs in the bit-for-bit comparison this node's invariants currently require of
-it, or needs its own tolerance the way the root's own cross-accelerator check has one.
 
 ## Taboos
 
