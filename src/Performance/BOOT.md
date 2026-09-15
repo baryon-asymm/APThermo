@@ -256,9 +256,10 @@ efferent-coupling row.
       over the batches of fixtures sharing a table and an exit layout, enumerated from the
       fixture directory (states, figures, moles and statuses bit for bit).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): every type of the
-      node within the root's code-shape constraint. The largest method is now
-      `AreaRatioIteration.At` at 53 lines (`ThroatSearch.At` next, at 52); before the
-      decomposition `RocketSolver.Solve` alone was 238 lines in a 326-line file. The
+      node within the root's code-shape constraint. The largest methods,
+      `AreaRatioIteration.At` and `ThroatSearch.At`, stay well under the root's 60-line
+      limit; before the decomposition `RocketSolver.Solve` alone was 238 lines in a
+      326-line file. The
       largest type is under 120 lines (`Carriers.cs`, seven small carriers, none of
       them individually near the limit); before, the single `RocketSolver` type was
       326 lines. Confirmed by the tree-wide inventory (nothing of this node in its
@@ -288,6 +289,18 @@ efferent-coupling row.
       `ShapeTests` included". The protocol tests node had no `ShapeTests` then (its
       Shape level is still planned): the nine were the existing reflection checks,
       and the shape figures above come from the tree-wide inventory.
+
+      ⚠ 2026-09-15: this bullet named `AreaRatioIteration.At` at 53 lines
+      (`ThroatSearch.At` next, at 52). `At` was 53 lines only because `a2a891b`, later
+      the same day, split its verdict into a separate `Close` to fit the then-current
+      physical-line rule; the repair review found the split count-driven, writing a
+      station's extrapolation state before its verdict for no reason the code itself
+      states (R-Performance-1). This task merges `Close` back into `At`/`Accept`,
+      restoring the shape this bullet's own tick predates. No replacement line figure
+      is recorded here: this branch's `ShapeMeasures` still counts physical lines, not
+      the lines that hold code the root's rule is defined on (3d1ee46), so the exact
+      figure is left to the phase's end sweep, after `ShapeTests` exists and measures
+      it the way the rule means.
 - [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
       point is `NotConverged` and its neighbours are `Ok`:
       `Performance.Tests.SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
