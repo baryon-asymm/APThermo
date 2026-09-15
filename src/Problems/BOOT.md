@@ -259,7 +259,7 @@ after the type; the public records keep their theme files.
 | `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
 | `MixtureMass` | Σ n_i A_i with the database's atomic weights, the refusal beyond the mixture's declared tolerance, and the subject a refusal names (`Subject`), stated once for both runners | internal static |
 | `UnitFactors` | `MolesPerKilomole` and `GramsPerKilogram`, the node's two unit constants with their origin | internal static |
-| `AtomicWeights` | the one translation of a missing atomic weight into an `ArgumentException` naming the element (F-PR-07) | internal static |
+| `AtomicWeights` | a missing atomic weight as an `ArgumentException` naming the element, for the element check of a chemical system and the mass of a mixture (F-PR-07); a custom reactant's resolution translates the same miss naming the reactant too (`ReactantResolver`) | internal static |
 | `PropellantMixtures` | the propellant → `ElementalMixture` map: mass fractions, b_i, h_0, the reactant-enthalpy cache and its species-function batch; the piece of a cut record at a temperature is asked of the table (`SpeciesTable.PieceOf`, the Thermo node's; F-AR-01) | internal |
 | `ProblemValidation` | every "before any kernel runs" rule of a rocket and of an equilibrium problem; the subject of a refusal is a field of the case, not a defaulted parameter | internal static |
 | `StateRecords` | state records → mixtures and problems, and the rules of the shape: exactly one target; exits need an enthalpy; a flow only with exits; `SolveStates` takes no record with exits and `SolveRocketStates` none without; every refusal of a record (these rules, a negative abundance, an empty or duplicated symbol) is a `StateRecordException` with the record's index and a subject-free reason; the mass check keeps `MixtureMassException` | internal static |
@@ -356,6 +356,15 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   counts `RocketResult[]` and `EquilibriumResult[]`, the result arrays `SolveContext`
   holds, apart from `RocketResult` and `EquilibriumResult`, while an array of a type of
   the tree adds no type of the tree.
+
+  ⚠ 2026-09-15: `AtomicWeights`' row and its own summary read "the one translation of a
+  missing atomic weight into an `ArgumentException` naming the element". Wrong from the
+  type's introduction: `ReactantResolver.Custom` translates the same miss a second time,
+  naming the reactant as well as the element (present already at 7661ea9,
+  `Reactants.cs:354-362`, carried through every decomposition since). Unifying the two
+  into one call site would change a message, which is out of scope here; the row and
+  the type's summary now say what both translations do (the repair review's
+  R-Problems-8). Found by the clean-code repair review.
 
 ## Shape exceptions
 
