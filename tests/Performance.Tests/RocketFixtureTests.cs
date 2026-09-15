@@ -15,7 +15,7 @@ public sealed class RocketFixtureTests(CpuFixture fixture)
         var c = RocketHost.Load(name);
         var solution = RocketHost.Solve(fixture, c);
         Assert.True(solution.Status == CaseStatus.Ok,
-                    $"status {solution.Status}; stations [{string.Join(", ", solution.StationStatus)}], iterations [{string.Join(", ", solution.Iterations)}]");
+                    $"status {solution.Status}; stations [{string.Join(", ", solution.Outcome.StationStatus)}], iterations [{string.Join(", ", solution.Outcome.Iterations)}]");
         var mismatches = StationComparison.Compare(c, solution, fixture.Tolerances);
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
     }

@@ -162,8 +162,15 @@ libdevice for the CUDA category.
       `Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`; both reverted
       and the suite green again before committing. The hand-typed fact counts left
       the criteria above; the listed names are the list.
-- [x] 2026-09-15 — Two more constructions restructured to the root's parameter limit
-      (the harness-wiring task's Step 4): `RocketInputs` (`FixtureBatches.cs`) fell
+
+      ⚠ 2026-09-15: "nested deeper than 3" was not measured: `inventory.py` counts
+      lines only, and `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`
+      and `SpeciesFunctionTests.Cuda_matches_the_cpu_accelerator_within_the_table`
+      nested 4 deep at this tick's commit (`7a3dedb`). Found by the repair review
+      (R-Execution.Tests-4); both were brought to 3 on 2026-09-15 (the criterion
+      below), where this document's earlier silence on the point is corrected.
+- [x] 2026-09-15 — Two more constructions restructured to the root's parameter limit:
+      `RocketInputs` (`FixtureBatches.cs`) fell
       from 9 to 6 parameters, split along the domain axes of a rocket fixture's
       chemical system (`ChemicalSystem`: elements, element moles, products - 3
       parameters) and its exit layout (`ExitPlan`: values, kinds - 2 parameters), the
@@ -176,6 +183,10 @@ libdevice for the CUDA category.
       `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`, the other in the
       private `CompareRocket`, itself called from the rocket-family and the sweep
       tests) construct it in place of the four separate parameters.
+
+      ⚠ 2026-09-15: `MoleSample` is no longer local to `CudaTests.cs`, and
+      `CompareRocket` is gone: both moved to `GpuCpuComparison.cs` the same day, the
+      criterion below.
 
       Two nesting-depth-4 violations found by the same review were fixed alongside:
       `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`'s
@@ -192,6 +203,88 @@ libdevice for the CUDA category.
       `Bits.approved.txt` of its own (its bit comparisons run the host call inside
       the same test, not against a recorded snapshot), so there is no hash to
       compare before and after.
+
+      ⚠ 2026-09-15: "the old field names stay as forwarding properties, so every read
+      call site is unchanged" did not age well, for the same reason the equivalent
+      shortcut in the Performance.Tests node did not: `ChemicalSystem` mixed a
+      family's shared axis with one fixture's own. `RocketFamilies` groups fixtures by
+      `BatchKey`, and `BatchKey` never read `ElementMoles` — only `Elements`,
+      `Products` and the exit kinds — confirming `ElementMoles` was never part of what
+      a family shares; it is one fixture's own starting composition, exactly like
+      `ReactantEnthalpy`, which already sat outside `ChemicalSystem`. Found by the
+      repair review (R-Execution.Tests-1). `ChemicalSystem` narrowed to `Elements`,
+      `Products` (2 parameters); a new `Mixture` record holds `ElementMoles` and
+      `ReactantEnthalpy` (2 parameters); `RocketInputs` keeps `System`, `Mixture`,
+      `ChamberPressure`, `Flow`, `Exits`, `Transport`, still 6 parameters. The
+      forwarding properties (`Elements`, `ElementMoles`, `Products`, `ExitValues`,
+      `ExitKinds`) are gone; the four read call sites this document said were
+      unchanged (`RocketFamily.Batch`, `RocketFamilies`, `Sweep`, all in
+      `FixtureBatches.cs`) and the fifth this document did not mention
+      (`AcceleratorChoiceTests.Inconsistent_batches_are_refused_before_any_kernel_runs`)
+      all name `.System.` or `.Mixture.` or `.Exits.` directly now. No behaviour
+      changed: the same fields, on the same two records, under new names one level
+      down.
+
+      By the same `CouplingMeasures` run, `FixtureBatches` itself moved from Ce=14 to
+      Ce=17 (`ChemicalSystem`, `Mixture` and `ExitPlan` newly named directly in
+      `RocketFamilies` and `Sweep`, for the same reason as `RocketCase` in the
+      Performance.Tests node); its test-fixture neighbours measure
+      `AcceleratorChoiceTests` Ce=32, `BatchTests` Ce=31, `CudaTests` Ce=26,
+      `HostSolves` Ce=28, `SpeciesFunctionTests` Ce=16, none touched by this cut. The
+      root limits the efferent coupling of the `src` types only, so a test type's
+      figure is recorded, not limited.
+
+      Verified: build clean, 0 warnings; 41 of 41 fast tests green; `protocol_lint`
+      0 errors, 0 warnings.
+
+- [x] 2026-09-15 — The GPU/CPU comparison logic `CudaTests.cs` carried alongside its `[Fact]`/
+      `[Theory]` methods — `MoleSample`, `CompareRocket`, `CompareMoles`, `Record`,
+      `Worst` — moved to a new file, `GpuCpuComparison.cs`: one stateful type,
+      `GpuCpuComparison`, built from the tolerance table once per test and holding the
+      worst deviation per field and the different-step count as it accumulates them,
+      with `Rocket(RocketBatchResult, RocketBatchResult, RocketFamily)` (was
+      `CompareRocket`, 3 parameters), `Moles(double[], double[], long, SpeciesTable,
+      bool, string)` (was `CompareMoles`, 6 parameters, its four `MoleSample` fields
+      unpacked back to plain parameters — `MoleSample` had one caller-supplied field
+      per call and was never kept, so it named no concept of its own), `Record` (the
+      `GpuCpuTolerances.Compare` callback), a new `CountSteps(bool)` and `Worst()` as
+      its methods. `MoleSample` is gone. The three CUDA test methods that owned a
+      `worst` dictionary, and either a `differentSteps` local incremented inline
+      (the equilibrium family test) or passed by `ref` into `CompareRocket` (the
+      rocket family and sweep tests), now own one `GpuCpuComparison` instead, call
+      `.CountSteps(sameSteps)` where they used to increment their own local, and read
+      `.DifferentSteps` back: the equilibrium test's step count moved from a local
+      variable to the same shared counter `Rocket` itself feeds, so all three tests
+      now count steps the same way. No behaviour change: the same comparisons, the
+      same tolerance calls, the same accumulation — `worst` shared across a test
+      method's rocket-then-transport phases
+      (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`) is still one dictionary
+      shared the same way, now the one instance's private field instead of a local
+      passed to both phases. `ShapeTests.No_type_spans_more_than_400_lines` and
+      `ShapeTests.No_method_spans_more_than_60_lines` both hold for `CudaTests` and
+      `GpuCpuComparison`; `GpuCpuComparison`'s own Ce is 8, `CudaTests`' own Ce is 26,
+      unchanged from before the cut, both recorded by `CouplingMeasures` and not
+      limited, since the root's coupling rule holds for `src` types only.
+
+      This is a mechanical port: `Rocket`/`Moles`/`CountSteps` cannot be exercised
+      without a CUDA device, so the CPU-only fast suite (`APTHERMO_NO_CUDA=1`, which
+      makes `RequireCuda()` return null and every CUDA-marked test return before
+      reaching this code) proves only that it builds and that every other fact stays
+      green; the actual arithmetic is unchanged from the moved code, read side by
+      side at the move. Applies R-Execution.Tests-2 of the repair review.
+
+      Verified on the reference machine, `APTHERMO_NO_CUDA` unset, one run at a
+      time: `ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
+      green (R-Execution-2's own guard, exercising the merged `CompileWrappers`);
+      `CudaTests.A_rocket_family_on_cuda_matches_the_cpu_accelerator` and
+      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator` together, 9 of 9
+      green (every rocket family plus the equilibrium family, through `Rocket`,
+      `Moles`, `CountSteps` and `Record` on real hardware); then
+      `The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
+      alone, green (400 000 stations through `Rocket`, both accelerators agreeing
+      within the tolerance table, CUDA deterministic across two runs).
+      `Throughput_is_recorded_and_not_below_the_approved_ratio` was not run, as the
+      decision records.
 
 ## Taboos
 

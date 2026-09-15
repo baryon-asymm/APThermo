@@ -11,8 +11,8 @@ namespace AerospacePropellantThermodynamics.Performance;
 /// </summary>
 /// <remarks>
 /// This is the contract and the order of the stations; every formula lives in the stage it belongs to — <see cref="ChamberSolve"/>,
-/// <see cref="ThroatSearch"/>, <see cref="ExitStations"/>, <see cref="AreaRatioIteration"/>, <see cref="StationSolve"/> and
-/// <see cref="StationFigures"/> — as the node's BOOT.md sets out under Structure.
+/// <see cref="ThroatSearch"/>, <see cref="ExitStations"/>, <see cref="AreaRatioIteration"/>, <see cref="PressureRatioStation"/>,
+/// <see cref="StationSolve"/> and <see cref="StationFigures"/> — as the node's BOOT.md sets out under Structure.
 /// </remarks>
 public static class RocketSolver
 {

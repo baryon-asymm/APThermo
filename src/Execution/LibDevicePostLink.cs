@@ -140,32 +140,28 @@ internal static class LibDevicePostLink
         try
         {
             using var options = new NvvmOptions(arch);
-            CompileAgainstLibdevice(nvvm, program, moduleBytes, libdevice, arch, options);
+            unsafe
+            {
+                fixed (byte* modulePointer = moduleBytes)
+                fixed (byte* libdevicePointer = libdevice)
+                {
+                    nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, (IntPtr)moduleBytes.Length, "apthermo-wrappers");
+                    nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, (IntPtr)libdevice.Length, "libdevice");
+                    var result = nvvm.CompileProgram(program, options.Count, options.Pointer);
+                    nvvm.GetProgramLog(program, out var log);
+                    if (result != NvvmResult.NVVM_SUCCESS)
+                    {
+                        throw new InvalidOperationException($"libnvvm could not compile the libdevice wrappers for {arch} ({result}): {(log ?? "").Trim()}");
+                    }
+                }
+            }
+
             nvvm.GetCompiledResult(program, out var wrapperPtx);
             return wrapperPtx ?? throw new InvalidOperationException("libnvvm returned no PTX for the libdevice wrappers.");
         }
         finally
         {
             nvvm.DestroyProgram(ref program);
-        }
-    }
-
-    private static void CompileAgainstLibdevice(NvvmAPI nvvm, IntPtr program, byte[] moduleBytes, byte[] libdevice, string arch, NvvmOptions options)
-    {
-        unsafe
-        {
-            fixed (byte* modulePointer = moduleBytes)
-            fixed (byte* libdevicePointer = libdevice)
-            {
-                nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, (IntPtr)moduleBytes.Length, "apthermo-wrappers");
-                nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, (IntPtr)libdevice.Length, "libdevice");
-                var result = nvvm.CompileProgram(program, options.Count, options.Pointer);
-                nvvm.GetProgramLog(program, out var log);
-                if (result != NvvmResult.NVVM_SUCCESS)
-                {
-                    throw new InvalidOperationException($"libnvvm could not compile the libdevice wrappers for {arch} ({result}): {(log ?? "").Trim()}");
-                }
-            }
         }
     }
 

@@ -23,7 +23,7 @@ internal static class RocketBits
         var elementCount = solution.Table.ElementCount;
         for (var station = 0; station < solution.StationCount; station++)
         {
-            var state = solution.Stations[station];
+            var state = solution.Outcome.Stations[station];
             foreach (var field in StateFields)
             {
                 hash.Add((double)field.GetValue(state)!);
@@ -32,21 +32,21 @@ internal static class RocketBits
 
         for (var station = 0; station < solution.StationCount; station++)
         {
-            hash.Add(solution.Moles.AsSpan(station * speciesCount, speciesCount));
-            hash.Add(solution.Multipliers.AsSpan(station * elementCount, elementCount));
-            var figures = solution.Figures[station];
+            hash.Add(solution.Outcome.Moles.AsSpan(station * speciesCount, speciesCount));
+            hash.Add(solution.Outcome.Multipliers.AsSpan(station * elementCount, elementCount));
+            var figures = solution.Outcome.Figures[station];
             foreach (var field in FigureFields)
             {
                 hash.Add((double)field.GetValue(figures)!);
             }
         }
 
-        foreach (var status in solution.StationStatus)
+        foreach (var status in solution.Outcome.StationStatus)
         {
             hash.Add((int)status);
         }
 
-        return hash.Add(solution.Iterations).Add((int)solution.Status).ToHex();
+        return hash.Add(solution.Outcome.Iterations).Add((int)solution.Status).ToHex();
     }
 
     /// <summary>The struct's fields in declaration order; <see cref="Type.GetFields()"/> promises no order, the metadata token carries it.</summary>
@@ -73,10 +73,23 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     {
         var c = RocketHost.Load(name);
         var bits = RocketBits.Hash(RocketHost.Solve(fixture, c));
-        var problem = Snapshot.Problem(PathOf(c), bits);
+        var problem = Snapshot.Problem(PathOf(c.Path), bits);
         Assert.True(problem is null, problem);
     }
 
+    /// <summary>
+    /// The Bits invariant's other direction (BOOT.md): every approved line still names a rocket fixture. Without this, a
+    /// deleted or renamed fixture would leave its line in place, read by no case and never failing.
+    /// </summary>
+    [Fact]
+    public void Every_approved_line_names_a_rocket_fixture()
+    {
+        var keys = FixtureFiles.Enumerate("rocket").Select(PathOf).ToList();
+        var stale = Snapshot.StaleKeys(keys);
+        Assert.True(stale.Count == 0,
+                    string.Join("\n", stale.Select(key => $"{key}: recorded in the approved snapshot, but no longer a rocket fixture")));
+    }
+
     /// <summary>The fixture's path from the repository root, with forward slashes, as the snapshot spells it.</summary>
-    private static string PathOf(CeaCase c) => Path.GetRelativePath(RepositoryPaths.Root, c.Path).Replace('\\', '/');
+    private static string PathOf(string path) => Path.GetRelativePath(RepositoryPaths.Root, path).Replace('\\', '/');
 }

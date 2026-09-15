@@ -8,13 +8,13 @@ namespace AerospacePropellantThermodynamics.Performance.Tests;
 /// </summary>
 internal static class RocketInvariants
 {
-    /// <summary>Equation (6.16): the throat's u²/a² departs from 1 by no more than this.</summary>
+    /// <summary>Equation (6.16): the throat's u²/a² departs from 1 by no more than this (Performance BOOT.md, Invariants: sonic throat).</summary>
     public const double SonicTolerance = 4e-5;
 
-    /// <summary>Every station downstream of the chamber keeps the chamber's entropy to this relative tolerance.</summary>
+    /// <summary>Every station downstream of the chamber keeps the chamber's entropy to this relative tolerance (Performance BOOT.md, Invariants: isentropic expansion).</summary>
     public const double EntropyTolerance = 1e-9;
 
-    /// <summary>The assigned area ratio is met at convergence to this relative tolerance.</summary>
+    /// <summary>The assigned area ratio is met at convergence to this relative tolerance (Performance BOOT.md, Invariants: area ratios are met by construction).</summary>
     public const double AreaRatioTolerance = 1e-6;
 
     /// <summary>u = sqrt(2(h_c − h)) is an algebraic identity of a converged station: rounding only.</summary>
@@ -26,7 +26,7 @@ internal static class RocketInvariants
     /// <summary>Equation (6.16): the throat is sonic.</summary>
     public static IReadOnlyList<string> SonicThroat(RocketSolution solution)
     {
-        var throat = solution.Stations[RocketSolver.Throat];
+        var throat = solution.Outcome.Stations[RocketSolver.Throat];
         var sonic = throat.Velocity * throat.Velocity / (throat.SoundSpeed * throat.SoundSpeed);
         return Math.Abs(sonic - 1.0) > SonicTolerance ? [$"throat u²/a² = {sonic:R}"] : [];
     }
@@ -34,11 +34,11 @@ internal static class RocketInvariants
     /// <summary>Every station downstream of the chamber carries the chamber's entropy.</summary>
     public static IReadOnlyList<string> ConstantEntropy(RocketSolution solution)
     {
-        var chamber = solution.Stations[RocketSolver.Chamber];
+        var chamber = solution.Outcome.Stations[RocketSolver.Chamber];
         var violations = new List<string>();
         for (var s = 1; s < solution.StationCount; s++)
         {
-            var entropy = solution.Stations[s].Entropy;
+            var entropy = solution.Outcome.Stations[s].Entropy;
             if (Math.Abs(entropy - chamber.Entropy) > EntropyTolerance * Math.Abs(chamber.Entropy))
             {
                 violations.Add($"station {s} entropy {entropy:R} against the chamber's {chamber.Entropy:R}");
@@ -51,11 +51,11 @@ internal static class RocketInvariants
     /// <summary>The energy equation of section 6.2: u² = 2(h_c − h).</summary>
     public static IReadOnlyList<string> EnergyEquation(RocketSolution solution)
     {
-        var chamber = solution.Stations[RocketSolver.Chamber];
+        var chamber = solution.Outcome.Stations[RocketSolver.Chamber];
         var violations = new List<string>();
         for (var s = 1; s < solution.StationCount; s++)
         {
-            var state = solution.Stations[s];
+            var state = solution.Outcome.Stations[s];
             var expected = Math.Sqrt(2.0 * (chamber.Enthalpy - state.Enthalpy));
             if (Math.Abs(state.Velocity - expected) > VelocityTolerance * expected)
             {
@@ -69,8 +69,8 @@ internal static class RocketInvariants
     /// <summary>Every exit station reproduces the area ratio or the pressure ratio it was assigned.</summary>
     public static IReadOnlyList<string> AssignedExit(RocketSolution solution)
     {
-        var chamber = solution.Stations[RocketSolver.Chamber];
-        var throat = solution.Stations[RocketSolver.Throat];
+        var chamber = solution.Outcome.Stations[RocketSolver.Chamber];
+        var throat = solution.Outcome.Stations[RocketSolver.Throat];
         var massFluxThroat = throat.Density * throat.Velocity;
         var inputs = solution.Inputs;
         var violations = new List<string>();
@@ -111,18 +111,18 @@ internal static class RocketInvariants
     private static string? ExitMismatch(RocketSolution solution, MixtureState chamber, double massFluxThroat, RocketInputs inputs, int k)
     {
         var s = RocketLayout.FixedStations + k;
-        var state = solution.Stations[s];
-        if (inputs.ExitKinds[k] == ExitSpecification.AreaRatio)
+        var state = solution.Outcome.Stations[s];
+        if (inputs.Exits.Kinds[k] == ExitSpecification.AreaRatio)
         {
             var areaRatio = massFluxThroat / (state.Density * state.Velocity);
-            return Math.Abs(areaRatio - inputs.ExitValues[k]) > AreaRatioTolerance * inputs.ExitValues[k]
-                ? $"station {s} area ratio {areaRatio:R} against the assigned {inputs.ExitValues[k]:R}"
+            return Math.Abs(areaRatio - inputs.Exits.Values[k]) > AreaRatioTolerance * inputs.Exits.Values[k]
+                ? $"station {s} area ratio {areaRatio:R} against the assigned {inputs.Exits.Values[k]:R}"
                 : null;
         }
 
         var pressureRatio = chamber.Pressure / state.Pressure;
-        return Math.Abs(pressureRatio - inputs.ExitValues[k]) > PressureRatioTolerance * inputs.ExitValues[k]
-            ? $"station {s} pressure ratio {pressureRatio:R} against the assigned {inputs.ExitValues[k]:R}"
+        return Math.Abs(pressureRatio - inputs.Exits.Values[k]) > PressureRatioTolerance * inputs.Exits.Values[k]
+            ? $"station {s} pressure ratio {pressureRatio:R} against the assigned {inputs.Exits.Values[k]:R}"
             : null;
     }
 
@@ -138,8 +138,8 @@ internal static class RocketInvariants
         var speciesCount = solution.Table.SpeciesCount;
         for (var j = 0; j < speciesCount; j++)
         {
-            var frozenMoles = solution.Moles[freezingStation * speciesCount + j];
-            var stationMoles = solution.Moles[station * speciesCount + j];
+            var frozenMoles = solution.Outcome.Moles[freezingStation * speciesCount + j];
+            var stationMoles = solution.Outcome.Moles[station * speciesCount + j];
             if (BitConverter.DoubleToInt64Bits(frozenMoles) != BitConverter.DoubleToInt64Bits(stationMoles))
             {
                 return $"station {station} moles of {solution.Table.Species[j]} differ from the freezing station's";

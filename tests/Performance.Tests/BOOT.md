@@ -27,7 +27,9 @@ The definition of what "`Performance` is ready" means.
   renaming or a reordering of code moves no line. The snapshot is of the CPU
   accelerator on the reference machine's runtime; a runtime update that moves lines
   is re-approved with that reason recorded here. A fixture absent from the snapshot
-  fails the test with instructions, as the surface snapshot does.
+  fails the test with instructions, as the surface snapshot does; a line of the
+  snapshot that names no current fixture fails a test of its own instead of staying
+  silent (`Every_approved_line_names_a_rocket_fixture`, 2026-09-15).
 - The node owns the tolerances of comparisons that are not with the reference: the
   invariants' tolerances and the self-consistency and identity tolerances are named
   constants of the node with their origin in a comment, never literals in an
@@ -132,6 +134,16 @@ position today (the criterion below).
       ulp to `0.5000000000000001` — every one of the enumerated fixtures red; one line
       removed from `Bits.approved.txt` — that fixture red, naming it, with the
       instruction to approve, and the other fixtures green.
+- [x] 2026-09-15 — Bits level, the other direction: `BitSnapshotTests.Every_approved_line_names_a_rocket_fixture`
+      builds its keys from `FixtureFiles.Enumerate("rocket")` (no solve) and fails on
+      any key `Harness.ApprovedSnapshot.StaleKeys` reports, naming it. Repair-review
+      finding R-Performance.Tests-1: until this fact existed, a deleted or renamed
+      fixture left its line in `Bits.approved.txt` untouched and unread, green by
+      silence. Seen red once, restored afterwards: a fabricated line
+      (`tests/Fixtures/cases/rocket/MUTATION-GHOST-FIXTURE.json`, a zero hash)
+      appended to `Bits.approved.txt` turned this fact red naming exactly that key;
+      the line removed again, `git hash-object tests/Performance.Tests/Bits.approved.txt`
+      unchanged (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
 - [x] 2026-09-14 — The never-supersonic outcome:
       `SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
       drives `AreaRatioIteration` (through the node's new `InternalsVisibleTo`) from an
@@ -144,8 +156,8 @@ position today (the criterion below).
 - [x] 2026-09-14 — The invariants are one type and one test each (the test review's
       F-TK-06 and F-TK-07): `RocketInvariants` returns the violated invariants of a
       solution as messages, one method per invariant (`SonicThroat`, `ConstantEntropy`,
-      `EnergyEquation`, `AssignedExit`, `FrozenComposition`), each under fifteen lines
-      and nesting at most two, with the two previously inline tolerances (the energy
+      `EnergyEquation`, `AssignedExit`, `FrozenComposition`), each under twenty lines
+      of code and nesting at most two, with the two previously inline tolerances (the energy
       equation, the pressure ratio) promoted to `VelocityTolerance` and
       `PressureRatioTolerance` beside the three existing ones and their origin named.
       `InvariantTests` becomes one test per invariant (`The_throat_is_sonic`,
@@ -173,15 +185,25 @@ position today (the criterion below).
       flows and batches leave the criteria above; the enumerated directory is the
       list. Every mutation restored afterwards; the Bits level did not move (no
       `src/Performance` file changed for this criterion).
+
+      ⚠ 2026-09-15: "each under fifteen lines" was not true: `FrozenComposition` held
+      18 lines that were not blank, `AssignedExit` 17, `EnergyEquation` 15 — at or,
+      for two of the three, above the claimed bound. Found by the repair review
+      (R-Performance.Tests-6); the bullet now states a bound every method meets,
+      under twenty lines of code, re-measured on the merged tree by the protocol
+      tests node's own tool (`ShapeMeasures.MethodLines`, run through a temporary,
+      uncommitted test): `SonicThroat` 6, `ConstantEntropy` 14, `EnergyEquation` 15,
+      `AssignedExit` 17, `FrozenComposition` 18 lines of code, all under the bound.
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
-      `## Shape exceptions`), verified by `ShapeMechanics.Constructions` (the
-      protocol tests node's own tool, run through a temporary, uncommitted test):
-      two sites tree-wide, this node's (`KernelEqualityTests.cs:133`) and the
-      execution node's own type of the same name (`src/Execution/RocketPipeline.cs:53`),
+      `## Shape exceptions`); `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
+      now covers this on the merged tree: two sites tree-wide, this node's (the
+      `RocketBatchViews` construction inside the `RocketBatchBuffers` constructor,
+      re-verified in place after the R-Performance.Tests-4 cut below moved it) and
+      the execution node's own type of the same name (inside `RocketPipeline.Run`),
       both fully named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
-      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green).
+      `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the fast suite 699/699 green that day).
 
 - [x] 2026-09-15 — `RocketInputs` (8 parameters) and `RocketSolution` (9), both in
       `RocketHost.cs`, restructured within the root's limit, along domain axes;
@@ -204,6 +226,63 @@ position today (the criterion below).
       `with` to target) changed.
 
       Verified: 699/699 tests green, `Bits.approved.txt` hash unchanged
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
+
+      ⚠ 2026-09-15: the forwarding properties did not hold. Two defects, found by the
+      repair review. First (R-Performance.Tests-2), `ChemicalSystem` mixed a batch's
+      shared axis with a case's own: `Elements` and `Products` are what `BatchKey`
+      groups cases by by construction, but `ElementMoles` is one case's own starting
+      composition and varies case to case inside a shared batch, exactly like
+      `ReactantEnthalpy`, which already sat outside `ChemicalSystem`. `BatchKey` itself
+      never read `ElementMoles` — a sign it was never part of the system a batch
+      shares. `ChemicalSystem` narrowed to `Elements`, `Products` (2 parameters), and
+      a new `Mixture` record holds `ElementMoles` and `ReactantEnthalpy` (2
+      parameters) as the case's own starting state; `RocketInputs` keeps `System`,
+      `Mixture`, `ChamberPressure`, `Flow`, `Exits`, still 5 parameters. Second
+      (R-Performance.Tests-3), keeping the flat names as forwarding properties was
+      the shortcut the decomposition should not have taken: it let the ~25 read call
+      sites stay unchanged only by hiding, behind a compatibility shim, which record
+      each field actually lives on. The forwarding properties on `RocketInputs`
+      (`Elements`, `ElementMoles`, `Products`, `ExitValues`, `ExitKinds`) and on
+      `RocketSolution` (`Stations`, `Moles`, `Multipliers`, `Figures`,
+      `StationStatus`, `Iterations`) are removed; every read call site in
+      `RocketCase.cs`, `RocketHost.cs` itself (`StationCount`, `TotalMoles`,
+      `MoleFraction`), `KernelEqualityTests.cs`, `StationComparison.cs`,
+      `SubsonicStationTests.cs`, `RocketInvariants.cs`, `RocketFixtureTests.cs`,
+      `InvariantTests.cs` and `BitSnapshotTests.cs` now names the sub-record it reads
+      (`.Outcome.`, `.System.`, `.Mixture.`, `.Exits.`) directly. No behaviour
+      changed: the same fields, on the same two records, under new names one level
+      down. Verified: 700/700 tests green (699 plus R-Performance.Tests-1's stale-key
+      fact), `Bits.approved.txt` hash unchanged
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
+
+- [x] 2026-09-15 — `RocketBatchBuffers` (`KernelEqualityTests.cs`) is built by its own
+      constructor, `(Accelerator, SpeciesTable, IReadOnlyList<RocketInputs>)`, 3
+      parameters, exactly as `RocketCase` next to it builds one case's buffers in its
+      own constructor. The settable `{ get; set; }` properties and the `Fill` method
+      that assigned them one by one from outside are gone: `Table`, `Views`,
+      `Stations`, `Moles`, `Figures`, `StationStatus` and `Status` are now get-only,
+      assigned once, inside the constructor. `AssertSameBits` is unchanged but for its
+      caller: it still calls `.GetAsArray1D()` on `buffers.Stations`, `.Moles`,
+      `.Figures`, `.StationStatus`, `.Status` itself, exactly as before the cut.
+      `ShapeTests.No_type_spans_more_than_400_lines` and
+      `ShapeTests.No_method_spans_more_than_60_lines` both hold for it; its own
+      efferent coupling, recorded by `CouplingMeasures` (not limited — the root's
+      coupling rule holds only for `src` types), fell to 13.
+
+      This moved four call sites in `RocketCase.cs` from `inputs.ElementMoles` /
+      `.ExitValues` / `.ExitKinds` / `.ReactantEnthalpy` to `inputs.Mixture.ElementMoles`
+      / `inputs.Exits.Values` / `inputs.Exits.Kinds` / `inputs.Mixture.ReactantEnthalpy`,
+      as part of the same commit as the `Mixture`/forwarding-properties cut above,
+      which is why `RocketCase`'s own efferent coupling is noted here rather than left
+      silent: `CouplingMeasures` puts it at Ce=19 today (`Mixture` and `ExitPlan` newly
+      named — direct now, where the removed forwarding properties on `RocketInputs`
+      used to hide them from `RocketCase`'s own body), up from Ce=17 at `5d1ccd3`, the
+      pre-split source, by the same coupling-walk reasoning. The root limits the
+      efferent coupling of the `src` types only, so a test type's figure is recorded,
+      not limited.
+
+      Verified: 700/700 tests green, `Bits.approved.txt` hash unchanged
       (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
 
 ## Taboos

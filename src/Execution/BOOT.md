@@ -134,7 +134,7 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath`, `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 26 by the dependency check's walk on 2026-09-14) | public, contract as `API.md` says |
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | public, contract as `API.md` says |
 | `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
@@ -163,11 +163,22 @@ Decisions taken with the review of 2026-09-14:
 
 - **The fallback says why.** `Auto` keeps falling back to the CPU accelerator, and the
   reason no longer dies in a discarded exception: `AcceleratorInfo` gains
-  `CudaSkippedBecause` (null when CUDA was not tried or was bound), the message of the
-  failure that turned the choice, with the paths tried where they apply. A contract
-  change, recorded in `API.md` with its ⚠, the snapshot moving in the same commit; the
-  command line prints it in the `devices` listing and in every document's
-  `run.accelerator` (a later change of that node).
+  `CudaSkippedBecause` (null when CUDA was bound or the options asked for the CPU), the
+  message of the failure that turned the choice, the forbidding variable included, with
+  the paths tried where they apply. A contract change, recorded in `API.md` with its ⚠,
+  the snapshot moving in the same commit; the command line prints it in the `devices`
+  listing and in every document's `run.accelerator` (a later change of that node).
+
+  ⚠ 2026-09-15: this bullet, `API.md` and `Options.cs` read "null when CUDA was not
+  tried or was bound" / "null when CUDA was bound or never tried". With
+  `APTHERMO_NO_CUDA=1` and `Auto`, CUDA is not skipped upfront: `AcceleratorChoice.Decide`
+  still calls into `Cuda`, which throws immediately without touching any CUDA API, and
+  the caught failure becomes a non-null reason (`AcceleratorChoiceTests`, the variable's
+  own case). "No CUDA API is touched" (this document's invariants) is true of the driver,
+  not of whether a reason is recorded; the only case with no reason at all is
+  `AcceleratorKind.Cpu`, where `Cuda` is never called because CUDA was never asked for.
+  Found by the repair review (R-Execution-6); the three places now read "null when CUDA
+  was bound or the options asked for the CPU".
 - **The missing-definition guard names the wrapper.** The check parses the wrapper text
   libnvvm returned for its `.func` definitions and compares the set with the names the
   kernel calls; it is testable without a GPU by handing it a wrapper body with one
@@ -213,7 +224,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Engine` | efferent coupling | 26 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath`, `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Engine` | efferent coupling | 25 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
 | `Kernels` | efferent coupling | 25 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
 | `RocketPipeline` | efferent coupling | 23 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
 | `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
@@ -298,6 +309,15 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       3. This commit turns the inner check into a guard clause
       (`if (!File.Exists(dll)) continue;`) and brings `Locate` to depth 3, examining
       the same paths in the same order.
+
+      ⚠ 2026-09-15: these figures described that day's branch, before `e453063`
+      reformatted `RocketPipeline.Run`'s two wide constructor calls onto named
+      arguments; `## Shape exceptions` now holds ten rows: six efferent-coupling
+      rows, the four pipelines among them, and the constructors of
+      `RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult` and
+      `EquilibriumBatchResult`. `RocketPipeline.Run`'s size afterward is
+      `ShapeTests.No_method_spans_more_than_60_lines`'s to state; this node records
+      no line figure of its own. Found by the repair review (R-Execution-5).
 - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
       off and the explicit paths pointing nowhere, the engine is the CPU one and
       `CudaSkippedBecause` names what was missing and the paths tried
@@ -334,6 +354,34 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (the same 41 on CUDA). The fact,
       `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
       and not yet written; it takes over as the evidence when it is.
+- [x] 2026-09-15 — `Engine.ProbeMath`'s dead `RunTimer` (a `KernelCache.Get` overload
+      once needed it; `a2a1d6e`'s `out warmUp` overload made it unreachable, and the
+      two lines allocating and discarding one stayed) is gone: `out var warmUp` is
+      `out _`. `RunTimer` was the method's only use of that type, so `Engine`'s
+      efferent coupling fell from 26 to 25, the figure the Shape exceptions row above
+      now carries; the Structure row's own wording is unchanged, since it already
+      described `ProbeMath` correctly. Found by the repair review (R-Execution-1).
+      Verified: the CPU-accelerator fast suite green (`APTHERMO_NO_CUDA=1`), the
+      re-measured Ce confirmed by
+      `ShapeTests.Every_shape_exception_is_measured_and_still_needed`, which holds
+      the `Engine` row at 25 on the merged tree.
+- [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice`, extracted from
+      `CompileWrappers` in `23ccc1d` "bringing its nesting back to 3", took every
+      parameter and local of its caller (six, the root's limit) and existed only to
+      hold the `unsafe`/`fixed` block: the nesting measure counts only
+      `if`/`for`/`foreach`/`while`/`do`/`switch`/`try`, so the extraction bought
+      nothing the measure itself cares about. Merged back into one `CompileWrappers`
+      (create the program, build the options, add both modules under one `fixed`,
+      compile, log and throw, read the compiled result, destroy the program in
+      `finally`); `NvvmOptions`, which owns the unmanaged allocations, is unchanged.
+      The merged method now satisfies both
+      `ShapeTests.No_control_flow_nests_deeper_than_3` and
+      `ShapeTests.No_method_spans_more_than_60_lines`. Found by the repair review
+      (R-Execution-2). Verified on the reference machine, `APTHERMO_NO_CUDA` unset:
+      `tests/Execution.Tests/ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
+      green, exercising this exact method on real hardware (the probe kernel's
+      wrappers compiled by it, linked, run, and matching the CPU accelerator within
+      the ULP bound).
 
 ## Taboos
 

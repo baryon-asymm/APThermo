@@ -7,29 +7,23 @@ using ILGPU.Runtime;
 
 namespace AerospacePropellantThermodynamics.Performance.Tests;
 
-/// <summary>The element list, the element moles and the candidate species of one case's chemical system.</summary>
-internal sealed record ChemicalSystem(string[] Elements, double[] ElementMoles, string[] Products);
+/// <summary>The element list and the candidate species of one case's chemical system: what a table is built from, and what
+/// <see cref="RocketInputs.BatchKey"/> keys a family of cases by.</summary>
+internal sealed record ChemicalSystem(string[] Elements, string[] Products);
+
+/// <summary>What one case starts from: the element moles per kilogram of propellant and the reactant enthalpy per kilogram.</summary>
+internal sealed record Mixture(double[] ElementMoles, double ReactantEnthalpy);
 
 /// <summary>The exits of one rocket case: a value and a kind (pressure or area ratio) per exit, in the reference's station order.</summary>
 internal sealed record ExitPlan(double[] Values, ExitSpecification[] Kinds);
 
 /// <summary>The inputs of one rocket case as the solver takes them, read from a fixture or given directly.</summary>
-internal sealed record RocketInputs(ChemicalSystem System, double ChamberPressure, double ReactantEnthalpy, FlowModel Flow, ExitPlan Exits)
+internal sealed record RocketInputs(ChemicalSystem System, Mixture Mixture, double ChamberPressure, FlowModel Flow, ExitPlan Exits)
 {
-    public string[] Elements => System.Elements;
-
-    public double[] ElementMoles => System.ElementMoles;
-
-    public string[] Products => System.Products;
-
-    public double[] ExitValues => Exits.Values;
-
-    public ExitSpecification[] ExitKinds => Exits.Kinds;
-
-    public int ExitCount => ExitValues.Length;
+    public int ExitCount => Exits.Values.Length;
 
     /// <summary>A key identifying the table and the exit layout: cases with equal keys can share a batch.</summary>
-    public string BatchKey => string.Join(",", Elements) + "|" + string.Join(",", Products) + "|" + string.Join(",", ExitKinds);
+    public string BatchKey => string.Join(",", System.Elements) + "|" + string.Join(",", System.Products) + "|" + string.Join(",", Exits.Kinds);
 
     public static FlowModel FlowOf(string flow) => flow switch
     {
@@ -53,8 +47,8 @@ internal sealed record RocketInputs(ChemicalSystem System, double ChamberPressur
         var areaRatios = inputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble()).ToArray();
         var values = pressureRatios.Concat(areaRatios).ToArray();
         var kinds = pressureRatios.Select(_ => ExitSpecification.PressureRatio).Concat(areaRatios.Select(_ => ExitSpecification.AreaRatio)).ToArray();
-        return new RocketInputs(new ChemicalSystem(elements, elementMoles, products), inputs.GetProperty("chamberPressure").GetDouble(),
-                                inputs.GetProperty("reactantEnthalpy").GetDouble(), FlowOf(inputs.GetProperty("flow").GetString()!), new ExitPlan(values, kinds));
+        return new RocketInputs(new ChemicalSystem(elements, products), new Mixture(elementMoles, inputs.GetProperty("reactantEnthalpy").GetDouble()),
+                                inputs.GetProperty("chamberPressure").GetDouble(), FlowOf(inputs.GetProperty("flow").GetString()!), new ExitPlan(values, kinds));
     }
 
     /// <summary>The fixture stations the solver's stations correspond to, in solver order: chamber, throat, then the exits without the subsonic ones.</summary>
@@ -71,25 +65,13 @@ internal sealed record RocketOutcome(
 /// <summary>What one host call of the rocket solver produced.</summary>
 internal sealed record RocketSolution(SpeciesTable Table, RocketInputs Inputs, RocketOutcome Outcome, CaseStatus Status)
 {
-    public MixtureState[] Stations => Outcome.Stations;
+    public int StationCount => Outcome.Stations.Length;
 
-    public double[] Moles => Outcome.Moles;
-
-    public double[] Multipliers => Outcome.Multipliers;
-
-    public PerformanceFigures[] Figures => Outcome.Figures;
-
-    public CaseStatus[] StationStatus => Outcome.StationStatus;
-
-    public int[] Iterations => Outcome.Iterations;
-
-    public int StationCount => Stations.Length;
-
-    public double TotalMoles(int station) => Enumerable.Range(0, Table.SpeciesCount).Sum(j => Moles[station * Table.SpeciesCount + j]);
+    public double TotalMoles(int station) => Enumerable.Range(0, Table.SpeciesCount).Sum(j => Outcome.Moles[station * Table.SpeciesCount + j]);
 
     /// <summary>The reference reports one fraction per database name: the pieces of a cut species sum under it.</summary>
     public double MoleFraction(int station, string species) =>
-        Table.IndicesOf(species).Sum(index => Moles[station * Table.SpeciesCount + index]) / TotalMoles(station);
+        Table.IndicesOf(species).Sum(index => Outcome.Moles[station * Table.SpeciesCount + index]) / TotalMoles(station);
 }
 
 /// <summary>Runs the rocket solver on the host over CPU-accelerator buffers.</summary>
@@ -98,7 +80,7 @@ internal static class RocketHost
     public static RocketSolution Solve(CpuFixture fixture, CeaCase c) => Solve(fixture, RocketInputs.Of(c));
 
     public static RocketSolution Solve(CpuFixture fixture, RocketInputs inputs) =>
-        Solve(fixture.Accelerator, SpeciesTable.Build(fixture.Database, inputs.Elements, inputs.Products), inputs);
+        Solve(fixture.Accelerator, SpeciesTable.Build(fixture.Database, inputs.System.Elements, inputs.System.Products), inputs);
 
     public static RocketSolution Solve(Accelerator accelerator, SpeciesTable table, RocketInputs inputs)
     {

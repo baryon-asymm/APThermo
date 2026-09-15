@@ -8,26 +8,20 @@ using AerospacePropellantThermodynamics.Transport;
 
 namespace AerospacePropellantThermodynamics.Execution.Tests;
 
-/// <summary>The element list, the element moles and the candidate species of one rocket fixture's chemical system.</summary>
-internal sealed record ChemicalSystem(string[] Elements, double[] ElementMoles, string[] Products);
+/// <summary>The element list and the candidate species of one rocket fixture's chemical system: what a table is built from, and
+/// what <see cref="RocketInputs.BatchKey"/> keys a family of fixtures by.</summary>
+internal sealed record ChemicalSystem(string[] Elements, string[] Products);
+
+/// <summary>What one rocket fixture starts from: the element moles per kilogram of propellant and the reactant enthalpy per kilogram.</summary>
+internal sealed record Mixture(double[] ElementMoles, double ReactantEnthalpy);
 
 /// <summary>The exits of one rocket fixture: a value and a kind (pressure or area ratio) per exit, in the reference's station order.</summary>
 internal sealed record ExitPlan(double[] Values, ExitSpecification[] Kinds);
 
 /// <summary>The inputs of one rocket fixture as the solver takes them.</summary>
-internal sealed record RocketInputs(ChemicalSystem System, double ChamberPressure, double ReactantEnthalpy, FlowModel Flow, ExitPlan Exits, bool Transport)
+internal sealed record RocketInputs(ChemicalSystem System, Mixture Mixture, double ChamberPressure, FlowModel Flow, ExitPlan Exits, bool Transport)
 {
-    public string[] Elements => System.Elements;
-
-    public double[] ElementMoles => System.ElementMoles;
-
-    public string[] Products => System.Products;
-
-    public double[] ExitValues => Exits.Values;
-
-    public ExitSpecification[] ExitKinds => Exits.Kinds;
-
-    public string BatchKey => string.Join(",", Elements) + "|" + string.Join(",", Products) + "|" + string.Join(",", ExitKinds);
+    public string BatchKey => string.Join(",", System.Elements) + "|" + string.Join(",", System.Products) + "|" + string.Join(",", Exits.Kinds);
 
     public static RocketInputs Of(CeaCase c)
     {
@@ -46,8 +40,8 @@ internal sealed record RocketInputs(ChemicalSystem System, double ChamberPressur
         };
         var exitValues = pressureRatios.Concat(areaRatios).ToArray();
         var exitKinds = pressureRatios.Select(_ => ExitSpecification.PressureRatio).Concat(areaRatios.Select(_ => ExitSpecification.AreaRatio)).ToArray();
-        return new RocketInputs(new ChemicalSystem(elements, elementMoles, products), inputs.GetProperty("chamberPressure").GetDouble(),
-                                inputs.GetProperty("reactantEnthalpy").GetDouble(), flow, new ExitPlan(exitValues, exitKinds),
+        return new RocketInputs(new ChemicalSystem(elements, products), new Mixture(elementMoles, inputs.GetProperty("reactantEnthalpy").GetDouble()),
+                                inputs.GetProperty("chamberPressure").GetDouble(), flow, new ExitPlan(exitValues, exitKinds),
                                 inputs.GetProperty("transport").GetBoolean());
     }
 }
@@ -57,15 +51,15 @@ internal sealed record RocketFamily(string Name, SpeciesTable Table, TransportTa
 {
     public RocketBatch Batch()
     {
-        var batch = new RocketBatch(Inputs.Count, Table.ElementCount, Inputs[0].ExitKinds);
+        var batch = new RocketBatch(Inputs.Count, Table.ElementCount, Inputs[0].Exits.Kinds);
         for (var k = 0; k < Inputs.Count; k++)
         {
             var input = Inputs[k];
             batch.ChamberPressure[k] = input.ChamberPressure;
-            batch.ReactantEnthalpy[k] = input.ReactantEnthalpy;
+            batch.ReactantEnthalpy[k] = input.Mixture.ReactantEnthalpy;
             batch.Flow[k] = input.Flow;
-            Array.Copy(input.ElementMoles, 0, batch.ElementMoles, k * Table.ElementCount, Table.ElementCount);
-            Array.Copy(input.ExitValues, 0, batch.ExitValues, k * batch.Exits, batch.Exits);
+            Array.Copy(input.Mixture.ElementMoles, 0, batch.ElementMoles, k * Table.ElementCount, Table.ElementCount);
+            Array.Copy(input.Exits.Values, 0, batch.ExitValues, k * batch.Exits, batch.Exits);
         }
 
         return batch;
@@ -96,7 +90,7 @@ internal static class FixtureBatches
             .OrderByDescending(g => g.Names.Count).ThenBy(g => g.Names[0], StringComparer.Ordinal)
             .Select(g =>
             {
-                var table = SpeciesTable.Build(database, g.Inputs[0].Elements, g.Inputs[0].Products);
+                var table = SpeciesTable.Build(database, g.Inputs[0].System.Elements, g.Inputs[0].System.Products);
                 return new RocketFamily(g.Names[0], table, TransportTable.Build(database.Transport!, table), g.Names, g.Inputs);
             })
             .ToList();
@@ -116,7 +110,7 @@ internal static class FixtureBatches
         var a = family.Inputs[family.Members.ToList().IndexOf(from)];
         var b = family.Inputs[family.Members.ToList().IndexOf(to)];
         var elementCount = family.Table.ElementCount;
-        var batch = new RocketBatch(count, elementCount, a.ExitKinds);
+        var batch = new RocketBatch(count, elementCount, a.Exits.Kinds);
         const int mixtureSteps = 400;
         var pressureSteps = Math.Max(1, (count + mixtureSteps - 1) / mixtureSteps);
         for (var k = 0; k < count; k++)
@@ -124,14 +118,14 @@ internal static class FixtureBatches
             var t = (k % mixtureSteps) / (double)(mixtureSteps - 1);
             var u = pressureSteps == 1 ? 0.0 : (k / mixtureSteps) / (double)(pressureSteps - 1);
             batch.ChamberPressure[k] = pressureLow + u * (pressureHigh - pressureLow);
-            batch.ReactantEnthalpy[k] = (1.0 - t) * a.ReactantEnthalpy + t * b.ReactantEnthalpy;
+            batch.ReactantEnthalpy[k] = (1.0 - t) * a.Mixture.ReactantEnthalpy + t * b.Mixture.ReactantEnthalpy;
             batch.Flow[k] = FlowModel.ShiftingEquilibrium;
             for (var i = 0; i < elementCount; i++)
             {
-                batch.ElementMoles[k * elementCount + i] = (1.0 - t) * a.ElementMoles[i] + t * b.ElementMoles[i];
+                batch.ElementMoles[k * elementCount + i] = (1.0 - t) * a.Mixture.ElementMoles[i] + t * b.Mixture.ElementMoles[i];
             }
 
-            Array.Copy(a.ExitValues, 0, batch.ExitValues, k * batch.Exits, batch.Exits);
+            Array.Copy(a.Exits.Values, 0, batch.ExitValues, k * batch.Exits, batch.Exits);
         }
 
         return batch;

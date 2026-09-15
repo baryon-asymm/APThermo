@@ -28,9 +28,9 @@ internal sealed class RocketCase : IDisposable
         var elementCount = table.ElementCount;
         var stationCount = RocketLayout.StationCount(inputs.ExitCount);
         var tableBuffers = Own(SpeciesTableBuffers.Upload(accelerator, table));
-        var elements = Own(accelerator.Allocate1D(inputs.ElementMoles));
-        var exitValues = Own(accelerator.Allocate1D(inputs.ExitValues.Length == 0 ? [0.0] : inputs.ExitValues));
-        var exitKinds = Own(accelerator.Allocate1D(inputs.ExitKinds.Length == 0 ? [0] : inputs.ExitKinds.Select(k => (int)k).ToArray()));
+        var elements = Own(accelerator.Allocate1D(inputs.Mixture.ElementMoles));
+        var exitValues = Own(accelerator.Allocate1D(inputs.Exits.Values.Length == 0 ? [0.0] : inputs.Exits.Values));
+        var exitKinds = Own(accelerator.Allocate1D(inputs.Exits.Kinds.Length == 0 ? [0] : inputs.Exits.Kinds.Select(k => (int)k).ToArray()));
         var doubles = Own(accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount)));
         var ints = Own(accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount)));
         _stations = Own(accelerator.Allocate1D<MixtureState>(stationCount));
@@ -44,7 +44,7 @@ internal sealed class RocketCase : IDisposable
         _stations.MemSetToZero();
 
         var problem = new RocketProblem(
-            chamberPressure: inputs.ChamberPressure, reactantEnthalpy: inputs.ReactantEnthalpy, temperatureEstimate: 0.0,
+            chamberPressure: inputs.ChamberPressure, reactantEnthalpy: inputs.Mixture.ReactantEnthalpy, temperatureEstimate: 0.0,
             flow: inputs.Flow, elementMoles: elements.View,
             exitValues: exitValues.View.SubView(0, inputs.ExitCount), exitKinds: exitKinds.View.SubView(0, inputs.ExitCount));
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
