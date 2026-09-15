@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
+using AerospacePropellantThermodynamics.Cli.Cases;
 using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;

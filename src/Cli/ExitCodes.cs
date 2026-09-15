@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Cli.Cases;
 using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Cli;

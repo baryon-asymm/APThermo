@@ -1,28 +1,28 @@
 using AerospacePropellantThermodynamics.Cli.Documents;
 using AerospacePropellantThermodynamics.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Cases;
 
-/// <summary>Combinations and an equilibrium problem document into problems, and results into case outputs.</summary>
-internal static class EquilibriumCases
+/// <summary>Combinations and a rocket problem document into problems, and results into case outputs.</summary>
+internal static class RocketCases
 {
     public static IReadOnlyList<CaseOutput> Build(Solver solver, IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<Combination> combinations,
-                                                    EquilibriumDocument document, double? ownRatio)
+                                                   RocketDocument document, double? ownRatio)
     {
-        var problems = combinations.Select(c => new EquilibriumProblem
+        var problems = combinations.Select(c => new RocketProblem
         {
-            Kind = document.Kind,
-            Pressure = c.Pressure ?? document.Pressure,
-            Temperature = c.Temperature ?? document.Temperature ?? 0.0,
-            Enthalpy = document.Enthalpy,
-            Entropy = document.Entropy ?? 0.0,
+            ChamberPressure = c.ChamberPressure ?? document.ChamberPressure,
+            Flow = document.Flow,
+            AreaRatios = document.AreaRatios,
+            PressureRatios = document.PressureRatios,
             Transport = document.Transport,
+            TemperatureEstimate = document.TemperatureEstimate,
         }).ToList();
         var results = solver.Solve(mixtures, problems);
         var cases = new List<CaseOutput>(results.Count);
         for (var i = 0; i < results.Count; i++)
         {
-            var inputs = CaseInputs.Equilibrium(combinations[i].OxidizerToFuel ?? ownRatio, problems[i], mixtures[i]);
+            var inputs = CaseInputs.Rocket(combinations[i].OxidizerToFuel ?? ownRatio, problems[i]);
             cases.Add(new CaseOutput
             {
                 Index = i,
@@ -31,7 +31,7 @@ internal static class EquilibriumCases
                 Mixture = results[i].Mixture,
                 MixtureMass = results[i].MixtureMass,
                 Species = results[i].Species,
-                Stations = [results[i].State],
+                Stations = results[i].Stations,
             });
         }
 

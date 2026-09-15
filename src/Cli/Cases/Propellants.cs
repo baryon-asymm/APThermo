@@ -2,7 +2,7 @@ using AerospacePropellantThermodynamics.Cli.Documents;
 using AerospacePropellantThermodynamics.Data;
 using AerospacePropellantThermodynamics.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace AerospacePropellantThermodynamics.Cli.Cases;
 
 /// <summary>Propellant documents into the library's definitions.</summary>
 internal static class Propellants

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AerospacePropellantThermodynamics.Cli.Cases;
 using AerospacePropellantThermodynamics.Problems;
 
 namespace AerospacePropellantThermodynamics.Cli;
