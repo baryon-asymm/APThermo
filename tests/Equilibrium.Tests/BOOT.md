@@ -144,11 +144,24 @@ creation names its arguments; it passes them by position today (the criterion be
       `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over the
       enumerated tp, hp and sp directories against `Bits.approved.txt`, recorded from
       the code of `8e36a27` before any code of the decomposition moved (one line per
-      enumerated fixture file, the directories being the list). Seen red twice, each
-      mutation applied alone and restored: the solver's `StandardPressure` perturbed
-      by one ULP (`1.0e5` → `100000.00000000001`), which reported 22 cases with moved
-      hashes; and one line deleted from the approved file, which reported that case
-      with the instruction to approve.
+      enumerated fixture file, the directories being the list). Seen red three times,
+      each mutation applied alone and restored: the solver's `StandardPressure`
+      perturbed by one ULP (`1.0e5` → `100000.00000000001`), which reported 22 cases
+      with moved hashes; one line deleted from the approved file, which reported that
+      case with the instruction to approve; and, 2026-09-15, a line added for a tp
+      fixture that does not exist (`tp/does-not-exist_pc1MPa_shiftingEquilibrium.json`
+      with a zero hash), which reported "1 fixture case(s) no longer give the recorded
+      bits:\ntp/does-not-exist_pc1MPa_shiftingEquilibrium.json: recorded in the
+      approved snapshot, but no longer a fixture case" — the check `AGENTS.md` §13
+      requires every check be shown red, not run before on this node's own
+      `Bits.approved.txt` (R-Equilibrium.Tests-4). Reverted immediately after; the
+      approved file's hash unmoved (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+
+      The failure message listed stale keys after the hash mismatches, capped at 20
+      entries, so a run with 20 or more hash mismatches could hide an orphan key behind
+      "… and N more"; the message now lists stale keys first, so the cap cannot hide
+      them (the fact above shows the reworded message). A change of a test's own
+      failure message, not of what it checks.
 
       ⚠ 2026-09-14: this criterion was written the same day predicting "every case
       red" for the perturbed constant. Wrong: the Newton iteration polishes until its
