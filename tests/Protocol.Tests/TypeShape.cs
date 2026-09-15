@@ -126,7 +126,12 @@ internal static class TypeShape
         }
     }
 
-    private static IEnumerable<Type> Unwrap(Type type)
+    /// <summary>A type stripped of arrays, references and pointers (nested ones included, an array of pointers to an array
+    /// unwrapped down to its element), followed by the same unwrapping of each of its generic arguments, recursively. The
+    /// tree's one walk from a type as written to the leaf types it is built from: <see cref="ReferencedTypes"/> uses it to
+    /// find what a signature names, and <c>InvariantTests</c> uses it to find whether a signature or a body ever names
+    /// <c>float</c> or <c>Half</c>, wherever in the shape they are buried.</summary>
+    public static IEnumerable<Type> Unwrap(Type type)
     {
         var bare = type;
         while ((bare.IsByRef || bare.IsArray || bare.IsPointer) && bare.GetElementType() is { } element)

@@ -70,6 +70,12 @@ public sealed class InvariantTests
                 {
                     yield return $"{node.Name}: {type.FullName}.{method.Name} performs single-precision operations ({string.Join(", ", opcodes)})";
                 }
+
+                var boundSingle = IlBody.BoundTypes(method).Where(IsSinglePrecision).Select(bound => bound.Name).Distinct().ToList();
+                if (boundSingle.Count > 0)
+                {
+                    yield return $"{node.Name}: {type.FullName}.{method.Name} binds to a single-precision type ({string.Join(", ", boundSingle)})";
+                }
             }
         }
     }
@@ -116,14 +122,9 @@ public sealed class InvariantTests
         }
     }
 
-    private static bool IsSinglePrecision(Type type)
-    {
-        var bare = type.IsByRef || type.IsArray || type.IsPointer ? type.GetElementType() ?? type : type;
-        if (bare == typeof(float) || bare == typeof(Half))
-        {
-            return true;
-        }
-
-        return bare.IsGenericType && bare.GetGenericArguments().Any(IsSinglePrecision);
-    }
+    /// <summary>Whether a type is, or is built from, <c>float</c> or <c>Half</c> anywhere in its shape (root BOOT.md,
+    /// Invariants: double precision only): the same unwrap <see cref="TypeShape.ReferencedTypes"/> uses
+    /// (<see cref="TypeShape.Unwrap"/>), so a nested array, a by-reference-to-array parameter (<c>out float[]</c>) or a
+    /// generic argument buried behind either cannot slip past a single, one-layer copy of the walk.</summary>
+    private static bool IsSinglePrecision(Type type) => TypeShape.Unwrap(type).Any(bare => bare == typeof(float) || bare == typeof(Half));
 }

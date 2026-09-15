@@ -155,11 +155,22 @@ non-nested collection-expression helper type (`<>z__ReadOnlySingleElementList` a
 alike) carries `[CompilerGenerated]` but no `DeclaringType` to fold into, so it passed
 both the self-reference and the outside-the-tree filters; `CouplingMeasures` excludes
 any compiler-generated type on either side of an edge, matching how `CoverageTests` and
-`InvariantTests` already treat the same category. Neither finding moved a single
-existing fact's answer: `DependencyTests`, `CoverageTests`, `InvariantTests` and
-`SurfaceTests` stayed green throughout, because a byref-to-array or a free-floating
+`InvariantTests` already treat the same category. Neither finding moved `DependencyTests`,
+`CoverageTests` or `SurfaceTests`' answer: a byref-to-array or a free-floating
 compiler-generated helper resolves to the same *node* either way — only a *type* count
 sees the difference, which is this phase's own new territory.
+
+⚠ 2026-09-15: this paragraph also named `InvariantTests` among the facts the byref-to-array
+fix left unmoved, with the same "resolves to the same node" reasoning. That reasoning never
+applied to it: the single-precision check compares an unwrapped type against `float` and
+`Half` directly and never attributes a type to a node at all. The real reason
+`InvariantTests` was untouched by this phase's fix is that its precision check
+(`IsSinglePrecision`) held its own separate, one-layer-only copy of the unwrap walk,
+independent of `TypeShape.Unwrap` and never reached by the fix described above; that copy
+carried the very same missed cases (a by-reference-to-array parameter, a jagged array) this
+paragraph's fix corrected here, undetected until R-Protocol.Tests-17 of the repair phase
+made `IsSinglePrecision` reuse `TypeShape.Unwrap` itself, closing the gap between the two
+copies for good.
 
 ⚠ 2026-09-15: `ShapeMechanics` held the two limitless rules (mechanics and named
 construction) in one type, and this paragraph gave the file-count limit as a second
