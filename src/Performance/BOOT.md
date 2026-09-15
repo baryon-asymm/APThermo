@@ -129,6 +129,10 @@ station's verdict is written by the iteration itself (`NotConverged` for
 `NeverSupersonic` and for `NotMet`), so the exit loop reads one thing — the station
 status — as it did before.
 
+⚠ 2026-09-15: the reason is the estimate, not the count: the temperature and the
+extrapolation state are both what the next exit starts from (Constraints); that
+`AreaRatioIteration.At` stays at six parameters follows from it.
+
 Decisions taken with the review of 2026-09-14:
 
 - **A station that never went supersonic is `NotConverged`.** The area-ratio iteration
@@ -204,7 +208,7 @@ efferent-coupling row.
       fixtures within the tolerance table; the list of compared fields is generated
       from the fixture. `Performance.Tests`,
       `RocketFixtureTests.The_rocket_case_reproduces_the_reference` over the enumerated
-      `cases/rocket` directory (89 files): every numeric station output mapped by name to
+      `cases/rocket` directory (89 that day): every numeric station output mapped by name to
       a field of `MixtureState` or `PerformanceFigures`, plus every listed mole
       fraction; left out by the fixtures node's caveats: the reference's `cv` at frozen
       stations and its gas-phase frozen heat capacities at stations with condensed
@@ -217,8 +221,16 @@ efferent-coupling row.
       stations of examples 8 and 12, `pressureRatio` and `pressure` at every area-ratio
       station).
 - [x] 2026-09-12 — Frozen flow at the throat and at the chamber both reproduce the
-      reference: the same test over the 15 `frozenAtChamber` and 40 `frozenAtThroat`
-      propellant cases and example 12 (`nfz = 2`).
+      reference: the same test over the `frozenAtChamber` and `frozenAtThroat`
+      propellant cases and example 12 (`nfz = 2`), enumerated from the fixture directory.
+
+      ⚠ 2026-09-15: this bullet stood "the 15 `frozenAtChamber` and 40 `frozenAtThroat`
+      propellant cases". `frozenAtThroat` was 35 propellant cases (plus example 12)
+      already on 2026-09-12, the date of this tick, at every commit the repair review
+      checked (BASE and 7661ea9 alike): the count was not a figure that went stale with
+      time, it was wrong when written. Found by the repair review (R-Performance-7); the
+      bullet now points at the enumerated fixture directory instead of a typed count
+      that can drift again.
 - [x] 2026-09-14 — The invariants' tolerances (entropy, sonic condition, area ratio,
       frozen composition bit for bit, velocity from the energy equation) hold for every
       converged case of the enumerated rocket fixtures, one test per invariant:
@@ -241,8 +253,8 @@ efferent-coupling row.
       `A_non_positive_chamber_pressure_is_invalid_input`).
 - [x] 2026-09-12 — Runs unchanged inside an ILGPU kernel on the CPU accelerator with
       the same results as the host call: `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
-      over the 6 batches of fixtures sharing a table and an exit layout (89 cases; states,
-      figures, moles and statuses bit for bit).
+      over the batches of fixtures sharing a table and an exit layout, enumerated from the
+      fixture directory (states, figures, moles and statuses bit for bit).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): every type of the
       node within the root's code-shape constraint. The largest method is now
       `AreaRatioIteration.At` at 53 lines (`ThroatSearch.At` next, at 52); before the
