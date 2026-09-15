@@ -11,6 +11,7 @@ code" (AGENTS.md §1): it is the readiness criterion, moved into a node of its o
 | L0 | numeric field reading: `D`/`E`/blank exponents, a sign in place of the exponent letter, bare decimals, blank fields, non-numeric text | expected doubles in the theory data of `FortranNumberTests` (the one place a number is typed: the forms are the subject, not the data) | ✅ 2026-09-12 |
 | L1 | full loads of the committed `data/thermo.inp` and `data/trans.inp`: counts, fixture records, interval ordering and contiguity, anomaly list, transport blocks, atomic weights, failure on corrupted copies | an independent line scan in the test, the approved anomaly list, the fixture records written by `transcribe.py` | ✅ 2026-09-12 |
 | L1 | the same-name groups of the committed file: `Records` returns every record of a name in file order and the indexer the first of them; a negative interval count fails as a format error with its line, the seventh corruption case | the test's own scan of the file for repeated names (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` among them), the minimal in-memory file (`ThermoLoadTests`, `CorruptionTests`) | ✅ 2026-09-14 |
+| L1 | the database embedded in the assembly (root `BOOT.md`, `## Delivery`, `Data`): the three resources' bytes hash to the same SHA-256 as `data/`'s files, `LoadBundled()` equals `Load()` species by species and coefficient by coefficient, `BundledNotice()` equals `data/NOTICE` | the committed `data/thermo.inp`, `data/trans.inp`, `data/NOTICE` | ✅ 2026-09-15 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 Each next level makes sense only when the previous one is green.
@@ -106,6 +107,14 @@ them from the files they read.
       empty; `CorruptionTests.A_negative_interval_count_names_its_line`; each seen
       red once (`Records` made to return the first record only; the count check
       removed from the reader) and reverted.
+- [x] 2026-09-15 — The bundled-database level of the table above:
+      `BundledDatabaseTests` (`Embedded_resource_bytes_equal_the_committed_files`,
+      `LoadBundled_equals_Load_on_every_species_and_coefficient`,
+      `BundledNotice_equals_the_committed_file`), each seen red once (AGENTS.md §13):
+      the embedded `thermo.inp` resource pointed at a copy truncated to its first 100
+      lines turned both the hash test and the equality test red (a
+      `DatabaseFormatException` at line 96, and a hash mismatch); reverted, nothing of
+      the mutation committed.
 
 ## Taboos
 

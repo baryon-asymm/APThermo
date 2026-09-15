@@ -23,6 +23,12 @@ public static class Program
         try
         {
             var invocation = CommandLine.Parse(args);
+            if (invocation.Version)
+            {
+                output.WriteLine(Version);
+                return (int)ExitCode.Ok;
+            }
+
             if (invocation.Help)
             {
                 output.Write(CommandTable.Usage);

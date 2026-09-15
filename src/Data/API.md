@@ -15,6 +15,8 @@ namespace APThermo.Data;
 public sealed class SpeciesDatabase
 {
     public static SpeciesDatabase Load(string thermoPath, string? transPath = null);
+    public static SpeciesDatabase LoadBundled();                    // the NASA files embedded in this assembly; same Provenance shape as Load
+    public static string BundledNotice();                           // the text of data/NOTICE, embedded in this assembly
     public static SpeciesDatabase Parse(TextReader thermo, TextReader? trans = null);
 
     public IReadOnlyList<Species> Products { get; }        // PRODUCTS section, file order
@@ -65,6 +67,16 @@ Eleven condensed records of the committed file carry a first interval written wi
 upper bound not above the lower one (`Br2(cr)` 300..265.9); the node stores such
 bounds as they are, and the tests node lists the records in its approved anomaly list.
 Found when the loader first rejected them.
+
+⚠ 2026-09-15 (distribution phase): `Load` and `Parse` stood as the only two ways to
+build a database. A NuGet package and a .NET tool have no `data/` directory beside
+them (root `BOOT.md`, Constraints, Data), so this node embeds the committed
+`thermo.inp`, `trans.inp` and `NOTICE` under stable manifest names
+(`APThermo.Data.Bundled.thermo.inp`, `.trans.inp`, `.NOTICE`) and `LoadBundled` reads
+them: the same bytes as `data/`'s, hashed the same way, so `Provenance` carries the
+same `ThermoSha256`/`TransSha256` a caller who ran `Load(data/thermo.inp,
+data/trans.inp)` would get. `BundledNotice` exposes the attribution text so a
+consumer with only the assembly, not the repository, can still read it.
 
 ⚠ 2026-09-14: the indexer's comment stood "exact name; products searched first" and
 said nothing of names that carry several records. The committed file has such groups
@@ -123,7 +135,8 @@ public sealed class DatabaseFormatException : Exception
 
 ## Side effects
 
-Reads the given files. Nothing else.
+`Load` and `Parse` read the given files or text. `LoadBundled` and `BundledNotice`
+read no file: the bytes are embedded in the assembly. Nothing else.
 
 ## Out of scope
 

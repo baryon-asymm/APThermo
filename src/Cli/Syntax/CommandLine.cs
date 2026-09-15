@@ -11,9 +11,14 @@ internal static class CommandLine
     {
         var scanned = ArgumentScanner.Scan(args, CommandTable.Options);
         var options = Fold(scanned.Options);
+        if (scanned.Version)
+        {
+            return new Invocation("", [], options, false, true);
+        }
+
         if (scanned.Help)
         {
-            return new Invocation(scanned.Positional.Count > 0 ? scanned.Positional[0] : "", [], options, true);
+            return new Invocation(scanned.Positional.Count > 0 ? scanned.Positional[0] : "", [], options, true, false);
         }
 
         if (scanned.Positional.Count == 0)
@@ -30,7 +35,7 @@ internal static class CommandLine
         }
 
         CheckApplicability(spec, command, options);
-        return new Invocation(command, arguments, options, false);
+        return new Invocation(command, arguments, options, false, false);
     }
 
     /// <summary>Folds every scanned option into <see cref="CommandOptions"/>, regardless of command: a bad value is reported before the command is even looked at.</summary>

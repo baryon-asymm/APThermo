@@ -14,6 +14,7 @@ points upward: it is what the parent may consider proven about `Data`.
 | interval bounds are stored as written, and the records whose first interval is not ascending are exactly those on the approved anomaly list | L1: `ThermoLoadTests.Interval_anomalies_equal_the_approved_list` | ✅ 2026-09-12 |
 | every record of a repeated name is reachable in file order through `Records`, and the indexer returns the first | L1: `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order` | ✅ 2026-09-14 |
 | a negative interval count fails the load with the line number of the field | L1: `CorruptionTests.A_negative_interval_count_names_its_line` | ✅ 2026-09-14 |
+| the three resources embedded in the assembly hash to the same SHA-256 as `data/`'s files, and `LoadBundled()` equals `Load()` species by species and coefficient by coefficient | L1: `BundledDatabaseTests` | ✅ 2026-09-15 |
 
 ## What the tests rely on
 
