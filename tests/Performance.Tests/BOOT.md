@@ -198,7 +198,7 @@ position today (the criterion below).
       root's condition on a declared wide constructor, the row of
       `## Shape exceptions`), verified by `ShapeMechanics.Constructions` (the
       protocol tests node's own tool, run through a temporary, uncommitted test):
-      two sites tree-wide, this node's (`KernelEqualityTests.cs:80`, moved from
+      two sites tree-wide, this node's (`KernelEqualityTests.cs:71`, moved from
       `:133` by the R-Performance.Tests-4 cut below; re-verified in place) and the
       execution node's own type of the same name (`src/Execution/RocketPipeline.cs:53`),
       both fully named; the node's bit snapshot unchanged (`Bits.approved.txt` hash
@@ -257,15 +257,16 @@ position today (the criterion below).
 
 - [x] 2026-09-15 — `RocketBatchBuffers` (`KernelEqualityTests.cs`) is built by its own
       constructor, `(Accelerator, SpeciesTable, IReadOnlyList<RocketInputs>)`, 3
-      parameters, exactly as `RocketCase` next to it builds one case's buffers. The
-      settable `Table`/`Views`/`Stations`/`Moles`/`Figures`/`StationStatus`/`Status`
-      properties and the `Fill` method that mutated them from outside are gone;
-      `Stations`, `Moles`, `Figures`, `StationStatus` and `Status` are private fields
-      assigned once, inside the constructor, and a new `Download()` method returns
-      them as a new `RocketBatchResults` record (5 fields), the batch counterpart of
-      `RocketOutcome`, for `AssertSameBits` to compare. Measured by the protocol tests
-      node's own tool (`ShapeMeasures`, run through the same temporary test): the type
-      66 lines, its constructor 33, both well inside the type's 400 and the method's 60.
+      parameters, exactly as `RocketCase` next to it builds one case's buffers in its
+      own constructor. The settable `{ get; set; }` properties and the `Fill` method
+      that assigned them one by one from outside are gone: `Table`, `Views`,
+      `Stations`, `Moles`, `Figures`, `StationStatus` and `Status` are now get-only,
+      assigned once, inside the constructor. `AssertSameBits` is unchanged but for its
+      caller: it still calls `.GetAsArray1D()` on `buffers.Stations`, `.Moles`,
+      `.Figures`, `.StationStatus`, `.Status` itself, exactly as before the cut.
+      Measured by the protocol tests node's own tool (`ShapeMeasures`, run through the
+      same temporary test): the type 67 lines, its constructor 33, both well inside
+      the type's 400 and the method's 60; its own Ce fell to 13.
 
       This moved four call sites in `RocketCase.cs` from `inputs.ElementMoles` /
       `.ExitValues` / `.ExitKinds` / `.ReactantEnthalpy` to `inputs.Mixture.ElementMoles`
