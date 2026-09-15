@@ -129,15 +129,23 @@ one-assembly-per-node rule would turn into several assemblies for one adapter.
 Everything is internal except `Program` and `ExitCode`; one type per file, named after
 the type.
 
-⚠ 2026-09-15: two rows of the table below had drifted from the code they describe.
+⚠ 2026-09-15: four rows of the table below had drifted from the code they describe.
 `StateRecordReader`'s row said the record files' shape was decided "by the first
 non-blank character"; the code decides it by attempting to parse the first JSON value
 and checking what follows it (`JsonText.TryParseWhole`), not by inspecting characters.
 `DocumentWriter`'s row said only "delivery to the output file or the standard output,
 and the non-finite-number rule", omitting that it also renders a case document in the
 requested format and decides its exit code, and that the JSON writer the listings
-(`species`, `devices`) render through is this type's too. Found by the repair review of
-2026-09-15 reading the code against the table.
+(`species`, `devices`) render through is this type's too. `Sweeps`' row named three of
+the sweep's four axes ("ratio-major, then pressure, then temperature"), silently
+dropping chamber pressure, which the code already crossed. `CaseInputs`' row claimed
+the whole `inputs` echo was "written once" in this type, while the code wrote only the
+swept ratio and left `RocketCases` to add `chamberPressure` and `EquilibriumCases` to
+add `kind`, `pressure` and the target (`AddTarget`). Found by the repair review of
+2026-09-15 reading the code against the table; its R-Cli-7 and R-Cli-3 also moved the
+code of the last two to match the row each already claimed (`Sweeps.Expand` is one
+query over the four axes; `CaseInputs.Rocket` and `CaseInputs.Equilibrium` own the
+whole echo, `AddTarget` moved in from `EquilibriumCases`).
 
 | Type | Responsibility |
 |---|---|
@@ -147,7 +155,7 @@ requested format and decides its exit code, and that the JSON writer the listing
 | `CommandSpec`, `OptionSpec` | one command: name, arity, usage line, the options and formats that apply; one option: name, takes a value or not, usage line, how it folds into `CommandOptions` |
 | `CommandTable` | the two tables, and the usage text generated from them, the defaults read from `CommandOptions.DefaultThreshold` and `ElementalMixture.DefaultMassTolerance` (F-AR-04) |
 | `ArgumentScanner` | the token walk: `--name`, `--name=value`, `--help`, positionals, a repeated option |
-| `CommandLine` | scan, look up, check arity, apply the options, check what applies; keeps `Parse`, `Usage` and `Commands` as the tests node knows them |
+| `CommandLine` | `Parse`: scan, look up, check arity, apply the options, check what applies (2026-09-15, R-Cli-5: dropped the `Usage` and `Commands` members that only forwarded to `CommandTable`; `Program` and the tests node read `CommandTable.Usage` and `CommandTable.Names` directly) |
 | `CommandOptions`, `OptionValues` | the parsed options; the number parser shared by `--threshold` and `--mass-tolerance`, the second validated by `ElementalMixture.IsValidMassTolerance` |
 | `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11) |
 | `JsonText` | a text parsed with its source label in the message |
@@ -158,22 +166,21 @@ requested format and decides its exit code, and that the JSON writer the listing
 | `ProblemPartReader` | the `problem` object only: one reader per problem kind (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
 | `SweepDocumentReader` | the `sweep` object only: the ranges the batch's Cartesian product runs over (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
 | `StateRecordReader` | the record files, their shape decided by reading the first JSON value and what follows it (`JsonText.TryParseWhole`): one value alone is an array or an object, more is JSON Lines; each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
-| `InputDocuments` | the façade the tests node uses: delegations only |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
 | `ProblemCommand` | `rocket` and `equilibrium`: read, check the problem type against the command, build the mixtures, expand the sweep, solve, write |
 | `StatesCommand` | `states`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order |
 | `RecordNaming` | a refusal of the front door (`StateRecordException`, `MixtureMassException`) renamed from its index to the record's file and position |
-| `Sweeps` | the Cartesian product of a sweep, ratio-major, then pressure, then temperature: the rule of this node's input document |
+| `Sweeps` | the Cartesian product of a sweep, ratio-major, then chamber pressure, then pressure, then temperature: the rule of this node's input document (2026-09-15, R-Cli-7: `CrossedWith`'s fold replaced by one query over the four axes; see the warning above) |
 | `Propellants` | a propellant document into builder calls or an elemental mixture; a custom reactant as the front door's `CustomReactantDefinition` |
 | `RocketCases`, `EquilibriumCases` | combinations and a problem document into problems, and results into case outputs |
-| `CaseInputs` | the `inputs` echo of a case, written once |
+| `CaseInputs` | the whole `inputs` echo of a case, written once, for a rocket and for an equilibrium case (2026-09-15, R-Cli-3: `AddTarget` moved in from `EquilibriumCases`; see the warning above) |
 | `DatabaseFiles` | unchanged: where the database directory is found |
 | `StationFields` | the one projection of a station into named, typed cells (the state, the performance figures with the two conversions to seconds, the transport figures), from the library's structs by reflection; owns `StandardGravity` (F-CL-06, F-CL-07) |
 | `JsonOutput`, `CsvOutput` | the cells as nested objects with the compositions above the threshold; the same cells as columns, the header from the same source |
 | `RunSection` | the `run` object and the accelerator object, for every command that writes them |
 | `DocumentWriter` | a case document rendered in the requested format with the exit code of its cases (`ExitCodes`); the JSON writer the listings render through, with the non-finite-number rule; delivery to the output file or standard output |
 | `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
-| `Names` | unchanged: camel-case names of statuses and kinds |
+| `Names` | camel case of the library's names and of statuses; the flow, accelerator and problem-kind words are `DocumentWords`' own, both directions (2026-09-15, R-Cli-4: `Kind` and `Accelerator` moved there beside their parsers) |
 | `SpeciesRow` | one species flattened once (F-CL-08) |
 | `SpeciesCommand` | the `species` command: the database, the name filter, the rows, the run and the delivery (2026-09-14, split out of `SpeciesListing` by the coordinator's review, the way `DeviceListing` already separated the probe from the rendering) |
 | `SpeciesListing` | the rendering of `SpeciesCommand`'s rows: JSON or CSV (2026-09-14, kept to rendering only) |
