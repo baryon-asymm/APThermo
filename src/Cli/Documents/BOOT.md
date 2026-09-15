@@ -5,7 +5,7 @@
 The JSON document shapes of `apthermo` and their strict readers: the problem document
 (`propellant`, `problem`, `sweep`, `engine`), the state-record files of the `states`
 command, and the front door's refusals renamed to a record's own source. A child node
-of `src/Cli` (`AerospacePropellantThermodynamics.Cli.Documents`, compiled into the
+of `src/Cli` (`APThermo.Cli.Documents`, compiled into the
 parent's assembly, root `BOOT.md`, Constraints, 2026-09-15): it has its own reason to
 change — a field, a document shape or a message wording — and the rest of the node
 reaches it through one reader per document kind, never through the strict-object
@@ -64,7 +64,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The moved types compile unchanged under
-      `AerospacePropellantThermodynamics.Cli.Documents` and every test of
+      `APThermo.Cli.Documents` and every test of
       `tests/Cli.Tests` that exercised them before the move
       (`InputDocumentTests`, the document-shape cases of `BitSnapshotTests` and
       `OutputDocumentTests`) passes after it, same count as before the split

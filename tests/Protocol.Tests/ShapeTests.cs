@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// Shape level: the root's code-shape constraint (`tests/Protocol.Tests/BOOT.md`, "Shape check") over the C# syntax trees and

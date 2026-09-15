@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>
 /// The one status no composition of a real table reaches: a reaction system that cannot be solved. The stage is driven directly

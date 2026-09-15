@@ -1,6 +1,6 @@
 # API.md — Cli
 
-Namespace `AerospacePropellantThermodynamics.Cli`, tool command `apthermo`. The node
+Namespace `APThermo.Cli`, tool command `apthermo`. The node
 exposes a command line, an in-process entry point, and the JSON document shapes it
 reads and writes. Everything not listed here is internal and may change.
 
@@ -75,8 +75,8 @@ Exit codes: `0` all cases `ok`; `1` at least one case or station failed numerica
 reactant; `3` accelerator or infrastructure error.
 
 ⚠ 2026-09-12: `apthermo` is the tool command name (`PackAsTool`, `ToolCommandName`);
-the assembly is `AerospacePropellantThermodynamics.Cli`, named after its namespace as
-the root requires, so a direct run is `dotnet AerospacePropellantThermodynamics.Cli.dll …`.
+the assembly is `APThermo.Cli`, named after its namespace as
+the root requires, so a direct run is `dotnet APThermo.Cli.dll …`.
 The sketch's `species` and `devices` had no output form; they write JSON (CSV for
 `species`) like the solving commands. `--database` and `--threshold` apply to `states`
 too, and `--output` and `--format` to the listings. `--mass-tolerance` was added on
@@ -85,7 +85,7 @@ too, and `--output` and `--format` to the listings. `--mass-tolerance` was added
 ## Entry point ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 public enum ExitCode { Ok = 0, CaseFailed = 1, InvalidInput = 2, Infrastructure = 3 }
 

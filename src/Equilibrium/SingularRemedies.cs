@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>
 /// The remedies of RP-1311 section 3.6 for a Newton system that came out singular: reset the gaseous species that

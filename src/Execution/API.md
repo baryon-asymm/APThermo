@@ -1,6 +1,6 @@
 # API.md — Execution
 
-Namespace `AerospacePropellantThermodynamics.Execution`. The node exposes an engine
+Namespace `APThermo.Execution`. The node exposes an engine
 bound to one accelerator, batch containers and results for the three programs, the
 description of the accelerator that ran a batch, and the probe of the root's math
 list. Everything not listed here is internal and may change.
@@ -8,7 +8,7 @@ list. Everything not listed here is internal and may change.
 ## Engine ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 public enum AcceleratorKind { Auto, Cpu, Cuda }
 

@@ -1,13 +1,13 @@
 # API.md — Thermo
 
-Namespace `AerospacePropellantThermodynamics.Thermo`. The node exposes compact species
+Namespace `APThermo.Thermo`. The node exposes compact species
 tables, the kernel-compatible species functions, and the vocabulary shared by the
 numerical nodes. Everything not listed here is internal and may change.
 
 ## Constants and shared vocabulary ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 public static class PhysicalConstants
 {

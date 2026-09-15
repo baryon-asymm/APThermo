@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>The per-species runs collected by the build of a <see cref="TransportTable"/>; host side, written once.</summary>
 internal sealed class SpeciesRuns

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>The one physical constant of the tree.</summary>
 public static class PhysicalConstants

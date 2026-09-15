@@ -5,7 +5,7 @@
 The command-line grammar of `apthermo`, decoupled from every command's own logic: the
 token walk, the two tables of commands and options, folding the options into one
 record, and the checks that a command and its options agree. A child node of `src/Cli`
-(`AerospacePropellantThermodynamics.Cli.Syntax`, compiled into the parent's assembly,
+(`APThermo.Cli.Syntax`, compiled into the parent's assembly,
 root `BOOT.md`, Constraints, 2026-09-15) because it has its own reason to change — a
 new option or command — and the rest of the node uses it through one function
 (`CommandLine.Parse`) and two small records (`Invocation`, `CommandOptions`), never
@@ -71,7 +71,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The moved types compile unchanged under
-      `AerospacePropellantThermodynamics.Cli.Syntax` and every test of
+      `APThermo.Cli.Syntax` and every test of
       `tests/Cli.Tests` that exercised them before the move (`CommandLineTests`,
       the option and format cases of `OutputDocumentTests` and `ExitCodeTests`)
       passes after it, same count as before the split

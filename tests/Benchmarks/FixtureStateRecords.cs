@@ -1,9 +1,9 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Turns the JSON `case.inputs` of a tp, hp, sp or rocket fixture into a `StateRecord`
 /// (BOOT.md, Invariants): a fixture's `elementMoles` and its target already are the

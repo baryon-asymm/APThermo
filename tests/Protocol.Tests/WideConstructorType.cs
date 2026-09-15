@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// One type named by a `parameters` row of a node's `## Shape exceptions` table whose member is that type's own constructor

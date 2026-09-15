@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>Reading a user-named input file, with the missing-file message this node documents.</summary>
 internal static class InputFile

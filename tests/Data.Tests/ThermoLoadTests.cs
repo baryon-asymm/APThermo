@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Data.Tests;
+namespace APThermo.Data.Tests;
 
 /// <summary>L1: the committed data/thermo.inp, loaded in full.</summary>
 public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>

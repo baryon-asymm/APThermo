@@ -89,7 +89,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   because it describes the caller's records and not the physics.
 - The assembly is named after its namespace, as the root requires; `apthermo` is the
   tool command name of the package (`dotnet pack` produces a tool package whose
-  command is `apthermo`), and a direct run is `dotnet AerospacePropellantThermodynamics.Cli.dll`.
+  command is `apthermo`), and a direct run is `dotnet APThermo.Cli.dll`.
 - CSV output flattens one row per case and station with the station's own
   performance figures (the library reports them at every station); compositions are
   not in CSV.
@@ -149,7 +149,7 @@ widening its public surface. Five clusters of this node passed the child-node te
 root `BOOT.md`, `## Decomposition`, the "child nodes phase"): `Syntax/`,
 `Documents/`, `Cases/`, `Output/` and `Listings/`, each with its own `BOOT.md` and
 `API.md` and the namespace of its path
-(`AerospacePropellantThermodynamics.Cli.Syntax` and so on), compiled into this
+(`APThermo.Cli.Syntax` and so on), compiled into this
 node's own assembly. `Program`, `CommandRegistry`, `Failures`, `SolverSession`, the
 three command types (`ProblemCommand`, `StatesCommand`, `SpeciesCommand`) and the
 shared vocabulary and run-bookkeeping types with no single owning cluster

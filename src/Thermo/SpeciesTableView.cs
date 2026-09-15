@@ -1,7 +1,7 @@
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>The kernel-side view of a species table: the same layout as <see cref="SpeciesTableArrays"/>, over accelerator memory. Blittable.</summary>
 public readonly struct SpeciesTableView

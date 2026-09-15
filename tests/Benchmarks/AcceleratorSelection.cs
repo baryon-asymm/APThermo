@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Maps a benchmark's accelerator axis to `EngineOptions` (BOOT.md, Invariants: CUDA
 /// is optional; a benchmark asking for it falls back to the CPU accelerator and

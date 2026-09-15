@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>L0: element moles, reactant enthalpy, mass normalization and candidate species against every fixture that carries reactants.</summary>
 [Collection(SolverCollection.Name)]

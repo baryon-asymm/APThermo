@@ -1,6 +1,6 @@
 # API.md — Execution.Chunks
 
-Namespace `AerospacePropellantThermodynamics.Execution.Chunks`. Every type is
+Namespace `APThermo.Execution.Chunks`. Every type is
 `internal`: the audience is `src/Execution`'s own files (the pipelines, `BatchRun`),
 not a neighbour or a caller outside the tree. Everything not listed here is internal
 to this node itself and may change without notice even to the parent.
@@ -8,7 +8,7 @@ to this node itself and may change without notice even to the parent.
 ## Chunking ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Execution.Chunks;
+namespace APThermo.Execution.Chunks;
 
 internal readonly record struct Chunk(int Offset, int Length);
 
@@ -32,7 +32,7 @@ before a plan is ever built. `Chunks()` enumerates the batch's chunks in order,
 ## Chunk buffers ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Execution.Chunks;
+namespace APThermo.Execution.Chunks;
 
 internal enum ChunkTransfer
 {

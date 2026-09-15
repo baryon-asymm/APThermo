@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>
 /// L0: an exit station whose iteration never leaves the subsonic side of the sonic point is NotConverged, and the stations

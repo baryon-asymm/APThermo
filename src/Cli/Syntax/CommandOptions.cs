@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Execution;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 /// <summary>The options of one invocation, after parsing; every command checks that the options given apply to it.</summary>
 internal sealed record CommandOptions

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>One temperature interval of a species record: the bounds-and-exponents line, then two coefficient lines.</summary>
 internal static class IntervalReader

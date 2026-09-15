@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Stage 11 of the evaluation: the mixture viscosity and the frozen conductivity of the transport set, RP-1311 equations (5.3)

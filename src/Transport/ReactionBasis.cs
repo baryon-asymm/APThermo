@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Stage 7 of the evaluation: the stoichiometry of the set reduced so that the column of every component is a unit vector. The

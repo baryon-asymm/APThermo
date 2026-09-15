@@ -5,7 +5,7 @@
 The rendering of the two listing commands, `species` and `devices`: the database's
 species flattened into rows and the accelerators this machine offers, each in JSON or
 CSV (`species`) or JSON only (`devices`). A child node of `src/Cli`
-(`AerospacePropellantThermodynamics.Cli.Listings`, compiled into the parent's assembly,
+(`APThermo.Cli.Listings`, compiled into the parent's assembly,
 root `BOOT.md`, Constraints, 2026-09-15): it has its own reason to change — a species
 field, a device field — and the rest of the node reaches it through
 `SpeciesListing.Json`/`Csv` and `DeviceListing.Execute`, never through the accelerator
@@ -58,7 +58,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The moved types compile unchanged under
-      `AerospacePropellantThermodynamics.Cli.Listings` and every test of
+      `APThermo.Cli.Listings` and every test of
       `tests/Cli.Tests` that exercised them before the move (the `species` and
       `devices` cases of `OutputDocumentTests`, `CsvTests` and `BitSnapshotTests`)
       passes after it, same count as before the split

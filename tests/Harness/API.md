@@ -1,13 +1,13 @@
 # API.md — Harness
 
-Namespace `AerospacePropellantThermodynamics.Harness`. The scaffolding the test nodes
+Namespace `APThermo.Harness`. The scaffolding the test nodes
 share: a CPU host, bit comparison, bit hashes with their approval files, fixture
 families. Everything not listed here is internal and may change.
 
 ## Host ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 public sealed class CpuHost : IDisposable                  // one per test assembly, held by the consumer's collection or class fixture
 {

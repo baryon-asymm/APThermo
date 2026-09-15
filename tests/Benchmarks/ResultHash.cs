@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Harness;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Adds the bits of a solved state to a `BitHash` (BOOT.md, Invariants: every
 /// benchmark that solves records, once per configuration, the statuses of its cases

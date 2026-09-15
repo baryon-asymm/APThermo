@@ -139,7 +139,7 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
-| `Chunks/` (child node, `AerospacePropellantThermodynamics.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
+| `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
@@ -166,7 +166,7 @@ decision), no public type moving into the child namespace.
 
 - **`Chunks/` passes.** `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`,
   `ChunkTransfer` and `IChunkBuffer` — six internal types — become
-  `AerospacePropellantThermodynamics.Execution.Chunks`. The rest of this node reaches
+  `APThermo.Execution.Chunks`. The rest of this node reaches
   them through `ChunkPlan.For`/`.Chunks()`, `ChunkBuffers`'s declaration methods and
   `ChunkBuffer<T>.View`; `IChunkBuffer`, `ChunkTransfer` and the `Chunk` record are
   never named outside the cluster. Its reason to change — the chunking and transfer
@@ -318,9 +318,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       one line added, that property; `Protocol.Tests.SurfaceTests` green against it
       unchanged since); `BatchTests.Chunking_and_repetition_do_not_change_a_bit`, the
       probe, species-function and accelerator-choice tests green
-      (`AerospacePropellantThermodynamics.Execution.Tests.dll`: 41 passed); the fast
+      (`APThermo.Execution.Tests.dll`: 41 passed); the fast
       suite of the whole solution green (`dotnet test
-      AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"` with
+      APThermo.sln --filter "Category!=LongRunning"` with
       `APTHERMO_NO_CUDA=1`: 2147 passed, 0 failed, 0 skipped). The CUDA sweep and the
       throughput benchmark are the orchestrator's to run once at the end, after the
       merge, on the reference machine (not run from this worktree).

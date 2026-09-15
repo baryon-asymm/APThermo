@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Fixtures;
+namespace APThermo.Fixtures;
 
 /// <summary>Where a fixture came from: the package, the script and the data files, by version and hash.</summary>
 public sealed record Provenance(

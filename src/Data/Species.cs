@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>Phase of a species record: gaseous, or condensed (solid or liquid).</summary>
 public enum SpeciesPhase

@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Harness;
+using APThermo.Harness;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>L1: the probe kernel of the root's math list loads on CUDA through the post-link and matches the CPU accelerator within the ULP bound.</summary>
 [Collection(EngineCollection.Name)]

@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Cli.Documents;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli.Documents;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Cases;
+namespace APThermo.Cli.Cases;
 
 /// <summary>Combinations and a rocket problem document into problems, and results into case outputs.</summary>
 internal static class RocketCases

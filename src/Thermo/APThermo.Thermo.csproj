@@ -2,7 +2,7 @@
 
   <!-- Node src/Thermo: species tables and the kernel-compatible species functions. First kernel-capable level. -->
   <ItemGroup>
-    <ProjectReference Include="..\Data\AerospacePropellantThermodynamics.Data.csproj" />
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

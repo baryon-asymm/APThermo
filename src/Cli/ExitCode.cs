@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>Exit codes of the command line (BOOT.md, invariants).</summary>
 public enum ExitCode

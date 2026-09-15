@@ -1,13 +1,13 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Performance;
+using APThermo.Problems;
+using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// The six problem kinds of `BOOT.md`, Constraints, group 2: tp, hp, sp, and rocket in
 /// each of its three flow models, each with and without transport.

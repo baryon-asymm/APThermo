@@ -7,57 +7,57 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data", "Data", "{58A5B24B-8FB4-5A6E-5EF4-1E3E19F29B1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Data", "src\Data\AerospacePropellantThermodynamics.Data.csproj", "{A316E53F-153B-4F9D-BB26-994C69D51286}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Data", "src\Data\APThermo.Data.csproj", "{A316E53F-153B-4F9D-BB26-994C69D51286}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fixtures", "Fixtures", "{F12727AA-ABEF-07AF-E6F0-CD96E3D9A8AF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Fixtures", "tests\Fixtures\AerospacePropellantThermodynamics.Fixtures.csproj", "{A4416B67-309B-44CC-BB57-5425332E995E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Fixtures", "tests\Fixtures\APThermo.Fixtures.csproj", "{A4416B67-309B-44CC-BB57-5425332E995E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Data.Tests", "Data.Tests", "{F5856A58-83D8-888F-79B1-D961ED034543}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Data.Tests", "tests\Data.Tests\AerospacePropellantThermodynamics.Data.Tests.csproj", "{9419E4BA-923A-45B5-9750-AED8B3793786}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Data.Tests", "tests\Data.Tests\APThermo.Data.Tests.csproj", "{9419E4BA-923A-45B5-9750-AED8B3793786}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fixtures.Tests", "Fixtures.Tests", "{B73DEB92-8CF4-F920-4CA2-CA51D85386A7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Fixtures.Tests", "tests\Fixtures.Tests\AerospacePropellantThermodynamics.Fixtures.Tests.csproj", "{B96F4837-33CC-4E22-B316-D8B8464EF45C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Fixtures.Tests", "tests\Fixtures.Tests\APThermo.Fixtures.Tests.csproj", "{B96F4837-33CC-4E22-B316-D8B8464EF45C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Thermo", "Thermo", "{C8D03F53-85E8-E10C-B5AE-B99133F434EE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Thermo", "src\Thermo\AerospacePropellantThermodynamics.Thermo.csproj", "{D5A64038-F500-454E-8530-1DFB00CEE360}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Thermo", "src\Thermo\APThermo.Thermo.csproj", "{D5A64038-F500-454E-8530-1DFB00CEE360}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Thermo.Tests", "Thermo.Tests", "{ED1AD851-FE6F-163F-E532-B1F85661505D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Thermo.Tests", "tests\Thermo.Tests\AerospacePropellantThermodynamics.Thermo.Tests.csproj", "{DE215977-1F6A-456A-AA5B-637E4694A7C4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Thermo.Tests", "tests\Thermo.Tests\APThermo.Thermo.Tests.csproj", "{DE215977-1F6A-456A-AA5B-637E4694A7C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Equilibrium", "src\Equilibrium\AerospacePropellantThermodynamics.Equilibrium.csproj", "{74D8BD1C-7EAF-407D-ACA2-BC9A78A181C5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Equilibrium", "src\Equilibrium\APThermo.Equilibrium.csproj", "{74D8BD1C-7EAF-407D-ACA2-BC9A78A181C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Equilibrium.Tests", "tests\Equilibrium.Tests\AerospacePropellantThermodynamics.Equilibrium.Tests.csproj", "{871E7484-AE53-4AA8-A82E-F33A3D3F0F8C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Equilibrium.Tests", "tests\Equilibrium.Tests\APThermo.Equilibrium.Tests.csproj", "{871E7484-AE53-4AA8-A82E-F33A3D3F0F8C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Performance", "src\Performance\AerospacePropellantThermodynamics.Performance.csproj", "{0C9A7B7B-6B5D-4892-B95B-B1742CE9FFD8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Performance", "src\Performance\APThermo.Performance.csproj", "{0C9A7B7B-6B5D-4892-B95B-B1742CE9FFD8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Performance.Tests", "tests\Performance.Tests\AerospacePropellantThermodynamics.Performance.Tests.csproj", "{B39BC116-414E-4E87-9FF4-C7C29F090872}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Performance.Tests", "tests\Performance.Tests\APThermo.Performance.Tests.csproj", "{B39BC116-414E-4E87-9FF4-C7C29F090872}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Transport", "Transport", "{EBE1F911-DA5A-2E09-3951-6FDC52D4619A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Transport", "src\Transport\AerospacePropellantThermodynamics.Transport.csproj", "{657183BB-BF28-4C99-9101-5ADDF112C37B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Transport", "src\Transport\APThermo.Transport.csproj", "{657183BB-BF28-4C99-9101-5ADDF112C37B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Transport.Tests", "Transport.Tests", "{D79185C1-66EA-EE8B-1C5E-902E67C52BA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Transport.Tests", "tests\Transport.Tests\AerospacePropellantThermodynamics.Transport.Tests.csproj", "{4F426283-E3F2-441C-8E11-6F115478BDBB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Transport.Tests", "tests\Transport.Tests\APThermo.Transport.Tests.csproj", "{4F426283-E3F2-441C-8E11-6F115478BDBB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Execution", "Execution", "{EC0AE37B-42FE-3786-533F-760669F80219}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Execution", "src\Execution\AerospacePropellantThermodynamics.Execution.csproj", "{764826DA-20B2-4936-A289-594D338408B7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Execution", "src\Execution\APThermo.Execution.csproj", "{764826DA-20B2-4936-A289-594D338408B7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Execution.Tests", "Execution.Tests", "{13055E78-F142-F3CA-87BE-B5BA74CE81C6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Execution.Tests", "tests\Execution.Tests\AerospacePropellantThermodynamics.Execution.Tests.csproj", "{6B4DCE9B-5111-4B24-A885-165278DF7A17}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Execution.Tests", "tests\Execution.Tests\APThermo.Execution.Tests.csproj", "{6B4DCE9B-5111-4B24-A885-165278DF7A17}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Problems", "Problems", "{1F00F202-86F7-2C84-886B-8413C9B64CA3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Problems", "src\Problems\AerospacePropellantThermodynamics.Problems.csproj", "{C433D1E3-6882-4362-9A04-0A98199F2EDB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Problems", "src\Problems\APThermo.Problems.csproj", "{C433D1E3-6882-4362-9A04-0A98199F2EDB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Equilibrium", "Equilibrium", "{1F372C61-7DB7-C9EB-8EB0-EED26EB98FB1}"
 EndProject
@@ -65,15 +65,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Performance", "Performance"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Problems.Tests", "Problems.Tests", "{7FB19850-2149-E8ED-2182-BCD1FCE35CF2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Problems.Tests", "tests\Problems.Tests\AerospacePropellantThermodynamics.Problems.Tests.csproj", "{57985B04-B902-4594-BE8F-7DAAF0A91326}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Problems.Tests", "tests\Problems.Tests\APThermo.Problems.Tests.csproj", "{57985B04-B902-4594-BE8F-7DAAF0A91326}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Cli", "src\Cli\AerospacePropellantThermodynamics.Cli.csproj", "{CFDD2571-9A1F-4761-8083-5D048BF745ED}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Cli", "src\Cli\APThermo.Cli.csproj", "{CFDD2571-9A1F-4761-8083-5D048BF745ED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Cli.Tests", "tests\Cli.Tests\AerospacePropellantThermodynamics.Cli.Tests.csproj", "{68BE0042-EA67-4EFE-9A80-1BC98368D6FC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Cli.Tests", "tests\Cli.Tests\APThermo.Cli.Tests.csproj", "{68BE0042-EA67-4EFE-9A80-1BC98368D6FC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Protocol.Tests", "Protocol.Tests", "{FC2E5359-CDB3-770B-817D-733BFE2A8445}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Protocol.Tests", "tests\Protocol.Tests\AerospacePropellantThermodynamics.Protocol.Tests.csproj", "{4ABFAB70-6D6C-4119-AB2D-2FA23E8B6773}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Protocol.Tests", "tests\Protocol.Tests\APThermo.Protocol.Tests.csproj", "{4ABFAB70-6D6C-4119-AB2D-2FA23E8B6773}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Cli", "Cli", "{778427DF-EB2C-5228-964E-6D535DE253CA}"
 EndProject
@@ -85,11 +85,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Performance.Tests", "Perfor
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Harness", "Harness", "{C7E769CB-2BE9-2587-9A45-EDACB01852C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Harness", "tests\Harness\AerospacePropellantThermodynamics.Harness.csproj", "{99B2521D-5699-4AA2-A9FA-5808A33A1D80}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Harness", "tests\Harness\APThermo.Harness.csproj", "{99B2521D-5699-4AA2-A9FA-5808A33A1D80}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Benchmarks", "Benchmarks", "{1B5EE026-6580-4DBB-AD4F-41EF309EE9B6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AerospacePropellantThermodynamics.Benchmarks", "tests\Benchmarks\AerospacePropellantThermodynamics.Benchmarks.csproj", "{7A44F393-5A67-4DF3-ACE2-A31996235297}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APThermo.Benchmarks", "tests\Benchmarks\APThermo.Benchmarks.csproj", "{7A44F393-5A67-4DF3-ACE2-A31996235297}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

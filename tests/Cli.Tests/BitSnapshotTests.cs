@@ -1,9 +1,9 @@
 using System.Text;
-using AerospacePropellantThermodynamics.Cli.Documents;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
+using APThermo.Cli.Documents;
+using APThermo.Fixtures;
+using APThermo.Harness;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>
 /// Bits: the output of every example that runs is unchanged since it was recorded (BOOT.md, the Bits row); a tripwire

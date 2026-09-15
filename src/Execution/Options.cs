@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>Which accelerator an engine binds to.</summary>
 public enum AcceleratorKind

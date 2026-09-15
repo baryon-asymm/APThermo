@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
+using APThermo.Equilibrium;
+using APThermo.Performance;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>
 /// Turns a state batch's records into the mixtures and problems <see cref="Solver.SolveStates"/> and

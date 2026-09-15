@@ -1,11 +1,11 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>The element list and the candidate species of one case's chemical system: what a table is built from, and what
 /// <see cref="RocketInputs.BatchKey"/> keys a family of cases by.</summary>

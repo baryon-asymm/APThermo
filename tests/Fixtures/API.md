@@ -1,13 +1,13 @@
 # API.md — Fixtures
 
-Namespace `AerospacePropellantThermodynamics.Fixtures`. The node exposes the reference
+Namespace `APThermo.Fixtures`. The node exposes the reference
 cases as documents, a loader, the tolerance table, and the generator scripts.
 Everything not listed here is internal and may change.
 
 ## Repository paths ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Fixtures;
+namespace APThermo.Fixtures;
 
 public static class RepositoryPaths
 {

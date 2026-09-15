@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>Finds libnvvm and libdevice in the order BOOT.md fixes.</summary>
 internal static class LibDeviceLocator

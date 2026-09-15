@@ -1,7 +1,7 @@
 using System.Globalization;
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>
 /// Resolves one requested species name into its table pieces (BOOT.md, the join-and-cut of condensed records): the

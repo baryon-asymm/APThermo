@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>A result's species list with its gas count: the number of gaseous species at the head, which the table puts first.</summary>
 internal readonly record struct SpeciesList(IReadOnlyList<string> Species, int GasCount)

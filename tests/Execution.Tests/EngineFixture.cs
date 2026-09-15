@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Data;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>The committed databases, a CPU engine, and the CUDA engine of the reference machine (null when CUDA is forbidden), shared by the collection.</summary>
 public sealed class EngineFixture : IDisposable

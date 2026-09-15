@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// The transport fits of the species of a <see cref="SpeciesTable"/>, indexed like that table and converted to SI once, at the

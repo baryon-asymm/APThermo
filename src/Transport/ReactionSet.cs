@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Stages 8 and 9 of the evaluation: one reaction forming each non-component species of the set from the components, and the

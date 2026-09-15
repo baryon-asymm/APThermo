@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// One block of <c>trans.inp</c>: the header (one species name, or two for a binary interaction, the <c>VnCm</c>

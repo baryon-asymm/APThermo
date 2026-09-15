@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>The assembly each node's project builds, loaded from this project's build output; a type's own node by the
 /// namespace attribution AGENTS.md §1 defines (the deepest node whose namespace equals, or prefixes at a dot boundary, the

@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>The one rule that turns an element set into candidate product species (BOOT.md, invariants).</summary>
 internal static class SpeciesSelection

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// Declarations level: every type and member declared in a C# block of an API.md under a ✅ heading exists in an assembly of the

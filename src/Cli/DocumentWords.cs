@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
+using APThermo.Execution;
+using APThermo.Performance;
+using APThermo.Problems;
+using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>
 /// The word spellings of the documents and the options, parsed into their enum, with the place (a JSON path, or an

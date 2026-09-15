@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// The exit stations in the order they were given (RP-1311 sections 6.3.2, 6.3.5 to 6.3.7): the composition each one starts

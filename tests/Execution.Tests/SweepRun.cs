@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>The long-running sweep: the same batch on the CPU accelerator and on CUDA (twice), with the times.</summary>
 internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, RocketBatchResult? Cuda, RocketBatchResult? CudaAgain, TimeSpan CpuSeconds, TimeSpan CudaSeconds)

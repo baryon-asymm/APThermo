@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>The result of one invocation: exit code, standard output and standard error.</summary>
 public sealed record Run(int Code, string Output, string Error)
@@ -17,7 +17,7 @@ public sealed record Run(int Code, string Output, string Error)
 /// <summary>Paths of this node and of the database, a temporary directory, and the in-process and process-level invocations.</summary>
 public sealed class CliFixture : IDisposable
 {
-    public const string CliAssembly = "AerospacePropellantThermodynamics.Cli";
+    public const string CliAssembly = "APThermo.Cli";
 
     private readonly Lazy<SpeciesDatabase> _database = new(() => SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Path.Combine(RepositoryPaths.Data, "trans.inp")));
 

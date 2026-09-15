@@ -72,7 +72,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Layout: `generate/` holds the Python scripts and `requirements.txt`; `cases/<kind>/`
   holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `transport`,
   `thermo`, `constants`); `tolerances.json` is the tolerance table; the C# loader is
-  the node's assembly `AerospacePropellantThermodynamics.Fixtures`.
+  the node's assembly `APThermo.Fixtures`.
 - Procedure: `python -m venv tests/Fixtures/generate/.venv`, install
   `requirements.txt` into it, then `python tests/Fixtures/generate/regenerate.py`
   (writes changed fixtures, removes stale ones) or `regenerate.py --check` (compares

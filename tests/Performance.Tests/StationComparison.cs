@@ -1,9 +1,9 @@
 using System.Reflection;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>Compares the solver's stations with a rocket fixture's, the field lists taken from the fixture and the result structs.</summary>
 internal static class StationComparison

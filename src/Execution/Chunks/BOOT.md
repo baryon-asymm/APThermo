@@ -67,7 +67,7 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
   2026-09-15, "Internal types stay internal").
 - No project of its own: this node's `.cs` files compile into
   `src/Execution`'s assembly through the SDK's default glob, under the namespace
-  `AerospacePropellantThermodynamics.Execution.Chunks`, mirroring this directory from
+  `APThermo.Execution.Chunks`, mirroring this directory from
   the tree root (`AGENTS.md` §1; root `BOOT.md`, the 2026-09-15 constraint on child
   nodes).
 - The root's code-shape constraint applies unchanged: every type here is well under
@@ -85,7 +85,7 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       chunk-plan unit facts
       (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`),
       part of the 43/43 green run below.
-- [x] 2026-09-15 — `dotnet build AerospacePropellantThermodynamics.sln` clean;
+- [x] 2026-09-15 — `dotnet build APThermo.sln` clean;
       `dotnet test tests/Execution.Tests` 43/43 and `dotnet test tests/Protocol.Tests`
       19/19, both green with `APTHERMO_NO_CUDA=1`; the protocol lint (`python -X utf8
       tools/protocol-lint/protocol_lint.py . --exclude templates`) at 0 errors,

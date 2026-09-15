@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>The command line as a separate process: real exit codes and standard streams, one run per exit code.</summary>
 [Collection(CliCollection.Name)]

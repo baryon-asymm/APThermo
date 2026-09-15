@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>A missing atomic weight as an <see cref="ArgumentException"/> naming the element, for the element check of a chemical
 /// system and the mass of a mixture (F-PR-07); a custom reactant's resolution translates the same miss naming the reactant too

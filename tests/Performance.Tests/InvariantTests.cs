@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>L0: one test per invariant of the node (RocketInvariants) on every converged fixture case, and the statuses of invalid exits.</summary>
 [Collection(CpuCollection.Name)]

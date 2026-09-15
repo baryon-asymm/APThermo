@@ -1,6 +1,6 @@
 # API.md — Transport
 
-Namespace `AerospacePropellantThermodynamics.Transport`. The node exposes a compact
+Namespace `APThermo.Transport`. The node exposes a compact
 transport table for the species of a species table and a kernel-compatible evaluation
 of the mixture transport properties at one station. Everything not listed here is
 internal and may change.
@@ -8,7 +8,7 @@ internal and may change.
 ## Transport table ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 public sealed class TransportTable                       // host side, immutable
 {

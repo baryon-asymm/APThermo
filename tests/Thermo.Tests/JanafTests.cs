@@ -1,7 +1,7 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>
 /// L0: the fits against a second source, the NIST-JANAF tables typed into janaf.json with their citation. A plausibility

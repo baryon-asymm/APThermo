@@ -1,9 +1,9 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Output;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Cli.Output;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli.Listings;
+namespace APThermo.Cli.Listings;
 
 /// <summary>The devices command: its rendering of a <see cref="DeviceReport"/>.</summary>
 internal static class DeviceListing

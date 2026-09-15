@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 /// <summary>
 /// A snapshot file of "key value" lines: a tripwire, not a contract, the way <c>PublicSurface.approved.txt</c> is one

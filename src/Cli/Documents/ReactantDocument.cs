@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>
 /// One reactant of a propellant document. <see cref="Custom"/> carries the front door's own shape for a custom

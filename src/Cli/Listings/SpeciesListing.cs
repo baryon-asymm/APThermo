@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Output;
+using APThermo.Cli.Output;
 
-namespace AerospacePropellantThermodynamics.Cli.Listings;
+namespace APThermo.Cli.Listings;
 
 /// <summary>The rendering of the species command's rows (<see cref="SpeciesCommand"/>): flattened once, in JSON or CSV.</summary>
 internal static class SpeciesListing

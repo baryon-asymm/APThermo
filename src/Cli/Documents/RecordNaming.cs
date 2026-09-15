@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>
 /// A refusal of the front door (<see cref="StateRecordException"/>, <see cref="MixtureMassException"/>) renamed from

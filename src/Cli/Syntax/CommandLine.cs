@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 /// <summary>
 /// Hand-written parsing of the command line (BOOT.md: no dependency for it): scan, look up the command, check its

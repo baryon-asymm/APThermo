@@ -1,6 +1,6 @@
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>Gaussian elimination with partial pivoting on a small dense system, in place. Kernel-compatible. Shared with the transport node.</summary>
 public static class DenseSolver

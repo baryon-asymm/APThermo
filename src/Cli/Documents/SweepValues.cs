@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>A sweep entry: a non-empty list of numbers, or a range {from, to, step} expanded inclusively.</summary>
 internal static class SweepValues

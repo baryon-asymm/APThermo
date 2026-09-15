@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Performance;
-using ProblemKind = AerospacePropellantThermodynamics.Equilibrium.ProblemKind;
+using APThermo.Performance;
+using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>Reads the `problem` object of a problem document (API.md, Input document): one reader per problem kind.</summary>
 internal static class ProblemPartReader

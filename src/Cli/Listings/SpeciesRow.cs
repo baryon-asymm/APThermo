@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Cli.Listings;
+namespace APThermo.Cli.Listings;
 
 /// <summary>One species of the database, flattened once (F-CL-08): the fields both document forms of `species` read.</summary>
 internal sealed record SpeciesRow

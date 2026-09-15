@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>L1: every rocket fixture case is solved and compared with the reference station by station.</summary>
 [Collection(CpuCollection.Name)]

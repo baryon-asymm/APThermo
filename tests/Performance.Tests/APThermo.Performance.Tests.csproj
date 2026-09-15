@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Performance.Tests: the readiness criterion of src/Performance. CPU accelerator only. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\..\src\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\..\src\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
+    <ProjectReference Include="..\Harness\APThermo.Harness.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+</Project>

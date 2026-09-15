@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Performance;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>L1 and L2: every rocket fixture through the library, batches against single cases, elemental mixtures against propellants.</summary>
 [Collection(SolverCollection.Name)]

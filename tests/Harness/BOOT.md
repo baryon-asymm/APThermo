@@ -67,7 +67,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
 
 ## Constraints
 
-- A library assembly (`AerospacePropellantThermodynamics.Harness`) referenced by test
+- A library assembly (`APThermo.Harness`) referenced by test
   projects only; it references no test framework, so its public surface enters the
   protocol tests node's snapshot like any library's.
 - Every type is a stable type in the root's sense once the test nodes use it: small,

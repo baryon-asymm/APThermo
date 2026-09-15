@@ -1,6 +1,6 @@
 # API.md — Problems
 
-Namespace `AerospacePropellantThermodynamics.Problems`. The node exposes the
+Namespace `APThermo.Problems`. The node exposes the
 propellant and problem definitions, the result records, and the solver entry points
 of the library. Everything not listed here is internal and may change. Types of the
 neighbours appear in the signatures: `SpeciesDatabase` and `ElementCount` (`Data`),
@@ -11,7 +11,7 @@ neighbours appear in the signatures: `SpeciesDatabase` and `ElementCount` (`Data
 ## Propellants ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 public enum ReactantRole { Oxidizer, Fuel, Named }      // Named: a total mass fraction, outside any oxidizer/fuel split
 

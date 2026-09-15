@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>The element order of a chemical system (BOOT.md, Constraints): the order of first appearance across a sequence of symbol lists.</summary>
 internal static class ElementOrder

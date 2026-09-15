@@ -1,10 +1,10 @@
 # API.md — Cli.Syntax
 
-Namespace `AerospacePropellantThermodynamics.Cli.Syntax`, compiled into the
-`AerospacePropellantThermodynamics.Cli` assembly (root `BOOT.md`, Constraints,
+Namespace `APThermo.Cli.Syntax`, compiled into the
+`APThermo.Cli` assembly (root `BOOT.md`, Constraints,
 2026-09-15: a child node without a project of its own compiles into its nearest
 ancestor's). Every type is `internal`; visible throughout the `Cli` assembly and to
-`AerospacePropellantThermodynamics.Cli.Tests`, but the parent, the sibling child nodes
+`APThermo.Cli.Tests`, but the parent, the sibling child nodes
 and the tests node use only what is named below. Everything else (`ArgumentScanner`,
 `ScannedArguments`, `CommandSpec`, `CommandTable.Options`, `CommandTable.Find`,
 `CommandTable.FindOption`, `OptionSpec`, `OptionValues`) is this node's own and may
@@ -13,7 +13,7 @@ change.
 ## Command line ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 internal static class CommandLine
 {
