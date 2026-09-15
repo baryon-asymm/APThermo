@@ -14,6 +14,7 @@ consider guaranteed about the agreement between its documents and its code.
 | declared dependencies match the real ones, in both directions, from signatures and method bodies | Dependencies level (`DependencyTests`) | ✅ |
 | the numerical nodes hold no single-precision value or operation and no mutable static field; no node but the execution node and its tests names a CUDA type | Root invariants level (`InvariantTests`) | ✅ |
 | the tree meets the root's code-shape constraint (sizes, nesting, parameters, the coupling of the `src` types, stable types, the stable-dependencies direction, no `partial`, `#region` or helpers class), every exception a measured row of its node's `## Shape exceptions` table | Shape level (`ShapeTests`) | ✅ 2026-09-15 |
+| a library node's public types sit in its `API.md`'s package surface, a declared type's own section matches its reflected visibility, a friend crossing an assembly boundary is found in the target's tree contract, and every `src` assembly's `InternalsVisibleTo` names a recognised friend | Tree contract level (`TreeContractTests`) | ✅ 2026-09-15 |
 
 What it does not guarantee: that a document tells the truth about the code it names
 correctly (`AGENTS.md` §13); that a signature under ✅ matches the code (names are
@@ -24,7 +25,11 @@ type holds no behaviour beyond construction and validation; that a type or membe
 `## Shape exceptions` row excuses is what its reason says (the Shape level reads a
 row's `Where`, `Rule` and `Measured`, never its `Reason`); the target-typed creations
 the named-construction rule leaves to review; that a decomposition follows the
-domain's axes.
+domain's axes; the package-surface/tree-contract split of a project-less child node's
+own `API.md` (root `BOOT.md`, Delivery: "Tree contracts" — the split reaches only a
+node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); that a
+`## Dependencies` declaration alone, without a matching real reference, justifies an
+`InternalsVisibleTo` grant no code actually needs.
 
 ## What the tests rely on
 
@@ -43,3 +48,14 @@ domain's axes.
   tree's assemblies — a node with its own project, or a project-less child node
   compiled into its nearest ancestor's (2026-09-14; child nodes, 2026-09-15) — and the
   `## Shape exceptions` tables of the nodes' `BOOT.md`.
+- A section heading of an `API.md` carrying the text `(tree contract)` marks that
+  section a tree contract; a heading without it belongs to the package surface, the
+  same way every heading of every node's `API.md` reads today (2026-09-15, distribution
+  phase; `## Tree contract` in this node's `BOOT.md`). The split, and the facts that
+  read it, apply only to a node that packs its own assembly — the eight `src` nodes and
+  `Fixtures` — never to a project-less child, whose types are already visible
+  throughout its own ancestor's one assembly with no `InternalsVisibleTo` grant
+  possible or needed.
+- The `InternalsVisibleTo` attributes of a `src` node's own assembly, read from its
+  attribute data, against the nodes' `## Dependencies` and against whether the grantee
+  actually names a tree-contract type of the granter.
