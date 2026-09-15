@@ -8,13 +8,13 @@ namespace AerospacePropellantThermodynamics.Performance.Tests;
 /// </summary>
 internal static class RocketInvariants
 {
-    /// <summary>Equation (6.16): the throat's u²/a² departs from 1 by no more than this.</summary>
+    /// <summary>Equation (6.16): the throat's u²/a² departs from 1 by no more than this (Performance BOOT.md, Invariants: sonic throat).</summary>
     public const double SonicTolerance = 4e-5;
 
-    /// <summary>Every station downstream of the chamber keeps the chamber's entropy to this relative tolerance.</summary>
+    /// <summary>Every station downstream of the chamber keeps the chamber's entropy to this relative tolerance (Performance BOOT.md, Invariants: isentropic expansion).</summary>
     public const double EntropyTolerance = 1e-9;
 
-    /// <summary>The assigned area ratio is met at convergence to this relative tolerance.</summary>
+    /// <summary>The assigned area ratio is met at convergence to this relative tolerance (Performance BOOT.md, Invariants: area ratios are met by construction).</summary>
     public const double AreaRatioTolerance = 1e-6;
 
     /// <summary>u = sqrt(2(h_c − h)) is an algebraic identity of a converged station: rounding only.</summary>
