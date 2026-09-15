@@ -41,7 +41,7 @@ internal static class DampedStep
         var lambda2 = double.MaxValue;
         for (var j = 0; j < table.GasCount; j++)
         {
-            if (!CaseSetup.InPlay(scratch, j))
+            if (!SpeciesMarks.InPlay(scratch, j))
             {
                 scratch.Corrections[j] = 0.0;
                 continue;
@@ -87,7 +87,7 @@ internal static class DampedStep
     {
         for (var j = 0; j < table.GasCount; j++)
         {
-            if (CaseSetup.InPlay(scratch, j))
+            if (SpeciesMarks.InPlay(scratch, j))
             {
                 scratch.LogMoles[j] += lambda * scratch.Corrections[j];
             }

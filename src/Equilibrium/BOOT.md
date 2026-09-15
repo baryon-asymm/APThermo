@@ -230,7 +230,7 @@ below) is the proof.
 | Class | Responsibility | Visibility |
 |---|---|---|
 | `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above its limit (Ce 19 by the dependency check's walk on 2026-09-14) | public, contract unchanged |
-| `CaseSetup` | input validation, the element and species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
+| `CaseSetup` | input validation, the element mask, the initial species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
 | `Composition` | the four species functions at the case temperature; the retained gaseous moles (the trace rule, one place); the mixture sums the system and the state need (`MixtureSums`) | internal |
 | `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
 | `NewtonIteration` | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula" below). Named here as this node's second composition root, the root's Ce rule allows above its limit (Ce 17 by the dependency check's walk on 2026-09-14) | internal |
@@ -239,6 +239,7 @@ below) is the proof.
 | `SingularRemedies` | the remedies of section 3.6: the reset of vanished gaseous species, then the removal of the last condensed record | internal |
 | `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
 | `PhaseGeometry` | where two records of one formula meet: the record bounds as `Thermo` answers them, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
+| `SpeciesMarks` | the mark accessors (`Of`, `Set`, `InPlay`), used by every stage that reads or writes a species' mark, `CondensedSet` and `CaseSetup` included | internal |
 | `ElementBalance` | the abundance `Σ a_ij n_j` of an element in the composition (one place, used by the matrix's residual `b_i° − Σ a_ij n_j` and by both tests) and its two tolerance tests, as two named methods | internal |
 | `DerivativeSystem` | the derivative system of section 2.5 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
 | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
@@ -254,7 +255,8 @@ count, the stride, the rows of the total-moles and temperature equations, the
 problem kind); `MixtureSums`; `Derivatives`; the enums `EstimateSource`,
 `DerivativeKind`, `SpeciesMark` and `ConvergenceVerdict` (added 2026-09-14 with the
 Newton-loop split below, the verdict `ConvergenceTests` returns and `NewtonIteration`
-reads).
+reads); `SpeciesMarks` beside `SpeciesMark` (added 2026-09-15, the repair review's
+R-Equilibrium-6, below).
 
 Decisions taken with the review of 2026-09-14:
 
@@ -320,6 +322,18 @@ Decisions taken with the review of 2026-09-14:
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
   and it may not exceed 100 lines.
+- **The mark accessors moved to `SpeciesMarks`** (2026-09-15, the repair review's
+  R-Equilibrium-6). `CaseSetup` is "what a case needs before its first Newton step",
+  but its mark accessors were used by every stage of the iteration, and `CondensedSet`
+  wrote through them too (`StandDown`): the type's name covered one job and did
+  another. `Of`, `Set` and `InPlay` (the renamed `Mark`, `Mark` and `InPlay`) now sit
+  in `Carriers.cs` beside `SpeciesMark`; `CaseSetup` keeps the input validation, the
+  initial marks and the two reductions of the input. Measured by the dependency
+  check's walk: `CaseSetup` 9 → 10 (it now names `SpeciesMarks` where it used to name
+  only itself); every other caller (`DampedStep`, `Composition`, `CondensedSet`,
+  `SingularRemedies`) unchanged, since a call to `CaseSetup` became a call to
+  `SpeciesMarks` in the same position. `PhaseGeometry`'s own raw scratch read is a
+  defect, not a naming choice (R-Equilibrium-1, fixed separately below).
 
 What the implementation settled, 2026-09-14, in the coding session that followed:
 
@@ -348,10 +362,11 @@ What the implementation settled, 2026-09-14, in the coding session that followed
   the sum of `n_j (h_j/RT)^2`, belongs to `DerivativeSystem` with the rest of that
   equation rather than to `MixtureSums`, which does not carry it. The membership test
   `InSolution` sits in `PhaseGeometry` beside the partner lookup that needs it. The
-  mark accessors (`Mark`, `InPlay`) and the two reductions of the input
-  (`LogPressure`, `InitialTemperature`) sit in `CaseSetup`, which writes the marks and
-  reads the problem. `Composition` also holds the frozen sums, whose gaseous
-  logarithms come from the mole numbers because the frozen path has no `LogMoles`.
+  two reductions of the input (`LogPressure`, `InitialTemperature`) sit in
+  `CaseSetup`, which reads the problem; the mark accessors moved to `SpeciesMarks` in
+  the repair review (above, 2026-09-15). `Composition` also holds the frozen sums,
+  whose gaseous logarithms come from the mole numbers because the frozen path has no
+  `LogMoles`.
 - **One behaviour changed, deliberately and invisibly.** `DerivativeSystem` restores
   the caller's condensed order before returning on every path, the singular one
   included; the code before the decomposition returned from that path with the scratch
@@ -371,7 +386,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 12 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 Every other type of the node measures 10 or below by the dependency check's walk
-(`CondensedSet`, the highest of the rest), well below the root's limit of 14.
+(`CaseSetup` and `CondensedSet`, tied at 10 as the highest of the rest since the
+repair review moved the mark accessors into `CaseSetup`'s own dependencies
+2026-09-15, R-Equilibrium-6), well below the root's limit of 14.
 
 ## Acceptance criteria
 

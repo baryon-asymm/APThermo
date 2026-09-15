@@ -23,7 +23,7 @@ internal static class SingularRemedies
             singularResets++;
             for (var j = 0; j < gasCount; j++)
             {
-                if (CaseSetup.InPlay(scratch, j) && result.Moles[j] == 0.0)
+                if (SpeciesMarks.InPlay(scratch, j) && result.Moles[j] == 0.0)
                 {
                     scratch.LogMoles[j] = Math.Log(ResetMoles);
                 }

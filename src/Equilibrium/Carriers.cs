@@ -52,6 +52,26 @@ internal enum SpeciesMark
     StoodDown = 3,
 }
 
+/// <summary>The mark accessors of <c>scratch.SpeciesActive</c> (<see cref="SpeciesMark"/>), used by every stage of the iteration.</summary>
+internal static class SpeciesMarks
+{
+    /// <summary>The mark of a species in the scratch (the domain is in the node's API.md).</summary>
+    public static SpeciesMark Of(in EquilibriumScratch scratch, int species) => (SpeciesMark)scratch.SpeciesActive[species];
+
+    /// <summary>Writes a species' mark.</summary>
+    public static void Set(in EquilibriumScratch scratch, int species, SpeciesMark mark) => scratch.SpeciesActive[species] = (int)mark;
+
+    /// <summary>
+    /// Whether the species takes part in this case at all: its elements are present and the anti-cycling rule has not stood
+    /// it down. A record forgiven once is still in play — it may be skipped by one inclusion pass, not removed from the case.
+    /// </summary>
+    public static bool InPlay(in EquilibriumScratch scratch, int species)
+    {
+        var mark = Of(scratch, species);
+        return mark == SpeciesMark.Active || mark == SpeciesMark.ForgivenOnce;
+    }
+}
+
 /// <summary>
 /// The shape of the reduced system of one convergence: how many unknowns, where the total-moles and temperature rows sit,
 /// and which problem is being solved. The derivative system of section 2.5 is a tp-shaped layout over the same scratch.

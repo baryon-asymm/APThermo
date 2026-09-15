@@ -57,7 +57,7 @@ internal static class CondensedSet
     {
         for (var j = table.GasCount; j < table.SpeciesCount; j++)
         {
-            if (CaseSetup.Mark(scratch, j) != SpeciesMark.StoodDown || PhaseGeometry.InSolution(scratch, state.CondensedCount, j))
+            if (SpeciesMarks.Of(scratch, j) != SpeciesMark.StoodDown || PhaseGeometry.InSolution(scratch, state.CondensedCount, j))
             {
                 continue;
             }
@@ -193,13 +193,13 @@ internal static class CondensedSet
     /// </summary>
     private static void StandDown(in EquilibriumScratch scratch, int j, ref IterationState state)
     {
-        if (CaseSetup.Mark(scratch, j) == SpeciesMark.ForgivenOnce)
+        if (SpeciesMarks.Of(scratch, j) == SpeciesMark.ForgivenOnce)
         {
-            CaseSetup.Mark(scratch, j, SpeciesMark.StoodDown);
+            SpeciesMarks.Set(scratch, j, SpeciesMark.StoodDown);
         }
         else
         {
-            CaseSetup.Mark(scratch, j, SpeciesMark.ForgivenOnce);
+            SpeciesMarks.Set(scratch, j, SpeciesMark.ForgivenOnce);
             state.LastRemovedForRange = j;
         }
     }
@@ -222,7 +222,7 @@ internal static class CondensedSet
         var skippedGain = 0.0;
         for (var j = table.GasCount; j < table.SpeciesCount; j++)
         {
-            if (!CaseSetup.InPlay(scratch, j) || PhaseGeometry.InSolution(scratch, state.CondensedCount, j)
+            if (!SpeciesMarks.InPlay(scratch, j) || PhaseGeometry.InSolution(scratch, state.CondensedCount, j)
                 || !PhaseGeometry.InEffectiveRange(table, scratch, j, state.Temperature)
                 || PhaseGeometry.PartnerInSolution(table, scratch, state.CondensedCount, j) >= 0)
             {
