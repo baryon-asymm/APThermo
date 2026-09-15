@@ -70,6 +70,17 @@ public sealed class ExitCodeTests(CliFixture fixture)
     }
 
     [Fact]
+    public void A_missing_output_directory_is_exit_2()
+    {
+        var output = fixture.TempFile(Path.Combine("nowhere", "out.json"));
+        var run = fixture.Invoke(fixture.Solving("rocket", fixture.Document("rocket-lox-lh2.json"), "--output", output));
+        Assert.Equal(2, run.Code);
+        Assert.Contains(output, run.Error);
+        Assert.Contains("directory not found", run.Error);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public void Transport_on_a_database_without_the_transport_file_is_exit_2()
     {
         var directory = Directory.CreateDirectory(fixture.TempFile("thermo-only")).FullName;
