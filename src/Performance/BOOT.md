@@ -351,6 +351,11 @@ efferent-coupling row.
       unchanged (blob `5aa32f2b` before and after). The fact,
       `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
       and not yet written; it takes over as the evidence when it is.
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 

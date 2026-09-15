@@ -597,6 +597,11 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       rule, ⚠ 2026-09-13, and the review's own check): `tests/Equilibrium.Tests/Bits.approved.txt`
       unchanged through the fix (hash `65788e23f4390305763c80ab1f66b2054ff1907a`, same
       before and after), `Equilibrium.Tests` 464/464 green (463 plus the new fact).
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 

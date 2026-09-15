@@ -288,6 +288,11 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       repeated name found; the negative-count check removed from
       `SpeciesRecordReader.ReadProperties` turned the corruption test red with the
       bare `ArgumentOutOfRangeException` the wording above describes.
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 
