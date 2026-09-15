@@ -631,48 +631,72 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       (`dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
       with `APTHERMO_NO_CUDA=1`: 3024 passed, up from 3014 before it, none skipped); the
       linter 0 errors, 0 warnings; `git status` clean after every mutation was reverted.
-- [x] 2026-09-15 — Four non-degeneracy gaps of the Shape level closed (repair phase,
-      R-Protocol.Tests-14), each guard seen red once with a temporary, uncommitted
-      mutation and reverted:
-      - the src-node predicate `CouplingMeasures` and `ShapeTests` each kept their own
-        copy of unified onto one definition, `Node.IsSrc`; mutated to `=> true`, two
-        facts red at once on the real tree (proving the two really share the one
-        definition rather than two copies that happen to agree): `No_src_type_names_more_than_14_types_of_the_tree`,
-        "tests/Cli.Tests: LibraryEqualityTests ... measures 28 for efferent coupling,
-        over 14, and no row ... declares it" (23 more test-node types alongside it),
-        and `Every_stable_type_is_small_or_a_contract`, "tests/Cli.Tests: CliFixture is
-        named by 10 types of the tree (a stable type) and spans 131 lines, over 100,
-        without being named in tests/Cli.Tests/API.md";
-      - `Every_wide_constructor_is_called_with_named_arguments` now asserts
-        `NamedConstruction.Candidates()` is not empty before asserting zero problems,
-        so an empty candidate list (every node's `## Shape exceptions` silently
-        returning nothing) fails loudly instead of passing over nothing to check;
-        mutated `NamedConstruction.Candidates()` to filter to nothing, red: "no node
-        declares a parameters row on its own constructor; this fact has nothing to
-        check";
-      - `Every_shape_exception_is_measured_and_still_needed` now asserts the tree-wide
-        declared-row list is not empty the same way; mutated `NodeDocuments.ShapeExceptions`
-        to match against a nonexistent heading, red: "no node declares a Shape
-        exceptions row anywhere in the tree; this fact has nothing to re-measure";
-      - `StableTypeProblems` reported nothing for a Ca ≥ 10 type whose reflection-read
-        qualified name matched no entry of `ShapeMeasures.TypeLines`, silently treating
-        an unmeasurable type as compliant; it now reports such a type instead. Mutated
-        `QualifiedName` to rename `InputException` alone (`src/Cli`, Ca 19, undocumented)
-        to `InputExceptionMUTATED` so it matches no syntax entry, red:
-        "src/Cli: InputExceptionMUTATED is named by 19 types of the `src` nodes (a
-        stable type) and matches no syntax entry of src/Cli/BOOT.md's own node to
-        measure its lines against".
+- [x] 2026-09-15 — The Shape level's non-degeneracy gaps closed (repair phase,
+      R-Protocol.Tests-14), by the review's own letters, each guard seen red once with
+      a temporary, uncommitted mutation and reverted:
+      - **(a)** "if `SrcNodes()` is empty, facts 5 and 6 pass vacuously": the Ce fact
+        (`No_src_type_names_more_than_14_types_of_the_tree`) and the stable-type fact
+        (`Every_stable_type_is_small_or_a_contract`) each now assert `SrcNodes().Any()`
+        before asserting zero problems, so an empty `src` node set fails loudly on its
+        own rather than passing over nothing to check;
+      - **(b)** "if `IsSrcNode` is false, `NodeCoupling()` is empty and fact 7 passes
+        vacuously; 'src node' is written twice": the src-node predicate
+        `CouplingMeasures` and `ShapeTests` each kept their own copy of, unified onto
+        one definition, `Node.IsSrc`, both now read; the stable-dependencies fact
+        (`No_src_dependency_points_to_a_less_stable_node`) now also asserts
+        `coupling.Values.Sum(v => v.Dependencies.Count) > 0` before asserting zero
+        problems;
+      - **(c)** "`StableTypeProblems` silently skips a stable type whose reflection
+        name has no syntax entry": it now reports such a type instead of skipping it;
+      - **(e)** "no Shape fact asserts a non-empty input": every fact now does — the
+        four size/nesting/parameters facts assert `MeasurementCount(rule) > 0`, the
+        mechanics fact asserts at least one source file was read, named construction
+        asserts `NamedConstruction.Candidates()` is not empty, and the reverse fact
+        asserts the tree-wide declared-row list is not empty; (a), (b) and (c) above
+        are the same guard where the population is the `src` node set specifically.
 
-      Each mutation applied alone, `dotnet test tests/Protocol.Tests` run, the message
-      above the only failure, then reverted; `dotnet test tests/Protocol.Tests` green
-      again after every revert (20 passed). The whole-tree dump (`TypeLines`,
-      `MethodLines`, `Nesting`, `Parameters`, `EfferentCoupling`, `AfferentCoupling`,
-      `NodeCoupling`, the Coverage and Declarations sections) taken before and after the
-      four permanent guard changes is byte-identical from `EfferentCoupling` onward; the
-      only lines that move are the `TypeLines`/`MethodLines` rows of `ShapeTests` itself
-      and the line numbers of the members below the edit, both the expected, mechanical
-      consequence of this node's own file growing, not a change of what any rule
-      measures on the real tree.
+      The review's own mutation for (a) and (b), applied together as it asks (the
+      shared definition means one edit reaches both): `Node.IsSrc` changed from
+      `"src/"` to `"source/"`, with R-Protocol.Tests-12's Ce mutation applied alongside
+      it (a scratch type, `Cli.MutationMeasureCe`, naming fifteen real types, added to
+      `src/Cli` and never declared as a row). Without the (a)/(b) guards this mutation
+      would leave `No_src_type_names_more_than_14_types_of_the_tree`,
+      `Every_stable_type_is_small_or_a_contract` and
+      `No_src_dependency_points_to_a_less_stable_node` all green — `SrcNodes()` and
+      `NodeCoupling()` both empty, so none of the three would even look at `src/Cli`,
+      and the real Ce violation sitting there would go unreported. With them, all
+      three red on the emptiness message: `No_src_type_names_more_than_14_types_of_the_tree`
+      and `Every_stable_type_is_small_or_a_contract`, "no `src` node exists in the
+      tree; this fact has nothing to check"; `No_src_dependency_points_to_a_less_stable_node`,
+      "the src node graph has no declared dependency edge; this fact has nothing to
+      check". Both files reverted (`git status` clean); `dotnet test
+      tests/Protocol.Tests` green again (19 passed).
+
+      (c) was seen red by renaming `InputException` alone (`src/Cli`, Ca 19,
+      undocumented) to `InputExceptionMUTATED` in `QualifiedName`, so it matches no
+      syntax entry: "src/Cli: InputExceptionMUTATED is named by 19 types of the `src`
+      nodes (a stable type) and matches no syntax entry of src/Cli/BOOT.md's own node
+      to measure its lines against" — the review's own suggestion for this branch,
+      `src/Execution`'s `AcceleratorSession`, no longer qualifies as a stable type at
+      all after R-Protocol.Tests-9's src-only recount above took its Ca from 10 to 9,
+      so this reflection-rename substitute reaches the same code path on a type that
+      still does qualify; accepted as (c)'s proof for that reason.
+
+      (e)'s named-construction and reverse-fact branches were seen red first (before
+      the review's letters reached this node): `NamedConstruction.Candidates()`
+      filtered to nothing, red, "no node declares a parameters row on its own
+      constructor; this fact has nothing to check"; `NodeDocuments.ShapeExceptions`
+      matched against a nonexistent heading, red, "no node declares a Shape exceptions
+      row anywhere in the tree; this fact has nothing to re-measure". Each mutation
+      applied alone, `dotnet test tests/Protocol.Tests` run, the message above the only
+      failure, then reverted; green again after every revert. The whole-tree dump
+      (`TypeLines`, `MethodLines`, `Nesting`, `Parameters`, `EfferentCoupling`,
+      `AfferentCoupling`, `NodeCoupling`, the Coverage and Declarations sections) taken
+      before and after the permanent guard changes is byte-identical from
+      `EfferentCoupling` onward; the only lines that move are the `TypeLines`/`MethodLines`
+      rows of `ShapeTests` itself and the line numbers of the members below the edit,
+      both the expected, mechanical consequence of this node's own file growing, not a
+      change of what any rule measures on the real tree.
 - [x] 2026-09-15 — R-Protocol.Tests-12 (repair phase): the three rules that name only
       `src` types were, until now, proved red only through synthetic inputs fed
       straight to their own comparison helpers (the paragraph above the two tables of
@@ -716,10 +740,12 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
       all three; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0
       errors after each revert; the linter 0 errors, 0 warnings; no file outside this
       node carries a trace of any of the three once reverted.
-- [x] 2026-09-15 — R-Protocol.Tests-13 (repair phase): seven branches the original
+- [x] 2026-09-15 — R-Protocol.Tests-13 (repair phase): eight branches the original
       ten-mutation proof (2026-09-13/14) and the Phase-3 proof (above) never exercised,
       each seen red once with a mutation applied alone and reverted, `dotnet test
-      tests/Protocol.Tests` green again after each (20 passed):
+      tests/Protocol.Tests` green again after each (20 passed while the temporary
+      measurement dump tool was still present for the first seven; 19 for the eighth,
+      added after that tool was deleted):
       - mechanics, the partial-type branch (only `#region` had been tried): a scratch
         `partial class` with no `[GeneratedRegex]` member, red, "partial type without a
         [GeneratedRegex] member";
@@ -755,11 +781,18 @@ Every `src` node, over the project graph `## Dependencies` declares (eight: `Cli
         8 of 2026-09-13 used a plain mutable field, not a readonly array): a scratch
         `private static readonly int[]` field added to `src/Equilibrium`, red,
         "MutationReadonlyArray.Values is a static readonly array, whose elements are
-        mutable state".
+        mutable state";
+      - the reverse fact, its efferent-coupling path specifically (the "names nothing",
+        below-limit and understated branches proven above and at Phase 3 all happened
+        to be `parameters` rows): `src/Execution/BOOT.md`'s real `Kernels` row (Ce 25,
+        the tree's largest declared efferent-coupling exception) set to 24, red,
+        "src/Execution/BOOT.md: Kernels's row states 24 for efferent coupling, below
+        the current measurement of 25".
 
       Every mutation confined to a temporary, uncommitted addition (a scratch type in
       this node, `src/Cli` or `src/Equilibrium`; a temporary row of this node's own
-      `## Shape exceptions`; a single status mark of `src/Data/API.md`) and reverted
+      `## Shape exceptions`; a single status mark of `src/Data/API.md`; a single figure
+      of `src/Execution/BOOT.md`'s own declared row) and reverted
       before this commit; `git status` clean and `git diff --stat` empty for every
       touched file once reverted; `dotnet build AerospacePropellantThermodynamics.sln`
       0 warnings, 0 errors and the linter 0 errors, 0 warnings after every revert.

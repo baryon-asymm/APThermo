@@ -17,6 +17,7 @@ public sealed class ShapeTests
     [Fact]
     public void No_type_spans_more_than_400_lines()
     {
+        Assert.True(MeasurementCount("type lines") > 0, "no type of the tree was measured for type lines; this fact has nothing to check");
         var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "type lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
@@ -24,6 +25,7 @@ public sealed class ShapeTests
     [Fact]
     public void No_method_spans_more_than_60_lines()
     {
+        Assert.True(MeasurementCount("method lines") > 0, "no method of the tree was measured for method lines; this fact has nothing to check");
         var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "method lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
@@ -31,6 +33,7 @@ public sealed class ShapeTests
     [Fact]
     public void No_control_flow_nests_deeper_than_3()
     {
+        Assert.True(MeasurementCount("nesting") > 0, "no member of the tree was measured for nesting; this fact has nothing to check");
         var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "nesting")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
@@ -38,34 +41,44 @@ public sealed class ShapeTests
     [Fact]
     public void No_method_takes_more_than_6_parameters()
     {
+        Assert.True(MeasurementCount("parameters") > 0, "no method of the tree was measured for parameters; this fact has nothing to check");
         var problems = ProjectNodes().SelectMany(node => OverLimitProblems(node, "parameters")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>Asserts the `src` node set is not empty first (R-Protocol.Tests-14 (a)): with no `src` node, this fact and
+    /// <see cref="Every_stable_type_is_small_or_a_contract"/> would both pass over zero nodes rather than over a real,
+    /// checked set — silently, since a real violation elsewhere in a `src` node would then never be looked at.</summary>
     [Fact]
     public void No_src_type_names_more_than_14_types_of_the_tree()
     {
+        Assert.True(SrcNodes().Any(), "no `src` node exists in the tree; this fact has nothing to check");
         var problems = SrcNodes().SelectMany(node => OverLimitProblems(node, "efferent coupling")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     /// <summary>"Shape check", stable type: a type named by ten or more types of the tree spans at most 100 lines of code,
     /// unless its node's `API.md` names it (a contract, left to review rather than measured here). No `## Shape exceptions`
-    /// row applies to this rule; the escape is the document naming the type.</summary>
+    /// row applies to this rule; the escape is the document naming the type. Asserts the `src` node set is not empty first
+    /// (R-Protocol.Tests-14 (a)), the same reason <see cref="No_src_type_names_more_than_14_types_of_the_tree"/> does.</summary>
     [Fact]
     public void Every_stable_type_is_small_or_a_contract()
     {
+        Assert.True(SrcNodes().Any(), "no `src` node exists in the tree; this fact has nothing to check");
         var afferent = CouplingMeasures.AfferentCoupling();
         var problems = SrcNodes().SelectMany(node => StableTypeProblems(node, afferent)).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
     /// <summary>"Shape check", stable dependencies: I = Ce / (Ca + Ce) of every `src` node over the declared dependency graph
-    /// never rises along a declared dependency. No exception applies.</summary>
+    /// never rises along a declared dependency. No exception applies. Asserts the graph has at least one declared dependency
+    /// edge first (R-Protocol.Tests-14 (b)): with `NodeCoupling()` empty (no `src` node, or none with a declared dependency),
+    /// this fact would pass over zero edges rather than over the real graph.</summary>
     [Fact]
     public void No_src_dependency_points_to_a_less_stable_node()
     {
         var coupling = CouplingMeasures.NodeCoupling();
+        Assert.True(coupling.Values.Sum(value => value.Dependencies.Count) > 0, "the src node graph has no declared dependency edge; this fact has nothing to check");
         var problems = coupling.SelectMany(pair => DependencyProblems(pair.Key, pair.Value, coupling)).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
@@ -73,6 +86,7 @@ public sealed class ShapeTests
     [Fact]
     public void No_partial_type_region_or_helpers_class()
     {
+        Assert.True(ProjectNodes().Any(node => SourceSyntax.Trees(node).Any()), "no source file of the tree was read for the mechanics rule; this fact has nothing to check");
         var problems = ProjectNodes()
             .SelectMany(node => ShapeMechanics.Findings(node).Select(f => $"{node.Name}: {f.Where} ({Tree.Relative(f.File)}:{f.Line}) {f.Problem}"))
             .ToList();
@@ -114,6 +128,11 @@ public sealed class ShapeTests
     private static IEnumerable<Node> ProjectNodes() => Tree.Nodes.Where(node => node.AssemblyName is not null);
 
     private static IEnumerable<Node> SrcNodes() => ProjectNodes().Where(node => node.IsSrc);
+
+    /// <summary>The total measurements <see cref="RuleMeasurements"/> reports for one over-limit rule, across every project
+    /// node (R-Protocol.Tests-14 (e)): the population <see cref="OverLimitProblems"/> compares against its limit, asserted
+    /// non-empty by the four size/nesting/parameters facts before they assert zero problems over it.</summary>
+    private static int MeasurementCount(string rule) => ProjectNodes().Sum(node => RuleMeasurements(node, rule).Measurements.Count());
 
     /// <summary>The limit and the current measurements of one over-limit "Shape check" rule, over one node: the same lookup
     /// <see cref="OverLimitProblems"/> compares a measurement against and <see cref="RowProblems"/> re-measures a declared
