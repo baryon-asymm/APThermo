@@ -141,11 +141,12 @@ node's shape check (2026-09-14).
   distinct types of the tree in its signatures and bodies, as the dependency check's
   walk reads them (its efferent coupling, Ce), unless it is a registry or a
   composition root that holds no formula and is named as such in its node's
-  `BOOT.md`. A type of the `src` nodes named by 10 or more types of the tree (its
-  afferent coupling, Ca) is a stable type: at most 100 lines of code and no behaviour
-  beyond construction and validation, or a contract in its node's `API.md`. The
-  instability `I = Ce / (Ca + Ce)` of the `src` nodes over their project graph never
-  rises along a dependency. Every exception is declared in the node's `BOOT.md`, as a
+  `BOOT.md`. A type of the `src` nodes named by 10 or more types of the `src` nodes
+  (its afferent coupling, Ca) is a stable type: at most 100 lines of code and no
+  behaviour beyond construction and validation, or a contract in its node's `API.md`.
+  The instability `I = Ce / (Ca + Ce)` of the `src` nodes over the dependency graph
+  their `## Dependencies` declare never rises along a dependency. Every exception is
+  declared in the node's `BOOT.md`, as a
   row of its `## Shape exceptions` table with the measured figure and the reason.
   Decomposition goes along the domain's axes (stages of an
   algorithm, entities, phases of a pipeline), never through `partial` (the
@@ -178,6 +179,24 @@ node's shape check (2026-09-14).
   review of `ShapeTests`. It now states the scope the check holds, and the acceptance
   criterion below follows it. A stable type's 100 lines are lines of code, counted as
   the size limits count them.
+
+  ⚠ 2026-09-15 (protocol tests node repair phase, R-Protocol.Tests-9): the previous
+  correction above scoped the *named* type of the stable-type sentence to the `src`
+  nodes ("a type of the `src` nodes") but left the counting side, "named by 10 or more
+  types of the tree", unscoped, so a type used ten times only by test-node code, never
+  by another `src` type, still read as stable. The protocol tests node's `ShapeTests`
+  measures the naming side the same way the check measures the named side: this
+  sentence now reads "types of the `src` nodes" on both sides, and the protocol tests
+  node's `BOOT.md` records the re-measurement.
+
+  ⚠ 2026-09-15 (protocol tests node repair phase, R-Protocol.Tests-4): "over their
+  project graph" read as if the instability were computed from the nodes' `.csproj`
+  `ProjectReference` items. `CouplingMeasures.NodeCoupling` reads the nodes' own
+  `## Dependencies` sections instead, which the Dependencies level already holds equal
+  to the nodes whose types a node's code actually uses; no `.csproj` is opened by the
+  check. The two graphs coincide on this tree, so no instability figure or
+  dependency-direction verdict moves; the sentence now names the graph the check
+  actually reads, matching the protocol tests node's own Shape-check table.
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
