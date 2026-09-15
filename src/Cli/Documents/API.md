@@ -83,7 +83,8 @@ internal sealed record SweepDocument(
 internal sealed record RecordSource(int Index, string Label, JsonElement Raw);
 ```
 
-`ReactantRole`, `AmountKind` and `CustomReactantDefinition` are `Problems`'; `FlowModel`
+`ReactantRole`, `AmountKind` and `CustomReactantDefinition` are `Problems`' (built from
+a list of `Data`'s `ElementCount`, the custom reactant's formula); `FlowModel`
 is `Performance`'s; `Equilibrium.ProblemKind` is `Equilibrium`'s; `AcceleratorKind` is
 `Execution`'s. `Cli.Cases` reads `RocketDocument`, `EquilibriumDocument`,
 `SweepDocument`, `ReactantPropellant`, `ElementalPropellant` and `ReactantDocument` by

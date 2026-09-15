@@ -44,6 +44,7 @@ method of this node.
 [Data](../../Data/API.md)
 [Problems](../../Problems/API.md)
 [Thermo](../../Thermo/API.md)
+[Performance](../../Performance/API.md)
 [Equilibrium](../../Equilibrium/API.md)
 
 Outside the tree: none beyond what the linked nodes already declare in their own

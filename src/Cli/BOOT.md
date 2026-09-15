@@ -47,9 +47,8 @@ depends on console, serialization or file-layout concerns.
 - [Data](../Data/API.md) — loading the database and listing species.
 - [Execution](../Execution/API.md) — the engine options, the accelerator description, the unavailable exception, the CUDA flag.
 - [Thermo](../Thermo/API.md) — `MixtureState` and `CaseStatus` of every station.
-- [Performance](../Performance/API.md) — `FlowModel`, `PerformanceFigures`.
-- [Transport](../Transport/API.md) — `TransportFigures`.
-- [Equilibrium](../Equilibrium/API.md) — `ProblemKind`.
+- [Performance](../Performance/API.md) — `FlowModel` (`DocumentWords`' flow words).
+- [Equilibrium](../Equilibrium/API.md) — `ProblemKind` (`DocumentWords`' kind words).
 
 Outside the tree: the .NET base class library (`System.Text.Json`); command-line
 parsing is hand-written to avoid a dependency (revisited if the surface grows).
@@ -59,6 +58,18 @@ execution node's options and reports its accelerator, and the result records car
 the numerical nodes' structs, which this node reads field by field; the reflection
 dependency check reads types in method bodies, so the links are declared. The root's
 decomposition carries the same.
+
+⚠ 2026-09-15: this list carried `Transport` (`TransportFigures`) and read
+`Performance` as `FlowModel, PerformanceFigures`. The clean-code decomposition moved
+`StationFields` and every direct reader of `TransportFigures` and
+`PerformanceFigures` into the child node `Output` (its own `BOOT.md` declares
+`Transport` and `Performance` now); this node's own remaining code reaches
+`Performance` only through `DocumentWords`' flow words. Found by the protocol tests
+node's `DependencyTests` after the move (`src/Cli/BOOT.md declares src/Transport, but
+no type of src/Cli refers to it`); the child-node attribution
+(root `BOOT.md`, Constraints, 2026-09-15) means a dependency used only by a child is
+declared there, not repeated at the parent's own level, unless the parent's own code
+also uses it.
 
 ## Constraints
 
