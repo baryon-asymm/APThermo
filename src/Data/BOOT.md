@@ -234,6 +234,17 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `Species.Species` | parameters | 11 | mirrors the file's fields one to one (the decision "The record constructors are the declared exception to the parameter rule"); its single construction site names its arguments |
 | `TemperatureInterval.TemperatureInterval` | parameters | 7 | mirrors the file's fields one to one, as `Species` above; its single construction site names its arguments |
 
+⚠ 2026-09-15 (distribution phase): both constructors became `internal` (root `BOOT.md`,
+Delivery: Tree contracts, M1; `SCRATCH/api-review-report.md`): no consumer built a
+`Species` or a `TemperatureInterval`, only `SpeciesDatabase.Load`/`Parse` (through
+`SpeciesRecordReader` and `IntervalReader`) ever did. The two rows above are
+unchanged: the constructors still mirror the file's fields one to one, and their one
+construction site still names every argument, now in `camelCase` matching the
+constructors' own parameter names rather than the records' former positional
+`PascalCase` ones. `DatabaseProvenance`, `TransportEntry` and `TransportFit` gained
+internal constructors the same way; none is a declared parameter-count exception (4,
+5 and 6 parameters respectively, within the rule).
+
 No type of this node names more than 11 distinct types of the tree by the dependency
 check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move of
 2026-09-14), below the root's limit of 14: no efferent coupling row is needed.
