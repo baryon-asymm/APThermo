@@ -20,7 +20,7 @@ internal static class NamedConstruction
     /// candidates <see cref="Creations"/> resolves a written name against.</summary>
     public static IReadOnlyCollection<WideConstructorType> Candidates() => Tree.Nodes.Where(node => node.AssemblyName is not null)
         .SelectMany(node => NodeDocuments.ShapeExceptions(node).Where(exception => exception.Rule == "parameters" && IsConstructorPattern(exception.Where))
-            .Select(exception => new WideConstructorType(node, exception.Where.Split('.')[^1])))
+            .Select(exception => ToCandidate(node, exception.Where)))
         .ToList();
 
     private static bool IsConstructorPattern(string where)
@@ -29,14 +29,25 @@ internal static class NamedConstruction
         return segments.Length >= 2 && segments[^1] == segments[^2];
     }
 
+    /// <summary>A declared row's `Where` (`Type.Type`, or `Outer.Inner.Inner` for a nested type) split into the type's own
+    /// simple name (the repeated last segment) and its nesting path (everything before the type's own qualified name: empty
+    /// for a top-level type, `Outer` for `Outer.Inner.Inner`).</summary>
+    private static WideConstructorType ToCandidate(Node node, string where)
+    {
+        var segments = where.Split('.');
+        return new WideConstructorType(node, string.Join(".", segments[..^2]), segments[^1]);
+    }
+
     /// <summary>
     /// Every creation, anywhere in the tree, whose written name resolves to one of <paramref name="candidates"/>
     /// ("Shape check", named construction): an explicit <c>new T(…)</c>, or a target-typed <c>new(…)</c> initialising a
     /// variable, field or property declared with a resolving name; whether every argument of the creation is named. A simple
     /// name resolves to a candidate when the file's namespace is the candidate's, or lies inside it, or the file imports it
     /// (a global <c>using</c> included), and the file's own node declares no other type of the same simple name; a qualified
-    /// name resolves when its qualifier is the candidate's namespace. Any other target-typed creation, and any name that
-    /// resolves to none of the candidates, is left to review and reports nothing.
+    /// name resolves when its qualifier names the candidate's namespace together with its nesting path (<c>Outer</c> for a
+    /// row nested as <c>Outer.Inner.Inner</c>), written out in full, relative to the file's own namespace or one of its
+    /// enclosing namespaces, or via a <c>using</c> (<see cref="ReachablePrefixesOf"/>). Any other target-typed creation, and
+    /// any name that resolves to none of the candidates, is left to review and reports nothing.
     /// </summary>
     public static IEnumerable<(Node Node, string TypeName, string File, int Line, bool AllArgumentsNamed)> Creations(
         IReadOnlyCollection<WideConstructorType> candidates)
@@ -91,9 +102,10 @@ internal static class NamedConstruction
         return new FileScope(declaration?.Name.ToString() ?? string.Empty, usings, node);
     }
 
-    /// <summary>Whether the written name resolves to this candidate: a qualified name only through its qualifier text, a
-    /// simple name through the file's namespace, its imports and its own node's declarations ("Shape check", named
-    /// construction, the two resolution routes).</summary>
+    /// <summary>Whether the written name resolves to this candidate: a qualified name through its qualifier text against the
+    /// candidate's namespace followed by its nesting path (<see cref="ReachablePrefixesOf"/> covers the qualifier's own
+    /// reachable forms), a simple name through the file's namespace, its imports and its own node's declarations ("Shape
+    /// check", named construction, the two resolution routes).</summary>
     private static bool Resolves(
         (string? Qualifier, string SimpleName) written, FileScope scope, WideConstructorType candidate,
         IReadOnlyDictionary<Node, IReadOnlySet<string>> declaredNames)
@@ -101,13 +113,35 @@ internal static class NamedConstruction
         var candidateNamespace = candidate.Node.AssemblyName!;
         if (written.Qualifier is { } qualifier)
         {
-            return qualifier == candidateNamespace || scope.Usings.Any(u => u + "." + qualifier == candidateNamespace);
+            var target = candidate.NestingPath.Length > 0 ? candidateNamespace + "." + candidate.NestingPath : candidateNamespace;
+            return ReachablePrefixesOf(scope).Any(prefix => (prefix.Length > 0 ? prefix + "." + qualifier : qualifier) == target);
         }
 
         var inScope = scope.Namespace == candidateNamespace
             || scope.Namespace.StartsWith(candidateNamespace + ".", StringComparison.Ordinal)
             || scope.Usings.Contains(candidateNamespace);
         return inScope && (scope.Node == candidate.Node || !declaredNames[scope.Node].Contains(written.SimpleName));
+    }
+
+    /// <summary>Every namespace prefix a qualified name's qualifier can be written relative to and still reach the same
+    /// target: the empty prefix (the qualifier is already fully qualified), the file's own namespace and each of its
+    /// enclosing namespaces in turn (what the compiler finds with no `using` at all — the escape a plain qualifier-equality
+    /// check misses), and each namespace the file imports with a `using` directive (a global one included, via
+    /// <see cref="FileScope.Usings"/>).</summary>
+    private static IEnumerable<string> ReachablePrefixesOf(FileScope scope)
+    {
+        yield return string.Empty;
+        var enclosing = scope.Namespace;
+        while (enclosing.Length > 0)
+        {
+            yield return enclosing;
+            enclosing = enclosing.Contains('.', StringComparison.Ordinal) ? enclosing[..enclosing.LastIndexOf('.')] : string.Empty;
+        }
+
+        foreach (var used in scope.Usings)
+        {
+            yield return used;
+        }
     }
 
     /// <summary>The simple names of every type the node declares in its own source, top-level and nested alike: what "the

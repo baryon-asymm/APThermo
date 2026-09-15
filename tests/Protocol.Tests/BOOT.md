@@ -228,7 +228,7 @@ thing:
 | stable type | 100 lines at Ca ≥ 10 | every type of the `src` nodes | a type named by ten or more types of the tree spans at most 100 lines, counted as the type-lines row counts them, unless its node's `API.md` names it; that it holds no behaviour beyond construction and validation is left to review |
 | stable dependencies | I never rises | the `src` project graph | I = Ce / (Ca + Ce) of each node over the dependencies its `## Dependencies` declares (held equal to the nodes its code uses by the Dependencies level; project files are not read); every declared dependency points to a node whose I is not above the declarer's |
 | mechanics | none | every source file | no `partial` type (one with a `[GeneratedRegex]` member excepted), no `#region`, no type whose name ends in `Helper`, `Helpers`, `Util`, `Utils` or `Common` |
-| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier is N; any other target-typed creation is left to review |
+| named construction | every argument named | every creation of a type whose constructor has a parameters row in a `## Shape exceptions` table | an object creation `new T(…)` whose written name resolves to that type, or a target-typed `new(…)` initialising a variable, field or property declared with such a name, passes every argument as `name: value`; a simple name resolves to the type of namespace N when the file's namespace is N or lies inside N, or the file imports N with a `using` directive (a global one included), and the file's own node declares no other type of that name; a qualified name resolves when its qualifier names N followed by the row's nesting path (empty for a top-level type, `Outer` for a row declared `Outer.Inner.Inner`), written in full, or relative to the file's own namespace or one of its enclosing namespaces, or via a `using`; any other target-typed creation is left to review |
 
 ⚠ 2026-09-14, after the measurements of phase 2: the efferent coupling row read "nested
 and compiler-generated types attributed to the outermost type that declares them" without
@@ -250,6 +250,22 @@ and one of `Performance.Tests`' type for creations of the rows' types. The row n
 resolves the name through the file's namespace, its `using` directives and its node's own
 declarations, which gives the compiler's binding at every creation of the two names; every
 creation of a row's type still falls under it.
+
+⚠ 2026-09-15: a qualified name's resolution read "when its qualifier is N" (the candidate's
+namespace) and nothing else, which never matched two declared rows: `Records.SpeciesRecord`
+and `Records.IntervalRecord` of `tests/Data.Tests`, both nested inside `internal static
+class Records`, are written `Records.SpeciesRecord` and `Records.IntervalRecord` from
+outside that class, a qualifier of a nested type's own enclosing type, never of the
+namespace alone. A qualifier relative to an enclosing namespace escaped the same way:
+`Execution.RocketBatchViews(…)` written from namespace `AerospacePropellantThermodynamics.
+Problems` needs no `using` at all, since C# searches the enclosing namespaces of the
+writing file. Both positional creations these two rows' types would therefore have gone
+unreported had one existed. `WideConstructorType` now carries the row's nesting path
+alongside its simple name, and a qualified name resolves against the candidate's namespace
+followed by that path, written in full, relative to the file's own namespace or one of its
+enclosing namespaces, or via a `using`. On the real tree the fix moves no verdict: every
+existing qualified creation of a row's type already names every argument (`dotnet test
+tests/Protocol.Tests` green before and after), which is what let the gap stand unnoticed.
 
 ⚠ 2026-09-14, evening: the type-lines row read "physical lines …, blank and comment
 lines included". A type or a method could then be brought within its limit by deleting
