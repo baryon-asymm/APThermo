@@ -125,7 +125,7 @@ table is built into are bit for bit those of `8e36a27`: the tests node's bit sna
 |---|---|---|
 | `SpeciesTable` | the contract; `Build` reduced to the sequence: check the request, resolve each name to a gas entry or to condensed pieces, concatenate gaseous then condensed, check the limits, flatten, construct | public, contract grown by `PieceOf` |
 | `TableRequest` | the request is well formed: counts, `TableLimits`, duplicate elements and species, each refused by name; the element index | internal |
-| `CondensedAssembly` | the join (the records of one name are one contiguous piece, or the name is refused) and the cut (a shared bound with `|ΔH°/RT| ≥ LatentHeatThreshold` starts a new piece named `NAME[TLow-THigh]`) | internal |
+| `SpeciesResolution` | one requested name resolved into its table pieces: a gas entry (its first product record, or the database's own record for a name no product carries) or, for a condensed name, the join (the records of one name are one contiguous piece, or the name is refused) and the cut (a shared bound with `|ΔH°/RT| ≥ LatentHeatThreshold` starts a new piece named `NAME[TLow-THigh]`); every name's formula checked against the table's elements first | internal |
 | `TableLayout` | the flat layout in one place: the strides and slots (the bounds stride 2, the exponents per interval 8, the coefficient stride 9, the `b1` and `b2` slots) as constants the writer and the reader (`SpeciesFunctions`) both use, and the flattening of the pieces into `SpeciesTableArrays` | internal |
 | `TablePiece` | one table species in the making: the name, the record that provided its first interval, its intervals (today's private entry record, promoted so that the stages can pass it) | internal |
 | `SpeciesFunctions` | code unchanged, reading the layout through `TableLayout`; gains `RecordLow` and `RecordHigh` (below) | public |
@@ -166,7 +166,7 @@ Decisions taken with the reviews of 2026-09-14:
   `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`, the same ten
   the concatenation list above already named — and none disagrees in
   `FormationEnthalpy`. The join therefore refuses a disagreeing pair exactly as it
-  refuses a differing formula or molar mass (`CondensedAssembly.Touches`); the tests
+  refuses a differing formula or molar mass (`SpeciesResolution.Joins`); the tests
   node exercises the refusal on a synthetic pair, since no real one disagrees
   (`JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`).
 - **`MixtureMolarMass`'s summary in the code** says what `API.md` has said since
@@ -175,6 +175,17 @@ Decisions taken with the reviews of 2026-09-14:
   left the comment).
 - **`SpeciesTableBuffers` stays here**; the "out of scope" line of `API.md` that
   contradicted it goes (the review's F-TD-11).
+- **`CondensedAssembly` is renamed `SpeciesResolution`, `Touches` renamed `Joins`**
+  (2026-09-15, the clean-code repair's R-Thermo-1). The type's own summary and its
+  Structure row above described it as only "the join … and the cut", but the code has
+  always resolved every requested name through it, gaseous or condensed: the gas
+  branch, the reactant-record fallback for a name no product carries, and the
+  stoichiometry check that refuses a foreign element sit beside the join-and-cut,
+  named by neither. The name now matches the scope instead of the scope being cut
+  back to the name: Ce and every bit are unchanged (`SpeciesResolution` measures Ce 8,
+  as `CondensedAssembly` did), only the identifiers and the two descriptions move.
+  `SpeciesTable.cs`'s two references and `Thermo.Tests`' one doc-comment mention
+  renamed with it.
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
   than 6 parameters (the two constructors aside).
 
@@ -189,7 +200,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `SpeciesTableArrays.SpeciesTableArrays` | parameters | 8 | the layout itself, as `SpeciesTableView` above; every creation names its arguments |
 
 No type of this node names more than 8 distinct types of the tree by the dependency
-check's walk (`CondensedAssembly` and `SpeciesTable` tie at 8), below the root's limit
+check's walk (`SpeciesResolution` and `SpeciesTable` tie at 8), below the root's limit
 of 14: no efferent coupling row is needed.
 
 ## Acceptance criteria

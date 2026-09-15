@@ -29,7 +29,6 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
         }
 
         var first = mixtures[0] ?? throw new ArgumentException("mixture 0 is null");
-        var elements = new List<string>();
         for (var i = 0; i < mixtures.Count; i++)
         {
             var mixture = mixtures[i] ?? throw new ArgumentException($"mixture {i} is null");
@@ -37,16 +36,9 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
             {
                 throw new ArgumentException($"mixture {i}: its Omit or Only list differs from mixture 0's; a batch has one species selection");
             }
-
-            foreach (var symbol in mixture.Elements)
-            {
-                if (!elements.Contains(symbol, StringComparer.Ordinal))
-                {
-                    elements.Add(symbol);
-                }
-            }
         }
 
+        var elements = ElementOrder.OfFirstAppearance(mixtures.Select(mixture => mixture.Elements));
         return Get(elements, first.Omit, first.Only);
     }
 

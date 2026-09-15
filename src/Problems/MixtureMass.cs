@@ -26,7 +26,9 @@ internal static class MixtureMass
 
     /// <summary>
     /// Element moles are per kilogram: their mass with the database's atomic weights must be one kilogram within the tolerance
-    /// the mixture declares (BOOT.md), whichever front door it came through. Returns the mass, which the result reports.
+    /// the mixture declares (BOOT.md), whichever front door it came through. A propellant fails this only when a reactant's
+    /// molar mass contradicts its formula by more than the tolerance: a record's (the committed file's ADN) or the MolarMass a
+    /// custom definition gives. Returns the mass, which the result reports.
     /// </summary>
     public static double Check(SpeciesDatabase database, ElementalMixture mixture, string subject, int index)
     {

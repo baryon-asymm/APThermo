@@ -53,17 +53,7 @@ internal static class ThermoFile
                 continue;
             }
 
-            var first = i;
-            Species species;
-            try
-            {
-                species = SpeciesRecordReader.Read(lines, ref i, section, fileName);
-            }
-            catch (FieldException e)
-            {
-                throw new DatabaseFormatException(fileName, e.LineIndex + 1, $"record starting at line {first + 1}: {e.Message}", e.InnerException);
-            }
-
+            var species = SpeciesRecordReader.Read(lines, ref i, section, fileName);
             (section == SpeciesSection.Products ? products : reactants).Add(species);
         }
 

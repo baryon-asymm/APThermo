@@ -12,7 +12,7 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 | L2 | end to end over every rocket fixture with transport, in shifting and frozen flow; a sweep as one batch against its cases one by one; an elemental mixture against its propellant; identical problems alone and in one call; mixed exit layouts in one call; state batches over unions of elements; a failing station as a status | the fixtures; the single-case results of the same code, bit for bit, or to rounding where a union reorders a case's elements (`RocketTests`, `EquilibriumTests`) | ✅ |
 | L2 | the melting-plateau states through the front door: a cut record reported once under its database name; an assigned enthalpy inside the `ALN(L)` gap solves; a sweep across the alumina plateau stays on the isentrope by either path | the node's own rules where the reference cannot follow: the join-and-cut of the `Thermo` node, the plateau of the `Equilibrium` node, the isentrope of the station's own chamber (`SplitRecordTests`) | ✅ 2026-09-13 (the row written 2026-09-14, the ⚠ below) |
 | L2 | the contract of 2026-09-14: a state record with exits against its case through the batch over mixtures; the refusals of the record's shape; a batch mixing transport and none against each problem alone; a ratio and pressure product as one batch against its cases one by one; every public method of a disposed solver; the tolerance rule against `Create` | the same code's single-case results, bit for bit; the `Problems` `API.md`; reflection over the solver's methods (`RocketTests`, `RejectionTests`) | ✅ 2026-09-14 |
-| Bits | the front door's result of every rocket, tp, hp and sp fixture solved singly from its propellant, as the L1 theories solve it, gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture path and the SHA-256 of the raw bits of the mixture's element moles in element order, its enthalpy and mass, then per station the state, the performance figures, the transport figures, the mole fractions and condensed mass fractions in the result's species order and the statuses, then the case status, in that order | the approved snapshot, recorded before any code of the front door's decomposition of 2026-09-14 moved | ✅ 2026-09-14 |
+| Bits | the front door's result of every rocket, tp, hp and sp fixture solved singly from its propellant, as the L1 theories solve it, gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture path and the SHA-256 of the raw bits of the mixture's element moles in element order, its enthalpy and mass, then per station the state, the performance figures, the transport figures, the mole fractions and condensed mass fractions in the result's species order and the statuses, then the case status, in that order; and the reverse, an approved line no enumerated fixture produces, fails the test naming the stale key | the approved snapshot, recorded before any code of the front door's decomposition of 2026-09-14 moved | ✅ 2026-09-14 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ⚠ 2026-09-14: the plateau row was missing. `SplitRecordTests` came with the
@@ -79,7 +79,10 @@ criterion below carry the day they were written.
   line. The snapshot is of the CPU accelerator on the reference machine's runtime; a
   runtime update that moves lines is re-approved with that reason recorded here. A
   fixture absent from the snapshot fails the test with instructions, as the surface
-  snapshot does.
+  snapshot does; and the reverse, an approved line no enumerated fixture produces
+  (a deleted or renamed fixture), fails the test naming the stale key
+  (`ApprovedSnapshot.StaleKeys`, the harness's own contract), so a fixture cannot
+  drop out of the directory listing and out of this level's coverage unnoticed.
 - **Bit comparison goes through the harness** (2026-09-14): `StationEquality`'s
   internal field-by-field bit comparison of `MixtureState`, `PerformanceFigures` and
   `TransportFigures` was, field for field, the harness's `Bits.Differences<T>`; its
@@ -222,6 +225,18 @@ Outside the tree: xunit.
       a reactant enthalpy per kilogram perturbed by a relative 1e-9 turned every one of
       the 213 fixtures red; a fixture line removed from `Bits.approved.txt` turned only
       that fixture red, naming it as missing. Both reverted before the commit.
+
+      2026-09-15 (the clean-code repair's R-Problems.Tests-1): the reverse direction
+      closed, the gap the Harness `BOOT.md` already recorded — an approved line no
+      enumerated fixture produces now fails the test too, naming the stale key
+      (`ApprovedSnapshot.StaleKeys`, over the same keys the fact enumerates). Seen red
+      once: a fabricated line
+      (`tests/Fixtures/cases/rocket/__mutation-stale-key-does-not-exist.json`, a fake
+      hash) appended to `Bits.approved.txt` turned the fact red naming exactly that key
+      as stale ("recorded in Bits.approved.txt but no enumerated fixture produced it");
+      reverted, green again (`dotnet test tests/Problems.Tests --filter
+      FullyQualifiedName~BitSnapshotTests`, 1/1 before, red with the fabricated line,
+      1/1 after the revert). `Bits.approved.txt` itself unchanged (213 lines).
 - [x] 2026-09-14 — The contract facts of 2026-09-14 (the level table's second new row):
       `RocketTests.A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures`
       (bit for bit, transport figures included);

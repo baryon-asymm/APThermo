@@ -84,8 +84,9 @@ public static class SpeciesFunctions
     }
 
     /// <summary>
-    /// H°/RT of one record interval, for the builder's join-and-cut test (host side; the terms are the ones the view
-    /// overload sums, so the formula lives once).
+    /// H°/RT of one record interval, for the builder's join-and-cut test (host side: outside a kernel ILGPU gives no view
+    /// over a managed array). The sum is written a second time here, sharing only <see cref="EnthalpyTerm"/> with the view
+    /// overload: the declared deviation of BOOT.md's invariants, pinned bit for bit by <c>OverloadPinningTests</c>.
     /// </summary>
     internal static double HOverRT(TemperatureInterval interval, double temperature)
     {

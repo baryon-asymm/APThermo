@@ -71,7 +71,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
         var mixture = MixtureOf(propellant);
-        return _rocketRunner.Solve(GetSystem(mixture), problems.Select(p => new RocketCase(mixture, p, propellant, propellant.OxidizerToFuelRatio)).ToList());
+        return _rocketRunner.Solve(_systems.Get(mixture), problems.Select(p => new RocketCase(mixture, p, propellant, propellant.OxidizerToFuelRatio)).ToList());
     }
 
     public EquilibriumResult Solve(Propellant propellant, EquilibriumProblem problem) => Solve(propellant, [problem])[0];
@@ -81,7 +81,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
         var mixture = MixtureOf(propellant);
-        return _equilibriumRunner.Solve(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, propellant)).ToList());
+        return _equilibriumRunner.Solve(_systems.Get(mixture), problems.Select(p => new EquilibriumCase(mixture, p, propellant)).ToList());
     }
 
     public RocketResult Solve(ElementalMixture mixture, RocketProblem problem) => Solve(mixture, [problem])[0];
@@ -91,7 +91,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixture);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        return _rocketRunner.Solve(GetSystem(mixture), problems.Select(p => new RocketCase(mixture, p, null, null)).ToList());
+        return _rocketRunner.Solve(_systems.Get(mixture), problems.Select(p => new RocketCase(mixture, p, null, null)).ToList());
     }
 
     public EquilibriumResult Solve(ElementalMixture mixture, EquilibriumProblem problem) => Solve(mixture, [problem])[0];
@@ -101,7 +101,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixture);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        return _equilibriumRunner.Solve(GetSystem(mixture), problems.Select(p => new EquilibriumCase(mixture, p, null)).ToList());
+        return _equilibriumRunner.Solve(_systems.Get(mixture), problems.Select(p => new EquilibriumCase(mixture, p, null)).ToList());
     }
 
     /// <summary>One rocket case per index over the union of the mixtures' elements; every mixture carries the same species lists.</summary>
@@ -167,21 +167,16 @@ public sealed class Solver : IDisposable
     /// <summary>One rocket case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>
     private IReadOnlyList<RocketResult> SolveRocket(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<RocketProblem> problems, string noun)
     {
-        var system = UnionSystem(mixtures, problems.Count, "rocket");
+        var system = _systems.Union(mixtures, problems.Count, "rocket");
         return _rocketRunner.Solve(system, mixtures.Select((mixture, i) => new RocketCase(mixture, problems[i], null, null)).ToList(), noun);
     }
 
     /// <summary>One case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>
     private IReadOnlyList<EquilibriumResult> SolveEquilibrium(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<EquilibriumProblem> problems, string noun)
     {
-        var system = UnionSystem(mixtures, problems.Count, "equilibrium");
+        var system = _systems.Union(mixtures, problems.Count, "equilibrium");
         return _equilibriumRunner.Solve(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList(), noun);
     }
-
-    private ChemicalSystem GetSystem(ElementalMixture mixture) => _systems.Get(mixture);
-
-    /// <summary>The system over the union of the mixtures' elements, in order of first appearance, under the species lists they all share.</summary>
-    private ChemicalSystem UnionSystem(IReadOnlyList<ElementalMixture> mixtures, int problemCount, string kind) => _systems.Union(mixtures, problemCount, kind);
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 }

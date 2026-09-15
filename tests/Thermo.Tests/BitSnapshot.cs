@@ -38,6 +38,9 @@ public sealed class BitSnapshot
     /// <summary>Null when the case's table gives the recorded bits; otherwise the problem, naming the case and how to approve.</summary>
     public string? Problem(string relative) => _problems[relative];
 
+    /// <summary>The approved keys no case file of the enumerated kinds produced: a deleted or renamed fixture, left behind in the snapshot.</summary>
+    public IReadOnlyList<string> StaleKeys() => _approved.StaleKeys(_problems.Keys);
+
     /// <summary>The table of one case: the elements are the names of its element moles in their order, the species its product list.</summary>
     private static string Digest(SpeciesDatabase database, string path)
     {

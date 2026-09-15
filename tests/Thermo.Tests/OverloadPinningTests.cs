@@ -72,7 +72,7 @@ public sealed class OverloadPinningTests : IClassFixture<CpuFixture>
         Assert.True(compared > 0, $"{name}: no points compared");
     }
 
-    /// <summary>Every interval of every record of the name, in file order: the same resolution CondensedAssembly makes, products before the database[name] fallback.</summary>
+    /// <summary>Every interval of every record of the name, in file order: the same resolution SpeciesResolution makes, products before the database[name] fallback.</summary>
     private List<TemperatureInterval> RecordIntervals(string name)
     {
         var records = _cpu.Database.Records(name).Where(record => record.Section == SpeciesSection.Products).ToList();
