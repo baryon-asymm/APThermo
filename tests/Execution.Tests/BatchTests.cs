@@ -1,4 +1,5 @@
 using AerospacePropellantThermodynamics.Fixtures;
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 using AerospacePropellantThermodynamics.Transport;
 
@@ -8,22 +9,21 @@ namespace AerospacePropellantThermodynamics.Execution.Tests;
 [Collection(EngineCollection.Name)]
 public sealed class BatchTests(EngineFixture fixture)
 {
-    public static IEnumerable<object[]> Families() => BatchBuilders.FamilyNames(EngineFixture.SharedDatabase);
+    public static IEnumerable<object[]> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
 
     [Theory]
     [MemberData(nameof(Families))]
     public void A_rocket_family_equals_the_host_solver_bit_for_bit(string name)
     {
-        var family = BatchBuilders.Family(fixture.Database, name);
+        var family = FixtureBatches.Family(fixture.Database, name);
         var batch = family.Batch();
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
         var result = fixture.Cpu.Run(tables, batch);
         var differences = new List<string>();
-        var speciesCount = family.Table.SpeciesCount;
         var stationCount = result.StationCount;
         for (var k = 0; k < batch.Count; k++)
         {
-            var host = BatchBuilders.SolveRocketOnHost(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
+            var host = HostSolves.Rocket(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
             var label = family.Members[k];
             if (host.Status != result.Status[k])
             {
@@ -34,30 +34,37 @@ public sealed class BatchTests(EngineFixture fixture)
             for (var s = 0; s < stationCount; s++)
             {
                 var index = k * stationCount + s;
-                differences.AddRange(BatchBuilders.BitDifferences(host.Stations[s], result.Stations[index], $"{label} station {s}"));
-                differences.AddRange(BatchBuilders.BitDifferences(host.Figures[s], result.Figures[index], $"{label} station {s}"));
+                differences.AddRange(Bits.Differences(host.Stations[s], result.Stations[index], $"{label} station {s}"));
+                differences.AddRange(Bits.Differences(host.Figures[s], result.Figures[index], $"{label} station {s}"));
                 if (host.StationStatus[s] != result.StationStatus[index] || host.Iterations[s] != result.Iterations[index])
                 {
                     differences.Add($"{label} station {s}: status or iterations differ");
                 }
 
-                for (var j = 0; j < speciesCount; j++)
-                {
-                    if (!BatchBuilders.SameBits(host.Moles[s * speciesCount + j], result.Moles[(long)index * speciesCount + j]))
-                    {
-                        differences.Add($"{label} station {s}: moles of {family.Table.Species[j]} differ");
-                    }
-                }
+                differences.AddRange(StationMoleDifferences(host.Moles, result.Moles, s, index, family.Table, label));
             }
         }
 
         Assert.True(differences.Count == 0, string.Join("\n", differences.Take(30)));
     }
 
+    /// <summary>The moles of one station, species by species, bit for bit against the host solve.</summary>
+    private static IEnumerable<string> StationMoleDifferences(double[] hostMoles, double[] engineMoles, int station, long index, SpeciesTable table, string label)
+    {
+        var speciesCount = table.SpeciesCount;
+        for (var j = 0; j < speciesCount; j++)
+        {
+            if (!Bits.Same(hostMoles[station * speciesCount + j], engineMoles[index * speciesCount + j]))
+            {
+                yield return $"{label} station {station}: moles of {table.Species[j]} differ";
+            }
+        }
+    }
+
     [Fact]
     public void Chunking_and_repetition_do_not_change_a_bit()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         var batch = family.Batch();
         Assert.True(batch.Count >= 3);
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
@@ -80,7 +87,7 @@ public sealed class BatchTests(EngineFixture fixture)
         for (var i = 0; i < transport.Count; i++)
         {
             Assert.Equal(transportFirst.Status[i], transportChunked.Status[i]);
-            Assert.Empty(BatchBuilders.BitDifferences(transportFirst.Figures[i], transportChunked.Figures[i], $"station {i}"));
+            Assert.Empty(Bits.Differences(transportFirst.Figures[i], transportChunked.Figures[i], $"station {i}"));
         }
     }
 
@@ -88,7 +95,7 @@ public sealed class BatchTests(EngineFixture fixture)
     public void The_transport_pass_equals_the_host_evaluation_bit_for_bit()
     {
         var checkedStations = 0;
-        foreach (var family in BatchBuilders.RocketFamilies(fixture.Database).Where(f => f.Inputs.Any(i => i.Transport)))
+        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database).Where(f => f.Inputs.Any(i => i.Transport)))
         {
             var batch = family.Batch();
             using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
@@ -98,10 +105,10 @@ public sealed class BatchTests(EngineFixture fixture)
             Assert.Equal(transport.Count, result.Count);
             for (var i = 0; i < transport.Count; i++)
             {
-                var host = BatchBuilders.EvaluateTransportOnHost(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, tables.TransportBuffers!,
+                var host = HostSolves.Transport(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, tables.TransportBuffers!,
                                                                  transport.Temperature[i], transport.Moles, i * family.Table.SpeciesCount);
                 Assert.Equal(host.Status, result.Status[i]);
-                Assert.Empty(BatchBuilders.BitDifferences(host.Figures, result.Figures[i], $"{family.Name} station {i}"));
+                Assert.Empty(Bits.Differences(host.Figures, result.Figures[i], $"{family.Name} station {i}"));
                 if (rocket.StationStatus[i] == CaseStatus.Ok)
                 {
                     Assert.Equal(CaseStatus.Ok, result.Status[i]);
@@ -116,20 +123,20 @@ public sealed class BatchTests(EngineFixture fixture)
     [Fact]
     public void An_equilibrium_family_equals_the_host_solver_bit_for_bit()
     {
-        var (batch, table, cases) = BatchBuilders.EquilibriumFamily(fixture.Database, "lox-lh2_of6_pc7MPa");
+        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(fixture.Database, "lox-lh2_of6_pc7MPa");
         using var tables = fixture.Cpu.Upload(table);
         var result = fixture.Cpu.Run(tables, batch);
         Assert.Equal(cases.Count, result.Count);
         for (var k = 0; k < batch.Count; k++)
         {
-            var host = BatchBuilders.SolveEquilibriumOnHost(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
+            var host = HostSolves.Equilibrium(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
             Assert.Equal(CaseStatus.Ok, host.Status);
             Assert.Equal(host.Status, result.Status[k]);
             Assert.Equal(host.Iterations, result.Iterations[k]);
-            Assert.Empty(BatchBuilders.BitDifferences(host.State, result.State[k], cases[k].Name));
+            Assert.Empty(Bits.Differences(host.State, result.State[k], cases[k].Name));
             for (var j = 0; j < table.SpeciesCount; j++)
             {
-                Assert.True(BatchBuilders.SameBits(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
+                Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
             }
 
             var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
@@ -148,13 +155,13 @@ public sealed class BatchTests(EngineFixture fixture)
         Assert.Equal(expected.Iterations, actual.Iterations);
         for (var i = 0; i < expected.Stations.Length; i++)
         {
-            Assert.Empty(BatchBuilders.BitDifferences(expected.Stations[i], actual.Stations[i], $"station {i}"));
-            Assert.Empty(BatchBuilders.BitDifferences(expected.Figures[i], actual.Figures[i], $"station {i}"));
+            Assert.Empty(Bits.Differences(expected.Stations[i], actual.Stations[i], $"station {i}"));
+            Assert.Empty(Bits.Differences(expected.Figures[i], actual.Figures[i], $"station {i}"));
         }
 
         for (long j = 0; j < expected.Moles.LongLength; j++)
         {
-            Assert.True(BatchBuilders.SameBits(expected.Moles[j], actual.Moles[j]), $"moles differ at {j}");
+            Assert.True(Bits.Same(expected.Moles[j], actual.Moles[j]), $"moles differ at {j}");
         }
     }
 }

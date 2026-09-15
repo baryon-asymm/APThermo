@@ -10,6 +10,7 @@ code" (AGENTS.md §1): it is the readiness criterion, moved into a node of its o
 |---|---|---|---|
 | L0 | numeric field reading: `D`/`E`/blank exponents, a sign in place of the exponent letter, bare decimals, blank fields, non-numeric text | expected doubles in the theory data of `FortranNumberTests` (the one place a number is typed: the forms are the subject, not the data) | ✅ 2026-09-12 |
 | L1 | full loads of the committed `data/thermo.inp` and `data/trans.inp`: counts, fixture records, interval ordering and contiguity, anomaly list, transport blocks, atomic weights, failure on corrupted copies | an independent line scan in the test, the approved anomaly list, the fixture records written by `transcribe.py` | ✅ 2026-09-12 |
+| L1 | the same-name groups of the committed file: `Records` returns every record of a name in file order and the indexer the first of them; a negative interval count fails as a format error with its line, the seventh corruption case | the test's own scan of the file for repeated names (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` among them), the minimal in-memory file (`ThermoLoadTests`, `CorruptionTests`) | ✅ 2026-09-14 |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 Each next level makes sense only when the previous one is green.
@@ -53,6 +54,19 @@ Outside the tree: xunit; Python 3 for `transcribe.py`; the committed data files
   directory". The approval comparison of the anomaly list writes its actual text next
   to the approved file, as approval tests do; reworded when that test was written.
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+these two constructors over the root's six parameters. Both records mirror, field for
+field, the JSON records `transcribe.py` writes into `records/`, and only the deserializer
+builds them, so no creation in code can swap an argument; grouping their fields would part
+them from the files they read.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Records.SpeciesRecord.SpeciesRecord` | parameters | 12 | the species record of `records/species/*.json`, field for field; built by the deserializer only |
+| `Records.IntervalRecord.IntervalRecord` | parameters | 7 | a temperature interval of the same records, field for field; built by the deserializer only |
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 green: `FortranNumberTests.Parses_every_form_of_the_files`,
@@ -61,8 +75,8 @@ Outside the tree: xunit; Python 3 for `transcribe.py`; the committed data files
       `Header_carries_the_default_interval_bounds`,
       `Fixture_records_parse_to_the_transcribed_values` for every file under
       `records/species/`, `Interval_anomalies_equal_the_approved_list`,
-      `Atomic_weights_come_from_the_monatomic_species`, `Unknown_names_are_reported_by_name`,
-      `Loading_the_full_file_takes_under_a_second`); `TransLoadTests`
+      `Atomic_weights_come_from_the_monatomic_species`, `Unknown_names_are_reported_by_name`);
+      `TransLoadTests`
       (`Every_block_of_the_file_is_parsed`, `Fixture_blocks_parse_to_the_transcribed_values`
       for every file under `records/transport/`, `Pairs_are_found_in_either_order`);
       `CorruptionTests` (`The_minimal_file_itself_loads`,
@@ -78,6 +92,20 @@ Outside the tree: xunit; Python 3 for `transcribe.py`; the committed data files
       `Fixture_blocks_parse_to_the_transcribed_values` was red while the transcription
       collapsed the double blank of the `H2` reference. Mutations reverted; nothing of
       them is committed.
+
+  ⚠ 2026-09-14: the L1 list above held `Loading_the_full_file_takes_under_a_second`,
+  a wall-clock second in the fast set with no level in the table and no criterion
+  behind it, red on a cold or loaded machine for no defect (the clean-code review's
+  F-TK-14). The root states no latency target for version 1, and the `Data` node
+  records the load time as a measurement; the test is deleted.
+- [x] 2026-09-14 — The facts of 2026-09-14 (the level table's second L1 row):
+      `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order`
+      over the repeated names found by the test's own scan of the file (generated,
+      not typed; `Cr(cr)`, `Fe(a)` and `Cr2O3(I)` are among them), with the indexer
+      and `TryGet` returning the first of each and `Records` of an unknown name
+      empty; `CorruptionTests.A_negative_interval_count_names_its_line`; each seen
+      red once (`Records` made to return the first record only; the count check
+      removed from the reader) and reverted.
 
 ## Taboos
 

@@ -120,8 +120,10 @@ public readonly struct EquilibriumScratch
         var speciesActive = ints.SubView(0, speciesCount);
         var elementActive = ints.SubView(speciesCount, elementCount);
         var condensed = ints.SubView(speciesCount + elementCount, ScratchLayout.MaxCondensedInSolution);
-        return new EquilibriumScratch(hOverRT, sOverR, cpOverR, gOverRT, logMoles, corrections, matrix, rightHandSide, rowScale,
-                                      speciesActive, elementActive, condensed);
+        return new EquilibriumScratch(
+            hOverRT: hOverRT, sOverR: sOverR, cpOverR: cpOverR, gOverRT: gOverRT, logMoles: logMoles, corrections: corrections,
+            matrix: matrix, rightHandSide: rightHandSide, rowScale: rowScale,
+            speciesActive: speciesActive, elementActive: elementActive, condensedInSolution: condensed);
     }
 }
 

@@ -96,7 +96,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   one result per record in the input order, with the record echoed under `inputs`;
   a record that fails keeps its place with its status. The records without exits are
   one equilibrium batch over the union of their elements, the records with exits one
-  rocket batch.
+  rocket batch. The rules of a record (exactly one target; exits need an enthalpy; a
+  flow only with exits; the composition's own rules) are the front door's: this node
+  reads the JSON shape only, hands the records to `SolveStates` and
+  `SolveRocketStates`, and names a refusal by the record's file and position
+  (2026-09-14, decided at the root on the architecture review's F-AR-02; until then
+  this node decided the first three rules a second time).
 
   ⚠ 2026-09-12: stood "one batch": a rocket case and an equilibrium case are
   different programs of the execution node, so a mixed file is two batches, still one
@@ -110,6 +115,157 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   ⚠ 2026-09-12: the sketch's timings were the engine's (`warmUp`, `upload`, `kernel`,
   `download`), which the front door does not expose; the tool reports its own phases
   (`database` load, `solve`).
+
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
+had grown four commands, two formats and two input shapes in five files without a
+split: `InputDocuments` at 399 lines with an efferent coupling of 18, `Solving` a hub
+of 27, `CommandLine.Parse` at 117 lines, and the station written once per format (the
+review's F-CL-02 to F-CL-10; the review's measures at `8e36a27`: physical lines and a
+textual count of names; 351 and 101 lines of code by the current rule). One node, one
+directory: the split is into types, not into sub-nodes, which the root's
+one-assembly-per-node rule would turn into several assemblies for one adapter.
+Everything is internal except `Program` and `ExitCode`; one type per file, named after
+the type.
+
+⚠ 2026-09-15: four rows of the table below had drifted from the code they describe.
+`StateRecordReader`'s row said the record files' shape was decided "by the first
+non-blank character"; the code decides it by attempting to parse the first JSON value
+and checking what follows it (`JsonText.TryParseWhole`), not by inspecting characters.
+`DocumentWriter`'s row said only "delivery to the output file or the standard output,
+and the non-finite-number rule", omitting that it also renders a case document in the
+requested format and decides its exit code, and that the JSON writer the listings
+(`species`, `devices`) render through is this type's too. `Sweeps`' row named three of
+the sweep's four axes ("ratio-major, then pressure, then temperature"), silently
+dropping chamber pressure, which the code already crossed. `CaseInputs`' row claimed
+the whole `inputs` echo was "written once" in this type, while the code wrote only the
+swept ratio and left `RocketCases` to add `chamberPressure` and `EquilibriumCases` to
+add `kind`, `pressure` and the target (`AddTarget`). Found by the repair review of
+2026-09-15 reading the code against the table; its R-Cli-7 and R-Cli-3 also moved the
+code of the last two to match the row each already claimed (`Sweeps.Expand` is one
+query over the four axes; `CaseInputs.Rocket` and `CaseInputs.Equilibrium` own the
+whole echo, `AddTarget` moved in from `EquilibriumCases`).
+
+| Type | Responsibility |
+|---|---|
+| `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
+| `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
+| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`) |
+| `CommandSpec`, `OptionSpec` | one command: name, arity, usage line, the options and formats that apply; one option: name, takes a value or not, usage line, how it folds into `CommandOptions` |
+| `CommandTable` | the two tables, and the usage text generated from them, the defaults read from `CommandOptions.DefaultThreshold` and `ElementalMixture.DefaultMassTolerance` (F-AR-04) |
+| `ArgumentScanner` | the token walk: `--name`, `--name=value`, `--help`, positionals, a repeated option |
+| `CommandLine` | `Parse`: scan, look up, check arity, apply the options, check what applies (2026-09-15, R-Cli-5: dropped the `Usage` and `Commands` members that only forwarded to `CommandTable`; `Program` and the tests node read `CommandTable.Usage` and `CommandTable.Names` directly) |
+| `CommandOptions`, `OptionValues` | the parsed options; the number parser shared by `--threshold` and `--mass-tolerance`, the second validated by `ElementalMixture.IsValidMassTolerance` |
+| `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11) |
+| `JsonText` | a text parsed with its source label in the message |
+| `StrictObject` | unchanged: the mechanism of the strict-documents invariant |
+| `SweepValues` | a list or a `{from, to, step}` range into values, with the step tolerance named and derived (F-CL-12) |
+| `ProblemDocumentReader` | the document's root: parses the text, reads `propellant` through `PropellantDocumentReader`, `problem` through `ProblemPartReader` and `sweep` through `SweepDocumentReader`; reads `engine` itself (the accelerator word), finishes the root and assembles the `InputDocument` (2026-09-14, kept the name: the API calls the file a problem document) |
+| `PropellantDocumentReader` | the `propellant` object only: reactants or element moles, a custom reactant's formula (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `ProblemPartReader` | the `problem` object only: one reader per problem kind (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `SweepDocumentReader` | the `sweep` object only: the ranges the batch's Cartesian product runs over (2026-09-14, split out of `ProblemDocumentReader` along the document's entities) |
+| `StateRecordReader` | the record files, their shape decided by reading the first JSON value and what follows it (`JsonText.TryParseWhole`): one value alone is an array or an object, more is JSON Lines; each record read into the front door's `StateRecord` with its `RecordSource` (label, index, the raw JSON for the echo) |
+| `SolverSession` | the database and the solver of one run, with their timings; disposable |
+| `ProblemCommand` | `rocket` and `equilibrium`: read, check the problem type against the command, build the mixtures, expand the sweep, solve, write |
+| `StatesCommand` | `states`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order |
+| `RecordNaming` | a refusal of the front door (`StateRecordException`, `MixtureMassException`) renamed from its index to the record's file and position |
+| `Sweeps` | the Cartesian product of a sweep, ratio-major, then chamber pressure, then pressure, then temperature: the rule of this node's input document (2026-09-15, R-Cli-7: `CrossedWith`'s fold replaced by one query over the four axes; see the warning above) |
+| `Propellants` | a propellant document into builder calls or an elemental mixture; a custom reactant as the front door's `CustomReactantDefinition` |
+| `RocketCases`, `EquilibriumCases` | combinations and a problem document into problems, and results into case outputs |
+| `CaseInputs` | the whole `inputs` echo of a case, written once, for a rocket and for an equilibrium case (2026-09-15, R-Cli-3: `AddTarget` moved in from `EquilibriumCases`; see the warning above) |
+| `DatabaseFiles` | unchanged: where the database directory is found |
+| `StationFields` | the one projection of a station into named, typed cells (the state, the performance figures with the two conversions to seconds, the transport figures), from the library's structs by reflection; owns `StandardGravity` (F-CL-06, F-CL-07) |
+| `JsonOutput`, `CsvOutput` | the cells as nested objects with the compositions above the threshold; the same cells as columns, the header from the same source |
+| `RunSection` | the `run` object and the accelerator object, for every command that writes them |
+| `DocumentWriter` | a case document rendered in the requested format with the exit code of its cases (`ExitCodes`); the JSON writer the listings render through, with the non-finite-number rule; delivery to the output file or standard output |
+| `ExitCodes` | 0 when every case, station and transport evaluation is `ok`, else 1 (F-CL-10) |
+| `Names` | camel case of the library's names and of statuses; the flow, accelerator and problem-kind words are `DocumentWords`' own, both directions (2026-09-15, R-Cli-4: `Kind` and `Accelerator` moved there beside their parsers) |
+| `SpeciesRow` | one species flattened once (F-CL-08) |
+| `SpeciesCommand` | the `species` command: the database, the name filter, the rows, the run and the delivery (2026-09-14, split out of `SpeciesListing` by the coordinator's review, the way `DeviceListing` already separated the probe from the rendering) |
+| `SpeciesListing` | the rendering of `SpeciesCommand`'s rows: JSON or CSV (2026-09-14, kept to rendering only) |
+| `DeviceProbe`, `DeviceReport`, `DeviceListing` | what the machine offers, asked once; the report; its rendering |
+
+Decisions taken with the review of 2026-09-14:
+
+- **The state record's rules are the front door's** (F-CL-01, F-AR-02). The reader
+  checks the JSON shape (an unknown field, a wrong type, the path) and nothing more, so
+  `states-two-targets.json` and `states-rocket-without-enthalpy.json` are refused with
+  the front door's reasons behind the record's source, after the database is loaded
+  instead of before.
+- **The library's refusals are translated where the library is called** (F-CL-13).
+  Building a propellant or a mixture and solving map `ArgumentException` and
+  `KeyNotFoundException` to `InputException`; `Failures` maps `InputException` to exit
+  code 2 and everything else to 3, so a defect of this node is no longer reported as
+  invalid input. The errors table of `API.md` already says so; the code did not.
+- **An empty `only` stays a reader's rule** (F-AR-04). A list that may not be empty is
+  a shape rule of the document, named with its JSON path before any library call; the
+  front door applies its own rule again, and the duplication of that one predicate is
+  declared here. The mass tolerance's predicate is the front door's
+  (`ElementalMixture.IsValidMassTolerance`), and the usage text reads both defaults
+  from their constants.
+- **The document's defaults are the library's**: a rocket document without `flow`
+  leaves `RocketProblem.Flow` unset, and a record without `flow` leaves it null
+  (F-CL-11).
+- **`run.accelerator` and the `devices` listing carry `cudaSkippedBecause`**: the
+  reason an `auto` run fell back to the CPU accelerator (the `Execution` API,
+  2026-09-14), `null` when CUDA was bound or never tried, so that a document says why
+  it ran on the CPU. A contract change, planned in `API.md`.
+- **No other byte of any output document changes.** The decomposition is proved by the
+  tests node's snapshot of the example outputs, recorded before any code moved; the
+  `run` sections of the `species` and `devices` listings stay as they are (the review's
+  open question 5 is answered by leaving the documents alone).
+
+  ⚠ 2026-09-15: for a JSON document's formatting — indentation, line breaks, the final
+  newline, string escaping — this claim was not held from 2026-09-14, when the
+  decomposition landed, to 2026-09-15: the tests node's snapshot hashed a compact
+  re-serialization of the document, which left that formatting unguarded (the repair
+  review's R-Cli.Tests-2). It holds now: the snapshot hashes the bytes the command line
+  delivers, with `run` cut out by span (`tests/Cli.Tests/BOOT.md`, the Bits level and
+  the criterion of 2026-09-15).
+- **Records take at most six positional parameters**: `StateDocument` becomes the front
+  door's `StateRecord` with its `RecordSource`; a reactant document carries its custom
+  part as a `CustomReactantDefinition`; `RunInfo` takes `Timings` and `RunLimits`;
+  `CaseOutput` is declared with init properties (F-CL-09).
+- **Names**: `CommandRegistry` and `CommandTable` instead of two `Commands`, and verbs
+  for the case builders (F-CL-14).
+- **The commands are composition roots.** `ProblemCommand`, `StatesCommand` and
+  `SpeciesCommand` turn one command into calls of their collaborators: the input read,
+  the cases solved through the front door or the database listed, the run written. They
+  hold no formula and no rule of a document or a record, so each names every type its
+  path passes through, and a coupling above the root's limit is declared in
+  `## Shape exceptions` (the root's exception for a composition root). A reader, a
+  rendering or a mapper is not one: above the limit it is split along the document's
+  sections or the output's parts, never by moving a responsibility to where the count
+  fits.
+- **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
+  more than 6 parameters, no type with an efferent coupling over 14; a composition root
+  or a registry that holds no formula and cannot stay under the coupling limit is
+  declared in `## Shape exceptions` with its measured figure and its reason, and any
+  other type is split.
+
+  ⚠ 2026-09-14: this bullet stood "over 10" after the root's own limit was recalibrated
+  to 14 the same day (the root `BOOT.md`, Constraints): the root's number moved and this
+  copy of it did not. It also let any type that could not stay under the coupling limit
+  be declared, where the root allows the exception only to a registry or a composition
+  root that holds no formula. The protocol tests node's measurement over the tree with
+  this decomposition merged found `ProblemDocumentReader` at 21 and `SpeciesListing` at
+  17; both were split instead (`PropellantDocumentReader`, `ProblemPartReader` and
+  `SweepDocumentReader` out of the first; `SpeciesCommand` and `SpeciesListing`).
+
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `ProblemCommand` | efferent coupling | 30 | the composition root of `rocket` and `equilibrium`: the document read, the problem type checked, the mixtures and the sweep built by their types, the cases solved through `RocketCases` or `EquilibriumCases`, the run written; holds no formula (the decision "The commands are composition roots") |
+| `StatesCommand` | efferent coupling | 21 | the composition root of `states`, as `ProblemCommand`: the records split by `HasExits`, one call of `SolveStates` and one of `SolveRocketStates`, the cases back in input order |
+| `SpeciesCommand` | efferent coupling | 15 | the composition root of `species`, as `ProblemCommand`: the database loaded, the entries filtered and flattened, the rows rendered by `SpeciesListing` |
+
+Every other type of the node measures 14 or below by the dependency check's walk
+(`JsonOutput`, the highest of the rest), within the root's limit of 14.
 
 ## Acceptance criteria
 
@@ -161,6 +317,37 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
       (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
       heavy, not light: the front door's BOOT.md records why).
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type within the root's
+      code-shape constraint except the rows of `## Shape exceptions`, measured by the
+      protocol tests node's measurements (`ShapeMeasures`, `CouplingMeasures`) over the
+      tree with this decomposition merged, 66 types and 134 methods of the node: no type
+      over 400 lines, no method over 60, no nesting deeper than 3, no method over 6
+      parameters; the tests node's snapshot of the example outputs unchanged from before
+      any code moved (`tests/Cli.Tests/Bits.approved.txt`, empty diff against the
+      version recorded by `f795f3c`, before the decomposition); every L0, L1, L2 and
+      process fact green (`dotnet test tests/Cli.Tests`: 91 passed, 0 failed); the
+      public surface unchanged (`Program`, `ExitCode` the only public types of the
+      assembly; `Protocol.Tests.SurfaceTests` green against
+      `PublicSurface.approved.txt`).
+- [x] 2026-09-14 — The documents follow the front door's contract: the `states`
+      example gives the library's numbers field by field through `SolveStates` and
+      `SolveRocketStates` (`LibraryEqualityTests.The_states_example_equals_the_library_field_by_field`,
+      a records file with and without exits); an invalid record is exit code 2 naming
+      its file and position with the front door's reason (the pinned fragments of
+      `InputDocumentTests`, `states-two-targets.json` and `states-rocket-without-enthalpy.json`);
+      the exception → exit code rule maps an input refusal to 2 and an accelerator
+      failure or any other exception to 3
+      (`ExitCodeTests.An_exception_maps_to_its_documented_exit_code`); an `auto` run
+      with CUDA forbidden writes the reason in `run.accelerator.cudaSkippedBecause` and
+      the `devices` listing names the variable too, both schema files listing the field
+      (`OutputDocumentTests.An_auto_run_that_fell_back_says_why`, a separate process
+      with `APTHERMO_NO_CUDA=1`). Each fact seen red once and reverted: the fallback
+      reason not written, an unexpected exception mapped to 2.
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 
@@ -170,3 +357,5 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   separate decision.
 - No network, no telemetry.
 - No second list of the result fields: the structs are the list.
+- No rule of a state record here (2026-09-14): the front door owns them, and this node
+  names the record a refusal is about.

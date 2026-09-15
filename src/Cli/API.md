@@ -52,6 +52,19 @@ weights within the front door's tolerance (`ElementalMixture.MassTolerance`, 1 %
 record in mol/g, in kmol/kg or per two kilograms is refused naming the record, the mass
 found and the tolerance (the errors table below).
 
+⚠ 2026-09-14: "the exchange shape of the `Problems` node" was not true of the code.
+That node's `StateRecord` had no exits and no flow, and this node read a shape of its
+own and decided the target, exits and flow rules a second time (the architecture
+review's F-AR-02). Decided at the root: the front door's record gained exits and flow
+and owns the rules; this node now reads the JSON shape only and hands the records to
+`Solver.SolveStates` (records without exits) and `Solver.SolveRocketStates` (records
+with exits), so a record that breaks a rule of the shape — none or several of
+`enthalpy`, `temperature` and `entropy` given, exits without an `enthalpy`, a `flow`
+named without exits — is refused with the front door's reason behind the record's
+source, after the database is loaded rather than before: `records.json: record 1:
+exactly one of enthalpy, temperature and entropy must be given, not 2`. The JSON
+shape of a record does not change.
+
 ⚠ 2026-09-13: the example record stood with `"O": 31.2, "N": 4.1` at 1 MPa, an
 illustration that weighed 706 g and would now be refused; it is the record of another
 simulation that the mass check was written for (1000.015 g), and the tests node solves
@@ -213,7 +226,7 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
   "run": {
     "tool": "apthermo", "version": "1.0.0", "command": "rocket", "inputs": ["problem.json"],
     "database": { "thermoPath": "data/thermo.inp", "transPath": "data/trans.inp", "thermoSha256": "…", "transSha256": "…" },
-    "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70 },
+    "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70, "cudaSkippedBecause": null },
     "timings": { "database": 0.31, "solve": 1.2 },
     "threshold": 5e-6,
     "massTolerance": 0.01
@@ -243,6 +256,12 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
   ]
 }
 ```
+
+`run.accelerator` carries `cudaSkippedBecause`, the `Execution` node's
+`AcceleratorInfo.CudaSkippedBecause`: a string when an `auto` run fell back to the CPU
+accelerator (`"cudaSkippedBecause": "APTHERMO_NO_CUDA=1 forbids CUDA"`), `null` when
+CUDA was bound or never tried. The `devices` listing's `cpu` and `cuda` accelerator
+objects carry the same field.
 
 Every case carries `index` (its position), `inputs` (the values that vary in the
 batch: the ratio and the chamber pressure of a rocket case; the ratio, `kind`,
@@ -276,7 +295,10 @@ document without a second list. The `run.timings` are the tool's phases (`databa
 load, `solve`), not the engine's, which the front door does not expose; `run` also
 names the command, the input files and the threshold. 2026-09-13: `run.massTolerance`
 and `mixture.mass` were added with `--mass-tolerance`, so that a raised tolerance
-never hides the figure the check compared.
+never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
+`devices` listing's accelerator objects gained `cudaSkippedBecause`, the reason an
+`auto` run fell back to the CPU accelerator (the `Execution` node's
+`AcceleratorInfo.CudaSkippedBecause`), so that a document says why it ran on the CPU.
 
 ## Errors
 
@@ -289,8 +311,18 @@ never hides the figure the check compared.
 | a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the tolerance in force (`--mass-tolerance`, default 1 %: a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document; `within 3 %` under `--mass-tolerance 0.03`), exit code 2, no document |
 | `--mass-tolerance` with a value that is not a finite non-negative number, or on a listing command | `the mass tolerance must be a finite non-negative number, not 'X'`, or the option named as not applying; exit code 2 |
 | input file or database directory not found | message with the path, exit code 2 |
+| `--output` names a path whose directory does not exist | `PATH: directory not found`, exit code 2 |
 | accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3; for an accelerator, every path tried |
 | a case or station failed numerically | the document is written with the status per case and station; exit code 1 |
+
+⚠ 2026-09-15: `--output` into a missing directory had drifted to exit code 3 (an
+undocumented case, silently caught by the generic "unexpected failure" branch);
+`ExitCode.InvalidInput`'s own doc comment already put "an invalid … option" under 2,
+matching the behaviour before the clean-code pass. `DocumentWriter.Deliver` now turns
+that one failure of the output path into the documented exit code 2 naming the path;
+every other I/O failure (a permissions error, a full disk) still falls to exit code 3.
+Found by the repair review of 2026-09-15; pinned by
+`ExitCodeTests.A_missing_output_directory_is_exit_2`.
 
 ## Side effects
 

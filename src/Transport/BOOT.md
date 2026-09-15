@@ -159,16 +159,138 @@ fixtures node records the defective stations, and the test node skips the reacti
 fields where the solver reports a trace elimination and asserts that the defect is
 still visible there.
 
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The
+evaluation of one station is one public entry over internal static stage classes, all
+kernel-compatible, one class per file in this directory and namespace, sharing the
+existing view, scratch and figures structs. Every floating-point expression keeps its
+present form and its present order of evaluation, and the stages run in the present
+line order of `Evaluate` even where two of them look independent: the bit snapshot of
+the tests node (the acceptance criteria below) is the proof that the decomposition
+moved code and rewrote no formula.
+
+| Class | Responsibility | Visibility |
+|---|---|---|
+| `TransportSolver` | the contract: the constants, the five fit lookups (`FitOf`, `FitValue`, `PureViscosity`, `PureConductivity`, `PairViscosity`) and `Evaluate`, which builds the `StationInputs` and forwards to the composition root | public, contract unchanged |
+| `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Its efferent coupling, 14 by the dependency check's walk on 2026-09-14, is within the root's limit since that limit was recalibrated to 14 the same day, so it claims no exception (it was named here first as the composition root above the first limit of 10, about 14 after the split) | internal |
+| `TransportInput` | may this station be evaluated, and how much gas it holds: the temperature, table and mole checks, the gaseous mole sum, `InvalidInput` and `NoTransportData` | internal |
+| `TransportComponents` | the active element rows, each row's default species, the component of each row (with the predicates `AtomCount`, `OfCase`, `SameColumn`) | internal |
+| `TransportSetSelection` | which species take part: the case's gas count, the components, the decade passes to the coverage or the cutoff, `Capped` | internal |
+| `SetSpeciesProperties` | the per-species and per-pair η, λ, `Cp°/R` and `H°/RT` of the set: from the fits where there are data, from the estimates where there are none (two entries, run at the present positions 6 and 10 of the order) | internal |
+| `ReactionBasis` | the stoichiometry of the set reduced so that the component columns are unit vectors (with `LocalIndex`) | internal |
+| `ReactionSet` | the independent reactions among the set's species and the trace eliminations | internal |
+| `MixtureRules` | the mixture viscosity and frozen conductivity, equations (5.3)–(5.7) | internal |
+| `ReactionTerms` | the reaction contribution to conductivity and heat capacity (Butler and Brokaw): the enthalpy differences, the two matrices, the two dense solves, `SingularMatrix` | internal |
+| `SetProperties` | the set's mass and heat capacities and the two Prandtl numbers; fills the figures | internal |
+
+Carriers (`Carriers.cs`): `StationInputs` (the station under evaluation: its tables, its
+composition, its temperature and its scratch, built once in `Evaluate` and read by
+every stage, so that a stage's signature names only what is particular to it: the set
+size, the reaction count, the carriers it reads and the figures it fills), `MixtureTransport` (viscosity,
+frozen conductivity) and `ReactionContribution` (heat capacity, conductivity, status).
+The bookkeeping the figures already carry (`SpeciesCount`, `ReactionCount`,
+`EstimatedSpeciesCount`, `EstimatedMoleFraction`, `TraceEliminations`, `Capped`)
+travels as `ref TransportFigures`, the stack local `Evaluate` uses today.
+
+⚠ 2026-09-15: this paragraph used to justify `StationInputs` by "every stage takes it,
+so no stage signature exceeds four parameters". `SetProperties.Fill` and
+`TransportSetSelection.Passes` already take five parameters each; the count was wrong
+and, being a number repeating a property of the code rather than a fact the machine
+checks, could only drift further. Reworded to say what `StationInputs` is instead of a
+figure the code does not hold to. Found by the repair review of 2026-09-15
+(R-Transport-3).
+
+Every stage's XML comment lists the scratch slots it reads and the slots it writes.
+`Stx` and `Mark` are shared scratch: `Stx` is the normalised pivot row of the trace
+elimination in `ReactionSet` and the per-pair difference vector in `ReactionTerms`,
+valid only within each; `Mark` carries "seen by the component search" and "in the
+set" (the review's F-TP-06).
+
+Decisions taken with the review of 2026-09-14:
+
+- **`SingularMatrix` means the frozen figures.** The contract (`API.md`, Errors) says
+  that when a reaction system cannot be solved the frozen figures are written and the
+  reacting ones equal them. The code obeyed it for the conductivity and not for the
+  heat capacity when only the second solve failed (the review's F-TP-01):
+  `ReactionTerms` zeroes both contributions on either failure, and the tests node
+  exercises the status through the stage. No fixture reaches the path, so the bit
+  snapshot does not move.
+- **The scratch descriptor stays.** `TransportScratch`'s constructor lists its 22
+  slices; grouping them into three structs would move the contract for no run-time
+  gain, and `Slice` is the only caller in the tree. The constructor is this node's
+  declared exception to the parameter rule: a descriptor whose constructor enumerates
+  the slices of a blittable struct. `TransportTableView`'s constructor (10 parameters)
+  and `TransportTableArrays`' (9) are the same case. Every creation of the three names
+  its arguments, as the root requires of a mirrored shape (added 2026-09-14: a scan of
+  the construction sites found them positional).
+- **`TransportLayout.DoublesPerCase` keeps its species count.** The double scratch is
+  `4·M² + E·M + 8·M` with `M = MaxSpecies` and does not grow with the table; the
+  parameter mirrors `ScratchLayout` so that the execution node sizes every scratch the
+  same way. `API.md` says so now.
+- **`TransportTable.Build`** is host code: the species runs and the pair runs become
+  two private methods and `Build` the assembly.
+- **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
+  stage; the composition root may claim the declared exception only as a plain
+  sequence of stage calls under 100 lines.
+
+As built, 2026-09-14. One file per stage class, named after it; the three carriers
+share `Carriers.cs`, as decided above, and the two collectors of the host-side table
+build (`SpeciesRuns`, `PairRuns`: the two sections of the table as the build collects
+them: the per-species runs with the lists of species with and without data, and the
+pair index with the pair runs) share `TableRuns.cs` beside the other descriptors
+(`Descriptors.cs`). Two predicates are called from a stage other than the one that
+owns them, and are internal for it: `TransportComponents.OfCase` from
+`TransportSetSelection` (the case's gas count asks the same question as the default
+species of a row) and `ReactionBasis.LocalIndex` from `ReactionSet`. The stages carry
+the bookkeeping into the figures where they count it — `TransportSetSelection` the
+species count and `Capped`, `SetSpeciesProperties.Fits` the estimated species and
+their fraction, `ReactionSet` the reaction count and the trace eliminations — and the
+composition root reads the species count back out of them, so that no stage returns a
+tuple. `StationEvaluation.Run` is 32 lines and holds no formula; the largest type of
+the node is now `TransportComponents` at 244 lines and the largest method
+`TransportScratch.Slice` at 53, against 794 and 640 before.
+
+  ⚠ 2026-09-14, superseded by the named-construction fix below: `Descriptors.cs`'s
+  `TransportScratch.Slice` return statement was rewritten from positional to named
+  arguments after this paragraph was written, which lengthened it to 58 lines (measured
+  by the protocol tests node's `ShapeMeasures`); still well under the root's 60.
+  `StationEvaluation.Run` measures 28 lines by the same tool, not 32; unchanged since,
+  the difference is this paragraph's own figure, not a later edit.
+
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `TransportScratch.TransportScratch` | parameters | 22 | a descriptor whose constructor enumerates the slices of a blittable struct; grouping them into three structs would move the contract for no run-time gain (the decision "The scratch descriptor stays"); every creation names its arguments |
+| `TransportTableView.TransportTableView` | parameters | 10 | the same case as `TransportScratch` above |
+| `TransportTableArrays.TransportTableArrays` | parameters | 9 | the same case as `TransportScratch` above |
+
+`StationEvaluation`, named in `## Structure` as the composition root the root's Ce rule
+allows above its limit, measures 14 by the dependency check's walk: at, not above, the
+root's limit of 14, so it claims no exception and this node needs no efferent-coupling
+row.
+
 ## Acceptance criteria
 
-- [x] 2026-09-12 — Every rocket fixture run with transport (39 files, enumerated by
-      the test, 4 to 11 stations each) reproduces viscosity, frozen and reacting
-      conductivity, both Prandtl numbers and the reference's `cpFrozen` on the
-      reference composition within the tolerance table, the worst deviation 3.4e-8
-      relative; the reacting fields are skipped at the nine defective stations, where
-      the test asserts the defect is still visible (`Transport.Tests`,
-      `StationTests.Stations_match_the_reference`,
-      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`).
+- [x] 2026-09-14 — Every rocket fixture run with transport (enumerated by the tests
+      node) reproduces viscosity, frozen and reacting conductivity, both Prandtl
+      numbers and the reference's `cpFrozen` on the reference composition within the
+      tolerance table; the reacting fields are skipped at the nine defective stations,
+      where the test asserts the defect is still visible (`Transport.Tests`,
+      `StationTests.Station_figures_match_the_reference`,
+      `StationTests.The_reference_cpFrozen_is_the_transport_set_heat_capacity`,
+      `StationTests.Reacting_conductivity_is_never_below_the_frozen_one`,
+      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`;
+      green on the decomposed code at `5cb2664`). Re-dated from 2026-09-12, when the
+      evidence was one test, `StationTests.Stations_match_the_reference`, over 39
+      files of 4 to 11 stations with the worst deviation 3.4e-8 relative: the tests
+      node split that test (its F-TK-05) and left the typed counts out (F-TK-03), and
+      this node's code was decomposed on this date, which a tick of an earlier date
+      cannot prove (AGENTS.md §6).
 - [x] 2026-09-12 — The 27 fit fixtures (pure species and pairs) reproduce the
       independent Python evaluation within `transportFit`, the fit intervals of the
       table equal the file's, the fit rule agrees with the fixture on the shared bounds
@@ -192,6 +314,63 @@ still visible there.
       with the table's gas count in the thresholds on two of the three pairs (the
       LOX/RP-1 throat set of 14 species against 13, the N2O4/UDMH sets of 21 against
       26, every figure moved).
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type of the node within
+      the root's code-shape constraint, `TransportScratch.Slice` (the scratch
+      descriptor) the declared exception to the parameter rule, no control flow
+      nested deeper than 3, no method with more than six parameters — the public
+      surface unchanged (`Protocol.Tests.SurfaceTests` green against a
+      `PublicSurface.approved.txt` that did not move a line, every new type
+      internal), and every station's figures bit for bit those of `8e36a27` on the
+      CPU accelerator: the tests node's `Bits.approved.txt`, recorded before the
+      first line of code moved, unchanged through all eight steps, with
+      `KernelEqualityTests`, `AbsentElementTests` and every criterion above green
+      after each of them, and the whole fast suite green at the end (2144 tests).
+      Covered by the protocol tests node's `ShapeTests`, all ten facts green at
+      `62cd99e`.
+
+      ⚠ 2026-09-15: this criterion named `TransportScratch.Slice` at 53 lines. The
+      `## Structure` section's own warning above (superseded by the named-construction
+      fix) already corrected it to 58 once the return statement was rewritten to name
+      its arguments, but only there, not beside this criterion; `TransportScratch.Slice`
+      itself still measured 58 physical lines. Found by the repair review
+      (R-Transport-4). The figure was physical, not lines of code; the criterion above
+      now cites the protocol tests node's `ShapeTests` instead, which holds this by
+      machine at `62cd99e`.
+- [ ] The execution tests node's CUDA sweep green once after the decomposition (the
+      long-running `CudaTests`, which this node's session does not run: the criterion
+      above was split on 2026-09-14 so that what is proven and what is still owed are
+      not one tick).
+- [x] 2026-09-14 — `SingularMatrix` writes the frozen figures and reacting figures
+      equal to them, as `API.md` promises:
+      `Transport.Tests.StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
+      drives `ReactionTerms` (through `InternalsVisibleTo`) over a set of three species
+      and two reactions whose second system is singular while the first is not — the
+      third species weighs nothing, so RT/(pD) vanishes for both pairs that hold it and
+      the one pair left gives the two reactions the same difference vector — and
+      asserts the three equalities and the status. Seen red against the code of
+      `8e36a27` (moved here unchanged before the fix): the status and the conductivity
+      were right and the equilibrium heat capacity was 10441.86 against the frozen
+      5001.70. `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight`
+      keeps the first test from passing because both systems fail.
+- [x] 2026-09-14 — Every creation of `TransportScratch`, `TransportTableView` and
+      `TransportTableArrays` in the tree names its arguments (the decision "The scratch
+      descriptor stays"), the protocol tests node's named-construction fact green once
+      it exists; the tests node's bit snapshot unchanged. A scan of every `new T(…)` and
+      `T x = new(…)` of the three names in `src/` and `tests/` (a script outside the
+      tree) finds four sites, in `Descriptors`, twice in `TransportTable` and in
+      `Transport.Tests`' `StatusTests`, every argument named (the parameter `default`
+      as `@default:`); the builds of `Transport` and `Transport.Tests` after the change
+      carry the IL of the builds before it, method by method, so no argument binds to
+      another parameter; `Transport.Tests` (157) green;
+      `tests/Transport.Tests/Bits.approved.txt` unchanged (blob `3e4000db` before and
+      after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 

@@ -79,20 +79,6 @@ public readonly struct SpeciesFunctionBatchViews(
     public readonly ArrayView<int> InRange = inRange;
 }
 
-/// <summary>The probe of the root's math list: one value per function per input.</summary>
-public static class MathProbe
-{
-    /// <summary>The functions of the root's list, in the order of the probe's outputs.</summary>
-    public static readonly IReadOnlyList<string> Functions =
-        ["Exp", "Log", "Log10", "Pow", "Sqrt", "Abs", "Min", "Max", "Floor", "Ceiling"];
-
-    /// <summary>Outputs per input.</summary>
-    public static int FunctionCount => Functions.Count;
-
-    /// <summary>The exponent the probe passes to Pow.</summary>
-    public const double PowExponent = 1.37;
-}
-
 /// <summary>The kernel entry points: each slices the views of its case and calls the numerical node. No formula lives here.</summary>
 internal static class Kernels
 {
@@ -120,20 +106,22 @@ internal static class Kernels
         var stationCount = RocketLayout.StationCount(exitCount);
         var doublesPerCase = ScratchLayout.DoublesPerCase(speciesCount, elementCount);
         var intsPerCase = ScratchLayout.IntsPerCase(speciesCount, elementCount);
-        var problem = new RocketProblem(batch.ChamberPressures[index], batch.ReactantEnthalpies[index], batch.TemperatureEstimates[index],
-                                        (FlowModel)batch.Flows[index],
-                                        batch.ElementMoles.SubView(index * elementCount, elementCount),
-                                        batch.ExitValues.SubView(index * exitCount, exitCount),
-                                        batch.ExitKinds.SubView(0, exitCount));
+        var problem = new RocketProblem(
+            chamberPressure: batch.ChamberPressures[index], reactantEnthalpy: batch.ReactantEnthalpies[index],
+            temperatureEstimate: batch.TemperatureEstimates[index], flow: (FlowModel)batch.Flows[index],
+            elementMoles: batch.ElementMoles.SubView(index * elementCount, elementCount),
+            exitValues: batch.ExitValues.SubView(index * exitCount, exitCount),
+            exitKinds: batch.ExitKinds.SubView(0, exitCount));
         var scratch = EquilibriumScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
                                                batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
-        var result = new RocketResult(batch.Stations.SubView(index * stationCount, stationCount),
-                                      batch.Moles.SubView(index * stationCount * speciesCount, stationCount * speciesCount),
-                                      batch.Multipliers.SubView(index * stationCount * elementCount, stationCount * elementCount),
-                                      batch.Figures.SubView(index * stationCount, stationCount),
-                                      batch.StationStatus.SubView(index * stationCount, stationCount),
-                                      batch.Iterations.SubView(index * stationCount, stationCount),
-                                      batch.Status.SubView(index, 1));
+        var result = new RocketResult(
+            stations: batch.Stations.SubView(index * stationCount, stationCount),
+            moles: batch.Moles.SubView(index * stationCount * speciesCount, stationCount * speciesCount),
+            multipliers: batch.Multipliers.SubView(index * stationCount * elementCount, stationCount * elementCount),
+            figures: batch.Figures.SubView(index * stationCount, stationCount),
+            stationStatus: batch.StationStatus.SubView(index * stationCount, stationCount),
+            iterations: batch.Iterations.SubView(index * stationCount, stationCount),
+            status: batch.Status.SubView(index, 1));
         RocketSolver.Solve(in table, in problem, in scratch, in result);
     }
 
@@ -163,7 +151,7 @@ internal static class Kernels
     internal static void Probe(Index1D index, ArrayView<double> inputs, ArrayView<double> outputs)
     {
         var v = inputs[index];
-        var o = index * 10;
+        var o = index * MathProbe.StrideCount;
         outputs[o] = Math.Exp(v);
         outputs[o + 1] = Math.Log(v);
         outputs[o + 2] = Math.Log10(v);

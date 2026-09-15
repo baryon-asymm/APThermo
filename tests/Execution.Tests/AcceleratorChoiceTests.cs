@@ -19,6 +19,36 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Null(info.LibDevicePath);
         Assert.True(info.ThreadsOrMultiprocessors >= 1);
         Assert.False(string.IsNullOrWhiteSpace(info.DeviceName));
+        Assert.Null(info.CudaSkippedBecause);   // an engine asked for the CPU never tried CUDA
+    }
+
+    [Fact]
+    public void An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried()
+    {
+        const string dll = @"X:\nowhere\nvvm64_40_0.dll";
+        const string bitcode = @"X:\nowhere\libdevice.10.bc";
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Auto, LibNvvmPath = dll, LibDevicePath = bitcode, LibDeviceDiscovery = false };
+        using var engine = Engine.Create(options);
+        Assert.Equal(AcceleratorKind.Cpu, engine.Accelerator.Kind);
+        var reason = engine.Accelerator.CudaSkippedBecause;
+        Assert.NotNull(reason);
+        if (Engine.CudaForbidden)
+        {
+            Assert.Contains(EngineOptions.NoCudaVariable, reason, StringComparison.Ordinal);
+            return;
+        }
+
+        Assert.Contains("libdevice", reason, StringComparison.Ordinal);
+        Assert.Contains(dll, reason, StringComparison.Ordinal);
+        Assert.Contains(bitcode, reason, StringComparison.Ordinal);
+
+        // The reason survives the fallback as a value, not only as a sentence: the decision carries the paths it examined.
+        var decision = AcceleratorChoice.Decide(options);
+        using (decision.Session)
+        {
+            Assert.Equal(reason, decision.CudaSkippedBecause);
+            Assert.Equal([dll, bitcode], decision.PathsTried);
+        }
     }
 
     [Fact]
@@ -114,9 +144,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
     [Fact]
     public void Inconsistent_batches_are_refused_before_any_kernel_runs()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
-        var wrongElements = new RocketBatch(2, family.Table.ElementCount + 1, family.Inputs[0].ExitKinds);
+        var wrongElements = new RocketBatch(2, family.Table.ElementCount + 1, family.Inputs[0].Exits.Kinds);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongElements));
         var wrongSpecies = new TransportBatch(2, family.Table.SpeciesCount + 1);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongSpecies));
@@ -128,25 +158,29 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Throws<ArgumentException>(() => other.Run(tables, family.Batch()));
         using var withoutTransport = fixture.Cpu.Upload(family.Table);
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(withoutTransport, new TransportBatch(1, family.Table.SpeciesCount)));
-        var otherTable = BatchBuilders.RocketFamilies(fixture.Database)[1].Table;
+        var otherTable = FixtureBatches.RocketFamilies(fixture.Database)[1].Table;
         Assert.Throws<ArgumentException>(() => fixture.Cpu.Upload(otherTable, family.Transport));
     }
 
     [Fact]
     public void Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory()
     {
-        using var small = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10, ScratchBytes = 1000 });
-        Assert.Equal(10, small.ChunkSize(1000, 1, 1));           // by chunk size
-        Assert.Equal(5, small.ChunkSize(1000, 25, 0));           // by memory: 25 doubles = 200 bytes per case
-        Assert.Equal(1, small.ChunkSize(1000, 1000, 0));         // never below one case
-        Assert.Equal(3, small.ChunkSize(3, 1, 1));               // never above the count
+        var small = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10, ScratchBytes = 1000 };
+        Assert.Equal(10, ChunkPlan.For(1000, 12, small).Size);            // by chunk size
+        Assert.Equal(5, ChunkPlan.For(1000, 200, small).Size);            // by memory: 200 bytes per case against the 1000 allowed
+        Assert.Equal(1, ChunkPlan.For(1000, 8000, small).Size);           // never below one case
+        Assert.Equal(3, ChunkPlan.For(3, 12, small).Size);                // never above the count
+        Assert.Equal([new Chunk(0, 10), new Chunk(10, 10), new Chunk(20, 5)], ChunkPlan.For(25, 12, small).Chunks());
         Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 0 }));
+        var refused = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = 0 }));
+        Assert.Contains("scratch bound", refused.Message, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
     }
 
     [Fact]
     public void Result_layouts_follow_the_station_and_species_counts()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
         var batch = family.Batch();
         var result = fixture.Cpu.Run(tables, batch);

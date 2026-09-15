@@ -53,8 +53,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - The files are read from paths given by the caller; the node has no default path.
 - Encoding: the files are 7-bit ASCII; they are read as Latin-1 so that a stray byte
   never breaks a load.
-- Loading the full `thermo.inp` (1.2 MB, about 2 100 records) takes under one second
-  on the reference machine.
+- Loading the full `thermo.inp` (1.2 MB, about 2 100 records) took under one second
+  on the reference machine (measured 2026-09-12; a figure, not a budget: since
+  2026-09-14 no test holds it, because a wall-clock bound in the fast set reddens on
+  a busy machine for no defect, the test review's F-TK-14).
 
   ⚠ 2026-09-12: stood "about 3 800 records", a figure from memory. The independent
   scan of the committed file (`ThermoLoadTests.Every_record_of_the_file_is_parsed`)
@@ -100,7 +102,13 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   only); the node neither rejects nor reorders them, and the tests node keeps them on
   its approved anomaly list.
 - Condensed phases of one substance are separate records (`AL2O3(a)`, `AL2O3(L)`),
-  each with its own temperature range; the node does not relate them.
+  each with its own temperature range; the node does not relate them. One condensed
+  substance may also be written as several records under one name, one per
+  temperature range (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)` with three, and seven more of the
+  committed file): the indexer returns the first, `Records` returns them all in file
+  order, and joining them is the consumer's rule (`Thermo`). Recorded 2026-09-14:
+  until then the fact was stated only in the consumer's document, and the consumer
+  rebuilt the index the file implies (the clean-code review's F-TD-06).
 - CEA's "inert" records (`InertO2`, `InertH2(L)`, `InertAir`, …) are the records whose
   name starts with `Inert`; their formulas use the pseudo-element symbols `IC`, `IH`,
   `IN`, `IO`. They are parsed like any other record and flagged by the name prefix.
@@ -121,6 +129,96 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Meaning: `ln η = A ln T + B/T + C/T² + D` with η in micropoise; the same form for
   the conductivity in μW/(cm·K). The node stores the fits and the units as in the
   file; conversion to SI belongs to `Transport`.
+
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). Each
+parser is the record structure of its file, one class per file in this directory and
+namespace, everything internal but the database types; the parsed model is
+unchanged, and the fixture and corruption tests of the tests node are the proof.
+
+| Type | Responsibility | Visibility |
+|---|---|---|
+| `SpeciesDatabase` | the contract; gains `Records(string name)`, the records of a name in file order, built once at load beside the index; the atomic weights are built at load too, so the type is immutable and shareable once loaded | public, contract grown by `Records` |
+| `ThermoFile` | the skeleton of `thermo.inp`: comments, the `thermo` line, the header, the two sections, the record loop | internal |
+| `SpeciesRecordReader` | one record, whole or absent: the identity line, the properties line (`N`, the date code, the formula pairs, the phase, the molar mass, the formation enthalpy), the assigned-temperature line | internal |
+| `IntervalReader` | one interval: the bounds and exponents line, the two coefficient lines | internal |
+| `RecordColumns` | the column map of the format facts above as named constants, so that the code reads against that table field by field | internal |
+| `FixedColumns` | a field by its columns, for both files | internal |
+| `LineErrors` | a field error stamped with its line and file, for both parsers, with an `Action` form so that no reader returns a value nobody reads | internal |
+| `TransParser` | the block loop of `trans.inp` | internal |
+| `TransportBlockReader` | one block: the header (the names, the `VnCm` code, the reference) and the fit lines with the V/C dispatch and the count check | internal |
+
+Decisions taken with the review of 2026-09-14:
+
+- **Several records under one name are a format fact of this node** (the bullet
+  under the format facts): the indexer returns the first, `Records` returns them all
+  in file order, and `Thermo` no longer rebuilds that index (the review's F-TD-06). A
+  contract change, recorded in `API.md` with its ⚠; the snapshot moves in the same
+  commit.
+- **One sentinel convention.** The section and end markers are compared ordinally in
+  the file's own case (`END PRODUCTS`, `END REACTANTS`, `end`); the `thermo` line
+  alone is matched case-insensitively, as the format description allows (F-TD-12).
+- **A negative interval count is a format error** stamped with its line, like every
+  other bad field, instead of an `ArgumentOutOfRangeException` without file or line
+  (F-TD-08); the seventh corruption case of the tests node.
+- **The record constructors are the declared exception** to the parameter rule:
+  `Species` (11 parameters) and `TemperatureInterval` (7) mirror the file's fields
+  one to one; their single construction sites use named arguments, so a swap cannot
+  compile unnoticed (F-TD-07).
+- **The load time is a measurement, not a criterion** (Constraints); the wall-clock
+  test of the tests node goes (F-TK-14).
+- **`SpeciesRecordReader` does not translate its own field errors.** A first pass left
+  the `FieldException → DatabaseFormatException` wrap (BOOT.md, `LineErrors`) inside
+  `SpeciesRecordReader.Read`, which put it at Ce 12 (`DatabaseFormatException`,
+  `FieldException`, `ElementCount`, `FixedColumns`, `FortranNumber`, `IntervalReader`,
+  `LineErrors`, `RecordColumns`, `Species`, `SpeciesPhase`, `SpeciesSection`,
+  `TemperatureInterval`), two over the root's limit. `ThermoFile.Parse` already holds
+  the record's start line (`first = i`, before calling `Read`) for its own errors, so
+  the wrap moved to its call site instead: `SpeciesRecordReader` now lets
+  `FieldException` propagate, and `ThermoFile` catches it there. `Read`'s Ce drops to
+  10 (at the limit); `ThermoFile`'s rises to 5. No behaviour changed — the corruption
+  tests assert the same file, line and message before and after.
+
+  ⚠ 2026-09-15: this decision is reversed. Its "Ce 12" and the "10 (at the limit)" it
+  produced were both textual counts against that day's Ce limit of 10; the dependency
+  check's own walk, first used to measure Ce by the protocol tests node's
+  `CouplingMeasures` on 2026-09-14, gives `SpeciesRecordReader` 9 with the wrap moved
+  out (the figure this node's own `## Shape exceptions` section recorded once the walk
+  measured Ce) and 11 with the wrap back inside — both under the root's limit of 14,
+  the same day recalibrated to the walk instead of the text (root `BOOT.md`). The
+  premise for the move was gone before this node's own figures were next read against
+  it. The wrap is back inside `SpeciesRecordReader.Read` (its `fcab80e` form, with
+  `var first = i` held at entry), `ThermoFile.Parse` calling `Read` directly again:
+  `Read` measures Ce 11 by the walk, `ThermoFile` 4. No behaviour changed — the
+  corruption tests assert the same file, line and message before and after. Found by
+  the clean-code repair review (R-Data-1).
+
+  ⚠ 2026-09-15: the paragraph above first said the walk was "not written until the
+  protocol tests node's `ShapeTests` phase" and that the `## Shape exceptions` figure
+  came "once that walk existed". The walk is the dependency check's, written with that
+  node's reflection checks on 2026-09-13 (`DependencyTests`); what came on 2026-09-14
+  was its use for Ce (`CouplingMeasures`, which reads the same walk). Found at the end
+  sweep of the clean-code pass, from the commits that added the two files.
+- **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
+  than 6 parameters (the two constructors aside); no type names more than 14 distinct
+  types of the tree (its efferent coupling, Ce) — the root's own limit, recalibrated
+  the same day on the dependency check's walk, by which the protocol tests node's
+  `ShapeTests` measures this node.
+
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Species.Species` | parameters | 11 | mirrors the file's fields one to one (the decision "The record constructors are the declared exception to the parameter rule"); its single construction site names its arguments |
+| `TemperatureInterval.TemperatureInterval` | parameters | 7 | mirrors the file's fields one to one, as `Species` above; its single construction site names its arguments |
+
+No type of this node names more than 11 distinct types of the tree by the dependency
+check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move of
+2026-09-14), below the root's limit of 14: no efferent coupling row is needed.
 
 ## Acceptance criteria
 
@@ -160,6 +258,41 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-12 — `AtomicWeight("AL")` equals the molar mass of the record `AL`;
       `AtomicWeight` of a symbol without a monatomic record throws:
       `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species`.
+- [x] 2026-09-14 — The decomposition of `## Structure`: no type over 400 lines (the
+      largest new file, `SpeciesDatabase.cs`, 152), no method over 60, no nesting
+      deeper than 3, no more than 6 parameters except the two record constructors
+      (measured by the coder's scan at the close of the decomposition, the longest
+      method `ThermoFile.Parse` at 57 lines and the highest efferent coupling
+      `SpeciesRecordReader` at 10; the protocol tests node's `ShapeTests`, root
+      `BOOT.md`, re-measures it once it exists); the public
+      surface grown by `SpeciesDatabase.Records` only, `PublicSurface.approved.txt`
+      moved in the same commit; every fixture, count, anomaly and corruption test of
+      the tests node green unchanged (`dotnet test tests/Data.Tests`, 39 tests, the
+      one new `Loading_the_full_file_takes_under_a_second` removal aside).
+
+      ⚠ 2026-09-14: the parenthetical above first read "measured by the protocol tests
+      node's `ShapeTests`". That test did not exist when the criterion was ticked (the
+      protocol tests node's Shape level is still planned): the figures came from the
+      coder's scan, which the parenthetical now names.
+- [x] 2026-09-14 — `Records(name)` returns the records of every same-name group in
+      file order and the indexer the first of them (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)`
+      among the names the tests node's own scan of the committed file finds
+      repeated): `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order`.
+      A negative interval count fails the load naming its line, the seventh
+      corruption case: `CorruptionTests.A_negative_interval_count_names_its_line`.
+      The atomic weights are built once at load from a single pass over `Products`,
+      so a loaded database is immutable and needs no lock; the existing
+      `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species` covers the
+      values unchanged. Both new checks seen red once, reverted: `Records` made to
+      return only the first record turned the repeated-name test red on every
+      repeated name found; the negative-count check removed from
+      `SpeciesRecordReader.ReadProperties` turned the corruption test red with the
+      bare `ArgumentOutOfRangeException` the wording above describes.
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 

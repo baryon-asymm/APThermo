@@ -23,6 +23,18 @@ can be uploaded to an accelerator and evaluated without allocation.
 - **Formulas are the NASA ones**, exactly as recorded in the `Data` node's format
   facts, with the exponents taken from the record, not assumed. One implementation
   of each formula in the tree.
+
+  ⚠ 2026-09-14, a declared deviation (`AGENTS.md` §12) from this invariant and from
+  the root's first: the sum of `H°/RT` is written twice, once over the table view for
+  the kernels and once over a `Data` record interval for the builder's join-and-cut
+  test, sharing only the per-term helper. The builder needs no accelerator and ILGPU
+  1.5.3 gives no view over a managed array outside a kernel (the ⚠ under Constraints),
+  so the host-side sum cannot call the kernel-side one. What replaces the invariant
+  there: the tests node pins the two overloads to each other bit for bit over the
+  thermo fixtures' species and temperatures, so a drift cannot hide below the cut
+  threshold. What would lift it: a builder that goes through the CPU accelerator,
+  which this node avoids on purpose. Found by the clean-code review (F-TD-13,
+  F-AR-06); until then the code's comment claimed the formula lived once.
 - **Interval selection is defined.** For a temperature `T`, the interval used is the
   first one with `T ≤ THigh`; below the first interval or above the last, the nearest
   interval's polynomial is used and `IsInRange` reports `false`. `IsInRange` is exact
@@ -101,6 +113,96 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   view needs a memory buffer of an accelerator. The builder still needs none; the
   tests create the CPU accelerator to evaluate. Found when the view was implemented.
 
+## Structure
+
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The
+builder is one public entry over internal stages, one class per file in this
+directory and namespace; the functions and the view keep their code, and the arrays a
+table is built into are bit for bit those of `8e36a27`: the tests node's bit snapshot
+(the acceptance criteria below) is the proof.
+
+| Type | Responsibility | Visibility |
+|---|---|---|
+| `SpeciesTable` | the contract; `Build` reduced to the sequence: check the request, resolve each name to a gas entry or to condensed pieces, concatenate gaseous then condensed, check the limits, flatten, construct | public, contract grown by `PieceOf` |
+| `TableRequest` | the request is well formed: counts, `TableLimits`, duplicate elements and species, each refused by name; the element index | internal |
+| `SpeciesResolution` | one requested name resolved into its table pieces: a gas entry (its first product record, or the database's own record for a name no product carries) or, for a condensed name, the join (the records of one name are one contiguous piece, or the name is refused) and the cut (a shared bound with `|ΔH°/RT| ≥ LatentHeatThreshold` starts a new piece named `NAME[TLow-THigh]`); every name's formula checked against the table's elements first | internal |
+| `TableLayout` | the flat layout in one place: the strides and slots (the bounds stride 2, the exponents per interval 8, the coefficient stride 9, the `b1` and `b2` slots) as constants the writer and the reader (`SpeciesFunctions`) both use, and the flattening of the pieces into `SpeciesTableArrays` | internal |
+| `TablePiece` | one table species in the making: the name, the record that provided its first interval, its intervals (today's private entry record, promoted so that the stages can pass it) | internal |
+| `SpeciesFunctions` | code unchanged, reading the layout through `TableLayout`; gains `RecordLow` and `RecordHigh` (below) | public |
+
+Decisions taken with the reviews of 2026-09-14:
+
+- **The table answers the range questions.** Two neighbours re-derived this node's
+  interval layout: the front door found the piece of a cut record covering a
+  temperature, and the equilibrium solver read a record's first lower and last upper
+  bound from the arrays (the architecture review's F-AR-01). The contract gains
+  `SpeciesTable.PieceOf(string species, double temperature)` (host side, the piece by
+  the same rule as `IntervalOf`) and `SpeciesFunctions.RecordLow(in view, int)` and
+  `RecordHigh(in view, int)` (kernel-compatible, the bounds `IsInRange` compares);
+  they evaluate the identical expressions, so nothing moves. The neighbours switch to
+  them in their own tasks. Recorded in `API.md` with its ⚠; the snapshot moves in the
+  same commit.
+- **The duplicate-name records come from `Data`.** The builder no longer rebuilds a
+  name → records index over the whole product list on every call: `Data` publishes
+  the records of a name in file order (`SpeciesDatabase.Records`, its own decision of
+  the same day), and the sentence under Constraints about the database index
+  returning the first record per name now points at the neighbour's contract
+  instead of restating it.
+- **The constructors of the view and the arrays are the declared exception** to the
+  parameter rule: `SpeciesTableView` (11 parameters) and `SpeciesTableArrays` (8) are
+  the layout itself, the aggregation mechanism the root names for kernels; eight of
+  the eleven are caught by the type system on a swap, and splitting them into column
+  structs would change the contract of four kernel nodes for no numerical gain. Every
+  creation of the two names its arguments, as the root requires of a mirrored shape
+  (added 2026-09-14: a scan of the construction sites found them positional).
+- **The join compares the formation enthalpy too**, if the committed file lets it:
+  the same-name product groups are scanned first; where none disagrees, a disagreeing
+  pair is refused like a differing formula or molar mass; where one does, the rule is
+  recorded here instead and the first record's value stands (the review's F-TD-09).
+
+  Confirmed 2026-09-14 by a scan of `data/thermo.inp` (2 030 product records; the
+  scan's own count matches `ThermoLoadTests.Every_record_of_the_file_is_parsed`):
+  ten names repeat in the PRODUCTS section — `Co(b)`, `Cr(cr)`, `Cr2O3(I)`, `Fe(a)`,
+  `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`, the same ten
+  the concatenation list above already named — and none disagrees in
+  `FormationEnthalpy`. The join therefore refuses a disagreeing pair exactly as it
+  refuses a differing formula or molar mass (`SpeciesResolution.Joins`); the tests
+  node exercises the refusal on a synthetic pair, since no real one disagrees
+  (`JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`).
+- **`MixtureMolarMass`'s summary in the code** says what `API.md` has said since
+  2026-09-12: one kilogram over the moles of all species, condensed included (the
+  review's F-TD-04: the rename of that day changed the field and the document and
+  left the comment).
+- **`SpeciesTableBuffers` stays here**; the "out of scope" line of `API.md` that
+  contradicted it goes (the review's F-TD-11).
+- **`CondensedAssembly` is renamed `SpeciesResolution`, `Touches` renamed `Joins`**
+  (2026-09-15, the clean-code repair's R-Thermo-1). The type's own summary and its
+  Structure row above described it as only "the join … and the cut", but the code has
+  always resolved every requested name through it, gaseous or condensed: the gas
+  branch, the reactant-record fallback for a name no product carries, and the
+  stoichiometry check that refuses a foreign element sit beside the join-and-cut,
+  named by neither. The name now matches the scope instead of the scope being cut
+  back to the name: Ce and every bit are unchanged (`SpeciesResolution` measures Ce 8,
+  as `CondensedAssembly` did), only the identifiers and the two descriptions move.
+  `SpeciesTable.cs`'s two references and `Thermo.Tests`' one doc-comment mention
+  renamed with it.
+- **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
+  than 6 parameters (the two constructors aside).
+
+## Shape exceptions
+
+The rows below are this node's declared exceptions to the root's code-shape constraint,
+in the form the protocol tests node reads; their reasons are decisions of `## Structure`.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `SpeciesTableView.SpeciesTableView` | parameters | 11 | the layout itself, the aggregation mechanism the root names for kernels (the decision "The constructors of the view and the arrays are the declared exception to the parameter rule"); every creation names its arguments |
+| `SpeciesTableArrays.SpeciesTableArrays` | parameters | 8 | the layout itself, as `SpeciesTableView` above; every creation names its arguments |
+
+No type of this node names more than 8 distinct types of the tree by the dependency
+check's walk (`SpeciesResolution` and `SpeciesTable` tie at 8), below the root's limit
+of 14: no efferent coupling row is needed.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — For the species and temperatures of the `thermo` fixtures (one file
@@ -153,6 +255,44 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       fixtures, the generator joining records the same way); and every species of
       the four reference propellants' tables builds and compares as before (the
       Equilibrium, Performance and Problems fixture suites of the same day).
+- [x] 2026-09-14 — The decomposition of `## Structure`: every type of the node within
+      the root's code-shape constraint (measured by hand pending the protocol tests
+      node's `ShapeTests`, root `BOOT.md`; the largest new file, `SpeciesTable.cs`,
+      179 lines; the two constructors declared above the only exceptions), the public
+      surface grown only by `PieceOf`, `RecordLow` and `RecordHigh` (with `Records` of
+      the `Data` node, the snapshot moves by exactly four lines over the whole task),
+      `PublicSurface.approved.txt` moved in the same commit, and every table bit for
+      bit as at `8e36a27`: the tests node's bit snapshot over every fixture case's
+      table unchanged (`dotnet test tests/Thermo.Tests`, 378 tests), `KernelEqualityTests`
+      and the fixture tests green, the fast suite green.
+- [x] 2026-09-14 — `PieceOf`, `RecordLow` and `RecordHigh` agree with `IntervalOf` and
+      `IsInRange` over every fixture species: `RangeQuestionTests`
+      (`PieceOf_names_the_piece_the_interval_rule_chooses` over `ALN(L)`, the one cut
+      name of the thermo fixtures, `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses`
+      over all 40). The two `H°/RT` overloads agree bit for bit over the thermo
+      fixtures' species and temperatures (the declared deviation under Invariants):
+      `OverloadPinningTests.Host_and_kernel_enthalpy_sums_give_the_same_bits`, 40
+      species. The join refuses a same-name pair that disagrees in formation enthalpy,
+      the rule the scan above decided: `JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`.
+- [x] 2026-09-14 — Every creation of `SpeciesTableView` and `SpeciesTableArrays` in the
+      tree names its arguments (the decision on the constructors of the view and the
+      arrays), the protocol tests node's named-construction fact green once it exists;
+      the tests node's bit snapshot unchanged. A scan of every `new T(…)` and
+      `T x = new(…)` of the two names in `src/` and `tests/` (a script outside the tree)
+      finds four sites, in `SpeciesTableView`, `TableLayout`, `Equilibrium.Tests`'
+      `InvalidInputTests` and `Transport.Tests`' `StatusTests`, every argument named;
+      the builds of `Thermo`, `Equilibrium.Tests` and `Transport.Tests` after the change
+      carry the IL of the builds before it, method by method, so no argument binds to
+      another parameter; `Thermo.Tests` (378), `Equilibrium.Tests` (463) and
+      `Transport.Tests` (157) green; `tests/Thermo.Tests/Bits.approved.txt` unchanged
+      (blob `8bd5068e` before and after). The fact,
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      and not yet written; it takes over as the evidence when it is.
+- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
+      repaired code at `62cd99e`: its tests green in the full suite
+      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
+      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
+      and the long-running sweep and throughput tests).
 
 ## Taboos
 

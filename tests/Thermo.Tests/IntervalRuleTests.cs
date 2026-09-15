@@ -49,6 +49,6 @@ public sealed class IntervalRuleTests : IClassFixture<CpuFixture>
         // The value outside is the nearest polynomial's: continuous across the bound.
         var below = SpeciesFunctions.CpOverR(view, 0, Math.BitDecrement(first));
         var at = SpeciesFunctions.CpOverR(view, 0, first);
-        Assert.True(Math.Abs(below - at) < 1e-9 * Math.Abs(at), $"{species}: Cp/R jumps at the lower bound");
+        Assert.True(Math.Abs(below - at) < CpuFixture.RoundingBound * Math.Abs(at), $"{species}: Cp/R jumps at the lower bound");
     }
 }

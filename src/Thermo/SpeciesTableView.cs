@@ -76,10 +76,10 @@ public sealed class SpeciesTableBuffers : IDisposable
         _coefficients = accelerator.Allocate1D(arrays.Coefficients);
         Table = table;
         View = new SpeciesTableView(
-            table.SpeciesCount, table.GasCount, table.ElementCount,
-            _molarMass.View, _formationEnthalpy.View, _stoichiometry.View,
-            _intervalStart.View, _intervalCount.View,
-            _intervalBounds.View, _exponents.View, _coefficients.View);
+            speciesCount: table.SpeciesCount, gasCount: table.GasCount, elementCount: table.ElementCount,
+            molarMass: _molarMass.View, formationEnthalpy: _formationEnthalpy.View, stoichiometry: _stoichiometry.View,
+            intervalStart: _intervalStart.View, intervalCount: _intervalCount.View,
+            intervalBounds: _intervalBounds.View, exponents: _exponents.View, coefficients: _coefficients.View);
     }
 
     /// <summary>The table the buffers hold.</summary>

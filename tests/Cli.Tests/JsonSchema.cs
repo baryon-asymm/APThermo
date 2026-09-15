@@ -36,7 +36,30 @@ internal sealed class JsonSchema
         return errors;
     }
 
+    /// <summary>One schema box against one instance, split by the kind of check ($ref and type gate the rest; the others by the instance's own kind).</summary>
     private void Check(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
+        CheckKeywords(schema);
+        if (schema.TryGetProperty("$ref", out var reference))
+        {
+            Check(Resolve(reference.GetString()!), instance, path, errors);
+            return;
+        }
+
+        if (!CheckType(schema, instance, path, errors))
+        {
+            return;
+        }
+
+        CheckValue(schema, instance, path, errors);
+        CheckNumber(schema, instance, path, errors);
+        CheckObject(schema, instance, path, errors);
+        CheckArray(schema, instance, path, errors);
+        CheckCombinators(schema, instance, path, errors);
+    }
+
+    /// <summary>A schema may not ask for a keyword this validator does not check (the keyword whitelist, unchanged).</summary>
+    private static void CheckKeywords(JsonElement schema)
     {
         foreach (var keyword in schema.EnumerateObject())
         {
@@ -45,19 +68,23 @@ internal sealed class JsonSchema
                 throw new InvalidOperationException($"the schema uses the keyword '{keyword.Name}', which this validator does not check");
             }
         }
+    }
 
-        if (schema.TryGetProperty("$ref", out var reference))
-        {
-            Check(Resolve(reference.GetString()!), instance, path, errors);
-            return;
-        }
-
+    /// <summary>type: false stops every other check on this instance, as a type mismatch makes them meaningless.</summary>
+    private static bool CheckType(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
         if (schema.TryGetProperty("type", out var type) && !TypeMatches(type, instance))
         {
             errors.Add($"{path}: expected {type.ToString()}, found {Kind(instance)}");
-            return;
+            return false;
         }
 
+        return true;
+    }
+
+    /// <summary>enum, const: checked against the instance's value regardless of its kind.</summary>
+    private static void CheckValue(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
         if (schema.TryGetProperty("enum", out var allowed) && !allowed.EnumerateArray().Any(v => JsonElement.DeepEquals(v, instance)))
         {
             errors.Add($"{path}: {instance.ToString()} is not one of {allowed.ToString()}");
@@ -67,74 +94,103 @@ internal sealed class JsonSchema
         {
             errors.Add($"{path}: expected {constant.ToString()}, found {instance.ToString()}");
         }
+    }
 
-        if (instance.ValueKind == JsonValueKind.Number)
+    private static void CheckNumber(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
+        if (instance.ValueKind != JsonValueKind.Number)
         {
-            var value = instance.GetDouble();
-            if (schema.TryGetProperty("minimum", out var minimum) && value < minimum.GetDouble())
-            {
-                errors.Add($"{path}: {value} is below the minimum {minimum.GetDouble()}");
-            }
-
-            if (schema.TryGetProperty("exclusiveMinimum", out var exclusive) && value <= exclusive.GetDouble())
-            {
-                errors.Add($"{path}: {value} is not above {exclusive.GetDouble()}");
-            }
+            return;
         }
 
-        if (instance.ValueKind == JsonValueKind.Object)
+        var value = instance.GetDouble();
+        if (schema.TryGetProperty("minimum", out var minimum) && value < minimum.GetDouble())
         {
-            var properties = schema.TryGetProperty("properties", out var p) ? p : default;
-            if (schema.TryGetProperty("required", out var required))
-            {
-                foreach (var name in required.EnumerateArray())
-                {
-                    if (!instance.TryGetProperty(name.GetString()!, out _))
-                    {
-                        errors.Add($"{path}: missing '{name.GetString()}'");
-                    }
-                }
-            }
+            errors.Add($"{path}: {value} is below the minimum {minimum.GetDouble()}");
+        }
 
-            foreach (var property in instance.EnumerateObject())
+        if (schema.TryGetProperty("exclusiveMinimum", out var exclusive) && value <= exclusive.GetDouble())
+        {
+            errors.Add($"{path}: {value} is not above {exclusive.GetDouble()}");
+        }
+    }
+
+    private void CheckObject(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
+        if (instance.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        var properties = schema.TryGetProperty("properties", out var p) ? p : default;
+        if (schema.TryGetProperty("required", out var required))
+        {
+            foreach (var name in required.EnumerateArray())
             {
-                var propertyPath = $"{path}.{property.Name}";
-                if (properties.ValueKind == JsonValueKind.Object && properties.TryGetProperty(property.Name, out var propertySchema))
+                if (!instance.TryGetProperty(name.GetString()!, out _))
                 {
-                    Check(propertySchema, property.Value, propertyPath, errors);
-                }
-                else if (schema.TryGetProperty("additionalProperties", out var additional))
-                {
-                    if (additional.ValueKind == JsonValueKind.False)
-                    {
-                        errors.Add($"{propertyPath}: not allowed");
-                    }
-                    else if (additional.ValueKind == JsonValueKind.Object)
-                    {
-                        Check(additional, property.Value, propertyPath, errors);
-                    }
+                    errors.Add($"{path}: missing '{name.GetString()}'");
                 }
             }
         }
 
-        if (instance.ValueKind == JsonValueKind.Array)
+        foreach (var property in instance.EnumerateObject())
         {
-            var count = instance.GetArrayLength();
-            if (schema.TryGetProperty("minItems", out var minItems) && count < minItems.GetInt32())
-            {
-                errors.Add($"{path}: {count} items, fewer than {minItems.GetInt32()}");
-            }
+            CheckProperty(schema, properties, property, path, errors);
+        }
+    }
 
-            if (schema.TryGetProperty("items", out var items))
-            {
-                var i = 0;
-                foreach (var item in instance.EnumerateArray())
-                {
-                    Check(items, item, $"{path}[{i++}]", errors);
-                }
-            }
+    /// <summary>One property of an object instance: by its own schema when declared, else additionalProperties.</summary>
+    private void CheckProperty(JsonElement schema, JsonElement properties, JsonProperty property, string path, List<string> errors)
+    {
+        var propertyPath = $"{path}.{property.Name}";
+        if (properties.ValueKind == JsonValueKind.Object && properties.TryGetProperty(property.Name, out var propertySchema))
+        {
+            Check(propertySchema, property.Value, propertyPath, errors);
+            return;
         }
 
+        if (!schema.TryGetProperty("additionalProperties", out var additional))
+        {
+            return;
+        }
+
+        if (additional.ValueKind == JsonValueKind.False)
+        {
+            errors.Add($"{propertyPath}: not allowed");
+        }
+        else if (additional.ValueKind == JsonValueKind.Object)
+        {
+            Check(additional, property.Value, propertyPath, errors);
+        }
+    }
+
+    private void CheckArray(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
+        if (instance.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        var count = instance.GetArrayLength();
+        if (schema.TryGetProperty("minItems", out var minItems) && count < minItems.GetInt32())
+        {
+            errors.Add($"{path}: {count} items, fewer than {minItems.GetInt32()}");
+        }
+
+        if (schema.TryGetProperty("items", out var items))
+        {
+            var i = 0;
+            foreach (var item in instance.EnumerateArray())
+            {
+                Check(items, item, $"{path}[{i++}]", errors);
+            }
+        }
+    }
+
+    /// <summary>oneOf, anyOf: checked regardless of the instance's kind, each alternative a fresh, independent check.</summary>
+    private void CheckCombinators(JsonElement schema, JsonElement instance, string path, List<string> errors)
+    {
         if (schema.TryGetProperty("oneOf", out var oneOf))
         {
             var matching = oneOf.EnumerateArray().Count(alternative => Conforms(alternative, instance));

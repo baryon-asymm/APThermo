@@ -58,6 +58,7 @@ public sealed class ToleranceTable
     public Tolerance For(string field);                              // KeyNotFoundException for an unknown field
     public string Derivation(string field);
     public bool Matches(string field, double expected, double actual); // |expected − actual| ≤ Absolute + Relative·|expected|
+    public string MoleFractionField(double referenceValue);          // "moleFraction" when referenceValue is not below For("moleFraction").Absolute, else "moleFractionTrace"
 }
 
 public sealed class FixtureFormatException : Exception

@@ -9,6 +9,8 @@ The definition of what "`Equilibrium` is ready" means.
 | L0 | the internal dense solver on small systems; element conservation of a converged result; status codes on invalid input; the absent-element mask | analytic solutions; the invariant's tolerance; a table without the element | ✅ |
 | L1 | tp, hp and sp solves for the fixture mixtures: composition, temperature, `M`, `MW`, `Cp_eq`, `γ_s`, sound speed; condensed species inclusion (AP/binder/aluminium, RP-1311 example 14); frozen mode | the fixtures node's reference outputs and its tolerance table; the frozen stations of the reference rocket cases | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
+| L2 | states the reference cannot reach: the pinned pair at a cut, the refusal where no admissible set exists, no condensed candidate with positive gain left out of an `Ok` status | the node's own condensed-species rule (`BOOT.md`), not the reference | ✅ |
+| Bits | the host solve of every tp, hp and sp fixture case gives the recorded bits: one line per case in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the moles, the multipliers, every field of the state, the status and the iteration count, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -19,6 +21,41 @@ The definition of what "`Equilibrium` is ready" means.
   reference) and are not overridden locally.
 - **Every fixture case is compared**: the test enumerates the fixture directory; a new
   fixture file is a new test case without code changes.
+- **The bits are a tripwire, not a contract** (2026-09-14): the Bits level guards the
+  numerics against unnoticed change the way the surface snapshot guards the contract
+  (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the
+  numerical change that moved it named in the same commit; a decomposition, a
+  renaming or a reordering of code moves no line. The snapshot is of the CPU
+  accelerator on the reference machine's runtime; a runtime update that moves lines
+  is re-approved with that reason recorded here. A fixture case absent from the
+  snapshot fails the test with instructions, as the surface snapshot does.
+- **This node owns the tolerance of a comparison that is not with the reference**
+  (2026-09-14): two paths of this tree reaching the same state (an equilibrium solve
+  and a frozen one at its composition; a plateau state reached twice) or an algebraic
+  identity of one state have no entry in the fixtures node's table to ask, so their
+  tolerance is a named constant of this node, `Tolerances.cs`, with its origin in a
+  comment, rather than a literal at the assertion (F-TK-10).
+
+  ⚠ 2026-09-15: read unconditionally, while `DenseSolverTests` compares the internal
+  dense solver against hand-solved analytic systems with a literal bound at each
+  assertion (`1e-14`, `1e-15`, `1e-9`), not against another path of this tree. Found by
+  the repair review (R-Equilibrium.Tests-3): those are unit facts of a small algebraic
+  routine, one system apiece, outside the two-paths and identity cases this invariant
+  names — naming each its own constant in `Tolerances.cs` would turn a policy of the
+  node into a list of one-off numbers with nothing to compare against. The invariant now
+  excludes `DenseSolverTests`; its bounds stay at their assertions, each with its origin
+  in a comment beside it.
+- **This node keeps its own reader of a fixture's outputs** (2026-09-14, the
+  architecture review's F-AR-03): the field-name mapping (`StateComparison.StateFields`)
+  and the set of fields that belong to another node (`TransportFields`) stay here, not
+  in the harness, which holds no formula and no tolerance. `Performance.Tests` reads a
+  station with performance figures on top of the state this node reads alone, and
+  `Problems.Tests` a station with transport figures on top of that; a shared reader
+  would have to know all three shapes, which would put it above the nodes its readers'
+  own consumers test. Only the trace-threshold selection line moved out, to the
+  fixtures node's `ToleranceTable.MoleFractionField` (the same F-AR-03 finding: it stood
+  typed, with its selection line, in this node and in `Performance.Tests` and
+  `Problems.Tests` alike).
 
 ## Dependencies
 
@@ -26,6 +63,7 @@ The definition of what "`Equilibrium` is ready" means.
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
+- [Harness](../Harness/API.md) — the CPU host and the bit snapshot mechanics.
 
 Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
@@ -49,17 +87,50 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   `InternalsVisibleTo`; the batch struct of the kernel test is public because ILGPU
   compiles kernels only over public parameter types.
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+this constructor over the root's six parameters. `BatchViews` is the parameter struct of one
+kernel launch, one argument per view of the batch, as ILGPU takes a kernel's arguments and
+as the execution node's own views structs are declared; grouping the views would re-shape
+the launch the kernel equality tests mirror. On the root's condition for such a type its
+creation names its arguments; it passes them by position today (the criterion below).
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `BatchViews.BatchViews` | parameters | 12 | the parameter struct of one kernel launch, one argument per view; its creation names its arguments |
+
 ## Acceptance criteria
 
-- [x] 2026-09-12 — L0 green: `DenseSolverTests` (5 tests), `InvalidInputTests` (8),
-      `AbsentElementTests` (3 cases), `ElementConservationTests` over the 106 tp, hp
-      and sp files.
-- [x] 2026-09-12 — L1 green for every fixture case of kinds tp, hp, sp, including the
-      condensed cases: `FixtureSolveTests` over the enumerated directories (46 + 34 +
-      26 files); `CondensedSpeciesTests` (96 cases with condensed candidates, the
-      alumina and the water-condensation tests); `FrozenModeTests` over the 51 rocket
-      fixtures with frozen stations and 3 self-consistency cases;
-      `KernelEqualityTests` over the 8 table families (106 cases).
+- [x] 2026-09-14 — L0 green: `DenseSolverTests` (5 tests), `InvalidInputTests` (8),
+      `AbsentElementTests` (3 cases), `ElementConservationTests` over the enumerated
+      tp, hp and sp files.
+- [x] 2026-09-14 — L1 green for every fixture case of kinds tp, hp, sp, including the
+      condensed cases: `FixtureSolveTests` over the enumerated tp, hp and sp
+      directories; `CondensedSpeciesTests` over the fixture cases with condensed
+      candidates (the alumina and the water-condensation tests); `FrozenModeTests`:
+      `Frozen_stations_of_the_reference_are_reproduced_from_the_frozen_composition`
+      over the reference rocket cases with a frozen station, and the self-consistency
+      cases, one per problem kind, over
+      `Frozen_mode_at_the_equilibrium_composition_recovers_the_equilibrium_state`,
+      `A_frozen_state_reports_the_frozen_heat_capacities_as_the_equilibrium_ones` and
+      `A_frozen_state_carries_the_ideal_gas_derivatives`; `KernelEqualityTests` over
+      the table families of the enumerated directory.
+
+      ⚠ 2026-09-14: until this date these two criteria carried hand-typed fixture
+      counts (106 tp/hp/sp files, 96 condensed cases, 51 frozen-station fixtures, 8
+      table families) that had fallen behind the fixtures node's directories, in one
+      case since before the tick was written (AGENTS.md §8: a number repeating the
+      length of a list diverges at the list's first change). Dropped in favour of the
+      enumerated directory itself, which is the list; found by the test review of
+      2026-09-14 (F-TK-03). `FrozenModeTests`' single named test is replaced by the
+      three tests its split into the same day (F-TK-11).
+- [x] 2026-09-14 — L2 green: `PlateauTests.An_enthalpy_inside_the_ALN_gap_pins_the_pieces_at_the_cut`,
+      `An_enthalpy_no_admissible_set_can_hold_is_refused_rather_than_lied_about`, and
+      `An_ok_solution_leaves_no_condensed_candidate_with_positive_inclusion_gain` (a
+      theory over every hp fixture case). The class named itself L2 in its own comment
+      since 2026-09-14 while this node's level table and criteria did not; both now
+      say the same thing (F-TK-02).
 - [x] 2026-09-12 — Every check proven non-degenerate once, by mutation runs on the
       reference machine, each restored afterwards: a reference `cpEquilibrium` raised by
       1 % in a tp fixture (1 red); the solver's convergence tolerances loosened to
@@ -69,6 +140,80 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       kernel given a different estimate flag (8 red); the conservation invariant
       tightened to `1e-20` (106 red); a frozen-station reference temperature raised by
       1 K (1 red); negative abundances accepted by the solver (1 red).
+- [x] 2026-09-14 — Bits level green:
+      `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over the
+      enumerated tp, hp and sp directories against `Bits.approved.txt`, recorded from
+      the code of `8e36a27` before any code of the decomposition moved (one line per
+      enumerated fixture file, the directories being the list). Seen red three times,
+      each mutation applied alone and restored: the solver's `StandardPressure`
+      perturbed by one ULP (`1.0e5` → `100000.00000000001`), which reported 22 cases
+      with moved hashes; one line deleted from the approved file, which reported that
+      case with the instruction to approve; and, 2026-09-15, a line added for a tp
+      fixture that does not exist (`tp/does-not-exist_pc1MPa_shiftingEquilibrium.json`
+      with a zero hash), which reported "1 fixture case(s) no longer give the recorded
+      bits:\ntp/does-not-exist_pc1MPa_shiftingEquilibrium.json: recorded in the
+      approved snapshot, but no longer a fixture case" — the check `AGENTS.md` §13
+      requires every check be shown red, not run before on this node's own
+      `Bits.approved.txt` (R-Equilibrium.Tests-4). Reverted immediately after; the
+      approved file's hash unmoved (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+
+      The failure message listed stale keys after the hash mismatches, capped at 20
+      entries, so a run with 20 or more hash mismatches could hide an orphan key behind
+      "… and N more"; the message now lists stale keys first, so the cap cannot hide
+      them (the fact above shows the reworded message). A change of a test's own
+      failure message, not of what it checks.
+
+      ⚠ 2026-09-14: this criterion was written the same day predicting "every case
+      red" for the perturbed constant. Wrong: the Newton iteration polishes until its
+      corrections fall below `1e-11` and its fixed point absorbs a last-ULP change of
+      an input in 93 of the 115 cases — a one-ULP shift of `ln(p/p°)` is below the
+      rounding of the sums it enters. The 22 that did move are what makes the check
+      non-degenerate; the figure is recorded rather than the quantifier
+      (`AGENTS.md` §8: an absolute word needs proof or a caveat).
+- [x] 2026-09-15 — The creation of `BatchViews` in `KernelEqualityTests` names its
+      arguments, in the order of the parameters (the root's condition on a declared
+      wide constructor, the row of `## Shape exceptions`); one site,
+      `KernelEqualityTests.FillAndLaunch`, fully named; covered by
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, green at
+      `62cd99e`; the node's bit snapshot unchanged (`Bits.approved.txt` hash
+      `65788e23f4390305763c80ab1f66b2054ff1907a`, the fast suite 463/463 green).
+
+- [x] 2026-09-15 — `HostSolution` (`HostSolver.cs`) restructured from 7 to 3
+      parameters, within the root's limit, along the domain axis of input against
+      converged output: `Moles`, `Multipliers`, `State`, `Status` and `Iterations`
+      moved into a new `Convergence` record (5 parameters, also within the limit),
+      read back through forwarding properties (`HostSolution.Moles` and the rest) so
+      every existing read call site is unchanged; only the one construction site, in
+      `HostSolver.Run`, changed. Not a declared exception: no row added to
+      `## Shape exceptions`. 463/463 tests green, `Bits.approved.txt` hash unchanged
+      (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+
+      ⚠ 2026-09-15, the same day: this tick recorded a cut made to fit the root's
+      parameter limit, not the domain's axes — `Convergence` was never read as a value
+      anywhere in the tree, only through the five forwarding properties, and it also
+      held `InvalidInput` results with zero iterations and every `SolveFrozen` result,
+      for which "what the solver converged to" was false. Found by the repair review
+      (R-Equilibrium.Tests-1). Reformulated below rather than deleted, since the
+      history of a criterion is part of the context (AGENTS.md §6).
+- [x] 2026-09-15 — `HostSolution` re-cut along the domain axis the first attempt
+      missed: the case solved (`EquilibriumCase Case`) plus the five views of
+      `EquilibriumResult` copied out directly (`Moles`, `Multipliers`, `State`,
+      `Status`, `Iterations`), 6 parameters, within the root's limit without an
+      exception. `Convergence` and the five forwarding properties deleted; every
+      existing output read (`.Moles`, `.Multipliers`, `.State`, `.Status`,
+      `.Iterations`) is unchanged, and the 14 `.Table` reads and 2 `.ElementMoles`
+      reads become `.Case.Table` and `.Case.ElementMoles` (`AbsentElementTests.cs`,
+      `CondensedSpeciesTests.cs`, `ElementConservationTests.cs`, `FrozenModeTests.cs`,
+      `StateComparison.cs`, and `HostSolver.cs`'s own `MoleFraction`); only the one
+      construction site, in `HostSolver.Run`, changed. 464/464 tests green (463 plus
+      the defect fact below), `tests/Equilibrium.Tests/Bits.approved.txt` unchanged
+      (`65788e23f4390305763c80ab1f66b2054ff1907a`); the public surface does not move,
+      `HostSolution` and `EquilibriumCase` both internal.
+- [x] 2026-09-15 — L2: `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
+      proves the node's own defect fix (`src/Equilibrium/BOOT.md`, the acceptance
+      criterion of the same date): seen red on the code before the fix
+      (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
+      instead of −1) and green after it, with no bit of `Bits.approved.txt` moved.
 
 ## Taboos
 

@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Execution.Tests;
@@ -30,7 +31,7 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
     public void The_cpu_accelerator_equals_the_host_functions_bit_for_bit()
     {
         var checkedEntries = 0;
-        foreach (var family in BatchBuilders.RocketFamilies(fixture.Database))
+        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database))
         {
             using var tables = fixture.Cpu.Upload(family.Table);
             var batch = BatchOf(family.Table);
@@ -42,9 +43,9 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
                 var j = batch.Species[i];
                 var t = batch.Temperature[i];
                 var label = $"{family.Table.Species[j]} at {t} K";
-                Assert.True(BatchBuilders.SameBits(SpeciesFunctions.CpOverR(in view, j, t), result.CpOverR[i]), $"{label}: Cp/R");
-                Assert.True(BatchBuilders.SameBits(SpeciesFunctions.HOverRT(in view, j, t), result.HOverRT[i]), $"{label}: H/RT");
-                Assert.True(BatchBuilders.SameBits(SpeciesFunctions.SOverR(in view, j, t), result.SOverR[i]), $"{label}: S/R");
+                Assert.True(Bits.Same(SpeciesFunctions.CpOverR(in view, j, t), result.CpOverR[i]), $"{label}: Cp/R");
+                Assert.True(Bits.Same(SpeciesFunctions.HOverRT(in view, j, t), result.HOverRT[i]), $"{label}: H/RT");
+                Assert.True(Bits.Same(SpeciesFunctions.SOverR(in view, j, t), result.SOverR[i]), $"{label}: S/R");
                 Assert.Equal(SpeciesFunctions.IsInRange(in view, j, t), result.InRange[i]);
                 checkedEntries++;
             }
@@ -66,7 +67,7 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
         var relative = GpuCpuTolerances.Entries["functions"].Relative;
         var worst = 0.0;
         var mismatches = new List<string>();
-        foreach (var family in BatchBuilders.RocketFamilies(fixture.Database))
+        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database))
         {
             using var cpuTables = fixture.Cpu.Upload(family.Table);
             using var cudaTables = cuda.Upload(family.Table);
@@ -81,26 +82,39 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
                     mismatches.Add($"{label}: in range {cpu.InRange[i]} on the CPU, {gpu.InRange[i]} on CUDA");
                 }
 
-                foreach (var (name, a, b) in new[] { ("Cp/R", cpu.CpOverR[i], gpu.CpOverR[i]), ("H/RT", cpu.HOverRT[i], gpu.HOverRT[i]), ("S/R", cpu.SOverR[i], gpu.SOverR[i]) })
-                {
-                    // Dimensionless functions of order 1 to 100 that cancel to zero at a reference point: the bound is on max(1, |value|).
-                    var deviation = Math.Abs(a - b) / Math.Max(1.0, Math.Abs(a));
-                    worst = Math.Max(worst, deviation);
-                    if (deviation > relative)
-                    {
-                        mismatches.Add($"{label} {name}: cpu {a:R}, cuda {b:R}");
-                    }
-                }
+                var functions = new[] { ("Cp/R", cpu.CpOverR[i], gpu.CpOverR[i]), ("H/RT", cpu.HOverRT[i], gpu.HOverRT[i]), ("S/R", cpu.SOverR[i], gpu.SOverR[i]) };
+                var (functionMismatches, sampleWorst) = CompareFunctions(relative, label, functions);
+                mismatches.AddRange(functionMismatches);
+                worst = Math.Max(worst, sampleWorst);
             }
         }
 
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(20)) + $"\nworst {worst:E1}");
     }
 
+    /// <summary>CUDA against the CPU accelerator for the three dimensionless species functions of one species-temperature sample.</summary>
+    private static (List<string> Mismatches, double Worst) CompareFunctions(double relative, string label, (string Name, double Cpu, double Gpu)[] functions)
+    {
+        var mismatches = new List<string>();
+        var worst = 0.0;
+        foreach (var (name, a, b) in functions)
+        {
+            // Dimensionless functions of order 1 to 100 that cancel to zero at a reference point: the bound is on max(1, |value|).
+            var deviation = Math.Abs(a - b) / Math.Max(1.0, Math.Abs(a));
+            worst = Math.Max(worst, deviation);
+            if (deviation > relative)
+            {
+                mismatches.Add($"{label} {name}: cpu {a:R}, cuda {b:R}");
+            }
+        }
+
+        return (mismatches, worst);
+    }
+
     [Fact]
     public void A_species_index_outside_the_table_is_refused_before_any_kernel_runs()
     {
-        var family = BatchBuilders.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
         using var tables = fixture.Cpu.Upload(family.Table);
         var batch = new SpeciesFunctionBatch(2);
         batch.Species[1] = family.Table.SpeciesCount;

@@ -44,11 +44,6 @@ public sealed class EquilibriumBatch
         {
             throw new ArgumentException($"the batch has {ElementCount} elements per case, the table {elementCount}");
         }
-
-        if (Pressure.Length != Count || Temperature.Length != Count || Target.Length != Count || ElementMoles.Length != Count * ElementCount)
-        {
-            throw new ArgumentException("the batch arrays have inconsistent lengths");
-        }
     }
 }
 
@@ -104,12 +99,6 @@ public sealed class RocketBatch
         {
             throw new ArgumentException($"the batch has {ElementCount} elements per case, the table {elementCount}");
         }
-
-        if (ReactantEnthalpy.Length != Count || TemperatureEstimate.Length != Count || Flow.Length != Count
-            || ElementMoles.Length != Count * ElementCount || ExitValues.Length != Count * Exits)
-        {
-            throw new ArgumentException("the batch arrays have inconsistent lengths");
-        }
     }
 }
 
@@ -161,11 +150,6 @@ public sealed class TransportBatch
         if (speciesCount != SpeciesCount)
         {
             throw new ArgumentException($"the batch has {SpeciesCount} species per station, the table {speciesCount}");
-        }
-
-        if (Moles.Length != Count * SpeciesCount)
-        {
-            throw new ArgumentException("the batch arrays have inconsistent lengths");
         }
     }
 }
@@ -294,11 +278,6 @@ public sealed class SpeciesFunctionBatch
 
     internal void Validate(int speciesCount)
     {
-        if (Temperature.Length != Count)
-        {
-            throw new ArgumentException("the batch arrays have inconsistent lengths");
-        }
-
         for (var i = 0; i < Count; i++)
         {
             if (Species[i] < 0 || Species[i] >= speciesCount)

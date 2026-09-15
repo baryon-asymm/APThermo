@@ -1,0 +1,23 @@
+namespace AerospacePropellantThermodynamics.Protocol.Tests;
+
+/// <summary>
+/// A node of the tree: a directory holding both documents. <see cref="RelativePath"/> is the directory path from the tree root
+/// with '/' separators, empty for the root; <see cref="AssemblyName"/> is the name of the project in the directory, if any.
+/// </summary>
+internal sealed record Node(string RelativePath, string Directory, string? AssemblyName)
+{
+    public string Name => RelativePath.Length == 0 ? "the root" : RelativePath;
+
+    public string Boot => Path.Combine(Directory, "BOOT.md");
+
+    public string Api => Path.Combine(Directory, "API.md");
+
+    public bool IsDescendantOf(Node other) =>
+        other.RelativePath.Length == 0 ? RelativePath.Length > 0 : RelativePath.StartsWith(other.RelativePath + "/", StringComparison.Ordinal);
+
+    /// <summary>Whether this is one of the `src` nodes the root's code-shape constraint's coupling and stable-type rules
+    /// are scoped to (root BOOT.md, the stable-type and efferent-coupling sentences; `tests/Protocol.Tests/BOOT.md`,
+    /// "Shape check"). The one definition <see cref="CouplingMeasures"/> and <c>ShapeTests</c> both read, so the two
+    /// cannot drift apart the way their own separate copies of this same test once could (R-Protocol.Tests-14).</summary>
+    public bool IsSrc => RelativePath.StartsWith("src/", StringComparison.Ordinal);
+}

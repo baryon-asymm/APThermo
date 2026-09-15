@@ -38,12 +38,6 @@ public sealed class FixtureFormatException(string fileName, string field, string
 /// <summary>Reads fixture documents written by the generator scripts.</summary>
 public static class CeaFixtures
 {
-    private static readonly string[] ProvenanceStrings =
-    [
-        "package", "version", "libraryVersion", "method", "script", "scriptSha256",
-        "thermoLibSha256", "transLibSha256", "dataThermoSha256", "dataTransSha256",
-    ];
-
     public static CeaCase Load(string path)
     {
         JsonDocument document;
@@ -77,27 +71,40 @@ public static class CeaFixtures
                 throw new FixtureFormatException(path, "case.kind", $"the kind '{kind}' does not match the directory '{directoryKind}'");
             }
 
-            var strings = new string[ProvenanceStrings.Length];
-            for (var k = 0; k < ProvenanceStrings.Length; k++)
-            {
-                strings[k] = Required(path, generator, "generator." + ProvenanceStrings[k], ProvenanceStrings[k], JsonValueKind.String).GetString()!;
-            }
-
-            var dateText = Required(path, generator, "generator.generatedOn", "generatedOn", JsonValueKind.String).GetString()!;
-            if (!DateOnly.TryParseExact(dateText, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var generatedOn))
-            {
-                throw new FixtureFormatException(path, "generator.generatedOn", $"'{dateText}' is not a date of the form yyyy-MM-dd");
-            }
-
-            var provenance = new Provenance(
-                strings[0], strings[1], strings[2], strings[3], strings[4], strings[5],
-                strings[6], strings[7], strings[8], strings[9], generatedOn);
+            var provenance = ReadProvenance(path, generator);
             return new CeaCase(name, kind, inputs.Clone(), outputs.Clone(), provenance, path);
         }
     }
 
     public static IReadOnlyList<CeaCase> LoadAll(string kind) =>
         FixtureFiles.Enumerate(kind).Select(Load).ToArray();
+
+    /// <summary>
+    /// The <c>generator</c> block, field by field: each argument reads its own named field of <paramref name="generator"/>
+    /// (the root's named-construction condition on a declared wide constructor), rather than an index into a side array
+    /// whose order had to be kept in step with <see cref="Provenance"/>'s parameter order by hand.
+    /// </summary>
+    private static Provenance ReadProvenance(string path, JsonElement generator)
+    {
+        string Text(string property) => Required(path, generator, "generator." + property, property, JsonValueKind.String).GetString()!;
+
+        DateOnly Date()
+        {
+            var text = Text("generatedOn");
+            if (!DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            {
+                throw new FixtureFormatException(path, "generator.generatedOn", $"'{text}' is not a date of the form yyyy-MM-dd");
+            }
+
+            return date;
+        }
+
+        return new Provenance(
+            Package: Text("package"), Version: Text("version"), LibraryVersion: Text("libraryVersion"), Method: Text("method"),
+            Script: Text("script"), ScriptSha256: Text("scriptSha256"), ThermoLibSha256: Text("thermoLibSha256"),
+            TransLibSha256: Text("transLibSha256"), DataThermoSha256: Text("dataThermoSha256"),
+            DataTransSha256: Text("dataTransSha256"), GeneratedOn: Date());
+    }
 
     private static JsonElement Required(string path, JsonElement parent, string field, JsonValueKind kind) =>
         Required(path, parent, field, field, kind);

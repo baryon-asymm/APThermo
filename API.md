@@ -15,7 +15,7 @@ command-line tool over it. Everything not named here is internal and may change.
 3. Describe the problem: chamber pressure, area ratios or pressure ratios, flow model
    and freezing station, transport on or off; or an equilibrium state at assigned
    pressure with the temperature, the enthalpy or the entropy given; or a batch of
-   such problems, a sweep over ratios and pressures, or a list of state records.
+   such problems, or a list of state records.
 4. Create a solver (`Problems` node) bound by the execution options to the CPU
    accelerator or to CUDA, and solve. The result holds the station states, the
    compositions by name and the performance figures, or a batch of them.
@@ -49,7 +49,6 @@ var problem = new RocketProblem
 using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Auto });
 RocketResult result = solver.Solve(propellant, problem);                    // one case
 IReadOnlyList<RocketResult> results = solver.Solve(propellant, problems);   // one batch
-IReadOnlyList<RocketResult> sweep = solver.Solve(new RocketSweep(propellant, ratios, pressures, areaRatios));
 EquilibriumResult state = solver.Solve(propellant, new EquilibriumProblem { Pressure = 7.0e6 });   // hp at the propellant's enthalpy
 IReadOnlyList<EquilibriumResult> states = solver.SolveStates(records);      // element moles, pressure and one target each
 ```
@@ -99,4 +98,5 @@ Internal nodes, not used from outside the tree: [Thermo](./src/Thermo/API.md),
   [Equilibrium.Tests](./tests/Equilibrium.Tests/API.md), [Performance.Tests](./tests/Performance.Tests/API.md),
   [Transport.Tests](./tests/Transport.Tests/API.md), [Execution.Tests](./tests/Execution.Tests/API.md),
   [Problems.Tests](./tests/Problems.Tests/API.md), [Cli.Tests](./tests/Cli.Tests/API.md) — what each node proves.
+- [Harness](./tests/Harness/API.md) — the scaffolding the test nodes share: a CPU host, bit comparison, bit snapshots, fixture families.
 - [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13) and the root invariants that need reflection.

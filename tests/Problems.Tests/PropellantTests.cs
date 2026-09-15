@@ -25,6 +25,12 @@ public sealed class PropellantTests(SolverFixture fixture)
     /// </summary>
     public const double FixtureMassDeviation = 1.7e-5;
 
+    /// <summary>MassOf and an independent sum over the atomic weights are the same arithmetic, scaled by the unit factor; two solves of the tree's own code agree to summation-order rounding.</summary>
+    public const double MassOfSummationTolerance = 1e-14;
+
+    /// <summary>MassOf of a mixture scaled by a known factor against that factor times the original MassOf: two solves of the tree's own code, agreeing to rounding.</summary>
+    public const double ScaledMassSummationTolerance = 1e-12;
+
     public static IEnumerable<object[]> Cases() => FixtureCases.NamesWithReactants();
 
     [Theory]
@@ -35,7 +41,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         var moles = FixtureCases.ElementMolesOf(c).ToDictionary(kv => kv.Key, kv => kv.Value * FixtureCases.KilomolesToMoles, StringComparer.Ordinal);
         var expected = moles.Sum(kv => kv.Value * 1.0e-3 * fixture.Database.AtomicWeight(kv.Key));
         var mass = fixture.Solver.MassOf(ElementalMixture.Create(moles));
-        Assert.True(Math.Abs(mass - expected) <= 1e-14 * expected, $"MassOf {mass:R} kg, the sum over the atomic weights {expected:R} kg");
+        Assert.True(Math.Abs(mass - expected) <= MassOfSummationTolerance * expected, $"MassOf {mass:R} kg, the sum over the atomic weights {expected:R} kg");
         Assert.True(Math.Abs(mass - 1.0) <= FixtureMassDeviation, $"the recorded element moles weigh {mass:R} kg");
     }
 
@@ -57,7 +63,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         // The figure is the measured one, not one kilogram: the same mixture made 0.5 % heavy, within the default tolerance, reports 1.005.
         var heavy = ElementalMixture.Create(rocket.Mixture.ElementMoles.ToDictionary(kv => kv.Key, kv => kv.Value * 1.005, StringComparer.Ordinal), rocket.Mixture.Enthalpy);
         var expected = fixture.Solver.MassOf(heavy);
-        Assert.True(Math.Abs(expected - 1.005 * rocket.MixtureMass) <= 1e-12, $"{expected:R} kg");
+        Assert.True(Math.Abs(expected - 1.005 * rocket.MixtureMass) <= ScaledMassSummationTolerance, $"{expected:R} kg");
         Assert.Equal(expected, fixture.Solver.Solve(heavy, FixtureCases.RocketProblemOf(c)).MixtureMass);
         Assert.Equal(expected, fixture.Solver.Solve(heavy, new EquilibriumProblem { Pressure = 7.0e6 }).MixtureMass);
     }
@@ -69,7 +75,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         var c = FixtureCases.Load(kind, name);
         var propellant = FixtureCases.PropellantOf(fixture.Database, c, byMassFractions: true);
         Assert.IsType<MixtureSpecification.MassFractions>(propellant.Mixture);
-        var fractions = propellant.MassFractionsFor(null);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var massFractions = FixtureCases.ReactantMassFractionsOf(c);
         for (var k = 0; k < propellant.Reactants.Count; k++)
         {
@@ -77,7 +83,7 @@ public sealed class PropellantTests(SolverFixture fixture)
             Assert.True(Math.Abs(fractions[k] - reference) <= MassFractionTolerance, $"{propellant.Reactants[k].Name}: mass fraction reference {reference:R}, tree {fractions[k]:R}");
         }
 
-        var mixture = fixture.Solver.Mixture(propellant);
+        var mixture = fixture.Solver.MixtureOf(propellant);
         var expected = FixtureCases.ElementMolesOf(c);
         Assert.Equal(expected.Keys.Order(StringComparer.Ordinal), mixture.Elements.Order(StringComparer.Ordinal));
         foreach (var (symbol, kilomoles) in expected)
@@ -111,7 +117,7 @@ public sealed class PropellantTests(SolverFixture fixture)
 
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
         Assert.Equal(ratio, propellant.OxidizerToFuelRatio);
-        var fractions = propellant.MassFractionsFor(null);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var massFractions = FixtureCases.ReactantMassFractionsOf(c);
         for (var k = 0; k < propellant.Reactants.Count; k++)
         {
@@ -119,7 +125,7 @@ public sealed class PropellantTests(SolverFixture fixture)
             Assert.True(Math.Abs(fractions[k] - reference) <= RatioMassFractionTolerance * reference, $"{propellant.Reactants[k].Name}: mass fraction reference {reference:R}, tree {fractions[k]:R}");
         }
 
-        var mixture = fixture.Solver.Mixture(propellant);
+        var mixture = fixture.Solver.MixtureOf(propellant);
         foreach (var (symbol, kilomoles) in FixtureCases.ElementMolesOf(c))
         {
             var actual = mixture.ElementMoles[symbol] / FixtureCases.KilomolesToMoles;
@@ -134,7 +140,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         var c = FixtureCases.Load(kind, name);
         var products = FixtureCases.ProductsOf(c);
         var elements = FixtureCases.ElementMolesOf(c).Keys.ToList();
-        var candidates = fixture.Solver.CandidateSpecies(elements, FixtureCases.OmitOf(c), FixtureCases.OnlyOf(c));
+        var candidates = fixture.Solver.CandidateSpeciesFor(elements, FixtureCases.OmitOf(c), FixtureCases.OnlyOf(c));
         var missing = products.Except(candidates, StringComparer.Ordinal).ToList();
         var extra = candidates.Except(products, StringComparer.Ordinal).ToList();
         Assert.True(missing.Count == 0 && extra.Count == 0,
@@ -142,7 +148,7 @@ public sealed class PropellantTests(SolverFixture fixture)
         Assert.Equal(products.Count, candidates.Count);
 
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-        Assert.Equal(candidates, fixture.Solver.CandidateSpecies(propellant.Elements, propellant.Omit, propellant.Only));
+        Assert.Equal(candidates, fixture.Solver.CandidateSpeciesFor(propellant.Elements, propellant.Omit, propellant.Only));
     }
 
     [Fact]
@@ -156,12 +162,12 @@ public sealed class PropellantTests(SolverFixture fixture)
             .Add(Reactant.FromDatabase("H2(L)", ReactantRole.Named, fuelMoles, amountKind: AmountKind.Moles))
             .Add(Reactant.FromDatabase("O2(L)", ReactantRole.Named, oxidantMoles, amountKind: AmountKind.Moles))
             .Build();
-        var fractions = propellant.MassFractionsFor(null);
+        var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var reference = FixtureCases.ReactantMassFractionsOf(c);
         Assert.True(Math.Abs(fractions[0] - reference["H2(L)"]) <= MassFractionTolerance, $"H2(L): {fractions[0]:R} vs {reference["H2(L)"]:R}");
         Assert.True(Math.Abs(fractions[1] - reference["O2(L)"]) <= MassFractionTolerance, $"O2(L): {fractions[1]:R} vs {reference["O2(L)"]:R}");
         Assert.Null(propellant.OxidizerToFuelRatio);
-        var mixture = fixture.Solver.Mixture(propellant);
+        var mixture = fixture.Solver.MixtureOf(propellant);
         foreach (var (symbol, kilomoles) in FixtureCases.ElementMolesOf(c))
         {
             Assert.True(Math.Abs(mixture.ElementMoles[symbol] / FixtureCases.KilomolesToMoles - kilomoles) <= MixtureTolerance * kilomoles, symbol);
@@ -185,7 +191,7 @@ public sealed class PropellantTests(SolverFixture fixture)
     public void Candidates_are_gases_then_condensed_species_in_database_order()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
-        var candidates = fixture.Solver.CandidateSpecies(FixtureCases.ElementMolesOf(c).Keys.ToList());
+        var candidates = fixture.Solver.CandidateSpeciesFor(FixtureCases.ElementMolesOf(c).Keys.ToList());
         var records = candidates.Select(name => fixture.Database[name]).ToList();
         var firstCondensed = records.FindIndex(r => r.Phase == SpeciesPhase.Condensed);
         Assert.True(firstCondensed > 0);

@@ -23,7 +23,16 @@ node generates the outputs itself, from committed scripts, and records how.
   the committed one is a finding about the data or the package version, recorded in
   this node's acceptance criteria, not a silent update.
 - **One tolerance table**, in `tolerances.json`, with a derivation per entry; no test
-  node keeps a tolerance for a comparison with the reference.
+  node keeps a tolerance for a comparison with the reference. The table also holds two
+  entries that are no comparison with the reference but that two test nodes share and
+  neither may read from the other (2026-09-14, decided at the root on the clean-code
+  review's F-TF-05): `moleFractionFloor`, the mole fraction below which the GPU/CPU and
+  union-batch comparisons assert nothing, and `polishThresholdRelative`, the second
+  tier derived from the equilibrium solver's polish threshold, each with its derivation
+  like every other entry. The rule that picks `moleFraction` or `moleFractionTrace` for
+  a reference value is the table's too (`ToleranceTable.MoleFractionField`), so that
+  the print threshold is written once, in the table (the review's F-AR-03 found it
+  typed with its selection line in three test nodes).
 - **The case matrix is explicit** (Constraints) and file names encode the case; a test
   enumerates a directory, it never lists cases by hand.
 - **Units in fixtures are SI**, converted once in the generator from the package's
@@ -262,6 +271,26 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   | transport properties, Prandtl numbers | — | 5e-4 |
   | `thermo` function fixtures | — | 1e-12 |
 
+## Shape exceptions
+
+Added 2026-09-14 by the design session, after the protocol tests node's measurements found
+this constructor over the root's six parameters. `Provenance` mirrors, field for field, the
+`generator` block every fixture file carries. On the root's condition for such a type its
+one creation names its arguments (the criterion of 2026-09-15 below).
+
+⚠ 2026-09-15: this paragraph read "it passes them by position today (the criterion
+below)", true when it was written but not of the code: the constructor's one call site
+already named every argument then, through an index into a side array kept in step with
+the parameter order by hand (`ProvenanceStrings`), which the root's named-argument
+condition does not by itself rule out but which is exactly the swap hazard the condition
+exists to guard against. Re-cut by the repair review of 2026-09-15
+(`CeaFixtures.ReadProvenance`): each argument now reads its own named field of the
+`generator` block directly, with no side array to keep in step.
+
+| Where | Rule | Measured | Reason |
+|---|---|---|---|
+| `Provenance.Provenance` | parameters | 11 | the `generator` block of a fixture file, field for field; its one creation names its arguments |
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — Every fixture regenerates byte-identically from the committed
@@ -321,6 +350,37 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`), every tp, hp
       and sp file singly and as state records in batches over unions of elements
       (`EquilibriumTests`).
+- [x] 2026-09-14 — The shared rules of 2026-09-14: `ToleranceTable.MoleFractionField`
+      picks the entry by the table's own `moleFraction` threshold, and the equilibrium
+      (`Equilibrium.Tests/StateComparison.cs`), performance
+      (`Performance.Tests/StationComparison.cs`) and front door
+      (`Problems.Tests/ReferenceComparison.cs`) tests nodes call it instead of a
+      constant and a selection line of their own; `moleFractionFloor` and
+      `polishThresholdRelative` stand in the table with their derivations, and the
+      execution (`Execution.Tests/GpuCpuTolerances.cs`) and front door
+      (`Problems.Tests/RocketTests.cs`) tests nodes read them instead of their copies;
+      `Fixtures.Tests.ToleranceTableTests.MoleFractionField_picks_by_the_threshold_and_one_ulp_on_each_side`
+      proves the rule at the threshold and one ULP on each side, seen red once with the
+      comparison reversed (`<` for `>=`), reverted before that test was committed, the
+      evidence recorded in the test's own doc comment.
+- [x] 2026-09-15 — The creation of `Provenance` in `CeaFixtures` names its arguments,
+      each bound to the `generator` field its value is read from (the root's condition
+      on a declared wide constructor, the row of `## Shape exceptions`): one site,
+      `CeaFixtures.ReadProvenance`, fully named; covered by
+      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, green at
+      `62cd99e`; every fixture theory of the tests nodes
+      green unchanged: the full-solution fast suite (10 projects, 3014 tests) green,
+      every consumer's `Bits.approved.txt` hash unmoved.
+
+      ⚠ 2026-09-15: this tick first cited `CeaFixtures.cs:92`, the one call site as it
+      stood that day, each argument bound to an index of a side array
+      (`ProvenanceStrings`) kept in step with `Provenance`'s parameter order by hand —
+      already named, so this criterion's own check passed, but the swap hazard the
+      named-argument condition exists to guard against was still there one level up, in
+      the array. Re-cut the same day by the repair review (R-Fixtures-1) into
+      `ReadProvenance`, each argument now reading its own named field directly; the
+      re-verification is this tick's own evidence, not a new one.
+
 
 ## Taboos
 

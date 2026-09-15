@@ -78,4 +78,23 @@ public sealed class CorruptionTests : IClassFixture<LoadedDatabase>
     {
         Assert.Throws<FileNotFoundException>(() => SpeciesDatabase.Load(Path.Combine(Path.GetTempPath(), "no-such-thermo.inp")));
     }
+
+    /// <summary>
+    /// F-TD-08: a negative interval count is a format error stamped with its line, like every other bad field,
+    /// instead of the ArgumentOutOfRangeException that List&lt;T&gt;'s constructor would raise further down, without
+    /// a file or a line.
+    /// </summary>
+    [Fact]
+    public void A_negative_interval_count_names_its_line()
+    {
+        var text = MinimalFile(r =>
+        {
+            r[1] = "-1" + r[1][2..]; // the interval count occupies columns 1-2 of the properties line
+            return r;
+        });
+        var e = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
+        Assert.Equal(4, e.LineNumber);
+        Assert.Contains("record starting at line 3", e.Message, StringComparison.Ordinal);
+        Assert.Contains("-1", e.Message, StringComparison.Ordinal);
+    }
 }

@@ -168,6 +168,30 @@ provided its first interval; records of one name that cannot concatenate are ref
 with an `ArgumentException` naming them. The rule and the threshold's derivation are
 in `BOOT.md`.
 
+## Range questions ✅
+
+```csharp
+public static class SpeciesFunctions
+{
+    public static double RecordLow(in SpeciesTableView table, int species);    // the first lower bound of the species' intervals
+    public static double RecordHigh(in SpeciesTableView table, int species);   // the last upper bound; IsInRange compares T with these two
+}
+
+public sealed class SpeciesTable
+{
+    public int PieceOf(string species, double temperature); // the piece of a database name covering the temperature by the interval rule (the first whose last bound is not below T, else the last); −1 when the table lacks the name
+}
+```
+
+⚠ 2026-09-14: the three members were declared because two neighbours re-derived
+this node's interval layout from the arrays: the front door computed the piece of a
+cut record covering a temperature, and the equilibrium solver read a record's first
+lower and last upper bound (the architecture review's F-AR-01). They evaluate the
+identical expressions and are the only supported way to ask a table about a species'
+temperature range; the strides of `SpeciesTableArrays` stay published for the upload
+and the tests, not for that. Implemented the same day, `IsInRange` rewritten through
+them; the surface snapshot moves in the same commit.
+
 ## Errors
 
 | Situation | Behaviour |
@@ -186,4 +210,6 @@ None.
 
 - Mixture properties (enthalpy of a composition, entropy with mixing terms): `Equilibrium`.
 - Which species and elements to put into a table: `Problems`.
-- Uploading tables to an accelerator: `Execution`.
+- Running the tables over batches: `Execution` (the upload of one table to one
+  accelerator is this node's `SpeciesTableBuffers`; the line that put uploading out of
+  scope contradicted the ⚠ of 2026-09-12 above and went on 2026-09-14).

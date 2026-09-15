@@ -55,6 +55,7 @@ sealed class AerospacePropellantThermodynamics.Data.SpeciesDatabase
     Double AtomicWeight(String element)
     IReadOnlyList<Species> Products { get; }
     IReadOnlyList<Species> Reactants { get; }
+    IReadOnlyList<Species> Records(String name)
     Species this[String name] { get; }
     TransportDatabase? Transport { get; }
     static SpeciesDatabase Load(String thermoPath, String? transPath = null)
@@ -163,6 +164,7 @@ sealed class (record) AerospacePropellantThermodynamics.Execution.AcceleratorInf
     Int32 ThreadsOrMultiprocessors { get; init; }
     String DeviceName { get; init; }
     String IlgpuVersion { get; init; }
+    String? CudaSkippedBecause { get; init; }
     String? LibDevicePath { get; init; }
     String? LibNvvmPath { get; init; }
 
@@ -400,10 +402,43 @@ sealed class AerospacePropellantThermodynamics.Fixtures.ToleranceTable
     Boolean Matches(String field, Double expected, Double actual)
     IReadOnlyList<String> Fields { get; }
     String Derivation(String field)
+    String MoleFractionField(Double referenceValue)
     Tolerance For(String field)
     static String Path { get; }
     static ToleranceTable Load()
     static ToleranceTable Load(String path)
+
+== AerospacePropellantThermodynamics.Harness
+
+sealed class AerospacePropellantThermodynamics.Harness.ApprovedSnapshot
+    IReadOnlyList<String> StaleKeys(IEnumerable<String> producedKeys)
+    String? Problem(String key, String actualLine)
+    static ApprovedSnapshot Load(String approvedPath)
+
+sealed class AerospacePropellantThermodynamics.Harness.BitHash
+    .ctor()
+    BitHash Add(Boolean value)
+    BitHash Add(Double value)
+    BitHash Add(Int32 value)
+    BitHash Add(ReadOnlySpan<Double> values)
+    BitHash Add(ReadOnlySpan<Int32> values)
+    BitHash Add(String text)
+    String ToHex()
+
+static class AerospacePropellantThermodynamics.Harness.Bits
+    static Boolean Same(Double expected, Double actual)
+    static IEnumerable<String> Differences<T>(T expected, T actual, String label)
+
+sealed class AerospacePropellantThermodynamics.Harness.CpuHost : IDisposable
+    .ctor()
+    Accelerator Accelerator { get; }
+    Context Context { get; }
+    SpeciesDatabase Database { get; }
+    ToleranceTable Tolerances { get; }
+    Void Dispose()
+
+static class AerospacePropellantThermodynamics.Harness.FixtureFamilies
+    static IEnumerable<Object[]> Of(IEnumerable<String> kinds, Func<CeaCase, String> key)
 
 == AerospacePropellantThermodynamics.Performance
 
@@ -461,6 +496,13 @@ enum AerospacePropellantThermodynamics.Problems.AmountKind : Int32
     MassFraction = 0
     Moles = 1
 
+sealed class (record) AerospacePropellantThermodynamics.Problems.CustomReactantDefinition : IEquatable<CustomReactantDefinition>
+    .ctor(IReadOnlyList<ElementCount> Formula, Double Enthalpy, Double Temperature, Double? MolarMass = null)
+    Double Enthalpy { get; init; }
+    Double Temperature { get; init; }
+    Double? MolarMass { get; init; }
+    IReadOnlyList<ElementCount> Formula { get; init; }
+
 sealed class (record) AerospacePropellantThermodynamics.Problems.ElementalMixture : IEquatable<ElementalMixture>
     Double MassTolerance { get; }
     Double? Enthalpy { get; }
@@ -469,6 +511,7 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.ElementalMixtur
     IReadOnlyList<String> Omit { get; }
     IReadOnlyList<String>? Only { get; }
     const Double DefaultMassTolerance = 0.01
+    static Boolean IsValidMassTolerance(Double massTolerance)
     static ElementalMixture Create(IReadOnlyDictionary<String, Double> elementMoles, Double? enthalpy = null, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null, Double massTolerance = 0.01)
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.EquilibriumProblem : IEquatable<EquilibriumProblem>
@@ -533,15 +576,13 @@ sealed class AerospacePropellantThermodynamics.Problems.PropellantBuilder
 sealed class (record) AerospacePropellantThermodynamics.Problems.Reactant : IEquatable<Reactant>
     AmountKind AmountKind { get; }
     Boolean IsCustom { get; }
+    CustomReactantDefinition? Definition { get; }
     Double Amount { get; }
-    Double? Enthalpy { get; }
-    Double? MolarMass { get; }
     Double? Temperature { get; }
-    IReadOnlyList<ElementCount>? Formula { get; }
     ReactantRole Role { get; }
     String Name { get; }
     const Double DefaultTemperature = 298.15
-    static Reactant Custom(String name, IReadOnlyList<ElementCount> formula, Double enthalpy, Double temperature, ReactantRole role, Double amount, Double? molarMass = null, AmountKind amountKind = MassFraction)
+    static Reactant Custom(String name, CustomReactantDefinition definition, ReactantRole role, Double amount, AmountKind amountKind = MassFraction)
     static Reactant FromDatabase(String name, ReactantRole role, Double amount, Double? temperature = null, AmountKind amountKind = MassFraction)
 
 enum AerospacePropellantThermodynamics.Problems.ReactantRole : Int32
@@ -571,19 +612,10 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.RocketResult : 
     Propellant? Propellant { get; init; }
     RocketProblem Problem { get; init; }
 
-sealed class (record) AerospacePropellantThermodynamics.Problems.RocketSweep : IEquatable<RocketSweep>
-    .ctor(Propellant Propellant, IReadOnlyList<Double> OxidizerToFuelRatios, IReadOnlyList<Double> ChamberPressures, IReadOnlyList<Double> AreaRatios, FlowModel Flow = ShiftingEquilibrium, Boolean Transport = false)
-    Boolean Transport { get; init; }
-    FlowModel Flow { get; init; }
-    IReadOnlyList<Double> AreaRatios { get; init; }
-    IReadOnlyList<Double> ChamberPressures { get; init; }
-    IReadOnlyList<Double> OxidizerToFuelRatios { get; init; }
-    Propellant Propellant { get; init; }
-
 sealed class AerospacePropellantThermodynamics.Problems.Solver : IDisposable
     AcceleratorInfo Accelerator { get; }
     Double MassOf(ElementalMixture mixture)
-    ElementalMixture Mixture(Propellant propellant, Double? oxidizerToFuelRatio = null)
+    ElementalMixture MixtureOf(Propellant propellant, Double? oxidizerToFuelRatio = null)
     EquilibriumResult Solve(ElementalMixture mixture, EquilibriumProblem problem)
     EquilibriumResult Solve(Propellant propellant, EquilibriumProblem problem)
     IReadOnlyList<EquilibriumResult> Solve(ElementalMixture mixture, IReadOnlyList<EquilibriumProblem> problems)
@@ -593,8 +625,8 @@ sealed class AerospacePropellantThermodynamics.Problems.Solver : IDisposable
     IReadOnlyList<RocketResult> Solve(ElementalMixture mixture, IReadOnlyList<RocketProblem> problems)
     IReadOnlyList<RocketResult> Solve(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<RocketProblem> problems)
     IReadOnlyList<RocketResult> Solve(Propellant propellant, IReadOnlyList<RocketProblem> problems)
-    IReadOnlyList<RocketResult> Solve(RocketSweep sweep)
-    IReadOnlyList<String> CandidateSpecies(IReadOnlyList<String> elements, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null)
+    IReadOnlyList<RocketResult> SolveRocketStates(IReadOnlyList<StateRecord> states, StateBatchOptions? options = null)
+    IReadOnlyList<String> CandidateSpeciesFor(IReadOnlyList<String> elements, IReadOnlyList<String>? omit = null, IReadOnlyList<String>? only = null)
     RocketResult Solve(ElementalMixture mixture, RocketProblem problem)
     RocketResult Solve(Propellant propellant, RocketProblem problem)
     SpeciesDatabase Database { get; }
@@ -610,11 +642,20 @@ sealed class (record) AerospacePropellantThermodynamics.Problems.StateBatchOptio
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.StateRecord : IEquatable<StateRecord>
     .ctor(Double Pressure, IReadOnlyDictionary<String, Double> Composition, Double? Enthalpy = null, Double? Temperature = null, Double? Entropy = null)
+    Boolean HasExits { get; }
     Double Pressure { get; init; }
     Double? Enthalpy { get; init; }
     Double? Entropy { get; init; }
     Double? Temperature { get; init; }
+    FlowModel? Flow { get; init; }
     IReadOnlyDictionary<String, Double> Composition { get; init; }
+    IReadOnlyList<Double> AreaRatios { get; init; }
+    IReadOnlyList<Double> PressureRatios { get; init; }
+
+sealed class AerospacePropellantThermodynamics.Problems.StateRecordException : ArgumentException, ISerializable
+    .ctor(Int32 index, String reason)
+    Int32 Index { get; }
+    String Reason { get; }
 
 sealed class (record) AerospacePropellantThermodynamics.Problems.Station : IEquatable<Station>
     .ctor(String Name, MixtureState State, PerformanceFigures? Performance, IReadOnlyDictionary<String, Double> MoleFractions, IReadOnlyDictionary<String, Double> CondensedMassFractions, TransportFigures? Transport, CaseStatus? TransportStatus, CaseStatus Status)
@@ -669,6 +710,8 @@ static class AerospacePropellantThermodynamics.Thermo.SpeciesFunctions
     static Double CpOverR(in SpeciesTableView table, Int32 species, Double temperature)
     static Double GOverRT(in SpeciesTableView table, Int32 species, Double temperature)
     static Double HOverRT(in SpeciesTableView table, Int32 species, Double temperature)
+    static Double RecordHigh(in SpeciesTableView table, Int32 species)
+    static Double RecordLow(in SpeciesTableView table, Int32 species)
     static Double SOverR(in SpeciesTableView table, Int32 species, Double temperature)
     static Int32 IntervalOf(in SpeciesTableView table, Int32 species, Double temperature)
 
@@ -681,6 +724,7 @@ sealed class AerospacePropellantThermodynamics.Thermo.SpeciesTable
     Int32 ElementCount { get; }
     Int32 GasCount { get; }
     Int32 IndexOf(String species)
+    Int32 PieceOf(String species, Double temperature)
     Int32 SpeciesCount { get; }
     SpeciesTableArrays Arrays { get; }
     static SpeciesTable Build(SpeciesDatabase database, IReadOnlyList<String> elements, IReadOnlyList<String> species)

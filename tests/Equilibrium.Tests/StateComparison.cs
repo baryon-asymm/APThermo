@@ -8,9 +8,6 @@ namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
 /// <summary>Compares a solution with a fixture's outputs field by field, the field list taken from the fixture.</summary>
 internal static class StateComparison
 {
-    /// <summary>Below this reference mole fraction the reference lists a species as trace (the derivation of moleFractionTrace in the tolerance table).</summary>
-    public const double TracePrintThreshold = 5e-6;
-
     /// <summary>Outputs of the transport node, which this node does not compute.</summary>
     private static readonly HashSet<string> TransportFields =
         ["viscosity", "frozenConductivity", "reactingConductivity", "frozenPrandtl", "reactingPrandtl"];
@@ -84,14 +81,14 @@ internal static class StateComparison
         foreach (var species in c.Outputs.GetProperty("moleFractions").EnumerateObject())
         {
             var expected = species.Value.GetDouble();
-            if (solution.Table.IndicesOf(species.Name).Count == 0)
+            if (solution.Case.Table.IndicesOf(species.Name).Count == 0)
             {
                 mismatches.Add($"{species.Name}: not in the table");
                 continue;
             }
 
             var actual = solution.MoleFraction(species.Name);
-            var tolerance = expected >= TracePrintThreshold ? "moleFraction" : "moleFractionTrace";
+            var tolerance = tolerances.MoleFractionField(expected);
             if (!tolerances.Matches(tolerance, expected, actual))
             {
                 mismatches.Add($"x({species.Name}): reference {expected:R}, tree {actual:R} [{tolerance}]");
@@ -105,7 +102,7 @@ internal static class StateComparison
     /// The condensed species the reference reports present (above the trace threshold) and absent (zero). A species the table
     /// lacks counts as condensed when its name has a phase suffix, so that an omitted candidate is reported missing.
     /// </summary>
-    public static (IReadOnlyList<string> Present, IReadOnlyList<string> Absent) CondensedSetOf(CeaCase c, SpeciesTable table)
+    public static (IReadOnlyList<string> Present, IReadOnlyList<string> Absent) CondensedSetOf(CeaCase c, SpeciesTable table, ToleranceTable tolerances)
     {
         var present = new List<string>();
         var absent = new List<string>();
@@ -119,7 +116,7 @@ internal static class StateComparison
             }
 
             var x = species.Value.GetDouble();
-            if (x >= TracePrintThreshold)
+            if (tolerances.MoleFractionField(x) == "moleFraction")
             {
                 present.Add(species.Name);
             }

@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AerospacePropellantThermodynamics.Execution;
 
 namespace AerospacePropellantThermodynamics.Cli.Tests;
 
@@ -7,6 +9,16 @@ namespace AerospacePropellantThermodynamics.Cli.Tests;
 [Collection(CliCollection.Name)]
 public sealed class ExitCodeTests(CliFixture fixture)
 {
+    /// <summary>Relative slack on a mass read back from a message (as InputDocumentTests.GramsTolerance): the message rounds it to about 7 significant figures.</summary>
+    private const double GramsTolerance = 1e-6;
+
+    /// <summary>
+    /// Absolute slack, kg, on the mass of the record of another simulation scaled by a factor, against the factor:
+    /// the record weighs 1000.015 g, so scaled by 1.02 it weighs 1.0200153 kg; 1e-3 covers that and stays far below
+    /// the 1 % steps the test tells apart.
+    /// </summary>
+    private const double ScaledMassTolerance = 1e-3;
+
     [Fact]
     public void A_good_document_is_exit_0_and_writes_the_document_to_the_output_path()
     {
@@ -58,6 +70,17 @@ public sealed class ExitCodeTests(CliFixture fixture)
     }
 
     [Fact]
+    public void A_missing_output_directory_is_exit_2()
+    {
+        var output = fixture.TempFile(Path.Combine("nowhere", "out.json"));
+        var run = fixture.Invoke(fixture.Solving("rocket", fixture.Document("rocket-lox-lh2.json"), "--output", output));
+        Assert.Equal(2, run.Code);
+        Assert.Contains(output, run.Error);
+        Assert.Contains("directory not found", run.Error);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public void Transport_on_a_database_without_the_transport_file_is_exit_2()
     {
         var directory = Directory.CreateDirectory(fixture.TempFile("thermo-only")).FullName;
@@ -89,7 +112,16 @@ public sealed class ExitCodeTests(CliFixture fixture)
         File.WriteAllText(lines, good.ToJsonString() + "\n" + doubled.ToJsonString() + "\n");
         var run = fixture.Invoke(fixture.Solving("states", lines));
         Assert.Equal(2, run.Code);
-        Assert.Contains($"{lines}:2: the composition weighs 2000.03 g with the database's atomic weights", run.Error);
+        var prefix = $"{lines}:2: the composition weighs ";
+        Assert.Contains(prefix, run.Error);
+        var start = run.Error.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
+        var end = run.Error.IndexOf(" g with the database's atomic weights", start, StringComparison.Ordinal);
+        Assert.True(end > start, $"no ' g with the database's atomic weights' after the record's source in: {run.Error}");
+        var reported = double.Parse(run.Error[start..end], CultureInfo.InvariantCulture);
+        // Read numerically rather than matched as text (InputDocumentTests.AssertMassReported): the message rounds
+        // the mass it reports, so a full-precision, independently derived mass matches it only up to a relative tolerance.
+        var expectedGrams = fixture.GramsOf(CliFixture.CompositionOf(doubled["composition"]!));
+        Assert.True(Math.Abs(reported - expectedGrams) <= GramsTolerance * Math.Max(1.0, Math.Abs(expectedGrams)), $"reported {reported:R} g, derived {expectedGrams:R} g");
         Assert.Empty(run.Output);
     }
 
@@ -122,12 +154,22 @@ public sealed class ExitCodeTests(CliFixture fixture)
         using var document = run.Json();
         Assert.Equal(0.03, document.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
         var mass = document.RootElement.GetProperty("cases")[0].GetProperty("mixture").GetProperty("mass").GetDouble();
-        Assert.True(Math.Abs(mass - 1.02) < 1e-3, $"mass {mass:R} kg");
+        Assert.True(Math.Abs(mass - 1.02) < ScaledMassTolerance, $"mass {mass:R} kg");
 
         run = fixture.Invoke(fixture.Solving("states", Scaled(1.05, "heavy-5pct.json"), "--mass-tolerance", "0.03"));
         Assert.Equal(2, run.Code);
         Assert.Contains("within 3 %", run.Error);
         Assert.Empty(run.Output);
+    }
+
+    [Fact]
+    public void An_exception_maps_to_its_documented_exit_code()
+    {
+        // The rule itself (Failures.Handle), directly: an input refusal is 2; an accelerator failure and every
+        // other, unexpected exception are 3 (F-CL-13), so a defect of this node is never mistaken for invalid input.
+        Assert.Equal(ExitCode.InvalidInput, Failures.Handle(new InputException("bad input"), TextWriter.Null));
+        Assert.Equal(ExitCode.Infrastructure, Failures.Handle(new AcceleratorUnavailableException("no cuda", []), TextWriter.Null));
+        Assert.Equal(ExitCode.Infrastructure, Failures.Handle(new InvalidOperationException("a defect of this node"), TextWriter.Null));
     }
 
     [Fact]

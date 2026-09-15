@@ -1,3 +1,4 @@
+using AerospacePropellantThermodynamics.Harness;
 using AerospacePropellantThermodynamics.Thermo;
 
 namespace AerospacePropellantThermodynamics.Transport.Tests;
@@ -49,7 +50,7 @@ public sealed class AbsentElementTests(CpuFixture fixture)
             {
                 var p = field.GetValue(expected.Figures)!;
                 var q = field.GetValue(actual.Figures)!;
-                var same = p is double x ? BitConverter.DoubleToInt64Bits(x) == BitConverter.DoubleToInt64Bits((double)q) : p.Equals(q);
+                var same = p is double x ? Bits.Same(x, (double)q) : p.Equals(q);
                 if (!same)
                 {
                     differences.Add($"{label} {field.Name}: own table {p}, union {q}");
