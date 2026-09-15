@@ -226,6 +226,34 @@ position today (the criterion below).
       Verified: 699/699 tests green, `Bits.approved.txt` hash unchanged
       (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
 
+      ⚠ 2026-09-15: the forwarding properties did not hold. Two defects, found by the
+      repair review. First (R-Performance.Tests-2), `ChemicalSystem` mixed a batch's
+      shared axis with a case's own: `Elements` and `Products` are what `BatchKey`
+      groups cases by by construction, but `ElementMoles` is one case's own starting
+      composition and varies case to case inside a shared batch, exactly like
+      `ReactantEnthalpy`, which already sat outside `ChemicalSystem`. `BatchKey` itself
+      never read `ElementMoles` — a sign it was never part of the system a batch
+      shares. `ChemicalSystem` narrowed to `Elements`, `Products` (2 parameters), and
+      a new `Mixture` record holds `ElementMoles` and `ReactantEnthalpy` (2
+      parameters) as the case's own starting state; `RocketInputs` keeps `System`,
+      `Mixture`, `ChamberPressure`, `Flow`, `Exits`, still 5 parameters. Second
+      (R-Performance.Tests-3), keeping the flat names as forwarding properties was
+      the shortcut the decomposition should not have taken: it let the ~25 read call
+      sites stay unchanged only by hiding, behind a compatibility shim, which record
+      each field actually lives on. The forwarding properties on `RocketInputs`
+      (`Elements`, `ElementMoles`, `Products`, `ExitValues`, `ExitKinds`) and on
+      `RocketSolution` (`Stations`, `Moles`, `Multipliers`, `Figures`,
+      `StationStatus`, `Iterations`) are removed; every read call site in
+      `RocketCase.cs`, `RocketHost.cs` itself (`StationCount`, `TotalMoles`,
+      `MoleFraction`), `KernelEqualityTests.cs`, `StationComparison.cs`,
+      `SubsonicStationTests.cs`, `RocketInvariants.cs`, `RocketFixtureTests.cs`,
+      `InvariantTests.cs` and `BitSnapshotTests.cs` now names the sub-record it reads
+      (`.Outcome.`, `.System.`, `.Mixture.`, `.Exits.`) directly. No behaviour
+      changed: the same fields, on the same two records, under new names one level
+      down. Verified: 700/700 tests green (699 plus R-Performance.Tests-1's stale-key
+      fact), `Bits.approved.txt` hash unchanged
+      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
+
 ## Taboos
 
 - Do not loosen a tolerance for green; do not exclude a failing case.

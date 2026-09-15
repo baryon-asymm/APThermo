@@ -85,7 +85,7 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
     {
         Assert.Equal(count, cases.Count);
         var inputs = cases.Select(RocketInputs.Of).ToList();
-        var table = SpeciesTable.Build(fixture.Database, inputs[0].Elements, inputs[0].Products);
+        var table = SpeciesTable.Build(fixture.Database, inputs[0].System.Elements, inputs[0].System.Products);
         var host = inputs.Select(i => RocketHost.Solve(fixture.Accelerator, table, i)).ToList();
 
         using var buffers = Fill(fixture.Accelerator, table, inputs);
@@ -107,11 +107,11 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var stationCount = RocketLayout.StationCount(exitCount);
         var tableBuffers = buffers.Own(SpeciesTableBuffers.Upload(accelerator, table));
         var chamberPressures = buffers.Own(accelerator.Allocate1D(inputs.Select(i => i.ChamberPressure).ToArray()));
-        var reactantEnthalpies = buffers.Own(accelerator.Allocate1D(inputs.Select(i => i.ReactantEnthalpy).ToArray()));
+        var reactantEnthalpies = buffers.Own(accelerator.Allocate1D(inputs.Select(i => i.Mixture.ReactantEnthalpy).ToArray()));
         var flows = buffers.Own(accelerator.Allocate1D(inputs.Select(i => (int)i.Flow).ToArray()));
-        var elementMoles = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.ElementMoles).ToArray()));
-        var exitValues = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.ExitValues).ToArray()));
-        var exitKinds = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.ExitKinds.Select(k => (int)k)).ToArray()));
+        var elementMoles = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.Mixture.ElementMoles).ToArray()));
+        var exitValues = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.Exits.Values).ToArray()));
+        var exitKinds = buffers.Own(accelerator.Allocate1D(inputs.SelectMany(i => i.Exits.Kinds.Select(k => (int)k)).ToArray()));
         var scratchDoubles = buffers.Own(accelerator.Allocate1D<double>((long)count * ScratchLayout.DoublesPerCase(speciesCount, elementCount)));
         var scratchInts = buffers.Own(accelerator.Allocate1D<int>((long)count * ScratchLayout.IntsPerCase(speciesCount, elementCount)));
         var stations = buffers.Own(accelerator.Allocate1D<MixtureState>((long)count * stationCount));
@@ -158,24 +158,24 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
             for (var s = 0; s < stationCount; s++)
             {
                 var offset = k * stationCount + s;
-                Assert.True((int)host[k].StationStatus[s] == kernelStationStatus[offset], $"{label} station {s}: status differs");
+                Assert.True((int)host[k].Outcome.StationStatus[s] == kernelStationStatus[offset], $"{label} station {s}: status differs");
                 foreach (var field in stateFields)
                 {
-                    var a = (double)field.GetValue(host[k].Stations[s])!;
+                    var a = (double)field.GetValue(host[k].Outcome.Stations[s])!;
                     var b = (double)field.GetValue(kernelStations[offset])!;
                     Assert.True(Bits.Same(a, b), $"{label} station {s}: {field.Name} host {a:R}, kernel {b:R}");
                 }
 
                 foreach (var field in figureFields)
                 {
-                    var a = (double)field.GetValue(host[k].Figures[s])!;
+                    var a = (double)field.GetValue(host[k].Outcome.Figures[s])!;
                     var b = (double)field.GetValue(kernelFigures[offset])!;
                     Assert.True(Bits.Same(a, b), $"{label} station {s}: {field.Name} host {a:R}, kernel {b:R}");
                 }
 
                 for (var j = 0; j < speciesCount; j++)
                 {
-                    var a = host[k].Moles[s * speciesCount + j];
+                    var a = host[k].Outcome.Moles[s * speciesCount + j];
                     var b = kernelMoles[(long)offset * speciesCount + j];
                     Assert.True(Bits.Same(a, b), $"{label} station {s}: moles of {table.Species[j]} host {a:R}, kernel {b:R}");
                 }

@@ -76,7 +76,7 @@ internal static class StationComparison
                     continue;
                 }
 
-                var actual = isFigure ? (double)field.GetValue(solution.Figures[s])! : (double)field.GetValue(solution.Stations[s])!;
+                var actual = isFigure ? (double)field.GetValue(solution.Outcome.Figures[s])! : (double)field.GetValue(solution.Outcome.Stations[s])!;
                 if (!tolerances.Matches(name, expected, actual))
                 {
                     mismatches.Add($"{label} {name}: reference {expected:R}, tree {actual:R}");

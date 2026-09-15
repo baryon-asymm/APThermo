@@ -22,13 +22,13 @@ public sealed class SubsonicStationTests(CpuFixture fixture)
     public void A_station_that_never_leaves_the_subsonic_side_is_not_converged()
     {
         var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
-        var areaRatio = inputs.ExitValues[0];
-        var table = SpeciesTable.Build(fixture.Database, inputs.Elements, inputs.Products);
+        var areaRatio = inputs.Exits.Values[0];
+        var table = SpeciesTable.Build(fixture.Database, inputs.System.Elements, inputs.System.Products);
         using var rocketCase = new RocketCase(fixture.Accelerator, table, inputs);
         var context = rocketCase.Context;
         Assert.Equal(CaseStatus.Ok, ChamberSolve.At(in context, out var chamber));
         Assert.Equal(CaseStatus.Ok, ThroatSearch.At(in context, in chamber, out var throat));
-        var throatTemperature = rocketCase.Read().Stations[RocketSolver.Throat].Temperature;
+        var throatTemperature = rocketCase.Read().Outcome.Stations[RocketSolver.Throat].Temperature;
 
         // The extrapolation of (6.23) from a previous station that lay deep on the subsonic side: the estimate is taken as it is.
         var subsonic = new ExitEstimate
@@ -45,14 +45,14 @@ public sealed class SubsonicStationTests(CpuFixture fixture)
         // Its neighbour, from the throat, as the exit loop starts every station that follows a failed one.
         var next = new ExitEstimate { Temperature = throatTemperature, Derivative = 1.0 };
         StationSolve.CopyComposition(in context, RocketSolver.Throat, FirstExit + 1);
-        var nextOutcome = AreaRatioIteration.At(in context, in chamber, in throat, inputs.ExitValues[1], FirstExit + 1, ref next);
+        var nextOutcome = AreaRatioIteration.At(in context, in chamber, in throat, inputs.Exits.Values[1], FirstExit + 1, ref next);
 
         var solution = rocketCase.Read();
         Assert.Equal(ExitOutcome.NeverSupersonic, outcome);
-        Assert.Equal(CaseStatus.NotConverged, solution.StationStatus[FirstExit]);
-        Assert.Equal(CaseStatus.Ok, solution.StationStatus[RocketSolver.Chamber]);
-        Assert.Equal(CaseStatus.Ok, solution.StationStatus[RocketSolver.Throat]);
-        Assert.Equal(CaseStatus.Ok, solution.StationStatus[FirstExit + 1]);
+        Assert.Equal(CaseStatus.NotConverged, solution.Outcome.StationStatus[FirstExit]);
+        Assert.Equal(CaseStatus.Ok, solution.Outcome.StationStatus[RocketSolver.Chamber]);
+        Assert.Equal(CaseStatus.Ok, solution.Outcome.StationStatus[RocketSolver.Throat]);
+        Assert.Equal(CaseStatus.Ok, solution.Outcome.StationStatus[FirstExit + 1]);
         Assert.True(nextOutcome is ExitOutcome.Converged or ExitOutcome.WithinReportTolerance, $"the neighbour ended as {nextOutcome}");
     }
 }

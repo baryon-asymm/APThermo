@@ -23,7 +23,7 @@ internal static class RocketBits
         var elementCount = solution.Table.ElementCount;
         for (var station = 0; station < solution.StationCount; station++)
         {
-            var state = solution.Stations[station];
+            var state = solution.Outcome.Stations[station];
             foreach (var field in StateFields)
             {
                 hash.Add((double)field.GetValue(state)!);
@@ -32,21 +32,21 @@ internal static class RocketBits
 
         for (var station = 0; station < solution.StationCount; station++)
         {
-            hash.Add(solution.Moles.AsSpan(station * speciesCount, speciesCount));
-            hash.Add(solution.Multipliers.AsSpan(station * elementCount, elementCount));
-            var figures = solution.Figures[station];
+            hash.Add(solution.Outcome.Moles.AsSpan(station * speciesCount, speciesCount));
+            hash.Add(solution.Outcome.Multipliers.AsSpan(station * elementCount, elementCount));
+            var figures = solution.Outcome.Figures[station];
             foreach (var field in FigureFields)
             {
                 hash.Add((double)field.GetValue(figures)!);
             }
         }
 
-        foreach (var status in solution.StationStatus)
+        foreach (var status in solution.Outcome.StationStatus)
         {
             hash.Add((int)status);
         }
 
-        return hash.Add(solution.Iterations).Add((int)solution.Status).ToHex();
+        return hash.Add(solution.Outcome.Iterations).Add((int)solution.Status).ToHex();
     }
 
     /// <summary>The struct's fields in declaration order; <see cref="Type.GetFields()"/> promises no order, the metadata token carries it.</summary>
