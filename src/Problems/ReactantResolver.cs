@@ -36,11 +36,7 @@ internal static class ReactantResolver
 
         molarMass = definition.MolarMass ?? molarMass;
         var temperature = reactant.Temperature!.Value;
-        return new ResolvedReactant(reactant, null, formula, molarMass, temperature, MassOf(reactant, molarMass))
-        {
-            HasFits = false,
-            AssignedEnthalpy = definition.Enthalpy,
-        };
+        return new ResolvedReactant(reactant, null, formula, molarMass, temperature, MassOf(reactant, molarMass));
     }
 
     private static ResolvedReactant FromDatabase(SpeciesDatabase database, Reactant reactant)
@@ -70,11 +66,7 @@ internal static class ReactantResolver
         }
 
         var pairs = record.Formula.Select(pair => (SpeciesSelection.Spelling(pair.Symbol), pair.Count)).ToList();
-        return new ResolvedReactant(reactant, record, pairs, record.MolarMass, t, MassOf(reactant, record.MolarMass))
-        {
-            HasFits = hasFits,
-            AssignedEnthalpy = record.FormationEnthalpy,
-        };
+        return new ResolvedReactant(reactant, record, pairs, record.MolarMass, t, MassOf(reactant, record.MolarMass));
     }
 
     private static double MassOf(Reactant reactant, double molarMass) =>

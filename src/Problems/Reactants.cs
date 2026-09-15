@@ -159,9 +159,10 @@ public sealed record Propellant
 }
 
 /// <summary>
-/// A reactant with its database record resolved: the formula in database spelling, the molar mass, the temperature and the
-/// enthalpy source. A record with a body, not a nine-parameter constructor (the root's code-shape constraint): the enthalpy
-/// source is two related fields the two factory methods of <see cref="ReactantResolver"/> always set together.
+/// A reactant with its database record resolved: the formula in database spelling, the molar mass, the temperature and
+/// the amount as a mass. Its enthalpy source follows from what it resolved to, so it is derived, not stored: a record with
+/// intervals is evaluated at <see cref="Temperature"/>; a record without intervals carries its assigned enthalpy in the
+/// formation-enthalpy field, and a custom reactant in its definition.
 /// </summary>
 internal sealed record ResolvedReactant(
     Reactant Reactant,
@@ -172,10 +173,10 @@ internal sealed record ResolvedReactant(
     double Mass)                                        // the amount as a mass, before normalization
 {
     /// <summary>True when the enthalpy comes from the record's polynomial at <see cref="Temperature"/>, false when it is <see cref="AssignedEnthalpy"/>.</summary>
-    public required bool HasFits { get; init; }
+    public bool HasFits => Record is { Intervals.Count: > 0 };
 
-    /// <summary>J/mol, used when <see cref="HasFits"/> is false.</summary>
-    public required double AssignedEnthalpy { get; init; }
+    /// <summary>J/mol, used when <see cref="HasFits"/> is false: the record's assigned enthalpy, or a custom reactant's definition.</summary>
+    public double AssignedEnthalpy => Record?.FormationEnthalpy ?? Reactant.Definition!.Enthalpy;
 }
 
 /// <summary>Builds a propellant against a database: names are resolved, temperatures checked and amounts converted to masses when Build runs.</summary>

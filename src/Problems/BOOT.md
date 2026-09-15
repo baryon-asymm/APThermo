@@ -355,6 +355,19 @@ the contract commit, after the internal moves: `API.md` rewritten with these as 
   session: `dotnet build` clean, the fast suite green unchanged (1111/1111 in this
   node), `Bits.approved.txt` and `PublicSurface.approved.txt` unmoved.
 
+  ⚠ 2026-09-15: `HasFits` and `AssignedEnthalpy` are gone as stored properties (the
+  clean-code repair's R-Problems-2). Both were exactly what `ReactantResolver`'s two
+  factory methods could already derive from the constructor's own `Record` and
+  `Reactant.Definition` — `Record is { Intervals.Count: > 0 }`, and
+  `Record?.FormationEnthalpy ?? Reactant.Definition!.Enthalpy` — so storing them
+  duplicated state instead of reading it once (a record with a body, not a
+  parameter-count device: the primary constructor already counted six, without them,
+  as above). They are now computed properties; both construction sites drop their
+  object-initializer clause, and every read (`resolved[k].HasFits`,
+  `r.AssignedEnthalpy`) is unchanged, a computed property read exactly as an init one.
+  `dotnet test tests/Problems.Tests`: 1111/1111; `Bits.approved.txt` unmoved
+  (26840f83).
+
 - **The runners are the pipelines' composition roots** (added 2026-09-14 by the design
   session, after the close measured them). `RocketRunner` and `EquilibriumRunner` name
   both sides of the engine's boundary: the front door's cases, problems and records,
