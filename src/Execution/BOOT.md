@@ -163,11 +163,22 @@ Decisions taken with the review of 2026-09-14:
 
 - **The fallback says why.** `Auto` keeps falling back to the CPU accelerator, and the
   reason no longer dies in a discarded exception: `AcceleratorInfo` gains
-  `CudaSkippedBecause` (null when CUDA was not tried or was bound), the message of the
-  failure that turned the choice, with the paths tried where they apply. A contract
-  change, recorded in `API.md` with its ⚠, the snapshot moving in the same commit; the
-  command line prints it in the `devices` listing and in every document's
-  `run.accelerator` (a later change of that node).
+  `CudaSkippedBecause` (null when CUDA was bound or the options asked for the CPU), the
+  message of the failure that turned the choice, the forbidding variable included, with
+  the paths tried where they apply. A contract change, recorded in `API.md` with its ⚠,
+  the snapshot moving in the same commit; the command line prints it in the `devices`
+  listing and in every document's `run.accelerator` (a later change of that node).
+
+  ⚠ 2026-09-15: this bullet, `API.md` and `Options.cs` read "null when CUDA was not
+  tried or was bound" / "null when CUDA was bound or never tried". With
+  `APTHERMO_NO_CUDA=1` and `Auto`, CUDA is not skipped upfront: `AcceleratorChoice.Decide`
+  still calls into `Cuda`, which throws immediately without touching any CUDA API, and
+  the caught failure becomes a non-null reason (`AcceleratorChoiceTests`, the variable's
+  own case). "No CUDA API is touched" (this document's invariants) is true of the driver,
+  not of whether a reason is recorded; the only case with no reason at all is
+  `AcceleratorKind.Cpu`, where `Cuda` is never called because CUDA was never asked for.
+  Found by the repair review (R-Execution-6); the three places now read "null when CUDA
+  was bound or the options asked for the CPU".
 - **The missing-definition guard names the wrapper.** The check parses the wrapper text
   libnvvm returned for its `.func` definitions and compares the set with the names the
   kernel calls; it is testable without a GPU by handing it a wrapper body with one
@@ -298,6 +309,12 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       3. This commit turns the inner check into a guard clause
       (`if (!File.Exists(dll)) continue;`) and brings `Locate` to depth 3, examining
       the same paths in the same order.
+
+      ⚠ 2026-09-15: these figures described that day's branch; `e453063` brought
+      `RocketPipeline.Run` to 53 lines of code, and `## Shape exceptions` holds ten
+      rows: six efferent-coupling rows, the four pipelines among them, and the
+      constructors of `RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult`
+      and `EquilibriumBatchResult`. Found by the repair review (R-Execution-5).
 - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
       off and the explicit paths pointing nowhere, the engine is the CPU one and
       `CudaSkippedBecause` names what was missing and the paths tried

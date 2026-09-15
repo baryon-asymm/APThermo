@@ -49,8 +49,8 @@ public sealed record AcceleratorInfo(
     string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors)
 {
     /// <summary>
-    /// Why <see cref="AcceleratorKind.Auto"/> fell back to the CPU accelerator: the failure that turned the choice, with the paths
-    /// tried where they apply. Null when CUDA was bound or was never tried.
+    /// Why <see cref="AcceleratorKind.Auto"/> fell back to the CPU accelerator: the failure that turned the choice, the forbidding
+    /// variable included, with the paths tried where they apply. Null when CUDA was bound or the options asked for the CPU.
     /// </summary>
     public string? CudaSkippedBecause { get; init; }
 }

@@ -30,7 +30,7 @@ public sealed record AcceleratorInfo(
     AcceleratorKind Kind, string DeviceName, string IlgpuVersion,
     string? LibNvvmPath, string? LibDevicePath, int ThreadsOrMultiprocessors)
 {
-    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, with the paths tried where they apply; null when CUDA was bound or never tried
+    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, the forbidding variable included, with the paths tried where they apply; null when CUDA was bound or the options asked for the CPU
 }
 
 public sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
