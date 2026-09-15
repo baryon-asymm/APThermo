@@ -115,6 +115,42 @@ public sealed class PlateauTests(CpuFixture fixture) : IClassFixture<CpuFixture>
         }
     }
 
+    /// <summary>
+    /// A record stood down by the anti-cycling rule is out of play "for the rest of it" (BOOT.md): it may not be found as an
+    /// adjacent record of its own formula, nor as a phase at a temperature inside its own range, so it cannot be paired or
+    /// switched back in. Exercised directly on the geometry, since no fixture reaches a state where a stood-down record has
+    /// an adjacent, in-play record of its own formula to be wrongly rediscovered beside (BOOT.md, the defect note on this
+    /// rule's own history).
+    /// </summary>
+    [Fact]
+    public void A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner()
+    {
+        var c = HostSolver.Load("hp", "ap-htpb-al-fuelrich_of0.5_pc7MPa");
+        var table = HostSolver.BuildTable(fixture.Database, c);
+        var pieces = table.IndicesOf("ALN(L)");
+        Assert.Equal(2, pieces.Count);
+        var lower = pieces[0];
+        var upper = pieces[1];
+
+        using var buffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
+        var speciesCount = table.SpeciesCount;
+        var elementCount = table.ElementCount;
+        using var doubles = fixture.Accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        using var ints = fixture.Accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        for (var j = 0; j < speciesCount; j++)
+        {
+            SpeciesMarks.Set(scratch, j, SpeciesMark.Active);
+        }
+
+        var view = buffers.View;
+        var effectiveHigh = PhaseGeometry.EffectiveHigh(in view, in scratch, lower);
+        SpeciesMarks.Set(scratch, lower, SpeciesMark.StoodDown);
+
+        Assert.Equal(-1, PhaseGeometry.Adjacent(in view, in scratch, upper, above: false));
+        Assert.Equal(-1, PhaseGeometry.PhaseAt(in view, in scratch, 0, upper, effectiveHigh - 0.001));
+    }
+
     /// <summary>A condensed species with the same stoichiometry column and positive moles: the other phase of a pinned pair.</summary>
     private static bool PartnerInSolution(SpeciesTable table, HostSolution solution, int j)
     {

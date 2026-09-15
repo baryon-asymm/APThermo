@@ -573,6 +573,29 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       after). The fact,
       `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
       and not yet written; it takes over as the evidence when it is.
+- [x] 2026-09-15 — A record stood down by the anti-cycling rule stays out of play "for
+      the rest of it" (the condensed-species rule above): `PhaseGeometry.Adjacent` and
+      `PhaseGeometry.PhaseAt` test `!SpeciesMarks.InPlay(scratch, k)`, not the raw
+      `scratch.SpeciesActive[k] == 0` the clean-code pass carried over unchanged from
+      `EquilibriumSolver.cs:796` and `:849` at `7661ea9` (a test that was correct only
+      while `Absent` was the sole value skipped, before `SpeciesMark.StoodDown` existed;
+      found by the repair review, R-Equilibrium-1). No `SpeciesActive[` remains outside
+      `SpeciesMarks.Of` and `.Set` (`grep` over `src/Equilibrium/*.cs`, two matches, both
+      in `Carriers.cs`).
+
+      Seen red on the code before the fix, then green after it:
+      `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
+      stands one piece of `ALN(L)` down next to its in-play partner (the fixture and
+      pair of the ALN-gap tests above) and asserts `Adjacent` and `PhaseAt` return −1
+      for it; before the fix `Adjacent` returned the stood-down piece's own table index
+      (231) instead of −1 (`Assert.Equal() Failure: Expected: -1, Actual: 231`, the
+      first assertion, `PlateauTests.cs:150`) — `PhaseAt` was not reached, the same
+      defect the report names for both methods.
+
+      No fixture reaches the buggy path (BOOT.md's defect note on the condensed-species
+      rule, ⚠ 2026-09-13, and the review's own check): `tests/Equilibrium.Tests/Bits.approved.txt`
+      unchanged through the fix (hash `65788e23f4390305763c80ab1f66b2054ff1907a`, same
+      before and after), `Equilibrium.Tests` 464/464 green (463 plus the new fact).
 
 ## Taboos
 

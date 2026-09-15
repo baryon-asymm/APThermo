@@ -164,6 +164,11 @@ creation names its arguments; it passes them by position today (the criterion be
       `HostSolver.Run`, changed. Not a declared exception: no row added to
       `## Shape exceptions`. 463/463 tests green, `Bits.approved.txt` hash unchanged
       (`65788e23f4390305763c80ab1f66b2054ff1907a`).
+- [x] 2026-09-15 — L2: `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
+      proves the node's own defect fix (`src/Equilibrium/BOOT.md`, the acceptance
+      criterion of the same date): seen red on the code before the fix
+      (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
+      instead of −1) and green after it, with no bit of `Bits.approved.txt` moved.
 
 ## Taboos
 
