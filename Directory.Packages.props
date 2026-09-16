@@ -6,6 +6,8 @@
     <PackageVersion Include="ILGPU" Version="1.5.3" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <!-- Band-matched to the SDK (root BOOT.md, Dependencies); its Microsoft.Build.Tasks.Git dependency is already patched (GHSA-23fw-v26w-5fgq). -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.112" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
