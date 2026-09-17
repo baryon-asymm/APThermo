@@ -15,12 +15,16 @@ public static class AcceleratorProbe
     /// description. Throws <see cref="AcceleratorUnavailableException"/> exactly as <c>Engine.Create</c> does.
     /// Creating a CUDA context takes time; call this once per accelerator kind, not per case.
     /// </summary>
+    /// <param name="options">The engine options to bind with, or <see langword="null"/> for the default
+    /// options.</param>
+    /// <returns>A description of the accelerator the given options would bind to.</returns>
+    /// <exception cref="AcceleratorUnavailableException">No accelerator of the requested kind could be bound.</exception>
     public static AcceleratorInfo Describe(EngineOptions? options = null)
     {
         using var engine = Engine.Create(options);
         return engine.Accelerator;
     }
 
-    /// <summary>True when the environment forbids CUDA (the <c>APTHERMO_NO_CUDA</c> rule).</summary>
+    /// <value><see langword="true"/> when the environment forbids CUDA (the <c>APTHERMO_NO_CUDA</c> rule).</value>
     public static bool CudaForbidden => Engine.CudaForbidden;
 }
