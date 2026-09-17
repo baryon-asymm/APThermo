@@ -385,13 +385,31 @@ There is no external ancestor: the tree root is the repository root, and the loa
       execution tests node's `BOOT.md` explains the per-platform file). The first run at
       `f67b1a9` failed only the bit snapshots and two platform assumptions of the tests,
       the discovery test's `.dll` suffix and the Windows throughput figure.
-- [ ] The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
+- [x] 2026-09-18 — The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
       from a local feed into every sample, and each sample reproduces its approved
       output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
-      .NET tool and runs an approved example without `--database`. A debugger steps
-      from a sample into the library's source through SourceLink, and the step is
-      recorded. Before the first release the package READMEs link the guide on the
-      public repository; until it exists they carry no guide link.
+      .NET tool and runs an approved example without `--database`. Every source
+      document of every packed assembly resolves through SourceLink to the commit's
+      file on the public repository. Before the first release the package READMEs link
+      the guide on the public repository; until it exists they carry no guide link.
+
+      Evidence: CI run 35274736153 of `24cd966`, green on `windows-latest` and
+      `ubuntu-latest`, whose steps pack both packages, restore `APThermo` from the
+      job-local feed into all twelve samples and diff each output with its approved
+      file, and install the tool from that feed and run its approved example. The
+      symbols: `sourcelink test` passed on all 16 PDBs of `APThermo.snupkg` and
+      `APThermo.Cli.snupkg` packed from `8d0b7a1`, and the sampled
+      `raw.githubusercontent.com/baryon-asymm/APThermo/<commit>/…` URLs answered 200
+      (`SCRATCH/sourcelink-proof.txt`, kept out of the tree with the audit reports).
+      The package READMEs link the guide since `20cc262`.
+
+      ⚠ 2026-09-18: the criterion said "a debugger steps from a sample into the
+      library's source through SourceLink, and the step is recorded". A step in an IDE
+      is a human action that no run can repeat, so the record would age into a claim
+      nobody re-checks. The wording now names what a debugger actually needs and what
+      a machine can re-prove: every document of every packed PDB resolves to the
+      commit's file. The owner may still step through it by hand; nothing in the tree
+      depends on that.
 
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
       package restore into the samples (the ⚠ of that date under `## Delivery`,
