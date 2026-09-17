@@ -73,7 +73,10 @@ case).
 
 The full guide has every scenario above and more (exits, a custom propellant,
 batches, state records, GPU acceleration, the database, troubleshooting): see
-`docs/guide/getting-started.md` in the source repository.
+[Getting started](https://github.com/baryon-asymm/APThermo/blob/main/docs/guide/getting-started.md)
+in the source repository, or the
+[repository README](https://github.com/baryon-asymm/APThermo/blob/main/README.md)
+for the full guide index.
 
 ## License and data notice
 
