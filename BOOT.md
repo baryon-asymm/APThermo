@@ -82,7 +82,9 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
 
 None.
 
-Outside the tree: .NET SDK 10.0 (C# 14); ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
+Outside the tree: .NET SDK 10.0 (C# 14), pinned by `global.json` to 10.0.112 with
+`rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled SourceLink replaces
+the explicit package the tree briefly referenced; ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
 used); for the GPU path an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
 (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
 `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
@@ -449,7 +451,9 @@ holds the reflection checks of AGENTS.md §13; `tests/Fixtures` holds the refere
 outputs generated with NASA's `cea` package, their provenance, the generator scripts
 and the tolerance table, and `tests/Fixtures.Tests` proves the form and provenance of
 those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes share
-(one CPU host, bit comparison, bit snapshots, fixture families) and names nothing above
+(one CPU host, bit comparison, bit snapshots, fixture families, and since 2026-09-16 the
+JSON Schema subset validator and the run-section cut of the command line's documents; its
+`API.md` lists them) and names nothing above
 `Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
 and never asserted; `samples/Samples` (2026-09-15) shows each consumer scenario as a
@@ -475,8 +479,11 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     `Execution`, `Problems`), because the nodes are never released apart. Its only
     package dependency is ILGPU.
   - `APThermo.Cli` is packed from `src/Cli` as a .NET tool with the command `apthermo`.
-  - No other project is packable. The version and the package metadata live once, in
-    `Directory.Build.props`, and a release tag `v<version>` must equal that version.
+  - No other project is packable. The version lives once, in `Directory.Build.props`,
+    and a release tag `v<version>` must equal it. The package metadata and the symbol
+    settings apply only to packable projects and so live in `Directory.Build.targets`,
+    where `IsPackable` is already known (corrected 2026-09-17, CI audit F5; the wording
+    named only the props file).
   - The license expression is `MIT AND Apache-2.0` (the NASA data), with `NOTICE`
     packed.
 - **Symbols.**
