@@ -61,16 +61,14 @@ accelerator choice, and the refusals. `EquilibriumSolve` is renamed `Equilibrium
 (it now shows all three kinds, not hp alone); `RocketSolve`, `BatchSolve` and
 `StatesSolve` keep their names, with their content corrected (transport now printed,
 the chamber's meaningless `Isp=0` no longer printed, `StatesSolve`'s composition now
-literal instead of derived from a propellant). Not every scenario is quoted by the
-guide yet: the guide pages `docs/guide/*.md` were not rewritten in this task (scope:
-`SCRATCH/prompts` of this task named the C# blocks of the guide as the only prose this
-node's coder may touch, not the surrounding sentences or page structure), so
-`RocketExits`, `CustomPropellant`, `RatioSweep`, `RocketStates`, `AcceleratorChoice`,
-`DatabaseFromFiles` and `Failures` are proven by L2 (they run and print their approved
-output) but are not yet reachable from a guide page; a later docs pass adds their pages
-or folds them into the existing ones. `QuickStart` is quoted by `README.md` and
-`docs/nuget/APThermo.md`; `RocketSolve`, `BatchSolve`, `EquilibriumKinds` and
-`StatesSolve` are quoted by their guide pages as before.
+literal instead of derived from a propellant). Every scenario is quoted at least once:
+`QuickStart` by `README.md` and `docs/nuget/APThermo.md`, and the others by the guide
+pages under `docs/guide/`.
+
+⚠ 2026-09-17: this paragraph said that `RocketExits`, `CustomPropellant`,
+`RatioSweep`, `RocketStates`, `AcceleratorChoice`, `DatabaseFromFiles` and `Failures`
+were "not yet reachable from a guide page". That was true when the samples were
+rewritten (`39faf5b`). The guide rewrite merged as `e229d2e` quotes all twelve.
 
 ## Errors ✅
 
