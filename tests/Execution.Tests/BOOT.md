@@ -298,6 +298,28 @@ libdevice for the CUDA category.
       within the tolerance table, CUDA deterministic across two runs).
       `Throughput_is_recorded_and_not_below_the_approved_ratio` was not run, as the
       decision records.
+- [x] 2026-09-17 — `Throughput.linux.approved.txt` recorded from a green run under
+      WSL2 on the reference machine (.NET SDK 10.0.112, this node's harness change on
+      top of `df0368d`): RTX 5070 Ti, 100 000 cases, 4 stations, 11 species, CUDA
+      0.237 s, CPU accelerator 12.350 s with 16 threads, 52.01×, comfortably above the
+      root's 5× floor though below the Windows file's 56.28× (WSL2's virtualization
+      overhead falls on both the CPU and the CUDA timings, per the tripwire
+      invariant's ⚠ above). Before approving, the rest of the same `dotnet test
+      tests/Execution.Tests` run was confirmed to need nothing else: 54/55, the one
+      failure the expected "no approved throughput file" case, the 100 000-case
+      correctness sweep (`The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`)
+      already green in it. With the file in place, the same command gave 55/55; the
+      fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`) stayed 3098/3098 and `protocol_lint` gave 0 errors,
+      0 warnings, both unaffected by this node's own change.
+- [x] 2026-09-17 — Shown red once, on Windows: `Throughput.approved.txt`'s `ratio`
+      line mutated from `56.28` to `999.00`, then `dotnet test tests/Execution.Tests
+      --filter "FullyQualifiedName~Throughput_is_recorded_and_not_below_the_approved_ratio"`
+      failed — "CUDA/CPU ratio 66.03 fell below 80 % of the approved 999.00
+      (Throughput.approved.txt)" — naming the platform's own file, as
+      `ApprovedPathFor` picks it. Reverted with `git checkout --
+      tests/Execution.Tests/Throughput.approved.txt`; `dotnet test
+      tests/Execution.Tests` confirmed 55/55 green again.
 
 ## Taboos
 
