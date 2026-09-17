@@ -6,7 +6,7 @@ The definition of what "`Cli` is ready" means.
 
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
-| L0 | option parsing, the usage text, exit codes; input document reading and its messages with the JSON path; the example documents against the input and states schemas; a composition that does not weigh one kilogram refused naming the record | the schema files of this node; the documented messages and exit codes (`CommandLineTests`, `InputDocumentTests`, `ExitCodeTests`) | ✅ |
+| L0 | option parsing, the usage text, exit codes; input document reading and its messages with the JSON path; the example documents against the input and states schemas; a composition that does not weigh one kilogram refused naming the record | the command line's embedded schemas; the documented messages and exit codes (`CommandLineTests`, `InputDocumentTests`, `ExitCodeTests`) | ✅ |
 | L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | schema files; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
 | L2 | the LOX/LH2 rocket document, the LOX/RP-1 hp document and the elemental tp document give the library's numbers field by field | the `Problems` result of the same case, built from the fixture the document encodes, over reflection-enumerated fields (`LibraryEqualityTests`) | ✅ |
 | Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
@@ -23,7 +23,7 @@ The definition of what "`Cli` is ready" means.
   itself, so they cannot drift from what the reader accepts.
 - The CLI is exercised in-process through its entry point and, once per exit code,
   as a separate process, so that exit codes and standard streams are real.
-- The schema files are checked by a validator of this node that knows exactly the
+- The schemas are checked by the Harness `JsonSchema` validator that knows exactly the
   keywords the schemas use and refuses any other, so a schema cannot ask for more
   than is checked; the schema's field lists are compared with the library's structs
   by reflection.

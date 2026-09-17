@@ -293,6 +293,14 @@ sealed class APThermo.Harness.CpuHost : IDisposable
 static class APThermo.Harness.FixtureFamilies
     static IEnumerable<Object[]> Of(IEnumerable<String> kinds, Func<CeaCase, String> key)
 
+sealed class APThermo.Harness.JsonSchema
+    IReadOnlyList<String> Validate(JsonElement instance)
+    static JsonSchema Load(String path)
+    static JsonSchema Parse(String text)
+
+static class APThermo.Harness.RunPropertyCut
+    static Byte[] Bytes(Byte[] document, String example)
+
 == APThermo.Performance
 
 enum APThermo.Performance.FlowModel : Int32
@@ -470,6 +478,8 @@ sealed class (record) APThermo.Problems.Station : IEquatable<Station>
     PerformanceFigures? Performance { get; init; }
     String Name { get; init; }
     TransportFigures? Transport { get; init; }
+
+== APThermo.Samples
 
 == APThermo.Thermo
 

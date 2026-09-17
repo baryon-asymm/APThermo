@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using APThermo.Cli;
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Fixtures;
@@ -29,8 +30,6 @@ public sealed class CliFixture : IDisposable
     public static string NodeDirectory { get; } = RepositoryPaths.Resolve("tests", "Cli.Tests");
 
     public static string DocumentsDirectory => Path.Combine(NodeDirectory, "documents");
-
-    public static string SchemasDirectory => Path.Combine(NodeDirectory, "schemas");
 
     /// <summary>The names of the solvable example documents: every document of the directory that is not a states file.</summary>
     public static IReadOnlyList<string> ProblemDocumentNames() =>
@@ -79,7 +78,7 @@ public sealed class CliFixture : IDisposable
 
     public string Document(string name) => Path.Combine(DocumentsDirectory, name);
 
-    public string Schema(string name) => Path.Combine(SchemasDirectory, name);
+    public string SchemaText(string name) => SchemaResources.TryGet(name, out var text) ? text : throw new ArgumentException($"unknown schema '{name}'");
 
     public string TempFile(string name) => Path.Combine(Temp, name);
 

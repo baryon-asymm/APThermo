@@ -68,12 +68,15 @@ $ apthermo equilibrium problem.json                          # one tp, hp or sp 
 $ apthermo states records.json --transport                   # state records of another simulation, one batch
 $ apthermo species --find H2O                                # the database
 $ apthermo devices                                           # the accelerators
+$ apthermo schema input                                      # a JSON Schema of the document shapes
 ```
 
 `apthermo` is the tool command name of the `Cli` node's package; a direct run is
 `dotnet APThermo.Cli.dll …`. Exit codes: 0 every case ok, 1 a
 case failed numerically (document written), 2 invalid input, 3 accelerator or
-infrastructure error.
+infrastructure error. The JSON Schemas of the document shapes are embedded in the
+tool; `apthermo schema <name>` prints one of the five (`input`, `output`, `states`,
+`species`, `devices`).
 
 Pressures in Pa, temperatures in K, specific impulse in m/s; every other unit is SI as
 stated in `BOOT.md`. A failed case is reported with a status, never with a partially
@@ -85,6 +88,7 @@ filled result.
 - [Cli](./src/Cli/API.md) — the `apthermo` command line: JSON in, JSON or CSV out.
 - [Data](./src/Data/API.md) — the NASA databases as an object model: the embedded database or database files, and queries over them.
 - [Execution](./src/Execution/API.md) — the accelerator options and their description (`EngineOptions`, `AcceleratorProbe`). The engine and its batches are its tree contract, and consumers run them through `Problems`.
+- [Samples](./samples/Samples/API.md) — the consumer scenarios as running programs over the package surface; the source of the guide's C# blocks. Not packed, part of no package.
 
 Nodes whose package surface is only the vocabulary that problems and results use
 (`CaseStatus`, `MixtureState`, `ProblemKind`, `FlowModel`, `PerformanceFigures`,
@@ -110,4 +114,5 @@ above read files only until the NASA files were embedded the same day.
   [Problems.Tests](./tests/Problems.Tests/API.md), [Cli.Tests](./tests/Cli.Tests/API.md) — what each node proves.
 - [Harness](./tests/Harness/API.md) — the scaffolding the test nodes share: a CPU host, bit comparison, bit snapshots, fixture families.
 - [Benchmarks](./tests/Benchmarks/API.md) — the speed benchmarks (BenchmarkDotNet), run by hand; figures recorded, never asserted.
+- [Docs.Tests](./tests/Docs.Tests/API.md) — the documentation tests: the guide's snippets against the samples, the approved outputs of the samples and of the command-line examples, the links, the schemas, the guide pages' shape.
 - [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13) and the root invariants that need reflection.

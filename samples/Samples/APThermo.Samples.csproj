@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Problems\APThermo.Problems.csproj" />
+    <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\..\src\Execution\APThermo.Execution.csproj" />
+    <ProjectReference Include="..\..\src\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\..\src\Thermo\APThermo.Thermo.csproj" />
+  </ItemGroup>
+
+  <!-- The docs tests node runs the scenarios in-process through this tree contract (BOOT.md, Constraints). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Docs.Tests" />
+  </ItemGroup>
+</Project>

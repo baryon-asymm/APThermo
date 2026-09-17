@@ -14,6 +14,7 @@ internal static class CommandRegistry
             ["states"] = StatesCommand.Execute,
             ["species"] = SpeciesCommand.Execute,
             ["devices"] = DeviceListing.Execute,
+            ["schema"] = SchemaCommand.Execute,
         };
 
     public static ExitCode Execute(Invocation invocation, TextWriter output) =>

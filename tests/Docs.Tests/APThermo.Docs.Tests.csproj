@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Docs.Tests: the readiness criterion of the documentation layer (BOOT.md, L1–L6). The command line and the scenarios run in-process through their tree contracts; CPU accelerator only. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cli\APThermo.Cli.csproj" />
+    <ProjectReference Include="..\..\samples\Samples\APThermo.Samples.csproj" />
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
+    <ProjectReference Include="..\Harness\APThermo.Harness.csproj" />
+  </ItemGroup>
+
+</Project>

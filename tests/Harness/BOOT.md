@@ -4,9 +4,10 @@
 
 The scaffolding the test nodes share: one CPU accelerator with the committed database
 and the tolerance table, bit-for-bit comparison, bit hashes and the approval of their
-snapshot files, and the grouping of fixture cases into families for batch tests. It
-holds no formula and names no type of the nodes its consumers test, so it can move no
-result.
+snapshot files, the grouping of fixture cases into families for batch tests, and
+(2026-09-16) the JSON-document helpers `JsonSchema` and `RunPropertyCut`, moved here
+from `Cli.Tests` where their second consumer, the docs tests node, belongs. It holds no
+formula and names no type of the nodes its consumers test, so it can move no result.
 
 It exists because the same scaffolding stood copied in four to six test nodes: the CPU
 fixture four times, the batch-family grouping three times, the bit comparison five
@@ -63,7 +64,8 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 - [Data](../../src/Data/API.md) — the database the host loads.
 - [Fixtures](../Fixtures/API.md) — the repository paths, the cases, the tolerance table.
 
-Outside the tree: ILGPU 1.5.3 (the CPU accelerator only).
+Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class library
+(`System.Text.Json` for the JSON-document helpers).
 
 ## Constraints
 

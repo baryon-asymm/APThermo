@@ -2,7 +2,8 @@
 
 Namespace `APThermo.Harness`. The scaffolding the test nodes
 share: a CPU host, bit comparison, bit hashes with their approval files, fixture
-families. Everything not listed here is internal and may change.
+families, and the JSON-document helpers (schema validation, the `run`-property cut).
+Everything not listed here is internal and may change.
 
 ## Host ✅
 
@@ -56,6 +57,30 @@ public static class FixtureFamilies
     public static IEnumerable<object[]> Of(IEnumerable<string> kinds, Func<CeaCase, string> key);   // theory data: the cases of the kinds grouped by the key, largest family first, ties ordinal by key; each row [key, count, cases] with cases an IReadOnlyList<CeaCase>
 }
 ```
+
+## JSON documents ✅
+
+The JSON-document helpers the test nodes that check documents share; they move here
+from `Cli.Tests` in the distribution phase (2026-09-16), where their second consumer,
+the docs tests node, belongs.
+
+```csharp
+public sealed class JsonSchema        // the part of JSON Schema the tree's schema files use: type, enum, const, properties, required, additionalProperties, items, minItems, minimum, exclusiveMinimum, oneOf, anyOf and local $ref into $defs; a keyword outside this list is an error of validation
+{
+    public static JsonSchema Load(string path);                       // from a file
+    public static JsonSchema Parse(string text);                      // from the schema's JSON text, as `apthermo schema` prints it (2026-09-16)
+    public IReadOnlyList<string> Validate(JsonElement instance);      // every violation with its JSON path; empty when the instance conforms
+}
+
+public static class RunPropertyCut
+{
+    public static byte[] Bytes(byte[] document, string example);      // the object's bytes with its top-level `run` property cut out; throws naming the example when there is no such property or more than one
+}
+```
+
+⚠ 2026-09-16: born pending in the distribution phase; the types were internal in
+`Cli.Tests` and moved here with the `Parse` entry point added. The move is done — both are
+public in `APThermo.Harness` now, so this section is checked against the code.
 
 ## Errors
 

@@ -19,9 +19,11 @@
     <ProjectReference Include="..\..\src\Problems\APThermo.Problems.csproj" />
     <ProjectReference Include="..\..\src\Thermo\APThermo.Thermo.csproj" />
     <ProjectReference Include="..\..\src\Transport\APThermo.Transport.csproj" />
+    <ProjectReference Include="..\..\samples\Samples\APThermo.Samples.csproj" />
     <ProjectReference Include="..\Benchmarks\APThermo.Benchmarks.csproj" />
     <ProjectReference Include="..\Cli.Tests\APThermo.Cli.Tests.csproj" />
     <ProjectReference Include="..\Data.Tests\APThermo.Data.Tests.csproj" />
+    <ProjectReference Include="..\Docs.Tests\APThermo.Docs.Tests.csproj" />
     <ProjectReference Include="..\Equilibrium.Tests\APThermo.Equilibrium.Tests.csproj" />
     <ProjectReference Include="..\Execution.Tests\APThermo.Execution.Tests.csproj" />
     <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />

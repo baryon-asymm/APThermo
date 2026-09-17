@@ -1,0 +1,151 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    name: ${{ matrix.os }} — build & test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Protocol lint
+        run: python tools/protocol-lint/protocol_lint.py --exclude templates .
+
+      - name: Build
+        run: dotnet build APThermo.sln --configuration Release
+
+      - name: Fast test suite
+        env:
+          APTHERMO_NO_CUDA: '1'
+        run: dotnet test APThermo.sln --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release --output artifacts/packages
+
+      - name: Samples run
+        run: dotnet run --project samples/Samples --configuration Release -- rocket
+
+  cuda-windows:
+    name: CUDA (Windows GPU)
+    runs-on: ['self-hosted', 'windows', 'gpu']
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Build
+        run: dotnet build APThermo.sln --configuration Release
+
+      - name: CUDA tests
+        run: dotnet test APThermo.sln --configuration Release
+
+  cuda-linux:
+    name: CUDA (Linux GPU)
+    runs-on: ['self-hosted', 'linux', 'gpu']
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Build
+        run: dotnet build APThermo.sln --configuration Release
+
+      - name: CUDA tests
+        run: dotnet test APThermo.sln --configuration Release
+
+  pack:
+    name: Pack
+    needs: matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Pack
+        run: |
+          dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release --output artifacts/packages
+          dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release --output artifacts/packages
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
+
+  publish:
+    name: Publish to NuGet
+    needs: pack
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
+
+      # Trusted Publishing is the target; API key used until OIDC is configured for this repo.
+      - name: Push to NuGet
+        run: |
+          for pkg in artifacts/packages/*.nupkg artifacts/packages/*.snupkg; do
+            dotnet nuget push "$pkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+          done
+
+  github-release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/packages/*
+          body_path: CHANGELOG.md

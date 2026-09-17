@@ -49,6 +49,8 @@ internal static class CommandTable
             ["output", "format", "database", "find"], [OutputFormat.Json, OutputFormat.Csv], NoArguments("species")),
         new("devices", "  devices                      the accelerators this machine offers\n",
             ["output", "format"], [OutputFormat.Json], NoArguments("devices")),
+        new("schema", "  schema <name>                the JSON Schema of a document shape (input, output, states, species, devices)\n",
+            ["output"], [OutputFormat.Json], count => count == 1 ? null : $"schema takes exactly one schema name, not {count}"),
     ];
 
     public static readonly string Usage = BuildUsage();

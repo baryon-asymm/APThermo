@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using APThermo.Cli.Documents;
 using APThermo.Fixtures;
+using APThermo.Harness;
 
 namespace APThermo.Cli.Tests;
 
@@ -105,14 +106,14 @@ public sealed class InputDocumentTests(CliFixture fixture)
     public void Every_example_document_validates_against_the_input_schema(string name)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(fixture.Document(name)));
-        var errors = JsonSchema.Load(fixture.Schema("input.schema.json")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("input")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
     }
 
     [Fact]
     public void Every_states_document_validates_against_the_states_schema()
     {
-        var schema = JsonSchema.Load(fixture.Schema("states.schema.json"));
+        var schema = JsonSchema.Parse(fixture.SchemaText("states"));
         foreach (var name in new[] { "states.json", "states-part1.json", "states-part2.json", "states-ap-al-record.json" })
         {
             using var document = JsonDocument.Parse(File.ReadAllText(fixture.Document(name)));
@@ -133,7 +134,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
         var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
         var inputs = CliFixture.JsonFencesOf(api, "## Input document ✅");
         Assert.NotEmpty(inputs);
-        var inputSchema = JsonSchema.Load(fixture.Schema("input.schema.json"));
+        var inputSchema = JsonSchema.Parse(fixture.SchemaText("input"));
         for (var i = 0; i < inputs.Count; i++)
         {
             ProblemDocumentReader.Read(inputs[i], $"API.md input example {i}");
@@ -157,7 +158,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
         var outputs = CliFixture.JsonFencesOf(api, "## Output document ✅");
         var output = Assert.Single(outputs);
         using var example = JsonDocument.Parse(output);
-        var errors = JsonSchema.Load(fixture.Schema("output.schema.json")).Validate(example.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(example.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
     }
 

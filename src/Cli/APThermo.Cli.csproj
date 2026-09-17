@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <None Include="..\..\docs\nuget\APThermo.Cli.md" Pack="true" PackagePath="README.md" />
+    <EmbeddedResource Include="Schemas\*.schema.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +27,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="APThermo.Cli.Tests" />
+    <InternalsVisibleTo Include="APThermo.Docs.Tests" />
   </ItemGroup>
 
   <!-- SourceLink for the symbol package (root BOOT.md, ## Delivery, Symbols). -->

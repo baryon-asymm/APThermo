@@ -14,14 +14,23 @@ depends on console, serialization or file-layout concerns.
   `PerformanceFigures`, `TransportFigures`) reaches the output document under its
   camel-case name and with its unit, enumerated by reflection so that no second list
   exists, plus the presentation conveniences listed there (specific impulse in
-  seconds, a mole-fraction threshold). The schema files of the tests node hold the
-  same lists, and a test compares them with the structs.
+  seconds, a mole-fraction threshold). The five JSON Schema files live in this node's
+  `Schemas/` directory, embedded in the assembly; `apthermo schema <name>` prints one
+  of them, and the tests nodes read the schemas through that command. A test compares
+  the schemas' field lists with the structs.
+
+  ⚠ 2026-09-16: stood "The schema files of the tests node hold the same lists, and a
+  test compares them with the structs." The distribution phase decided at the root
+  (`## Delivery`, Documentation) that the schemas belong to the command line: they move
+  from `tests/Cli.Tests/schemas/` to this node's `Schemas/` directory, are embedded in
+  the assembly and served by the new `schema` command, so that a consumer of the packed
+  tool reads the contract from the tool itself and no second copy can drift.
 - **Units in documents are SI** unless a field name carries the unit explicitly
   (`specificImpulseSeconds`, `vacuumSpecificImpulseSeconds`); the conversion to
   seconds uses g0 = 9.80665 m/s² and happens only here.
 - **Exit codes mean something**: 0 every case and station `ok`; 1 at least one case,
   station or transport evaluation failed numerically (the document is still written);
-  2 invalid input (document, option, database path, reactant); 3 accelerator or
+  2 invalid input (document, option, database path, reactant, schema name); 3 accelerator or
   infrastructure error. Messages go to standard error; documents go to the output
   file or standard output.
 - **Strict documents.** Unknown fields, missing required fields and values of the
@@ -76,7 +85,10 @@ also uses it.
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Commands: `rocket <input.json>`, `equilibrium <input.json>`, `states <records>...`,
-  `species [--find TEXT]`, `devices`; options `--output PATH`, `--format json|csv`,
+  `species [--find TEXT]`, `devices`, `schema <name>` (2026-09-16: `name` one of
+  `input`, `output`, `states`, `species`, `devices`; prints the JSON Schema embedded in
+  the assembly to standard output; a name outside the five is exit code 2 naming them);
+  options `--output PATH`, `--format json|csv`,
   `--accelerator auto|cpu|cuda`, `--database DIR` (directory with `thermo.inp` and
   `trans.inp`; without it, the database embedded in `APThermo`,
   `Data.SpeciesDatabase.LoadBundled()`), `--threshold X` (mole fractions below X are
@@ -215,7 +227,7 @@ Types that stayed at this node's own level:
 |---|---|
 | `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
 | `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
-| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand` and `Listings.DeviceListing` |
+| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand`/`SchemaCommand` and `Listings.DeviceListing` |
 | `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11); read by all four clusters below, no dominant owner (see the warning above) |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
 | `ProblemCommand` | `rocket` and `equilibrium`: read (`Documents`), check the problem type against the command, build the mixtures, expand the sweep, solve (`Cases`), write (`Output`) |
@@ -224,6 +236,7 @@ Types that stayed at this node's own level:
 | `RunInfo`, `RunLimits`, `Timings` | a run's own bookkeeping, assembled by `SolverSession.Stop`; read by `Output` and `Listings` through their fields only |
 | `Names` | camel case of the library's names and of statuses; read by `Output` and `Listings`, and by `DocumentWords`' own fallback branch (see the warning above) |
 | `SpeciesCommand` | the `species` command: the database, the name filter, the rows (`Listings.SpeciesRow`), the run and the delivery (`Listings.SpeciesListing`, `Output.DocumentWriter`) |
+| `SchemaCommand` | (2026-09-16) the `schema` command: the five schema files of `Schemas/` by name, read from the assembly's embedded resources and delivered as the listings are delivered (`Output.DocumentWriter`) |
 | `InputException`, `InputFile` | the node's own exception, raised throughout; a user-named file read with the missing-file message this node documents |
 
 ## Children
@@ -452,6 +465,10 @@ Every other type of the node measures 14 or below by the dependency check's walk
       proof of `Problems`' BOOT.md ran an approved CSV example
       (`documents/rocket-lox-lh2.approved.csv`) from an empty directory without
       `--database`, through the packed tool, and found it byte-for-byte unchanged.
+- [ ] (2026-09-16) The five schema files of `Schemas/` are embedded in the assembly and
+      served by `apthermo schema <name>` to standard output with exit code 0; a name
+      outside the five is exit code 2 naming the valid ones, and no copy of a schema
+      lives outside this node (the tests nodes read them through the command).
 
 ## Taboos
 

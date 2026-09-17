@@ -1,13 +1,13 @@
 using System.Text.Json;
 
-namespace APThermo.Cli.Tests;
+namespace APThermo.Harness;
 
 /// <summary>
-/// The part of JSON Schema the schema files of this node use: type, enum, const, properties, required, additionalProperties,
+/// The part of JSON Schema the command line's schema files use: type, enum, const, properties, required, additionalProperties,
 /// items, minItems, minimum, exclusiveMinimum, oneOf, anyOf and local $ref into $defs. Enough to hold the documented shapes
 /// without a dependency; a keyword outside this list is an error, so a schema cannot silently ask for more than is checked.
 /// </summary>
-internal sealed class JsonSchema
+public sealed class JsonSchema
 {
     private static readonly HashSet<string> Known =
     [
@@ -25,6 +25,13 @@ internal sealed class JsonSchema
     public static JsonSchema Load(string path)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return new JsonSchema(document.RootElement.Clone());
+    }
+
+    /// <summary>The schema's JSON text, as `apthermo schema` prints it (2026-09-16).</summary>
+    public static JsonSchema Parse(string text)
+    {
+        using var document = JsonDocument.Parse(text);
         return new JsonSchema(document.RootElement.Clone());
     }
 

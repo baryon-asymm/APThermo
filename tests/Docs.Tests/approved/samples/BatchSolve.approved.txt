@@ -1,0 +1,4 @@
+LOX/LH2 O/F=6.0  area ratios [20, 77.5]
+  Pc=5.0 MPa   Isp_exit=4382.2 m/s
+  Pc=7.0 MPa   Isp_exit=4386.5 m/s
+  Pc=10.0 MPa   Isp_exit=4390.6 m/s

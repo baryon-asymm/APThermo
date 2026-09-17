@@ -30,8 +30,9 @@ for the change of the hash alone (Cli.Tests BOOT.md, the criterion of 2026-09-15
 
 ## What the tests rely on
 
-- JSON schema files in this node's `schemas/` directory for the input, states, output,
-  species and devices documents, and a validator of this node for the keywords they use.
+- The command line's embedded schemas (read through `SchemaResources`, under the grant
+  of root `BOOT.md`, Delivery: Tree contracts) for the input, states, output, species
+  and devices documents, and the Harness `JsonSchema` validator for the keywords they use.
 - Example documents in this node's `documents/` directory, generated from the fixtures;
   the examples of the `Cli` API, read from `API.md` at run time; the approved CSV
   `documents/rocket-lox-lh2.approved.csv`.

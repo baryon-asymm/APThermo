@@ -18,6 +18,7 @@ $ apthermo equilibrium problem.json [same options]
 $ apthermo states records.json [more files...] [--output results.json] [--format json|csv] [--transport] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold X] [--mass-tolerance X]
 $ apthermo species [--find TEXT] [--database DIR] [--output PATH] [--format json|csv]
 $ apthermo devices [--output PATH]
+$ apthermo schema input|output|states|species|devices
 $ apthermo --help
 $ apthermo --version
 ```
@@ -79,9 +80,15 @@ illustration that weighed 706 g and would now be refused; it is the record of an
 simulation that the mass check was written for (1000.015 g), and the tests node solves
 every record example of this document.
 
+`schema` (2026-09-16) prints one of the five JSON Schema files embedded in the tool —
+`input`, `output`, `states`, `species`, `devices`, the shapes this command line reads
+and writes — to standard output; no option applies to it. The schemas are the contract
+of those shapes: a consumer of the packed tool reads them from the tool, and no copy of
+them lives outside the assembly (root `BOOT.md`, Delivery: Documentation).
+
 Exit codes: `0` all cases `ok`; `1` at least one case or station failed numerically
-(the document is written); `2` invalid input document, option, database path or
-reactant; `3` accelerator or infrastructure error.
+(the document is written); `2` invalid input document, option, database path, reactant
+or schema name; `3` accelerator or infrastructure error.
 
 ⚠ 2026-09-12: `apthermo` is the tool command name (`PackAsTool`, `ToolCommandName`);
 the assembly is `APThermo.Cli`, named after its namespace as
@@ -338,6 +345,7 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 | Situation | Behaviour |
 |---|---|
 | no command, an unknown command or option, a wrong argument count, an option that does not apply, a bad option value | message on standard error, exit code 2, no document |
+| `schema` with a name outside the five | the five valid names on standard error, exit code 2, no document |
 | malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step | message with the JSON path on standard error, exit code 2, no document |
 | a document whose problem type does not match the command | message naming the right command, exit code 2 |
 | unknown reactant, temperature out of range, an element without a record, a rocket case without enthalpy, transport without `trans.inp` | the library's message, exit code 2 |
@@ -359,9 +367,10 @@ Found by the repair review of 2026-09-15; pinned by
 
 ## Side effects
 
-Reads the input documents and the database files; writes the output document to the
-given path (UTF-8, no byte-order mark) or to standard output; `devices` creates a CPU
-engine and tries to create a CUDA engine. No other file, no network.
+Reads the input documents and the database files and, for `schema`, the schema embedded
+in the assembly; writes the output document to the given path (UTF-8, no byte-order
+mark) or to standard output; `devices` creates a CPU engine and tries to create a CUDA
+engine. No other file, no network.
 
 ## Out of scope
 

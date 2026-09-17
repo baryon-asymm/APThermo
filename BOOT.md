@@ -125,12 +125,18 @@ delivery (2026-09-15, `## Delivery` below).
   as AGENTS.md §1 already defines membership by the directory of a file. Decided with
   the user on 2026-09-14 for the phase after the clean-code pass.
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
-  namespace is `APThermo`; the grouping directories `src/`
-  and `tests/` are transparent: `src/Equilibrium` is
-  `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is
-  `APThermo.Equilibrium.Tests`. Projects, assemblies and the solution (`APThermo.sln`)
-  carry the same names. The product's name in prose stays Aerospace Propellant
-  Thermodynamics, and APThermo is its short name and the name of its packages.
+  namespace is `APThermo`; the grouping directories `src/`, `tests/` and `samples/` are
+  transparent: `src/Equilibrium` is `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is
+  `APThermo.Equilibrium.Tests`, `samples/Samples` is `APThermo.Samples`. Projects, assemblies
+  and the solution (`APThermo.sln`) carry the same names. The product's name in prose stays
+  Aerospace Propellant Thermodynamics, and APThermo is its short name and the name of its packages.
+
+  ⚠ 2026-09-16: stood "the grouping directories `src/` and `tests/` are transparent". The
+  distribution phase added a third grouping directory, `samples/`, for the consumer-scenario
+  node; its assembly and root namespace are `APThermo.Samples` (its `BOOT.md`), not
+  `APThermo.samples.Samples`. The protocol tests node's namespace attribution
+  (`tests/Protocol.Tests/Node.cs`) now treats `samples/` as transparent with the other two, so
+  those types resolve to their own node instead of the root.
 
   ⚠ 2026-09-15 (distribution phase): the root namespace, the projects, the assemblies
   and the solution were `AerospacePropellantThermodynamics`. The user named the
@@ -349,6 +355,10 @@ There is no external ancestor: the tree root is the repository root, and the loa
       .NET tool and runs an approved example without `--database`. A debugger steps
       from a sample into the library's source through SourceLink, and the step is
       recorded.
+
+      ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
+      package restore into the samples (the ⚠ of that date under `## Delivery`,
+      Documentation).
 - [ ] The documentation (2026-09-15), proven by the docs tests node: every code block
       of the guide equals its sample region, and every command-line example's output is
       approved. Every relative link resolves, and every sample document validates
@@ -444,8 +454,16 @@ those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes s
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
 and never asserted; `samples/Samples` (2026-09-15) shows each consumer scenario as a
 running program over the package surface, the source of the guide's code, and
-`tests/Docs.Tests` holds the guide to the samples, the approved outputs and the
-schemas (`## Delivery`, Documentation). The node list with links is in `API.md`.
+`tests/Docs.Tests` (2026-09-15) holds the approved outputs of the samples and
+command-line examples and proves the guide against them (`## Delivery`,
+Documentation). The node list with links is in `API.md`.
+
+  ⚠ 2026-09-16: stood "holds the guide to the samples, the approved outputs and the
+  schemas". Read literally it placed a copy of the schemas in the docs tests node,
+  while the Documentation rule below gives them to the command line
+  (`src/Cli/Schemas/`, no copy under `docs/`), and the guide itself lives at the root
+  and under `docs/`, not in a test node. The node holds the approved outputs and the
+  tests; it reads the schemas through `apthermo schema`.
 
 ## Delivery
 
@@ -504,21 +522,44 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   - The contracts are the nodes' `API.md` and the XML comments.
   - The guide (`README.md`, `docs/guide/`, the package READMEs under `docs/nuget/`) is
     task-oriented and restates no signature.
-  - Every C# block of the guide is a snippet of the samples node `samples/Samples`: a
-    console project in the solution, one class per consumer scenario, each printing its
-    figures. Its snippets are delimited by `// snippet-start: <name>` and
-    `// snippet-end` comments; `#region` stays forbidden by the code-shape constraint.
-    The samples reference the library projects by default. With
-    `-p:APThermoPackageVersion=<version>` they reference the `APThermo` package instead,
-    so one source serves the build and the check of the packed package. They use the
-    package surface only, as the command line does.
-  - Every command-line example of the guide takes its input documents from
+  - Every C# block of the guide (`README.md`, `docs/guide/`, the package READMEs)
+    equals a snippet of the samples node `samples/Samples`.
+    - The samples node is a console project in the solution, with one class per
+      consumer scenario. Each class checks the statuses it reads and prints its
+      figures.
+    - A snippet is delimited by `// snippet-start: <name>` and `// snippet-end`
+      comments and holds statements a consumer can paste. The `using` lines a scenario
+      needs are a snippet of their own.
+    - A snippet may be quoted on several pages. `#region` stays forbidden by the
+      code-shape constraint.
+  - The samples reference the library projects by default. With
+    `-p:APThermoPackageVersion=<version>` they restore the `APThermo` package from a
+    feed instead, so one source serves both the build and the check of the packed
+    package. They use the package surface only, as the command line does.
+
+  ⚠ 2026-09-17: on 2026-09-16 a local model, working without review, rewrote this
+  bullet, the continuous-integration bullet and the packages criterion with no
+  correction note. After the rewrite:
+  - only *marked* C# blocks were checked;
+  - a single marker ran to the end of the file;
+  - the package-feed mode was dropped as "a post-0.1.0 concern".
+
+  The audit of 2026-09-17 found three consequences:
+  - two C# blocks went unchecked, the README's and the package README's;
+  - every guide block carried the samples' class boilerplate;
+  - nothing ever restored the `APThermo` package.
+
+  The decisions of 2026-09-15 are restored, with two refinements from the audit: a
+  snippet may be quoted on several pages, and the `using` lines are a snippet of their
+  own.
+  - Every `apthermo` invocation shown in the guide takes its input documents from
     `samples/cli/`, and its shown output is approved.
-  - The docs tests node `tests/Docs.Tests` proves:
+  - The docs tests node `tests/Docs.Tests` proves each of the following. Each check
+    fails when the set it walks is empty, and each was shown red once:
     - every C# block equals its snippet;
     - every sample prints its approved output;
-    - every command-line example produces its approved output, the run section cut as
-      the command line's tests cut it;
+    - every `apthermo` invocation of the guide produces its approved output, with the
+      run section cut as the command line's tests cut it;
     - every relative link of `README.md`, `llms.txt`, `docs/` and the package READMEs
       resolves;
     - every document under `samples/cli/` validates against its schema;
@@ -534,8 +575,10 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
 - **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
   configuration and is not a node.
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
-    the build, the fast suite with `APTHERMO_NO_CUDA=1`, packing, the samples run against
-    the fresh packages from a local feed, and the docs tests.
+    the build, the fast suite with `APTHERMO_NO_CUDA=1`, and packing both packages.
+    Then the samples run against the fresh `APThermo` package from a local feed, the
+    tool installed from that feed runs an approved example, and the docs tests run (the
+    ⚠ of 2026-09-17 under Documentation).
   - A nightly run adds the long-running tests on the CPU accelerator.
 - **Release**, on a tag `v*`, in order:
   1. the hosted matrix;

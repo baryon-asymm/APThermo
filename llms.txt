@@ -1,0 +1,23 @@
+# APThermo
+
+APThermo computes the chemical equilibrium composition and thermodynamic properties of rocket propellant combustion products (Gibbs-energy minimization, Gordon–McBride), and from them the performance of a rocket engine: chamber, throat and nozzle-exit states under shifting-equilibrium or frozen flow. It runs on CPU and, for large batches, on an NVIDIA GPU (CUDA) in double precision. The NASA thermodynamic database is embedded; no data files are needed on disk.
+
+## Guide
+- [Rocket solving](docs/guide/rocket.md)
+- [Batch solving](docs/guide/batch.md)
+- [Equilibrium states](docs/guide/equilibrium.md)
+- [States records](docs/guide/states.md)
+- [Command line](docs/guide/cli.md)
+
+## Schemas
+- `apthermo schema input` — problem document shape
+- `apthermo schema output` — result document shape
+- `apthermo schema states` — state record shape
+- `apthermo schema species` — species listing shape
+- `apthermo schema devices` — device listing shape
+
+## Samples
+See [samples/Samples/API.md](samples/Samples/API.md) for the scenario contracts.
+
+## Node contracts
+See [API.md](API.md) for the tree's public contract.

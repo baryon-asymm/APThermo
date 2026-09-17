@@ -1,0 +1,45 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ubuntu-latest — full suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Protocol lint
+        run: python tools/protocol-lint/protocol_lint.py --exclude templates .
+
+      - name: Build
+        run: dotnet build APThermo.sln --configuration Release
+
+      - name: Full test suite (all tests, including long-running)
+        run: dotnet test APThermo.sln --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release --output artifacts/packages
+
+      - name: Samples run
+        run: dotnet run --project samples/Samples --configuration Release -- rocket
+
+      - name: Report timing
+        run: dotnet test APThermo.sln --configuration Release --no-build --logger "console;verbosity=detailed"

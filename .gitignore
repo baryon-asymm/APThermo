@@ -9,6 +9,7 @@ artifacts/
 
 # Protocol checks: the actual snapshot is regenerated on every run; only the approved one is committed
 *.actual.txt
+*.actual.json
 
 # BenchmarkDotNet's default output directory for an ad hoc run outside tests/Benchmarks/results/
 BenchmarkDotNet.Artifacts/
@@ -19,3 +20,6 @@ __pycache__/
 # Local tool state
 .claude/settings.local.json
 .venv/
+
+# Agent worktrees of Claude Code sessions
+.claude/worktrees/
