@@ -12,11 +12,19 @@
     <PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>rocket-propulsion;combustion;thermodynamics;chemical-equilibrium;nasa-cea;ilgpu;cuda</PackageTags>
+    <PackageProjectUrl>https://github.com/baryon-asymm/APThermo</PackageProjectUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+  <!--
+    RepositoryUrl and RepositoryType are not set here: PublishRepositoryUrl above, together with the
+    .NET SDK's bundled SourceLink (root BOOT.md, ## Dependencies), reads them from the "origin" remote at
+    pack time and stamps the commit alongside them. A worktree of this repository shares that remote with
+    the checkout it was created from (git config lives at the repository level, not per worktree), so no
+    explicit value is needed here even when a worktree itself carries no "origin" of its own.
+  -->
   <!--
     ContinuousIntegrationBuild is set by the workflows on their `dotnet pack` command lines only (root
     BOOT.md, ## Delivery, Symbols; CI/CD and build audit, F2), never here: a condition on GITHUB_ACTIONS
