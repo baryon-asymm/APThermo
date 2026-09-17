@@ -1,0 +1,113 @@
+{
+  "cases": [
+    {
+      "index": 0,
+      "inputs": {
+        "pressure": 1000000.0,
+        "temperature": 3000.0,
+        "composition": {
+          "H": 141.73179242528607,
+          "O": 53.57343757533765
+        }
+      },
+      "status": "ok",
+      "mixture": {
+        "elementMoles": {
+          "H": 141.73179242528607,
+          "O": 53.57343757533765
+        },
+        "enthalpy": null,
+        "mass": 1
+      },
+      "stations": [
+        {
+          "name": "state",
+          "status": "ok",
+          "temperature": 3000,
+          "pressure": 1000000,
+          "density": 0.5496945605876502,
+          "enthalpy": -3516654.138287469,
+          "internalEnergy": -5335846.234587187,
+          "entropy": 18242.103890402515,
+          "gibbsEnergy": -58242965.80949502,
+          "molarMass": 13.711322762854872,
+          "mixtureMolarMass": 13.711322762854872,
+          "cpFrozen": 3687.2889355013763,
+          "cpEquilibrium": 7689.425052720545,
+          "cvFrozen": 3080.891570068137,
+          "cvEquilibrium": 6651.910040138439,
+          "dlnVdlnT": 1.318115035756286,
+          "dlnVdlnP": -1.015475721055691,
+          "gammaS": 1.1383556220000388,
+          "soundSpeed": 1439.0578689965253,
+          "velocity": 0,
+          "mach": 0,
+          "moleFractions": {
+            "H": 0.02462825383210247,
+            "HO2": 5.5023200950683E-06,
+            "H2": 0.24250351707172368,
+            "H2O": 0.7039824564294096,
+            "O": 0.0014698533911964482,
+            "OH": 0.02572145426062942,
+            "O2": 0.0016873655518705455
+          },
+          "condensedMassFractions": {}
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "inputs": {
+        "pressure": 7000000.0,
+        "temperature": 3000.0,
+        "composition": {
+          "H": 141.73179242528607,
+          "O": 53.57343757533765
+        }
+      },
+      "status": "ok",
+      "mixture": {
+        "elementMoles": {
+          "H": 141.73179242528607,
+          "O": 53.57343757533765
+        },
+        "enthalpy": null,
+        "mass": 1
+      },
+      "stations": [
+        {
+          "name": "state",
+          "status": "ok",
+          "temperature": 3000,
+          "pressure": 7000000,
+          "density": 3.919558136559806,
+          "enthalpy": -4202980.1762083415,
+          "internalEnergy": -5988895.770802353,
+          "entropy": 16846.04146302869,
+          "gibbsEnergy": -54741104.565294415,
+          "molarMass": 13.966802280860517,
+          "mixtureMolarMass": 13.966802280860517,
+          "cpFrozen": 3686.0206429739146,
+          "cpEquilibrium": 5061.564007222413,
+          "cvFrozen": 3090.715444775911,
+          "cvEquilibrium": 4331.386479027855,
+          "dlnVdlnT": 1.1104527298840297,
+          "dlnVdlnP": -1.005336299759318,
+          "gammaS": 1.1623754604506282,
+          "soundSpeed": 1440.7999380872318,
+          "velocity": 0,
+          "mach": 0,
+          "moleFractions": {
+            "H": 0.009312488635133393,
+            "H2": 0.2427059096546066,
+            "H2O": 0.7373159791685288,
+            "O": 0.00021973815759606137,
+            "OH": 0.010177875973629898,
+            "O2": 0.0002639794616539966
+          },
+          "condensedMassFractions": {}
+        }
+      ]
+    }
+  ]
+}
