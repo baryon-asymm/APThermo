@@ -152,17 +152,19 @@ public sealed class CudaTests(EngineFixture fixture)
             $"cuda_kernel_seconds: {sweep.Cuda!.Timings.Kernel.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
             $"date: {DateTime.Now:yyyy-MM-dd}",
         };
-        File.WriteAllLines(Path.Combine(directory, "Throughput.actual.txt"), actualLines);
+        var approvedPath = ApprovedSnapshot.ApprovedPathFor(directory, "Throughput");
+        var actualPath = Path.Combine(directory, Path.GetFileName(approvedPath).Replace("approved", "actual", StringComparison.Ordinal));
+        File.WriteAllLines(actualPath, actualLines);
 
-        var approvedPath = Path.Combine(directory, "Throughput.approved.txt");
-        Assert.True(File.Exists(approvedPath), $"no approved throughput file at {approvedPath}; the measured figures are in Throughput.actual.txt");
+        Assert.True(File.Exists(approvedPath), $"no approved throughput file at {approvedPath}; the measured figures are in {actualPath}");
         var approved = File.ReadAllLines(approvedPath)
             .Select(line => line.Split(':', 2))
             .Where(parts => parts.Length == 2)
             .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim(), StringComparer.Ordinal);
         var approvedRatio = double.Parse(approved["ratio"], CultureInfo.InvariantCulture);
-        Assert.True(ratio >= 5.0, $"CUDA is only {ratio:F2}x faster than the CPU accelerator (root criterion: at least 5x); see Throughput.actual.txt");
-        Assert.True(ratio >= 0.8 * approvedRatio, $"CUDA/CPU ratio {ratio:F2} fell below 80 % of the approved {approvedRatio:F2}");
+        Assert.True(ratio >= 5.0, $"CUDA is only {ratio:F2}x faster than the CPU accelerator (root criterion: at least 5x); see {actualPath}");
+        Assert.True(ratio >= 0.8 * approvedRatio,
+            $"CUDA/CPU ratio {ratio:F2} fell below 80 % of the approved {approvedRatio:F2} ({Path.GetFileName(approvedPath)})");
     }
 
     private static string ThisFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
