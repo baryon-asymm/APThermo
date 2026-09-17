@@ -57,8 +57,11 @@ found; the output document's `run.accelerator.cudaSkippedBecause` names the reas
 
 ## Guide
 
-Every command, its documents and its exit codes: see `docs/guide/cli.md` in the
-source repository.
+Every command, its documents and its exit codes: see
+[Command line](https://github.com/baryon-asymm/APThermo/blob/main/docs/guide/cli.md)
+in the source repository, or the
+[repository README](https://github.com/baryon-asymm/APThermo/blob/main/README.md)
+for the full guide index.
 
 ## License and data notice
 
