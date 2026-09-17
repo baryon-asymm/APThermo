@@ -75,7 +75,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
     {
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions());
         Assert.NotEmpty(tried);
-        Assert.All(tried, path => Assert.True(path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".bc", StringComparison.OrdinalIgnoreCase), path));
+        Assert.All(tried, path => Assert.True(
+            path.EndsWith(LibDeviceLocator.LibraryFileName, StringComparison.OrdinalIgnoreCase) || path.EndsWith(".bc", StringComparison.OrdinalIgnoreCase),
+            path));
         if (dll is not null)
         {
             Assert.True(File.Exists(dll), dll);

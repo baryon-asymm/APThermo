@@ -49,6 +49,17 @@ and the criterion below carry the day they were written.
   fixture, invisible to a theory with no case for it), fails
   `Every_recorded_line_is_a_fixture_case` naming the stale key
   (`BitSnapshot.StaleKeys`, the harness's `ApprovedSnapshot.StaleKeys`).
+
+  ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
+  now keeps a Windows and a Linux record for every node's Bits level; `ApprovedPath`
+  resolves through `Harness.ApprovedSnapshot.ApprovedPathFor` (`tests/Harness/API.md`),
+  which picks `Bits.approved.txt` or `Bits.linux.approved.txt` for the running
+  platform, so this node's own code names no platform either. This is the one Bits
+  level the platform difference does not reach: the table builder does no accelerator
+  call and no `System.Math` call (the sentence above), so the first Linux run
+  (2026-09-17, WSL2 Ubuntu 24.04, `f67b1a9` plus this task's harness change) reproduced
+  the Windows bits exactly; `Bits.linux.approved.txt` is a byte-for-byte copy of
+  `Bits.approved.txt`, kept so the platform rule has no exception rather than a gap.
 - Kernel tests create their own ILGPU context with the CPU accelerator; no CUDA.
 
 ## Dependencies

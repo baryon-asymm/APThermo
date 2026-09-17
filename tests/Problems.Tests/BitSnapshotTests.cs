@@ -20,7 +20,7 @@ namespace APThermo.Problems.Tests;
 [Collection(SolverCollection.Name)]
 public sealed class BitSnapshotTests(SolverFixture fixture)
 {
-    public static string ApprovedPath => RepositoryPaths.Resolve("tests", "Problems.Tests", "Bits.approved.txt");
+    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
 
     [Fact]
     public void Every_fixture_gives_the_recorded_bits()

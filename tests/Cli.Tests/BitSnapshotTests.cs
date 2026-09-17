@@ -13,7 +13,7 @@ namespace APThermo.Cli.Tests;
 [Collection(CliCollection.Name)]
 public sealed class BitSnapshotTests(CliFixture fixture)
 {
-    private static readonly string ApprovedPath = Path.Combine(CliFixture.NodeDirectory, "Bits.approved.txt");
+    private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");
 
     [Fact]
     public void Every_example_gives_the_recorded_output()

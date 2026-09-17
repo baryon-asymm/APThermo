@@ -63,7 +63,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
 {
     private static readonly ApprovedSnapshot Snapshot = ApprovedSnapshot.Load(ApprovedPath);
 
-    public static string ApprovedPath => RepositoryPaths.Resolve("tests", "Performance.Tests", "Bits.approved.txt");
+    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Performance.Tests"), "Bits");
 
     public static IEnumerable<object[]> Cases() => RocketHost.Cases();
 
