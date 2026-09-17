@@ -15,7 +15,7 @@ Install APThermo and solve your first rocket case, in C# and from the command li
 
 1. Create a console project and install the library:
 
-```
+```console
 dotnet new console -o MyRocket
 cd MyRocket
 dotnet add package APThermo
@@ -59,7 +59,7 @@ if (chamber.Status == CaseStatus.Ok)
 
 3. Install the command-line tool, if you also want to solve from a shell:
 
-```
+```console
 dotnet tool install --global APThermo.Cli
 ```
 
@@ -100,7 +100,8 @@ Every C# example on this site is also a runnable scenario in a clone of the
 repository: `dotnet run --project samples/Samples -- <scenario>`, with the scenario
 names (for example `quick-start`, `rocket`, `accelerator-choice`) listed in
 [samples/Samples/API.md](../../samples/Samples/API.md#scenarios-). Every `apthermo`
-example is run by the docs tests node, against its approved output.
+example is run by the docs tests node, against its approved output, except `apthermo
+devices` and `apthermo --version`, whose output depends on the machine or the release.
 
 ## Errors
 
