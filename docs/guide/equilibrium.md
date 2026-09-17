@@ -25,7 +25,7 @@ temperature (tp), by enthalpy (hp) or by entropy (sp).
    - `AssignedEntropyPressure` (sp): set `Entropy`.
    - `AssignedTemperaturePressure` (tp): set `Temperature`.
 4. Create a solver and call `Solve`. Check `Status` before reading the state: a
-   non-`Ok` result carries no state, never a partial one.
+   non-`Ok` result carries a zero state, never a partial one.
 
 <!-- snippet: EquilibriumKindsUsings -->
 ```csharp

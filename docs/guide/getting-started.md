@@ -13,9 +13,11 @@ Install APThermo and solve your first rocket case, in C# and from the command li
 
 ## Steps
 
-1. Install the library:
+1. Create a console project and install the library:
 
 ```
+dotnet new console -o MyRocket
+cd MyRocket
 dotnet add package APThermo
 ```
 
@@ -62,15 +64,42 @@ dotnet tool install --global APThermo.Cli
 ```
 
 4. Solve the same propellant and chamber pressure from a JSON document instead of
-   C#:
+   C#. Save this as `samples/cli/problems/rocket.json` (already there in a clone of
+   the repository):
+
+<!-- cli-document: problems/rocket.json -->
+```json
+{
+  "propellant": {
+    "reactants": [
+      { "name": "O2(L)", "role": "oxidizer", "amount": 1.0, "temperature": 90.17 },
+      { "name": "H2(L)", "role": "fuel", "amount": 1.0, "temperature": 20.27 }
+    ],
+    "mixture": { "oxidizerToFuel": 6.0 }
+  },
+  "problem": {
+    "type": "rocket",
+    "chamberPressure": 7000000.0,
+    "flow": "shifting-equilibrium",
+    "areaRatios": [20.0, 77.5],
+    "transport": true
+  }
+}
+```
 
 ```console
 $ apthermo rocket samples/cli/problems/rocket.json --accelerator cpu
 ```
 
-The result document is written to standard output; see [Command line](cli.md) for
-every option, and [Rocket solving](rocket.md) for the full C# station-by-station
-walkthrough (exits, transport, flow model).
+The result document is written to standard output; see [Command line](cli.md) for the
+commands and [the CLI's `API.md`](../../src/Cli/API.md#command-line-) for every
+option's exact synopsis, and [Rocket solving](rocket.md) for the full C#
+station-by-station walkthrough (exits, transport, flow model).
+
+Every example on this site is also a runnable scenario in a clone of the repository:
+`dotnet run --project samples/Samples -- <scenario>`, with the scenario names (for
+example `quick-start`, `rocket`, `accelerator-choice`) listed in
+[samples/Samples/API.md](../../samples/Samples/API.md#scenarios-).
 
 ## Errors
 

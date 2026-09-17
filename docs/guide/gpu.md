@@ -8,8 +8,12 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
 
 ## When to use
 
-- You want the CUDA path for a large batch (rockets, sweeps, state records): CUDA is
-  faster only for large batches, not for a single case.
+- You want the CUDA path for a batch (rockets, sweeps, state records): CUDA already
+  wins at 1 000 cases (2.3× on the reference machine — 16.16 ms against 37.77 ms for a
+  1 000-case rocket batch, `tests/Benchmarks/results/comparison-2026-09-15.md`, Group
+  1) and further ahead at larger batch sizes; a single case does not amortize the CUDA
+  context creation and kernel compile, so the CPU accelerator stays the better choice
+  there.
 - You are deploying to a machine or a container without a GPU and want to confirm
   the CPU path runs without CUDA installed at all.
 - A run you expected to use CUDA used the CPU instead, and you need to know why.
@@ -20,15 +24,27 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
    the package and ILGPU. CUDA (`AcceleratorKind.Cuda`, or `Auto` when a usable GPU
    is found) additionally needs, at run time:
    - an NVIDIA driver with CUDA 12.8 or newer;
-   - `libnvvm` (`nvvm64_40_0.dll` on Windows, under the toolkit's `nvvm/bin/x64`;
+   - `libnvvm` (`nvvm64_40_0.dll` on Windows, tried first under the toolkit's
+     `nvvm/bin`, then under `nvvm/bin/x64` — a 13.x toolkit keeps it at the latter;
      `libnvvm.so` on Linux, including under WSL2, under `nvvm/lib64`) and
-     `libdevice.10.bc`, both from an NVIDIA CUDA Toolkit 12.8 or newer.
-   Windows x64 and Linux x64 are both supported, on the CPU accelerator and on CUDA.
-2. **Discovery order**, read by `Engine.Create` (reached through `Solver.Create` or
-   `AcceleratorProbe.Describe`): `EngineOptions.LibNvvmPath`/`LibDevicePath` when
-   given, then, when `LibDeviceDiscovery` is true (the default), the environment
-   variables `CUDA_PATH` and `ProgramFiles` on Windows, `CUDA_HOME` on Linux, and the
-   toolkit's own directory layout under them.
+     `libdevice.10.bc` (`nvvm/libdevice/libdevice.10.bc` on both platforms), both from
+     an NVIDIA CUDA Toolkit 12.8 or newer.
+   Windows x64 and Linux x64 are both supported on the CPU accelerator. CUDA is
+   supported on both too, but Linux verification is still pending: the root
+   `BOOT.md`'s Linux acceptance criterion (the fast suite and the execution tests
+   node's CUDA sweep, native, not under WSL2) is unticked as of this release, though
+   the CUDA path has been verified under WSL2 on the reference machine.
+2. **Discovery order**, applied when `Solver.Create` or `AcceleratorProbe.Describe`
+   binds CUDA: `EngineOptions.LibNvvmPath`/`LibDevicePath` when both are given and
+   exist, tried first. Otherwise, when `LibDeviceDiscovery` is true (the default): the
+   `CUDA_PATH` environment variable, on either platform; then, Linux only, `CUDA_HOME`,
+   the fixed directory `/usr/local/cuda`, and the versioned `/usr/local/cuda-*`
+   directories (newest version first); Windows only, the versioned `v*` directories
+   under `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA` (newest version first,
+   `ProgramFiles` read from the environment). Under each candidate root in turn, the
+   driver library is tried at the paths of point 1 above and `libdevice.10.bc` at
+   `nvvm/libdevice/`; a root is skipped once both files are found there, and
+   `AcceleratorUnavailableException` names every path tried, in this order.
 3. **Choosing an accelerator kind**: `AcceleratorKind.Auto` (the default) binds CUDA
    when it is not forbidden and every library and device is found, and falls back to
    the CPU accelerator otherwise — including when the CUDA context itself cannot be
@@ -43,7 +59,10 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
    binds as `Solver.Create` would and releases the device, returning an
    `AcceleratorInfo` with `Kind`, `DeviceName`, `IlgpuVersion` and, when `Auto` fell
    back, `CudaSkippedBecause` naming the reason. Call it once per accelerator kind,
-   not per case — creating a CUDA context takes time.
+   not per case — creating a CUDA context takes time. For the accelerator a bound
+   solver's own solves actually use, read `Solver.Accelerator` (`Problems`' API) once
+   the solver is created: it is the same `AcceleratorInfo`, kept for the solver's
+   lifetime rather than probed again.
 
 <!-- snippet: AcceleratorChoiceUsings -->
 ```csharp
@@ -88,10 +107,14 @@ else
 ```
 
 6. **From the command line**: `apthermo devices` lists the CPU and, when found, the
-   CUDA accelerator, with `cudaSkippedBecause`; `--accelerator auto|cpu|cuda`
-   overrides a document's `engine.accelerator`; every output document's
-   `run.accelerator` carries the same fields as `AcceleratorInfo`, so a result
-   document is self-describing about what it ran on.
+   CUDA accelerator as an array of accelerator descriptions, one field per
+   `AcceleratorInfo` member — `kind`, `deviceName`, `ilgpuVersion`,
+   `threadsOrMultiprocessors` and `cudaSkippedBecause` (present, and non-null, only
+   when a `cuda` entry was tried and skipped). The exact values are machine-dependent,
+   so no sample output is shown here; run it on your own machine to see its devices.
+   `--accelerator auto|cpu|cuda` overrides a document's `engine.accelerator`; every
+   output document's `run.accelerator` carries the same fields, so a result document
+   is self-describing about what it ran on.
 
 ```console
 $ apthermo devices
