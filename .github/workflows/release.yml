@@ -3,14 +3,60 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.workflow }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
+  check:
+    name: Tag and CHANGELOG check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Determine the package version
+        id: version
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/Problems/APThermo.Problems.csproj -getProperty:Version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check the tag and extract the release notes
+        shell: bash
+        run: |
+          ref_name=""
+          if [ "${{ github.event_name }}" = "push" ]; then
+            ref_name="${{ github.ref_name }}"
+          fi
+          .github/scripts/check-release.sh "${{ steps.version.outputs.version }}" CHANGELOG.md release-notes.md "$ref_name"
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
   matrix:
     name: ${{ matrix.os }} — build & test
+    needs: check
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -19,10 +65,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10 SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          global-json-file: global.json
 
       - name: Setup Python 3
         uses: actions/setup-python@v5
@@ -30,7 +76,7 @@ jobs:
           python-version: '3.x'
 
       - name: Protocol lint
-        run: python tools/protocol-lint/protocol_lint.py --exclude templates .
+        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates
 
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
@@ -38,69 +84,75 @@ jobs:
       - name: Fast test suite
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build
-
-      - name: Pack
-        run: dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release --output artifacts/packages
-
-      - name: Samples run
-        run: dotnet run --project samples/Samples --configuration Release -- rocket
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
 
   cuda-windows:
     name: CUDA (Windows GPU)
+    needs: matrix
     runs-on: ['self-hosted', 'windows', 'gpu']
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 180
+    env:
+      DOTNET_INSTALL_DIR: ${{ runner.tool_cache }}/dotnet
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Setup .NET 10 SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          global-json-file: global.json
 
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
-        run: dotnet test APThermo.sln --configuration Release
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda"
 
   cuda-linux:
     name: CUDA (Linux GPU)
+    needs: matrix
     runs-on: ['self-hosted', 'linux', 'gpu']
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 180
+    env:
+      DOTNET_INSTALL_DIR: ${{ runner.tool_cache }}/dotnet
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Setup .NET 10 SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          global-json-file: global.json
 
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
-        run: dotnet test APThermo.sln --configuration Release
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda"
 
   pack:
     name: Pack
-    needs: matrix
+    needs: [cuda-windows, cuda-linux]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10 SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          global-json-file: global.json
 
       - name: Pack
         run: |
-          dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release --output artifacts/packages
-          dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release --output artifacts/packages
+          dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
+          dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -111,8 +163,12 @@ jobs:
   publish:
     name: Publish to NuGet
     needs: pack
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: release
+    permissions:
+      id-token: write
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -120,32 +176,47 @@ jobs:
           name: packages
           path: artifacts/packages
 
-      # Trusted Publishing is the target; API key used until OIDC is configured for this repo.
+      - name: NuGet login (Trusted Publishing)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to NuGet
-        run: |
-          for pkg in artifacts/packages/*.nupkg artifacts/packages/*.snupkg; do
-            dotnet nuget push "$pkg" --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
-          done
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "artifacts/packages/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
 
   github-release:
     name: Create GitHub Release
     needs: publish
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Download artifact
+      - name: Download packages
         uses: actions/download-artifact@v4
         with:
           name: packages
           path: artifacts/packages
 
-      - name: Create release
-        uses: softprops/action-gh-release@v2
+      - name: Download release notes
+        uses: actions/download-artifact@v4
         with:
-          files: |
-            artifacts/packages/*
-          body_path: CHANGELOG.md
+          name: release-notes
+          path: .
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" artifacts/packages/* \
+            --notes-file release-notes.md \
+            --verify-tag
