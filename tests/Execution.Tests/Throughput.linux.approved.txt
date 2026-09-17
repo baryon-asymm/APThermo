@@ -1,0 +1,11 @@
+device: NVIDIA GeForce RTX 5070 Ti
+ilgpu: 1.5.3.0
+cpu: CPUAccelerator with 16 threads
+cases: 100000
+stations: 4
+species: 11
+cuda_seconds: 0.237
+cpu_seconds: 12.350
+ratio: 52.01
+cuda_kernel_seconds: 0.135
+date: 2026-09-17

@@ -11,7 +11,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ✅ (2026-09-14) |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
-| Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file (`Throughput.approved.txt`), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`) | ✅ |
+| Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -69,6 +69,16 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 - **The approved throughput file is a tripwire**: a run writes `Throughput.actual.txt`
   next to it; the test fails when the ratio falls below the approved one by more than
   20 % or below 5×.
+
+  ⚠ 2026-09-17: this bullet assumed one approved file. The root's platform constraint
+  keeps a Windows and a Linux record for the bit snapshots (`Harness`'s `BOOT.md`), and
+  the same reasoning applies here: a benchmark run under WSL2 times a CPU accelerator
+  and a CUDA path that both include the hypervisor's virtualization overhead, so its
+  ratio is not comparable to a native Windows run. `ApprovedPathFor` picks
+  `Throughput.approved.txt` or `Throughput.linux.approved.txt` for the running
+  platform, the same one place `Bits.approved.txt`'s per-node counterpart uses; the
+  actual file is written beside whichever one is read, so `Throughput.linux.actual.txt`
+  on Linux. The root's 5× floor is not a per-platform figure and applies to both.
 - **No expected value is typed into a test**: the CPU accelerator is compared with
   the numerical nodes called directly over the same buffers, CUDA with the CPU
   accelerator, and the reference temperature of the equilibrium family comes from the
@@ -86,7 +96,8 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 - [Data](../../src/Data/API.md) — the database.
 - [Fixtures](../Fixtures/API.md) — the reference propellant inputs used to build the
   batches, and the mole-fraction floor and polish-threshold tier of the tolerance table.
-- [Harness](../Harness/API.md) — bit comparison (`Bits.Same`, `Bits.Differences`).
+- [Harness](../Harness/API.md) — bit comparison (`Bits.Same`, `Bits.Differences`) and
+  the per-platform approved path (`ApprovedSnapshot.ApprovedPathFor`, 2026-09-17).
 
 Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with driver, libnvvm and
 libdevice for the CUDA category.
@@ -287,6 +298,28 @@ libdevice for the CUDA category.
       within the tolerance table, CUDA deterministic across two runs).
       `Throughput_is_recorded_and_not_below_the_approved_ratio` was not run, as the
       decision records.
+- [x] 2026-09-17 — `Throughput.linux.approved.txt` recorded from a green run under
+      WSL2 on the reference machine (.NET SDK 10.0.112, this node's harness change on
+      top of `df0368d`): RTX 5070 Ti, 100 000 cases, 4 stations, 11 species, CUDA
+      0.237 s, CPU accelerator 12.350 s with 16 threads, 52.01×, comfortably above the
+      root's 5× floor though below the Windows file's 56.28× (WSL2's virtualization
+      overhead falls on both the CPU and the CUDA timings, per the tripwire
+      invariant's ⚠ above). Before approving, the rest of the same `dotnet test
+      tests/Execution.Tests` run was confirmed to need nothing else: 54/55, the one
+      failure the expected "no approved throughput file" case, the 100 000-case
+      correctness sweep (`The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`)
+      already green in it. With the file in place, the same command gave 55/55; the
+      fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`) stayed 3098/3098 and `protocol_lint` gave 0 errors,
+      0 warnings, both unaffected by this node's own change.
+- [x] 2026-09-17 — Shown red once, on Windows: `Throughput.approved.txt`'s `ratio`
+      line mutated from `56.28` to `999.00`, then `dotnet test tests/Execution.Tests
+      --filter "FullyQualifiedName~Throughput_is_recorded_and_not_below_the_approved_ratio"`
+      failed — "CUDA/CPU ratio 66.03 fell below 80 % of the approved 999.00
+      (Throughput.approved.txt)" — naming the platform's own file, as
+      `ApprovedPathFor` picks it. Reverted with `git checkout --
+      tests/Execution.Tests/Throughput.approved.txt`; `dotnet test
+      tests/Execution.Tests` confirmed 55/55 green again.
 
 ## Taboos
 
