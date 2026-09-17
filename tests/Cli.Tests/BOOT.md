@@ -66,6 +66,16 @@ The definition of what "`Cli` is ready" means.
   the same way, `{key}: recorded in {ApprovedPath}, but no example produces it; delete
   the line in the commit that removed the example`, so a deleted example's line cannot
   survive unnoticed either.
+
+  ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
+  now keeps a Windows and a Linux record, since the CPU accelerator's `System.Math`
+  calls the platform's C runtime and the two do not round the last bit alike;
+  `ApprovedPath` resolves through `Harness.ApprovedSnapshot.ApprovedPathFor`
+  (`tests/Harness/API.md`), which picks `Bits.approved.txt` or `Bits.linux.approved.txt`
+  for the running platform, so this node's own code names no platform. The first Linux
+  run (2026-09-17, WSL2 Ubuntu 24.04, `f67b1a9` plus this task's harness change) did not
+  reproduce the Windows bits, within the tolerance the root BOOT.md records for the
+  difference; `Bits.linux.approved.txt` was approved from that run.
 - **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
   tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
   wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,

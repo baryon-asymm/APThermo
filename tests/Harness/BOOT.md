@@ -55,6 +55,22 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   committed text file LF. Whoever approves a change by copying the actual file over
   the approved one normalizes the line endings first; the Cli.Tests re-approval of
   2026-09-15 did so.
+
+  ⚠ 2026-09-17: "the Windows platform this tree targets" was true when this bullet was
+  written (2026-09-14), narrower than the root's platform constraint since the
+  2026-09-15 distribution-phase decision added Linux x64. On Linux `Environment.NewLine`
+  is `"\n"`, so an actual file this node writes there is LF like the repository, not
+  CRLF; the normalize-before-approving step only bites on Windows. Found while adding
+  the per-platform bit snapshots below.
+- **One approved file per platform, picked in one place.** The root BOOT.md's platform
+  constraint (2026-09-17) keeps a Windows and a Linux record for every bit snapshot,
+  since the CPU accelerator's `System.Math` calls the platform's C runtime and the two
+  do not round the last bit alike. `ApprovedSnapshot.ApprovedPathFor` is the one place
+  that chooses between `<name>.approved.txt` and `<name>.linux.approved.txt`; every
+  consumer's Bits level calls it instead of building the choice itself, so a future
+  Bits level needs no platform logic of its own. A node whose Linux bits equal its
+  Windows bits still keeps both files, byte for byte identical, so the rule has no
+  exception (`Thermo.Tests`, whose table holds no accelerator solve).
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.

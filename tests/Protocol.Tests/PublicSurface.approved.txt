@@ -267,6 +267,7 @@ sealed class APThermo.Harness.ApprovedSnapshot
     IReadOnlyList<String> StaleKeys(IEnumerable<String> producedKeys)
     String? Problem(String key, String actualLine)
     static ApprovedSnapshot Load(String approvedPath)
+    static String ApprovedPathFor(String directory, String baseName)
 
 sealed class APThermo.Harness.BitHash
     .ctor()
