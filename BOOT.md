@@ -366,10 +366,19 @@ There is no external ancestor: the tree root is the repository root, and the loa
       nodes' `BOOT.md` files under `## Structure` and each is accepted only with its
       node's bit-for-bit or field-by-field guard green.
 
-- [ ] Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
+- [x] 2026-09-17 — Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
       the execution tests node is green on CUDA, its long-running sweep included, under
       WSL2 on the reference machine. The outcome for the bit snapshots is recorded under
       the platform constraint above.
+
+      Evidence: WSL2 Ubuntu 24.04, .NET SDK 10.0.112, CUDA 12.9 libnvvm, at `0c3b455`
+      (merged as `3bc4039`): `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"` 3098/3098 against the `Bits.linux.approved.txt` files, and
+      `dotnet test tests/Execution.Tests` 55/55 on CUDA, the 100 000-case sweep included,
+      with the throughput ratio 52.01× recorded in `Throughput.linux.approved.txt` (the
+      execution tests node's `BOOT.md` explains the per-platform file). The first run at
+      `f67b1a9` failed only the bit snapshots and two platform assumptions of the tests,
+      the discovery test's `.dll` suffix and the Windows throughput figure.
 - [ ] The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
       from a local feed into every sample, and each sample reproduces its approved
       output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
