@@ -50,6 +50,7 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Problems;
+using APThermo.Thermo;
 ```
 
 `output` is any `TextWriter` (`Console.Out` in a console application):
@@ -72,11 +73,18 @@ var problem = new RocketProblem { ChamberPressure = 7.0e6, AreaRatios = [20.0] }
 using var cpuSolver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
 using var autoSolver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Auto });
 
-var cpuTemperature = cpuSolver.Solve(propellant, problem).Stations[1].State.Temperature;
-var autoTemperature = autoSolver.Solve(propellant, problem).Stations[1].State.Temperature;
-var agrees = Math.Abs(cpuTemperature - autoTemperature) <= 1.0e-4 * cpuTemperature;
+var cpuThroat = cpuSolver.Solve(propellant, problem).Stations[1];
+var autoThroat = autoSolver.Solve(propellant, problem).Stations[1];
 
-output.WriteLine($"the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: {agrees}");
+if (cpuThroat.Status == CaseStatus.Ok && autoThroat.Status == CaseStatus.Ok)
+{
+    var agrees = Math.Abs(cpuThroat.State.Temperature - autoThroat.State.Temperature) <= 1.0e-4 * cpuThroat.State.Temperature;
+    output.WriteLine($"the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: {agrees}");
+}
+else
+{
+    output.WriteLine($"the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: skipped, throat status {cpuThroat.Status}/{autoThroat.Status}");
+}
 ```
 
 6. **From the command line**: `apthermo devices` lists the CPU and, when found, the

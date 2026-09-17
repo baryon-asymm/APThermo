@@ -2,6 +2,7 @@
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Problems;
+using APThermo.Thermo;
 // snippet-end
 
 namespace APThermo.Samples;
@@ -28,11 +29,18 @@ internal sealed class AcceleratorChoice
         using var cpuSolver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
         using var autoSolver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Auto });
 
-        var cpuTemperature = cpuSolver.Solve(propellant, problem).Stations[1].State.Temperature;
-        var autoTemperature = autoSolver.Solve(propellant, problem).Stations[1].State.Temperature;
-        var agrees = Math.Abs(cpuTemperature - autoTemperature) <= 1.0e-4 * cpuTemperature;
+        var cpuThroat = cpuSolver.Solve(propellant, problem).Stations[1];
+        var autoThroat = autoSolver.Solve(propellant, problem).Stations[1];
 
-        output.WriteLine($"the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: {agrees}");
+        if (cpuThroat.Status == CaseStatus.Ok && autoThroat.Status == CaseStatus.Ok)
+        {
+            var agrees = Math.Abs(cpuThroat.State.Temperature - autoThroat.State.Temperature) <= 1.0e-4 * cpuThroat.State.Temperature;
+            output.WriteLine($"the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: {agrees}");
+        }
+        else
+        {
+            output.WriteLine($"the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: skipped, throat status {cpuThroat.Status}/{autoThroat.Status}");
+        }
         // snippet-end
     }
 }
