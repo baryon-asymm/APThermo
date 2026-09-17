@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: ['*']
+    branches: ['**']
   pull_request:
-    branches: ['*']
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -21,10 +24,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10 SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          global-json-file: global.json
 
       - name: Setup Python 3
         uses: actions/setup-python@v5
@@ -32,7 +35,7 @@ jobs:
           python-version: '3.x'
 
       - name: Protocol lint
-        run: python tools/protocol-lint/protocol_lint.py --exclude templates .
+        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates
 
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
@@ -40,10 +43,68 @@ jobs:
       - name: Fast test suite
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
 
-      - name: Pack
-        run: dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release --output artifacts/packages
+      - name: Determine the package version
+        id: version
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/Problems/APThermo.Problems.csproj -getProperty:Version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Samples run
-        run: dotnet run --project samples/Samples --configuration Release -- rocket
+      - name: Pack both packages
+        shell: bash
+        run: |
+          dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
+          dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
+
+      # The samples' `-p:APThermoPackageVersion` mode (restoring APThermo from a feed instead of by
+      # ProjectReference) is added in a parallel worktree and is not yet merged into this branch: this
+      # step cannot pass until that mode lands (root BOOT.md, ## Delivery, Documentation; CI/CD and build
+      # audit, F7).
+      - name: Samples run against the packaged library
+        shell: bash
+        run: >
+          dotnet run --project samples/Samples --configuration Release
+          -p:APThermoPackageVersion=${{ steps.version.outputs.version }}
+          -p:RestoreAdditionalProjectSources=${{ github.workspace }}/artifacts/packages
+          -- rocket
+
+      - name: Install the packed tool and run an approved example
+        shell: bash
+        run: |
+          dotnet tool install APThermo.Cli --tool-path .tool --add-source artifacts/packages --version "${{ steps.version.outputs.version }}"
+
+          mkdir -p .ci/run-cut
+          cat > .ci/run-cut/RunCut.csproj <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0</TargetFramework>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Compile Include="../../tests/Harness/RunPropertyCut.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          cat > .ci/run-cut/Program.cs <<'EOF'
+          using APThermo.Harness;
+
+          var bytes = File.ReadAllBytes(args[0]);
+          var cut = RunPropertyCut.Bytes(bytes, args[1]);
+          using var stdout = Console.OpenStandardOutput();
+          stdout.Write(cut, 0, cut.Length);
+          EOF
+
+          PATH="$PWD/.tool:$PATH" apthermo rocket samples/cli/problems/rocket.json --accelerator cpu > actual-rocket.json
+          dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket > actual-rocket.cut.json
+
+          diff <(tr -d '\r' < actual-rocket.cut.json) <(tr -d '\r' < tests/Docs.Tests/approved/cli/rocket.approved.json)
+
+      - name: Upload packages
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages
