@@ -1,14 +1,16 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Turns the JSON `case.inputs` of a tp, hp, sp or rocket fixture into a `StateRecord`
 /// (BOOT.md, Invariants): a fixture's `elementMoles` and its target already are the
 /// element-moles-and-enthalpy shape `StateRecord` takes, so no `Propellant` or
 /// `Reactant` construction is needed to read one.
+internal sealed record RocketFixtureInputs(double Pressure, double Enthalpy, FlowModel Flow, IReadOnlyList<double> AreaRatios);
+
 internal static class FixtureStateRecords
 {
     public static StateRecord EquilibriumRecord(CeaCase fixtureCase)
@@ -44,6 +46,15 @@ internal static class FixtureStateRecords
         "frozenAtThroat" => FlowModel.FrozenAtThroat,
         var other => throw new FormatException($"unknown flow model '{other}'"),
     };
+
+    /// The fields a rocket fixture's `case.inputs` gives a raw `Execution.RocketBatch`
+    /// or a `Problems.RocketProblem` (group 1 and group 7 of BOOT.md, Constraints
+    /// alike): shared so that the two paths solve the identical case.
+    public static RocketFixtureInputs RocketBatchInputs(JsonElement inputs) => new(
+        inputs.GetProperty("chamberPressure").GetDouble(),
+        inputs.GetProperty("reactantEnthalpy").GetDouble(),
+        ReadFlow(inputs),
+        FixtureJson.ReadDoubles(inputs, "areaRatios"));
 
     private static double? ReadOptionalDouble(JsonElement inputs, string property) =>
         inputs.TryGetProperty(property, out var value) && value.ValueKind != JsonValueKind.Null

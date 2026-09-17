@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>The committed databases, the tolerance table and one solver on the CPU accelerator, shared by the collection.</summary>
 public sealed class SolverFixture : IDisposable
@@ -26,7 +26,7 @@ public sealed class SolverFixture : IDisposable
     public Solver Solver { get; }
 
     /// <summary>A CPU engine of the execution node, to evaluate the transport solver on the reference's own composition (the defect signature).</summary>
-    public Engine Engine { get; }
+    internal Engine Engine { get; }
 
     public void Dispose()
     {

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>
 /// Bits level: the table the builder produces for every fixture case gives the recorded bits. A tripwire over the

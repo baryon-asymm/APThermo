@@ -1,18 +1,47 @@
 # API.md — Performance
 
-Namespace `AerospacePropellantThermodynamics.Performance`. The node exposes one
+Namespace `APThermo.Performance`. The node exposes one
 kernel-compatible rocket solver for one case and the descriptors of its inputs and
-outputs. Everything not listed here is internal and may change.
+outputs. Everything not listed here, in a package-surface section (one whose heading
+carries no `(tree contract)` mark), is internal and may change without notice (root
+`BOOT.md`, Delivery: Public surface). The tree-contract section below lists the
+internal types `Execution` and `Problems` use (root `BOOT.md`, Delivery: Tree
+contracts); the assembly grants `InternalsVisibleTo` to those nodes, to
+`Execution.Tests` and `Benchmarks` (`APThermo.Performance.csproj`).
 
-## Rocket solver ✅
+⚠ 2026-09-15 (distribution phase): the review of that day
+(fixed in `24156be`) found no consumer scenario for `ExitSpecification`,
+`RocketProblem`, `RocketLayout`, `RocketResult` or `RocketSolver`: every use is
+`Execution` composing the kernel, or `Problems` building a batch, or this node's own
+tests. They moved from the package surface into the tree contract below; only
+`FlowModel` and `PerformanceFigures` stay public, because a consumer reads or sets
+them on `RocketProblem`/`StateRecord` and `Station` of `Problems` (distinct,
+same-named types there: `Problems.RocketResult`, not this node's).
+
+## Flow and figures ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 public enum FlowModel { ShiftingEquilibrium, FrozenAtChamber, FrozenAtThroat }
-public enum ExitSpecification { AreaRatio, PressureRatio }
 
-public readonly struct RocketProblem                     // one case
+public struct PerformanceFigures                         // one station; SI
+{
+    public double AreaRatio;                             // A/A_t; 1 at the throat, 0 at the chamber (undefined there)
+    public double PressureRatio;                         // p_c/p; 1 at the chamber
+    public double CharacteristicVelocity;                // c* = p_c/(ρ_t u_t), m/s, the same at every station
+    public double ThrustCoefficient;                     // C_F = u/c*; 0 at the chamber
+    public double SpecificImpulse;                       // Isp = u, m/s (p_ambient = p); 0 at the chamber
+    public double VacuumSpecificImpulse;                 // Ivac = u + p/(ρ u), m/s; 0 at the chamber
+}
+```
+
+## Rocket solver (tree contract) ✅
+
+```csharp
+internal enum ExitSpecification { AreaRatio, PressureRatio }
+
+internal readonly struct RocketProblem                     // one case
 {
     public readonly double ChamberPressure;              // Pa
     public readonly double ReactantEnthalpy;             // J/kg of propellant
@@ -25,23 +54,13 @@ public readonly struct RocketProblem                     // one case
                          ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds);
 }
 
-public struct PerformanceFigures                         // one station; SI
-{
-    public double AreaRatio;                             // A/A_t; 1 at the throat, 0 at the chamber (undefined there)
-    public double PressureRatio;                         // p_c/p; 1 at the chamber
-    public double CharacteristicVelocity;                // c* = p_c/(ρ_t u_t), m/s, the same at every station
-    public double ThrustCoefficient;                     // C_F = u/c*; 0 at the chamber
-    public double SpecificImpulse;                       // Isp = u, m/s (p_ambient = p); 0 at the chamber
-    public double VacuumSpecificImpulse;                 // Ivac = u + p/(ρ u), m/s; 0 at the chamber
-}
-
-public static class RocketLayout
+internal static class RocketLayout
 {
     public const int FixedStations = 2;                  // chamber and throat
     public static int StationCount(int exitCount);       // FixedStations + exitCount
 }
 
-public readonly struct RocketResult                      // views the solver writes into
+internal readonly struct RocketResult                      // views the solver writes into
 {
     public readonly ArrayView<MixtureState> Stations;    // [stations]: chamber, throat, exits in order
     public readonly ArrayView<double> Moles;             // [stations * species], kmol per kg
@@ -55,7 +74,7 @@ public readonly struct RocketResult                      // views the solver wri
                         ArrayView<int> status);
 }
 
-public static class RocketSolver                         // kernel-compatible
+internal static class RocketSolver                         // kernel-compatible
 {
     public const double SonicTolerance = 4.0e-5;         // equation (6.16), on |u² − a²|/u²
     public const double AreaRatioTolerance = 4.0e-5;     // equation (6.25), on the last correction of ln(p_c/p_e)

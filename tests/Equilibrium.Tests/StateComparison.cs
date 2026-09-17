@@ -1,9 +1,9 @@
 using System.Reflection;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>Compares a solution with a fixture's outputs field by field, the field list taken from the fixture.</summary>
 internal static class StateComparison

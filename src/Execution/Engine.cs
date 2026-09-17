@@ -1,14 +1,14 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Equilibrium;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>Runs the numerical programs of the tree over batches on one accelerator.</summary>
-public sealed class Engine : IDisposable
+internal sealed class Engine : IDisposable
 {
     private readonly AcceleratorSession _session;
     private readonly KernelCache _kernels;
@@ -133,7 +133,7 @@ public sealed class Engine : IDisposable
 }
 
 /// <summary>Device copies of the tables, owned by the engine that uploaded them.</summary>
-public sealed class UploadedTables : IDisposable
+internal sealed class UploadedTables : IDisposable
 {
     private readonly Engine _engine;
     private bool _disposed;

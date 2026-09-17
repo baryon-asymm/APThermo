@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>
 /// L2: states the reference cannot reach: the pinned pair at a cut, the refusal where no admissible set exists, no

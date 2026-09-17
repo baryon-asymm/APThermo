@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// The chamber of an infinite-area combustor (RP-1311 section 6.3.1): the equilibrium at the assigned enthalpy and the chamber

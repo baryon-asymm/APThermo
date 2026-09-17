@@ -1,15 +1,15 @@
 # API.md — Cli.Listings
 
-Namespace `AerospacePropellantThermodynamics.Cli.Listings`, compiled into the
-`AerospacePropellantThermodynamics.Cli` assembly (root `BOOT.md`, Constraints,
+Namespace `APThermo.Cli.Listings`, compiled into the
+`APThermo.Cli` assembly (root `BOOT.md`, Constraints,
 2026-09-15). Every type is `internal`; visible throughout the `Cli` assembly and to
-`AerospacePropellantThermodynamics.Cli.Tests`, but the parent uses only what is named
+`APThermo.Cli.Tests`, but the parent uses only what is named
 below. `DeviceProbe` and `DeviceReport` are this node's own and may change.
 
 ## Species ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli.Listings;
+namespace APThermo.Cli.Listings;
 
 internal sealed record SpeciesRow
 {

@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>
 /// The flat layout of a species table in one place: the strides and slots that both the writer (<see cref="Flatten"/>,

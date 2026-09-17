@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Execution: accelerators, batch buffers, kernel entry points and the libdevice post-link. The only node that knows CUDA. -->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public
+         member without a documentation comment fails the build, since warnings are errors
+         (Directory.Build.props). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\Transport\APThermo.Transport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <!-- The tree contract of src/Execution (root BOOT.md, Delivery: Tree contracts): Problems, the only src
+       node that declares Execution in its ## Dependencies (Cli goes through the AcceleratorProbe facade,
+       F1, and receives no grant); the mirroring test node plus Benchmarks; and ILGPURuntime for the four
+       kernel-parameter views structs (API.md, ## Kernel views (tree contract)). Removing the ILGPURuntime
+       grant was shown to fail the CPU kernel-loading tests once (AGENTS.md §13; the API review of
+       2026-09-15, SCRATCH/api-review-report.md, section 3). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Execution.Tests" />
+    <InternalsVisibleTo Include="APThermo.Problems" />
+    <InternalsVisibleTo Include="APThermo.Problems.Tests" />
+    <InternalsVisibleTo Include="APThermo.Benchmarks" />
+    <InternalsVisibleTo Include="ILGPURuntime" />
+  </ItemGroup>
+
+</Project>

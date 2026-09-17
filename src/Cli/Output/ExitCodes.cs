@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Cli.Cases;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Cli.Cases;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Cli.Output;
+namespace APThermo.Cli.Output;
 
 /// <summary>0 when every case, station and transport evaluation is Ok, else 1 (F-CL-10).</summary>
 internal static class ExitCodes

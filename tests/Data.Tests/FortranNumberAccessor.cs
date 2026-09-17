@@ -1,12 +1,12 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Data.Tests;
+namespace APThermo.Data.Tests;
 
 /// <summary>Reaches the internal number reader of the node without widening its public surface.</summary>
 internal static class FortranNumberAccessor
 {
     private static readonly MethodInfo ParseMethod =
-        typeof(SpeciesDatabase).Assembly.GetType("AerospacePropellantThermodynamics.Data.FortranNumber")!
+        typeof(SpeciesDatabase).Assembly.GetType("APThermo.Data.FortranNumber")!
             .GetMethod("Parse", BindingFlags.Static | BindingFlags.Public)!;
 
     public static double Parse(string field)

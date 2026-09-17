@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// One species record of <c>thermo.inp</c>, whole or absent: the identity line, the properties line (interval count,
@@ -38,17 +38,17 @@ internal static class SpeciesRecordReader
             }
 
             return new Species(
-                Name: name,
-                Comment: comment,
-                DateCode: properties.DateCode,
-                Formula: properties.Formula,
-                Phase: properties.Phase,
-                MolarMass: properties.MolarMass,
-                FormationEnthalpy: properties.FormationEnthalpy,
-                AssignedTemperature: assignedTemperature,
-                Intervals: intervals,
-                Section: section,
-                IsInert: name.StartsWith("Inert", StringComparison.Ordinal));
+                name: name,
+                comment: comment,
+                dateCode: properties.DateCode,
+                formula: properties.Formula,
+                phase: properties.Phase,
+                molarMass: properties.MolarMass,
+                formationEnthalpy: properties.FormationEnthalpy,
+                assignedTemperature: assignedTemperature,
+                intervals: intervals,
+                section: section,
+                isInert: name.StartsWith("Inert", StringComparison.Ordinal));
         }
         catch (FieldException e)
         {

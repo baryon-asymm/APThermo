@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// The composition root of the evaluation of one station: the order of the stages and the status, and no formula of its own

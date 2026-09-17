@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>
 /// The damped Newton–Raphson iteration of RP-1311 chapter 3 on the reduced system, run until the report's tests pass and a

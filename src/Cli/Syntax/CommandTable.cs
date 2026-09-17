@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 /// <summary>
 /// The two tables of the command line: every command and every option, with the usage text generated from them
@@ -20,7 +20,7 @@ internal static class CommandTable
         new("accelerator", true, "  --accelerator auto|cpu|cuda  where to solve (default: the document's engine.accelerator, else auto)\n",
             (o, v) => o with { Accelerator = DocumentWords.ParseAccelerator(v!, null) }),
         new("database", true,
-            "  --database DIR               directory with thermo.inp and trans.inp (default: data/ next to the executable, then data/ under the current directory, then the current directory)\n",
+            "  --database DIR               directory with thermo.inp and trans.inp (default: the database bundled with apthermo)\n",
             (o, v) => o with { Database = v }),
         new("threshold", true,
             $"  --threshold X                omit mole fractions below X from the compositions (default {CommandOptions.DefaultThreshold.ToString(CultureInfo.InvariantCulture)})\n",
@@ -49,6 +49,8 @@ internal static class CommandTable
             ["output", "format", "database", "find"], [OutputFormat.Json, OutputFormat.Csv], NoArguments("species")),
         new("devices", "  devices                      the accelerators this machine offers\n",
             ["output", "format"], [OutputFormat.Json], NoArguments("devices")),
+        new("schema", "  schema [name]                the JSON Schema of a document shape; no name lists the embedded names\n",
+            ["output"], [OutputFormat.Json], count => count <= 1 ? null : $"schema takes at most one schema name, not {count}"),
     ];
 
     public static readonly string Usage = BuildUsage();
@@ -79,7 +81,8 @@ internal static class CommandTable
             text.Append(option.Usage);
         }
 
-        text.Append("  --help, -h                   this text\n\n");
+        text.Append("  --help, -h                   this text\n");
+        text.Append("  --version                    the tool's version\n\n");
         text.Append("exit codes: 0 every case ok; 1 a case failed numerically (document written); 2 invalid input; 3 accelerator or infrastructure error\n");
         return text.ToString();
     }

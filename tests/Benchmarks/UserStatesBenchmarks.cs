@@ -1,12 +1,12 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Problems;
+using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Which states of `data/user-states.json` a run of `UserStatesBenchmarks` solves:
 /// every one of the 48 together, or one record's 12 alone (BOOT.md, Constraints,

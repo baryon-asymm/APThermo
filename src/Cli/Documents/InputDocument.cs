@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 /// <summary>A rocket or equilibrium problem document, read and validated.</summary>
 internal sealed record InputDocument(PropellantDocument Propellant, ProblemDocument Problem, SweepDocument? Sweep, AcceleratorKind? Accelerator);

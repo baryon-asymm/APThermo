@@ -1,12 +1,12 @@
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Cli.Cases;
-using AerospacePropellantThermodynamics.Cli.Documents;
-using AerospacePropellantThermodynamics.Cli.Output;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli.Cases;
+using APThermo.Cli.Documents;
+using APThermo.Cli.Output;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>
 /// The states command: the records split by <see cref="StateRecord.HasExits"/>, one call to

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>
 /// The node's unit factors (BOOT.md, units at this boundary): 1000, used both ways as element abundances cross the mol/kg

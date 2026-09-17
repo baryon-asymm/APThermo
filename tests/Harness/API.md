@@ -1,13 +1,14 @@
 # API.md — Harness
 
-Namespace `AerospacePropellantThermodynamics.Harness`. The scaffolding the test nodes
+Namespace `APThermo.Harness`. The scaffolding the test nodes
 share: a CPU host, bit comparison, bit hashes with their approval files, fixture
-families. Everything not listed here is internal and may change.
+families, and the JSON-document helpers (schema validation, the `run`-property cut).
+Everything not listed here is internal and may change.
 
 ## Host ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 public sealed class CpuHost : IDisposable                  // one per test assembly, held by the consumer's collection or class fixture
 {
@@ -57,11 +58,35 @@ public static class FixtureFamilies
 }
 ```
 
+## JSON documents ✅
+
+The JSON-document helpers the test nodes that check documents share; they move here
+from `Cli.Tests` in the distribution phase (2026-09-16), where their second consumer,
+the docs tests node, belongs.
+
+```csharp
+public sealed class JsonSchema        // the part of JSON Schema the tree's schema files use: type, enum, const, properties, required, additionalProperties, items, minItems, minimum, exclusiveMinimum, oneOf, anyOf and local $ref into $defs
+{
+    public static JsonSchema Parse(string text);                      // from the schema's JSON text, as `apthermo schema` prints it (2026-09-16)
+    public IReadOnlyList<string> Validate(JsonElement instance);      // every violation with its JSON path; empty when the instance conforms
+}
+
+public static class RunPropertyCut
+{
+    public static byte[] Bytes(byte[] document, string example);      // the object's bytes with its top-level `run` property cut out; throws naming the example when there is no such property, more than one, or the document is not shaped as this method expects
+}
+```
+
 ## Errors
 
 | Situation | Behaviour |
 |---|---|
 | the database or the tolerance table cannot be loaded | the `Data` or `Fixtures` exception, from the `CpuHost` constructor |
+| a schema uses a keyword outside `Validate`'s list | `InvalidOperationException`, naming the keyword |
+| a schema's `$ref` is not local (does not start with `#/`), or does not resolve | `InvalidOperationException`, naming the reference |
+| a schema names a `type` `Validate` does not know | `InvalidOperationException`, naming the type |
+| the document `RunPropertyCut.Bytes` is given is not a JSON object at the top level, or has a malformed top-level property | `InvalidOperationException`, naming the example |
+| the document has no top-level `run` property, more than one, or only that one property | `InvalidOperationException`, naming the example |
 
 ## Side effects
 

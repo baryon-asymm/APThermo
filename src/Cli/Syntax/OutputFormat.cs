@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 internal enum OutputFormat
 {

@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace AerospacePropellantThermodynamics.Fixtures;
+namespace APThermo.Fixtures;
 
 /// <summary>
 /// The repository root, found from this source file (AGENTS.md §13: from the source, never from the binary),

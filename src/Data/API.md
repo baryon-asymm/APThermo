@@ -1,20 +1,32 @@
 # API.md — Data
 
-Namespace `AerospacePropellantThermodynamics.Data`. The node exposes the NASA
+Namespace `APThermo.Data`. The node exposes the NASA
 databases as an immutable object model addressed by species name: everything a
 database answers, the index and the atomic weights included, is built by `Load` or
 `Parse`, so a loaded instance may be shared between threads without a lock
 (2026-09-14: the atomic weights used to be built on first use, the review's F-TD-10).
 Everything not listed here is internal and may change.
 
+⚠ 2026-09-15 (distribution phase): the API review of that day
+(its finding M1, fixed in `c85fd77`) found that `DatabaseProvenance`, `Species`,
+`TemperatureInterval`, `TransportEntry` and `TransportFit` each carried a public
+positional constructor no other assembly called: a consumer only ever reads one from
+`SpeciesDatabase`. Below, each is now a nominal record with get-only properties and an
+internal constructor (root `BOOT.md`, Delivery: Tree contracts, "records the library
+creates for consumers ... have internal constructors"), so a field added in 0.x
+breaks no consumer. `ElementCount` keeps its public constructor: `Problems`' custom
+reactants and the command line build one directly.
+
 ## Database ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 public sealed class SpeciesDatabase
 {
     public static SpeciesDatabase Load(string thermoPath, string? transPath = null);
+    public static SpeciesDatabase LoadBundled();                    // the NASA files embedded in this assembly; same Provenance shape as Load
+    public static string BundledNotice();                           // the text of data/NOTICE, embedded in this assembly
     public static SpeciesDatabase Parse(TextReader thermo, TextReader? trans = null);
 
     public IReadOnlyList<Species> Products { get; }        // PRODUCTS section, file order
@@ -26,31 +38,41 @@ public sealed class SpeciesDatabase
     public DatabaseProvenance Provenance { get; }
 }
 
-public sealed record DatabaseProvenance(
-    string HeaderDate, IReadOnlyList<double> DefaultIntervalBounds,
-    string ThermoSha256, string? TransSha256);
+public sealed record DatabaseProvenance                  // internal constructor: only SpeciesDatabase.Load/Parse build one
+{
+    public string HeaderDate { get; }
+    public IReadOnlyList<double> DefaultIntervalBounds { get; }
+    public string ThermoSha256 { get; }
+    public string? TransSha256 { get; }
+}
 
-public sealed record Species(
-    string Name,                                  // as in the file, trailing blanks trimmed
-    string Comment,
-    string DateCode,
-    IReadOnlyList<ElementCount> Formula,          // zero-count pairs dropped, file order
-    SpeciesPhase Phase,
-    double MolarMass,                             // kg/kmol
-    double FormationEnthalpy,                     // J/mol at 298.15 K; assigned enthalpy when Intervals is empty
-    double AssignedTemperature,                   // K; meaningful only when Intervals is empty
-    IReadOnlyList<TemperatureInterval> Intervals, // file order; bounds as written (see the note below)
-    SpeciesSection Section,
-    bool IsInert);                                // name starts with "Inert" (CEA pseudo-element record)
+public sealed record Species                              // internal constructor: only this node parses one
+{
+    public string Name { get; }                            // as in the file, trailing blanks trimmed
+    public string Comment { get; }
+    public string DateCode { get; }
+    public IReadOnlyList<ElementCount> Formula { get; }    // zero-count pairs dropped, file order
+    public SpeciesPhase Phase { get; }
+    public double MolarMass { get; }                       // kg/kmol
+    public double FormationEnthalpy { get; }               // J/mol at 298.15 K; assigned enthalpy when Intervals is empty
+    public double AssignedTemperature { get; }             // K; meaningful only when Intervals is empty
+    public IReadOnlyList<TemperatureInterval> Intervals { get; } // file order; bounds as written (see the note below)
+    public SpeciesSection Section { get; }
+    public bool IsInert { get; }                           // name starts with "Inert" (CEA pseudo-element record)
+}
 
 public readonly record struct ElementCount(string Symbol, double Count);
 
-public sealed record TemperatureInterval(
-    double TLow, double THigh,
-    IReadOnlyList<double> Exponents,              // eight values as in the file
-    IReadOnlyList<double> Coefficients,           // a1 … a7
-    double B1, double B2,
-    double EnthalpyOffset);                       // H(298.15) − H(0), J/mol
+public sealed record TemperatureInterval                  // internal constructor: only this node parses one
+{
+    public double TLow { get; }
+    public double THigh { get; }
+    public IReadOnlyList<double> Exponents { get; }        // eight values as in the file
+    public IReadOnlyList<double> Coefficients { get; }     // a1 … a7
+    public double B1 { get; }
+    public double B2 { get; }
+    public double EnthalpyOffset { get; }                  // H(298.15) − H(0), J/mol
+}
 
 public enum SpeciesPhase { Gas, Condensed }
 public enum SpeciesSection { Products, Reactants }
@@ -65,6 +87,16 @@ Eleven condensed records of the committed file carry a first interval written wi
 upper bound not above the lower one (`Br2(cr)` 300..265.9); the node stores such
 bounds as they are, and the tests node lists the records in its approved anomaly list.
 Found when the loader first rejected them.
+
+⚠ 2026-09-15 (distribution phase): `Load` and `Parse` stood as the only two ways to
+build a database. A NuGet package and a .NET tool have no `data/` directory beside
+them (root `BOOT.md`, Constraints, Data), so this node embeds the committed
+`thermo.inp`, `trans.inp` and `NOTICE` under stable manifest names
+(`APThermo.Data.Bundled.thermo.inp`, `.trans.inp`, `.NOTICE`) and `LoadBundled` reads
+them: the same bytes as `data/`'s, hashed the same way, so `Provenance` carries the
+same `ThermoSha256`/`TransSha256` a caller who ran `Load(data/thermo.inp,
+data/trans.inp)` would get. `BundledNotice` exposes the attribution text so a
+consumer with only the assembly, not the repository, can still read it.
 
 ⚠ 2026-09-14: the indexer's comment stood "exact name; products searched first" and
 said nothing of names that carry several records. The committed file has such groups
@@ -95,11 +127,24 @@ public sealed class TransportDatabase
     public TransportEntry? FindPair(string first, string second); // order-insensitive
 }
 
-public sealed record TransportEntry(
-    string Species, string? Partner, string Reference,
-    IReadOnlyList<TransportFit> Viscosity, IReadOnlyList<TransportFit> Conductivity);
+public sealed record TransportEntry                       // internal constructor: only this node parses one
+{
+    public string Species { get; }
+    public string? Partner { get; }
+    public string Reference { get; }
+    public IReadOnlyList<TransportFit> Viscosity { get; }
+    public IReadOnlyList<TransportFit> Conductivity { get; }
+}
 
-public sealed record TransportFit(double TLow, double THigh, double A, double B, double C, double D);
+public sealed record TransportFit                         // internal constructor: only this node parses one
+{
+    public double TLow { get; }
+    public double THigh { get; }
+    public double A { get; }
+    public double B { get; }
+    public double C { get; }
+    public double D { get; }
+}
 // ln(property) = A ln T + B/T + C/T² + D; viscosity in micropoise, conductivity in μW/(cm·K), as in the file
 ```
 
@@ -123,7 +168,8 @@ public sealed class DatabaseFormatException : Exception
 
 ## Side effects
 
-Reads the given files. Nothing else.
+`Load` and `Parse` read the given files or text. `LoadBundled` and `BundledNotice`
+read no file: the bytes are embedded in the assembly. Nothing else.
 
 ## Out of scope
 

@@ -1,0 +1,3 @@
+mass = 1.0000 kg
+  P=1.00 MPa   T=3000.0 K   h=-3516.7 kJ/kg
+  P=7.00 MPa   T=3000.0 K   h=-4203.0 kJ/kg

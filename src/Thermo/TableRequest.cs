@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>
 /// Validates a table request before any database lookup: the element and species counts against

@@ -1,12 +1,12 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>The element list and the candidate species of one rocket fixture's chemical system: what a table is built from, and
 /// what <see cref="RocketInputs.BatchKey"/> keys a family of fixtures by.</summary>

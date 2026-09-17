@@ -1,9 +1,9 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Cli.Output;
+namespace APThermo.Cli.Output;
 
 /// <summary>
 /// The one projection of a station into named, typed cells (the state, the performance figures with the two

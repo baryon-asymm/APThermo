@@ -82,21 +82,36 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
 
 None.
 
-Outside the tree: .NET SDK 10.0 (C# 14); ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
+Outside the tree: .NET SDK 10.0 (C# 14), pinned by `global.json` to 10.0.112 with
+`rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled SourceLink replaces
+the explicit package the tree briefly referenced; ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
 used); for the GPU path an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
-(`nvvm64_40_0.dll`) and `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x
-keeps the DLL under `nvvm/bin/x64`); NASA CEA data `thermo.inp` and `trans.inp` from
+(`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
+`libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
+`nvvm/bin/x64`; on Linux, and under WSL2, the toolkit's `nvvm/lib64`); NASA CEA data `thermo.inp` and `trans.inp` from
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
 node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
 (2026-09-15, the newest stable release on NuGet supporting net10.0 through
-`RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`).
+`RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`); GitHub Actions and nuget.org for
+delivery (2026-09-15, `## Delivery` below).
 
 ## Constraints
 
-- Platform: Windows 11 x64 is the only supported platform of version 1. Nothing but
-  the CUDA library discovery paths may be Windows-specific.
+- Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
+  accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
+  and file names may be platform-specific. Every test runs on both platforms.
+
+  ⚠ 2026-09-15 (distribution phase): stood "Windows 11 x64 is the only supported
+  platform of version 1. Nothing but the CUDA library discovery paths may be
+  Windows-specific." The user decided to ship the library as a NuGet package and the
+  command line as a .NET tool for Windows and Linux, with full support on Linux,
+  CUDA included. On Linux the GPU path is verified under WSL2 on the reference
+  machine. One question stays open until it is measured: whether the CPU accelerator
+  reproduces the Windows bit snapshots on Linux. `System.Math` calls the platform's C
+  runtime, which may round the last ULP differently. The first Linux run of the suite
+  decides it, and that decision is recorded here.
 - Language and build: C#, .NET 10, nullable reference types enabled, warnings are
   errors. One assembly per node directory that holds a project, named after its namespace; a
   child node without a project of its own (2026-09-15) compiles into the assembly of its
@@ -112,10 +127,29 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
   as AGENTS.md §1 already defines membership by the directory of a file. Decided with
   the user on 2026-09-14 for the phase after the clean-code pass.
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
-  namespace is `AerospacePropellantThermodynamics`; the grouping directories `src/`
-  and `tests/` are transparent: `src/Equilibrium` is
-  `AerospacePropellantThermodynamics.Equilibrium`, `tests/Equilibrium.Tests` is
-  `AerospacePropellantThermodynamics.Equilibrium.Tests`.
+  namespace is `APThermo`; the grouping directories `src/`, `tests/` and `samples/` are
+  transparent: `src/Equilibrium` is `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is
+  `APThermo.Equilibrium.Tests`, `samples/Samples` is `APThermo.Samples`. Projects, assemblies
+  and the solution (`APThermo.sln`) carry the same names. The product's name in prose stays
+  Aerospace Propellant Thermodynamics, and APThermo is its short name and the name of its packages.
+
+  ⚠ 2026-09-16: stood "the grouping directories `src/` and `tests/` are transparent". The
+  distribution phase added a third grouping directory, `samples/`, for the consumer-scenario
+  node; its assembly and root namespace are `APThermo.Samples` (its `BOOT.md`), not
+  `APThermo.samples.Samples`. The protocol tests node's namespace attribution
+  (`tests/Protocol.Tests/Node.cs`) now treats `samples/` as transparent with the other two, so
+  those types resolve to their own node instead of the root.
+
+  ⚠ 2026-09-15 (distribution phase): the root namespace, the projects, the assemblies
+  and the solution were `AerospacePropellantThermodynamics`. The user named the
+  packages APThermo (NuGet ID `APThermo`, the tool `APThermo.Cli` with the command
+  `apthermo`) and asked that everything be renamed before the first release, 0.1.0.
+  With no users yet the rename costs nothing, while after publication it would break
+  every consumer; a package ID that differs from the namespaces its users write would
+  also be a lasting inconsistency. The rename changes names only: bit snapshots,
+  benchmark result hashes and the surface snapshot (up to the name) are unchanged.
+  Historical records keep the old name, namely the benchmark results under
+  `tests/Benchmarks/results/` and the `bench/before-clean-code` branch.
 - Kernel-compatible C# in numerical nodes: static methods, blittable structs,
   `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
@@ -136,8 +170,19 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
   than the CPU accelerator path using all cores. There is no single-case latency target
   in version 1.
 - Data: the NASA files are committed verbatim under `data/` with a `NOTICE`
-  (Apache-2.0) and the upstream commit hash; they are read at run time from that
-  directory or from a path given by the caller.
+  (Apache-2.0) and the upstream commit hash. The data node embeds those same files in
+  its assembly (2026-09-15): they are linked from `data/`, never copied in the tree, and a
+  test proves by SHA-256 that the embedded bytes equal the files. At run time a database
+  is read from the embedded copy or from a path given by the caller.
+
+  ⚠ 2026-09-15 (distribution phase): stood "they are read at run time from that
+  directory or from a path given by the caller". A NuGet package and a .NET tool have
+  no `data/` directory beside them, so every consumer would have to find NASA files
+  before the first call. Embedding the committed files keeps the data-from-files
+  invariant, because the bytes are the committed ones with their hash recorded. The
+  caller's path stays for other databases. The command line's search for `data/`
+  beside the executable and in the current directory goes with it; its `API.md`
+  records the change.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
@@ -302,6 +347,35 @@ There is no external ancestor: the tree root is the repository root, and the loa
       nodes' `BOOT.md` files under `## Structure` and each is accepted only with its
       node's bit-for-bit or field-by-field guard green.
 
+- [ ] Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
+      the execution tests node is green on CUDA, its long-running sweep included, under
+      WSL2 on the reference machine. The outcome for the bit snapshots is recorded under
+      the platform constraint above.
+- [ ] The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
+      from a local feed into every sample, and each sample reproduces its approved
+      output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
+      .NET tool and runs an approved example without `--database`. A debugger steps
+      from a sample into the library's source through SourceLink, and the step is
+      recorded. Before the first release the package READMEs link the guide on the
+      public repository; until it exists they carry no guide link.
+
+      ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
+      package restore into the samples (the ⚠ of that date under `## Delivery`,
+      Documentation).
+- [ ] The documentation (2026-09-15), proven by the docs tests node, with every check
+      shown red once and failing on an empty set:
+      - every C# block of the guide equals its snippet;
+      - every `apthermo` invocation shown is run and its output approved, except the
+        declared synopses whose output depends on the machine or the release;
+      - every sample prints its approved output;
+      - every link resolves;
+      - every shown or sample document validates against its schema;
+      - every guide page has the shared shape.
+
+      Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
+      "Every code block … equals its sample region" predated the snippet markers and
+      named only four of the six proofs.
+
 ## Taboos
 
 - No second implementation of a formula "for convenience on the CPU": it drifts.
@@ -366,6 +440,15 @@ batches on the GPU.
   documents; the dependency list below carries those links, which its first version
   lacked.
 
+  ⚠ 2026-09-15 (distribution phase): "engine creation of its own for the `devices`
+  listing" stood after the public surface review (its finding F1, fixed in `9036c6a`)
+  made `Execution`'s `Engine` internal: `Cli` receives no grant (`## Delivery` below,
+  "Tree contracts") and now calls the new public `AcceleratorProbe.Describe` instead,
+  which binds and releases an engine of its own inside `Execution`. `Cli` still uses
+  `Execution` for `EngineOptions`, `AcceleratorInfo`, `AcceleratorUnavailableException`
+  and `AcceleratorProbe` itself, all on the package surface; `src/Cli/API.md` records
+  the change under Side effects.
+
 Dependencies point downward only: `Cli` → {`Problems`, `Data`, `Execution`, `Thermo`,
 `Equilibrium`, `Performance`, `Transport`}; `Problems` → {`Data`,
 `Thermo`, `Equilibrium`, `Performance`, `Transport`, `Execution`}; `Execution` → {`Thermo`,
@@ -378,7 +461,167 @@ holds the reflection checks of AGENTS.md §13; `tests/Fixtures` holds the refere
 outputs generated with NASA's `cea` package, their provenance, the generator scripts
 and the tolerance table, and `tests/Fixtures.Tests` proves the form and provenance of
 those files; `tests/Harness` (2026-09-14) holds the scaffolding the test nodes share
-(one CPU host, bit comparison, bit snapshots, fixture families) and names nothing above
+(one CPU host, bit comparison, bit snapshots, fixture families, and since 2026-09-16 the
+JSON Schema subset validator and the run-section cut of the command line's documents; its
+`API.md` lists them) and names nothing above
 `Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
-and never asserted. The node list with links is in `API.md`.
+and never asserted; `samples/Samples` (2026-09-15) shows each consumer scenario as a
+running program over the package surface, the source of the guide's code, and
+`tests/Docs.Tests` (2026-09-15) holds the approved outputs of the samples and
+command-line examples and proves the guide against them (`## Delivery`,
+Documentation). The node list with links is in `API.md`.
+
+  ⚠ 2026-09-16: stood "holds the guide to the samples, the approved outputs and the
+  schemas". Read literally it placed a copy of the schemas in the docs tests node,
+  while the Documentation rule below gives them to the command line
+  (`src/Cli/Schemas/`, no copy under `docs/`), and the guide itself lives at the root
+  and under `docs/`, not in a test node. The node holds the approved outputs and the
+  tests; it reads the schemas through `apthermo schema`.
+
+## Delivery
+
+Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first release.
+
+- **Packages.**
+  - `APThermo` is packed from `src/Problems`, the front door. It carries every library
+    assembly in one package (`Data`, `Thermo`, `Equilibrium`, `Performance`, `Transport`,
+    `Execution`, `Problems`), because the nodes are never released apart. Its only
+    package dependency is ILGPU.
+  - `APThermo.Cli` is packed from `src/Cli` as a .NET tool with the command `apthermo`.
+  - No other project is packable. The version lives once, in `Directory.Build.props`,
+    and a release tag `v<version>` must equal it. The package metadata and the symbol
+    settings apply only to packable projects and so live in `Directory.Build.targets`,
+    where `IsPackable` is already known (corrected 2026-09-17, CI audit F5; the wording
+    named only the props file).
+  - The license expression is `MIT AND Apache-2.0` (the NASA data), with `NOTICE`
+    packed.
+- **Symbols.**
+  - Every packed assembly ships its portable PDB in a `.snupkg`, with SourceLink to the
+    GitHub commit, from a deterministic CI build.
+  - The library assemblies ship their XML documentation; a public member without a
+    documentation comment fails the build.
+- **Public surface.** Everything public in a packed assembly is a promise to consumers.
+  - Before 0.1.0 the surface is reviewed, and whatever no consumer scenario needs
+    becomes internal.
+  - Below 1.0.0 a minor version may break the surface; `CHANGELOG.md` names the break.
+  - The review of 2026-09-15 (`clean-code-reviewer` over `ed5213b`) found 82 public types.
+    38 serve a consumer scenario, and 44 exist only for the composition inside the tree:
+    kernel descriptors, views, tables, the engine and its batches.
+  - Decided that day: the package surface is the consumer scenarios' types only, and no
+    ILGPU type appears on it.
+- **Tree contracts.** A type another node uses but no consumer needs is `internal` to its
+  assembly (decided 2026-09-15).
+  - The assembly grants `InternalsVisibleTo` to exactly the assemblies whose nodes
+    declare it in their `## Dependencies`, and to the test and benchmark nodes that use
+    it. No grant goes against a declared dependency.
+  - An assembly whose internal types reach a kernel as parameters or view elements also
+    grants `InternalsVisibleTo("ILGPURuntime")`. ILGPU 1.5.3 emits its kernel wrappers
+    into a dynamic assembly of that name. It does not require kernel types to be public,
+    as three node documents claimed; the review proved it on the CPU accelerator and on
+    CUDA.
+  - A node's `API.md` keeps two parts, marked in the section headings: the package
+    surface, and the tree contract.
+  - A friend assembly may name an internal type of another node only when that node's
+    tree contract declares it; the protocol tests node checks this. A grant exposes
+    every internal, and the check holds the grant to the contract.
+  - The command line is a consumer like any other: it receives no grant and uses the
+    package surface only.
+  - Records the library creates for consumers (results, database records, the
+    accelerator description) have internal constructors. A field added in 0.x then
+    breaks no consumer.
+  - The batch path of the execution node (engine, batches, uploaded tables) leaves the
+    package surface together with the rest of the tree contract. `Solver` stays the
+    consumer's batch entry. How `Solver` compares with the engine at 100 000 states is
+    measured by the benchmarks node before 0.1.0. A columnar result on the front door
+    would be added only if that figure asks for it, and adding it breaks nobody.
+- **Documentation.** Two layers, each with one source of truth.
+  - The contracts are the nodes' `API.md` and the XML comments.
+  - The guide (`README.md`, `docs/guide/`, the package READMEs under `docs/nuget/`) is
+    task-oriented and restates no signature.
+  - Every C# block of the guide (`README.md`, `docs/guide/`, the package READMEs)
+    equals a snippet of the samples node `samples/Samples`.
+    - The samples node is a console project in the solution, with one class per
+      consumer scenario. Each class checks the statuses it reads and prints its
+      figures.
+    - A snippet is delimited by `// snippet-start: <name>` and `// snippet-end`
+      comments and holds statements a consumer can paste. The `using` lines a scenario
+      needs are a snippet of their own.
+    - A snippet may be quoted on several pages. `#region` stays forbidden by the
+      code-shape constraint.
+  - The samples reference the library projects by default. With
+    `-p:APThermoPackageVersion=<version>` they restore the `APThermo` package from a
+    feed instead, so one source serves both the build and the check of the packed
+    package. They use the package surface only, as the command line does.
+
+  ⚠ 2026-09-17: on 2026-09-16 a local model, working without review, rewrote this
+  bullet, the continuous-integration bullet and the packages criterion with no
+  correction note. After the rewrite:
+  - only *marked* C# blocks were checked;
+  - a single marker ran to the end of the file;
+  - the package-feed mode was dropped as "a post-0.1.0 concern".
+
+  The audit of 2026-09-17 found three consequences:
+  - two C# blocks went unchecked, the README's and the package README's;
+  - every guide block carried the samples' class boilerplate;
+  - nothing ever restored the `APThermo` package.
+
+  The decisions of 2026-09-15 are restored, with two refinements from the audit: a
+  snippet may be quoted on several pages, and the `using` lines are a snippet of their
+  own.
+  - Every `apthermo` invocation shown in the guide takes its input documents from
+    `samples/cli/`, and its shown output is approved. The exceptions are the declared
+    synopses whose output depends on the machine (`apthermo devices`) or on the release
+    (`apthermo --version`). The docs tests node lists them, and the rest of each such
+    line must still parse as a valid invocation.
+
+    ⚠ 2026-09-17: stood without the exceptions. The final documentation review found
+    `apthermo devices`, `--help` and `--version` exempted only by the docs tests node,
+    a deviation the root did not declare (AGENTS.md §12). `devices` prints what the
+    machine has, and `--version` changes with every release, so neither has one
+    approved output; `--help` does, and is run.
+  - The docs tests node `tests/Docs.Tests` proves each of the following. Each check
+    fails when the set it walks is empty, and each was shown red once:
+    - every C# block equals its snippet;
+    - every sample prints its approved output;
+    - every `apthermo` invocation of the guide produces its approved output, with the
+      run section cut as the command line's tests cut it;
+    - every relative link of `README.md`, `llms.txt`, `docs/` and the package READMEs
+      resolves;
+    - every document under `samples/cli/` validates against its schema;
+    - every guide page has the shared shape.
+  - The JSON Schemas of the command line's documents belong to the command line
+    (2026-09-15). They move from its tests node to `src/Cli/Schemas/`, are embedded in
+    the tool (`apthermo schema <name>` prints one), and are validated there by the
+    command line's tests. No copy of them lives under `docs/`.
+  - `llms.txt` at the root is the entry for agents: a summary, and links to the guide
+    pages, the schemas, the samples and the nodes' `API.md`.
+  - Guide pages share one shape (purpose, when to use, steps, errors, see also), so a
+    human and an agent navigate them alike.
+- **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
+  configuration and is not a node.
+  - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
+    the build, the fast suite with `APTHERMO_NO_CUDA=1`, and packing both packages.
+    Then the samples run against the fresh `APThermo` package from a local feed, the
+    tool installed from that feed runs an approved example, and the docs tests run (the
+    ⚠ of 2026-09-17 under Documentation).
+  - There is no nightly run (2026-09-17).
+
+  ⚠ 2026-09-17: stood "A nightly run adds the long-running tests on the CPU
+  accelerator". Every long-running test of the tree is a CUDA test. Under
+  `APTHERMO_NO_CUDA=1` it only checks the refusal and returns, so a nightly run on
+  hosted runners added nothing (the CI audit of 2026-09-17, G1). The long-running CUDA
+  tests run at every release on the self-hosted runners. The user decided to drop the
+  nightly run rather than add a CPU-only long test.
+- **Release**, on a tag `v*`, in order:
+  1. the hosted matrix;
+  2. the CUDA tests, the long-running ones included, on two self-hosted runners of the
+     reference machine (Windows, and Linux under WSL2);
+  3. packing;
+  4. a push to nuget.org through Trusted Publishing, behind an environment the owner
+     approves;
+  5. a GitHub release with the notes of `CHANGELOG.md`.
+- **Self-hosted runners** never run a pull request's code. GPU jobs trigger only on tags
+  and on manual dispatch, and the runners run under an account without administrator
+  rights, started for a release rather than kept as services.
+- Nothing is pushed to GitHub or nuget.org without the owner's word.

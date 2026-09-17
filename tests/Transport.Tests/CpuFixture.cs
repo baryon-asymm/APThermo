@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
+using APThermo.Data;
+using APThermo.Fixtures;
+using APThermo.Harness;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>The harness's CPU host (context, accelerator, database, tolerance table) plus the transport database, shared by the collection.</summary>
 public sealed class CpuFixture : IDisposable

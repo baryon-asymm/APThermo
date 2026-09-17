@@ -1,12 +1,13 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Cli;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>The result of one invocation: exit code, standard output and standard error.</summary>
 public sealed record Run(int Code, string Output, string Error)
@@ -17,7 +18,7 @@ public sealed record Run(int Code, string Output, string Error)
 /// <summary>Paths of this node and of the database, a temporary directory, and the in-process and process-level invocations.</summary>
 public sealed class CliFixture : IDisposable
 {
-    public const string CliAssembly = "AerospacePropellantThermodynamics.Cli";
+    public const string CliAssembly = "APThermo.Cli";
 
     private readonly Lazy<SpeciesDatabase> _database = new(() => SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Path.Combine(RepositoryPaths.Data, "trans.inp")));
 
@@ -29,8 +30,6 @@ public sealed class CliFixture : IDisposable
     public static string NodeDirectory { get; } = RepositoryPaths.Resolve("tests", "Cli.Tests");
 
     public static string DocumentsDirectory => Path.Combine(NodeDirectory, "documents");
-
-    public static string SchemasDirectory => Path.Combine(NodeDirectory, "schemas");
 
     /// <summary>The names of the solvable example documents: every document of the directory that is not a states file.</summary>
     public static IReadOnlyList<string> ProblemDocumentNames() =>
@@ -79,7 +78,7 @@ public sealed class CliFixture : IDisposable
 
     public string Document(string name) => Path.Combine(DocumentsDirectory, name);
 
-    public string Schema(string name) => Path.Combine(SchemasDirectory, name);
+    public string SchemaText(string name) => SchemaResources.TryGet(name, out var text) ? text : throw new ArgumentException($"unknown schema '{name}'");
 
     public string TempFile(string name) => Path.Combine(Temp, name);
 

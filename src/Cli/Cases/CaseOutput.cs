@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Problems;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Cli.Cases;
+namespace APThermo.Cli.Cases;
 
 /// <summary>
 /// One case of an output document: what it was given, and what the library returned (the mixture with its mass in

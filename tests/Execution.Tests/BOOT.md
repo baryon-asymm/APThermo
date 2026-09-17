@@ -58,7 +58,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 - **Bit comparison goes through the harness** (2026-09-14): `BitEquality.cs`'s
   `SameBits` and `BitDifferences<T>` were, field for field, the harness's `Bits.Same`
   and `Bits.Differences<T>`; the file is gone and every call site of this node reads
-  `AerospacePropellantThermodynamics.Harness.Bits` instead, so the acceptance
+  `APThermo.Harness.Bits` instead, so the acceptance
   criterion below that names `BitEquality.cs` as one of the F-TF-06 split's four files
   now names a file this node no longer has.
 - **CUDA tests are marked** `Category=Cuda` and the sweep and the benchmark also
@@ -155,7 +155,7 @@ libdevice for the CUDA category.
       F-TF-06 but sharing none of the three axes above); no method over 60 lines or
       nested deeper than 3, covered by the protocol tests node's `ShapeTests`, all
       ten facts green at `62cd99e`; every L2 fact green bit for bit after the split
-      (`AerospacePropellantThermodynamics.Execution.Tests.dll`: 41 passed) and the
+      (`APThermo.Execution.Tests.dll`: 41 passed) and the
       node's mutations re-run alone and seen red where the touched code moved: the
       rocket kernel's chamber pressure perturbed by a relative `1e-12`
       (`batch.ChamberPressures[index] * (1.0 + 1e-12)` in `Kernels.Rocket`) reddened
@@ -200,7 +200,7 @@ libdevice for the CUDA category.
       own). Neither method nests deeper than 3 now.
 
       Verified: build clean, 0 warnings; 41 of 41 fast tests green
-      (`AerospacePropellantThermodynamics.Execution.Tests.dll`); `protocol_lint`
+      (`APThermo.Execution.Tests.dll`); `protocol_lint`
       0 errors, 0 warnings; `Protocol.Tests` 9 of 9 green. This node keeps no
       `Bits.approved.txt` of its own (its bit comparisons run the host call inside
       the same test, not against a recorded snapshot), so there is no hash to

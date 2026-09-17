@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// The throat (RP-1311 section 6.3.3): the initial pressure ratio of equation (6.15), the momentum update of (6.17) and the

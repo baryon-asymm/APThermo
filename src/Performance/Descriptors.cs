@@ -1,25 +1,30 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>Where the composition stops following the equilibrium.</summary>
 public enum FlowModel
 {
+    /// <summary>The composition stays in equilibrium all the way through the nozzle.</summary>
     ShiftingEquilibrium,
+
+    /// <summary>The composition is frozen at the chamber composition from the throat onward.</summary>
     FrozenAtChamber,
+
+    /// <summary>The composition follows equilibrium up to the throat, then freezes there.</summary>
     FrozenAtThroat,
 }
 
 /// <summary>How an exit station is assigned.</summary>
-public enum ExitSpecification
+internal enum ExitSpecification
 {
     AreaRatio,       // A_e/A_t ≥ 1, supersonic branch
     PressureRatio,   // p_c/p_e > 1
 }
 
 /// <summary>One rocket case: the propellant as element moles and enthalpy per kilogram, the chamber pressure, the flow model and the exit stations.</summary>
-public readonly struct RocketProblem
+internal readonly struct RocketProblem
 {
     /// <summary>Pa.</summary>
     public readonly double ChamberPressure;
@@ -57,16 +62,28 @@ public readonly struct RocketProblem
 /// <summary>The performance figures of one station; SI. At the chamber only the characteristic velocity and the pressure ratio (1) are defined.</summary>
 public struct PerformanceFigures
 {
-    public double AreaRatio;              // A/A_t; 1 at the throat, 0 at the chamber (undefined)
-    public double PressureRatio;          // p_c/p
-    public double CharacteristicVelocity; // c* = p_c/(ρ_t u_t), m/s; the same at every station
-    public double ThrustCoefficient;      // C_F = u/c*
-    public double SpecificImpulse;        // Isp = u, m/s (ambient pressure equal to the station pressure)
-    public double VacuumSpecificImpulse;  // Ivac = u + p/(ρ u), m/s
+    /// <summary>The area ratio A/A_t, dimensionless; 1 at the throat, 0 (undefined) at the chamber.</summary>
+    public double AreaRatio;
+
+    /// <summary>The pressure ratio p_c/p, dimensionless.</summary>
+    public double PressureRatio;
+
+    /// <summary>The characteristic velocity c* = p_c/(ρ_t u_t), in m/s; the same value at every station of a case.</summary>
+    public double CharacteristicVelocity;
+
+    /// <summary>The thrust coefficient C_F = u/c*, dimensionless.</summary>
+    public double ThrustCoefficient;
+
+    /// <summary>The specific impulse Isp = u, in m/s (the effective exhaust velocity, ambient pressure equal to
+    /// the station pressure).</summary>
+    public double SpecificImpulse;
+
+    /// <summary>The vacuum specific impulse Ivac = u + p/(ρ u), in m/s.</summary>
+    public double VacuumSpecificImpulse;
 }
 
 /// <summary>Sizes of a case's station arrays.</summary>
-public static class RocketLayout
+internal static class RocketLayout
 {
     /// <summary>Chamber and throat.</summary>
     public const int FixedStations = 2;
@@ -75,7 +92,7 @@ public static class RocketLayout
 }
 
 /// <summary>The views the rocket solver writes into; station 0 is the chamber, 1 the throat, 2 + k the k-th exit.</summary>
-public readonly struct RocketResult
+internal readonly struct RocketResult
 {
     public readonly ArrayView<MixtureState> Stations;      // [stations]
     public readonly ArrayView<double> Moles;               // [stations * species], kmol per kg

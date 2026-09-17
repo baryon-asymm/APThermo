@@ -1,10 +1,10 @@
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>
 /// Bits: the front door's orchestration is a tripwire, not a contract (BOOT.md). Every rocket, tp, hp and sp fixture is solved

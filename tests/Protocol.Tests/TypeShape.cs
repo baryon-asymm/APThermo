@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// What a type names: in its declarations (base type, interfaces, members) and in the bodies of its methods (via

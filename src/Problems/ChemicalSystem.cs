@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Execution;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>One element set with its species table and its copy uploaded to the engine's accelerator; disposable.</summary>
 internal sealed class ChemicalSystem(IReadOnlyList<string> elements, SpeciesTable table, UploadedTables tables) : IDisposable

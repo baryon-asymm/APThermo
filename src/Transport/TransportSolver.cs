@@ -1,15 +1,15 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Thermo;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Mixture viscosity, frozen and reacting thermal conductivity and Prandtl numbers of one station from the composition and the
 /// temperature: NASA RP-1311 Part I, chapter 5, in the form the reference program (NASA CEA) applies it, see BOOT.md.
 /// Kernel-compatible: no allocation, no exception, the listed Math functions only.
 /// </summary>
-public static class TransportSolver
+internal static class TransportSolver
 {
     /// <summary>The largest transport set (the reference's limit).</summary>
     public const int MaxSpecies = TransportLayout.MaxSpecies;

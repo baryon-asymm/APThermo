@@ -1,9 +1,9 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>L0: the table holds the fits of the file in SI and evaluates them as the independent Python evaluation does.</summary>
 [Collection(CpuCollection.Name)]

@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution.Chunks;
+using APThermo.Execution.Chunks;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>The loop of a batch, and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope.</summary>
 internal static class BatchRun

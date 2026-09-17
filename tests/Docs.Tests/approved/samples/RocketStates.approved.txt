@@ -1,0 +1,5 @@
+state record with exits  status=Ok  mass=1.0000 kg
+  chamber   T=2701.4 K
+  throat    T=2634.9 K   Isp=878.2 m/s
+  exit1     T=2148.2 K   Isp=2173.6 m/s
+  exit2     T=2092.3 K   Isp=2290.5 m/s

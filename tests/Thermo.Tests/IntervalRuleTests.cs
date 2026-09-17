@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>L0: interval selection at the exact bounds and outside the range, using the bounds of the records themselves.</summary>
 public sealed class IntervalRuleTests : IClassFixture<CpuFixture>

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Cli.Syntax;
+namespace APThermo.Cli.Syntax;
 
 /// <summary>The token walk: --name, --name=value, --help/-h, positionals, a repeated option; knows nothing of commands.</summary>
 internal static class ArgumentScanner
@@ -9,12 +9,19 @@ internal static class ArgumentScanner
         var given = new List<(string Name, string? Value)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var help = false;
+        var version = false;
         for (var i = 0; i < args.Count; i++)
         {
             var arg = args[i];
             if (arg is "--help" or "-h")
             {
                 help = true;
+                continue;
+            }
+
+            if (arg == "--version")
+            {
+                version = true;
                 continue;
             }
 
@@ -27,7 +34,7 @@ internal static class ArgumentScanner
             i = ReadOption(args, i, known, seen, given);
         }
 
-        return new ScannedArguments(positional, given, help);
+        return new ScannedArguments(positional, given, help, version);
     }
 
     private static int ReadOption(IReadOnlyList<string> args, int i, IReadOnlyList<OptionSpec> known, HashSet<string> seen, List<(string Name, string? Value)> given)

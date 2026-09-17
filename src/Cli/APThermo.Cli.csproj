@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Cli: the apthermo command line. JSON in, JSON or CSV out; a thin adapter over Problems. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>true</IsPackable>
+    <PackageId>APThermo.Cli</PackageId>
+    <Description>The apthermo command line: rocket propellant chemical equilibrium and performance (NASA CEA's class of computation), JSON in, JSON or CSV out.</Description>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>apthermo</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\nuget\APThermo.Cli.md" Pack="true" PackagePath="README.md" />
+    <EmbeddedResource Include="Schemas\*.schema.json" LogicalName="APThermo.Cli.Schemas.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Problems\APThermo.Problems.csproj" />
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Execution\APThermo.Execution.csproj" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\Performance\APThermo.Performance.csproj" />
+    <ProjectReference Include="..\Transport\APThermo.Transport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Cli.Tests" />
+    <InternalsVisibleTo Include="APThermo.Docs.Tests" />
+  </ItemGroup>
+
+</Project>

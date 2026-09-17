@@ -206,6 +206,24 @@ Decisions taken with the review of 2026-09-14:
   the same day on the dependency check's walk, by which the protocol tests node's
   `ShapeTests` measures this node.
 
+Decided 2026-09-15 (distribution phase, root `BOOT.md`, `## Delivery`, `Data`):
+
+- **The bundled database is three `EmbeddedResource` items, not a fourth parser.**
+  `data/thermo.inp`, `data/trans.inp` and `data/NOTICE` are linked into
+  `APThermo.Data.csproj` from `data/` (never copied) under the manifest names
+  `APThermo.Data.Bundled.thermo.inp`, `.trans.inp`, `.NOTICE`, chosen once and
+  independent of the project's file layout so a later reshuffle of `## Structure`
+  cannot silently rename them out from under a consumer.
+  `SpeciesDatabase.LoadBundled()` reads the two database resources as raw bytes,
+  decodes them Latin1 exactly as `Load` decodes files, hashes the same raw bytes, and
+  calls the private `Build` both `Load` and `Parse` already call: the embedding adds a
+  byte source, not a second reading of the format. `BundledNotice()` reads the third
+  resource as UTF-8 text (the file is 7-bit ASCII, so the two encodings agree).
+- **No new public type.** `LoadBundled` and `BundledNotice` are two more static
+  members of `SpeciesDatabase`; no `EmbeddedResource` name is public, so the manifest
+  names may still change without an API break as long as the two methods keep
+  reading the same files.
+
 ## Shape exceptions
 
 The rows below are this node's declared exceptions to the root's code-shape constraint,
@@ -215,6 +233,17 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 |---|---|---|---|
 | `Species.Species` | parameters | 11 | mirrors the file's fields one to one (the decision "The record constructors are the declared exception to the parameter rule"); its single construction site names its arguments |
 | `TemperatureInterval.TemperatureInterval` | parameters | 7 | mirrors the file's fields one to one, as `Species` above; its single construction site names its arguments |
+
+⚠ 2026-09-15 (distribution phase): both constructors became `internal` (root `BOOT.md`,
+Delivery: Tree contracts, the API review's finding M1, fixed in `c85fd77`): no consumer built a
+`Species` or a `TemperatureInterval`, only `SpeciesDatabase.Load`/`Parse` (through
+`SpeciesRecordReader` and `IntervalReader`) ever did. The two rows above are
+unchanged: the constructors still mirror the file's fields one to one, and their one
+construction site still names every argument, now in `camelCase` matching the
+constructors' own parameter names rather than the records' former positional
+`PascalCase` ones. `DatabaseProvenance`, `TransportEntry` and `TransportFit` gained
+internal constructors the same way; none is a declared parameter-count exception (4,
+5 and 6 parameters respectively, within the rule).
 
 No type of this node names more than 11 distinct types of the tree by the dependency
 check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move of
@@ -293,6 +322,19 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 — The bundled database: the SHA-256 of each of the three embedded
+      resources (`thermo.inp`, `trans.inp`, `NOTICE`) equals the SHA-256 of the
+      matching file under `data/`
+      (`BundledDatabaseTests.Embedded_resource_bytes_equal_the_committed_files`);
+      `LoadBundled()` produces a database equal, species by species and coefficient
+      by coefficient (Products, Reactants, every transport entry and fit, the
+      provenance hashes and header), to `Load(data/thermo.inp, data/trans.inp)`
+      (`BundledDatabaseTests.LoadBundled_equals_Load_on_every_species_and_coefficient`);
+      `BundledNotice()` equals the text of `data/NOTICE`
+      (`BundledDatabaseTests.BundledNotice_equals_the_committed_file`). Each seen red
+      once (AGENTS.md §13): the embedded `thermo.inp` truncated to its first 100
+      lines turned the hash test and the equality test both red; reverted, nothing of
+      the mutation committed.
 
 ## Taboos
 

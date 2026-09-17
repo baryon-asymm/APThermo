@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Harness;
+namespace APThermo.Harness;
 
 /// <summary>
 /// Fixture cases grouped into families that can share one batch. Nothing here runs a solver, builds a table or reads a

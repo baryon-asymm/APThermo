@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>L0: the post-link's missing-definition guard, driven directly without a GPU — it reads only the wrapper body libnvvm returned, never the kernel PTX.</summary>
 public sealed class PostLinkTests

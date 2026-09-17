@@ -1,9 +1,9 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Output;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Cli.Output;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli.Listings;
+namespace APThermo.Cli.Listings;
 
 /// <summary>The devices command: its rendering of a <see cref="DeviceReport"/>.</summary>
 internal static class DeviceListing
@@ -24,7 +24,7 @@ internal static class DeviceListing
         writer.WriteString("version", Program.Version);
         writer.WriteString("command", "devices");
         writer.WriteEndObject();
-        writer.WriteBoolean("cudaForbidden", Engine.CudaForbidden);
+        writer.WriteBoolean("cudaForbidden", AcceleratorProbe.CudaForbidden);
         writer.WritePropertyName("cpu");
         RunSection.WriteAccelerator(writer, report.Cpu);
         writer.WritePropertyName("cuda");

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Data: the NASA databases as an object model. No package dependencies. -->
+
+  <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public member
+       without a documentation comment fails the build, since warnings are errors (Directory.Build.props). -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- The bundled database (root BOOT.md, Constraints, Data): the committed files of data/,
+       embedded under stable manifest names, never copied into this directory. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\data\thermo.inp" LogicalName="APThermo.Data.Bundled.thermo.inp" Link="Bundled\thermo.inp" />
+    <EmbeddedResource Include="..\..\data\trans.inp" LogicalName="APThermo.Data.Bundled.trans.inp" Link="Bundled\trans.inp" />
+    <EmbeddedResource Include="..\..\data\NOTICE" LogicalName="APThermo.Data.Bundled.NOTICE" Link="Bundled\NOTICE" />
+  </ItemGroup>
+
+</Project>

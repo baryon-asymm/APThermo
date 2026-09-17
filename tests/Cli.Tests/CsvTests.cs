@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>L1: the CSV form against the approved file and its documented layout.</summary>
 [Collection(CliCollection.Name)]

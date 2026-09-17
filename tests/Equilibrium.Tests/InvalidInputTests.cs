@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: the status codes on invalid input, and that nothing but the status is written.</summary>
 [Collection(CpuCollection.Name)]

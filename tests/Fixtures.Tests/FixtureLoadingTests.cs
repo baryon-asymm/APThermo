@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace AerospacePropellantThermodynamics.Fixtures.Tests;
+namespace APThermo.Fixtures.Tests;
 
 /// <summary>L1: every committed fixture loads, names its kind, and is tied to the committed data files and the pinned package.</summary>
 public sealed partial class FixtureLoadingTests

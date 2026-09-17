@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>The command line as a separate process: real exit codes and standard streams, one run per exit code.</summary>
 [Collection(CliCollection.Name)]
@@ -44,5 +44,26 @@ public sealed class ProcessTests(CliFixture fixture)
         Assert.Equal(3, run.Code);
         Assert.Contains(EngineOptions.NoCudaVariable, run.Error);
         Assert.Empty(run.Output);
+    }
+
+    [Fact]
+    public void The_executable_prints_its_version_with_exit_0()
+    {
+        var run = fixture.InvokeProcess(["--version"]);
+        Assert.Equal(0, run.Code);
+        Assert.Equal(Program.Version, run.Output.Trim());
+        Assert.Empty(run.Error);
+    }
+
+    /// <summary>Working directory is <see cref="CliFixture.Temp"/>, an empty directory: no data/ beside it, no --database.</summary>
+    [Fact]
+    public void The_executable_uses_the_embedded_database_from_an_empty_working_directory()
+    {
+        var run = fixture.InvokeProcess(["species"]);
+        Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
+        using var document = run.Json();
+        var database = document.RootElement.GetProperty("run").GetProperty("database");
+        Assert.Equal(DatabaseFiles.EmbeddedThermoMarker, database.GetProperty("thermoPath").GetString());
+        Assert.Equal(DatabaseFiles.EmbeddedTransMarker, database.GetProperty("transPath").GetString());
     }
 }

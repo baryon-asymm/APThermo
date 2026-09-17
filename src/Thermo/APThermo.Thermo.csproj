@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Thermo: species tables and the kernel-compatible species functions. First kernel-capable level. -->
+
+  <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public member
+       without a documentation comment fails the build, since warnings are errors (Directory.Build.props). -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <!-- The tree contract of src/Thermo (root BOOT.md, Delivery: Tree contracts): the src nodes that
+       declare Thermo in their ## Dependencies, their mirroring test nodes, Benchmarks, and ILGPURuntime
+       for SpeciesTableView, a kernel parameter type (API.md, ## Species tables (tree contract)). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Thermo.Tests" />
+    <InternalsVisibleTo Include="APThermo.Equilibrium" />
+    <InternalsVisibleTo Include="APThermo.Equilibrium.Tests" />
+    <InternalsVisibleTo Include="APThermo.Performance" />
+    <InternalsVisibleTo Include="APThermo.Performance.Tests" />
+    <InternalsVisibleTo Include="APThermo.Transport" />
+    <InternalsVisibleTo Include="APThermo.Transport.Tests" />
+    <InternalsVisibleTo Include="APThermo.Execution" />
+    <InternalsVisibleTo Include="APThermo.Execution.Tests" />
+    <InternalsVisibleTo Include="APThermo.Problems" />
+    <InternalsVisibleTo Include="APThermo.Problems.Tests" />
+    <InternalsVisibleTo Include="APThermo.Benchmarks" />
+    <InternalsVisibleTo Include="ILGPURuntime" />
+  </ItemGroup>
+
+</Project>

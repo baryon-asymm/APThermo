@@ -7,7 +7,7 @@ consider proven about `Cli`.
 
 | Claim | Confirmed by | State |
 |---|---|---|
-| the documented input, states and output shapes are what the executable reads and writes: every example document runs and validates against the schema files, and the schema's field lists are the library's structs | L0, L1 against the schema files (`InputDocumentTests`, `OutputDocumentTests`) | ✅ |
+| the documented input, states and output shapes are what the executable reads and writes: every example document runs and validates against the command line's embedded schemas, and the schema's field lists are the library's structs | L0, L1 against the command line's embedded schemas (`InputDocumentTests`, `OutputDocumentTests`) | ✅ |
 | the executable's numbers are the library's numbers, field by field and exactly, for a rocket case with transport, an hp case and an elemental tp case | L2 (`LibraryEqualityTests`) | ✅ |
 | exit codes and error messages follow the contract, in-process and as a process; an invalid document writes nothing and names the JSON path | L0 in-process (`ExitCodeTests`, `InputDocumentTests`, `CommandLineTests`) and as a process (`ProcessTests`) | ✅ |
 | a state record or an elemental propellant whose composition does not weigh one kilogram is exit code 2 with the documented message naming the record (file and position, or the JSON path) and the mass; a record that does weigh one kilogram solves; the record examples of the `Cli` API solve | L0 (`InputDocumentTests`, `ExitCodeTests.A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`) | ✅ |
@@ -15,6 +15,17 @@ consider proven about `Cli`.
 | sweeps expand in the documented order into one document, states files of every accepted form give the same cases in input order, the threshold and the transport flag act as documented, the CSV has the documented layout | L1 (`OutputDocumentTests`, `CsvTests` against the approved file) | ✅ |
 | the states example gives the library's numbers through the front door's state batches; an invalid record carries the front door's reason behind its source; an unexpected exception is exit code 3; a run that fell back to the CPU accelerator says why in its document | L0, L2 (`LibraryEqualityTests`, `ExitCodeTests`, `OutputDocumentTests`, the facts of 2026-09-14) | ✅ 2026-09-14 |
 | every example's output is byte for byte what it was before the decomposition of 2026-09-14, the `run` section aside | Bits (`BitSnapshotTests`, `Bits.approved.txt`; BOOT.md, the criterion of 2026-09-15) | ✅ 2026-09-15 |
+| `apthermo schema` delivers exactly the bytes of the embedded file it names, to standard output and to `--output`; its embedded names equal a directory listing of `src/Cli/Schemas/`, never a typed list; a missing or an unknown name is exit code 2, no document, every name on standard error | L0 (`SchemaCommandTests`, BOOT.md, the criterion of 2026-09-17) | ✅ 2026-09-17 |
+
+⚠ 2026-09-17 (the audit's T1): the first row of this table (the documented shapes) was
+rewritten in place for the schemas' move of 2026-09-16 with no correction note:
+"validates against the schema files" and "L0, L1 against the schema files" became "the
+command line's embedded schemas" and "L0, L1 against the command line's embedded
+schemas". The root's Delivery decision of 2026-09-15 (committed `cb765c6`) moved the
+schema files from this node's `schemas/` directory to `src/Cli/Schemas/`, embedded in
+the assembly and served by the new `schema` command; the rewrite matches the code, but
+AGENTS.md §8 asks for the note even so, since a reader of the old wording would still be
+looking for `schemas/` here.
 
 ⚠ 2026-09-15: this row claimed every example's output is byte for byte what it was
 before the decomposition, `run` aside. Until this date the JSON half hashed
@@ -30,8 +41,9 @@ for the change of the hash alone (Cli.Tests BOOT.md, the criterion of 2026-09-15
 
 ## What the tests rely on
 
-- JSON schema files in this node's `schemas/` directory for the input, states, output,
-  species and devices documents, and a validator of this node for the keywords they use.
+- The command line's embedded schemas (read through `SchemaResources`, under the grant
+  of root `BOOT.md`, Delivery: Tree contracts) for the input, states, output, species
+  and devices documents, and the Harness `JsonSchema` validator for the keywords they use.
 - Example documents in this node's `documents/` directory, generated from the fixtures;
   the examples of the `Cli` API, read from `API.md` at run time; the approved CSV
   `documents/rocket-lox-lh2.approved.csv`.

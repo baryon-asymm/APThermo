@@ -1,10 +1,10 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>The entry point of apthermo: arguments in, documents and messages out, an exit code back.</summary>
-public static class Program
+internal static class Program
 {
     public const string ToolName = "apthermo";
 
@@ -23,6 +23,12 @@ public static class Program
         try
         {
             var invocation = CommandLine.Parse(args);
+            if (invocation.Version)
+            {
+                output.WriteLine(Version);
+                return (int)ExitCode.Ok;
+            }
+
             if (invocation.Help)
             {
                 output.Write(CommandTable.Usage);

@@ -1,13 +1,13 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>Turns fixture documents into propellants, problems and state records, as a user of the library would write them.</summary>
 internal static class FixtureCases

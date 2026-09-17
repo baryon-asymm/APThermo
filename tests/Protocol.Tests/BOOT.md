@@ -18,6 +18,7 @@ dependencies against the real ones.
 | Dependencies | `## Dependencies` of every node with an assembly equals the nodes whose types its code uses, in signatures and method bodies; ancestors allowed, descendants never | the assemblies' IL (`DependencyTests`) | ✅ |
 | Root invariants | double precision only and no mutable static field in the numerical nodes; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
+| Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
 
 ⚠ 2026-09-13: the sketch had five levels. The root `BOOT.md` claimed three of its
 invariants "checked by reflection" while no node held such a check; they are of the
@@ -35,6 +36,11 @@ Declarations and Dependencies levels.
 root's criterion is zero warnings, so the linter runs with `--strict` here and a
 warning fails the test too.
 
+The Tree contract level (2026-09-15, distribution phase) is new: the root's `BOOT.md`
+(Delivery, "Tree contracts") gave every node's `API.md` two parts, marked in its
+section headings — the package surface and the tree contract — and asked this node to
+check the split. See "## Tree contract" below for the convention and the four facts.
+
 ## Invariants
 
 - **Nodes are found by directory path** from the tree root (a directory holding both
@@ -43,8 +49,8 @@ warning fails the test too.
   (`[CallerFilePath]`).
 - **A type belongs to the deepest node whose namespace equals, or prefixes at a dot
   boundary, the type's own namespace** (`AGENTS.md` §1; `NodeAssemblies.NodeOf(Type)`,
-  2026-09-15): a node's own namespace is the root's (`AerospacePropellantThermodynamics`)
-  plus its directory path from the tree root, `src` and `tests` transparent
+  2026-09-15): a node's own namespace is the root's (`APThermo`)
+  plus its directory path from the tree root, `src`, `tests` and `samples` transparent
   (`Node.Namespace`), and equals the project's own name for a node that holds one — the
   only definition a project-less child node has, since such a node compiles into its
   nearest ancestor's assembly under its own namespace (root `BOOT.md`, Constraints,
@@ -59,6 +65,11 @@ warning fails the test too.
   fact (`AGENTS.md` §1) asks more than mere attribution: a type's own namespace must
   *equal* its node's, not merely sit inside a deeper, undeclared corner of an ancestor's
   — a node-shaped namespace with no node behind it stays a violation.
+
+  ⚠ 2026-09-17: this bullet stood "`src` and `tests` transparent", unchanged since
+  `samples/` became a third grouping directory (root `BOOT.md`, Constraints, the ⚠ of
+  2026-09-16); `Node.Namespace` already filters all three, so the wording just had not
+  caught up. Found by the CLI audit's finding P1, fixed in `68f540a`.
 - **A node's own source files are the ones `SourceSyntax` walks for it**: every `*.cs`
   file under its directory except a descendant node's own subtree (project or
   project-less, `AGENTS.md` §1) — a child's files count for the child and never also for
@@ -130,17 +141,18 @@ which is the proof that nothing leaked.
 | Type | Responsibility |
 |---|---|
 | `Tree` | where the tree is and what its nodes are: the root from `[CallerFilePath]`, the nodes by directory path, `Relative` |
-| `NodeAssemblies` | the assembly each node's project builds, loaded from this project's build output; the deepest node a type's own namespace attributes it to (2026-09-15: a project-less child node included, its own effective assembly found by walking up its ancestors); `ProjectNodeOf` (2026-09-15, child-nodes phase) is that same upward walk exposed as the nearest-project-node lookup `CouplingMeasures` reuses |
+| `NodeAssemblies` | the assembly each node's project builds, loaded from this project's build output; the deepest node a type's own namespace attributes it to (2026-09-15: a project-less child node included, its own effective assembly found by walking up its ancestors); `ProjectNodeOf` (2026-09-15, child-nodes phase) is that same upward walk exposed as the nearest-project-node lookup `CouplingMeasures` reuses; `InternalsVisibleTo` (2026-09-15, distribution phase) is the grantee names an assembly's attribute data declares, for `TreeContractTests` |
 | `TypeShape` | what a type names in its declarations, its methods, its outermost declaring type, what the compiler generated |
 | `IlBody` | the instructions of a method body, the operand width from the runtime's opcode table, and the types they bind to; takes methods, so that `TypeShape` → `IlBody` is one-way |
 | `NodeDocuments` | what a node's own `BOOT.md` declares: the links of `## Dependencies` and the rows of `## Shape exceptions` |
-| `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests` |
+| `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests`; the tree-contract mark of a section heading (2026-09-15, distribution phase), the one meaning of "package surface" and "tree contract" for `TreeContractTests` |
 | `SourceSyntax` | the C# syntax trees of a node's source files, the build directories and generated files skipped |
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
 | `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node that holds a project over the declared dependency graph, a project-less child's own declared dependencies folded into its nearest project ancestor's (`NodeAssemblies.ProjectNodeOf`, root `BOOT.md`, Constraints, 2026-09-15 child-nodes phase) |
 | `ShapeMechanics` | the mechanics rule read from syntax: no `partial`/`#region`/banned-suffix type name |
 | `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
+| `TreeContractTests` | the four facts of the Tree contract level (2026-09-15, distribution phase; "## Tree contract" below): a library node's public surface, a declared type's section against its visibility, a friend crossing against the target's tree contract, and a `src` assembly's `InternalsVisibleTo` grants against their recognised friends |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
 Decisions taken with the review:
@@ -298,6 +310,81 @@ physical assembly is a second, independent failure mode the wider attribution op
 (a type whose namespace names a real node whose own effective assembly is not the one
 holding the type).
 
+## Tree contract
+
+Designed 2026-09-15 (distribution phase, root `BOOT.md`, Delivery: "Tree contracts").
+That decision gave every node's `API.md` two parts, marked in the section headings,
+and asked this node to check them apart. The convention this node reads:
+
+- A section heading may carry the text `(tree contract)`: `## Chunk buffers (tree
+  contract) ✅`. A heading without it belongs to the package surface — every heading of
+  every node's `API.md` today, which is why fact a below is green on today's tree
+  without a single document edited (root `BOOT.md`, Delivery: "today no internal type
+  crosses a node boundary").
+- Unlike the ✅/⏳ mark, the tree-contract mark does not persist from one heading to the
+  next: every `## ` line resets it, marked or not. A node's `API.md` mixes package
+  surface and tree contract freely, section by section, with no state to carry between
+  them (`ApiDeclarations.Classify`, whose doc comment states both state machines
+  together, since one walk now reads both).
+- The split applies only to a node that packs its own assembly (`NodeAssemblies.
+  Assemblies`, the eight `src` nodes and `Fixtures`, the test assemblies excluded the
+  way `SurfaceTests` excludes them — facts a and c below, `TreeContractTests.
+  LibraryNodes`). `InternalsVisibleTo` names an assembly, never a namespace: a
+  project-less child's types are already visible throughout its own ancestor's one
+  assembly with no grant possible or needed, so the split does not reach its document
+  at all. `src/Execution/Chunks/API.md` and the `API.md` of `src/Cli`'s five children
+  (`Cases`, `Documents`, `Listings`, `Output`, `Syntax`) already declare `internal`
+  types under unmarked headings today, exactly as this rule leaves them: none of the
+  six is a node with its own project, so facts a and c never read their documents, and
+  none was touched building this level.
+
+Four facts, `TreeContractTests`:
+
+- **(a)** `Every_public_type_of_a_library_node_is_named_in_its_package_surface`: every
+  exported type of a library node (root `BOOT.md`, Delivery: "Public surface") is named
+  in a package-surface section of its own `API.md` — `CoverageTests`' own fact asks only
+  that it is named *somewhere* under ✅; this one asks it is not hidden entirely inside
+  tree-contract text, where a consumer reading the promise would miss it.
+- **(b)** `A_type_naming_a_friend_assemblys_internal_type_finds_it_in_the_tree_contract`:
+  every type of every code node (children included) that names a non-public type of
+  another node, across an assembly boundary (an `InternalsVisibleTo` grant is the only
+  way such code compiles at all), finds that type named in the target's own
+  tree-contract section. Two crossings need no such grant and are excluded before the
+  assembly-boundary test is even asked: a self or a descendant node (a parent owns its
+  children, AGENTS.md §6), and the assembly a project-less child shares with its
+  ancestor. Exempt beyond that: a test node's own mirrored source node and its child
+  nodes (`tests/Y.Tests` → `src/Y`, `TreeContractTests.MirroredSourceNode`) — the design
+  invariant every such node's own `InternalsVisibleTo` grant already encodes, not a
+  friend relationship to audit type by type here.
+- **(c)** `Every_declared_type_of_a_library_node_matches_its_section_to_its_visibility`:
+  every type a library node's own `API.md` declares (`ApiDeclarations.
+  DeclaredTypeSections`, the type-opening line of a ✅ C# block) is public only where it
+  is declared in a package-surface section, and internal only where it never is. A
+  public type named only inside tree-contract text, or an internal type named inside
+  package-surface text, is a mismatch between the document's own bookkeeping and the
+  code's real visibility — the two ways an `API.md` can misstate which promise a type
+  carries.
+- **(e)** `Every_internals_visible_to_grant_of_a_src_node_names_a_recognised_friend`:
+  every `InternalsVisibleTo` of a `src` node's assembly (`NodeAssemblies.
+  InternalsVisibleTo`) names one of four recognised friends (root `BOOT.md`, Delivery:
+  "Tree contracts") — `ILGPURuntime`; the node's own mirroring test assembly
+  (`<Node>.Tests`); a node whose own `BOOT.md` declares the granter in its `##
+  Dependencies` (`NodeDocuments.DeclaredDependencies`); or, for `tests/Benchmarks`,
+  `tests/Harness` or another test node specifically, a node that actually names one of
+  the granter's own tree-contract types (`TreeContractTests.NamesTreeContractType`) even
+  without such a declared dependency. `APThermo.Cli` is refused unconditionally, ahead
+  of every other rule: "the command line is a consumer like any other: it receives no
+  grant and uses the package surface only" (root `BOOT.md`, Delivery).
+
+There is no fact **(d)**: the task that designed this level asked whether
+`DeclarationTests` reads only exported types, since a declaration under ✅ in a
+tree-contract section names an internal type. It does not: `DeclarationTests.Find`
+already searches every type of every assembly of the tree (`Assembly.GetTypes()`, not
+`GetExportedTypes()`), and `DeclarationTests.HasMember` reads `BindingFlags.Public |
+BindingFlags.NonPublic`. The Declarations level was already correct for a
+tree-contract declaration on the day it was written (2026-09-13), because it never
+distinguished visibility in the first place; nothing here changed it.
+
 ## Shape check
 
 Designed 2026-09-14 (the root's code-shape constraint). Every number below means one
@@ -342,7 +429,7 @@ and `Records.IntervalRecord` of `tests/Data.Tests`, both nested inside `internal
 class Records`, are written `Records.SpeciesRecord` and `Records.IntervalRecord` from
 outside that class, a qualifier of a nested type's own enclosing type, never of the
 namespace alone. A qualifier relative to an enclosing namespace escaped the same way:
-`Execution.RocketBatchViews(…)` written from namespace `AerospacePropellantThermodynamics.
+`Execution.RocketBatchViews(…)` written from namespace `APThermo.
 Problems` needs no `using` at all, since C# searches the enclosing namespaces of the
 writing file. Both positional creations these two rows' types would therefore have gone
 unreported had one existed. `WideConstructorType` now carries the row's nesting path
@@ -640,7 +727,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       Convert(value) is Single"; (7) the CUDA check red, "names
       ILGPU.Runtime.Cuda.CudaAccelerator"; (8) the static-field check red, "Counter is
       a static field that is neither const nor readonly"; (9) the namespace check red,
-      "is in namespace AerospacePropellantThermodynamics.Thermo.Weird"; (10)
+      "is in namespace APThermo.Thermo.Weird"; (10)
       Declarations and Lint red, "declares the type MutationNonexistentType under ✅,
       and no assembly of the tree has it". One unrelated failure ran alongside every
       check above and after, in the coder's worktree only: Declarations red on
@@ -747,9 +834,9 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       blank-line padding (verified: 353 code lines over a 413-line physical span) and
       for a method the same way at 60 (50 code lines over a 65-line physical span).
 
-      `dotnet build AerospacePropellantThermodynamics.sln`: 0 warnings, 0 errors
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors
       throughout; the fast suite green throughout
-      (`dotnet test AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"`
+      (`dotnet test APThermo.sln --filter "Category!=LongRunning"`
       with `APTHERMO_NO_CUDA=1`: 3024 passed, up from 3014 before it, none skipped); the
       linter 0 errors, 0 warnings; `git status` clean after every mutation was reverted.
 - [x] 2026-09-15 — The Shape level's non-degeneracy gaps closed (repair phase,
@@ -858,7 +945,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         as the node's own history already found for the Dependencies level alone.
 
       `dotnet test tests/Protocol.Tests` green (20 passed) after each revert and after
-      all three; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0
+      all three; `dotnet build APThermo.sln` 0 warnings, 0
       errors after each revert; the linter 0 errors, 0 warnings; no file outside this
       node carries a trace of any of the three once reverted.
 - [x] 2026-09-15 — R-Protocol.Tests-13 (repair phase): eight branches the original
@@ -893,7 +980,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         added to `Data`, not an existing type's only mention losing ✅ status): `src/Data/API.md`'s
         `## Database ✅` heading changed to `⏳` alone, red on five of its seven types at
         once, "src/Data/API.md never names DatabaseProvenance, which
-        AerospacePropellantThermodynamics.Data exports" (`ElementCount`, `SpeciesPhase`,
+        APThermo.Data exports" (`ElementCount`, `SpeciesPhase`,
         `SpeciesSection`, `TemperatureInterval` alongside it); `SpeciesDatabase` and
         `Species` stayed unreported, each named again in the document's other ✅
         sections, showing the fact is exact and not merely triggered by the heading
@@ -915,7 +1002,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       `## Shape exceptions`; a single status mark of `src/Data/API.md`; a single figure
       of `src/Execution/BOOT.md`'s own declared row) and reverted
       before this commit; `git status` clean and `git diff --stat` empty for every
-      touched file once reverted; `dotnet build AerospacePropellantThermodynamics.sln`
+      touched file once reverted; `dotnet build APThermo.sln`
       0 warnings, 0 errors and the linter 0 errors, 0 warnings after every revert.
 - [x] 2026-09-15 — Child nodes (root `BOOT.md`, Constraints, 2026-09-15): every check
       reads one attribution (`NodeAssemblies.NodeOf(Type)`, `Node.Namespace`, `## Structure`,
@@ -941,7 +1028,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       falls back to the project node of the type's own physical assembly when the
       namespace walk finds nothing, and the dump matched again.
 
-      `dotnet build AerospacePropellantThermodynamics.sln`: 0 warnings, 0 errors;
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors;
       `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests`: 19 passed; the linter 0
       errors, 0 warnings; `PublicSurface.approved.txt` unchanged
       (`git hash-object`: `35d15ae5ff2f8b189290d88d3728716e8f1b051c` before and after).
@@ -957,7 +1044,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       - **(b)** a public type, `MutationUndocumented`, not named in the child's own
         `API.md`: `Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api`
         red, "src/Cli/MutationChild/API.md never names MutationUndocumented, which
-        AerospacePropellantThermodynamics.Cli.MutationChild exports (root BOOT.md,
+        APThermo.Cli.MutationChild exports (root BOOT.md,
         Taboos: no public type outside its node's API.md)", naming the child node; the
         namespace fact stayed green, since the type's own namespace resolves exactly to
         the child node that exists for it;
@@ -975,7 +1062,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         implied by naming the child, confirmed by querying the measurement itself.
 
       Each proof's directory and file deleted before this commit; `git status --short`
-      empty; `dotnet build AerospacePropellantThermodynamics.sln` 0 warnings, 0 errors
+      empty; `dotnet build APThermo.sln` 0 warnings, 0 errors
       and the linter 0 errors, 0 warnings after every revert.
 - [x] 2026-09-15 (child-nodes phase) — The stable-dependencies measure moved from one
       component per `src` node to one component per `src` node that holds a project
@@ -992,7 +1079,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       second walk) and dropping an edge that folds back onto the same project node;
       `dotnet test tests/Protocol.Tests` green after the fix (19 passed, the fact
       above among them), `dotnet test tests/Cli.Tests` green (99 passed), `dotnet build
-      AerospacePropellantThermodynamics.sln` 0 warnings 0 errors, the linter 0 errors 0
+      APThermo.sln` 0 warnings 0 errors, the linter 0 errors 0
       warnings, `PublicSurface.approved.txt` unchanged (`git hash-object`:
       `35d15ae5ff2f8b189290d88d3728716e8f1b051c`, same before and after — the change
       touches no public member). The node-level table above is the re-measurement on
@@ -1007,6 +1094,65 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       and turned the fact red, "src/Execution (I=0.714) depends on src/Problems
       (I=0.750), which is less stable"; reverted, `git status --short` empty, the fact
       green again.
+- [x] 2026-09-15 (distribution phase) — Tree contract level wired (root `BOOT.md`,
+      Delivery: "Tree contracts"; `## Tree contract` above): `TreeContractTests`'
+      four facts green on today's tree, without a single document or `.csproj` outside
+      this node touched, exactly as the root's own Delivery entry predicts ("today no
+      internal type crosses a node boundary: every type another node uses is still
+      public") — `Every_public_type_of_a_library_node_is_named_in_its_package_surface`,
+      `Every_declared_type_of_a_library_node_matches_its_section_to_its_visibility`,
+      `A_type_naming_a_friend_assemblys_internal_type_finds_it_in_the_tree_contract`,
+      `Every_internals_visible_to_grant_of_a_src_node_names_a_recognised_friend`
+      (`dotnet test tests/Protocol.Tests`: 23 passed, up from 19). `src/Execution/Chunks`
+      and `src/Cli`'s five children (`Cases`, `Documents`, `Listings`, `Output`,
+      `Syntax`) already declare `internal` types under unmarked headings today; facts a
+      and c never read their documents (they hold no project of their own), which is
+      why none of the six needed an edit.
+
+      Each fact seen red once, each mutation applied alone to a temporary, uncommitted
+      addition and reverted, `dotnet test tests/Protocol.Tests --filter
+      "FullyQualifiedName~TreeContractTests"` run after each, the message above the
+      only failure, then `git status --short` empty and `dotnet build APThermo.sln` 0
+      warnings 0 errors after every revert:
+      1. a cross-node type made internal (`src/Thermo`'s scratch
+         `MutationTreeContract`), with a temporary `InternalsVisibleTo` grant to
+         `APThermo.Equilibrium` and a real reference from a scratch
+         `src/Equilibrium` type, never declared in `src/Thermo/API.md`'s tree
+         contract: fact b red, "src/Equilibrium/BOOT.md: MutationUsesTreeContract
+         names MutationTreeContract, an internal type of src/Thermo, and
+         src/Thermo/API.md does not declare it in a tree-contract section";
+      2. the same scratch type left public and declared only in a temporary `## `
+         section of `src/Thermo/API.md` marked `(tree contract)`: fact c red, "src/Thermo/API.md:
+         MutationTreeContract is public, and declared only in a tree-contract
+         section" (fact a red alongside it on the same mutation, "never names
+         MutationTreeContract in a package-surface section" — the same type declared
+         only in tree-contract text fails both readings at once, which is why the
+         task that designed this level left the choice between them to the
+         implementation);
+      3. an undeclared grant, `src/Data` granting `APThermo.Cli`: fact e red, "src/Data/BOOT.md:
+         grants InternalsVisibleTo to APThermo.Cli, but the command line receives no
+         grant" — the blanket refusal, ahead of the general rule. The general rule's
+         own branch was checked alongside it (not one of the task's four, kept as
+         extra evidence a compound fact needs): `src/Data` granting
+         `APThermo.Performance` instead (a real node whose `## Dependencies` does not
+         name `src/Data`), fact e red, "src/Data/BOOT.md: grants InternalsVisibleTo to
+         APThermo.Performance, but src/Performance/BOOT.md neither declares src/Data
+         in its ## Dependencies nor names a tree-contract type of it";
+      4. a public type moved into a tree-contract section: `src/Data/API.md`'s real
+         `## Errors ✅` heading (declaring `DatabaseFormatException`, public, used
+         outside `src/Data`) marked `## Errors (tree contract) ✅`: facts a and c both
+         red, "src/Data/API.md never names DatabaseFormatException in a
+         package-surface section" and "DatabaseFormatException is public, and
+         declared only in a tree-contract section" — the same double-fire as mutation
+         2, this time on a real declaration rather than a scratch one.
+
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors throughout; the fast suite
+      green throughout (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`: 3051 passed, none skipped, measured before the
+      mutations and matching the count after every revert); the linter 0 errors,
+      0 warnings; `PublicSurface.approved.txt` unchanged (`git hash-object`:
+      `05c95d07892bc7d9a323882bc702f29c48e65dc8`, before and after); `git status
+      --short` empty.
 
 ## Taboos
 

@@ -1,0 +1,2 @@
+products = 2030, reactants = 81
+thermoSha256 starts with: fa7746572952

@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node src/Problems: the front door. Propellants, chemical systems, problems and results, orchestration of the numerical nodes through Execution. -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>APThermo</PackageId>
+    <Description>Rocket propellant chemical equilibrium, thermodynamic and transport properties, and engine performance (NASA CEA's class of computation), CPU or CUDA, in double precision. The NASA thermodynamic database is embedded.</Description>
+    <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public
+         member without a documentation comment fails the build, since warnings are errors
+         (Directory.Build.props). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\nuget\APThermo.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Data\APThermo.Data.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Performance\APThermo.Performance.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Transport\APThermo.Transport.csproj" PrivateAssets="all" />
+    <ProjectReference Include="..\Execution\APThermo.Execution.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- The package's only real dependency (root BOOT.md, ## Delivery, Packages): the six referenced
+       assemblies above are merged into this package's own lib folder instead (## Structure below). -->
+  <ItemGroup>
+    <PackageReference Include="ILGPU" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="APThermo.Problems.Tests" />
+  </ItemGroup>
+
+  <!-- The six project references above are never released apart from this one (root BOOT.md, ## Delivery,
+       Packages), so their build output is merged into this package's own lib and symbol folders instead of
+       becoming package dependencies of their own: `PrivateAssets="all"` above already keeps them, and
+       anything they in turn reference, out of the nuspec's <dependencies>; the two targets below add their
+       assemblies, their XML documentation (since every library project sets `GenerateDocumentationFile` —
+       root BOOT.md, Delivery: Symbols) and their portable PDBs. Only assemblies actually produced by a project
+       reference of this solution are picked up (`ReferenceCopyLocalPaths`' `ReferenceSourceTarget` metadata
+       excludes NuGet-sourced references such as ILGPU, which stays a real dependency). -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);_APThermoMergeReferencedAssemblies</TargetsForTfmSpecificBuildOutput>
+    <TargetsForTfmSpecificDebugSymbolsInPackage>$(TargetsForTfmSpecificDebugSymbolsInPackage);_APThermoMergeReferencedSymbols</TargetsForTfmSpecificDebugSymbolsInPackage>
+  </PropertyGroup>
+
+  <!--
+    Neither the .xml doc file nor the .pdb beside each merged dll is read from ReferenceCopyLocalPaths: unlike
+    the dll entries, that item carries no reliable .xml or .pdb companion when this target runs through
+    `dotnet pack`'s own sub-invocation (observed empty here although a plain `dotnet build` of this project
+    lists all three); both are derived instead from the dll paths this target already resolves correctly,
+    which is the same information either way.
+  -->
+  <Target Name="_APThermoMergeReferencedAssemblies" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+                             Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and '%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference'" />
+      <_APThermoReferencedAssemblyXml Include="@(ReferenceCopyLocalPaths->'%(RootDir)%(Directory)%(Filename).xml')"
+                                       Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and '%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference'
+                                                  and Exists('%(ReferenceCopyLocalPaths.RootDir)%(ReferenceCopyLocalPaths.Directory)%(ReferenceCopyLocalPaths.Filename).xml')" />
+      <BuildOutputInPackage Include="@(_APThermoReferencedAssemblyXml)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_APThermoMergeReferencedSymbols" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <_APThermoReferencedAssemblyPdb Include="@(ReferenceCopyLocalPaths->'%(RootDir)%(Directory)%(Filename).pdb')"
+                                       Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and '%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference'
+                                                  and Exists('%(ReferenceCopyLocalPaths.RootDir)%(ReferenceCopyLocalPaths.Directory)%(ReferenceCopyLocalPaths.Filename).pdb')" />
+      <TfmSpecificDebugSymbolsFile Include="@(_APThermoReferencedAssemblyPdb)">
+        <TargetFramework>$(TargetFramework)</TargetFramework>
+      </TfmSpecificDebugSymbolsFile>
+    </ItemGroup>
+  </Target>
+
+</Project>

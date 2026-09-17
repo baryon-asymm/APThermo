@@ -1,10 +1,10 @@
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>The kernel-side view of a species table: the same layout as <see cref="SpeciesTableArrays"/>, over accelerator memory. Blittable.</summary>
-public readonly struct SpeciesTableView
+internal readonly struct SpeciesTableView
 {
     public readonly int SpeciesCount;
 
@@ -52,7 +52,7 @@ public readonly struct SpeciesTableView
 /// A species table uploaded to an accelerator: owns the buffers and exposes the view. On the CPU accelerator the view is
 /// also readable from host code, which is how tests and the host path evaluate the species functions.
 /// </summary>
-public sealed class SpeciesTableBuffers : IDisposable
+internal sealed class SpeciesTableBuffers : IDisposable
 {
     private readonly MemoryBuffer1D<double, Stride1D.Dense> _molarMass;
     private readonly MemoryBuffer1D<double, Stride1D.Dense> _formationEnthalpy;

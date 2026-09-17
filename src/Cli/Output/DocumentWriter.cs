@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Cases;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Cases;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli.Output;
+namespace APThermo.Cli.Output;
 
 /// <summary>Renders a document through a callback, delivers it to the output file or standard output, and decides the exit code.</summary>
 internal static class DocumentWriter

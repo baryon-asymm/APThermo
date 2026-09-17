@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>
 /// The reduced Newton system of RP-1311 tables 2.1 and 2.2, with the gaseous corrections of equation (2.18) substituted:

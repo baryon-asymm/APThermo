@@ -1,9 +1,9 @@
 # API.md — Cli.Documents
 
-Namespace `AerospacePropellantThermodynamics.Cli.Documents`, compiled into the
-`AerospacePropellantThermodynamics.Cli` assembly (root `BOOT.md`, Constraints,
+Namespace `APThermo.Cli.Documents`, compiled into the
+`APThermo.Cli` assembly (root `BOOT.md`, Constraints,
 2026-09-15). Every type is `internal`; visible throughout the `Cli` assembly and to
-`AerospacePropellantThermodynamics.Cli.Tests`, but the parent and the sibling child
+`APThermo.Cli.Tests`, but the parent and the sibling child
 node `Cli.Cases` use only what is named below. `JsonText`, `StrictObject`,
 `SweepValues`, `PropellantDocumentReader` and `ProblemPartReader` are this node's own
 and may change.
@@ -11,7 +11,7 @@ and may change.
 ## Readers ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli.Documents;
+namespace APThermo.Cli.Documents;
 
 internal static class ProblemDocumentReader
 {

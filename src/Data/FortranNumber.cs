@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// Reads numbers the way Fortran formatted output writes them: <c>D</c> or <c>E</c> exponent letters,

@@ -1,0 +1,1 @@
+chamber temperature = 3485.0 K

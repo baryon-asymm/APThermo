@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Execution.Chunks;
+namespace APThermo.Execution.Chunks;
 
 /// <summary>
 /// The one rule that decides how many cases a launch takes: the option's chunk size, bounded by the device bytes the option lets a

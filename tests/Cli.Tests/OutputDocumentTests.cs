@@ -1,14 +1,15 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Cli.Syntax;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Cli.Syntax;
+using APThermo.Execution;
+using APThermo.Harness;
+using APThermo.Performance;
+using APThermo.Problems;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>L1: every example document runs end to end and its result validates against the output schema; sweeps, states, thresholds, listings.</summary>
 [Collection(CliCollection.Name)]
@@ -41,7 +42,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var (code, document, error) = fixture.Produce(command, name);
         Assert.Equal(name == "rocket-failing.json" ? 1 : 0, code);
         Assert.Empty(error);
-        var errors = JsonSchema.Load(fixture.Schema("output.schema.json")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         var run = document.RootElement.GetProperty("run");
         Assert.Equal(command, run.GetProperty("command").GetString());
@@ -55,7 +56,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     {
         var (code, document, _) = fixture.Produce("states", "states.json");
         Assert.Equal(0, code);
-        var errors = JsonSchema.Load(fixture.Schema("output.schema.json")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         using var records = JsonDocument.Parse(File.ReadAllText(fixture.Document("states.json")));
         var cases = document.RootElement.GetProperty("cases").EnumerateArray().ToList();
@@ -197,7 +198,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var run = fixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o");
         Assert.Equal(0, run.Code);
         using var document = run.Json();
-        var errors = JsonSchema.Load(fixture.Schema("species.schema.json")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("species")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         var names = document.RootElement.GetProperty("species").EnumerateArray().Select(s => s.GetProperty("name").GetString()!).ToList();
         Assert.Contains("H2O", names);
@@ -221,7 +222,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var run = fixture.InvokeProcess(["rocket", fixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath], environment);
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
-        var errors = JsonSchema.Load(fixture.Schema("output.schema.json")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         var accelerator = document.RootElement.GetProperty("run").GetProperty("accelerator");
         Assert.Equal("cpu", accelerator.GetProperty("kind").GetString());
@@ -232,7 +233,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var devices = fixture.InvokeProcess(["devices"], environment);
         Assert.Equal(0, devices.Code);
         using var devicesDocument = devices.Json();
-        var devicesErrors = JsonSchema.Load(fixture.Schema("devices.schema.json")).Validate(devicesDocument.RootElement);
+        var devicesErrors = JsonSchema.Parse(fixture.SchemaText("devices")).Validate(devicesDocument.RootElement);
         Assert.True(devicesErrors.Count == 0, string.Join("; ", devicesErrors));
         Assert.Contains(EngineOptions.NoCudaVariable, devicesDocument.RootElement.GetProperty("cuda").GetProperty("message").GetString());
     }
@@ -242,14 +243,14 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     {
         var run = fixture.Invoke("devices");
         using var document = run.Json();
-        var errors = JsonSchema.Load(fixture.Schema("devices.schema.json")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(fixture.SchemaText("devices")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
     }
 
     [Fact]
     public void The_schema_lists_every_field_of_the_library_result_structs()
     {
-        using var schema = JsonDocument.Parse(File.ReadAllText(fixture.Schema("output.schema.json")));
+        using var schema = JsonDocument.Parse(fixture.SchemaText("output"));
         var definitions = schema.RootElement.GetProperty("$defs");
         AssertSchemaListsFields<MixtureState>(definitions.GetProperty("station"), required: true);
         AssertSchemaListsFields<PerformanceFigures>(definitions.GetProperty("performance"), required: true);

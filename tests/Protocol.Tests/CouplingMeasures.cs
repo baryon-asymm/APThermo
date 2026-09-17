@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// The coupling measurements of the Shape level ("Shape check": efferent coupling, stable type, stable dependencies): per type

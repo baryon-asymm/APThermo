@@ -1,13 +1,13 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Problems;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Equilibrium;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Problems;
+using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Group 4 of `BOOT.md`, Constraints: the one-time costs a .NET caller pays once per
 /// process (database load, chemical-system assembly, kernel compilation on the CPU
@@ -23,7 +23,9 @@ public class OneTimeCostBenchmarks
     private Solver _solver = null!;
     private IReadOnlyList<string> _elements = null!;
     private SpeciesTable _table = null!;
+    private SpeciesTable? _assembledTable;
     private EquilibriumBatch _compileBatch = null!;
+    private EquilibriumBatchResult? _compiledResult;
 
     private Engine _uploadEngine = null!;
     private UploadedTables? _uploaded;
@@ -57,14 +59,14 @@ public class OneTimeCostBenchmarks
     public SpeciesDatabase LoadDatabase() => SpeciesDatabase.Load(_thermoPath, _transPath);
 
     [Benchmark]
-    public SpeciesTable AssembleChemicalSystem() =>
-        SpeciesTable.Build(_database, _elements, _solver.CandidateSpeciesFor(_elements));
+    public void AssembleChemicalSystem() =>
+        _assembledTable = SpeciesTable.Build(_database, _elements, _solver.CandidateSpeciesFor(_elements));
 
     [IterationSetup(Target = nameof(UploadSpeciesTable))]
     public void SetupUpload() => _uploaded?.Dispose();
 
     [Benchmark]
-    public UploadedTables UploadSpeciesTable() => _uploaded = _uploadEngine.Upload(_table);
+    public void UploadSpeciesTable() => _uploaded = _uploadEngine.Upload(_table);
 
     [IterationSetup(Target = nameof(CompileCpuKernel))]
     public void SetupCpuCompile()
@@ -74,7 +76,7 @@ public class OneTimeCostBenchmarks
     }
 
     [Benchmark]
-    public EquilibriumBatchResult CompileCpuKernel() => _cpuCompileEngine.Run(_cpuCompileTables!, _compileBatch);
+    public void CompileCpuKernel() => _compiledResult = _cpuCompileEngine.Run(_cpuCompileTables!, _compileBatch);
 
     [IterationCleanup(Target = nameof(CompileCpuKernel))]
     public void CleanupCpuCompile()
@@ -91,7 +93,7 @@ public class OneTimeCostBenchmarks
     }
 
     [Benchmark]
-    public EquilibriumBatchResult CompileCudaKernel() => _cudaCompileEngine.Run(_cudaCompileTables!, _compileBatch);
+    public void CompileCudaKernel() => _compiledResult = _cudaCompileEngine.Run(_cudaCompileTables!, _compileBatch);
 
     [IterationCleanup(Target = nameof(CompileCudaKernel))]
     public void CleanupCudaCompile()

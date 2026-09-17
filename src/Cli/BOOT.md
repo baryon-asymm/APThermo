@@ -14,14 +14,32 @@ depends on console, serialization or file-layout concerns.
   `PerformanceFigures`, `TransportFigures`) reaches the output document under its
   camel-case name and with its unit, enumerated by reflection so that no second list
   exists, plus the presentation conveniences listed there (specific impulse in
-  seconds, a mole-fraction threshold). The schema files of the tests node hold the
-  same lists, and a test compares them with the structs.
+  seconds, a mole-fraction threshold). The JSON Schema files live in this node's
+  `Schemas/` directory, embedded in the assembly and catalogued by `SchemaResources`;
+  `apthermo schema [name]` prints one of them, or, with no name or an unknown one,
+  refuses naming every embedded name. A test compares the schemas' field lists with the
+  structs.
+
+  ⚠ 2026-09-16: stood "The schema files of the tests node hold the same lists, and a
+  test compares them with the structs." The distribution phase decided at the root
+  (`## Delivery`, Documentation) that the schemas belong to the command line: they move
+  from `tests/Cli.Tests/schemas/` to this node's `Schemas/` directory, are embedded in
+  the assembly and served by the new `schema` command, so that a consumer of the packed
+  tool reads the contract from the tool itself and no second copy can drift.
+
+  ⚠ 2026-09-17 (the audit's C6): stood "the tests nodes read the schemas through that
+  command", true of neither test node that reads the schemas at the point this was
+  written. `tests/Cli.Tests` reads them directly through `SchemaResources`, the type
+  under test, so its checks never called `apthermo schema` at all; only
+  `tests/Docs.Tests` reads them through the command, in-process
+  (`Program.Run(["schema", name], …)`), as the mirrored test node has no other way to
+  reach this node's contract. Found by the CLI audit's finding C6, fixed in `68f540a`.
 - **Units in documents are SI** unless a field name carries the unit explicitly
   (`specificImpulseSeconds`, `vacuumSpecificImpulseSeconds`); the conversion to
   seconds uses g0 = 9.80665 m/s² and happens only here.
 - **Exit codes mean something**: 0 every case and station `ok`; 1 at least one case,
   station or transport evaluation failed numerically (the document is still written);
-  2 invalid input (document, option, database path, reactant); 3 accelerator or
+  2 invalid input (document, option, database path, reactant, schema name); 3 accelerator or
   infrastructure error. Messages go to standard error; documents go to the output
   file or standard output.
 - **Strict documents.** Unknown fields, missing required fields and values of the
@@ -76,20 +94,36 @@ also uses it.
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Commands: `rocket <input.json>`, `equilibrium <input.json>`, `states <records>...`,
-  `species [--find TEXT]`, `devices`; options `--output PATH`, `--format json|csv`,
+  `species [--find TEXT]`, `devices`, `schema [name]` (2026-09-16: prints the JSON
+  Schema embedded in the assembly, by name, to standard output or the `--output` file;
+  2026-09-17, the audit's C3/C4/C5: a missing or unknown name is exit code 2 naming
+  every embedded name, read from the assembly manifest, not from a typed list);
+  options `--output PATH`, `--format json|csv`,
   `--accelerator auto|cpu|cuda`, `--database DIR` (directory with `thermo.inp` and
-  `trans.inp`; default `data/` next to the executable, then `data/` under the current
-  directory, then the current directory), `--threshold X` (mole fractions below X are
+  `trans.inp`; without it, the database embedded in `APThermo`,
+  `Data.SpeciesDatabase.LoadBundled()`), `--threshold X` (mole fractions below X are
   omitted from the composition tables; default 5e-6, the reference's print threshold),
-  `--transport` (states), `--find TEXT` (species), `--help`. Every option applies to
-  the commands `API.md` lists it with; an option that does not apply is an error.
-  2026-09-13: `--mass-tolerance X` on the solving commands, the mass tolerance
-  declared for every mixture built from element moles (default the library's, 1e-2;
-  a propellant by reactants keeps the default); a run option, not a document field,
-  because it describes the caller's records and not the physics.
+  `--transport` (states), `--find TEXT` (species), `--help`, `--version` (prints
+  `Program.Version` and exits; applies to no command and may be given alone). Every
+  option applies to the commands `API.md` lists it with; an option that does not
+  apply is an error. 2026-09-13: `--mass-tolerance X` on the solving commands, the
+  mass tolerance declared for every mixture built from element moles (default the
+  library's, 1e-2; a propellant by reactants keeps the default); a run option, not a
+  document field, because it describes the caller's records and not the physics.
+
+  ⚠ 2026-09-15 (distribution phase): `--database`'s default stood "`data/` next to
+  the executable, then `data/` under the current directory, then the current
+  directory" (`DatabaseFiles.Resolve`, since removed). A NuGet package and a .NET
+  tool have no `data/` directory beside them (root `BOOT.md`, `## Delivery`, `Data`),
+  so every consumer without `--database` would first have to find NASA files
+  themselves. The search is gone; `DatabaseFiles.Load` now reads
+  `SpeciesDatabase.LoadBundled()` when no directory is given, and `run.database`
+  reports the path-like markers `"embedded:thermo.inp"`/`"embedded:trans.inp"`
+  (`API.md`, Output document) instead of a file path, with the same provenance
+  hashes a caller who pointed `--database` at the committed `data/` would get.
 - The assembly is named after its namespace, as the root requires; `apthermo` is the
   tool command name of the package (`dotnet pack` produces a tool package whose
-  command is `apthermo`), and a direct run is `dotnet AerospacePropellantThermodynamics.Cli.dll`.
+  command is `apthermo`), and a direct run is `dotnet APThermo.Cli.dll`.
 - CSV output flattens one row per case and station with the station's own
   performance figures (the library reports them at every station); compositions are
   not in CSV.
@@ -149,7 +183,7 @@ widening its public surface. Five clusters of this node passed the child-node te
 root `BOOT.md`, `## Decomposition`, the "child nodes phase"): `Syntax/`,
 `Documents/`, `Cases/`, `Output/` and `Listings/`, each with its own `BOOT.md` and
 `API.md` and the namespace of its path
-(`AerospacePropellantThermodynamics.Cli.Syntax` and so on), compiled into this
+(`APThermo.Cli.Syntax` and so on), compiled into this
 node's own assembly. `Program`, `CommandRegistry`, `Failures`, `SolverSession`, the
 three command types (`ProblemCommand`, `StatesCommand`, `SpeciesCommand`) and the
 shared vocabulary and run-bookkeeping types with no single owning cluster
@@ -203,15 +237,17 @@ Types that stayed at this node's own level:
 |---|---|
 | `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
 | `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
-| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand` and `Listings.DeviceListing` |
+| `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand`/`SchemaCommand` and `Listings.DeviceListing` |
 | `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11); read by all four clusters below, no dominant owner (see the warning above) |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |
 | `ProblemCommand` | `rocket` and `equilibrium`: read (`Documents`), check the problem type against the command, build the mixtures, expand the sweep, solve (`Cases`), write (`Output`) |
 | `StatesCommand` | `states`: the records split by `HasExits` (`Documents`), one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order, written (`Output`) |
-| `DatabaseFiles`, `DatabaseInfo` | unchanged: where the database directory is found, and the record of what was found |
+| `DatabaseFiles`, `DatabaseInfo` | where the database is found: `--database DIR`, or (2026-09-15) `Data.SpeciesDatabase.LoadBundled()` when no directory is given, reported as the `"embedded:…"` markers; and the record of what was found |
 | `RunInfo`, `RunLimits`, `Timings` | a run's own bookkeeping, assembled by `SolverSession.Stop`; read by `Output` and `Listings` through their fields only |
 | `Names` | camel case of the library's names and of statuses; read by `Output` and `Listings`, and by `DocumentWords`' own fallback branch (see the warning above) |
 | `SpeciesCommand` | the `species` command: the database, the name filter, the rows (`Listings.SpeciesRow`), the run and the delivery (`Listings.SpeciesListing`, `Output.DocumentWriter`) |
+| `SchemaCommand` | (2026-09-16) the `schema` command: the rule (a missing or unknown name refuses, naming every name of `SchemaResources.Names`), delivered as the listings are delivered (`Output.DocumentWriter`) |
+| `SchemaResources` | (2026-09-17) the catalogue of the embedded schemas: their names, read from the assembly manifest, and their text |
 | `InputException`, `InputFile` | the node's own exception, raised throughout; a user-named file read with the missing-file message this node documents |
 
 ## Children
@@ -298,6 +334,29 @@ Decisions taken with the review of 2026-09-14:
   this decomposition merged found `ProblemDocumentReader` at 21 and `SpeciesListing` at
   17; both were split instead (`PropellantDocumentReader`, `ProblemPartReader` and
   `SweepDocumentReader` out of the first; `SpeciesCommand` and `SpeciesListing`).
+
+**Packing (2026-09-15, distribution phase, root `BOOT.md`, `## Delivery`, Packages).**
+This node's project packs as `APThermo.Cli`, a .NET tool (`PackAsTool=true`,
+`ToolCommandName=apthermo`, both already set before this phase): `IsPackable=true`
+already stood, `PackageId=APThermo.Cli` is new, and the version and the shared
+package metadata come from the root's `Directory.Build.targets`, as for `Problems`.
+
+Unlike `Problems`, none of this node's seven `ProjectReference`s need
+`PrivateAssets` or a merge target: `PackAsTool` packs the *published* output
+(`tools/net10.0/any/`), which already carries every referenced assembly (including
+`APThermo.Problems.dll` and, through it, the six it merges) and `ILGPU.dll` as plain
+files, not as nuspec dependencies — a tool has no consumer to declare dependencies
+to. Proved once, read-only: the packed nuspec's `<dependencies>` is absent
+entirely, and `tools/net10.0/any/` holds `APThermo.Cli.dll` plus the seven library
+assemblies and `ILGPU.dll`, nineteen files including the `.deps.json`,
+`.runtimeconfig.json` and `DotnetToolSettings.xml` the SDK's tool packaging adds.
+
+`<Version>1.0.0</Version>`, hardcoded before this phase, is removed: the version is
+now the one place, `Directory.Build.props`' `VersionPrefix` (0.1.0), like every other
+project; `Program.Version` (already reading the assembly's informational version, `##
+Structure` above) needed no change; `ProcessTests` and `CommandLineTests` compare
+against it rather than a typed string, so the version's value never had to be pinned
+in a test.
 
 ## Shape exceptions
 
@@ -394,6 +453,40 @@ Every other type of the node measures 14 or below by the dependency check's walk
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 — `apthermo --version` prints `Program.Version` and exits 0, in
+      process and as a separate process
+      (`CommandLineTests.Version_prints_the_tool_version_and_exits_0`,
+      `ProcessTests.The_executable_prints_its_version_with_exit_0`). Without
+      `--database`, a run's `run.database.thermoPath`/`.transPath` are the embedded
+      markers `"embedded:thermo.inp"`/`"embedded:trans.inp"` with 64-character SHA-256
+      hashes, in process and from an empty working directory as a separate process
+      (`CommandLineTests.Without_database_the_run_uses_the_embedded_database`,
+      `ProcessTests.The_executable_uses_the_embedded_database_from_an_empty_working_directory`).
+      Both facts seen red once (AGENTS.md §13): making `DatabaseFiles.Load` call
+      `LoadFromDirectory` on the current directory instead of `LoadEmbedded` when no
+      `--database` is given turned the embedded-database fact red, exit code 2, `no
+      thermo.inp in the database directory '…'`; disabling the `--version` branch of
+      `Program.Run` turned the version fact red, exit code 2, `no command given`
+      (`--version` alone then falls through to the ordinary "no command" refusal).
+      Reverted, nothing of either mutation committed. `Bits.approved.txt` unchanged: the
+      JSON hash of every example is taken with its top-level `run` property cut out
+      first (`RunPropertyCut`, above), and the CSV form never carries `run` at all
+      (`Output.CsvOutput`), so the database path this criterion moves from a directory
+      to the embedded markers reaches neither hash. Proved directly too: the packing
+      proof of `Problems`' BOOT.md ran an approved CSV example
+      (`documents/rocket-lox-lh2.approved.csv`) from an empty directory without
+      `--database`, through the packed tool, and found it byte-for-byte unchanged.
+- [x] 2026-09-17 — The schema files of `Schemas/` are embedded in the assembly and
+      served by `apthermo schema [name]` byte for byte to standard output, or to
+      `--output`, with exit code 0; a missing or an unknown name is exit code 2 naming
+      every embedded name, read from the assembly manifest rather than typed; no copy of
+      a schema lives outside this node. `tests/Cli.Tests` reads them directly through
+      `SchemaResources`, the type under test; `tests/Docs.Tests` reads them through the
+      command, the only test node that has no other way to reach this node's contract
+      (`tests/Cli.Tests/SchemaCommandTests`, the facts and their mutations recorded in
+      that node's `BOOT.md`, criterion of 2026-09-17;
+      `tests/Docs.Tests/SchemaValidationTests`). Found and fixed from
+      the CLI audit's findings C1 through C5, in `68f540a`.
 
 ## Taboos
 

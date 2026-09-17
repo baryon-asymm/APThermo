@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>
 /// One CUDA-against-CPU-accelerator comparison: the worst deviation seen so far per field, and how many stations compared so far

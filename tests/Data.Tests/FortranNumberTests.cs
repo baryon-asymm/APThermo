@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Data.Tests;
+namespace APThermo.Data.Tests;
 
 /// <summary>L0: the numeric forms present in the NASA files.</summary>
 public sealed class FortranNumberTests

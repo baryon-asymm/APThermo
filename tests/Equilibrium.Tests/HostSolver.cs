@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>Everything one equilibrium solve needs, named rather than lined up as arguments.</summary>
 internal sealed record EquilibriumCase(

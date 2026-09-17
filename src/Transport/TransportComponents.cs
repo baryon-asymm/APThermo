@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Transport;
+namespace APThermo.Transport;
 
 /// <summary>
 /// Stages 2 and 3 of the evaluation: the active element rows, the default species of each row (the monatomic gas of the

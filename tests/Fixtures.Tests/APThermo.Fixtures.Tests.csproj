@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Fixtures.Tests: the readiness criterion of tests/Fixtures (the loader, the tolerance table, the fixture files). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
+  </ItemGroup>
+
+</Project>

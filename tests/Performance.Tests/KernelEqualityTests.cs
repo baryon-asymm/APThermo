@@ -1,11 +1,11 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Performance.Tests;
+namespace APThermo.Performance.Tests;
 
 /// <summary>The batch views of one kernel launch: structure of arrays, one case per thread, a fixed exit layout per batch.</summary>
 public readonly struct RocketBatchViews(

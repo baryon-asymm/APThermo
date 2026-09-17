@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// The fixed-column layout of <c>thermo.inp</c> and <c>trans.inp</c> (BOOT.md, the format facts of both files), as

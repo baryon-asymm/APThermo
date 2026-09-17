@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium;
+namespace APThermo.Equilibrium;
 
 /// <summary>
 /// The equilibrium composition of one case by minimization of the Gibbs energy: the reduced Newton–Raphson iteration of
@@ -17,7 +17,7 @@ namespace AerospacePropellantThermodynamics.Equilibrium;
 /// (sections 3.4 and 3.5, completed by the condensed-species rule of BOOT.md: pinned pairs, the crossing T*, the switch
 /// and range memories, and the anti-cycling skip of the inclusion test).
 /// </remarks>
-public static class EquilibriumSolver
+internal static class EquilibriumSolver
 {
     /// <summary>−ln(1e-8): gaseous species below this mole fraction are held at zero in the sums but keep their logarithms.</summary>
     public const double TraceThreshold = 18.420681;

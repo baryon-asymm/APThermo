@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Problems;
+using APThermo.Execution;
+using APThermo.Problems;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>
 /// The database and the solver of one run, with their timings. The solve timer starts when the engine itself is

@@ -12,9 +12,16 @@ numerical node stays testable without it.
 
 ## Invariants
 
-- **No CUDA type leaves this node.** The public surface names ILGPU only through
-  this node's own types and, in the kernel parameter structs, ILGPU's `ArrayView`;
-  `ILGPU.Runtime.Cuda` appears in no signature.
+- **No CUDA type leaves this node.** `ILGPU.Runtime.Cuda` appears in no signature.
+
+  ⚠ 2026-09-15 (distribution phase): this invariant went on to say the public surface
+  "names ILGPU only through this node's own types and, in the kernel parameter
+  structs, ILGPU's `ArrayView`". The API review of that day
+  (fixed in `9036c6a`) demoted `Engine`, the batch types and the four
+  views structs into the tree contract; the package surface (`AcceleratorKind`,
+  `EngineOptions`, `AcceleratorInfo`, `AcceleratorUnavailableException`,
+  `AcceleratorProbe`) now names no ILGPU type at all, so the second sentence no longer
+  describes anything and is dropped rather than corrected in place.
 - **The same kernels everywhere.** A kernel is one static entry point per program; it
   is loaded on the CPU accelerator and on CUDA from the same method; there is no
   accelerator-specific numerical code.
@@ -42,8 +49,13 @@ numerical node stays testable without it.
 - [Transport](../Transport/API.md) — the transport table and evaluation.
 
 Outside the tree: ILGPU 1.5.3 (NuGet); for CUDA an NVIDIA driver with CUDA 12.8 or
-newer, libnvvm (`nvvm64_40_0.dll`) and `libdevice.10.bc` from a CUDA Toolkit 12.8 or
-newer.
+newer, libnvvm (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
+`libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
+
+⚠ 2026-09-15 (distribution phase): stood "libnvvm (`nvvm64_40_0.dll`)", naming the
+Windows file only, before the root's Platform constraint (`cf87211`) added Linux as a
+supported platform, CUDA included. Linux ships the same library as `libnvvm.so`; the
+line now names both.
 
 ## Constraints
 
@@ -54,13 +66,35 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the context and accelerator can be created; otherwise the CPU accelerator with all
   cores. `AcceleratorKind.Cuda` fails instead of falling back and names what was
   missing, with every path tried. `AcceleratorKind.Cpu` never looks for CUDA.
-- **libdevice discovery order**: an explicit path pair in the options; then, unless
-  `LibDeviceDiscovery` is off, the `CUDA_PATH` directory; then
-  `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v*` from the newest version
-  down; in each root both `nvvm\bin\nvvm64_40_0.dll` (12.x layout) and
+- **libdevice discovery order**: an explicit path pair in the options is tried first,
+  on every platform. Unless `LibDeviceDiscovery` is off, the platform is then chosen
+  with `OperatingSystem.IsWindows()` / `IsLinux()`; any other OS does no discovery (the
+  explicit pair is still tried, and the CPU accelerator is used when it is absent
+  too).
+
+  On **Windows**: the roots are the `CUDA_PATH` directory, then
+  `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v*` from the newest version down;
+  in each root both `nvvm\bin\nvvm64_40_0.dll` (12.x layout) and
   `nvvm\bin\x64\nvvm64_40_0.dll` (13.x layout) are tried, with
-  `nvvm\libdevice\libdevice.10.bc`. The context is created with
-  `LibDevice(dllPath, bitcodePath)` so that ILGPU emits the intrinsic calls.
+  `nvvm\libdevice\libdevice.10.bc`.
+
+  On **Linux**: the roots are `CUDA_PATH`, then `CUDA_HOME`, then `/usr/local/cuda`,
+  then `/usr/local/cuda-*` from the newest version down; in each root
+  `nvvm/lib64/libnvvm.so` is tried, with `nvvm/libdevice/libdevice.10.bc`.
+
+  On both platforms a root already tried (`CUDA_PATH` repeated among the versioned
+  roots, or equal to `CUDA_HOME` on Linux) is skipped, and a root whose library exists
+  but whose bitcode does not is passed over rather than accepted.
+
+  The context is created with `LibDevice(dllPath, bitcodePath)` so that ILGPU emits
+  the intrinsic calls.
+
+  ⚠ 2026-09-15 (distribution phase): this bullet named only the Windows roots and
+  `nvvm64_40_0.dll`, matching the root's Platform constraint before `cf87211` made
+  Linux x64 a supported platform, CUDA included, and fixed the discovery order for it.
+  `LibDeviceLocator` now branches on the platform; every other stage of discovery and
+  of the post-link is unchanged, since the root constraint restricts the platform
+  split to library discovery paths and file names.
 - **The post-link**, the one place in the tree that knows ILGPU internals: compile
   the entry point with the CUDA accelerator's backend; collect the distinct
   `__ilgpu__nv_*` names from the PTX; build an NVVM module from ILGPU's own wrapper
@@ -132,18 +166,32 @@ is a composition root over internal types, one class per file in this directory 
 namespace. The kernel entry points and the calls into the numerical nodes are untouched
 by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 
+⚠ 2026-09-15 (distribution phase): `Engine` and `MathProbe` were the node's only
+public composition types, per the table below; the API review of that day
+(its section 4, findings D1 and F1, fixed in `9036c6a`) found no consumer scenario for
+either. `Engine` became internal and `AcceleratorProbe` (`AcceleratorProbe.cs`)
+replaces it on the package surface for the two questions a consumer actually asked of
+it: what a set of `EngineOptions` binds to (`Describe`), and whether the environment
+forbids CUDA (`CudaForbidden`); `Solver.Create` (`Problems`) keeps creating its own
+`Engine` internally. `MathProbe`, the eight batch and batch-result types, `UploadedTables`
+and `RunTimings` became internal with it. `APThermo.Execution.csproj` grants
+`InternalsVisibleTo` to `Problems` (the only `src` node whose `## Dependencies` names
+this one; `Cli` goes through `AcceleratorProbe` and receives no grant), to
+`Execution.Tests` and `Problems.Tests`, to `Benchmarks`, and to `ILGPURuntime` for the
+four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
+
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | public, contract as `API.md` says |
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
 | `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
-| `Chunks/` (child node, `AerospacePropellantThermodynamics.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
+| `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
-| `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | public, contract unchanged |
+| `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the NVVM module from the fragments, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load | internal |
 
 ⚠ 2026-09-14: this row first read "`FunctionCount` is the constant the kernel strides by" (F-EX-07's own
@@ -166,7 +214,7 @@ decision), no public type moving into the child namespace.
 
 - **`Chunks/` passes.** `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`,
   `ChunkTransfer` and `IChunkBuffer` — six internal types — become
-  `AerospacePropellantThermodynamics.Execution.Chunks`. The rest of this node reaches
+  `APThermo.Execution.Chunks`. The rest of this node reaches
   them through `ChunkPlan.For`/`.Chunks()`, `ChunkBuffers`'s declaration methods and
   `ChunkBuffer<T>.View`; `IChunkBuffer`, `ChunkTransfer` and the `Chunk` record are
   never named outside the cluster. Its reason to change — the chunking and transfer
@@ -216,14 +264,24 @@ Decisions taken with the review of 2026-09-14:
   now only the scratch and the moles were counted); results do not depend on chunking
   (Invariants), so no result moves. `ScratchBytes` must be positive, like `ChunkSize`.
 - **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
-  and `EquilibriumBatchViews` (12) are kernel parameter descriptors ILGPU requires to
-  be public; grouping their views would re-emit the kernels and move the contract.
-  They are this node's declared exception to the parameter rule, and so are the
-  constructors of `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which
-  mirror the batch results `API.md` publishes, one argument per property. The
-  pipelines are the only callers of the four, and every call names its arguments, as
-  the root requires of a mirrored shape. The other two views structs take six
-  parameters and are within the rule.
+  and `EquilibriumBatchViews` (12) are kernel parameter descriptors; grouping their
+  views would re-emit the kernels and move the contract. They are this node's
+  declared exception to the parameter rule, and so are the constructors of
+  `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which mirror the batch
+  results `API.md` publishes, one argument per property. The pipelines are the only
+  callers of the four, and every call names its arguments, as the root requires of a
+  mirrored shape. The other two views structs take six parameters and are within the
+  rule.
+
+  ⚠ 2026-09-15 (distribution phase): this bullet said the two views structs "are
+  kernel parameter descriptors ILGPU requires to be public". Wrong: ILGPU 1.5.3 needs
+  only `[assembly: InternalsVisibleTo("ILGPURuntime")]` on the declaring assembly, not
+  a public type (the API review of that day, section 3, fixed in `9036c6a`,
+  ran the failure and the fix on the CPU accelerator and on CUDA; the claim entered
+  with `f2e5de7` and `53ec9fb` on 2026-09-12 from an observed failure that never tried
+  the grant). All four views structs are internal now, with that grant on
+  `APThermo.Execution.csproj`; the reason for the declared parameter-count exception
+  is unchanged.
 
   ⚠ 2026-09-14: this bullet stood "`RocketBatchViews` (17 parameters),
   `EquilibriumBatchViews` (12) and the other two are the kernel parameter descriptors
@@ -258,7 +316,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
 | `EquilibriumPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
 | `SpeciesFunctionPipeline` | efferent coupling | 17 | the same case as `RocketPipeline` above |
-| `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor ILGPU requires to be public; grouping its views would re-emit the kernels and move the contract (the decision "The views structs keep their constructors"); every creation names its arguments |
+| `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
 | `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 12 | the same case as `RocketBatchViews` above |
 | `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
 | `EquilibriumBatchResult.EquilibriumBatchResult` | parameters | 7 | the same case as `RocketBatchResult` above |
@@ -318,9 +376,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       one line added, that property; `Protocol.Tests.SurfaceTests` green against it
       unchanged since); `BatchTests.Chunking_and_repetition_do_not_change_a_bit`, the
       probe, species-function and accelerator-choice tests green
-      (`AerospacePropellantThermodynamics.Execution.Tests.dll`: 41 passed); the fast
+      (`APThermo.Execution.Tests.dll`: 41 passed); the fast
       suite of the whole solution green (`dotnet test
-      AerospacePropellantThermodynamics.sln --filter "Category!=LongRunning"` with
+      APThermo.sln --filter "Category!=LongRunning"` with
       `APTHERMO_NO_CUDA=1`: 2147 passed, 0 failed, 0 skipped). The CUDA sweep and the
       throughput benchmark are the orchestrator's to run once at the end, after the
       merge, on the reference machine (not run from this worktree).
@@ -412,6 +470,47 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [x] 2026-09-15 (distribution phase) — Linux libdevice discovery, added for the root's
+      Platform constraint (`cf87211`): `LibDeviceLocator` branches on
+      `OperatingSystem.IsWindows()` / `IsLinux()` and, on Linux, tries `CUDA_PATH`, then
+      `CUDA_HOME`, then `/usr/local/cuda`, then `/usr/local/cuda-*` newest first, each
+      root's `nvvm/lib64/libnvvm.so` paired with `nvvm/libdevice/libdevice.10.bc`; on
+      any other OS no discovery runs and the CPU accelerator is used. Covered by
+      `tests/Execution.Tests/LibDeviceDiscoveryTests.cs`, driven through the internal
+      seam (`LibDeviceLocator.Locate(EngineOptions, LocatorPlatform, Func<string,
+      string?>, string)`) so both platforms and both Windows dll layouts (12.x
+      `nvvm\bin`, 13.x `nvvm\bin\x64`) are exercised from one host OS, over fake
+      toolkit trees under a temp directory: explicit paths win and are tried first;
+      an unsupported platform does no discovery; `CUDA_PATH` before the toolkit
+      directories on Windows and before `CUDA_HOME`, the fixed root and the versions
+      on Linux; both platforms order their versioned toolkit directories by parsed
+      `Version`, newest first (proven against a case where numeric and alphabetical
+      order disagree, `v13.3`/`v9.0` and `cuda-13.3`/`cuda-9.0`); a library present
+      without its bitcode is passed over for the next root; a root named twice (by
+      `CUDA_PATH` or `CUDA_HOME` repeating an already-tried directory) is tried once —
+      12 facts, `dotnet test tests/Execution.Tests --filter
+      "FullyQualifiedName~LibDeviceDiscoveryTests"`, all green. The ordering fact was
+      shown red once and reverted (AGENTS.md §13): `VersionedDirectories`'s
+      `OrderByDescending` flipped to `OrderBy` reddened both
+      `Windows_orders_the_toolkit_directories_newest_version_first` and
+      `Linux_orders_the_versioned_directories_newest_first`, reverted before
+      committing. The unavailable-accelerator message and the `EngineOptions` doc
+      comments now name the platform's library instead of `nvvm64_40_0.dll`
+      unconditionally (`LibDeviceLocator.LibraryFileName`); `AcceleratorChoiceTests`
+      unchanged in behaviour, its one hard-coded `nvvm64_40_0.dll` assertion now reads
+      the same property. `LibDevicePostLink` and every other file of this node were
+      checked for Windows-only assumptions (path separators, `.dll` literals,
+      case-insensitive comparisons) and none were found outside `LibDeviceLocator`,
+      `AcceleratorChoice`'s message and `Options.cs`'s doc comment, all covered above.
+      Verified on the reference machine, CUDA present: build clean, 0 warnings;
+      `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"`, 53 of 53
+      green (41 pre-existing plus these 12), including the CUDA-category tests, so
+      real discovery still finds the installed toolkit through the unchanged default
+      `Locate(EngineOptions)` entry point; the whole solution's fast set green (3047
+      tests, 0 failed, `Category!=LongRunning`, CUDA-category tests exercised since
+      the machine has a device); `protocol_lint` 0 errors, 0 warnings; every
+      `Bits.approved.txt` and the surface snapshot unchanged (the seam is internal, no
+      public type added).
 
 ## Taboos
 

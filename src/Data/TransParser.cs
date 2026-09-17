@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Data;
+namespace APThermo.Data;
 
 /// <summary>
 /// Reader of <c>trans.inp</c>: the loop over species blocks and binary-interaction blocks, each read whole by

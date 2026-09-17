@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>L1: the table builder against the Data records of the same species.</summary>
 public sealed class TableBuilderTests : IClassFixture<CpuFixture>

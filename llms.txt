@@ -1,0 +1,45 @@
+# APThermo
+
+> APThermo computes the chemical equilibrium composition and the thermodynamic and
+> transport properties of rocket propellant combustion products, and from them the
+> performance of a rocket engine: chamber, throat and nozzle exit, in
+> shifting-equilibrium and in frozen flow. Gibbs-energy minimization
+> (Gordon–McBride), one numerical program that runs on the CPU and, for large
+> batches of states, on an NVIDIA GPU (CUDA) in double precision. The NASA
+> thermodynamic database is embedded; no data files are needed on disk.
+
+## Guide
+
+- [Getting started](docs/guide/getting-started.md): install the tool and the package, solve the first rocket case both ways
+- [Rocket solving](docs/guide/rocket.md): station-by-station states and performance figures, exits, a custom propellant
+- [Batch solving](docs/guide/batch.md): many rocket problems, or an oxidizer-to-fuel sweep, in one call
+- [Equilibrium states](docs/guide/equilibrium.md): a single tp, hp or sp state without a nozzle
+- [State records](docs/guide/states.md): states of another simulation, with or without exits
+- [GPU acceleration](docs/guide/gpu.md): CUDA requirements, discovery order, choosing an accelerator
+- [The database](docs/guide/data.md): the bundled NASA database, loading files, provenance
+- [Command line](docs/guide/cli.md): the `apthermo` tool over JSON documents
+- [Troubleshooting](docs/guide/troubleshooting.md#errors): exit codes, statuses, mass and accelerator refusals — the one place for `CaseStatus` meanings
+
+## Schemas
+
+- [input](src/Cli/Schemas/input.schema.json): the rocket and equilibrium problem document shape
+- [output](src/Cli/Schemas/output.schema.json): the result document shape
+- [states](src/Cli/Schemas/states.schema.json): the state record shape
+- [species](src/Cli/Schemas/species.schema.json): the species listing shape
+- [devices](src/Cli/Schemas/devices.schema.json): the device listing shape
+
+## Samples
+
+- [samples/Samples/API.md](samples/Samples/API.md): the consumer scenarios as running programs, the source of every quoted C# block
+
+## Node contracts
+
+- [API.md](API.md): the tree's public contract and its usage steps
+- [Problems](src/Problems/API.md): propellants, problems, elemental mixtures, state records, the solver
+- [Cli](src/Cli/API.md): the `apthermo` command line, its documents and exit codes
+- [Data](src/Data/API.md): the NASA database as an object model
+- [Execution](src/Execution/API.md): accelerator options and `AcceleratorProbe`
+- [Thermo](src/Thermo/API.md): `CaseStatus`, `MixtureState`
+- [Equilibrium](src/Equilibrium/API.md): `ProblemKind`
+- [Performance](src/Performance/API.md): `FlowModel`, `PerformanceFigures`
+- [Transport](src/Transport/API.md): `TransportFigures`

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>Lint level: the file half of the protocol, run as the linter process the loader names, in strict mode (the tree's criterion is zero warnings).</summary>
 public sealed class LintTests

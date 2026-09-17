@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Fixtures;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>
 /// The reference's documented caveats <see cref="ReferenceComparison"/> applies (Fixtures BOOT.md; this node's BOOT.md,

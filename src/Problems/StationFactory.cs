@@ -1,9 +1,9 @@
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Execution;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 /// <summary>
 /// What a result station reports, stated once for both runners: its name (<see cref="NameOf"/>, F-PR-11), its transport
@@ -61,14 +61,14 @@ internal static class StationFactory
         }
 
         return new Station(
-            Name: name,
-            State: slice.State,
-            Performance: slice.Performance,
-            MoleFractions: fractions,
-            CondensedMassFractions: condensed,
-            Transport: slice.Transport,
-            TransportStatus: slice.TransportStatus,
-            Status: slice.Status);
+            name: name,
+            state: slice.State,
+            performance: slice.Performance,
+            moleFractions: fractions,
+            condensedMassFractions: condensed,
+            transport: slice.Transport,
+            transportStatus: slice.TransportStatus,
+            status: slice.Status);
     }
 
     /// <summary>The species names a result reports: the table's, with the pieces of a cut condensed record collapsed to the record's name (BOOT.md, results).</summary>

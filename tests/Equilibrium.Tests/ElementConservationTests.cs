@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0/L1: the element-conservation invariant of the node holds for every converged fixture case.</summary>
 [Collection(CpuCollection.Name)]

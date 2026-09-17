@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Fixtures.Tests;
+namespace APThermo.Fixtures.Tests;
 
 /// <summary>L1: a document that is not a fixture of its kind fails the loader with the file name and the field.</summary>
 public sealed class MalformedFixtureTests : IDisposable

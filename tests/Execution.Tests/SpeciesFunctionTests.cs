@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Harness;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Execution.Tests;
+namespace APThermo.Execution.Tests;
 
 /// <summary>L2 for the species-function batch: the CPU accelerator equals the host functions bit for bit, CUDA matches within the table.</summary>
 [Collection(EngineCollection.Name)]

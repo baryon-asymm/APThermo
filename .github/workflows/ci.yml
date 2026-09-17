@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.os }} — build & test
+    runs-on: ${{ matrix.os }}
+    env:
+      # Job-local, so a run never restores a package a previous run or another job left in a shared
+      # NuGet cache: the freshly packed APThermo must be the one every restore in this job sees.
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget-packages
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Protocol lint
+        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates
+
+      - name: Build
+        run: dotnet build APThermo.sln --configuration Release
+
+      - name: Fast test suite
+        env:
+          APTHERMO_NO_CUDA: '1'
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
+
+      - name: Determine the package version
+        id: version
+        shell: bash
+        run: |
+          version=$(dotnet msbuild src/Problems/APThermo.Problems.csproj -getProperty:Version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Pack both packages
+        shell: bash
+        run: |
+          dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
+          dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
+
+      - name: Samples run against the packaged library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Every scenario, read from the samples node's own table (samples/Samples/API.md,
+          # ## Scenarios) rather than typed into this workflow: the scenario name in column 2, the
+          # approved output file in column 5, of every row that names a scenario. A row count of
+          # zero (the table's heading renamed or removed) must fail loudly rather than let the loop
+          # below run zero times and report success (ScenarioTableTests proves the table itself
+          # matches the code; this guards the workflow's own parse of it).
+          scenario_count=0
+          while IFS=':' read -r scenario approved; do
+            scenario_count=$((scenario_count + 1))
+            echo "-- $scenario --"
+            dotnet run --project samples/Samples --configuration Release \
+              -p:APThermoPackageVersion="${{ steps.version.outputs.version }}" \
+              -p:RestoreAdditionalProjectSources="${{ github.workspace }}/artifacts/packages" \
+              -- "$scenario" | tr -d '\r' > actual-sample.txt
+            diff actual-sample.txt "tests/Docs.Tests/approved/samples/$approved"
+          done < <(awk -F'|' '/^\| `/{gsub(/[ `]/,"",$2); gsub(/[ `]/,"",$6); print $2":"$6}' samples/Samples/API.md)
+
+          if [ "$scenario_count" -eq 0 ]; then
+            echo "no scenario row was parsed from samples/Samples/API.md" >&2
+            exit 1
+          fi
+
+      - name: Install the packed tool and run an approved example
+        shell: bash
+        run: |
+          dotnet tool install APThermo.Cli --tool-path .tool --add-source artifacts/packages --version "${{ steps.version.outputs.version }}"
+
+          mkdir -p .ci/run-cut
+          cat > .ci/run-cut/RunCut.csproj <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0</TargetFramework>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Compile Include="../../tests/Harness/RunPropertyCut.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          cat > .ci/run-cut/Program.cs <<'EOF'
+          using APThermo.Harness;
+
+          var bytes = File.ReadAllBytes(args[0]);
+          var cut = RunPropertyCut.Bytes(bytes, args[1]);
+          using var stdout = Console.OpenStandardOutput();
+          stdout.Write(cut, 0, cut.Length);
+          EOF
+
+          PATH="$PWD/.tool:$PATH" apthermo rocket samples/cli/problems/rocket.json --accelerator cpu > actual-rocket.json
+          dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket > actual-rocket.cut.json
+
+          diff <(tr -d '\r' < actual-rocket.cut.json) <(tr -d '\r' < tests/Docs.Tests/approved/cli/rocket.approved.json)
+
+      - name: Upload packages
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages

@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// One exit station assigned by area ratio (RP-1311 section 6.3.5): the initial ln(p_c/p_e) of the report's estimates (6.21) to

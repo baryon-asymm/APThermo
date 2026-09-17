@@ -1,7 +1,7 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>L0: the species functions against the independently generated `thermo` fixtures, and R against the `constants` fixture.</summary>
 public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>

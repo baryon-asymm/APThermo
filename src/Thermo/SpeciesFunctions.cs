@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Data;
+using APThermo.Data;
 
-namespace AerospacePropellantThermodynamics.Thermo;
+namespace APThermo.Thermo;
 
 /// <summary>
 /// The NASA polynomials evaluated for one species at one temperature. Kernel-compatible: static, no allocation, no
@@ -18,7 +18,7 @@ namespace AerospacePropellantThermodynamics.Thermo;
 /// The interval used is the first whose upper bound is not below T; below the first bound or above the last the
 /// nearest interval's polynomial is evaluated and <see cref="IsInRange"/> reports false.
 /// </remarks>
-public static class SpeciesFunctions
+internal static class SpeciesFunctions
 {
     /// <summary>
     /// |ΔH°/RT| at a bound shared by two condensed fits at or above which the two sides are a real transition: the

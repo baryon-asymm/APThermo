@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>The assembly each node's project builds, loaded from this project's build output; a type's own node by the
 /// namespace attribution AGENTS.md §1 defines (the deepest node whose namespace equals, or prefixes at a dot boundary, the
@@ -91,6 +91,15 @@ internal static class NodeAssemblies
     /// <summary>A test assembly references xunit; its public types are its tests, listed by its BOOT.md, not by API.md.</summary>
     public static bool IsTestAssembly(Assembly assembly) =>
         assembly.GetReferencedAssemblies().Any(reference => reference.Name is { } name && name.StartsWith("xunit", StringComparison.Ordinal));
+
+    /// <summary>The simple names an assembly grants <c>InternalsVisibleTo</c> to (root <c>BOOT.md</c>, Delivery: Tree
+    /// contracts), the attribute's own public-key suffix stripped: <c>TreeContractTests</c> reads these against the
+    /// dependency graph and the tree-contract sections of the grantee's own <c>API.md</c>.</summary>
+    public static IReadOnlyList<string> InternalsVisibleTo(Assembly assembly) =>
+        assembly.GetCustomAttributesData()
+            .Where(attribute => attribute.AttributeType.FullName == "System.Runtime.CompilerServices.InternalsVisibleToAttribute")
+            .Select(attribute => ((string)attribute.ConstructorArguments[0].Value!).Split(',')[0].Trim())
+            .ToList();
 
     private static IReadOnlyDictionary<Node, Assembly> Load()
     {

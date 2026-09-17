@@ -1,8 +1,24 @@
 # API.md — Cli
 
-Namespace `AerospacePropellantThermodynamics.Cli`, tool command `apthermo`. The node
-exposes a command line, an in-process entry point, and the JSON document shapes it
-reads and writes. Everything not listed here is internal and may change.
+Namespace `APThermo.Cli`, tool command `apthermo`. The node
+exposes a command line and the JSON document shapes it reads and writes. Everything
+not listed here, in a package-surface section (one whose heading carries no
+`(tree contract)` mark), is internal and may change without notice (root `BOOT.md`,
+Delivery: Public surface). This node's own entry point (`Program`, `ExitCode`) is its
+only tree contract, read by this node's own tests and by `tests/Docs.Tests` (its
+`schema` validation calls `Program.Run` in-process, having no other way to reach this
+node's contract): `Cli` itself receives no grant from any neighbour and uses their
+package surfaces only (root `BOOT.md`, Delivery: Tree contracts, "the command line is
+a consumer like any other").
+
+⚠ 2026-09-17 (the audit's C6): this paragraph and the ⚠ under "Entry point (tree
+contract)" below stood "read by no other assembly but its own tests" and "the only
+reader of it is this node's own tests". `APThermo.Cli.csproj` grants
+`InternalsVisibleTo` to `APThermo.Docs.Tests` too, and that assembly's
+`SchemaValidationTests` calls `Program.Run(["schema", name], …)` to read a schema as
+`apthermo schema` prints it; the grant is allowed (root `BOOT.md`, Delivery: Tree
+contracts permits a test node that uses the type), only the sentence was wrong. Found
+by the CLI audit's finding C6, fixed in `68f540a`.
 
 ## Command line ✅
 
@@ -12,14 +28,18 @@ $ apthermo equilibrium problem.json [same options]
 $ apthermo states records.json [more files...] [--output results.json] [--format json|csv] [--transport] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold X] [--mass-tolerance X]
 $ apthermo species [--find TEXT] [--database DIR] [--output PATH] [--format json|csv]
 $ apthermo devices [--output PATH]
+$ apthermo schema [NAME] [--output PATH]
 $ apthermo --help
+$ apthermo --version
 ```
 
 Options take their value as the next argument or after `=`; every option applies only
 to the commands listed above it. `--database` names a directory with `thermo.inp`
-and, optionally, `trans.inp`; without it the tool looks for `data/` next to the
-executable, then `data/` under the current directory, then the current directory
-itself. `--accelerator` overrides the document's `engine.accelerator`; the default is
+and, optionally, `trans.inp`; without it the tool uses the NASA database embedded in
+`APThermo` (`Data.SpeciesDatabase.LoadBundled()`), the same bytes as the committed
+`data/thermo.inp` and `data/trans.inp`. `--version` prints the tool's informational
+version (`Program.Version`) and exits; it applies to no command and may be given
+without one. `--accelerator` overrides the document's `engine.accelerator`; the default is
 `auto`. `--threshold` omits mole fractions below its value from the compositions
 (default 5e-6, the reference's print threshold). `--mass-tolerance` (a finite
 non-negative number, relative to one kilogram; default the library's
@@ -70,26 +90,33 @@ illustration that weighed 706 g and would now be refused; it is the record of an
 simulation that the mass check was written for (1000.015 g), and the tests node solves
 every record example of this document.
 
+`schema` (2026-09-16) prints, by name, one of the JSON Schema files embedded in the
+tool — the shapes this command line reads and writes — to standard output or the
+`--output` file; with no name, or a name that is not embedded, it refuses, naming
+every embedded name (2026-09-17, the audit's C3, C4, C5). The schemas are the contract
+of those shapes: a consumer of the packed tool reads them from the tool, and no copy of
+them lives outside this node (root `BOOT.md`, Delivery: Documentation).
+
 Exit codes: `0` all cases `ok`; `1` at least one case or station failed numerically
-(the document is written); `2` invalid input document, option, database path or
-reactant; `3` accelerator or infrastructure error.
+(the document is written); `2` invalid input document, option, database path, reactant
+or schema name; `3` accelerator or infrastructure error.
 
 ⚠ 2026-09-12: `apthermo` is the tool command name (`PackAsTool`, `ToolCommandName`);
-the assembly is `AerospacePropellantThermodynamics.Cli`, named after its namespace as
-the root requires, so a direct run is `dotnet AerospacePropellantThermodynamics.Cli.dll …`.
+the assembly is `APThermo.Cli`, named after its namespace as
+the root requires, so a direct run is `dotnet APThermo.Cli.dll …`.
 The sketch's `species` and `devices` had no output form; they write JSON (CSV for
 `species`) like the solving commands. `--database` and `--threshold` apply to `states`
 too, and `--output` and `--format` to the listings. `--mass-tolerance` was added on
 2026-09-13 after the design session on the mass check (the `Problems` API.md).
 
-## Entry point ✅
+## Entry point (tree contract) ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
-public enum ExitCode { Ok = 0, CaseFailed = 1, InvalidInput = 2, Infrastructure = 3 }
+internal enum ExitCode { Ok = 0, CaseFailed = 1, InvalidInput = 2, Infrastructure = 3 }
 
-public static class Program
+internal static class Program
 {
     public const string ToolName = "apthermo";
     public static string Version { get; }                                   // the assembly's informational version
@@ -97,6 +124,21 @@ public static class Program
     public static int Run(string[] args, TextWriter output, TextWriter error);   // in-process: documents to output or the --output file, messages to error
 }
 ```
+
+⚠ 2026-09-15 (distribution phase): `ExitCode` and `Program` were the assembly's only
+two public types (`Protocol.Tests.SurfaceTests`, the acceptance criteria of `BOOT.md`).
+The API review of that day (its "other risks" finding, fixed in `de62b79`) found that
+nothing outside `Cli.Tests`, which already has `InternalsVisibleTo`, references either:
+the .NET tool's host process calls `Main` by its entry-point mechanism, not as public
+API. Both are internal now; this section is marked as this node's own tree contract,
+since a .NET tool publishes no scenario for another assembly to consume here at all.
+
+⚠ 2026-09-17 (the audit's C6): the previous paragraph went on to say "though the only
+reader of it is this node's own tests (AGENTS.md §6)". `tests/Docs.Tests` gained its
+own `InternalsVisibleTo` grant and a caller of `Program.Run` on 2026-09-16, for the
+`schema` command's validation; the readers of this tree contract are now this node's
+own tests and `tests/Docs.Tests`, both declared consumers under root `BOOT.md`,
+Delivery: Tree contracts. Found by the CLI audit's finding C6, fixed in `68f540a`.
 
 ## Input document ✅
 
@@ -224,7 +266,7 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
 ```json
 {
   "run": {
-    "tool": "apthermo", "version": "1.0.0", "command": "rocket", "inputs": ["problem.json"],
+    "tool": "apthermo", "version": "0.1.0", "command": "rocket", "inputs": ["problem.json"],
     "database": { "thermoPath": "data/thermo.inp", "transPath": "data/trans.inp", "thermoSha256": "…", "transSha256": "…" },
     "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70, "cudaSkippedBecause": null },
     "timings": { "database": 0.31, "solve": 1.2 },
@@ -262,6 +304,21 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
 accelerator (`"cudaSkippedBecause": "APTHERMO_NO_CUDA=1 forbids CUDA"`), `null` when
 CUDA was bound or never tried. The `devices` listing's `cpu` and `cuda` accelerator
 objects carry the same field.
+
+`run.database.thermoPath` and `.transPath` are real file paths when `--database DIR`
+was given; without it they are the path-like markers `"embedded:thermo.inp"` and
+`"embedded:trans.inp"`, naming the database embedded in `APThermo` rather than a path
+on disk. `thermoSha256`/`transSha256` are the same hashes either way (the embedded
+bytes equal the committed `data/` files, `Data`'s `API.md`), so a run's provenance is
+complete without a database directory.
+
+⚠ 2026-09-15 (distribution phase): `--database`'s default used to be a search — `data/`
+next to the executable, then `data/` under the current directory, then the current
+directory itself — and `run.database` then carried whichever of those held the files.
+A NuGet package and a .NET tool have no `data/` beside them (root `BOOT.md`,
+`## Delivery`, `Data`), so the search is gone; `--database` still names a directory
+unchanged, and without it the tool now uses the database `Data.SpeciesDatabase`
+embeds.
 
 Every case carries `index` (its position), `inputs` (the values that vary in the
 batch: the ratio and the chamber pressure of a rocket case; the ratio, `kind`,
@@ -305,6 +362,7 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 | Situation | Behaviour |
 |---|---|
 | no command, an unknown command or option, a wrong argument count, an option that does not apply, a bad option value | message on standard error, exit code 2, no document |
+| `schema` without a name, or with a name that is not embedded | the embedded names on standard error, exit code 2, no document |
 | malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step | message with the JSON path on standard error, exit code 2, no document |
 | a document whose problem type does not match the command | message naming the right command, exit code 2 |
 | unknown reactant, temperature out of range, an element without a record, a rocket case without enthalpy, transport without `trans.inp` | the library's message, exit code 2 |
@@ -326,9 +384,10 @@ Found by the repair review of 2026-09-15; pinned by
 
 ## Side effects
 
-Reads the input documents and the database files; writes the output document to the
-given path (UTF-8, no byte-order mark) or to standard output; `devices` creates a CPU
-engine and tries to create a CUDA engine. No other file, no network.
+Reads the input documents and the database files and, for `schema`, the schema embedded
+in the assembly; writes the output document to the given path (UTF-8, no byte-order
+mark) or to standard output; `devices` creates a CPU engine and tries to create a CUDA
+engine. No other file, no network.
 
 ## Out of scope
 

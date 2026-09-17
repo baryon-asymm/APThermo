@@ -1,6 +1,6 @@
-using AerospacePropellantThermodynamics.Execution;
+using APThermo.Execution;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>
 /// The exception → exit code rule: <see cref="InputException"/> is exit code 2; an accelerator failure and every

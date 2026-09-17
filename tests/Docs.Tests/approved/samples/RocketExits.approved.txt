@@ -1,0 +1,5 @@
+LOX/LH2 O/F=6.0  Pc=7.0 MPa  status=Ok
+  chamber   T=3485.0 K
+  throat    T=3292.4 K   Isp=1514.7 m/s
+  exit1     T=2455.6 K   Isp=2900.0 m/s
+  exit2     T=1078.6 K   Isp=4161.4 m/s

@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Performance;
+namespace APThermo.Performance;
 
 /// <summary>
 /// Theoretical rocket performance of one case with an infinite-area chamber, RP-1311 Part I chapter 6: the chamber at
@@ -14,7 +14,7 @@ namespace AerospacePropellantThermodynamics.Performance;
 /// <see cref="ThroatSearch"/>, <see cref="ExitStations"/>, <see cref="AreaRatioIteration"/>, <see cref="PressureRatioStation"/>,
 /// <see cref="StationSolve"/> and <see cref="StationFigures"/> — as the node's BOOT.md sets out under Structure.
 /// </remarks>
-public static class RocketSolver
+internal static class RocketSolver
 {
     /// <summary>Equation (6.16): the throat is sonic when |u² − a²|/u² is within this.</summary>
     public const double SonicTolerance = 4.0e-5;

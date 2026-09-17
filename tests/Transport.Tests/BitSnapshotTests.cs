@@ -1,9 +1,9 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>
 /// Bits level: the host evaluation of every station of every rocket fixture run with transport hashes to the line recorded in

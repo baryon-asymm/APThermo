@@ -5,7 +5,7 @@
 Turns a parsed problem document and the sweep's combinations into the library's
 problems, solves them, and turns the results back into the output document's cases: the
 rocket and equilibrium paths of the `rocket` and `equilibrium` commands. A child node of
-`src/Cli` (`AerospacePropellantThermodynamics.Cli.Cases`, compiled into the parent's
+`src/Cli` (`APThermo.Cli.Cases`, compiled into the parent's
 assembly, root `BOOT.md`, Constraints, 2026-09-15): it has its own reason to change —
 a new field of a case's `inputs` echo, or a new sweep axis — and the rest of the node
 reaches it through the case builders and the sweep expansion, never through the
@@ -64,7 +64,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The moved types compile unchanged under
-      `AerospacePropellantThermodynamics.Cli.Cases` and every test of
+      `APThermo.Cli.Cases` and every test of
       `tests/Cli.Tests` that exercised them before the move (the sweep, mixture and
       `inputs`-echo cases of `OutputDocumentTests`, `LibraryEqualityTests` and
       `BitSnapshotTests`) passes after it, same count as before the split

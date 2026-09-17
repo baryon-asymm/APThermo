@@ -1,17 +1,23 @@
 # API.md — Problems
 
-Namespace `AerospacePropellantThermodynamics.Problems`. The node exposes the
+Namespace `APThermo.Problems`. The node exposes the
 propellant and problem definitions, the result records, and the solver entry points
-of the library. Everything not listed here is internal and may change. Types of the
-neighbours appear in the signatures: `SpeciesDatabase` and `ElementCount` (`Data`),
-`MixtureState` and `CaseStatus` (`Thermo`), `ProblemKind` (`Equilibrium`),
-`FlowModel` and `PerformanceFigures` (`Performance`), `TransportFigures`
-(`Transport`), `EngineOptions` and `AcceleratorInfo` (`Execution`).
+of the library. Everything not listed here, in a package-surface section (one whose
+heading carries no `(tree contract)` mark), is internal and may change without notice
+(root `BOOT.md`, Delivery: Public surface); this node's own `Mixture rule` section
+below is its only tree contract (the API review's finding M2, fixed in `2bca252`), read only by
+this node's own tests, which need no grant (AGENTS.md §6: a mirrored test node's use
+of its own source node's internals is a design invariant, not a friend crossing).
+Types of the neighbours appear in the signatures: `SpeciesDatabase` and
+`ElementCount` (`Data`), `MixtureState` and `CaseStatus` (`Thermo`), `ProblemKind`
+(`Equilibrium`), `FlowModel` and `PerformanceFigures` (`Performance`),
+`TransportFigures` (`Transport`), `EngineOptions`, `AcceleratorInfo` and
+`AcceleratorProbe` (`Execution`).
 
 ## Propellants ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Problems;
+namespace APThermo.Problems;
 
 public enum ReactantRole { Oxidizer, Fuel, Named }      // Named: a total mass fraction, outside any oxidizer/fuel split
 
@@ -39,17 +45,10 @@ public sealed record Reactant
     public CustomReactantDefinition? Definition { get; }   // custom reactants only
 }
 
-public abstract record MixtureSpecification
-{
-    public sealed record OxidizerToFuel(double Ratio) : MixtureSpecification;
-    public sealed record MassFractions : MixtureSpecification;   // the reactants' amounts are total mass fractions
-}
-
 public sealed record Propellant
 {
     public static PropellantBuilder From(SpeciesDatabase database);
     public IReadOnlyList<Reactant> Reactants { get; }
-    public MixtureSpecification Mixture { get; }
     public IReadOnlyList<string> Elements { get; }       // database spelling; oxidizers, fuels, named reactants, by first appearance
     public IReadOnlyList<string> Omit { get; }
     public IReadOnlyList<string>? Only { get; }
@@ -70,6 +69,26 @@ public sealed class PropellantBuilder
     public Propellant Build();
 }
 ```
+
+⚠ 2026-09-15 (distribution phase): `MixtureSpecification` and `Propellant.Mixture`
+moved into the tree-contract section below (the API review's finding M2, fixed in `2bca252`):
+`Propellant.OxidizerToFuelRatio` already carries the same information without loss
+for a consumer (null for a propellant given by total mass fractions), and only this
+node's own tests read `Mixture` directly.
+
+## Mixture rule (tree contract) ✅
+
+```csharp
+internal abstract record MixtureSpecification
+{
+    public sealed record OxidizerToFuel(double Ratio) : MixtureSpecification;
+    public sealed record MassFractions : MixtureSpecification;   // the reactants' amounts are total mass fractions
+}
+```
+
+`Propellant`'s internal `Mixture` property holds the `MixtureSpecification` a
+`PropellantBuilder` chose: `OxidizerToFuel` when `OxidizerToFuelRatio` was called,
+`MassFractions` otherwise.
 
 `Build` resolves every name against the database, applies the default temperatures
 (298.15 K for a record with intervals, the assigned temperature for one without),
@@ -245,37 +264,51 @@ public sealed record EquilibriumProblem
     public bool Transport { get; init; }
 }
 
-public sealed record Station(
-    string Name,                                        // "chamber", "throat", "exit1", "exit2", …; "state" for an equilibrium result
-    MixtureState State,                                 // zero where the status is not Ok
-    PerformanceFigures? Performance,                    // rocket stations only
-    IReadOnlyDictionary<string, double> MoleFractions,  // every species of the table, n_j over the moles of all species
-    IReadOnlyDictionary<string, double> CondensedMassFractions,   // every condensed species, n_j M_j
-    TransportFigures? Transport,                        // null when not requested or not Ok
-    CaseStatus? TransportStatus,                        // null when transport was not requested
-    CaseStatus Status);
+public sealed record Station               // internal constructor (M1): a consumer only reads one; every property is init, for this node's own tests
+{
+    public string Name { get; init; }                                        // "chamber", "throat", "exit1", "exit2", …; "state" for an equilibrium result
+    public MixtureState State { get; init; }                                 // zero where the status is not Ok
+    public PerformanceFigures? Performance { get; init; }                    // rocket stations only
+    public IReadOnlyDictionary<string, double> MoleFractions { get; init; }  // every species of the table, n_j over the moles of all species
+    public IReadOnlyDictionary<string, double> CondensedMassFractions { get; init; }   // every condensed species, n_j M_j
+    public TransportFigures? Transport { get; init; }                        // null when not requested or not Ok
+    public CaseStatus? TransportStatus { get; init; }                        // null when transport was not requested
+    public CaseStatus Status { get; init; }
+}
 
-public sealed record RocketResult(
-    Propellant? Propellant,                             // null for an elemental mixture
-    ElementalMixture Mixture,                           // the element moles and enthalpy the case started from
-    double MixtureMass,                                 // kg: Σ n_i A_i of those element moles with the database's atomic weights
-    RocketProblem Problem,
-    double? OxidizerToFuelRatio,                        // the ratio of the mixture rule, or null
-    IReadOnlyList<string> Species,                      // table order: gases, then condensed species
-    IReadOnlyList<Station> Stations,                    // chamber, throat, exits in order
-    CaseStatus Status,
-    AcceleratorInfo Accelerator);
+public sealed record RocketResult          // internal constructor (M1): a consumer only reads one
+{
+    public Propellant? Propellant { get; }                             // null for an elemental mixture
+    public ElementalMixture Mixture { get; }                           // the element moles and enthalpy the case started from
+    public double MixtureMass { get; }                                 // kg: Σ n_i A_i of those element moles with the database's atomic weights
+    public RocketProblem Problem { get; }
+    public double? OxidizerToFuelRatio { get; }                        // the ratio of the mixture rule, or null
+    public IReadOnlyList<string> Species { get; }                      // table order: gases, then condensed species
+    public IReadOnlyList<Station> Stations { get; }                    // chamber, throat, exits in order
+    public CaseStatus Status { get; }
+    public AcceleratorInfo Accelerator { get; }
+}
 
-public sealed record EquilibriumResult(
-    Propellant? Propellant,
-    ElementalMixture Mixture,
-    double MixtureMass,                                 // kg, as on RocketResult
-    EquilibriumProblem Problem,
-    IReadOnlyList<string> Species,
-    Station State,
-    CaseStatus Status,
-    AcceleratorInfo Accelerator);
+public sealed record EquilibriumResult     // internal constructor (M1): a consumer only reads one
+{
+    public Propellant? Propellant { get; }
+    public ElementalMixture Mixture { get; }
+    public double MixtureMass { get; }                                 // kg, as on RocketResult
+    public EquilibriumProblem Problem { get; }
+    public IReadOnlyList<string> Species { get; }
+    public Station State { get; }
+    public CaseStatus Status { get; }
+    public AcceleratorInfo Accelerator { get; }
+}
 ```
+
+⚠ 2026-09-15 (distribution phase): `Station`, `RocketResult` and `EquilibriumResult`
+had public positional constructors that no other assembly called (the API review's
+finding M1, fixed in `2bca252`): a consumer only ever reads one of these records from
+a solve. They are nominal now, with an internal constructor; `Station`'s properties
+are `init` so that this node's own tests can build a comparison copy with `with`
+(`tests/Problems.Tests/EquilibriumTests.cs`), `RocketResult`'s and
+`EquilibriumResult`'s are get-only. A field added in 0.x now breaks no consumer.
 
 ⚠ 2026-09-14: `RocketSweep` and `Solver.Solve(RocketSweep)` are retired (the
 clean-code review's F-PR-06): a `RocketSweep` expanded to every (ratio, chamber

@@ -1,8 +1,8 @@
 using System.Text;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
+using APThermo.Data;
+using APThermo.Fixtures;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>L1: the join-and-cut of condensed product records in the table builder (BOOT.md), on the committed database.</summary>
 public sealed class JoinAndCutTests : IClassFixture<CpuFixture>

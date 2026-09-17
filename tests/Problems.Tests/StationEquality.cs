@@ -1,10 +1,10 @@
 using System.Reflection;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Harness;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>
 /// Bit and relative equality of two stations of the tree's own code (this node's BOOT.md, invariants): two solves that must

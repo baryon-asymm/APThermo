@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace AerospacePropellantThermodynamics.Protocol.Tests;
+namespace APThermo.Protocol.Tests;
 
 /// <summary>
 /// Where the tree is and what its nodes are: the root found from this source file (AGENTS.md §13: from the source, never from

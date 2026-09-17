@@ -1,9 +1,9 @@
 using System.Text.Json;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 using ILGPU.Runtime;
 
-namespace AerospacePropellantThermodynamics.Transport.Tests;
+namespace APThermo.Transport.Tests;
 
 /// <summary>What one host call of the transport solver produced.</summary>
 internal sealed record TransportEvaluation(CaseStatus Status, TransportFigures Figures);

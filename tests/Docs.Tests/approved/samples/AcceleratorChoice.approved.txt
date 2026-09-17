@@ -1,0 +1,2 @@
+AcceleratorProbe.Describe answered without throwing, IlgpuVersion is not empty: True
+the Auto-chosen accelerator agrees with the CPU accelerator on the throat temperature: True

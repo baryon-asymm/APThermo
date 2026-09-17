@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Equilibrium.Tests;
+namespace APThermo.Equilibrium.Tests;
 
 /// <summary>
 /// The tolerances this node owns: those of comparisons that are not with the reference. A comparison with the reference

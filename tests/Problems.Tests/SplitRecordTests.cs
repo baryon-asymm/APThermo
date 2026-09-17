@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Equilibrium;
+using APThermo.Fixtures;
+using APThermo.Thermo;
 
-namespace AerospacePropellantThermodynamics.Problems.Tests;
+namespace APThermo.Problems.Tests;
 
 /// <summary>
 /// L1 and L2: results speak in database names even where the table cuts a species into pieces (BOOT.md, results),

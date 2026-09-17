@@ -1,13 +1,11 @@
-using System.Text.Json;
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Execution;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Fixtures;
+using APThermo.Harness;
+using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
 
-namespace AerospacePropellantThermodynamics.Benchmarks;
+namespace APThermo.Benchmarks;
 
 /// Group 1 of `BOOT.md`, Constraints: the LOX/LH2 rocket sweep family at 1 000,
 /// 10 000 and 100 000 cases, on the CPU accelerator and on CUDA, through the raw
@@ -42,45 +40,21 @@ public class BatchThroughputBenchmarks
 
         _engine = Engine.Create(AcceleratorSelection.OptionsFor(Accelerator));
         _tables = _engine.Upload(table);
-        _batch = BuildBatch(inputs, elements.Count, molesPerKilogram);
+        _batch = RocketBatches.Build(inputs, elements.Count, molesPerKilogram, CaseCount);
 
         RecordDiagnostics(_engine.Run(_tables, _batch));
     }
 
+    private RocketBatchResult? _lastResult;
+
     [Benchmark]
-    public RocketBatchResult SolveBatch() => _engine.Run(_tables, _batch);
+    public void SolveBatch() => _lastResult = _engine.Run(_tables, _batch);
 
     [GlobalCleanup]
     public void Cleanup()
     {
         _tables.Dispose();
         _engine.Dispose();
-    }
-
-    private RocketBatch BuildBatch(JsonElement inputs, int elementCount, IReadOnlyList<double> molesPerKilogram)
-    {
-        var pressure = inputs.GetProperty("chamberPressure").GetDouble();
-        var enthalpy = inputs.GetProperty("reactantEnthalpy").GetDouble();
-        var flow = FixtureStateRecords.ReadFlow(inputs);
-        var areaRatios = FixtureJson.ReadDoubles(inputs, "areaRatios");
-        var exitKinds = areaRatios.Select(_ => ExitSpecification.AreaRatio).ToArray();
-
-        var batch = new RocketBatch(CaseCount, elementCount, exitKinds);
-        for (var i = 0; i < CaseCount; i++)
-        {
-            batch.ChamberPressure[i] = pressure;
-            batch.ReactantEnthalpy[i] = enthalpy;
-            batch.Flow[i] = flow;
-            for (var e = 0; e < elementCount; e++)
-            {
-                batch.ElementMoles[i * elementCount + e] = molesPerKilogram[e];
-            }
-            for (var x = 0; x < areaRatios.Count; x++)
-            {
-                batch.ExitValues[i * areaRatios.Count + x] = areaRatios[x];
-            }
-        }
-        return batch;
     }
 
     private void RecordDiagnostics(RocketBatchResult result)

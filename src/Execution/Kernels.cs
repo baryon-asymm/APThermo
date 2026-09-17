@@ -1,13 +1,15 @@
-using AerospacePropellantThermodynamics.Equilibrium;
-using AerospacePropellantThermodynamics.Performance;
-using AerospacePropellantThermodynamics.Thermo;
-using AerospacePropellantThermodynamics.Transport;
+using APThermo.Equilibrium;
+using APThermo.Performance;
+using APThermo.Thermo;
+using APThermo.Transport;
 using ILGPU;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
-/// <summary>Device views of one equilibrium chunk. Public only because ILGPU requires kernel parameter types to be.</summary>
-public readonly struct EquilibriumBatchViews(
+/// <summary>Device views of one equilibrium chunk. Internal: ILGPU 1.5.3 needs only <c>[assembly: InternalsVisibleTo("ILGPURuntime")]</c> on this
+/// assembly, not a public type (the API review of 2026-09-15, <c>SCRATCH/api-review-report.md</c>; the wrong claim "must be public"
+/// stood here since 2026-09-12).</summary>
+internal readonly struct EquilibriumBatchViews(
     ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
     ArrayView<double> elementMoles, ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
     ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> states, ArrayView<int> status, ArrayView<int> iterations)
@@ -26,8 +28,8 @@ public readonly struct EquilibriumBatchViews(
     public readonly ArrayView<int> Iterations = iterations;
 }
 
-/// <summary>Device views of one rocket chunk. Public only because ILGPU requires kernel parameter types to be.</summary>
-public readonly struct RocketBatchViews(
+/// <summary>Device views of one rocket chunk. Internal: see the note on <see cref="EquilibriumBatchViews"/>.</summary>
+internal readonly struct RocketBatchViews(
     int exitCount, ArrayView<double> chamberPressures, ArrayView<double> reactantEnthalpies, ArrayView<double> temperatureEstimates,
     ArrayView<int> flows, ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds,
     ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
@@ -53,8 +55,8 @@ public readonly struct RocketBatchViews(
     public readonly ArrayView<int> Status = status;
 }
 
-/// <summary>Device views of one transport chunk. Public only because ILGPU requires kernel parameter types to be.</summary>
-public readonly struct TransportBatchViews(
+/// <summary>Device views of one transport chunk. Internal: see the note on <see cref="EquilibriumBatchViews"/>.</summary>
+internal readonly struct TransportBatchViews(
     ArrayView<double> temperatures, ArrayView<double> moles, ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
     ArrayView<TransportFigures> figures, ArrayView<int> status)
 {
@@ -66,8 +68,8 @@ public readonly struct TransportBatchViews(
     public readonly ArrayView<int> Status = status;
 }
 
-/// <summary>Device views of one species-function chunk. Public only because ILGPU requires kernel parameter types to be.</summary>
-public readonly struct SpeciesFunctionBatchViews(
+/// <summary>Device views of one species-function chunk. Internal: see the note on <see cref="EquilibriumBatchViews"/>.</summary>
+internal readonly struct SpeciesFunctionBatchViews(
     ArrayView<int> species, ArrayView<double> temperatures, ArrayView<double> cpOverR, ArrayView<double> hOverRT, ArrayView<double> sOverR,
     ArrayView<int> inRange)
 {

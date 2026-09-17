@@ -1,7 +1,7 @@
-using AerospacePropellantThermodynamics.Cli.Listings;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Listings;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli;
+namespace APThermo.Cli;
 
 /// <summary>Command name to handler, no logic (it was the class `Commands`).</summary>
 internal static class CommandRegistry
@@ -14,6 +14,7 @@ internal static class CommandRegistry
             ["states"] = StatesCommand.Execute,
             ["species"] = SpeciesCommand.Execute,
             ["devices"] = DeviceListing.Execute,
+            ["schema"] = SchemaCommand.Execute,
         };
 
     public static ExitCode Execute(Invocation invocation, TextWriter output) =>

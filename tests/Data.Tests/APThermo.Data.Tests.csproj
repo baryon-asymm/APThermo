@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Data.Tests: the readiness criterion of src/Data. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
+    <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="records\**\*" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+</Project>

@@ -1,8 +1,8 @@
-using AerospacePropellantThermodynamics.Data;
-using AerospacePropellantThermodynamics.Fixtures;
-using AerospacePropellantThermodynamics.Harness;
+using APThermo.Data;
+using APThermo.Fixtures;
+using APThermo.Harness;
 
-namespace AerospacePropellantThermodynamics.Thermo.Tests;
+namespace APThermo.Thermo.Tests;
 
 /// <summary>
 /// The table bits of every fixture case, computed once per test class: the case file relative to the repository root

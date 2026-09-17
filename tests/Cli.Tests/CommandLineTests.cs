@@ -1,7 +1,7 @@
 using System.Globalization;
-using AerospacePropellantThermodynamics.Cli.Syntax;
+using APThermo.Cli.Syntax;
 
-namespace AerospacePropellantThermodynamics.Cli.Tests;
+namespace APThermo.Cli.Tests;
 
 /// <summary>L0: option parsing and the usage text.</summary>
 [Collection(CliCollection.Name)]
@@ -26,6 +26,28 @@ public sealed class CommandLineTests(CliFixture fixture)
             Assert.Contains("commands:", run.Output);
             Assert.Empty(run.Error);
         }
+    }
+
+    [Fact]
+    public void Version_prints_the_tool_version_and_exits_0()
+    {
+        var run = fixture.Invoke("--version");
+        Assert.Equal(0, run.Code);
+        Assert.Equal(Program.Version, run.Output.Trim());
+        Assert.Empty(run.Error);
+    }
+
+    [Fact]
+    public void Without_database_the_run_uses_the_embedded_database()
+    {
+        var run = fixture.Invoke("species", "--format", "json");
+        Assert.Equal(0, run.Code);
+        using var document = run.Json();
+        var database = document.RootElement.GetProperty("run").GetProperty("database");
+        Assert.Equal(DatabaseFiles.EmbeddedThermoMarker, database.GetProperty("thermoPath").GetString());
+        Assert.Equal(DatabaseFiles.EmbeddedTransMarker, database.GetProperty("transPath").GetString());
+        Assert.Equal(64, database.GetProperty("thermoSha256").GetString()!.Length);
+        Assert.Equal(64, database.GetProperty("transSha256").GetString()!.Length);
     }
 
     [Theory]

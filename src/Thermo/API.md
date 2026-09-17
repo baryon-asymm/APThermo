@@ -1,18 +1,27 @@
 # API.md — Thermo
 
-Namespace `AerospacePropellantThermodynamics.Thermo`. The node exposes compact species
+Namespace `APThermo.Thermo`. The node exposes compact species
 tables, the kernel-compatible species functions, and the vocabulary shared by the
-numerical nodes. Everything not listed here is internal and may change.
+numerical nodes. Everything not listed here, in a package-surface section (one whose
+heading carries no `(tree contract)` mark), is internal and may change without notice
+(root `BOOT.md`, Delivery: Public surface). The tree-contract sections below list the
+internal types the other numerical nodes and `Problems` use (root `BOOT.md`, Delivery:
+Tree contracts); the assembly grants `InternalsVisibleTo` to exactly those nodes and
+their mirroring test nodes, plus `Benchmarks` and `ILGPURuntime`
+(`APThermo.Thermo.csproj`).
 
-## Constants and shared vocabulary ✅
+⚠ 2026-09-15 (distribution phase): the review of that day (fixed in `e284939`)
+found no consumer scenario for `PhysicalConstants`, `SpeciesFunctions`, `SpeciesTable`,
+`SpeciesTableArrays`, `SpeciesTableBuffers`, `SpeciesTableView` and `TableLimits`: every
+use is another node of this tree composing the kernel layer. They moved from the package
+surface into the tree contract below; only `MixtureState` and `CaseStatus` stay public,
+because a consumer reads them from `Station`, `RocketResult` and `EquilibriumResult` of
+`Problems`.
+
+## Species vocabulary ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Thermo;
-
-public static class PhysicalConstants
-{
-    public const double R = 8314.51;              // J/(kmol·K), the value NASA CEA uses
-}
+namespace APThermo.Thermo;
 
 public struct MixtureState                        // one station of one case; SI units
 {
@@ -55,10 +64,26 @@ as moles (it equals M for a gas-only mixture), found when the Equilibrium tests 
 the water-condensation example (M = 64.18, MW = 19.29 kg/kmol at 300 K) and the
 aluminized propellant. Renamed, with the fixture field and the tolerance entry.
 
-## Species table ✅
+## Physical constants and table limits (tree contract) ✅
 
 ```csharp
-public sealed class SpeciesTable                          // host side, immutable
+internal static class PhysicalConstants
+{
+    public const double R = 8314.51;              // J/(kmol·K), the value NASA CEA uses
+}
+
+internal static class TableLimits
+{
+    public const int MaxElements = 20;
+    public const int MaxSpecies = 2048;
+    public const int MaxIntervalsPerSpecies = 5;
+}
+```
+
+## Species table (tree contract) ✅
+
+```csharp
+internal sealed class SpeciesTable                          // host side, immutable
 {
     public static SpeciesTable Build(SpeciesDatabase database,
                                      IReadOnlyList<string> elements,
@@ -74,7 +99,7 @@ public sealed class SpeciesTable                          // host side, immutabl
     public int IndexOf(string species);                      // table index, or −1
 }
 
-public sealed class SpeciesTableArrays                       // do not modify after the build
+internal sealed class SpeciesTableArrays                       // do not modify after the build; the constructor is internal, SpeciesTable.Build is the only caller
 {
     public double[] MolarMass { get; }          // [species], kg/kmol
     public double[] FormationEnthalpy { get; }  // [species], J/mol
@@ -87,7 +112,7 @@ public sealed class SpeciesTableArrays                       // do not modify af
     public int IntervalTotal { get; }
 }
 
-public readonly struct SpeciesTableView                    // blittable; the same layout over accelerator memory
+internal readonly struct SpeciesTableView                    // blittable; the same layout over accelerator memory
 {
     public readonly int SpeciesCount, GasCount, ElementCount;
     public readonly ArrayView<double> MolarMass, FormationEnthalpy, Stoichiometry;
@@ -99,19 +124,12 @@ public readonly struct SpeciesTableView                    // blittable; the sam
                             ArrayView<double> intervalBounds, ArrayView<double> exponents, ArrayView<double> coefficients);
 }
 
-public sealed class SpeciesTableBuffers : IDisposable        // the table uploaded to one accelerator; owns the buffers
+internal sealed class SpeciesTableBuffers : IDisposable        // the table uploaded to one accelerator; owns the buffers
 {
     public static SpeciesTableBuffers Upload(Accelerator accelerator, SpeciesTable table);
     public SpeciesTable Table { get; }
     public SpeciesTableView View { get; }                    // pass to kernels; on the CPU accelerator, usable from host code too
     public void Dispose();
-}
-
-public static class TableLimits
-{
-    public const int MaxElements = 20;
-    public const int MaxSpecies = 2048;
-    public const int MaxIntervalsPerSpecies = 5;
 }
 ```
 
@@ -123,10 +141,10 @@ ILGPU 1.5.3 offers no view over a managed array outside a kernel; a view needs a
 buffer of an accelerator, so `SpeciesTableBuffers.Upload(accelerator, table)` replaces
 it, and the host path uses the CPU accelerator. See the note in `BOOT.md`.
 
-## Species functions ✅
+## Species functions (tree contract) ✅
 
 ```csharp
-public static class SpeciesFunctions                       // kernel-compatible
+internal static class SpeciesFunctions                       // kernel-compatible
 {
     public static double CpOverR(in SpeciesTableView table, int species, double temperature);
     public static double HOverRT(in SpeciesTableView table, int species, double temperature);
@@ -142,15 +160,15 @@ indices are those of the table. The functions are safe to call from any thread a
 from kernels; the usual exponents −2 … 4 are evaluated by multiplication, any other
 through `Math.Pow`.
 
-## Join-and-cut of condensed records ✅
+## Join-and-cut of condensed records (tree contract) ✅
 
 ```csharp
-public static class SpeciesFunctions
+internal static class SpeciesFunctions
 {
     public const double LatentHeatThreshold = 1.0e-3;   // |ΔH°/RT| at a shared bound: at or above it, two adjacent condensed fits are a real transition
 }
 
-public sealed class SpeciesTable
+internal sealed class SpeciesTable
 {
     public IReadOnlyList<int> IndicesOf(string species);   // the pieces of a database name in table order, or its one entry; empty when the table lacks the name
 }
@@ -168,16 +186,16 @@ provided its first interval; records of one name that cannot concatenate are ref
 with an `ArgumentException` naming them. The rule and the threshold's derivation are
 in `BOOT.md`.
 
-## Range questions ✅
+## Range questions (tree contract) ✅
 
 ```csharp
-public static class SpeciesFunctions
+internal static class SpeciesFunctions
 {
     public static double RecordLow(in SpeciesTableView table, int species);    // the first lower bound of the species' intervals
     public static double RecordHigh(in SpeciesTableView table, int species);   // the last upper bound; IsInRange compares T with these two
 }
 
-public sealed class SpeciesTable
+internal sealed class SpeciesTable
 {
     public int PieceOf(string species, double temperature); // the piece of a database name covering the temperature by the interval rule (the first whose last bound is not below T, else the last); −1 when the table lacks the name
 }

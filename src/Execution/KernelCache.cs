@@ -5,7 +5,7 @@ using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 
-namespace AerospacePropellantThermodynamics.Execution;
+namespace APThermo.Execution;
 
 /// <summary>
 /// The typed launchers of the entry points, compiled — and on CUDA post-linked — on first use and kept for the session's lifetime,

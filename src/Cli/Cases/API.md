@@ -1,16 +1,16 @@
 # API.md — Cli.Cases
 
-Namespace `AerospacePropellantThermodynamics.Cli.Cases`, compiled into the
-`AerospacePropellantThermodynamics.Cli` assembly (root `BOOT.md`, Constraints,
+Namespace `APThermo.Cli.Cases`, compiled into the
+`APThermo.Cli` assembly (root `BOOT.md`, Constraints,
 2026-09-15). Every type is `internal`; visible throughout the `Cli` assembly and to
-`AerospacePropellantThermodynamics.Cli.Tests`, but the parent and the sibling child
+`APThermo.Cli.Tests`, but the parent and the sibling child
 node `Cli.Output` use only what is named below. `CaseInputs` is this node's own and may
 change.
 
 ## Case builders ✅
 
 ```csharp
-namespace AerospacePropellantThermodynamics.Cli.Cases;
+namespace APThermo.Cli.Cases;
 
 internal static class Sweeps
 {

@@ -1,4 +1,4 @@
-namespace AerospacePropellantThermodynamics.Execution.Chunks;
+namespace APThermo.Execution.Chunks;
 
 /// <summary>What happens to a chunk buffer around a launch.</summary>
 internal enum ChunkTransfer
