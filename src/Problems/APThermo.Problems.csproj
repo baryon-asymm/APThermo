@@ -30,11 +30,6 @@
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 
-  <!-- SourceLink for the symbol package (root BOOT.md, ## Delivery, Symbols). -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-  </ItemGroup>
-
   <ItemGroup>
     <InternalsVisibleTo Include="APThermo.Problems.Tests" />
   </ItemGroup>
