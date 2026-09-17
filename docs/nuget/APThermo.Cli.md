@@ -13,8 +13,10 @@ dotnet tool install --global APThermo.Cli
 
 ## Minimal example
 
-A rocket problem document, LOX/LH2 at an oxidizer-to-fuel ratio of 6:
+A rocket problem document, LOX/LH2 at an oxidizer-to-fuel ratio of 6
+(`samples/cli/problems/rocket.json` in the repository):
 
+<!-- cli-document: problems/rocket.json -->
 ```json
 {
   "propellant": {
@@ -24,13 +26,19 @@ A rocket problem document, LOX/LH2 at an oxidizer-to-fuel ratio of 6:
     ],
     "mixture": { "oxidizerToFuel": 6.0 }
   },
-  "problem": { "type": "rocket", "chamberPressure": 7.0e6, "areaRatios": [20.0, 77.5] }
+  "problem": {
+    "type": "rocket",
+    "chamberPressure": 7000000.0,
+    "flow": "shifting-equilibrium",
+    "areaRatios": [20.0, 77.5],
+    "transport": true
+  }
 }
 ```
 
-Save it as `problem.json` and run `apthermo rocket problem.json`: it writes the
-chamber, throat and exit states and the performance figures (specific impulse,
-thrust coefficient, characteristic velocity) as JSON to standard output. No
+Run it with `apthermo rocket samples/cli/problems/rocket.json --accelerator cpu`: it
+writes the chamber, throat and exit states and the performance figures (specific
+impulse, thrust coefficient, characteristic velocity) as JSON to standard output. No
 `--database` is needed: `apthermo` uses the NASA thermodynamic database embedded in
 `APThermo`. Run `apthermo --help` for every command, and `apthermo --version` for
 the tool's version.
@@ -49,8 +57,8 @@ found; the output document's `run.accelerator.cudaSkippedBecause` names the reas
 
 ## Guide
 
-Every command, its documents and its exit codes: see
-[Command line](https://github.com/OWNER/REPO/blob/main/docs/guide/cli.md).
+Every command, its documents and its exit codes: see `docs/guide/cli.md` in the
+source repository (the link here waits on the repository existing publicly).
 
 ## License and data notice
 

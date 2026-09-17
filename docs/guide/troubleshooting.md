@@ -106,10 +106,13 @@ Per-case `CaseStatus` values, read off a `Station`, a `RocketResult` or an
 | Status | Meaning |
 |---|---|
 | `Ok` | Solved; every figure is meaningful. |
-| `InvalidInput` | Every element abundance zero, a negative abundance, an empty table, a non-positive pressure, or (tp) a non-positive temperature. |
-| `NotConverged` | The Newton iteration did not meet its tests within the step budget, or the element-conservation check failed at the end. |
-| `SingularMatrix` | The derivative matrix stayed singular after the reference's remedies. |
+| `InvalidInput` | An equilibrium solve refused before iterating: every element abundance zero, a negative abundance, an empty table, a non-positive pressure, or (tp) a non-positive temperature. A rocket station refuses the same way for a non-positive chamber pressure, an empty table, or a pressure ratio not above 1 for that station; the exits after a failed chamber or throat keep this status instead of solving further. Transport refuses it for a non-positive or NaN temperature, a negative or NaN mole number, or a transport table that does not match the species table. |
+| `NotConverged` | The Newton iteration did not meet its tests within the step budget, the condensed set changed too many times, or the element-conservation check failed at the end; for a rocket exit, an area ratio not met within its own step budget. |
+| `SingularMatrix` | The derivative matrix stayed singular after the reference's remedies; for transport, a reaction system could not be solved, so the frozen figures stand in for the reacting ones. |
 | `TemperatureOutOfRange` | An hp or sp iterate left the database's temperature range `[100 K, 20000 K]`. This is a status, not an exception: the solve does not throw for it. |
+| `ThroatNotFound` | A rocket case's sonic condition was not met within the throat search's step budget; the case ends there. |
+| `AreaRatioInvalid` | A rocket exit's area ratio was below 1. |
+| `NoTransportData` | No gaseous species carried positive moles, so transport has nothing to evaluate. |
 
 On any status but `Ok`, the state is zero, not partial — check `Status` first.
 
