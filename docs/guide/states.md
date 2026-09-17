@@ -17,40 +17,48 @@ Solve a batch of state records: each record names a pressure, an elemental compo
 3. Build a list of `StateRecord` instances: each has a pressure, the element moles per kilogram, and exactly one of temperature, enthalpy or entropy.
 4. Create a solver and call `SolveStates`.
 
+<!-- snippet: StatesSolveUsings -->
+```csharp
+using APThermo.Data;
+using APThermo.Execution;
+using APThermo.Problems;
+using APThermo.Thermo;
+```
+
+`output` is any `TextWriter` (`Console.Out` in a console application):
+
 <!-- snippet: StatesSolve -->
 ```csharp
-internal sealed class StatesSolve
+var database = SpeciesDatabase.LoadBundled();
+using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+
+var elementMoles = new Dictionary<string, double>
 {
-    internal static void Run(TextWriter output)
+    ["H"] = 141.73179242528607, ["O"] = 53.57343757533765,
+};   // mol/kg, LOX/LH2 at O/F=6.0
+
+var mixture = ElementalMixture.Create(elementMoles);
+output.WriteLine($"mass = {solver.MassOf(mixture):F4} kg");
+
+double[] pressures = [1.0e6, 7.0e6];   // Pa
+var records = pressures.Select(pressure => new StateRecord(
+    Pressure: pressure,
+    Composition: elementMoles,
+    Temperature: 3000.0)).ToList();     // K: a tp record
+
+IReadOnlyList<EquilibriumResult> results = solver.SolveStates(records);
+
+for (var i = 0; i < pressures.Length; i++)
+{
+    EquilibriumResult result = results[i];
+    if (result.Status != CaseStatus.Ok)
     {
-        var database = SpeciesDatabase.LoadBundled();
-
-        var propellant = Propellant.From(database)
-            .Oxidizer("O2(L)", temperature: 90.17)
-            .Fuel("H2(L)", temperature: 20.27)
-            .OxidizerToFuelRatio(6.0)
-            .Build();
-
-        using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-        ElementalMixture mixture = solver.MixtureOf(propellant);
-
-        double[] pressures = [1.0e5, 7.0e6, 20.0e6];
-        var records = pressures.Select(p => new StateRecord(
-            Pressure: p,
-            Composition: mixture.ElementMoles,
-            Temperature: 3000.0
-        )).ToList();
-
-        IReadOnlyList<EquilibriumResult> results = solver.SolveStates(records);
-
-        output.WriteLine("LOX/LH2 O/F=6.0  tp states at T=3000 K");
-        foreach (EquilibriumResult result in results)
-        {
-            var s = result.State.State;
-            double P_MPa = result.Problem.Pressure / 1e6;
-            output.WriteLine($"  P={P_MPa:F2} MPa   T={s.Temperature:F1} K   h={s.Enthalpy / 1e3:F1} kJ/kg   rho={s.Density:F3} kg/m³");
-        }
+        output.WriteLine($"  P={pressures[i] / 1e6:F2} MPa  FAILED: {result.Status}");
+        continue;
     }
+
+    var state = result.State.State;
+    output.WriteLine($"  P={pressures[i] / 1e6:F2} MPa   T={state.Temperature:F1} K   h={state.Enthalpy / 1e3:F1} kJ/kg");
 }
 ```
 
