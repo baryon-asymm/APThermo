@@ -8,7 +8,7 @@ database answers, the index and the atomic weights included, is built by `Load` 
 Everything not listed here is internal and may change.
 
 ⚠ 2026-09-15 (distribution phase): the API review of that day
-(`SCRATCH/api-review-report.md`, M1) found that `DatabaseProvenance`, `Species`,
+(its finding M1, fixed in `c85fd77`) found that `DatabaseProvenance`, `Species`,
 `TemperatureInterval`, `TransportEntry` and `TransportFit` each carried a public
 positional constructor no other assembly called: a consumer only ever reads one from
 `SpeciesDatabase`. Below, each is now a nominal record with get-only properties and an

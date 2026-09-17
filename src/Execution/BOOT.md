@@ -17,7 +17,7 @@ numerical node stays testable without it.
   ⚠ 2026-09-15 (distribution phase): this invariant went on to say the public surface
   "names ILGPU only through this node's own types and, in the kernel parameter
   structs, ILGPU's `ArrayView`". The API review of that day
-  (`SCRATCH/api-review-report.md`) demoted `Engine`, the batch types and the four
+  (fixed in `9036c6a`) demoted `Engine`, the batch types and the four
   views structs into the tree contract; the package surface (`AcceleratorKind`,
   `EngineOptions`, `AcceleratorInfo`, `AcceleratorUnavailableException`,
   `AcceleratorProbe`) now names no ILGPU type at all, so the second sentence no longer
@@ -168,7 +168,7 @@ by the split, so the emitted PTX, the post-link and the kernel time cannot move.
 
 ⚠ 2026-09-15 (distribution phase): `Engine` and `MathProbe` were the node's only
 public composition types, per the table below; the API review of that day
-(`SCRATCH/api-review-report.md`, section 4, D1 and F1) found no consumer scenario for
+(its section 4, findings D1 and F1, fixed in `9036c6a`) found no consumer scenario for
 either. `Engine` became internal and `AcceleratorProbe` (`AcceleratorProbe.cs`)
 replaces it on the package surface for the two questions a consumer actually asked of
 it: what a set of `EngineOptions` binds to (`Describe`), and whether the environment
@@ -276,8 +276,8 @@ Decisions taken with the review of 2026-09-14:
   ⚠ 2026-09-15 (distribution phase): this bullet said the two views structs "are
   kernel parameter descriptors ILGPU requires to be public". Wrong: ILGPU 1.5.3 needs
   only `[assembly: InternalsVisibleTo("ILGPURuntime")]` on the declaring assembly, not
-  a public type (the API review of that day, `SCRATCH/api-review-report.md`, section
-  3, ran the failure and the fix on the CPU accelerator and on CUDA; the claim entered
+  a public type (the API review of that day, section 3, fixed in `9036c6a`,
+  ran the failure and the fix on the CPU accelerator and on CUDA; the claim entered
   with `f2e5de7` and `53ec9fb` on 2026-09-12 from an observed failure that never tried
   the grant). All four views structs are internal now, with that grant on
   `APThermo.Execution.csproj`; the reason for the declared parameter-count exception

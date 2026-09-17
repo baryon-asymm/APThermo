@@ -55,7 +55,28 @@ if (chamber.Status == CaseStatus.Ok)
 }
 ```
 
-The same case from the command line, over a JSON document:
+The same case from the command line, over a JSON document. Save this as
+`samples/cli/problems/rocket.json` (already there in a clone of the repository):
+
+<!-- cli-document: problems/rocket.json -->
+```json
+{
+  "propellant": {
+    "reactants": [
+      { "name": "O2(L)", "role": "oxidizer", "amount": 1.0, "temperature": 90.17 },
+      { "name": "H2(L)", "role": "fuel", "amount": 1.0, "temperature": 20.27 }
+    ],
+    "mixture": { "oxidizerToFuel": 6.0 }
+  },
+  "problem": {
+    "type": "rocket",
+    "chamberPressure": 7000000.0,
+    "flow": "shifting-equilibrium",
+    "areaRatios": [20.0, 77.5],
+    "transport": true
+  }
+}
+```
 
 ```console
 $ apthermo rocket samples/cli/problems/rocket.json --accelerator cpu
@@ -66,13 +87,15 @@ ways.
 
 ## Platforms and CUDA
 
-Windows x64 and Linux x64 are both supported, on the CPU accelerator and on CUDA. The
-CPU accelerator needs nothing beyond the package. CUDA additionally needs, at run
-time, an NVIDIA driver with CUDA 12.8 or newer, plus `libnvvm` and `libdevice.10.bc`
-from a CUDA Toolkit 12.8 or newer. `AcceleratorKind.Auto` falls back to the CPU
-accelerator when no usable GPU or library is found. See
-[GPU acceleration](docs/guide/gpu.md) for the discovery order and how to check which
-accelerator a run used.
+Windows x64 and Linux x64 are both supported on the CPU accelerator, which needs
+nothing beyond the package. CUDA is supported on both too, but Linux verification is
+still pending as of this release (the root `BOOT.md`'s Linux acceptance criterion is
+unticked); the CUDA path has been verified under WSL2 on the reference machine. CUDA
+additionally needs, at run time, an NVIDIA driver with CUDA 12.8 or newer, plus
+`libnvvm` and `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
+`AcceleratorKind.Auto` falls back to the CPU accelerator when no usable GPU or library
+is found. See [GPU acceleration](docs/guide/gpu.md) for the discovery order and how to
+check which accelerator a run used.
 
 ## Units
 

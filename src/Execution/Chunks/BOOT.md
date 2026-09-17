@@ -91,7 +91,7 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       tools/protocol-lint/protocol_lint.py . --exclude templates`) at 0 errors,
       0 warnings; every `Bits.approved.txt` and `PublicSurface.approved.txt`
       unchanged by `git hash-object` before and after the move (this node's own
-      coding-task report, `SCRATCH/child-nodes-execution-report.md`).
+      coding-task report, recorded in `04b31eb`).
 - [x] 2026-09-15 — `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"`
       green at 41/41 with `APTHERMO_NO_CUDA` unset, on the reference machine, the same
       count as the pre-split tree (no test method added or removed by this split): the

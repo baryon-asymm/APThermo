@@ -18,9 +18,10 @@ to read a run's database provenance and the NASA attribution.
 ## Steps
 
 1. **The default: no files needed.** `SpeciesDatabase.LoadBundled()` reads the NASA
-   files embedded in the `APThermo` assembly — the same bytes as the repository's
-   `data/thermo.inp` and `data/trans.inp`, hashed the same way, so `Provenance`
-   carries the same hashes either way. Every guide example on this site uses it.
+   files embedded in the `APThermo.Data` assembly (part of the `APThermo` package) —
+   the same bytes as the repository's `data/thermo.inp` and `data/trans.inp`, hashed
+   the same way, so `Provenance` carries the same hashes either way. Every guide
+   example on this site uses it.
 2. **Loading your own files instead.** `SpeciesDatabase.Load(thermoPath, transPath)`
    reads files from a path you give; `transPath` is optional (transport properties
    are then unavailable). This example reads the repository's own committed files:
@@ -56,8 +57,11 @@ output.WriteLine($"thermoSha256 starts with: {database.Provenance.ThermoSha256[.
 
 ## Errors
 
-- **`--database DIR` or a path given to `Load` does not exist**: `FileNotFoundException`
-  before anything is parsed.
+- **A path given to `Load` does not exist**: `FileNotFoundException` before anything
+  is parsed. In the CLI, a `--database DIR` that does not exist is the same situation
+  turned into a message on standard error and exit code 2, not a raw exception;
+  omitting `--database` entirely is not an error at all — the tool falls back to the
+  embedded database, as point 1 above describes.
 - **A malformed file** (a truncated record, a count that does not match the lines
   present): `DatabaseFormatException` naming the file and the line number; nothing is
   returned.

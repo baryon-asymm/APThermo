@@ -123,7 +123,7 @@ Refusals raised before any kernel runs (exceptions, not statuses):
 | Unknown reactant name | `KeyNotFoundException`, at `Build` |
 | Invalid mixture rule (a ratio without an oxidizer and a fuel, oxidizers and fuels without a ratio, a named reactant with a ratio), a reactant temperature out of range, a non-positive pressure or chamber pressure | `ArgumentException`, at `Build` or `Solve` |
 | A state record with none or more than one target, exits without an enthalpy, a flow named without exits, a record given to the wrong batch method | `StateRecordException`, naming the record's index and reason |
-| A mixture's element moles do not weigh one kilogram with the database's atomic weights, within the tolerance in force (1 % by default, `--mass-tolerance` on the command line, `ElementalMixture.MassTolerance` in C#) | `MixtureMassException`, naming the mixture, the mass found and the tolerance |
+| A mixture's element moles do not weigh one kilogram with the database's atomic weights, within the tolerance in force (1 % by default, `--mass-tolerance` on the command line; in C#, the `massTolerance` argument of `ElementalMixture.Create` or `StateBatchOptions.MassTolerance`, read back afterwards from the mixture's own get-only `MassTolerance`) | `MixtureMassException`, naming the mixture, the mass found and the tolerance |
 | The accelerator requested cannot be bound (see [GPU acceleration](gpu.md)) | `AcceleratorUnavailableException`, naming every path tried |
 
 ## See also

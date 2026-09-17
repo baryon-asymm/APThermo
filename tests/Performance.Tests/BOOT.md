@@ -76,7 +76,7 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   compiles kernels only over public parameter types". Wrong: ILGPU 1.5.3 needs only
   `[assembly: InternalsVisibleTo("ILGPURuntime")]` on the declaring assembly to load an
   internal kernel parameter type, method or view element; public is only one way to
-  satisfy it (the API review of 2026-09-15, `SCRATCH/api-review-report.md`, section 3,
+  satisfy it (the API review of 2026-09-15, section 3, fixed here in `24156be`,
   proved it on the CPU accelerator and on CUDA — Execution's own four views structs
   are internal now, with that grant). The claim entered with `f2e5de7`/`53ec9fb` on
   2026-09-12. The struct stays public here; nothing in this node's own scope required

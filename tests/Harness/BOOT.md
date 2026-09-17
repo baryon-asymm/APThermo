@@ -189,7 +189,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       `Docs.Tests.CommandLineExampleTests`. The test method names of `Cli.Tests` are
       unchanged at HEAD and in the working tree, and `Bits.approved.txt`'s hash is
       unchanged (`Cli.Tests` BOOT.md, the Bits level), so no test moved with the code.
-      Found missing by `SCRATCH/audit/review-cli.md`, H1.
+      Found missing by the CLI audit's finding H1, fixed in `68f540a`.
 
 ## Taboos
 

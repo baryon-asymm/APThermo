@@ -97,7 +97,7 @@ present form and its present order of evaluation; the bit snapshot of the tests 
 rewrote no formula.
 
 ⚠ 2026-09-15 (distribution phase): "one public entry" and `RocketSolver`'s row below
-stood before the API review of that day (`SCRATCH/api-review-report.md`) found no
+stood before the API review of that day (fixed in `24156be`) found no
 consumer scenario for it, `ExitSpecification`, `RocketProblem`, `RocketLayout` or
 `RocketResult`: every use is `Execution` composing the kernel, `Problems` building a
 batch, or this node's own tests. All five moved into `API.md`'s tree-contract

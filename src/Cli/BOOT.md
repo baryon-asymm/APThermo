@@ -33,7 +33,7 @@ depends on console, serialization or file-layout concerns.
   under test, so its checks never called `apthermo schema` at all; only
   `tests/Docs.Tests` reads them through the command, in-process
   (`Program.Run(["schema", name], …)`), as the mirrored test node has no other way to
-  reach this node's contract. Found by `SCRATCH/audit/review-cli.md`, C6.
+  reach this node's contract. Found by the CLI audit's finding C6, fixed in `68f540a`.
 - **Units in documents are SI** unless a field name carries the unit explicitly
   (`specificImpulseSeconds`, `vacuumSpecificImpulseSeconds`); the conversion to
   seconds uses g0 = 9.80665 m/s² and happens only here.
@@ -486,7 +486,7 @@ Every other type of the node measures 14 or below by the dependency check's walk
       (`tests/Cli.Tests/SchemaCommandTests`, the facts and their mutations recorded in
       that node's `BOOT.md`, criterion of 2026-09-17;
       `tests/Docs.Tests/SchemaValidationTests`). Found and fixed from
-      `SCRATCH/audit/review-cli.md` (C1 through C5).
+      the CLI audit's findings C1 through C5, in `68f540a`.
 
 ## Taboos
 

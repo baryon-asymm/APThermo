@@ -10,7 +10,7 @@ Tree contracts); the assembly grants `InternalsVisibleTo` to exactly those nodes
 their mirroring test nodes, plus `Benchmarks` and `ILGPURuntime`
 (`APThermo.Thermo.csproj`).
 
-⚠ 2026-09-15 (distribution phase): the review of that day (`SCRATCH/api-review-report.md`)
+⚠ 2026-09-15 (distribution phase): the review of that day (fixed in `e284939`)
 found no consumer scenario for `PhysicalConstants`, `SpeciesFunctions`, `SpeciesTable`,
 `SpeciesTableArrays`, `SpeciesTableBuffers`, `SpeciesTableView` and `TableLimits`: every
 use is another node of this tree composing the kernel layer. They moved from the package

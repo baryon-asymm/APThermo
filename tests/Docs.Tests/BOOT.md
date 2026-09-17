@@ -19,7 +19,7 @@ an output is a failing test, not a review opinion.
 | L7 status table | the status table of `docs/guide/troubleshooting.md` (the one headed `\| Status \| Meaning \|`) lists exactly the names of `CaseStatus`, in its declared order | `Thermo`'s `CaseStatus` (`Enum.GetNames<CaseStatus>()`) | ✅ |
 
 ⚠ 2026-09-17: the table above, and every level's test, were rewritten after the audit
-of that day (`SCRATCH/audit/review-docs.md`) found the previous forms could pass
+of that day (closed in `3c0d271`) found the previous forms could pass
 vacuously (an early return on an empty set: D1), checked marked blocks only while two
 guide C# blocks went unmarked (D2, together with the root's W1), ran one of the
 guide's several `apthermo` invocations and searched `docs/guide` alone (D3), excluded
@@ -31,7 +31,7 @@ also changed with the root's restored marker syntax (`BOOT.md`, Delivery, the �
 2026-09-17): a region may be quoted on several pages, so this table no longer requires
 "exactly once".
 
-⚠ 2026-09-17 (second audit, `SCRATCH/audit/review-docs-2.md`): the paragraph above went
+⚠ 2026-09-17 (second audit, closed in `657410d`): the paragraph above went
 on to say that L1 "does not require every scenario to be quoted either, since the guide
 pages were not rewritten in this task … `samples/Samples/API.md` records which
 scenarios are quoted today and which are proven by L2 alone". That was true of the
@@ -123,8 +123,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 None. The previous row (`Every_states_file_validates_against_the_states_schema`,
 nesting 4) is gone: `SchemaValidationTests` now extracts the JSON Lines loop into
-`CheckJsonLines`/`CheckJsonLine`, which removes the exception (D11,
-`SCRATCH/audit/review-docs.md`).
+`CheckJsonLines`/`CheckJsonLine`, which removes the exception (finding D11,
+closed in `3c0d271`).
 
 ## Acceptance criteria
 
@@ -174,10 +174,10 @@ nesting 4) is gone: `SchemaValidationTests` now extracts the JSON Lines loop int
 
       ⚠ 2026-09-17 (second audit): the equilibrium example above was recorded without
       `--accelerator cpu`, unlike the states example next to it and unlike the actual
-      page (`docs/guide/cli.md:37`, which always carried it). Found stale by m8 of
-      `SCRATCH/audit/review-docs-2.md` while closing this task; corrected in place, a
+      page (`docs/guide/cli.md:37`, which always carried it). Found stale by the second
+      audit's m8 while closing this task; corrected in place, a
       typo of form rather than a claim that changed meaning (AGENTS.md §8).
-- [x] 2026-09-17 (second audit, `SCRATCH/audit/review-docs-2.md`) — every escape the
+- [x] 2026-09-17 (second audit, closed in `657410d`) — every escape the
       second audit found in this node's checks is closed, and every new or changed
       check was shown red once against a deliberate drift and reverted, nothing of the
       mutations committed: `dotnet test tests/Docs.Tests`, 24 of 24 passed (18 before,

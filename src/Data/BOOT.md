@@ -235,7 +235,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `TemperatureInterval.TemperatureInterval` | parameters | 7 | mirrors the file's fields one to one, as `Species` above; its single construction site names its arguments |
 
 ⚠ 2026-09-15 (distribution phase): both constructors became `internal` (root `BOOT.md`,
-Delivery: Tree contracts, M1; `SCRATCH/api-review-report.md`): no consumer built a
+Delivery: Tree contracts, the API review's finding M1, fixed in `c85fd77`): no consumer built a
 `Species` or a `TemperatureInterval`, only `SpeciesDatabase.Load`/`Parse` (through
 `SpeciesRecordReader` and `IntervalReader`) ever did. The two rows above are
 unchanged: the constructors still mirror the file's fields one to one, and their one

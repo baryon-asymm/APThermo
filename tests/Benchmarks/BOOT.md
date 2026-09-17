@@ -237,7 +237,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
      count, stations per unit, species count, then per station the status, the
      iteration count, `MixtureState`'s and `PerformanceFigures`' fields in
      declaration order, then the mole array — the layout the 2026-09-15 measurement
-     used (`SCRATCH/benchmarks-coder-report.md` of that session), recreated as a
+     used (recorded in `96439f4`), recreated as a
      small temporary program or test and deleted afterwards, never committed: the
      dump touches accelerator internals no other benchmark needs and would only go
      stale between runs if it were kept.
@@ -295,9 +295,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-15 — The user's state runs read `data/user-states.json`. Its four records
       and the pressure rule are the ones given to this coding session, verbatim; its 48
       states (first + i × step by index, record order, pressure index ascending within
-      a record) equal `SCRATCH/user-states-48.json` bit for bit, checked field by field
-      against every double's IEEE-754 bits (the check script is not part of this
-      commit — a one-time verification, not a fixture the node reads). Every one of
+      a record) were checked bit for bit, field by field against every double's
+      IEEE-754 bits, in a one-time verification recorded in `720cfb8` (the check
+      script is not part of this commit — not a fixture the node reads). Every one of
       the 48 states was accepted (`ok=48/48` and `ok=12/12` per record, the previous
       criterion's group 6 run).
 - [x] 2026-09-15 — `bench/before-clean-code` exists from `7661ea9`, builds in Release,
@@ -318,7 +318,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       branch was committed, with the figures in its commit message, and the scratch
       worktree removed.
 - [x] 2026-09-15 — The comparison run: after, before, after on the reference machine
-      with nothing else running (`SCRATCH/bench-runs/conditions.txt`: build servers
+      with nothing else running (the run conditions recorded in `f461af1`: build servers
       shut down, `CUDA_CACHE_DISABLE=1`, no other dotnet process but the editor's C#
       Dev Kit and its test host).
       - The results and `run.md` of each run are committed:

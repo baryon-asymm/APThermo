@@ -11,7 +11,7 @@ tree-contract section below lists the internal types `Performance`, `Transport` 
 `Performance.Tests` (`APThermo.Equilibrium.csproj`).
 
 ⚠ 2026-09-15 (distribution phase): the review of that day
-(`SCRATCH/api-review-report.md`) found no consumer scenario for `EquilibriumProblem`,
+(fixed in `4344652`) found no consumer scenario for `EquilibriumProblem`,
 `EquilibriumScratch`, `EquilibriumResult`, `EquilibriumSolver`, `ScratchLayout` or
 `DenseSolver`: every use is a neighbour numerical node composing the kernel layer, or
 this node's own tests. They moved from the package surface into the tree contract

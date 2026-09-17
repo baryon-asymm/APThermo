@@ -161,7 +161,7 @@ foreach (Station station in result.Stations)
 A propellant may mix database reactants named by total mass fraction (`Named`, no
 oxidizer-to-fuel ratio) with a custom reactant given by its formula and enthalpy of
 formation, and may omit a species the database would otherwise consider. This is the
-aluminized composite propellant of `docs/nuget` and the fixtures:
+aluminized composite propellant of the fixtures (`tests/Fixtures/cases/rocket`):
 
 <!-- snippet: CustomPropellantUsings -->
 ```csharp

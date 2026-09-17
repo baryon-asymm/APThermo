@@ -69,7 +69,7 @@ check the split. See "## Tree contract" below for the convention and the four fa
   ⚠ 2026-09-17: this bullet stood "`src` and `tests` transparent", unchanged since
   `samples/` became a third grouping directory (root `BOOT.md`, Constraints, the ⚠ of
   2026-09-16); `Node.Namespace` already filters all three, so the wording just had not
-  caught up. Found by `SCRATCH/audit/review-cli.md`, P1.
+  caught up. Found by the CLI audit's finding P1, fixed in `68f540a`.
 - **A node's own source files are the ones `SourceSyntax` walks for it**: every `*.cs`
   file under its directory except a descendant node's own subtree (project or
   project-less, `AGENTS.md` §1) — a child's files count for the child and never also for
