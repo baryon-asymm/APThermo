@@ -439,7 +439,7 @@ batches on the GPU.
   lacked.
 
   ⚠ 2026-09-15 (distribution phase): "engine creation of its own for the `devices`
-  listing" stood after the public surface review (`SCRATCH/api-review-report.md`, F1)
+  listing" stood after the public surface review (its finding F1, fixed in `9036c6a`)
   made `Execution`'s `Engine` internal: `Cli` receives no grant (`## Delivery` below,
   "Tree contracts") and now calls the new public `AcceleratorProbe.Describe` instead,
   which binds and releases an engine of its own inside `Execution`. `Cli` still uses
