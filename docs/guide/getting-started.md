@@ -96,10 +96,11 @@ commands and [the CLI's `API.md`](../../src/Cli/API.md#command-line-) for every
 option's exact synopsis, and [Rocket solving](rocket.md) for the full C#
 station-by-station walkthrough (exits, transport, flow model).
 
-Every example on this site is also a runnable scenario in a clone of the repository:
-`dotnet run --project samples/Samples -- <scenario>`, with the scenario names (for
-example `quick-start`, `rocket`, `accelerator-choice`) listed in
-[samples/Samples/API.md](../../samples/Samples/API.md#scenarios-).
+Every C# example on this site is also a runnable scenario in a clone of the
+repository: `dotnet run --project samples/Samples -- <scenario>`, with the scenario
+names (for example `quick-start`, `rocket`, `accelerator-choice`) listed in
+[samples/Samples/API.md](../../samples/Samples/API.md#scenarios-). Every `apthermo`
+example is run by the docs tests node, against its approved output.
 
 ## Errors
 

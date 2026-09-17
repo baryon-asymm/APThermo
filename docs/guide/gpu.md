@@ -9,11 +9,11 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
 ## When to use
 
 - You want the CUDA path for a batch (rockets, sweeps, state records): CUDA already
-  wins at 1 000 cases (2.3× on the reference machine — 16.16 ms against 37.77 ms for a
-  1 000-case rocket batch, `tests/Benchmarks/results/comparison-2026-09-15.md`, Group
-  1) and further ahead at larger batch sizes; a single case does not amortize the CUDA
-  context creation and kernel compile, so the CPU accelerator stays the better choice
-  there.
+  wins at 1 000 cases (2.3× on the reference machine — 16.07 ms against 36.25 ms for a
+  1 000-case rocket batch, the After-1 column of
+  `tests/Benchmarks/results/comparison-2026-09-15.md`, Group 1) and further ahead at
+  larger batch sizes; a single case does not amortize the CUDA context creation and
+  kernel compile, so the CPU accelerator stays the better choice there.
 - You are deploying to a machine or a container without a GPU and want to confirm
   the CPU path runs without CUDA installed at all.
 - A run you expected to use CUDA used the CPU instead, and you need to know why.
@@ -31,9 +31,9 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
      an NVIDIA CUDA Toolkit 12.8 or newer.
    Windows x64 and Linux x64 are both supported on the CPU accelerator. CUDA is
    supported on both too, but Linux verification is still pending: the root
-   `BOOT.md`'s Linux acceptance criterion (the fast suite and the execution tests
-   node's CUDA sweep, native, not under WSL2) is unticked as of this release, though
-   the CUDA path has been verified under WSL2 on the reference machine.
+   `BOOT.md`'s Linux acceptance criterion (the fast suite on the CPU accelerator and
+   the execution tests node's CUDA sweep, under WSL2 on the reference machine) is
+   unticked as of this release.
 2. **Discovery order**, applied when `Solver.Create` or `AcceleratorProbe.Describe`
    binds CUDA: `EngineOptions.LibNvvmPath`/`LibDevicePath` when both are given and
    exist, tried first. Otherwise, when `LibDeviceDiscovery` is true (the default): the
@@ -41,9 +41,10 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
    the fixed directory `/usr/local/cuda`, and the versioned `/usr/local/cuda-*`
    directories (newest version first); Windows only, the versioned `v*` directories
    under `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA` (newest version first,
-   `ProgramFiles` read from the environment). Under each candidate root in turn, the
-   driver library is tried at the paths of point 1 above and `libdevice.10.bc` at
-   `nvvm/libdevice/`; a root is skipped once both files are found there, and
+   `ProgramFiles` read from the environment). Under each candidate root in turn,
+   `libnvvm` (the NVVM compiler library the CUDA Toolkit ships, not the driver) is
+   tried at the paths of point 1 above and `libdevice.10.bc` at `nvvm/libdevice/`;
+   discovery stops at the first root where both files are found, and
    `AcceleratorUnavailableException` names every path tried, in this order.
 3. **Choosing an accelerator kind**: `AcceleratorKind.Auto` (the default) binds CUDA
    when it is not forbidden and every library and device is found, and falls back to
@@ -106,15 +107,13 @@ else
 }
 ```
 
-6. **From the command line**: `apthermo devices` lists the CPU and, when found, the
-   CUDA accelerator as an array of accelerator descriptions, one field per
-   `AcceleratorInfo` member — `kind`, `deviceName`, `ilgpuVersion`,
-   `threadsOrMultiprocessors` and `cudaSkippedBecause` (present, and non-null, only
-   when a `cuda` entry was tried and skipped). The exact values are machine-dependent,
-   so no sample output is shown here; run it on your own machine to see its devices.
-   `--accelerator auto|cpu|cuda` overrides a document's `engine.accelerator`; every
-   output document's `run.accelerator` carries the same fields, so a result document
-   is self-describing about what it ran on.
+6. **From the command line**: `apthermo devices` reports what this machine offers —
+   the CPU accelerator and, when CUDA was tried, either an accelerator description
+   like the CPU's or, when CUDA is unavailable, `available: false` with a message and
+   every path tried. `apthermo schema devices` prints the document's exact shape. The
+   exact values are machine-dependent, so no sample output is shown here; run it on
+   your own machine to see its devices. `--accelerator auto|cpu|cuda` overrides a
+   document's `engine.accelerator`.
 
 ```console
 $ apthermo devices

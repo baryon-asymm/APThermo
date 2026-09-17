@@ -58,7 +58,7 @@ found; the output document's `run.accelerator.cudaSkippedBecause` names the reas
 ## Guide
 
 Every command, its documents and its exit codes: see `docs/guide/cli.md` in the
-source repository (the link here waits on the repository existing publicly).
+source repository.
 
 ## License and data notice
 

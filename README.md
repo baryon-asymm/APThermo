@@ -89,10 +89,11 @@ ways.
 
 Windows x64 and Linux x64 are both supported on the CPU accelerator, which needs
 nothing beyond the package. CUDA is supported on both too, but Linux verification is
-still pending as of this release (the root `BOOT.md`'s Linux acceptance criterion is
-unticked); the CUDA path has been verified under WSL2 on the reference machine. CUDA
-additionally needs, at run time, an NVIDIA driver with CUDA 12.8 or newer, plus
-`libnvvm` and `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
+still pending as of this release (the root `BOOT.md`'s Linux acceptance criterion,
+the fast suite on the CPU accelerator and the execution tests node's CUDA sweep under
+WSL2 on the reference machine, is unticked). CUDA additionally needs, at run time, an
+NVIDIA driver with CUDA 12.8 or newer, plus `libnvvm` and `libdevice.10.bc` from a
+CUDA Toolkit 12.8 or newer.
 `AcceleratorKind.Auto` falls back to the CPU accelerator when no usable GPU or library
 is found. See [GPU acceleration](docs/guide/gpu.md) for the discovery order and how to
 check which accelerator a run used.
