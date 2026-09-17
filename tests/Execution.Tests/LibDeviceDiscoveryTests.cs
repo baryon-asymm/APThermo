@@ -41,6 +41,20 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
     }
 
     [Fact]
+    public void Windows_with_no_cuda_path_and_no_toolkit_base_directory_examines_nothing()
+    {
+        // The hosted Windows CI runner: no CUDA_PATH, and the default toolkit base itself does not exist,
+        // so VersionedDirectories yields no root to look under and the honest answer is an empty list.
+        var toolkits = Path.Combine(_root, "toolkits");   // never created
+
+        var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Windows, Env(), toolkits);
+
+        Assert.Null(dll);
+        Assert.Null(bitcode);
+        Assert.Empty(tried);
+    }
+
+    [Fact]
     public void Windows_tries_cuda_path_before_the_toolkit_directories()
     {
         var cudaPath = Path.Combine(_root, "cuda-path");

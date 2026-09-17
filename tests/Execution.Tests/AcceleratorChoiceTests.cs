@@ -74,16 +74,55 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
     public void Discovery_reports_the_toolkit_paths_it_examined()
     {
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions());
-        Assert.NotEmpty(tried);
+
+        // The shape holds on every machine, toolkit or not: any path this locator ever tried is either the
+        // platform's own libnvvm file name or a bitcode file, never anything else.
         Assert.All(tried, path => Assert.True(
             path.EndsWith(LibDeviceLocator.LibraryFileName, StringComparison.OrdinalIgnoreCase) || path.EndsWith(".bc", StringComparison.OrdinalIgnoreCase),
             path));
+
+        // A non-empty list is only guaranteed where the locator has a candidate root to look under: an
+        // environment variable it reads, or a directory it looks in. A bare runner with neither honestly
+        // tries nothing, and that is not a defect of discovery.
+        if (ACandidateToolkitRootExists())
+        {
+            Assert.NotEmpty(tried);
+        }
+
         if (dll is not null)
         {
             Assert.True(File.Exists(dll), dll);
             Assert.True(File.Exists(bitcode!), bitcode);
             Assert.EndsWith(LibDeviceLocator.LibraryFileName, dll, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    /// <summary>
+    /// Whether this machine offers <see cref="LibDeviceLocator"/> at least one root to look under. On Linux
+    /// its <c>ToolkitRoots</c> always yields the fixed root under <c>/usr/local</c>, whether or not that
+    /// directory exists, so discovery there never examines nothing. On Windows it needs <c>CUDA_PATH</c> or a
+    /// versioned directory under the default toolkit base to have anything to try.
+    /// </summary>
+    private static bool ACandidateToolkitRootExists()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            return true;
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;   // an unsupported platform does no discovery at all
+        }
+
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CUDA_PATH")))
+        {
+            return true;
+        }
+
+        var toolkitBase = Path.Combine(
+            Environment.GetEnvironmentVariable("ProgramFiles") ?? @"C:\Program Files", "NVIDIA GPU Computing Toolkit", "CUDA");
+        return Directory.Exists(toolkitBase) && Directory.GetDirectories(toolkitBase, "v*").Length > 0;
     }
 
     [Fact]
