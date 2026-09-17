@@ -1,0 +1,4 @@
+LOX/LH2 O/F sweep, one batch, Pc=7.0 MPa
+  O/F=5.0  Isp_exit=4092.9 m/s
+  O/F=6.0  Isp_exit=4023.5 m/s
+  O/F=7.0  Isp_exit=3917.9 m/s

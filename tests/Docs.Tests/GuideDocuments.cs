@@ -1,28 +1,19 @@
+using System.Text.RegularExpressions;
 using APThermo.Fixtures;
 
 namespace APThermo.Docs.Tests;
 
 /// <summary>
 /// File discovery and line-oriented markdown reading shared by the levels: which documents each level reads, their
-/// fenced code blocks, and the LF normalization every byte comparison in this node goes through.
+/// fenced code blocks, the samples' snippet regions, and the LF normalization every byte comparison in this node
+/// goes through.
 /// </summary>
 internal static class GuideDocuments
 {
+    private static readonly Regex SnippetStart = new(@"^//\s*snippet-start:\s*(\w+)\s*$", RegexOptions.Compiled);
+
     /// <summary>The repository root (the Fixtures node finds it from its own source file).</summary>
     public static string Root => RepositoryPaths.Root;
-
-    /// <summary>
-    /// The scenario classes of the samples node, one per entry of <c>APThermo.Samples.Program.Scenarios</c>: the
-    /// argument name to its class (one file per scenario, named after it).
-    /// </summary>
-    public static string ScenarioClass(string scenario) => scenario switch
-    {
-        "rocket" or "RocketSolve" => "RocketSolve",
-        "batch" or "BatchSolve" => "BatchSolve",
-        "equilibrium" or "EquilibriumSolve" => "EquilibriumSolve",
-        "states" or "StatesSolve" => "StatesSolve",
-        _ => throw new InvalidOperationException($"no scenario class is known for '{scenario}'"),
-    };
 
     /// <summary>The documents that may carry C# snippet blocks: README.md, docs/guide/**/*.md and the package READMEs under docs/nuget/.</summary>
     public static IReadOnlyList<string> SnippetSources() =>
@@ -31,16 +22,42 @@ internal static class GuideDocuments
     /// <summary>The guide pages of docs/guide/.</summary>
     public static IReadOnlyList<string> GuidePages() => MarkdownUnder("docs/guide");
 
+    /// <summary>The package READMEs of docs/nuget/, which may carry no relative link (it breaks on nuget.org).</summary>
+    public static IReadOnlyList<string> NugetReadmes() => MarkdownUnder("docs/nuget");
+
     /// <summary>
     /// The documents whose relative links must resolve: README.md, llms.txt and every markdown under docs/ except
-    /// docs/protocol — the protocol kit's templates carry deliberate &lt;placeholder&gt; links that never resolve, so a
-    /// check red on them by construction would be worse than absent (AGENTS.md §13).
+    /// docs/protocol/templates — its placeholder links are deliberate and never resolve, so a check red on them by
+    /// construction would be worse than absent (AGENTS.md §13). Every other document under docs/protocol (for
+    /// example docs/protocol/prompts) is checked like any other page.
     /// </summary>
     public static IReadOnlyList<string> LinkedDocuments()
     {
-        var protocolPrefix = Path.Combine(Root, "docs", "protocol") + Path.DirectorySeparatorChar;
+        var templatesPrefix = Path.Combine(Root, "docs", "protocol", "templates") + Path.DirectorySeparatorChar;
         return Existing("README.md").Concat(Existing("llms.txt")).Concat(MarkdownUnder("docs")
-            .Where(p => !p.StartsWith(protocolPrefix, StringComparison.Ordinal))).ToList();
+            .Where(p => !p.StartsWith(templatesPrefix, StringComparison.Ordinal))).ToList();
+    }
+
+    /// <summary>Every file under samples/cli/, recursively, mapped to the schema name its top-level directory declares.</summary>
+    public static IReadOnlyList<(string Path, string Schema)> CliDocuments()
+    {
+        var schemaOf = new Dictionary<string, string>(StringComparer.Ordinal) { ["problems"] = "input", ["states"] = "states" };
+        var root = Path.GetFullPath(Path.Combine(Root, "samples", "cli"));
+        if (!Directory.Exists(root))
+        {
+            return [];
+        }
+
+        var found = new List<(string Path, string Schema)>();
+        foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            var relative = Path.GetRelativePath(root, file);
+            var topDirectory = relative.Split(Path.DirectorySeparatorChar, 2)[0];
+            Assert.True(schemaOf.TryGetValue(topDirectory, out var schema), $"{file}: no schema is declared for samples/cli/{topDirectory}/");
+            found.Add((file, schema!));
+        }
+
+        return found;
     }
 
     /// <summary>The lines of a file, both line-ending styles accepted (ReadAllLines strips them).</summary>
@@ -59,20 +76,7 @@ internal static class GuideDocuments
         var body = new List<string>();
         for (var i = 0; i < lines.Length; i++)
         {
-            if (opening >= 0)
-            {
-                var trimmed = lines[i].Trim();
-                if (trimmed.Length >= fenceLength && trimmed.All(c => c == fenceChar))
-                {
-                    blocks.Add((InfoOf(lines[opening]), body.ToArray(), opening));
-                    opening = -1;
-                }
-                else
-                {
-                    body.Add(lines[i]);
-                }
-            }
-            else
+            if (opening < 0)
             {
                 var trimmedStart = lines[i].TrimStart();
                 var indent = lines[i].Length - trimmedStart.Length;
@@ -83,6 +87,19 @@ internal static class GuideDocuments
                     opening = i;
                     body.Clear();
                 }
+
+                continue;
+            }
+
+            var closingCandidate = lines[i].Trim();
+            if (closingCandidate.Length >= fenceLength && closingCandidate.All(c => c == fenceChar))
+            {
+                blocks.Add((InfoOf(lines[opening]), body.ToArray(), opening));
+                opening = -1;
+            }
+            else
+            {
+                body.Add(lines[i]);
             }
         }
 
@@ -116,6 +133,63 @@ internal static class GuideDocuments
         }
     }
 
+    /// <summary>
+    /// Every snippet region of the samples node's own source files: a name to its dedented body, the bytes between a
+    /// <c>// snippet-start: name</c> line and the next <c>// snippet-end</c> line. A region may hold another
+    /// region's markers nested inside it (the usings region sits above the class, the body region inside its
+    /// method); each is read independently, by its own start and end.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> SnippetRegions()
+    {
+        var regions = new Dictionary<string, string>(StringComparer.Ordinal);
+        var directory = Path.GetFullPath(Path.Combine(Root, "samples", "Samples"));
+        foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly).Order(StringComparer.Ordinal))
+        {
+            ReadRegionsOf(file, regions);
+        }
+
+        return regions;
+    }
+
+    /// <summary>Reads a file's own, sequential (never nested) snippet regions into the shared dictionary.</summary>
+    private static void ReadRegionsOf(string file, Dictionary<string, string> regions)
+    {
+        string? currentName = null;
+        var body = new List<string>();
+        foreach (var line in File.ReadAllLines(file))
+        {
+            if (currentName is null)
+            {
+                var start = SnippetStart.Match(line.Trim());
+                if (start.Success)
+                {
+                    currentName = start.Groups[1].Value;
+                    body = [];
+                }
+
+                continue;
+            }
+
+            if (line.Trim() == "// snippet-end")
+            {
+                Assert.True(!regions.ContainsKey(currentName), $"{file}: the snippet region '{currentName}' is declared more than once");
+                regions[currentName] = Dedent(body);
+                currentName = null;
+                continue;
+            }
+
+            body.Add(line);
+        }
+
+        Assert.True(currentName is null, $"{file}: a '// snippet-start: {currentName}' with no matching '// snippet-end'");
+    }
+
+    private static string Dedent(IReadOnlyList<string> body)
+    {
+        var indent = body.Where(l => l.Trim().Length > 0).Select(l => l.Length - l.TrimStart().Length).DefaultIfEmpty(0).Min();
+        return string.Join("\n", body.Select(l => l.Length >= indent ? l[indent..] : l));
+    }
+
     private static IReadOnlyList<string> Existing(params string[] relativePaths) =>
         relativePaths.Select(p => Path.GetFullPath(Path.Combine(Root, p))).Where(File.Exists).ToList();
 
@@ -124,7 +198,7 @@ internal static class GuideDocuments
         var directory = Path.GetFullPath(Path.Combine(Root, relativeDirectory));
         if (!Directory.Exists(directory))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         return Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToList();
@@ -144,8 +218,8 @@ internal static class GuideDocuments
     private static string InfoOf(string openingLine)
     {
         var trimmedStart = openingLine.TrimStart();
-        var char_ = trimmedStart[0];
-        var info = trimmedStart.Substring(RunOf(trimmedStart, char_));
+        var fenceChar = trimmedStart[0];
+        var info = trimmedStart[RunOf(trimmedStart, fenceChar)..];
         return info.Trim();
     }
 }

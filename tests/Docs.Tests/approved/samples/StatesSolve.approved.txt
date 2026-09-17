@@ -1,4 +1,3 @@
-LOX/LH2 O/F=6.0  tp states at T=3000 K
-  P=0.10 MPa   T=3000.0 K   h=-763.2 kJ/kg   rho=0.051 kg/m³
-  P=7.00 MPa   T=3000.0 K   h=-4203.0 kJ/kg   rho=3.920 kg/m³
-  P=20.00 MPa   T=3000.0 K   h=-4361.6 kJ/kg   rho=11.247 kg/m³
+mass = 1.0000 kg
+  P=1.00 MPa   T=3000.0 K   h=-3516.7 kJ/kg
+  P=7.00 MPa   T=3000.0 K   h=-4203.0 kJ/kg

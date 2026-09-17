@@ -5,14 +5,14 @@ namespace APThermo.Docs.Tests;
 
 /// <summary>
 /// L2 (BOOT.md): every scenario of the samples node, run in-process through its tree contract (<c>Program.Run</c>),
-/// prints its approved output, whole file. On a mismatch the actual bytes are written as `<name>.actual.txt` beside
-/// the approved one (git-ignored) and the test fails naming both paths. The CPU accelerator is pinned in the
+/// prints its approved output, whole file. On a mismatch the actual bytes are written as `&lt;name&gt;.actual.txt`
+/// beside the approved one (git-ignored) and the test fails naming both paths. The CPU accelerator is pinned in the
 /// scenarios themselves, so the approved bytes hold on every machine.
 /// </summary>
 public sealed class SampleOutputTests
 {
     public static IEnumerable<object[]> Scenarios() =>
-        APThermo.Samples.Program.Scenarios.Select(name => new object[] { name, GuideDocuments.ScenarioClass(name) });
+        APThermo.Samples.Program.Scenarios.Select(name => new object[] { name, APThermo.Samples.Program.ClassNameOf(name) });
 
     [Theory]
     [MemberData(nameof(Scenarios))]

@@ -6,66 +6,94 @@ using APThermo.Harness;
 namespace APThermo.Docs.Tests;
 
 /// <summary>
-/// L3 (BOOT.md): every command-line example of the guide — a fenced `console` block whose first line is
-/// `$ apthermo …` — names its input document under samples/cli/, runs in-process through the command line's tree
-/// contract with exit code 0, and delivers its approved JSON document with the top-level `run` property cut as the
-/// command line's tests cut it. Examples pin `--accelerator cpu`, so the approved bytes hold on a CUDA machine and
-/// on CI alike. Passes vacuously while no guide page carries an example.
+/// L3 (BOOT.md): every `apthermo …` invocation shown in a fenced block of README.md, docs/guide/*.md or
+/// docs/nuget/*.md (not console fences alone: any fence, since a page may show a synopsis in a plain or `json`
+/// fence too) is accounted for. A runnable example is a single line, pins `--accelerator cpu`, names exactly one
+/// committed document under samples/cli/, and delivers no output to a file (`--output` and `--format` absent); it
+/// runs in-process through the command line's tree contract with exit code 0, and its delivered document, with the
+/// top-level `run` property cut out, equals the approved file keyed by the input document's name. Every other
+/// `apthermo` invocation is a declared synopsis: counted, but not run (a command without a committed input, for
+/// example `apthermo devices`, is always a synopsis by this rule; a page shows no output next to its command today,
+/// so the whole delivered document is the thing approved, not a line shown on the page). Fails when no invocation
+/// exists anywhere in the guide, and when a runnable example and an approved file do not name each other (a
+/// missing file and an orphan both fail; AGENTS.md §13).
 /// </summary>
 public sealed class CommandLineExampleTests
 {
     [Fact]
-    public void Every_command_line_example_runs_and_matches_its_approved_document()
+    public void Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis()
     {
-        var examples = new List<(string File, int Line, string Command)>();
-        foreach (var page in GuideDocuments.GuidePages())
+        var invocations = InvocationsOf(GuideDocuments.SnippetSources());
+        Assert.True(invocations.Count > 0, "no 'apthermo …' invocation was found in a fenced block of README.md, docs/guide/*.md or docs/nuget/*.md");
+
+        var runnableKeys = new List<string>();
+        foreach (var (file, line, command) in invocations)
+        {
+            var key = RunnableKeyOf(command);
+            if (key is not null)
+            {
+                runnableKeys.Add(key);
+                CheckExample(file, line, command, key);
+            }
+        }
+
+        CheckApprovedFilesMatch(runnableKeys);
+    }
+
+    /// <summary>Every fenced block of the guide whose first non-empty line is an apthermo invocation, the leading `$ ` stripped.</summary>
+    private static List<(string File, int Line, string Command)> InvocationsOf(IReadOnlyList<string> pages)
+    {
+        var found = new List<(string File, int Line, string Command)>();
+        foreach (var page in pages)
         {
             var lines = GuideDocuments.Lines(page);
             foreach (var block in GuideDocuments.FencedBlocks(lines))
             {
-                if (!block.Info.Equals("console", StringComparison.OrdinalIgnoreCase))
+                var nonEmpty = block.Body.Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+                if (nonEmpty.Length != 1)
                 {
-                    continue;
+                    continue; // a synopsis with shown output is not yet a supported form (this node's BOOT.md records the choice)
                 }
 
-                var nonEmpty = block.Body.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
-                Assert.True(
-                    nonEmpty.Count == 1,
-                    $"{page}:{block.StartLine + 1}: a command-line example is one '$ apthermo …' line, found {nonEmpty.Count}");
-
-                var first = nonEmpty[0];
-                Assert.True(
-                    first.StartsWith("$ apthermo", StringComparison.Ordinal),
-                    $"{page}:{block.StartLine + 1}: the example's line must be '$ apthermo …', found '{first}'");
-
-                examples.Add((page, block.StartLine, first["$ ".Length..].Trim()));
+                var command = StripDollar(nonEmpty[0]);
+                if (command.StartsWith("apthermo ", StringComparison.Ordinal))
+                {
+                    found.Add((page, block.StartLine, command));
+                }
             }
         }
 
-        if (examples.Count == 0)
-        {
-            return; // no guide page carries an example yet: nothing to check
-        }
-
-        foreach (var (file, line, command) in examples)
-        {
-            CheckExample(file, line, command);
-        }
+        return found;
     }
 
-    private static void CheckExample(string file, int line, string command)
+    private static string StripDollar(string line)
+    {
+        var trimmed = line.Trim();
+        return trimmed.StartsWith("$ ", StringComparison.Ordinal) ? trimmed["$ ".Length..] : trimmed;
+    }
+
+    /// <summary>
+    /// The input document's key (its file name without extension) when the invocation is runnable: `--accelerator
+    /// cpu`, no `--output` or `--format`, and exactly one existing samples/cli/ document among its tokens. Null
+    /// otherwise: a declared synopsis.
+    /// </summary>
+    private static string? RunnableKeyOf(string command)
+    {
+        var args = command.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1..];
+        if (OptionValue(args, "--accelerator") != "cpu" || OptionValue(args, "--output") is not null || OptionValue(args, "--format") is not null)
+        {
+            return null;
+        }
+
+        var inputs = InputDocumentsOf(args);
+        return inputs.Count == 1 ? Path.GetFileNameWithoutExtension(inputs[0]) : null;
+    }
+
+    private static void CheckExample(string file, int line, string command, string key)
     {
         var where = $"{file}:{line + 1}";
-        var tokens = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        Assert.True(tokens[0] == "apthermo", $"{where}: the example must run apthermo");
-
-        var args = tokens[1..];
-        Assert.True(OptionValue(args, "--accelerator") == "cpu", $"{where}: examples pin '--accelerator cpu', so the approved bytes hold on every machine");
-        Assert.True(OptionValue(args, "--output") is null, $"{where}: the example must deliver its document to standard output, not a file");
-        Assert.True(OptionValue(args, "--format") is null, $"{where}: the example must deliver JSON, the command line's default");
-
-        var input = InputDocumentOf(args, where);
-        var key = Path.GetFileNameWithoutExtension(input);
+        var args = command.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1..];
+        var input = InputDocumentsOf(args)[0];
         args = args.Select(a => a == input ? Path.GetFullPath(Path.Combine(GuideDocuments.Root, input)) : a).ToArray();
 
         var output = new StringWriter();
@@ -80,13 +108,8 @@ public sealed class CommandLineExampleTests
         }
 
         var cut = RunPropertyCut.Bytes(Encoding.UTF8.GetBytes(document), key);
-        var approvedPath = RepositoryPaths.Resolve("tests", "Docs.Tests", "approved", "cli", key + ".approved.json");
+        var approvedPath = ApprovedPathOf(key);
         var actual = GuideDocuments.Lf(Encoding.UTF8.GetString(cut));
-        if (!File.Exists(approvedPath))
-        {
-            Assert.Fail($"{where}: the approved document is missing: {approvedPath}");
-        }
-
         var approved = GuideDocuments.Lf(File.ReadAllText(approvedPath));
         if (!approved.Equals(actual, StringComparison.Ordinal))
         {
@@ -96,7 +119,23 @@ public sealed class CommandLineExampleTests
         }
     }
 
-    /// <summary>The option's value, or null when the option is absent (or dangling).</summary>
+    /// <summary>No runnable example without an approved file, and no approved file without a runnable example (D1).</summary>
+    private static void CheckApprovedFilesMatch(IReadOnlyList<string> runnableKeys)
+    {
+        var directory = Path.GetDirectoryName(ApprovedPathOf("x"))!;
+        var approvedKeys = Directory.Exists(directory)
+            ? Directory.EnumerateFiles(directory, "*.approved.json")
+                .Select(p => Path.GetFileName(p)[..^".approved.json".Length]).ToList()
+            : [];
+
+        var missing = runnableKeys.Except(approvedKeys, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var orphaned = approvedKeys.Except(runnableKeys, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        Assert.True(missing.Count == 0, $"no approved/cli file for the runnable example(s): {string.Join(", ", missing)}");
+        Assert.True(orphaned.Count == 0, $"approved/cli file(s) with no matching runnable example: {string.Join(", ", orphaned)}");
+    }
+
+    private static string ApprovedPathOf(string key) => RepositoryPaths.Resolve("tests", "Docs.Tests", "approved", "cli", key + ".approved.json");
+
     private static string? OptionValue(IReadOnlyList<string> args, string name)
     {
         for (var i = 0; i + 1 < args.Count; i++)
@@ -110,8 +149,8 @@ public sealed class CommandLineExampleTests
         return null;
     }
 
-    /// <summary>The example's input document: the one argument that is a committed file under samples/cli/.</summary>
-    private static string InputDocumentOf(IReadOnlyList<string> args, string where)
+    /// <summary>Every token of the invocation that names an existing committed file under samples/cli/.</summary>
+    private static IReadOnlyList<string> InputDocumentsOf(IReadOnlyList<string> args)
     {
         var cliRoot = Path.GetFullPath(Path.Combine(GuideDocuments.Root, "samples", "cli")) + Path.DirectorySeparatorChar;
         var found = new List<string>();
@@ -129,9 +168,6 @@ public sealed class CommandLineExampleTests
             }
         }
 
-        Assert.True(
-            found.Count == 1,
-            $"{where}: the example must name exactly one input document under samples/cli/, found: {string.Join(", ", found)}");
-        return found[0];
+        return found;
     }
 }

@@ -1,6 +1,0 @@
-LOX/LH2 O/F=6.0  hp at P=7.0 MPa
-  T       = 3485.0 K
-  P       = 7.000 MPa
-  h       = -986.3 kJ/kg
-  rho     = 3.252 kg/m³
-  M       = 13.46 kg/kmol
