@@ -28,6 +28,17 @@ public sealed class ApprovedSnapshot
         _approved = approved;
     }
 
+    /// <summary>
+    /// The approved path for a snapshot named <paramref name="baseName"/> under <paramref name="directory"/>: the root
+    /// BOOT.md's platform constraint keeps one record per platform, <c>&lt;baseName&gt;.approved.txt</c> everywhere but
+    /// Linux and <c>&lt;baseName&gt;.linux.approved.txt</c> on Linux, so that a difference the two accelerators'
+    /// C runtimes round differently stays visible to the bit on both rather than being averaged away by a shared
+    /// tolerance. This is the one place that picks between them: every consumer's Bits level calls it instead of
+    /// repeating the platform check.
+    /// </summary>
+    public static string ApprovedPathFor(string directory, string baseName) =>
+        Path.Combine(directory, OperatingSystem.IsLinux() ? $"{baseName}.linux.approved.txt" : $"{baseName}.approved.txt");
+
     /// <summary>Reads the approved file at <paramref name="approvedPath"/>; an absent or empty file is an empty snapshot.</summary>
     public static ApprovedSnapshot Load(string approvedPath)
     {

@@ -11,7 +11,7 @@ This package is the library. The command-line tool is `APThermo.Cli` (`apthermo`
 
 ## Install
 
-```
+```console
 dotnet add package APThermo
 ```
 

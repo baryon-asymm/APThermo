@@ -16,7 +16,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     /// <summary>The problem kinds whose fixture directories the snapshot covers.</summary>
     private static readonly string[] Kinds = ["tp", "hp", "sp"];
 
-    public static string ApprovedPath => RepositoryPaths.Resolve("tests", "Equilibrium.Tests", "Bits.approved.txt");
+    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Equilibrium.Tests"), "Bits");
 
     [Fact]
     public void Every_fixture_case_gives_the_recorded_bits()

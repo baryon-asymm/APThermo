@@ -7,7 +7,7 @@ class of tool NASA CEA belongs to.
 
 ## Install
 
-```
+```console
 dotnet tool install --global APThermo.Cli
 ```
 

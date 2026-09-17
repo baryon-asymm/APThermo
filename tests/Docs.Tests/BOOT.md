@@ -13,7 +13,8 @@ an output is a failing test, not a review opinion.
 | L1 snippets | every C# fence (info `csharp`, `cs` or `c#`, any case, the first word of the info string, N1) of `README.md`, `docs/guide/*.md` and the package READMEs under `docs/nuget/` is preceded by a `<!-- snippet: name -->` marker (`Every_csharp_fence_is_preceded_by_a_snippet_marker`); every marked block equals the samples node's region of that name byte for byte (common indentation stripped, line endings normalized to LF, `Every_marked_csharp_block_equals_its_sample_region`); the region names the samples node's source declares are exactly, for every scenario, its class name and that name plus `Usings` (`Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings`); and each scenario's body region lies, by its own line span, inside the block body of that scenario's `Run` method, parsed with Roslyn rather than merely named by it (`Each_scenario_body_region_lies_inside_its_class_Run_method`, ma2) | the samples node's `// snippet-start: name` / `// snippet-end` regions, its `Program.Scenarios`/`ClassNameOf`, and the Roslyn syntax tree of each scenario's own source file | ✅ |
 | L1b scenario table | `samples/Samples/API.md`'s "## Scenarios" table lists exactly `Program.Scenarios`, in order, with the class column exactly `ClassNameOf` of each (`ScenarioTableTests`, ma1): the table is what `ci.yml`'s packaged-library step reads instead of a second, typed-in list | `APThermo.Samples.Program.Scenarios`/`ClassNameOf` | ✅ |
 | L2 sample outputs | every scenario of the samples node, run in-process, prints its approved output | `approved/samples/<class>.approved.txt`, whole file | ✅ |
-| L3 CLI examples | every `apthermo …` invocation of `README.md`, `docs/guide/*.md` or `docs/nuget/*.md` — any line of a fence (a leading shell prompt `$ `, `> `, `PS> ` or `PS C:\…> ` stripped first, N4), or an inline code span — is classified: a `rocket`/`equilibrium`/`states` verb with at least one more token must be a runnable example (a single line, `--accelerator cpu`, exactly one committed `samples/cli/` input, no `--output`/`--format`, every token checked against its own declared synopsis, N8) checked against its approved document, or the test fails naming the reason; that verb alone, with nothing after it, is a bare mention and is skipped; `devices` and `--version` are counted but never run, since their output depends on the machine or the release (root `BOOT.md`, Delivery: Documentation); every other declared verb — `species`, `schema`, `--help` — is a full invocation whenever it carries at least one more token, or always for `--help`, and is run and approved the same way (ma10); any other verb fails as an unknown command, and any token a verb's own synopsis does not declare fails too (N8). Fails when no invocation exists, when a runnable example and an approved file do not name each other, when a fence carries an `apthermo …` invocation together with any other non-empty line (not a supported form: a placeholder synopsis belongs in prose, never a fence), when a fenced block is opened but never closed before the document ends (N1b), or when a line names `apthermo` but is not recognised as an invocation even after a known prompt is stripped (N4). A second fact ties a JSON document shown next to prose to its `samples/cli/` file through a `<!-- cli-document: path -->` marker: the shown block must equal that file and validates against its schema (`Every_marked_cli_document_equals_its_samples_cli_file_and_validates_against_its_schema`); a third requires that marker on every JSON fence (info `json`, first word, any case), not only a marked one (`Every_json_fence_is_preceded_by_a_cli_document_marker`, MA1) | `approved/cli/<key>.approved.json` (`.txt` for `--help`'s plain-text usage) — the key the input file's name plus a suffix for any option beyond the mandatory `--accelerator cpu` (D10: two invocations of one input with different options never collide on one key), or the verb plus its own tokens for `species`/`schema`/`--help` — and `samples/cli/<path>` for a marked JSON document | ✅ |
+| L3 CLI examples | every `apthermo …` invocation of `README.md`, `docs/guide/*.md` or `docs/nuget/*.md` — any line of a fence (a leading shell prompt `$ `, `> `, `PS> ` or `PS C:\…> ` stripped first, N4), or an inline code span (the same prompt stripped first, minor 2 of the fourth documentation review) — is classified, each carrying whether it came from a fence or from prose: a `rocket`/`equilibrium`/`states` verb with at least one more token must be a runnable example (a single line, `--accelerator cpu`, exactly one committed `samples/cli/` input, no `--output`/`--format`, every token checked against its own declared synopsis, read from `src/Cli/API.md`'s "## Command line" block rather than a second, typed-in list — `CommandSynopses.FromCliApi`, N8, minor 6) checked against its approved document, or the test fails naming the reason; that verb alone, with nothing after it, is a bare mention and is skipped when it is an inline span (naming the command in prose); the same bare verb alone in its own fence is a command, not a mention — a fence always demonstrates something to run — and is checked as a full invocation instead (minor 2); `devices` and `--version` are counted but never run, since their output depends on the machine or the release (root `BOOT.md`, Delivery: Documentation); every other declared verb — `species`, `schema`, `--help` — is a full invocation whenever it carries at least one more token, or always for `--help`, and is run and approved the same way (ma10); any other verb fails as an unknown command, and any token a verb's own synopsis does not declare fails too (N8). Fails when no invocation exists, when a runnable example and an approved file do not name each other, when a fence carries an `apthermo …` invocation together with any other non-empty line (not a supported form: a placeholder synopsis belongs in prose, never a fence), when a fenced block is opened but never closed before the document ends (N1b), or when a fence line or an inline span names `apthermo` but is not recognised as an invocation even after a known prompt is stripped (N4, both halves). A second fact ties a JSON document shown next to prose to its `samples/cli/` file through a `<!-- cli-document: path -->` marker: the shown block must equal that file and validates against its schema (`Every_marked_cli_document_equals_its_samples_cli_file_and_validates_against_its_schema`); a third requires that marker on every JSON fence (info `json`, first word, any case), not only a marked one (`Every_json_fence_is_preceded_by_a_cli_document_marker`, MA1) — both in `CliDocumentTests.cs`, split from `CommandLineExampleTests.cs` for the code-shape limit | `approved/cli/<key>.approved.json` (`.txt` for `--help`'s plain-text usage) — the key the input file's name plus a suffix for any option beyond the mandatory `--accelerator cpu` (D10: two invocations of one input with different options never collide on one key), or the verb plus its own tokens for `species`/`schema`/`--help` — and `samples/cli/<path>` for a marked JSON document, and `src/Cli/API.md`'s "## Command line" block for every synopsis | ✅ |
+| L0 fence tags | every fence of `README.md`, `docs/guide/*.md` and the package READMEs under `docs/nuget/` carries a first-word tag from the allow-list `csharp`/`cs`/`c#`, `json` or `console` (`Every_fence_carries_a_tag_from_the_allow_list`, minor 3 of the fourth documentation review): before this task an untagged fence, or one with an unrecognised tag, reached no check at all, since L1 and the `cli-document` facts each look only for their own tag and skip whatever does not carry it — a broken JSON or C# example with no language word would silently escape every level below | `GuideDocuments.IsCSharpFenceInfo`/`IsJsonFenceInfo`/`IsConsoleFenceInfo` | ✅ |
 | L4 links | every relative link of `README.md`, `llms.txt` and the markdown under `docs/` (`docs/protocol/templates` excluded — its placeholder links are deliberate; every other document under `docs/protocol` is checked), in every form (inline, reference-style, HTML `href`), resolves to an existing file; a `#anchor` fragment, bare or on a file link, names an existing heading of its target by GitHub's own slug; the package READMEs under `docs/nuget/` may carry no relative link at all, since nuget.org renders them outside the repository, and no document (package READMEs included) may carry the placeholder `OWNER/REPO`. `README.md` and `llms.txt` are asserted to exist | the repository tree, and each target document's own headings | ✅ |
 | L5 schemas | every file under `samples/cli/`, walked recursively, validates against the schema its top-level directory declares (`problems` → `input`, `states` → `states`; any other top-level directory fails loudly instead of being skipped); a `.jsonl` file is checked record by record; the schemas are read through `apthermo schema <name>` in-process, so no copy lives here | the command line's embedded schemas (root `BOOT.md`, Delivery: Documentation) | ✅ |
 | L6 guide shape | every page of `docs/guide/*.md` carries the shared headings in order, once each, read outside fenced code blocks: `## Purpose`, `## When to use`, `## Steps`, `## Errors`, `## See also` | the root `BOOT.md`, Delivery: Documentation | ✅ |
@@ -94,6 +95,35 @@ to a new file, `CliDocumentTests.cs`, in the same class-per-concern shape L1's o
 `SnippetTests` and `ScenarioTableTests` already use; no test changed behaviour by the
 move. `## Acceptance criteria` below carries the dated, red-then-reverted evidence for
 every one of these.
+
+⚠ 2026-09-17 (fourth documentation review, this task): a further round of minors was
+closed. L3 gained a new fence-vs-prose distinction: a bare verb (`` `apthermo species` ``,
+nothing after it) reached the same "bare mention, skip" branch whether it stood alone in
+a fence or inside prose, so a fence that only ever showed the bare command — never a
+demonstration a reader could copy and run — passed silently (minor 2's second finding);
+`FenceInvocationsOf`/`InlineInvocationsOf` now carry `IsFence` on every invocation they
+find, and `Classify` skips a bare verb only when `IsFence` is false. The inline half of
+N4 was never built: `InlineSpan` matched only a span already starting with `apthermo `,
+so a prompt-prefixed span (`` `PS> apthermo rocket …` ``) never reached the regex at all
+and was silently invisible to every fact below, the same escape N4 closed for fences in
+the third audit (minor 2's first finding); every inline span is now read, its prompt
+stripped the same way a fence line's is, and a span that names `apthermo` but is not
+recognised as an invocation even after stripping fails naming the page and line, exactly
+as an unrecognised fence line does. A new L0 closes minor 3: nothing checked a fence's
+*tag* itself, so an untagged or misspelled-tag fence (a broken JSON example with no
+` ```json ` word on it, say) reached no fact at all — L1 and the `cli-document` facts
+each look only for their own tag and skip anything else; `FenceTagTests` now requires
+every fence of the checked documents to carry a tag from the allow-list (`csharp`/`cs`/
+`c#`, `json`, `console`). Minor 6 replaced N8's typed-in synopsis dictionary with
+`CommandSynopses.FromCliApi`, which parses `src/Cli/API.md`'s own "## Command line"
+block (`tests/Docs.Tests/CommandSynopses.cs`, new file): the copy had drifted narrower
+than the parser (`devices` accepts `--format` — `CommandTable.cs` — but the copy, and
+`API.md`'s own synopsis line, did not declare it), and nothing had ever compared the two.
+`src/Cli/API.md` is corrected (its own ⚠, minor 6) and the `equilibrium` line's
+`[same options]` placeholder — unparseable by a machine — is spelled out identically to
+`rocket`'s, the same options `CommandTable.cs` gives it. `## Acceptance criteria` below
+carries the dated, red-then-reverted evidence for minors 2, 3 and 6; minors 1, 4, 5 and
+7 were prose and citation corrections with no new check to prove red.
 
 ## Invariants
 
@@ -337,7 +367,7 @@ closed in `3c0d271`).
       - MA1/X9b: a JSON fence with no `cli-document` marker — first proven on the
         scratch page, then reproduced exactly as the review found it: the marker at
         `docs/nuget/APThermo.Cli.md:19` removed,
-        `CommandLineExampleTests.Every_json_fence_is_preceded_by_a_cli_document_marker`
+        `CliDocumentTests.Every_json_fence_is_preceded_by_a_cli_document_marker`
         red naming that file and line, reverted.
       - D10: two invocations of `samples/cli/problems/rocket.json` with different
         options — a second `apthermo rocket … --accelerator cpu --threshold 1e-3` fence
@@ -348,6 +378,67 @@ closed in `3c0d271`).
       - ma1: the scenario table's class column diverging from the code — `QuickStart`
         misspelled `QuickStartWrong` in `samples/Samples/API.md`'s "## Scenarios" table,
         `ScenarioTableTests` red, reverted.
+- [x] 2026-09-17 (fourth documentation review, this task) — every minor that review
+      found is closed, and every changed or new check was shown red once against a
+      deliberate drift and reverted, nothing of the mutations committed:
+      `dotnet test tests/Docs.Tests`, 28 of 28 passed (27 before, plus the new L0
+      `FenceTagTests`).
+      - Minor 1: `docs/guide/getting-started.md`'s "every `apthermo` example is run"
+        now names the two exceptions, `devices` and `--version`, next to it.
+      - Minor 2, the inline prompt: a scratch page's inline span
+        `` `user@host:~$ apthermo devices` `` (an unrecognised prompt),
+        `CommandLineExampleTests` red ("this inline span names 'apthermo' but is not
+        recognised as an invocation after stripping a known prompt … 'user@host:~$
+        apthermo devices'"); the same page's `` `PS> apthermo rocket
+        samples/cli/problems/rocket.json --accelerator cpu` `` (a recognised prompt)
+        passed in the same run, proving the strip itself works, not only its failure
+        path.
+      - Minor 2, the fence-vs-prose bare verb: the same scratch page's
+        `` ```console\n$ apthermo species\n``` `` (a bare verb alone in its own
+        fence), `CommandLineExampleTests` red ("the approved file for 'species' is
+        missing"), proving it is now checked as a full invocation rather than
+        silently skipped as a mention. All reverted; the scratch page is not
+        committed.
+      - Minor 3: a scratch page's untagged fence ` ``` ` around a JSON object,
+        `FenceTagTests.Every_fence_carries_a_tag_from_the_allow_list` red ("this
+        fence carries no tag from the allow-list (csharp, json, console): the fence
+        is untagged"); the same fence tagged ` ```python `, the same test red
+        ("found 'python'"); reverted. A regression control on the same page — a
+        ` ```console ` fence carrying `` `apthermo devices --outptu x` `` — passed
+        `FenceTagTests` (a `console` tag is allow-listed) and then failed
+        `CommandLineExampleTests` on the misspelled option (N8), proving a
+        `console`-tagged fence still reaches L3 after L0 was added; reverted.
+      - Minor 4: `tests/Docs.Tests/BOOT.md`'s own citation of
+        `CommandLineExampleTests.Every_json_fence_is_preceded_by_a_cli_document_marker`
+        is corrected to `CliDocumentTests.…`, the class the fact has lived in since
+        the third audit's move; `API.md`'s L3 row now credits `CliDocumentTests`
+        alongside `CommandLineExampleTests`.
+      - Minor 5: `src/Execution/Kernels.cs:10`'s and
+        `src/Execution/APThermo.Execution.csproj`'s citations of
+        `SCRATCH/api-review-report.md` (a path outside the tree, meaningless to a
+        reader of the shipped XML documentation or the packed source) are removed;
+        `grep -rn "SCRATCH/" src` returns empty, and the build stays warning-free
+        (`dotnet build APThermo.sln`, 0 warnings, CS1591 included).
+      - Minor 6: `src/Cli/API.md`'s "## Command line" block is corrected — `devices`
+        gains `[--format json]` (`CommandTable.cs` already accepted it;
+        `CommandLineExampleTests.cs`'s superseded `Synopsis` dictionary and the block
+        itself did not declare it) and `equilibrium`'s unparseable `[same options]`
+        is spelled out like `rocket`'s —
+        with a ⚠ on the corrected lines. `CommandLineExampleTests.cs`'s typed-in
+        `Synopsis` dictionary is replaced by `CommandSynopses.FromCliApi()`, which
+        parses this block directly (new file, `tests/Docs.Tests/CommandSynopses.cs`).
+        Shown red once: a scratch page's `` ```console\n$ apthermo devices --format
+        json\n``` `` passed against the corrected block; `--format json` then removed
+        from the block's `devices` line, `CommandLineExampleTests` red ("'apthermo
+        devices …' names an option '--format' its declared synopsis does not have"),
+        the block restored, the same page green again, reverted.
+      - Minor 7: `SchemaCommand`'s exit-2 refusal on a missing or unknown name was
+        undocumented in `CommandTable.cs`'s own `--help` text ("no name lists the
+        embedded names", contradicted by `SchemaCommand.cs:11-14` and
+        `src/Cli/API.md`'s Errors table); corrected to "a missing or unknown name
+        exits 2, naming the known schemas". `tests/Docs.Tests/approved/cli/help.approved.txt`
+        re-approved to the new bytes; `dotnet test tests/Cli.Tests`, 116 of 116
+        passed, confirming no other approval of the help text needed a change.
 
 ## Taboos
 

@@ -55,6 +55,22 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   committed text file LF. Whoever approves a change by copying the actual file over
   the approved one normalizes the line endings first; the Cli.Tests re-approval of
   2026-09-15 did so.
+
+  ⚠ 2026-09-17: "the Windows platform this tree targets" was true when this bullet was
+  written (2026-09-14), narrower than the root's platform constraint since the
+  2026-09-15 distribution-phase decision added Linux x64. On Linux `Environment.NewLine`
+  is `"\n"`, so an actual file this node writes there is LF like the repository, not
+  CRLF; the normalize-before-approving step only bites on Windows. Found while adding
+  the per-platform bit snapshots below.
+- **One approved file per platform, picked in one place.** The root BOOT.md's platform
+  constraint (2026-09-17) keeps a Windows and a Linux record for every bit snapshot,
+  since the CPU accelerator's `System.Math` calls the platform's C runtime and the two
+  do not round the last bit alike. `ApprovedSnapshot.ApprovedPathFor` is the one place
+  that chooses between `<name>.approved.txt` and `<name>.linux.approved.txt`; every
+  consumer's Bits level calls it instead of building the choice itself, so a future
+  Bits level needs no platform logic of its own. A node whose Linux bits equal its
+  Windows bits still keeps both files, byte for byte identical, so the rule has no
+  exception (`Thermo.Tests`, whose table holds no accelerator solve).
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.
@@ -190,6 +206,38 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       unchanged at HEAD and in the working tree, and `Bits.approved.txt`'s hash is
       unchanged (`Cli.Tests` BOOT.md, the Bits level), so no test moved with the code.
       Found missing by the CLI audit's finding H1, fixed in `68f540a`.
+- [x] 2026-09-17 — `ApprovedSnapshot.ApprovedPathFor` is the one place that picks a
+      node's approved file for the running platform (`API.md`); `Cli.Tests`,
+      `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`, `Thermo.Tests` and
+      `Transport.Tests` call it and name no platform in their own code
+      (`git grep -n "ApprovedSnapshot.ApprovedPathFor" -- tests`). Shown red once by
+      mutating it to always return the Linux name, on Windows: `dotnet test
+      APThermo.sln --filter "Category!=LongRunning"` turned 68 Bits-level facts and
+      theories red — `Transport.Tests` 1, `Equilibrium.Tests` 1, `Performance.Tests`
+      64, `Problems.Tests` 1, `Cli.Tests` 1 — every one reading the Linux bits with the
+      Windows accelerator; `Thermo.Tests` (379/379) stayed green, since its
+      `Bits.linux.approved.txt` is the byte-for-byte copy the acceptance criterion
+      below records. Reverted immediately after; the fast suite confirmed 3098/3098
+      green again on Windows, `protocol_lint` 0 errors, 0 warnings.
+- [x] 2026-09-17 — The first Linux run with this harness (WSL2 Ubuntu 24.04, .NET SDK
+      10.0.112, this task's commit on top of `f67b1a9`) approved a
+      `Bits.linux.approved.txt` for every node whose Linux bits differ from its Windows
+      ones — `Cli.Tests`, `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`,
+      `Transport.Tests` — and, for `Thermo.Tests`, whose table builder calls no
+      accelerator and no `System.Math` function, a byte-for-byte copy of
+      `Bits.approved.txt` (hash `8bd5068ebcd28a090a9ab1bd6b048f4c42da5d6b`, identical to
+      the Windows file's own, both recorded above), so the platform rule has no
+      exception. `Bits.linux.approved.txt` hashes: `Cli.Tests`
+      `dd080fd2a77c54047eb59260105368c4e1e80451`, `Equilibrium.Tests`
+      `7a4c552e2219a2e81f6a866e9fcf6587001fb9f5`, `Performance.Tests`
+      `af784d63cbca303f94464077c7015d509f93ec1c`, `Problems.Tests`
+      `e6e4eaee20ba7a639f4e56903d59e253439a172e`, `Transport.Tests`
+      `27fbcc06dc8af69b2cd7e386dca59ba54a3c2f87`. Before approving, the rest of that
+      Linux run was confirmed green on its own: `APTHERMO_NO_CUDA=1 dotnet test
+      APThermo.sln --filter "Category!=LongRunning"` gave 3098/3098 once the six files
+      above were in place (every Bits-level failure before that was the missing-file
+      case, `key: not in <path>`, on every fixture the run enumerated, never a
+      mismatch), and `protocol_lint` gave 0 errors, 0 warnings.
 
 ## Taboos
 

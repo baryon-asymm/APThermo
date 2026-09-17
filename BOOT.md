@@ -101,7 +101,26 @@ delivery (2026-09-15, `## Delivery` below).
 
 - Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
   accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
-  and file names may be platform-specific. Every test runs on both platforms.
+  and file names may be platform-specific. Every test runs on both platforms. The bit
+  snapshots are the one platform-specific record (2026-09-17): a node's
+  `Bits.approved.txt` holds the Windows bits and its `Bits.linux.approved.txt` the Linux
+  bits, the harness picks the file of the running platform, and an intended numerical
+  change re-approves both in the same commit.
+
+  ⚠ 2026-09-17, the first Linux run (WSL2 Ubuntu 24.04, .NET SDK 10.0.112, at
+  `f67b1a9`) answered the open question below: the CPU accelerator does not reproduce
+  the Windows bits. Every tolerance test against the CEA references, the docs tests and
+  the execution tests on CUDA (the 100 000-case sweep included) passed; the bit
+  snapshots of `Equilibrium`, `Performance`, `Transport`, `Problems` and `Cli` did not.
+  A field-by-field dump of the equilibrium and rocket snapshot sets (58 208 fields per
+  platform) found 12 150 fields differing by at most 4.2e-12 relative (temperature
+  2.7e-13), with no difference in any iteration count, status or active condensed
+  species; `Math.Exp`, `Math.Pow` and `Math.Log` differ by exactly 1 ULP on 0.5 %,
+  0.09 % and 0.015 % of sampled arguments. The difference is the C runtimes' last-bit
+  rounding carried through the Newton steps, far inside the tolerance tiers of the
+  GPU-equals-CPU invariant. The user chose per-platform snapshots over a tolerance
+  comparison on Linux or no snapshot on Linux, so that an unintended change stays
+  visible to the bit on both platforms.
 
   ⚠ 2026-09-15 (distribution phase): stood "Windows 11 x64 is the only supported
   platform of version 1. Nothing but the CUDA library discovery paths may be
@@ -347,10 +366,19 @@ There is no external ancestor: the tree root is the repository root, and the loa
       nodes' `BOOT.md` files under `## Structure` and each is accepted only with its
       node's bit-for-bit or field-by-field guard green.
 
-- [ ] Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
+- [x] 2026-09-17 — Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
       the execution tests node is green on CUDA, its long-running sweep included, under
       WSL2 on the reference machine. The outcome for the bit snapshots is recorded under
       the platform constraint above.
+
+      Evidence: WSL2 Ubuntu 24.04, .NET SDK 10.0.112, CUDA 12.9 libnvvm, at `0c3b455`
+      (merged as `3bc4039`): `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"` 3098/3098 against the `Bits.linux.approved.txt` files, and
+      `dotnet test tests/Execution.Tests` 55/55 on CUDA, the 100 000-case sweep included,
+      with the throughput ratio 52.01× recorded in `Throughput.linux.approved.txt` (the
+      execution tests node's `BOOT.md` explains the per-platform file). The first run at
+      `f67b1a9` failed only the bit snapshots and two platform assumptions of the tests,
+      the discovery test's `.dll` suffix and the Windows throughput figure.
 - [ ] The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
       from a local feed into every sample, and each sample reproduces its approved
       output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
@@ -362,15 +390,24 @@ There is no external ancestor: the tree root is the repository root, and the loa
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
       package restore into the samples (the ⚠ of that date under `## Delivery`,
       Documentation).
-- [ ] The documentation (2026-09-15), proven by the docs tests node, with every check
+- [x] 2026-09-17 — The documentation (2026-09-15), proven by the docs tests node, with every check
       shown red once and failing on an empty set:
-      - every C# block of the guide equals its snippet;
+      - every C# block of the guide equals its snippet (`SnippetTests`, and
+        `FenceTagTests` for the fences' tags);
       - every `apthermo` invocation shown is run and its output approved, except the
-        declared synopses whose output depends on the machine or the release;
-      - every sample prints its approved output;
-      - every link resolves;
-      - every shown or sample document validates against its schema;
-      - every guide page has the shared shape.
+        declared synopses whose output depends on the machine or the release
+        (`CommandLineExampleTests.Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis`);
+      - every sample prints its approved output
+        (`SampleOutputTests.The_scenario_prints_its_approved_output`, `ScenarioTableTests`);
+      - every link resolves (`LinkTests`);
+      - every shown or sample document validates against its schema
+        (`SchemaValidationTests`, `CliDocumentTests`);
+      - every guide page has the shared shape (`GuideShapeTests`).
+
+      Evidence: `tests/Docs.Tests` 28/28 green at `587f05d` on Windows (27/27 at
+      `f67b1a9` under WSL2), the red-once and empty-set records in that node's
+      `BOOT.md`, and four read-only documentation reviews on 2026-09-17, the last at
+      `48fecae` with no blocker and no major; its minors were closed at `587f05d`.
 
       Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
       "Every code block … equals its sample region" predated the snippet markers and

@@ -25,6 +25,16 @@ The definition of what "`Transport` is ready" means.
   accelerator on the reference machine's runtime; a runtime update that moves lines
   is re-approved with that reason recorded here. A fixture absent from the snapshot
   fails the test with instructions, as the surface snapshot does.
+
+  ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
+  now keeps a Windows and a Linux record, since the CPU accelerator's `System.Math`
+  calls the platform's C runtime and the two do not round the last bit alike;
+  `ApprovedPath` resolves through `Harness.ApprovedSnapshot.ApprovedPathFor`
+  (`tests/Harness/API.md`), which picks `Bits.approved.txt` or `Bits.linux.approved.txt`
+  for the running platform, so this node's own code names no platform. The first Linux
+  run (2026-09-17, WSL2 Ubuntu 24.04, `f67b1a9` plus this task's harness change) did not
+  reproduce the Windows bits, within the tolerance the root BOOT.md records for the
+  difference; `Bits.linux.approved.txt` was approved from that run.
 - The node owns the tolerances of comparisons that are not with the reference (a
   self-consistency of two paths through the same arithmetic, an algebraic identity);
   they are named constants of the node with their origin in a comment, never literals
