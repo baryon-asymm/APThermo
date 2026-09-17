@@ -11,7 +11,13 @@ namespace APThermo.Docs.Tests;
 /// does. A `#anchor` fragment, bare or on a file link, must name an existing heading of its target document (the
 /// same document when the link carries no file), by GitHub's own slug (lowercase, everything but a letter, digit,
 /// space or hyphen dropped, a space turned into a hyphen) — so a renamed heading breaks the link that pointed at it
-/// instead of silently rendering nowhere. Only docs/protocol/templates is excluded — its placeholder links are
+/// instead of silently rendering nowhere. An image wrapped in a link — `[![alt](image-url)](target)`, the form a
+/// badge takes — resolves by its outer `target`, not its inner image source: `InlineLink` treats one level of
+/// nested `![...](...)` as part of the link text, so the badge's own link is what gets checked, and the image
+/// source (ordinarily an external host such as shields.io) is left alone the way any other external link is (the
+/// actions-and-badges task, 2026-09-17: before this fix, `\[[^\]]*\]\(\s*([^)\s]+)` stopped at the first `]`, so
+/// `[![CI](img)](workflow)` matched only `img` and the outer `workflow` link — the one actually worth checking —
+/// was never read at all; a badge linking to a deleted file passed silently). Only docs/protocol/templates is excluded — its placeholder links are
 /// deliberate (AGENTS.md §13); every other document under docs/protocol is checked like any other page. The package
 /// READMEs under docs/nuget/ may carry no relative link at all: nuget.org renders them outside the repository, where
 /// a relative link breaks; they may carry a self-repository link instead, and it is checked the same way. No
@@ -25,7 +31,7 @@ public sealed class LinkTests
     private const string SelfRepositoryBlobPrefix = "https://github.com/baryon-asymm/APThermo/blob/main/";
     private const string SelfRepositoryTreePrefix = "https://github.com/baryon-asymm/APThermo/tree/main/";
 
-    private static readonly Regex InlineLink = new(@"\[[^\]]*\]\(\s*([^)\s]+)", RegexOptions.Compiled);
+    private static readonly Regex InlineLink = new(@"\[(?:!\[[^\]]*\]\([^)]*\)|[^\]])*\]\(\s*([^)\s]+)", RegexOptions.Compiled);
     private static readonly Regex ReferenceUsage = new(@"\[([^\]]+)\]\[([^\]]*)\]", RegexOptions.Compiled);
     private static readonly Regex ReferenceDefinition = new(@"^\s{0,3}\[([^\]]+)\]:\s*(\S+)", RegexOptions.Compiled);
     private static readonly Regex HtmlHref = new(@"href\s*=\s*[""']([^""']+)[""']", RegexOptions.Compiled);
