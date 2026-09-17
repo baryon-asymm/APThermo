@@ -5,15 +5,28 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup>
+
+  <!-- Default build mode: the library projects directly, so a change in src/ is visible immediately. -->
+  <ItemGroup Condition="'$(APThermoPackageVersion)' == ''">
     <ProjectReference Include="..\..\src\Problems\APThermo.Problems.csproj" />
     <ProjectReference Include="..\..\src\Data\APThermo.Data.csproj" />
     <ProjectReference Include="..\..\src\Execution\APThermo.Execution.csproj" />
     <ProjectReference Include="..\..\src\Performance\APThermo.Performance.csproj" />
     <ProjectReference Include="..\..\src\Thermo\APThermo.Thermo.csproj" />
+    <ProjectReference Include="..\..\src\Equilibrium\APThermo.Equilibrium.csproj" />
+    <ProjectReference Include="..\..\src\Transport\APThermo.Transport.csproj" />
   </ItemGroup>
 
-  <!-- The docs tests node runs the scenarios in-process through this tree contract (BOOT.md, Constraints). -->
+  <!-- Package-feed build mode: the MSBuild property APThermoPackageVersion restores the packed APThermo package
+       from a feed given on the dotnet command line or a scratch nuget.config, instead of the projects above
+       (root BOOT.md, Delivery: Documentation). VersionOverride is used because the tree's package versions are
+       centrally managed (Directory.Packages.props) and carry no entry for this in-tree package. Every scenario
+       uses the package surface only, so it compiles unchanged in either mode. -->
+  <ItemGroup Condition="'$(APThermoPackageVersion)' != ''">
+    <PackageReference Include="APThermo" VersionOverride="$(APThermoPackageVersion)" />
+  </ItemGroup>
+
+  <!-- The docs tests node runs the scenarios in-process through this tree contract (BOOT.md, Constraints); it always uses the project-reference build. -->
   <ItemGroup>
     <InternalsVisibleTo Include="APThermo.Docs.Tests" />
   </ItemGroup>
