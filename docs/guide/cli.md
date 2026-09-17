@@ -94,11 +94,11 @@ $ apthermo schema input
 ```
 
 `species` searches the database (`--find` narrows it, `--database DIR` reads a
-different one, `--format csv` writes the flattened form); `devices` lists the CPU and
-CUDA accelerators this machine offers, with `cudaSkippedBecause` when CUDA was tried
-and skipped (see [GPU acceleration](gpu.md)); `schema` prints one of the five embedded
-JSON Schemas (`input`, `output`, `states`, `species`, `devices`) by name to standard
-output or to `--output`, or refuses naming every embedded name.
+different one, `--format csv` writes the flattened form); `devices` reports what this
+machine offers, the CPU accelerator and CUDA (see [GPU acceleration](gpu.md) for the
+shape and `apthermo schema devices` for the exact fields); `schema` prints one of the
+five embedded JSON Schemas (`input`, `output`, `states`, `species`, `devices`) by name
+to standard output or to `--output`, or refuses naming every embedded name.
 
 Every command that writes a document (every solving command, `species`, `devices` and
 `schema`) takes `--output PATH`; `species` and the solving commands also take

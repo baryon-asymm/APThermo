@@ -17,8 +17,9 @@ was not found.
 
 **Read `Status` before reading a figure, always.** Numerical code never throws for a
 per-case failure: it reports a status, and the failed result or station carries a
-zero state instead of a partial one. This scenario shows every refusal a consumer
-must be ready for — four exceptions and one failed station:
+zero state instead of a partial one. This scenario shows four of the five refusals of
+the exception table below (the accelerator refusal is covered in
+[GPU acceleration](gpu.md)) and one failed station:
 
 <!-- snippet: FailuresUsings -->
 ```csharp

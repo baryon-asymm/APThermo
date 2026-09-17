@@ -295,11 +295,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - [x] 2026-09-15 — The user's state runs read `data/user-states.json`. Its four records
       and the pressure rule are the ones given to this coding session, verbatim; its 48
       states (first + i × step by index, record order, pressure index ascending within
-      a record) were checked bit for bit, field by field against every double's
-      IEEE-754 bits, in a one-time verification recorded in `720cfb8` (the check
-      script is not part of this commit — not a fixture the node reads). Every one of
-      the 48 states was accepted (`ok=48/48` and `ok=12/12` per record, the previous
-      criterion's group 6 run).
+      a record) equal a separately generated reference of the same 48 records bit for
+      bit, checked field by field against every double's IEEE-754 bits, in a one-time
+      verification recorded in `720cfb8`'s commit message (the check script and the
+      reference file are not part of that commit — not a fixture the node reads).
+      Every one of the 48 states was accepted (`ok=48/48` and `ok=12/12` per record,
+      the previous criterion's group 6 run).
 - [x] 2026-09-15 — `bench/before-clean-code` exists from `7661ea9`, builds in Release,
       and lists the same nine benchmarks the after branch does.
 
