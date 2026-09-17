@@ -14,7 +14,7 @@ internal static class Program
     public static IReadOnlyList<string> Scenarios { get; }        // the scenario names, in order
     public static int Main(string[] args);
     public static int Run(string[] args, TextWriter output, TextWriter error);   // args = [scenario name]; 0 a solved scenario, 2 an unknown name or none (the usage on error)
-    internal static string ClassNameOf(string scenario);          // the scenario's source class name, for L1's region lookup
+    internal static string ClassNameOf(string scenario);          // the scenario's source class name, for L2's approved-output lookup
 }
 ```
 

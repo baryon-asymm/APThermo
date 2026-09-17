@@ -1,5 +1,5 @@
 unknown reactant: reactant 'NOT-A-REACTANT' is not in the database
-named reactant with a ratio: an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel
+named reactant with a ratio: reactant 'AL(cr)' is named with a total mass fraction, which cannot be combined with an oxidizer-to-fuel ratio
 state record refused: exactly one of enthalpy, temperature and entropy must be given, not 2
 mixture too heavy: the composition weighs 2000 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %
 a failed station carries a status instead of a partial state: InvalidInput

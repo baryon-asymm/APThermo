@@ -27,15 +27,14 @@ to read a run's database provenance and the NASA attribution.
 
 <!-- snippet: DatabaseFromFilesUsings -->
 ```csharp
-using System.Runtime.CompilerServices;
 using APThermo.Data;
 ```
 
-`output` is any `TextWriter` (`Console.Out` in a console application):
+`output` is any `TextWriter` (`Console.Out` in a console application), and `directory`
+is a folder holding `thermo.inp` and, optionally, `trans.inp`:
 
 <!-- snippet: DatabaseFromFiles -->
 ```csharp
-var directory = RepositoryDataDirectory();
 var database = SpeciesDatabase.Load(
     Path.Combine(directory, "thermo.inp"),
     Path.Combine(directory, "trans.inp"));

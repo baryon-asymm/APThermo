@@ -85,14 +85,17 @@ foreach (Station station in result.Stations)
 }
 
 Station throat = result.Stations[1];
-if (throat.Status == CaseStatus.Ok && throat.Transport is { } transport)
+if (throat.Status == CaseStatus.Ok)
 {
-    output.WriteLine($"  throat viscosity = {transport.Viscosity:E3} Pa·s");
-}
+    if (throat.Transport is { } transport)
+    {
+        output.WriteLine($"  throat viscosity = {transport.Viscosity:E3} Pa·s");
+    }
 
-foreach (var (species, fraction) in throat.MoleFractions.OrderByDescending(kv => kv.Value).Take(3))
-{
-    output.WriteLine($"  {species,-6} x={fraction:F4}");
+    foreach (var (species, fraction) in throat.MoleFractions.OrderByDescending(kv => kv.Value).Take(3))
+    {
+        output.WriteLine($"  {species,-6} x={fraction:F4}");
+    }
 }
 ```
 

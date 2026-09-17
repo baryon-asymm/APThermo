@@ -64,13 +64,20 @@ void Print(string kind, EquilibriumResult result)
 var hp = solver.Solve(propellant, new EquilibriumProblem { Pressure = 7.0e6 });   // Kind defaults to hp
 Print("hp", hp);
 
-var sp = solver.Solve(propellant, new EquilibriumProblem
+if (hp.Status == CaseStatus.Ok)
 {
-    Kind = ProblemKind.AssignedEntropyPressure,
-    Pressure = 7.0e6,
-    Entropy = hp.State.State.Entropy,
-});
-Print("sp", sp);
+    var sp = solver.Solve(propellant, new EquilibriumProblem
+    {
+        Kind = ProblemKind.AssignedEntropyPressure,
+        Pressure = 7.0e6,
+        Entropy = hp.State.State.Entropy,
+    });
+    Print("sp", sp);
+}
+else
+{
+    output.WriteLine("  sp  SKIPPED: hp failed, no entropy to target");
+}
 
 var tp = solver.Solve(propellant, new EquilibriumProblem
 {

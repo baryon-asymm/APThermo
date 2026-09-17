@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace APThermo.Samples;
 
 /// <summary>The samples' tree contract: the docs tests node runs every scenario in-process through this entry point.</summary>
@@ -21,7 +23,11 @@ internal static class Program
 
     public static IReadOnlyList<string> Scenarios { get; } = Table.Select(entry => entry.Name).ToList();
 
-    public static int Main(string[] args) => Run(args, Console.Out, Console.Error);
+    public static int Main(string[] args)
+    {
+        Console.OutputEncoding = Encoding.UTF8;   // a real console process prints "Pa·s" as UTF-8 bytes, not the active code page's
+        return Run(args, Console.Out, Console.Error);
+    }
 
     public static int Run(string[] args, TextWriter output, TextWriter error)
     {

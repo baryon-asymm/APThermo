@@ -4,7 +4,7 @@
 
 The consumer scenarios of the package surface as running programs: one class per
 scenario, each solving a fixed case, checking the statuses it reads and printing its
-figures to standard output. The node is the source of every marked C# block of the
+figures to standard output. The node is the source of every C# block of the
 guide (root `BOOT.md`, Delivery: Documentation): each snippet region, delimited by a
 `// snippet-start: <name>` / `// snippet-end` pair, is quoted verbatim in the guide, so
 the guide's code always compiles and runs. A scenario's `using` lines are a snippet
@@ -36,13 +36,13 @@ region of their own (`<ScenarioName>Usings`), separate from the body of `Run`
   Acceptance criteria below were rewritten together with the code, after the audit of
   that day (`SCRATCH/audit/review-docs.md`) found the node covered four of about
   fourteen consumer questions (S2), printed no status check (S1), and misdescribed
-  itself in three places (S3, S9, S10). The scenario set, the marker syntax and the
+  itself in three places (S3, S9, W2). The scenario set, the marker syntax and the
   package-feed mode are the root `BOOT.md`'s restored Delivery/Documentation bullet of
   the same date; this node's own text now matches it and the code. One of the three
   misdescriptions: this document claimed a region was "the whole body of the
   scenario's `Run` method" while the code's single marker sat above the class
   declaration, before `Run` even began — a straightforward contradiction the audit
-  caught by reading both (S10). The rewrite makes the claim true instead of removing
+  caught by reading both (W2). The rewrite makes the claim true instead of removing
   it: a scenario's body region now starts inside `Run`, after its own
   `// snippet-start` line, and ends at `// snippet-end` before `Run`'s closing brace,
   so "the body of that method" (Constraints, below) is again what the code does.
@@ -100,13 +100,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - [ ] Every scenario runs against the project references and prints its approved
       output (`tests/Docs.Tests`, L2, `approved/samples/`).
-- [ ] Every marked C# block of the guide equals its snippet region byte for byte
+- [ ] Every C# block of the guide equals its snippet region byte for byte
       (`tests/Docs.Tests`, L1).
-- [ ] The package-feed build mode restores `APThermo` from a local feed and every
-      scenario reproduces its approved output against it (root `BOOT.md`, Delivery:
-      Documentation and the packages acceptance criterion; proven by hand for 0.1.0,
-      not by `dotnet test`, since it needs a packed feed outside the tree — the command
-      is recorded in the task report that added the mode).
+- [x] 2026-09-17 — The package-feed build mode restores `APThermo` from a local feed
+      and every scenario reproduces its approved output against it (root `BOOT.md`,
+      Delivery: Documentation and the packages acceptance criterion). Not proven by
+      `dotnet test`, since it needs a packed feed outside the tree; proven instead by:
+      CI's "Samples run against the packaged library" step
+      (`.github/workflows/ci.yml`), which packs `src/Problems`, sets a job-local
+      `NUGET_PACKAGES`, loops over every scenario named in this node's `API.md`
+      `## Scenarios` table (not typed into the workflow) and diffs each output with
+      `tests/Docs.Tests/approved/samples/`; and one recorded local run the same day —
+      `dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release
+      --output <feed>`, `NUGET_PACKAGES=<scratch dir>`, the same loop against
+      `-p:APThermoPackageVersion=0.1.0 -p:RestoreAdditionalProjectSources=<feed>` — all
+      twelve scenarios reproduced their approved bytes.
 
 ## Taboos
 

@@ -1,5 +1,6 @@
-// snippet-start: DatabaseFromFilesUsings
 using System.Runtime.CompilerServices;
+
+// snippet-start: DatabaseFromFilesUsings
 using APThermo.Data;
 // snippet-end
 
@@ -10,8 +11,9 @@ internal sealed class DatabaseFromFiles
 {
     internal static void Run(TextWriter output)
     {
-        // snippet-start: DatabaseFromFiles
         var directory = RepositoryDataDirectory();
+
+        // snippet-start: DatabaseFromFiles
         var database = SpeciesDatabase.Load(
             Path.Combine(directory, "thermo.inp"),
             Path.Combine(directory, "trans.inp"));
