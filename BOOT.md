@@ -381,15 +381,24 @@ There is no external ancestor: the tree root is the repository root, and the loa
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
       package restore into the samples (the ⚠ of that date under `## Delivery`,
       Documentation).
-- [ ] The documentation (2026-09-15), proven by the docs tests node, with every check
+- [x] 2026-09-17 — The documentation (2026-09-15), proven by the docs tests node, with every check
       shown red once and failing on an empty set:
-      - every C# block of the guide equals its snippet;
+      - every C# block of the guide equals its snippet (`SnippetTests`, and
+        `FenceTagTests` for the fences' tags);
       - every `apthermo` invocation shown is run and its output approved, except the
-        declared synopses whose output depends on the machine or the release;
-      - every sample prints its approved output;
-      - every link resolves;
-      - every shown or sample document validates against its schema;
-      - every guide page has the shared shape.
+        declared synopses whose output depends on the machine or the release
+        (`CommandLineExampleTests.Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis`);
+      - every sample prints its approved output
+        (`SampleOutputTests.The_scenario_prints_its_approved_output`, `ScenarioTableTests`);
+      - every link resolves (`LinkTests`);
+      - every shown or sample document validates against its schema
+        (`SchemaValidationTests`, `CliDocumentTests`);
+      - every guide page has the shared shape (`GuideShapeTests`).
+
+      Evidence: `tests/Docs.Tests` 28/28 green at `587f05d` on Windows (27/27 at
+      `f67b1a9` under WSL2), the red-once and empty-set records in that node's
+      `BOOT.md`, and four read-only documentation reviews on 2026-09-17, the last at
+      `48fecae` with no blocker and no major; its minors were closed at `587f05d`.
 
       Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
       "Every code block … equals its sample region" predated the snippet markers and
