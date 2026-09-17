@@ -28,12 +28,9 @@ A rocket problem document, LOX/LH2 at an oxidizer-to-fuel ratio of 6:
 }
 ```
 
-```
-apthermo rocket problem.json
-```
-
-writes the chamber, throat and exit states and the performance figures (specific
-impulse, thrust coefficient, characteristic velocity) as JSON to standard output. No
+Save it as `problem.json` and run `apthermo rocket problem.json`: it writes the
+chamber, throat and exit states and the performance figures (specific impulse,
+thrust coefficient, characteristic velocity) as JSON to standard output. No
 `--database` is needed: `apthermo` uses the NASA thermodynamic database embedded in
 `APThermo`. Run `apthermo --help` for every command, and `apthermo --version` for
 the tool's version.
@@ -49,6 +46,11 @@ a machine with a usable GPU) additionally needs, at run time:
 
 `auto` falls back to the CPU accelerator when no usable CUDA device or library is
 found; the output document's `run.accelerator.cudaSkippedBecause` names the reason.
+
+## Guide
+
+Every command, its documents and its exit codes: see
+[Command line](https://github.com/OWNER/REPO/blob/main/docs/guide/cli.md).
 
 ## License and data notice
 

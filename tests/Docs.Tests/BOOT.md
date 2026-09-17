@@ -12,7 +12,7 @@ an output is a failing test, not a review opinion.
 |---|---|---|---|
 | L1 snippets | every `<!-- snippet: name -->`-marked C# block of `README.md`, `docs/guide/*.md` and the package READMEs under `docs/nuget/` equals the samples node's region of that name byte for byte (common indentation stripped, line endings normalized to LF); fails when no marker exists anywhere in the guide | the samples node's `// snippet-start: name` / `// snippet-end` regions | ✅ |
 | L2 sample outputs | every scenario of the samples node, run in-process, prints its approved output | `approved/samples/<class>.approved.txt`, whole file | ✅ |
-| L3 CLI examples | every `apthermo …` invocation in a fenced block of `README.md`, `docs/guide/*.md` or `docs/nuget/*.md` is either a runnable example (a single line, `--accelerator cpu`, exactly one committed `samples/cli/` input, no `--output`/`--format`) checked against its approved document, or a declared synopsis (every other form, counted but not run); fails when no invocation exists, or when a runnable example and an approved file do not name each other | `approved/cli/<key>.approved.json`, the key the input file's name, the top-level `run` property cut | ✅ |
+| L3 CLI examples | every `apthermo …` invocation in a fenced block of `README.md`, `docs/guide/*.md` or `docs/nuget/*.md` is either a runnable example (a single line, `--accelerator cpu`, exactly one committed `samples/cli/` input, no `--output`/`--format`) checked against its approved document, or a declared synopsis (every other single-line form, counted but not run); fails when no invocation exists, when a runnable example and an approved file do not name each other, or when a fenced block of more than one line opens with an `apthermo …` invocation (not a supported form: a placeholder synopsis belongs in prose, never a fence) | `approved/cli/<key>.approved.json`, the key the input file's name, the top-level `run` property cut | ✅ |
 | L4 links | every relative link of `README.md`, `llms.txt` and the markdown under `docs/` (`docs/protocol/templates` excluded — its placeholder links are deliberate; every other document under `docs/protocol` is checked) resolves to an existing file; the package READMEs under `docs/nuget/` may carry no relative link at all, since nuget.org renders them outside the repository | the repository tree | ✅ |
 | L5 schemas | every file under `samples/cli/`, walked recursively, validates against the schema its top-level directory declares (`problems` → `input`, `states` → `states`; any other top-level directory fails loudly instead of being skipped); a `.jsonl` file is checked record by record; the schemas are read through `apthermo schema <name>` in-process, so no copy lives here | the command line's embedded schemas (root `BOOT.md`, Delivery: Documentation) | ✅ |
 | L6 guide shape | every page of `docs/guide/*.md` carries the shared headings in order, once each, read outside fenced code blocks: `## Purpose`, `## When to use`, `## Steps`, `## Errors`, `## See also` | the root `BOOT.md`, Delivery: Documentation | ✅ |
@@ -122,6 +122,23 @@ nesting 4) is gone: `SchemaValidationTests` now extracts the JSON Lines loop int
         `GuideShapeTests` ("no guide page was found"), `LinkTests` (a link to the now-
         missing `docs/guide/rocket.md` failed to resolve) both red rather than
         vacuously green.
+- [x] 2026-09-17 (guide rewrite) — L3's last silent skip is closed:
+      `InvocationsOf` used to `continue` past any fenced block of more than one
+      non-empty line without ever looking at it, so a multi-line block that opened
+      with an `apthermo …` invocation (a command synopsis with its output pasted
+      below it, for instance) passed unseen. It now fails, naming the page and line,
+      when such a block's first line is an invocation; a placeholder synopsis
+      belongs in prose or a link to `src/Cli/API.md` instead (root `BOOT.md`,
+      Delivery: Documentation, item 3 of the guide-rewrite task). Shown red by
+      adding a second line to `docs/guide/cli.md`'s `apthermo devices` fence
+      (`CommandLineExampleTests` failing with
+      "docs/guide/cli.md:57: a fenced block with more than one line must not open
+      with an 'apthermo …' invocation … apthermo devices"), then reverted; nothing
+      of the mutation committed. `dotnet test tests/Docs.Tests`, 18 of 18 passed
+      afterwards, over two new runnable examples (`apthermo equilibrium
+      samples/cli/problems/equilibrium.json`, `apthermo states
+      samples/cli/states/tp-states.json --accelerator cpu`) and four new guide
+      pages (`getting-started.md`, `gpu.md`, `data.md`, `troubleshooting.md`).
 
 ## Taboos
 

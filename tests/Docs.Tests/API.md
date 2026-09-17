@@ -9,7 +9,7 @@ consider proven about the documentation, the samples and the schemas.
 |---|---|---|
 | every `<!-- snippet: name -->`-marked C# block of the guide equals its named region of the samples node's source, byte for byte | L1 (`SnippetTests`) | ✅ |
 | every scenario of the samples node prints its approved output | L2 (`SampleOutputTests`, `approved/samples/`) | ✅ |
-| every runnable `apthermo` invocation of the guide delivers its approved document, `run` cut as the command line's tests cut it; every other invocation is a counted, declared synopsis; a runnable example and an approved file always name each other | L3 (`CommandLineExampleTests`, `approved/cli/`) | ✅ |
+| every runnable `apthermo` invocation of the guide delivers its approved document, `run` cut as the command line's tests cut it; every other single-line invocation is a counted, declared synopsis; a runnable example and an approved file always name each other; a fenced block of more than one line never opens with an `apthermo …` invocation | L3 (`CommandLineExampleTests`, `approved/cli/`) | ✅ |
 | every relative link of `README.md`, `llms.txt` and `docs/**/*.md` (`docs/protocol/templates` excepted) resolves to a file; no package README under `docs/nuget/` carries a relative link | L4 (`LinkTests`) | ✅ |
 | every document under `samples/cli/`, walked recursively, validates against the schema its top-level directory declares, read through `apthermo schema` | L5 (`SchemaValidationTests`) | ✅ |
 | every guide page has the shared shape | L6 (`GuideShapeTests`) | ✅ |

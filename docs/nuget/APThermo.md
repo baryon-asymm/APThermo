@@ -65,7 +65,15 @@ usable GPU) additionally needs, at run time:
   `libdevice.10.bc`, both from an NVIDIA CUDA Toolkit 12.8 or newer.
 
 `AcceleratorKind.Auto` falls back to the CPU accelerator when no usable CUDA device
-or library is found; `Solver.Accelerator.CudaSkippedBecause` names the reason.
+or library is found; a bound solver's `solver.Accelerator.CudaSkippedBecause` names
+the reason (`AcceleratorProbe.Describe` answers the same question without solving a
+case).
+
+## Guide
+
+The full guide has every scenario above and more (exits, a custom propellant,
+batches, state records, GPU acceleration, the database, troubleshooting): see
+[Getting started](https://github.com/OWNER/REPO/blob/main/docs/guide/getting-started.md).
 
 ## License and data notice
 

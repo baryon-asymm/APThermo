@@ -15,8 +15,10 @@ namespace APThermo.Docs.Tests;
 /// `apthermo` invocation is a declared synopsis: counted, but not run (a command without a committed input, for
 /// example `apthermo devices`, is always a synopsis by this rule; a page shows no output next to its command today,
 /// so the whole delivered document is the thing approved, not a line shown on the page). Fails when no invocation
-/// exists anywhere in the guide, and when a runnable example and an approved file do not name each other (a
-/// missing file and an orphan both fail; AGENTS.md §13).
+/// exists anywhere in the guide, when a runnable example and an approved file do not name each other (a missing
+/// file and an orphan both fail), and when a fenced block of more than one line opens with an `apthermo …`
+/// invocation — that form is not supported (a synopsis with placeholders belongs in prose, never a fence), so it is
+/// a documentation defect, not a silently skipped block (AGENTS.md §13).
 /// </summary>
 public sealed class CommandLineExampleTests
 {
@@ -40,7 +42,13 @@ public sealed class CommandLineExampleTests
         CheckApprovedFilesMatch(runnableKeys);
     }
 
-    /// <summary>Every fenced block of the guide whose first non-empty line is an apthermo invocation, the leading `$ ` stripped.</summary>
+    /// <summary>
+    /// Every fenced block of the guide whose first non-empty line is an apthermo invocation, the leading `$ `
+    /// stripped. A fenced block with more than one non-empty line may not open with an invocation: this node's
+    /// BOOT.md records that a page shows only the command, never the delivered document inline, so a multi-line
+    /// fence starting with `apthermo ` is not a supported form and fails loudly instead of being skipped — a
+    /// command synopsis with placeholders belongs in prose or a link to the command line's API.md, never a fence.
+    /// </summary>
     private static List<(string File, int Line, string Command)> InvocationsOf(IReadOnlyList<string> pages)
     {
         var found = new List<(string File, int Line, string Command)>();
@@ -50,13 +58,25 @@ public sealed class CommandLineExampleTests
             foreach (var block in GuideDocuments.FencedBlocks(lines))
             {
                 var nonEmpty = block.Body.Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
-                if (nonEmpty.Length != 1)
+                if (nonEmpty.Length == 0)
                 {
-                    continue; // a synopsis with shown output is not yet a supported form (this node's BOOT.md records the choice)
+                    continue;
                 }
 
                 var command = StripDollar(nonEmpty[0]);
-                if (command.StartsWith("apthermo ", StringComparison.Ordinal))
+                var isInvocation = command.StartsWith("apthermo ", StringComparison.Ordinal);
+                if (nonEmpty.Length != 1)
+                {
+                    Assert.True(
+                        !isInvocation,
+                        $"{page}:{block.StartLine + 1}: a fenced block with more than one line must not open with an "
+                            + $"'apthermo …' invocation (show only the command, in its own single-line fence; a "
+                            + $"synopsis with placeholders belongs in prose or a link to the command line's API.md): "
+                            + $"{command}");
+                    continue;
+                }
+
+                if (isInvocation)
                 {
                     found.Add((page, block.StartLine, command));
                 }
