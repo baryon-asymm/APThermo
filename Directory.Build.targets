@@ -17,13 +17,21 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(IsPackable)' == 'true' and '$(GITHUB_ACTIONS)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
+  <!--
+    ContinuousIntegrationBuild is set by the workflows on their `dotnet pack` command lines only (root
+    BOOT.md, ## Delivery, Symbols; CI/CD and build audit, F2), never here: a condition on GITHUB_ACTIONS
+    would apply only to the project MSBuild was invoked on directly, not to the six referenced projects
+    that `dotnet pack src/Problems` merges into the package (none of them is IsPackable), so six of the
+    seven merged PDBs stayed non-deterministic. A global property passed on the pack command line instead
+    flows to the whole build graph, referenced projects included, and it must stay off during `dotnet
+    build`/`dotnet test`: `tests/Fixtures/RepositoryPaths.cs`, `tests/Protocol.Tests/Tree.cs` and
+    `tests/Execution.Tests/CudaTests.cs` locate the tree root from `[CallerFilePath]`, which
+    ContinuousIntegrationBuild's deterministic source paths would break.
+  -->
 
   <!-- data/NOTICE (Apache-2.0, the NASA data) packed at the root of every package. -->
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
-    <None Include="$(MSBuildThisFileDirectory)data\NOTICE" Pack="true" PackagePath="NOTICE" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)data\NOTICE" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
 </Project>

@@ -21,4 +21,10 @@
     <VersionPrefix>0.1.0</VersionPrefix>
   </PropertyGroup>
 
+  <!--
+    The rest of the package metadata (authors, license, tags, symbols, NOTICE) lives in
+    Directory.Build.targets, not here: it is conditioned on IsPackable, which a project sets in its own
+    body, after this props file has already been imported (Directory.Build.targets explains why).
+  -->
+
 </Project>
