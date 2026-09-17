@@ -579,7 +579,14 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     Then the samples run against the fresh `APThermo` package from a local feed, the
     tool installed from that feed runs an approved example, and the docs tests run (the
     ⚠ of 2026-09-17 under Documentation).
-  - A nightly run adds the long-running tests on the CPU accelerator.
+  - There is no nightly run (2026-09-17).
+
+  ⚠ 2026-09-17: stood "A nightly run adds the long-running tests on the CPU
+  accelerator". Every long-running test of the tree is a CUDA test. Under
+  `APTHERMO_NO_CUDA=1` it only checks the refusal and returns, so a nightly run on
+  hosted runners added nothing (the CI audit of 2026-09-17, G1). The long-running CUDA
+  tests run at every release on the self-hosted runners. The user decided to drop the
+  nightly run rather than add a CPU-only long test.
 - **Release**, on a tag `v*`, in order:
   1. the hosted matrix;
   2. the CUDA tests, the long-running ones included, on two self-hosted runners of the
