@@ -206,6 +206,38 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       unchanged at HEAD and in the working tree, and `Bits.approved.txt`'s hash is
       unchanged (`Cli.Tests` BOOT.md, the Bits level), so no test moved with the code.
       Found missing by the CLI audit's finding H1, fixed in `68f540a`.
+- [x] 2026-09-17 — `ApprovedSnapshot.ApprovedPathFor` is the one place that picks a
+      node's approved file for the running platform (`API.md`); `Cli.Tests`,
+      `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`, `Thermo.Tests` and
+      `Transport.Tests` call it and name no platform in their own code
+      (`git grep -n "ApprovedSnapshot.ApprovedPathFor" -- tests`). Shown red once by
+      mutating it to always return the Linux name, on Windows: `dotnet test
+      APThermo.sln --filter "Category!=LongRunning"` turned 68 Bits-level facts and
+      theories red — `Transport.Tests` 1, `Equilibrium.Tests` 1, `Performance.Tests`
+      64, `Problems.Tests` 1, `Cli.Tests` 1 — every one reading the Linux bits with the
+      Windows accelerator; `Thermo.Tests` (379/379) stayed green, since its
+      `Bits.linux.approved.txt` is the byte-for-byte copy the acceptance criterion
+      below records. Reverted immediately after; the fast suite confirmed 3098/3098
+      green again on Windows, `protocol_lint` 0 errors, 0 warnings.
+- [x] 2026-09-17 — The first Linux run with this harness (WSL2 Ubuntu 24.04, .NET SDK
+      10.0.112, this task's commit on top of `f67b1a9`) approved a
+      `Bits.linux.approved.txt` for every node whose Linux bits differ from its Windows
+      ones — `Cli.Tests`, `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`,
+      `Transport.Tests` — and, for `Thermo.Tests`, whose table builder calls no
+      accelerator and no `System.Math` function, a byte-for-byte copy of
+      `Bits.approved.txt` (hash `8bd5068ebcd28a090a9ab1bd6b048f4c42da5d6b`, identical to
+      the Windows file's own, both recorded above), so the platform rule has no
+      exception. `Bits.linux.approved.txt` hashes: `Cli.Tests`
+      `dd080fd2a77c54047eb59260105368c4e1e80451`, `Equilibrium.Tests`
+      `7a4c552e2219a2e81f6a866e9fcf6587001fb9f5`, `Performance.Tests`
+      `af784d63cbca303f94464077c7015d509f93ec1c`, `Problems.Tests`
+      `e6e4eaee20ba7a639f4e56903d59e253439a172e`, `Transport.Tests`
+      `27fbcc06dc8af69b2cd7e386dca59ba54a3c2f87`. Before approving, the rest of that
+      Linux run was confirmed green on its own: `APTHERMO_NO_CUDA=1 dotnet test
+      APThermo.sln --filter "Category!=LongRunning"` gave 3098/3098 once the six files
+      above were in place (every Bits-level failure before that was the missing-file
+      case, `key: not in <path>`, on every fixture the run enumerated, never a
+      mismatch), and `protocol_lint` gave 0 errors, 0 warnings.
 
 ## Taboos
 
