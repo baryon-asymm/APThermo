@@ -320,6 +320,46 @@ libdevice for the CUDA category.
       `ApprovedPathFor` picks it. Reverted with `git checkout --
       tests/Execution.Tests/Throughput.approved.txt`; `dotnet test
       tests/Execution.Tests` confirmed 55/55 green again.
+- [x] 2026-09-17 — `Discovery_reports_the_toolkit_paths_it_examined` assumed every
+      machine offers the locator at least one candidate root, so `Assert.NotEmpty(tried)`
+      held unconditionally. The first CI run on the public repository (GitHub Actions
+      run 35258686217) failed it on `windows-latest`: no CUDA toolkit, no `CUDA_PATH`,
+      so `LibDeviceLocator.Locate` truly examined nothing and `tried` was empty; the
+      `ubuntu-latest` job passed only because its discovery unconditionally names the
+      fixed `<glob root>/cuda` candidate before checking whether it exists (root
+      `BOOT.md`'s Linux `ToolkitRoots`), so `tried` is never empty there. An empty list
+      is the honest answer on a bare Windows runner, not a defect of discovery, so the
+      fact now asserts only what holds everywhere: every path ever tried has the
+      platform's own library file name or the `.bc` suffix (`Assert.All`, unconditional,
+      still fails on a wrong-shape path), and `Assert.NotEmpty` applies only when a
+      candidate root exists — `CUDA_PATH` set, or (Windows) a versioned directory
+      already under the default toolkit base; Linux always has the fixed candidate, so
+      the new helper `ACandidateToolkitRootExists` returns `true` unconditionally there.
+      Shown red once: `LibDeviceLocator.Locate`'s internal `tried` list was seeded with
+      a bogus `"MUTATION-wrong-shape.txt"` entry before its early-return checks; `dotnet
+      test tests/Execution.Tests --filter
+      "FullyQualifiedName~Discovery_reports_the_toolkit_paths_it_examined"` failed —
+      `Assert.All() Failure: 1 out of 4 items in the collection did not pass` naming the
+      bogus entry — then the mutation was reverted and the file diffed byte-identical
+      against the pre-mutation copy. Reproduced the CI condition on the reference
+      machine (which has the toolkit, so the environment-driven fact itself cannot be
+      driven empty) through the internal seam instead: `LibDeviceLocator.Locate(new
+      EngineOptions(), LocatorPlatform.Windows, _ => null, @"C:\nonexistent-ci-toolkit-base")`
+      returned `(null, null, [])`, matching the CI failure exactly; with `CUDA_PATH` and
+      `CUDA_HOME` cleared but the real toolkit base left in place (`C:\Program
+      Files\NVIDIA GPU Computing Toolkit\CUDA`, versions v12.9/v13.3/v13.4) the same
+      overload still found `v13.4`'s dll and bitcode, `tried` non-empty, confirming
+      discovery falls back to the directory scan when only the environment variable is
+      missing. `LibDeviceDiscoveryTests.Windows_with_no_cuda_path_and_no_toolkit_base_directory_examines_nothing`
+      pins the same empty-tried case deterministically, alongside the existing
+      `An_unsupported_platform_does_no_discovery`. Verified on the reference machine at
+      `a0d0ebf` (which has `CUDA_PATH` set, so the environment fact's non-empty branch
+      is exercised for real): `dotnet test tests/Execution.Tests` (CUDA included, the
+      new fact among them) 56/56; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"` 3101/3101, none skipped; `protocol_lint` 0 errors, 0
+      warnings; every `Bits*.approved.txt`, `Throughput*.approved.txt` and the
+      protocol tests node's `PublicSurface.approved.txt` unchanged (`git status
+      --short` names only the three files this fix touched).
 
 ## Taboos
 
