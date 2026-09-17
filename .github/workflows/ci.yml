@@ -69,8 +69,13 @@ jobs:
 
           # Every scenario, read from the samples node's own table (samples/Samples/API.md,
           # ## Scenarios) rather than typed into this workflow: the scenario name in column 2, the
-          # approved output file in column 5, of every row that names a scenario.
+          # approved output file in column 5, of every row that names a scenario. A row count of
+          # zero (the table's heading renamed or removed) must fail loudly rather than let the loop
+          # below run zero times and report success (ScenarioTableTests proves the table itself
+          # matches the code; this guards the workflow's own parse of it).
+          scenario_count=0
           while IFS=':' read -r scenario approved; do
+            scenario_count=$((scenario_count + 1))
             echo "-- $scenario --"
             dotnet run --project samples/Samples --configuration Release \
               -p:APThermoPackageVersion="${{ steps.version.outputs.version }}" \
@@ -78,6 +83,11 @@ jobs:
               -- "$scenario" | tr -d '\r' > actual-sample.txt
             diff actual-sample.txt "tests/Docs.Tests/approved/samples/$approved"
           done < <(awk -F'|' '/^\| `/{gsub(/[ `]/,"",$2); gsub(/[ `]/,"",$6); print $2":"$6}' samples/Samples/API.md)
+
+          if [ "$scenario_count" -eq 0 ]; then
+            echo "no scenario row was parsed from samples/Samples/API.md" >&2
+            exit 1
+          fi
 
       - name: Install the packed tool and run an approved example
         shell: bash

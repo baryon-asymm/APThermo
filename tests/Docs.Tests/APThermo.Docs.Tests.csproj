@@ -8,4 +8,9 @@
     <ProjectReference Include="..\Harness\APThermo.Harness.csproj" />
   </ItemGroup>
 
+  <!-- ma2: Roslyn parses a scenario's source to prove its snippet region lies inside the class's own Run method. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
 </Project>

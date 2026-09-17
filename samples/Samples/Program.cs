@@ -43,7 +43,7 @@ internal static class Program
         return 2;
     }
 
-    /// <summary>The source class name of a scenario, so the docs tests node's L1 can find its snippet regions without a second, hand-written list.</summary>
+    /// <summary>The source class name of a scenario, so the docs tests node's L1 can find its snippet regions and L2 its approved output, without a second, hand-written list.</summary>
     internal static string ClassNameOf(string scenario) =>
         Table.First(entry => entry.Name == scenario).Run.Method.DeclaringType!.Name;
 }

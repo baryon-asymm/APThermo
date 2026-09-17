@@ -66,8 +66,12 @@ internal static class GuideDocuments
     /// <summary>CRLF to LF: the form every byte comparison in this node goes through.</summary>
     public static string Lf(string text) => text.Replace("\r\n", "\n");
 
-    /// <summary>The fenced code blocks of a markdown document: the info string, the body lines and the opening line index.</summary>
-    public static IReadOnlyList<(string Info, string[] Body, int StartLine)> FencedBlocks(string[] lines)
+    /// <summary>
+    /// The fenced code blocks of a markdown document: the info string, the body lines and the opening line index.
+    /// A fence opened but never closed before the end of the document fails naming the page and the opening line
+    /// (N1b: silently dropping it let a page's last example go entirely unchecked).
+    /// </summary>
+    public static IReadOnlyList<(string Info, string[] Body, int StartLine)> FencedBlocks(string[] lines, string file)
     {
         var blocks = new List<(string Info, string[] Body, int StartLine)>();
         var opening = -1;
@@ -103,6 +107,7 @@ internal static class GuideDocuments
             }
         }
 
+        Assert.True(opening < 0, $"{file}:{opening + 1}: a fenced block opened here has no closing fence before the end of the document");
         return blocks;
     }
 
@@ -157,11 +162,11 @@ internal static class GuideDocuments
     /// The fenced block whose opening fence is exactly at <paramref name="line"/>, when one exists there. A marker
     /// (a snippet marker or a cli-document marker) is meant to be followed by a fence; a marker followed by prose
     /// instead has no block at that line, and a caller must report that in a message rather than read a default
-    /// struct's null fields (D14, `SCRATCH/audit/review-docs-2.md`).
+    /// struct's null fields (D14, fixed in `657410d`).
     /// </summary>
-    public static bool TryFencedBlockAt(string[] lines, int line, out (string Info, string[] Body, int StartLine) block)
+    public static bool TryFencedBlockAt(string[] lines, int line, string file, out (string Info, string[] Body, int StartLine) block)
     {
-        foreach (var candidate in FencedBlocks(lines))
+        foreach (var candidate in FencedBlocks(lines, file))
         {
             if (candidate.StartLine == line)
             {
@@ -174,11 +179,28 @@ internal static class GuideDocuments
         return false;
     }
 
+    /// <summary>
+    /// The first word of a fence's info string (info strings may carry attributes after the language, e.g.
+    /// <c>csharp title="Program.cs"</c>; N1, fixed in this task: comparing the whole string let such a fence escape
+    /// every language check below).
+    /// </summary>
+    public static string FirstWord(string info)
+    {
+        var words = info.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return words.Length > 0 ? words[0] : "";
+    }
+
     /// <summary>Whether a fence's info string names a C# block: `csharp`, `cs` or `c#`, any case (the root BOOT.md's Documentation bullet).</summary>
-    public static bool IsCSharpFenceInfo(string info) =>
-        info.Equals("csharp", StringComparison.OrdinalIgnoreCase)
-        || info.Equals("cs", StringComparison.OrdinalIgnoreCase)
-        || info.Equals("c#", StringComparison.OrdinalIgnoreCase);
+    public static bool IsCSharpFenceInfo(string info)
+    {
+        var word = FirstWord(info);
+        return word.Equals("csharp", StringComparison.OrdinalIgnoreCase)
+            || word.Equals("cs", StringComparison.OrdinalIgnoreCase)
+            || word.Equals("c#", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Whether a fence's info string names a JSON block: `json`, any case (MA1: a shown JSON fence must be marked, see CommandLineExampleTests).</summary>
+    public static bool IsJsonFenceInfo(string info) => FirstWord(info).Equals("json", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Every snippet region of the samples node's own source files: a name to its dedented body, the bytes between a
@@ -186,9 +208,21 @@ internal static class GuideDocuments
     /// region's markers nested inside it (the usings region sits above the class, the body region inside its
     /// method); each is read independently, by its own start and end.
     /// </summary>
-    public static IReadOnlyDictionary<string, string> SnippetRegions()
+    public static IReadOnlyDictionary<string, string> SnippetRegions() =>
+        AllRegions().ToDictionary(kv => kv.Key, kv => kv.Value.Text, StringComparer.Ordinal);
+
+    /// <summary>
+    /// Every snippet region's own file and 0-based line span (this task's own ma2): the first
+    /// line of its body (right after `// snippet-start: name`) and the line index of its own `// snippet-end`
+    /// (exclusive). `SnippetTests` uses this to prove a scenario's body region physically sits inside that
+    /// scenario's `Run` method, rather than in a method no scenario calls (X7).
+    /// </summary>
+    public static IReadOnlyDictionary<string, (string File, int BodyStartLine, int BodyEndLine)> SnippetRegionLocations() =>
+        AllRegions().ToDictionary(kv => kv.Key, kv => (kv.Value.File, kv.Value.BodyStartLine, kv.Value.BodyEndLine), StringComparer.Ordinal);
+
+    private static IReadOnlyDictionary<string, (string File, string Text, int BodyStartLine, int BodyEndLine)> AllRegions()
     {
-        var regions = new Dictionary<string, string>(StringComparer.Ordinal);
+        var regions = new Dictionary<string, (string File, string Text, int BodyStartLine, int BodyEndLine)>(StringComparer.Ordinal);
         var directory = Path.GetFullPath(Path.Combine(Root, "samples", "Samples"));
         foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly).Order(StringComparer.Ordinal))
         {
@@ -199,12 +233,15 @@ internal static class GuideDocuments
     }
 
     /// <summary>Reads a file's own, sequential (never nested) snippet regions into the shared dictionary.</summary>
-    private static void ReadRegionsOf(string file, Dictionary<string, string> regions)
+    private static void ReadRegionsOf(string file, Dictionary<string, (string File, string Text, int BodyStartLine, int BodyEndLine)> regions)
     {
         string? currentName = null;
         var body = new List<string>();
-        foreach (var line in File.ReadAllLines(file))
+        var bodyStartLine = -1;
+        var lines = File.ReadAllLines(file);
+        for (var i = 0; i < lines.Length; i++)
         {
+            var line = lines[i];
             if (currentName is null)
             {
                 var start = SnippetStart.Match(line.Trim());
@@ -212,6 +249,7 @@ internal static class GuideDocuments
                 {
                     currentName = start.Groups[1].Value;
                     body = [];
+                    bodyStartLine = i + 1;
                 }
 
                 continue;
@@ -220,7 +258,7 @@ internal static class GuideDocuments
             if (line.Trim() == "// snippet-end")
             {
                 Assert.True(!regions.ContainsKey(currentName), $"{file}: the snippet region '{currentName}' is declared more than once");
-                regions[currentName] = Dedent(body);
+                regions[currentName] = (file, Dedent(body), bodyStartLine, i);
                 currentName = null;
                 continue;
             }

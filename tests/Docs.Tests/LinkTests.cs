@@ -12,8 +12,7 @@ namespace APThermo.Docs.Tests;
 /// silently rendering nowhere. Only docs/protocol/templates is excluded — its placeholder links are deliberate
 /// (AGENTS.md §13); every other document under docs/protocol is checked like any other page. The package READMEs
 /// under docs/nuget/ may carry no relative link at all: nuget.org renders them outside the repository, where a
-/// relative link breaks. No document, package READMEs included, may carry the placeholder `OWNER/REPO` (M5,
-/// `SCRATCH/audit/review-docs-2.md`): a link built on it resolves nowhere once packed. Fails when the document set
+/// relative link breaks. No document, package READMEs included, may carry the placeholder `OWNER/REPO` (its finding M5, fixed in `657410d`): a link built on it resolves nowhere once packed. Fails when the document set
 /// is empty, and asserts that README.md and llms.txt themselves exist (m1: a check that silently has nothing to
 /// check when they are deleted is indistinguishable from an absent one).
 /// </summary>

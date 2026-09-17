@@ -14,7 +14,7 @@ internal static class Program
     public static IReadOnlyList<string> Scenarios { get; }        // the scenario names, in order
     public static int Main(string[] args);
     public static int Run(string[] args, TextWriter output, TextWriter error);   // args = [scenario name]; 0 a solved scenario, 2 an unknown name or none (the usage on error)
-    internal static string ClassNameOf(string scenario);          // the scenario's source class name, for L2's approved-output lookup
+    internal static string ClassNameOf(string scenario);          // the scenario's source class name, for L1's snippet-region lookup and L2's approved-output lookup
 }
 ```
 
@@ -24,6 +24,12 @@ The only reader is the docs tests node (`APThermo.Docs.Tests`), which holds the 
 it. Before, `tests/Docs.Tests/GuideDocuments.cs` carried a second, hand-written
 `scenario → class name` switch (finding S11, fixed in `900e5a4`); `ClassNameOf`
 reflects on the scenario table's own delegates, so the mapping has one source.
+
+⚠ 2026-09-17 (ma7): this line's own comment named only "L2's approved-output lookup"
+(`SampleOutputTests`), while `Program.cs`'s doc comment on the same method named only
+"L1" (`SnippetTests.Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings`),
+each silent about the other reader. Both callers exist and both are checked
+(`SnippetTests.cs`, `SampleOutputTests.cs`); the comment here now names both.
 
 ## Scenarios ✅
 
