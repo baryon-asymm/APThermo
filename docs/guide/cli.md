@@ -19,7 +19,7 @@ and print the JSON Schemas of every document shape it reads and writes.
 
 1. Install the tool globally:
 
-```
+```console
 dotnet tool install --global APThermo.Cli
 ```
 

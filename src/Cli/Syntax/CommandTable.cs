@@ -49,7 +49,7 @@ internal static class CommandTable
             ["output", "format", "database", "find"], [OutputFormat.Json, OutputFormat.Csv], NoArguments("species")),
         new("devices", "  devices                      the accelerators this machine offers\n",
             ["output", "format"], [OutputFormat.Json], NoArguments("devices")),
-        new("schema", "  schema [name]                the JSON Schema of a document shape; no name lists the embedded names\n",
+        new("schema", "  schema [name]                the JSON Schema of a document shape; a missing or unknown name exits 2, naming the known schemas\n",
             ["output"], [OutputFormat.Json], count => count <= 1 ? null : $"schema takes at most one schema name, not {count}"),
     ];
 

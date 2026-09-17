@@ -24,14 +24,23 @@ by the CLI audit's finding C6, fixed in `68f540a`.
 
 ```console
 $ apthermo rocket problem.json [--output result.json] [--format json|csv] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold 5e-6] [--mass-tolerance 0.01]
-$ apthermo equilibrium problem.json [same options]
+$ apthermo equilibrium problem.json [--output result.json] [--format json|csv] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold 5e-6] [--mass-tolerance 0.01]
 $ apthermo states records.json [more files...] [--output results.json] [--format json|csv] [--transport] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold X] [--mass-tolerance X]
 $ apthermo species [--find TEXT] [--database DIR] [--output PATH] [--format json|csv]
-$ apthermo devices [--output PATH]
+$ apthermo devices [--output PATH] [--format json]
 $ apthermo schema [NAME] [--output PATH]
 $ apthermo --help
 $ apthermo --version
 ```
+
+⚠ 2026-09-17 (the fourth documentation review, minor 6): `equilibrium` stood as
+`[same options]`, a placeholder no machine can parse, and `devices` stood without
+`[--format json]`, though `CommandTable.cs` accepts it (`OutputFormat.Json` is
+`devices`' one declared format, so the value is fixed rather than a `|`-choice). The
+docs tests node's L3 check used to copy this block into a second, typed-in dictionary,
+so neither gap was ever caught by a test; it now reads this block itself
+(`tests/Docs.Tests/CommandSynopses.cs`), so a synopsis this block does not carry
+accurately fails a guide line that uses it.
 
 Options take their value as the next argument or after `=`; every option applies only
 to the commands listed above it. `--database` names a directory with `thermo.inp`

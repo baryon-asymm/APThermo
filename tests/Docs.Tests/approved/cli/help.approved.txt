@@ -6,7 +6,7 @@ commands:
   states <records>...          state records (JSON array, JSON Lines, several files) as one batch
   species                      the species of the database
   devices                      the accelerators this machine offers
-  schema [name]                the JSON Schema of a document shape; no name lists the embedded names
+  schema [name]                the JSON Schema of a document shape; a missing or unknown name exits 2, naming the known schemas
 
 options:
   --output PATH                write the document to PATH instead of standard output

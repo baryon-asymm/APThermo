@@ -202,6 +202,9 @@ internal static class GuideDocuments
     /// <summary>Whether a fence's info string names a JSON block: `json`, any case (MA1: a shown JSON fence must be marked, see CommandLineExampleTests).</summary>
     public static bool IsJsonFenceInfo(string info) => FirstWord(info).Equals("json", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Whether a fence's info string names a shown shell session: `console`, any case (the fence-tag allow-list, see FenceTagTests).</summary>
+    public static bool IsConsoleFenceInfo(string info) => FirstWord(info).Equals("console", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// Every snippet region of the samples node's own source files: a name to its dedented body, the bytes between a
     /// <c>// snippet-start: name</c> line and the next <c>// snippet-end</c> line. A region may hold another
