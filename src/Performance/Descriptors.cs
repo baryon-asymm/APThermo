@@ -6,8 +6,13 @@ namespace APThermo.Performance;
 /// <summary>Where the composition stops following the equilibrium.</summary>
 public enum FlowModel
 {
+    /// <summary>The composition stays in equilibrium all the way through the nozzle.</summary>
     ShiftingEquilibrium,
+
+    /// <summary>The composition is frozen at the chamber composition from the throat onward.</summary>
     FrozenAtChamber,
+
+    /// <summary>The composition follows equilibrium up to the throat, then freezes there.</summary>
     FrozenAtThroat,
 }
 
@@ -57,12 +62,24 @@ internal readonly struct RocketProblem
 /// <summary>The performance figures of one station; SI. At the chamber only the characteristic velocity and the pressure ratio (1) are defined.</summary>
 public struct PerformanceFigures
 {
-    public double AreaRatio;              // A/A_t; 1 at the throat, 0 at the chamber (undefined)
-    public double PressureRatio;          // p_c/p
-    public double CharacteristicVelocity; // c* = p_c/(ρ_t u_t), m/s; the same at every station
-    public double ThrustCoefficient;      // C_F = u/c*
-    public double SpecificImpulse;        // Isp = u, m/s (ambient pressure equal to the station pressure)
-    public double VacuumSpecificImpulse;  // Ivac = u + p/(ρ u), m/s
+    /// <summary>The area ratio A/A_t, dimensionless; 1 at the throat, 0 (undefined) at the chamber.</summary>
+    public double AreaRatio;
+
+    /// <summary>The pressure ratio p_c/p, dimensionless.</summary>
+    public double PressureRatio;
+
+    /// <summary>The characteristic velocity c* = p_c/(ρ_t u_t), in m/s; the same value at every station of a case.</summary>
+    public double CharacteristicVelocity;
+
+    /// <summary>The thrust coefficient C_F = u/c*, dimensionless.</summary>
+    public double ThrustCoefficient;
+
+    /// <summary>The specific impulse Isp = u, in m/s (the effective exhaust velocity, ambient pressure equal to
+    /// the station pressure).</summary>
+    public double SpecificImpulse;
+
+    /// <summary>The vacuum specific impulse Ivac = u + p/(ρ u), in m/s.</summary>
+    public double VacuumSpecificImpulse;
 }
 
 /// <summary>Sizes of a case's station arrays.</summary>

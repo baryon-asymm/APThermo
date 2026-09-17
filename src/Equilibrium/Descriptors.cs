@@ -6,8 +6,13 @@ namespace APThermo.Equilibrium;
 /// <summary>Which two state functions are assigned.</summary>
 public enum ProblemKind
 {
+    /// <summary>Temperature and pressure are assigned (a tp problem).</summary>
     AssignedTemperaturePressure,
+
+    /// <summary>Enthalpy and pressure are assigned (an hp problem).</summary>
     AssignedEnthalpyPressure,
+
+    /// <summary>Entropy and pressure are assigned (an sp problem).</summary>
     AssignedEntropyPressure,
 }
 
