@@ -1,23 +1,45 @@
 # APThermo
 
-APThermo computes the chemical equilibrium composition and thermodynamic properties of rocket propellant combustion products (Gibbs-energy minimization, Gordon–McBride), and from them the performance of a rocket engine: chamber, throat and nozzle-exit states under shifting-equilibrium or frozen flow. It runs on CPU and, for large batches, on an NVIDIA GPU (CUDA) in double precision. The NASA thermodynamic database is embedded; no data files are needed on disk.
+> APThermo computes the chemical equilibrium composition and the thermodynamic and
+> transport properties of rocket propellant combustion products, and from them the
+> performance of a rocket engine: chamber, throat and nozzle exit, in
+> shifting-equilibrium and in frozen flow. Gibbs-energy minimization
+> (Gordon–McBride), one numerical program that runs on the CPU and, for large
+> batches of states, on an NVIDIA GPU (CUDA) in double precision. The NASA
+> thermodynamic database is embedded; no data files are needed on disk.
 
 ## Guide
-- [Rocket solving](docs/guide/rocket.md)
-- [Batch solving](docs/guide/batch.md)
-- [Equilibrium states](docs/guide/equilibrium.md)
-- [States records](docs/guide/states.md)
-- [Command line](docs/guide/cli.md)
+
+- [Getting started](docs/guide/getting-started.md): install the tool and the package, solve the first rocket case both ways
+- [Rocket solving](docs/guide/rocket.md): station-by-station states and performance figures, exits, a custom propellant
+- [Batch solving](docs/guide/batch.md): many rocket problems, or an oxidizer-to-fuel sweep, in one call
+- [Equilibrium states](docs/guide/equilibrium.md): a single tp, hp or sp state without a nozzle
+- [State records](docs/guide/states.md): states of another simulation, with or without exits
+- [GPU acceleration](docs/guide/gpu.md): CUDA requirements, discovery order, choosing an accelerator
+- [The database](docs/guide/data.md): the bundled NASA database, loading files, provenance
+- [Command line](docs/guide/cli.md): the `apthermo` tool over JSON documents
+- [Troubleshooting](docs/guide/troubleshooting.md): exit codes, statuses, mass and accelerator refusals
 
 ## Schemas
-- `apthermo schema input` — problem document shape
-- `apthermo schema output` — result document shape
-- `apthermo schema states` — state record shape
-- `apthermo schema species` — species listing shape
-- `apthermo schema devices` — device listing shape
+
+- [input](src/Cli/Schemas/input.schema.json): the rocket and equilibrium problem document shape
+- [output](src/Cli/Schemas/output.schema.json): the result document shape
+- [states](src/Cli/Schemas/states.schema.json): the state record shape
+- [species](src/Cli/Schemas/species.schema.json): the species listing shape
+- [devices](src/Cli/Schemas/devices.schema.json): the device listing shape
 
 ## Samples
-See [samples/Samples/API.md](samples/Samples/API.md) for the scenario contracts.
+
+- [samples/Samples/API.md](samples/Samples/API.md): the consumer scenarios as running programs, the source of every quoted C# block
 
 ## Node contracts
-See [API.md](API.md) for the tree's public contract.
+
+- [API.md](API.md): the tree's public contract and its usage steps
+- [Problems](src/Problems/API.md): propellants, problems, elemental mixtures, state records, the solver
+- [Cli](src/Cli/API.md): the `apthermo` command line, its documents and exit codes
+- [Data](src/Data/API.md): the NASA database as an object model
+- [Execution](src/Execution/API.md): accelerator options and `AcceleratorProbe`
+- [Thermo](src/Thermo/API.md): `CaseStatus`, `MixtureState`
+- [Equilibrium](src/Equilibrium/API.md): `ProblemKind`
+- [Performance](src/Performance/API.md): `FlowModel`, `PerformanceFigures`
+- [Transport](src/Transport/API.md): `TransportFigures`
