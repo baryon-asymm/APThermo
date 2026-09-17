@@ -101,7 +101,26 @@ delivery (2026-09-15, `## Delivery` below).
 
 - Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
   accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
-  and file names may be platform-specific. Every test runs on both platforms.
+  and file names may be platform-specific. Every test runs on both platforms. The bit
+  snapshots are the one platform-specific record (2026-09-17): a node's
+  `Bits.approved.txt` holds the Windows bits and its `Bits.linux.approved.txt` the Linux
+  bits, the harness picks the file of the running platform, and an intended numerical
+  change re-approves both in the same commit.
+
+  ⚠ 2026-09-17, the first Linux run (WSL2 Ubuntu 24.04, .NET SDK 10.0.112, at
+  `f67b1a9`) answered the open question below: the CPU accelerator does not reproduce
+  the Windows bits. Every tolerance test against the CEA references, the docs tests and
+  the execution tests on CUDA (the 100 000-case sweep included) passed; the bit
+  snapshots of `Equilibrium`, `Performance`, `Transport`, `Problems` and `Cli` did not.
+  A field-by-field dump of the equilibrium and rocket snapshot sets (58 208 fields per
+  platform) found 12 150 fields differing by at most 4.2e-12 relative (temperature
+  2.7e-13), with no difference in any iteration count, status or active condensed
+  species; `Math.Exp`, `Math.Pow` and `Math.Log` differ by exactly 1 ULP on 0.5 %,
+  0.09 % and 0.015 % of sampled arguments. The difference is the C runtimes' last-bit
+  rounding carried through the Newton steps, far inside the tolerance tiers of the
+  GPU-equals-CPU invariant. The user chose per-platform snapshots over a tolerance
+  comparison on Linux or no snapshot on Linux, so that an unintended change stays
+  visible to the bit on both platforms.
 
   ⚠ 2026-09-15 (distribution phase): stood "Windows 11 x64 is the only supported
   platform of version 1. Nothing but the CUDA library discovery paths may be
