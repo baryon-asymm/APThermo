@@ -1,5 +1,9 @@
-LOX/LH2 O/F=6.0  Pc=7.0 MPa
-  chamber   T=3485.0 K   P=7.000 MPa   Isp=0.0 m/s
+LOX/LH2 O/F=6.0  Pc=7.0 MPa  status=Ok
+  chamber   T=3485.0 K   P=7.000 MPa
   throat    T=3292.4 K   P=4.034 MPa   Isp=1514.7 m/s
   exit1     T=1709.7 K   P=0.038 MPa   Isp=4023.5 m/s
   exit2     T=1212.5 K   P=0.006 MPa   Isp=4386.5 m/s
+  throat viscosity = 1.016E-004 Pa·s
+  H2O    x=0.6878
+  H2     x=0.2454
+  OH     x=0.0344

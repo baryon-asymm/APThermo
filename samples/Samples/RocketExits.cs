@@ -1,4 +1,4 @@
-// snippet-start: RocketSolveUsings
+// snippet-start: RocketExitsUsings
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Performance;
@@ -8,12 +8,12 @@ using APThermo.Thermo;
 
 namespace APThermo.Samples;
 
-/// <summary>A rocket case with transport: the stations, their statuses, the performance figures and one transport figure.</summary>
-internal sealed class RocketSolve
+/// <summary>A rocket case mixing pressure-ratio and area-ratio exits, frozen at the throat.</summary>
+internal sealed class RocketExits
 {
     internal static void Run(TextWriter output)
     {
-        // snippet-start: RocketSolve
+        // snippet-start: RocketExits
         var database = SpeciesDatabase.LoadBundled();
 
         var propellant = Propellant.From(database)
@@ -24,10 +24,10 @@ internal sealed class RocketSolve
 
         var problem = new RocketProblem
         {
-            ChamberPressure = 7.0e6,                  // Pa
-            AreaRatios = [20.0, 77.5],
-            Flow = FlowModel.ShiftingEquilibrium,
-            Transport = true,
+            ChamberPressure = 7.0e6,   // Pa
+            PressureRatios = [10.0],   // p_c / p_e, reported first
+            AreaRatios = [50.0],       // A / A_t, reported after
+            Flow = FlowModel.FrozenAtThroat,
         };
 
         using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
@@ -42,27 +42,15 @@ internal sealed class RocketSolve
             }
 
             var temperature = station.State.Temperature;
-            var pressure = station.State.Pressure / 1e6;
             output.WriteLine(station.Name == "chamber"
-                ? $"  {station.Name,-8}  T={temperature:F1} K   P={pressure:F3} MPa"
-                : $"  {station.Name,-8}  T={temperature:F1} K   P={pressure:F3} MPa   Isp={station.Performance!.Value.SpecificImpulse:F1} m/s");
+                ? $"  {station.Name,-8}  T={temperature:F1} K"
+                : $"  {station.Name,-8}  T={temperature:F1} K   Isp={station.Performance!.Value.SpecificImpulse:F1} m/s");
         }
 
         output.WriteLine($"LOX/LH2 O/F=6.0  Pc={problem.ChamberPressure / 1e6:F1} MPa  status={result.Status}");
         foreach (Station station in result.Stations)
         {
             PrintStation(station);
-        }
-
-        Station throat = result.Stations[1];
-        if (throat.Status == CaseStatus.Ok && throat.Transport is { } transport)
-        {
-            output.WriteLine($"  throat viscosity = {transport.Viscosity:E3} Pa·s");
-        }
-
-        foreach (var (species, fraction) in throat.MoleFractions.OrderByDescending(kv => kv.Value).Take(3))
-        {
-            output.WriteLine($"  {species,-6} x={fraction:F4}");
         }
         // snippet-end
     }

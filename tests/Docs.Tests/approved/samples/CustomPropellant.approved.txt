@@ -1,0 +1,5 @@
+AP/HTPB/Al  Pc=7.0 MPa  status=Ok
+  chamber   T=3388.6 K
+  throat    T=3195.8 K   Isp=1039.7 m/s
+  exit1     T=1817.3 K   Isp=2490.3 m/s
+  exit2     T=1661.9 K   Isp=2599.5 m/s

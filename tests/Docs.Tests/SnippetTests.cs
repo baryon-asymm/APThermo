@@ -1,20 +1,20 @@
 using System.Text.RegularExpressions;
-using APThermo.Fixtures;
 
 namespace APThermo.Docs.Tests;
 
 /// <summary>
-/// L1 (BOOT.md): every C# block of the guide is preceded by a line `<!-- snippet: <name> -->` and equals that
-/// sample's snippet region byte for byte (line endings normalized to LF); every scenario name is quoted exactly
-/// once. The region in the sample source runs from its `// <!-- snippet: <name> -->` marker to the end of the file;
-/// one class per file keeps that exact. Passes vacuously while no document carries a snippet marker.
+/// L1 (BOOT.md): every C# block of README.md, docs/guide/*.md and the package READMEs under docs/nuget/ that is
+/// preceded by a line `&lt;!-- snippet: name --&gt;` equals that region of the samples node's source, byte for byte
+/// after the common indentation is stripped and line endings normalized to LF (the samples' own invariant: a region
+/// may be quoted by several pages, never edited). Fails when no marker exists anywhere in the guide (AGENTS.md §13:
+/// a check that can pass on an empty set is indistinguishable from an absent one).
 /// </summary>
 public sealed class SnippetTests
 {
     private static readonly Regex Marker = new(@"^<!--\s*snippet:\s*(\w+)\s*-->$", RegexOptions.Compiled);
 
     [Fact]
-    public void Every_csharp_block_equals_its_sample_region()
+    public void Every_marked_csharp_block_equals_its_sample_region()
     {
         var markers = new List<(string File, int Line, string Name)>();
         foreach (var file in GuideDocuments.SnippetSources())
@@ -30,50 +30,41 @@ public sealed class SnippetTests
             }
         }
 
-        if (markers.Count == 0)
-        {
-            return; // no document carries a snippet yet: nothing to check
-        }
+        Assert.True(markers.Count > 0, "no '<!-- snippet: name -->' marker was found in README.md, docs/guide/*.md or docs/nuget/*.md");
 
-        var expected = ScenarioClasses().Order(StringComparer.Ordinal).ToList();
-        var actual = markers.Select(m => m.Name).Order(StringComparer.Ordinal).ToList();
-        Assert.True(
-            expected.SequenceEqual(actual),
-            "every scenario name must be quoted exactly once; the guide quotes: " + string.Join(", ", markers.Select(m => m.Name)));
-
+        var regions = GuideDocuments.SnippetRegions();
         foreach (var (file, line, name) in markers)
         {
-            var where = $"{file}:{line + 1}";
-            var className = GuideDocuments.ScenarioClass(name);
-            var lines = GuideDocuments.Lines(file);
-
-            var j = line + 1;
-            while (j < lines.Length && string.IsNullOrWhiteSpace(lines[j]))
-            {
-                j++;
-            }
-
-            Assert.True(j < lines.Length, $"{where}: the snippet marker is not followed by a fenced code block");
-
-            var block = GuideDocuments.FencedBlocks(lines).FirstOrDefault(b => b.StartLine == j);
-            Assert.True(
-                block.Info.Equals("csharp", StringComparison.OrdinalIgnoreCase),
-                $"{where}: the snippet must be a ```csharp block, found a ```{block.Info} block");
-
-            var regionPath = RepositoryPaths.Resolve("samples", "Samples", className + ".cs");
-            var srcLines = GuideDocuments.Lines(regionPath);
-            var start = Array.FindIndex(srcLines, l => l.Contains($"<!-- snippet: {name} -->"));
-            Assert.True(start >= 0, $"{where}: no '// <!-- snippet: {name} -->' marker in {regionPath}");
-
-            var region = string.Join("\n", srcLines.Skip(start + 1));
-            var quoted = string.Join("\n", block.Body);
-            Assert.True(
-                region.Equals(quoted, StringComparison.Ordinal),
-                $"{where}: the {name} block differs from its sample region\n--- guide ---\n{quoted}\n--- sample ({regionPath}) ---\n{region}");
+            CheckMarker(file, line, name, regions);
         }
     }
 
-    /// <summary>The scenario classes, in the order of <c>APThermo.Samples.Program.Scenarios</c>.</summary>
-    private static IReadOnlyList<string> ScenarioClasses() =>
-        APThermo.Samples.Program.Scenarios.Select(GuideDocuments.ScenarioClass).ToList();
+    private static void CheckMarker(string file, int line, string name, IReadOnlyDictionary<string, string> regions)
+    {
+        var where = $"{file}:{line + 1}";
+        var lines = GuideDocuments.Lines(file);
+
+        var j = line + 1;
+        while (j < lines.Length && string.IsNullOrWhiteSpace(lines[j]))
+        {
+            j++;
+        }
+
+        Assert.True(j < lines.Length, $"{where}: the snippet marker is not followed by a fenced code block");
+
+        var block = GuideDocuments.FencedBlocks(lines).FirstOrDefault(b => b.StartLine == j);
+        Assert.True(
+            block.Info.Equals("csharp", StringComparison.OrdinalIgnoreCase),
+            $"{where}: the snippet must be a ```csharp block, found a ```{block.Info} block");
+
+        Assert.True(
+            regions.TryGetValue(name, out var region),
+            $"{where}: no snippet region named '{name}' exists under samples/Samples/; known regions: {string.Join(", ", regions.Keys.Order(StringComparer.Ordinal))}");
+
+        var quoted = GuideDocuments.Lf(string.Join("\n", block.Body));
+        var expected = GuideDocuments.Lf(region!);
+        Assert.True(
+            expected.Equals(quoted, StringComparison.Ordinal),
+            $"{where}: the '{name}' block differs from its sample region\n--- guide ---\n{quoted}\n--- sample ---\n{expected}");
+    }
 }

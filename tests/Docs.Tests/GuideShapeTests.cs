@@ -4,7 +4,8 @@ namespace APThermo.Docs.Tests;
 
 /// <summary>
 /// L6 (BOOT.md): every page of docs/guide/ carries the shared headings in order, once each: `## Purpose`,
-/// `## When to use`, `## Steps`, `## Errors`, `## See also`. Passes vacuously while no guide page exists.
+/// `## When to use`, `## Steps`, `## Errors`, `## See also`. Headings are read outside fenced code blocks only, so
+/// a `##`-looking line quoted inside an example does not count. Fails when no guide page exists.
 /// </summary>
 public sealed class GuideShapeTests
 {
@@ -13,7 +14,9 @@ public sealed class GuideShapeTests
     [Fact]
     public void Every_guide_page_has_the_shared_shape()
     {
-        foreach (var path in GuideDocuments.GuidePages())
+        var pages = GuideDocuments.GuidePages();
+        Assert.True(pages.Count > 0, "no guide page was found under docs/guide/");
+        foreach (var path in pages)
         {
             CheckPage(path);
         }
@@ -21,7 +24,7 @@ public sealed class GuideShapeTests
 
     private static void CheckPage(string path)
     {
-        var headings = GuideDocuments.Lines(path)
+        var headings = GuideDocuments.OutsideFences(GuideDocuments.Lines(path))
             .Where(line => Regex.IsMatch(line, @"^ {0,3}##(?!#)\s+\S"))
             .Select(line => line.Trim())
             .ToList();
