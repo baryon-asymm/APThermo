@@ -356,7 +356,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
       output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
       .NET tool and runs an approved example without `--database`. A debugger steps
       from a sample into the library's source through SourceLink, and the step is
-      recorded.
+      recorded. Before the first release the package READMEs link the guide on the
+      public repository; until it exists they carry no guide link.
 
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
       package restore into the samples (the ⚠ of that date under `## Delivery`,
@@ -364,7 +365,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - [ ] The documentation (2026-09-15), proven by the docs tests node, with every check
       shown red once and failing on an empty set:
       - every C# block of the guide equals its snippet;
-      - every `apthermo` invocation shown is run and its output approved;
+      - every `apthermo` invocation shown is run and its output approved, except the
+        declared synopses whose output depends on the machine or the release;
       - every sample prints its approved output;
       - every link resolves;
       - every shown or sample document validates against its schema;
@@ -568,7 +570,16 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   snippet may be quoted on several pages, and the `using` lines are a snippet of their
   own.
   - Every `apthermo` invocation shown in the guide takes its input documents from
-    `samples/cli/`, and its shown output is approved.
+    `samples/cli/`, and its shown output is approved. The exceptions are the declared
+    synopses whose output depends on the machine (`apthermo devices`) or on the release
+    (`apthermo --version`). The docs tests node lists them, and the rest of each such
+    line must still parse as a valid invocation.
+
+    ⚠ 2026-09-17: stood without the exceptions. The final documentation review found
+    `apthermo devices`, `--help` and `--version` exempted only by the docs tests node,
+    a deviation the root did not declare (AGENTS.md §12). `devices` prints what the
+    machine has, and `--version` changes with every release, so neither has one
+    approved output; `--help` does, and is run.
   - The docs tests node `tests/Docs.Tests` proves each of the following. Each check
     fails when the set it walks is empty, and each was shown red once:
     - every C# block equals its snippet;
