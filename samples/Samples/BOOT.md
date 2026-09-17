@@ -102,11 +102,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       output (`tests/Docs.Tests`, L2, `approved/samples/`).
 - [ ] Every C# block of the guide equals its snippet region byte for byte
       (`tests/Docs.Tests`, L1).
-- [ ] The package-feed build mode restores `APThermo` from a local feed and every
-      scenario reproduces its approved output against it (root `BOOT.md`, Delivery:
-      Documentation and the packages acceptance criterion; proven by hand for 0.1.0,
-      not by `dotnet test`, since it needs a packed feed outside the tree — the command
-      is recorded in the task report that added the mode).
+- [x] 2026-09-17 — The package-feed build mode restores `APThermo` from a local feed
+      and every scenario reproduces its approved output against it (root `BOOT.md`,
+      Delivery: Documentation and the packages acceptance criterion). Not proven by
+      `dotnet test`, since it needs a packed feed outside the tree; proven instead by:
+      CI's "Samples run against the packaged library" step
+      (`.github/workflows/ci.yml`), which packs `src/Problems`, sets a job-local
+      `NUGET_PACKAGES`, loops over every scenario named in this node's `API.md`
+      `## Scenarios` table (not typed into the workflow) and diffs each output with
+      `tests/Docs.Tests/approved/samples/`; and one recorded local run the same day —
+      `dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release
+      --output <feed>`, `NUGET_PACKAGES=<scratch dir>`, the same loop against
+      `-p:APThermoPackageVersion=0.1.0 -p:RestoreAdditionalProjectSources=<feed>` — all
+      twelve scenarios reproduced their approved bytes.
 
 ## Taboos
 

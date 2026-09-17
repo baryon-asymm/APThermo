@@ -16,6 +16,10 @@ jobs:
   build:
     name: ${{ matrix.os }} — build & test
     runs-on: ${{ matrix.os }}
+    env:
+      # Job-local, so a run never restores a package a previous run or another job left in a shared
+      # NuGet cache: the freshly packed APThermo must be the one every restore in this job sees.
+      NUGET_PACKAGES: ${{ github.workspace }}/.nuget-packages
     strategy:
       fail-fast: false
       matrix:
@@ -58,17 +62,22 @@ jobs:
           dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
           dotnet pack src/Cli/APThermo.Cli.csproj --configuration Release -p:ContinuousIntegrationBuild=true --output artifacts/packages
 
-      # The samples' `-p:APThermoPackageVersion` mode (restoring APThermo from a feed instead of by
-      # ProjectReference) is added in a parallel worktree and is not yet merged into this branch: this
-      # step cannot pass until that mode lands (root BOOT.md, ## Delivery, Documentation; CI/CD and build
-      # audit, F7).
       - name: Samples run against the packaged library
         shell: bash
-        run: >
-          dotnet run --project samples/Samples --configuration Release
-          -p:APThermoPackageVersion=${{ steps.version.outputs.version }}
-          -p:RestoreAdditionalProjectSources=${{ github.workspace }}/artifacts/packages
-          -- rocket
+        run: |
+          set -euo pipefail
+
+          # Every scenario, read from the samples node's own table (samples/Samples/API.md,
+          # ## Scenarios) rather than typed into this workflow: the scenario name in column 2, the
+          # approved output file in column 5, of every row that names a scenario.
+          while IFS=':' read -r scenario approved; do
+            echo "-- $scenario --"
+            dotnet run --project samples/Samples --configuration Release \
+              -p:APThermoPackageVersion="${{ steps.version.outputs.version }}" \
+              -p:RestoreAdditionalProjectSources="${{ github.workspace }}/artifacts/packages" \
+              -- "$scenario" | tr -d '\r' > actual-sample.txt
+            diff actual-sample.txt "tests/Docs.Tests/approved/samples/$approved"
+          done < <(awk -F'|' '/^\| `/{gsub(/[ `]/,"",$2); gsub(/[ `]/,"",$6); print $2":"$6}' samples/Samples/API.md)
 
       - name: Install the packed tool and run an approved example
         shell: bash
