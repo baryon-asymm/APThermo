@@ -361,10 +361,18 @@ There is no external ancestor: the tree root is the repository root, and the loa
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
       package restore into the samples (the ⚠ of that date under `## Delivery`,
       Documentation).
-- [ ] The documentation (2026-09-15), proven by the docs tests node: every code block
-      of the guide equals its sample region, and every command-line example's output is
-      approved. Every relative link resolves, and every sample document validates
-      against its schema.
+- [ ] The documentation (2026-09-15), proven by the docs tests node, with every check
+      shown red once and failing on an empty set:
+      - every C# block of the guide equals its snippet;
+      - every `apthermo` invocation shown is run and its output approved;
+      - every sample prints its approved output;
+      - every link resolves;
+      - every shown or sample document validates against its schema;
+      - every guide page has the shared shape.
+
+      Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
+      "Every code block … equals its sample region" predated the snippet markers and
+      named only four of the six proofs.
 
 ## Taboos
 
