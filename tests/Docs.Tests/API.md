@@ -12,7 +12,7 @@ consider proven about the documentation, the samples and the schemas.
 | every scenario of the samples node prints its approved output | L2 (`SampleOutputTests`, `approved/samples/`) | ✅ |
 | a `rocket`/`equilibrium`/`states` invocation of the guide with at least one more token is a runnable example that delivers its approved document, `run` cut as the command line's tests cut it, or the test fails naming why; a bare verb mention is skipped in prose (an inline span), but the same bare verb alone in its own fence is a command and is checked as a full invocation; `devices` and `--version` are counted but never run, since their output depends on the machine or the release; every other declared verb (`species`, `schema`, `--help`) is a full invocation whenever it carries a further token, or always for `--help`, and is run and approved the same way; an unknown verb, or a token its own declared synopsis does not have, fails, the synopsis read from `src/Cli/API.md`'s own "## Command line" block; a runnable example and an approved file always name each other, keyed by the whole invocation, not only its input file; a fence never carries an `apthermo …` invocation together with any other non-empty line, nor opens one it never closes; a fence line or an inline span naming `apthermo` must be recognised as an invocation once a known shell prompt is stripped; a JSON document marked `<!-- cli-document: path -->` equals its `samples/cli/` file and validates against its schema; every JSON fence (`json`, first word) must carry that marker | L3 (`CommandLineExampleTests`, `CliDocumentTests`, `CommandSynopses`, `approved/cli/`) | ✅ |
 | every fence of the guide carries a first-word tag from the allow-list `csharp`/`cs`/`c#`, `json`, `console`; an untagged or unrecognised-tag fence fails naming the page and line | L0 (`FenceTagTests`) | ✅ |
-| every relative link of `README.md`, `llms.txt` and `docs/**/*.md` (`docs/protocol/templates` excepted), inline, reference-style or HTML, resolves to a file, and its `#anchor` fragment, when present, names an existing heading of its target; no package README under `docs/nuget/` carries a relative link; no document carries the `OWNER/REPO` placeholder; `README.md` and `llms.txt` exist | L4 (`LinkTests`) | ✅ |
+| every relative link of `README.md`, `llms.txt` and `docs/**/*.md` (`docs/protocol/templates` excepted), inline, reference-style or HTML, resolves to a file, and its `#anchor` fragment, when present, names an existing heading of its target; an absolute link into the repository's own public copy (`https://github.com/baryon-asymm/APThermo/blob/main/…` or `.../tree/main/…`) resolves the same way, against the repository root; no package README under `docs/nuget/` carries a relative link, but its self-repository links resolve the same way as any other document's; no document carries the `OWNER/REPO` placeholder; `README.md` and `llms.txt` exist | L4 (`LinkTests`) | ✅ |
 | every document under `samples/cli/`, walked recursively, validates against the schema its top-level directory declares, read through `apthermo schema` | L5 (`SchemaValidationTests`) | ✅ |
 | every guide page has the shared shape | L6 (`GuideShapeTests`) | ✅ |
 | the status table of `docs/guide/troubleshooting.md` lists exactly the names of `CaseStatus`, in order | L7 (`StatusTableTests`) | ✅ |
@@ -50,6 +50,14 @@ list; it now states the synopsis comes from `src/Cli/API.md` itself (minor 6, vi
 `CommandSynopses`). A new row is added for L0, `FenceTagTests` (minor 3): before this
 task an untagged or misspelled-tag fence reached no check at all, since L1 and the
 `cli-document` facts each look only for their own tag.
+
+⚠ 2026-09-17 (repository-links task): the L4 row read "no package README under
+`docs/nuget/` carries a relative link", with no mention of a self-repository link,
+because none existed yet. The package READMEs now link their guide pages by an
+absolute `https://github.com/baryon-asymm/APThermo/blob/main/…` URL (the root
+`BOOT.md`'s "The packages" acceptance criterion), and `LinkTests` was extended to
+resolve such a link against the repository root instead of treating it as ordinary
+external; the row now states that rule.
 
 ## What the tests rely on
 

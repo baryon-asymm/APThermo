@@ -5,19 +5,26 @@ namespace APThermo.Docs.Tests;
 /// <summary>
 /// L4 (BOOT.md): every relative link of README.md, llms.txt and the markdown under docs/ resolves to an existing
 /// file, in every form markdown or HTML carries one — an inline link, a reference-style link (`[text][id]` /
-/// `[text][]` against a `[id]: target` definition), and an HTML `href`; external http(s) links are out. A `#anchor`
-/// fragment, bare or on a file link, must name an existing heading of its target document (the same document when
-/// the link carries no file), by GitHub's own slug (lowercase, everything but a letter, digit, space or hyphen
-/// dropped, a space turned into a hyphen) — so a renamed heading breaks the link that pointed at it instead of
-/// silently rendering nowhere. Only docs/protocol/templates is excluded — its placeholder links are deliberate
-/// (AGENTS.md §13); every other document under docs/protocol is checked like any other page. The package READMEs
-/// under docs/nuget/ may carry no relative link at all: nuget.org renders them outside the repository, where a
-/// relative link breaks. No document, package READMEs included, may carry the placeholder `OWNER/REPO` (its finding M5, fixed in `657410d`): a link built on it resolves nowhere once packed. Fails when the document set
-/// is empty, and asserts that README.md and llms.txt themselves exist (m1: a check that silently has nothing to
-/// check when they are deleted is indistinguishable from an absent one).
+/// `[text][]` against a `[id]: target` definition), and an HTML `href`; external http(s) links are out, except a
+/// link into this repository's own public copy — `https://github.com/baryon-asymm/APThermo/blob/main/…` or
+/// `.../tree/main/…` — which must resolve to an existing file or directory of the tree the same way a relative one
+/// does. A `#anchor` fragment, bare or on a file link, must name an existing heading of its target document (the
+/// same document when the link carries no file), by GitHub's own slug (lowercase, everything but a letter, digit,
+/// space or hyphen dropped, a space turned into a hyphen) — so a renamed heading breaks the link that pointed at it
+/// instead of silently rendering nowhere. Only docs/protocol/templates is excluded — its placeholder links are
+/// deliberate (AGENTS.md §13); every other document under docs/protocol is checked like any other page. The package
+/// READMEs under docs/nuget/ may carry no relative link at all: nuget.org renders them outside the repository, where
+/// a relative link breaks; they may carry a self-repository link instead, and it is checked the same way. No
+/// document, package READMEs included, may carry the placeholder `OWNER/REPO` (its finding M5, fixed in `657410d`):
+/// a link built on it resolves nowhere once packed. Fails when the document set is empty, and asserts that
+/// README.md and llms.txt themselves exist (m1: a check that silently has nothing to check when they are deleted is
+/// indistinguishable from an absent one).
 /// </summary>
 public sealed class LinkTests
 {
+    private const string SelfRepositoryBlobPrefix = "https://github.com/baryon-asymm/APThermo/blob/main/";
+    private const string SelfRepositoryTreePrefix = "https://github.com/baryon-asymm/APThermo/tree/main/";
+
     private static readonly Regex InlineLink = new(@"\[[^\]]*\]\(\s*([^)\s]+)", RegexOptions.Compiled);
     private static readonly Regex ReferenceUsage = new(@"\[([^\]]+)\]\[([^\]]*)\]", RegexOptions.Compiled);
     private static readonly Regex ReferenceDefinition = new(@"^\s{0,3}\[([^\]]+)\]:\s*(\S+)", RegexOptions.Compiled);
@@ -58,6 +65,17 @@ public sealed class LinkTests
     }
 
     [Fact]
+    public void Every_self_repository_link_of_a_package_readme_resolves_to_a_file_or_directory()
+    {
+        var readmes = GuideDocuments.NugetReadmes();
+        Assert.True(readmes.Count > 0, "no package README was found under docs/nuget/");
+        foreach (var path in readmes)
+        {
+            CheckDocument(path);
+        }
+    }
+
+    [Fact]
     public void No_document_carries_the_OWNER_REPO_placeholder()
     {
         var documents = GuideDocuments.LinkedDocuments().Concat(GuideDocuments.NugetReadmes()).ToList();
@@ -78,15 +96,21 @@ public sealed class LinkTests
         var headingsByFile = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         foreach (var target in TargetsOf(path))
         {
-            if (Scheme.IsMatch(target.Path))
-            {
-                continue; // external: http(s), mailto, …
-            }
-
             string resolvedFile;
             if (target.Path.Length == 0)
             {
                 resolvedFile = path; // a bare "#fragment": the same document
+            }
+            else if (TryStripSelfRepositoryPrefix(target.Path, out var repoRelative))
+            {
+                resolvedFile = Path.GetFullPath(Path.Combine(GuideDocuments.Root, Uri.UnescapeDataString(repoRelative)));
+                Assert.True(
+                    File.Exists(resolvedFile) || Directory.Exists(resolvedFile),
+                    $"{path}: the link '{target.Path}' does not resolve to an existing file or directory of the repository");
+            }
+            else if (Scheme.IsMatch(target.Path))
+            {
+                continue; // external: http(s), mailto, … (not a link into this repository's own tree)
             }
             else
             {
@@ -217,6 +241,30 @@ public sealed class LinkTests
         }
 
         yield return (file, fragment);
+    }
+
+    /// <summary>
+    /// Strips this repository's own "blob/main/" or "tree/main/" GitHub prefix from an absolute link, so the rest
+    /// resolves against the repository root the way a relative link resolves against its document's directory. An
+    /// absolute link with any other origin (nuget.org, another repository, a different branch or commit) is left
+    /// alone; the caller then treats it as ordinary external and skips it.
+    /// </summary>
+    private static bool TryStripSelfRepositoryPrefix(string target, out string repositoryRelativePath)
+    {
+        if (target.StartsWith(SelfRepositoryBlobPrefix, StringComparison.Ordinal))
+        {
+            repositoryRelativePath = target[SelfRepositoryBlobPrefix.Length..];
+            return true;
+        }
+
+        if (target.StartsWith(SelfRepositoryTreePrefix, StringComparison.Ordinal))
+        {
+            repositoryRelativePath = target[SelfRepositoryTreePrefix.Length..];
+            return true;
+        }
+
+        repositoryRelativePath = "";
+        return false;
     }
 
     /// <summary>Every heading of a markdown document, as GitHub's own anchor slugs: lowercase, everything but a letter, digit, space or hyphen dropped, a space turned into a hyphen. A duplicate heading's later slugs carry a "-1", "-2", … suffix, as GitHub disambiguates them.</summary>
