@@ -295,7 +295,6 @@ static class APThermo.Harness.FixtureFamilies
 
 sealed class APThermo.Harness.JsonSchema
     IReadOnlyList<String> Validate(JsonElement instance)
-    static JsonSchema Load(String path)
     static JsonSchema Parse(String text)
 
 static class APThermo.Harness.RunPropertyCut

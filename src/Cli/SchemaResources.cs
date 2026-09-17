@@ -2,17 +2,23 @@ using System.Reflection;
 
 namespace APThermo.Cli;
 
-/// <summary>The embedded JSON schemas of the command line's documents, read from the assembly manifest.</summary>
+/// <summary>The catalogue of the JSON schemas embedded from <c>Schemas/</c>: their names and their text, read from the assembly manifest rather than typed, so a file added or removed there is reflected without a second edit.</summary>
 internal static class SchemaResources
 {
+    private const string Prefix = "APThermo.Cli.Schemas.";
+    private const string Suffix = ".schema.json";
+
     private static readonly Assembly Assembly = typeof(SchemaResources).Assembly;
 
-    public static IReadOnlyList<string> Names { get; } = new[] { "input", "output", "states", "species", "devices" };
+    public static IReadOnlyList<string> Names { get; } = Assembly.GetManifestResourceNames()
+        .Where(n => n.StartsWith(Prefix, StringComparison.Ordinal) && n.EndsWith(Suffix, StringComparison.Ordinal))
+        .Select(n => n[Prefix.Length..^Suffix.Length])
+        .Order(StringComparer.Ordinal)
+        .ToList();
 
     public static bool TryGet(string name, out string text)
     {
-        var resourceName = $"APThermo.Cli.Schemas.{name}.schema.json";
-        using var stream = Assembly.GetManifestResourceStream(resourceName);
+        using var stream = Assembly.GetManifestResourceStream($"{Prefix}{name}{Suffix}");
         if (stream is null)
         {
             text = string.Empty;

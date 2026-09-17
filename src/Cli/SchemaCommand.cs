@@ -10,15 +10,13 @@ internal static class SchemaCommand
     {
         if (invocation.Arguments.Count != 1)
         {
-            output.WriteLine("usage: apthermo schema <name>");
-            return ExitCode.InvalidInput;
+            throw new InputException($"schema needs a name; known schemas: {string.Join(", ", SchemaResources.Names)}");
         }
 
         var name = invocation.Arguments[0];
         if (!SchemaResources.TryGet(name, out var text))
         {
-            output.WriteLine($"unknown schema '{name}'; expected one of: {string.Join(", ", SchemaResources.Names)}");
-            return ExitCode.InvalidInput;
+            throw new InputException($"unknown schema '{name}'; known schemas: {string.Join(", ", SchemaResources.Names)}");
         }
 
         DocumentWriter.Deliver(text, invocation.Options.Output, output);

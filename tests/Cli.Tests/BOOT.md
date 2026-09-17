@@ -7,12 +7,13 @@ The definition of what "`Cli` is ready" means.
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
 | L0 | option parsing, the usage text, exit codes; input document reading and its messages with the JSON path; the example documents against the input and states schemas; a composition that does not weigh one kilogram refused naming the record | the command line's embedded schemas; the documented messages and exit codes (`CommandLineTests`, `InputDocumentTests`, `ExitCodeTests`) | ✅ |
-| L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | schema files; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
+| L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | the command line's embedded schemas; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
 | L2 | the LOX/LH2 rocket document, the LOX/RP-1 hp document and the elemental tp document give the library's numbers field by field | the `Problems` result of the same case, built from the fixture the document encodes, over reflection-enumerated fields (`LibraryEqualityTests`) | ✅ |
 | Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
 | L0 | the exception → exit code rule; the usage's defaults are the library's constants; every command of the table has a handler; `cudaSkippedBecause` in `run.accelerator` and in the devices listing; the invalid state records refused with the front door's reasons behind their source | the `Cli` `API.md` of 2026-09-14 (`ExitCodeTests`, `CommandLineTests`, `OutputDocumentTests`, `InputDocumentTests`) | ✅ (2026-09-14) |
 | L2 | the states example gives the library's numbers field by field: the records without exits through `SolveStates`, the records with exits through `SolveRocketStates`, the library call built from the fixtures the records encode | the `Problems` results (`LibraryEqualityTests`) | ✅ (2026-09-14) |
 | Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the SHA-256 of the bytes the command line delivers for the JSON document with the top-level `run` property cut out (`RunPropertyCut`, the span found with a `Utf8JsonReader`, never by searching the text), and the SHA-256 of the CSV text as written, one of each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved and re-approved 2026-09-15 for the hash definition alone (the criterion below) | ✅ (2026-09-15) |
+| L0 | `apthermo schema`: every embedded schema is delivered byte for byte to standard output and to `--output`; the embedded names (`SchemaResources.Names`) equal a directory listing of `src/Cli/Schemas/`; a missing or an unknown name is exit code 2, no document, every embedded name in the message | a directory listing of `src/Cli/Schemas/`, never a typed list (`SchemaCommandTests`) | ✅ (2026-09-17) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -27,6 +28,15 @@ The definition of what "`Cli` is ready" means.
   keywords the schemas use and refuses any other, so a schema cannot ask for more
   than is checked; the schema's field lists are compared with the library's structs
   by reflection.
+
+  ⚠ 2026-09-17: this bullet stood "a validator of this node", and the level table above
+  ("What it checks") stood "the schema files of this node"; both wordings were rewritten
+  in place for the schemas' move on 2026-09-16 with no correction note (the audit's T1).
+  The root's Delivery decision of 2026-09-15 (committed `cb765c6`) moved the schema files
+  from this node's `schemas/` directory to `src/Cli/Schemas/`, embedded in the assembly,
+  and the JSON-document helpers from this node to `tests/Harness`, their second consumer
+  `tests/Docs.Tests` belonging there (`tests/Harness/BOOT.md`, Purpose): the schemas are
+  no longer this node's own, and neither is the validator.
 - The approved CSV is compared as numbers (1e-12 relative) and strings, never as
   floating-point text; the library equality is exact, because the numbers pass
   through unchanged.
@@ -80,7 +90,7 @@ The definition of what "`Cli` is ready" means.
 - [Performance](../../src/Performance/API.md) — `PerformanceFigures`.
 - [Transport](../../src/Transport/API.md) — `TransportFigures`.
 - [Equilibrium](../../src/Equilibrium/API.md) — `ProblemKind`.
-- [Harness](../Harness/API.md) — the bit-snapshot mechanics (`BitHash`, `ApprovedSnapshot`).
+- [Harness](../Harness/API.md) — the bit-snapshot mechanics (`BitHash`, `ApprovedSnapshot`) and (2026-09-16) the JSON-document helpers (`JsonSchema`, `RunPropertyCut`).
 
 Outside the tree: xunit; the `dotnet` host for the process-level runs.
 
@@ -238,6 +248,20 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       test red) and g0 changed (both rocket-example tests red); and, for the camel-case
       rule, `Names.Camel` returning its argument unchanged (the three
       `LibraryEqualityTests` facts red).
+- [x] 2026-09-17 — `apthermo schema` (the audit's C1, C2, C3, C4, C5): `SchemaCommandTests`
+      (`Standard_output_is_exactly_the_file_bytes`, `The_output_option_writes_exactly_the_file_bytes`
+      over a directory listing of `src/Cli/Schemas/`, `The_embedded_names_equal_the_directory_listing`,
+      `A_missing_name_is_exit_2_listing_every_embedded_name`,
+      `An_unknown_name_is_exit_2_listing_every_embedded_name`). Each fact seen red once and
+      reverted: the assembly's glob narrowed to `devices.schema.json` alone turned nine of the
+      thirteen facts red at once (both byte-equality theories over the four other names, and
+      the embedded-names-equal-the-listing fact, since `SchemaResources.Names` then read from
+      the manifest a set the directory listing no longer matched); a name filtered out of
+      `SchemaResources.Names` by hand turned the embedded-names fact red on its own,
+      `["devices","output","species","states"]` against the directory's five; the missing-name
+      and the unknown-name branches of `SchemaCommand` each written to `output.WriteLine` and an
+      ordinary return instead of `throw new InputException(...)` turned their own fact red,
+      `Assert.Empty()` finding the message on standard output instead of standard error.
 
 ## Taboos
 
