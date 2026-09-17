@@ -109,6 +109,24 @@ internal static class GuideDocuments
     /// <summary>The lines of a markdown document that lie outside fenced code blocks (fence delimiters included in the exclusion).</summary>
     public static IEnumerable<string> OutsideFences(string[] lines)
     {
+        var mask = OutsideFenceMask(lines);
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (mask[i])
+            {
+                yield return lines[i];
+            }
+        }
+    }
+
+    /// <summary>
+    /// True at each line index that lies outside every fenced code block (fence delimiter lines counted as inside);
+    /// the same walk <see cref="OutsideFences"/> does, exposed with indices for a caller that must report a line
+    /// number (an inline code span outside a fence, for instance).
+    /// </summary>
+    public static bool[] OutsideFenceMask(string[] lines)
+    {
+        var mask = new bool[lines.Length];
         var fenceChar = '\0';
         var fenceLength = 0;
         for (var i = 0; i < lines.Length; i++)
@@ -124,14 +142,43 @@ internal static class GuideDocuments
                     continue;
                 }
 
-                yield return lines[i];
+                mask[i] = true;
             }
             else if (lines[i].Trim().Length >= fenceLength && lines[i].Trim().All(c => c == fenceChar))
             {
                 fenceChar = '\0';
             }
         }
+
+        return mask;
     }
+
+    /// <summary>
+    /// The fenced block whose opening fence is exactly at <paramref name="line"/>, when one exists there. A marker
+    /// (a snippet marker or a cli-document marker) is meant to be followed by a fence; a marker followed by prose
+    /// instead has no block at that line, and a caller must report that in a message rather than read a default
+    /// struct's null fields (D14, `SCRATCH/audit/review-docs-2.md`).
+    /// </summary>
+    public static bool TryFencedBlockAt(string[] lines, int line, out (string Info, string[] Body, int StartLine) block)
+    {
+        foreach (var candidate in FencedBlocks(lines))
+        {
+            if (candidate.StartLine == line)
+            {
+                block = candidate;
+                return true;
+            }
+        }
+
+        block = default;
+        return false;
+    }
+
+    /// <summary>Whether a fence's info string names a C# block: `csharp`, `cs` or `c#`, any case (the root BOOT.md's Documentation bullet).</summary>
+    public static bool IsCSharpFenceInfo(string info) =>
+        info.Equals("csharp", StringComparison.OrdinalIgnoreCase)
+        || info.Equals("cs", StringComparison.OrdinalIgnoreCase)
+        || info.Equals("c#", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Every snippet region of the samples node's own source files: a name to its dedented body, the bytes between a

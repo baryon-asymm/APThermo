@@ -73,7 +73,8 @@ case).
 
 The full guide has every scenario above and more (exits, a custom propellant,
 batches, state records, GPU acceleration, the database, troubleshooting): see
-[Getting started](https://github.com/OWNER/REPO/blob/main/docs/guide/getting-started.md).
+`docs/guide/getting-started.md` in the source repository (the link here waits on the
+repository existing publicly).
 
 ## License and data notice
 
