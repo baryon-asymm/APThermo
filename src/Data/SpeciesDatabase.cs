@@ -32,12 +32,21 @@ public sealed class SpeciesDatabase
     /// <summary>The transport database, or null when no <c>trans.inp</c> was given.</summary>
     public TransportDatabase? Transport { get; }
 
+    /// <value>Where the loaded data came from: file names, hashes and header fields.</value>
     public DatabaseProvenance Provenance { get; }
 
     /// <summary>Exact, case-sensitive name lookup; products are searched before reactants.</summary>
+    /// <param name="name">The exact species name, as it appears in the file.</param>
+    /// <returns>The first record of <paramref name="name"/>, products searched first.</returns>
+    /// <exception cref="KeyNotFoundException"><paramref name="name"/> is not in the database.</exception>
     public Species this[string name] =>
         TryGet(name, out var species) ? species : throw new KeyNotFoundException($"species '{name}' is not in the database");
 
+    /// <summary>Exact, case-sensitive name lookup that reports failure instead of throwing.</summary>
+    /// <param name="name">The exact species name, as it appears in the file.</param>
+    /// <param name="species">The first record of <paramref name="name"/>, products searched first; unspecified
+    /// when the method returns <see langword="false"/>.</param>
+    /// <returns><see langword="true"/> when <paramref name="name"/> is in the database.</returns>
     public bool TryGet(string name, out Species species)
     {
         if (_recordsByName.TryGetValue(name, out var records))
@@ -51,18 +60,32 @@ public sealed class SpeciesDatabase
     }
 
     /// <summary>Every record of the exact name, in file order, products before reactants; empty when the name is unknown.</summary>
+    /// <param name="name">The exact species name, as it appears in the file.</param>
+    /// <returns>Every record of <paramref name="name"/>, in file order, products before reactants; an empty
+    /// list when the name is unknown.</returns>
     public IReadOnlyList<Species> Records(string name) => _recordsByName.TryGetValue(name, out var records) ? records : [];
 
     /// <summary>
     /// The atomic weight of an element in kg/kmol: the molar mass of the monatomic gaseous product species with that
     /// symbol, built once at load. Symbols are matched ignoring case, so both "AL" (the formula spelling) and "Al" work.
     /// </summary>
+    /// <param name="element">The element symbol, matched ignoring case.</param>
+    /// <returns>The atomic weight of <paramref name="element"/>, in kg/kmol.</returns>
+    /// <exception cref="KeyNotFoundException"><paramref name="element"/> has no monatomic gaseous record in the
+    /// database.</exception>
     public double AtomicWeight(string element) =>
         _atomicWeights.TryGetValue(element, out var weight)
             ? weight
             : throw new KeyNotFoundException($"no monatomic gaseous species for element '{element}'; its atomic weight is unknown");
 
     /// <summary>Loads the databases from files. The files are read as Latin-1.</summary>
+    /// <param name="thermoPath">The path of the NASA <c>thermo.inp</c> file.</param>
+    /// <param name="transPath">The path of the NASA <c>trans.inp</c> file, or <see langword="null"/> to load no
+    /// transport database, leaving <see cref="Transport"/> <see langword="null"/>.</param>
+    /// <returns>The database built from the files.</returns>
+    /// <exception cref="FileNotFoundException"><paramref name="thermoPath"/> or <paramref name="transPath"/>
+    /// does not exist.</exception>
+    /// <exception cref="DatabaseFormatException">A file does not follow the NASA format.</exception>
     public static SpeciesDatabase Load(string thermoPath, string? transPath = null)
     {
         var thermoBytes = File.ReadAllBytes(thermoPath);
@@ -82,6 +105,7 @@ public sealed class SpeciesDatabase
     /// committed files'). <see cref="Provenance"/> carries the same hashes <see cref="Load"/> would give the
     /// committed files, so a caller with no <c>data/</c> directory beside it still gets full provenance.
     /// </summary>
+    /// <returns>The database built from the embedded files.</returns>
     public static SpeciesDatabase LoadBundled()
     {
         var thermoBytes = ReadResource(ThermoResourceName);
@@ -92,9 +116,15 @@ public sealed class SpeciesDatabase
     }
 
     /// <summary>The NASA data attribution notice embedded in this assembly, the same text as the committed <c>data/NOTICE</c>.</summary>
+    /// <returns>The attribution text (Apache-2.0) of the embedded NASA data.</returns>
     public static string BundledNotice() => Encoding.UTF8.GetString(ReadResource(NoticeResourceName));
 
     /// <summary>Parses the databases from text. The hashes in <see cref="Provenance"/> are those of the UTF-8 encoding of the text.</summary>
+    /// <param name="thermo">The text of a NASA <c>thermo.inp</c> file.</param>
+    /// <param name="trans">The text of a NASA <c>trans.inp</c> file, or <see langword="null"/> to load no
+    /// transport database, leaving <see cref="Transport"/> <see langword="null"/>.</param>
+    /// <returns>The database built from the text.</returns>
+    /// <exception cref="DatabaseFormatException">The text does not follow the NASA format.</exception>
     public static SpeciesDatabase Parse(TextReader thermo, TextReader? trans = null)
     {
         ArgumentNullException.ThrowIfNull(thermo);
