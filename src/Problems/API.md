@@ -5,7 +5,7 @@ propellant and problem definitions, the result records, and the solver entry poi
 of the library. Everything not listed here, in a package-surface section (one whose
 heading carries no `(tree contract)` mark), is internal and may change without notice
 (root `BOOT.md`, Delivery: Public surface); this node's own `Mixture rule` section
-below is its only tree contract (M2, `SCRATCH/api-review-report.md`), read only by
+below is its only tree contract (the API review's finding M2, fixed in `2bca252`), read only by
 this node's own tests, which need no grant (AGENTS.md §6: a mirrored test node's use
 of its own source node's internals is a design invariant, not a friend crossing).
 Types of the neighbours appear in the signatures: `SpeciesDatabase` and
@@ -71,7 +71,7 @@ public sealed class PropellantBuilder
 ```
 
 ⚠ 2026-09-15 (distribution phase): `MixtureSpecification` and `Propellant.Mixture`
-moved into the tree-contract section below (M2, `SCRATCH/api-review-report.md`):
+moved into the tree-contract section below (the API review's finding M2, fixed in `2bca252`):
 `Propellant.OxidizerToFuelRatio` already carries the same information without loss
 for a consumer (null for a propellant given by total mass fractions), and only this
 node's own tests read `Mixture` directly.
@@ -303,8 +303,8 @@ public sealed record EquilibriumResult     // internal constructor (M1): a consu
 ```
 
 ⚠ 2026-09-15 (distribution phase): `Station`, `RocketResult` and `EquilibriumResult`
-had public positional constructors that no other assembly called (M1,
-`SCRATCH/api-review-report.md`): a consumer only ever reads one of these records from
+had public positional constructors that no other assembly called (the API review's
+finding M1, fixed in `2bca252`): a consumer only ever reads one of these records from
 a solve. They are nominal now, with an internal constructor; `Station`'s properties
 are `init` so that this node's own tests can build a comparison copy with `with`
 (`tests/Problems.Tests/EquilibriumTests.cs`), `RocketResult`'s and

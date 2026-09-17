@@ -18,7 +18,7 @@ reader of it is this node's own tests". `APThermo.Cli.csproj` grants
 `SchemaValidationTests` calls `Program.Run(["schema", name], …)` to read a schema as
 `apthermo schema` prints it; the grant is allowed (root `BOOT.md`, Delivery: Tree
 contracts permits a test node that uses the type), only the sentence was wrong. Found
-by `SCRATCH/audit/review-cli.md`, C6.
+by the CLI audit's finding C6, fixed in `68f540a`.
 
 ## Command line ✅
 
@@ -127,7 +127,7 @@ internal static class Program
 
 ⚠ 2026-09-15 (distribution phase): `ExitCode` and `Program` were the assembly's only
 two public types (`Protocol.Tests.SurfaceTests`, the acceptance criteria of `BOOT.md`).
-The API review of that day (`SCRATCH/api-review-report.md`, "other risks") found that
+The API review of that day (its "other risks" finding, fixed in `de62b79`) found that
 nothing outside `Cli.Tests`, which already has `InternalsVisibleTo`, references either:
 the .NET tool's host process calls `Main` by its entry-point mechanism, not as public
 API. Both are internal now; this section is marked as this node's own tree contract,
@@ -138,7 +138,7 @@ reader of it is this node's own tests (AGENTS.md §6)". `tests/Docs.Tests` gaine
 own `InternalsVisibleTo` grant and a caller of `Program.Run` on 2026-09-16, for the
 `schema` command's validation; the readers of this tree contract are now this node's
 own tests and `tests/Docs.Tests`, both declared consumers under root `BOOT.md`,
-Delivery: Tree contracts. Found by `SCRATCH/audit/review-cli.md`, C6.
+Delivery: Tree contracts. Found by the CLI audit's finding C6, fixed in `68f540a`.
 
 ## Input document ✅
 

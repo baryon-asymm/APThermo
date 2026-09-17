@@ -250,7 +250,7 @@ below) is the proof.
 ⚠ 2026-09-15 (distribution phase): the Visibility column read "public" for
 `EquilibriumSolver` and `DenseSolver`, and `API.md` published `EquilibriumProblem`,
 `EquilibriumScratch`, `EquilibriumResult` and `ScratchLayout` too. The API review of
-that day (`SCRATCH/api-review-report.md`) found no consumer scenario for any of the
+that day (fixed in `4344652`) found no consumer scenario for any of the
 six: every use is a neighbour numerical node composing the kernel layer, or this
 node's own tests, and `DenseSolver`'s public status also clashed with `Problems`'
 same-named `EquilibriumProblem` (CS0104). All six became `internal`, with

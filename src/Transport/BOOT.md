@@ -171,7 +171,7 @@ the tests node (the acceptance criteria below) is the proof that the decompositi
 moved code and rewrote no formula.
 
 ⚠ 2026-09-15 (distribution phase): "one public entry" and `TransportSolver`'s row
-below stood before the API review of that day (`SCRATCH/api-review-report.md`) found
+below stood before the API review of that day (fixed in `c11e02b`) found
 no consumer scenario for it, `TransportTable`, `TransportTableArrays`,
 `TransportTableView`, `TransportTableBuffers`, `TransportLayout` or
 `TransportScratch`: every use is `Execution` composing the kernel, `Problems`

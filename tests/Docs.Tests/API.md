@@ -23,7 +23,7 @@ that the guide did not yet quote every scenario. The guide rewrite that followed
 (merged as `e229d2e`, before the second audit) quotes every one of the twelve
 scenarios at least once, so that second note is now stale; `samples/Samples/API.md`
 still records which pages quote which scenario, but the claim here no longer needs to
-hedge on it. The second audit (`SCRATCH/audit/review-docs-2.md`, B1) also found L1
+hedge on it. The second audit (its finding B1, closed in `657410d`) also found L1
 checked marked blocks only, leaving an unmarked C# fence unchecked; the claim now
 states the stronger rule L1 enforces today (every C# fence must be marked), plus m10's
 region-name closure.

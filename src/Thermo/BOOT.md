@@ -131,7 +131,7 @@ table is built into are bit for bit those of `8e36a27`: the tests node's bit sna
 | `SpeciesFunctions` | code unchanged, reading the layout through `TableLayout`; gains `RecordLow` and `RecordHigh` (below) | internal (2026-09-15, distribution phase) |
 
 ⚠ 2026-09-15 (distribution phase): the Visibility column read "public" for `SpeciesTable`
-and `SpeciesFunctions`. The API review of that day (`SCRATCH/api-review-report.md`) found
+and `SpeciesFunctions`. The API review of that day (fixed in `e284939`) found
 no consumer scenario for either: every use is a neighbour numerical node composing the
 kernel layer, or this node's own tests. Both, with `PhysicalConstants`,
 `SpeciesTableArrays`, `SpeciesTableBuffers`, `SpeciesTableView` and `TableLimits`, became

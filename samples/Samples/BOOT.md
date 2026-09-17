@@ -34,7 +34,7 @@ region of their own (`<ScenarioName>Usings`), separate from the body of `Run`
 
   ⚠ 2026-09-17: this bullet, "one class per scenario" above, and the Constraints and
   Acceptance criteria below were rewritten together with the code, after the audit of
-  that day (`SCRATCH/audit/review-docs.md`) found the node covered four of about
+  that day (fixed in `900e5a4`) found the node covered four of about
   fourteen consumer questions (S2), printed no status check (S1), and misdescribed
   itself in three places (S3, S9, W2). The scenario set, the marker syntax and the
   package-feed mode are the root `BOOT.md`'s restored Delivery/Documentation bullet of
@@ -82,7 +82,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   name (an unknown name, or none, prints the usage to `error` and returns 2; a solved
   scenario returns 0), `IReadOnlyList<string> Scenarios`, the names in order, and
   `ClassNameOf(string scenario)`, the source file's class name of a scenario — the one
-  place that maps a name to its class (S11, `SCRATCH/audit/review-docs.md`), read by
+  place that maps a name to its class (finding S11, fixed in `900e5a4`), read by
   reflecting on the scenario table's own delegates rather than a second, hand-written
   list. The assembly grants `InternalsVisibleTo` to `APThermo.Docs.Tests` alone, which
   runs the scenarios in-process (root `BOOT.md`, Delivery: Tree contracts: a grant

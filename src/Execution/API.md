@@ -11,7 +11,7 @@ test node, `Benchmarks`, and `ILGPURuntime` for the kernel-parameter views struc
 (`APThermo.Execution.csproj`).
 
 ⚠ 2026-09-15 (distribution phase): the review of that day
-(`SCRATCH/api-review-report.md`, section 4, D1 and F1) found no consumer scenario for
+(its section 4, findings D1 and F1, fixed in `9036c6a`) found no consumer scenario for
 `Engine`, the eight batch and batch-result types, `UploadedTables`, `RunTimings` or
 `MathProbe`: every use is `Problems` composing a batch run, or this node's own tests.
 They moved from the package surface into the tree contract below. `Engine` itself was
@@ -243,7 +243,7 @@ an `internal` kernel parameter type, method or view element — public is only o
 to satisfy it, not a requirement. The claim entered with `f2e5de7` and `53ec9fb`
 (2026-09-12), recording that the CPU accelerator failed to load a struct made internal
 without ever trying the grant; the API review of 2026-09-15
-(`SCRATCH/api-review-report.md`, section 3) ran the same failure alongside the grant
+(section 3, fixed in `9036c6a`) ran the same failure alongside the grant
 and confirmed it fixes it, on the CPU accelerator and on CUDA. The four structs are
 internal now, with `[assembly: InternalsVisibleTo("ILGPURuntime")]` on this assembly
 (`APThermo.Execution.csproj`); the CPU-accelerator tests were shown to fail without

@@ -12,7 +12,7 @@ use (root `BOOT.md`, Delivery: Tree contracts); the assembly grants
 (`APThermo.Transport.csproj`).
 
 ⚠ 2026-09-15 (distribution phase): the review of that day
-(`SCRATCH/api-review-report.md`) found no consumer scenario for `TransportTable`,
+(fixed in `c11e02b`) found no consumer scenario for `TransportTable`,
 `TransportTableArrays`, `TransportTableView`, `TransportTableBuffers`,
 `TransportLayout`, `TransportScratch` or `TransportSolver`: every use is `Execution`
 composing the kernel, `Problems` building a table, or this node's own tests. They

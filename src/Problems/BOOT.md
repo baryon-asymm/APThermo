@@ -256,7 +256,7 @@ records. Every type below is internal except where marked; one type per file, na
 after the type; the public records keep their theme files.
 
 ⚠ 2026-09-15 (distribution phase): the API review of that day
-(`SCRATCH/api-review-report.md`, M1 and M2) found two things this table did not
+(its findings M1 and M2, fixed in `2bca252`) found two things this table did not
 record. `MixtureSpecification` (`MixtureRule`'s own file) had no consumer beyond this
 node's tests, since `Propellant.OxidizerToFuelRatio` already carries what a consumer
 needs without loss; it moved into `API.md`'s tree-contract section, and

@@ -10,7 +10,7 @@ contracts); the assembly grants `InternalsVisibleTo` to those nodes, to
 `Execution.Tests` and `Benchmarks` (`APThermo.Performance.csproj`).
 
 ⚠ 2026-09-15 (distribution phase): the review of that day
-(`SCRATCH/api-review-report.md`) found no consumer scenario for `ExitSpecification`,
+(fixed in `24156be`) found no consumer scenario for `ExitSpecification`,
 `RocketProblem`, `RocketLayout`, `RocketResult` or `RocketSolver`: every use is
 `Execution` composing the kernel, or `Problems` building a batch, or this node's own
 tests. They moved from the package surface into the tree contract below; only

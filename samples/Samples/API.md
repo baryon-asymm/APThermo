@@ -22,7 +22,7 @@ The only reader is the docs tests node (`APThermo.Docs.Tests`), which holds the 
 
 ⚠ 2026-09-17: added `ClassNameOf` and widened the entry point's own reading to include
 it. Before, `tests/Docs.Tests/GuideDocuments.cs` carried a second, hand-written
-`scenario → class name` switch (S11, `SCRATCH/audit/review-docs.md`); `ClassNameOf`
+`scenario → class name` switch (finding S11, fixed in `900e5a4`); `ClassNameOf`
 reflects on the scenario table's own delegates, so the mapping has one source.
 
 ## Scenarios ✅
@@ -51,7 +51,7 @@ output is reproducible on every machine.
 
 Every approved file lives under `tests/Docs.Tests/approved/samples/`.
 
-⚠ 2026-09-17: before the audit (`SCRATCH/audit/review-docs.md`, S2), this table named
+⚠ 2026-09-17: before the audit (its finding S2, fixed in `900e5a4`), this table named
 four scenarios — `RocketSolve`, `BatchSolve`, `EquilibriumSolve`, `StatesSolve` — one
 per solve form of the root `API.md` entry point, and none checked a `Status` before
 reading a figure (S1). The set above answers the questions the audit's scenario table
@@ -85,5 +85,5 @@ for (`AcceleratorChoice` also creates one bound to `Auto`), and prints to the wr
 is given. No network, no environment variable.
 
 ⚠ 2026-09-17: `## Errors` and `## Side effects` were marked ⏳ although `Program.cs`
-already implemented both (S10, `SCRATCH/audit/review-docs.md`); both are ✅ now, and
+already implemented both (finding S10, fixed in `900e5a4`); both are ✅ now, and
 their content is re-checked against the code above.
