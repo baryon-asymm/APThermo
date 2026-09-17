@@ -7,7 +7,7 @@ using ILGPU;
 namespace APThermo.Execution;
 
 /// <summary>Device views of one equilibrium chunk. Internal: ILGPU 1.5.3 needs only <c>[assembly: InternalsVisibleTo("ILGPURuntime")]</c> on this
-/// assembly, not a public type (the API review of 2026-09-15, <c>SCRATCH/api-review-report.md</c>; the wrong claim "must be public"
+/// assembly, not a public type (the API review of 2026-09-15; the wrong claim "must be public"
 /// stood here since 2026-09-12).</summary>
 internal readonly struct EquilibriumBatchViews(
     ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
