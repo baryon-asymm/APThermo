@@ -26,7 +26,12 @@ internal sealed class Failures
 
         try
         {
-            Propellant.From(database).Named("O2(L)", massFraction: 1.0).OxidizerToFuelRatio(6.0).Build();
+            Propellant.From(database)
+                .Oxidizer("O2(L)")
+                .Fuel("H2(L)")
+                .Named("AL(cr)", massFraction: 0.1)
+                .OxidizerToFuelRatio(6.0)
+                .Build();
         }
         catch (ArgumentException exception)
         {
