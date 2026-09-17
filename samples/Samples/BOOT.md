@@ -98,23 +98,33 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 ## Acceptance criteria
 
-- [ ] Every scenario runs against the project references and prints its approved
-      output (`tests/Docs.Tests`, L2, `approved/samples/`).
-- [ ] Every C# block of the guide equals its snippet region byte for byte
-      (`tests/Docs.Tests`, L1).
-- [x] 2026-09-17 — The package-feed build mode restores `APThermo` from a local feed
-      and every scenario reproduces its approved output against it (root `BOOT.md`,
-      Delivery: Documentation and the packages acceptance criterion). Not proven by
-      `dotnet test`, since it needs a packed feed outside the tree; proven instead by:
-      CI's "Samples run against the packaged library" step
-      (`.github/workflows/ci.yml`), which packs `src/Problems`, sets a job-local
+- [x] 2026-09-17 — Every scenario runs against the project references and prints its
+      approved output: `dotnet test tests/Docs.Tests --filter FullyQualifiedName~SampleOutputTests`,
+      12 of 12 passed (`tests/Docs.Tests`, L2, `approved/samples/`).
+- [x] 2026-09-17 — Every C# block of the guide equals its snippet region byte for byte,
+      the region names match the scenario list, and each region lies inside its
+      scenario's own `Run` method: `dotnet test tests/Docs.Tests --filter FullyQualifiedName~SnippetTests`,
+      4 of 4 passed (`tests/Docs.Tests`, L1).
+- [ ] The package-feed build mode restores `APThermo` from a local feed and every
+      scenario reproduces its approved output against it (root `BOOT.md`, Delivery:
+      Documentation and the packages acceptance criterion). This waits on the first CI
+      run: no GitHub remote exists yet, so `.github/workflows/ci.yml`'s "Samples run
+      against the packaged library" step (which packs `src/Problems`, sets a job-local
       `NUGET_PACKAGES`, loops over every scenario named in this node's `API.md`
-      `## Scenarios` table (not typed into the workflow) and diffs each output with
-      `tests/Docs.Tests/approved/samples/`; and one recorded local run the same day —
-      `dotnet pack src/Problems/APThermo.Problems.csproj --configuration Release
-      --output <feed>`, `NUGET_PACKAGES=<scratch dir>`, the same loop against
-      `-p:APThermoPackageVersion=0.1.0 -p:RestoreAdditionalProjectSources=<feed>` — all
-      twelve scenarios reproduced their approved bytes.
+      `## Scenarios` table — not typed into the workflow, and now proven to match the
+      code by `tests/Docs.Tests`' `ScenarioTableTests` — and diffs each output with
+      `tests/Docs.Tests/approved/samples/`) has never executed. Until then this
+      criterion carries no evidence in the tree, only the script.
+
+      ⚠ 2026-09-17 (ma1, third docs audit, this task): previously ticked 2026-09-17,
+      citing that CI step and "one recorded local run the same day" (a `dotnet pack`
+      plus the same loop against a scratch feed, all twelve scenarios reported as
+      reproducing their approved bytes). The audit found the CI step had in fact never
+      run (no remote exists), and the local run's own evidence — its command output, or
+      even a date-stamped log — was not preserved anywhere in the tree, so neither could
+      be independently checked as AGENTS.md §6 requires ("the place where the evidence
+      lies"). Un-ticked until a real run, CI's or a freshly recorded local one, leaves
+      its own evidence here.
 
 ## Taboos
 

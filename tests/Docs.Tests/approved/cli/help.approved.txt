@@ -1,0 +1,23 @@
+usage: apthermo <command> [arguments] [options]
+
+commands:
+  rocket <problem.json>        chamber, throat and exits of a rocket problem document
+  equilibrium <problem.json>   one equilibrium state (tp, hp or sp) of a problem document
+  states <records>...          state records (JSON array, JSON Lines, several files) as one batch
+  species                      the species of the database
+  devices                      the accelerators this machine offers
+  schema [name]                the JSON Schema of a document shape; no name lists the embedded names
+
+options:
+  --output PATH                write the document to PATH instead of standard output
+  --format json|csv            document format (default json; devices: json only)
+  --accelerator auto|cpu|cuda  where to solve (default: the document's engine.accelerator, else auto)
+  --database DIR               directory with thermo.inp and trans.inp (default: the database bundled with apthermo)
+  --threshold X                omit mole fractions below X from the compositions (default 5E-06)
+  --mass-tolerance X           accept element moles whose mass differs from one kilogram by at most X, relative (default 0.01)
+  --transport                  states: evaluate transport properties at every record
+  --find TEXT                  species: only names containing TEXT (case-insensitive)
+  --help, -h                   this text
+  --version                    the tool's version
+
+exit codes: 0 every case ok; 1 a case failed numerically (document written); 2 invalid input; 3 accelerator or infrastructure error

@@ -5,7 +5,7 @@ using APThermo.Thermo;
 namespace APThermo.Docs.Tests;
 
 /// <summary>
-/// M4 (`SCRATCH/audit/review-docs-2.md`): the per-case status table of docs/guide/troubleshooting.md — the one
+/// Its finding M4, fixed in `657410d`: the per-case status table of docs/guide/troubleshooting.md — the one
 /// headed `| Status | Meaning |` — lists exactly the names of `CaseStatus` (`Thermo`'s API.md), in the library's own
 /// declaration order, one row per name. A status the table forgets, misspells or orders differently, or a row for a
 /// name `CaseStatus` does not declare, fails naming the mismatch; the population itself (the table must be found at

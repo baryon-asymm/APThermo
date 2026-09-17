@@ -1,17 +1,22 @@
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace APThermo.Docs.Tests;
 
 /// <summary>
 /// L1 (BOOT.md): every C# fence of README.md, docs/guide/*.md and the package READMEs under docs/nuget/ (info
-/// `csharp`, `cs` or `c#`, any case) must be preceded by a `&lt;!-- snippet: name --&gt;` marker
-/// (`Every_csharp_fence_is_preceded_by_a_snippet_marker`), and a marked block must equal that region of the samples
-/// node's source, byte for byte after the common indentation is stripped and line endings normalized to LF
-/// (`Every_marked_csharp_block_equals_its_sample_region`; the samples' own invariant: a region may be quoted by
-/// several pages, never edited). A third fact ties the region names themselves to the samples' scenarios
-/// (`Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings`), so a region in a method no
-/// scenario runs cannot pass unnoticed (X7, `SCRATCH/audit/review-docs-2.md`). Each fails when its own population is
-/// empty (AGENTS.md §13: a check that can pass on an empty set is indistinguishable from an absent one).
+/// `csharp`, `cs` or `c#`, any case, the first word of the info string) must be preceded by a
+/// `&lt;!-- snippet: name --&gt;` marker (`Every_csharp_fence_is_preceded_by_a_snippet_marker`), and a marked block
+/// must equal that region of the samples node's source, byte for byte after the common indentation is stripped and
+/// line endings normalized to LF (`Every_marked_csharp_block_equals_its_sample_region`; the samples' own invariant:
+/// a region may be quoted by several pages, never edited). A third fact ties the region names themselves to the
+/// samples' scenarios (`Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings`), and a fourth
+/// proves each scenario's body region sits inside that scenario's own `Run` method rather than a method no scenario
+/// calls (`Each_scenario_body_region_lies_inside_its_class_Run_method`; this task's own ma2, closing the escape
+/// its finding X7 named).
+/// Each fails when its own population is empty (AGENTS.md §13: a check that can pass on an empty set is
+/// indistinguishable from an absent one).
 /// </summary>
 public sealed class SnippetTests
 {
@@ -24,7 +29,7 @@ public sealed class SnippetTests
         foreach (var file in GuideDocuments.SnippetSources())
         {
             var lines = GuideDocuments.Lines(file);
-            foreach (var block in GuideDocuments.FencedBlocks(lines))
+            foreach (var block in GuideDocuments.FencedBlocks(lines, file))
             {
                 if (GuideDocuments.IsCSharpFenceInfo(block.Info))
                 {
@@ -93,7 +98,7 @@ public sealed class SnippetTests
         }
 
         Assert.True(j < lines.Length, $"{where}: the snippet marker is not followed by a fenced code block");
-        Assert.True(GuideDocuments.TryFencedBlockAt(lines, j, out var block), $"{where}: the snippet marker is not followed by a fenced code block");
+        Assert.True(GuideDocuments.TryFencedBlockAt(lines, j, file, out var block), $"{where}: the snippet marker is not followed by a fenced code block");
 
         Assert.True(
             GuideDocuments.IsCSharpFenceInfo(block.Info),
@@ -111,7 +116,7 @@ public sealed class SnippetTests
     }
 
     /// <summary>
-    /// m10 (`SCRATCH/audit/review-docs-2.md`): the set of region names `GuideDocuments.SnippetRegions()` finds under
+    /// Its finding m10, fixed in `657410d`: the set of region names `GuideDocuments.SnippetRegions()` finds under
     /// samples/Samples/ is exactly, for each scenario the samples node's tree contract lists
     /// (`APThermo.Samples.Program.Scenarios`, `ClassNameOf`), its class name and that name plus `Usings` — the two
     /// regions `samples/Samples/API.md` (Scenarios) declares every scenario carries. A region under neither name
@@ -140,5 +145,50 @@ public sealed class SnippetTests
         var unexpected = actual.Except(expected).ToList();
         Assert.True(missing.Count == 0, $"samples/Samples/: missing region(s) a scenario declares: {string.Join(", ", missing)}");
         Assert.True(unexpected.Count == 0, $"samples/Samples/: region(s) named by no scenario's class name (or that name plus Usings): {string.Join(", ", unexpected)}");
+    }
+
+    /// <summary>
+    /// ma2: the previous fact proves the region *set* has no extra or missing member, but not where a region
+    /// physically sits — a `&lt;ClassName&gt;` region moved into a helper method the class declares but its own
+    /// `Run` never calls would still pass that fact (finding X7). This one parses the scenario's own source file
+    /// with Roslyn and asserts the region's line span lies inside the block body of `ClassName.Run` itself, so the
+    /// guide can only ever quote what actually executes when the scenario runs.
+    /// </summary>
+    [Fact]
+    public void Each_scenario_body_region_lies_inside_its_class_Run_method()
+    {
+        var scenarios = APThermo.Samples.Program.Scenarios;
+        Assert.True(scenarios.Count > 0, "no scenario was found in APThermo.Samples.Program.Scenarios");
+
+        var locations = GuideDocuments.SnippetRegionLocations();
+        foreach (var scenario in scenarios)
+        {
+            var className = APThermo.Samples.Program.ClassNameOf(scenario);
+            Assert.True(
+                locations.TryGetValue(className, out var region),
+                $"samples/Samples/: no snippet region named '{className}' exists");
+            CheckRegionInsideRun(className, region);
+        }
+    }
+
+    private static void CheckRegionInsideRun(string className, (string File, int BodyStartLine, int BodyEndLine) region)
+    {
+        var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(region.File), path: region.File);
+        var classNode = tree.GetCompilationUnitRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .FirstOrDefault(c => c.Identifier.Text == className);
+        Assert.True(classNode is not null, $"{region.File}: no class '{className}' was found");
+
+        var runMethod = classNode!.Members.OfType<MethodDeclarationSyntax>().FirstOrDefault(m => m.Identifier.Text == "Run");
+        Assert.True(runMethod is not null, $"{region.File}: class '{className}' declares no 'Run' method");
+        Assert.True(runMethod!.Body is not null, $"{region.File}: '{className}.Run' has no block body");
+
+        var lineSpan = tree.GetLineSpan(runMethod.Body!.Span);
+        var bodyStart = lineSpan.StartLinePosition.Line;
+        var bodyEnd = lineSpan.EndLinePosition.Line;
+
+        Assert.True(
+            region.BodyStartLine >= bodyStart && region.BodyEndLine <= bodyEnd,
+            $"{region.File}: the '{className}' snippet region (0-based lines {region.BodyStartLine}-{region.BodyEndLine}) "
+                + $"does not lie inside '{className}.Run' (0-based body lines {bodyStart}-{bodyEnd})");
     }
 }
