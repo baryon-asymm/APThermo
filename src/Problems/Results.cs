@@ -49,6 +49,7 @@ public sealed record Station
     /// <summary>Null when transport was not requested.</summary>
     public CaseStatus? TransportStatus { get; init; }
 
+    /// <value>The outcome of the numerical solve at this station.</value>
     public CaseStatus Status { get; init; }
 }
 
@@ -83,6 +84,7 @@ public sealed record RocketResult
     /// <summary>kg: Σ n_i A_i of those element moles with the database's atomic weights; one within the mixture's MassTolerance.</summary>
     public double MixtureMass { get; }
 
+    /// <value>The rocket problem this result was solved for.</value>
     public RocketProblem Problem { get; }
 
     /// <summary>The ratio of the mixture rule, or null.</summary>
@@ -94,8 +96,10 @@ public sealed record RocketResult
     /// <summary>Chamber, throat, exits in order.</summary>
     public IReadOnlyList<Station> Stations { get; }
 
+    /// <value>The outcome of the case as a whole.</value>
     public CaseStatus Status { get; }
 
+    /// <value>The accelerator that produced this result.</value>
     public AcceleratorInfo Accelerator { get; }
 }
 
@@ -119,20 +123,27 @@ public sealed record EquilibriumResult
         Accelerator = accelerator;
     }
 
+    /// <value>Null for an elemental mixture.</value>
     public Propellant? Propellant { get; }
 
+    /// <value>The element moles and enthalpy the case started from.</value>
     public ElementalMixture Mixture { get; }
 
     /// <summary>kg, as on <see cref="RocketResult.MixtureMass"/>.</summary>
     public double MixtureMass { get; }
 
+    /// <value>The equilibrium problem this result was solved for.</value>
     public EquilibriumProblem Problem { get; }
 
+    /// <value>Table order: gases, then condensed species.</value>
     public IReadOnlyList<string> Species { get; }
 
+    /// <value>The solved state.</value>
     public Station State { get; }
 
+    /// <value>The outcome of the case.</value>
     public CaseStatus Status { get; }
 
+    /// <value>The accelerator that produced this result.</value>
     public AcceleratorInfo Accelerator { get; }
 }
