@@ -30,9 +30,4 @@
     <InternalsVisibleTo Include="APThermo.Docs.Tests" />
   </ItemGroup>
 
-  <!-- SourceLink for the symbol package (root BOOT.md, ## Delivery, Symbols). -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-  </ItemGroup>
-
 </Project>
