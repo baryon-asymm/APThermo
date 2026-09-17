@@ -41,29 +41,22 @@ public sealed class CommandLineExampleTests
 {
     private static readonly HashSet<string> RunnableVerbs = new(StringComparer.Ordinal) { "rocket", "equilibrium", "states" };
     private static readonly HashSet<string> DeclaredOnlyVerbs = new(StringComparer.Ordinal) { "devices", "--version" };
-    private static readonly HashSet<string> SynopsisVerbs = new(StringComparer.Ordinal) { "species", "devices", "schema", "--help", "--version" };
-    private static readonly Regex InlineSpan = new(@"`(apthermo\s[^`]*)`", RegexOptions.Compiled);
+    private static readonly Regex InlineSpan = new(@"`([^`]*)`", RegexOptions.Compiled);
     private static readonly Regex Prompt = new(@"^(?:PS(?:\s+\S+)?>\s+|\$\s+|>\s+)", RegexOptions.Compiled);
 
     /// <summary>
-    /// Every declared verb's own synopsis (`src/Cli/API.md`, "## Command line"), read once here rather than a second
-    /// time by every invocation: which options take a value, which are bare flags, and how many positional
-    /// arguments (an input document, a schema name, …) the verb accepts. N8: a verb whose invocation carries an
-    /// option or a positional argument its own synopsis does not declare is a documentation defect, not a silent
-    /// pass — `apthermo devices --outptu x` used to reach no check at all, since `devices` is never run.
+    /// Every declared verb's own synopsis, read from `src/Cli/API.md`'s "## Command line" block
+    /// (<see cref="CommandSynopses.FromCliApi"/>, minor 6 of the fourth documentation review) rather than copied
+    /// here a second time: which options take a value, which are bare flags, and how many positional arguments (an
+    /// input document, a schema name, …) the verb accepts. N8: a verb whose invocation carries an option or a
+    /// positional argument its own synopsis does not declare is a documentation defect, not a silent pass —
+    /// `apthermo devices --outptu x` used to reach no check at all, since `devices` is never run.
     /// </summary>
-    private static readonly Dictionary<string, (int MaxPositional, string[] ValueOptions, string[] FlagOptions)> Synopsis =
-        new(StringComparer.Ordinal)
-        {
-            ["rocket"] = (1, ["--output", "--format", "--accelerator", "--database", "--threshold", "--mass-tolerance"], []),
-            ["equilibrium"] = (1, ["--output", "--format", "--accelerator", "--database", "--threshold", "--mass-tolerance"], []),
-            ["states"] = (int.MaxValue, ["--output", "--format", "--accelerator", "--database", "--threshold", "--mass-tolerance"], ["--transport"]),
-            ["species"] = (0, ["--find", "--database", "--output", "--format"], []),
-            ["devices"] = (0, ["--output"], []),
-            ["schema"] = (1, ["--output"], []),
-            ["--help"] = (0, [], []),
-            ["--version"] = (0, [], []),
-        };
+    private static readonly IReadOnlyDictionary<string, (int MaxPositional, string[] ValueOptions, string[] FlagOptions)> Synopsis =
+        CommandSynopses.FromCliApi();
+
+    /// <summary>Every declared verb whose synopsis is not one of the three runnable ones: `species`, `devices`, `schema`, `--help`, `--version` today, read from the same source as <see cref="Synopsis"/> rather than typed in twice.</summary>
+    private static readonly HashSet<string> SynopsisVerbs = new(Synopsis.Keys.Except(RunnableVerbs), StringComparer.Ordinal);
 
     [Fact]
     public void Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis()
@@ -73,9 +66,9 @@ public sealed class CommandLineExampleTests
         Assert.True(invocations.Count > 0, "no 'apthermo …' invocation was found in README.md, docs/guide/*.md or docs/nuget/*.md");
 
         var runnableKeys = new List<ApprovedKey>();
-        foreach (var (file, line, command) in invocations)
+        foreach (var (file, line, command, isFence) in invocations)
         {
-            Classify($"{file}:{line + 1}", command, runnableKeys);
+            Classify($"{file}:{line + 1}", command, runnableKeys, isFence);
         }
 
         CheckApprovedFilesMatch(runnableKeys);
@@ -87,11 +80,14 @@ public sealed class CommandLineExampleTests
     /// any other non-empty line — before or after it — is not a supported form: this node's BOOT.md records that a
     /// page shows only the command, never the delivered document inline. A line that names `apthermo ` but does not
     /// start with it even after stripping a known prompt (`$ `, `> `, `PS> `, `PS C:\…> `) fails naming the page and
-    /// line (N4): an unrecognised prompt style must not silently hide an invocation.
+    /// line (N4): an unrecognised prompt style must not silently hide an invocation. A fence line, unlike an inline
+    /// span, is always a command demonstrated to be run, never a mere mention (minor 2 of the fourth documentation
+    /// review): a bare verb here (`` `apthermo species` `` alone in its own fence) reaches <see cref="Classify"/>
+    /// marked `IsFence: true`, so it is checked as a full invocation rather than skipped.
     /// </summary>
-    private static List<(string File, int Line, string Command)> FenceInvocationsOf(IReadOnlyList<string> pages)
+    private static List<(string File, int Line, string Command, bool IsFence)> FenceInvocationsOf(IReadOnlyList<string> pages)
     {
-        var found = new List<(string File, int Line, string Command)>();
+        var found = new List<(string File, int Line, string Command, bool IsFence)>();
         foreach (var page in pages)
         {
             var lines = GuideDocuments.Lines(page);
@@ -126,17 +122,25 @@ public sealed class CommandLineExampleTests
                         + $"with placeholders belongs in prose or a link to the command line's API.md): "
                         + $"{invocationEntries.Length} invocation line(s) among {nonEmpty.Length} non-empty line(s)");
 
-                found.Add((page, block.StartLine + 1 + invocationEntries[0].Index, invocationEntries[0].Text));
+                found.Add((page, block.StartLine + 1 + invocationEntries[0].Index, invocationEntries[0].Text, true));
             }
         }
 
         return found;
     }
 
-    /// <summary>Every backtick-delimited inline code span, outside every fence, whose content starts with `apthermo `.</summary>
-    private static List<(string File, int Line, string Command)> InlineInvocationsOf(IReadOnlyList<string> pages)
+    /// <summary>
+    /// Every backtick-delimited inline code span, outside every fence, whose content — a leading shell prompt
+    /// stripped, the same rule a fence line follows (minor 2 of the fourth documentation review) — starts with
+    /// `apthermo `. A span that names `apthermo ` but is not recognised as an invocation even after a known prompt
+    /// is stripped fails naming the page and line, exactly as an unrecognised fence line does (N4's inline half); a
+    /// span that never names `apthermo ` (the bare tool name, an option, a file name, …) is not an invocation and is
+    /// silently skipped. Unlike a fence line, an inline span is prose: it reaches <see cref="Classify"/> marked
+    /// `IsFence: false`, so a bare verb here stays a mention, not a command to run.
+    /// </summary>
+    private static List<(string File, int Line, string Command, bool IsFence)> InlineInvocationsOf(IReadOnlyList<string> pages)
     {
-        var found = new List<(string File, int Line, string Command)>();
+        var found = new List<(string File, int Line, string Command, bool IsFence)>();
         foreach (var page in pages)
         {
             var lines = GuideDocuments.Lines(page);
@@ -150,12 +154,27 @@ public sealed class CommandLineExampleTests
 
                 foreach (Match match in InlineSpan.Matches(lines[i]))
                 {
-                    found.Add((page, i, match.Groups[1].Value.Trim()));
+                    CollectInlineSpan(page, i, match.Groups[1].Value.Trim(), found);
                 }
             }
         }
 
         return found;
+    }
+
+    private static void CollectInlineSpan(string page, int line, string raw, List<(string File, int Line, string Command, bool IsFence)> found)
+    {
+        var stripped = StripPrompt(raw);
+        if (stripped.StartsWith("apthermo ", StringComparison.Ordinal))
+        {
+            found.Add((page, line, stripped, false));
+            return;
+        }
+
+        Assert.True(
+            !raw.Contains("apthermo ", StringComparison.Ordinal),
+            $"{page}:{line + 1}: this inline span names 'apthermo' but is not recognised as an invocation after "
+                + $"stripping a known prompt ('$ ', '> ', 'PS> ', 'PS C:\\…> '): '{raw}'");
     }
 
     /// <summary>A leading shell prompt stripped: `$ `, a bare `> `, `PS> `, or `PS C:\…> ` (N4). Unrecognised text is returned unchanged.</summary>
@@ -166,8 +185,14 @@ public sealed class CommandLineExampleTests
         return match.Success ? trimmed[match.Length..] : trimmed;
     }
 
-    /// <summary>Classifies one invocation: a runnable example, a bare mention, a declared synopsis, or a documentation defect.</summary>
-    private static void Classify(string where, string command, List<ApprovedKey> runnableKeys)
+    /// <summary>
+    /// Classifies one invocation: a runnable example, a bare mention, a declared synopsis, or a documentation
+    /// defect. A bare verb (exactly two tokens) is a mention only when <paramref name="isFence"/> is false — found
+    /// in prose, naming the command without showing how to run it; a fence always demonstrates a command to run, so
+    /// a bare verb there is checked as a full invocation instead of silently skipped (minor 2 of the fourth
+    /// documentation review).
+    /// </summary>
+    private static void Classify(string where, string command, List<ApprovedKey> runnableKeys, bool isFence)
     {
         var tokens = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         Assert.True(tokens.Length >= 2 && tokens[0] == "apthermo", $"{where}: '{command}' names no command after 'apthermo'");
@@ -175,7 +200,7 @@ public sealed class CommandLineExampleTests
         var verb = tokens[1];
         if (RunnableVerbs.Contains(verb))
         {
-            if (tokens.Length == 2)
+            if (tokens.Length == 2 && !isFence)
             {
                 return; // a bare mention, e.g. "the `apthermo rocket` command" — not a full invocation
             }
@@ -191,7 +216,9 @@ public sealed class CommandLineExampleTests
             return;
         }
 
-        Assert.True(SynopsisVerbs.Contains(verb), $"{where}: '{command}' names no command of the declared list (rocket, equilibrium, states, species, devices, schema, --help, --version)");
+        Assert.True(
+            SynopsisVerbs.Contains(verb),
+            $"{where}: '{command}' names no command of the declared list ({string.Join(", ", RunnableVerbs.Concat(SynopsisVerbs).OrderBy(v => v, StringComparer.Ordinal))})");
 
         ValidateAgainstSynopsis(where, verb, tokens[2..]);
 
@@ -207,7 +234,7 @@ public sealed class CommandLineExampleTests
             return;
         }
 
-        if (tokens.Length == 2)
+        if (tokens.Length == 2 && !isFence)
         {
             return; // a bare mention, e.g. "the `apthermo species` command" — not a full invocation
         }
