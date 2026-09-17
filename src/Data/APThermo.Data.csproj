@@ -2,6 +2,12 @@
 
   <!-- Node src/Data: the NASA databases as an object model. No package dependencies. -->
 
+  <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public member
+       without a documentation comment fails the build, since warnings are errors (Directory.Build.props). -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
   <!-- The bundled database (root BOOT.md, Constraints, Data): the committed files of data/,
        embedded under stable manifest names, never copied into this directory. -->
   <ItemGroup>
