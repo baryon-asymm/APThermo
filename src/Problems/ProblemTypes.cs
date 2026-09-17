@@ -9,6 +9,8 @@ public sealed record RocketProblem
     /// <summary>Pa.</summary>
     public double ChamberPressure { get; init; }
 
+    /// <value>Where the composition stops following the equilibrium. Defaults to
+    /// <see cref="FlowModel.ShiftingEquilibrium"/>.</value>
     public FlowModel Flow { get; init; } = FlowModel.ShiftingEquilibrium;
 
     /// <summary>p_c / p_e of the exits reported first.</summary>
@@ -23,12 +25,15 @@ public sealed record RocketProblem
     /// <summary>Evaluate viscosity, conductivity and Prandtl numbers at every station.</summary>
     public bool Transport { get; init; }
 
+    /// <value>The number of exit stations: <see cref="PressureRatios"/>.Count + <see cref="AreaRatios"/>.Count.</value>
     public int ExitCount => PressureRatios.Count + AreaRatios.Count;
 }
 
 /// <summary>An equilibrium problem at an assigned pressure with the temperature, the enthalpy or the entropy assigned.</summary>
 public sealed record EquilibriumProblem
 {
+    /// <value>Which two state functions are assigned. Defaults to
+    /// <see cref="ProblemKind.AssignedEnthalpyPressure"/>.</value>
     public ProblemKind Kind { get; init; } = ProblemKind.AssignedEnthalpyPressure;
 
     /// <summary>Pa.</summary>
@@ -43,5 +48,6 @@ public sealed record EquilibriumProblem
     /// <summary>J/(kg·K) for the assigned-entropy kind.</summary>
     public double Entropy { get; init; }
 
+    /// <value>Evaluate viscosity, conductivity and Prandtl numbers at the state.</value>
     public bool Transport { get; init; }
 }

@@ -3,6 +3,10 @@
   <!-- Node src/Execution: accelerators, batch buffers, kernel entry points and the libdevice post-link. The only node that knows CUDA. -->
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public
+         member without a documentation comment fails the build, since warnings are errors
+         (Directory.Build.props). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

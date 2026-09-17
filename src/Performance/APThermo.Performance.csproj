@@ -1,6 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Node src/Performance: the rocket problem of one case with an infinite-area chamber (RP-1311 chapter 6). Kernel-compatible. -->
+
+  <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public member
+       without a documentation comment fails the build, since warnings are errors (Directory.Build.props). -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Equilibrium\APThermo.Equilibrium.csproj" />
     <ProjectReference Include="..\Thermo\APThermo.Thermo.csproj" />

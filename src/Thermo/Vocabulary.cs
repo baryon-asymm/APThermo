@@ -71,13 +71,28 @@ public struct MixtureState
 /// <summary>Per-case outcome of a numerical routine. Numerical code never throws; it reports one of these.</summary>
 public enum CaseStatus
 {
+    /// <summary>The case solved successfully.</summary>
     Ok = 0,
+
+    /// <summary>The case's input was invalid (for example, out-of-range or inconsistent parameters).</summary>
     InvalidInput,
+
+    /// <summary>The iterative solver did not converge within its step budget.</summary>
     NotConverged,
+
+    /// <summary>The solver's derivative matrix was singular and could not be inverted.</summary>
     SingularMatrix,
+
+    /// <summary>The temperature fell outside the range the species table covers.</summary>
     TemperatureOutOfRange,
+
+    /// <summary>The throat search did not find a throat.</summary>
     ThroatNotFound,
+
+    /// <summary>The requested area ratio is not attainable for the case.</summary>
     AreaRatioInvalid,
+
+    /// <summary>No transport data is available for the case's species.</summary>
     NoTransportData,
 }
 

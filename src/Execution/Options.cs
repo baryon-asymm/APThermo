@@ -25,8 +25,10 @@ public sealed record EngineOptions
     /// <summary>Default bound on the per-launch scratch memory, bytes; a chunk shrinks below <see cref="ChunkSize"/> to respect it.</summary>
     public const long DefaultScratchBytes = 256L << 20;
 
+    /// <value>Which accelerator to bind to. Defaults to <see cref="AcceleratorKind.Auto"/>.</value>
     public AcceleratorKind Accelerator { get; init; } = AcceleratorKind.Auto;
 
+    /// <value>The index of the CUDA device to bind to, when more than one is present. Defaults to 0.</value>
     public int CudaDeviceIndex { get; init; }
 
     /// <summary>Explicit path of the libnvvm library (<c>nvvm64_40_0.dll</c> on Windows, <c>libnvvm.so</c> on Linux); tried first.</summary>
@@ -38,8 +40,12 @@ public sealed record EngineOptions
     /// <summary>Whether <c>CUDA_PATH</c> and the CUDA toolkit directories are searched after the explicit paths.</summary>
     public bool LibDeviceDiscovery { get; init; } = true;
 
+    /// <value>The largest number of cases (or stations) one kernel launch processes. Defaults to
+    /// <see cref="DefaultChunkSize"/>.</value>
     public int ChunkSize { get; init; } = DefaultChunkSize;
 
+    /// <value>The bound, in bytes, on the per-launch scratch memory; a chunk shrinks below
+    /// <see cref="ChunkSize"/> to respect it. Defaults to <see cref="DefaultScratchBytes"/>.</value>
     public long ScratchBytes { get; init; } = DefaultScratchBytes;
 }
 
@@ -63,16 +69,22 @@ public sealed record AcceleratorInfo
         ThreadsOrMultiprocessors = threadsOrMultiprocessors;
     }
 
+    /// <value>Which accelerator was bound.</value>
     public AcceleratorKind Kind { get; }
 
+    /// <value>The name of the bound device, as ILGPU reports it.</value>
     public string DeviceName { get; }
 
+    /// <value>The version of the ILGPU package in use.</value>
     public string IlgpuVersion { get; }
 
+    /// <value>The libnvvm path that was used, or <see langword="null"/> when the CPU accelerator was bound.</value>
     public string? LibNvvmPath { get; }
 
+    /// <value>The libdevice path that was used, or <see langword="null"/> when the CPU accelerator was bound.</value>
     public string? LibDevicePath { get; }
 
+    /// <value>The number of hardware threads (CPU accelerator) or multiprocessors (CUDA) of the bound device.</value>
     public int ThreadsOrMultiprocessors { get; }
 
     /// <summary>
@@ -88,6 +100,10 @@ internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Ker
 /// <summary>A requested accelerator cannot be created; the message names the missing piece and every path that was tried.</summary>
 public sealed class AcceleratorUnavailableException : Exception
 {
+    /// <summary>Creates the exception, appending the tried paths to <paramref name="message"/> when there are any.</summary>
+    /// <param name="message">A description of what is missing.</param>
+    /// <param name="pathsTried">The libnvvm and libdevice paths that were examined, in order; may be empty.</param>
+    /// <param name="inner">The exception that caused this one, or <see langword="null"/> when there is none.</param>
     public AcceleratorUnavailableException(string message, IReadOnlyList<string> pathsTried, Exception? inner = null)
         : base(pathsTried.Count == 0 ? message : message + " Paths tried: " + string.Join("; ", pathsTried) + ".", inner)
     {
