@@ -15,7 +15,7 @@ an output is a failing test, not a review opinion.
 | L2 sample outputs | every scenario of the samples node, run in-process, prints its approved output | `approved/samples/<class>.approved.txt`, whole file | ✅ |
 | L3 CLI examples | every `apthermo …` invocation of `README.md`, `docs/guide/*.md` or `docs/nuget/*.md` — any line of a fence (a leading shell prompt `$ `, `> `, `PS> ` or `PS C:\…> ` stripped first, N4), or an inline code span (the same prompt stripped first, minor 2 of the fourth documentation review) — is classified, each carrying whether it came from a fence or from prose: a `rocket`/`equilibrium`/`states` verb with at least one more token must be a runnable example (a single line, `--accelerator cpu`, exactly one committed `samples/cli/` input, no `--output`/`--format`, every token checked against its own declared synopsis, read from `src/Cli/API.md`'s "## Command line" block rather than a second, typed-in list — `CommandSynopses.FromCliApi`, N8, minor 6) checked against its approved document, or the test fails naming the reason; that verb alone, with nothing after it, is a bare mention and is skipped when it is an inline span (naming the command in prose); the same bare verb alone in its own fence is a command, not a mention — a fence always demonstrates something to run — and is checked as a full invocation instead (minor 2); `devices` and `--version` are counted but never run, since their output depends on the machine or the release (root `BOOT.md`, Delivery: Documentation); every other declared verb — `species`, `schema`, `--help` — is a full invocation whenever it carries at least one more token, or always for `--help`, and is run and approved the same way (ma10); any other verb fails as an unknown command, and any token a verb's own synopsis does not declare fails too (N8). Fails when no invocation exists, when a runnable example and an approved file do not name each other, when a fence carries an `apthermo …` invocation together with any other non-empty line (not a supported form: a placeholder synopsis belongs in prose, never a fence), when a fenced block is opened but never closed before the document ends (N1b), or when a fence line or an inline span names `apthermo` but is not recognised as an invocation even after a known prompt is stripped (N4, both halves). A second fact ties a JSON document shown next to prose to its `samples/cli/` file through a `<!-- cli-document: path -->` marker: the shown block must equal that file and validates against its schema (`Every_marked_cli_document_equals_its_samples_cli_file_and_validates_against_its_schema`); a third requires that marker on every JSON fence (info `json`, first word, any case), not only a marked one (`Every_json_fence_is_preceded_by_a_cli_document_marker`, MA1) — both in `CliDocumentTests.cs`, split from `CommandLineExampleTests.cs` for the code-shape limit | `approved/cli/<key>.approved.json` (`.txt` for `--help`'s plain-text usage) — the key the input file's name plus a suffix for any option beyond the mandatory `--accelerator cpu` (D10: two invocations of one input with different options never collide on one key), or the verb plus its own tokens for `species`/`schema`/`--help` — and `samples/cli/<path>` for a marked JSON document, and `src/Cli/API.md`'s "## Command line" block for every synopsis | ✅ |
 | L0 fence tags | every fence of `README.md`, `docs/guide/*.md` and the package READMEs under `docs/nuget/` carries a first-word tag from the allow-list `csharp`/`cs`/`c#`, `json` or `console` (`Every_fence_carries_a_tag_from_the_allow_list`, minor 3 of the fourth documentation review): before this task an untagged fence, or one with an unrecognised tag, reached no check at all, since L1 and the `cli-document` facts each look only for their own tag and skip whatever does not carry it — a broken JSON or C# example with no language word would silently escape every level below | `GuideDocuments.IsCSharpFenceInfo`/`IsJsonFenceInfo`/`IsConsoleFenceInfo` | ✅ |
-| L4 links | every relative link of `README.md`, `llms.txt` and the markdown under `docs/` (`docs/protocol/templates` excluded — its placeholder links are deliberate; every other document under `docs/protocol` is checked), in every form (inline, reference-style, HTML `href`), resolves to an existing file; an absolute link into the repository's own public copy (`https://github.com/baryon-asymm/APThermo/blob/main/…` or `.../tree/main/…`) resolves the same way, against the repository root instead of the document's directory; a `#anchor` fragment, bare or on a file link, names an existing heading of its target by GitHub's own slug; the package READMEs under `docs/nuget/` may carry no relative link at all, since nuget.org renders them outside the repository, but their self-repository links are checked the same way as any other document's; no document (package READMEs included) may carry the placeholder `OWNER/REPO`. `README.md` and `llms.txt` are asserted to exist | the repository tree, and each target document's own headings | ✅ |
+| L4 links | every relative link of `README.md`, `llms.txt` and the markdown under `docs/` (`docs/protocol/templates` excluded — its placeholder links are deliberate; every other document under `docs/protocol` is checked), in every form (inline, reference-style, HTML `href`), resolves to an existing file; an image wrapped in a link (`[![alt](image-url)](target)`, the form a badge takes) resolves by its outer `target`, the link a reader actually follows, not by its inner image source; an absolute link into the repository's own public copy (`https://github.com/baryon-asymm/APThermo/blob/main/…` or `.../tree/main/…`) resolves the same way, against the repository root instead of the document's directory; a `#anchor` fragment, bare or on a file link, names an existing heading of its target by GitHub's own slug; the package READMEs under `docs/nuget/` may carry no relative link at all, since nuget.org renders them outside the repository, but their self-repository links are checked the same way as any other document's; no document (package READMEs included) may carry the placeholder `OWNER/REPO`. `README.md` and `llms.txt` are asserted to exist | the repository tree, and each target document's own headings | ✅ |
 | L5 schemas | every file under `samples/cli/`, walked recursively, validates against the schema its top-level directory declares (`problems` → `input`, `states` → `states`; any other top-level directory fails loudly instead of being skipped); a `.jsonl` file is checked record by record; the schemas are read through `apthermo schema <name>` in-process, so no copy lives here | the command line's embedded schemas (root `BOOT.md`, Delivery: Documentation) | ✅ |
 | L6 guide shape | every page of `docs/guide/*.md` carries the shared headings in order, once each, read outside fenced code blocks: `## Purpose`, `## When to use`, `## Steps`, `## Errors`, `## See also` | the root `BOOT.md`, Delivery: Documentation | ✅ |
 | L7 status table | the status table of `docs/guide/troubleshooting.md` (the one headed `\| Status \| Meaning \|`) lists exactly the names of `CaseStatus`, in its declared order | `Thermo`'s `CaseStatus` (`Enum.GetNames<CaseStatus>()`) | ✅ |
@@ -124,6 +124,26 @@ than the parser (`devices` accepts `--format` — `CommandTable.cs` — but the 
 `rocket`'s, the same options `CommandTable.cs` gives it. `## Acceptance criteria` below
 carries the dated, red-then-reverted evidence for minors 2, 3 and 6; minors 1, 4, 5 and
 7 were prose and citation corrections with no new check to prove red.
+
+⚠ 2026-09-17 (actions-and-badges task): L4 gained badges. `README.md`'s new badge row
+(the root `BOOT.md` names none of this — badges are a repository convention, not a
+tree claim) puts an image inside a link, `[![alt](image-url)](target)`, and
+`LinkTests`'s `InlineLink` regex, `\[[^\]]*\]\(\s*([^)\s]+)`, stopped at the image's own
+`]`: for `[![CI](img-url)](workflow-url)` it captured only `img-url`, the outer
+`workflow-url` — the link a reader actually follows — was never read by
+`Every_relative_link_resolves_to_a_file` at all. Proven live before the fix: the
+licence badge's link pointed at `blob/main/LICENSE-DOES-NOT-EXIST`, and the full L4
+suite still passed (5 of 5), the same silent-pass shape as every escape recorded above.
+`InlineLink` now reads `\[(?:!\[[^\]]*\]\([^)]*\)|[^\]])*\]\(\s*([^)\s]+)`: one level of
+nested `![...](...)` is treated as part of the outer link's text, so the badge's own
+target is what gets captured and checked, and its image source (ordinarily an external
+host such as shields.io) is left alone as any other external link is. Shown red once
+against the same deliberate `LICENSE-DOES-NOT-EXIST` mutation with the fixed regex in
+place — `Every_relative_link_resolves_to_a_file` red ("the link
+'https://github.com/baryon-asymm/APThermo/blob/main/LICENSE-DOES-NOT-EXIST' does not
+resolve to an existing file or directory of the repository") — then reverted; nothing
+of the mutation committed. No new fact was added and no population changed, so the test
+count is unchanged: `dotnet test tests/Docs.Tests`, 29 of 29 passed, before and after.
 
 ## Invariants
 
@@ -454,6 +474,18 @@ closed in `3c0d271`).
       mutation committed. `dotnet test tests/Docs.Tests`, 29 of 29 passed afterward (28
       before, plus this fact). The `OWNER/REPO` rejection (`No_document_carries_the_OWNER_REPO_placeholder`)
       is unchanged and still runs over both package READMEs.
+- [x] 2026-09-17 (actions-and-badges task) — L4's `InlineLink` regex is fixed to read an
+      image-wrapped-in-a-link badge by its outer target instead of its inner image
+      source (the ⚠ above). Checking `README.md`'s new badge row against the docs tests
+      as they stood found the escape live, not hypothetical: with the old regex, a
+      licence badge deliberately pointed at `blob/main/LICENSE-DOES-NOT-EXIST` still
+      left `Every_relative_link_resolves_to_a_file` green (5 of 5); with the fix in
+      place, the same mutation turned it red ("the link
+      '…blob/main/LICENSE-DOES-NOT-EXIST' does not resolve to an existing file or
+      directory of the repository"); both runs reverted, nothing of the mutation
+      committed. `dotnet test tests/Docs.Tests`, 29 of 29 passed on the corrected
+      `README.md` afterward — the same count as before, since the fix widens an
+      existing fact rather than adding one.
 
 ## Taboos
 

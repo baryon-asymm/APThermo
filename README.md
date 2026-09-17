@@ -1,5 +1,8 @@
 # APThermo
 
+[![CI](https://github.com/baryon-asymm/APThermo/actions/workflows/ci.yml/badge.svg)](https://github.com/baryon-asymm/APThermo/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/baryon-asymm/APThermo/blob/main/LICENSE) [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+<!-- NuGet badges (version, downloads) go here once APThermo and APThermo.Cli are published -->
+
 Chemical equilibrium and performance of rocket propellant combustion products:
 Gibbs-energy minimization (Gordon–McBride), shifting-equilibrium and frozen flow, on
 the CPU and, for large batches, on an NVIDIA GPU (CUDA) in double precision. It is the
