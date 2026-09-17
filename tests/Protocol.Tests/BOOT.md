@@ -50,7 +50,7 @@ check the split. See "## Tree contract" below for the convention and the four fa
 - **A type belongs to the deepest node whose namespace equals, or prefixes at a dot
   boundary, the type's own namespace** (`AGENTS.md` §1; `NodeAssemblies.NodeOf(Type)`,
   2026-09-15): a node's own namespace is the root's (`APThermo`)
-  plus its directory path from the tree root, `src` and `tests` transparent
+  plus its directory path from the tree root, `src`, `tests` and `samples` transparent
   (`Node.Namespace`), and equals the project's own name for a node that holds one — the
   only definition a project-less child node has, since such a node compiles into its
   nearest ancestor's assembly under its own namespace (root `BOOT.md`, Constraints,
@@ -65,6 +65,11 @@ check the split. See "## Tree contract" below for the convention and the four fa
   fact (`AGENTS.md` §1) asks more than mere attribution: a type's own namespace must
   *equal* its node's, not merely sit inside a deeper, undeclared corner of an ancestor's
   — a node-shaped namespace with no node behind it stays a violation.
+
+  ⚠ 2026-09-17: this bullet stood "`src` and `tests` transparent", unchanged since
+  `samples/` became a third grouping directory (root `BOOT.md`, Constraints, the ⚠ of
+  2026-09-16); `Node.Namespace` already filters all three, so the wording just had not
+  caught up. Found by `SCRATCH/audit/review-cli.md`, P1.
 - **A node's own source files are the ones `SourceSyntax` walks for it**: every `*.cs`
   file under its directory except a descendant node's own subtree (project or
   project-less, `AGENTS.md` §1) — a child's files count for the child and never also for

@@ -5,10 +5,20 @@ exposes a command line and the JSON document shapes it reads and writes. Everyth
 not listed here, in a package-surface section (one whose heading carries no
 `(tree contract)` mark), is internal and may change without notice (root `BOOT.md`,
 Delivery: Public surface). This node's own entry point (`Program`, `ExitCode`) is its
-only tree contract, read by no other assembly but its own tests: `Cli` itself
-receives no grant from any neighbour and uses their package surfaces only (root
-`BOOT.md`, Delivery: Tree contracts, "the command line is a consumer like any
-other").
+only tree contract, read by this node's own tests and by `tests/Docs.Tests` (its
+`schema` validation calls `Program.Run` in-process, having no other way to reach this
+node's contract): `Cli` itself receives no grant from any neighbour and uses their
+package surfaces only (root `BOOT.md`, Delivery: Tree contracts, "the command line is
+a consumer like any other").
+
+⚠ 2026-09-17 (the audit's C6): this paragraph and the ⚠ under "Entry point (tree
+contract)" below stood "read by no other assembly but its own tests" and "the only
+reader of it is this node's own tests". `APThermo.Cli.csproj` grants
+`InternalsVisibleTo` to `APThermo.Docs.Tests` too, and that assembly's
+`SchemaValidationTests` calls `Program.Run(["schema", name], …)` to read a schema as
+`apthermo schema` prints it; the grant is allowed (root `BOOT.md`, Delivery: Tree
+contracts permits a test node that uses the type), only the sentence was wrong. Found
+by `SCRATCH/audit/review-cli.md`, C6.
 
 ## Command line ✅
 
@@ -18,7 +28,7 @@ $ apthermo equilibrium problem.json [same options]
 $ apthermo states records.json [more files...] [--output results.json] [--format json|csv] [--transport] [--accelerator auto|cpu|cuda] [--database DIR] [--threshold X] [--mass-tolerance X]
 $ apthermo species [--find TEXT] [--database DIR] [--output PATH] [--format json|csv]
 $ apthermo devices [--output PATH]
-$ apthermo schema input|output|states|species|devices
+$ apthermo schema [NAME] [--output PATH]
 $ apthermo --help
 $ apthermo --version
 ```
@@ -80,11 +90,12 @@ illustration that weighed 706 g and would now be refused; it is the record of an
 simulation that the mass check was written for (1000.015 g), and the tests node solves
 every record example of this document.
 
-`schema` (2026-09-16) prints one of the five JSON Schema files embedded in the tool —
-`input`, `output`, `states`, `species`, `devices`, the shapes this command line reads
-and writes — to standard output; no option applies to it. The schemas are the contract
+`schema` (2026-09-16) prints, by name, one of the JSON Schema files embedded in the
+tool — the shapes this command line reads and writes — to standard output or the
+`--output` file; with no name, or a name that is not embedded, it refuses, naming
+every embedded name (2026-09-17, the audit's C3, C4, C5). The schemas are the contract
 of those shapes: a consumer of the packed tool reads them from the tool, and no copy of
-them lives outside the assembly (root `BOOT.md`, Delivery: Documentation).
+them lives outside this node (root `BOOT.md`, Delivery: Documentation).
 
 Exit codes: `0` all cases `ok`; `1` at least one case or station failed numerically
 (the document is written); `2` invalid input document, option, database path, reactant
@@ -120,8 +131,14 @@ The API review of that day (`SCRATCH/api-review-report.md`, "other risks") found
 nothing outside `Cli.Tests`, which already has `InternalsVisibleTo`, references either:
 the .NET tool's host process calls `Main` by its entry-point mechanism, not as public
 API. Both are internal now; this section is marked as this node's own tree contract,
-though the only reader of it is this node's own tests (AGENTS.md §6), since a .NET tool
-publishes no scenario for another assembly to consume here at all.
+since a .NET tool publishes no scenario for another assembly to consume here at all.
+
+⚠ 2026-09-17 (the audit's C6): the previous paragraph went on to say "though the only
+reader of it is this node's own tests (AGENTS.md §6)". `tests/Docs.Tests` gained its
+own `InternalsVisibleTo` grant and a caller of `Program.Run` on 2026-09-16, for the
+`schema` command's validation; the readers of this tree contract are now this node's
+own tests and `tests/Docs.Tests`, both declared consumers under root `BOOT.md`,
+Delivery: Tree contracts. Found by `SCRATCH/audit/review-cli.md`, C6.
 
 ## Input document ✅
 
@@ -345,7 +362,7 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 | Situation | Behaviour |
 |---|---|
 | no command, an unknown command or option, a wrong argument count, an option that does not apply, a bad option value | message on standard error, exit code 2, no document |
-| `schema` with a name outside the five | the five valid names on standard error, exit code 2, no document |
+| `schema` without a name, or with a name that is not embedded | the embedded names on standard error, exit code 2, no document |
 | malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step | message with the JSON path on standard error, exit code 2, no document |
 | a document whose problem type does not match the command | message naming the right command, exit code 2 |
 | unknown reactant, temperature out of range, an element without a record, a rocket case without enthalpy, transport without `trans.inp` | the library's message, exit code 2 |

@@ -22,12 +22,6 @@ public sealed class JsonSchema
         _root = root;
     }
 
-    public static JsonSchema Load(string path)
-    {
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
-        return new JsonSchema(document.RootElement.Clone());
-    }
-
     /// <summary>The schema's JSON text, as `apthermo schema` prints it (2026-09-16).</summary>
     public static JsonSchema Parse(string text)
     {

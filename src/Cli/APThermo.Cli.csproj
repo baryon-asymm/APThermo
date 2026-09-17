@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <None Include="..\..\docs\nuget\APThermo.Cli.md" Pack="true" PackagePath="README.md" />
-    <EmbeddedResource Include="Schemas\*.schema.json" />
+    <EmbeddedResource Include="Schemas\*.schema.json" LogicalName="APThermo.Cli.Schemas.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -75,8 +75,8 @@ $ apthermo schema input                                      # a JSON Schema of 
 `dotnet APThermo.Cli.dll …`. Exit codes: 0 every case ok, 1 a
 case failed numerically (document written), 2 invalid input, 3 accelerator or
 infrastructure error. The JSON Schemas of the document shapes are embedded in the
-tool; `apthermo schema <name>` prints one of the five (`input`, `output`, `states`,
-`species`, `devices`).
+tool; `apthermo schema [NAME]` prints one by name, to standard output or `--output`,
+or lists the embedded names when `NAME` is missing or unknown.
 
 Pressures in Pa, temperatures in K, specific impulse in m/s; every other unit is SI as
 stated in `BOOT.md`. A failed case is reported with a status, never with a partially
@@ -112,7 +112,7 @@ above read files only until the NASA files were embedded the same day.
   [Equilibrium.Tests](./tests/Equilibrium.Tests/API.md), [Performance.Tests](./tests/Performance.Tests/API.md),
   [Transport.Tests](./tests/Transport.Tests/API.md), [Execution.Tests](./tests/Execution.Tests/API.md),
   [Problems.Tests](./tests/Problems.Tests/API.md), [Cli.Tests](./tests/Cli.Tests/API.md) — what each node proves.
-- [Harness](./tests/Harness/API.md) — the scaffolding the test nodes share: a CPU host, bit comparison, bit snapshots, fixture families.
+- [Harness](./tests/Harness/API.md) — the scaffolding the test nodes share: listed in its `API.md`.
 - [Benchmarks](./tests/Benchmarks/API.md) — the speed benchmarks (BenchmarkDotNet), run by hand; figures recorded, never asserted.
 - [Docs.Tests](./tests/Docs.Tests/API.md) — the documentation tests: the guide's snippets against the samples, the approved outputs of the samples and of the command-line examples, the links, the schemas, the guide pages' shape.
 - [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13) and the root invariants that need reflection.

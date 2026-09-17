@@ -14,10 +14,11 @@ depends on console, serialization or file-layout concerns.
   `PerformanceFigures`, `TransportFigures`) reaches the output document under its
   camel-case name and with its unit, enumerated by reflection so that no second list
   exists, plus the presentation conveniences listed there (specific impulse in
-  seconds, a mole-fraction threshold). The five JSON Schema files live in this node's
-  `Schemas/` directory, embedded in the assembly; `apthermo schema <name>` prints one
-  of them, and the tests nodes read the schemas through that command. A test compares
-  the schemas' field lists with the structs.
+  seconds, a mole-fraction threshold). The JSON Schema files live in this node's
+  `Schemas/` directory, embedded in the assembly and catalogued by `SchemaResources`;
+  `apthermo schema [name]` prints one of them, or, with no name or an unknown one,
+  refuses naming every embedded name. A test compares the schemas' field lists with the
+  structs.
 
   ⚠ 2026-09-16: stood "The schema files of the tests node hold the same lists, and a
   test compares them with the structs." The distribution phase decided at the root
@@ -25,6 +26,14 @@ depends on console, serialization or file-layout concerns.
   from `tests/Cli.Tests/schemas/` to this node's `Schemas/` directory, are embedded in
   the assembly and served by the new `schema` command, so that a consumer of the packed
   tool reads the contract from the tool itself and no second copy can drift.
+
+  ⚠ 2026-09-17 (the audit's C6): stood "the tests nodes read the schemas through that
+  command", true of neither test node that reads the schemas at the point this was
+  written. `tests/Cli.Tests` reads them directly through `SchemaResources`, the type
+  under test, so its checks never called `apthermo schema` at all; only
+  `tests/Docs.Tests` reads them through the command, in-process
+  (`Program.Run(["schema", name], …)`), as the mirrored test node has no other way to
+  reach this node's contract. Found by `SCRATCH/audit/review-cli.md`, C6.
 - **Units in documents are SI** unless a field name carries the unit explicitly
   (`specificImpulseSeconds`, `vacuumSpecificImpulseSeconds`); the conversion to
   seconds uses g0 = 9.80665 m/s² and happens only here.
@@ -85,9 +94,10 @@ also uses it.
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Commands: `rocket <input.json>`, `equilibrium <input.json>`, `states <records>...`,
-  `species [--find TEXT]`, `devices`, `schema <name>` (2026-09-16: `name` one of
-  `input`, `output`, `states`, `species`, `devices`; prints the JSON Schema embedded in
-  the assembly to standard output; a name outside the five is exit code 2 naming them);
+  `species [--find TEXT]`, `devices`, `schema [name]` (2026-09-16: prints the JSON
+  Schema embedded in the assembly, by name, to standard output or the `--output` file;
+  2026-09-17, the audit's C3/C4/C5: a missing or unknown name is exit code 2 naming
+  every embedded name, read from the assembly manifest, not from a typed list);
   options `--output PATH`, `--format json|csv`,
   `--accelerator auto|cpu|cuda`, `--database DIR` (directory with `thermo.inp` and
   `trans.inp`; without it, the database embedded in `APThermo`,
@@ -236,7 +246,8 @@ Types that stayed at this node's own level:
 | `RunInfo`, `RunLimits`, `Timings` | a run's own bookkeeping, assembled by `SolverSession.Stop`; read by `Output` and `Listings` through their fields only |
 | `Names` | camel case of the library's names and of statuses; read by `Output` and `Listings`, and by `DocumentWords`' own fallback branch (see the warning above) |
 | `SpeciesCommand` | the `species` command: the database, the name filter, the rows (`Listings.SpeciesRow`), the run and the delivery (`Listings.SpeciesListing`, `Output.DocumentWriter`) |
-| `SchemaCommand` | (2026-09-16) the `schema` command: the five schema files of `Schemas/` by name, read from the assembly's embedded resources and delivered as the listings are delivered (`Output.DocumentWriter`) |
+| `SchemaCommand` | (2026-09-16) the `schema` command: the rule (a missing or unknown name refuses, naming every name of `SchemaResources.Names`), delivered as the listings are delivered (`Output.DocumentWriter`) |
+| `SchemaResources` | (2026-09-17) the catalogue of the embedded schemas: their names, read from the assembly manifest, and their text |
 | `InputException`, `InputFile` | the node's own exception, raised throughout; a user-named file read with the missing-file message this node documents |
 
 ## Children
@@ -465,10 +476,17 @@ Every other type of the node measures 14 or below by the dependency check's walk
       proof of `Problems`' BOOT.md ran an approved CSV example
       (`documents/rocket-lox-lh2.approved.csv`) from an empty directory without
       `--database`, through the packed tool, and found it byte-for-byte unchanged.
-- [ ] (2026-09-16) The five schema files of `Schemas/` are embedded in the assembly and
-      served by `apthermo schema <name>` to standard output with exit code 0; a name
-      outside the five is exit code 2 naming the valid ones, and no copy of a schema
-      lives outside this node (the tests nodes read them through the command).
+- [x] 2026-09-17 — The schema files of `Schemas/` are embedded in the assembly and
+      served by `apthermo schema [name]` byte for byte to standard output, or to
+      `--output`, with exit code 0; a missing or an unknown name is exit code 2 naming
+      every embedded name, read from the assembly manifest rather than typed; no copy of
+      a schema lives outside this node. `tests/Cli.Tests` reads them directly through
+      `SchemaResources`, the type under test; `tests/Docs.Tests` reads them through the
+      command, the only test node that has no other way to reach this node's contract
+      (`tests/Cli.Tests/SchemaCommandTests`, the facts and their mutations recorded in
+      that node's `BOOT.md`, criterion of 2026-09-17;
+      `tests/Docs.Tests/SchemaValidationTests`). Found and fixed from
+      `SCRATCH/audit/review-cli.md` (C1 through C5).
 
 ## Taboos
 

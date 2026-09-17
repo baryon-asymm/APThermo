@@ -174,6 +174,22 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       the document, with the top-level `run` property cut out by span rather than by
       re-serializing (`Cli.Tests` BOOT.md, the Bits level and the criterion of
       2026-09-15), so the sentence now holds for both halves of every line.
+- [x] 2026-09-17 — `JsonSchema` and `RunPropertyCut` (moved here 2026-09-16 from
+      `Cli.Tests`, `API.md`'s JSON documents section) are proven through their
+      consumers, and nothing of either type moved in the move: `Cli.Tests`'
+      `RunPropertyCutTests` (the cut exact wherever `run` sits among its siblings, a
+      missing top-level `run` and a duplicated one each failing instead of hashing) and
+      the schema validations of `Cli.Tests.InputDocumentTests` and
+      `Cli.Tests.OutputDocumentTests` (every example document against the input, states
+      and output schemas) and `Cli.Tests.SchemaCommandTests` (the schemas read directly
+      through `SchemaResources`, not through `JsonSchema`, but exercising the same
+      schema files `JsonSchema` validates elsewhere); `Docs.Tests.SchemaValidationTests`
+      (every sample document against the input and states schemas, read through
+      `Program.Run(["schema", name], …)` and `JsonSchema.Parse`) and
+      `Docs.Tests.CommandLineExampleTests`. The test method names of `Cli.Tests` are
+      unchanged at HEAD and in the working tree, and `Bits.approved.txt`'s hash is
+      unchanged (`Cli.Tests` BOOT.md, the Bits level), so no test moved with the code.
+      Found missing by `SCRATCH/audit/review-cli.md`, H1.
 
 ## Taboos
 

@@ -5,8 +5,8 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>
 /// The cut is exact wherever the top-level `run` property sits among its siblings: first, in the middle or last, the
-/// result reads as the same document written without it (<see cref="RunPropertyCut"/>, above). Seen red once with the
-/// span shifted by one byte (<c>document.AsSpan((int)cutEnd + 1)</c> in <c>RunPropertyCut.Cut</c>): all three cases
+/// result reads as the same document written without it (<see cref="RunPropertyCut"/>, moved to Harness 2026-09-16).
+/// Seen red once with the span shifted by one byte (<c>document.AsSpan((int)cutEnd + 1)</c> in <c>RunPropertyCut.Cut</c>): all three cases
 /// failed (`Assert.Equal() Failure: Strings differ`), each missing exactly the one byte immediately after the removed
 /// span — the next property's opening quote when `run` is first, the separator comma when it is not — and the "run
 /// last" case besides carried a trailing NUL from the now-oversized destination span; reverted immediately.
