@@ -101,11 +101,17 @@ delivery (2026-09-15, `## Delivery` below).
 
 - Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
   accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
-  and file names may be platform-specific. Every test runs on both platforms. The bit
-  snapshots are the one platform-specific record (2026-09-17): a node's
-  `Bits.approved.txt` holds the Windows bits and its `Bits.linux.approved.txt` the Linux
-  bits, the harness picks the file of the running platform, and an intended numerical
-  change re-approves both in the same commit.
+  and file names may be platform-specific. Every test runs on both platforms. The
+  approved records are platform-specific (2026-09-17): a node's `Bits.approved.txt`
+  holds the Windows bits and its `Bits.linux.approved.txt` the Linux bits, the execution
+  tests node's throughput figures follow the same rule, the harness picks the file of
+  the running platform, and an intended numerical change re-approves both in the same
+  commit.
+
+  ⚠ 2026-09-17: the first wording of that sentence, written the same day, called the bit
+  snapshots "the one platform-specific record". The Linux run then also failed the
+  throughput tripwire (the ratio under WSL2 is lower and varies between runs, 44× and
+  52× measured), and the execution tests node gave it a Linux file too.
 
   ⚠ 2026-09-17, the first Linux run (WSL2 Ubuntu 24.04, .NET SDK 10.0.112, at
   `f67b1a9`) answered the open question below: the CPU accelerator does not reproduce
