@@ -265,7 +265,7 @@ sealed class APThermo.Fixtures.ToleranceTable
 
 sealed class APThermo.Harness.ApprovedSnapshot
     IReadOnlyList<String> StaleKeys(IEnumerable<String> producedKeys)
-    String? Problem(String key, String actualLine)
+    String? Problem(String key, String actualLine, IReadOnlyList<String>? fields = null)
     static ApprovedSnapshot Load(String approvedPath)
     static String ApprovedPathFor(String directory, String baseName)
 
@@ -277,6 +277,7 @@ sealed class APThermo.Harness.BitHash
     BitHash Add(ReadOnlySpan<Double> values)
     BitHash Add(ReadOnlySpan<Int32> values)
     BitHash Add(String text)
+    IReadOnlyList<String> Fields { get; }
     String ToHex()
 
 static class APThermo.Harness.Bits
