@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace APThermo.Harness;
 
 /// <summary>
@@ -75,7 +77,14 @@ public sealed class ApprovedSnapshot
     /// actual file, written beside the approved one (never over it) from this call on, so that it always ends complete
     /// through the last key a caller passed.
     /// </summary>
-    public string? Problem(string key, string actualLine)
+    /// <param name="fields">
+    /// Optional: the ordered field values the caller's <see cref="BitHash"/> folded into <paramref name="actualLine"/>
+    /// (its <see cref="BitHash.Fields"/>). Passed and the key is a problem, they are written as one line each to a
+    /// per-case dump file beside the actual file (BOOT.md, "a field dump is a caller's opt-in") — a caller with no
+    /// fields to offer (a composite line over more than one hash, for instance) simply omits the argument, and gets the
+    /// same key/value problem as before.
+    /// </param>
+    public string? Problem(string key, string actualLine, IReadOnlyList<string>? fields = null)
     {
         _actualPairs.Add((key, actualLine));
         string? problem = null;
@@ -94,6 +103,10 @@ public sealed class ApprovedSnapshot
         if (problem is not null)
         {
             _dirty = true;
+            if (fields is not null)
+            {
+                WriteFieldDump(key, fields);
+            }
         }
 
         if (_dirty)
@@ -125,5 +138,32 @@ public sealed class ApprovedSnapshot
         var directory = Path.GetDirectoryName(approvedPath);
         var fileName = Path.GetFileName(approvedPath).Replace("approved", "actual", StringComparison.Ordinal);
         return directory is null ? fileName : Path.Combine(directory, fileName);
+    }
+
+    /// <summary>
+    /// One field per line, in the order <paramref name="fields"/> holds them, into a file beside the actual file: its
+    /// name is the actual file's own name with <paramref name="key"/> (sanitized) and <c>.fields.txt</c> appended, so a
+    /// glob over <c>*.fields.txt</c> beside <c>*.actual.txt</c> finds every differing case's dump. Git-ignored like the
+    /// actual file, and (like it) never read back by this node: a human or CI diffs it against a reference dump.
+    /// </summary>
+    private void WriteFieldDump(string key, IReadOnlyList<string> fields)
+    {
+        var directory = Path.GetDirectoryName(_actualPath);
+        var baseName = Path.GetFileNameWithoutExtension(_actualPath);
+        var fileName = $"{baseName}.{Sanitize(key)}.fields.txt";
+        var path = directory is null ? fileName : Path.Combine(directory, fileName);
+        File.WriteAllLines(path, fields);
+    }
+
+    /// <summary>A key turned into a safe file-name fragment: every character but a letter, a digit, '-', '_' or '.' becomes '_'.</summary>
+    private static string Sanitize(string key)
+    {
+        var builder = new StringBuilder(key.Length);
+        foreach (var c in key)
+        {
+            builder.Append(char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '_');
+        }
+
+        return builder.ToString();
     }
 }

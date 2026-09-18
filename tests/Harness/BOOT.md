@@ -62,6 +62,25 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   is `"\n"`, so an actual file this node writes there is LF like the repository, not
   CRLF; the normalize-before-approving step only bites on Windows. Found while adding
   the per-platform bit snapshots below.
+- **A field dump is a caller's opt-in** (2026-09-18, the bits-diagnostics task).
+  `BitHash` keeps, alongside the hash it computes, the text of every value added, in
+  order: a double round-trip (`"R"`, invariant culture, so a dump reads the same on
+  every platform), an int in invariant culture, a bool as `"true"`/`"false"`, a string
+  as added — `Fields`, readable before or after `ToHex`, since it is a separate list
+  the hash's own disposal does not touch. `ApprovedSnapshot.Problem` takes that list as
+  an optional third argument; on a problem it writes each value to its own line of a
+  file beside the actual file, named from the actual file's own name and the key
+  (sanitized): `<actual-base>.<sanitized key>.fields.txt`. A caller with a composite
+  line over more than one `BitHash` (the Cli tests node's JSON-plus-CSV row) has no
+  single `Fields` to offer and passes none, keeping the two-argument `Problem` it
+  already had. The mechanism lives once here, so every Bits-level consumer can adopt it
+  by passing its hash's `Fields` at the call site it already has; as of this task only
+  `Problems.Tests` does (its `BitSnapshotTests`, the node the release investigation
+  named) — the other five Bits-level consumers (`Cli.Tests`, `Equilibrium.Tests`,
+  `Performance.Tests`, `Thermo.Tests`, `Transport.Tests`) do not yet call the three-
+  argument overload, a gap recorded here rather than left to be assumed closed
+  (`AGENTS.md` §8), and open for whichever of those nodes wants it next. `BitHash.cs`,
+  `ApprovedSnapshot.cs`.
 - **One approved file per platform, picked in one place.** The root BOOT.md's platform
   constraint (2026-09-17) keeps a Windows and a Linux record for every bit snapshot,
   since the CPU accelerator's `System.Math` calls the platform's C runtime and the two
@@ -238,6 +257,21 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       above were in place (every Bits-level failure before that was the missing-file
       case, `key: not in <path>`, on every fixture the run enumerated, never a
       mismatch), and `protocol_lint` gave 0 errors, 0 warnings.
+- [x] 2026-09-18 — The per-case field dump (the bits-diagnostics task, "a field dump is
+      a caller's opt-in" above) writes and reads back correctly, shown red once through
+      its one adopting consumer, `Problems.Tests`: the last hex digit of
+      `tests/Fixtures/cases/rocket/lox-lh2_of4_pc5MPa_frozenAtThroat.json`'s line in that
+      node's `Bits.approved.txt` changed from `3` to `0`,
+      `Every_fixture_gives_the_recorded_bits` red on exactly that key,
+      `Bits.actual.tests_Fixtures_cases_rocket_lox-lh2_of4_pc5MPa_frozenAtThroat.json.fields.txt`
+      written beside `Bits.actual.txt` with 173 lines, one per field `HashOf` adds, each
+      a round-trip double, an invariant-culture int or a `true`/`false`; every other
+      fixture's key stayed green and wrote no dump of its own. Reverted; the fast suite
+      confirmed green again (`Problems.Tests` 1111/1111) and `Bits.approved.txt`
+      byte for byte unmoved (`git diff` empty). The dump copied out before the revert is
+      `SCRATCH/bits-diag/reference-lox-lh2_of4_pc5MPa_frozenAtThroat.txt` (that task's
+      report), a reference a hosted-runner run's own dump of the same fixture can be
+      diffed against.
 
 ## Taboos
 

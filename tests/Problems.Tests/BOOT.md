@@ -130,9 +130,12 @@ Outside the tree: xunit.
 ## Constraints
 
 - Part of the default test command; no CUDA.
-- Paths from the repository root; the only write into the working directory is the
+- Paths from the repository root; the only writes into the working directory are the
   `Bits.actual.txt` of a failed bit comparison, next to the approved file and
-  git-ignored (2026-09-14; until that day the node wrote nothing).
+  git-ignored (2026-09-14; until that day the node wrote nothing), and, since
+  2026-09-18 (the bits-diagnostics task), one `Bits.actual.<sanitized fixture path>.fields.txt`
+  per differing fixture, beside it and git-ignored too (`tests/Harness/BOOT.md`, "a
+  field dump is a caller's opt-in").
 - One solver and one engine on the CPU accelerator are shared by the collection.
 
 ## Acceptance criteria
@@ -339,6 +342,23 @@ Outside the tree: xunit.
       the 0.01 K tolerance exists to absorb. Each reverted; `dotnet test` on
       `Problems.Tests` after every revert: 1111/1111, `Bits.approved.txt` unmoved
       throughout (`git diff` empty against `8f8263c` and in the working tree).
+- [x] 2026-09-18 — The Bits level's per-case field dump (bits-diagnostics task): `Record`
+      passes its `BitHash`'s `Fields` to `ApprovedSnapshot.Problem`
+      (`tests/Harness/BOOT.md`, "a field dump is a caller's opt-in"), so a fixture that
+      disagrees with `Bits.approved.txt` also gets its own
+      `Bits.actual.<sanitized path>.fields.txt`, every hashed field as a round-trip
+      double or an int/bool, one per line, in the order `HashOf` adds them. Shown red
+      once and the dump inspected: the last hex digit of
+      `tests/Fixtures/cases/rocket/lox-lh2_of4_pc5MPa_frozenAtThroat.json`'s line in
+      `Bits.approved.txt` changed from `3` to `0` (the exact fixture the release run of
+      2026-09-17 flagged, `SCRATCH/nondeterminism-report.txt`), `dotnet test
+      tests/Problems.Tests -c Release --filter FullyQualifiedName~BitSnapshotTests` red
+      on that one key, and
+      `Bits.actual.tests_Fixtures_cases_rocket_lox-lh2_of4_pc5MPa_frozenAtThroat.json.fields.txt`
+      written beside `Bits.actual.txt` with the case's 173 fields; copied out as
+      `SCRATCH/bits-diag/reference-lox-lh2_of4_pc5MPa_frozenAtThroat.txt` before the
+      approved line was restored byte for byte (`git diff` empty) and the test green
+      again, 1/1. No approved file moved by this criterion.
 
 ## Taboos
 

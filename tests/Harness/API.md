@@ -38,14 +38,15 @@ public sealed class BitHash                                 // SHA-256 over litt
     public BitHash Add(ReadOnlySpan<int> values);
     public BitHash Add(bool value);                         // one byte, 1 or 0, as BinaryWriter.Write(bool) writes it
     public BitHash Add(string text);                        // its UTF-8 bytes, as the recorded snapshots hash a string
-    public string ToHex();                                  // lowercase hexadecimal; releases the underlying algorithm
+    public string ToHex();                                  // lowercase hexadecimal; releases the underlying algorithm; Fields stays readable
+    public IReadOnlyList<string> Fields { get; }             // every value added so far, as text in the order added (a double round-trip "R", invariant culture); not what is hashed, a caller's opt-in into the per-case field dump below
 }
 
 public sealed class ApprovedSnapshot                        // a snapshot file of "key value" lines: tab-delimited when a recorded key can hold a space, space-delimited otherwise, detected from the file itself
 {
     public static string ApprovedPathFor(string directory, string baseName);   // <baseName>.approved.txt, or <baseName>.linux.approved.txt on Linux; the one place that picks between a node's per-platform bit snapshots
     public static ApprovedSnapshot Load(string approvedPath);                  // an absent file is an empty snapshot
-    public string? Problem(string key, string actualLine);                     // null when the approved line of the key equals it; else the problem naming the key and how to approve; the pair is kept, and the actual file is (re)written beside the approved one from this call on
+    public string? Problem(string key, string actualLine, IReadOnlyList<string>? fields = null);   // null when the approved line of the key equals it; else the problem naming the key and how to approve; the pair is kept, and the actual file is (re)written beside the approved one from this call on; fields given and the key a problem, they are written one per line to a per-case dump beside the actual file (<actual-base>.<sanitized key>.fields.txt)
     public IReadOnlyList<string> StaleKeys(IEnumerable<string> producedKeys);  // approved keys no run produced, sorted ordinally
 }
 ```
@@ -94,7 +95,10 @@ public static class RunPropertyCut
 `CpuHost` creates an ILGPU context and a CPU accelerator and reads the data files and
 the tolerance table; `ApprovedSnapshot` writes `*.actual.txt` next to an approved file
 from the first problem a run finds in it on, so that the file always ends complete
-through the last key the caller passed it.
+through the last key the caller passed it; when a caller also passes `Problem` a
+`BitHash`'s `Fields`, a problem on that key writes one further file beside it,
+`<actual file>.<sanitized key>.fields.txt`, one field per line in the order the hash
+folded them (BOOT.md, the per-case field dump). Both are git-ignored.
 
 ## Out of scope
 

@@ -1,0 +1,33 @@
+name: Runner diagnostics
+description: >
+  Prints the CPU model and the logical core count of this runner and, when the .NET SDK is already set up in this
+  job, the ISA facts .NET itself sees (System.Runtime.Intrinsics.X86's Avx2/Fma/Avx512F.IsSupported,
+  RuntimeInformation.ProcessArchitecture and .OSDescription): evidence for the CPU-model and JIT-tiering hypotheses
+  of the bits-diagnostics task (root BOOT.md's platform constraint; tests/Harness/BOOT.md's per-case field dump).
+  One place for the logic every job's first diagnostics step shares, so it cannot drift between jobs.
+inputs:
+  dotnet-available:
+    description: "'true' once this job has already run its own 'Setup .NET SDK' step, so the ISA probe project can run."
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: CPU model and logical core count
+      shell: pwsh
+      run: |
+        if ($IsWindows) {
+          $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
+        }
+        else {
+          $line = (Get-Content /proc/cpuinfo | Select-String '^model name' | Select-Object -First 1)
+          $cpu = $line.ToString().Split(':')[1].Trim()
+        }
+
+        Write-Host "CPU model: $cpu"
+        Write-Host "Logical cores: $([Environment]::ProcessorCount)"
+
+    - name: ISA facts .NET sees
+      if: inputs.dotnet-available == 'true'
+      shell: pwsh
+      run: dotnet run --project "${{ github.action_path }}/../../diagnostics/IsaProbe" --configuration Release
