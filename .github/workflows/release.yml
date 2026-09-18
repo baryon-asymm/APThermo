@@ -44,7 +44,7 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             ref_name="${{ github.ref_name }}"
           fi
-          .github/scripts/check-release.sh "${{ steps.version.outputs.version }}" CHANGELOG.md release-notes.md "$ref_name"
+          bash .github/scripts/check-release.sh "${{ steps.version.outputs.version }}" CHANGELOG.md release-notes.md "$ref_name"
 
       - name: Upload release notes
         uses: actions/upload-artifact@v7
