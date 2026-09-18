@@ -4,6 +4,7 @@ on:
   push:
     branches: ['**']
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +34,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # First diagnostic step this job can run: the CPU/core-count half needs no SDK, but the ISA half
+      # (tests/Harness's per-case field dump, root BOOT.md's platform constraint) does, so this sits right after
+      # "Setup .NET SDK" rather than before it — the earliest point where both halves are meaningful.
+      - name: Runner diagnostics
+        uses: ./.github/actions/runner-diagnostics
+        with:
+          dotnet-available: 'true'
+
       - name: Setup Python 3
         uses: actions/setup-python@v7
         with:
@@ -48,6 +57,20 @@ jobs:
         env:
           APTHERMO_NO_CUDA: '1'
         run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
+
+      # Every *.actual.txt (a mismatched or missing bit-snapshot key) and its *.fields.txt per-case field dump
+      # (tests/Harness/BOOT.md, "a field dump is a caller's opt-in"), whenever the fast suite above failed: the CPU
+      # model, core count and ISA facts of the step above name the hardware and runtime that produced them.
+      - name: Upload bit-snapshot diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bit-snapshot-diagnostics-${{ matrix.os }}
+          path: |
+            **/*.actual.txt
+            **/*.actual.json
+            **/*.fields.txt
+          if-no-files-found: ignore
 
       - name: Determine the package version
         id: version

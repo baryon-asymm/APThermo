@@ -1,0 +1,7 @@
+# actionlint config (https://github.com/rhysd/actionlint/blob/main/docs/config.md): the release workflow's two GPU
+# jobs (cuda-windows, cuda-linux) target self-hosted runners by a third, project-chosen label, "gpu" (root BOOT.md,
+# "Self-hosted runners"), which actionlint's built-in list does not know. Declaring it here is the tool's own
+# documented way to stop flagging a real, existing label as unknown; it changes no runner selection.
+self-hosted-runner:
+  labels:
+    - gpu
