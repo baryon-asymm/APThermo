@@ -79,6 +79,33 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   platform, the same one place `Bits.approved.txt`'s per-node counterpart uses; the
   actual file is written beside whichever one is read, so `Throughput.linux.actual.txt`
   on Linux. The root's 5× floor is not a per-platform figure and applies to both.
+
+  ⚠ 2026-09-19: the approved files were Debug measurements (`dotnet test` without
+  `-c`) compared against a Release run, the configuration the release workflow and the
+  benchmarks node use. The release rehearsal (35439111934) failed the fact at 29.48×
+  against 80 % of the approved 56.28×, with no code regression: every other Cuda and
+  BitSnapshot fact was green (Fable 5.1's analysis of the run's tables). The mechanism:
+  the CPU accelerator executes the batch's kernels from the assemblies' IL — ILGPU's
+  CPU accelerator, not a native `System.Math` call path — so the host build
+  configuration changes its speed by roughly 2.8× (Debug ≈9.5 s, Release ≈3.4–3.7 s on
+  Windows for the 100 000-case sweep, the benchmarks node's 2026-09-15 figures); the
+  CUDA kernel is compiled once through libnvvm regardless of the host configuration, so
+  its own time (≈0.15–0.2 s) does not move. A Debug-vs-Release comparison therefore
+  compares two different CPU speeds under one name. `BuildConfiguration.Current`
+  (`#if DEBUG`) names the running configuration; the approved file now carries a
+  `configuration:` line, and the fact refuses to compare across configurations, naming
+  both in its message. Shown red once on each platform: the fact run in Debug against
+  the Release-approved file failed — "this run is Debug, but Throughput.approved.txt
+  was measured in Release; the CPU accelerator executes the kernels from the
+  assemblies' IL, so its speed depends on the build configuration (BOOT.md); run in
+  Release to compare against it" on Windows, the Linux run naming
+  `Throughput.linux.approved.txt` the same way. Both files are re-approved from Release
+  runs (the acceptance criterion below); the 80 % and the root's 5× floors are
+  unchanged. `SweepRun` also times each side as the median of three timed runs after
+  the warm-up instead of one, and repeats the CUDA warm-up five times (the GPU leaves
+  its idle P-state over several launches, not one), so a single slow or fast sample
+  does not move the tripwire; the CUDA determinism check still gets two independent
+  runs.
 - **No expected value is typed into a test**: the CPU accelerator is compared with
   the numerical nodes called directly over the same buffers, CUDA with the CPU
   accelerator, and the reference temperature of the equilibrium family comes from the
@@ -360,6 +387,37 @@ libdevice for the CUDA category.
       warnings; every `Bits*.approved.txt`, `Throughput*.approved.txt` and the
       protocol tests node's `PublicSurface.approved.txt` unchanged (`git status
       --short` names only the three files this fix touched).
+- [x] 2026-09-19 — The throughput tripwire compares within one build configuration
+      (the ⚠ above): `BuildConfiguration.Current`, the `configuration:` line, and the
+      refusal to compare across configurations. Both approved files re-measured on the
+      reference machine, GPU idle confirmed before every timed run
+      (`nvidia-smi --query-compute-apps` empty), with the release job's own filter
+      (`dotnet test APThermo.sln -c Release --filter "Category=Cuda|Category=BitSnapshot"`):
+      - Windows: three timed runs 23.58×, 22.13×, 24.54× (a 10 % spread); the median
+        approved (`Throughput.approved.txt`: CUDA 0.151 s, CPU 3.557 s, 23.58×, CUDA
+        kernel 0.132 s, both well above the root's 5× floor). The same filter green
+        afterward, 330/330 across the touched dlls (`Thermo.Tests` 214,
+        `Transport.Tests` 1, `Equilibrium.Tests` 1, `Performance.Tests` 99,
+        `Problems.Tests` 1, `Execution.Tests` 13, `Cli.Tests` 1).
+      - Linux: WSL2 Ubuntu-24.04 on the reference machine, user `student`, a fresh
+        `git clone` of the branch made through `/mnt/c` (cloning the worktree directly
+        fails: its `.git` file points at a Windows path) and deleted after the
+        measurement. Three timed runs 26.93×, 28.35×, 27.48× (a 5 % spread); the median
+        approved (`Throughput.linux.approved.txt`: CUDA 0.204 s, CPU 5.593 s, 27.48×,
+        CUDA kernel 0.128 s). The same filter green afterward, 330/330 across the same
+        dlls; the fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+        "Category!=LongRunning"`) 3101/3101, matching the Windows count of the same day.
+      - Shown red once on both platforms: the fact run in Debug (`dotnet test
+        tests/Execution.Tests --filter
+        "FullyQualifiedName~Throughput_is_recorded_and_not_below_the_approved_ratio"`)
+        against its platform's freshly re-approved, Release-measured file failed with
+        the message quoted in the ⚠ above, naming `Throughput.approved.txt` on Windows
+        and `Throughput.linux.approved.txt` on Linux.
+      - `protocol_lint` 0 errors, 0 warnings on both platforms both before and after;
+        the Windows fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+        "Category!=LongRunning"`) 3101/3101 throughout, none skipped; every
+        `Bits*.approved.txt` and the protocol tests node's `PublicSurface.approved.txt`
+        unchanged.
 
 ## Taboos
 

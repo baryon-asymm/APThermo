@@ -140,6 +140,7 @@ public sealed class CudaTests(EngineFixture fixture)
         var directory = Path.GetDirectoryName(ThisFile())!;
         var actualLines = new[]
         {
+            $"configuration: {BuildConfiguration.Current}",
             $"device: {cuda.Accelerator.DeviceName}",
             $"ilgpu: {cuda.Accelerator.IlgpuVersion}",
             $"cpu: {fixture.Cpu.Accelerator.DeviceName} with {fixture.Cpu.Accelerator.ThreadsOrMultiprocessors} threads",
@@ -161,6 +162,13 @@ public sealed class CudaTests(EngineFixture fixture)
             .Select(line => line.Split(':', 2))
             .Where(parts => parts.Length == 2)
             .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim(), StringComparer.Ordinal);
+        var approvedConfiguration = approved.GetValueOrDefault("configuration");
+        Assert.True(approvedConfiguration is not null,
+            $"{Path.GetFileName(approvedPath)} carries no configuration: line; re-approve it from a Release run (BOOT.md)");
+        Assert.True(string.Equals(approvedConfiguration, BuildConfiguration.Current, StringComparison.Ordinal),
+            $"this run is {BuildConfiguration.Current}, but {Path.GetFileName(approvedPath)} was measured in {approvedConfiguration}; " +
+            "the CPU accelerator executes the kernels from the assemblies' IL, so its speed depends on the build " +
+            $"configuration (BOOT.md); run in {approvedConfiguration} to compare against it");
         var approvedRatio = double.Parse(approved["ratio"], CultureInfo.InvariantCulture);
         Assert.True(ratio >= 5.0, $"CUDA is only {ratio:F2}x faster than the CPU accelerator (root criterion: at least 5x); see {actualPath}");
         Assert.True(ratio >= 0.8 * approvedRatio,

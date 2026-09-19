@@ -27,9 +27,10 @@ GPU/CPU tolerance table and the approved throughput figures.
   different-step relative tier are read from the fixtures node's tolerance table
   (`moleFractionFloor`, `polishThresholdRelative`), which this node's own table no
   longer duplicates (2026-09-14, F-TF-05).
-- `Throughput.approved.txt` in this node: device name, ILGPU version, CPU accelerator
-  and threads, cases, stations, species, CUDA time, CPU time, ratio, CUDA kernel time,
-  date.
+- `Throughput.approved.txt` in this node: build configuration, device name, ILGPU
+  version, CPU accelerator and threads, cases, stations, species, CUDA time, CPU time,
+  ratio, CUDA kernel time, date. The fact refuses to compare a run against a file
+  measured in a different configuration (2026-09-19, BOOT.md).
 
 ⚠ 2026-09-12: the sketch named the table `Tolerances.cs`; the file is
 `GpuCpuTolerances.cs`, so that it is not mistaken for the fixtures node's tolerance
