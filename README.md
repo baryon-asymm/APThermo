@@ -1,7 +1,7 @@
 # APThermo
 
 [![CI](https://github.com/baryon-asymm/APThermo/actions/workflows/ci.yml/badge.svg)](https://github.com/baryon-asymm/APThermo/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/baryon-asymm/APThermo/blob/main/LICENSE) [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
-<!-- NuGet badges (version, downloads) go here once APThermo and APThermo.Cli are published -->
+[![NuGet APThermo](https://img.shields.io/nuget/v/APThermo.svg?label=APThermo)](https://www.nuget.org/packages/APThermo) [![NuGet APThermo.Cli](https://img.shields.io/nuget/v/APThermo.Cli.svg?label=APThermo.Cli)](https://www.nuget.org/packages/APThermo.Cli) [![Downloads](https://img.shields.io/nuget/dt/APThermo.svg)](https://www.nuget.org/packages/APThermo)
 
 Chemical equilibrium and performance of rocket propellant combustion products:
 Gibbs-energy minimization (Gordon–McBride), shifting-equilibrium and frozen flow, on
