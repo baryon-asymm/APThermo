@@ -349,7 +349,21 @@ There is no external ancestor: the tree root is the repository root, and the loa
       (`tests/Execution.Tests/Throughput.approved.txt`: 56.28×, CUDA 0.170 s against
       9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
       Re-verified 2026-09-15 on the decomposed code at `62cd99e`, same test,
-      `Throughput.approved.txt` unchanged.
+      `Throughput.approved.txt` unchanged. Re-measured 2026-09-19 in Release, the
+      configuration the release runs, as the median of three runs of the release job's
+      filter: 23.58× on Windows (CUDA 0.151 s against 3.557 s) and 27.48× under WSL2
+      (0.204 s against 5.593 s), recorded in `Throughput.approved.txt` and
+      `Throughput.linux.approved.txt` with their configuration (merged as `a316ecb`).
+
+      ⚠ 2026-09-19: the figures above of 2026-09-12 (56.28×) and the Linux 52.01× were
+      Debug measurements, a fact no record stated. The CPU accelerator runs the kernels
+      from the assemblies' IL, so the host build configuration changes its speed about
+      2.8× (9.5 s in Debug, 3.4 s in Release), while the CUDA kernel does not depend on
+      it. The release rehearsal of 2026-09-19 compared a Release run with the Debug
+      record and failed at 29.48×. Found by a Fable 5.1 analysis that ruled out the
+      toolkit, the driver, the clocks and the code. The 5× target holds by a wide
+      margin in both configurations; the tripwire now records and asserts its
+      configuration, and its floors are unchanged.
 - [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
       (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
       `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1742
