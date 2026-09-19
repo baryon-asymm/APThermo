@@ -56,7 +56,7 @@ jobs:
       - name: Fast test suite
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning&Category!=BitSnapshot"
 
       # Every *.actual.txt (a mismatched or missing bit-snapshot key) and its *.fields.txt per-case field dump
       # (tests/Harness/BOOT.md, "a field dump is a caller's opt-in"), whenever the fast suite above failed: the CPU

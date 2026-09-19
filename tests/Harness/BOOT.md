@@ -90,6 +90,19 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   Bits level needs no platform logic of its own. A node whose Linux bits equal its
   Windows bits still keeps both files, byte for byte identical, so the rule has no
   exception (`Thermo.Tests`, whose table holds no accelerator solve).
+
+  ⚠ 2026-09-19: the root BOOT.md's platform constraint (⚠ 2026-09-18, the declared
+  deviation from "every test runs on both platforms") holds that the bits are a
+  record of the reference machine, not of the platform alone, and are compared
+  exactly only there: in local runs and on the release's self-hosted jobs
+  (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
+  `Category=Cuda|Category=BitSnapshot`), never on the hosted CI runners (`ci.yml`;
+  `release.yml`'s `matrix` job; filter `Category!=LongRunning&Category!=BitSnapshot`).
+  Each Bits-level consumer's own fact carries `[Trait("Category", "BitSnapshot")]`
+  (`Cli.Tests`, `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`,
+  `Thermo.Tests`, `Transport.Tests`); this node adds no trait and no CI knowledge of
+  its own — `ApprovedSnapshot` still only picks the file, never who runs the test
+  that reads it.
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.

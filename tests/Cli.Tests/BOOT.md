@@ -76,6 +76,21 @@ The definition of what "`Cli` is ready" means.
   run (2026-09-17, WSL2 Ubuntu 24.04, `f67b1a9` plus this task's harness change) did not
   reproduce the Windows bits, within the tolerance the root BOOT.md records for the
   difference; `Bits.linux.approved.txt` was approved from that run.
+
+  ⚠ 2026-09-19: the root BOOT.md's platform constraint (⚠ 2026-09-18, the declared
+  deviation from "every test runs on both platforms") holds that the bits are a
+  record of the reference machine, not of the platform alone: hosted CI runners land
+  on CPUs whose C runtime rounds the last bit differently from the reference
+  machine's. `Every_example_gives_the_recorded_output` now carries
+  `[Trait("Category", "BitSnapshot")]`, so it runs in every local run (`CLAUDE.md`'s
+  fast set) and in the release's self-hosted jobs
+  (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
+  `Category=Cuda|Category=BitSnapshot`), and is filtered out of the hosted fast suite
+  (`ci.yml`; `release.yml`'s `matrix` job; filter
+  `Category!=LongRunning&Category!=BitSnapshot`). `The_captured_text_matches_the_bytes_delivered_to_the_output_file`
+  carries no trait: it compares one run's captured text against the same run's
+  delivered file, never against `Bits.approved.txt`, so it stays outside this
+  deviation and keeps running on hosted CI.
 - **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
   tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
   wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,

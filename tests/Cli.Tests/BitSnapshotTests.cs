@@ -16,6 +16,7 @@ public sealed class BitSnapshotTests(CliFixture fixture)
     private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");
 
     [Fact]
+    [Trait("Category", "BitSnapshot")]
     public void Every_example_gives_the_recorded_output()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);

@@ -94,7 +94,7 @@ jobs:
       - name: Fast test suite
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning&Category!=BitSnapshot"
 
       # Mirrors ci.yml's build job: every *.actual.txt/*.fields.txt of a fast-suite failure
       # (tests/Harness/BOOT.md, "a field dump is a caller's opt-in"), read back against the diagnostics step above.
@@ -136,7 +136,7 @@ jobs:
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda"
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda|Category=BitSnapshot"
 
   cuda-linux:
     name: CUDA (Linux GPU)
@@ -165,7 +165,7 @@ jobs:
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda"
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda|Category=BitSnapshot"
 
   pack:
     name: Pack

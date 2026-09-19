@@ -21,6 +21,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Transport.Tests"), "Bits");
 
     [Fact]
+    [Trait("Category", "BitSnapshot")]
     public void Every_fixture_with_transport_gives_the_recorded_bits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
