@@ -26,6 +26,7 @@ public sealed class BitSnapshotTests : IClassFixture<BitSnapshot>
 
     [Theory]
     [MemberData(nameof(Cases))]
+    [Trait("Category", "BitSnapshot")]
     public void Every_fixture_case_gives_the_recorded_bits(string fixtureCase)
     {
         var problem = _snapshot.Problem(fixtureCase);
@@ -34,6 +35,7 @@ public sealed class BitSnapshotTests : IClassFixture<BitSnapshot>
 
     /// <summary>The reverse of the theory above: an approved line whose fixture was deleted or renamed, which a theory has no case for and so cannot fail on, fails this fact instead.</summary>
     [Fact]
+    [Trait("Category", "BitSnapshot")]
     public void Every_recorded_line_is_a_fixture_case()
     {
         var stale = _snapshot.StaleKeys();

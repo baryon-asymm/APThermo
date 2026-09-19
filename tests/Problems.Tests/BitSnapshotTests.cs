@@ -23,6 +23,7 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
 
     [Fact]
+    [Trait("Category", "BitSnapshot")]
     public void Every_fixture_gives_the_recorded_bits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
