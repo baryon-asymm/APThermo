@@ -696,13 +696,41 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   nightly run rather than add a CPU-only long test.
 - **Release**, on a tag `v*`, in order:
   1. the hosted matrix;
-  2. the CUDA tests, the long-running ones included, on two self-hosted runners of the
-     reference machine (Windows, and Linux under WSL2);
+  2. the CUDA tests, the long-running ones included, and the bit snapshots, on two
+     self-hosted runners of the reference machine (Windows, and Linux under WSL2), one
+     after the other, since they share one CPU and one GPU and the throughput tripwire
+     measures both;
   3. packing;
   4. a push to nuget.org through Trusted Publishing, behind an environment the owner
      approves;
   5. a GitHub release with the notes of `CHANGELOG.md`.
+- **Rehearsal before the tag** (2026-09-19). A manual dispatch of the release workflow
+  runs steps 1 to 3 on the commit to be released, and never 4 or 5. A tag `v<version>`
+  is pushed only on a commit whose dispatch run is green through packing, and the tag
+  message names that run. A tag is not moved once pushed; a failure after the tag is
+  fixed on a new commit, rehearsed, and released under the next patch version.
+
+  ⚠ 2026-09-19: the first release took four tag pushes (`6924aae`, `f603fd4`,
+  `fa4d626`, each moved), each failing on a path that had never run before it: a
+  context GitHub rejects in a job-level `env`, a script committed without the
+  executable bit, a bit snapshot on a hosted CPU, and a `pwsh` shell absent from both
+  self-hosted runners. The dispatch trigger that could have rehearsed all of them
+  existed since `c3f5b6b` and was never used; the workflows were verified by reading
+  and by a linter, which check syntax, not the host. A post-mortem (Fable 5.1, from the
+  runners' own `_diag` logs) found the common cause and set this rule. The tag
+  `v0.1.0` is moved one last time, after a green rehearsal, since nothing was ever
+  published under it.
 - **Self-hosted runners** never run a pull request's code. GPU jobs trigger only on tags
   and on manual dispatch, and the runners run under an account without administrator
   rights, started for a release rather than kept as services.
+  - What a runner must provide, checked by a preflight step that names the missing
+    item: git, the .NET SDK of `global.json`, an NVIDIA driver (`nvidia-smi`), libnvvm
+    and `libdevice.10.bc` where the execution node's discovery looks, and no
+    `APTHERMO_NO_CUDA`. Nothing else is assumed: no PowerShell 7, no Python, no Git
+    Bash. A step of a self-hosted job names its shell explicitly, `powershell` on
+    Windows and `bash` on Linux.
+- **Evidence for workflow changes.** A change under `.github/` runs only on GitHub, so it
+  is accepted on a run of the path it changes, on the runner class it targets: a CI
+  run for `ci.yml`, a dispatch run for `release.yml`. A review or a linter is not
+  enough.
 - Nothing is pushed to GitHub or nuget.org without the owner's word.

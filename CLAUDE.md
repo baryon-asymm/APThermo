@@ -24,6 +24,7 @@ decide the mode (design or coding), run the linter before and after the work.
 - Build: `dotnet build APThermo.sln`
 - Tests, fast set: `dotnet test APThermo.sln --filter "Category!=LongRunning"`
 - Tests, full set: `dotnet test APThermo.sln`
+- Tests as the release runs them on the reference machine: `dotnet test APThermo.sln -c Release --filter "Category=Cuda|Category=BitSnapshot"`
 
 ## Repository
 

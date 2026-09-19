@@ -120,6 +120,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Preflight
+        uses: ./.github/actions/preflight
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
@@ -133,14 +136,18 @@ jobs:
           dotnet-available: 'true'
 
       - name: Build
+        shell: powershell
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
+        shell: powershell
         run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda|Category=BitSnapshot"
 
   cuda-linux:
     name: CUDA (Linux GPU)
-    needs: matrix
+    # Shares one CPU and one GPU with cuda-windows, and the throughput tripwire (root BOOT.md's performance target)
+    # measures both, so the two never run at once (the 2026-09-19 post-mortem, "Rehearsal before the tag").
+    needs: [matrix, cuda-windows]
     runs-on: ['self-hosted', 'linux', 'gpu']
     timeout-minutes: 180
     steps:
@@ -149,6 +156,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Preflight
+        uses: ./.github/actions/preflight
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
@@ -162,15 +172,16 @@ jobs:
           dotnet-available: 'true'
 
       - name: Build
+        shell: bash
         run: dotnet build APThermo.sln --configuration Release
 
       - name: CUDA tests
+        shell: bash
         run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category=Cuda|Category=BitSnapshot"
 
   pack:
     name: Pack
     needs: [cuda-windows, cuda-linux]
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
