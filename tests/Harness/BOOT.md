@@ -285,6 +285,35 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       `SCRATCH/bits-diag/reference-lox-lh2_of4_pc5MPa_frozenAtThroat.txt` (that task's
       report), a reference a hosted-runner run's own dump of the same fixture can be
       diffed against.
+- [x] 2026-09-19 — Release configuration reproduces the approved bits on both
+      platforms, closing the open question the 2026-09-17 Linux approval left: that
+      approval ran `dotnet test APThermo.sln --filter "Category!=LongRunning"` with no
+      `-c` flag, i.e. Debug, while `release.yml`'s self-hosted jobs run
+      `--configuration Release`. On the reference machine, `dotnet test APThermo.sln -c
+      Release --filter "Category=Cuda|Category=BitSnapshot"` (the exact command
+      `cuda-windows` and `cuda-linux` run): on Windows, every BitSnapshot-category fact
+      of the six nodes with a `Bits.approved.txt` and every Cuda-category correctness
+      fact (`Execution.Tests`' 100 000-case sweep included) passed against the
+      Windows-flavoured approved files, unmoved; in a fresh clone under WSL2 Ubuntu
+      24.04 as user `student` (`/home/student/aptherm-rehearsal`, cloned from
+      `worktree-agent-a0efb38cbae4b4f4f` at `b17d79f`), the same command passed in full
+      (330/330) against the Linux-flavoured approved files, unmoved. Release
+      reproduces the bits this node's `ApprovedPathFor` picks on both platforms; no
+      `*.approved.txt` moved on either run (`git diff` empty in both trees).
+
+      One fact of `Execution.Tests` is outside this criterion's claim and this node's
+      concern (its Invariants: "no formula and no tolerance"):
+      `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio` is a
+      performance tripwire, not a bit comparison, and on this run of the Windows
+      reference machine it measured 22–29× against the required ≥45.02× (80 % of the
+      approved 56.28×) on five separate invocations (solution-wide and isolated, with
+      and without MSBuild's `-m:1`), while the same command was green on the Linux
+      clone. `nvidia-smi` showed the GPU at P8 (487 MHz of a 3090 MHz boost clock) at
+      rest between runs. Every other fact of `Execution.Tests` under this filter (bit
+      correctness, the sweep) stayed green throughout. Reported to the node that owns
+      the tripwire and its approved file (`tests/Execution.Tests`), out of scope here:
+      this task touched no `src/`, no test code outside this node, and no approved
+      file.
 
 ## Taboos
 
