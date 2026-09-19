@@ -1,0 +1,22 @@
+name: Preflight
+description: >
+  Asserts what a self-hosted GPU runner must provide before the release workflow's Windows or Linux CUDA job builds
+  or tests anything (root BOOT.md, "Self-hosted runners"): git, the .NET SDK named by global.json, an NVIDIA driver
+  (nvidia-smi), libnvvm and libdevice.10.bc where src/Execution/API.md's discovery looks, and no APTHERMO_NO_CUDA in
+  the job's environment. Fails naming every missing item, instead of a later step failing on an opaque error (the
+  2026-09-19 post-mortem, root BOOT.md's "Rehearsal before the tag"). The first step after checkout in both GPU
+  jobs. No PowerShell 7 (pwsh) and no assumption of Git Bash: each OS runs its own script under its own shell.
+runs:
+  using: composite
+  steps:
+    - name: Preflight (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        & "${{ github.action_path }}/../../scripts/preflight-windows.ps1"
+
+    - name: Preflight (Linux)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        "${{ github.action_path }}/../../scripts/preflight-linux.sh"

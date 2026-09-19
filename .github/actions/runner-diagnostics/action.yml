@@ -13,21 +13,32 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: CPU model and logical core count
-      shell: pwsh
+    # PowerShell 7 (pwsh) exists only on hosted images; a self-hosted runner has none, so this step and the three
+    # below name their shell explicitly and split by OS (the 2026-09-19 post-mortem, root BOOT.md's "Rehearsal
+    # before the tag"). Windows PowerShell 5.1 has no $IsWindows, hence the split rather than a single script
+    # branching on it.
+    - name: CPU model and logical core count (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
       run: |
-        if ($IsWindows) {
-          $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
-        }
-        else {
-          $line = (Get-Content /proc/cpuinfo | Select-String '^model name' | Select-Object -First 1)
-          $cpu = $line.ToString().Split(':')[1].Trim()
-        }
-
+        $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)
         Write-Host "CPU model: $cpu"
         Write-Host "Logical cores: $([Environment]::ProcessorCount)"
 
-    - name: ISA facts .NET sees
-      if: inputs.dotnet-available == 'true'
-      shell: pwsh
+    - name: CPU model and logical core count (Linux)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        cpu=$(grep -m1 '^model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ *//')
+        echo "CPU model: $cpu"
+        echo "Logical cores: $(nproc)"
+
+    - name: ISA facts .NET sees (Windows)
+      if: runner.os == 'Windows' && inputs.dotnet-available == 'true'
+      shell: powershell
+      run: dotnet run --project "${{ github.action_path }}/../../diagnostics/IsaProbe" --configuration Release
+
+    - name: ISA facts .NET sees (Linux)
+      if: runner.os != 'Windows' && inputs.dotnet-available == 'true'
+      shell: bash
       run: dotnet run --project "${{ github.action_path }}/../../diagnostics/IsaProbe" --configuration Release
