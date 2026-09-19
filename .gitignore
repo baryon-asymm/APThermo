@@ -11,6 +11,9 @@ artifacts/
 *.actual.txt
 *.actual.json
 
+# Harness: the per-case field dump of a differing Bits case (tests/Harness/BOOT.md, "a field dump is a caller's opt-in")
+*.fields.txt
+
 # BenchmarkDotNet's default output directory for an ad hoc run outside tests/Benchmarks/results/
 BenchmarkDotNet.Artifacts/
 

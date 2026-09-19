@@ -23,6 +23,7 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
 
     [Fact]
+    [Trait("Category", "BitSnapshot")]
     public void Every_fixture_gives_the_recorded_bits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
@@ -60,18 +61,24 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
     /// <summary>The fixture path as the snapshot records it: relative to the repository root, forward slashes.</summary>
     private static string RelativePath(string fullPath) => Path.GetRelativePath(RepositoryPaths.Root, fullPath).Replace('\\', '/');
 
-    private static void Record(ApprovedSnapshot snapshot, List<string> problems, List<string> keys, string path, string hash)
+    /// <summary>
+    /// Records one case's hash against the snapshot, passing the hash's own field trace along
+    /// (<see cref="BitHash.Fields"/>): on a mismatch the harness dumps every field this case folded into the hash,
+    /// beside <c>Bits.actual.txt</c>, so a run that disagrees with <c>Bits.approved.txt</c> also says which of the
+    /// hashed numbers moved (BOOT.md, the Bits level's per-case field dump).
+    /// </summary>
+    private static void Record(ApprovedSnapshot snapshot, List<string> problems, List<string> keys, string path, BitHash hash)
     {
         var key = RelativePath(path);
         keys.Add(key);
-        var problem = snapshot.Problem(key, hash);
+        var problem = snapshot.Problem(key, hash.ToHex(), hash.Fields);
         if (problem is not null)
         {
             problems.Add(problem);
         }
     }
 
-    private static string HashOf(ElementalMixture mixture, double mixtureMass, IReadOnlyList<string> species, IReadOnlyList<Station> stations, CaseStatus caseStatus)
+    private static BitHash HashOf(ElementalMixture mixture, double mixtureMass, IReadOnlyList<string> species, IReadOnlyList<Station> stations, CaseStatus caseStatus)
     {
         var hash = new BitHash();
         foreach (var element in mixture.Elements)
@@ -120,7 +127,7 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
         }
 
         hash.Add((int)caseStatus);
-        return hash.ToHex();
+        return hash;
     }
 
     private static void WriteState(BitHash hash, MixtureState s) =>

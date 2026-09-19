@@ -60,6 +60,21 @@ and the criterion below carry the day they were written.
   (2026-09-17, WSL2 Ubuntu 24.04, `f67b1a9` plus this task's harness change) reproduced
   the Windows bits exactly; `Bits.linux.approved.txt` is a byte-for-byte copy of
   `Bits.approved.txt`, kept so the platform rule has no exception rather than a gap.
+
+  ⚠ 2026-09-19: the root BOOT.md's platform constraint (⚠ 2026-09-18, the declared
+  deviation from "every test runs on both platforms") holds that the bits are a
+  record of the reference machine, not of the platform alone, so hosted CI runners
+  of unknown CPU no longer compare them exactly. `Every_fixture_case_gives_the_recorded_bits`
+  and `Every_recorded_line_is_a_fixture_case` (`BitSnapshotTests.cs`) now carry
+  `[Trait("Category", "BitSnapshot")]`, so both run in every local run (`CLAUDE.md`'s
+  fast set) and in the release's self-hosted jobs
+  (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
+  `Category=Cuda|Category=BitSnapshot`), and are filtered out of the hosted fast
+  suite (`ci.yml`; `release.yml`'s `matrix` job; filter
+  `Category!=LongRunning&Category!=BitSnapshot`). This is still the one Bits level
+  the platform difference does not reach (the bullet above), so the filtering costs
+  hosted CI no coverage this node's own bits could catch that the other L0/L1 rows
+  do not.
 - Kernel tests create their own ILGPU context with the CPU accelerator; no CUDA.
 
 ## Dependencies

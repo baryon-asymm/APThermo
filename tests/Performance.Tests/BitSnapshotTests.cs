@@ -69,6 +69,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
 
     [Theory]
     [MemberData(nameof(Cases))]
+    [Trait("Category", "BitSnapshot")]
     public void Every_rocket_fixture_gives_the_recorded_bits(string name)
     {
         var c = RocketHost.Load(name);
@@ -82,6 +83,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     /// deleted or renamed fixture would leave its line in place, read by no case and never failing.
     /// </summary>
     [Fact]
+    [Trait("Category", "BitSnapshot")]
     public void Every_approved_line_names_a_rocket_fixture()
     {
         var keys = FixtureFiles.Enumerate("rocket").Select(PathOf).ToList();

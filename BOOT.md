@@ -106,7 +106,24 @@ delivery (2026-09-15, `## Delivery` below).
   holds the Windows bits and its `Bits.linux.approved.txt` the Linux bits, the execution
   tests node's throughput figures follow the same rule, the harness picks the file of
   the running platform, and an intended numerical change re-approves both in the same
-  commit.
+  commit. The bits are a record of the reference machine, not of the platform alone
+  (2026-09-18): they are compared exactly on the reference machine, in local runs and
+  on the self-hosted release runners (Windows and WSL2), and not on the hosted CI
+  runners, where the facts carrying the trait `Category=BitSnapshot` are filtered out
+  and the CEA tolerance tests hold correctness.
+
+  ⚠ 2026-09-18, declared deviation from "every test runs on both platforms" (AGENTS.md
+  §12): the first release run failed on a hosted `windows-latest` runner in Release
+  with one rocket case of the front door's snapshot changed in its last bits, every
+  CEA tolerance test green, while earlier hosted runs and 35 local runs passed. The
+  Windows C runtime picks FMA3 or plain variants of `exp`, `log` and `pow` from the
+  CPU, and hosted runners land on different CPUs: disabling the FMA3 variants locally
+  (`_set_FMA3_enable(0)`) moved the bits of 20 of 213 front-door cases, 21 of 464
+  equilibrium cases and 38 of 99 rocket cases. A bit record therefore belongs to a
+  machine. The user chose exact comparison on the reference machine over a
+  field-by-field tolerance on hosted runners. What lifts the deviation: a bit-stable
+  math path (the CPU dispatch pinned in the execution node) or hosted runners of a
+  fixed CPU model.
 
   ⚠ 2026-09-17: the first wording of that sentence, written the same day, called the bit
   snapshots "the one platform-specific record". The Linux run then also failed the
@@ -662,7 +679,10 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
 - **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
   configuration and is not a node.
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
-    the build, the fast suite with `APTHERMO_NO_CUDA=1`, and packing both packages.
+    the build, the fast suite with `APTHERMO_NO_CUDA=1` and without the bit snapshots
+    (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint), and
+    packing both packages. The release's self-hosted jobs on the reference machine run
+    the bit snapshots with the CUDA tests.
     Then the samples run against the fresh `APThermo` package from a local feed, the
     tool installed from that feed runs an approved example, and the docs tests run (the
     ⚠ of 2026-09-17 under Documentation).
