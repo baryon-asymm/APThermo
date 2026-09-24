@@ -235,8 +235,8 @@ Types that stayed at this node's own level:
 
 | Type | Responsibility |
 |---|---|
-| `Program` | the entry point: dispatches through `CommandRegistry` and turns an exception into its exit code through `Failures` |
-| `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure and every unexpected exception 3 |
+| `Program` | the entry point: dispatches through `CommandRegistry`, turns the exceptions it knows into their exit codes through `Failures`, and installs in `Main` the process's unhandled-exception handler that turns every other exception into exit code 3 (2026-09-24, API.md) |
+| `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure, an I/O failure (`IOException`, `UnauthorizedAccessException`) and, through the unhandled-exception handler, every unexpected exception 3 |
 | `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand`/`SchemaCommand` and `Listings.DeviceListing` |
 | `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11); read by all four clusters below, no dominant owner (see the warning above) |
 | `SolverSession` | the database and the solver of one run, with their timings; disposable |

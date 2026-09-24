@@ -120,7 +120,7 @@ unchanged layout and bits.
 internal static class TransportLayout
 {
     public const int MaxSpecies = 40;                                          // the reference's limit on the set
-    public static int DoublesPerCase(int speciesCount, int elementCount);      // 4 · MaxSpecies² + elements · MaxSpecies + 8 · MaxSpecies
+    public static int DoublesPerCase(int elementCount);                        // 4 · MaxSpecies² + elements · MaxSpecies + 8 · MaxSpecies
     public static int IntsPerCase(int speciesCount, int elementCount);         // species + 4 · MaxSpecies + 4 · elements
 }
 
@@ -189,12 +189,17 @@ Two slots of the scratch are shared between stages of the evaluation and hold
 nothing across a call: `Stx` is the normalised pivot row of the trace elimination
 and, later, the per-pair difference vector of the reaction terms; `Mark` carries
 "seen by the component search" and "in the set" for every species. A caller slices
-the scratch and reads nothing from it. `TransportLayout.DoublesPerCase` takes the
-species count and does not use it: the double scratch is `4·M² + E·M + 8·M` with
-`M = MaxSpecies`, and the set is capped at `MaxSpecies`, so the doubles per case do not
-grow with the table; the parameter mirrors `Equilibrium`'s `ScratchLayout` so that the
-execution node sizes every scratch the same way (recorded 2026-09-14, the clean-code
-review's F-TP-06 and F-TP-07).
+the scratch and reads nothing from it. `TransportLayout.DoublesPerCase` takes
+only the element count: the double scratch is `4·M² + E·M + 8·M` with `M = MaxSpecies`,
+and the set is capped at `MaxSpecies`, so the doubles per case do not grow with the
+table.
+
+⚠ 2026-09-24: it took the species count too and ignored it, so that the execution
+node would size every scratch the way `Equilibrium`'s `ScratchLayout` does (recorded
+2026-09-14, the clean-code review's F-TP-06 and F-TP-07). Under the root's Diagnostics
+constraint the unused parameter is IDE0060, and a discard that only silenced the rule
+was found at the review of the first Diagnostics branch. The parameter is gone, and the
+execution node passes the element count alone.
 
 ## Errors
 
