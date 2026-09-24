@@ -16,6 +16,14 @@ public static class FixtureFamilies
     /// </summary>
     public static IEnumerable<object[]> Of(IEnumerable<string> kinds, Func<CeaCase, string> key)
     {
+        ArgumentNullException.ThrowIfNull(kinds);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return OfCore(kinds, key);
+    }
+
+    private static IEnumerable<object[]> OfCore(IEnumerable<string> kinds, Func<CeaCase, string> key)
+    {
         var families = new Dictionary<string, List<CeaCase>>(StringComparer.Ordinal);
         foreach (var kind in kinds)
         {
@@ -33,7 +41,7 @@ public static class FixtureFamilies
 
         foreach (var family in families.OrderByDescending(f => f.Value.Count).ThenBy(f => f.Key, StringComparer.Ordinal))
         {
-            yield return [family.Key, family.Value.Count, (IReadOnlyList<CeaCase>)family.Value];
+            yield return [family.Key, family.Value.Count, family.Value];
         }
     }
 }

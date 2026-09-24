@@ -84,6 +84,9 @@ public sealed class ApprovedSnapshot
     /// fields to offer (a composite line over more than one hash, for instance) simply omits the argument, and gets the
     /// same key/value problem as before.
     /// </param>
+    /// <param name="key">The snapshot key this run computed a value for.</param>
+    /// <param name="actualLine">The value this run computed for <paramref name="key"/>.</param>
+    /// <returns>Null when the value agrees with the approved one; otherwise a message naming the problem.</returns>
     public string? Problem(string key, string actualLine, IReadOnlyList<string>? fields = null)
     {
         _actualPairs.Add((key, actualLine));
@@ -122,7 +125,7 @@ public sealed class ApprovedSnapshot
     public IReadOnlyList<string> StaleKeys(IEnumerable<string> producedKeys)
     {
         var produced = new HashSet<string>(producedKeys, StringComparer.Ordinal);
-        return _approved.Keys.Where(key => !produced.Contains(key)).OrderBy(key => key, StringComparer.Ordinal).ToArray();
+        return [.. _approved.Keys.Where(key => !produced.Contains(key)).OrderBy(key => key, StringComparer.Ordinal)];
     }
 
     /// <summary>
@@ -161,7 +164,7 @@ public sealed class ApprovedSnapshot
         var builder = new StringBuilder(key.Length);
         foreach (var c in key)
         {
-            builder.Append(char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '_');
+            _ = builder.Append(char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '_');
         }
 
         return builder.ToString();
