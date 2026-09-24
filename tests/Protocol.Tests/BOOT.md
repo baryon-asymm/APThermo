@@ -19,6 +19,7 @@ dependencies against the real ones.
 | Root invariants | double precision only and no mutable static field in the numerical nodes; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
 | Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
+| Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic, and the root build files set the maximum | the tree's `.cs`, project, props, targets, `.editorconfig` and `.globalconfig` files (`DiagnosticsTests`) | ⏳ (2026-09-24) |
 
 ⚠ 2026-09-13: the sketch had five levels. The root `BOOT.md` claimed three of its
 invariants "checked by reflection" while no node held such a check; they are of the
@@ -667,6 +668,53 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
 | `src/Thermo` | 1 | 6 | 0.143 |
 | `src/Transport` | 3 | 3 | 0.500 |
 
+## Diagnostics check
+
+Designed 2026-09-24 for the root's Diagnostics constraint. Every build already fails on
+any diagnostic that is raised. What a build cannot see is a diagnostic that is never
+raised because someone suppressed it: a pragma, an attribute, a `NoWarn`, a lowered
+severity, a project that overrides the root's properties. This level reads the files
+that could do that. It reads text and syntax, not assemblies, as the Shape level
+already does, and it walks the tree with the same exclusions (`bin`, `obj`, `.git`,
+`.claude`).
+
+The facts of `DiagnosticsTests`, each failing on an empty set:
+
+1. `NoSourceFileSuppressesADiagnostic`: no C# file of the tree holds a
+   `#pragma warning` directive or a `#nullable` directive that disables or restores a
+   context. Read from the Roslyn syntax trees' directive trivia, not by text, so a
+   string or a comment that mentions them does not count.
+2. `NoSourceFileCarriesASuppressionAttribute`: no attribute named `SuppressMessage`
+   or `UnconditionalSuppressMessage`, with or without the `Attribute` suffix, on any
+   target, `assembly:` and `module:` included. No file is named
+   `GlobalSuppressions.cs`.
+3. `NoBuildFileSuppressesOrOverridesADiagnostic`: no `.csproj`, `.props` or `.targets`
+   file of the tree sets `NoWarn` or `WarningsNotAsErrors`, except that the root
+   `Directory.Build.targets` resets `NoWarn` to empty. None but the root
+   `Directory.Build.props` sets `TreatWarningsAsErrors`, `WarningLevel`, `Features`,
+   `AnalysisLevel`, any `AnalysisMode*` or `AnalysisLevel*`,
+   `EnforceCodeStyleInBuild`, `GenerateDocumentationFile`, `Nullable`,
+   `RunAnalyzers`, `RunAnalyzersDuringBuild` or `EnableNETAnalyzers`. Read as XML
+   elements, so a comment does not count.
+4. `NoAnalyzerConfigurationLowersASeverity`: every `.editorconfig` and `.globalconfig`
+   of the tree gives every key ending in `.severity` the value `warning` or `error`,
+   and every option value has no `:severity` suffix below warning. The root
+   `.editorconfig` holds `dotnet_analyzer_diagnostic.severity = warning`.
+5. `TheRootBuildRunsAtTheMaximum`: the root `Directory.Build.props` sets the values
+   the root names: `TreatWarningsAsErrors` true, `WarningLevel` 9999, `Features`
+   `strict`, `AnalysisLevel` `latest-all`, `EnforceCodeStyleInBuild` true and
+   `GenerateDocumentationFile` true. The root `Directory.Build.targets` sets `NoWarn`
+   to empty.
+
+Each fact is shown red once by a mutation applied alone and restored:
+- a `#pragma warning disable` in a test file (1);
+- a `#nullable disable` (1);
+- `[SuppressMessage]` on a method (2);
+- `<NoWarn>` in a test `.csproj` (3);
+- `GenerateDocumentationFile` false in one `.csproj` (3);
+- `dotnet_diagnostic.CA1707.severity = none` in a scratch `tests/.editorconfig` (4);
+- `WarningLevel` 10 in the root props (5).
+
 ## Acceptance criteria
 
 - [x] 2026-09-13 — Lint wired:
@@ -1153,6 +1201,10 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       0 warnings; `PublicSurface.approved.txt` unchanged (`git hash-object`:
       `05c95d07892bc7d9a323882bc702f29c48e65dc8`, before and after); `git status
       --short` empty.
+
+- [ ] 2026-09-24 — Diagnostics level: `DiagnosticsTests` written as designed under
+      "## Diagnostics check", green on the tree, each fact failing on an empty set,
+      and each mutation listed there seen red alone and restored.
 
 ## Taboos
 

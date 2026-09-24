@@ -81,24 +81,35 @@ kernel; `TransportTableBuffers.Upload` replaces it. The sketch also had one star
 count per species for the pair runs; the pairs got their own start and count arrays
 addressed through `PairIndex`.
 
-## Evaluation ✅
+## Evaluation ⏳
+
+⏳ until the Diagnostics change of the root `BOOT.md` (2026-09-24) is coded; the
+mark returns to ✅ in the commit that makes `TransportFigures` as declared here. The
+same ⚠ applies as to `MixtureState` (`src/Thermo/API.md`): until 0.1.0 the members
+were public fields without equality, and binaries built against 0.1.0 must recompile.
 
 ```csharp
-public struct TransportFigures                           // one station; SI
+public struct TransportFigures : IEquatable<TransportFigures>   // one station; SI
 {
-    public double Viscosity;                             // Pa·s
-    public double FrozenConductivity;                    // W/(m·K)
-    public double ReactingConductivity;                  // W/(m·K), frozen plus reaction term
-    public double FrozenPrandtl;                         // Cp_fr η / λ_fr over the transport set
-    public double ReactingPrandtl;                       // Cp_eq η / λ_eq over the transport set
-    public double FrozenHeatCapacity;                    // J/(kg·K) of the set's gas: the reference's cp_fr with transport on
-    public double EquilibriumHeatCapacity;               // J/(kg·K), frozen plus reaction heat capacity of the set
-    public double EstimatedMoleFraction;                 // of the set, carried by species without data
-    public int SpeciesCount;                             // NM
-    public int ReactionCount;                            // NR, after the trace eliminations
-    public int EstimatedSpeciesCount;
-    public int TraceEliminations;                        // species of the set below TraceFraction removed from the reaction set
-    public int Capped;                                   // 1 when a species was refused because the set was full
+    public double Viscosity { get; set; }                // Pa·s
+    public double FrozenConductivity { get; set; }       // W/(m·K)
+    public double ReactingConductivity { get; set; }     // W/(m·K), frozen plus reaction term
+    public double FrozenPrandtl { get; set; }            // Cp_fr η / λ_fr over the transport set
+    public double ReactingPrandtl { get; set; }          // Cp_eq η / λ_eq over the transport set
+    public double FrozenHeatCapacity { get; set; }       // J/(kg·K) of the set's gas: the reference's cp_fr with transport on
+    public double EquilibriumHeatCapacity { get; set; }  // J/(kg·K), frozen plus reaction heat capacity of the set
+    public double EstimatedMoleFraction { get; set; }    // of the set, carried by species without data
+    public int SpeciesCount { get; set; }                // NM
+    public int ReactionCount { get; set; }               // NR, after the trace eliminations
+    public int EstimatedSpeciesCount { get; set; }
+    public int TraceEliminations { get; set; }           // species of the set below TraceFraction removed from the reaction set
+    public int Capped { get; set; }                      // 1 when a species was refused because the set was full
+
+    public readonly bool Equals(TransportFigures other);       // every property equal by Equals of its type (NaN equals NaN)
+    public override readonly bool Equals(object? obj);
+    public override readonly int GetHashCode();
+    public static bool operator ==(TransportFigures left, TransportFigures right);
+    public static bool operator !=(TransportFigures left, TransportFigures right);
 }
 ```
 

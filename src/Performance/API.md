@@ -18,23 +18,38 @@ tests. They moved from the package surface into the tree contract below; only
 them on `RocketProblem`/`StateRecord` and `Station` of `Problems` (distinct,
 same-named types there: `Problems.RocketResult`, not this node's).
 
-## Flow and figures ✅
+## Flow and figures ⏳
+
+⏳ until the Diagnostics change of the root `BOOT.md` (2026-09-24) is coded; the
+mark returns to ✅ in the commit that makes `PerformanceFigures` as declared here.
 
 ```csharp
 namespace APThermo.Performance;
 
 public enum FlowModel { ShiftingEquilibrium, FrozenAtChamber, FrozenAtThroat }
 
-public struct PerformanceFigures                         // one station; SI
+public struct PerformanceFigures : IEquatable<PerformanceFigures>   // one station; SI
 {
-    public double AreaRatio;                             // A/A_t; 1 at the throat, 0 at the chamber (undefined there)
-    public double PressureRatio;                         // p_c/p; 1 at the chamber
-    public double CharacteristicVelocity;                // c* = p_c/(ρ_t u_t), m/s, the same at every station
-    public double ThrustCoefficient;                     // C_F = u/c*; 0 at the chamber
-    public double SpecificImpulse;                       // Isp = u, m/s (p_ambient = p); 0 at the chamber
-    public double VacuumSpecificImpulse;                 // Ivac = u + p/(ρ u), m/s; 0 at the chamber
+    public double AreaRatio { get; set; }                // A/A_t; 1 at the throat, 0 at the chamber (undefined there)
+    public double PressureRatio { get; set; }            // p_c/p; 1 at the chamber
+    public double CharacteristicVelocity { get; set; }   // c* = p_c/(ρ_t u_t), m/s, the same at every station
+    public double ThrustCoefficient { get; set; }        // C_F = u/c*; 0 at the chamber
+    public double SpecificImpulse { get; set; }          // Isp = u, m/s (p_ambient = p); 0 at the chamber
+    public double VacuumSpecificImpulse { get; set; }    // Ivac = u + p/(ρ u), m/s; 0 at the chamber
+
+    public readonly bool Equals(PerformanceFigures other);     // every property equal by double.Equals (NaN equals NaN)
+    public override readonly bool Equals(object? obj);
+    public override readonly int GetHashCode();
+    public static bool operator ==(PerformanceFigures left, PerformanceFigures right);
+    public static bool operator !=(PerformanceFigures left, PerformanceFigures right);
 }
 ```
+
+⚠ 2026-09-24: until 0.1.0 the members were public fields without equality; the
+root's Diagnostics constraint (CA1051, CA1815) made them auto-properties with value
+equality. The consequences are the same as for `MixtureState` (`src/Thermo/API.md`):
+source-compatible for readers, a recompile for binaries built against 0.1.0, and
+unchanged layout and bits.
 
 ## Rocket solver (tree contract) ✅
 

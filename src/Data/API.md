@@ -159,6 +159,19 @@ public sealed class DatabaseFormatException : Exception
 }
 ```
 
+### Standard constructors ⏳
+
+Added 2026-09-24 by the root's Diagnostics constraint (CA1032); ⏳ until coded, then
+merged into the ✅ block above. They exist for the .NET exception conventions; the tree
+itself always throws through the constructor above. The data properties take neutral
+values: `FileName` null, `LineNumber` 0.
+
+```csharp
+public DatabaseFormatException();
+public DatabaseFormatException(string message);
+public DatabaseFormatException(string message, Exception innerException);
+```
+
 | Situation | Behaviour |
 |---|---|
 | a path does not exist | `FileNotFoundException` before anything is parsed |

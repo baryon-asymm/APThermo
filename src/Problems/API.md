@@ -170,6 +170,22 @@ public sealed class MixtureMassException : ArgumentException   // the solver's r
 }
 ```
 
+### Standard constructors ⏳
+
+Added 2026-09-24 by the root's Diagnostics constraint (CA1032); ⏳ until coded, then
+merged into the ✅ block above. They exist for the .NET exception conventions; the tree
+itself always throws through the constructor above. The data properties take neutral
+values: `Index` −1, `Mass` and `Tolerance` NaN, `Reason` the message (the empty string for the parameterless one); the same for `StateRecordException`'s `Index` and `Reason`.
+
+```csharp
+public StateRecordException();
+public StateRecordException(string message);
+public StateRecordException(string message, Exception innerException);
+public MixtureMassException();
+public MixtureMassException(string message);
+public MixtureMassException(string message, Exception innerException);
+```
+
 An `ElementalMixture` is accepted everywhere a `Propellant` is (rocket and
 equilibrium problems). A list of `StateRecord`s is one batch: every record may carry
 its own composition, pressure and target; the candidate species are chosen from the

@@ -168,6 +168,50 @@ delivery (2026-09-15, `## Delivery` below).
   protocol tests node attributes a type to the deepest node whose namespace it carries,
   as AGENTS.md §1 already defines membership by the directory of a file. Decided with
   the user on 2026-09-14 for the phase after the clean-code pass.
+- Diagnostics (2026-09-24): the compiler and every analyzer run at their maximum, every
+  diagnostic is an error, and nothing in the tree is exempt, the test, sample and
+  benchmark nodes included.
+  - `Directory.Build.props` sets, for every project:
+    - `TreatWarningsAsErrors`;
+    - `WarningLevel` 9999, every warning wave present and future;
+    - `Features` `strict`;
+    - `AnalysisLevel` `latest-all`;
+    - `EnforceCodeStyleInBuild`;
+    - `GenerateDocumentationFile`, so CS1591 holds for every publicly visible member,
+      and IDE0005 needs it in the build.
+
+    `Directory.Build.targets` clears the SDK's default `NoWarn`. No project file sets
+    any of these properties itself.
+  - The root `.editorconfig` raises every analyzer diagnostic to a warning
+    (`dotnet_analyzer_diagnostic.severity = warning`). It fixes the options of the style
+    rules to the style the code was written in: `var`, file-scoped namespaces,
+    `_camelCase` private instance fields, PascalCase constants and static fields,
+    parentheses for clarity in mixed logical and relational expressions and none in
+    arithmetic. A style option chooses between two forms; it is never chosen to silence
+    a rule.
+  - No diagnostic is suppressed anywhere:
+    - no `#pragma warning` and no `#nullable disable`;
+    - no `[SuppressMessage]` or `[UnconditionalSuppressMessage]`;
+    - no `NoWarn` and no `WarningsNotAsErrors`;
+    - no severity below `warning` in any `.editorconfig` or `.globalconfig`.
+  - A rule that conflicts with a framework is resolved in code:
+    - test methods are PascalCase (CA1707) and carry XML documentation like any public
+      member (CS1591);
+    - an awaited call in a test says `ConfigureAwait(true)`, which satisfies both CA2007
+      and xUnit1030;
+    - public exceptions carry the standard constructors (CA1032);
+    - the result structs `MixtureState`, `PerformanceFigures` and `TransportFigures`
+      expose properties and value equality (CA1051, CA1815). This breaks the binary
+      surface of 0.1.0, so the next release is 0.2.0 (`CHANGELOG.md`).
+  - A conflict that code cannot resolve goes to the owner; no node declares an exception
+    of its own.
+
+  Checked by every build and by the protocol tests node (`DiagnosticsTests`). Decided
+  with the owner on 2026-09-24, who asked for the maximum and rejected the scoped
+  exceptions proposed for the test nodes (CA1707, CS1591 and CA2007 in the tests;
+  CA1515 in the benchmarks) and for the public exceptions (CA1032). The measurement
+  before the change, at `0899500` with the settings above: 738 diagnostics with the
+  proposed exceptions, about 1 500 without them.
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
   namespace is `APThermo`; the grouping directories `src/`, `tests/` and `samples/` are
   transparent: `src/Equilibrium` is `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is
@@ -467,6 +511,16 @@ There is no external ancestor: the tree root is the repository root, and the loa
       Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
       "Every code block … equals its sample region" predated the snippet markers and
       named only four of the six proofs.
+- [ ] Diagnostics (2026-09-24): the tree builds at the maximum of the Diagnostics
+      constraint with 0 warnings and 0 errors, and nothing suppresses a diagnostic.
+      - `DiagnosticsTests` is green, each of its facts shown red once and failing on an
+        empty set.
+      - The bit snapshots are unchanged, and the fast suite and the protocol lint are
+        green.
+      - The execution tests node is green on CUDA on the reference machine, its
+        long-running sweep included, because the result structs changed shape.
+      - The public surface snapshot moves only by the structs' properties and equality
+        and the exceptions' standard constructors.
 
 ## Taboos
 
@@ -486,6 +540,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - No loosening of a tolerance to turn a test green, and no expected value typed into a
   test when it exists in a fixture file.
 - No public type outside its node's `API.md`: undocumented surface is a contract nobody agreed to.
+- No suppressed diagnostic, in any form or scope: a warning is fixed in the code, and a
+  conflict the code cannot resolve goes to the owner (the Diagnostics constraint).
 
 ## Decomposition
 

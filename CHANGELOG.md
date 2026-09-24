@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
+
+### Changed
+- `MixtureState`, `PerformanceFigures` and `TransportFigures` expose auto-properties
+  instead of public fields and implement `IEquatable<T>` with `==` and `!=`. Code that
+  reads or sets them compiles unchanged, but binaries built against 0.1.0 must be
+  recompiled.
+- The build enables every compiler and analyzer diagnostic and treats each one as an
+  error, with no suppression anywhere.
+
+### Added
+- The standard exception constructors (parameterless, message, message and inner
+  exception) on `DatabaseFormatException`, `AcceleratorUnavailableException`,
+  `StateRecordException` and `MixtureMassException`.
+
 ## [0.1.0] - 2026-09-18
 
 ### Added

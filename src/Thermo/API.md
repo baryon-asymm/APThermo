@@ -18,27 +18,41 @@ surface into the tree contract below; only `MixtureState` and `CaseStatus` stay 
 because a consumer reads them from `Station`, `RocketResult` and `EquilibriumResult` of
 `Problems`.
 
-## Species vocabulary ✅
+## Species vocabulary ⏳
+
+⏳ until the Diagnostics change of the root `BOOT.md` (2026-09-24) is coded; the
+mark returns to ✅ in the commit that makes `MixtureState` as declared here.
 
 ```csharp
 namespace APThermo.Thermo;
 
-public struct MixtureState                        // one station of one case; SI units
+public struct MixtureState : IEquatable<MixtureState>   // one station of one case; SI units
 {
-    public double Temperature;                    // K
-    public double Pressure;                       // Pa
-    public double Density;                        // kg/m³
-    public double Enthalpy, InternalEnergy;       // J/kg
-    public double Entropy;                        // J/(kg·K)
-    public double GibbsEnergy;                    // J/kg
-    public double MolarMass;                      // kg/kmol, CEA's M = 1/n (whole mixture per kmol of gas)
-    public double MixtureMolarMass;               // kg/kmol, CEA's MW: one kilogram over the moles of all species, condensed included
-    public double CpFrozen, CpEquilibrium;        // J/(kg·K)
-    public double CvFrozen, CvEquilibrium;        // J/(kg·K)
-    public double DlnVdlnT, DlnVdlnP;             // equilibrium derivatives, dimensionless; 1 and −1 when frozen
-    public double GammaS;                         // isentropic exponent
-    public double SoundSpeed;                     // m/s
-    public double Velocity, Mach;                 // zero where not applicable
+    public double Temperature { get; set; }       // K
+    public double Pressure { get; set; }          // Pa
+    public double Density { get; set; }           // kg/m³
+    public double Enthalpy { get; set; }          // J/kg
+    public double InternalEnergy { get; set; }    // J/kg
+    public double Entropy { get; set; }           // J/(kg·K)
+    public double GibbsEnergy { get; set; }       // J/kg
+    public double MolarMass { get; set; }         // kg/kmol, CEA's M = 1/n (whole mixture per kmol of gas)
+    public double MixtureMolarMass { get; set; }  // kg/kmol, CEA's MW: one kilogram over the moles of all species, condensed included
+    public double CpFrozen { get; set; }          // J/(kg·K)
+    public double CpEquilibrium { get; set; }     // J/(kg·K)
+    public double CvFrozen { get; set; }          // J/(kg·K)
+    public double CvEquilibrium { get; set; }     // J/(kg·K)
+    public double DlnVdlnT { get; set; }          // equilibrium derivative, dimensionless; 1 when frozen
+    public double DlnVdlnP { get; set; }          // equilibrium derivative, dimensionless; −1 when frozen
+    public double GammaS { get; set; }            // isentropic exponent
+    public double SoundSpeed { get; set; }        // m/s
+    public double Velocity { get; set; }          // m/s, zero where not applicable
+    public double Mach { get; set; }              // zero where not applicable
+
+    public readonly bool Equals(MixtureState other);          // every property equal by double.Equals (NaN equals NaN)
+    public override readonly bool Equals(object? obj);
+    public override readonly int GetHashCode();
+    public static bool operator ==(MixtureState left, MixtureState right);
+    public static bool operator !=(MixtureState left, MixtureState right);
 }
 
 public enum CaseStatus
@@ -63,6 +77,13 @@ Wrong: the reference's MW is 1/Σ n_j over all species with the condensed ones c
 as moles (it equals M for a gas-only mixture), found when the Equilibrium tests compared
 the water-condensation example (M = 64.18, MW = 19.29 kg/kmol at 300 K) and the
 aluminized propellant. Renamed, with the fixture field and the tolerance entry.
+
+⚠ 2026-09-24: until 0.1.0 the members were public fields and the struct had no equality
+of its own. The root's Diagnostics constraint (CA1051, CA1815) made them auto-properties
+and gave the struct value equality. Reading code compiles unchanged, and a kernel still
+writes through the view's `ref` element (`view[i].Temperature = t`). A caller compiled
+against 0.1.0 must recompile, since a field and a property are different members in IL.
+The layout of the struct, the values and the bits are unchanged.
 
 ## Physical constants and table limits (tree contract) ✅
 
