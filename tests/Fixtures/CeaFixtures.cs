@@ -27,17 +27,52 @@ public sealed record CeaCase(
     string Path);
 
 /// <summary>A fixture file that is not a fixture document of its kind.</summary>
-public sealed class FixtureFormatException(string fileName, string field, string message)
-    : Exception($"{fileName}: {field}: {message}")
+public sealed class FixtureFormatException : Exception
 {
-    public string FileName { get; } = fileName;
+    /// <summary>Creates the exception with no message (CA1032's parameterless constructor).</summary>
+    public FixtureFormatException()
+    {
+    }
 
-    public string Field { get; } = field;
+    /// <summary>Creates the exception with a plain message (CA1032's message constructor).</summary>
+    /// <param name="message">The exception message.</param>
+    public FixtureFormatException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>Creates the exception with a message and an inner exception (CA1032's third standard constructor).</summary>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The exception that caused this one.</param>
+    public FixtureFormatException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+
+    /// <summary>Creates the exception naming the file and field that failed to parse.</summary>
+    /// <param name="fileName">The fixture file that failed to parse.</param>
+    /// <param name="field">The field of the fixture document that is missing or malformed.</param>
+    /// <param name="message">Why the field failed to parse.</param>
+    public FixtureFormatException(string fileName, string field, string message)
+        : base($"{fileName}: {field}: {message}")
+    {
+        FileName = fileName;
+        Field = field;
+    }
+
+    /// <summary>The fixture file that failed to parse.</summary>
+    public string FileName { get; } = string.Empty;
+
+    /// <summary>The field of the fixture document that is missing or malformed.</summary>
+    public string Field { get; } = string.Empty;
 }
 
 /// <summary>Reads fixture documents written by the generator scripts.</summary>
 public static class CeaFixtures
 {
+    /// <summary>Loads and parses one fixture document.</summary>
+    /// <param name="path">The path of the fixture file.</param>
+    /// <returns>The parsed case.</returns>
     public static CeaCase Load(string path)
     {
         JsonDocument document;
@@ -76,8 +111,11 @@ public static class CeaFixtures
         }
     }
 
+    /// <summary>Loads and parses every fixture document of one kind.</summary>
+    /// <param name="kind">The fixture kind, a subdirectory of <see cref="FixtureFiles.Root"/>.</param>
+    /// <returns>Every parsed case of that kind, in file order.</returns>
     public static IReadOnlyList<CeaCase> LoadAll(string kind) =>
-        FixtureFiles.Enumerate(kind).Select(Load).ToArray();
+        [.. FixtureFiles.Enumerate(kind).Select(Load)];
 
     /// <summary>
     /// The <c>generator</c> block, field by field: each argument reads its own named field of <paramref name="generator"/>
@@ -91,12 +129,9 @@ public static class CeaFixtures
         DateOnly Date()
         {
             var text = Text("generatedOn");
-            if (!DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-            {
-                throw new FixtureFormatException(path, "generator.generatedOn", $"'{text}' is not a date of the form yyyy-MM-dd");
-            }
-
-            return date;
+            return DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+                ? date
+                : throw new FixtureFormatException(path, "generator.generatedOn", $"'{text}' is not a date of the form yyyy-MM-dd");
         }
 
         return new Provenance(
@@ -109,18 +144,10 @@ public static class CeaFixtures
     private static JsonElement Required(string path, JsonElement parent, string field, JsonValueKind kind) =>
         Required(path, parent, field, field, kind);
 
-    private static JsonElement Required(string path, JsonElement parent, string field, string property, JsonValueKind kind)
-    {
-        if (!parent.TryGetProperty(property, out var element))
-        {
-            throw new FixtureFormatException(path, field, "the field is missing");
-        }
-
-        if (element.ValueKind != kind)
-        {
-            throw new FixtureFormatException(path, field, $"expected {kind}, found {element.ValueKind}");
-        }
-
-        return element;
-    }
+    private static JsonElement Required(string path, JsonElement parent, string field, string property, JsonValueKind kind) =>
+        !parent.TryGetProperty(property, out var element)
+            ? throw new FixtureFormatException(path, field, "the field is missing")
+            : element.ValueKind == kind
+                ? element
+                : throw new FixtureFormatException(path, field, $"expected {kind}, found {element.ValueKind}");
 }
