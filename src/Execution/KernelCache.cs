@@ -14,7 +14,7 @@ namespace APThermo.Execution;
 internal sealed class KernelCache(AcceleratorSession session)
 {
     private readonly Dictionary<string, Delegate> _launchers = new(StringComparer.Ordinal);
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
 
     /// <summary>The launcher of the named entry point; <paramref name="warmUp"/> is the compilation time, zero when it was cached.</summary>
     public TDelegate Get<TDelegate>(string name, out TimeSpan warmUp) where TDelegate : Delegate

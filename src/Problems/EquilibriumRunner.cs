@@ -1,6 +1,5 @@
 using APThermo.Data;
 using APThermo.Execution;
-using APThermo.Thermo;
 
 namespace APThermo.Problems;
 

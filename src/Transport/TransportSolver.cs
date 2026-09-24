@@ -1,4 +1,3 @@
-using APThermo.Equilibrium;
 using APThermo.Thermo;
 using ILGPU;
 

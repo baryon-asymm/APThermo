@@ -67,9 +67,9 @@ internal sealed class TransportTable
 
         var arrays = new TransportTableArrays(
             viscosityStart: runs.ViscosityStart, viscosityCount: runs.ViscosityCount,
-            conductivityStart: runs.ConductivityStart, conductivityCount: runs.ConductivityCount, fits: fits.ToArray(),
-            pairIndex: pairs.Index, pairStart: pairs.Start.Count == 0 ? [0] : pairs.Start.ToArray(),
-            pairCount: pairs.Count.Count == 0 ? [0] : pairs.Count.ToArray(),
+            conductivityStart: runs.ConductivityStart, conductivityCount: runs.ConductivityCount, fits: [.. fits],
+            pairIndex: pairs.Index, pairStart: pairs.Start.Count == 0 ? [0] : [.. pairs.Start],
+            pairCount: pairs.Count.Count == 0 ? [0] : [.. pairs.Count],
             pairTotal: pairs.Names.Count);
         return new TransportTable(species, arrays, runs.WithData, runs.WithoutData, pairs.Names);
     }
@@ -190,55 +190,42 @@ internal sealed class TransportTableArrays
 }
 
 /// <summary>The transport table over accelerator memory: blittable, the same layout as the arrays.</summary>
-internal readonly struct TransportTableView
+/// <summary>Wraps views of the arrays of a table. The 10-parameter constructor is a declared shape exception
+/// (BOOT.md, Shape exceptions), the same case as <c>TransportScratch</c>.</summary>
+internal readonly struct TransportTableView(int speciesCount, int pairTotal,
+                                            ArrayView<int> viscosityStart, ArrayView<int> viscosityCount,
+                                            ArrayView<int> conductivityStart, ArrayView<int> conductivityCount,
+                                            ArrayView<double> fits, ArrayView<int> pairIndex, ArrayView<int> pairStart, ArrayView<int> pairCount)
 {
     /// <summary>The species count of the species table the fits are indexed by.</summary>
-    public readonly int SpeciesCount;
+    public readonly int SpeciesCount = speciesCount;
 
     /// <summary>The number of pairs with data.</summary>
-    public readonly int PairTotal;
+    public readonly int PairTotal = pairTotal;
 
     /// <summary>[species] first viscosity fit.</summary>
-    public readonly ArrayView<int> ViscosityStart;
+    public readonly ArrayView<int> ViscosityStart = viscosityStart;
 
     /// <summary>[species] viscosity fits; zero = no data.</summary>
-    public readonly ArrayView<int> ViscosityCount;
+    public readonly ArrayView<int> ViscosityCount = viscosityCount;
 
     /// <summary>[species] first conductivity fit.</summary>
-    public readonly ArrayView<int> ConductivityStart;
+    public readonly ArrayView<int> ConductivityStart = conductivityStart;
 
     /// <summary>[species] conductivity fits; zero = no data.</summary>
-    public readonly ArrayView<int> ConductivityCount;
+    public readonly ArrayView<int> ConductivityCount = conductivityCount;
 
     /// <summary>[fit * 6]: TLow, THigh, A, B, C, D in SI.</summary>
-    public readonly ArrayView<double> Fits;
+    public readonly ArrayView<double> Fits = fits;
 
     /// <summary>[species * SpeciesCount + species] pair index, −1 without data.</summary>
-    public readonly ArrayView<int> PairIndex;
+    public readonly ArrayView<int> PairIndex = pairIndex;
 
     /// <summary>[pair] first fit of the pair.</summary>
-    public readonly ArrayView<int> PairStart;
+    public readonly ArrayView<int> PairStart = pairStart;
 
     /// <summary>[pair] fits of the pair.</summary>
-    public readonly ArrayView<int> PairCount;
-
-    /// <summary>Wraps views of the arrays of a table.</summary>
-    public TransportTableView(int speciesCount, int pairTotal,
-                              ArrayView<int> viscosityStart, ArrayView<int> viscosityCount,
-                              ArrayView<int> conductivityStart, ArrayView<int> conductivityCount,
-                              ArrayView<double> fits, ArrayView<int> pairIndex, ArrayView<int> pairStart, ArrayView<int> pairCount)
-    {
-        SpeciesCount = speciesCount;
-        PairTotal = pairTotal;
-        ViscosityStart = viscosityStart;
-        ViscosityCount = viscosityCount;
-        ConductivityStart = conductivityStart;
-        ConductivityCount = conductivityCount;
-        Fits = fits;
-        PairIndex = pairIndex;
-        PairStart = pairStart;
-        PairCount = pairCount;
-    }
+    public readonly ArrayView<int> PairCount = pairCount;
 }
 
 /// <summary>A transport table uploaded to one accelerator; owns the buffers.</summary>

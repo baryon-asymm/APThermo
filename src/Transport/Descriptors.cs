@@ -96,115 +96,98 @@ internal static class TransportLayout
     /// <summary>The largest transport set: the reference's limit on the species taking part.</summary>
     public const int MaxSpecies = 40;
 
-    /// <summary>Doubles per case: four MaxSpecies² matrices, the reduced basis (elements × MaxSpecies) and eight vectors.</summary>
-    public static int DoublesPerCase(int speciesCount, int elementCount) =>
-        4 * MaxSpecies * MaxSpecies + elementCount * MaxSpecies + 8 * MaxSpecies;
+    /// <summary>
+    /// Doubles per case: four MaxSpecies² matrices, the reduced basis (elements × MaxSpecies) and eight vectors.
+    /// <paramref name="speciesCount"/> is not used: the set is capped at MaxSpecies, so the doubles per case do not
+    /// grow with the table; the parameter mirrors Equilibrium's ScratchLayout so that the execution node sizes every
+    /// scratch the same way (API.md).
+    /// </summary>
+    public static int DoublesPerCase(int speciesCount, int elementCount)
+    {
+        _ = speciesCount;
+        return 4 * MaxSpecies * MaxSpecies + elementCount * MaxSpecies + 8 * MaxSpecies;
+    }
 
     /// <summary>Ints per case: a mark per species, four vectors of MaxSpecies and four of the element count.</summary>
     public static int IntsPerCase(int speciesCount, int elementCount) =>
         speciesCount + 4 * MaxSpecies + 4 * elementCount;
 }
 
-/// <summary>Slices of batch-sized buffers for one case of the transport solver, sized by <see cref="TransportLayout"/>.</summary>
-internal readonly struct TransportScratch
+/// <summary>Slices of batch-sized buffers for one case of the transport solver, sized by <see cref="TransportLayout"/>.
+/// The constructor's 22 parameters are a declared shape exception (BOOT.md, Shape exceptions): a descriptor whose
+/// constructor enumerates the slices of a blittable struct; every creation names its arguments.</summary>
+internal readonly struct TransportScratch(ArrayView<double> eta, ArrayView<double> alpha, ArrayView<double> matrix, ArrayView<double> matrixReacting,
+                                          ArrayView<double> basis, ArrayView<double> cond, ArrayView<double> xs, ArrayView<double> cp, ArrayView<double> h,
+                                          ArrayView<double> deltaH, ArrayView<double> rhs, ArrayView<double> rowScale, ArrayView<double> stx,
+                                          ArrayView<int> mark, ArrayView<int> indexList, ArrayView<int> compLocal, ArrayView<int> compRow,
+                                          ArrayView<int> isComponent, ArrayView<int> component, ArrayView<int> @default, ArrayView<int> rowTaken,
+                                          ArrayView<int> rowActive)
 {
     /// <summary>[MaxSpecies²] η_ij of the set, row-major with stride MaxSpecies; the diagonal holds the pure viscosities.</summary>
-    public readonly ArrayView<double> Eta;
+    public readonly ArrayView<double> Eta = eta;
 
     /// <summary>[MaxSpecies²] reaction coefficients α_rj, stride MaxSpecies.</summary>
-    public readonly ArrayView<double> Alpha;
+    public readonly ArrayView<double> Alpha = alpha;
 
     /// <summary>[MaxSpecies²] the matrix of the reaction heat capacity, stride MaxSpecies.</summary>
-    public readonly ArrayView<double> Matrix;
+    public readonly ArrayView<double> Matrix = matrix;
 
     /// <summary>[MaxSpecies²] the matrix of the reaction conductivity, stride MaxSpecies.</summary>
-    public readonly ArrayView<double> MatrixReacting;
+    public readonly ArrayView<double> MatrixReacting = matrixReacting;
 
     /// <summary>[elements × MaxSpecies] the component basis reduced over the columns of the set, stride MaxSpecies.</summary>
-    public readonly ArrayView<double> Basis;
+    public readonly ArrayView<double> Basis = basis;
 
     /// <summary>[MaxSpecies] pure conductivities.</summary>
-    public readonly ArrayView<double> Cond;
+    public readonly ArrayView<double> Cond = cond;
 
     /// <summary>[MaxSpecies] mole fractions within the set.</summary>
-    public readonly ArrayView<double> Xs;
+    public readonly ArrayView<double> Xs = xs;
 
     /// <summary>[MaxSpecies] Cp°/R of the set.</summary>
-    public readonly ArrayView<double> Cp;
+    public readonly ArrayView<double> Cp = cp;
 
     /// <summary>[MaxSpecies] H°/RT of the set.</summary>
-    public readonly ArrayView<double> H;
+    public readonly ArrayView<double> H = h;
 
     /// <summary>[MaxSpecies] reaction enthalpies ΔH/RT.</summary>
-    public readonly ArrayView<double> DeltaH;
+    public readonly ArrayView<double> DeltaH = deltaH;
 
     /// <summary>[MaxSpecies] right-hand side, then the solution.</summary>
-    public readonly ArrayView<double> Rhs;
+    public readonly ArrayView<double> Rhs = rhs;
 
     /// <summary>[MaxSpecies] row scales of the dense solver.</summary>
-    public readonly ArrayView<double> RowScale;
+    public readonly ArrayView<double> RowScale = rowScale;
 
     /// <summary>[MaxSpecies] a working vector.</summary>
-    public readonly ArrayView<double> Stx;
+    public readonly ArrayView<double> Stx = stx;
 
     /// <summary>[species] marks: bit 1 = seen by the component search, bit 2 = in the set.</summary>
-    public readonly ArrayView<int> Mark;
+    public readonly ArrayView<int> Mark = mark;
 
     /// <summary>[MaxSpecies] table indices of the set.</summary>
-    public readonly ArrayView<int> IndexList;
+    public readonly ArrayView<int> IndexList = indexList;
 
     /// <summary>[MaxSpecies] set indices of the components.</summary>
-    public readonly ArrayView<int> CompLocal;
+    public readonly ArrayView<int> CompLocal = compLocal;
 
     /// <summary>[MaxSpecies] element rows of the components.</summary>
-    public readonly ArrayView<int> CompRow;
+    public readonly ArrayView<int> CompRow = compRow;
 
     /// <summary>[MaxSpecies] 1 for a component of the set.</summary>
-    public readonly ArrayView<int> IsComponent;
+    public readonly ArrayView<int> IsComponent = isComponent;
 
     /// <summary>[elements] the component species of each element row, −1 for none.</summary>
-    public readonly ArrayView<int> Component;
+    public readonly ArrayView<int> Component = component;
 
     /// <summary>[elements] the default species of each row: the monatomic gas, else the first gas containing the element.</summary>
-    public readonly ArrayView<int> Default;
+    public readonly ArrayView<int> Default = @default;
 
     /// <summary>[elements] 1 once the component search assigned the row.</summary>
-    public readonly ArrayView<int> RowTaken;
+    public readonly ArrayView<int> RowTaken = rowTaken;
 
     /// <summary>[elements] 1 when a species with positive moles contains the element.</summary>
-    public readonly ArrayView<int> RowActive;
-
-    /// <summary>Wraps the given slices.</summary>
-    public TransportScratch(ArrayView<double> eta, ArrayView<double> alpha, ArrayView<double> matrix, ArrayView<double> matrixReacting,
-                            ArrayView<double> basis, ArrayView<double> cond, ArrayView<double> xs, ArrayView<double> cp, ArrayView<double> h,
-                            ArrayView<double> deltaH, ArrayView<double> rhs, ArrayView<double> rowScale, ArrayView<double> stx,
-                            ArrayView<int> mark, ArrayView<int> indexList, ArrayView<int> compLocal, ArrayView<int> compRow,
-                            ArrayView<int> isComponent, ArrayView<int> component, ArrayView<int> @default, ArrayView<int> rowTaken,
-                            ArrayView<int> rowActive)
-    {
-        Eta = eta;
-        Alpha = alpha;
-        Matrix = matrix;
-        MatrixReacting = matrixReacting;
-        Basis = basis;
-        Cond = cond;
-        Xs = xs;
-        Cp = cp;
-        H = h;
-        DeltaH = deltaH;
-        Rhs = rhs;
-        RowScale = rowScale;
-        Stx = stx;
-        Mark = mark;
-        IndexList = indexList;
-        CompLocal = compLocal;
-        CompRow = compRow;
-        IsComponent = isComponent;
-        Component = component;
-        Default = @default;
-        RowTaken = rowTaken;
-        RowActive = rowActive;
-    }
+    public readonly ArrayView<int> RowActive = rowActive;
 
     /// <summary>Cuts one case's scratch from views of at least <see cref="TransportLayout.DoublesPerCase"/> and <see cref="TransportLayout.IntsPerCase"/> elements.</summary>
     public static TransportScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount)

@@ -24,39 +24,28 @@ internal enum ExitSpecification
 }
 
 /// <summary>One rocket case: the propellant as element moles and enthalpy per kilogram, the chamber pressure, the flow model and the exit stations.</summary>
-internal readonly struct RocketProblem
+internal readonly struct RocketProblem(double chamberPressure, double reactantEnthalpy, double temperatureEstimate, FlowModel flow,
+                                       ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds)
 {
     /// <summary>Pa.</summary>
-    public readonly double ChamberPressure;
+    public readonly double ChamberPressure = chamberPressure;
 
     /// <summary>J per kg of propellant.</summary>
-    public readonly double ReactantEnthalpy;
+    public readonly double ReactantEnthalpy = reactantEnthalpy;
 
     /// <summary>K for the chamber solve; 0 = the equilibrium node's default.</summary>
-    public readonly double TemperatureEstimate;
+    public readonly double TemperatureEstimate = temperatureEstimate;
 
-    public readonly FlowModel Flow;
+    public readonly FlowModel Flow = flow;
 
     /// <summary>[element], kmol per kg.</summary>
-    public readonly ArrayView<double> ElementMoles;
+    public readonly ArrayView<double> ElementMoles = elementMoles;
 
     /// <summary>[exit], the area ratio or the pressure ratio p_c/p_e of each exit station, in the order of the stations.</summary>
-    public readonly ArrayView<double> ExitValues;
+    public readonly ArrayView<double> ExitValues = exitValues;
 
     /// <summary>[exit], <see cref="ExitSpecification"/> of each exit station.</summary>
-    public readonly ArrayView<int> ExitKinds;
-
-    public RocketProblem(double chamberPressure, double reactantEnthalpy, double temperatureEstimate, FlowModel flow,
-                         ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds)
-    {
-        ChamberPressure = chamberPressure;
-        ReactantEnthalpy = reactantEnthalpy;
-        TemperatureEstimate = temperatureEstimate;
-        Flow = flow;
-        ElementMoles = elementMoles;
-        ExitValues = exitValues;
-        ExitKinds = exitKinds;
-    }
+    public readonly ArrayView<int> ExitKinds = exitKinds;
 }
 
 /// <summary>The performance figures of one station; SI. At the chamber only the characteristic velocity and the pressure ratio (1) are defined.</summary>
@@ -123,25 +112,14 @@ internal static class RocketLayout
 }
 
 /// <summary>The views the rocket solver writes into; station 0 is the chamber, 1 the throat, 2 + k the k-th exit.</summary>
-internal readonly struct RocketResult
+internal readonly struct RocketResult(ArrayView<MixtureState> stations, ArrayView<double> moles, ArrayView<double> multipliers,
+                                      ArrayView<PerformanceFigures> figures, ArrayView<int> stationStatus, ArrayView<int> iterations, ArrayView<int> status)
 {
-    public readonly ArrayView<MixtureState> Stations;      // [stations]
-    public readonly ArrayView<double> Moles;               // [stations * species], kmol per kg
-    public readonly ArrayView<double> Multipliers;         // [stations * elements]
-    public readonly ArrayView<PerformanceFigures> Figures; // [stations]
-    public readonly ArrayView<int> StationStatus;          // [stations], CaseStatus per station
-    public readonly ArrayView<int> Iterations;             // [stations], equilibrium iterations of the last solve at the station
-    public readonly ArrayView<int> Status;                 // [1], CaseStatus of the case
-
-    public RocketResult(ArrayView<MixtureState> stations, ArrayView<double> moles, ArrayView<double> multipliers,
-                        ArrayView<PerformanceFigures> figures, ArrayView<int> stationStatus, ArrayView<int> iterations, ArrayView<int> status)
-    {
-        Stations = stations;
-        Moles = moles;
-        Multipliers = multipliers;
-        Figures = figures;
-        StationStatus = stationStatus;
-        Iterations = iterations;
-        Status = status;
-    }
+    public readonly ArrayView<MixtureState> Stations = stations;           // [stations]
+    public readonly ArrayView<double> Moles = moles;                      // [stations * species], kmol per kg
+    public readonly ArrayView<double> Multipliers = multipliers;          // [stations * elements]
+    public readonly ArrayView<PerformanceFigures> Figures = figures;      // [stations]
+    public readonly ArrayView<int> StationStatus = stationStatus;         // [stations], CaseStatus per station
+    public readonly ArrayView<int> Iterations = iterations;               // [stations], equilibrium iterations of the last solve at the station
+    public readonly ArrayView<int> Status = status;                       // [1], CaseStatus of the case
 }

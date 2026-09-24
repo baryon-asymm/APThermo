@@ -1,5 +1,3 @@
-using APThermo.Thermo;
-
 namespace APThermo.Performance;
 
 /// <summary>

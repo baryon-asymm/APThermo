@@ -350,6 +350,6 @@ public sealed class PropellantBuilder
             SpeciesSelection.ValidateOnly(_database, elements, only);
         }
 
-        return new Propellant(_reactants.ToList(), mixture, elements, omit, only, resolved);
+        return new Propellant([.. _reactants], mixture, elements, omit, only, resolved);
     }
 }

@@ -18,7 +18,7 @@ internal static class SpeciesSelection
         if (only is not null)
         {
             ValidateOnly(database, elements, only);
-            return only.ToList();
+            return [.. only];
         }
 
         var present = new HashSet<string>(elements.Select(Spelling), StringComparer.Ordinal);

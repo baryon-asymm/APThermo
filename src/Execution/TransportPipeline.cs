@@ -40,6 +40,6 @@ internal static class TransportPipeline
                                             figureBuffer.View, statusBuffer.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, transportBuffers.View, views));
-        return new TransportBatchResult(figures, status.Select(code => (CaseStatus)code).ToArray(), timer.Timings(), session.Info);
+        return new TransportBatchResult(figures, [.. status.Select(code => (CaseStatus)code)], timer.Timings(), session.Info);
     }
 }

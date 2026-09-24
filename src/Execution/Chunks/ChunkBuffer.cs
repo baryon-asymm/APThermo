@@ -34,7 +34,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     /// <inheritdoc />
     public void Allocate(Accelerator accelerator, int chunk)
     {
-        var length = _transfer == ChunkTransfer.Constant ? _host!.LongLength : (long)chunk * _perCase;
+        var length = _transfer == ChunkTransfer.Constant ? _host!.LongLength : chunk * _perCase;
 
         // ILGPU refuses an empty allocation, and a batch may legitimately have nothing here (a rocket batch without exits).
         _buffer = accelerator.Allocate1D<T>(Math.Max(1L, length));
@@ -64,7 +64,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     public void DownloadChunk(int offset, int length)
     {
         var span = Span(length);
-        if (_transfer is (ChunkTransfer.Output or ChunkTransfer.ClearedOutput) && span > 0)
+        if (_transfer is ChunkTransfer.Output or ChunkTransfer.ClearedOutput && span > 0)
         {
             Allocated.View.SubView(0, span).CopyToCPU(ref _host![Start(offset)], span);
         }

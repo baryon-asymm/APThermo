@@ -62,29 +62,17 @@ internal static class StateRecords
     {
         var record = states[index] ?? throw new StateRecordException(index, "the record is null");
         var targets = (record.Enthalpy is not null ? 1 : 0) + (record.Temperature is not null ? 1 : 0) + (record.Entropy is not null ? 1 : 0);
-        if (targets != 1)
-        {
-            throw new StateRecordException(index, $"exactly one of enthalpy, temperature and entropy must be given, not {targets}");
-        }
-
-        if (record.HasExits && record.Enthalpy is null)
-        {
-            throw new StateRecordException(index, "a record with exits needs an enthalpy, not a temperature or an entropy");
-        }
-
-        if (record.Flow is not null && !record.HasExits)
-        {
-            throw new StateRecordException(index, "a flow model needs exits; it has no meaning on a record without them");
-        }
-
-        if (record.HasExits != expectsExits)
-        {
-            throw new StateRecordException(index, expectsExits
-                ? "the record has no exits; call SolveStates instead"
-                : "the record has exits; call SolveRocketStates instead");
-        }
-
-        return record;
+        return targets != 1
+            ? throw new StateRecordException(index, $"exactly one of enthalpy, temperature and entropy must be given, not {targets}")
+            : record.HasExits && record.Enthalpy is null
+                ? throw new StateRecordException(index, "a record with exits needs an enthalpy, not a temperature or an entropy")
+                : record.Flow is not null && !record.HasExits
+                    ? throw new StateRecordException(index, "a flow model needs exits; it has no meaning on a record without them")
+                    : record.HasExits != expectsExits
+                        ? throw new StateRecordException(index, expectsExits
+                            ? "the record has no exits; call SolveStates instead"
+                            : "the record has exits; call SolveRocketStates instead")
+                        : record;
     }
 
     private static ElementalMixture MixtureOf(StateRecord record, StateBatchOptions options, int index)

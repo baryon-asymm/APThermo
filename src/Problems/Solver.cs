@@ -1,9 +1,5 @@
 using APThermo.Data;
-using APThermo.Equilibrium;
 using APThermo.Execution;
-using APThermo.Performance;
-using APThermo.Thermo;
-using APThermo.Transport;
 
 namespace APThermo.Problems;
 
@@ -116,7 +112,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
         var mixture = MixtureOf(propellant);
-        return _rocketRunner.Solve(_systems.Get(mixture), problems.Select(p => new RocketCase(mixture, p, propellant, propellant.OxidizerToFuelRatio)).ToList());
+        return _rocketRunner.Solve(_systems.Get(mixture), [.. problems.Select(p => new RocketCase(mixture, p, propellant, propellant.OxidizerToFuelRatio))]);
     }
 
     /// <summary>Solves one equilibrium problem for a propellant.</summary>
@@ -146,7 +142,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
         var mixture = MixtureOf(propellant);
-        return _equilibriumRunner.Solve(_systems.Get(mixture), problems.Select(p => new EquilibriumCase(mixture, p, propellant)).ToList());
+        return _equilibriumRunner.Solve(_systems.Get(mixture), [.. problems.Select(p => new EquilibriumCase(mixture, p, propellant))]);
     }
 
     /// <summary>Solves one rocket problem for an elemental mixture.</summary>
@@ -176,7 +172,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixture);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        return _rocketRunner.Solve(_systems.Get(mixture), problems.Select(p => new RocketCase(mixture, p, null, null)).ToList());
+        return _rocketRunner.Solve(_systems.Get(mixture), [.. problems.Select(p => new RocketCase(mixture, p, null, null))]);
     }
 
     /// <summary>Solves one equilibrium problem for an elemental mixture.</summary>
@@ -206,7 +202,7 @@ public sealed class Solver : IDisposable
         ArgumentNullException.ThrowIfNull(mixture);
         ArgumentNullException.ThrowIfNull(problems);
         ThrowIfDisposed();
-        return _equilibriumRunner.Solve(_systems.Get(mixture), problems.Select(p => new EquilibriumCase(mixture, p, null)).ToList());
+        return _equilibriumRunner.Solve(_systems.Get(mixture), [.. problems.Select(p => new EquilibriumCase(mixture, p, null))]);
     }
 
     /// <summary>One rocket case per index over the union of the mixtures' elements; every mixture carries the same species lists.</summary>
@@ -304,26 +300,23 @@ public sealed class Solver : IDisposable
     /// <summary>The batch's options, defaulted, once the batch itself is confirmed non-empty.</summary>
     private static StateBatchOptions Validated(IReadOnlyList<StateRecord> states, StateBatchOptions? options)
     {
-        if (states.Count == 0)
-        {
-            throw new ArgumentException("the state batch is empty", nameof(states));
-        }
-
-        return options ?? new StateBatchOptions();
+        return states.Count == 0
+            ? throw new ArgumentException("the state batch is empty", nameof(states))
+            : options ?? new StateBatchOptions();
     }
 
     /// <summary>One rocket case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>
     private IReadOnlyList<RocketResult> SolveRocket(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<RocketProblem> problems, string noun)
     {
         var system = _systems.Union(mixtures, problems.Count, "rocket");
-        return _rocketRunner.Solve(system, mixtures.Select((mixture, i) => new RocketCase(mixture, problems[i], null, null)).ToList(), noun);
+        return _rocketRunner.Solve(system, [.. mixtures.Select((mixture, i) => new RocketCase(mixture, problems[i], null, null))], noun);
     }
 
     /// <summary>One case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>
     private IReadOnlyList<EquilibriumResult> SolveEquilibrium(IReadOnlyList<ElementalMixture> mixtures, IReadOnlyList<EquilibriumProblem> problems, string noun)
     {
         var system = _systems.Union(mixtures, problems.Count, "equilibrium");
-        return _equilibriumRunner.Solve(system, mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null)).ToList(), noun);
+        return _equilibriumRunner.Solve(system, [.. mixtures.Select((mixture, i) => new EquilibriumCase(mixture, problems[i], null))], noun);
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
