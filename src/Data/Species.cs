@@ -249,4 +249,27 @@ public sealed class DatabaseFormatException : Exception
 
     /// <value>The 1-based line number of the offending field.</value>
     public int LineNumber { get; }
+
+    /// <summary>Initializes a new instance with no file name and a neutral line number of 0. The tree itself
+    /// always throws through the constructor above; this exists for the .NET exception conventions (CA1032).</summary>
+    public DatabaseFormatException() : base()
+    {
+        FileName = null;
+        LineNumber = 0;
+    }
+
+    /// <summary>Initializes a new instance with the given message, no file name and a neutral line number of 0.</summary>
+    public DatabaseFormatException(string message) : base(message)
+    {
+        FileName = null;
+        LineNumber = 0;
+    }
+
+    /// <summary>Initializes a new instance with the given message and inner exception, no file name and a
+    /// neutral line number of 0.</summary>
+    public DatabaseFormatException(string message, Exception innerException) : base(message, innerException)
+    {
+        FileName = null;
+        LineNumber = 0;
+    }
 }

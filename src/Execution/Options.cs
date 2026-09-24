@@ -112,4 +112,23 @@ public sealed class AcceleratorUnavailableException : Exception
 
     /// <summary>The libnvvm and libdevice paths that were examined, in order.</summary>
     public IReadOnlyList<string> PathsTried { get; }
+
+    /// <summary>Initializes a new instance with no paths tried. The tree itself always throws through the
+    /// constructor above; this exists for the .NET exception conventions (CA1032).</summary>
+    public AcceleratorUnavailableException() : base()
+    {
+        PathsTried = [];
+    }
+
+    /// <summary>Initializes a new instance with the given message and no paths tried.</summary>
+    public AcceleratorUnavailableException(string message) : base(message)
+    {
+        PathsTried = [];
+    }
+
+    /// <summary>Initializes a new instance with the given message and inner exception and no paths tried.</summary>
+    public AcceleratorUnavailableException(string message, Exception innerException) : base(message, innerException)
+    {
+        PathsTried = [];
+    }
 }
