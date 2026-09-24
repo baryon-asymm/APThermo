@@ -56,7 +56,7 @@ public sealed class ApprovedSnapshot                        // a snapshot file o
 ```csharp
 public static class FixtureFamilies
 {
-    public static IEnumerable<object[]> Of(IEnumerable<string> kinds, Func<CeaCase, string> key);   // theory data: the cases of the kinds grouped by the key, largest family first, ties ordinal by key; each row [key, count, cases] with cases an IReadOnlyList<CeaCase>
+    public static TheoryData<string, int, IReadOnlyList<CeaCase>> Of(IEnumerable<string> kinds, Func<CeaCase, string> key);   // theory data: the cases of the kinds grouped by the key, largest family first, ties ordinal by key; each row (key, count, cases)
 }
 ```
 

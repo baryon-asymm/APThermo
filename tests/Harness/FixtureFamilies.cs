@@ -1,4 +1,5 @@
 using APThermo.Fixtures;
+using Xunit;
 
 namespace APThermo.Harness;
 
@@ -12,18 +13,13 @@ public static class FixtureFamilies
     /// <summary>
     /// Theory data: the cases of <paramref name="kinds"/> (directories under <c>tests/Fixtures/cases</c>) grouped by
     /// <paramref name="key"/>, the largest family first, ties broken ordinally by the key. Each row is
-    /// <c>[key, count, cases]</c>.
+    /// <c>(key, count, cases)</c>.
     /// </summary>
-    public static IEnumerable<object[]> Of(IEnumerable<string> kinds, Func<CeaCase, string> key)
+    public static TheoryData<string, int, IReadOnlyList<CeaCase>> Of(IEnumerable<string> kinds, Func<CeaCase, string> key)
     {
         ArgumentNullException.ThrowIfNull(kinds);
         ArgumentNullException.ThrowIfNull(key);
 
-        return OfCore(kinds, key);
-    }
-
-    private static IEnumerable<object[]> OfCore(IEnumerable<string> kinds, Func<CeaCase, string> key)
-    {
         var families = new Dictionary<string, List<CeaCase>>(StringComparer.Ordinal);
         foreach (var kind in kinds)
         {
@@ -39,9 +35,12 @@ public static class FixtureFamilies
             }
         }
 
+        var data = new TheoryData<string, int, IReadOnlyList<CeaCase>>();
         foreach (var family in families.OrderByDescending(f => f.Value.Count).ThenBy(f => f.Key, StringComparer.Ordinal))
         {
-            yield return [family.Key, family.Value.Count, family.Value];
+            data.Add(family.Key, family.Value.Count, family.Value);
         }
+
+        return data;
     }
 }

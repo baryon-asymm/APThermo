@@ -113,7 +113,10 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 - [Fixtures](../Fixtures/API.md) — the repository paths, the cases, the tolerance table.
 
 Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class library
-(`System.Text.Json` for the JSON-document helpers).
+(`System.Text.Json` for the JSON-document helpers); xunit 2.9.3, for `TheoryData<>` alone
+(`FixtureFamilies.Of`, 2026-09-24, so its callers' theory sources are typed and the Diagnostics
+constraint's xUnit1042 has no untyped `object[]` row to flag) — this node stays a plain library
+(`IsTestProject` false), not a test project: no `Microsoft.NET.Test.Sdk` or test runner is pulled in.
 
 ## Constraints
 
