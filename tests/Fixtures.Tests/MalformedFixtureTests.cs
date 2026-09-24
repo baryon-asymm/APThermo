@@ -5,6 +5,7 @@ public sealed class MalformedFixtureTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "apthermo-fixtures-" + Guid.NewGuid().ToString("N"));
 
+    /// <summary>Removes the temporary directory this fixture wrote its documents into.</summary>
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -24,14 +25,15 @@ public sealed class MalformedFixtureTests : IDisposable
     private string Write(string kind, string text)
     {
         var directory = Path.Combine(_root, kind);
-        Directory.CreateDirectory(directory);
+        _ = Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, "case.json");
         File.WriteAllText(path, text);
         return path;
     }
 
+    /// <summary>A complete document loads.</summary>
     [Fact]
-    public void A_complete_document_loads()
+    public void ACompleteDocumentLoads()
     {
         var path = Write("tp", $$$"""{"case": {"name": "x", "kind": "tp", "inputs": {"a": 1}}, {{{Generator}}}, "outputs": {"b": 2}}""");
         var c = CeaFixtures.Load(path);
@@ -41,8 +43,9 @@ public sealed class MalformedFixtureTests : IDisposable
         Assert.Equal(2, c.Outputs.GetProperty("b").GetInt32());
     }
 
+    /// <summary>A missing field names the file and the field.</summary>
     [Fact]
-    public void A_missing_field_names_the_file_and_the_field()
+    public void AMissingFieldNamesTheFileAndTheField()
     {
         var path = Write("tp", $$$"""{"case": {"name": "x", "kind": "tp", "inputs": {}}, {{{Generator}}}}""");
         var e = Assert.Throws<FixtureFormatException>(() => CeaFixtures.Load(path));
@@ -51,40 +54,45 @@ public sealed class MalformedFixtureTests : IDisposable
         Assert.Contains(path, e.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A missing provenance field is named.</summary>
     [Fact]
-    public void A_missing_provenance_field_is_named()
+    public void AMissingProvenanceFieldIsNamed()
     {
         var path = Write("tp", """{"case": {"name": "x", "kind": "tp", "inputs": {}}, "generator": {"package": "cea"}, "outputs": {}}""");
         var e = Assert.Throws<FixtureFormatException>(() => CeaFixtures.Load(path));
         Assert.Equal("generator.version", e.Field);
     }
 
+    /// <summary>A kind that does not match its directory is rejected.</summary>
     [Fact]
-    public void A_kind_that_does_not_match_its_directory_is_rejected()
+    public void AKindThatDoesNotMatchItsDirectoryIsRejected()
     {
         var path = Write("hp", $$$"""{"case": {"name": "x", "kind": "tp", "inputs": {}}, {{{Generator}}}, "outputs": {}}""");
         var e = Assert.Throws<FixtureFormatException>(() => CeaFixtures.Load(path));
         Assert.Equal("case.kind", e.Field);
     }
 
+    /// <summary>Text that is not json is rejected with the file name.</summary>
     [Fact]
-    public void Text_that_is_not_json_is_rejected_with_the_file_name()
+    public void TextThatIsNotJsonIsRejectedWithTheFileName()
     {
         var path = Write("tp", "not json");
         var e = Assert.Throws<FixtureFormatException>(() => CeaFixtures.Load(path));
         Assert.Equal(path, e.FileName);
     }
 
+    /// <summary>A tolerance without a derivation is rejected.</summary>
     [Fact]
-    public void A_tolerance_without_a_derivation_is_rejected()
+    public void AToleranceWithoutADerivationIsRejected()
     {
         var path = Write("tolerances", """{"fields": {"temperature": {"absolute": 0.1, "relative": 0.0}}}""");
         var e = Assert.Throws<FixtureFormatException>(() => ToleranceTable.Load(path));
         Assert.Equal("temperature.derivation", e.Field);
     }
 
+    /// <summary>A negative tolerance is rejected.</summary>
     [Fact]
-    public void A_negative_tolerance_is_rejected()
+    public void ANegativeToleranceIsRejected()
     {
         var path = Write("tolerances", """{"fields": {"temperature": {"absolute": -0.1, "relative": 0.0, "derivation": "x"}}}""");
         var e = Assert.Throws<FixtureFormatException>(() => ToleranceTable.Load(path));

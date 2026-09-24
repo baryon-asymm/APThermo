@@ -359,7 +359,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       `polishThresholdRelative` stand in the table with their derivations, and the
       execution (`Execution.Tests/GpuCpuTolerances.cs`) and front door
       (`Problems.Tests/RocketTests.cs`) tests nodes read them instead of their copies;
-      `Fixtures.Tests.ToleranceTableTests.MoleFractionField_picks_by_the_threshold_and_one_ulp_on_each_side`
+      `Fixtures.Tests.ToleranceTableTests.MoleFractionFieldPicksByTheThresholdAndOneUlpOnEachSide`
       proves the rule at the threshold and one ULP on each side, seen red once with the
       comparison reversed (`<` for `>=`), reverted before that test was committed, the
       evidence recorded in the test's own doc comment.
