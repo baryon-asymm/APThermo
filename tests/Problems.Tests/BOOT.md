@@ -8,7 +8,7 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
 | L0 | mass fractions, element moles and reactant enthalpy per kilogram; the oxidizer-to-fuel split; mole amounts; custom reactants; candidate species selection and order; input validation by name; the mass of a composition against one kilogram | the fixtures' recorded mass fractions, `elementMoles`, `reactantEnthalpy` / `enthalpy` and `products` (`PropellantTests`); documented behaviour, and the database's atomic weights for the mass a message reports (`RejectionTests`) | ✅ |
-| L1 | every rocket, tp, hp and sp fixture solved singly from its propellant through the library | the fixtures node's reference outputs and its tolerance table (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`, the three `EquilibriumTests` theories) | ✅ |
+| L1 | every rocket, tp, hp and sp fixture solved singly from its propellant through the library | the fixtures node's reference outputs and its tolerance table (`RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`, the three `EquilibriumTests` theories) | ✅ |
 | L2 | end to end over every rocket fixture with transport, in shifting and frozen flow; a sweep as one batch against its cases one by one; an elemental mixture against its propellant; identical problems alone and in one call; mixed exit layouts in one call; state batches over unions of elements; a failing station as a status | the fixtures; the single-case results of the same code, bit for bit, or to rounding where a union reorders a case's elements (`RocketTests`, `EquilibriumTests`) | ✅ |
 | L2 | the melting-plateau states through the front door: a cut record reported once under its database name; an assigned enthalpy inside the `ALN(L)` gap solves; a sweep across the alumina plateau stays on the isentrope by either path | the node's own rules where the reference cannot follow: the join-and-cut of the `Thermo` node, the plateau of the `Equilibrium` node, the isentrope of the station's own chamber (`SplitRecordTests`) | ✅ 2026-09-13 (the row written 2026-09-14, the ⚠ below) |
 | L2 | the contract of 2026-09-14: a state record with exits against its case through the batch over mixtures; the refusals of the record's shape; a batch mixing transport and none against each problem alone; a ratio and pressure product as one batch against its cases one by one; every public method of a disposed solver; the tolerance rule against `Create` | the same code's single-case results, bit for bit; the `Problems` `API.md`; reflection over the solver's methods (`RocketTests`, `RejectionTests`) | ✅ 2026-09-14 |
@@ -98,7 +98,7 @@ criterion below carry the day they were written.
   deviation from "every test runs on both platforms") holds that the bits are a
   record of the reference machine, not of the platform alone: the first release run
   failed on a hosted Windows runner with one rocket case of this node's own snapshot
-  changed in its last bits, every CEA tolerance test green. `Every_fixture_gives_the_recorded_bits`
+  changed in its last bits, every CEA tolerance test green. `EveryFixtureGivesTheRecordedBits`
   now carries `[Trait("Category", "BitSnapshot")]`, so it runs in every local run
   (`CLAUDE.md`'s fast set) and in the release's self-hosted jobs
   (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
@@ -120,8 +120,8 @@ criterion below carry the day they were written.
   node, whose code this node may not read. Resolved the same day (the review's
   F-TF-05): `RocketTests`' own `ReorderedElementsTolerance` and `MoleFractionFloor`
   constants are gone; the two facts that used them
-  (`Rocket_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`,
-  `Equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`)
+  (`RocketProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements`,
+  `EquilibriumProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements`)
   now read `polishThresholdRelative` and `moleFractionFloor` from the fixtures node's
   tolerance table, the same two entries the execution tests node's own table also
   stopped duplicating.
@@ -154,45 +154,45 @@ Outside the tree: xunit.
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 green: `PropellantTests`
-      (`Element_moles_and_enthalpy_equal_the_reference_from_its_mass_fractions`,
-      `A_ratio_split_reproduces_the_reference_mass_fractions_within_its_single_precision`,
-      `Candidate_species_equal_the_reference_product_list`, each over every rocket,
-      tp, hp and sp file; `Mole_amounts_are_converted_with_the_record_molar_mass`,
-      `A_custom_reactant_derives_its_molar_mass_from_the_formula_and_the_atomic_weights`,
-      `Candidates_are_gases_then_condensed_species_in_database_order`,
-      `An_elemental_mixture_normalizes_symbols_and_keeps_the_order`); `RejectionTests`
+      (`ElementMolesAndEnthalpyEqualTheReferenceFromItsMassFractions`,
+      `ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
+      `CandidateSpeciesEqualTheReferenceProductList`, each over every rocket,
+      tp, hp and sp file; `MoleAmountsAreConvertedWithTheRecordMolarMass`,
+      `ACustomReactantDerivesItsMolarMassFromTheFormulaAndTheAtomicWeights`,
+      `CandidatesAreGasesThenCondensedSpeciesInDatabaseOrder`,
+      `AnElementalMixtureNormalizesSymbolsAndKeepsTheOrder`); `RejectionTests`
       (the facts: unknown reactant, temperature out of range, mixture rules, custom
       reactant with an unknown element, the `Only` list, state records, problems
       without the data they need, a disposed solver; 2026-09-13, two more: the mass
       of a composition against one kilogram through every front door, with the grams
       of the message checked against the database's atomic weights and the tolerance
       pinned by a record 0.9 % and one 1.1 % heavy,
-      `A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance`;
+      `ACompositionThatDoesNotWeighOneKilogramIsRejectedWithItsMassAndTheTolerance`;
       the propellant path through the committed file's `ADN` record, whose molar
       mass contradicts its formula,
-      `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`;
+      `AReactantRecordWhoseMolarMassContradictsItsFormulaIsCaughtAtTheSolve`;
       that fact goes when the record is corrected upstream).
 
   ⚠ 2026-09-14: stood "nine facts" over a list of eight; a number repeating the length
   of a list, dropped (the clean-code review's F-TF-16).
 - [x] 2026-09-12 — L1 green for every fixture case, the list generated from the
-      directory listing: `RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      directory listing: `RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
       over `cases/rocket` (89 files that day),
-      `EquilibriumTests.Assigned_temperature_cases_reproduce_the_reference`,
-      `Assigned_enthalpy_cases_reproduce_the_reference`,
-      `Assigned_entropy_cases_reproduce_the_reference` over `cases/tp`, `cases/hp`,
+      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`,
+      `AssignedEnthalpyCasesReproduceTheReference`,
+      `AssignedEntropyCasesReproduceTheReference` over `cases/tp`, `cases/hp`,
       `cases/sp` (106 files).
 - [x] 2026-09-12 — L2 green: `RocketTests` (`A_sweep_equals_its_cases_solved_one_by_one`,
-      `An_elemental_mixture_reproduces_its_propellant_bit_for_bit`,
-      `Identical_problems_give_identical_results_alone_and_in_one_call`,
-      `Problems_with_different_exit_layouts_are_solved_in_one_call_in_order`,
-      `A_failing_station_is_a_status_and_not_an_exception`,
-      `Compositions_are_reported_by_name_over_all_species`; 2026-09-13:
+      `AnElementalMixtureReproducesItsPropellantBitForBit`,
+      `IdenticalProblemsGiveIdenticalResultsAloneAndInOneCall`,
+      `ProblemsWithDifferentExitLayoutsAreSolvedInOneCallInOrder`,
+      `AFailingStationIsAStatusAndNotAnException`,
+      `CompositionsAreReportedByNameOverAllSpecies`; 2026-09-13:
       `Rocket_and_equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`);
       `EquilibriumTests`
-      (`State_batches_over_the_union_of_elements_reproduce_the_reference`,
-      `The_default_enthalpy_of_an_assigned_enthalpy_problem_is_the_propellants`,
-      `Transport_figures_are_attached_to_an_equilibrium_state_when_requested`).
+      (`StateBatchesOverTheUnionOfElementsReproduceTheReference`,
+      `TheDefaultEnthalpyOfAnAssignedEnthalpyProblemIsThePropellants`,
+      `TransportFiguresAreAttachedToAnEquilibriumStateWhenRequested`).
 - [x] 2026-09-12 — Every check proven non-degenerate once, each mutation applied
       alone and seen red: the oxidizer share of the ratio split perturbed by 1e-6 (the
       ratio-split test and the end-to-end test); a reactant enthalpy per kilogram
@@ -206,39 +206,39 @@ Outside the tree: xunit.
       end-to-end test on the aluminized propellant).
 - [x] 2026-09-13 — The mass check proven non-degenerate: the check removed from the
       solver (its comparison made never true), and
-      `RejectionTests.A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance`
-      and `A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`
+      `RejectionTests.ACompositionThatDoesNotWeighOneKilogramIsRejectedWithItsMassAndTheTolerance`
+      and `AReactantRecordWhoseMolarMassContradictsItsFormulaIsCaughtAtTheSolve`
       seen red, together with the Cli tests node's four unit-error documents and its
       line-naming test (that node's BOOT.md).
 - [x] 2026-09-13 — The declared tolerance and the mass report (the `Problems`
-      BOOT.md's design of the same day): `RejectionTests.The_tolerance_a_mixture_declares_is_the_one_applied`
+      BOOT.md's design of the same day): `RejectionTests.TheToleranceAMixtureDeclaresIsTheOneApplied`
       on the record made 2 % heavy (refused at the default, solved at 3 % through
       `Create` and through `StateBatchOptions` for every record of a batch; made 5 %
       heavy, refused at 3 % with the message naming `3 %`; the propellant path at the
       default; an invalid tolerance refused by name); `PropellantTests` on the report
-      (`The_recorded_element_moles_of_every_fixture_weigh_one_kilogram_within_the_derivation_figure`:
+      (`TheRecordedElementMolesOfEveryFixtureWeighOneKilogramWithinTheDerivationFigure`:
       `Solver.MassOf` against `Σ n_i A_i` from `SpeciesDatabase.AtomicWeight` and
       within 1.7e-5 of one kilogram over the directory listing;
-      `Results_carry_the_mass_of_their_mixture`: `MixtureMass` of every result against
+      `ResultsCarryTheMassOfTheirMixture`: `MixtureMass` of every result against
       `MassOf`, and a mixture made 0.5 % heavy reporting 1.005). Heavy, not light:
       the record made 1 % to 10 % light does not converge as an hp state at 6.5 MPa
       (the `ALN(L)` record's 2700 K interval boundary, the front door's BOOT.md), and a
       case that fails numerically would not show that the check let it through.
 - [x] 2026-09-13 — The declared tolerance and the mass report proven non-degenerate,
       each mutation alone and seen red: the check reading the default instead of the
-      mixture's tolerance (`The_tolerance_a_mixture_declares_is_the_one_applied`, and
+      mixture's tolerance (`TheToleranceAMixtureDeclaresIsTheOneApplied`, and
       the Cli tests node's option test); the equilibrium results reporting one
       kilogram instead of the measured mass, and the rocket results likewise
-      (`Results_carry_the_mass_of_their_mixture`, each; the first also the Cli tests
+      (`ResultsCarryTheMassOfTheirMixture`, each; the first also the Cli tests
       node's option test through the reported mass).
 - [x] 2026-09-13 — The melting-plateau states through the front door (the level
       table's plateau row, written 2026-09-14): `SplitRecordTests`
-      (`A_cut_species_reports_one_entry_under_its_database_name`,
-      `An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`,
-      `A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`), the
+      (`ACutSpeciesReportsOneEntryUnderItsDatabaseName`,
+      `AnEnthalpyInsideTheALNGapSolvesThroughTheFrontDoor`,
+      `ASweepAcrossTheAluminaPlateauStaysOnTheIsentropeByEitherPath`), the
       evidence the `Problems` node's criterion of that day cites. Their non-degeneracy
       was never recorded; the last criterion below records it.
-- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.Every_fixture_gives_the_recorded_bits`
+- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.EveryFixtureGivesTheRecordedBits`
       over the enumerated rocket, tp, hp and sp directories against `Bits.approved.txt`
       (213 fixtures), recorded before any code of the front door's decomposition moved
       (on a tree whose numerical nodes are bit for bit as at `8e36a27`, by their own
@@ -264,37 +264,37 @@ Outside the tree: xunit.
       FullyQualifiedName~BitSnapshotTests`, 1/1 before, red with the fabricated line,
       1/1 after the revert). `Bits.approved.txt` itself unchanged (213 lines).
 - [x] 2026-09-14 — The contract facts of 2026-09-14 (the level table's second new row):
-      `RocketTests.A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures`
+      `RocketTests.AStateRecordWithExitsEqualsItsCaseThroughTheBatchOverMixtures`
       (bit for bit, transport figures included);
-      `RejectionTests.A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index`
+      `RejectionTests.AStateRecordThatBreaksARuleOfItsShapeIsRefusedWithItsIndex`
       (one case per rule: no target, two targets, exits without an enthalpy, a flow
       without exits, a record with exits given to `SolveStates`, one without given to
       `SolveRocketStates`, a negative abundance, a duplicated symbol; each a
       `StateRecordException` whose `Index` is the record's
       and whose `Reason` names the rule);
-      `RocketTests.A_batch_mixing_transport_and_none_equals_each_problem_solved_alone`
+      `RocketTests.ABatchMixingTransportAndNoneEqualsEachProblemSolvedAlone`
       (bit for bit, and `TransportStatus` null where none was asked) with
-      `Cases_are_grouped_by_exit_layout_and_transport_flag` over the runner's internal
+      `CasesAreGroupedByExitLayoutAndTransportFlag` over the runner's internal
       grouping, which is where the narrowed pass is visible;
-      `RocketTests.A_ratio_and_pressure_product_as_one_batch_equals_its_cases_solved_one_by_one`,
+      `RocketTests.ARatioAndPressureProductAsOneBatchEqualsItsCasesSolvedOneByOne`,
       the sweep's fact on the batch over mixtures, replacing
       `A_sweep_equals_its_cases_solved_one_by_one`;
-      `RejectionTests.Every_public_method_of_a_disposed_solver_throws` with
-      `The_disposal_facts_cover_every_public_method_of_the_solver` (the list of methods
-      from reflection); `RejectionTests.The_tolerance_rule_is_the_one_Create_applies`
+      `RejectionTests.EveryPublicMethodOfADisposedSolverThrows` with
+      `TheDisposalFactsCoverEveryPublicMethodOfTheSolver` (the list of methods
+      from reflection); `RejectionTests.TheToleranceRuleIsTheOneCreateApplies`
       (`IsValidMassTolerance` false exactly where `Create` refuses). Each seen red once,
       reverted after: the kind check — `StateRecords.Validate`'s
       `record.HasExits != expectsExits` — removed, both rows of
-      `A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index` for the
+      `AStateRecordThatBreaksARuleOfItsShapeIsRefusedWithItsIndex` for the
       two routing reasons red ("no exception was thrown"), the other six rows
       unaffected; the grouping by the transport flag removed — `RocketRunner.Solve`'s
       per-layout `GroupBy(k => cases[k].Problem.Transport)` collapsed to one flag per
       exit-layout group (`groups[key].Any(...)`) — both
-      `A_batch_mixing_transport_and_none_equals_each_problem_solved_alone` and
-      `Cases_are_grouped_by_exit_layout_and_transport_flag` red, transport figures
+      `ABatchMixingTransportAndNoneEqualsEachProblemSolvedAlone` and
+      `CasesAreGroupedByExitLayoutAndTransportFlag` red, transport figures
       attached to a station whose own case never asked; one method's disposal guard
       removed — `CandidateSpeciesFor`'s `ThrowIfDisposed()` taken out,
-      `Every_public_method_of_a_disposed_solver_throws` red for that entry ("no
+      `EveryPublicMethodOfADisposedSolverThrows` red for that entry ("no
       exception was thrown"). The same removal tried first on `SolveRocketStates`
       stayed green: its own guard is masked by the engine's disposal check reached
       through `RocketRunner.Solve`, so the fact the criterion asks for — every public
@@ -313,9 +313,9 @@ Outside the tree: xunit.
       `ReferenceComparison.cs`) and `StationEquality` (bit and relative equality of two
       stations of the tree's own code, `StationEquality.cs`); the union test becomes
       three facts:
-      `RocketTests.Rocket_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`,
-      `Equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`
-      and `RejectionTests.A_batch_over_mismatched_mixtures_or_problem_counts_is_rejected`;
+      `RocketTests.RocketProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements`,
+      `EquilibriumProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements`
+      and `RejectionTests.ABatchOverMismatchedMixturesOrProblemCountsIsRejected`;
       every tolerance of a comparison with the tree's own code a named constant with its
       origin (eight added: `MoleFractionSumTolerance`, `MassBitRoundingTolerance`,
       `ReportedMassPrintTolerance`, `FormulaMassRoundingTolerance`,
@@ -328,7 +328,7 @@ Outside the tree: xunit.
       (`FixtureCases.DefectiveStationsOf`'s `TraceEliminations > 0` check disabled) and
       "mole fractions taken over the gaseous phase" (`StationFactory.Create`'s
       fractions loop narrowed from `speciesCount` to `table.GasCount`) red again after
-      the split, both on `The_rocket_case_reproduces_the_reference_end_to_end`: the
+      the split, both on `TheRocketCaseReproducesTheReferenceEndToEnd`: the
       first over the three `lox-lh2_of4_*` and three `lox-lh2_of5_*` shifting-flow
       cases with transport (the reacting-conductivity and Prandtl skip no longer
       guarded, the tree's figures compared against the reference's own documented
@@ -340,17 +340,17 @@ Outside the tree: xunit.
       Each plateau fact of `SplitRecordTests` seen red once, none previously recorded
       (the level table's ⚠ of 2026-09-14 above): the cut-species collapsing in
       `StationFactory.SpeciesNames` disabled (always appended instead of collapsed) —
-      `A_cut_species_reports_one_entry_under_its_database_name` red, `ALN(L)` counted
+      `ACutSpeciesReportsOneEntryUnderItsDatabaseName` red, `ALN(L)` counted
       twice, not once; the state record's pressure doubled on its way into the
       equilibrium problem in `StateRecords.ToEquilibriumProblems` (its enthalpy tried
       first: passing `null` instead of `record.Enthalpy` left the fact green, because
       `ProblemValidation.Equilibrium` defaults an unset assigned-enthalpy target to the
       mixture's own enthalpy, which for a state record is `record.Enthalpy` again — a
       finding in itself, recorded so the same non-mutation is not retried) —
-      `An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door` red, T =
+      `AnEnthalpyInsideTheALNGapSolvesThroughTheFrontDoor` red, T =
       2770.839051872195 K against the 2700 K cut, no longer pinned;
       `TransitionBoundTolerance` tightened from 0.01 to 0 —
-      `A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path` red, a
+      `ASweepAcrossTheAluminaPlateauStaysOnTheIsentropeByEitherPath` red, a
       pinned station at 2327.000012414645 K against the exact bound 2327, the residual
       the 0.01 K tolerance exists to absorb. Each reverted; `dotnet test` on
       `Problems.Tests` after every revert: 1111/1111, `Bits.approved.txt` unmoved

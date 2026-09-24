@@ -468,7 +468,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       speed and the plateau zeros included — within the fixtures node's tolerance
       table: `FixtureSolveTests` over every tp and hp file of that day,
       `Performance.Tests.RocketFixtureTests` and
-      `Problems.Tests.RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      `Problems.Tests.RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
       over `rp1311-example13` and the eight `ap-htpb-al-plateau` rocket files.
 - [x] 2026-09-13 — The anti-cycling rule closes the include/remove cycle: an
       assigned enthalpy inside the `ALN(L)` gap of the fuel-rich AP/HTPB/Al chamber
@@ -486,9 +486,9 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
 - [x] 2026-09-13 — Sweeps across a plateau lose no station: the pressure-ratio band
       across the AL2O3 plateau solves sequentially and one exit at a time onto the
       same stations, on the chamber isentrope throughout
-      (`Problems.Tests.SplitRecordTests.A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`);
+      (`Problems.Tests.SplitRecordTests.ASweepAcrossTheAluminaPlateauStaysOnTheIsentropeByEitherPath`);
       example 13's four exits cross the BeO plateau end to end
-      (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end` over
+      (`RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd` over
       `rp1311-example13`); and tp solves at the printed bounds pick the record the
       reference picks (`FixtureSolveTests` over `ap-htpb-al-plateau_T2327`,
       `rp1311-example13-mixture_T2851` and `_T2373`), one kelvin beside the `ALN(L)`

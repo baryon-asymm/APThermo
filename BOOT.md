@@ -366,12 +366,12 @@ There is no external ancestor: the tree root is the repository root, and the loa
       flow, agree with the NASA CEA reference outputs within the tolerance table of the
       fixtures node. The list of reference files is produced by a directory listing,
       and every file in it is covered:
-      `Problems.Tests.RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      `Problems.Tests.RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
       over every file of `tests/Fixtures/cases/rocket` (89 that day: the four
       propellants with and without transport, and the RP-1311 rocket examples) and
-      `EquilibriumTests.Assigned_temperature_cases_reproduce_the_reference`,
-      `Assigned_enthalpy_cases_reproduce_the_reference`,
-      `Assigned_entropy_cases_reproduce_the_reference` over every tp, hp and sp file
+      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`,
+      `AssignedEnthalpyCasesReproduceTheReference`,
+      `AssignedEntropyCasesReproduceTheReference` over every tp, hp and sp file
       (106). 2026-09-13: 98 rocket and 115 equilibrium files after the
       melting-plateau cases (example 13 and the plateau band), the same tests green.
       The documented defects of the reference (the fixtures node's BOOT.md: the

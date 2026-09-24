@@ -315,7 +315,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
 - [x] 2026-09-12 — The tree's species selection for each case equals the package's
       product list recorded in the fixture inputs (`products`); checked where the tree
       selects species, not in the generator, which cannot run the tree:
-      `Problems.Tests.PropellantTests.Candidate_species_equal_the_reference_product_list`
+      `Problems.Tests.PropellantTests.CandidateSpeciesEqualTheReferenceProductList`
       over every rocket, tp, hp and sp file (the list from the directory listing, 195
       that day). The RP-1311 examples 1 and 12 were generated with an explicit product
       list, which the package takes as given; since 2026-09-12 the fixture inputs
@@ -347,7 +347,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       own composition, which the Problems tests node makes. 2026-09-12: the end-to-end
       comparison in the Problems tests node passed the table unchanged: every rocket
       file on the tree's own composition with its transport fields
-      (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`), every tp, hp
+      (`RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`), every tp, hp
       and sp file singly and as state records in batches over unions of elements
       (`EquilibriumTests`).
 - [x] 2026-09-14 — The shared rules of 2026-09-14: `ToleranceTable.MoleFractionField`
