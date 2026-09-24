@@ -6,16 +6,18 @@ namespace APThermo.Data.Tests;
 /// <summary>L1: the database embedded in the assembly (root BOOT.md, ## Delivery, Data) against the committed data/ files.</summary>
 public sealed class BundledDatabaseTests
 {
+    /// <summary>Embedded resource bytes equal the committed files.</summary>
     [Fact]
-    public void Embedded_resource_bytes_equal_the_committed_files()
+    public void EmbeddedResourceBytesEqualTheCommittedFiles()
     {
         AssertResourceEqualsFile("APThermo.Data.Bundled.thermo.inp", "thermo.inp");
         AssertResourceEqualsFile("APThermo.Data.Bundled.trans.inp", "trans.inp");
         AssertResourceEqualsFile("APThermo.Data.Bundled.NOTICE", "NOTICE");
     }
 
+    /// <summary>LoadBundled equals Load on every species and coefficient.</summary>
     [Fact]
-    public void LoadBundled_equals_Load_on_every_species_and_coefficient()
+    public void LoadBundledEqualsLoadOnEverySpeciesAndCoefficient()
     {
         var bundled = SpeciesDatabase.LoadBundled();
         var loaded = SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Path.Combine(RepositoryPaths.Data, "trans.inp"));
@@ -30,8 +32,9 @@ public sealed class BundledDatabaseTests
         AssertSameTransport(loaded.Transport, bundled.Transport);
     }
 
+    /// <summary>BundledNotice equals the committed file.</summary>
     [Fact]
-    public void BundledNotice_equals_the_committed_file()
+    public void BundledNoticeEqualsTheCommittedFile()
     {
         var expected = File.ReadAllText(Path.Combine(RepositoryPaths.Data, "NOTICE"));
         Assert.Equal(expected, SpeciesDatabase.BundledNotice());

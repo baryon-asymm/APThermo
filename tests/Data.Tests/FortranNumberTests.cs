@@ -1,10 +1,9 @@
-using APThermo.Data;
-
 namespace APThermo.Data.Tests;
 
 /// <summary>L0: the numeric forms present in the NASA files.</summary>
 public sealed class FortranNumberTests
 {
+    /// <summary>Parses every form of the files.</summary>
     [Theory]
     [InlineData("-3.947960830D+04", -3.947960830e4)]
     [InlineData(" 4.955043490D-09", 4.955043490e-9)]
@@ -16,14 +15,11 @@ public sealed class FortranNumberTests
     [InlineData("1.5-03", 1.5e-3)]
     [InlineData("      ", 0.0)]
     [InlineData("  -2.0", -2.0)]
-    public void Parses_every_form_of_the_files(string field, double expected)
-    {
+    public void ParsesEveryFormOfTheFiles(string field, double expected) =>
         Assert.Equal(expected, FortranNumberAccessor.Parse(field));
-    }
 
+    /// <summary>Rejects text.</summary>
     [Fact]
-    public void Rejects_text()
-    {
-        Assert.Throws<FormatException>(() => FortranNumberAccessor.Parse("abc"));
-    }
+    public void RejectsText() =>
+        _ = Assert.Throws<FormatException>(() => FortranNumberAccessor.Parse("abc"));
 }

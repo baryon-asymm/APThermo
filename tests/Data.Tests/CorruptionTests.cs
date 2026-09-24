@@ -3,14 +3,11 @@ using System.Text;
 namespace APThermo.Data.Tests;
 
 /// <summary>L1: a corrupted record fails the load with the line number, on copies in memory.</summary>
-public sealed class CorruptionTests : IClassFixture<LoadedDatabase>
+public sealed class CorruptionTests
 {
-    private readonly string[] _lines;
+    private static readonly LoadedDatabase Loaded = new();
 
-    public CorruptionTests(LoadedDatabase loaded)
-    {
-        _lines = File.ReadAllLines(loaded.ThermoPath, Encoding.Latin1);
-    }
+    private readonly string[] _lines = File.ReadAllLines(Loaded.ThermoPath, Encoding.Latin1);
 
     private string MinimalFile(Func<string[], string[]> mutate)
     {
@@ -23,18 +20,20 @@ public sealed class CorruptionTests : IClassFixture<LoadedDatabase>
         return string.Join('\n', lines) + "\n";
     }
 
+    /// <summary>The minimal file itself loads.</summary>
     [Fact]
-    public void The_minimal_file_itself_loads()
+    public void TheMinimalFileItselfLoads()
     {
         var database = SpeciesDatabase.Parse(new StringReader(MinimalFile(r => r)));
-        Assert.Single(database.Products);
+        _ = Assert.Single(database.Products);
         Assert.Equal("H2O", database.Products[0].Name);
         Assert.Equal(2, database.Products[0].Intervals.Count);
         Assert.Null(database.Transport);
     }
 
+    /// <summary>A truncated coefficient line names its line.</summary>
     [Fact]
-    public void A_truncated_coefficient_line_names_its_line()
+    public void ATruncatedCoefficientLineNamesItsLine()
     {
         var text = MinimalFile(r =>
         {
@@ -46,23 +45,26 @@ public sealed class CorruptionTests : IClassFixture<LoadedDatabase>
         Assert.Contains("record starting at line 3", e.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A missing interval fails before the end marker.</summary>
     [Fact]
-    public void A_missing_interval_fails_before_the_end_marker()
+    public void AMissingIntervalFailsBeforeTheEndMarker()
     {
-        var text = MinimalFile(r => r.Take(5).ToArray());
+        var text = MinimalFile(r => [.. r.Take(5)]);
         var e = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
         Assert.True(e.LineNumber >= 6, $"line {e.LineNumber}");
     }
 
+    /// <summary>A file without the end marker fails.</summary>
     [Fact]
-    public void A_file_without_the_end_marker_fails()
+    public void AFileWithoutTheEndMarkerFails()
     {
         var text = MinimalFile(r => r).Replace("END REACTANTS\n", string.Empty, StringComparison.Ordinal);
-        Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
+        _ = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
     }
 
+    /// <summary>A bad coefficient count is rejected.</summary>
     [Fact]
-    public void A_bad_coefficient_count_is_rejected()
+    public void ABadCoefficientCountIsRejected()
     {
         var text = MinimalFile(r =>
         {
@@ -73,11 +75,10 @@ public sealed class CorruptionTests : IClassFixture<LoadedDatabase>
         Assert.Contains("6 coefficients", e.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A missing file is reported before parsing.</summary>
     [Fact]
-    public void A_missing_file_is_reported_before_parsing()
-    {
-        Assert.Throws<FileNotFoundException>(() => SpeciesDatabase.Load(Path.Combine(Path.GetTempPath(), "no-such-thermo.inp")));
-    }
+    public void AMissingFileIsReportedBeforeParsing() =>
+        _ = Assert.Throws<FileNotFoundException>(() => SpeciesDatabase.Load(Path.Combine(Path.GetTempPath(), "no-such-thermo.inp")));
 
     /// <summary>
     /// F-TD-08: a negative interval count is a format error stamped with its line, like every other bad field,
@@ -85,7 +86,7 @@ public sealed class CorruptionTests : IClassFixture<LoadedDatabase>
     /// a file or a line.
     /// </summary>
     [Fact]
-    public void A_negative_interval_count_names_its_line()
+    public void ANegativeIntervalCountNamesItsLine()
     {
         var text = MinimalFile(r =>
         {

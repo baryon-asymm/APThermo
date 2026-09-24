@@ -3,19 +3,18 @@ using System.Text.RegularExpressions;
 namespace APThermo.Data.Tests;
 
 /// <summary>L1: the committed data/trans.inp, loaded in full.</summary>
-public sealed partial class TransLoadTests : IClassFixture<LoadedDatabase>
+public sealed partial class TransLoadTests
 {
-    private readonly LoadedDatabase _loaded;
-
-    public TransLoadTests(LoadedDatabase loaded) => _loaded = loaded;
+    private static readonly LoadedDatabase Loaded = new();
 
     [GeneratedRegex(@"V(\d)C(\d)")]
     private static partial Regex FitCode();
 
+    /// <summary>Every block of the file is parsed.</summary>
     [Fact]
-    public void Every_block_of_the_file_is_parsed()
+    public void EveryBlockOfTheFileIsParsed()
     {
-        var lines = File.ReadAllLines(_loaded.TransPath, System.Text.Encoding.Latin1);
+        var lines = File.ReadAllLines(Loaded.TransPath, System.Text.Encoding.Latin1);
         int singles = 0, pairs = 0, fits = 0;
         foreach (var line in lines.Skip(1))
         {
@@ -39,19 +38,20 @@ public sealed partial class TransLoadTests : IClassFixture<LoadedDatabase>
             fits += int.Parse(match.Groups[1].Value) + int.Parse(match.Groups[2].Value);
         }
 
-        var transport = _loaded.Database.Transport!;
+        var transport = Loaded.Database.Transport!;
         Assert.True(singles > 30, "the independent scan found too few blocks to be meaningful");
         Assert.Equal(singles, transport.Entries.Count(e => e.Partner is null));
         Assert.Equal(pairs, transport.Entries.Count(e => e.Partner is not null));
         Assert.Equal(fits, transport.Entries.Sum(e => e.Viscosity.Count + e.Conductivity.Count));
     }
 
+    /// <summary>Fixture blocks parse to the transcribed values.</summary>
     [Theory]
     [MemberData(nameof(TransportFixtures))]
-    public void Fixture_blocks_parse_to_the_transcribed_values(string fixturePath)
+    public void FixtureBlocksParseToTheTranscribedValues(string fixturePath)
     {
         var expected = Records.LoadTransport(fixturePath);
-        var transport = _loaded.Database.Transport!;
+        var transport = Loaded.Database.Transport!;
         var actual = expected.Partner is null ? transport.Find(expected.Species) : transport.FindPair(expected.Partner, expected.Species);
         Assert.NotNull(actual);
         Assert.Equal(expected.Reference, actual.Reference);
@@ -69,6 +69,7 @@ public sealed partial class TransLoadTests : IClassFixture<LoadedDatabase>
         }
     }
 
+    /// <summary>Theory data: the transcribed transport fixture files, one path per row.</summary>
     public static TheoryData<string> TransportFixtures()
     {
         var data = new TheoryData<string>();
@@ -80,10 +81,11 @@ public sealed partial class TransLoadTests : IClassFixture<LoadedDatabase>
         return data;
     }
 
+    /// <summary>Pairs are found in either order.</summary>
     [Fact]
-    public void Pairs_are_found_in_either_order()
+    public void PairsAreFoundInEitherOrder()
     {
-        var transport = _loaded.Database.Transport!;
+        var transport = Loaded.Database.Transport!;
         Assert.Same(transport.FindPair("CO", "CO2"), transport.FindPair("CO2", "CO"));
         Assert.Null(transport.FindPair("CO", "NoSuchSpecies"));
         Assert.Null(transport.Find("NoSuchSpecies"));

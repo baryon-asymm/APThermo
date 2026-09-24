@@ -170,7 +170,7 @@ Decisions taken with the reviews of 2026-09-14:
   recorded here instead and the first record's value stands (the review's F-TD-09).
 
   Confirmed 2026-09-14 by a scan of `data/thermo.inp` (2 030 product records; the
-  scan's own count matches `ThermoLoadTests.Every_record_of_the_file_is_parsed`):
+  scan's own count matches `ThermoLoadTests.EveryRecordOfTheFileIsParsed`):
   ten names repeat in the PRODUCTS section — `Co(b)`, `Cr(cr)`, `Cr2O3(I)`, `Fe(a)`,
   `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`, the same ten
   the concatenation list above already named — and none disagrees in

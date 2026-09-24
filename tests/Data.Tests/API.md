@@ -7,13 +7,13 @@ points upward: it is what the parent may consider proven about `Data`.
 
 | Claim | Confirmed by | State |
 |---|---|---|
-| every record of the committed NASA files is parsed, and the fixture records parse to the transcribed values exactly | L1: `ThermoLoadTests.Every_record_of_the_file_is_parsed`, `ThermoLoadTests.Fixture_records_parse_to_the_transcribed_values`, `TransLoadTests.Every_block_of_the_file_is_parsed`, `TransLoadTests.Fixture_blocks_parse_to_the_transcribed_values` | ✅ 2026-09-12 |
-| the column parser handles every numeric form present in the files | L0: `FortranNumberTests.Parses_every_form_of_the_files` | ✅ 2026-09-12 |
+| every record of the committed NASA files is parsed, and the fixture records parse to the transcribed values exactly | L1: `ThermoLoadTests.EveryRecordOfTheFileIsParsed`, `ThermoLoadTests.FixtureRecordsParseToTheTranscribedValues`, `TransLoadTests.EveryBlockOfTheFileIsParsed`, `TransLoadTests.FixtureBlocksParseToTheTranscribedValues` | ✅ 2026-09-12 |
+| the column parser handles every numeric form present in the files | L0: `FortranNumberTests.ParsesEveryFormOfTheFiles` | ✅ 2026-09-12 |
 | a corrupted record fails the load with the line number of the bad field | L1: `CorruptionTests` | ✅ 2026-09-12 |
-| atomic weights come from the monatomic species records | L1: `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species` | ✅ 2026-09-12 |
-| interval bounds are stored as written, and the records whose first interval is not ascending are exactly those on the approved anomaly list | L1: `ThermoLoadTests.Interval_anomalies_equal_the_approved_list` | ✅ 2026-09-12 |
-| every record of a repeated name is reachable in file order through `Records`, and the indexer returns the first | L1: `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order` | ✅ 2026-09-14 |
-| a negative interval count fails the load with the line number of the field | L1: `CorruptionTests.A_negative_interval_count_names_its_line` | ✅ 2026-09-14 |
+| atomic weights come from the monatomic species records | L1: `ThermoLoadTests.AtomicWeightsComeFromTheMonatomicSpecies` | ✅ 2026-09-12 |
+| interval bounds are stored as written, and the records whose first interval is not ascending are exactly those on the approved anomaly list | L1: `ThermoLoadTests.IntervalAnomaliesEqualTheApprovedList` | ✅ 2026-09-12 |
+| every record of a repeated name is reachable in file order through `Records`, and the indexer returns the first | L1: `ThermoLoadTests.EveryRecordOfARepeatedNameIsReturnedInFileOrder` | ✅ 2026-09-14 |
+| a negative interval count fails the load with the line number of the field | L1: `CorruptionTests.ANegativeIntervalCountNamesItsLine` | ✅ 2026-09-14 |
 | the three resources embedded in the assembly hash to the same SHA-256 as `data/`'s files, and `LoadBundled()` equals `Load()` species by species and coefficient by coefficient | L1: `BundledDatabaseTests` | ✅ 2026-09-15 |
 
 ## What the tests rely on
