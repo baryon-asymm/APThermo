@@ -58,7 +58,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     private static string Hash(HostSolution solution)
     {
         var hash = new BitHash().Add(solution.Moles).Add(solution.Multipliers);
-        foreach (var field in typeof(MixtureState).GetFields())
+        foreach (var field in typeof(MixtureState).GetProperties())
         {
             hash.Add((double)field.GetValue(solution.State)!);
         }

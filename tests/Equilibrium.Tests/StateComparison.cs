@@ -23,7 +23,7 @@ internal static class StateComparison
     /// without a field is an error for an equilibrium case and is skipped for a rocket station (<paramref name="strict"/> false),
     /// whose other outputs belong to the performance node.
     /// </summary>
-    public static IEnumerable<(string Name, double Expected, FieldInfo Field)> StateFields(JsonElement outputs, bool strict = true)
+    public static IEnumerable<(string Name, double Expected, PropertyInfo Field)> StateFields(JsonElement outputs, bool strict = true)
     {
         foreach (var property in outputs.EnumerateObject())
         {
@@ -33,7 +33,7 @@ internal static class StateComparison
             }
 
             var fieldName = char.ToUpperInvariant(property.Name[0]) + property.Name[1..];
-            var field = typeof(MixtureState).GetField(fieldName);
+            var field = typeof(MixtureState).GetProperty(fieldName);
             if (field is null)
             {
                 if (strict)

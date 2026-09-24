@@ -264,10 +264,10 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         Assert.Equal(species.Count(name => station.MoleFractions[name] >= threshold), moleFractions.EnumerateObject().Count());
     }
 
-    /// <summary>Every public field of the struct, by reflection, against the property of the same camel-case name (CliFixture.Camel): exact.</summary>
+    /// <summary>Every public property of the struct, by reflection, against the property of the same camel-case name (CliFixture.Camel): exact.</summary>
     private static void AssertFields<T>(T value, JsonElement element, string label) where T : struct
     {
-        foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var field in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var name = CliFixture.Camel(field.Name);
             Assert.True(element.TryGetProperty(name, out var property), $"{label}: {name} is missing");

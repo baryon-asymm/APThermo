@@ -262,7 +262,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     {
         var properties = definition.GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
         var requiredNames = definition.GetProperty("required").EnumerateArray().Select(e => e.GetString()!).ToHashSet(StringComparer.Ordinal);
-        foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var field in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var name = CliFixture.Camel(field.Name);
             Assert.True(properties.Contains(name), $"{typeof(T).Name}.{field.Name} is not in the schema's properties as {name}");

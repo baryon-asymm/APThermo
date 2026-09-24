@@ -79,7 +79,7 @@ internal static class StationEquality
             yield return $"{label}: statuses differ";
         }
 
-        foreach (var field in typeof(MixtureState).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var field in typeof(MixtureState).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var p = (double)field.GetValue(expected.State)!;
             var q = (double)field.GetValue(actual.State)!;
@@ -95,7 +95,7 @@ internal static class StationEquality
         }
         else if (expected.Performance is { } figures)
         {
-            foreach (var field in typeof(PerformanceFigures).GetFields(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var field in typeof(PerformanceFigures).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
                 var p = (double)field.GetValue(figures)!;
                 var q = (double)field.GetValue(actual.Performance!.Value)!;
@@ -135,7 +135,7 @@ internal static class StationEquality
             yield break;
         }
 
-        foreach (var field in typeof(TransportFigures).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var field in typeof(TransportFigures).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var x = field.GetValue(a)!;
             var y = field.GetValue(b)!;

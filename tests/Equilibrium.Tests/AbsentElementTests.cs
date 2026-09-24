@@ -52,7 +52,7 @@ public sealed class AbsentElementTests(CpuFixture fixture)
         }
 
         Assert.Equal(0.0, full.Multipliers[removed]);
-        foreach (var field in typeof(MixtureState).GetFields())
+        foreach (var field in typeof(MixtureState).GetProperties())
         {
             var a = (double)field.GetValue(full.State)!;
             var b = (double)field.GetValue(reduced.State)!;

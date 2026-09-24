@@ -12,9 +12,9 @@ namespace APThermo.Performance.Tests;
 /// </summary>
 internal static class RocketBits
 {
-    private static readonly FieldInfo[] StateFields = Declared(typeof(MixtureState));
+    private static readonly PropertyInfo[] StateFields = Declared(typeof(MixtureState));
 
-    private static readonly FieldInfo[] FigureFields = Declared(typeof(PerformanceFigures));
+    private static readonly PropertyInfo[] FigureFields = Declared(typeof(PerformanceFigures));
 
     public static string Hash(RocketSolution solution)
     {
@@ -49,8 +49,8 @@ internal static class RocketBits
         return hash.Add(solution.Outcome.Iterations).Add((int)solution.Status).ToHex();
     }
 
-    /// <summary>The struct's fields in declaration order; <see cref="Type.GetFields()"/> promises no order, the metadata token carries it.</summary>
-    private static FieldInfo[] Declared(Type type) => type.GetFields().OrderBy(field => field.MetadataToken).ToArray();
+    /// <summary>The struct's properties in declaration order; <see cref="Type.GetProperties()"/> promises no order, the metadata token carries it.</summary>
+    private static PropertyInfo[] Declared(Type type) => type.GetProperties().OrderBy(field => field.MetadataToken).ToArray();
 }
 
 /// <summary>

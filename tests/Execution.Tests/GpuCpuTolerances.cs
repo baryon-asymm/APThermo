@@ -60,7 +60,7 @@ public static class GpuCpuTolerances
     /// <summary>The mismatches between two structs of the same type, field by field; ints must be equal, doubles within the field's tolerance.</summary>
     public static IEnumerable<string> Compare<T>(T cpu, T cuda, string label, Action<string, double>? record = null) where T : struct
     {
-        foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var field in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var a = field.GetValue(cpu)!;
             var b = field.GetValue(cuda)!;

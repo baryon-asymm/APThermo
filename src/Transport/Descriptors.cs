@@ -3,46 +3,91 @@ using ILGPU;
 namespace APThermo.Transport;
 
 /// <summary>The transport properties of one station, SI, with the bookkeeping of the transport set the reference reports.</summary>
-public struct TransportFigures
+public struct TransportFigures : IEquatable<TransportFigures>
 {
     /// <summary>Mixture viscosity, Pa·s.</summary>
-    public double Viscosity;
+    public double Viscosity { get; set; }
 
     /// <summary>Frozen thermal conductivity, W/(m·K).</summary>
-    public double FrozenConductivity;
+    public double FrozenConductivity { get; set; }
 
     /// <summary>Frozen plus reaction thermal conductivity, W/(m·K).</summary>
-    public double ReactingConductivity;
+    public double ReactingConductivity { get; set; }
 
     /// <summary>Cp_fr η / λ_fr over the transport set.</summary>
-    public double FrozenPrandtl;
+    public double FrozenPrandtl { get; set; }
 
     /// <summary>Cp_eq η / λ_eq over the transport set.</summary>
-    public double ReactingPrandtl;
+    public double ReactingPrandtl { get; set; }
 
     /// <summary>Frozen heat capacity of the transport set, J per kg of that gas per K (the reference's cp_fr when transport is on).</summary>
-    public double FrozenHeatCapacity;
+    public double FrozenHeatCapacity { get; set; }
 
     /// <summary>Frozen plus reaction heat capacity of the transport set, J/(kg·K) on the same basis.</summary>
-    public double EquilibriumHeatCapacity;
+    public double EquilibriumHeatCapacity { get; set; }
 
     /// <summary>The mole fraction of the transport set carried by species without a transport entry, whose properties are estimated.</summary>
-    public double EstimatedMoleFraction;
+    public double EstimatedMoleFraction { get; set; }
 
     /// <summary>Species in the transport set (the reference's NM).</summary>
-    public int SpeciesCount;
+    public int SpeciesCount { get; set; }
 
     /// <summary>Independent reactions among them after the trace eliminations (the reference's NR).</summary>
-    public int ReactionCount;
+    public int ReactionCount { get; set; }
 
     /// <summary>Species of the set without a transport entry.</summary>
-    public int EstimatedSpeciesCount;
+    public int EstimatedSpeciesCount { get; set; }
 
     /// <summary>Species of the set below <see cref="TransportSolver.TraceFraction"/> removed from the reaction set.</summary>
-    public int TraceEliminations;
+    public int TraceEliminations { get; set; }
 
     /// <summary>1 when a species was refused because the set had reached <see cref="TransportLayout.MaxSpecies"/>.</summary>
-    public int Capped;
+    public int Capped { get; set; }
+
+    /// <summary>Every property equal to <paramref name="other"/>'s by its type's <c>Equals</c>, so NaN equals NaN.</summary>
+    public readonly bool Equals(TransportFigures other) =>
+        Viscosity.Equals(other.Viscosity) &&
+        FrozenConductivity.Equals(other.FrozenConductivity) &&
+        ReactingConductivity.Equals(other.ReactingConductivity) &&
+        FrozenPrandtl.Equals(other.FrozenPrandtl) &&
+        ReactingPrandtl.Equals(other.ReactingPrandtl) &&
+        FrozenHeatCapacity.Equals(other.FrozenHeatCapacity) &&
+        EquilibriumHeatCapacity.Equals(other.EquilibriumHeatCapacity) &&
+        EstimatedMoleFraction.Equals(other.EstimatedMoleFraction) &&
+        SpeciesCount.Equals(other.SpeciesCount) &&
+        ReactionCount.Equals(other.ReactionCount) &&
+        EstimatedSpeciesCount.Equals(other.EstimatedSpeciesCount) &&
+        TraceEliminations.Equals(other.TraceEliminations) &&
+        Capped.Equals(other.Capped);
+
+    /// <inheritdoc/>
+    public override readonly bool Equals(object? obj) => obj is TransportFigures other && Equals(other);
+
+    /// <inheritdoc/>
+    public override readonly int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Viscosity);
+        hash.Add(FrozenConductivity);
+        hash.Add(ReactingConductivity);
+        hash.Add(FrozenPrandtl);
+        hash.Add(ReactingPrandtl);
+        hash.Add(FrozenHeatCapacity);
+        hash.Add(EquilibriumHeatCapacity);
+        hash.Add(EstimatedMoleFraction);
+        hash.Add(SpeciesCount);
+        hash.Add(ReactionCount);
+        hash.Add(EstimatedSpeciesCount);
+        hash.Add(TraceEliminations);
+        hash.Add(Capped);
+        return hash.ToHashCode();
+    }
+
+    /// <summary>Value equality, field by field.</summary>
+    public static bool operator ==(TransportFigures left, TransportFigures right) => left.Equals(right);
+
+    /// <summary>Value inequality, field by field.</summary>
+    public static bool operator !=(TransportFigures left, TransportFigures right) => !left.Equals(right);
 }
 
 /// <summary>Sizes of the per-case scratch of the transport solver.</summary>

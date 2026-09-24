@@ -85,7 +85,7 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
     {
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
-        var fields = typeof(MixtureState).GetFields();
+        var fields = typeof(MixtureState).GetProperties();
         for (var k = 0; k < host.Count; k++)
         {
             var label = $"{key} {cases[k].Kind}:{cases[k].Name}";

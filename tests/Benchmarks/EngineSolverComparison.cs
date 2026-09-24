@@ -39,8 +39,8 @@ internal sealed class EngineSolverComparison
     private const double TemperatureRelativeTolerance = 1.0e-10;
     private const double OtherFieldRelativeTolerance = 1.0e-9;
 
-    private static readonly FieldInfo[] StateFields = typeof(MixtureState).GetFields();
-    private static readonly FieldInfo[] PerformanceFields = typeof(APThermo.Performance.PerformanceFigures).GetFields();
+    private static readonly PropertyInfo[] StateFields = typeof(MixtureState).GetProperties();
+    private static readonly PropertyInfo[] PerformanceFields = typeof(APThermo.Performance.PerformanceFigures).GetProperties();
 
     private readonly ToleranceTable _tolerances;
     private readonly List<string> _mismatches = [];
@@ -87,12 +87,12 @@ internal sealed class EngineSolverComparison
         CompareMoles(engine, species, station.MoleFractions, flat, caseIndex, stationIndex);
     }
 
-    private void CompareStructFields<T>(FieldInfo[] fields, T expected, T actual, int caseIndex, int stationIndex, string label)
+    private void CompareStructFields<T>(PropertyInfo[] fields, T expected, T actual, int caseIndex, int stationIndex, string label)
         where T : struct
     {
         foreach (var field in fields)
         {
-            if (field.FieldType != typeof(double)) continue;
+            if (field.PropertyType != typeof(double)) continue;
             var e = (double)field.GetValue(expected)!;
             var a = (double)field.GetValue(actual)!;
             if (Bits.Same(e, a)) continue;

@@ -46,7 +46,7 @@ public sealed class AbsentElementTests(CpuFixture fixture)
                 continue;
             }
 
-            foreach (var field in typeof(TransportFigures).GetFields())
+            foreach (var field in typeof(TransportFigures).GetProperties())
             {
                 var p = field.GetValue(expected.Figures)!;
                 var q = field.GetValue(actual.Figures)!;

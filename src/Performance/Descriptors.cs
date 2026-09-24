@@ -60,26 +60,57 @@ internal readonly struct RocketProblem
 }
 
 /// <summary>The performance figures of one station; SI. At the chamber only the characteristic velocity and the pressure ratio (1) are defined.</summary>
-public struct PerformanceFigures
+public struct PerformanceFigures : IEquatable<PerformanceFigures>
 {
     /// <summary>The area ratio A/A_t, dimensionless; 1 at the throat, 0 (undefined) at the chamber.</summary>
-    public double AreaRatio;
+    public double AreaRatio { get; set; }
 
     /// <summary>The pressure ratio p_c/p, dimensionless.</summary>
-    public double PressureRatio;
+    public double PressureRatio { get; set; }
 
     /// <summary>The characteristic velocity c* = p_c/(ρ_t u_t), in m/s; the same value at every station of a case.</summary>
-    public double CharacteristicVelocity;
+    public double CharacteristicVelocity { get; set; }
 
     /// <summary>The thrust coefficient C_F = u/c*, dimensionless.</summary>
-    public double ThrustCoefficient;
+    public double ThrustCoefficient { get; set; }
 
     /// <summary>The specific impulse Isp = u, in m/s (the effective exhaust velocity, ambient pressure equal to
     /// the station pressure).</summary>
-    public double SpecificImpulse;
+    public double SpecificImpulse { get; set; }
 
     /// <summary>The vacuum specific impulse Ivac = u + p/(ρ u), in m/s.</summary>
-    public double VacuumSpecificImpulse;
+    public double VacuumSpecificImpulse { get; set; }
+
+    /// <summary>Every property equal to <paramref name="other"/>'s by <see cref="double.Equals(double)"/>, so NaN equals NaN.</summary>
+    public readonly bool Equals(PerformanceFigures other) =>
+        AreaRatio.Equals(other.AreaRatio) &&
+        PressureRatio.Equals(other.PressureRatio) &&
+        CharacteristicVelocity.Equals(other.CharacteristicVelocity) &&
+        ThrustCoefficient.Equals(other.ThrustCoefficient) &&
+        SpecificImpulse.Equals(other.SpecificImpulse) &&
+        VacuumSpecificImpulse.Equals(other.VacuumSpecificImpulse);
+
+    /// <inheritdoc/>
+    public override readonly bool Equals(object? obj) => obj is PerformanceFigures other && Equals(other);
+
+    /// <inheritdoc/>
+    public override readonly int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(AreaRatio);
+        hash.Add(PressureRatio);
+        hash.Add(CharacteristicVelocity);
+        hash.Add(ThrustCoefficient);
+        hash.Add(SpecificImpulse);
+        hash.Add(VacuumSpecificImpulse);
+        return hash.ToHashCode();
+    }
+
+    /// <summary>Value equality, field by field.</summary>
+    public static bool operator ==(PerformanceFigures left, PerformanceFigures right) => left.Equals(right);
+
+    /// <summary>Value inequality, field by field.</summary>
+    public static bool operator !=(PerformanceFigures left, PerformanceFigures right) => !left.Equals(right);
 }
 
 /// <summary>Sizes of a case's station arrays.</summary>

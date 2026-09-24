@@ -13,9 +13,9 @@ namespace APThermo.Transport.Tests;
 [Collection(CpuCollection.Name)]
 public sealed class BitSnapshotTests(CpuFixture fixture)
 {
-    /// <summary>The fields of the figures in declaration order; read by reflection, so that a new field cannot be forgotten.</summary>
-    private static readonly IReadOnlyList<FieldInfo> FiguresFields =
-        [.. typeof(TransportFigures).GetFields(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken)];
+    /// <summary>The properties of the figures in declaration order; read by reflection, so that a new one cannot be forgotten.</summary>
+    private static readonly IReadOnlyList<PropertyInfo> FiguresFields =
+        [.. typeof(TransportFigures).GetProperties(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken)];
 
     /// <summary>The committed snapshot: one line per fixture, its path relative to the repository root, a space, the hash.</summary>
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Transport.Tests"), "Bits");

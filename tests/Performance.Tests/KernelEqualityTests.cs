@@ -140,8 +140,8 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var kernelFigures = buffers.Figures.GetAsArray1D();
         var kernelStationStatus = buffers.StationStatus.GetAsArray1D();
         var kernelStatus = buffers.Status.GetAsArray1D();
-        var stateFields = typeof(MixtureState).GetFields();
-        var figureFields = typeof(PerformanceFigures).GetFields();
+        var stateFields = typeof(MixtureState).GetProperties();
+        var figureFields = typeof(PerformanceFigures).GetProperties();
         for (var k = 0; k < host.Count; k++)
         {
             var label = $"{key} {cases[k].Kind}:{cases[k].Name}";
