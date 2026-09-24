@@ -45,7 +45,8 @@ using var solver = Solver.Create(database, new EngineOptions { Accelerator = Acc
 
 var elementMoles = new Dictionary<string, double>
 {
-    ["H"] = 141.73179242528607, ["O"] = 53.57343757533765,
+    ["H"] = 141.73179242528607,
+    ["O"] = 53.57343757533765,
 };   // mol/kg, LOX/LH2 at O/F=6.0
 
 var mixture = ElementalMixture.Create(elementMoles);
@@ -57,11 +58,11 @@ var records = pressures.Select(pressure => new StateRecord(
     Composition: elementMoles,
     Temperature: 3000.0)).ToList();     // K: a tp record
 
-IReadOnlyList<EquilibriumResult> results = solver.SolveStates(records);
+var results = solver.SolveStates(records);
 
 for (var i = 0; i < pressures.Length; i++)
 {
-    EquilibriumResult result = results[i];
+    var result = results[i];
     if (result.Status != CaseStatus.Ok)
     {
         output.WriteLine($"  P={pressures[i] / 1e6:F2} MPa  FAILED: {result.Status}");
@@ -83,7 +84,6 @@ a station per exit, exactly as [Rocket solving](rocket.md) describes:
 ```csharp
 using APThermo.Data;
 using APThermo.Execution;
-using APThermo.Performance;
 using APThermo.Problems;
 using APThermo.Thermo;
 ```
@@ -95,8 +95,12 @@ using var solver = Solver.Create(database, new EngineOptions { Accelerator = Acc
 
 var composition = new Dictionary<string, double>
 {
-    ["C"] = 9.505849129331365, ["H"] = 35.214695099119155, ["O"] = 15.704786718374072,
-    ["N"] = 6.007718569653603, ["Cl"] = 3.3293409533388547, ["Al"] = 14.709996403305084,
+    ["C"] = 9.505849129331365,
+    ["H"] = 35.214695099119155,
+    ["O"] = 15.704786718374072,
+    ["N"] = 6.007718569653603,
+    ["Cl"] = 3.3293409533388547,
+    ["Al"] = 14.709996403305084,
 };   // mol/kg
 
 var record = new StateRecord(Pressure: 6.5e6, Composition: composition, Enthalpy: -1527829.408385985)
@@ -104,11 +108,11 @@ var record = new StateRecord(Pressure: 6.5e6, Composition: composition, Enthalpy
     AreaRatios = [8.0, 12.0],
 };
 
-IReadOnlyList<RocketResult> results = solver.SolveRocketStates([record]);
-RocketResult result = results[0];
+var results = solver.SolveRocketStates([record]);
+var result = results[0];
 
 output.WriteLine($"state record with exits  status={result.Status}  mass={result.MixtureMass:F4} kg");
-foreach (Station station in result.Stations)
+foreach (var station in result.Stations)
 {
     if (station.Status != CaseStatus.Ok)
     {

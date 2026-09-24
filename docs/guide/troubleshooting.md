@@ -37,7 +37,7 @@ using var solver = Solver.Create(database, new EngineOptions { Accelerator = Acc
 
 try
 {
-    Propellant.From(database).Oxidizer("NOT-A-REACTANT").Fuel("H2(L)").Build();
+    _ = Propellant.From(database).Oxidizer("NOT-A-REACTANT").Fuel("H2(L)").Build();
 }
 catch (KeyNotFoundException exception)
 {
@@ -46,7 +46,7 @@ catch (KeyNotFoundException exception)
 
 try
 {
-    Propellant.From(database)
+    _ = Propellant.From(database)
         .Oxidizer("O2(L)")
         .Fuel("H2(L)")
         .Named("AL(cr)", massFraction: 0.1)
@@ -62,7 +62,7 @@ var composition = new Dictionary<string, double> { ["H"] = 141.73179242528607, [
 try
 {
     var record = new StateRecord(Pressure: 1.0e6, Composition: composition, Temperature: 3000.0, Enthalpy: -1.0e6);
-    solver.SolveStates([record]);
+    _ = solver.SolveStates([record]);
 }
 catch (StateRecordException exception)
 {
@@ -73,7 +73,7 @@ var doubled = composition.ToDictionary(kv => kv.Key, kv => 2.0 * kv.Value);   //
 try
 {
     var mixture = ElementalMixture.Create(doubled, enthalpy: -1.0e6);
-    solver.Solve(mixture, new RocketProblem { ChamberPressure = 1.0e6, AreaRatios = [10.0] });
+    _ = solver.Solve(mixture, new RocketProblem { ChamberPressure = 1.0e6, AreaRatios = [10.0] });
 }
 catch (MixtureMassException exception)
 {
@@ -86,7 +86,7 @@ var propellant = Propellant.From(database)
     .OxidizerToFuelRatio(6.0)
     .Build();
 var result = solver.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6, PressureRatios = [0.5] });
-Station exit = result.Stations[^1];
+var exit = result.Stations[^1];
 output.WriteLine($"a failed station carries a status instead of a partial state: {exit.Status}");
 ```
 

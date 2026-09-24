@@ -61,7 +61,7 @@ var problem = new RocketProblem
 };
 
 using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-RocketResult result = solver.Solve(propellant, problem);
+var result = solver.Solve(propellant, problem);
 
 void PrintStation(Station station)
 {
@@ -79,12 +79,12 @@ void PrintStation(Station station)
 }
 
 output.WriteLine($"LOX/LH2 O/F=6.0  Pc={problem.ChamberPressure / 1e6:F1} MPa  status={result.Status}");
-foreach (Station station in result.Stations)
+foreach (var station in result.Stations)
 {
     PrintStation(station);
 }
 
-Station throat = result.Stations[1];
+var throat = result.Stations[1];
 if (throat.Status == CaseStatus.Ok)
 {
     if (throat.Transport is { } transport)
@@ -133,7 +133,7 @@ var problem = new RocketProblem
 };
 
 using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-RocketResult result = solver.Solve(propellant, problem);
+var result = solver.Solve(propellant, problem);
 
 void PrintStation(Station station)
 {
@@ -150,7 +150,7 @@ void PrintStation(Station station)
 }
 
 output.WriteLine($"LOX/LH2 O/F=6.0  Pc={problem.ChamberPressure / 1e6:F1} MPa  status={result.Status}");
-foreach (Station station in result.Stations)
+foreach (var station in result.Stations)
 {
     PrintStation(station);
 }
@@ -196,10 +196,10 @@ var problem = new RocketProblem
 };
 
 using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-RocketResult result = solver.Solve(propellant, problem);
+var result = solver.Solve(propellant, problem);
 
 output.WriteLine($"AP/HTPB/Al  Pc={problem.ChamberPressure / 1e6:F1} MPa  status={result.Status}");
-foreach (Station station in result.Stations)
+foreach (var station in result.Stations)
 {
     if (station.Status != CaseStatus.Ok)
     {

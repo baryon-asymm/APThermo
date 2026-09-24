@@ -36,10 +36,10 @@ internal sealed class CustomPropellant
         };
 
         using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-        RocketResult result = solver.Solve(propellant, problem);
+        var result = solver.Solve(propellant, problem);
 
         output.WriteLine($"AP/HTPB/Al  Pc={problem.ChamberPressure / 1e6:F1} MPa  status={result.Status}");
-        foreach (Station station in result.Stations)
+        foreach (var station in result.Stations)
         {
             if (station.Status != CaseStatus.Ok)
             {

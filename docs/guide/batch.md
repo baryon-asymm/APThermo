@@ -57,12 +57,12 @@ var problems = pressures.Select(pressure => new RocketProblem
 }).ToList();
 
 using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-IReadOnlyList<RocketResult> results = solver.Solve(propellant, problems);
+var results = solver.Solve(propellant, problems);
 
 output.WriteLine("LOX/LH2 O/F=6.0  area ratios [20, 77.5]");
-foreach (RocketResult result in results)
+foreach (var result in results)
 {
-    Station exit = result.Stations[^1];
+    var exit = result.Stations[^1];
     var chamberPressure = result.Problem.ChamberPressure / 1e6;
     if (exit.Status != CaseStatus.Ok)
     {
@@ -84,7 +84,6 @@ that overload. This is one batch, not one call per ratio:
 ```csharp
 using APThermo.Data;
 using APThermo.Execution;
-using APThermo.Performance;
 using APThermo.Problems;
 using APThermo.Thermo;
 ```
@@ -105,12 +104,12 @@ double[] ratios = [5.0, 6.0, 7.0];
 var mixtures = ratios.Select(ratio => solver.MixtureOf(propellant, ratio)).ToList();
 var problems = ratios.Select(_ => new RocketProblem { ChamberPressure = 7.0e6, AreaRatios = [20.0] }).ToList();
 
-IReadOnlyList<RocketResult> results = solver.Solve(mixtures, problems);
+var results = solver.Solve(mixtures, problems);
 
 output.WriteLine("LOX/LH2 O/F sweep, one batch, Pc=7.0 MPa");
 for (var i = 0; i < ratios.Length; i++)
 {
-    Station exit = results[i].Stations[^1];
+    var exit = results[i].Stations[^1];
     if (exit.Status != CaseStatus.Ok)
     {
         output.WriteLine($"  O/F={ratios[i]:F1}  FAILED: {exit.Status}");
