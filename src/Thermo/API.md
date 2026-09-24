@@ -18,10 +18,7 @@ surface into the tree contract below; only `MixtureState` and `CaseStatus` stay 
 because a consumer reads them from `Station`, `RocketResult` and `EquilibriumResult` of
 `Problems`.
 
-## Species vocabulary ⏳
-
-⏳ until the Diagnostics change of the root `BOOT.md` (2026-09-24) is coded; the
-mark returns to ✅ in the commit that makes `MixtureState` as declared here.
+## Species vocabulary ✅
 
 ```csharp
 namespace APThermo.Thermo;

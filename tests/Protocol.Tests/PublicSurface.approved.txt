@@ -80,6 +80,9 @@ class APThermo.Benchmarks.UserStatesBenchmarks
 == APThermo.Data
 
 sealed class APThermo.Data.DatabaseFormatException : Exception, ISerializable
+    .ctor()
+    .ctor(String message)
+    .ctor(String message, Exception innerException)
     .ctor(String? fileName, Int32 lineNumber, String message, Exception? inner = null)
     Int32 LineNumber { get; }
     String? FileName { get; }
@@ -187,6 +190,9 @@ static class APThermo.Execution.AcceleratorProbe
     static Boolean CudaForbidden { get; }
 
 sealed class APThermo.Execution.AcceleratorUnavailableException : Exception, ISerializable
+    .ctor()
+    .ctor(String message)
+    .ctor(String message, Exception innerException)
     .ctor(String message, IReadOnlyList<String> pathsTried, Exception? inner = null)
     IReadOnlyList<String> PathsTried { get; }
 
@@ -309,13 +315,18 @@ enum APThermo.Performance.FlowModel : Int32
     FrozenAtThroat = 2
     ShiftingEquilibrium = 0
 
-struct APThermo.Performance.PerformanceFigures
-    Double AreaRatio
-    Double CharacteristicVelocity
-    Double PressureRatio
-    Double SpecificImpulse
-    Double ThrustCoefficient
-    Double VacuumSpecificImpulse
+struct APThermo.Performance.PerformanceFigures : IEquatable<PerformanceFigures>
+    Boolean Equals(Object? obj)
+    Boolean Equals(PerformanceFigures other)
+    Double AreaRatio { get; set; }
+    Double CharacteristicVelocity { get; set; }
+    Double PressureRatio { get; set; }
+    Double SpecificImpulse { get; set; }
+    Double ThrustCoefficient { get; set; }
+    Double VacuumSpecificImpulse { get; set; }
+    Int32 GetHashCode()
+    static Boolean op_Equality(PerformanceFigures left, PerformanceFigures right)
+    static Boolean op_Inequality(PerformanceFigures left, PerformanceFigures right)
 
 == APThermo.Problems
 
@@ -361,6 +372,9 @@ sealed class (record) APThermo.Problems.EquilibriumResult : IEquatable<Equilibri
     Station State { get; }
 
 sealed class APThermo.Problems.MixtureMassException : ArgumentException, ISerializable
+    .ctor()
+    .ctor(String message)
+    .ctor(String message, Exception innerException)
     .ctor(String subject, Int32 index, Double mass, Double tolerance)
     Double Mass { get; }
     Double Tolerance { get; }
@@ -466,7 +480,10 @@ sealed class (record) APThermo.Problems.StateRecord : IEquatable<StateRecord>
     IReadOnlyList<Double> PressureRatios { get; init; }
 
 sealed class APThermo.Problems.StateRecordException : ArgumentException, ISerializable
+    .ctor()
     .ctor(Int32 index, String reason)
+    .ctor(String message)
+    .ctor(String message, Exception innerException)
     Int32 Index { get; }
     String Reason { get; }
 
@@ -494,40 +511,50 @@ enum APThermo.Thermo.CaseStatus : Int32
     TemperatureOutOfRange = 4
     ThroatNotFound = 5
 
-struct APThermo.Thermo.MixtureState
-    Double CpEquilibrium
-    Double CpFrozen
-    Double CvEquilibrium
-    Double CvFrozen
-    Double Density
-    Double DlnVdlnP
-    Double DlnVdlnT
-    Double Enthalpy
-    Double Entropy
-    Double GammaS
-    Double GibbsEnergy
-    Double InternalEnergy
-    Double Mach
-    Double MixtureMolarMass
-    Double MolarMass
-    Double Pressure
-    Double SoundSpeed
-    Double Temperature
-    Double Velocity
+struct APThermo.Thermo.MixtureState : IEquatable<MixtureState>
+    Boolean Equals(MixtureState other)
+    Boolean Equals(Object? obj)
+    Double CpEquilibrium { get; set; }
+    Double CpFrozen { get; set; }
+    Double CvEquilibrium { get; set; }
+    Double CvFrozen { get; set; }
+    Double Density { get; set; }
+    Double DlnVdlnP { get; set; }
+    Double DlnVdlnT { get; set; }
+    Double Enthalpy { get; set; }
+    Double Entropy { get; set; }
+    Double GammaS { get; set; }
+    Double GibbsEnergy { get; set; }
+    Double InternalEnergy { get; set; }
+    Double Mach { get; set; }
+    Double MixtureMolarMass { get; set; }
+    Double MolarMass { get; set; }
+    Double Pressure { get; set; }
+    Double SoundSpeed { get; set; }
+    Double Temperature { get; set; }
+    Double Velocity { get; set; }
+    Int32 GetHashCode()
+    static Boolean op_Equality(MixtureState left, MixtureState right)
+    static Boolean op_Inequality(MixtureState left, MixtureState right)
 
 == APThermo.Transport
 
-struct APThermo.Transport.TransportFigures
-    Double EquilibriumHeatCapacity
-    Double EstimatedMoleFraction
-    Double FrozenConductivity
-    Double FrozenHeatCapacity
-    Double FrozenPrandtl
-    Double ReactingConductivity
-    Double ReactingPrandtl
-    Double Viscosity
-    Int32 Capped
-    Int32 EstimatedSpeciesCount
-    Int32 ReactionCount
-    Int32 SpeciesCount
-    Int32 TraceEliminations
+struct APThermo.Transport.TransportFigures : IEquatable<TransportFigures>
+    Boolean Equals(Object? obj)
+    Boolean Equals(TransportFigures other)
+    Double EquilibriumHeatCapacity { get; set; }
+    Double EstimatedMoleFraction { get; set; }
+    Double FrozenConductivity { get; set; }
+    Double FrozenHeatCapacity { get; set; }
+    Double FrozenPrandtl { get; set; }
+    Double ReactingConductivity { get; set; }
+    Double ReactingPrandtl { get; set; }
+    Double Viscosity { get; set; }
+    Int32 Capped { get; set; }
+    Int32 EstimatedSpeciesCount { get; set; }
+    Int32 GetHashCode()
+    Int32 ReactionCount { get; set; }
+    Int32 SpeciesCount { get; set; }
+    Int32 TraceEliminations { get; set; }
+    static Boolean op_Equality(TransportFigures left, TransportFigures right)
+    static Boolean op_Inequality(TransportFigures left, TransportFigures right)

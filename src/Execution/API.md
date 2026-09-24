@@ -55,6 +55,9 @@ public sealed record AcceleratorInfo             // the constructor is internal 
 
 public sealed class AcceleratorUnavailableException : Exception
 {
+    public AcceleratorUnavailableException();
+    public AcceleratorUnavailableException(string message);
+    public AcceleratorUnavailableException(string message, Exception innerException);
     public AcceleratorUnavailableException(string message, IReadOnlyList<string> pathsTried, Exception? inner = null);
     public IReadOnlyList<string> PathsTried { get; }   // the libnvvm and libdevice paths examined, in order
 }
@@ -70,18 +73,10 @@ public static class AcceleratorProbe             // replaces Engine on the packa
 internal `Engine.Create` does (below); creating a CUDA context takes time, so call it
 once per accelerator kind, not per case.
 
-### Standard constructors ⏳
-
-Added 2026-09-24 by the root's Diagnostics constraint (CA1032); ⏳ until coded, then
-merged into the ✅ block above. They exist for the .NET exception conventions; the tree
-itself always throws through the constructor above. The data properties take neutral
-values: `PathsTried` empty.
-
-```csharp
-public AcceleratorUnavailableException();
-public AcceleratorUnavailableException(string message);
-public AcceleratorUnavailableException(string message, Exception innerException);
-```
+The first three constructors of `AcceleratorUnavailableException` were added
+2026-09-24 by the root's Diagnostics constraint (CA1032), for the .NET exception
+conventions; the tree itself always throws through the fourth. Their data property
+takes a neutral value: `PathsTried` empty.
 
 ## Engine (tree contract) ✅
 

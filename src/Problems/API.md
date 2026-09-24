@@ -155,6 +155,9 @@ public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<str
 
 public sealed class StateRecordException : ArgumentException   // a state record refused by a rule of its shape; not the mass rule (MixtureMassException)
 {
+    public StateRecordException();
+    public StateRecordException(string message);
+    public StateRecordException(string message, Exception innerException);
     public StateRecordException(int index, string reason);
     public int Index { get; }                                    // the record's position in the list given
     public string Reason { get; }                                // the message without the subject
@@ -162,6 +165,9 @@ public sealed class StateRecordException : ArgumentException   // a state record
 
 public sealed class MixtureMassException : ArgumentException   // the solver's refusal of a mixture beyond its MassTolerance
 {
+    public MixtureMassException();
+    public MixtureMassException(string message);
+    public MixtureMassException(string message, Exception innerException);
     public MixtureMassException(string subject, int index, double mass, double tolerance);
     public int Index { get; }                         // position in the batch: the case index, or the state record's index
     public double Mass { get; }                       // kg: Σ n_i A_i with the database's atomic weights
@@ -170,21 +176,11 @@ public sealed class MixtureMassException : ArgumentException   // the solver's r
 }
 ```
 
-### Standard constructors ⏳
-
-Added 2026-09-24 by the root's Diagnostics constraint (CA1032); ⏳ until coded, then
-merged into the ✅ block above. They exist for the .NET exception conventions; the tree
-itself always throws through the constructor above. The data properties take neutral
-values: `Index` −1, `Mass` and `Tolerance` NaN, `Reason` the message (the empty string for the parameterless one); the same for `StateRecordException`'s `Index` and `Reason`.
-
-```csharp
-public StateRecordException();
-public StateRecordException(string message);
-public StateRecordException(string message, Exception innerException);
-public MixtureMassException();
-public MixtureMassException(string message);
-public MixtureMassException(string message, Exception innerException);
-```
+The first three constructors of each exception were added 2026-09-24 by the root's
+Diagnostics constraint (CA1032), for the .NET exception conventions; the tree itself
+always throws through the fourth. Their data properties take neutral values: `Index`
+−1, `Mass` and `Tolerance` NaN, `Reason` the message (the empty string for the
+parameterless one); the same for `StateRecordException`'s `Index` and `Reason`.
 
 An `ElementalMixture` is accepted everywhere a `Propellant` is (rocket and
 equilibrium problems). A list of `StateRecord`s is one batch: every record may carry

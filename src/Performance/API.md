@@ -18,10 +18,7 @@ tests. They moved from the package surface into the tree contract below; only
 them on `RocketProblem`/`StateRecord` and `Station` of `Problems` (distinct,
 same-named types there: `Problems.RocketResult`, not this node's).
 
-## Flow and figures ⏳
-
-⏳ until the Diagnostics change of the root `BOOT.md` (2026-09-24) is coded; the
-mark returns to ✅ in the commit that makes `PerformanceFigures` as declared here.
+## Flow and figures ✅
 
 ```csharp
 namespace APThermo.Performance;

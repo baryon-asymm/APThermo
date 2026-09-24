@@ -81,12 +81,7 @@ kernel; `TransportTableBuffers.Upload` replaces it. The sketch also had one star
 count per species for the pair runs; the pairs got their own start and count arrays
 addressed through `PairIndex`.
 
-## Evaluation ⏳
-
-⏳ until the Diagnostics change of the root `BOOT.md` (2026-09-24) is coded; the
-mark returns to ✅ in the commit that makes `TransportFigures` as declared here. The
-same ⚠ applies as to `MixtureState` (`src/Thermo/API.md`): until 0.1.0 the members
-were public fields without equality, and binaries built against 0.1.0 must recompile.
+## Evaluation ✅
 
 ```csharp
 public struct TransportFigures : IEquatable<TransportFigures>   // one station; SI
@@ -112,6 +107,12 @@ public struct TransportFigures : IEquatable<TransportFigures>   // one station; 
     public static bool operator !=(TransportFigures left, TransportFigures right);
 }
 ```
+
+⚠ 2026-09-24: until 0.1.0 the members were public fields without equality; the root's
+Diagnostics constraint (CA1051, CA1815) made them auto-properties with value equality.
+The consequences are the same as for `MixtureState` (`src/Thermo/API.md`):
+source-compatible for readers, a recompile for binaries built against 0.1.0, and
+unchanged layout and bits.
 
 ## Solver (tree contract) ✅
 
