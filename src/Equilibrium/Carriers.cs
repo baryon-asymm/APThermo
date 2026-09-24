@@ -68,7 +68,7 @@ internal static class SpeciesMarks
     public static bool InPlay(in EquilibriumScratch scratch, int species)
     {
         var mark = Of(scratch, species);
-        return mark == SpeciesMark.Active || mark == SpeciesMark.ForgivenOnce;
+        return mark is SpeciesMark.Active or SpeciesMark.ForgivenOnce;
     }
 }
 

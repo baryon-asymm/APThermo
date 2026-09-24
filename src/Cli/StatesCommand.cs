@@ -25,14 +25,14 @@ internal static class StatesCommand
         using var session = SolverSession.Open(options.Database, options.Accelerator ?? AcceleratorKind.Auto);
         var cases = new CaseOutput[records.Count];
         var batch = new StateBatchOptions(options.Transport, MassTolerance: options.MassTolerance);
-        SolveEquilibrium(session.Solver, records.Where(r => !r.Record.HasExits).ToList(), batch, cases);
-        SolveRockets(session.Solver, records.Where(r => r.Record.HasExits).ToList(), batch, cases);
+        SolveEquilibrium(session.Solver, [.. records.Where(r => !r.Record.HasExits)], batch, cases);
+        SolveRockets(session.Solver, [.. records.Where(r => r.Record.HasExits)], batch, cases);
         var run = session.Stop("states", invocation.Arguments, new RunLimits(options.Threshold, options.MassTolerance));
         return DocumentWriter.Write(run, cases, options, output);
     }
 
     private static void SolveEquilibrium(
-        Solver solver, IReadOnlyList<(StateRecord Record, RecordSource Source)> group, StateBatchOptions options, CaseOutput[] cases)
+        Solver solver, List<(StateRecord Record, RecordSource Source)> group, StateBatchOptions options, CaseOutput[] cases)
     {
         if (group.Count == 0)
         {
@@ -40,7 +40,7 @@ internal static class StatesCommand
         }
 
         var sources = group.Select(g => g.Source).ToList();
-        var results = RecordNaming.Named(sources, () => solver.SolveStates(group.Select(g => g.Record).ToList(), options));
+        var results = RecordNaming.Named(sources, () => solver.SolveStates([.. group.Select(g => g.Record)], options));
         for (var k = 0; k < group.Count; k++)
         {
             var source = group[k].Source;
@@ -59,7 +59,7 @@ internal static class StatesCommand
     }
 
     private static void SolveRockets(
-        Solver solver, IReadOnlyList<(StateRecord Record, RecordSource Source)> group, StateBatchOptions options, CaseOutput[] cases)
+        Solver solver, List<(StateRecord Record, RecordSource Source)> group, StateBatchOptions options, CaseOutput[] cases)
     {
         if (group.Count == 0)
         {
@@ -67,7 +67,7 @@ internal static class StatesCommand
         }
 
         var sources = group.Select(g => g.Source).ToList();
-        var results = RecordNaming.Named(sources, () => solver.SolveRocketStates(group.Select(g => g.Record).ToList(), options));
+        var results = RecordNaming.Named(sources, () => solver.SolveRocketStates([.. group.Select(g => g.Record)], options));
         for (var k = 0; k < group.Count; k++)
         {
             var source = group[k].Source;

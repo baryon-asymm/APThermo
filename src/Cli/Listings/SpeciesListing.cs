@@ -67,7 +67,7 @@ internal static class SpeciesListing
                 CsvOutput.Number(row.MolarMass), CsvOutput.Number(row.FormationEnthalpy), low, high,
                 row.TransportData ? "true" : "false",
             ];
-            text.Append(string.Join(",", cells.Select(CsvOutput.Escape))).Append('\n');
+            _ = text.Append(string.Join(",", cells.Select(CsvOutput.Escape))).Append('\n');
         }
 
         return text.ToString();

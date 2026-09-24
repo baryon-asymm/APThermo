@@ -48,6 +48,7 @@ internal static class CaseInputs
                 }
 
                 break;
+            case ProblemKind.AssignedEntropyPressure:
             default:
                 inputs["entropy"] = problem.Entropy;
                 break;

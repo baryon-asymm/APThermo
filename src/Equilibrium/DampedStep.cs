@@ -105,6 +105,6 @@ internal static class DampedStep
         }
 
         state.Temperature = Math.Exp(Math.Log(state.Temperature) + lambda * scratch.RightHandSide[layout.TRow]);
-        return state.Temperature >= EquilibriumSolver.MinTemperature && state.Temperature <= EquilibriumSolver.MaxTemperature;
+        return state.Temperature is >= EquilibriumSolver.MinTemperature and <= EquilibriumSolver.MaxTemperature;
     }
 }

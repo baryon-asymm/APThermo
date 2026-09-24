@@ -17,13 +17,13 @@ internal static class CsvOutput
     {
         var inputColumns = InputColumnsOf(cases);
         var text = new StringBuilder();
-        text.Append(string.Join(",", HeaderOf(inputColumns).Select(Escape))).Append('\n');
+        _ = text.Append(string.Join(",", HeaderOf(inputColumns).Select(Escape))).Append('\n');
         foreach (var c in cases)
         {
             var inputs = ScalarInputs(c.Inputs).ToDictionary(pair => pair.Name, pair => pair.Value, StringComparer.Ordinal);
             foreach (var station in c.Stations)
             {
-                text.Append(string.Join(",", RowOf(c, station, inputColumns, inputs).Select(Escape))).Append('\n');
+                _ = text.Append(string.Join(",", RowOf(c, station, inputColumns, inputs).Select(Escape))).Append('\n');
             }
         }
 
@@ -34,7 +34,7 @@ internal static class CsvOutput
     /// Every scalar of the cases' <c>inputs</c> (numbers, strings, booleans; a record's objects and lists are not
     /// columns), in the order first seen; a case without one leaves its cell empty.
     /// </summary>
-    private static IReadOnlyList<string> InputColumnsOf(IReadOnlyList<CaseOutput> cases)
+    private static List<string> InputColumnsOf(IReadOnlyList<CaseOutput> cases)
     {
         var columns = new List<string>();
         foreach (var c in cases)
@@ -51,7 +51,7 @@ internal static class CsvOutput
         return columns;
     }
 
-    private static IReadOnlyList<string> HeaderOf(IReadOnlyList<string> inputColumns)
+    private static List<string> HeaderOf(IReadOnlyList<string> inputColumns)
     {
         var header = new List<string> { "case" };
         header.AddRange(inputColumns);
@@ -63,7 +63,7 @@ internal static class CsvOutput
         return header;
     }
 
-    private static IReadOnlyList<string> RowOf(CaseOutput c, Station station, IReadOnlyList<string> inputColumns, IReadOnlyDictionary<string, string> inputs)
+    private static List<string> RowOf(CaseOutput c, Station station, IReadOnlyList<string> inputColumns, Dictionary<string, string> inputs)
     {
         var cells = new List<string> { c.Index.ToString(CultureInfo.InvariantCulture) };
         cells.AddRange(inputColumns.Select(name => inputs.TryGetValue(name, out var value) ? value : ""));

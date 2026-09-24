@@ -60,12 +60,9 @@ internal static class SpeciesRecordReader
     {
         var name = FixedColumns.Field(line, RecordColumns.NameStart, RecordColumns.NameLength).Trim();
         var comment = line.Length > RecordColumns.NameLength ? line[RecordColumns.NameLength..].Trim() : string.Empty;
-        if (name.Length == 0 || line[0] == ' ')
-        {
-            throw new FormatException("a record must start with a species name in column 1");
-        }
-
-        return (name, comment);
+        return name.Length == 0 || line[0] == ' '
+            ? throw new FormatException("a record must start with a species name in column 1")
+            : (name, comment);
     }
 
     private readonly record struct Properties(
@@ -86,15 +83,12 @@ internal static class SpeciesRecordReader
         var phase = FortranNumber.ParseInt(FixedColumns.Field(line, RecordColumns.PhaseStart, RecordColumns.PhaseLength)) == 0 ? SpeciesPhase.Gas : SpeciesPhase.Condensed;
         var molarMass = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.MolarMassStart, RecordColumns.MolarMassLength));
         var formationEnthalpy = FortranNumber.Parse(FixedColumns.Field(line, RecordColumns.FormationEnthalpyStart, RecordColumns.FormationEnthalpyLength));
-        if (molarMass <= 0.0)
-        {
-            throw new FormatException("molar mass must be positive");
-        }
-
-        return new Properties(intervalCount, dateCode, formula, phase, molarMass, formationEnthalpy);
+        return molarMass <= 0.0
+            ? throw new FormatException("molar mass must be positive")
+            : new Properties(intervalCount, dateCode, formula, phase, molarMass, formationEnthalpy);
     }
 
-    private static IReadOnlyList<ElementCount> ReadFormula(string line)
+    private static List<ElementCount> ReadFormula(string line)
     {
         var formula = new List<ElementCount>(RecordColumns.FormulaPairs);
         for (var k = 0; k < RecordColumns.FormulaPairs; k++)
@@ -114,22 +108,14 @@ internal static class SpeciesRecordReader
             formula.Add(new ElementCount(symbol, count));
         }
 
-        if (formula.Count == 0)
-        {
-            throw new FormatException("a record must name at least one element");
-        }
-
-        return formula;
+        return formula.Count == 0 ? throw new FormatException("a record must name at least one element") : formula;
     }
 
     private static double ReadAssignedTemperature(string line)
     {
         var tokens = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (tokens.Length == 0)
-        {
-            throw new FormatException("a record without intervals must give the temperature of its assigned enthalpy");
-        }
-
-        return FortranNumber.Parse(tokens[0]);
+        return tokens.Length == 0
+            ? throw new FormatException("a record without intervals must give the temperature of its assigned enthalpy")
+            : FortranNumber.Parse(tokens[0]);
     }
 }

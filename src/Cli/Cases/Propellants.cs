@@ -12,29 +12,24 @@ internal static class Propellants
         var builder = Propellant.From(database);
         foreach (var r in document.Reactants)
         {
-            if (r.Custom is { } custom)
-            {
-                builder.Custom(Reactant.Custom(r.Name, custom, r.Role, r.Amount, r.AmountKind));
-            }
-            else
-            {
-                builder.Add(Reactant.FromDatabase(r.Name, r.Role, r.Amount, r.Temperature, r.AmountKind));
-            }
+            _ = r.Custom is { } custom
+                ? builder.Custom(Reactant.Custom(r.Name, custom, r.Role, r.Amount, r.AmountKind))
+                : builder.Add(Reactant.FromDatabase(r.Name, r.Role, r.Amount, r.Temperature, r.AmountKind));
         }
 
         if (document.OxidizerToFuel is { } ratio)
         {
-            builder.OxidizerToFuelRatio(ratio);
+            _ = builder.OxidizerToFuelRatio(ratio);
         }
 
         if (document.Omit.Count > 0)
         {
-            builder.Omit([.. document.Omit]);
+            _ = builder.Omit([.. document.Omit]);
         }
 
         if (document.Only is not null)
         {
-            builder.Only([.. document.Only]);
+            _ = builder.Only([.. document.Only]);
         }
 
         return builder.Build();

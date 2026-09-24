@@ -23,39 +23,36 @@ internal static class StateRecordReader
             }
         }
 
-        if (records.Count == 0)
-        {
-            throw new InputException("no state record was given");
-        }
-
-        return records;
+        return records.Count == 0 ? throw new InputException("no state record was given") : records;
     }
 
-    private static IReadOnlyList<(JsonElement Element, string Label)> RecordElements(string text, string source)
+    private static List<(JsonElement Element, string Label)> RecordElements(string text, string source)
     {
-        if (JsonText.TryParseWhole(text, source, out var whole))
+        JsonDocument? whole = null;
+        try
         {
-            using (whole)
+            if (JsonText.TryParseWhole(text, source, out whole))
             {
                 var root = whole.RootElement;
-                if (root.ValueKind == JsonValueKind.Array)
+                return root.ValueKind switch
                 {
-                    return root.EnumerateArray().Select((item, i) => (item.Clone(), $"{source}: record {i}")).ToList();
-                }
-
-                if (root.ValueKind == JsonValueKind.Object)
-                {
-                    return [(root.Clone(), $"{source}: record 0")];
-                }
-
-                throw new InputException($"{source}: expected an array of records, one record or JSON Lines, not {StrictObject.Describe(root)}");
+                    JsonValueKind.Array => [.. root.EnumerateArray().Select((item, i) => (item.Clone(), $"{source}: record {i}"))],
+                    JsonValueKind.Object => [(root.Clone(), $"{source}: record 0")],
+                    JsonValueKind.Undefined or JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False or JsonValueKind.Null =>
+                        throw new InputException($"{source}: expected an array of records, one record or JSON Lines, not {StrictObject.Describe(root)}"),
+                    _ => throw new InputException($"{source}: expected an array of records, one record or JSON Lines, not {StrictObject.Describe(root)}"),
+                };
             }
+        }
+        finally
+        {
+            whole?.Dispose();
         }
 
         return LinesOf(text, source);
     }
 
-    private static IReadOnlyList<(JsonElement Element, string Label)> LinesOf(string text, string source)
+    private static List<(JsonElement Element, string Label)> LinesOf(string text, string source)
     {
         var records = new List<(JsonElement, string)>();
         var lines = text.Split('\n');

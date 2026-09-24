@@ -89,7 +89,7 @@ public sealed class SpeciesDatabase
     public static SpeciesDatabase Load(string thermoPath, string? transPath = null)
     {
         var thermoBytes = File.ReadAllBytes(thermoPath);
-        byte[]? transBytes = transPath is null ? null : File.ReadAllBytes(transPath);
+        var transBytes = transPath is null ? null : File.ReadAllBytes(transPath);
         return Build(
             Encoding.Latin1.GetString(thermoBytes),
             Path.GetFileName(thermoPath),
@@ -146,7 +146,7 @@ public sealed class SpeciesDatabase
         return new SpeciesDatabase(thermo, transport, thermoSha, transSha);
     }
 
-    private static string[] SplitLines(string text) => text.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+    private static string[] SplitLines(string text) => [.. text.Split('\n').Select(l => l.TrimEnd('\r'))];
 
     /// <summary>Every record grouped by exact name, products then reactants, each section in file order.</summary>
     private static Dictionary<string, List<Species>> IndexByName(IReadOnlyList<Species> products, IReadOnlyList<Species> reactants)
@@ -189,11 +189,11 @@ public sealed class SpeciesDatabase
             if (string.Equals(species.Name, symbol, StringComparison.OrdinalIgnoreCase))
             {
                 weights[symbol] = species.MolarMass;
-                exact.Add(symbol);
+                _ = exact.Add(symbol);
             }
             else
             {
-                weights.TryAdd(symbol, species.MolarMass);
+                _ = weights.TryAdd(symbol, species.MolarMass);
             }
         }
 

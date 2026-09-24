@@ -55,7 +55,7 @@ internal static class CommandTable
 
     public static readonly string Usage = BuildUsage();
 
-    public static readonly IReadOnlyList<string> Names = Commands.Select(c => c.Name).ToList();
+    public static readonly IReadOnlyList<string> Names = [.. Commands.Select(c => c.Name)];
 
     public static CommandSpec? Find(string name) => Commands.FirstOrDefault(c => c.Name == name);
 
@@ -72,18 +72,18 @@ internal static class CommandTable
         var text = new StringBuilder("usage: apthermo <command> [arguments] [options]\n\ncommands:\n");
         foreach (var command in Commands)
         {
-            text.Append(command.Usage);
+            _ = text.Append(command.Usage);
         }
 
-        text.Append("\noptions:\n");
+        _ = text.Append("\noptions:\n");
         foreach (var option in Options)
         {
-            text.Append(option.Usage);
+            _ = text.Append(option.Usage);
         }
 
-        text.Append("  --help, -h                   this text\n");
-        text.Append("  --version                    the tool's version\n\n");
-        text.Append("exit codes: 0 every case ok; 1 a case failed numerically (document written); 2 invalid input; 3 accelerator or infrastructure error\n");
+        _ = text.Append("  --help, -h                   this text\n");
+        _ = text.Append("  --version                    the tool's version\n\n");
+        _ = text.Append("exit codes: 0 every case ok; 1 a case failed numerically (document written); 2 invalid input; 3 accelerator or infrastructure error\n");
         return text.ToString();
     }
 }

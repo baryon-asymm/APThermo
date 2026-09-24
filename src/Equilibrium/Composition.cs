@@ -56,7 +56,7 @@ internal static class Composition
                                ref IterationState state)
     {
         Evaluate(table, scratch, ref state);
-        Retain(table, scratch, result, state.LogN);
+        _ = Retain(table, scratch, result, state.LogN);
     }
 
     /// <summary>
@@ -71,7 +71,11 @@ internal static class Composition
         var sumGas = Retain(table, scratch, result, logN);
         var sums = new MixtureSums
         {
-            LogN = logN, LogPressure = logPressure, Temperature = temperature, N = Math.Exp(logN), SumGas = sumGas,
+            LogN = logN,
+            LogPressure = logPressure,
+            Temperature = temperature,
+            N = Math.Exp(logN),
+            SumGas = sumGas,
         };
         for (var j = 0; j < table.SpeciesCount; j++)
         {

@@ -12,15 +12,10 @@ internal static class OptionValues
     /// The predicate is the front door's (<see cref="ElementalMixture.IsValidMassTolerance"/>), so the option and the
     /// library cannot disagree on a valid tolerance (BOOT.md, F-AR-04).
     /// </summary>
-    public static double ParseMassTolerance(string value)
-    {
-        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !ElementalMixture.IsValidMassTolerance(number))
-        {
-            throw new InputException($"the mass tolerance must be a finite non-negative number, not '{value}'");
-        }
-
-        return number;
-    }
+    public static double ParseMassTolerance(string value) =>
+        !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !ElementalMixture.IsValidMassTolerance(number)
+            ? throw new InputException($"the mass tolerance must be a finite non-negative number, not '{value}'")
+            : number;
 
     public static OutputFormat ParseFormat(string value) => value switch
     {
@@ -29,13 +24,8 @@ internal static class OptionValues
         _ => throw new InputException($"unknown format '{value}'; json or csv"),
     };
 
-    private static double ParseNonNegative(string value, string name)
-    {
-        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) || number < 0.0)
-        {
-            throw new InputException($"the {name} must be a finite non-negative number, not '{value}'");
-        }
-
-        return number;
-    }
+    private static double ParseNonNegative(string value, string name) =>
+        !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) || number < 0.0
+            ? throw new InputException($"the {name} must be a finite non-negative number, not '{value}'")
+            : number;
 }

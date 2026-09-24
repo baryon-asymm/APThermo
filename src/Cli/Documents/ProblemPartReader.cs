@@ -1,4 +1,3 @@
-using APThermo.Performance;
 using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
 namespace APThermo.Cli.Documents;
@@ -52,6 +51,7 @@ internal static class ProblemPartReader
             case ProblemKind.AssignedEnthalpyPressure:
                 Forbid(entropy, "entropy", "hp", problem.Path);
                 break;
+            case ProblemKind.AssignedEntropyPressure:
             default:
                 Forbid(enthalpy, "enthalpy", "sp", problem.Path);
                 if (entropy is null)

@@ -29,7 +29,7 @@ internal static class SpeciesResolution
         {
             if (!elementIndex.ContainsKey(pair.Symbol))
             {
-                throw new ArgumentException($"species '{name}' contains the element '{pair.Symbol}', which is not among the table's elements", "species");
+                throw new ArgumentException($"species '{name}' contains the element '{pair.Symbol}', which is not among the table's elements", nameof(name));
             }
         }
 
@@ -37,7 +37,7 @@ internal static class SpeciesResolution
         {
             RequireIntervals(first, name);
             RequireIntervalLimit(first.Intervals.Count, name);
-            return [new TablePiece(name, first, first.Intervals.Select(interval => (interval, first)).ToList())];
+            return [new TablePiece(name, first, [.. first.Intervals.Select(interval => (interval, first))])];
         }
 
         return Cut(Join(group, name), name);
@@ -54,7 +54,7 @@ internal static class SpeciesResolution
             {
                 throw new ArgumentException(
                     $"species '{name}' has {group.Count} records that cannot be joined into one species: they must share the formula, the molar mass and the formation enthalpy, and their ranges must touch",
-                    "species");
+                    nameof(name));
             }
 
             intervals.AddRange(record.Intervals.Select(interval => (interval, record)));
@@ -72,7 +72,7 @@ internal static class SpeciesResolution
         && record.FormationEnthalpy == previous.FormationEnthalpy
         && record.Intervals[0].TLow == previous.Intervals[^1].THigh;
 
-    private static IReadOnlyList<TablePiece> Cut(List<(TemperatureInterval Interval, Species Source)> intervals, string name)
+    private static List<TablePiece> Cut(List<(TemperatureInterval Interval, Species Source)> intervals, string name)
     {
         var pieces = new List<List<(TemperatureInterval Interval, Species Source)>>();
         var piece = new List<(TemperatureInterval Interval, Species Source)> { intervals[0] };
@@ -105,7 +105,7 @@ internal static class SpeciesResolution
     {
         if (record.Intervals.Count == 0)
         {
-            throw new ArgumentException($"species '{name}' has no polynomial intervals (a reactant-only record) and cannot enter a table", "species");
+            throw new ArgumentException($"species '{name}' has no polynomial intervals (a reactant-only record) and cannot enter a table", nameof(name));
         }
     }
 
@@ -113,7 +113,7 @@ internal static class SpeciesResolution
     {
         if (intervals > TableLimits.MaxIntervalsPerSpecies)
         {
-            throw new ArgumentException($"species '{name}' has {intervals} intervals, more than the limit of {TableLimits.MaxIntervalsPerSpecies}", "species");
+            throw new ArgumentException($"species '{name}' has {intervals} intervals, more than the limit of {TableLimits.MaxIntervalsPerSpecies}", nameof(name));
         }
     }
 

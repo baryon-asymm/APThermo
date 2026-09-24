@@ -18,28 +18,19 @@ internal static class FortranNumber
         }
 
         var normalized = Normalize(text);
-        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
-        {
-            throw new FormatException($"'{field}' is not a number");
-        }
-
-        return value;
+        return !double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? throw new FormatException($"'{field}' is not a number")
+            : value;
     }
 
     public static int ParseInt(string field)
     {
         var text = field.Trim();
-        if (text.Length == 0)
-        {
-            return 0;
-        }
-
-        if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
-        {
-            throw new FormatException($"'{field}' is not an integer");
-        }
-
-        return value;
+        return text.Length == 0
+            ? 0
+            : !int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+                ? throw new FormatException($"'{field}' is not an integer")
+                : value;
     }
 
     private static string Normalize(string text)
@@ -73,7 +64,7 @@ internal static class FortranNumber
         // "1.5-03" → "1.5E-03": a sign inside the number after the first character.
         for (var i = 1; i < s.Length; i++)
         {
-            if (s[i] is '+' or '-' && char.IsDigit(s[i - 1]) || s[i] is '+' or '-' && s[i - 1] == '.')
+            if ((s[i] is '+' or '-' && char.IsDigit(s[i - 1])) || (s[i] is '+' or '-' && s[i - 1] == '.'))
             {
                 return s[..i] + "E" + s[i..];
             }

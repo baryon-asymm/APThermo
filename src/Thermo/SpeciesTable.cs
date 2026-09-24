@@ -174,6 +174,6 @@ internal sealed class SpeciesTable
 
         var arrays = TableLayout.Flatten(elements, elementIndex, entries);
         return new SpeciesTable(
-            elements.ToArray(), entries.Select(e => e.Name).ToArray(), entries.Select(e => e.Record).ToArray(), gaseous.Count, arrays);
+            [.. elements], [.. entries.Select(e => e.Name)], [.. entries.Select(e => e.Record)], gaseous.Count, arrays);
     }
 }

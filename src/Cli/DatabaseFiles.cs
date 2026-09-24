@@ -39,7 +39,7 @@ internal static class DatabaseFiles
         }
 
         var trans = Path.Combine(directory, TransFile);
-        string? transPath = File.Exists(trans) ? trans : null;
+        var transPath = File.Exists(trans) ? trans : null;
         var database = ReadDatabase(() => SpeciesDatabase.Load(thermo, transPath));
         var info = new DatabaseInfo(thermo, transPath, database.Provenance.ThermoSha256, database.Provenance.TransSha256);
         return (database, info);

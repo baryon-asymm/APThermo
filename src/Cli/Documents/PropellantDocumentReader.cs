@@ -55,28 +55,14 @@ internal static class PropellantDocumentReader
         return new ReactantDocument(name, role, amount, amountKind) { Temperature = temperature, Custom = custom };
     }
 
-    private static CustomReactantDefinition? ReadCustomPart(string path, double? temperature, IReadOnlyDictionary<string, double>? formula, double? enthalpy, double? molarMass)
-    {
-        if (formula is null)
-        {
-            if (enthalpy is not null || molarMass is not null)
-            {
-                throw new InputException($"'enthalpy' and 'molarMass' at {path} belong to a custom reactant, which needs a 'formula'");
-            }
-
-            return null;
-        }
-
-        if (enthalpy is null)
-        {
-            throw new InputException($"missing field 'enthalpy' at {path}: a custom reactant needs its enthalpy (J/mol) at its temperature");
-        }
-
-        if (temperature is null)
-        {
-            throw new InputException($"missing field 'temperature' at {path}: a custom reactant needs the temperature of its enthalpy");
-        }
-
-        return new CustomReactantDefinition(formula.Select(pair => new ElementCount(pair.Key, pair.Value)).ToList(), enthalpy.Value, temperature.Value, molarMass);
-    }
+    private static CustomReactantDefinition? ReadCustomPart(string path, double? temperature, IReadOnlyDictionary<string, double>? formula, double? enthalpy, double? molarMass) =>
+        formula is null
+            ? enthalpy is not null || molarMass is not null
+                ? throw new InputException($"'enthalpy' and 'molarMass' at {path} belong to a custom reactant, which needs a 'formula'")
+                : null
+            : enthalpy is null
+                ? throw new InputException($"missing field 'enthalpy' at {path}: a custom reactant needs its enthalpy (J/mol) at its temperature")
+                : temperature is null
+                    ? throw new InputException($"missing field 'temperature' at {path}: a custom reactant needs the temperature of its enthalpy")
+                    : new CustomReactantDefinition([.. formula.Select(pair => new ElementCount(pair.Key, pair.Value))], enthalpy.Value, temperature.Value, molarMass);
 }

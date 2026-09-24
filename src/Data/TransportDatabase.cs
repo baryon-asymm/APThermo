@@ -10,17 +10,12 @@ public sealed class TransportDatabase
     {
         Entries = entries;
         _single = new Dictionary<string, TransportEntry>(StringComparer.Ordinal);
-        _pairs = new Dictionary<(string, string), TransportEntry>();
+        _pairs = [];
         foreach (var entry in entries)
         {
-            if (entry.Partner is null)
-            {
-                _single.TryAdd(entry.Species, entry);
-            }
-            else
-            {
-                _pairs.TryAdd(PairKey(entry.Species, entry.Partner), entry);
-            }
+            _ = entry.Partner is null
+                ? _single.TryAdd(entry.Species, entry)
+                : _pairs.TryAdd(PairKey(entry.Species, entry.Partner), entry);
         }
     }
 

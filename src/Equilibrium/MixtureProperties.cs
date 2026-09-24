@@ -56,20 +56,25 @@ internal static class MixtureProperties
         var r = PhysicalConstants.R;
         var n = sums.SumGas;
         var temperature = sums.Temperature;
-        var state = new MixtureState();
-        state.Temperature = temperature;
-        state.Pressure = problem.Pressure;
-        state.MolarMass = 1.0 / n;
-        state.MixtureMolarMass = 1.0 / (n + sums.CondensedMoles);
-        state.Density = problem.Pressure / (n * r * temperature);
-        state.Enthalpy = r * temperature * sums.HOverRT;
-        state.InternalEnergy = state.Enthalpy - n * r * temperature;
-        state.Entropy = r * sums.SOverR;
-        state.GibbsEnergy = state.Enthalpy - temperature * state.Entropy;
-        state.CpFrozen = r * sums.CpOverR;
-        state.CvFrozen = state.CpFrozen - n * r;
-        state.Velocity = 0.0;
-        state.Mach = 0.0;
+        var enthalpy = r * temperature * sums.HOverRT;
+        var entropy = r * sums.SOverR;
+        var cpFrozen = r * sums.CpOverR;
+        var state = new MixtureState
+        {
+            Temperature = temperature,
+            Pressure = problem.Pressure,
+            MolarMass = 1.0 / n,
+            MixtureMolarMass = 1.0 / (n + sums.CondensedMoles),
+            Density = problem.Pressure / (n * r * temperature),
+            Enthalpy = enthalpy,
+            InternalEnergy = enthalpy - n * r * temperature,
+            Entropy = entropy,
+            GibbsEnergy = enthalpy - temperature * entropy,
+            CpFrozen = cpFrozen,
+            CvFrozen = cpFrozen - n * r,
+            Velocity = 0.0,
+            Mach = 0.0,
+        };
         return state;
     }
 

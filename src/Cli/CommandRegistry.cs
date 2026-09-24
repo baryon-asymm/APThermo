@@ -6,8 +6,8 @@ namespace APThermo.Cli;
 /// <summary>Command name to handler, no logic (it was the class `Commands`).</summary>
 internal static class CommandRegistry
 {
-    private static readonly IReadOnlyDictionary<string, Func<Invocation, TextWriter, ExitCode>> Handlers =
-        new Dictionary<string, Func<Invocation, TextWriter, ExitCode>>(StringComparer.Ordinal)
+    private static readonly Dictionary<string, Func<Invocation, TextWriter, ExitCode>> Handlers =
+        new(StringComparer.Ordinal)
         {
             ["rocket"] = ProblemCommand.Execute,
             ["equilibrium"] = ProblemCommand.Execute,

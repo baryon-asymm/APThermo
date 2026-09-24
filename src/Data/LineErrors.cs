@@ -50,13 +50,6 @@ internal static class LineErrors
     });
 
     /// <summary>The line at <paramref name="index"/>, or a <see cref="DatabaseFormatException"/> naming the file's end when <paramref name="context"/> (e.g. "a record", "the block of H2") runs out of lines.</summary>
-    public static string Require(string[] lines, int index, string? fileName, string context)
-    {
-        if (index >= lines.Length)
-        {
-            throw new DatabaseFormatException(fileName, lines.Length, $"file ends inside {context}");
-        }
-
-        return lines[index];
-    }
+    public static string Require(string[] lines, int index, string? fileName, string context) =>
+        index >= lines.Length ? throw new DatabaseFormatException(fileName, lines.Length, $"file ends inside {context}") : lines[index];
 }
