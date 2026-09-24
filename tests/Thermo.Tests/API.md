@@ -7,12 +7,12 @@ consider proven about `Thermo`.
 
 | Claim | Confirmed by | State |
 |---|---|---|
-| the species functions reproduce the NASA polynomials of the committed data to 1e-12 | L0: `FunctionFixtureTests.Functions_equal_the_independent_evaluation` | ✅ 2026-09-12 |
+| the species functions reproduce the NASA polynomials of the committed data to 1e-12 | L0: `FunctionFixtureTests.FunctionsEqualTheIndependentEvaluation` | ✅ 2026-09-12 |
 | the functions agree with NIST-JANAF for the spot species within the per-species tolerance recorded in `janaf.json` (plausibility, not fit accuracy) | L0: `JanafTests` | ✅ 2026-09-12 |
 | interval selection and extrapolation follow the documented rule | L0: `IntervalRuleTests`, the out-of-range fixture points | ✅ 2026-09-12 |
 | tables preserve order, stoichiometry and intervals; foreign elements, duplicates and reactant-only records are refused | L1: `TableBuilderTests` | ✅ 2026-09-12 |
 | the functions give the same bits inside a CPU-accelerator kernel as on the host | L1: `KernelEqualityTests` | ✅ 2026-09-12 |
-| `R` equals the reference implementation's value | L0: `FunctionFixtureTests.R_equals_the_reference_package_constant` | ✅ 2026-09-12 |
+| `R` equals the reference implementation's value | L0: `FunctionFixtureTests.REqualsTheReferencePackageConstant` | ✅ 2026-09-12 |
 | touching same-name condensed records build one species, a real latent heat cuts a species into range-named pieces, and records that cannot join are refused by name | L1: `JoinAndCutTests` | ✅ 2026-09-13 (recorded 2026-09-14) |
 | `PieceOf`, `RecordLow` and `RecordHigh` answer as the interval rule does, and the host-side enthalpy sum equals the kernel-side one bit for bit | L1: `RangeQuestionTests`, `OverloadPinningTests` | ✅ 2026-09-14 |
 | the table arrays of every fixture case are bit for bit what they were at `8e36a27` | Bits: `BitSnapshotTests`, `Bits.approved.txt` | ✅ 2026-09-14 |

@@ -44,7 +44,7 @@ The definition of what "`Equilibrium` is ready" means.
   deviation from "every test runs on both platforms") holds that the bits are a
   record of the reference machine, not of the platform alone: hosted CI runners land
   on CPUs whose C runtime rounds the last bit differently from the reference machine.
-  `Every_fixture_case_gives_the_recorded_bits` now carries
+  `EveryFixtureCaseGivesTheRecordedBits` now carries
   `[Trait("Category", "BitSnapshot")]`, so it runs in every local run (`CLAUDE.md`'s
   fast set) and in the release's self-hosted jobs
   (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
@@ -173,7 +173,7 @@ creation names its arguments; it passes them by position today (the criterion be
       tightened to `1e-20` (106 red); a frozen-station reference temperature raised by
       1 K (1 red); negative abundances accepted by the solver (1 red).
 - [x] 2026-09-14 — Bits level green:
-      `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over the
+      `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` over the
       enumerated tp, hp and sp directories against `Bits.approved.txt`, recorded from
       the code of `8e36a27` before any code of the decomposition moved (one line per
       enumerated fixture file, the directories being the list). Seen red three times,

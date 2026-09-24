@@ -10,8 +10,13 @@ namespace APThermo.Thermo.Tests;
 /// The shared CPU host (the harness node's context, accelerator, database and tolerance table), plus what only this
 /// node needs from it: the rounding bound of a self-consistency check and the table-upload helper. The harness holds
 /// no tolerance (its own BOOT.md), so <see cref="RoundingBound"/> lives here, the node that owns the comparison.
+/// Held by each consuming test class as a <c>private static readonly</c> field, not through
+/// <c>IClassFixture&lt;T&gt;</c>: xUnit requires a class fixture's consuming constructor to be the class's single
+/// public constructor, which would force this internal-only helper public for no reason a consumer outside this
+/// node has (CA1515). The CPU accelerator holds no resource a process exit does not already reclaim, so nothing
+/// is lost by not calling <see cref="Dispose"/> at a class's end, as <c>IClassFixture&lt;T&gt;</c> would have.
 /// </summary>
-public sealed class CpuFixture : IDisposable
+internal sealed class CpuFixture : IDisposable
 {
     private readonly CpuHost _host = new();
 

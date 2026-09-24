@@ -96,7 +96,7 @@ dependency went away with it.
       `StationTests.Reacting_conductivity_is_never_below_the_frozen_one`,
       `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`
       (nine defective stations), `StationTests.Species_without_data_are_estimated_on_the_aluminized_propellant`;
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` (five batches). Re-dated
+      `KernelEqualityTests.KernelAndHostGiveTheSameBits` (five batches). Re-dated
       from 2026-09-12: `Stations_match_the_reference` split into the first three by
       F-TK-05 (below), and the hand-typed "39 files … 172 stations" left the wording
       (F-TK-03) — the enumerated directory is the list; on this date it is 39 files
@@ -136,7 +136,7 @@ dependency went away with it.
       66 red, was "38 red" against the L1 of 2026-09-12, before either the Bits level
       or the cpFrozen split existed to name the rest);
       the kernel comparison perturbed by one part in 1e15
-      (`KernelEqualityTests.Kernel_and_host_give_the_same_bits`: 5 red, not re-run this
+      (`KernelEqualityTests.KernelAndHostGiveTheSameBits`: 5 red, not re-run this
       session — the mutation and its test are both untouched by the F-TK-05 split);
       the table-mismatch check removed
       (`InputTests.A_transport_table_of_another_species_table_is_invalid_input`: 1 red,

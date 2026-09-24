@@ -458,7 +458,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       abundance, zero and negative pressure, tp without temperature).
 - [x] 2026-09-12 — The solve runs unchanged inside an ILGPU kernel on the CPU
       accelerator with the same results as the host call:
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over the 8 table families
+      `KernelEqualityTests.KernelAndHostGiveTheSameBits` over the 8 table families
       of the 106 cases (moles, multipliers, state, status and iterations bit for bit).
 - [x] 2026-09-13 — Plateau states converge and match the reference: the
       melting-plateau fixture cases (RP-1311 example 13 generated with its insert
@@ -502,7 +502,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       facts green at `62cd99e`. Surface: `Protocol.Tests.SurfaceTests`
       against `tests/Protocol.Tests/PublicSurface.approved.txt`, which this work did
       not touch - every new type is internal. Numbers: the tests node's
-      `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over every
+      `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` over every
       enumerated tp, hp and sp fixture case against `Bits.approved.txt`, recorded from
       the code of `8e36a27` before the first line moved and unmoved after the last;
       `KernelEqualityTests` green; and the whole fast suite (2142 tests that day)
@@ -545,12 +545,12 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       over `src/Equilibrium/*.cs` empty), the record bounds asked of
       `SpeciesFunctions.RecordLow` and `RecordHigh` from `PhaseGeometry` (`Adjacent`,
       `EffectiveLow`, `EffectiveHigh`) and from `CondensedSet.Pinnable`; the tests
-      node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` unchanged
+      node's `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` unchanged
       (463 tests green, the hash of `Bits.approved.txt` unmoved) and
       `KernelEqualityTests` green in the same run. Non-degeneracy, applied alone in
       the worktree and restored: `SpeciesFunctions.RecordHigh` made to return the
       record's lower bound turned 29 fixture cases' recorded bits red
-      (`BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`), which a node
+      (`BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`), which a node
       still holding its own copy would not.
 - [x] 2026-09-14 — The Newton loop holds no formula (`## Structure`, the decision of
       that name): `NewtonIteration`, `DampedStep`, `ConvergenceTests` and
@@ -566,7 +566,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       its `## Structure` row above, as the decision foresaw (measured 16 there, on the
       code before the split; the split itself adds the coupling of naming the four
       stages it now calls, which the decision's own reasoning already accounted for).
-      The tests node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+      The tests node's `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`
       unchanged (`Bits.approved.txt` hash unmoved) and `KernelEqualityTests` green in
       the same 463-test run; `Performance.Tests` green (699 tests, `SolveFrozen`'s
       kernel test included); the execution tests node's fast set green on CUDA (41

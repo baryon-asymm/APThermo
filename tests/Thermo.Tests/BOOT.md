@@ -47,7 +47,7 @@ and the criterion below carry the day they were written.
   from the snapshot fails the test with instructions, as the surface snapshot does; and
   the reverse, an approved line no enumerated case produces (a deleted or renamed
   fixture, invisible to a theory with no case for it), fails
-  `Every_recorded_line_is_a_fixture_case` naming the stale key
+  `EveryRecordedLineIsAFixtureCase` naming the stale key
   (`BitSnapshot.StaleKeys`, the harness's `ApprovedSnapshot.StaleKeys`).
 
   ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
@@ -64,8 +64,8 @@ and the criterion below carry the day they were written.
   ⚠ 2026-09-19: the root BOOT.md's platform constraint (⚠ 2026-09-18, the declared
   deviation from "every test runs on both platforms") holds that the bits are a
   record of the reference machine, not of the platform alone, so hosted CI runners
-  of unknown CPU no longer compare them exactly. `Every_fixture_case_gives_the_recorded_bits`
-  and `Every_recorded_line_is_a_fixture_case` (`BitSnapshotTests.cs`) now carry
+  of unknown CPU no longer compare them exactly. `EveryFixtureCaseGivesTheRecordedBits`
+  and `EveryRecordedLineIsAFixtureCase` (`BitSnapshotTests.cs`) now carry
   `[Trait("Category", "BitSnapshot")]`, so both run in every local run (`CLAUDE.md`'s
   fast set) and in the release's self-hosted jobs
   (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
@@ -96,36 +96,36 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 green: `FunctionFixtureTests`
-      (`Functions_equal_the_independent_evaluation` for every file under
-      `cases/thermo/`, `Every_fixture_species_has_an_out_of_range_point_on_each_side`,
-      `R_equals_the_reference_package_constant`), `JanafTests`
-      (`Fits_reproduce_the_JANAF_rows_within_the_recorded_tolerance` for every row of
-      `janaf.json`, `The_fixture_cites_its_source_and_bounds_every_tolerance`),
-      `IntervalRuleTests` (`A_shared_bound_belongs_to_the_lower_interval`,
-      `Outside_the_range_the_nearest_interval_is_used_and_flagged`).
+      (`FunctionsEqualTheIndependentEvaluation` for every file under
+      `cases/thermo/`, `EveryFixtureSpeciesHasAnOutOfRangePointOnEachSide`,
+      `REqualsTheReferencePackageConstant`), `JanafTests`
+      (`FitsReproduceTheJANAFRowsWithinTheRecordedTolerance` for every row of
+      `janaf.json`, `TheFixtureCitesItsSourceAndBoundsEveryTolerance`),
+      `IntervalRuleTests` (`ASharedBoundBelongsToTheLowerInterval`,
+      `OutsideTheRangeTheNearestIntervalIsUsedAndFlagged`).
 - [x] 2026-09-12 — L1 green: `TableBuilderTests`
-      (`Gaseous_species_come_first_and_each_group_keeps_its_order`,
-      `The_stoichiometry_matrix_equals_the_data_formulas`,
-      `Intervals_are_flattened_in_species_order_with_the_record_values`,
-      `A_species_with_a_foreign_element_is_refused_by_name`,
-      `Unknown_names_duplicates_and_records_without_polynomials_are_refused`,
-      `The_limits_are_enforced_before_any_lookup`, `Element_symbols_are_matched_case_insensitively`),
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits`.
+      (`GaseousSpeciesComeFirstAndEachGroupKeepsItsOrder`,
+      `TheStoichiometryMatrixEqualsTheDataFormulas`,
+      `IntervalsAreFlattenedInSpeciesOrderWithTheRecordValues`,
+      `ASpeciesWithAForeignElementIsRefusedByName`,
+      `UnknownNamesDuplicatesAndRecordsWithoutPolynomialsAreRefused`,
+      `TheLimitsAreEnforcedBeforeAnyLookup`, `ElementSymbolsAreMatchedCaseInsensitively`),
+      `KernelEqualityTests.KernelAndHostGiveTheSameBits`.
 - [x] 2026-09-12 — Every check proven non-degenerate once (AGENTS.md §13): an
       `hOverRT` value of `cases/thermo/H2O.json` altered by 1e-9 turned
-      `Functions_equal_the_independent_evaluation` red for that file; the interval rule
+      `FunctionsEqualTheIndependentEvaluation` red for that file; the interval rule
       changed from `T ≤ THigh` to `T < THigh` turned
-      `A_shared_bound_belongs_to_the_lower_interval` red for all four species; a
+      `ASharedBoundBelongsToTheLowerInterval` red for all four species; a
       stoichiometry entry offset by one in the builder turned
-      `The_stoichiometry_matrix_equals_the_data_formulas` red. Mutations reverted, the
+      `TheStoichiometryMatrixEqualsTheDataFormulas` red. Mutations reverted, the
       suite green afterwards.
 - [x] 2026-09-13 — L1 join-and-cut green: `JoinAndCutTests`
-      (`Touching_records_of_one_name_join_into_one_contiguous_species`,
-      `A_real_latent_heat_cuts_a_species_into_adjacent_pieces`,
-      `Records_that_cannot_be_joined_are_refused_by_name`), the evidence the `Thermo`
+      (`TouchingRecordsOfOneNameJoinIntoOneContiguousSpecies`,
+      `ARealLatentHeatCutsASpeciesIntoAdjacentPieces`,
+      `RecordsThatCannotBeJoinedAreRefusedByName`), the evidence the `Thermo`
       node's criterion of that day cites; written here on 2026-09-14 (the ⚠ under the
       level table).
-- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`
       over the enumerated tp, hp, sp and rocket directories (a case's table is built
       from the names of its `inputs.elementMoles`, in that order, and its
       `inputs.products`) against `Bits.approved.txt`, recorded at `8e36a27` before
@@ -139,7 +139,7 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       closed — a fixture the theory has no case for (a deleted or renamed one) left an
       approved line unchecked, the gap the Harness `BOOT.md` already recorded. Added
       `BitSnapshot.StaleKeys()` over the run's own case keys and one new fact,
-      `BitSnapshotTests.Every_recorded_line_is_a_fixture_case`, asserting it empty.
+      `BitSnapshotTests.EveryRecordedLineIsAFixtureCase`, asserting it empty.
       Seen red once: a fabricated line
       (`tests/Fixtures/cases/tp/__mutation-stale-key-does-not-exist.json`, a fake hash)
       appended to `Bits.approved.txt` turned the new fact red alone, naming exactly
@@ -149,29 +149,29 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
       `Bits.approved.txt` itself unchanged (219 lines, six header comments and 213
       case lines).
 - [x] 2026-09-14 — The range questions and the overload pinning green: `RangeQuestionTests`
-      (`PieceOf_names_the_piece_the_interval_rule_chooses` over `ALN(L)`, the one cut
+      (`PieceOfNamesThePieceTheIntervalRuleChooses` over `ALN(L)`, the one cut
       name the fixture tables contain (found by the test's own scan, not typed), at
       its piece bound and one ULP on each side, the last piece far above the last
       bound, and −1 for a name the table lacks;
-      `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses` over every species of
+      `RecordLowAndRecordHighAreTheBoundsIsInRangeUses` over every species of
       the fixture tables: `IsInRange` true at both and false one ULP outside each),
-      `OverloadPinningTests.Host_and_kernel_enthalpy_sums_give_the_same_bits` over
+      `OverloadPinningTests.HostAndKernelEnthalpySumsGiveTheSameBits` over
       every species and temperature of the thermo fixtures, and the join's
       formation-enthalpy rule as the `Thermo` node decided it
-      (`JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`);
+      (`JoinAndCutTests.RecordsDisagreeingInFormationEnthalpyAreRefusedByName`);
       each seen red once, reverted: `RecordHigh` made to read the `TLow` slot turned
-      `PieceOf_names_the_piece_the_interval_rule_chooses` red; `IsInRange`'s lower
+      `PieceOfNamesThePieceTheIntervalRuleChooses` red; `IsInRange`'s lower
       comparison changed from `>=` to `>` turned every case of
-      `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses` red; the host overload's
-      sum reordered turned 36 of 40 cases of `Host_and_kernel_enthalpy_sums_give_the_same_bits`
+      `RecordLowAndRecordHighAreTheBoundsIsInRangeUses` red; the host overload's
+      sum reordered turned 36 of 40 cases of `HostAndKernelEnthalpySumsGiveTheSameBits`
       red; the join's formation-enthalpy comparison removed turned
-      `Records_disagreeing_in_formation_enthalpy_are_refused_by_name` red alone.
+      `RecordsDisagreeingInFormationEnthalpyAreRefusedByName` red alone.
 - [x] 2026-09-14 — The tests in shape (the review's F-TK-12, F-TK-15, F-TK-10):
-      `Unknown_names_duplicates_and_records_without_polynomials_are_refused` and
-      `The_limits_are_enforced_before_any_lookup` are theories with one refusal
+      `UnknownNamesDuplicatesAndRecordsWithoutPolynomialsAreRefused` and
+      `TheLimitsAreEnforcedBeforeAnyLookup` are theories with one refusal
       per case and the refused name in the case data (the limit cases carry the
       elements and species arrays instead, since a count limit refuses no one name);
-      the aluminium expectations of `Element_symbols_are_matched_case_insensitively`
+      the aluminium expectations of `ElementSymbolsAreMatchedCaseInsensitively`
       come from `AluminiumCount` over the records' own formulas, not typed numbers;
       the rounding tolerance of `IntervalRuleTests` and `JanafTests` is
       `CpuFixture.RoundingBound`, one named constant with its origin in a comment; no

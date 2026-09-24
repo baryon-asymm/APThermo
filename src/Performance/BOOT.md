@@ -262,7 +262,7 @@ efferent-coupling row.
       `A_case_without_exits_gives_the_chamber_and_the_throat`,
       `A_non_positive_chamber_pressure_is_invalid_input`).
 - [x] 2026-09-12 — Runs unchanged inside an ILGPU kernel on the CPU accelerator with
-      the same results as the host call: `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
+      the same results as the host call: `KernelEqualityTests.KernelAndHostGiveTheSameBits`
       over the batches of fixtures sharing a table and an exit layout, enumerated from the
       fixture directory (states, figures, moles and statuses bit for bit).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): every type of the

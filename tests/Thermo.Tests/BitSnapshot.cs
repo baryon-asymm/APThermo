@@ -8,8 +8,11 @@ namespace APThermo.Thermo.Tests;
 /// The table bits of every fixture case, computed once per test class: the case file relative to the repository root
 /// and the SHA-256 of the species names and the eight arrays of <see cref="SpeciesTableArrays"/>. No accelerator is
 /// created: the bits are those of the host arrays, so no runtime enters the snapshot (BOOT.md, the Bits level).
+/// Held by <see cref="BitSnapshotTests"/> as a <c>private static readonly</c> field, not through
+/// <c>IClassFixture&lt;T&gt;</c>, which would force this internal-only helper public for no reason a consumer
+/// outside this node has (CA1515).
 /// </summary>
-public sealed class BitSnapshot
+internal sealed class BitSnapshot
 {
     /// <summary>The kinds whose cases carry a chemical system (element moles and a product list), in the snapshot's order.</summary>
     private static readonly string[] Kinds = ["tp", "hp", "sp", "rocket"];

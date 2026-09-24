@@ -20,7 +20,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
 
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void Every_fixture_case_gives_the_recorded_bits()
+    public void EveryFixtureCaseGivesTheRecordedBits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
         var keys = new List<string>();

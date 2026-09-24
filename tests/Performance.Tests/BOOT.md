@@ -134,7 +134,7 @@ position today (the criterion below).
       F-TK-03.)
 - [x] 2026-09-14 — L1 green for every rocket fixture case, equilibrium and frozen:
       `RocketFixtureTests.The_rocket_case_reproduces_the_reference` over the enumerated
-      directory; `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over its
+      directory; `KernelEqualityTests.KernelAndHostGiveTheSameBits` over its
       batches, each a family of fixtures sharing a table and an exit layout. (Re-dated
       from 2026-09-12: the hand-typed file and batch counts are gone, F-TK-03.)
 - [x] 2026-09-14 — Every check proven non-degenerate once, by mutation runs, each
@@ -208,7 +208,7 @@ position today (the criterion below).
       a sharper proof than the single combined theory gave, because entropy and the
       energy-equation identity are guaranteed by the equilibrium solve itself and the
       frozen copy is bit-exact, none of the three sensitive to the throat/exit
-      search's own convergence. `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
+      search's own convergence. `KernelEqualityTests.KernelAndHostGiveTheSameBits`
       is split at its two seams into `Fill` (`RocketBatchBuffers`: allocates and
       uploads one batch) and `AssertSameBits` (the field-by-field comparison), each
       under 60 lines; the kernel given a different chamber temperature estimate still

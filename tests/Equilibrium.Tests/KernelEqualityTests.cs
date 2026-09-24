@@ -39,7 +39,7 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
 
     [Theory]
     [MemberData(nameof(Batches))]
-    public void Kernel_and_host_give_the_same_bits(string key, int count, IReadOnlyList<CeaCase> cases)
+    public void KernelAndHostGiveTheSameBits(string key, int count, IReadOnlyList<CeaCase> cases)
     {
         Assert.Equal(count, cases.Count);
         var table = HostSolver.BuildTable(fixture.Database, cases[0]);
