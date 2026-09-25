@@ -69,7 +69,7 @@ public sealed class KernelEqualityTests
         var batchSize = stations.Count;
         using var temperatureBuffer = accelerator.Allocate1D(temperatures);
         using var molesBuffer = accelerator.Allocate1D(moles.SelectMany(m => m).ToArray());
-        using var scratchDoubles = accelerator.Allocate1D<double>((long)batchSize * TransportLayout.DoublesPerCase(speciesCount, elementCount));
+        using var scratchDoubles = accelerator.Allocate1D<double>((long)batchSize * TransportLayout.DoublesPerCase(elementCount));
         using var scratchInts = accelerator.Allocate1D<int>((long)batchSize * TransportLayout.IntsPerCase(speciesCount, elementCount));
         using var figures = accelerator.Allocate1D<TransportFigures>(batchSize);
         using var status = accelerator.Allocate1D<int>(batchSize);
@@ -99,7 +99,7 @@ public sealed class KernelEqualityTests
     {
         var speciesCount = species.SpeciesCount;
         var elementCount = species.ElementCount;
-        var doublesPerCase = TransportLayout.DoublesPerCase(speciesCount, elementCount);
+        var doublesPerCase = TransportLayout.DoublesPerCase(elementCount);
         var intsPerCase = TransportLayout.IntsPerCase(speciesCount, elementCount);
         var scratch = TransportScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
                                              batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);

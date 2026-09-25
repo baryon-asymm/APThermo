@@ -84,7 +84,7 @@ internal static class TransportHost
         var speciesCount = species.Table.SpeciesCount;
         var elementCount = species.Table.ElementCount;
         using var molesBuffer = accelerator.Allocate1D(moles);
-        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(speciesCount, elementCount));
+        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(elementCount));
         using var ints = accelerator.Allocate1D<int>(TransportLayout.IntsPerCase(speciesCount, elementCount));
         using var figures = accelerator.Allocate1D<TransportFigures>(1);
         var scratch = TransportScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);

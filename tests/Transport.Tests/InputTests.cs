@@ -86,7 +86,7 @@ public sealed class InputTests
     public void ScratchLayoutSlicesTheDeclaredSizes()
     {
         var (species, _) = Tables();
-        var doubles = TransportLayout.DoublesPerCase(species.SpeciesCount, species.ElementCount);
+        var doubles = TransportLayout.DoublesPerCase(species.ElementCount);
         var ints = TransportLayout.IntsPerCase(species.SpeciesCount, species.ElementCount);
         var m = TransportLayout.MaxSpecies;
         using var doubleBuffer = CpuFixture.Shared.Accelerator.Allocate1D<double>(doubles);

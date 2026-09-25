@@ -131,7 +131,7 @@ internal static class Kernels
     {
         var speciesCount = species.SpeciesCount;
         var elementCount = species.ElementCount;
-        var doublesPerCase = TransportLayout.DoublesPerCase(speciesCount, elementCount);
+        var doublesPerCase = TransportLayout.DoublesPerCase(elementCount);
         var intsPerCase = TransportLayout.IntsPerCase(speciesCount, elementCount);
         var scratch = TransportScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
                                              batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);

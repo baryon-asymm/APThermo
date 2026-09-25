@@ -29,7 +29,7 @@ internal static class TransportPipeline
         using var buffers = new ChunkBuffers(session.Accelerator);
         var temperatureBuffer = buffers.Input(batch.Temperature, 1);
         var molesBuffer = buffers.Input(batch.Moles, speciesCount);
-        var scratchDoubles = buffers.Scratch<double>(TransportLayout.DoublesPerCase(speciesCount, elementCount));
+        var scratchDoubles = buffers.Scratch<double>(TransportLayout.DoublesPerCase(elementCount));
         var scratchInts = buffers.Scratch<int>(TransportLayout.IntsPerCase(speciesCount, elementCount));
         var figureBuffer = buffers.Output(figures, 1);
         var statusBuffer = buffers.Output(status, 1);

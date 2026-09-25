@@ -89,7 +89,7 @@ public sealed class StatusTests
 
         public SetBuffers(Accelerator accelerator, double[] masses)
         {
-            _doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(SetSpecies, 1));
+            _doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(1));
             _ints = accelerator.Allocate1D<int>(TransportLayout.IntsPerCase(SetSpecies, 1));
             _molarMass = accelerator.Allocate1D(masses);
             _spare = accelerator.Allocate1D<double>(SetSpecies * SetSpecies);
