@@ -4,7 +4,7 @@ using APThermo.Cli.Syntax;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L0: option parsing and the usage text.</summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class CommandLineTests(CliFixture fixture)
 {
     /// <summary>No command is exit 2 with the usage.</summary>

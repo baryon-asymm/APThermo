@@ -40,10 +40,14 @@ public sealed class SolverFixture : IDisposable
     }
 }
 
-/// <summary>Declares the "solver" xUnit collection so every test class of this node shares one <see cref="SolverFixture"/>.</summary>
+/// <summary>Declares the "solver" xUnit collection so every test class of this node shares one <see cref="SolverFixture"/>.
+/// Public because xUnit's own analyzer (xUnit1027) requires a collection definition class to be public for the runtime to
+/// discover it reliably — tried internal first, per a review finding for the other test group; the build then failed on
+/// xUnit1027 itself rather than CA1515, so the unresolvable-in-code conflict is CA1515 on this class, not a choice this
+/// node made freely. The node's test classes reference the collection by the literal name "solver" (2026-09-25), not
+/// through this class, so nothing else here needs to be public.</summary>
 [CollectionDefinition(Name)]
 public sealed class SolverCollectionDefinition : ICollectionFixture<SolverFixture>
 {
-    /// <summary>The collection name the node's test classes reference through <see cref="CollectionAttribute"/>.</summary>
-    public const string Name = "solver";
+    private const string Name = "solver";
 }

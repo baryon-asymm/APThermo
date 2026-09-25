@@ -221,10 +221,14 @@ public sealed class CliFixture : IDisposable
     }
 }
 
-/// <summary>Declares the "cli" xUnit collection so every test class of this node shares one <see cref="CliFixture"/>.</summary>
+/// <summary>Declares the "cli" xUnit collection so every test class of this node shares one <see cref="CliFixture"/>. Public
+/// because xUnit's own analyzer (xUnit1027) requires a collection definition class to be public for the runtime to
+/// discover it reliably — tried internal first, per a review finding for the other test group; the build then failed on
+/// xUnit1027 itself rather than CA1515, so the unresolvable-in-code conflict is CA1515 on this class, not a choice this
+/// node made freely. The node's test classes reference the collection by the literal name "cli" (2026-09-25), not through
+/// this class, so nothing else here needs to be public.</summary>
 [CollectionDefinition(Name)]
 public sealed class CliCollectionDefinition : ICollectionFixture<CliFixture>
 {
-    /// <summary>The collection name the node's test classes reference through <see cref="CollectionAttribute"/>.</summary>
-    public const string Name = "cli";
+    private const string Name = "cli";
 }

@@ -7,7 +7,7 @@ using APThermo.Execution;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L0 and L1: the four exit codes in-process; the third one as a process, in ProcessTests.</summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class ExitCodeTests(CliFixture fixture)
 {
     /// <summary>Relative slack on a mass read back from a message (as InputDocumentTests.GramsTolerance): the message rounds it to about 7 significant figures.</summary>

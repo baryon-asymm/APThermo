@@ -14,7 +14,7 @@ namespace APThermo.Cli.Tests;
 /// L2: the executable's numbers are the library's numbers. The library call is built from the fixture the example document
 /// encodes, not from the document, so that a unit or a value changed in the document is seen.
 /// </summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class LibraryEqualityTests(CliFixture fixture)
 {
     /// <summary>g0 of the root's invariant, m/s², transcribed rather than read from the node (BOOT.md: so a changed g0 in the node is seen).</summary>

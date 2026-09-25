@@ -8,7 +8,7 @@ using APThermo.Harness;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L0: the strict readers of the input documents, their messages, and the examples of the API document.</summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class InputDocumentTests(CliFixture fixture)
 {
     /// <summary>

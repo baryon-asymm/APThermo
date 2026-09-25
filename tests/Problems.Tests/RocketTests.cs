@@ -4,7 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L1 and L2: every rocket fixture through the library, batches against single cases, elemental mixtures against propellants.</summary>
-[Collection(SolverCollectionDefinition.Name)]
+[Collection("solver")]
 public sealed class RocketTests(SolverFixture fixture)
 {
     /// <summary>The theory data of every rocket fixture name.</summary>

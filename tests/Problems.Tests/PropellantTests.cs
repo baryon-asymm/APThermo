@@ -3,7 +3,7 @@ using APThermo.Data;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L0: element moles, reactant enthalpy, mass normalization and candidate species against every fixture that carries reactants.</summary>
-[Collection(SolverCollectionDefinition.Name)]
+[Collection("solver")]
 public sealed class PropellantTests(SolverFixture fixture)
 {
     /// <summary>The BOOT criterion: the same sums as the reference in double precision, differing by rounding only.</summary>

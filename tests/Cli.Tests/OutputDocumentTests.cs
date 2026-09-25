@@ -12,7 +12,7 @@ using APThermo.Transport;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L1: every example document runs end to end and its result validates against the output schema; sweeps, states, thresholds, listings.</summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class OutputDocumentTests(CliFixture fixture)
 {
     /// <summary>Relative slack on an area ratio read back from a rocket station against the sweep or record document's own value: the performance node iterates an area-ratio exit past the report's tolerance to 1e-10 when it can (Performance API.md), so a reported station is at rounding level.</summary>

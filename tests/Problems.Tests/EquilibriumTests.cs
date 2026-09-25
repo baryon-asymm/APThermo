@@ -5,7 +5,7 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L1 and L2: every tp, hp and sp fixture through the library, singly from its propellant and as state records in batches over unions of elements.</summary>
-[Collection(SolverCollectionDefinition.Name)]
+[Collection("solver")]
 public sealed class EquilibriumTests(SolverFixture fixture)
 {
     /// <summary>The theory data of assigned-temperature, assigned-enthalpy and assigned-entropy fixture names for <paramref name="kind"/>.</summary>

@@ -8,7 +8,7 @@ namespace APThermo.Cli.Tests;
 /// `--output`; the embedded names (`SchemaResources.Names`) equal a directory listing of `src/Cli/Schemas/`, never a
 /// typed list; a missing or an unknown name is exit code 2, no document, every embedded name in the message.
 /// </summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class SchemaCommandTests(CliFixture fixture)
 {
     private const string Extension = ".schema.json";

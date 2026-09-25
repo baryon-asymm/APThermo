@@ -11,7 +11,7 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L0: invalid inputs are rejected by name, before any kernel runs.</summary>
-[Collection(SolverCollectionDefinition.Name)]
+[Collection("solver")]
 public sealed partial class RejectionTests(SolverFixture fixture)
 {
     /// <summary>The record another simulation handed over on 2026-09-13 (C, H, O, N, Cl, Al in mol/kg): 1000.015 g with the database's atomic weights.</summary>

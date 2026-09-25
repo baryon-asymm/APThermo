@@ -10,7 +10,7 @@ namespace APThermo.Cli.Tests;
 /// against unnoticed change, not a contract (like the surface snapshot, AGENTS.md §13). A decomposition, a renaming or a
 /// reordering of code moves no line; a legitimate change of the documents does, and is reviewed and re-approved with it.
 /// </summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class BitSnapshotTests(CliFixture fixture)
 {
     private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");

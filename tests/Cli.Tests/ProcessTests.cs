@@ -3,7 +3,7 @@ using APThermo.Execution;
 namespace APThermo.Cli.Tests;
 
 /// <summary>The command line as a separate process: real exit codes and standard streams, one run per exit code.</summary>
-[Collection(CliCollectionDefinition.Name)]
+[Collection("cli")]
 public sealed class ProcessTests(CliFixture fixture)
 {
     /// <summary>The executable writes the document to standard output with exit 0.</summary>

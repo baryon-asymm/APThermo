@@ -17,7 +17,7 @@ namespace APThermo.Problems.Tests;
 /// regrouping of batches, a renaming or a reordering of code must not move a line of <c>Bits.approved.txt</c>; a mismatch is
 /// either a defect of the refactoring or a numerical change that must be named and re-approved in the same commit.
 /// </summary>
-[Collection(SolverCollectionDefinition.Name)]
+[Collection("solver")]
 public sealed class BitSnapshotTests(SolverFixture fixture)
 {
     /// <summary>The path of this node's approved bit snapshot, platform-specific (root BOOT.md, Constraints).</summary>

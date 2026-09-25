@@ -8,7 +8,7 @@ namespace APThermo.Problems.Tests;
 /// and the melting-plateau states the reference cannot provide solve through the front door: the ALN(L) enthalpy
 /// gap of the record another simulation handed over, and a sweep across the alumina plateau by either path.
 /// </summary>
-[Collection(SolverCollectionDefinition.Name)]
+[Collection("solver")]
 public sealed class SplitRecordTests(SolverFixture fixture)
 {
     /// <summary>How far a pinned station's temperature may lie from a species record's transition bound: two solves of the tree's own code, the numerical solver's own convergence floor at a pinned pair.</summary>
