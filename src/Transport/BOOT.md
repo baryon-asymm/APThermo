@@ -293,10 +293,10 @@ row.
       numbers and the reference's `cpFrozen` on the reference composition within the
       tolerance table; the reacting fields are skipped at the nine defective stations,
       where the test asserts the defect is still visible (`Transport.Tests`,
-      `StationTests.Station_figures_match_the_reference`,
-      `StationTests.The_reference_cpFrozen_is_the_transport_set_heat_capacity`,
-      `StationTests.Reacting_conductivity_is_never_below_the_frozen_one`,
-      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`;
+      `StationTests.StationFiguresMatchTheReference`,
+      `StationTests.TheReferenceCpFrozenIsTheTransportSetHeatCapacity`,
+      `StationTests.ReactingConductivityIsNeverBelowTheFrozenOne`,
+      `StationTests.TheTraceComponentStationsCarryTheDocumentedReferenceDefect`;
       green on the decomposed code at `5cb2664`). Re-dated from 2026-09-12, when the
       evidence was one test, `StationTests.Stations_match_the_reference`, over 39
       files of 4 to 11 stations with the worst deviation 3.4e-8 relative: the tests
@@ -306,21 +306,21 @@ row.
 - [x] 2026-09-12 — The 27 fit fixtures (pure species and pairs) reproduce the
       independent Python evaluation within `transportFit`, the fit intervals of the
       table equal the file's, the fit rule agrees with the fixture on the shared bounds
-      (`FitTests.Fit_values_match_the_independent_evaluation`,
-      `FitTests.Fit_intervals_are_those_of_the_file`).
+      (`FitTests.FitValuesMatchTheIndependentEvaluation`,
+      `FitTests.FitIntervalsAreThoseOfTheFile`).
 - [x] 2026-09-12 — The estimate for species without data is exercised by the
       AP/HTPB/Al stations (26 of the 40 species of the chamber set) and the reported
       count and mole fraction are positive there; the station comparison above proves
       the estimate right to 3e-8
-      (`StationTests.Species_without_data_are_estimated_on_the_aluminized_propellant`,
-      `FitTests.Species_without_an_entry_have_no_fits_and_are_listed`). The
+      (`StationTests.SpeciesWithoutDataAreEstimatedOnTheAluminizedPropellant`,
+      `FitTests.SpeciesWithoutAnEntryHaveNoFitsAndAreListed`). The
       criterion stood "the exclusion policy is exercised … and the reported excluded
       fraction equals the independently computed one"; rewritten with the ⚠ above.
 - [x] 2026-09-12 — Runs unchanged inside an ILGPU kernel on the CPU accelerator with
       the same bits as the host call (`KernelEqualityTests`, five batches).
 - [x] 2026-09-13 — Every station of a case evaluated in a table that also holds the
       species of elements the case lacks gives the same bits as in the case's own
-      table (`AbsentElementTests.A_table_with_the_species_of_absent_elements_gives_the_same_bits`:
+      table (`AbsentElementTests.ATableWithTheSpeciesOfAbsentElementsGivesTheSameBits`:
       LOX/RP-1 in the table with AP/HTPB/Al, LOX/LH2 with N2O4/UDMH, N2O4/UDMH with
       AP/HTPB/Al, every station with transport, every field of the figures); seen red
       with the table's gas count in the thresholds on two of the three pairs (the
@@ -354,7 +354,7 @@ row.
       not one tick).
 - [x] 2026-09-14 — `SingularMatrix` writes the frozen figures and reacting figures
       equal to them, as `API.md` promises:
-      `Transport.Tests.StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
+      `Transport.Tests.StatusTests.AReactionSystemThatCannotBeSolvedKeepsTheFrozenFigures`
       drives `ReactionTerms` (through `InternalsVisibleTo`) over a set of three species
       and two reactions whose second system is singular while the first is not — the
       third species weighs nothing, so RT/(pD) vanishes for both pairs that hold it and
@@ -362,7 +362,7 @@ row.
       asserts the three equalities and the status. Seen red against the code of
       `8e36a27` (moved here unchanged before the fix): the status and the conductivity
       were right and the equilibrium heat capacity was 10441.86 against the frozen
-      5001.70. `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight`
+      5001.70. `TheSameSetIsSolvedWhenEveryPairCarriesADiffusionWeight`
       keeps the first test from passing because both systems fail.
 - [x] 2026-09-14 — Every creation of `TransportScratch`, `TransportTableView` and
       `TransportTableArrays` in the tree names its arguments (the decision "The scratch

@@ -185,7 +185,7 @@ Diagnostics constraint in those three test nodes.
 
       A line for a fixture that does not exist added to
       `Transport.Tests/Bits.approved.txt` (a fabricated key and hash):
-      `Every_fixture_with_transport_gives_the_recorded_bits` red, one problem naming
+      `EveryFixtureWithTransportGivesTheRecordedBits` red, one problem naming
       the key - "tests/Fixtures/cases/rocket/does-not-exist_pc1MPa_shiftingEquilibrium.json:
       recorded in the approved snapshot, but no such fixture is run with transport"
       (`ApprovedSnapshot.StaleKeys`; wired by `Transport.Tests`, `Equilibrium.Tests`

@@ -1,26 +1,25 @@
 using System.Text.Json;
-using APThermo.Data;
-using APThermo.Fixtures;
 using APThermo.Thermo;
 
 namespace APThermo.Transport.Tests;
 
 /// <summary>L0: the table holds the fits of the file in SI and evaluates them as the independent Python evaluation does.</summary>
-[Collection(CpuCollection.Name)]
-public sealed class FitTests(CpuFixture fixture)
+public sealed class FitTests
 {
-    public static IEnumerable<object[]> Cases() => TransportHost.FitCases();
+    /// <summary>The transport fit fixture files as theory data, delegating to <see cref="TransportHost.FitCases"/>.</summary>
+    public static TheoryData<string> Cases() => TransportHost.FitCases();
 
+    /// <summary>Fit values match the independent evaluation.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Fit_values_match_the_independent_evaluation(string name)
+    public void FitValuesMatchTheIndependentEvaluation(string name)
     {
         var c = TransportHost.LoadFit(name);
         var species = c.Inputs.GetProperty("species").GetString()!;
         var partner = c.Inputs.GetProperty("partner").ValueKind == JsonValueKind.Null ? null : c.Inputs.GetProperty("partner").GetString();
         var (table, transport) = TablesFor(species, partner);
-        using var speciesBuffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
-        using var buffers = TransportTableBuffers.Upload(fixture.Accelerator, transport);
+        using var speciesBuffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        using var buffers = TransportTableBuffers.Upload(CpuFixture.Shared.Accelerator, transport);
         var view = buffers.View;
         var index = table.IndexOf(species);
         var kinds = c.Inputs.GetProperty("fits").EnumerateArray().Select(f => f[0].GetString()!).ToList();
@@ -39,7 +38,7 @@ public sealed class FitTests(CpuFixture fixture)
                 var fit = property.Name == "viscosity" ? position : position - viscosityFits;
                 Assert.True(fit >= 0 && fit < count, $"{name} {property.Name}: fit {fit} beyond the {count} fits of the table");
                 var actual = TransportSolver.FitValue(in view, start + fit, temperature);
-                if (!fixture.Tolerances.Matches("transportFit", expected, actual))
+                if (!CpuFixture.Shared.Tolerances.Matches("transportFit", expected, actual))
                 {
                     mismatches.Add($"{property.Name} fit {fit} at {temperature} K: reference {expected:R}, tree {actual:R}");
                 }
@@ -62,9 +61,10 @@ public sealed class FitTests(CpuFixture fixture)
         Assert.True(mismatches.Count == 0, $"{name}:\n" + string.Join("\n", mismatches));
     }
 
+    /// <summary>Fit intervals are those of the file.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Fit_intervals_are_those_of_the_file(string name)
+    public void FitIntervalsAreThoseOfTheFile(string name)
     {
         var c = TransportHost.LoadFit(name);
         var species = c.Inputs.GetProperty("species").GetString()!;
@@ -90,10 +90,11 @@ public sealed class FitTests(CpuFixture fixture)
         Assert.Equal(expected, actual);
     }
 
+    /// <summary>Constant terms carry the SI factors.</summary>
     [Fact]
-    public void Constant_terms_carry_the_si_factors()
+    public void ConstantTermsCarryTheSiFactors()
     {
-        var entry = fixture.Transport.Find("N2")!;
+        var entry = CpuFixture.Shared.Transport.Find("N2")!;
         var (_, transport) = TablesFor("N2", null);
         var fits = transport.Arrays.Fits;
         Assert.Equal(entry.Viscosity[0].D + Math.Log(1e-7), fits[5], 12);
@@ -103,15 +104,16 @@ public sealed class FitTests(CpuFixture fixture)
         Assert.Equal(1e-4, TransportTable.ConductivityFactorToSi);
     }
 
+    /// <summary>Species without an entry have no fits and are listed.</summary>
     [Fact]
-    public void Species_without_an_entry_have_no_fits_and_are_listed()
+    public void SpeciesWithoutAnEntryHaveNoFitsAndAreListed()
     {
         var c = TransportHost.LoadRocket("ap-htpb-al_pc7MPa_shiftingEquilibrium");
-        var (table, transport) = TransportHost.TablesOf(fixture, c);
+        var (table, transport) = TransportHost.TablesOf(CpuFixture.Shared, c);
         for (var j = 0; j < table.SpeciesCount; j++)
         {
             var name = table.Species[j];
-            var entry = j < table.GasCount ? fixture.Transport.Find(name) : null;
+            var entry = j < table.GasCount ? CpuFixture.Shared.Transport.Find(name) : null;
             var hasData = entry is not null && entry.Viscosity.Count > 0;
             Assert.Equal(hasData, transport.Arrays.ViscosityCount[j] > 0);
             Assert.Equal(hasData, transport.SpeciesWithData.Contains(name));
@@ -122,23 +124,24 @@ public sealed class FitTests(CpuFixture fixture)
         Assert.NotEmpty(transport.SpeciesWithData);
     }
 
+    /// <summary>Pairs are those of the database with both species gaseous in the table.</summary>
     [Fact]
-    public void Pairs_are_those_of_the_database_with_both_species_gaseous_in_the_table()
+    public void PairsAreThoseOfTheDatabaseWithBothSpeciesGaseousInTheTable()
     {
         var c = TransportHost.LoadRocket("nto-udmh_of2.2_pc2MPa_shiftingEquilibrium");
-        var (table, transport) = TransportHost.TablesOf(fixture, c);
-        var expected = fixture.Transport.Entries
+        var (table, transport) = TransportHost.TablesOf(CpuFixture.Shared, c);
+        var expected = CpuFixture.Shared.Transport.Entries
             .Where(e => e.Partner is not null && e.Viscosity.Count > 0)
             .Where(e => IsGas(table, e.Species) && IsGas(table, e.Partner!))
-            .Select(e => (e.Species, e.Partner!))
+            .Select(e => (e.Species, Partner: e.Partner!))
             .ToList();
         Assert.Equal(expected, transport.Pairs);
         Assert.Equal(expected.Count, transport.Arrays.PairTotal);
         var count = table.SpeciesCount;
         for (var p = 0; p < expected.Count; p++)
         {
-            var a = table.IndexOf(expected[p].Item1);
-            var b = table.IndexOf(expected[p].Item2);
+            var a = table.IndexOf(expected[p].Species);
+            var b = table.IndexOf(expected[p].Partner);
             Assert.Equal(p, transport.Arrays.PairIndex[a * count + b]);
             Assert.Equal(p, transport.Arrays.PairIndex[b * count + a]);
         }
@@ -180,11 +183,11 @@ public sealed class FitTests(CpuFixture fixture)
     }
 
     /// <summary>A species table holding just the species (and its partner), with the elements of their formulas.</summary>
-    private (SpeciesTable Species, TransportTable Transport) TablesFor(string species, string? partner)
+    private static (SpeciesTable Species, TransportTable Transport) TablesFor(string species, string? partner)
     {
         var names = partner is null ? new[] { species } : [species, partner];
-        var elements = names.SelectMany(n => fixture.Database[n].Formula.Select(f => f.Symbol)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var table = SpeciesTable.Build(fixture.Database, elements, names);
-        return (table, TransportTable.Build(fixture.Transport, table));
+        var elements = names.SelectMany(n => CpuFixture.Shared.Database[n].Formula.Select(f => f.Symbol)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, elements, names);
+        return (table, TransportTable.Build(CpuFixture.Shared.Transport, table));
     }
 }

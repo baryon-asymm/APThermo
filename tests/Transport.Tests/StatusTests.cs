@@ -9,8 +9,7 @@ namespace APThermo.Transport.Tests;
 /// (the node's InternalsVisibleTo) over a set of three species and two reactions whose second system is singular while the first
 /// is not, which is the case the contract speaks of: the frozen figures are written and the reacting ones equal them.
 /// </summary>
-[Collection(CpuCollection.Name)]
-public sealed class StatusTests(CpuFixture fixture)
+public sealed class StatusTests
 {
     private const int SetSpecies = 3;
     private const int SetReactions = 2;
@@ -33,8 +32,9 @@ public sealed class StatusTests(CpuFixture fixture)
     /// <summary>The same set with a mass for the third species: every pair carries a positive weight and both systems are solved.</summary>
     private static readonly double[] SolvableMasses = [2.0, 18.0, 28.0];
 
+    /// <summary>A reaction system that cannot be solved keeps the frozen figures.</summary>
     [Fact]
-    public void A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures()
+    public void AReactionSystemThatCannotBeSolvedKeepsTheFrozenFigures()
     {
         var mixture = new MixtureTransport(8.5e-5, 0.42);
         var reaction = Contribution(SingularMasses);
@@ -49,8 +49,9 @@ public sealed class StatusTests(CpuFixture fixture)
                     $"reacting Prandtl {figures.ReactingPrandtl:R} against the frozen {figures.FrozenPrandtl:R}");
     }
 
+    /// <summary>The same set is solved when every pair carries a diffusion weight.</summary>
     [Fact]
-    public void The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight()
+    public void TheSameSetIsSolvedWhenEveryPairCarriesADiffusionWeight()
     {
         var reaction = Contribution(SolvableMasses);
         Assert.Equal(CaseStatus.Ok, reaction.Status);
@@ -59,17 +60,17 @@ public sealed class StatusTests(CpuFixture fixture)
     }
 
     /// <summary>Runs the reaction-terms stage over the synthetic set with the given molar masses.</summary>
-    private ReactionContribution Contribution(double[] masses)
+    private static ReactionContribution Contribution(double[] masses)
     {
-        using var buffers = new SetBuffers(fixture.Accelerator, masses);
+        using var buffers = new SetBuffers(CpuFixture.Shared.Accelerator, masses);
         var inputs = buffers.Inputs;
         return ReactionTerms.Evaluate(in inputs, SetSpecies, SetReactions);
     }
 
     /// <summary>Fills the figures of the synthetic set from the mixture rules and the reaction contribution.</summary>
-    private void Fill(double[] masses, in MixtureTransport mixture, in ReactionContribution reaction, ref TransportFigures figures)
+    private static void Fill(double[] masses, in MixtureTransport mixture, in ReactionContribution reaction, ref TransportFigures figures)
     {
-        using var buffers = new SetBuffers(fixture.Accelerator, masses);
+        using var buffers = new SetBuffers(CpuFixture.Shared.Accelerator, masses);
         var inputs = buffers.Inputs;
         SetProperties.Fill(in inputs, SetSpecies, in mixture, in reaction, ref figures);
     }
