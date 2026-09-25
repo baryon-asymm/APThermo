@@ -94,6 +94,7 @@ internal sealed class RocketBatchBuffers : IDisposable
 }
 
 /// <summary>L1: the rocket solver inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class KernelEqualityTests
 {
     /// <summary>The kinds whose fixture cases are grouped into batches: one table and exit layout per batch.</summary>
@@ -103,7 +104,16 @@ public sealed class KernelEqualityTests
     private static string BatchKeyOf(CeaCase c) => RocketInputs.Of(c).BatchKey;
 
     /// <summary>The key and case count of every batch, largest first; <see cref="KernelAndHostGiveTheSameBits"/> reads the cases back.</summary>
-    public static TheoryData<string, int> Batches() => FixtureFamilies.Keys(Kinds, BatchKeyOf);
+    public static TheoryData<string, int> Batches()
+    {
+        var data = new TheoryData<string, int>();
+        foreach (var family in FixtureFamilies.Keys(Kinds, BatchKeyOf))
+        {
+            data.Add(family.Key, family.Count);
+        }
+
+        return data;
+    }
 
     /// <summary>The rocket solver inside a CPU-accelerator kernel gives the same bits as the host call, for one batch.</summary>
     [Theory]

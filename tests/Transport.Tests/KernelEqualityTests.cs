@@ -17,6 +17,7 @@ internal readonly record struct TransportBatchViews(
     ArrayView<TransportFigures> Figures, ArrayView<int> Status);
 
 /// <summary>L1: the evaluation inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class KernelEqualityTests
 {
     /// <summary>The kinds whose fixture cases are grouped into batches: one table per batch.</summary>
@@ -34,13 +35,12 @@ public sealed class KernelEqualityTests
     public static TheoryData<string, int> Batches()
     {
         var data = new TheoryData<string, int>();
-        foreach (var row in FixtureFamilies.Keys(Kinds, TransportHost.TableKey))
+        foreach (var family in FixtureFamilies.Keys(Kinds, TransportHost.TableKey))
         {
-            var key = (string)row[0]!;
-            var count = TransportCasesOf(key).Count;
+            var count = TransportCasesOf(family.Key).Count;
             if (count > 0)
             {
-                data.Add(key, count);
+                data.Add(family.Key, count);
             }
         }
 

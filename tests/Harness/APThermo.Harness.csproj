@@ -12,12 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="ILGPU" />
-    <!--
-      TheoryData<> only (FixtureFamilies.Of): this stays a plain library (IsTestProject false, above), not a test
-      project, so tests/Directory.Build.props does not add the full xunit/Test.Sdk/runner set it gives real test
-      projects.
-    -->
-    <PackageReference Include="xunit" />
   </ItemGroup>
 
 </Project>

@@ -22,13 +22,23 @@ internal readonly record struct BatchViews(
 internal readonly record struct KernelBatchResult(double[] Moles, double[] Multipliers, MixtureState[] States, int[] Statuses, int[] Iterations);
 
 /// <summary>L1: the solver inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class KernelEqualityTests
 {
     /// <summary>The kinds whose fixture cases are grouped into batches: one table (elements and products) per batch.</summary>
     private static readonly string[] Kinds = ["tp", "hp", "sp"];
 
     /// <summary>The key and case count of every batch, largest first; <see cref="KernelAndHostGiveTheSameBits"/> reads the cases back.</summary>
-    public static TheoryData<string, int> Batches() => FixtureFamilies.Keys(Kinds, HostSolver.TableKey);
+    public static TheoryData<string, int> Batches()
+    {
+        var data = new TheoryData<string, int>();
+        foreach (var family in FixtureFamilies.Keys(Kinds, HostSolver.TableKey))
+        {
+            data.Add(family.Key, family.Count);
+        }
+
+        return data;
+    }
 
     /// <summary>The solver inside a CPU-accelerator kernel gives the same bits as the host call, for one batch.</summary>
     [Theory]
