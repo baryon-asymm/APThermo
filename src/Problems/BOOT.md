@@ -97,7 +97,7 @@ why they are a node of their own.
   (join-and-cut) and the equilibrium node holds a pinned pair there, so an assigned
   enthalpy inside the gap settles on the 2700 K plateau — coded the same day: the
   record made light solves through the front door
-  (`SplitRecordTests.An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`)
+  (`SplitRecordTests.AnEnthalpyInsideTheALNGapSolvesThroughTheFrontDoor`)
   and the gap is closed.
 - **Candidate species are chosen by one rule**: every gaseous product species of the
   database whose elements are all among the mixture's elements, then every condensed
@@ -529,50 +529,50 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       element moles per kilogram and the reactant enthalpy per kilogram computed here
       equal the reference's (the fixtures record the mass fractions, `elementMoles`
       and `reactantEnthalpy`) within 1e-10 relative:
-      `PropellantTests.Element_moles_and_enthalpy_equal_the_reference_from_its_mass_fractions`
+      `PropellantTests.ElementMolesAndEnthalpyEqualTheReferenceFromItsMassFractions`
       over every rocket, tp, hp and sp file (the list from the directory listing, 195
       that day), the propellant given by the mass fractions the reference recorded.
-      The ratio path (`A_ratio_split_reproduces_the_reference_mass_fractions_within_its_single_precision`)
+      The ratio path (`ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`)
       holds at 1e-7: the reference rounds the ratio to single precision before
       splitting the kilogram (Fixtures BOOT.md), so its own mass fractions carry that
-      rounding; mole amounts: `Mole_amounts_are_converted_with_the_record_molar_mass`.
+      rounding; mole amounts: `MoleAmountsAreConvertedWithTheRecordMolarMass`.
 - [x] 2026-09-12 — The candidate species list for each fixture case equals the
       reference's product list under the same `Omit` list, or the `Only` list the
       reference was given (RP-1311 examples 1 and 12), compared as sets and by count:
-      `PropellantTests.Candidate_species_equal_the_reference_product_list` over the
-      same files; the order rule: `Candidates_are_gases_then_condensed_species_in_database_order`.
+      `PropellantTests.CandidateSpeciesEqualTheReferenceProductList` over the
+      same files; the order rule: `CandidatesAreGasesThenCondensedSpeciesInDatabaseOrder`.
 - [x] 2026-09-12 — A custom reactant (the AP/binder case's binder) produces the
       reference `b_i` and `h_0`: the AP/HTPB/Al files of the first criterion, and
-      `A_custom_reactant_derives_its_molar_mass_from_the_formula_and_the_atomic_weights`.
+      `ACustomReactantDerivesItsMolarMassFromTheFormulaAndTheAtomicWeights`.
 - [x] 2026-09-12 — An `ElementalMixture` built from the `b_i` and `h_0` of a fixture
       propellant gives the same rocket and equilibrium results as the propellant itself,
       bit for bit on the same accelerator
-      (`RocketTests.An_elemental_mixture_reproduces_its_propellant_bit_for_bit`); a
+      (`RocketTests.AnElementalMixtureReproducesItsPropellantBitForBit`); a
       state batch of the fixture stations reproduces the fixtures within the tolerance
       table, including records where an element of the batch is absent
-      (`EquilibriumTests.State_batches_over_the_union_of_elements_reproduce_the_reference`;
+      (`EquilibriumTests.StateBatchesOverTheUnionOfElementsReproduceTheReference`;
       2026-09-13 for the batch over several mixtures:
       `RocketTests.Rocket_and_equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements`).
 - [x] 2026-09-12 — End-to-end: every rocket fixture (the four reference propellants in
       shifting and frozen flow, with and without transport, and the RP-1311 rocket
       examples) and every tp, hp and sp fixture through this node match the fixtures
-      within the tolerance table: `RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      within the tolerance table: `RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
       and the three `EquilibriumTests` theories of the front door tests node, over the
       directory listings.
 - [x] 2026-09-12 — A reactant temperature outside its record's range, an unknown
       reactant, a mixture with a zero-mass group, or an element without an atomic
       weight are rejected with the reactant's name in the exception, before any kernel
-      runs: `RejectionTests` (`An_unknown_reactant_is_rejected_by_name`,
-      `A_temperature_outside_the_record_range_is_rejected_by_name`,
-      `Mixture_rules_that_leave_a_group_empty_or_ambiguous_are_rejected`,
-      `A_custom_reactant_with_an_unknown_element_is_rejected_by_name`,
-      `An_only_list_beyond_the_elements_is_rejected_and_a_valid_one_is_used_as_given`,
-      `Invalid_state_records_are_rejected_by_index_or_element`,
-      `Problems_without_the_data_they_need_are_rejected`, `A_disposed_solver_refuses_work`).
+      runs: `RejectionTests` (`AnUnknownReactantIsRejectedByName`,
+      `ATemperatureOutsideTheRecordRangeIsRejectedByName`,
+      `MixtureRulesThatLeaveAGroupEmptyOrAmbiguousAreRejected`,
+      `ACustomReactantWithAnUnknownElementIsRejectedByName`,
+      `AnOnlyListBeyondTheElementsIsRejectedAndAValidOneIsUsedAsGiven`,
+      `InvalidStateRecordsAreRejectedByIndexOrElement`,
+      `ProblemsWithoutTheDataTheyNeedAreRejected`, `ADisposedSolverRefusesWork`).
 - [x] 2026-09-12 — Two identical batches produce identical results (statuses and
-      numbers): `RocketTests.Identical_problems_give_identical_results_alone_and_in_one_call`,
+      numbers): `RocketTests.IdenticalProblemsGiveIdenticalResultsAloneAndInOneCall`,
       `A_sweep_equals_its_cases_solved_one_by_one`,
-      `Problems_with_different_exit_layouts_are_solved_in_one_call_in_order`.
+      `ProblemsWithDifferentExitLayoutsAreSolvedInOneCallInOrder`.
 - [x] 2026-09-13 — A composition that does not weigh one kilogram is refused with
       its mass and the tolerance, and one that does is solved: the record of the
       invariant above passes as a state record; doubled, in mol/g or kmol/kg and in
@@ -581,9 +581,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       through the batch over mixtures (`mixture 1`); the grams in the message equal
       `Σ n_i A_i` with the database's atomic weights; a record 0.9 % heavy solves and
       one 1.1 % heavy is refused
-      (`RejectionTests.A_composition_that_does_not_weigh_one_kilogram_is_rejected_with_its_mass_and_the_tolerance`);
+      (`RejectionTests.ACompositionThatDoesNotWeighOneKilogramIsRejectedWithItsMassAndTheTolerance`);
       the propellant path is covered by the committed file's `ADN` record
-      (`A_reactant_record_whose_molar_mass_contradicts_its_formula_is_caught_at_the_solve`).
+      (`AReactantRecordWhoseMolarMassContradictsItsFormulaIsCaughtAtTheSolve`).
       Every fixture keeps passing through the end-to-end theories, unchanged (their
       element moles were measured within 1.65e-5 of one kilogram, see the invariant).
 - [x] 2026-09-13 — The tolerance a mixture declares is the one the check applies,
@@ -593,26 +593,26 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       heavy it is refused at 3 % with the message naming `3 %`; the propellant path
       and a mixture naming no tolerance declare the default; a negative, NaN or
       infinite tolerance is refused by `Create` naming `massTolerance`
-      (`RejectionTests.The_tolerance_a_mixture_declares_is_the_one_applied`). Heavy,
+      (`RejectionTests.TheToleranceAMixtureDeclaresIsTheOneApplied`). Heavy,
       not light, for the reason recorded under the invariant.
 - [x] 2026-09-13 — The mass is reported: `Solver.MassOf` equals `Σ n_i A_i` from
       `SpeciesDatabase.AtomicWeight`, and over every fixture file (the directory
       listing, 195 files) the recorded element moles lie within 1.7e-5 of one
       kilogram, the figure the derivation above rests on
-      (`PropellantTests.The_recorded_element_moles_of_every_fixture_weigh_one_kilogram_within_the_derivation_figure`);
+      (`PropellantTests.TheRecordedElementMolesOfEveryFixtureWeighOneKilogramWithinTheDerivationFigure`);
       every result's `MixtureMass` equals `MassOf` of its mixture on both front doors
       and through `SolveStates`, and a mixture made 0.5 % heavy reports 1.005, not one
-      (`PropellantTests.Results_carry_the_mass_of_their_mixture`).
+      (`PropellantTests.ResultsCarryTheMassOfTheirMixture`).
 - [x] 2026-09-13 — A cut condensed record is one name in every result: for a mixture
       holding `ALN(L)` the stations' mole fractions and condensed mass fractions
       carry `ALN(L)` once with the sum of its pieces and `Species` lists it once
-      (`SplitRecordTests.A_cut_species_reports_one_entry_under_its_database_name`);
+      (`SplitRecordTests.ACutSpeciesReportsOneEntryUnderItsDatabaseName`);
       an hp state whose assigned enthalpy lies inside the record's 2700 K gap (the
       mass-tolerance invariant's record, made light) converges to the pinned pair at
       the crossing instead of `NotConverged`
-      (`SplitRecordTests.An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door`);
+      (`SplitRecordTests.AnEnthalpyInsideTheALNGapSolvesThroughTheFrontDoor`);
       and the sweep across the alumina plateau stays on the isentrope by either path
-      (`SplitRecordTests.A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path`).
+      (`SplitRecordTests.ASweepAcrossTheAluminaPlateauStaysOnTheIsentropeByEitherPath`).
 - [x] 2026-09-14 — The decomposition of `## Structure` (2026-09-14): every type within the
       root's code-shape constraint (`Solver` and the two runners the declared composition
       roots, their measured Ce written into the table); the tests node's front-door bit
@@ -660,28 +660,28 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 - [x] 2026-09-14 — The state record with exits: a rocket record through
       `SolveRocketStates` equals the same mixture and problem through
       `Solve(mixtures, problems)` bit for bit, transport included
-      (`RocketTests.A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures`);
+      (`RocketTests.AStateRecordWithExitsEqualsItsCaseThroughTheBatchOverMixtures`);
       `SolveStates` refuses a record with exits and `SolveRocketStates` one without; a
       record with two targets, with exits and no enthalpy, or with a flow and no exits
       is refused; each refusal a `StateRecordException` whose `Index` is the record's
       and whose `Reason` names the rule
-      (`RejectionTests.A_state_record_that_breaks_a_rule_of_its_shape_is_refused_with_its_index`,
+      (`RejectionTests.AStateRecordThatBreaksARuleOfItsShapeIsRefusedWithItsIndex`,
       the `ShapeViolations` theory data, eight rows — correcting this line's citation
       of `EquilibriumTests`, which carries no fact of this criterion).
 - [x] 2026-09-14 — The narrowed transport pass and the retired sweep: a batch of two
       rocket problems with transport on one of them gives, for each, the result of
       that problem solved alone bit for bit, transport figures included, and the
       other's `TransportStatus` null
-      (`RocketTests.A_batch_mixing_transport_and_none_equals_each_problem_solved_alone`,
-      with `Cases_are_grouped_by_exit_layout_and_transport_flag` over a four-case
+      (`RocketTests.ABatchMixingTransportAndNoneEqualsEachProblemSolvedAlone`,
+      with `CasesAreGroupedByExitLayoutAndTransportFlag` over a four-case
       interleaved batch for the grouping itself); a ratio and pressure product given as
       a list of mixtures and problems equals its cases solved one by one bit for bit,
       the fact that replaced the sweep
-      (`RocketTests.A_ratio_and_pressure_product_as_one_batch_equals_its_cases_solved_one_by_one`);
+      (`RocketTests.ARatioAndPressureProductAsOneBatchEqualsItsCasesSolvedOneByOne`);
       every public method of a disposed solver throws, checked against the list of
       methods reflection gives so a new overload cannot be missed
-      (`RejectionTests.Every_public_method_of_a_disposed_solver_throws` with
-      `The_disposal_facts_cover_every_public_method_of_the_solver`).
+      (`RejectionTests.EveryPublicMethodOfADisposedSolverThrows` with
+      `TheDisposalFactsCoverEveryPublicMethodOfTheSolver`).
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and

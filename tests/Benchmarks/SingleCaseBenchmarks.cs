@@ -20,6 +20,8 @@ public class SingleCaseBenchmarks
     private ElementalMixture _mixture = null!;
     private EquilibriumProblem _problem = null!;
 
+    /// <summary>Loads the database, creates the solver on the CPU accelerator, builds the LOX/LH2 hp fixture's mixture and
+    /// problem, and runs one warm-up solve to record its status and hash.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -41,9 +43,11 @@ public class SingleCaseBenchmarks
         Console.WriteLine($"[SingleCase] status={result.Status} hash={hash.ToHex()}");
     }
 
+    /// <summary>Solves the fixture's hp problem once.</summary>
     [Benchmark]
     public EquilibriumResult Solve() => _solver.Solve(_mixture, _problem);
 
+    /// <summary>Disposes the solver after every benchmark of this class has run.</summary>
     [GlobalCleanup]
     public void Cleanup() => _solver.Dispose();
 }

@@ -23,9 +23,11 @@ public class SolverBatchBenchmarks
 {
     private const string FixtureFile = "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json";
 
+    /// <summary>How many identical rocket problems this run's batch solves.</summary>
     [Params(1000, 10000, 100000)]
     public int CaseCount { get; set; }
 
+    /// <summary>Which accelerator this run's batch executes on.</summary>
     [Params(AcceleratorKind.Cpu, AcceleratorKind.Cuda)]
     public AcceleratorKind Accelerator { get; set; }
 
@@ -33,6 +35,9 @@ public class SolverBatchBenchmarks
     private ElementalMixture _mixture = null!;
     private IReadOnlyList<RocketProblem> _problems = null!;
 
+    /// <summary>Builds the batch of `CaseCount` identical rocket problems, creates the solver on the chosen accelerator, runs
+    /// one warm-up solve to record its diagnostics, and compares that solve against the raw engine path on the identical
+    /// batch (`EngineSolverComparison`).</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -46,7 +51,7 @@ public class SolverBatchBenchmarks
 
         _mixture = ElementalMixture.Create(FixtureJson.ReadComposition(inputs), rocketInputs.Enthalpy, only: species);
         var problem = new RocketProblem { ChamberPressure = rocketInputs.Pressure, Flow = rocketInputs.Flow, AreaRatios = rocketInputs.AreaRatios };
-        _problems = Enumerable.Repeat(problem, CaseCount).ToArray();
+        _problems = [.. Enumerable.Repeat(problem, CaseCount)];
 
         _solver = Solver.Create(database, AcceleratorSelection.OptionsFor(Accelerator));
         var results = _solver.Solve(_mixture, _problems);
@@ -55,9 +60,11 @@ public class SolverBatchBenchmarks
         CompareWithEngine(database, inputs, elements, molesPerKilogram, species, results);
     }
 
+    /// <summary>Runs the batch through the consumer path `Problems.Solver` once.</summary>
     [Benchmark]
     public IReadOnlyList<RocketResult> SolveBatch() => _solver.Solve(_mixture, _problems);
 
+    /// <summary>Disposes the solver after every benchmark of this class has run.</summary>
     [GlobalCleanup]
     public void Cleanup() => _solver.Dispose();
 
@@ -69,7 +76,7 @@ public class SolverBatchBenchmarks
         {
             foreach (var station in result.Stations)
             {
-                hash.AddState(station.State).AddMoles(station.MoleFractions).AddStatus(station.Status);
+                _ = hash.AddState(station.State).AddMoles(station.MoleFractions).AddStatus(station.Status);
             }
             okCount += result.Status == CaseStatus.Ok ? 1 : 0;
         }

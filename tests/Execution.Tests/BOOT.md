@@ -300,8 +300,8 @@ libdevice for the CUDA category.
       method's rocket-then-transport phases
       (`ARocketFamilyOnCudaMatchesTheCpuAccelerator`) is still one dictionary
       shared the same way, now the one instance's private field instead of a local
-      passed to both phases. `ShapeTests.No_type_spans_more_than_400_lines` and
-      `ShapeTests.No_method_spans_more_than_60_lines` both hold for `CudaTests` and
+      passed to both phases. `ShapeTests.NoTypeSpansMoreThan400Lines` and
+      `ShapeTests.NoMethodSpansMoreThan60Lines` both hold for `CudaTests` and
       `GpuCpuComparison`; `GpuCpuComparison`'s own Ce is 8, `CudaTests`' own Ce is 26,
       unchanged from before the cut, both recorded by `CouplingMeasures` and not
       limited, since the root's coupling rule holds for `src` types only.

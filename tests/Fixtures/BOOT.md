@@ -315,7 +315,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
 - [x] 2026-09-12 — The tree's species selection for each case equals the package's
       product list recorded in the fixture inputs (`products`); checked where the tree
       selects species, not in the generator, which cannot run the tree:
-      `Problems.Tests.PropellantTests.Candidate_species_equal_the_reference_product_list`
+      `Problems.Tests.PropellantTests.CandidateSpeciesEqualTheReferenceProductList`
       over every rocket, tp, hp and sp file (the list from the directory listing, 195
       that day). The RP-1311 examples 1 and 12 were generated with an explicit product
       list, which the package takes as given; since 2026-09-12 the fixture inputs
@@ -347,7 +347,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       own composition, which the Problems tests node makes. 2026-09-12: the end-to-end
       comparison in the Problems tests node passed the table unchanged: every rocket
       file on the tree's own composition with its transport fields
-      (`RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`), every tp, hp
+      (`RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`), every tp, hp
       and sp file singly and as state records in batches over unions of elements
       (`EquilibriumTests`).
 - [x] 2026-09-14 — The shared rules of 2026-09-14: `ToleranceTable.MoleFractionField`
@@ -367,7 +367,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       each bound to the `generator` field its value is read from (the root's condition
       on a declared wide constructor, the row of `## Shape exceptions`): one site,
       `CeaFixtures.ReadProvenance`, fully named; covered by
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, green at
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, green at
       `62cd99e`; every fixture theory of the tests nodes
       green unchanged: the full-solution fast suite (10 projects, 3014 tests) green,
       every consumer's `Bits.approved.txt` hash unmoved.

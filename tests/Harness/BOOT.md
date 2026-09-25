@@ -193,7 +193,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       recorded in the approved snapshot, but no such fixture is run with transport"
       (`ApprovedSnapshot.StaleKeys`; wired by `Transport.Tests`, `Equilibrium.Tests`
       and, since 2026-09-15, `Cli.Tests` (this repair's R-Cli.Tests-1:
-      `Every_example_gives_the_recorded_output` now calls `StaleKeys` too, worded the
+      `EveryExampleGivesTheRecordedOutput` now calls `StaleKeys` too, worded the
       way `Problem`'s own messages are). `Thermo.Tests`, `Performance.Tests` and
       `Problems.Tests` still key their theories from the fixture directory alone and
       do not check for an orphaned approved line - a gap recorded here rather than
@@ -291,7 +291,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       its one adopting consumer, `Problems.Tests`: the last hex digit of
       `tests/Fixtures/cases/rocket/lox-lh2_of4_pc5MPa_frozenAtThroat.json`'s line in that
       node's `Bits.approved.txt` changed from `3` to `0`,
-      `Every_fixture_gives_the_recorded_bits` red on exactly that key,
+      `EveryFixtureGivesTheRecordedBits` red on exactly that key,
       `Bits.actual.tests_Fixtures_cases_rocket_lox-lh2_of4_pc5MPa_frozenAtThroat.json.fields.txt`
       written beside `Bits.actual.txt` with 173 lines, one per field `HashOf` adds, each
       a round-trip double, an invariant-culture int or a `true`/`false`; every other

@@ -268,7 +268,7 @@ efferent-coupling row.
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): every type of the
       node within the root's code-shape constraint. The largest methods,
       `AreaRatioIteration.At` and `ThroatSearch.At`, are within the root's limit of 60
-      lines of code (`ShapeTests.No_method_spans_more_than_60_lines`); before the
+      lines of code (`ShapeTests.NoMethodSpansMoreThan60Lines`); before the
       decomposition `RocketSolver.Solve` alone was 238 lines in a 326-line file. The
       largest type is under 120 lines (`Carriers.cs`, seven small carriers, none of
       them individually near the limit); before, the single `RocketSolver` type was
@@ -310,7 +310,7 @@ efferent-coupling row.
       count-driven, writing a station's extrapolation state before its verdict for no
       reason the code itself states (R-Performance-1). Commit `9a8ee68` (2026-09-15)
       merges `Close` back into `At`/`Accept`, restoring the shape this bullet's own
-      tick predates: `ShapeTests.No_method_spans_more_than_60_lines` now holds both
+      tick predates: `ShapeTests.NoMethodSpansMoreThan60Lines` now holds both
       methods within the root's 60-line-of-code limit.
 - [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
       point is `NotConverged` and its neighbours are `Ok`:
@@ -361,7 +361,7 @@ efferent-coupling row.
       so no argument binds to another parameter; `Performance.Tests` (699) and the fast
       set of `Execution.Tests` (41) green; `tests/Performance.Tests/Bits.approved.txt`
       unchanged (blob `5aa32f2b` before and after). The fact,
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
       and not yet written; it takes over as the evidence when it is.
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite

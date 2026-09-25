@@ -377,22 +377,22 @@ Every other type of the node measures 14 or below by the dependency check's walk
 - [x] 2026-09-13 — Every example document in `API.md` and every document of the
       tests node's `documents/` directory runs end to end against the committed data
       files and produces a document that validates against the output schema (schema
-      files kept next to the tests): `Cli.Tests.InputDocumentTests.Every_example_of_the_api_document_is_read_or_validates_and_its_records_solve`
+      files kept next to the tests): `Cli.Tests.InputDocumentTests.EveryExampleOfTheApiDocumentIsReadOrValidatesAndItsRecordsSolve`
       (2026-09-13: the record examples of `API.md` are solved too, since the earlier
       example weighed 706 g),
-      `OutputDocumentTests.Every_example_document_runs_and_its_result_validates_against_the_output_schema`
-      (over the directory listing), `The_states_result_validates_and_echoes_every_record_in_order`,
-      `The_species_listing_validates_and_finds_names_case_insensitively`, `The_devices_listing_validates`.
+      `OutputDocumentTests.EveryExampleDocumentRunsAndItsResultValidatesAgainstTheOutputSchema`
+      (over the directory listing), `TheStatesResultValidatesAndEchoesEveryRecordInOrder`,
+      `TheSpeciesListingValidatesAndFindsNamesCaseInsensitively`, `TheDevicesListingValidates`.
 - [x] 2026-09-13 — The example rocket document for LOX/LH2 gives the same numbers as
       the library call in the front door tests: the CLI test builds the library call
       from the fixture the document encodes and compares the output document field by
       field over a reflection-generated list, exactly
-      (`LibraryEqualityTests.The_rocket_example_equals_the_library_field_by_field`,
-      `The_equilibrium_examples_equal_the_library_field_by_field`).
+      (`LibraryEqualityTests.TheRocketExampleEqualsTheLibraryFieldByField`,
+      `TheEquilibriumExamplesEqualTheLibraryFieldByField`).
 - [x] 2026-09-13 — Exit codes 0, 1, 2, 3 are each produced by a test, in-process and
       as a process: a good document, a document with a failing case, a malformed
       document, `--accelerator cuda` with `APTHERMO_NO_CUDA=1`
-      (`ExitCodeTests`, `InputDocumentTests.An_invalid_document_is_exit_2_with_the_documented_message_and_no_output`,
+      (`ExitCodeTests`, `InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`,
       `ProcessTests`: the four facts).
 - [x] 2026-09-13 — CSV output has one row per case and station and the documented
       columns, checked against the approved file `documents/rocket-lox-lh2.approved.csv`
@@ -402,25 +402,25 @@ Every other type of the node measures 14 or below by the dependency check's walk
       record doubled, in mol/g, a record in kmol/kg and a document with a doubled
       `propellant.elementMoles` are exit code 2 with the documented message naming
       the record and the mass, and no document
-      (`InputDocumentTests.An_invalid_document_is_exit_2_with_the_documented_message_and_no_output`
+      (`InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`
       over `documents/invalid/states-two-kilograms.json`, `states-mol-per-gram.json`,
       `states-kmol-per-kg.json`, `elemental-two-kilograms.json`); a doubled record
       behind a good one in a JSON Lines file is named by file and line, not by its
       position in the batch
-      (`ExitCodeTests.A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`).
+      (`ExitCodeTests.ARecordThatWeighsOneKilogramIsExit0AndOneThatDoesNotIsNamedByItsLine`).
 - [x] 2026-09-13 — `--mass-tolerance` is parsed like `--threshold`: a negative or
       infinite value and the option on a listing command are exit code 2, the usage
       names it, `=` works and the default is the library's
-      (`CommandLineTests.Invalid_command_lines_are_exit_2_naming_the_offender`,
-      `The_usage_names_every_command_and_option`, `Options_may_be_given_with_an_equals_sign`);
+      (`CommandLineTests.InvalidCommandLinesAreExit2NamingTheOffender`,
+      `TheUsageNamesEveryCommandAndOption`, `OptionsMayBeGivenWithAnEqualsSign`);
       it is echoed as `run.massTolerance` and every case of every solving command
       carries `mixture.mass`, the schema files of the tests node listing both
-      (`OutputDocumentTests.The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture`,
-      `Every_example_document_runs_and_its_result_validates_against_the_output_schema`),
+      (`OutputDocumentTests.TheMassToleranceIsEchoedAndEveryCaseReportsTheMassOfItsMixture`,
+      `EveryExampleDocumentRunsAndItsResultValidatesAgainstTheOutputSchema`),
       and the mass is the library's exactly (`LibraryEqualityTests`); the record of
       another simulation made 2 % heavy is exit code 2 without the option and exit
       code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
-      (`ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`;
+      (`ExitCodeTests.TheMassToleranceOptionIsTheToleranceTheRunDeclares`;
       heavy, not light: the front door's BOOT.md records why).
 - [x] 2026-09-14 — The decomposition of `## Structure`: every type within the root's
       code-shape constraint except the rows of `## Shape exceptions`, measured by the
@@ -436,16 +436,16 @@ Every other type of the node measures 14 or below by the dependency check's walk
       `PublicSurface.approved.txt`).
 - [x] 2026-09-14 — The documents follow the front door's contract: the `states`
       example gives the library's numbers field by field through `SolveStates` and
-      `SolveRocketStates` (`LibraryEqualityTests.The_states_example_equals_the_library_field_by_field`,
+      `SolveRocketStates` (`LibraryEqualityTests.TheStatesExampleEqualsTheLibraryFieldByField`,
       a records file with and without exits); an invalid record is exit code 2 naming
       its file and position with the front door's reason (the pinned fragments of
       `InputDocumentTests`, `states-two-targets.json` and `states-rocket-without-enthalpy.json`);
       the exception → exit code rule maps an input refusal to 2 and an accelerator
       failure or any other exception to 3
-      (`ExitCodeTests.An_exception_maps_to_its_documented_exit_code`); an `auto` run
+      (`ExitCodeTests.AnExceptionMapsToItsDocumentedExitCode`); an `auto` run
       with CUDA forbidden writes the reason in `run.accelerator.cudaSkippedBecause` and
       the `devices` listing names the variable too, both schema files listing the field
-      (`OutputDocumentTests.An_auto_run_that_fell_back_says_why`, a separate process
+      (`OutputDocumentTests.AnAutoRunThatFellBackSaysWhy`, a separate process
       with `APTHERMO_NO_CUDA=1`). Each fact seen red once and reverted: the fallback
       reason not written, an unexpected exception mapped to 2.
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
@@ -455,13 +455,13 @@ Every other type of the node measures 14 or below by the dependency check's walk
       and the long-running sweep and throughput tests).
 - [x] 2026-09-15 — `apthermo --version` prints `Program.Version` and exits 0, in
       process and as a separate process
-      (`CommandLineTests.Version_prints_the_tool_version_and_exits_0`,
-      `ProcessTests.The_executable_prints_its_version_with_exit_0`). Without
+      (`CommandLineTests.VersionPrintsTheToolVersionAndExits0`,
+      `ProcessTests.TheExecutablePrintsItsVersionWithExit0`). Without
       `--database`, a run's `run.database.thermoPath`/`.transPath` are the embedded
       markers `"embedded:thermo.inp"`/`"embedded:trans.inp"` with 64-character SHA-256
       hashes, in process and from an empty working directory as a separate process
-      (`CommandLineTests.Without_database_the_run_uses_the_embedded_database`,
-      `ProcessTests.The_executable_uses_the_embedded_database_from_an_empty_working_directory`).
+      (`CommandLineTests.WithoutDatabaseTheRunUsesTheEmbeddedDatabase`,
+      `ProcessTests.TheExecutableUsesTheEmbeddedDatabaseFromAnEmptyWorkingDirectory`).
       Both facts seen red once (AGENTS.md §13): making `DatabaseFiles.Load` call
       `LoadFromDirectory` on the current directory instead of `LoadEmbedded` when no
       `--database` is given turned the embedded-database fact red, exit code 2, `no
@@ -487,6 +487,21 @@ Every other type of the node measures 14 or below by the dependency check's walk
       that node's `BOOT.md`, criterion of 2026-09-17;
       `tests/Docs.Tests/SchemaValidationTests`). Found and fixed from
       the CLI audit's findings C1 through C5, in `68f540a`.
+- [x] 2026-09-24 — The exception → exit code rule holds under the root's Diagnostics
+      constraint without a `catch (Exception)` in `Program.Run` (API.md, the ⚠ of
+      2026-09-24): `Program.Run` catches only `InputException` (2),
+      `AcceleratorUnavailableException`, `IOException` and `UnauthorizedAccessException`
+      (3); every other exception leaves it, proved directly
+      (`ExitCodeTests.AnExceptionOutsideTheFourDocumentedTypesLeavesRunInProcess`, a
+      `TextWriter` that throws from inside `Run`'s try block) and the mapping itself
+      unit-tested (`ExitCodeTests.AnExceptionMapsToItsDocumentedExitCode`,
+      `AnUnnamedExceptionIsExit3ThroughTheUnhandledExceptionRule`). The process-level
+      half — `Program.Main` installing an `AppDomain.CurrentDomain.UnhandledException`
+      handler that reports the same `Type: message` line and calls
+      `Environment.Exit(3)` — is proved once by a scratch console program outside the
+      tree, the same shape as `Program.Main`'s handler, throwing after installing it:
+      exit code 3, `InvalidOperationException: a defect of this node` on standard
+      error, `dotnet run -c Release` on 2026-09-24.
 
 ## Taboos
 

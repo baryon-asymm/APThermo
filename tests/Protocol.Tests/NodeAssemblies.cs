@@ -11,7 +11,7 @@ internal static class NodeAssemblies
     private static readonly Lazy<IReadOnlyDictionary<Node, Assembly>> AssembliesLazy = new(Load);
 
     private static readonly Lazy<IReadOnlyList<Node>> CodeNodesLazy = new(
-        () => Tree.Nodes.Where(node => AssemblyOf(node) is not null).OrderBy(node => node.RelativePath, StringComparer.Ordinal).ToList());
+        () => [.. Tree.Nodes.Where(node => AssemblyOf(node) is not null).OrderBy(node => node.RelativePath, StringComparer.Ordinal)]);
 
     /// <summary>The assemblies of the nodes that have a project, loaded by the name the project gives them.</summary>
     public static IReadOnlyDictionary<Node, Assembly> Assemblies => AssembliesLazy.Value;
@@ -31,7 +31,7 @@ internal static class NodeAssemblies
     public static Node? ProjectNodeOf(Node node) =>
         Tree.Nodes.Where(candidate => candidate == node || node.IsDescendantOf(candidate))
             .OrderByDescending(candidate => candidate.RelativePath.Length)
-            .FirstOrDefault(candidate => Assemblies.ContainsKey(candidate));
+            .FirstOrDefault(Assemblies.ContainsKey);
 
     /// <summary>The assembly that holds a node's compiled types: its own project's assembly if it has one, or the nearest
     /// ancestor's that does (<see cref="ProjectNodeOf"/>). Null only for a node with no project anywhere in its own chain up
@@ -96,12 +96,11 @@ internal static class NodeAssemblies
     /// contracts), the attribute's own public-key suffix stripped: <c>TreeContractTests</c> reads these against the
     /// dependency graph and the tree-contract sections of the grantee's own <c>API.md</c>.</summary>
     public static IReadOnlyList<string> InternalsVisibleTo(Assembly assembly) =>
-        assembly.GetCustomAttributesData()
+        [.. assembly.GetCustomAttributesData()
             .Where(attribute => attribute.AttributeType.FullName == "System.Runtime.CompilerServices.InternalsVisibleToAttribute")
-            .Select(attribute => ((string)attribute.ConstructorArguments[0].Value!).Split(',')[0].Trim())
-            .ToList();
+            .Select(attribute => ((string)attribute.ConstructorArguments[0].Value!).Split(',')[0].Trim())];
 
-    private static IReadOnlyDictionary<Node, Assembly> Load()
+    private static Dictionary<Node, Assembly> Load()
     {
         var assemblies = new Dictionary<Node, Assembly>();
         foreach (var node in Tree.Nodes.Where(node => node.AssemblyName is not null))

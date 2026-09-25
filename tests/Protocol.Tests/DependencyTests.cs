@@ -7,8 +7,10 @@ namespace APThermo.Protocol.Tests;
 /// </summary>
 public sealed class DependencyTests
 {
+    /// <summary>Every node declares, in its own `## Dependencies`, the neighbours it actually uses in signatures and method
+    /// bodies, and no other.</summary>
     [Fact]
-    public void Every_node_declares_the_neighbours_it_uses_and_no_other()
+    public void EveryNodeDeclaresTheNeighboursItUsesAndNoOther()
     {
         var problems = NodeAssemblies.CodeNodes.SelectMany(ProblemsOf).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
@@ -62,7 +64,7 @@ public sealed class DependencyTests
                     crossings[target.RelativePath] = users = new SortedSet<string>(StringComparer.Ordinal);
                 }
 
-                users.Add(TypeShape.SimpleName(TypeShape.Outermost(type)) + " → " + TypeShape.SimpleName(referenced));
+                _ = users.Add(TypeShape.SimpleName(TypeShape.Outermost(type)) + " → " + TypeShape.SimpleName(referenced));
             }
         }
 

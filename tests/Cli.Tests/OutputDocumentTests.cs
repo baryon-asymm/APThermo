@@ -12,7 +12,7 @@ using APThermo.Transport;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L1: every example document runs end to end and its result validates against the output schema; sweeps, states, thresholds, listings.</summary>
-[Collection(CliCollection.Name)]
+[Collection("cli")]
 public sealed class OutputDocumentTests(CliFixture fixture)
 {
     /// <summary>Relative slack on an area ratio read back from a rocket station against the sweep or record document's own value: the performance node iterates an area-ratio exit past the report's tolerance to 1e-10 when it can (Performance API.md), so a reported station is at rounding level.</summary>
@@ -23,7 +23,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
 
     /// <summary>
     /// Absolute slack, kg, on the mass of a mixture built from database reactants against one kilogram: a hundred
-    /// times tighter than <see cref="Problems.ElementalMixture.DefaultMassTolerance"/>, since such a mixture is
+    /// times tighter than <see cref="ElementalMixture.DefaultMassTolerance"/>, since such a mixture is
     /// expected to weigh one kilogram far more closely than the mass check requires, and this assertion checks
     /// exactly that.
     /// </summary>
@@ -32,33 +32,37 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     /// <summary>A --threshold coarser than the default (CommandOptions.DefaultThreshold, 5e-6), chosen only to omit more species than the default does, for the omission test below.</summary>
     private const double CoarseThreshold = 1e-3;
 
-    public static IEnumerable<object[]> Problems() => CliFixture.ProblemDocumentNames().Select(n => new object[] { n });
+    /// <summary>Problems.</summary>
+    public static TheoryData<string> Problems() => [.. CliFixture.ProblemDocumentNames()];
 
+    /// <summary>Every example document runs and its result validates against the output schema.</summary>
     [Theory]
     [MemberData(nameof(Problems))]
-    public void Every_example_document_runs_and_its_result_validates_against_the_output_schema(string name)
+    public void EveryExampleDocumentRunsAndItsResultValidatesAgainstTheOutputSchema(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
         var command = name.StartsWith("rocket", StringComparison.Ordinal) ? "rocket" : "equilibrium";
         var (code, document, error) = fixture.Produce(command, name);
         Assert.Equal(name == "rocket-failing.json" ? 1 : 0, code);
         Assert.Empty(error);
-        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         var run = document.RootElement.GetProperty("run");
         Assert.Equal(command, run.GetProperty("command").GetString());
         Assert.Equal("cpu", run.GetProperty("accelerator").GetProperty("kind").GetString());
-        Assert.Equal(fixture.Document(name), run.GetProperty("inputs")[0].GetString());
+        Assert.Equal(CliFixture.Document(name), run.GetProperty("inputs")[0].GetString());
         Assert.True(document.RootElement.GetProperty("cases").GetArrayLength() >= 1);
     }
 
+    /// <summary>The states result validates and echoes every record in order.</summary>
     [Fact]
-    public void The_states_result_validates_and_echoes_every_record_in_order()
+    public void TheStatesResultValidatesAndEchoesEveryRecordInOrder()
     {
         var (code, document, _) = fixture.Produce("states", "states.json");
         Assert.Equal(0, code);
-        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
-        using var records = JsonDocument.Parse(File.ReadAllText(fixture.Document("states.json")));
+        using var records = JsonDocument.Parse(File.ReadAllText(CliFixture.Document("states.json")));
         var cases = document.RootElement.GetProperty("cases").EnumerateArray().ToList();
         Assert.Equal(records.RootElement.GetArrayLength(), cases.Count);
         for (var i = 0; i < cases.Count; i++)
@@ -77,12 +81,13 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.False(cases[0].GetProperty("stations")[0].TryGetProperty("performance", out _), "an equilibrium state has no performance figures");
     }
 
+    /// <summary>States from an array a lines file and several files give the same cases.</summary>
     [Fact]
-    public void States_from_an_array_a_lines_file_and_several_files_give_the_same_cases()
+    public void StatesFromAnArrayALinesFileAndSeveralFilesGiveTheSameCases()
     {
         var (_, fromArray, _) = fixture.Produce("states", "states.json");
         var (_, fromLines, _) = fixture.Produce("states", "states.jsonl");
-        var fromFiles = fixture.Invoke("states", fixture.Document("states-part1.json"), fixture.Document("states-part2.json"),
+        var fromFiles = CliFixture.Invoke("states", CliFixture.Document("states-part1.json"), CliFixture.Document("states-part2.json"),
                                        "--database", fixture.DatabasePath, "--accelerator", "cpu");
         Assert.Equal(0, fromFiles.Code);
         using var filesDocument = fromFiles.Json();
@@ -91,8 +96,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.True(JsonElement.DeepEquals(expected, filesDocument.RootElement.GetProperty("cases")), "several files gave other cases");
     }
 
+    /// <summary>A rocket sweep expands ratio major then pressure in one document.</summary>
     [Fact]
-    public void A_rocket_sweep_expands_ratio_major_then_pressure_in_one_document()
+    public void ARocketSweepExpandsRatioMajorThenPressureInOneDocument()
     {
         var (code, document, _) = fixture.Produce("rocket", "rocket-sweep.json");
         Assert.Equal(0, code);
@@ -117,8 +123,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         }
     }
 
+    /// <summary>An equilibrium sweep expands pressure then temperature.</summary>
     [Fact]
-    public void An_equilibrium_sweep_expands_pressure_then_temperature()
+    public void AnEquilibriumSweepExpandsPressureThenTemperature()
     {
         var (code, document, _) = fixture.Produce("equilibrium", "equilibrium-sweep.json");
         Assert.Equal(0, code);
@@ -137,8 +144,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.All(cases, c => Assert.Equal(c.GetProperty("inputs").GetProperty("temperature").GetDouble(), c.GetProperty("stations")[0].GetProperty("temperature").GetDouble()));
     }
 
+    /// <summary>The mass tolerance is echoed and every case reports the mass of its mixture.</summary>
     [Fact]
-    public void The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture()
+    public void TheMassToleranceIsEchoedAndEveryCaseReportsTheMassOfItsMixture()
     {
         var (_, standard, _) = fixture.Produce("states", "states.json");
         Assert.Equal(ElementalMixture.DefaultMassTolerance, standard.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
@@ -160,8 +168,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
                    c => Assert.True(Math.Abs(c.GetProperty("mixture").GetProperty("mass").GetDouble() - 1.0) < MassRoundingTolerance, c.GetProperty("mixture").GetProperty("mass").GetRawText()));
     }
 
+    /// <summary>The threshold omits small mole fractions and the default is the reference print threshold.</summary>
     [Fact]
-    public void The_threshold_omits_small_mole_fractions_and_the_default_is_the_reference_print_threshold()
+    public void TheThresholdOmitsSmallMoleFractionsAndTheDefaultIsTheReferencePrintThreshold()
     {
         var (_, everything, _) = fixture.Produce("rocket", "rocket-lox-lh2.json", "--threshold", "0");
         var (_, coarse, _) = fixture.Produce("rocket", "rocket-lox-lh2.json", "--threshold", CoarseThreshold.ToString(CultureInfo.InvariantCulture));
@@ -176,8 +185,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.Equal(CoarseThreshold, coarse.RootElement.GetProperty("run").GetProperty("threshold").GetDouble());
     }
 
+    /// <summary>Transport figures are present only when requested.</summary>
     [Fact]
-    public void Transport_figures_are_present_only_when_requested()
+    public void TransportFiguresArePresentOnlyWhenRequested()
     {
         var (_, with, _) = fixture.Produce("rocket", "rocket-lox-lh2.json");
         foreach (var station in with.RootElement.GetProperty("cases")[0].GetProperty("stations").EnumerateArray())
@@ -192,13 +202,14 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.False(without.RootElement.GetProperty("cases")[0].GetProperty("stations")[0].TryGetProperty("transport", out _));
     }
 
+    /// <summary>The species listing validates and finds names case insensitively.</summary>
     [Fact]
-    public void The_species_listing_validates_and_finds_names_case_insensitively()
+    public void TheSpeciesListingValidatesAndFindsNamesCaseInsensitively()
     {
-        var run = fixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o");
+        var run = CliFixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o");
         Assert.Equal(0, run.Code);
         using var document = run.Json();
-        var errors = JsonSchema.Parse(fixture.SchemaText("species")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("species")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         var names = document.RootElement.GetProperty("species").EnumerateArray().Select(s => s.GetProperty("name").GetString()!).ToList();
         Assert.Contains("H2O", names);
@@ -207,22 +218,23 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var water = document.RootElement.GetProperty("species").EnumerateArray().First(s => s.GetProperty("name").GetString() == "H2O");
         Assert.Equal("gas", water.GetProperty("phase").GetString());
         Assert.True(water.GetProperty("transportData").GetBoolean());
-        var csv = fixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o", "--format", "csv");
+        var csv = CliFixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o", "--format", "csv");
         Assert.Equal(0, csv.Code);
         Assert.StartsWith("name,section,phase,formula,molarMass", csv.Output);
         Assert.Equal(names.Count + 1, csv.Output.TrimEnd('\n').Split('\n').Length);
     }
 
+    /// <summary>An auto run that fell back says why.</summary>
     [Fact]
-    public void An_auto_run_that_fell_back_says_why()
+    public void AnAutoRunThatFellBackSaysWhy()
     {
         // A separate process (ProcessTests' own pattern): APTHERMO_NO_CUDA is a process environment variable, and
         // this run must not affect any accelerator choice of a test running elsewhere in this collection.
         var environment = new Dictionary<string, string> { [EngineOptions.NoCudaVariable] = "1" };
-        var run = fixture.InvokeProcess(["rocket", fixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath], environment);
+        var run = fixture.InvokeProcess(["rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath], environment);
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
-        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
         var accelerator = document.RootElement.GetProperty("run").GetProperty("accelerator");
         Assert.Equal("cpu", accelerator.GetProperty("kind").GetString());
@@ -233,24 +245,26 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var devices = fixture.InvokeProcess(["devices"], environment);
         Assert.Equal(0, devices.Code);
         using var devicesDocument = devices.Json();
-        var devicesErrors = JsonSchema.Parse(fixture.SchemaText("devices")).Validate(devicesDocument.RootElement);
+        var devicesErrors = JsonSchema.Parse(CliFixture.SchemaText("devices")).Validate(devicesDocument.RootElement);
         Assert.True(devicesErrors.Count == 0, string.Join("; ", devicesErrors));
         Assert.Contains(EngineOptions.NoCudaVariable, devicesDocument.RootElement.GetProperty("cuda").GetProperty("message").GetString());
     }
 
+    /// <summary>The devices listing validates.</summary>
     [Fact]
-    public void The_devices_listing_validates()
+    public void TheDevicesListingValidates()
     {
-        var run = fixture.Invoke("devices");
+        var run = CliFixture.Invoke("devices");
         using var document = run.Json();
-        var errors = JsonSchema.Parse(fixture.SchemaText("devices")).Validate(document.RootElement);
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("devices")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
     }
 
+    /// <summary>The schema lists every field of the library result structs.</summary>
     [Fact]
-    public void The_schema_lists_every_field_of_the_library_result_structs()
+    public void TheSchemaListsEveryFieldOfTheLibraryResultStructs()
     {
-        using var schema = JsonDocument.Parse(fixture.SchemaText("output"));
+        using var schema = JsonDocument.Parse(CliFixture.SchemaText("output"));
         var definitions = schema.RootElement.GetProperty("$defs");
         AssertSchemaListsFields<MixtureState>(definitions.GetProperty("station"), required: true);
         AssertSchemaListsFields<PerformanceFigures>(definitions.GetProperty("performance"), required: true);

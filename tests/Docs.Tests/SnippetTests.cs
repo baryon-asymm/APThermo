@@ -7,33 +7,34 @@ namespace APThermo.Docs.Tests;
 /// <summary>
 /// L1 (BOOT.md): every C# fence of README.md, docs/guide/*.md and the package READMEs under docs/nuget/ (info
 /// `csharp`, `cs` or `c#`, any case, the first word of the info string) must be preceded by a
-/// `&lt;!-- snippet: name --&gt;` marker (`Every_csharp_fence_is_preceded_by_a_snippet_marker`), and a marked block
+/// `&lt;!-- snippet: name --&gt;` marker (`EveryCsharpFenceIsPrecededByASnippetMarker`), and a marked block
 /// must equal that region of the samples node's source, byte for byte after the common indentation is stripped and
-/// line endings normalized to LF (`Every_marked_csharp_block_equals_its_sample_region`; the samples' own invariant:
+/// line endings normalized to LF (`EveryMarkedCsharpBlockEqualsItsSampleRegion`; the samples' own invariant:
 /// a region may be quoted by several pages, never edited). A third fact ties the region names themselves to the
-/// samples' scenarios (`Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings`), and a fourth
+/// samples' scenarios (`RegionNamesAreExactlyEachScenarioClassNameOrThatNamePlusUsings`), and a fourth
 /// proves each scenario's body region sits inside that scenario's own `Run` method rather than a method no scenario
-/// calls (`Each_scenario_body_region_lies_inside_its_class_Run_method`; this task's own ma2, closing the escape
+/// calls (`EachScenarioBodyRegionLiesInsideItsClassRunMethod`; this task's own ma2, closing the escape
 /// its finding X7 named).
 /// Each fails when its own population is empty (AGENTS.md §13: a check that can pass on an empty set is
 /// indistinguishable from an absent one).
 /// </summary>
-public sealed class SnippetTests
+public sealed partial class SnippetTests
 {
-    private static readonly Regex Marker = new(@"^<!--\s*snippet:\s*(\w+)\s*-->$", RegexOptions.Compiled);
+    private static readonly Regex Marker = MyRegex();
 
+    /// <summary>Every csharp fence is preceded by a snippet marker.</summary>
     [Fact]
-    public void Every_csharp_fence_is_preceded_by_a_snippet_marker()
+    public void EveryCsharpFenceIsPrecededByASnippetMarker()
     {
         var fences = new List<(string File, int Line)>();
         foreach (var file in GuideDocuments.SnippetSources())
         {
             var lines = GuideDocuments.Lines(file);
-            foreach (var block in GuideDocuments.FencedBlocks(lines, file))
+            foreach (var (info, _, startLine) in GuideDocuments.FencedBlocks(lines, file))
             {
-                if (GuideDocuments.IsCSharpFenceInfo(block.Info))
+                if (GuideDocuments.IsCSharpFenceInfo(info))
                 {
-                    fences.Add((file, block.StartLine));
+                    fences.Add((file, startLine));
                 }
             }
         }
@@ -60,8 +61,9 @@ public sealed class SnippetTests
             $"{file}:{fenceLine + 1}: this C# fence is not preceded by a '<!-- snippet: name -->' marker");
     }
 
+    /// <summary>Every marked csharp block equals its sample region.</summary>
     [Fact]
-    public void Every_marked_csharp_block_equals_its_sample_region()
+    public void EveryMarkedCsharpBlockEqualsItsSampleRegion()
     {
         var markers = new List<(string File, int Line, string Name)>();
         foreach (var file in GuideDocuments.SnippetSources())
@@ -126,17 +128,17 @@ public sealed class SnippetTests
     /// no extra or missing member.
     /// </summary>
     [Fact]
-    public void Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings()
+    public void RegionNamesAreExactlyEachScenarioClassNameOrThatNamePlusUsings()
     {
-        var scenarios = APThermo.Samples.Program.Scenarios;
+        var scenarios = Samples.Program.Scenarios;
         Assert.True(scenarios.Count > 0, "no scenario was found in APThermo.Samples.Program.Scenarios");
 
         var expected = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var scenario in scenarios)
         {
-            var className = APThermo.Samples.Program.ClassNameOf(scenario);
-            expected.Add(className);
-            expected.Add(className + "Usings");
+            var className = Samples.Program.ClassNameOf(scenario);
+            _ = expected.Add(className);
+            _ = expected.Add(className + "Usings");
         }
 
         var actual = new SortedSet<string>(GuideDocuments.SnippetRegions().Keys, StringComparer.Ordinal);
@@ -155,15 +157,15 @@ public sealed class SnippetTests
     /// guide can only ever quote what actually executes when the scenario runs.
     /// </summary>
     [Fact]
-    public void Each_scenario_body_region_lies_inside_its_class_Run_method()
+    public void EachScenarioBodyRegionLiesInsideItsClassRunMethod()
     {
-        var scenarios = APThermo.Samples.Program.Scenarios;
+        var scenarios = Samples.Program.Scenarios;
         Assert.True(scenarios.Count > 0, "no scenario was found in APThermo.Samples.Program.Scenarios");
 
         var locations = GuideDocuments.SnippetRegionLocations();
         foreach (var scenario in scenarios)
         {
-            var className = APThermo.Samples.Program.ClassNameOf(scenario);
+            var className = Samples.Program.ClassNameOf(scenario);
             Assert.True(
                 locations.TryGetValue(className, out var region),
                 $"samples/Samples/: no snippet region named '{className}' exists");
@@ -191,4 +193,7 @@ public sealed class SnippetTests
             $"{region.File}: the '{className}' snippet region (0-based lines {region.BodyStartLine}-{region.BodyEndLine}) "
                 + $"does not lie inside '{className}.Run' (0-based body lines {bodyStart}-{bodyEnd})");
     }
+
+    [GeneratedRegex(@"^<!--\s*snippet:\s*(\w+)\s*-->$", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

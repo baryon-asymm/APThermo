@@ -6,17 +6,18 @@ exist because BenchmarkDotNet requires public benchmark classes, public `[Benchm
 and public `[Params]` properties. They are listed here so that no public type goes
 undocumented (root taboo).
 
-## Entry point ✅
+## Entry point
 
-```csharp
-namespace APThermo.Benchmarks;
+`Program` is `internal` (2026-09-25, the Diagnostics constraint's CA1515): a `Main`
+method needs no accessibility for the .NET runtime to find and run it, and nothing
+outside this assembly, BenchmarkDotNet included, ever references the class by name.
+Not a checked declaration (no status mark, no `csharp` fence): it is neither on the
+package surface nor a tree contract, so `CoverageTests`/`TreeContractTests` have
+nothing to check it against; this is the invocation, for a reader.
 
-// dotnet run -c Release --project tests/Benchmarks -- [BenchmarkDotNet arguments]
-// e.g. --list flat, --filter *UserStates*, --job Dry
-public static class Program
-{
-    public static int Main(string[] args);   // BenchmarkSwitcher over the groups below, BenchmarkEnvironment.Config
-}
+```console
+dotnet run -c Release --project tests/Benchmarks -- [BenchmarkDotNet arguments]
+# e.g. --list flat, --filter *UserStates*, --job Dry
 ```
 
 ## Groups ✅

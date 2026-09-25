@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace APThermo.Protocol.Tests;
 
 /// <summary>
@@ -16,32 +14,36 @@ namespace APThermo.Protocol.Tests;
 /// </summary>
 public sealed class ShapeTests
 {
+    /// <summary>No type spans more than 400 lines of code, from its declaration to its closing brace.</summary>
     [Fact]
-    public void No_type_spans_more_than_400_lines()
+    public void NoTypeSpansMoreThan400Lines()
     {
         Assert.True(MeasurementCount("type lines") > 0, "no type of the tree was measured for type lines; this fact has nothing to check");
         var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "type lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>No method spans more than 60 lines of code.</summary>
     [Fact]
-    public void No_method_spans_more_than_60_lines()
+    public void NoMethodSpansMoreThan60Lines()
     {
         Assert.True(MeasurementCount("method lines") > 0, "no method of the tree was measured for method lines; this fact has nothing to check");
         var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "method lines")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>No control flow nests deeper than 3.</summary>
     [Fact]
-    public void No_control_flow_nests_deeper_than_3()
+    public void NoControlFlowNestsDeeperThan3()
     {
         Assert.True(MeasurementCount("nesting") > 0, "no member of the tree was measured for nesting; this fact has nothing to check");
         var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "nesting")).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>No method takes more than 6 parameters.</summary>
     [Fact]
-    public void No_method_takes_more_than_6_parameters()
+    public void NoMethodTakesMoreThan6Parameters()
     {
         Assert.True(MeasurementCount("parameters") > 0, "no method of the tree was measured for parameters; this fact has nothing to check");
         var problems = CodeNodes().SelectMany(node => OverLimitProblems(node, "parameters")).ToList();
@@ -49,10 +51,10 @@ public sealed class ShapeTests
     }
 
     /// <summary>Asserts the `src` node set is not empty first (R-Protocol.Tests-14 (a)): with no `src` node, this fact and
-    /// <see cref="Every_stable_type_is_small_or_a_contract"/> would both pass over zero nodes rather than over a real,
+    /// <see cref="EveryStableTypeIsSmallOrAContract"/> would both pass over zero nodes rather than over a real,
     /// checked set — silently, since a real violation elsewhere in a `src` node would then never be looked at.</summary>
     [Fact]
-    public void No_src_type_names_more_than_14_types_of_the_tree()
+    public void NoSrcTypeNamesMoreThan14TypesOfTheTree()
     {
         Assert.True(SrcNodes().Any(), "no `src` node exists in the tree; this fact has nothing to check");
         var problems = SrcNodes().SelectMany(node => OverLimitProblems(node, "efferent coupling")).ToList();
@@ -62,9 +64,9 @@ public sealed class ShapeTests
     /// <summary>"Shape check", stable type: a type named by ten or more types of the tree spans at most 100 lines of code,
     /// unless its node's `API.md` names it (a contract, left to review rather than measured here). No `## Shape exceptions`
     /// row applies to this rule; the escape is the document naming the type. Asserts the `src` node set is not empty first
-    /// (R-Protocol.Tests-14 (a)), the same reason <see cref="No_src_type_names_more_than_14_types_of_the_tree"/> does.</summary>
+    /// (R-Protocol.Tests-14 (a)), the same reason <see cref="NoSrcTypeNamesMoreThan14TypesOfTheTree"/> does.</summary>
     [Fact]
-    public void Every_stable_type_is_small_or_a_contract()
+    public void EveryStableTypeIsSmallOrAContract()
     {
         Assert.True(SrcNodes().Any(), "no `src` node exists in the tree; this fact has nothing to check");
         var afferent = CouplingMeasures.AfferentCoupling();
@@ -77,7 +79,7 @@ public sealed class ShapeTests
     /// edge first (R-Protocol.Tests-14 (b)): with `NodeCoupling()` empty (no `src` node, or none with a declared dependency),
     /// this fact would pass over zero edges rather than over the real graph.</summary>
     [Fact]
-    public void No_src_dependency_points_to_a_less_stable_node()
+    public void NoSrcDependencyPointsToALessStableNode()
     {
         var coupling = CouplingMeasures.NodeCoupling();
         Assert.True(coupling.Values.Sum(value => value.Dependencies.Count) > 0, "the src node graph has no declared dependency edge; this fact has nothing to check");
@@ -85,8 +87,9 @@ public sealed class ShapeTests
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>No partial type outside the [GeneratedRegex] exception, no #region, no Helper/Helpers/Util/Utils/Common class.</summary>
     [Fact]
-    public void No_partial_type_region_or_helpers_class()
+    public void NoPartialTypeRegionOrHelpersClass()
     {
         Assert.True(CodeNodes().Any(node => SourceSyntax.Trees(node).Any()), "no source file of the tree was read for the mechanics rule; this fact has nothing to check");
         var problems = CodeNodes()
@@ -100,7 +103,7 @@ public sealed class ShapeTests
     /// the candidate list is not empty first (R-Protocol.Tests-14): with nothing to resolve creations against, the fact
     /// below would pass over zero creations rather than over a real, checked set.</summary>
     [Fact]
-    public void Every_wide_constructor_is_called_with_named_arguments()
+    public void EveryWideConstructorIsCalledWithNamedArguments()
     {
         var candidates = NamedConstruction.Candidates();
         Assert.True(candidates.Count > 0, "no node declares a parameters row on its own constructor; this fact has nothing to check");
@@ -118,7 +121,7 @@ public sealed class ShapeTests
     /// longer exceeds the limit"). Asserts the declared-row list is not empty first (R-Protocol.Tests-14): with no row
     /// anywhere in the tree, the fact below would pass over zero rows rather than over a real, checked set.</summary>
     [Fact]
-    public void Every_shape_exception_is_measured_and_still_needed()
+    public void EveryShapeExceptionIsMeasuredAndStillNeeded()
     {
         var exceptions = CodeNodes().SelectMany(node => NodeDocuments.ShapeExceptions(node).Select(exception => (Node: node, Exception: exception))).ToList();
         Assert.True(exceptions.Count > 0, "no node declares a Shape exceptions row anywhere in the tree; this fact has nothing to re-measure");
@@ -184,7 +187,7 @@ public sealed class ShapeTests
         }
     }
 
-    private static (string Where, string File, int Line, int Measured) CeMeasurement(Type type, int value, IReadOnlyDictionary<string, (string File, int Line)> lines)
+    private static (string Where, string File, int Line, int Measured) CeMeasurement(Type type, int value, Dictionary<string, (string File, int Line)> lines)
     {
         var where = QualifiedName(type);
         var (file, line) = lines.TryGetValue(where, out var location) ? location : (Tree.Relative(type.Assembly.Location), 0);

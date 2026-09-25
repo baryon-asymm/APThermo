@@ -399,7 +399,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       rows, the four pipelines among them, and the constructors of
       `RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult` and
       `EquilibriumBatchResult`. `RocketPipeline.Run`'s size afterward is
-      `ShapeTests.No_method_spans_more_than_60_lines`'s to state; this node records
+      `ShapeTests.NoMethodSpansMoreThan60Lines`'s to state; this node records
       no line figure of its own. Found by the repair review (R-Execution-5).
 - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
       off and the explicit paths pointing nowhere, the engine is the CPU one and
@@ -435,7 +435,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       method, kernels included, so no argument binds to another parameter; the fast set
       green with `APTHERMO_NO_CUDA=1` (41 tests on the CPU accelerator) and without it
       (the same 41 on CUDA). The fact,
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
       and not yet written; it takes over as the evidence when it is.
 - [x] 2026-09-15 — `Engine.ProbeMath`'s dead `RunTimer` (a `KernelCache.Get` overload
       once needed it; `a2a1d6e`'s `out warmUp` overload made it unreachable, and the
@@ -446,7 +446,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       described `ProbeMath` correctly. Found by the repair review (R-Execution-1).
       Verified: the CPU-accelerator fast suite green (`APTHERMO_NO_CUDA=1`), the
       re-measured Ce confirmed by
-      `ShapeTests.Every_shape_exception_is_measured_and_still_needed`, which holds
+      `ShapeTests.EveryShapeExceptionIsMeasuredAndStillNeeded`, which holds
       the `Engine` row at 25 on the merged tree.
 - [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice`, extracted from
       `CompileWrappers` in `23ccc1d` "bringing its nesting back to 3", took every
@@ -458,8 +458,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       compile, log and throw, read the compiled result, destroy the program in
       `finally`); `NvvmOptions`, which owns the unmanaged allocations, is unchanged.
       The merged method now satisfies both
-      `ShapeTests.No_control_flow_nests_deeper_than_3` and
-      `ShapeTests.No_method_spans_more_than_60_lines`. Found by the repair review
+      `ShapeTests.NoControlFlowNestsDeeperThan3` and
+      `ShapeTests.NoMethodSpansMoreThan60Lines`. Found by the repair review
       (R-Execution-2). Verified on the reference machine, `APTHERMO_NO_CUDA` unset:
       `tests/Execution.Tests/ProbeKernelTests.CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`
       green, exercising this exact method on real hardware (the probe kernel's

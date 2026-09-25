@@ -8,7 +8,7 @@ using APThermo.Harness;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L0: the strict readers of the input documents, their messages, and the examples of the API document.</summary>
-[Collection(CliCollection.Name)]
+[Collection("cli")]
 public sealed class InputDocumentTests(CliFixture fixture)
 {
     /// <summary>
@@ -19,7 +19,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
     private const double GramsTolerance = 1e-6;
 
     /// <summary>The fragment every invalid document of documents/invalid must produce, save the four that report a mass (below); a document in neither dictionary fails the theory.</summary>
-    private static readonly IReadOnlyDictionary<string, string> Expected = new Dictionary<string, string>(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> Expected = new(StringComparer.Ordinal)
     {
         ["malformed.json"] = "malformed JSON",
         ["states-malformed.json"] = "malformed JSON",
@@ -44,7 +44,7 @@ public sealed class InputDocumentTests(CliFixture fixture)
     /// (<see cref="AssertMassReported"/>), since summing element moles in another order than the library's own can
     /// move its last digit without moving its value.
     /// </summary>
-    private static readonly IReadOnlyDictionary<string, string> MassMessagePrefix = new Dictionary<string, string>(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> MassMessagePrefix = new(StringComparer.Ordinal)
     {
         ["states-two-kilograms.json"] = "record 0: the composition weighs ",
         ["states-mol-per-gram.json"] = "record 0: the composition weighs ",
@@ -52,14 +52,16 @@ public sealed class InputDocumentTests(CliFixture fixture)
         ["elemental-two-kilograms.json"] = "$.propellant.elementMoles: the composition weighs ",
     };
 
-    public static IEnumerable<object[]> Invalid() => CliFixture.InvalidDocumentNames().Select(n => new object[] { n });
+    /// <summary>Invalid.</summary>
+    public static TheoryData<string> Invalid() => [.. CliFixture.InvalidDocumentNames()];
 
-    public static IEnumerable<object[]> Problems() => CliFixture.ProblemDocumentNames().Select(n => new object[] { n });
+    /// <summary>Problems.</summary>
+    public static TheoryData<string> Problems() => [.. CliFixture.ProblemDocumentNames()];
 
     /// <summary>The `composition` of the first record of an invalid states document, or the `propellant.elementMoles` of an invalid problem document.</summary>
-    private IReadOnlyDictionary<string, double> CompositionOf(string name)
+    private static IReadOnlyDictionary<string, double> CompositionOf(string name)
     {
-        var document = JsonNode.Parse(File.ReadAllText(fixture.Document(Path.Combine("invalid", name))))!;
+        var document = JsonNode.Parse(File.ReadAllText(CliFixture.Document(Path.Combine("invalid", name))))!;
         return CliFixture.CompositionOf(name.StartsWith("states", StringComparison.Ordinal) ? document[0]!["composition"]! : document["propellant"]!["elementMoles"]!);
     }
 
@@ -75,14 +77,16 @@ public sealed class InputDocumentTests(CliFixture fixture)
         Assert.True(Math.Abs(reported - expected) <= GramsTolerance * Math.Max(1.0, Math.Abs(expected)), $"reported {reported:R} g, derived {expected:R} g");
     }
 
+    /// <summary>An invalid document is exit 2 with the documented message and no output.</summary>
     [Theory]
     [MemberData(nameof(Invalid))]
-    public void An_invalid_document_is_exit_2_with_the_documented_message_and_no_output(string name)
+    public void AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput(string name)
     {
-        var path = fixture.Document(Path.Combine("invalid", name));
+        ArgumentNullException.ThrowIfNull(name);
+        var path = CliFixture.Document(Path.Combine("invalid", name));
         var command = name.StartsWith("states", StringComparison.Ordinal) ? "states" : "rocket";
         var output = fixture.TempFile(name + ".out.json");
-        var run = fixture.Invoke(fixture.Solving(command, path, "--output", output));
+        var run = CliFixture.Invoke(fixture.Solving(command, path, "--output", output));
         Assert.Equal(2, run.Code);
         if (Expected.TryGetValue(name, out var fragment))
         {
@@ -101,43 +105,46 @@ public sealed class InputDocumentTests(CliFixture fixture)
         Assert.False(File.Exists(output), "a document was written for an invalid input");
     }
 
+    /// <summary>Every example document validates against the input schema.</summary>
     [Theory]
     [MemberData(nameof(Problems))]
-    public void Every_example_document_validates_against_the_input_schema(string name)
+    public void EveryExampleDocumentValidatesAgainstTheInputSchema(string name)
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(fixture.Document(name)));
-        var errors = JsonSchema.Parse(fixture.SchemaText("input")).Validate(document.RootElement);
+        using var document = JsonDocument.Parse(File.ReadAllText(CliFixture.Document(name)));
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("input")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
     }
 
+    /// <summary>Every states document validates against the states schema.</summary>
     [Fact]
-    public void Every_states_document_validates_against_the_states_schema()
+    public void EveryStatesDocumentValidatesAgainstTheStatesSchema()
     {
-        var schema = JsonSchema.Parse(fixture.SchemaText("states"));
+        var schema = JsonSchema.Parse(CliFixture.SchemaText("states"));
         foreach (var name in new[] { "states.json", "states-part1.json", "states-part2.json", "states-ap-al-record.json" })
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(fixture.Document(name)));
+            using var document = JsonDocument.Parse(File.ReadAllText(CliFixture.Document(name)));
             var errors = schema.Validate(document.RootElement);
             Assert.True(errors.Count == 0, $"{name}: {string.Join("; ", errors)}");
         }
 
-        foreach (var line in File.ReadAllLines(fixture.Document("states.jsonl")).Where(l => l.Trim().Length > 0))
+        foreach (var line in File.ReadAllLines(CliFixture.Document("states.jsonl")).Where(l => l.Trim().Length > 0))
         {
             using var record = JsonDocument.Parse(line);
             Assert.Empty(schema.Validate(record.RootElement));
         }
     }
 
+    /// <summary>Every example of the api document is read or validates and its records solve.</summary>
     [Fact]
-    public void Every_example_of_the_api_document_is_read_or_validates_and_its_records_solve()
+    public void EveryExampleOfTheApiDocumentIsReadOrValidatesAndItsRecordsSolve()
     {
         var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
         var inputs = CliFixture.JsonFencesOf(api, "## Input document ✅");
         Assert.NotEmpty(inputs);
-        var inputSchema = JsonSchema.Parse(fixture.SchemaText("input"));
+        var inputSchema = JsonSchema.Parse(CliFixture.SchemaText("input"));
         for (var i = 0; i < inputs.Count; i++)
         {
-            ProblemDocumentReader.Read(inputs[i], $"API.md input example {i}");
+            _ = ProblemDocumentReader.Read(inputs[i], $"API.md input example {i}");
             using var document = JsonDocument.Parse(inputs[i]);
             Assert.Empty(inputSchema.Validate(document.RootElement));
         }
@@ -151,25 +158,26 @@ public sealed class InputDocumentTests(CliFixture fixture)
             // An example record is a real record: it solves, and in particular it weighs one kilogram (2026-09-13: the earlier example did not).
             var path = fixture.TempFile($"api-record-{i}.json");
             File.WriteAllText(path, records[i]);
-            var run = fixture.Invoke(fixture.Solving("states", path));
+            var run = CliFixture.Invoke(fixture.Solving("states", path));
             Assert.True(run.Code == 0, $"API.md record example {i}: exit code {run.Code}: {run.Error}");
         }
 
         var outputs = CliFixture.JsonFencesOf(api, "## Output document ✅");
         var output = Assert.Single(outputs);
         using var example = JsonDocument.Parse(output);
-        var errors = JsonSchema.Parse(fixture.SchemaText("output")).Validate(example.RootElement);
+        var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(example.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
     }
 
+    /// <summary>State records may come as an array a single object or lines.</summary>
     [Fact]
-    public void State_records_may_come_as_an_array_a_single_object_or_lines()
+    public void StateRecordsMayComeAsAnArrayASingleObjectOrLines()
     {
-        var fromArray = StateRecordReader.Read([("states.json", File.ReadAllText(fixture.Document("states.json")))]);
-        var fromLines = StateRecordReader.Read([("states.jsonl", File.ReadAllText(fixture.Document("states.jsonl")))]);
+        var fromArray = StateRecordReader.Read([("states.json", File.ReadAllText(CliFixture.Document("states.json")))]);
+        var fromLines = StateRecordReader.Read([("states.jsonl", File.ReadAllText(CliFixture.Document("states.jsonl")))]);
         var fromFiles = StateRecordReader.Read([
-            ("states-part1.json", File.ReadAllText(fixture.Document("states-part1.json"))),
-            ("states-part2.json", File.ReadAllText(fixture.Document("states-part2.json"))),
+            ("states-part1.json", File.ReadAllText(CliFixture.Document("states-part1.json"))),
+            ("states-part2.json", File.ReadAllText(CliFixture.Document("states-part2.json"))),
         ]);
         Assert.Equal(3, fromArray.Count);
         foreach (var other in new[] { fromLines, fromFiles })
@@ -183,8 +191,9 @@ public sealed class InputDocumentTests(CliFixture fixture)
         Assert.False(fromArray[0].Record.HasExits);
     }
 
+    /// <summary>A range expands inclusively and lands on its end.</summary>
     [Fact]
-    public void A_range_expands_inclusively_and_lands_on_its_end()
+    public void ARangeExpandsInclusivelyAndLandsOnItsEnd()
     {
         using var whole = JsonDocument.Parse("""{ "from": 4.0, "to": 7.0, "step": 1.0 }""");
         Assert.Equal([4.0, 5.0, 6.0, 7.0], SweepValues.Read(whole.RootElement, "$.sweep.oxidizerToFuel"));
@@ -195,6 +204,6 @@ public sealed class InputDocumentTests(CliFixture fixture)
         using var list = JsonDocument.Parse("[5.0e6, 7.0e6]");
         Assert.Equal([5.0e6, 7.0e6], SweepValues.Read(list.RootElement, "$.sweep.chamberPressure"));
         using var empty = JsonDocument.Parse("[]");
-        Assert.Throws<InputException>(() => SweepValues.Read(empty.RootElement, "$.sweep.chamberPressure"));
+        _ = Assert.Throws<InputException>(() => SweepValues.Read(empty.RootElement, "$.sweep.chamberPressure"));
     }
 }

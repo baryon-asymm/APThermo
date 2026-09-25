@@ -13,11 +13,22 @@ namespace APThermo.Benchmarks;
 /// each of its three flow models, each with and without transport.
 public enum BenchmarkProblemKind
 {
+    /// <summary>Assigned temperature and pressure, one AP/HTPB/Al chamber case.</summary>
     Tp,
+
+    /// <summary>Assigned enthalpy and pressure, one LOX/LH2 chamber case.</summary>
     Hp,
+
+    /// <summary>Assigned entropy and pressure, one LOX/LH2 chamber case.</summary>
     Sp,
+
+    /// <summary>A rocket case in shifting-equilibrium flow.</summary>
     RocketShiftingEquilibrium,
+
+    /// <summary>A rocket case frozen at the chamber.</summary>
     RocketFrozenAtChamber,
+
+    /// <summary>A rocket case frozen at the throat.</summary>
     RocketFrozenAtThroat,
 }
 
@@ -27,9 +38,11 @@ public enum BenchmarkProblemKind
 [MemoryDiagnoser]
 public class ProblemKindBenchmarks
 {
+    /// <summary>Which problem kind this run solves.</summary>
     [ParamsAllValues]
     public BenchmarkProblemKind Kind { get; set; }
 
+    /// <summary>Whether this run also solves the transport properties.</summary>
     [Params(false, true)]
     public bool Transport { get; set; }
 
@@ -38,6 +51,8 @@ public class ProblemKindBenchmarks
     private IReadOnlyList<StateRecord>? _equilibriumRecords;
     private StateBatchOptions _options = null!;
 
+    /// <summary>Loads the database, creates the solver on the CPU accelerator, loads the fixture record for the chosen
+    /// problem kind, and runs one warm-up solve to record its diagnostics.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -58,11 +73,13 @@ public class ProblemKindBenchmarks
         RecordDiagnostics();
     }
 
+    /// <summary>Solves the chosen problem kind's one state, rocket or equilibrium.</summary>
     [Benchmark]
     public object Solve() => _rocketRecords is not null
         ? _solver.SolveRocketStates(_rocketRecords, _options)
         : _solver.SolveStates(_equilibriumRecords!, _options);
 
+    /// <summary>Disposes the solver after every benchmark of this class has run.</summary>
     [GlobalCleanup]
     public void Cleanup() => _solver.Dispose();
 
@@ -74,8 +91,9 @@ public class ProblemKindBenchmarks
             LoadFixture("hp", "lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber.json")),
         BenchmarkProblemKind.Sp => FixtureStateRecords.EquilibriumRecord(
             LoadFixture("sp", "lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber.json")),
-        _ => WithFlow(FixtureStateRecords.RocketRecord(
-            LoadFixture("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json"))),
+        BenchmarkProblemKind.RocketShiftingEquilibrium or BenchmarkProblemKind.RocketFrozenAtChamber or BenchmarkProblemKind.RocketFrozenAtThroat =>
+            WithFlow(FixtureStateRecords.RocketRecord(LoadFixture("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json"))),
+        _ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, "unknown problem kind"),
     };
 
     private StateRecord WithFlow(StateRecord record) => record with
@@ -85,6 +103,9 @@ public class ProblemKindBenchmarks
             BenchmarkProblemKind.RocketShiftingEquilibrium => FlowModel.ShiftingEquilibrium,
             BenchmarkProblemKind.RocketFrozenAtChamber => FlowModel.FrozenAtChamber,
             BenchmarkProblemKind.RocketFrozenAtThroat => FlowModel.FrozenAtThroat,
+            BenchmarkProblemKind.Tp => throw new NotImplementedException(),
+            BenchmarkProblemKind.Hp => throw new NotImplementedException(),
+            BenchmarkProblemKind.Sp => throw new NotImplementedException(),
             _ => throw new InvalidOperationException($"{Kind} is not a rocket kind"),
         },
     };
@@ -104,7 +125,7 @@ public class ProblemKindBenchmarks
         var result = _solver.SolveRocketStates(_rocketRecords!, _options)[0];
         foreach (var station in result.Stations)
         {
-            hash.AddState(station.State).AddMoles(station.MoleFractions).AddStatus(station.Status);
+            _ = hash.AddState(station.State).AddMoles(station.MoleFractions).AddStatus(station.Status);
         }
         return result.Status;
     }
@@ -112,7 +133,7 @@ public class ProblemKindBenchmarks
     private CaseStatus RecordEquilibriumDiagnostics(BitHash hash)
     {
         var result = _solver.SolveStates(_equilibriumRecords!, _options)[0];
-        hash.AddState(result.State.State).AddMoles(result.State.MoleFractions).AddStatus(result.State.Status);
+        _ = hash.AddState(result.State.State).AddMoles(result.State.MoleFractions).AddStatus(result.State.Status);
         return result.Status;
     }
 }

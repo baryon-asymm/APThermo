@@ -4,17 +4,19 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L1 and L2: every rocket fixture through the library, batches against single cases, elemental mixtures against propellants.</summary>
-[Collection(SolverCollection.Name)]
+[Collection("solver")]
 public sealed class RocketTests(SolverFixture fixture)
 {
-    public static IEnumerable<object[]> Cases() => FixtureCases.Names("rocket");
+    /// <summary>The theory data of every rocket fixture name.</summary>
+    public static TheoryData<string> Cases() => FixtureCases.Names("rocket");
 
     /// <summary>A result's mole fractions are a sum over its own species table; two solves of the tree's own code agree to summation-order rounding.</summary>
     public const double MoleFractionSumTolerance = 1e-12;
 
+    /// <summary>The rocket case reproduces the reference end to end.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void The_rocket_case_reproduces_the_reference_end_to_end(string name)
+    public void TheRocketCaseReproducesTheReferenceEndToEnd(string name)
     {
         var c = FixtureCases.Load("rocket", name);
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -48,7 +50,7 @@ public sealed class RocketTests(SolverFixture fixture)
     /// batch mechanism as any other call over a union of mixtures, and it equals its cases solved one by one bit for bit.
     /// </summary>
     [Fact]
-    public void A_ratio_and_pressure_product_as_one_batch_equals_its_cases_solved_one_by_one()
+    public void ARatioAndPressureProductAsOneBatchEqualsItsCasesSolvedOneByOne()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         double[] ratios = [4.0, 5.5, 7.0];
@@ -91,8 +93,9 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>An elemental mixture reproduces its propellant bit for bit.</summary>
     [Fact]
-    public void An_elemental_mixture_reproduces_its_propellant_bit_for_bit()
+    public void AnElementalMixtureReproducesItsPropellantBitForBit()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -113,7 +116,7 @@ public sealed class RocketTests(SolverFixture fixture)
 
     /// <summary>A record with exits is a rocket case whose Pressure is the chamber pressure (BOOT.md, F-AR-02): it equals the same mixture and problem solved through the batch over mixtures, bit for bit, transport included.</summary>
     [Fact]
-    public void A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures()
+    public void AStateRecordWithExitsEqualsItsCaseThroughTheBatchOverMixtures()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -139,8 +142,9 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Identical problems give identical results alone and in one call.</summary>
     [Fact]
-    public void Identical_problems_give_identical_results_alone_and_in_one_call()
+    public void IdenticalProblemsGiveIdenticalResultsAloneAndInOneCall()
     {
         var c = FixtureCases.Load("rocket", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -159,8 +163,9 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Problems with different exit layouts are solved in one call in order.</summary>
     [Fact]
-    public void Problems_with_different_exit_layouts_are_solved_in_one_call_in_order()
+    public void ProblemsWithDifferentExitLayoutsAreSolvedInOneCallInOrder()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -191,7 +196,7 @@ public sealed class RocketTests(SolverFixture fixture)
 
     /// <summary>The transport pass is a second pass over the stations of the cases that asked (BOOT.md, F-PR-08): a batch mixing the flag equals every case solved alone, bit for bit, and reports no figures for the cases that did not ask.</summary>
     [Fact]
-    public void A_batch_mixing_transport_and_none_equals_each_problem_solved_alone()
+    public void ABatchMixingTransportAndNoneEqualsEachProblemSolvedAlone()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -224,7 +229,7 @@ public sealed class RocketTests(SolverFixture fixture)
     /// counts or run (and then discard) the pass for a case that never asked.
     /// </summary>
     [Fact]
-    public void Cases_are_grouped_by_exit_layout_and_transport_flag()
+    public void CasesAreGroupedByExitLayoutAndTransportFlag()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -250,8 +255,9 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>A failing station is a status and not an exception.</summary>
     [Fact]
-    public void A_failing_station_is_a_status_and_not_an_exception()
+    public void AFailingStationIsAStatusAndNotAnException()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -260,13 +266,14 @@ public sealed class RocketTests(SolverFixture fixture)
         Assert.Equal(CaseStatus.Ok, result.Stations[0].Status);
         Assert.Equal(CaseStatus.Ok, result.Stations[1].Status);
         Assert.Equal(CaseStatus.AreaRatioInvalid, result.Stations[2].Status);
-        Assert.NotNull(result.Stations[0].Transport);
+        _ = Assert.NotNull(result.Stations[0].Transport);
         Assert.Null(result.Stations[2].Transport);
         Assert.Null(result.Stations[2].TransportStatus);
     }
 
+    /// <summary>Compositions are reported by name over all species.</summary>
     [Fact]
-    public void Compositions_are_reported_by_name_over_all_species()
+    public void CompositionsAreReportedByNameOverAllSpecies()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -292,8 +299,9 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Rocket problems over several mixtures are one batch over the union of elements.</summary>
     [Fact]
-    public void Rocket_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements()
+    public void RocketProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements()
     {
         // Three propellants with different elements, one rocket problem each, in one call: the single solves bit for bit where
         // the union keeps the relative order of the case's elements, to rounding where it reorders them (Problems BOOT.md).
@@ -315,14 +323,15 @@ public sealed class RocketTests(SolverFixture fixture)
                 var label = $"{names[i]} station {s}";
                 var differences = kept
                     ? StationEquality.BitDifferences(single.Stations[s], batch[i].Stations[s], label).ToList()
-                    : StationEquality.RelativeDifferences(single.Stations[s], batch[i].Stations[s], reorderedElementsTolerance, moleFractionFloor, label).ToList();
+                    : [.. StationEquality.RelativeDifferences(single.Stations[s], batch[i].Stations[s], reorderedElementsTolerance, moleFractionFloor, label)];
                 Assert.True(differences.Count == 0, string.Join("; ", differences));
             }
         }
     }
 
+    /// <summary>Equilibrium problems over several mixtures are one batch over the union of elements.</summary>
     [Fact]
-    public void Equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements()
+    public void EquilibriumProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements()
     {
         var (names, propellants, _, mixtures, _) = ThreeMixturesOverTheUnion();
         var hp = new EquilibriumProblem { Kind = Equilibrium.ProblemKind.AssignedEnthalpyPressure, Pressure = 1.0e6 };

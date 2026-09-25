@@ -5,22 +5,26 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L1 and L2: every tp, hp and sp fixture through the library, singly from its propellant and as state records in batches over unions of elements.</summary>
-[Collection(SolverCollection.Name)]
+[Collection("solver")]
 public sealed class EquilibriumTests(SolverFixture fixture)
 {
-    public static IEnumerable<object[]> Cases(string kind) => FixtureCases.Names(kind);
+    /// <summary>The theory data of assigned-temperature, assigned-enthalpy and assigned-entropy fixture names for <paramref name="kind"/>.</summary>
+    public static TheoryData<string> Cases(string kind) => FixtureCases.Names(kind);
 
+    /// <summary>Assigned temperature cases reproduce the reference.</summary>
     [Theory]
     [MemberData(nameof(Cases), "tp")]
-    public void Assigned_temperature_cases_reproduce_the_reference(string name) => Check("tp", name);
+    public void AssignedTemperatureCasesReproduceTheReference(string name) => Check("tp", name);
 
+    /// <summary>Assigned enthalpy cases reproduce the reference.</summary>
     [Theory]
     [MemberData(nameof(Cases), "hp")]
-    public void Assigned_enthalpy_cases_reproduce_the_reference(string name) => Check("hp", name);
+    public void AssignedEnthalpyCasesReproduceTheReference(string name) => Check("hp", name);
 
+    /// <summary>Assigned entropy cases reproduce the reference.</summary>
     [Theory]
     [MemberData(nameof(Cases), "sp")]
-    public void Assigned_entropy_cases_reproduce_the_reference(string name) => Check("sp", name);
+    public void AssignedEntropyCasesReproduceTheReference(string name) => Check("sp", name);
 
     private void Check(string kind, string name)
     {
@@ -38,11 +42,14 @@ public sealed class EquilibriumTests(SolverFixture fixture)
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
     }
 
+    private static readonly string[] AssignedKinds = ["tp", "hp", "sp"];
+
+    /// <summary>State batches over the union of elements reproduce the reference.</summary>
     [Fact]
-    public void State_batches_over_the_union_of_elements_reproduce_the_reference()
+    public void StateBatchesOverTheUnionOfElementsReproduceTheReference()
     {
         // Every tp, hp and sp fixture as a state record, one batch per (omit, only) pair: the union of elements makes most records lack some.
-        var cases = new[] { "tp", "hp", "sp" }.SelectMany(kind => FixtureFiles.Enumerate(kind).Select(CeaFixtures.Load)).ToList();
+        var cases = AssignedKinds.SelectMany(kind => FixtureFiles.Enumerate(kind).Select(CeaFixtures.Load)).ToList();
         var mismatches = new List<string>();
         var lackingRecords = 0;
         var solved = 0;
@@ -79,8 +86,9 @@ public sealed class EquilibriumTests(SolverFixture fixture)
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches.Take(40)));
     }
 
+    /// <summary>The default enthalpy of an assigned enthalpy problem is the propellants.</summary>
     [Fact]
-    public void The_default_enthalpy_of_an_assigned_enthalpy_problem_is_the_propellants()
+    public void TheDefaultEnthalpyOfAnAssignedEnthalpyProblemIsThePropellants()
     {
         var c = FixtureCases.Load("rocket", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -101,8 +109,9 @@ public sealed class EquilibriumTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Transport figures are attached to an equilibrium state when requested.</summary>
     [Fact]
-    public void Transport_figures_are_attached_to_an_equilibrium_state_when_requested()
+    public void TransportFiguresAreAttachedToAnEquilibriumStateWhenRequested()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);

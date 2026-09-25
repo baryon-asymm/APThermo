@@ -3,13 +3,14 @@ using APThermo.Execution;
 namespace APThermo.Cli.Tests;
 
 /// <summary>The command line as a separate process: real exit codes and standard streams, one run per exit code.</summary>
-[Collection(CliCollection.Name)]
+[Collection("cli")]
 public sealed class ProcessTests(CliFixture fixture)
 {
+    /// <summary>The executable writes the document to standard output with exit 0.</summary>
     [Fact]
-    public void The_executable_writes_the_document_to_standard_output_with_exit_0()
+    public void TheExecutableWritesTheDocumentToStandardOutputWithExit0()
     {
-        var run = fixture.InvokeProcess(fixture.Solving("rocket", fixture.Document("rocket-lox-lh2.json")));
+        var run = fixture.InvokeProcess(fixture.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json")));
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         Assert.Empty(run.Error);
         using var document = run.Json();
@@ -18,36 +19,40 @@ public sealed class ProcessTests(CliFixture fixture)
         Assert.Equal("ok", document.RootElement.GetProperty("cases")[0].GetProperty("status").GetString());
     }
 
+    /// <summary>The executable returns 1 for a failing case and still writes the document.</summary>
     [Fact]
-    public void The_executable_returns_1_for_a_failing_case_and_still_writes_the_document()
+    public void TheExecutableReturns1ForAFailingCaseAndStillWritesTheDocument()
     {
-        var run = fixture.InvokeProcess(fixture.Solving("rocket", fixture.Document("rocket-failing.json")));
+        var run = fixture.InvokeProcess(fixture.Solving("rocket", CliFixture.Document("rocket-failing.json")));
         Assert.Equal(1, run.Code);
         using var document = run.Json();
         Assert.NotEqual("ok", document.RootElement.GetProperty("cases")[0].GetProperty("status").GetString());
     }
 
+    /// <summary>The executable reports invalid input on standard error with exit 2.</summary>
     [Fact]
-    public void The_executable_reports_invalid_input_on_standard_error_with_exit_2()
+    public void TheExecutableReportsInvalidInputOnStandardErrorWithExit2()
     {
-        var run = fixture.InvokeProcess(fixture.Solving("rocket", fixture.Document(Path.Combine("invalid", "unknown-field.json"))));
+        var run = fixture.InvokeProcess(fixture.Solving("rocket", CliFixture.Document(Path.Combine("invalid", "unknown-field.json"))));
         Assert.Equal(2, run.Code);
         Assert.Contains("unknown field 'expansionRatio'", run.Error);
         Assert.Empty(run.Output);
     }
 
+    /// <summary>The executable reports a forbidden accelerator with exit 3.</summary>
     [Fact]
-    public void The_executable_reports_a_forbidden_accelerator_with_exit_3()
+    public void TheExecutableReportsAForbiddenAcceleratorWithExit3()
     {
-        var run = fixture.InvokeProcess(["rocket", fixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath, "--accelerator", "cuda"],
+        var run = fixture.InvokeProcess(["rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath, "--accelerator", "cuda"],
                                         new Dictionary<string, string> { [EngineOptions.NoCudaVariable] = "1" });
         Assert.Equal(3, run.Code);
         Assert.Contains(EngineOptions.NoCudaVariable, run.Error);
         Assert.Empty(run.Output);
     }
 
+    /// <summary>The executable prints its version with exit 0.</summary>
     [Fact]
-    public void The_executable_prints_its_version_with_exit_0()
+    public void TheExecutablePrintsItsVersionWithExit0()
     {
         var run = fixture.InvokeProcess(["--version"]);
         Assert.Equal(0, run.Code);
@@ -57,7 +62,7 @@ public sealed class ProcessTests(CliFixture fixture)
 
     /// <summary>Working directory is <see cref="CliFixture.Temp"/>, an empty directory: no data/ beside it, no --database.</summary>
     [Fact]
-    public void The_executable_uses_the_embedded_database_from_an_empty_working_directory()
+    public void TheExecutableUsesTheEmbeddedDatabaseFromAnEmptyWorkingDirectory()
     {
         var run = fixture.InvokeProcess(["species"]);
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");

@@ -295,7 +295,7 @@ of 14: no efferent coupling row is needed.
       another parameter; `Thermo.Tests` (378), `Equilibrium.Tests` (463) and
       `Transport.Tests` (157) green; `tests/Thermo.Tests/Bits.approved.txt` unchanged
       (blob `8bd5068e` before and after). The fact,
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
       and not yet written; it takes over as the evidence when it is.
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite

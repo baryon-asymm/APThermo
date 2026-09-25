@@ -3,7 +3,7 @@ using APThermo.Data;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L0: element moles, reactant enthalpy, mass normalization and candidate species against every fixture that carries reactants.</summary>
-[Collection(SolverCollection.Name)]
+[Collection("solver")]
 public sealed class PropellantTests(SolverFixture fixture)
 {
     /// <summary>The BOOT criterion: the same sums as the reference in double precision, differing by rounding only.</summary>
@@ -31,11 +31,13 @@ public sealed class PropellantTests(SolverFixture fixture)
     /// <summary>MassOf of a mixture scaled by a known factor against that factor times the original MassOf: two solves of the tree's own code, agreeing to rounding.</summary>
     public const double ScaledMassSummationTolerance = 1e-12;
 
-    public static IEnumerable<object[]> Cases() => FixtureCases.NamesWithReactants();
+    /// <summary>The theory data of (kind, name) pairs over every fixture that carries reactants.</summary>
+    public static TheoryData<string, string> Cases() => FixtureCases.NamesWithReactants();
 
+    /// <summary>The recorded element moles of every fixture weigh one kilogram within the derivation figure.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void The_recorded_element_moles_of_every_fixture_weigh_one_kilogram_within_the_derivation_figure(string kind, string name)
+    public void TheRecordedElementMolesOfEveryFixtureWeighOneKilogramWithinTheDerivationFigure(string kind, string name)
     {
         var c = FixtureCases.Load(kind, name);
         var moles = FixtureCases.ElementMolesOf(c).ToDictionary(kv => kv.Key, kv => kv.Value * FixtureCases.KilomolesToMoles, StringComparer.Ordinal);
@@ -45,8 +47,9 @@ public sealed class PropellantTests(SolverFixture fixture)
         Assert.True(Math.Abs(mass - 1.0) <= FixtureMassDeviation, $"the recorded element moles weigh {mass:R} kg");
     }
 
+    /// <summary>Results carry the mass of their mixture.</summary>
     [Fact]
-    public void Results_carry_the_mass_of_their_mixture()
+    public void ResultsCarryTheMassOfTheirMixture()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -68,13 +71,14 @@ public sealed class PropellantTests(SolverFixture fixture)
         Assert.Equal(expected, fixture.Solver.Solve(heavy, new EquilibriumProblem { Pressure = 7.0e6 }).MixtureMass);
     }
 
+    /// <summary>Element moles and enthalpy equal the reference from its mass fractions.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Element_moles_and_enthalpy_equal_the_reference_from_its_mass_fractions(string kind, string name)
+    public void ElementMolesAndEnthalpyEqualTheReferenceFromItsMassFractions(string kind, string name)
     {
         var c = FixtureCases.Load(kind, name);
         var propellant = FixtureCases.PropellantOf(fixture.Database, c, byMassFractions: true);
-        Assert.IsType<MixtureSpecification.MassFractions>(propellant.Mixture);
+        _ = Assert.IsType<MixtureSpecification.MassFractions>(propellant.Mixture);
         var fractions = MixtureRule.MassFractionsOf(propellant.Resolved, propellant.Mixture, null);
         var massFractions = FixtureCases.ReactantMassFractionsOf(c);
         for (var k = 0; k < propellant.Reactants.Count; k++)
@@ -100,14 +104,15 @@ public sealed class PropellantTests(SolverFixture fixture)
             : null;
         if (referenceEnthalpy is { } h)
         {
-            Assert.NotNull(mixture.Enthalpy);
+            _ = Assert.NotNull(mixture.Enthalpy);
             Assert.True(Math.Abs(mixture.Enthalpy.Value - h) <= MixtureTolerance * Math.Abs(h), $"enthalpy: reference {h:R}, tree {mixture.Enthalpy:R}");
         }
     }
 
+    /// <summary>A ratio split reproduces the reference mass fractions within its single precision.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void A_ratio_split_reproduces_the_reference_mass_fractions_within_its_single_precision(string kind, string name)
+    public void ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision(string kind, string name)
     {
         var c = FixtureCases.Load(kind, name);
         if (FixtureCases.OxidizerToFuelRatioOf(c) is not { } ratio)
@@ -133,9 +138,10 @@ public sealed class PropellantTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Candidate species equal the reference product list.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Candidate_species_equal_the_reference_product_list(string kind, string name)
+    public void CandidateSpeciesEqualTheReferenceProductList(string kind, string name)
     {
         var c = FixtureCases.Load(kind, name);
         var products = FixtureCases.ProductsOf(c);
@@ -151,8 +157,9 @@ public sealed class PropellantTests(SolverFixture fixture)
         Assert.Equal(candidates, fixture.Solver.CandidateSpeciesFor(propellant.Elements, propellant.Omit, propellant.Only));
     }
 
+    /// <summary>Mole amounts are converted with the record molar mass.</summary>
     [Fact]
-    public void Mole_amounts_are_converted_with_the_record_molar_mass()
+    public void MoleAmountsAreConvertedWithTheRecordMolarMass()
     {
         // RP-1311 example 14 is given in moles: the fixture records the moles and the mass fractions the reference derived from them.
         var c = FixtureCases.Load("tp", "rp1311-example14_T300");
@@ -174,8 +181,9 @@ public sealed class PropellantTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>A custom reactant derives its molar mass from the formula and the atomic weights.</summary>
     [Fact]
-    public void A_custom_reactant_derives_its_molar_mass_from_the_formula_and_the_atomic_weights()
+    public void ACustomReactantDerivesItsMolarMassFromTheFormulaAndTheAtomicWeights()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
         var propellant = FixtureCases.PropellantOf(fixture.Database, c);
@@ -187,11 +195,12 @@ public sealed class PropellantTests(SolverFixture fixture)
         Assert.Contains("HTPB", propellant.Reactants.Select(r => r.Name));
     }
 
+    /// <summary>Candidates are gases then condensed species in database order.</summary>
     [Fact]
-    public void Candidates_are_gases_then_condensed_species_in_database_order()
+    public void CandidatesAreGasesThenCondensedSpeciesInDatabaseOrder()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
-        var candidates = fixture.Solver.CandidateSpeciesFor(FixtureCases.ElementMolesOf(c).Keys.ToList());
+        var candidates = fixture.Solver.CandidateSpeciesFor([.. FixtureCases.ElementMolesOf(c).Keys]);
         var records = candidates.Select(name => fixture.Database[name]).ToList();
         var firstCondensed = records.FindIndex(r => r.Phase == SpeciesPhase.Condensed);
         Assert.True(firstCondensed > 0);
@@ -204,8 +213,9 @@ public sealed class PropellantTests(SolverFixture fixture)
         Assert.Contains(candidates, n => n.EndsWith('-'));   // "C3H4,cyclo-" and its kind are neutral species with a truncated name
     }
 
+    /// <summary>An elemental mixture normalizes symbols and keeps the order.</summary>
     [Fact]
-    public void An_elemental_mixture_normalizes_symbols_and_keeps_the_order()
+    public void AnElementalMixtureNormalizesSymbolsAndKeepsTheOrder()
     {
         var mixture = ElementalMixture.Create(new Dictionary<string, double> { ["h"] = 1.0, ["Al"] = 2.0, ["O"] = 0.0 }, 5.0);
         Assert.Equal(["H", "AL", "O"], mixture.Elements);

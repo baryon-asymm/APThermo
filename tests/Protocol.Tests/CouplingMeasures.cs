@@ -62,13 +62,13 @@ internal static class CouplingMeasures
     }
 
     private static (int Ce, int Ca, IReadOnlySet<Node> Dependencies) Coupling(
-        Node node, IReadOnlySet<Node> srcNodes, IReadOnlyDictionary<Node, IReadOnlySet<Node>> dependencies)
+        Node node, IReadOnlySet<Node> srcNodes, Dictionary<Node, IReadOnlySet<Node>> dependencies)
     {
         var dependents = srcNodes.Count(other => dependencies[other].Contains(node));
         return (dependencies[node].Count, dependents, dependencies[node]);
     }
 
-    private static IReadOnlyList<(Type Source, Type Target)> BuildEdges()
+    private static List<(Type Source, Type Target)> BuildEdges()
     {
         var edges = new List<(Type Source, Type Target)>();
         foreach (var assembly in NodeAssemblies.Assemblies.Values.Distinct())

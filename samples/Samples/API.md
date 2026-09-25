@@ -27,7 +27,7 @@ reflects on the scenario table's own delegates, so the mapping has one source.
 
 ⚠ 2026-09-17 (ma7): this line's own comment named only "L2's approved-output lookup"
 (`SampleOutputTests`), while `Program.cs`'s doc comment on the same method named only
-"L1" (`SnippetTests.Region_names_are_exactly_each_scenario_class_name_or_that_name_plus_Usings`),
+"L1" (`SnippetTests.RegionNamesAreExactlyEachScenarioClassNameOrThatNamePlusUsings`),
 each silent about the other reader. Both callers exist and both are checked
 (`SnippetTests.cs`, `SampleOutputTests.cs`); the comment here now names both.
 
