@@ -230,7 +230,7 @@ position today (the criterion below).
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
-      `## Shape exceptions`); `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
+      `## Shape exceptions`); `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`
       now covers this on the merged tree: two sites tree-wide, this node's (the
       `RocketBatchViews` construction inside the `RocketBatchBuffers` constructor,
       re-verified in place after the R-Performance.Tests-4 cut below moved it) and
@@ -298,8 +298,8 @@ position today (the criterion below).
       assigned once, inside the constructor. `AssertSameBits` is unchanged but for its
       caller: it still calls `.GetAsArray1D()` on `buffers.Stations`, `.Moles`,
       `.Figures`, `.StationStatus`, `.Status` itself, exactly as before the cut.
-      `ShapeTests.No_type_spans_more_than_400_lines` and
-      `ShapeTests.No_method_spans_more_than_60_lines` both hold for it; its own
+      `ShapeTests.NoTypeSpansMoreThan400Lines` and
+      `ShapeTests.NoMethodSpansMoreThan60Lines` both hold for it; its own
       efferent coupling, recorded by `CouplingMeasures` (not limited — the root's
       coupling rule holds only for `src` types), fell to 13.
 

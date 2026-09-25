@@ -194,7 +194,7 @@ internal static class ShapeMeasures
             var span = tree.GetLineSpan(token.Span);
             for (var line = span.StartLinePosition.Line; line <= span.EndLinePosition.Line; line++)
             {
-                lines.Add(line);
+                _ = lines.Add(line);
             }
 
             if (token == last)

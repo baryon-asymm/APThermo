@@ -36,7 +36,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   run the same kernels on both accelerators and compare.
 - **Double precision only.** Numerical nodes contain no `float` or `Half` value or
   operation. Checked by reflection over the numerical assemblies
-  (`Protocol.Tests.InvariantTests.Numerical_nodes_hold_no_single_precision_value_or_operation`).
+  (`Protocol.Tests.InvariantTests.NumericalNodesHoldNoSinglePrecisionValueOrOperation`).
 - **Data come from files.** No thermodynamic or transport coefficient and no atomic
   weight is typed into code: every number comes from the committed NASA files, whose
   upstream commit hash is recorded next to them. Atomic weights are taken from the
@@ -51,7 +51,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
 - **The CPU path needs no NVIDIA software.** No numerical node references the
   `ILGPU.Runtime.Cuda` namespace; only the execution node does, and it works with the
   CPU accelerator when there is no CUDA device or no libdevice. Checked by reflection
-  over every assembly (`Protocol.Tests.InvariantTests.Only_the_execution_node_and_its_tests_name_cuda_types`).
+  over every assembly (`Protocol.Tests.InvariantTests.OnlyTheExecutionNodeAndItsTestsNameCudaTypes`).
 - **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU
   accelerator agree within the tolerance table owned by the execution tests node
   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
@@ -74,7 +74,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   conversion to seconds with g0 = 9.80665 m/s² happens only in the command-line front end.
 - **No hidden state.** A numerical routine takes every input and every scratch area
   through explicit parameters; numerical nodes have no mutable static fields. Checked
-  by reflection (`Protocol.Tests.InvariantTests.Numerical_nodes_have_no_mutable_static_field`).
+  by reflection (`Protocol.Tests.InvariantTests.NumericalNodesHaveNoMutableStaticField`).
 - **Failures are values.** Numerical code reports a per-case status code and never
   throws; the front door node turns statuses into results or exceptions.
 
@@ -350,7 +350,7 @@ delivery (2026-09-15, `## Delivery` below).
   every child node as a component of its own. Splitting `src/Cli` into five children,
   four of which use `Execution` in their own code, took `Execution`'s afferent count from
   2 to 6 and its instability from 0.667 to 0.400, below `Transport`'s 0.500. That turned
-  `ShapeTests.No_src_dependency_points_to_a_less_stable_node` red although no dependency
+  `ShapeTests.NoSrcDependencyPointsToALessStableNode` red although no dependency
   between the assemblies changed. Stability is a property of what is built and released
   together, and a child node compiles into its ancestor's assembly (the language-and-build
   constraint above). It is not a component, so the sentence now measures the nodes that

@@ -206,7 +206,7 @@ creation names its arguments; it passes them by position today (the criterion be
       arguments, in the order of the parameters (the root's condition on a declared
       wide constructor, the row of `## Shape exceptions`); one site,
       `KernelEqualityTests.FillAndLaunch`, fully named; covered by
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, green at
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, green at
       `62cd99e`; the node's bit snapshot unchanged (`Bits.approved.txt` hash
       `65788e23f4390305763c80ab1f66b2054ff1907a`, the fast suite 463/463 green).
 

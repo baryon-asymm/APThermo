@@ -48,7 +48,14 @@ internal static class IlBody
                 OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or OperandType.ShortInlineVar => 1,
                 OperandType.InlineVar => 2,
                 OperandType.InlineI8 or OperandType.InlineR => 8,
-                OperandType.InlineSwitch => 4 + (4 * BitConverter.ToInt32(il, offset)),
+                OperandType.InlineSwitch => 4 + 4 * BitConverter.ToInt32(il, offset),
+                // Every other operand (the 4-byte metadata tokens InlineBrTarget/Field/I/Method/Sig/String/Tok/Type, the
+                // deprecated, never-emitted InlinePhi named by its numeric value to avoid CS0618, and the 4-byte
+                // single-precision ShortInlineR) is 4 bytes wide; listed explicitly so the switch stays exhaustive over
+                // OperandType rather than relying on a silent wildcard (IDE0072).
+                OperandType.InlineBrTarget or OperandType.InlineField or OperandType.InlineI or OperandType.InlineMethod
+                    or (OperandType)6 or OperandType.InlineSig or OperandType.InlineString or OperandType.InlineTok
+                    or OperandType.InlineType or OperandType.ShortInlineR => 4,
                 _ => 4,
             };
 
@@ -59,9 +66,21 @@ internal static class IlBody
                 {
                     operand = module.ResolveMember(BitConverter.ToInt32(il, offset), typeContext, methodContext);
                 }
-                catch (Exception)
+                catch (ArgumentException)
                 {
                     // A token this context cannot resolve names nothing attributable to a node; the walk stays in step either way.
+                }
+                catch (InvalidOperationException)
+                {
+                    // A module that does not support token resolution (a dynamic or in-memory one) names nothing either.
+                }
+                catch (NotSupportedException)
+                {
+                    // Same as above: the walk stays in step, the instruction simply carries no resolved operand.
+                }
+                catch (MissingMemberException)
+                {
+                    // The token no longer resolves to a live member; nothing attributable to a node either.
                 }
             }
 
@@ -119,6 +138,8 @@ internal static class IlBody
                 }
 
                 break;
+            default:
+                break;
         }
     }
 
@@ -154,7 +175,11 @@ internal static class IlBody
         {
             return method.GetMethodBody();
         }
-        catch (Exception)
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (BadImageFormatException)
         {
             return null;
         }

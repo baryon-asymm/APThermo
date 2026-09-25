@@ -6,8 +6,9 @@ namespace APThermo.Protocol.Tests;
 /// <summary>Lint level: the file half of the protocol, run as the linter process the loader names, in strict mode (the tree's criterion is zero warnings).</summary>
 public sealed class LintTests
 {
+    /// <summary>The tree passes the protocol linter with no error and no warning (strict mode: a warning fails too).</summary>
     [Fact]
-    public async Task The_tree_passes_the_protocol_linter_with_no_error_and_no_warning()
+    public async Task TheTreePassesTheProtocolLinterWithNoErrorAndNoWarning()
     {
         var start = new ProcessStartInfo("python")
         {
@@ -40,7 +41,7 @@ public sealed class LintTests
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             try
             {
-                await process.WaitForExitAsync(timeout.Token);
+                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(true);
             }
             catch (OperationCanceledException)
             {
@@ -48,7 +49,7 @@ public sealed class LintTests
                 Assert.Fail("protocol_lint did not finish within two minutes");
             }
 
-            var text = await output + await error;
+            var text = await output.ConfigureAwait(true) + await error.ConfigureAwait(true);
             Assert.True(process.ExitCode == 0, $"protocol_lint exited with {process.ExitCode} (strict: a warning fails too):\n{text}");
         }
     }

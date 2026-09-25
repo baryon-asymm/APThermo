@@ -581,7 +581,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       argument binds to another parameter; `Equilibrium.Tests` (463) green;
       `tests/Equilibrium.Tests/Bits.approved.txt` unchanged (blob `65788e23` before and
       after). The fact,
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
       and not yet written; it takes over as the evidence when it is.
 - [x] 2026-09-15 — A record stood down by the anti-cycling rule stays out of play "for
       the rest of it" (the condensed-species rule above): `PhaseGeometry.Adjacent` and

@@ -15,6 +15,7 @@ consider guaranteed about the agreement between its documents and its code.
 | the numerical nodes hold no single-precision value or operation and no mutable static field; no node but the execution node and its tests names a CUDA type | Root invariants level (`InvariantTests`) | ✅ |
 | the tree meets the root's code-shape constraint (sizes, nesting, parameters, the coupling of the `src` types, stable types, the stable-dependencies direction, no `partial`, `#region` or helpers class), every exception a measured row of its node's `## Shape exceptions` table | Shape level (`ShapeTests`) | ✅ 2026-09-15 |
 | a library node's public types sit in its `API.md`'s package surface, a declared type's own section matches its reflected visibility, a friend crossing an assembly boundary is found in the target's tree contract, and every `src` assembly's `InternalsVisibleTo` names a recognised friend | Tree contract level (`TreeContractTests`) | ✅ 2026-09-15 |
+| no source, build or analyzer-configuration file of the tree suppresses a diagnostic, and the root `Directory.Build.props`/`.targets` set the compiler and every analyzer to their maximum | Diagnostics level (`DiagnosticsTests`) | ✅ 2026-09-25 |
 
 What it does not guarantee: that a document tells the truth about the code it names
 correctly (`AGENTS.md` §13); that a signature under ✅ matches the code (names are
@@ -59,3 +60,7 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
 - The `InternalsVisibleTo` attributes of a `src` node's own assembly, read from its
   attribute data, against the nodes' `## Dependencies` and against whether the grantee
   actually names a tree-contract type of the granter.
+- Every C# source file, MSBuild project/properties/targets file and analyzer-configuration
+  file of the whole tree (2026-09-25), read as text and syntax rather than through any
+  node's own file walk, because a suppressed diagnostic can hide in any file of the tree,
+  this node's own included.

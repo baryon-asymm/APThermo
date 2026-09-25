@@ -18,10 +18,9 @@ internal static class NamedConstruction
     /// <summary>Every type a node's `## Shape exceptions` table declares a `parameters` row for on its own constructor
     /// (`Type.Type` in the row's `Where`, or `Outer.Inner.Inner` for a nested type: the last two dotted segments equal): the
     /// candidates <see cref="Creations"/> resolves a written name against.</summary>
-    public static IReadOnlyCollection<WideConstructorType> Candidates() => NodeAssemblies.CodeNodes
+    public static IReadOnlyCollection<WideConstructorType> Candidates() => [.. NodeAssemblies.CodeNodes
         .SelectMany(node => NodeDocuments.ShapeExceptions(node).Where(exception => exception.Rule == "parameters" && IsConstructorPattern(exception.Where))
-            .Select(exception => ToCandidate(node, exception.Where)))
-        .ToList();
+            .Select(exception => ToCandidate(node, exception.Where)))];
 
     private static bool IsConstructorPattern(string where)
     {
