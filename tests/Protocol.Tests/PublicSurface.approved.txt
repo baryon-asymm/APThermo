@@ -43,9 +43,6 @@ class APThermo.Benchmarks.ProblemKindBenchmarks
     Void Cleanup()
     Void Setup()
 
-static class APThermo.Benchmarks.Program
-    static Int32 Main(String[] args)
-
 class APThermo.Benchmarks.SingleCaseBenchmarks
     .ctor()
     EquilibriumResult Solve()
