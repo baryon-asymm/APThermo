@@ -275,7 +275,7 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       `LibraryEqualityTests` facts red).
 - [x] 2026-09-17 — `apthermo schema` (the audit's C1, C2, C3, C4, C5): `SchemaCommandTests`
       (`StandardOutputIsExactlyTheFileBytes`, `TheOutputOptionWritesExactlyTheFileBytes`
-      over a directory listing of `src/Cli/Schemas/`, `The_embedded_names_equal_the_directory_listing`,
+      over a directory listing of `src/Cli/Schemas/`, `TheEmbeddedNamesEqualTheDirectoryListing`,
       `AMissingNameIsExit2ListingEveryEmbeddedName`,
       `AnUnknownNameIsExit2ListingEveryEmbeddedName`). Each fact seen red once and
       reverted: the assembly's glob narrowed to `devices.schema.json` alone turned nine of the
