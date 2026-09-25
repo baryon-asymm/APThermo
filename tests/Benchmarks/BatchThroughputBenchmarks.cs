@@ -4,6 +4,7 @@ using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
+using Consumer = BenchmarkDotNet.Engines.Consumer;
 
 namespace APThermo.Benchmarks;
 
@@ -25,10 +26,10 @@ public class BatchThroughputBenchmarks
     [Params(AcceleratorKind.Cpu, AcceleratorKind.Cuda)]
     public AcceleratorKind Accelerator { get; set; }
 
+    private readonly Consumer _consumer = new();
     private Engine _engine = null!;
     private UploadedTables _tables = null!;
     private RocketBatch _batch = null!;
-    private RocketBatchResult? _lastResult;
 
     /// <summary>Loads the database and the fixture, uploads the species table, builds the batch of `CaseCount` identical
     /// cases on the chosen accelerator, and runs one warm-up batch to record its diagnostics.</summary>
@@ -51,21 +52,15 @@ public class BatchThroughputBenchmarks
     }
 
     /// <summary>Runs the batch through the raw engine once. `Engine.Run`'s result type is internal to the tree contract
-    /// (root BOOT.md, Delivery: Tree contracts), so the benchmark keeps it in a field rather than returning it from this
-    /// public method; <see cref="Cleanup"/> reads that field so the store is not dead.</summary>
+    /// (root BOOT.md, Delivery: Tree contracts), so a public method cannot return it (CS0050); a BenchmarkDotNet
+    /// <see cref="Consumer"/> consumes it in place instead, so the JIT cannot treat the call as dead code.</summary>
     [Benchmark]
-    public void SolveBatch() => _lastResult = _engine.Run(_tables, _batch);
+    public void SolveBatch() => _consumer.Consume(_engine.Run(_tables, _batch));
 
-    /// <summary>Disposes the uploaded tables and the engine after every benchmark of this class has run, and logs the last
-    /// measured run's diagnostics.</summary>
+    /// <summary>Disposes the uploaded tables and the engine after every benchmark of this class has run.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
-        if (_lastResult is not null)
-        {
-            RecordDiagnostics(_lastResult);
-        }
-
         _tables.Dispose();
         _engine.Dispose();
     }

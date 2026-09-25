@@ -13,8 +13,11 @@ namespace APThermo.Benchmarks;
 /// `[IterationSetup]`, and an unrolled batch of invocations would hide behind the
 /// first one's warm cache. Built over `DefaultConfig` so the usual loggers, exporters
 /// and columns stay in place; only the job and the diagnoser are this node's own.
-internal static class BenchmarkEnvironment
+/// Public since the 2026-09-25 split (BOOT.md): the child node <c>Runner</c> passes
+/// <see cref="Config"/> to <c>BenchmarkSwitcher</c> from its own assembly.
+public static class BenchmarkEnvironment
 {
+    /// <summary>The one job every benchmark group of this node runs under.</summary>
     public static IConfig Config { get; } = ManualConfig.Create(DefaultConfig.Instance)
         .AddJob(Job.Default
             .WithToolchain(InProcessNoEmitToolchain.Instance)

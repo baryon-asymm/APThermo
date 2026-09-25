@@ -36,11 +36,16 @@ Inherited from the root and from the parent ([BOOT.md](../BOOT.md)). In addition
 
 ## Acceptance criteria
 
-- [ ] The project builds at 0 warnings and 0 errors under the root's Diagnostics
-      constraint, with no suppression.
-- [ ] `dotnet run -c Release --project tests/Benchmarks/Runner -- --list flat` lists the
-      same benchmarks as the parent's former entry point, and the dry run of the parent's
-      criterion completes.
+- [x] 2026-09-25 — The project builds at 0 warnings and 0 errors under the root's
+      Diagnostics constraint, with no suppression. Evidence: `dotnet build
+      tests/Benchmarks/Runner/APThermo.Benchmarks.Runner.csproj -c Debug` after clearing
+      its own `obj`/`bin`, 0 warnings/0 errors; `dotnet build APThermo.sln -c Release`,
+      0 warnings/0 errors across the whole tree.
+- [x] 2026-09-25 — `dotnet run -c Release --project tests/Benchmarks/Runner -- --list flat`
+      lists the same ten benchmarks as the parent's former entry point (the ten
+      `[Benchmark]` methods of `APThermo.Benchmarks`'s six classes), and the dry run of
+      the parent's criterion (`--filter '*SingleCase*' --job Dry`) completes with exit
+      code 0 and no exception, detailed in the parent node's `BOOT.md`.
 
 ## Taboos
 

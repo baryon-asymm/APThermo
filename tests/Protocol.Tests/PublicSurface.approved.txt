@@ -12,6 +12,9 @@ class APThermo.Benchmarks.BatchThroughputBenchmarks
     Void Setup()
     Void SolveBatch()
 
+static class APThermo.Benchmarks.BenchmarkEnvironment
+    static IConfig Config { get; }
+
 enum APThermo.Benchmarks.BenchmarkProblemKind : Int32
     Hp = 1
     RocketFrozenAtChamber = 4
@@ -71,6 +74,8 @@ class APThermo.Benchmarks.UserStatesBenchmarks
     UserStateSelection Selection { get; set; }
     Void Cleanup()
     Void Setup()
+
+== APThermo.Benchmarks.Runner
 
 == APThermo.Cli
 

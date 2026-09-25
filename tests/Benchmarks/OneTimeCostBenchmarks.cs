@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using APThermo.Data;
 using APThermo.Equilibrium;
@@ -7,6 +6,7 @@ using APThermo.Fixtures;
 using APThermo.Problems;
 using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
+using Consumer = BenchmarkDotNet.Engines.Consumer;
 
 namespace APThermo.Benchmarks;
 
@@ -18,15 +18,14 @@ namespace APThermo.Benchmarks;
 [MemoryDiagnoser]
 public class OneTimeCostBenchmarks
 {
+    private readonly Consumer _consumer = new();
     private string _thermoPath = null!;
     private string _transPath = null!;
     private SpeciesDatabase _database = null!;
     private Solver _solver = null!;
     private IReadOnlyList<string> _elements = null!;
     private SpeciesTable _table = null!;
-    private SpeciesTable? _assembledTable;
     private EquilibriumBatch _compileBatch = null!;
-    private EquilibriumBatchResult? _compiledResult;
 
     private Engine _uploadEngine = null!;
     private UploadedTables? _uploaded;
@@ -63,10 +62,11 @@ public class OneTimeCostBenchmarks
     public SpeciesDatabase LoadDatabase() => SpeciesDatabase.Load(_thermoPath, _transPath);
 
     /// <summary>Assembles the chemical system (candidate species, table) for the fixture's elements. `SpeciesTable` is
-    /// internal to the tree contract (root BOOT.md, Delivery: Tree contracts), so the benchmark keeps it in a field rather
-    /// than returning it from this public method; <see cref="Cleanup"/> reads that field so the store is not dead.</summary>
+    /// internal to the tree contract (root BOOT.md, Delivery: Tree contracts), so a public method cannot return it
+    /// (CS0050); a BenchmarkDotNet <see cref="Consumer"/> consumes it in place instead, so the JIT cannot treat the
+    /// call as dead code.</summary>
     [Benchmark]
-    public void AssembleChemicalSystem() => _assembledTable = SpeciesTable.Build(_database, _elements, _solver.CandidateSpeciesFor(_elements));
+    public void AssembleChemicalSystem() => _consumer.Consume(SpeciesTable.Build(_database, _elements, _solver.CandidateSpeciesFor(_elements)));
 
     /// <summary>Disposes the previous iteration's upload before the next `UploadSpeciesTable` iteration, so every measured
     /// upload starts from a clean engine.</summary>
@@ -87,11 +87,11 @@ public class OneTimeCostBenchmarks
     }
 
     /// <summary>Runs the trivial one-case batch on the fresh CPU engine, forcing its kernel to compile cold.
-    /// `EquilibriumBatchResult` is internal to the tree contract (root BOOT.md, Delivery: Tree contracts), so the benchmark
-    /// keeps it in a field rather than returning it from this public method; <see cref="Cleanup"/> reads that field so the
-    /// store is not dead.</summary>
+    /// `EquilibriumBatchResult` is internal to the tree contract (root BOOT.md, Delivery: Tree contracts), so a public
+    /// method cannot return it (CS0050); a BenchmarkDotNet <see cref="Consumer"/> consumes it in place instead, so the
+    /// JIT cannot treat the call as dead code.</summary>
     [Benchmark]
-    public void CompileCpuKernel() => _compiledResult = _cpuCompileEngine.Run(_cpuCompileTables!, _compileBatch);
+    public void CompileCpuKernel() => _consumer.Consume(_cpuCompileEngine.Run(_cpuCompileTables!, _compileBatch));
 
     /// <summary>Disposes the CPU engine and its uploaded tables after each `CompileCpuKernel` iteration.</summary>
     [IterationCleanup(Target = nameof(CompileCpuKernel))]
@@ -112,7 +112,7 @@ public class OneTimeCostBenchmarks
 
     /// <summary>Runs the trivial one-case batch on the fresh CUDA engine, forcing its kernel to compile cold.</summary>
     [Benchmark]
-    public void CompileCudaKernel() => _compiledResult = _cudaCompileEngine.Run(_cudaCompileTables!, _compileBatch);
+    public void CompileCudaKernel() => _consumer.Consume(_cudaCompileEngine.Run(_cudaCompileTables!, _compileBatch));
 
     /// <summary>Disposes the CUDA engine and its uploaded tables after each `CompileCudaKernel` iteration.</summary>
     [IterationCleanup(Target = nameof(CompileCudaKernel))]
@@ -122,15 +122,11 @@ public class OneTimeCostBenchmarks
         _cudaCompileEngine.Dispose();
     }
 
-    /// <summary>Logs the last assembled table's and the last compiled batch's diagnostics, then disposes the upload
-    /// engine's last upload, the upload engine and the solver after every benchmark of this class has run.</summary>
+    /// <summary>Disposes the upload engine's last upload, the upload engine and the solver after every benchmark of this
+    /// class has run.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
-        Console.WriteLine(
-            $"[OneTimeCost] assembledSpecies={_assembledTable?.Species.Count.ToString(CultureInfo.InvariantCulture) ?? "-"} " +
-            $"compiledStatus={_compiledResult?.Status[0].ToString() ?? "-"}");
-
         _uploaded?.Dispose();
         _uploadEngine.Dispose();
         _solver.Dispose();

@@ -6,7 +6,7 @@ exist because BenchmarkDotNet requires public benchmark classes, public `[Benchm
 and public `[Params]` properties. They are listed here so that no public type goes
 undocumented (root taboo).
 
-## Entry point
+## Entry point ✅
 
 The node is a library since 2026-09-25; the entry point is its child node
 [Runner](Runner/API.md), which the reader runs:
@@ -16,9 +16,7 @@ dotnet run -c Release --project tests/Benchmarks/Runner -- [BenchmarkDotNet argu
 # e.g. --list flat, --filter *UserStates*, --job Dry
 ```
 
-## Configuration ⏳
-
-⏳ until the split of 2026-09-25 is coded.
+## Configuration ✅
 
 ```csharp
 namespace APThermo.Benchmarks;
@@ -46,7 +44,7 @@ public class BatchThroughputBenchmarks
     public int CaseCount { get; set; }                       // [Params] 1000, 10000, 100000
     public AcceleratorKind Accelerator { get; set; }          // [Params] Cpu, Cuda
     public void Setup();                                      // [GlobalSetup]
-    public RocketBatchResult SolveBatch();                    // [Benchmark]
+    public void SolveBatch();                                 // [Benchmark] — RocketBatchResult is a tree-contract type (CS0050); a Consumer consumes it
     public void Cleanup();                                    // [GlobalCleanup]
 }
 
@@ -84,14 +82,14 @@ public class OneTimeCostBenchmarks
 {
     public void Setup();                                       // [GlobalSetup]
     public SpeciesDatabase LoadDatabase();                      // [Benchmark]
-    public SpeciesTable AssembleChemicalSystem();                // [Benchmark]
+    public void AssembleChemicalSystem();                       // [Benchmark] — SpeciesTable is a tree-contract type (CS0050); a Consumer consumes it
     public void SetupUpload();                                  // [IterationSetup(Target = nameof(UploadSpeciesTable))]
-    public UploadedTables UploadSpeciesTable();                  // [Benchmark]
+    public void UploadSpeciesTable();                           // [Benchmark] — UploadedTables is a tree-contract type (CS0050); kept in a field, disposed by SetupUpload/Cleanup
     public void SetupCpuCompile();                              // [IterationSetup(Target = nameof(CompileCpuKernel))]
-    public EquilibriumBatchResult CompileCpuKernel();            // [Benchmark]
+    public void CompileCpuKernel();                             // [Benchmark] — EquilibriumBatchResult is a tree-contract type (CS0050); a Consumer consumes it
     public void CleanupCpuCompile();                            // [IterationCleanup(Target = nameof(CompileCpuKernel))]
     public void SetupCudaCompile();                             // [IterationSetup(Target = nameof(CompileCudaKernel))]
-    public EquilibriumBatchResult CompileCudaKernel();           // [Benchmark]
+    public void CompileCudaKernel();                            // [Benchmark] — EquilibriumBatchResult is a tree-contract type (CS0050); a Consumer consumes it
     public void CleanupCudaCompile();                           // [IterationCleanup(Target = nameof(CompileCudaKernel))]
     public void Cleanup();                                      // [GlobalCleanup]
 }

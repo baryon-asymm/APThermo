@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Node tests/Benchmarks/Runner: the console entry point of the benchmarks node (BOOT.md). Run by hand
+       (dotnet run -c Release), never by dotnet test: it carries no test SDK. It references the parent's
+       project and BenchmarkDotNet only; the parent's ILGPU and the data it needs at run time reach this
+       project's output through the project reference. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>false</IsTestProject>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\APThermo.Benchmarks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+</Project>
