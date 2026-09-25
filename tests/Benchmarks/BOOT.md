@@ -6,8 +6,16 @@ Measures how fast the library computes, so that a change of the code, the clean-
 pass of 2026-09-14/15 first, can be compared against the code before it. The
 bit-for-bit guards prove that the numbers did not change; nothing proves the speed.
 Extracting kernel stages can change inlining on the CPU accelerator and in the
-NVVM-generated CUDA code. This node is a BenchmarkDotNet console project, run by
-hand, never by `dotnet test`. It records figures and asserts none.
+NVVM-generated CUDA code. This node is a library of BenchmarkDotNet benchmark classes,
+run by hand through its child node [Runner](Runner/BOOT.md) (2026-09-25), never by
+`dotnet test`. It records figures and asserts none.
+
+⚠ 2026-09-25: stood "a BenchmarkDotNet console project". The root's Diagnostics
+constraint (CA1515) forbids public types in an executable, and BenchmarkDotNet requires
+public benchmark classes (the Constraints ⚠ of the same date). CA1515 does not apply to a
+library, so the owner split the node: the benchmark classes, the job configuration and
+the shared inputs stay here in a library, and the console entry point moves to the child
+node `Runner`.
 
 ## Invariants
 
@@ -142,10 +150,18 @@ only the arguments a call site supplies.
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
-- **Project.** `APThermo.Benchmarks`, an executable in the
-  solution. It builds with the solution, so the protocol checks cover it. It has no
-  test SDK, so `dotnet test` runs nothing of it.
-  - BenchmarkDotNet requires public benchmark classes; each is named in `API.md`.
+- **Project.** `APThermo.Benchmarks`, a class library in the solution (2026-09-25; an
+  executable before). It builds with the solution, so the protocol checks cover it. It has
+  no test SDK, so `dotnet test` runs nothing of it. The executable is the child node
+  [Runner](Runner/BOOT.md), which holds only the entry point.
+  - BenchmarkDotNet requires public benchmark classes; each is named in `API.md`, and each
+    public member carries XML documentation (CS1591).
+  - The job configuration (`BenchmarkEnvironment.Config`) is public, so that the runner
+    passes it to `BenchmarkSwitcher`; the classes stay discoverable through this assembly.
+  - A benchmark whose result is a tree-contract type, which a public method cannot return
+    (CS0050), hands it to a BenchmarkDotNet `Consumer` (`BenchmarkDotNet.Engines`) so that
+    the call is not dead code. A field written only to defeat the JIT, and a read
+    contrived only to satisfy IDE0052 (a log line in `Cleanup`), are not allowed.
 
     ⚠ 2026-09-25 (Diagnostics constraint, root BOOT.md): confirmed empirically rather
     than asserted. Making one benchmark class (`SingleCaseBenchmarks`) `internal` for
@@ -350,7 +366,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       - `results/comparison-2026-09-15.md` marks every change beyond the confidence
         intervals (`## Marked changes`) and hands the list to a design session
         without guessing a cause.
-- [x] 2026-09-25 — Diagnostics (root BOOT.md, Constraints, 2026-09-24): the node builds
+- [ ] Diagnostics (root BOOT.md, Constraints, 2026-09-24), after the split of 2026-09-25:
+      this node and `Runner` build at 0 warnings and 0 errors with no suppression; the
+      dry run `dotnet run -c Release --project tests/Benchmarks/Runner -- --filter
+      '*SingleCase*' --job Dry` completes; a full run of every benchmark completes with no
+      exception and `SolverBatchBenchmarks` still reports 0 mismatches.
+
+      ⚠ 2026-09-25: this criterion was ticked the same day with the words "except the
+      CA1515 conflict declared above", a criterion ticked while not met. The owner's
+      decision on the conflict is the split above. The record of that day's fixes follows
+      and stays true, except where the split changes it: the entry point moves to
+      `Runner`, and the IDE0052 reads in `Cleanup` give way to a `Consumer`.
+
+- [x] 2026-09-25 — (record of the first Diagnostics pass) the node builds
       at 0 warnings/0 errors except the CA1515 conflict declared above (the Constraints
       ⚠ of 2026-09-25), unresolvable without either dropping BenchmarkDotNet's
       `InProcessNoEmitToolchain` or moving the benchmark classes to a node of their own

@@ -8,16 +8,25 @@ undocumented (root taboo).
 
 ## Entry point
 
-`Program` is `internal` (2026-09-25, the Diagnostics constraint's CA1515): a `Main`
-method needs no accessibility for the .NET runtime to find and run it, and nothing
-outside this assembly, BenchmarkDotNet included, ever references the class by name.
-Not a checked declaration (no status mark, no `csharp` fence): it is neither on the
-package surface nor a tree contract, so `CoverageTests`/`TreeContractTests` have
-nothing to check it against; this is the invocation, for a reader.
+The node is a library since 2026-09-25; the entry point is its child node
+[Runner](Runner/API.md), which the reader runs:
 
 ```console
-dotnet run -c Release --project tests/Benchmarks -- [BenchmarkDotNet arguments]
+dotnet run -c Release --project tests/Benchmarks/Runner -- [BenchmarkDotNet arguments]
 # e.g. --list flat, --filter *UserStates*, --job Dry
+```
+
+## Configuration ⏳
+
+⏳ until the split of 2026-09-25 is coded.
+
+```csharp
+namespace APThermo.Benchmarks;
+
+public static class BenchmarkEnvironment
+{
+    public static IConfig Config { get; }                    // the one job of BOOT.md, Constraints, Configuration
+}
 ```
 
 ## Groups ✅

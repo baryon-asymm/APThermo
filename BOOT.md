@@ -614,7 +614,9 @@ JSON Schema subset validator and the run-section cut of the command line's docum
 `API.md` lists them) and names nothing above
 `Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
-and never asserted; `samples/Samples` (2026-09-15) shows each consumer scenario as a
+and never asserted (since 2026-09-25 a library, run through its child node
+`tests/Benchmarks/Runner`, the Diagnostics constraint's CA1515 forbidding public types in
+an executable); `samples/Samples` (2026-09-15) shows each consumer scenario as a
 running program over the package surface, the source of the guide's code, and
 `tests/Docs.Tests` (2026-09-15) holds the approved outputs of the samples and
 command-line examples and proves the guide against them (`## Delivery`,
