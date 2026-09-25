@@ -8,16 +8,16 @@ namespace APThermo.Docs.Tests;
 /// fenced code blocks, the samples' snippet regions, and the LF normalization every byte comparison in this node
 /// goes through.
 /// </summary>
-internal static class GuideDocuments
+internal static partial class GuideDocuments
 {
-    private static readonly Regex SnippetStart = new(@"^//\s*snippet-start:\s*(\w+)\s*$", RegexOptions.Compiled);
+    private static readonly Regex SnippetStart = MyRegex();
 
     /// <summary>The repository root (the Fixtures node finds it from its own source file).</summary>
     public static string Root => RepositoryPaths.Root;
 
     /// <summary>The documents that may carry C# snippet blocks: README.md, docs/guide/**/*.md and the package READMEs under docs/nuget/.</summary>
     public static IReadOnlyList<string> SnippetSources() =>
-        Existing("README.md").Concat(MarkdownUnder("docs/guide")).Concat(MarkdownUnder("docs/nuget")).ToList();
+        [.. Existing("README.md"), .. MarkdownUnder("docs/guide"), .. MarkdownUnder("docs/nuget")];
 
     /// <summary>The guide pages of docs/guide/.</summary>
     public static IReadOnlyList<string> GuidePages() => MarkdownUnder("docs/guide");
@@ -34,8 +34,13 @@ internal static class GuideDocuments
     public static IReadOnlyList<string> LinkedDocuments()
     {
         var templatesPrefix = Path.Combine(Root, "docs", "protocol", "templates") + Path.DirectorySeparatorChar;
-        return Existing("README.md").Concat(Existing("llms.txt")).Concat(MarkdownUnder("docs")
-            .Where(p => !p.StartsWith(templatesPrefix, StringComparison.Ordinal))).ToList();
+        return
+        [
+            .. Existing("README.md"),
+            .. Existing("llms.txt"),
+            .. MarkdownUnder("docs")
+                .Where(p => !p.StartsWith(templatesPrefix, StringComparison.Ordinal)),
+        ];
     }
 
     /// <summary>Every file under samples/cli/, recursively, mapped to the schema name its top-level directory declares.</summary>
@@ -223,7 +228,7 @@ internal static class GuideDocuments
     public static IReadOnlyDictionary<string, (string File, int BodyStartLine, int BodyEndLine)> SnippetRegionLocations() =>
         AllRegions().ToDictionary(kv => kv.Key, kv => (kv.Value.File, kv.Value.BodyStartLine, kv.Value.BodyEndLine), StringComparer.Ordinal);
 
-    private static IReadOnlyDictionary<string, (string File, string Text, int BodyStartLine, int BodyEndLine)> AllRegions()
+    private static Dictionary<string, (string File, string Text, int BodyStartLine, int BodyEndLine)> AllRegions()
     {
         var regions = new Dictionary<string, (string File, string Text, int BodyStartLine, int BodyEndLine)>(StringComparer.Ordinal);
         var directory = Path.GetFullPath(Path.Combine(Root, "samples", "Samples"));
@@ -260,7 +265,7 @@ internal static class GuideDocuments
 
             if (line.Trim() == "// snippet-end")
             {
-                Assert.True(!regions.ContainsKey(currentName), $"{file}: the snippet region '{currentName}' is declared more than once");
+                Assert.False(regions.ContainsKey(currentName));
                 regions[currentName] = (file, Dedent(body), bodyStartLine, i);
                 currentName = null;
                 continue;
@@ -279,17 +284,14 @@ internal static class GuideDocuments
     }
 
     private static IReadOnlyList<string> Existing(params string[] relativePaths) =>
-        relativePaths.Select(p => Path.GetFullPath(Path.Combine(Root, p))).Where(File.Exists).ToList();
+        [.. relativePaths.Select(p => Path.GetFullPath(Path.Combine(Root, p))).Where(File.Exists)];
 
     private static IReadOnlyList<string> MarkdownUnder(string relativeDirectory)
     {
         var directory = Path.GetFullPath(Path.Combine(Root, relativeDirectory));
-        if (!Directory.Exists(directory))
-        {
-            return [];
-        }
-
-        return Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToList();
+        return !Directory.Exists(directory)
+            ? []
+            : [.. Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories).Order(StringComparer.Ordinal)];
     }
 
     private static int RunOf(string text, char c)
@@ -310,4 +312,7 @@ internal static class GuideDocuments
         var info = trimmedStart[RunOf(trimmedStart, fenceChar)..];
         return info.Trim();
     }
+
+    [GeneratedRegex(@"^//\s*snippet-start:\s*(\w+)\s*$", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

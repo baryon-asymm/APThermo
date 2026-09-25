@@ -26,27 +26,48 @@ namespace APThermo.Docs.Tests;
 /// README.md and llms.txt themselves exist (m1: a check that silently has nothing to check when they are deleted is
 /// indistinguishable from an absent one).
 /// </summary>
-public sealed class LinkTests
+public sealed partial class LinkTests
 {
     private const string SelfRepositoryBlobPrefix = "https://github.com/baryon-asymm/APThermo/blob/main/";
     private const string SelfRepositoryTreePrefix = "https://github.com/baryon-asymm/APThermo/tree/main/";
 
-    private static readonly Regex InlineLink = new(@"\[(?:!\[[^\]]*\]\([^)]*\)|[^\]])*\]\(\s*([^)\s]+)", RegexOptions.Compiled);
-    private static readonly Regex ReferenceUsage = new(@"\[([^\]]+)\]\[([^\]]*)\]", RegexOptions.Compiled);
-    private static readonly Regex ReferenceDefinition = new(@"^\s{0,3}\[([^\]]+)\]:\s*(\S+)", RegexOptions.Compiled);
-    private static readonly Regex HtmlHref = new(@"href\s*=\s*[""']([^""']+)[""']", RegexOptions.Compiled);
-    private static readonly Regex Scheme = new(@"^[A-Za-z][A-Za-z0-9+.\-]*:", RegexOptions.Compiled);
-    private static readonly Regex Heading = new(@"^ {0,3}#{1,6}\s+(\S.*)$", RegexOptions.Compiled);
+    private static readonly Regex InlineLink = MyRegex();
+    private static readonly Regex ReferenceUsage = ReferenceUsageRegex();
+    private static readonly Regex ReferenceDefinition = ReferenceDefinitionRegex();
+    private static readonly Regex HtmlHref = HtmlHrefRegex();
+    private static readonly Regex Scheme = SchemeRegex();
+    private static readonly Regex Heading = HeadingRegex();
+    private static readonly Regex BacktickSpan = BacktickSpanRegex();
 
+    [GeneratedRegex(@"\[([^\]]+)\]\[([^\]]*)\]")]
+    private static partial Regex ReferenceUsageRegex();
+
+    [GeneratedRegex(@"^\s{0,3}\[([^\]]+)\]:\s*(\S+)")]
+    private static partial Regex ReferenceDefinitionRegex();
+
+    [GeneratedRegex(@"href\s*=\s*[""']([^""']+)[""']")]
+    private static partial Regex HtmlHrefRegex();
+
+    [GeneratedRegex(@"^[A-Za-z][A-Za-z0-9+.\-]*:")]
+    private static partial Regex SchemeRegex();
+
+    [GeneratedRegex(@"^ {0,3}#{1,6}\s+(\S.*)$")]
+    private static partial Regex HeadingRegex();
+
+    [GeneratedRegex("`[^`]*`")]
+    private static partial Regex BacktickSpanRegex();
+
+    /// <summary>The root guide entry points exist.</summary>
     [Fact]
-    public void The_root_guide_entry_points_exist()
+    public void TheRootGuideEntryPointsExist()
     {
         Assert.True(File.Exists(Path.Combine(GuideDocuments.Root, "README.md")), "README.md does not exist at the repository root");
         Assert.True(File.Exists(Path.Combine(GuideDocuments.Root, "llms.txt")), "llms.txt does not exist at the repository root");
     }
 
+    /// <summary>Every relative link resolves to a file.</summary>
     [Fact]
-    public void Every_relative_link_resolves_to_a_file()
+    public void EveryRelativeLinkResolvesToAFile()
     {
         var documents = GuideDocuments.LinkedDocuments();
         Assert.True(documents.Count > 0, "no linked document (README.md, llms.txt, docs/**/*.md) was found");
@@ -56,8 +77,9 @@ public sealed class LinkTests
         }
     }
 
+    /// <summary>No package readme carries a relative link.</summary>
     [Fact]
-    public void No_package_readme_carries_a_relative_link()
+    public void NoPackageReadmeCarriesARelativeLink()
     {
         var readmes = GuideDocuments.NugetReadmes();
         Assert.True(readmes.Count > 0, "no package README was found under docs/nuget/");
@@ -70,8 +92,9 @@ public sealed class LinkTests
         }
     }
 
+    /// <summary>Every self repository link of a package readme resolves to a file or directory.</summary>
     [Fact]
-    public void Every_self_repository_link_of_a_package_readme_resolves_to_a_file_or_directory()
+    public void EverySelfRepositoryLinkOfAPackageReadmeResolvesToAFileOrDirectory()
     {
         var readmes = GuideDocuments.NugetReadmes();
         Assert.True(readmes.Count > 0, "no package README was found under docs/nuget/");
@@ -81,8 +104,9 @@ public sealed class LinkTests
         }
     }
 
+    /// <summary>No document carries the OWNERREPO placeholder.</summary>
     [Fact]
-    public void No_document_carries_the_OWNER_REPO_placeholder()
+    public void NoDocumentCarriesTheOWNERREPOPlaceholder()
     {
         var documents = GuideDocuments.LinkedDocuments().Concat(GuideDocuments.NugetReadmes()).ToList();
         Assert.True(documents.Count > 0, "no document (README.md, llms.txt, docs/**/*.md) was found");
@@ -91,14 +115,14 @@ public sealed class LinkTests
             var lines = GuideDocuments.Lines(path);
             for (var i = 0; i < lines.Length; i++)
             {
-                Assert.True(!lines[i].Contains("OWNER/REPO", StringComparison.Ordinal), $"{path}:{i + 1}: carries the placeholder 'OWNER/REPO'; a real repository link is required before release");
+                Assert.False(lines[i].Contains("OWNER/REPO", StringComparison.Ordinal));
             }
         }
     }
 
     private static void CheckDocument(string path)
     {
-        var lines = GuideDocuments.Lines(path);
+        _ = GuideDocuments.Lines(path);
         var headingsByFile = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         foreach (var target in TargetsOf(path))
         {
@@ -187,7 +211,7 @@ public sealed class LinkTests
     /// <summary>Every inline, reference-style and HTML link target of one line, backtick spans stripped for the markdown forms (an HTML `href` may sit inside backticks in prose, so it is scanned on the raw line).</summary>
     private static IEnumerable<(string Path, string? Fragment)> TargetsOfLine(string line, IReadOnlyDictionary<string, string> references)
     {
-        var stripped = Regex.Replace(line, "`[^`]*`", "");
+        var stripped = BacktickSpan.Replace(line, "");
         foreach (Match match in InlineLink.Matches(stripped))
         {
             foreach (var split in SplitTarget(match.Groups[1].Value))
@@ -274,7 +298,7 @@ public sealed class LinkTests
     }
 
     /// <summary>Every heading of a markdown document, as GitHub's own anchor slugs: lowercase, everything but a letter, digit, space or hyphen dropped, a space turned into a hyphen. A duplicate heading's later slugs carry a "-1", "-2", … suffix, as GitHub disambiguates them.</summary>
-    private static IReadOnlyList<string> SlugsOf(string path)
+    private static List<string> SlugsOf(string path)
     {
         if (!path.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || !File.Exists(path))
         {
@@ -311,6 +335,9 @@ public sealed class LinkTests
     private static string SlugOf(string heading)
     {
         var kept = heading.ToLowerInvariant().Where(c => char.IsLetterOrDigit(c) || c == ' ' || c == '-');
-        return new string(kept.ToArray()).Replace(' ', '-');
+        return new string([.. kept]).Replace(' ', '-');
     }
+
+    [GeneratedRegex(@"\[(?:!\[[^\]]*\]\([^)]*\)|[^\]])*\]\(\s*([^)\s]+)", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

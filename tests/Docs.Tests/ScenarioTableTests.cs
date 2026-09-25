@@ -13,12 +13,13 @@ namespace APThermo.Docs.Tests;
 /// parses the table with the same column split the workflow's `awk` step uses and compares both columns, in order,
 /// against the code. Fails when no row is found.
 /// </summary>
-public sealed class ScenarioTableTests
+public sealed partial class ScenarioTableTests
 {
-    private static readonly Regex Row = new(@"^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|", RegexOptions.Compiled);
+    private static readonly Regex Row = MyRegex();
 
+    /// <summary>The scenario table of the API matches program scenarios and class name of.</summary>
     [Fact]
-    public void The_scenario_table_of_the_API_matches_Program_Scenarios_and_ClassNameOf()
+    public void TheScenarioTableOfTheAPIMatchesProgramScenariosAndClassNameOf()
     {
         var path = RepositoryPaths.Resolve("samples", "Samples", "API.md");
         Assert.True(File.Exists(path), "samples/Samples/API.md does not exist");
@@ -26,8 +27,8 @@ public sealed class ScenarioTableTests
         var rows = ScenarioRowsOf(GuideDocuments.Lines(path));
         Assert.True(rows.Count > 0, $"{path}: no '| Scenario name | Class | ... |' table row was found");
 
-        var expected = APThermo.Samples.Program.Scenarios
-            .Select(scenario => (Scenario: scenario, Class: APThermo.Samples.Program.ClassNameOf(scenario)))
+        var expected = Samples.Program.Scenarios
+            .Select(scenario => (Scenario: scenario, Class: Samples.Program.ClassNameOf(scenario)))
             .ToList();
 
         Assert.True(
@@ -61,4 +62,7 @@ public sealed class ScenarioTableTests
 
         return rows;
     }
+
+    [GeneratedRegex(@"^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

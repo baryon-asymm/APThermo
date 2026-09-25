@@ -37,12 +37,15 @@ namespace APThermo.Docs.Tests;
 /// The two JSON-document facts — a shown document matching its `samples/cli/` file, and every JSON fence carrying
 /// that marker (MA1) — live in `CliDocumentTests.cs`, next to each other since both read a `cli-document` marker.
 /// </summary>
-public sealed class CommandLineExampleTests
+public sealed partial class CommandLineExampleTests
 {
     private static readonly HashSet<string> RunnableVerbs = new(StringComparer.Ordinal) { "rocket", "equilibrium", "states" };
     private static readonly HashSet<string> DeclaredOnlyVerbs = new(StringComparer.Ordinal) { "devices", "--version" };
-    private static readonly Regex InlineSpan = new(@"`([^`]*)`", RegexOptions.Compiled);
-    private static readonly Regex Prompt = new(@"^(?:PS(?:\s+\S+)?>\s+|\$\s+|>\s+)", RegexOptions.Compiled);
+    private static readonly Regex InlineSpan = MyRegex();
+    private static readonly Regex Prompt = PromptRegex();
+
+    [GeneratedRegex(@"^(?:PS(?:\s+\S+)?>\s+|\$\s+|>\s+)")]
+    private static partial Regex PromptRegex();
 
     /// <summary>
     /// Every declared verb's own synopsis, read from `src/Cli/API.md`'s "## Command line" block
@@ -58,8 +61,9 @@ public sealed class CommandLineExampleTests
     /// <summary>Every declared verb whose synopsis is not one of the three runnable ones: `species`, `devices`, `schema`, `--help`, `--version` today, read from the same source as <see cref="Synopsis"/> rather than typed in twice.</summary>
     private static readonly HashSet<string> SynopsisVerbs = new(Synopsis.Keys.Except(RunnableVerbs), StringComparer.Ordinal);
 
+    /// <summary>Every command line invocation is a checked example or a declared synopsis.</summary>
     [Fact]
-    public void Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis()
+    public void EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis()
     {
         var pages = GuideDocuments.SnippetSources();
         var invocations = FenceInvocationsOf(pages).Concat(InlineInvocationsOf(pages)).ToList();
@@ -91,9 +95,9 @@ public sealed class CommandLineExampleTests
         foreach (var page in pages)
         {
             var lines = GuideDocuments.Lines(page);
-            foreach (var block in GuideDocuments.FencedBlocks(lines, page))
+            foreach (var (_, body, startLine) in GuideDocuments.FencedBlocks(lines, page))
             {
-                var nonEmpty = block.Body
+                var nonEmpty = body
                     .Select((text, index) => (Text: StripPrompt(text), Index: index))
                     .Where(entry => !string.IsNullOrWhiteSpace(entry.Text))
                     .ToArray();
@@ -104,7 +108,7 @@ public sealed class CommandLineExampleTests
                 if (unrecognized.Length > 0)
                 {
                     Assert.Fail(
-                        $"{page}:{block.StartLine + 1 + unrecognized[0].Index}: this line names 'apthermo' but is not "
+                        $"{page}:{startLine + 1 + unrecognized[0].Index}: this line names 'apthermo' but is not "
                             + $"recognised as an invocation after stripping a known prompt ('$ ', '> ', 'PS> ', 'PS C:\\…> '): "
                             + $"'{unrecognized[0].Text}'");
                 }
@@ -117,12 +121,12 @@ public sealed class CommandLineExampleTests
 
                 Assert.True(
                     nonEmpty.Length == 1,
-                    $"{page}:{block.StartLine + 1}: a fenced block carrying an 'apthermo …' invocation must hold no "
+                    $"{page}:{startLine + 1}: a fenced block carrying an 'apthermo …' invocation must hold no "
                         + $"other non-empty line (show only the command, in its own single-line fence; a synopsis "
                         + $"with placeholders belongs in prose or a link to the command line's API.md): "
                         + $"{invocationEntries.Length} invocation line(s) among {nonEmpty.Length} non-empty line(s)");
 
-                found.Add((page, block.StartLine + 1 + invocationEntries[0].Index, invocationEntries[0].Text, true));
+                found.Add((page, startLine + 1 + invocationEntries[0].Index, invocationEntries[0].Text, true));
             }
         }
 
@@ -171,10 +175,7 @@ public sealed class CommandLineExampleTests
             return;
         }
 
-        Assert.True(
-            !raw.Contains("apthermo ", StringComparison.Ordinal),
-            $"{page}:{line + 1}: this inline span names 'apthermo' but is not recognised as an invocation after "
-                + $"stripping a known prompt ('$ ', '> ', 'PS> ', 'PS C:\\…> '): '{raw}'");
+        Assert.False(raw.Contains("apthermo ", StringComparison.Ordinal));
     }
 
     /// <summary>A leading shell prompt stripped: `$ `, a bare `> `, `PS> `, or `PS C:\…> ` (N4). Unrecognised text is returned unchanged.</summary>
@@ -250,7 +251,7 @@ public sealed class CommandLineExampleTests
     /// positional arguments than the synopsis allows fails too. `=`-form options (`--output=x`) carry their value
     /// inline, so no following token is consumed for them.
     /// </summary>
-    private static void ValidateAgainstSynopsis(string where, string verb, IReadOnlyList<string> argsAfterVerb)
+    private static void ValidateAgainstSynopsis(string where, string verb, string[] argsAfterVerb)
     {
         if (!Synopsis.TryGetValue(verb, out var synopsis))
         {
@@ -258,7 +259,7 @@ public sealed class CommandLineExampleTests
         }
 
         var positional = 0;
-        for (var i = 0; i < argsAfterVerb.Count; i++)
+        for (var i = 0; i < argsAfterVerb.Length; i++)
         {
             var token = argsAfterVerb[i];
             if (!token.StartsWith('-'))
@@ -278,7 +279,7 @@ public sealed class CommandLineExampleTests
 
             if (takesValue && !token.Contains('='))
             {
-                Assert.True(i + 1 < argsAfterVerb.Count, $"{where}: 'apthermo {verb} …': option '{name}' needs a value");
+                Assert.True(i + 1 < argsAfterVerb.Length, $"{where}: 'apthermo {verb} …': option '{name}' needs a value");
                 i++;
             }
         }
@@ -327,10 +328,10 @@ public sealed class CommandLineExampleTests
     /// latter once); every other token is folded into the key, sanitized to a filesystem-safe suffix. An invocation
     /// with no such extra token keeps the bare input-file key, so today's approved file names are unchanged.
     /// </summary>
-    private static string RunnableKeyOf(string baseName, IReadOnlyList<string> argsAfterVerb, string inputToken)
+    private static string RunnableKeyOf(string baseName, string[] argsAfterVerb, string inputToken)
     {
         var extras = new List<string>();
-        for (var i = 0; i < argsAfterVerb.Count; i++)
+        for (var i = 0; i < argsAfterVerb.Length; i++)
         {
             var token = argsAfterVerb[i];
             if (token == inputToken)
@@ -360,7 +361,10 @@ public sealed class CommandLineExampleTests
         string.Join("-", tokensFromVerb.Select(Sanitize));
 
     private static string Sanitize(string token) =>
-        Regex.Replace(token.TrimStart('-'), @"[^A-Za-z0-9.]+", "-").Trim('-').ToLowerInvariant();
+        NonKeyCharacters().Replace(token.TrimStart('-'), "-").Trim('-').ToLowerInvariant();
+
+    [GeneratedRegex(@"[^A-Za-z0-9.]+")]
+    private static partial Regex NonKeyCharacters();
 
     private static void CheckExample(string where, IReadOnlyList<string> argsAfterApthermo, string key)
     {
@@ -372,9 +376,9 @@ public sealed class CommandLineExampleTests
     /// <summary>Runs `apthermo &lt;args&gt;` in-process and compares its delivered document, `run` cut when requested, with the approved file keyed by <paramref name="key"/>.</summary>
     private static void RunAndApprove(string where, IReadOnlyList<string> args, string key, bool cutRun)
     {
-        var output = new StringWriter();
-        var error = new StringWriter();
-        var code = APThermo.Cli.Program.Run(args.ToArray(), output, error);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var code = Cli.Program.Run([.. args], output, error);
         Assert.True(code == 0, $"{where}: 'apthermo {string.Join(' ', args)}' exited with {code}: {error}");
 
         var document = output.ToString();
@@ -408,9 +412,9 @@ public sealed class CommandLineExampleTests
     /// </summary>
     private static void RunAndApproveText(string where, IReadOnlyList<string> args, string key)
     {
-        var output = new StringWriter();
-        var error = new StringWriter();
-        var code = APThermo.Cli.Program.Run(args.ToArray(), output, error);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var code = Cli.Program.Run([.. args], output, error);
         Assert.True(code == 0, $"{where}: 'apthermo {string.Join(' ', args)}' exited with {code}: {error}");
 
         var actual = GuideDocuments.Lf(output.ToString());
@@ -472,7 +476,7 @@ public sealed class CommandLineExampleTests
     }
 
     /// <summary>Every token of the invocation that names an existing committed file under samples/cli/.</summary>
-    private static IReadOnlyList<string> InputDocumentsOf(IReadOnlyList<string> args)
+    private static List<string> InputDocumentsOf(IReadOnlyList<string> args)
     {
         var cliRoot = Path.GetFullPath(Path.Combine(GuideDocuments.Root, "samples", "cli")) + Path.DirectorySeparatorChar;
         var found = new List<string>();
@@ -495,4 +499,7 @@ public sealed class CommandLineExampleTests
 
     /// <summary>An approved file's key together with its extension ("json" or "txt", the latter for `--help`'s plain-text usage).</summary>
     private readonly record struct ApprovedKey(string Key, string Extension);
+
+    [GeneratedRegex(@"`([^`]*)`", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

@@ -11,12 +11,13 @@ namespace APThermo.Docs.Tests;
 /// name `CaseStatus` does not declare, fails naming the mismatch; the population itself (the table must be found at
 /// all) is asserted first, so a table heading rename cannot turn this into a vacuous pass (AGENTS.md §13).
 /// </summary>
-public sealed class StatusTableTests
+public sealed partial class StatusTableTests
 {
-    private static readonly Regex Row = new(@"^\|\s*`([A-Za-z]+)`\s*\|", RegexOptions.Compiled);
+    private static readonly Regex Row = MyRegex();
 
+    /// <summary>The status table lists exactly the names of case status.</summary>
     [Fact]
-    public void The_status_table_lists_exactly_the_names_of_CaseStatus()
+    public void TheStatusTableListsExactlyTheNamesOfCaseStatus()
     {
         var path = RepositoryPaths.Resolve("docs", "guide", "troubleshooting.md");
         Assert.True(File.Exists(path), "docs/guide/troubleshooting.md does not exist");
@@ -53,4 +54,7 @@ public sealed class StatusTableTests
 
         return rows;
     }
+
+    [GeneratedRegex(@"^\|\s*`([A-Za-z]+)`\s*\|", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

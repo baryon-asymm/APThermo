@@ -495,9 +495,9 @@ There is no external ancestor: the tree root is the repository root, and the loa
         `FenceTagTests` for the fences' tags);
       - every `apthermo` invocation shown is run and its output approved, except the
         declared synopses whose output depends on the machine or the release
-        (`CommandLineExampleTests.Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis`);
+        (`CommandLineExampleTests.EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis`);
       - every sample prints its approved output
-        (`SampleOutputTests.The_scenario_prints_its_approved_output`, `ScenarioTableTests`);
+        (`SampleOutputTests.TheScenarioPrintsItsApprovedOutput`, `ScenarioTableTests`);
       - every link resolves (`LinkTests`);
       - every shown or sample document validates against its schema
         (`SchemaValidationTests`, `CliDocumentTests`);
