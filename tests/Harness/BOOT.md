@@ -120,6 +120,22 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 - A library assembly (`APThermo.Harness`) referenced by test
   projects only; it references no test framework, so its public surface enters the
   protocol tests node's snapshot like any library's.
+
+  ⚠ 2026-09-25: `FixtureFamilies.Of` returned `TheoryData<string, int, IReadOnlyList<CeaCase>>`, so
+  fixing the Diagnostics constraint's xUnit1042 in this node meant a `PackageReference` to `xunit`
+  for the return type alone, and the fix then failed xUnit1045: a `CeaCase` collection is not a
+  type xUnit knows how to serialize for Test Explorer's row enumeration, only the fields of
+  `TheoryData<>` itself. Adding `xunit` here was rejected on review: the protocol tests node's
+  `SurfaceTests` tells a library assembly from a test one by whether it references any assembly
+  named `xunit*` (`NodeAssemblies.IsTestAssembly`), not by this node's own `IsTestProject false`,
+  so it would have read as a test assembly and dropped its whole public surface out of
+  `PublicSurface.approved.txt` — weakening the surface check is not this node's decision. `Of` is
+  instead `Keys` (the key and case count of every family, both types xUnit already serializes)
+  plus `CasesOf` (the family's cases, read back inside the test body, the pattern
+  `HostSolver.CaseNames`/`Load` already uses for a single case); each caller (`Equilibrium.Tests`,
+  `Performance.Tests`, `Transport.Tests`, all of which reference xunit already) builds its own
+  `TheoryData<string, int>` from `Keys` in a static member of its test class. This node names no
+  test framework, as the sentence above states.
 - Every type is a stable type in the root's sense once the test nodes use it: small,
   and named in `API.md`.
 - Paths from the repository root through `RepositoryPaths` of the fixtures node.
@@ -172,7 +188,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 
       A line for a fixture that does not exist added to
       `Transport.Tests/Bits.approved.txt` (a fabricated key and hash):
-      `Every_fixture_with_transport_gives_the_recorded_bits` red, one problem naming
+      `EveryFixtureWithTransportGivesTheRecordedBits` red, one problem naming
       the key - "tests/Fixtures/cases/rocket/does-not-exist_pc1MPa_shiftingEquilibrium.json:
       recorded in the approved snapshot, but no such fixture is run with transport"
       (`ApprovedSnapshot.StaleKeys`; wired by `Transport.Tests`, `Equilibrium.Tests`
@@ -303,7 +319,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 
       One fact of `Execution.Tests` is outside this criterion's claim and this node's
       concern (its Invariants: "no formula and no tolerance"):
-      `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio` is a
+      `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio` is a
       performance tripwire, not a bit comparison, and on this run of the Windows
       reference machine it measured 22–29× against the required ≥45.02× (80 % of the
       approved 56.28×) on five separate invocations (solution-wide and isolated, with

@@ -3,30 +3,37 @@ using System.Text.Json;
 namespace APThermo.Harness;
 
 /// <summary>
-/// The bytes of a JSON object with its top-level `run` property cut out (BOOT.md, the Bits level): the property's
-/// name, its value and one adjacent separator with the white space around it, so the remaining bytes read as the same
-/// document written without that property —
-/// after a preceding property, from the separator following that property's value to the end of `run`'s value;
-/// as the first property, from `run`'s name to the start of the next property's name.
-/// The span is found by walking the top-level properties in order with a <see cref="Utf8JsonReader"/>: the token
-/// start of each property name, then <see cref="Utf8JsonReader.Skip"/> to the end of its value — never by searching
-/// the text for the literal `"run"`, so a value that happens to contain that text elsewhere in the document cannot be
-/// mistaken for the property. Indentation, line breaks, the final newline, string escaping and the key order of every
-/// other property all stay in. A document with no top-level `run` property, or with more than one, throws instead of
-/// producing a result, naming <paramref name="example"/>: the caller's test fails and no hash is computed from it.
+/// Cuts the top-level `run` property out of a JSON document's bytes (BOOT.md, the Bits level), so the command line's
+/// run-dependent fields (timestamps, the machine's device list) do not enter a bit snapshot.
 /// </summary>
 public static class RunPropertyCut
 {
+    /// <summary>
+    /// The bytes of a JSON object with its top-level `run` property cut out: the property's
+    /// name, its value and one adjacent separator with the white space around it, so the remaining bytes read as the same
+    /// document written without that property —
+    /// after a preceding property, from the separator following that property's value to the end of `run`'s value;
+    /// as the first property, from `run`'s name to the start of the next property's name.
+    /// The span is found by walking the top-level properties in order with a <see cref="Utf8JsonReader"/>: the token
+    /// start of each property name, then <see cref="Utf8JsonReader.Skip"/> to the end of its value — never by searching
+    /// the text for the literal `"run"`, so a value that happens to contain that text elsewhere in the document cannot be
+    /// mistaken for the property. Indentation, line breaks, the final newline, string escaping and the key order of every
+    /// other property all stay in. A document with no top-level `run` property, or with more than one, throws instead of
+    /// producing a result, naming <paramref name="example"/>: the caller's test fails and no hash is computed from it.
+    /// </summary>
+    /// <param name="document">The UTF-8 bytes of the JSON document.</param>
+    /// <param name="example">The name of the example, for the exception message when the document is malformed.</param>
+    /// <returns>The document's bytes with the top-level <c>run</c> property removed.</returns>
     public static byte[] Bytes(byte[] document, string example)
     {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(example);
+
         var properties = TopLevelProperties(document, example);
         var runIndex = properties.FindIndex(p => p.IsRun);
-        if (runIndex < 0)
-        {
-            throw new InvalidOperationException($"{example}: no top-level 'run' property");
-        }
-
-        return Cut(document, properties, runIndex, example);
+        return runIndex >= 0
+            ? Cut(document, properties, runIndex, example)
+            : throw new InvalidOperationException($"{example}: no top-level 'run' property");
     }
 
     private static List<Property> TopLevelProperties(byte[] document, string example)

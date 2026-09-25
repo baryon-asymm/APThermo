@@ -3,8 +3,8 @@ using APThermo.Harness;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L1: the probe kernel of the root's math list loads on CUDA through the post-link and matches the CPU accelerator within the ULP bound.</summary>
-[Collection(EngineCollection.Name)]
-public sealed class ProbeKernelTests(EngineFixture fixture)
+[Collection(EngineFixture.CollectionName)]
+public sealed class ProbeKernelTests
 {
     /// <summary>Inputs spanning 26 decades, plus the values around one where Floor and Ceiling differ.</summary>
     private static double[] Inputs()
@@ -25,20 +25,20 @@ public sealed class ProbeKernelTests(EngineFixture fixture)
         return values;
     }
 
+    /// <summary>The kernels stride constant matches the function list.</summary>
     [Fact]
-    public void The_kernels_stride_constant_matches_the_function_list()
-    {
+    public void TheKernelsStrideConstantMatchesTheFunctionList() =>
         // Kernels.Probe strides by MathProbe.StrideCount, a const so it inlines into the kernel (Functions is a string array, and
         // kernel-compatible code allows no strings); this is what keeps that literal from drifting away from Functions silently
         // if a function is ever added to the root's math list (F-EX-07).
         Assert.Equal(MathProbe.StrideCount, MathProbe.FunctionCount);
-    }
 
+    /// <summary>The cpu accelerator reproduces dotnet math exactly.</summary>
     [Fact]
-    public void The_cpu_accelerator_reproduces_dotnet_math_exactly()
+    public void TheCpuAcceleratorReproducesDotnetMathExactly()
     {
         var inputs = Inputs();
-        var outputs = fixture.Cpu.ProbeMath(inputs);
+        var outputs = EngineFixture.Shared.Cpu.ProbeMath(inputs);
         Assert.Equal(inputs.Length * MathProbe.FunctionCount, outputs.Length);
         for (var i = 0; i < inputs.Length; i++)
         {
@@ -56,18 +56,19 @@ public sealed class ProbeKernelTests(EngineFixture fixture)
         }
     }
 
+    /// <summary>Cuda matches the cpu accelerator within the ulp bound for every function.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
-    public void Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function()
+    public void CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction()
     {
-        var cuda = fixture.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda();
         if (cuda is null)
         {
             return;
         }
 
         var inputs = Inputs();
-        var cpu = fixture.Cpu.ProbeMath(inputs);
+        var cpu = EngineFixture.Shared.Cpu.ProbeMath(inputs);
         var gpu = cuda.ProbeMath(inputs);
         Assert.Equal(cpu.Length, gpu.Length);
         var worst = new long[MathProbe.FunctionCount];

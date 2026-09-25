@@ -7,8 +7,9 @@ public sealed class ToleranceTableTests
 {
     private static readonly string[] NotCompared = ["station", "index", "moleFractions", "converged"];
 
+    /// <summary>The table loads with a derivation for every field.</summary>
     [Fact]
-    public void The_table_loads_with_a_derivation_for_every_field()
+    public void TheTableLoadsWithADerivationForEveryField()
     {
         var table = ToleranceTable.Load();
         Assert.NotEmpty(table.Fields);
@@ -20,17 +21,19 @@ public sealed class ToleranceTableTests
         }
     }
 
+    /// <summary>Unknown fields are reported by name.</summary>
     [Fact]
-    public void Unknown_fields_are_reported_by_name()
+    public void UnknownFieldsAreReportedByName()
     {
         var table = ToleranceTable.Load();
         var e = Assert.Throws<KeyNotFoundException>(() => table.For("noSuchField"));
         Assert.Contains("noSuchField", e.Message, StringComparison.Ordinal);
-        Assert.Throws<KeyNotFoundException>(() => table.Matches("noSuchField", 1.0, 1.0));
+        _ = Assert.Throws<KeyNotFoundException>(() => table.Matches("noSuchField", 1.0, 1.0));
     }
 
+    /// <summary>Matches adds the absolute and the relative part.</summary>
     [Fact]
-    public void Matches_adds_the_absolute_and_the_relative_part()
+    public void MatchesAddsTheAbsoluteAndTheRelativePart()
     {
         var table = ToleranceTable.Load();
         var t = table.For("temperature");
@@ -48,7 +51,7 @@ public sealed class ToleranceTableTests
     [InlineData("tp")]
     [InlineData("hp")]
     [InlineData("sp")]
-    public void Every_state_field_of_the_fixtures_has_a_tolerance(string kind)
+    public void EveryStateFieldOfTheFixturesHasATolerance(string kind)
     {
         var table = ToleranceTable.Load();
         var fields = new SortedSet<string>(StringComparer.Ordinal);
@@ -82,7 +85,7 @@ public sealed class ToleranceTableTests
     /// by coincidence of the reversed rule; reverted before this test was committed.
     /// </summary>
     [Fact]
-    public void MoleFractionField_picks_by_the_threshold_and_one_ulp_on_each_side()
+    public void MoleFractionFieldPicksByTheThresholdAndOneUlpOnEachSide()
     {
         var table = ToleranceTable.Load();
         var threshold = table.For("moleFraction").Absolute;

@@ -7,7 +7,7 @@ using APThermo.Transport;
 namespace APThermo.Execution.Tests;
 
 /// <summary>The one table of CUDA against the CPU accelerator, with a derivation per entry (Execution.Tests BOOT.md).</summary>
-public static class GpuCpuTolerances
+internal static class GpuCpuTolerances
 {
     /// <summary>Largest ULP distance between the probe kernel's math functions on CUDA and on the CPU (3 measured on the reference machine).</summary>
     public const long MathUlp = 4;
@@ -36,23 +36,33 @@ public static class GpuCpuTolerances
     /// with the reference, so the floor is the fixtures node's <c>moleFractionFloor</c>, which the front door tests node's
     /// union-batch comparison also reads.
     /// </summary>
-    public static double MoleFractionFloor(ToleranceTable tolerances) => tolerances.For("moleFractionFloor").Absolute;
+    public static double MoleFractionFloor(ToleranceTable tolerances)
+    {
+        ArgumentNullException.ThrowIfNull(tolerances);
+        return tolerances.For("moleFractionFloor").Absolute;
+    }
 
     /// <summary>
     /// The mole-fraction tolerance of a station, by whether both accelerators stopped after the same number of Newton steps. The
     /// different-step tier is not an entry of this node's own table either (F-TF-05, BOOT.md): it is the fixtures node's
     /// <c>polishThresholdRelative</c>, for the same reason as the floor.
     /// </summary>
-    public static double MoleFractionRelative(ToleranceTable tolerances, bool sameSteps) =>
-        sameSteps ? Entries["moleFraction"].Relative : tolerances.For("polishThresholdRelative").Relative;
+    public static double MoleFractionRelative(ToleranceTable tolerances, bool sameSteps)
+    {
+        ArgumentNullException.ThrowIfNull(tolerances);
+        return sameSteps ? Entries["moleFraction"].Relative : tolerances.For("polishThresholdRelative").Relative;
+    }
 
     /// <summary>The tolerance of a field of one of the result structs.</summary>
-    public static double RelativeFor(Type owner, string field) =>
-        owner == typeof(MixtureState) && field == nameof(MixtureState.Temperature) ? Entries["temperature"].Relative
-        : owner == typeof(MixtureState) ? Entries["state"].Relative
-        : owner == typeof(PerformanceFigures) ? Entries["figures"].Relative
-        : owner == typeof(TransportFigures) ? Entries["transport"].Relative
-        : throw new ArgumentException($"no tolerance for {owner.Name}", nameof(owner));
+    public static double RelativeFor(Type owner, string field)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        return owner == typeof(MixtureState) && field == nameof(MixtureState.Temperature) ? Entries["temperature"].Relative
+            : owner == typeof(MixtureState) ? Entries["state"].Relative
+            : owner == typeof(PerformanceFigures) ? Entries["figures"].Relative
+            : owner == typeof(TransportFigures) ? Entries["transport"].Relative
+            : throw new ArgumentException($"no tolerance for {owner.Name}", nameof(owner));
+    }
 
     public static bool Matches(double relative, double expected, double actual) =>
         Math.Abs(expected - actual) <= relative * Math.Abs(expected);
@@ -95,11 +105,6 @@ public static class GpuCpuTolerances
 
         var x = BitConverter.DoubleToInt64Bits(a);
         var y = BitConverter.DoubleToInt64Bits(b);
-        if ((x < 0) != (y < 0))
-        {
-            return long.MaxValue;
-        }
-
-        return Math.Abs(x - y);
+        return (x < 0) != (y < 0) ? long.MaxValue : Math.Abs(x - y);
     }
 }

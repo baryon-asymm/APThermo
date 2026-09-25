@@ -97,16 +97,11 @@ internal static class TransportLayout
     public const int MaxSpecies = 40;
 
     /// <summary>
-    /// Doubles per case: four MaxSpecies² matrices, the reduced basis (elements × MaxSpecies) and eight vectors.
-    /// <paramref name="speciesCount"/> is not used: the set is capped at MaxSpecies, so the doubles per case do not
-    /// grow with the table; the parameter mirrors Equilibrium's ScratchLayout so that the execution node sizes every
-    /// scratch the same way (API.md).
+    /// Doubles per case: four MaxSpecies² matrices, the reduced basis (elements × MaxSpecies) and eight vectors. Takes
+    /// only the element count: the set is capped at MaxSpecies, so the doubles per case do not grow with the table (API.md).
     /// </summary>
-    public static int DoublesPerCase(int speciesCount, int elementCount)
-    {
-        _ = speciesCount;
-        return 4 * MaxSpecies * MaxSpecies + elementCount * MaxSpecies + 8 * MaxSpecies;
-    }
+    public static int DoublesPerCase(int elementCount) =>
+        4 * MaxSpecies * MaxSpecies + elementCount * MaxSpecies + 8 * MaxSpecies;
 
     /// <summary>Ints per case: a mark per species, four vectors of MaxSpecies and four of the element count.</summary>
     public static int IntsPerCase(int speciesCount, int elementCount) =>

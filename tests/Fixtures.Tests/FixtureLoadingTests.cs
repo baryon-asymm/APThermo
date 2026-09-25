@@ -7,6 +7,8 @@ namespace APThermo.Fixtures.Tests;
 /// <summary>L1: every committed fixture loads, names its kind, and is tied to the committed data files and the pinned package.</summary>
 public sealed partial class FixtureLoadingTests
 {
+    private static readonly string[] KnownMethods = ["cea-package", "independent-evaluation"];
+
     [GeneratedRegex(@"^cea==(\S+)\s*$", RegexOptions.Multiline)]
     private static partial Regex PinnedPackage();
 
@@ -27,9 +29,10 @@ public sealed partial class FixtureLoadingTests
             .OrderBy(d => d, StringComparer.Ordinal)
             .SelectMany(d => CeaFixtures.LoadAll(Path.GetFileName(d)));
 
+    /// <summary>Every fixture of a kind loads.</summary>
     [Theory]
     [MemberData(nameof(Kinds))]
-    public void Every_fixture_of_a_kind_loads(string kind)
+    public void EveryFixtureOfAKindLoads(string kind)
     {
         var cases = CeaFixtures.LoadAll(kind);
         Assert.NotEmpty(cases);
@@ -43,15 +46,17 @@ public sealed partial class FixtureLoadingTests
         }
     }
 
+    /// <summary>The kinds present are those of the case matrix.</summary>
     [Fact]
-    public void The_kinds_present_are_those_of_the_case_matrix()
+    public void TheKindsPresentAreThoseOfTheCaseMatrix()
     {
         var present = Directory.GetDirectories(FixtureFiles.Root).Select(Path.GetFileName).OrderBy(k => k, StringComparer.Ordinal);
         Assert.Equal(["constants", "hp", "rocket", "sp", "thermo", "tp", "transport"], present);
     }
 
+    /// <summary>Every fixture is tied to the committed data files.</summary>
     [Fact]
-    public void Every_fixture_is_tied_to_the_committed_data_files()
+    public void EveryFixtureIsTiedToTheCommittedDataFiles()
     {
         var thermo = Sha256(Path.Combine(RepositoryPaths.Data, "thermo.inp"));
         var trans = Sha256(Path.Combine(RepositoryPaths.Data, "trans.inp"));
@@ -62,8 +67,9 @@ public sealed partial class FixtureLoadingTests
         }
     }
 
+    /// <summary>Every fixture names the pinned package.</summary>
     [Fact]
-    public void Every_fixture_names_the_pinned_package()
+    public void EveryFixtureNamesThePinnedPackage()
     {
         var requirements = File.ReadAllText(RepositoryPaths.Resolve("tests", "Fixtures", "generate", "requirements.txt"));
         var pinned = PinnedPackage().Match(requirements);
@@ -79,14 +85,15 @@ public sealed partial class FixtureLoadingTests
         }
     }
 
+    /// <summary>Every fixture names the script that wrote it.</summary>
     [Fact]
-    public void Every_fixture_names_the_script_that_wrote_it()
+    public void EveryFixtureNamesTheScriptThatWroteIt()
     {
         var scripts = Directory.GetFiles(RepositoryPaths.Resolve("tests", "Fixtures", "generate"), "*.py").Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
         foreach (var c in AllCases())
         {
             Assert.True(scripts.Contains(c.Generator.Script), $"{c.Path}: unknown script {c.Generator.Script}");
-            Assert.Contains(c.Generator.Method, new[] { "cea-package", "independent-evaluation" });
+            Assert.Contains(c.Generator.Method, KnownMethods);
         }
     }
 

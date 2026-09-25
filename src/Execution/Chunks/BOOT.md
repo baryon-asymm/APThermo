@@ -81,9 +81,9 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 
 - [x] 2026-09-15 — The split changes no result: `tests/Execution.Tests`' bit-for-bit
       chunking test passes after the move, chunked against unchunked, on the CPU
-      accelerator (`BatchTests.Chunking_and_repetition_do_not_change_a_bit`) and its
+      accelerator (`BatchTests.ChunkingAndRepetitionDoNotChangeABit`) and its
       chunk-plan unit facts
-      (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`),
+      (`AcceleratorChoiceTests.ChunksAreBoundedByTheChunkSizeAndTheScratchMemory`),
       part of the 43/43 green run below.
 - [x] 2026-09-15 — `dotnet build APThermo.sln` clean;
       `dotnet test tests/Execution.Tests` 43/43 and `dotnet test tests/Protocol.Tests`

@@ -8,11 +8,9 @@ namespace APThermo.Thermo.Tests;
 /// <see cref="SpeciesFunctions.IntervalOf"/> and <see cref="SpeciesFunctions.IsInRange"/> already use (BOOT.md,
 /// "the table answers the range questions", the architecture review's F-AR-01).
 /// </summary>
-public sealed class RangeQuestionTests : IClassFixture<CpuFixture>
+public sealed class RangeQuestionTests
 {
-    private readonly CpuFixture _cpu;
-
-    public RangeQuestionTests(CpuFixture cpu) => _cpu = cpu;
+    private static readonly CpuFixture Cpu = new();
 
     /// <summary>Every thermo fixture species, from the fixtures node, not typed.</summary>
     public static TheoryData<string> ThermoFixtureSpecies()
@@ -44,11 +42,12 @@ public sealed class RangeQuestionTests : IClassFixture<CpuFixture>
         return data;
     }
 
+    /// <summary>PieceOf names the piece the interval rule chooses.</summary>
     [Theory]
     [MemberData(nameof(CutFixtureSpecies))]
-    public void PieceOf_names_the_piece_the_interval_rule_chooses(string name)
+    public void PieceOfNamesThePieceTheIntervalRuleChooses(string name)
     {
-        using var buffers = _cpu.Upload(name);
+        using var buffers = Cpu.Upload(name);
         var table = buffers.Table;
         var view = buffers.View;
         var indices = table.IndicesOf(name);
@@ -69,11 +68,12 @@ public sealed class RangeQuestionTests : IClassFixture<CpuFixture>
         Assert.Equal(-1, table.PieceOf("NoSuchSpecies", 300.0));
     }
 
+    /// <summary>RecordLow and RecordHigh are the bounds IsInRange uses.</summary>
     [Theory]
     [MemberData(nameof(ThermoFixtureSpecies))]
-    public void RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses(string name)
+    public void RecordLowAndRecordHighAreTheBoundsIsInRangeUses(string name)
     {
-        using var buffers = _cpu.Upload(name);
+        using var buffers = Cpu.Upload(name);
         var view = buffers.View;
         foreach (var piece in buffers.Table.IndicesOf(name))
         {

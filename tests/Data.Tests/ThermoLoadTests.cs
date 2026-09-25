@@ -4,20 +4,19 @@ using APThermo.Fixtures;
 namespace APThermo.Data.Tests;
 
 /// <summary>L1: the committed data/thermo.inp, loaded in full.</summary>
-public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
+public sealed partial class ThermoLoadTests
 {
-    private readonly LoadedDatabase _loaded;
-
-    public ThermoLoadTests(LoadedDatabase loaded) => _loaded = loaded;
+    private static readonly LoadedDatabase Loaded = new();
 
     // A record's second line: two-column interval count, a blank, a six-character date code, a blank, then the formula.
     [GeneratedRegex(@"^[ 0-9]\d [^\n]{6} [A-Za-z ]")]
     private static partial Regex RecordSecondLine();
 
+    /// <summary>Every record of the file is parsed.</summary>
     [Fact]
-    public void Every_record_of_the_file_is_parsed()
+    public void EveryRecordOfTheFileIsParsed()
     {
-        var lines = File.ReadAllLines(_loaded.ThermoPath, System.Text.Encoding.Latin1);
+        var lines = File.ReadAllLines(Loaded.ThermoPath, System.Text.Encoding.Latin1);
         var endProducts = Array.FindIndex(lines, l => l.StartsWith("END PRODUCTS", StringComparison.Ordinal));
         var endReactants = Array.FindIndex(lines, l => l.StartsWith("END REACTANTS", StringComparison.Ordinal));
         int products = 0, reactants = 0;
@@ -38,8 +37,8 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
         }
 
         Assert.True(products > 1000, "the independent scan found too few product records to be meaningful");
-        Assert.Equal(products, _loaded.Database.Products.Count);
-        Assert.Equal(reactants, _loaded.Database.Reactants.Count);
+        Assert.Equal(products, Loaded.Database.Products.Count);
+        Assert.Equal(reactants, Loaded.Database.Reactants.Count);
     }
 
     /// <summary>
@@ -49,9 +48,9 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
     /// scan of the file text, generated, not typed.
     /// </summary>
     [Fact]
-    public void Every_record_of_a_repeated_name_is_returned_in_file_order()
+    public void EveryRecordOfARepeatedNameIsReturnedInFileOrder()
     {
-        var lines = File.ReadAllLines(_loaded.ThermoPath, System.Text.Encoding.Latin1);
+        var lines = File.ReadAllLines(Loaded.ThermoPath, System.Text.Encoding.Latin1);
         var endProducts = Array.FindIndex(lines, l => l.StartsWith("END PRODUCTS", StringComparison.Ordinal));
         var names = new List<string>();
         for (var i = 0; i < endProducts; i++)
@@ -71,31 +70,33 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
 
         foreach (var name in repeated)
         {
-            var expectedRecords = _loaded.Database.Products.Where(p => p.Name == name).ToList();
-            var records = _loaded.Database.Records(name);
+            var expectedRecords = Loaded.Database.Products.Where(p => p.Name == name).ToList();
+            var records = Loaded.Database.Records(name);
             Assert.Equal(expectedRecords, records);
-            Assert.True(_loaded.Database.TryGet(name, out var first));
+            Assert.True(Loaded.Database.TryGet(name, out var first));
             Assert.Same(expectedRecords[0], first);
-            Assert.Same(expectedRecords[0], _loaded.Database[name]);
+            Assert.Same(expectedRecords[0], Loaded.Database[name]);
         }
     }
 
+    /// <summary>Header carries the default interval bounds.</summary>
     [Fact]
-    public void Header_carries_the_default_interval_bounds()
+    public void HeaderCarriesTheDefaultIntervalBounds()
     {
-        var provenance = _loaded.Database.Provenance;
+        var provenance = Loaded.Database.Provenance;
         Assert.Equal([200.0, 1000.0, 6000.0, 20000.0], provenance.DefaultIntervalBounds);
         Assert.False(string.IsNullOrWhiteSpace(provenance.HeaderDate));
         Assert.Equal(64, provenance.ThermoSha256.Length);
         Assert.Equal(64, provenance.TransSha256!.Length);
     }
 
+    /// <summary>Fixture records parse to the transcribed values.</summary>
     [Theory]
     [MemberData(nameof(SpeciesFixtures))]
-    public void Fixture_records_parse_to_the_transcribed_values(string fixturePath)
+    public void FixtureRecordsParseToTheTranscribedValues(string fixturePath)
     {
         var expected = Records.LoadSpecies(fixturePath);
-        var actual = _loaded.Database[expected.Name];
+        var actual = Loaded.Database[expected.Name];
 
         Assert.Equal(expected.Comment, actual.Comment);
         Assert.Equal(expected.DateCode, actual.DateCode);
@@ -121,6 +122,7 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
         }
     }
 
+    /// <summary>Theory data: the transcribed species fixture files, one path per row.</summary>
     public static TheoryData<string> SpeciesFixtures()
     {
         var data = new TheoryData<string>();
@@ -132,11 +134,12 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
         return data;
     }
 
+    /// <summary>Interval anomalies equal the approved list.</summary>
     [Fact]
-    public void Interval_anomalies_equal_the_approved_list()
+    public void IntervalAnomaliesEqualTheApprovedList()
     {
         var anomalies = new List<string>();
-        foreach (var species in _loaded.Database.Products.Concat(_loaded.Database.Reactants))
+        foreach (var species in Loaded.Database.Products.Concat(Loaded.Database.Reactants))
         {
             for (var k = 0; k < species.Intervals.Count; k++)
             {
@@ -171,29 +174,36 @@ public sealed partial class ThermoLoadTests : IClassFixture<LoadedDatabase>
         Assert.Equal(approved, actualText);
     }
 
+    /// <summary>Atomic weights come from the monatomic species.</summary>
     [Fact]
-    public void Atomic_weights_come_from_the_monatomic_species()
+    public void AtomicWeightsComeFromTheMonatomicSpecies()
     {
-        var database = _loaded.Database;
+        var database = Loaded.Database;
         Assert.Equal(database["AL"].MolarMass, database.AtomicWeight("AL"));
         Assert.Equal(database["AL"].MolarMass, database.AtomicWeight("Al"));
         Assert.Equal(database["H"].MolarMass, database.AtomicWeight("H"));
         Assert.Equal(database["CL"].MolarMass, database.AtomicWeight("CL"));
-        Assert.Throws<KeyNotFoundException>(() => database.AtomicWeight("Xx"));
+        _ = Assert.Throws<KeyNotFoundException>(() => database.AtomicWeight("Xx"));
     }
 
+    /// <summary>Unknown names are reported by name.</summary>
     [Fact]
-    public void Unknown_names_are_reported_by_name()
+    public void UnknownNamesAreReportedByName()
     {
-        var e = Assert.Throws<KeyNotFoundException>(() => _loaded.Database["NoSuchSpecies"]);
+        var e = Assert.Throws<KeyNotFoundException>(() => Loaded.Database["NoSuchSpecies"]);
         Assert.Contains("NoSuchSpecies", e.Message, StringComparison.Ordinal);
-        Assert.False(_loaded.Database.TryGet("NoSuchSpecies", out _));
-        Assert.Empty(_loaded.Database.Records("NoSuchSpecies"));
+        Assert.False(Loaded.Database.TryGet("NoSuchSpecies", out _));
+        Assert.Empty(Loaded.Database.Records("NoSuchSpecies"));
     }
 }
 
-/// <summary>Loads the committed data once per test class.</summary>
-public sealed class LoadedDatabase
+/// <summary>
+/// Loads the committed data once per test class (a <c>private static readonly</c> field of each consumer, not an
+/// <c>IClassFixture&lt;T&gt;</c>: xunit requires a class fixture's consuming constructor to be the class's single
+/// public constructor, which would force this internal-only helper public for no reason a consumer outside this
+/// node has).
+/// </summary>
+internal sealed class LoadedDatabase
 {
     public LoadedDatabase()
     {
@@ -202,9 +212,12 @@ public sealed class LoadedDatabase
         Database = SpeciesDatabase.Load(ThermoPath, TransPath);
     }
 
+    /// <summary>The path of the committed <c>thermo.inp</c>.</summary>
     public string ThermoPath { get; }
 
+    /// <summary>The path of the committed <c>trans.inp</c>.</summary>
     public string TransPath { get; }
 
+    /// <summary>The database loaded from <see cref="ThermoPath"/> and <see cref="TransPath"/>.</summary>
     public SpeciesDatabase Database { get; }
 }

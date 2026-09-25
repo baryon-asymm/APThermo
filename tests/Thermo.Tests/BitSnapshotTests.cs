@@ -6,11 +6,9 @@ namespace APThermo.Thermo.Tests;
 /// or a reordering of code moves no line of <c>Bits.approved.txt</c>, and a line that does move is legitimate only
 /// with the change of the builder's output named in the same commit.
 /// </summary>
-public sealed class BitSnapshotTests : IClassFixture<BitSnapshot>
+public sealed class BitSnapshotTests
 {
-    private readonly BitSnapshot _snapshot;
-
-    public BitSnapshotTests(BitSnapshot snapshot) => _snapshot = snapshot;
+    private static readonly BitSnapshot Snapshot = new();
 
     /// <summary>One theory case per fixture case file; the list comes from the fixtures node, not from this test.</summary>
     public static TheoryData<string> Cases()
@@ -24,21 +22,22 @@ public sealed class BitSnapshotTests : IClassFixture<BitSnapshot>
         return data;
     }
 
+    /// <summary>Every fixture case gives the recorded bits.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
     [Trait("Category", "BitSnapshot")]
-    public void Every_fixture_case_gives_the_recorded_bits(string fixtureCase)
+    public void EveryFixtureCaseGivesTheRecordedBits(string fixtureCase)
     {
-        var problem = _snapshot.Problem(fixtureCase);
+        var problem = Snapshot.Problem(fixtureCase);
         Assert.True(problem is null, problem);
     }
 
     /// <summary>The reverse of the theory above: an approved line whose fixture was deleted or renamed, which a theory has no case for and so cannot fail on, fails this fact instead.</summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void Every_recorded_line_is_a_fixture_case()
+    public void EveryRecordedLineIsAFixtureCase()
     {
-        var stale = _snapshot.StaleKeys();
+        var stale = Snapshot.StaleKeys();
         Assert.True(stale.Count == 0, $"{stale.Count} line(s) of Bits.approved.txt name no enumerated fixture case:\n" + string.Join("\n", stale));
     }
 }

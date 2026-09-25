@@ -1,21 +1,20 @@
 namespace APThermo.Thermo.Tests;
 
 /// <summary>L0: interval selection at the exact bounds and outside the range, using the bounds of the records themselves.</summary>
-public sealed class IntervalRuleTests : IClassFixture<CpuFixture>
+public sealed class IntervalRuleTests
 {
-    private readonly CpuFixture _cpu;
+    private static readonly CpuFixture Cpu = new();
 
-    public IntervalRuleTests(CpuFixture cpu) => _cpu = cpu;
-
+    /// <summary>A shared bound belongs to the lower interval.</summary>
     [Theory]
     [InlineData("H2O")]
     [InlineData("CO2")]
     [InlineData("AL2O3(a)")]
     [InlineData("W(cr)")]
-    public void A_shared_bound_belongs_to_the_lower_interval(string species)
+    public void ASharedBoundBelongsToTheLowerInterval(string species)
     {
-        var record = _cpu.Database[species];
-        using var buffers = _cpu.Upload(species);
+        var record = Cpu.Database[species];
+        using var buffers = Cpu.Upload(species);
         var view = buffers.View;
         for (var k = 0; k + 1 < record.Intervals.Count; k++)
         {
@@ -26,14 +25,15 @@ public sealed class IntervalRuleTests : IClassFixture<CpuFixture>
         }
     }
 
+    /// <summary>Outside the range the nearest interval is used and flagged.</summary>
     [Theory]
     [InlineData("H2O")]
     [InlineData("AL(cr)")]
     [InlineData("AL2O3(L)")]
-    public void Outside_the_range_the_nearest_interval_is_used_and_flagged(string species)
+    public void OutsideTheRangeTheNearestIntervalIsUsedAndFlagged(string species)
     {
-        var record = _cpu.Database[species];
-        using var buffers = _cpu.Upload(species);
+        var record = Cpu.Database[species];
+        using var buffers = Cpu.Upload(species);
         var view = buffers.View;
         var first = record.Intervals[0].TLow;
         var last = record.Intervals[^1].THigh;

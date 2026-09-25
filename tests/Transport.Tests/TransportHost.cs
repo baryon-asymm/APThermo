@@ -14,9 +14,9 @@ internal sealed record EvaluatedStation(string Label, JsonElement Station, Trans
 /// <summary>Runs the transport solver on the host over CPU-accelerator buffers, and reads the fixtures it is checked against.</summary>
 internal static class TransportHost
 {
-    public static string[] ElementsOf(CeaCase c) => c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name).ToArray();
+    public static string[] ElementsOf(CeaCase c) => [.. c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name)];
 
-    public static string[] ProductsOf(CeaCase c) => c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!).ToArray();
+    public static string[] ProductsOf(CeaCase c) => [.. c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!)];
 
     public static bool HasTransport(CeaCase c) => c.Inputs.GetProperty("transport").GetBoolean();
 
@@ -25,7 +25,7 @@ internal static class TransportHost
 
     /// <summary>The stations of a rocket fixture that carry transport outputs.</summary>
     public static IReadOnlyList<JsonElement> StationsWithTransport(CeaCase c) =>
-        c.Outputs.GetProperty("stations").EnumerateArray().Where(s => s.TryGetProperty("viscosity", out _)).ToList();
+        [.. c.Outputs.GetProperty("stations").EnumerateArray().Where(s => s.TryGetProperty("viscosity", out _))];
 
     /// <summary>The station's composition in kmol per kg: mole fractions over all species divided by the reference's MW.</summary>
     public static double[] MolesOf(SpeciesTable table, JsonElement station)
@@ -84,7 +84,7 @@ internal static class TransportHost
         var speciesCount = species.Table.SpeciesCount;
         var elementCount = species.Table.ElementCount;
         using var molesBuffer = accelerator.Allocate1D(moles);
-        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(speciesCount, elementCount));
+        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(elementCount));
         using var ints = accelerator.Allocate1D<int>(TransportLayout.IntsPerCase(speciesCount, elementCount));
         using var figures = accelerator.Allocate1D<TransportFigures>(1);
         var scratch = TransportScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
@@ -117,17 +117,37 @@ internal static class TransportHost
         return EvaluateStations(fixture, c, table, transport);
     }
 
-    /// <summary>The rocket fixture files run with transport, as theory data: the file name without extension.</summary>
-    public static IEnumerable<object[]> RocketCasesWithTransport() =>
+    /// <summary>The rocket fixture files run with transport: the file name without extension.</summary>
+    public static IEnumerable<string> RocketCaseNamesWithTransport() =>
         FixtureFiles.Enumerate("rocket")
             .Where(path => HasTransport(CeaFixtures.Load(path)))
-            .Select(path => new object[] { Path.GetFileNameWithoutExtension(path) });
+            .Select(Path.GetFileNameWithoutExtension)!;
+
+    /// <summary>The rocket fixture files run with transport, as theory data: the file name without extension.</summary>
+    public static TheoryData<string> RocketCasesWithTransport()
+    {
+        var data = new TheoryData<string>();
+        foreach (var name in RocketCaseNamesWithTransport())
+        {
+            data.Add(name);
+        }
+
+        return data;
+    }
 
     public static CeaCase LoadRocket(string name) => CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", name + ".json"));
 
     /// <summary>The transport fit fixture files as theory data.</summary>
-    public static IEnumerable<object[]> FitCases() =>
-        FixtureFiles.Enumerate("transport").Select(path => new object[] { Path.GetFileNameWithoutExtension(path) });
+    public static TheoryData<string> FitCases()
+    {
+        var data = new TheoryData<string>();
+        foreach (var path in FixtureFiles.Enumerate("transport"))
+        {
+            data.Add(Path.GetFileNameWithoutExtension(path));
+        }
+
+        return data;
+    }
 
     public static CeaCase LoadFit(string name) => CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "transport", name + ".json"));
 }

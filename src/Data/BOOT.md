@@ -59,7 +59,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   a busy machine for no defect, the test review's F-TK-14).
 
   ⚠ 2026-09-12: stood "about 3 800 records", a figure from memory. The independent
-  scan of the committed file (`ThermoLoadTests.Every_record_of_the_file_is_parsed`)
+  scan of the committed file (`ThermoLoadTests.EveryRecordOfTheFileIsParsed`)
   counts 2 030 product and 81 reactant records.
 
 ### Format facts of `thermo.inp` (NASA Glenn, McBride, Zehe and Gordon 2002)
@@ -253,23 +253,23 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
 
 - [x] 2026-09-12 — The number of product species and of reactant records parsed equals
       the counts produced by an independent line scan of the file in the test
-      (machine-generated, not typed): `ThermoLoadTests.Every_record_of_the_file_is_parsed`.
+      (machine-generated, not typed): `ThermoLoadTests.EveryRecordOfTheFileIsParsed`.
 - [x] 2026-09-12 — Fixture records (the species listed in `tests/Data.Tests/transcribe.py`,
       one file each under `tests/Data.Tests/records/species/`: `H2O`, `AL2O3(a)`,
       `AL(cr)`, `C(gr)`, `e-`, `O2(L)`, `H2(L)`, `RP-1`, `N2O4(L)`, `NH4CLO4(I)`,
       `C2H8N2(L),UDMH`) parse to the expected fields stored in the fixture files,
       including every coefficient and exponent:
-      `ThermoLoadTests.Fixture_records_parse_to_the_transcribed_values`.
+      `ThermoLoadTests.FixtureRecordsParseToTheTranscribedValues`.
 - [x] 2026-09-12 — Every record's intervals are ascending and contiguous (`THigh` of
       one equals `TLow` of the next) or the record is on the approved anomaly list
       (`tests/Data.Tests/records/interval-anomalies.approved.txt`), which the test
-      regenerates and compares: `ThermoLoadTests.Interval_anomalies_equal_the_approved_list`.
+      regenerates and compares: `ThermoLoadTests.IntervalAnomaliesEqualTheApprovedList`.
       The approved list holds the condensed records with a non-ascending first interval;
       the file has no contiguity gap.
 - [x] 2026-09-12 — Every numeric form of the two files (`D` exponents; `E` exponents
       with a sign or with a blank in place of the sign; a sign in place of the exponent
       letter; bare decimals; blank fields) parses to the expected double:
-      `FortranNumberTests.Parses_every_form_of_the_files`; and the fixture records of
+      `FortranNumberTests.ParsesEveryFormOfTheFiles`; and the fixture records of
       the second criterion agree with the independent Python reading.
 
       ⚠ 2026-09-12: stood "the single `E`-exponent record in the current file and the
@@ -278,15 +278,15 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       forms are in `trans.inp`. Found by a search over the file when the criterion was
       ticked.
 - [x] 2026-09-12 — Transport: the numbers of single-species and pair blocks equal an
-      independent scan (`TransLoadTests.Every_block_of_the_file_is_parsed`); the `H2`
+      independent scan (`TransLoadTests.EveryBlockOfTheFileIsParsed`); the `H2`
       block (three viscosity, three conductivity fits) and the `CO`/`CO2` pair match a
-      fixture (`TransLoadTests.Fixture_blocks_parse_to_the_transcribed_values`).
+      fixture (`TransLoadTests.FixtureBlocksParseToTheTranscribedValues`).
 - [x] 2026-09-12 — A truncated or corrupted record fails the load with the line
       number of the bad field in the message (mutation tests on an in-memory copy of
       one record): `CorruptionTests`, six tests.
 - [x] 2026-09-12 — `AtomicWeight("AL")` equals the molar mass of the record `AL`;
       `AtomicWeight` of a symbol without a monatomic record throws:
-      `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species`.
+      `ThermoLoadTests.AtomicWeightsComeFromTheMonatomicSpecies`.
 - [x] 2026-09-14 — The decomposition of `## Structure`: no type over 400 lines (the
       largest new file, `SpeciesDatabase.cs`, 152), no method over 60, no nesting
       deeper than 3, no more than 6 parameters except the two record constructors
@@ -306,12 +306,12 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
 - [x] 2026-09-14 — `Records(name)` returns the records of every same-name group in
       file order and the indexer the first of them (`Cr(cr)`, `Fe(a)`, `Cr2O3(I)`
       among the names the tests node's own scan of the committed file finds
-      repeated): `ThermoLoadTests.Every_record_of_a_repeated_name_is_returned_in_file_order`.
+      repeated): `ThermoLoadTests.EveryRecordOfARepeatedNameIsReturnedInFileOrder`.
       A negative interval count fails the load naming its line, the seventh
-      corruption case: `CorruptionTests.A_negative_interval_count_names_its_line`.
+      corruption case: `CorruptionTests.ANegativeIntervalCountNamesItsLine`.
       The atomic weights are built once at load from a single pass over `Products`,
       so a loaded database is immutable and needs no lock; the existing
-      `ThermoLoadTests.Atomic_weights_come_from_the_monatomic_species` covers the
+      `ThermoLoadTests.AtomicWeightsComeFromTheMonatomicSpecies` covers the
       values unchanged. Both new checks seen red once, reverted: `Records` made to
       return only the first record turned the repeated-name test red on every
       repeated name found; the negative-count check removed from
@@ -325,13 +325,13 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
 - [x] 2026-09-15 — The bundled database: the SHA-256 of each of the three embedded
       resources (`thermo.inp`, `trans.inp`, `NOTICE`) equals the SHA-256 of the
       matching file under `data/`
-      (`BundledDatabaseTests.Embedded_resource_bytes_equal_the_committed_files`);
+      (`BundledDatabaseTests.EmbeddedResourceBytesEqualTheCommittedFiles`);
       `LoadBundled()` produces a database equal, species by species and coefficient
       by coefficient (Products, Reactants, every transport entry and fit, the
       provenance hashes and header), to `Load(data/thermo.inp, data/trans.inp)`
-      (`BundledDatabaseTests.LoadBundled_equals_Load_on_every_species_and_coefficient`);
+      (`BundledDatabaseTests.LoadBundledEqualsLoadOnEverySpeciesAndCoefficient`);
       `BundledNotice()` equals the text of `data/NOTICE`
-      (`BundledDatabaseTests.BundledNotice_equals_the_committed_file`). Each seen red
+      (`BundledDatabaseTests.BundledNoticeEqualsTheCommittedFile`). Each seen red
       once (AGENTS.md §13): the embedded `thermo.inp` truncated to its first 100
       lines turned the hash test and the equality test both red; reverted, nothing of
       the mutation committed.

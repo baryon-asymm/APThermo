@@ -18,6 +18,9 @@ public sealed class BitHash
     private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
     private readonly List<string> _fields = [];
 
+    /// <summary>Adds one double, as the little-endian bytes of <see cref="BitConverter.DoubleToInt64Bits(double)"/>.</summary>
+    /// <param name="value">The value to add.</param>
+    /// <returns>This instance, for chaining.</returns>
     public BitHash Add(double value)
     {
         Span<byte> bytes = stackalloc byte[sizeof(long)];
@@ -27,16 +30,22 @@ public sealed class BitHash
         return this;
     }
 
+    /// <summary>Adds every double of a span, in order, as <see cref="Add(double)"/> would one at a time.</summary>
+    /// <param name="values">The values to add.</param>
+    /// <returns>This instance, for chaining.</returns>
     public BitHash Add(ReadOnlySpan<double> values)
     {
         foreach (var value in values)
         {
-            Add(value);
+            _ = Add(value);
         }
 
         return this;
     }
 
+    /// <summary>Adds one int, as its little-endian bytes.</summary>
+    /// <param name="value">The value to add.</param>
+    /// <returns>This instance, for chaining.</returns>
     public BitHash Add(int value)
     {
         Span<byte> bytes = stackalloc byte[sizeof(int)];
@@ -46,11 +55,14 @@ public sealed class BitHash
         return this;
     }
 
+    /// <summary>Adds every int of a span, in order, as <see cref="Add(int)"/> would one at a time.</summary>
+    /// <param name="values">The values to add.</param>
+    /// <returns>This instance, for chaining.</returns>
     public BitHash Add(ReadOnlySpan<int> values)
     {
         foreach (var value in values)
         {
-            Add(value);
+            _ = Add(value);
         }
 
         return this;

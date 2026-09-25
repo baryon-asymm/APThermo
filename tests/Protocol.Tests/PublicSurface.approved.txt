@@ -229,7 +229,10 @@ static class APThermo.Fixtures.FixtureFiles
     static String Root { get; }
 
 sealed class APThermo.Fixtures.FixtureFormatException : Exception, ISerializable
+    .ctor()
     .ctor(String fileName, String field, String message)
+    .ctor(String message)
+    .ctor(String message, Exception innerException)
     String Field { get; }
     String FileName { get; }
 
@@ -299,7 +302,13 @@ sealed class APThermo.Harness.CpuHost : IDisposable
     Void Dispose()
 
 static class APThermo.Harness.FixtureFamilies
-    static IEnumerable<Object[]> Of(IEnumerable<String> kinds, Func<CeaCase, String> key)
+    static IReadOnlyList<CeaCase> CasesOf(IEnumerable<String> kinds, Func<CeaCase, String> key, String familyKey)
+    static IReadOnlyList<FixtureFamilyKey> Keys(IEnumerable<String> kinds, Func<CeaCase, String> key)
+
+sealed class (record) APThermo.Harness.FixtureFamilyKey : IEquatable<FixtureFamilyKey>
+    .ctor(String Key, Int32 Count)
+    Int32 Count { get; init; }
+    String Key { get; init; }
 
 sealed class APThermo.Harness.JsonSchema
     IReadOnlyList<String> Validate(JsonElement instance)

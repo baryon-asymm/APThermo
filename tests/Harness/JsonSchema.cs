@@ -76,7 +76,7 @@ public sealed class JsonSchema
     {
         if (schema.TryGetProperty("type", out var type) && !TypeMatches(type, instance))
         {
-            errors.Add($"{path}: expected {type.ToString()}, found {Kind(instance)}");
+            errors.Add($"{path}: expected {type}, found {Kind(instance)}");
             return false;
         }
 
@@ -88,12 +88,12 @@ public sealed class JsonSchema
     {
         if (schema.TryGetProperty("enum", out var allowed) && !allowed.EnumerateArray().Any(v => JsonElement.DeepEquals(v, instance)))
         {
-            errors.Add($"{path}: {instance.ToString()} is not one of {allowed.ToString()}");
+            errors.Add($"{path}: {instance} is not one of {allowed}");
         }
 
         if (schema.TryGetProperty("const", out var constant) && !JsonElement.DeepEquals(constant, instance))
         {
-            errors.Add($"{path}: expected {constant.ToString()}, found {instance.ToString()}");
+            errors.Add($"{path}: expected {constant}, found {instance}");
         }
     }
 
@@ -233,29 +233,30 @@ public sealed class JsonSchema
         return element;
     }
 
-    private static bool TypeMatches(JsonElement type, JsonElement instance)
-    {
-        if (type.ValueKind == JsonValueKind.Array)
-        {
-            return type.EnumerateArray().Any(t => TypeMatches(t, instance));
-        }
-
-        return type.GetString() switch
-        {
-            "object" => instance.ValueKind == JsonValueKind.Object,
-            "array" => instance.ValueKind == JsonValueKind.Array,
-            "string" => instance.ValueKind == JsonValueKind.String,
-            "number" => instance.ValueKind == JsonValueKind.Number,
-            "integer" => instance.ValueKind == JsonValueKind.Number && instance.GetDouble() == Math.Floor(instance.GetDouble()),
-            "boolean" => instance.ValueKind is JsonValueKind.True or JsonValueKind.False,
-            "null" => instance.ValueKind == JsonValueKind.Null,
-            var other => throw new InvalidOperationException($"unknown type '{other}' in the schema"),
-        };
-    }
+    private static bool TypeMatches(JsonElement type, JsonElement instance) =>
+        type.ValueKind == JsonValueKind.Array
+            ? type.EnumerateArray().Any(t => TypeMatches(t, instance))
+            : type.GetString() switch
+            {
+                "object" => instance.ValueKind == JsonValueKind.Object,
+                "array" => instance.ValueKind == JsonValueKind.Array,
+                "string" => instance.ValueKind == JsonValueKind.String,
+                "number" => instance.ValueKind == JsonValueKind.Number,
+                "integer" => instance.ValueKind == JsonValueKind.Number && instance.GetDouble() == Math.Floor(instance.GetDouble()),
+                "boolean" => instance.ValueKind is JsonValueKind.True or JsonValueKind.False,
+                "null" => instance.ValueKind == JsonValueKind.Null,
+                var other => throw new InvalidOperationException($"unknown type '{other}' in the schema"),
+            };
 
     private static string Kind(JsonElement instance) => instance.ValueKind switch
     {
         JsonValueKind.True or JsonValueKind.False => "boolean",
-        var kind => kind.ToString().ToLowerInvariant(),
+        JsonValueKind.Object => "object",
+        JsonValueKind.Array => "array",
+        JsonValueKind.String => "string",
+        JsonValueKind.Number => "number",
+        JsonValueKind.Null => "null",
+        JsonValueKind.Undefined => "undefined",
+        _ => throw new ArgumentOutOfRangeException(nameof(instance), instance.ValueKind, "unknown JSON value kind"),
     };
 }

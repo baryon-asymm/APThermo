@@ -13,6 +13,7 @@ namespace APThermo.Harness;
 /// </summary>
 public sealed class CpuHost : IDisposable
 {
+    /// <summary>Creates the host: one ILGPU context, one CPU accelerator, the committed database and the tolerance table.</summary>
     public CpuHost()
     {
         Context = Context.Create(builder => builder.CPU());
@@ -21,14 +22,19 @@ public sealed class CpuHost : IDisposable
         Tolerances = ToleranceTable.Load();
     }
 
+    /// <summary>The ILGPU context the host was created with.</summary>
     public Context Context { get; }
 
+    /// <summary>The CPU accelerator of <see cref="Context"/>.</summary>
     public Accelerator Accelerator { get; }
 
+    /// <summary>The committed NASA species database, loaded once.</summary>
     public SpeciesDatabase Database { get; }
 
+    /// <summary>The single tolerance table of the tree, loaded once.</summary>
     public ToleranceTable Tolerances { get; }
 
+    /// <summary>Releases the accelerator and the context.</summary>
     public void Dispose()
     {
         Accelerator.Dispose();

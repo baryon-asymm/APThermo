@@ -217,7 +217,7 @@ efferent-coupling row.
       `M`, `γ_s`, sound speed, Mach, `c*`, `C_F`, `Isp` and `Ivac` agree with the
       fixtures within the tolerance table; the list of compared fields is generated
       from the fixture. `Performance.Tests`,
-      `RocketFixtureTests.The_rocket_case_reproduces_the_reference` over the enumerated
+      `RocketFixtureTests.TheRocketCaseReproducesTheReference` over the enumerated
       `cases/rocket` directory (89 that day): every numeric station output mapped by name to
       a field of `MixtureState` or `PerformanceFigures`, plus every listed mole
       fraction; left out by the fixtures node's caveats: the reference's `cv` at frozen
@@ -244,11 +244,11 @@ efferent-coupling row.
 - [x] 2026-09-14 — The invariants' tolerances (entropy, sonic condition, area ratio,
       frozen composition bit for bit, velocity from the energy equation) hold for every
       converged case of the enumerated rocket fixtures, one test per invariant:
-      `InvariantTests.The_throat_is_sonic`,
-      `InvariantTests.Entropy_is_constant_along_the_nozzle`,
-      `InvariantTests.Velocity_follows_the_energy_equation`,
-      `InvariantTests.Assigned_area_and_pressure_ratios_are_met`,
-      `InvariantTests.The_composition_is_frozen_after_the_freezing_station`; green on
+      `InvariantTests.TheThroatIsSonic`,
+      `InvariantTests.EntropyIsConstantAlongTheNozzle`,
+      `InvariantTests.VelocityFollowsTheEnergyEquation`,
+      `InvariantTests.AssignedAreaAndPressureRatiosAreMet`,
+      `InvariantTests.TheCompositionIsFrozenAfterTheFreezingStation`; green on
       the decomposed code at `5cb2664`. Re-dated from 2026-09-12, when one theory,
       `InvariantTests.Entropy_sonic_throat_area_ratio_and_frozen_composition_hold`,
       held them over the 89 files of that day: the tests node split it (its F-TK-06
@@ -257,12 +257,12 @@ efferent-coupling row.
       (AGENTS.md §6).
 - [x] 2026-09-12 — An area ratio below 1 returns `AreaRatioInvalid` for that station
       and leaves the other stations unaffected:
-      `InvariantTests.An_area_ratio_below_one_fails_its_station_only` (and
-      `A_pressure_ratio_not_above_one_fails_its_station_only`,
-      `A_case_without_exits_gives_the_chamber_and_the_throat`,
-      `A_non_positive_chamber_pressure_is_invalid_input`).
+      `InvariantTests.AnAreaRatioBelowOneFailsItsStationOnly` (and
+      `APressureRatioNotAboveOneFailsItsStationOnly`,
+      `ACaseWithoutExitsGivesTheChamberAndTheThroat`,
+      `ANonPositiveChamberPressureIsInvalidInput`).
 - [x] 2026-09-12 — Runs unchanged inside an ILGPU kernel on the CPU accelerator with
-      the same results as the host call: `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
+      the same results as the host call: `KernelEqualityTests.KernelAndHostGiveTheSameBits`
       over the batches of fixtures sharing a table and an exit layout, enumerated from the
       fixture directory (states, figures, moles and statuses bit for bit).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): every type of the
@@ -314,7 +314,7 @@ efferent-coupling row.
       methods within the root's 60-line-of-code limit.
 - [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
       point is `NotConverged` and its neighbours are `Ok`:
-      `Performance.Tests.SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
+      `Performance.Tests.SubsonicStationTests.AStationThatNeverLeavesTheSubsonicSideIsNotConverged`
       drives `AreaRatioIteration` (through `InternalsVisibleTo`) from an estimate two
       units of `ln(p_c/p_e)` below the throat's, where the twenty subsonic steps of
       `SubsonicStep` cannot reach the sonic point, and reads the station's status and
@@ -340,7 +340,7 @@ efferent-coupling row.
       later the same day the descriptors' constructors became a declared exception to
       the parameter rule (the decision "The descriptors keep their constructors"), and
       the table now carries their two rows, while no coupling row is needed.
-      `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` green with
+      `BitSnapshotTests.EveryRocketFixtureGivesTheRecordedBits` green with
       `Bits.approved.txt` unmoved (byte for byte before and after this step) and
       `KernelEqualityTests` green: `dotnet test tests/Performance.Tests`, 699 tests,
       0 failed, 0 skipped. The public surface is unchanged

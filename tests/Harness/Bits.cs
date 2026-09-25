@@ -8,6 +8,10 @@ namespace APThermo.Harness;
 /// </summary>
 public static class Bits
 {
+    /// <summary>Whether two doubles are bit-for-bit the same, signed zeros and NaN payloads told apart.</summary>
+    /// <param name="expected">The reference value.</param>
+    /// <param name="actual">The tree's value.</param>
+    /// <returns><see langword="true"/> when the two values' bits are identical.</returns>
     public static bool Same(double expected, double actual) =>
         BitConverter.DoubleToInt64Bits(expected) == BitConverter.DoubleToInt64Bits(actual);
 

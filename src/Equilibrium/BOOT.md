@@ -408,28 +408,28 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       propellants and the RP-1311 examples in the fixtures node, the mole fractions of
       every species the reference prints agree within the fixtures node's tolerance
       table; the list of compared species is generated from the fixture, not typed.
-      `Equilibrium.Tests`, `FixtureSolveTests.Assigned_temperature_and_pressure_reproduces_the_reference`
+      `Equilibrium.Tests`, `FixtureSolveTests.AssignedTemperatureAndPressureReproducesTheReference`
       over the enumerated `cases/tp` directory (46 files): every state field the fixture
       carries and every listed species, within the table.
 - [x] 2026-09-12 — hp problems: the adiabatic flame temperature and the composition of
       the same cases agree within the tolerance table.
-      `FixtureSolveTests.Assigned_enthalpy_and_pressure_reproduces_the_reference` over
+      `FixtureSolveTests.AssignedEnthalpyAndPressureReproducesTheReference` over
       `cases/hp` (34 files).
 - [x] 2026-09-12 — sp problems: the temperature and composition at given entropy and
       pressure agree within the tolerance table (the nozzle stations of the reference
       rocket cases serve as fixtures).
-      `FixtureSolveTests.Assigned_entropy_and_pressure_reproduces_the_reference` over
+      `FixtureSolveTests.AssignedEntropyAndPressureReproducesTheReference` over
       `cases/sp` (26 files).
 - [x] 2026-09-12 — Condensed species: the AP/binder/aluminium case includes `AL2O3(L)`
       in the chamber with the reference mass fraction, and the low-temperature RP-1311
       example (example 14, water condensation) reproduces the reference phase changes.
-      `CondensedSpeciesTests`: `The_aluminized_propellant_burns_to_liquid_alumina_in_the_chamber`
+      `CondensedSpeciesTests`: `TheAluminizedPropellantBurnsToLiquidAluminaInTheChamber`
       (mole fraction 0.07645 as the reference; the reference's mass fraction, 0.304,
       follows from that mole fraction and its molar mass, so it is not compared a
       second time),
-      `Water_condenses_below_its_dew_point_in_the_low_temperature_example` (liquid at
+      `WaterCondensesBelowItsDewPointInTheLowTemperatureExample` (liquid at
       300 to 304.3 K, none from 305 K, as the reference), and
-      `The_condensed_species_in_the_solution_are_those_of_the_reference` over every
+      `TheCondensedSpeciesInTheSolutionAreThoseOfTheReference` over every
       fixture case with condensed candidates (96 cases), including `AL2O3(a)` at the
       AP/HTPB/Al exits below the melting point.
 
@@ -446,11 +446,11 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       `gammaS`, `dlnVdlnT`, `dlnVdlnP`, `soundSpeed` for all 106 cases).
 - [x] 2026-09-12 — Element conservation holds for every converged fixture case at
       the invariant's tolerance:
-      `ElementConservationTests.Elements_are_conserved_at_the_invariant_tolerance` over
+      `ElementConservationTests.ElementsAreConservedAtTheInvariantTolerance` over
       the machine-generated list of the 106 tp, hp and sp cases.
 - [x] 2026-09-12 — A case with an absent element gives the same result as the same
       case solved on a table without that element's species (bit for bit on the same
-      accelerator): `AbsentElementTests.A_zero_abundance_equals_a_table_without_the_element`
+      accelerator): `AbsentElementTests.AZeroAbundanceEqualsATableWithoutTheElement`
       (carbon removed from RP-1311 example 1, argon from example 3, carbon from the
       LOX/RP-1 throat; moles, multipliers, state and iteration count bit for bit). A case
       with an empty table or with every abundance zero returns `InvalidInput` and writes
@@ -458,7 +458,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       abundance, zero and negative pressure, tp without temperature).
 - [x] 2026-09-12 — The solve runs unchanged inside an ILGPU kernel on the CPU
       accelerator with the same results as the host call:
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over the 8 table families
+      `KernelEqualityTests.KernelAndHostGiveTheSameBits` over the 8 table families
       of the 106 cases (moles, multipliers, state, status and iterations bit for bit).
 - [x] 2026-09-13 — Plateau states converge and match the reference: the
       melting-plateau fixture cases (RP-1311 example 13 generated with its insert
@@ -475,13 +475,13 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       — where `AL4C3(cr)` near its 2500 K upper bound was included and lost every
       round, seen red before the stand-down rule was added — converges onto the
       pinned pieces
-      (`PlateauTests.An_enthalpy_inside_the_ALN_gap_pins_the_pieces_at_the_cut`); a
+      (`PlateauTests.AnEnthalpyInsideTheALNGapPinsThePiecesAtTheCut`); a
       record removed for range re-enters when it is the only positive candidate, a
       second escape stands it down, and an `Ok` exit never hides a positive-gain
       candidate
-      (`PlateauTests.An_enthalpy_no_admissible_set_can_hold_is_refused_rather_than_lied_about`
+      (`PlateauTests.AnEnthalpyNoAdmissibleSetCanHoldIsRefusedRatherThanLiedAbout`
       walks exactly that path to an honest `NotConverged`, and
-      `An_ok_solution_leaves_no_condensed_candidate_with_positive_inclusion_gain`
+      `AnOkSolutionLeavesNoCondensedCandidateWithPositiveInclusionGain`
       holds over every hp fixture).
 - [x] 2026-09-13 — Sweeps across a plateau lose no station: the pressure-ratio band
       across the AL2O3 plateau solves sequentially and one exit at a time onto the
@@ -502,7 +502,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       facts green at `62cd99e`. Surface: `Protocol.Tests.SurfaceTests`
       against `tests/Protocol.Tests/PublicSurface.approved.txt`, which this work did
       not touch - every new type is internal. Numbers: the tests node's
-      `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` over every
+      `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` over every
       enumerated tp, hp and sp fixture case against `Bits.approved.txt`, recorded from
       the code of `8e36a27` before the first line moved and unmoved after the last;
       `KernelEqualityTests` green; and the whole fast suite (2142 tests that day)
@@ -545,12 +545,12 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       over `src/Equilibrium/*.cs` empty), the record bounds asked of
       `SpeciesFunctions.RecordLow` and `RecordHigh` from `PhaseGeometry` (`Adjacent`,
       `EffectiveLow`, `EffectiveHigh`) and from `CondensedSet.Pinnable`; the tests
-      node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits` unchanged
+      node's `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` unchanged
       (463 tests green, the hash of `Bits.approved.txt` unmoved) and
       `KernelEqualityTests` green in the same run. Non-degeneracy, applied alone in
       the worktree and restored: `SpeciesFunctions.RecordHigh` made to return the
       record's lower bound turned 29 fixture cases' recorded bits red
-      (`BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`), which a node
+      (`BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`), which a node
       still holding its own copy would not.
 - [x] 2026-09-14 — The Newton loop holds no formula (`## Structure`, the decision of
       that name): `NewtonIteration`, `DampedStep`, `ConvergenceTests` and
@@ -566,7 +566,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       its `## Structure` row above, as the decision foresaw (measured 16 there, on the
       code before the split; the split itself adds the coupling of naming the four
       stages it now calls, which the decision's own reasoning already accounted for).
-      The tests node's `BitSnapshotTests.Every_fixture_case_gives_the_recorded_bits`
+      The tests node's `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`
       unchanged (`Bits.approved.txt` hash unmoved) and `KernelEqualityTests` green in
       the same 463-test run; `Performance.Tests` green (699 tests, `SolveFrozen`'s
       kernel test included); the execution tests node's fast set green on CUDA (41
@@ -595,7 +595,7 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       in `Carriers.cs`).
 
       Seen red on the code before the fix, then green after it:
-      `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
+      `PlateauTests.AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner`
       stands one piece of `ALN(L)` down next to its in-play partner (the fixture and
       pair of the ALN-gap tests above) and asserts `Adjacent` and `PhaseAt` return −1
       for it; before the fix `Adjacent` returned the stood-down piece's own table index

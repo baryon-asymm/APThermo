@@ -25,12 +25,11 @@ internal static class HostEnthalpyAccessor
 /// outside a kernel. The two must agree bit for bit over every species and temperature of the thermo fixtures, so a
 /// drift cannot hide below the join-and-cut's latent-heat threshold.
 /// </summary>
-public sealed class OverloadPinningTests : IClassFixture<CpuFixture>
+public sealed class OverloadPinningTests
 {
-    private readonly CpuFixture _cpu;
+    private static readonly CpuFixture Cpu = new();
 
-    public OverloadPinningTests(CpuFixture cpu) => _cpu = cpu;
-
+    /// <summary>Theory data: the species named by every <c>thermo</c> fixture.</summary>
     public static TheoryData<string> ThermoFixtureSpecies()
     {
         var data = new TheoryData<string>();
@@ -42,11 +41,12 @@ public sealed class OverloadPinningTests : IClassFixture<CpuFixture>
         return data;
     }
 
+    /// <summary>Host and kernel enthalpy sums give the same bits.</summary>
     [Theory]
     [MemberData(nameof(ThermoFixtureSpecies))]
-    public void Host_and_kernel_enthalpy_sums_give_the_same_bits(string name)
+    public void HostAndKernelEnthalpySumsGiveTheSameBits(string name)
     {
-        using var buffers = _cpu.Upload(name);
+        using var buffers = Cpu.Upload(name);
         var table = buffers.Table;
         var view = buffers.View;
         var intervals = RecordIntervals(name);
@@ -73,15 +73,15 @@ public sealed class OverloadPinningTests : IClassFixture<CpuFixture>
     }
 
     /// <summary>Every interval of every record of the name, in file order: the same resolution SpeciesResolution makes, products before the database[name] fallback.</summary>
-    private List<TemperatureInterval> RecordIntervals(string name)
+    private static List<TemperatureInterval> RecordIntervals(string name)
     {
-        var records = _cpu.Database.Records(name).Where(record => record.Section == SpeciesSection.Products).ToList();
+        var records = Cpu.Database.Records(name).Where(record => record.Section == SpeciesSection.Products).ToList();
         if (records.Count == 0)
         {
-            records = [_cpu.Database[name]];
+            records = [Cpu.Database[name]];
         }
 
-        return records.SelectMany(record => record.Intervals).ToList();
+        return [.. records.SelectMany(record => record.Intervals)];
     }
 
     private static double Midpoint(TemperatureInterval interval) => (interval.TLow + interval.THigh) / 2.0;

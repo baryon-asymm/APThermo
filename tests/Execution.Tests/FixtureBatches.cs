@@ -1,4 +1,3 @@
-using System.Text.Json;
 using APThermo.Data;
 using APThermo.Equilibrium;
 using APThermo.Fixtures;
@@ -86,18 +85,26 @@ internal static class FixtureBatches
             group.Inputs.Add(inputs);
         }
 
-        return groups.Values
+        return [.. groups.Values
             .OrderByDescending(g => g.Names.Count).ThenBy(g => g.Names[0], StringComparer.Ordinal)
             .Select(g =>
             {
                 var table = SpeciesTable.Build(database, g.Inputs[0].System.Elements, g.Inputs[0].System.Products);
                 return new RocketFamily(g.Names[0], table, TransportTable.Build(database.Transport!, table), g.Names, g.Inputs);
-            })
-            .ToList();
+            })];
     }
 
     /// <summary>The family names as theory data.</summary>
-    public static IEnumerable<object[]> FamilyNames(SpeciesDatabase database) => RocketFamilies(database).Select(f => new object[] { f.Name });
+    public static TheoryData<string> FamilyNames(SpeciesDatabase database)
+    {
+        var data = new TheoryData<string>();
+        foreach (var family in RocketFamilies(database))
+        {
+            data.Add(family.Name);
+        }
+
+        return data;
+    }
 
     public static RocketFamily Family(SpeciesDatabase database, string name) => RocketFamilies(database).Single(f => f.Name == name);
 
@@ -115,8 +122,8 @@ internal static class FixtureBatches
         var pressureSteps = Math.Max(1, (count + mixtureSteps - 1) / mixtureSteps);
         for (var k = 0; k < count; k++)
         {
-            var t = (k % mixtureSteps) / (double)(mixtureSteps - 1);
-            var u = pressureSteps == 1 ? 0.0 : (k / mixtureSteps) / (double)(pressureSteps - 1);
+            var t = k % mixtureSteps / (double)(mixtureSteps - 1);
+            var u = pressureSteps == 1 ? 0.0 : k / mixtureSteps / (double)(pressureSteps - 1);
             batch.ChamberPressure[k] = pressureLow + u * (pressureHigh - pressureLow);
             batch.ReactantEnthalpy[k] = (1.0 - t) * a.Mixture.ReactantEnthalpy + t * b.Mixture.ReactantEnthalpy;
             batch.Flow[k] = FlowModel.ShiftingEquilibrium;
@@ -131,11 +138,14 @@ internal static class FixtureBatches
         return batch;
     }
 
+    /// <summary>The equilibrium problem kinds an equilibrium family's cases are drawn from.</summary>
+    private static readonly string[] EquilibriumKinds = ["tp", "hp", "sp"];
+
     /// <summary>The equilibrium fixtures (tp, hp, sp) sharing one table, as one batch with the table, in file order.</summary>
     public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumFamily(SpeciesDatabase database, string namePrefix)
     {
-        var cases = new[] { "tp", "hp", "sp" }
-            .SelectMany(kind => FixtureFiles.Enumerate(kind))
+        var cases = EquilibriumKinds
+            .SelectMany(FixtureFiles.Enumerate)
             .Select(CeaFixtures.Load)
             .Where(c => c.Name.StartsWith(namePrefix, StringComparison.Ordinal))
             .ToList();
