@@ -511,7 +511,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
       Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
       "Every code block … equals its sample region" predated the snippet markers and
       named only four of the six proofs.
-- [ ] Diagnostics (2026-09-24): the tree builds at the maximum of the Diagnostics
+- [x] 2026-09-25 — Diagnostics (2026-09-24): the tree builds at the maximum of the Diagnostics
       constraint with 0 warnings and 0 errors, and nothing suppresses a diagnostic.
       - `DiagnosticsTests` is green, each of its facts shown red once and failing on an
         empty set.
@@ -519,8 +519,33 @@ There is no external ancestor: the tree root is the repository root, and the loa
         green.
       - The execution tests node is green on CUDA on the reference machine, its
         long-running sweep included, because the result structs changed shape.
-      - The public surface snapshot moves only by the structs' properties and equality
-        and the exceptions' standard constructors.
+      - The public surface snapshot moves only by the structs' properties and equality,
+        the standard exception constructors (the four library exceptions and the
+        fixtures node's `FixtureFormatException`), the harness's
+        `FixtureFamilies.Of` split into `Keys` and `CasesOf` with its `FixtureFamilyKey`,
+        and the benchmarks node's public `BenchmarkEnvironment` with the new, empty
+        `APThermo.Benchmarks.Runner` section.
+
+      Evidence at `b8cde93`, on the reference machine (Windows), from a tree with every
+      `bin` and `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3108 of 3108, none skipped, `DiagnosticsTests`
+        included (its red-once records are in the protocol tests node's `BOOT.md`);
+      - `dotnet test tests/Execution.Tests -c Release`: 56 of 56 on CUDA, the
+        100 000-case sweep and the throughput tripwire included;
+      - no `Bits*.approved.txt` or `Throughput*.approved.txt` differs from `main`
+        (`0899500`);
+      - the protocol lint: 0 errors, 0 warnings.
+
+      Linux is not part of this evidence. The first CI run of the branch gives it on
+      hosted runners.
+
+      ⚠ 2026-09-25: the surface sentence named only the structs and the four library
+      exceptions. Fixing the test nodes and the benchmarks node moved three more entries
+      for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
+      split of the benchmarks node). Found by the coder of the last step, who raised it
+      rather than editing the root.
 
 ## Taboos
 
