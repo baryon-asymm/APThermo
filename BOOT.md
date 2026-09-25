@@ -382,7 +382,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
       accelerator within the tolerance table; the list of compared fields is produced
       by reflection over the result type
-      (`CudaTests.The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
+      (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`
       in the execution tests node, long-running; the table's second tier for mole
       fractions is described under the GPU-equals-CPU invariant above). Re-verified
       2026-09-15 on the decomposed code at `62cd99e`, same test, green on the
@@ -391,7 +391,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
       the CPU accelerator path with all cores on the 100 000-state batch; the measured
       figure is recorded in the benchmark's approved file
       (`tests/Execution.Tests/Throughput.approved.txt`: 56.28×, CUDA 0.170 s against
-      9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
+      9.544 s; `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`).
       Re-verified 2026-09-15 on the decomposed code at `62cd99e`, same test,
       `Throughput.approved.txt` unchanged. Re-measured 2026-09-19 in Release, the
       configuration the release runs, as the median of three runs of the release job's

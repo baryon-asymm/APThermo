@@ -9,15 +9,17 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("apthermo-libdevice-").FullName;
 
+    /// <summary>Removes the fake toolkit tree built under the temporary root.</summary>
     public void Dispose() => Directory.Delete(_root, recursive: true);
 
+    /// <summary>Explicit paths win over discovery and are tried first.</summary>
     [Fact]
-    public void Explicit_paths_win_over_discovery_and_are_tried_first()
+    public void ExplicitPathsWinOverDiscoveryAndAreTriedFirst()
     {
         var explicitDll = WriteFile(Path.Combine(_root, "explicit", "my.dll"));
         var explicitBitcode = WriteFile(Path.Combine(_root, "explicit", "my.bc"));
         var toolkits = Path.Combine(_root, "toolkits");
-        WriteWindowsToolkit(Path.Combine(toolkits, "v99.0"), legacyLayout: true);
+        _ = WriteWindowsToolkit(Path.Combine(toolkits, "v99.0"), legacyLayout: true);
         var options = new EngineOptions { LibNvvmPath = explicitDll, LibDevicePath = explicitBitcode };
 
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(options, LocatorPlatform.Windows, Env(), toolkits);
@@ -27,11 +29,12 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Equal([explicitDll, explicitBitcode], tried);
     }
 
+    /// <summary>An unsupported platform does no discovery.</summary>
     [Fact]
-    public void An_unsupported_platform_does_no_discovery()
+    public void AnUnsupportedPlatformDoesNoDiscovery()
     {
         var toolkits = Path.Combine(_root, "toolkits");
-        WriteWindowsToolkit(Path.Combine(toolkits, "v1.0"), legacyLayout: true);
+        _ = WriteWindowsToolkit(Path.Combine(toolkits, "v1.0"), legacyLayout: true);
 
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Other, Env(), toolkits);
 
@@ -40,8 +43,9 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Empty(tried);
     }
 
+    /// <summary>Windows with no cuda path and no toolkit base directory examines nothing.</summary>
     [Fact]
-    public void Windows_with_no_cuda_path_and_no_toolkit_base_directory_examines_nothing()
+    public void WindowsWithNoCudaPathAndNoToolkitBaseDirectoryExaminesNothing()
     {
         // The hosted Windows CI runner: no CUDA_PATH, and the default toolkit base itself does not exist,
         // so VersionedDirectories yields no root to look under and the honest answer is an empty list.
@@ -54,13 +58,14 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Empty(tried);
     }
 
+    /// <summary>Windows tries cuda path before the toolkit directories.</summary>
     [Fact]
-    public void Windows_tries_cuda_path_before_the_toolkit_directories()
+    public void WindowsTriesCudaPathBeforeTheToolkitDirectories()
     {
         var cudaPath = Path.Combine(_root, "cuda-path");
         var (cudaPathDll, _) = WriteWindowsToolkit(cudaPath, legacyLayout: false);
         var toolkits = Path.Combine(_root, "toolkits");
-        WriteWindowsToolkit(Path.Combine(toolkits, "v99.0"), legacyLayout: false);
+        _ = WriteWindowsToolkit(Path.Combine(toolkits, "v99.0"), legacyLayout: false);
 
         var (dll, _, tried) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Windows, Env(cudaPath: cudaPath), toolkits);
 
@@ -68,12 +73,13 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.All(tried, path => Assert.StartsWith(cudaPath, path));   // the toolkit directory root was never tried: CUDA_PATH already matched
     }
 
+    /// <summary>Windows orders the toolkit directories newest version first.</summary>
     [Fact]
-    public void Windows_orders_the_toolkit_directories_newest_version_first()
+    public void WindowsOrdersTheToolkitDirectoriesNewestVersionFirst()
     {
         // v13.3 sorts before v9.0 numerically but after it alphabetically: proves the order is by parsed Version, not by string.
         var toolkits = Path.Combine(_root, "toolkits");
-        WriteWindowsToolkit(Path.Combine(toolkits, "v9.0"), legacyLayout: false);
+        _ = WriteWindowsToolkit(Path.Combine(toolkits, "v9.0"), legacyLayout: false);
         var (v13Dll, _) = WriteWindowsToolkit(Path.Combine(toolkits, "v13.3"), legacyLayout: false);
 
         var (dll, _, _) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Windows, Env(), toolkits);
@@ -81,10 +87,11 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Equal(v13Dll, dll);
     }
 
+    /// <summary>Windows tries both dll layouts.</summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Windows_tries_both_dll_layouts(bool legacyLayout)
+    public void WindowsTriesBothDllLayouts(bool legacyLayout)
     {
         var toolkits = Path.Combine(_root, "toolkits");
         var (dllPath, bitcodePath) = WriteWindowsToolkit(Path.Combine(toolkits, "v1.0"), legacyLayout);
@@ -95,11 +102,12 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Equal(bitcodePath, bitcode);
     }
 
+    /// <summary>A library present without bitcode is skipped for the next root.</summary>
     [Fact]
-    public void A_library_present_without_bitcode_is_skipped_for_the_next_root()
+    public void ALibraryPresentWithoutBitcodeIsSkippedForTheNextRoot()
     {
         var toolkits = Path.Combine(_root, "toolkits");
-        WriteFile(Path.Combine(toolkits, "v13.0", "nvvm", "bin", "x64", "nvvm64_40_0.dll"));   // no bitcode next to it
+        _ = WriteFile(Path.Combine(toolkits, "v13.0", "nvvm", "bin", "x64", "nvvm64_40_0.dll"));   // no bitcode next to it
         var (goodDll, goodBitcode) = WriteWindowsToolkit(Path.Combine(toolkits, "v12.0"), legacyLayout: false);
 
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Windows, Env(), toolkits);
@@ -109,8 +117,9 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Contains(Path.Combine(toolkits, "v13.0", "nvvm", "libdevice", "libdevice.10.bc"), tried);
     }
 
+    /// <summary>A root named twice is tried once.</summary>
     [Fact]
-    public void A_root_named_twice_is_tried_once()
+    public void ARootNamedTwiceIsTriedOnce()
     {
         var toolkits = Path.Combine(_root, "toolkits");
         var v130 = Path.Combine(toolkits, "v13.0");
@@ -124,14 +133,15 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Equal(1, tried.Count(path => path == dllPath));   // CUDA_PATH named the same directory as a toolkit version: tried once
     }
 
+    /// <summary>Linux tries cuda path before the toolkit directories.</summary>
     [Fact]
-    public void Linux_tries_cuda_path_before_the_toolkit_directories()
+    public void LinuxTriesCudaPathBeforeTheToolkitDirectories()
     {
         var cudaPath = Path.Combine(_root, "cuda-path");
         var (cudaPathDll, _) = WriteLinuxToolkit(cudaPath);
         var glob = Path.Combine(_root, "usr-local");
-        WriteLinuxToolkit(Path.Combine(glob, "cuda"));
-        WriteLinuxToolkit(Path.Combine(glob, "cuda-13.3"));
+        _ = WriteLinuxToolkit(Path.Combine(glob, "cuda"));
+        _ = WriteLinuxToolkit(Path.Combine(glob, "cuda-13.3"));
 
         var (dll, _, tried) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Linux, Env(cudaPath), glob);
 
@@ -139,14 +149,15 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.All(tried, path => Assert.StartsWith(cudaPath, path));   // neither the fixed root nor a version was ever tried
     }
 
+    /// <summary>Linux tries cuda home before the fixed root and the fixed root before versions.</summary>
     [Fact]
-    public void Linux_tries_cuda_home_before_the_fixed_root_and_the_fixed_root_before_versions()
+    public void LinuxTriesCudaHomeBeforeTheFixedRootAndTheFixedRootBeforeVersions()
     {
         var cudaHome = Path.Combine(_root, "cuda-home");
         var (cudaHomeDll, _) = WriteLinuxToolkit(cudaHome);
         var glob = Path.Combine(_root, "usr-local");
         var (fixedDll, _) = WriteLinuxToolkit(Path.Combine(glob, "cuda"));
-        WriteLinuxToolkit(Path.Combine(glob, "cuda-13.3"));
+        _ = WriteLinuxToolkit(Path.Combine(glob, "cuda-13.3"));
 
         var (dllViaHome, _, _) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Linux, Env(cudaHome: cudaHome), glob);
         Assert.Equal(cudaHomeDll, dllViaHome);   // CUDA_HOME beats a fixed root and a version that also match
@@ -155,12 +166,13 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Equal(fixedDll, dllViaFixed);     // with no CUDA_PATH or CUDA_HOME, the fixed root beats a version that also matches
     }
 
+    /// <summary>Linux orders the versioned directories newest first.</summary>
     [Fact]
-    public void Linux_orders_the_versioned_directories_newest_first()
+    public void LinuxOrdersTheVersionedDirectoriesNewestFirst()
     {
         // cuda-13.3 sorts before cuda-9.0 numerically but after it alphabetically: proves the order is by parsed Version, not by string.
         var glob = Path.Combine(_root, "usr-local");
-        WriteLinuxToolkit(Path.Combine(glob, "cuda-9.0"));
+        _ = WriteLinuxToolkit(Path.Combine(glob, "cuda-9.0"));
         var (v13Dll, _) = WriteLinuxToolkit(Path.Combine(glob, "cuda-13.3"));
 
         var (dll, _, _) = LibDeviceLocator.Locate(new EngineOptions(), LocatorPlatform.Linux, Env(), glob);
@@ -168,11 +180,12 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
         Assert.Equal(v13Dll, dll);
     }
 
+    /// <summary>Linux skips a root that equals an earlier one.</summary>
     [Fact]
-    public void Linux_skips_a_root_that_equals_an_earlier_one()
+    public void LinuxSkipsARootThatEqualsAnEarlierOne()
     {
         var cudaPath = Path.Combine(_root, "cuda-path");
-        WriteFile(Path.Combine(cudaPath, "nvvm", "lib64", "libnvvm.so"));   // no bitcode: never succeeds, so discovery exhausts every root
+        _ = WriteFile(Path.Combine(cudaPath, "nvvm", "lib64", "libnvvm.so"));   // no bitcode: never succeeds, so discovery exhausts every root
         var dllPath = Path.Combine(cudaPath, "nvvm", "lib64", "libnvvm.so");
         var glob = Path.Combine(_root, "usr-local");
 
@@ -207,7 +220,7 @@ public sealed class LibDeviceDiscoveryTests : IDisposable
 
     private static string WriteFile(string path)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, "stub");
         return path;
     }

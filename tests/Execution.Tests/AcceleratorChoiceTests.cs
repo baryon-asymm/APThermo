@@ -1,19 +1,18 @@
 using System.Diagnostics;
 using APThermo.Execution.Chunks;
 using APThermo.Performance;
-using APThermo.Thermo;
 using APThermo.Transport;
 
 namespace APThermo.Execution.Tests;
 
 /// <summary>L0: accelerator choice, the environment variable, libdevice discovery messages, the ILGPU assertion, batch validation.</summary>
-[Collection(EngineCollection.Name)]
-public sealed class AcceleratorChoiceTests(EngineFixture fixture)
+public sealed class AcceleratorChoiceTests
 {
+    /// <summary>The cpu engine names itself and the ilgpu version.</summary>
     [Fact]
-    public void The_cpu_engine_names_itself_and_the_ilgpu_version()
+    public void TheCpuEngineNamesItselfAndTheIlgpuVersion()
     {
-        var info = fixture.Cpu.Accelerator;
+        var info = EngineFixture.Shared.Cpu.Accelerator;
         Assert.Equal(AcceleratorKind.Cpu, info.Kind);
         Assert.Equal(LibDevicePostLink.ExpectedIlgpuVersion, info.IlgpuVersion);
         Assert.Null(info.LibNvvmPath);
@@ -23,8 +22,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Null(info.CudaSkippedBecause);   // an engine asked for the CPU never tried CUDA
     }
 
+    /// <summary>An auto fallback says why cuda was skipped and which paths were tried.</summary>
     [Fact]
-    public void An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried()
+    public void AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried()
     {
         const string dll = @"X:\nowhere\nvvm64_40_0.dll";
         const string bitcode = @"X:\nowhere\libdevice.10.bc";
@@ -52,8 +52,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         }
     }
 
+    /// <summary>An explicit cuda request with paths nowhere names every path tried.</summary>
     [Fact]
-    public void An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried()
+    public void AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried()
     {
         const string dll = @"X:\nowhere\nvvm64_40_0.dll";
         const string bitcode = @"X:\nowhere\libdevice.10.bc";
@@ -70,8 +71,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Equal([dll, bitcode], refused.PathsTried);
     }
 
+    /// <summary>Discovery reports the toolkit paths it examined.</summary>
     [Fact]
-    public void Discovery_reports_the_toolkit_paths_it_examined()
+    public void DiscoveryReportsTheToolkitPathsItExamined()
     {
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions());
 
@@ -125,8 +127,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         return Directory.Exists(toolkitBase) && Directory.GetDirectories(toolkitBase, "v*").Length > 0;
     }
 
+    /// <summary>The variable forbids cuda and auto falls back to the cpu.</summary>
     [Fact]
-    public void The_variable_forbids_cuda_and_auto_falls_back_to_the_cpu()
+    public void TheVariableForbidsCudaAndAutoFallsBackToTheCpu()
     {
         var previous = Environment.GetEnvironmentVariable(EngineOptions.NoCudaVariable);
         try
@@ -146,8 +149,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         }
     }
 
+    /// <summary>No cuda driver is loaded in a process that forbids cuda.</summary>
     [Fact]
-    public void No_cuda_driver_is_loaded_in_a_process_that_forbids_cuda()
+    public void NoCudaDriverIsLoadedInAProcessThatForbidsCuda()
     {
         if (!Engine.CudaForbidden)
         {
@@ -161,8 +165,9 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.DoesNotContain(modules, name => name.Contains("nvvm", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>The ilgpu assertion fails loudly for another version.</summary>
     [Fact]
-    public void The_ilgpu_assertion_fails_loudly_for_another_version()
+    public void TheIlgpuAssertionFailsLoudlyForAnotherVersion()
     {
         var wrong = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.AssertIlgpu("9.9.9.0"));
         Assert.Contains("9.9.9.0", wrong.Message, StringComparison.Ordinal);
@@ -176,36 +181,39 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Contains("__nv_pow", keys);
     }
 
+    /// <summary>Wrapper names are read from the ptx without the prefix.</summary>
     [Fact]
-    public void Wrapper_names_are_read_from_the_ptx_without_the_prefix()
+    public void WrapperNamesAreReadFromThePtxWithoutThePrefix()
     {
         const string ptx = "call.uni (r), __ilgpu__nv_exp, (a);\ncall.uni (r), __ilgpu__nv_log10, (b);\ncall.uni (r), __ilgpu__nv_exp, (c);";
         Assert.Equal(["__nv_exp", "__nv_log10"], LibDevicePostLink.WrappersCalled(ptx));
     }
 
+    /// <summary>Inconsistent batches are refused before any kernel runs.</summary>
     [Fact]
-    public void Inconsistent_batches_are_refused_before_any_kernel_runs()
+    public void InconsistentBatchesAreRefusedBeforeAnyKernelRuns()
     {
-        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
-        using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
+        var family = FixtureBatches.RocketFamilies(EngineFixture.Shared.Database)[0];
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
         var wrongElements = new RocketBatch(2, family.Table.ElementCount + 1, family.Inputs[0].Exits.Kinds);
-        Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongElements));
+        _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, wrongElements));
         var wrongSpecies = new TransportBatch(2, family.Table.SpeciesCount + 1);
-        Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongSpecies));
+        _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, wrongSpecies));
         var wrongEquilibrium = new EquilibriumBatch(2, family.Table.ElementCount + 1);
-        Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, wrongEquilibrium));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new RocketBatch(0, 2, []));
+        _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, wrongEquilibrium));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new RocketBatch(0, 2, []));
 
         using var other = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-        Assert.Throws<ArgumentException>(() => other.Run(tables, family.Batch()));
-        using var withoutTransport = fixture.Cpu.Upload(family.Table);
-        Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(withoutTransport, new TransportBatch(1, family.Table.SpeciesCount)));
-        var otherTable = FixtureBatches.RocketFamilies(fixture.Database)[1].Table;
-        Assert.Throws<ArgumentException>(() => fixture.Cpu.Upload(otherTable, family.Transport));
+        _ = Assert.Throws<ArgumentException>(() => other.Run(tables, family.Batch()));
+        using var withoutTransport = EngineFixture.Shared.Cpu.Upload(family.Table);
+        _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(withoutTransport, new TransportBatch(1, family.Table.SpeciesCount)));
+        var otherTable = FixtureBatches.RocketFamilies(EngineFixture.Shared.Database)[1].Table;
+        _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Upload(otherTable, family.Transport));
     }
 
+    /// <summary>Chunks are bounded by the chunk size and the scratch memory.</summary>
     [Fact]
-    public void Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory()
+    public void ChunksAreBoundedByTheChunkSizeAndTheScratchMemory()
     {
         var small = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10, ScratchBytes = 1000 };
         Assert.Equal(10, ChunkPlan.For(1000, 12, small).Size);            // by chunk size
@@ -213,29 +221,30 @@ public sealed class AcceleratorChoiceTests(EngineFixture fixture)
         Assert.Equal(1, ChunkPlan.For(1000, 8000, small).Size);           // never below one case
         Assert.Equal(3, ChunkPlan.For(3, 12, small).Size);                // never above the count
         Assert.Equal([new Chunk(0, 10), new Chunk(10, 10), new Chunk(20, 5)], ChunkPlan.For(25, 12, small).Chunks());
-        Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 0 }));
+        _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 0 }));
         var refused = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = 0 }));
         Assert.Contains("scratch bound", refused.Message, StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
+        _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
     }
 
+    /// <summary>Result layouts follow the station and species counts.</summary>
     [Fact]
-    public void Result_layouts_follow_the_station_and_species_counts()
+    public void ResultLayoutsFollowTheStationAndSpeciesCounts()
     {
-        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
-        using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
+        var family = FixtureBatches.RocketFamilies(EngineFixture.Shared.Database)[0];
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
         var batch = family.Batch();
-        var result = fixture.Cpu.Run(tables, batch);
+        var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         Assert.Equal(batch.Count, result.Count);
         Assert.Equal(RocketLayout.StationCount(batch.Exits), result.StationCount);
         Assert.Equal(batch.Count * result.StationCount, result.Stations.Length);
         Assert.Equal(batch.Count * result.StationCount, result.Figures.Length);
         Assert.Equal((long)batch.Count * result.StationCount * family.Table.SpeciesCount, result.Moles.LongLength);
-        Assert.Equal(fixture.Cpu.Accelerator, result.Accelerator);
+        Assert.Equal(EngineFixture.Shared.Cpu.Accelerator, result.Accelerator);
         var transport = TransportBatch.FromRocket(result);
         Assert.Equal(result.Stations.Length, transport.Count);
         Assert.Same(result.Moles, transport.Moles);
         Assert.Equal(result.Stations.Select(s => s.Temperature), transport.Temperature);
-        Assert.IsType<TransportFigures[]>(fixture.Cpu.Run(tables, transport).Figures);
+        _ = Assert.IsType<TransportFigures[]>(EngineFixture.Shared.Cpu.Run(tables, transport).Figures);
     }
 }

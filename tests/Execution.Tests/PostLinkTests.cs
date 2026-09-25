@@ -21,14 +21,14 @@ public sealed class PostLinkTests
 
     private const string OneDefinitionCut = ".visible .func  (.param .b64 func_retval0) __ilgpu__nv_log(";
 
+    /// <summary>Every wrapper with a definition passes.</summary>
     [Fact]
-    public void Every_wrapper_with_a_definition_passes()
-    {
+    public void EveryWrapperWithADefinitionPasses() =>
         LibDevicePostLink.AssertEveryWrapperDefined(TwoDefinitions, ["__nv_exp", "__nv_log"]);
-    }
 
+    /// <summary>A wrapper body with one definition removed names that wrapper.</summary>
     [Fact]
-    public void A_wrapper_body_with_one_definition_removed_names_that_wrapper()
+    public void AWrapperBodyWithOneDefinitionRemovedNamesThatWrapper()
     {
         var oneDefinition = TwoDefinitions[..TwoDefinitions.IndexOf(OneDefinitionCut, StringComparison.Ordinal)];
         var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.AssertEveryWrapperDefined(oneDefinition, ["__nv_exp", "__nv_log"]));
@@ -36,18 +36,20 @@ public sealed class PostLinkTests
         Assert.DoesNotContain("__nv_exp", failure.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A wrapper body with every definition removed names every wrapper.</summary>
     [Fact]
-    public void A_wrapper_body_with_every_definition_removed_names_every_wrapper()
+    public void AWrapperBodyWithEveryDefinitionRemovedNamesEveryWrapper()
     {
         var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.AssertEveryWrapperDefined("no definitions in this text", ["__nv_exp", "__nv_log"]));
         Assert.Contains("__nv_exp", failure.Message, StringComparison.Ordinal);
         Assert.Contains("__nv_log", failure.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A call site is not mistaken for a definition.</summary>
     [Fact]
-    public void A_call_site_is_not_mistaken_for_a_definition()
+    public void ACallSiteIsNotMistakenForADefinition()
     {
-        // The call site spells the name followed by a comma, never a parenthesis (see Wrapper_names_are_read_from_the_ptx_without_the_prefix);
+        // The call site spells the name followed by a comma, never a parenthesis (see WrapperNamesAreReadFromThePtxWithoutThePrefix);
         // a guard that searched the whole linked text rather than the wrapper body alone could be fooled by this line into believing a
         // definition exists (F-EX-05).
         const string callSiteOnly = "call.uni (r), __ilgpu__nv_exp, (a);";

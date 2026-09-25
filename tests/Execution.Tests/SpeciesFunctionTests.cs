@@ -4,8 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L2 for the species-function batch: the CPU accelerator equals the host functions bit for bit, CUDA matches within the table.</summary>
-[Collection(EngineCollection.Name)]
-public sealed class SpeciesFunctionTests(EngineFixture fixture)
+public sealed class SpeciesFunctionTests
 {
     /// <summary>Inside, at and beyond the interval bounds of the committed records.</summary>
     private static readonly double[] Temperatures = [150.0, 298.15, 1000.0, 1000.0007, 3500.0, 7000.0];
@@ -27,15 +26,16 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
         return batch;
     }
 
+    /// <summary>The cpu accelerator equals the host functions bit for bit.</summary>
     [Fact]
-    public void The_cpu_accelerator_equals_the_host_functions_bit_for_bit()
+    public void TheCpuAcceleratorEqualsTheHostFunctionsBitForBit()
     {
         var checkedEntries = 0;
-        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database))
+        foreach (var family in FixtureBatches.RocketFamilies(EngineFixture.Shared.Database))
         {
-            using var tables = fixture.Cpu.Upload(family.Table);
+            using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
             var batch = BatchOf(family.Table);
-            var result = fixture.Cpu.Run(tables, batch);
+            var result = EngineFixture.Shared.Cpu.Run(tables, batch);
             Assert.Equal(batch.Count, result.Count);
             var view = tables.SpeciesBuffers.View;
             for (var i = 0; i < batch.Count; i++)
@@ -54,11 +54,12 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
         Assert.True(checkedEntries > 1000, $"only {checkedEntries} entries checked");
     }
 
+    /// <summary>Cuda matches the cpu accelerator within the table.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
-    public void Cuda_matches_the_cpu_accelerator_within_the_table()
+    public void CudaMatchesTheCpuAcceleratorWithinTheTable()
     {
-        var cuda = fixture.RequireCuda();
+        var cuda = EngineFixture.Shared.RequireCuda();
         if (cuda is null)
         {
             return;
@@ -67,12 +68,12 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
         var relative = GpuCpuTolerances.Entries["functions"].Relative;
         var worst = 0.0;
         var mismatches = new List<string>();
-        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database))
+        foreach (var family in FixtureBatches.RocketFamilies(EngineFixture.Shared.Database))
         {
-            using var cpuTables = fixture.Cpu.Upload(family.Table);
+            using var cpuTables = EngineFixture.Shared.Cpu.Upload(family.Table);
             using var cudaTables = cuda.Upload(family.Table);
             var batch = BatchOf(family.Table);
-            var cpu = fixture.Cpu.Run(cpuTables, batch);
+            var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
             var gpu = cuda.Run(cudaTables, batch);
             for (var i = 0; i < batch.Count; i++)
             {
@@ -111,15 +112,16 @@ public sealed class SpeciesFunctionTests(EngineFixture fixture)
         return (mismatches, worst);
     }
 
+    /// <summary>A species index outside the table is refused before any kernel runs.</summary>
     [Fact]
-    public void A_species_index_outside_the_table_is_refused_before_any_kernel_runs()
+    public void ASpeciesIndexOutsideTheTableIsRefusedBeforeAnyKernelRuns()
     {
-        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
-        using var tables = fixture.Cpu.Upload(family.Table);
+        var family = FixtureBatches.RocketFamilies(EngineFixture.Shared.Database)[0];
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
         var batch = new SpeciesFunctionBatch(2);
         batch.Species[1] = family.Table.SpeciesCount;
         batch.Temperature[0] = batch.Temperature[1] = 1000.0;
-        Assert.Throws<ArgumentException>(() => fixture.Cpu.Run(tables, batch));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SpeciesFunctionBatch(0));
+        _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, batch));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new SpeciesFunctionBatch(0));
     }
 }
