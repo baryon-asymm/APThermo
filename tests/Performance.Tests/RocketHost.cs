@@ -1,6 +1,4 @@
 using System.Text.Json;
-using APThermo.Data;
-using APThermo.Equilibrium;
 using APThermo.Fixtures;
 using APThermo.Thermo;
 using ILGPU.Runtime;
@@ -53,9 +51,8 @@ internal sealed record RocketInputs(ChemicalSystem System, Mixture Mixture, doub
 
     /// <summary>The fixture stations the solver's stations correspond to, in solver order: chamber, throat, then the exits without the subsonic ones.</summary>
     public static IReadOnlyList<JsonElement> FixtureStationsOf(CeaCase c) =>
-        c.Outputs.GetProperty("stations").EnumerateArray()
-            .Where(s => !s.GetProperty("station").GetString()!.StartsWith("subsonic", StringComparison.Ordinal))
-            .ToList();
+        [.. c.Outputs.GetProperty("stations").EnumerateArray()
+            .Where(s => !s.GetProperty("station").GetString()!.StartsWith("subsonic", StringComparison.Ordinal))];
 }
 
 /// <summary>The per-station numerical outcome of one rocket solve: the state, the composition and the performance figures.</summary>
@@ -91,8 +88,16 @@ internal static class RocketHost
     }
 
     /// <summary>The rocket fixture files as theory data: the file name without extension.</summary>
-    public static IEnumerable<object[]> Cases() =>
-        FixtureFiles.Enumerate("rocket").Select(path => new object[] { Path.GetFileNameWithoutExtension(path) });
+    public static TheoryData<string> Cases()
+    {
+        var data = new TheoryData<string>();
+        foreach (var path in FixtureFiles.Enumerate("rocket"))
+        {
+            data.Add(Path.GetFileNameWithoutExtension(path));
+        }
+
+        return data;
+    }
 
     public static CeaCase Load(string name) => CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", name + ".json"));
 }

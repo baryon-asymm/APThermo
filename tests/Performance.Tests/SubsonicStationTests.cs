@@ -7,8 +7,7 @@ namespace APThermo.Performance.Tests;
 /// around it are Ok. No fixture reaches the path — a physical case crosses the sonic point in a pass or two — so the station
 /// is driven through <see cref="AreaRatioIteration"/> from an estimate placed deep on the subsonic side.
 /// </summary>
-[Collection(CpuCollection.Name)]
-public sealed class SubsonicStationTests(CpuFixture fixture)
+public sealed class SubsonicStationTests
 {
     /// <summary>
     /// The ln(p_c/p_e) the iteration starts from. The throat of this case lies near 0.55, and the twenty subsonic steps of
@@ -18,13 +17,14 @@ public sealed class SubsonicStationTests(CpuFixture fixture)
 
     private const int FirstExit = RocketLayout.FixedStations;
 
+    /// <summary>A station that never leaves the subsonic side is not converged.</summary>
     [Fact]
-    public void A_station_that_never_leaves_the_subsonic_side_is_not_converged()
+    public void AStationThatNeverLeavesTheSubsonicSideIsNotConverged()
     {
         var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
         var areaRatio = inputs.Exits.Values[0];
-        var table = SpeciesTable.Build(fixture.Database, inputs.System.Elements, inputs.System.Products);
-        using var rocketCase = new RocketCase(fixture.Accelerator, table, inputs);
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, inputs.System.Elements, inputs.System.Products);
+        using var rocketCase = new RocketCase(CpuFixture.Shared.Accelerator, table, inputs);
         var context = rocketCase.Context;
         Assert.Equal(CaseStatus.Ok, ChamberSolve.At(in context, out var chamber));
         Assert.Equal(CaseStatus.Ok, ThroatSearch.At(in context, in chamber, out var throat));
