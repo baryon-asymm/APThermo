@@ -389,7 +389,7 @@ matching the behaviour before the clean-code pass. `DocumentWriter.Deliver` now 
 that one failure of the output path into the documented exit code 2 naming the path;
 every other I/O failure (a permissions error, a full disk) still falls to exit code 3.
 Found by the repair review of 2026-09-15; pinned by
-`ExitCodeTests.A_missing_output_directory_is_exit_2`.
+`ExitCodeTests.AMissingOutputDirectoryIsExit2`.
 
 ⚠ 2026-09-24: "an unexpected failure" reached exit code 3 through a `catch (Exception)`
 in `Program.Run`. The root's Diagnostics constraint forbids that catch (CA1031) and any

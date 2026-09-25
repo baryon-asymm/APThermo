@@ -177,7 +177,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       recorded in the approved snapshot, but no such fixture is run with transport"
       (`ApprovedSnapshot.StaleKeys`; wired by `Transport.Tests`, `Equilibrium.Tests`
       and, since 2026-09-15, `Cli.Tests` (this repair's R-Cli.Tests-1:
-      `Every_example_gives_the_recorded_output` now calls `StaleKeys` too, worded the
+      `EveryExampleGivesTheRecordedOutput` now calls `StaleKeys` too, worded the
       way `Problem`'s own messages are). `Thermo.Tests`, `Performance.Tests` and
       `Problems.Tests` still key their theories from the fixture directory alone and
       do not check for an orphaned approved line - a gap recorded here rather than

@@ -3,19 +3,20 @@ using System.Globalization;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L1: the CSV form against the approved file and its documented layout.</summary>
-[Collection(CliCollection.Name)]
+[Collection(CliCollectionDefinition.Name)]
 public sealed class CsvTests(CliFixture fixture)
 {
     /// <summary>Numbers of the approved file are compared as numbers: a cell may differ in its last digits on another CPU, never in its value.</summary>
     public const double Tolerance = 1e-12;
 
+    /// <summary>The csv of the rocket example matches the approved file.</summary>
     [Fact]
-    public void The_csv_of_the_rocket_example_matches_the_approved_file()
+    public void TheCsvOfTheRocketExampleMatchesTheApprovedFile()
     {
-        var run = fixture.Invoke(fixture.Solving("rocket", fixture.Document("rocket-lox-lh2.json"), "--format", "csv"));
+        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--format", "csv"));
         Assert.Equal(0, run.Code);
         var actual = run.Output.TrimEnd('\n').Split('\n');
-        var approved = File.ReadAllText(fixture.Document("rocket-lox-lh2.approved.csv")).Replace("\r", "").TrimEnd('\n').Split('\n');
+        var approved = File.ReadAllText(CliFixture.Document("rocket-lox-lh2.approved.csv")).Replace("\r", "").TrimEnd('\n').Split('\n');
         Assert.Equal(approved[0], actual[0]);
         Assert.Equal(approved.Length, actual.Length);
         for (var row = 1; row < approved.Length; row++)
@@ -38,10 +39,11 @@ public sealed class CsvTests(CliFixture fixture)
         }
     }
 
+    /// <summary>The csv has one row per case and station and no compositions.</summary>
     [Fact]
-    public void The_csv_has_one_row_per_case_and_station_and_no_compositions()
+    public void TheCsvHasOneRowPerCaseAndStationAndNoCompositions()
     {
-        var run = fixture.Invoke(fixture.Solving("rocket", fixture.Document("rocket-sweep.json"), "--format", "csv"));
+        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("rocket-sweep.json"), "--format", "csv"));
         Assert.Equal(0, run.Code);
         var lines = run.Output.TrimEnd('\n').Split('\n');
         Assert.Equal(1 + 8 * 4, lines.Length);
@@ -53,10 +55,11 @@ public sealed class CsvTests(CliFixture fixture)
         Assert.StartsWith("7,7,7000000,exit2,ok,", lines[^1]);
     }
 
+    /// <summary>An equilibrium csv has one row per case with empty performance and transport cells.</summary>
     [Fact]
-    public void An_equilibrium_csv_has_one_row_per_case_with_empty_performance_and_transport_cells()
+    public void AnEquilibriumCsvHasOneRowPerCaseWithEmptyPerformanceAndTransportCells()
     {
-        var run = fixture.Invoke(fixture.Solving("equilibrium", fixture.Document("equilibrium-hp.json"), "--format", "csv"));
+        var run = CliFixture.Invoke(fixture.Solving("equilibrium", CliFixture.Document("equilibrium-hp.json"), "--format", "csv"));
         Assert.Equal(0, run.Code);
         var lines = run.Output.TrimEnd('\n').Split('\n');
         Assert.Equal(2, lines.Length);

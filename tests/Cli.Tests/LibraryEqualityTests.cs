@@ -6,8 +6,6 @@ using APThermo.Execution;
 using APThermo.Fixtures;
 using APThermo.Problems;
 using APThermo.Thermo;
-using APThermo.Transport;
-using PerformanceFigures = APThermo.Performance.PerformanceFigures;
 using ProblemKind = APThermo.Equilibrium.ProblemKind;
 
 namespace APThermo.Cli.Tests;
@@ -16,14 +14,15 @@ namespace APThermo.Cli.Tests;
 /// L2: the executable's numbers are the library's numbers. The library call is built from the fixture the example document
 /// encodes, not from the document, so that a unit or a value changed in the document is seen.
 /// </summary>
-[Collection(CliCollection.Name)]
+[Collection(CliCollectionDefinition.Name)]
 public sealed class LibraryEqualityTests(CliFixture fixture)
 {
     /// <summary>g0 of the root's invariant, m/s², transcribed rather than read from the node (BOOT.md: so a changed g0 in the node is seen).</summary>
     public const double StandardGravity = 9.80665;
 
+    /// <summary>The rocket example equals the library field by field.</summary>
     [Fact]
-    public void The_rocket_example_equals_the_library_field_by_field()
+    public void TheRocketExampleEqualsTheLibraryFieldByField()
     {
         var c = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json"));
         var inputs = c.Inputs;
@@ -31,15 +30,15 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         foreach (var r in inputs.GetProperty("reactants").EnumerateArray())
         {
             var name = r.GetProperty("name").GetString()!;
-            builder.Add(Reactant.FromDatabase(name, name == "O2(L)" ? ReactantRole.Oxidizer : ReactantRole.Fuel, 1.0, r.GetProperty("temperature").GetDouble()));
+            _ = builder.Add(Reactant.FromDatabase(name, name == "O2(L)" ? ReactantRole.Oxidizer : ReactantRole.Fuel, 1.0, r.GetProperty("temperature").GetDouble()));
         }
 
         var propellant = builder.OxidizerToFuelRatio(inputs.GetProperty("oxidizerToFuelRatio").GetDouble()).Build();
         var problem = new RocketProblem
         {
             ChamberPressure = inputs.GetProperty("chamberPressure").GetDouble(),
-            AreaRatios = inputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble()).ToList(),
-            PressureRatios = inputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble()).ToList(),
+            AreaRatios = [.. inputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble())],
+            PressureRatios = [.. inputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble())],
             Transport = inputs.GetProperty("transport").GetBoolean(),
         };
         using var solver = Solver.Create(fixture.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
@@ -54,8 +53,9 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         AssertCase(expected.Mixture, expected.MixtureMass, expected.Species, expected.Stations, actual, CommandOptions.DefaultThreshold);
     }
 
+    /// <summary>The equilibrium examples equal the library field by field.</summary>
     [Fact]
-    public void The_equilibrium_examples_equal_the_library_field_by_field()
+    public void TheEquilibriumExamplesEqualTheLibraryFieldByField()
     {
         using var solver = Solver.Create(fixture.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
 
@@ -66,7 +66,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         {
             var name = r.GetProperty("name").GetString()!;
             var t = r.GetProperty("temperature");
-            builder.Add(Reactant.FromDatabase(name, name == "O2(L)" ? ReactantRole.Oxidizer : ReactantRole.Fuel, 1.0, t.ValueKind == JsonValueKind.Null ? null : t.GetDouble()));
+            _ = builder.Add(Reactant.FromDatabase(name, name == "O2(L)" ? ReactantRole.Oxidizer : ReactantRole.Fuel, 1.0, t.ValueKind == JsonValueKind.Null ? null : t.GetDouble()));
         }
 
         var propellant = builder.OxidizerToFuelRatio(rocket.GetProperty("oxidizerToFuelRatio").GetDouble()).Build();
@@ -99,8 +99,9 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         Assert.Equal(JsonValueKind.Null, actual.GetProperty("mixture").GetProperty("enthalpy").ValueKind);
     }
 
+    /// <summary>The states example equals the library field by field.</summary>
     [Fact]
-    public void The_states_example_equals_the_library_field_by_field()
+    public void TheStatesExampleEqualsTheLibraryFieldByField()
     {
         // The front door's own state batches (F-AR-02): a record without exits through SolveStates, one with
         // exits through SolveRocketStates, each field checked against the same call the states command now makes.
@@ -119,15 +120,15 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         foreach (var r in rocketInputs.GetProperty("reactants").EnumerateArray())
         {
             var name = r.GetProperty("name").GetString()!;
-            builder.Add(Reactant.FromDatabase(name, name == "O2(L)" ? ReactantRole.Oxidizer : ReactantRole.Fuel, 1.0, r.GetProperty("temperature").GetDouble()));
+            _ = builder.Add(Reactant.FromDatabase(name, name == "O2(L)" ? ReactantRole.Oxidizer : ReactantRole.Fuel, 1.0, r.GetProperty("temperature").GetDouble()));
         }
 
         var propellant = builder.OxidizerToFuelRatio(rocketInputs.GetProperty("oxidizerToFuelRatio").GetDouble()).Build();
         var mixture = solver.MixtureOf(propellant);
         var withExits = new StateRecord(rocketInputs.GetProperty("chamberPressure").GetDouble(), mixture.ElementMoles, Enthalpy: mixture.Enthalpy)
         {
-            AreaRatios = rocketInputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble()).ToList(),
-            PressureRatios = rocketInputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble()).ToList(),
+            AreaRatios = [.. rocketInputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble())],
+            PressureRatios = [.. rocketInputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble())],
         };
         var expectedRocket = Assert.Single(solver.SolveRocketStates([withExits]));
         Assert.Equal(CaseStatus.Ok, expectedRocket.Status);
@@ -136,7 +137,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         var records = new JsonArray(RecordJson(noExits), RecordJson(withExits));
         var path = fixture.TempFile("states-example.json");
         File.WriteAllText(path, records.ToJsonString());
-        var run = fixture.Invoke(fixture.Solving("states", path));
+        var run = CliFixture.Invoke(fixture.Solving("states", path));
         Assert.True(run.Code is 0 or 1, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
         var cases = document.RootElement.GetProperty("cases").EnumerateArray().ToList();
@@ -161,12 +162,12 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
 
         if (record.AreaRatios.Count > 0)
         {
-            json["areaRatios"] = new JsonArray(record.AreaRatios.Select(v => (JsonNode?)v).ToArray());
+            json["areaRatios"] = new JsonArray([.. record.AreaRatios.Select(v => (JsonNode?)v)]);
         }
 
         if (record.PressureRatios.Count > 0)
         {
-            json["pressureRatios"] = new JsonArray(record.PressureRatios.Select(v => (JsonNode?)v).ToArray());
+            json["pressureRatios"] = new JsonArray([.. record.PressureRatios.Select(v => (JsonNode?)v)]);
         }
 
         return json;

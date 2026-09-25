@@ -4,43 +4,47 @@ using APThermo.Cli.Syntax;
 namespace APThermo.Cli.Tests;
 
 /// <summary>L0: option parsing and the usage text.</summary>
-[Collection(CliCollection.Name)]
+[Collection(CliCollectionDefinition.Name)]
 public sealed class CommandLineTests(CliFixture fixture)
 {
+    /// <summary>No command is exit 2 with the usage.</summary>
     [Fact]
-    public void No_command_is_exit_2_with_the_usage()
+    public void NoCommandIsExit2WithTheUsage()
     {
-        var run = fixture.Invoke();
+        var run = CliFixture.Invoke();
         Assert.Equal(2, run.Code);
         Assert.Contains("usage:", run.Error);
         Assert.Empty(run.Output);
     }
 
+    /// <summary>Help prints the usage and exits 0.</summary>
     [Fact]
-    public void Help_prints_the_usage_and_exits_0()
+    public void HelpPrintsTheUsageAndExits0()
     {
-        foreach (var args in new[] { new[] { "--help" }, new[] { "-h" }, new[] { "rocket", "--help" } })
+        foreach (var args in new[] { new[] { "--help" }, ["-h"], ["rocket", "--help"] })
         {
-            var run = fixture.Invoke(args);
+            var run = CliFixture.Invoke(args);
             Assert.Equal(0, run.Code);
             Assert.Contains("commands:", run.Output);
             Assert.Empty(run.Error);
         }
     }
 
+    /// <summary>Version prints the tool version and exits 0.</summary>
     [Fact]
-    public void Version_prints_the_tool_version_and_exits_0()
+    public void VersionPrintsTheToolVersionAndExits0()
     {
-        var run = fixture.Invoke("--version");
+        var run = CliFixture.Invoke("--version");
         Assert.Equal(0, run.Code);
         Assert.Equal(Program.Version, run.Output.Trim());
         Assert.Empty(run.Error);
     }
 
+    /// <summary>Without database the run uses the embedded database.</summary>
     [Fact]
-    public void Without_database_the_run_uses_the_embedded_database()
+    public void WithoutDatabaseTheRunUsesTheEmbeddedDatabase()
     {
-        var run = fixture.Invoke("species", "--format", "json");
+        var run = CliFixture.Invoke("species", "--format", "json");
         Assert.Equal(0, run.Code);
         using var document = run.Json();
         var database = document.RootElement.GetProperty("run").GetProperty("database");
@@ -50,6 +54,7 @@ public sealed class CommandLineTests(CliFixture fixture)
         Assert.Equal(64, database.GetProperty("transSha256").GetString()!.Length);
     }
 
+    /// <summary>Invalid command lines are exit 2 naming the offender.</summary>
     [Theory]
     [InlineData(new[] { "frobnicate" }, "frobnicate")]
     [InlineData(new[] { "rocket", "x.json", "--bogus", "1" }, "--bogus")]
@@ -70,16 +75,17 @@ public sealed class CommandLineTests(CliFixture fixture)
     [InlineData(new[] { "rocket", "x.json", "--output" }, "needs a value")]
     [InlineData(new[] { "rocket", "x.json", "--output", "a", "--output", "b" }, "twice")]
     [InlineData(new[] { "states", "x.json", "--transport=yes" }, "no value")]
-    public void Invalid_command_lines_are_exit_2_naming_the_offender(string[] args, string fragment)
+    public void InvalidCommandLinesAreExit2NamingTheOffender(string[] args, string fragment)
     {
-        var run = fixture.Invoke(args);
+        var run = CliFixture.Invoke(args);
         Assert.Equal(2, run.Code);
         Assert.Contains(fragment, run.Error);
         Assert.Empty(run.Output);
     }
 
+    /// <summary>The usage names every command and option.</summary>
     [Fact]
-    public void The_usage_names_every_command_and_option()
+    public void TheUsageNamesEveryCommandAndOption()
     {
         foreach (var command in CommandTable.Names)
         {
@@ -94,8 +100,9 @@ public sealed class CommandLineTests(CliFixture fixture)
         Assert.Contains("exit codes: 0", CommandTable.Usage);
     }
 
+    /// <summary>Options may be given with an equals sign.</summary>
     [Fact]
-    public void Options_may_be_given_with_an_equals_sign()
+    public void OptionsMayBeGivenWithAnEqualsSign()
     {
         var invocation = CommandLine.Parse(["rocket", "p.json", "--format=csv", "--threshold=1e-3", "--mass-tolerance=0.03", "--accelerator=cpu"]);
         Assert.Equal("rocket", invocation.Command);
@@ -108,23 +115,25 @@ public sealed class CommandLineTests(CliFixture fixture)
         Assert.Equal(Problems.ElementalMixture.DefaultMassTolerance, CommandLine.Parse(["states", "r.json"]).Options.MassTolerance);
     }
 
+    /// <summary>The usage states the library defaults.</summary>
     [Fact]
-    public void The_usage_states_the_library_defaults()
+    public void TheUsageStatesTheLibraryDefaults()
     {
         // The usage text reads the numbers from the same constants the parser defaults to (F-AR-04), not a second typing of them.
         Assert.Contains($"default {CommandOptions.DefaultThreshold.ToString(CultureInfo.InvariantCulture)}", CommandTable.Usage);
         Assert.Contains($"default {Problems.ElementalMixture.DefaultMassTolerance.ToString(CultureInfo.InvariantCulture)}", CommandTable.Usage);
     }
 
+    /// <summary>Every command of the table has a handler.</summary>
     [Fact]
-    public void Every_command_of_the_table_has_a_handler()
+    public void EveryCommandOfTheTableHasAHandler()
     {
         // CommandTable (what the parser accepts) and CommandRegistry (what dispatches) are two tables that could drift
         // apart; a command accepted by the first but missing from the second would fail here as "unknown command".
         foreach (var command in CommandTable.Names)
         {
-            var args = command is "species" or "devices" ? new[] { command } : new[] { command, fixture.TempFile("missing.json") };
-            var run = fixture.Invoke(args);
+            var args = command is "species" or "devices" ? new[] { command } : [command, fixture.TempFile("missing.json")];
+            var run = CliFixture.Invoke(args);
             Assert.DoesNotContain("unknown command", run.Error);
         }
     }
