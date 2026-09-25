@@ -14,6 +14,7 @@ internal static class AcceleratorSelection
     {
         AcceleratorKind.Cpu => new EngineOptions { Accelerator = AcceleratorKind.Cpu },
         AcceleratorKind.Cuda => new EngineOptions { Accelerator = AcceleratorKind.Auto },
+        AcceleratorKind.Auto => throw new NotImplementedException(),
         _ => throw new ArgumentOutOfRangeException(nameof(requested), requested, "expected Cpu or Cuda"),
     };
 }

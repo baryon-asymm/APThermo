@@ -8,12 +8,16 @@ undocumented (root taboo).
 
 ## Entry point ✅
 
+`Program` is `internal` (2026-09-25, the Diagnostics constraint's CA1515): a `Main`
+method needs no accessibility for the .NET runtime to find and run it, and nothing
+outside this assembly, BenchmarkDotNet included, ever references the class by name.
+
 ```csharp
 namespace APThermo.Benchmarks;
 
 // dotnet run -c Release --project tests/Benchmarks -- [BenchmarkDotNet arguments]
 // e.g. --list flat, --filter *UserStates*, --job Dry
-public static class Program
+internal static class Program
 {
     public static int Main(string[] args);   // BenchmarkSwitcher over the groups below, BenchmarkEnvironment.Config
 }
