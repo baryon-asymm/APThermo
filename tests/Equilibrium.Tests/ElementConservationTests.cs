@@ -3,6 +3,7 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0/L1: the element-conservation invariant of the node holds for every converged fixture case.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class ElementConservationTests
 {
     /// <summary>The invariant's tolerance (Equilibrium BOOT.md): |Σ a_ij n_j − b_i| ≤ 1e-12 · max(1, b_i).</summary>

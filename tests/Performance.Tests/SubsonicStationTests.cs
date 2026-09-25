@@ -7,6 +7,7 @@ namespace APThermo.Performance.Tests;
 /// around it are Ok. No fixture reaches the path — a physical case crosses the sonic point in a pass or two — so the station
 /// is driven through <see cref="AreaRatioIteration"/> from an estimate placed deep on the subsonic side.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class SubsonicStationTests
 {
     /// <summary>

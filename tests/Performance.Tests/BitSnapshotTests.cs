@@ -58,6 +58,7 @@ internal static class RocketBits
 /// contract (BOOT.md): a decomposition, a renaming or a reordering of code moves no line, so a moved line is a numerical change
 /// and must be named in the commit that moves it.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class BitSnapshotTests
 {
     private static readonly ApprovedSnapshot Snapshot = ApprovedSnapshot.Load(ApprovedPath);

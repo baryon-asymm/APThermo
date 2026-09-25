@@ -3,6 +3,7 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: an element with zero abundance masks its species; the result equals a table without them, bit for bit.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class AbsentElementTests
 {
     /// <summary>A zero abundance equals a table without the element.</summary>

@@ -9,6 +9,7 @@ namespace APThermo.Transport.Tests;
 /// (the node's InternalsVisibleTo) over a set of three species and two reactions whose second system is singular while the first
 /// is not, which is the case the contract speaks of: the frozen figures are written and the reacting ones equal them.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class StatusTests
 {
     private const int SetSpecies = 3;

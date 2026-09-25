@@ -3,6 +3,7 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L1: condensed species enter and leave the solution as in the reference.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class CondensedSpeciesTests
 {
     private static readonly string[] Kinds = ["tp", "hp", "sp"];

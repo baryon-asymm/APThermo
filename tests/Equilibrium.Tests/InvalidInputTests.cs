@@ -4,6 +4,7 @@ using ILGPU.Runtime;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: the status codes on invalid input, and that nothing but the status is written.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class InvalidInputTests
 {
     private static readonly string[] Elements = ["H", "O"];

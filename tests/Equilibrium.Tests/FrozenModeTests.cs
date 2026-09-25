@@ -4,6 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L1: frozen mode against the frozen stations of the reference rocket cases and against the equilibrium solve itself.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class FrozenModeTests
 {
     /// <summary>

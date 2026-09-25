@@ -3,6 +3,7 @@ using APThermo.Harness;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L1: the probe kernel of the root's math list loads on CUDA through the post-link and matches the CPU accelerator within the ULP bound.</summary>
+[Collection(EngineFixture.CollectionName)]
 public sealed class ProbeKernelTests
 {
     /// <summary>Inputs spanning 26 decades, plus the values around one where Floor and Ceiling differ.</summary>

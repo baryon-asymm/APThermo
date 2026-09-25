@@ -8,6 +8,7 @@ namespace APThermo.Transport.Tests;
 /// figure of every station equals the case's own table bit for bit, because the set's thresholds count the gases of the case and the
 /// sums run over the set in table order.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class AbsentElementTests
 {
     /// <summary>A table with the species of absent elements gives the same bits.</summary>

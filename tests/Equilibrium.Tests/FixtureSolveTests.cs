@@ -3,6 +3,7 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L1: every tp, hp and sp fixture case is solved and compared with the reference, field by field and species by species.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class FixtureSolveTests
 {
     /// <summary>Theory data: the fixture files of a kind, delegating to <see cref="HostSolver.Cases"/>.</summary>

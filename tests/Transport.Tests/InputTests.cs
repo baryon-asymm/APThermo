@@ -5,6 +5,7 @@ using ILGPU.Runtime;
 namespace APThermo.Transport.Tests;
 
 /// <summary>Statuses are values: bad inputs are reported, never thrown.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class InputTests
 {
     private static (SpeciesTable Species, TransportTable Transport) Tables() =>

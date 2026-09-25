@@ -3,6 +3,7 @@ using APThermo.Thermo;
 namespace APThermo.Performance.Tests;
 
 /// <summary>L1: every rocket fixture case is solved and compared with the reference station by station.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class RocketFixtureTests
 {
     /// <summary>The rocket fixture files as theory data, delegating to <see cref="RocketHost.Cases"/>.</summary>

@@ -10,6 +10,7 @@ namespace APThermo.Equilibrium.Tests;
 /// the commit saying so. The same role <c>PublicSurface.approved.txt</c> plays for the contract, and the same shape:
 /// one approved file, an actual file written beside it on a difference, and instructions in the failure.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class BitSnapshotTests
 {
     /// <summary>The problem kinds whose fixture directories the snapshot covers.</summary>

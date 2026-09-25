@@ -10,6 +10,7 @@ namespace APThermo.Transport.Tests;
 /// Bits.approved.txt. A tripwire, not a contract (BOOT.md): a decomposition, a renaming or a reordering of code moves no line,
 /// and a line that does move is legitimate only with the numerical change that moved it named in the same commit.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class BitSnapshotTests
 {
     /// <summary>The properties of the figures in declaration order; read by reflection, so that a new one cannot be forgotten.</summary>

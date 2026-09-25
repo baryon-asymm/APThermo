@@ -3,6 +3,7 @@ using ILGPU.Runtime;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: the internal dense solver against systems with known solutions.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class DenseSolverTests
 {
     /// <summary>Solves a three by three system.</summary>

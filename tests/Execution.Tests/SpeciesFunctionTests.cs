@@ -4,6 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L2 for the species-function batch: the CPU accelerator equals the host functions bit for bit, CUDA matches within the table.</summary>
+[Collection(EngineFixture.CollectionName)]
 public sealed class SpeciesFunctionTests
 {
     /// <summary>Inside, at and beyond the interval bounds of the committed records.</summary>

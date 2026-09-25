@@ -4,6 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L2 on the CPU accelerator: the engine's batches equal the numerical nodes called case by case, bit for bit, whatever the chunking.</summary>
+[Collection(EngineFixture.CollectionName)]
 public sealed class BatchTests
 {
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>

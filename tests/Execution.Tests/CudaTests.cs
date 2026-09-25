@@ -5,6 +5,7 @@ using APThermo.Thermo;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L2 and the benchmark on the reference machine: CUDA against the CPU accelerator within the table, determinism, throughput.</summary>
+[Collection(EngineFixture.CollectionName)]
 public sealed class CudaTests
 {
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>

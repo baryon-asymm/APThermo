@@ -4,6 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Transport.Tests;
 
 /// <summary>L0: the table holds the fits of the file in SI and evaluates them as the independent Python evaluation does.</summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class FitTests
 {
     /// <summary>The transport fit fixture files as theory data, delegating to <see cref="TransportHost.FitCases"/>.</summary>

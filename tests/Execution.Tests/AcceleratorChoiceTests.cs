@@ -6,6 +6,7 @@ using APThermo.Transport;
 namespace APThermo.Execution.Tests;
 
 /// <summary>L0: accelerator choice, the environment variable, libdevice discovery messages, the ILGPU assertion, batch validation.</summary>
+[Collection(EngineFixture.CollectionName)]
 public sealed class AcceleratorChoiceTests
 {
     /// <summary>The cpu engine names itself and the ilgpu version.</summary>

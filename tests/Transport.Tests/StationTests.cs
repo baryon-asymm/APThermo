@@ -9,6 +9,7 @@ namespace APThermo.Transport.Tests;
 /// table; and the node's own invariants (the defect at a trace elimination, the reacting conductivity never below the frozen,
 /// the estimated-species bookkeeping) hold beyond what the reference can check.
 /// </summary>
+[Collection(CpuFixture.CollectionName)]
 public sealed class StationTests
 {
     /// <summary>The reference's reacting conductivity at a defective station is at least this many times its frozen one (Fixtures BOOT.md).</summary>

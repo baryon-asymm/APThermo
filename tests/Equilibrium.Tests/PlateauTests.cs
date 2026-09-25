@@ -10,6 +10,14 @@ namespace APThermo.Equilibrium.Tests;
 /// </summary>
 public sealed class PlateauTests
 {
+    /// <summary>
+    /// This class's own accelerator, not the "cpu" collection's shared <see cref="CpuFixture.Shared"/> (8375261: this
+    /// class used its own <c>IClassFixture&lt;CpuFixture&gt;</c> instance, not the collection fixture the other
+    /// classes of this node share), so this class keeps running in parallel with the "cpu" collection instead of
+    /// serializing behind it.
+    /// </summary>
+    private static readonly CpuFixture Cpu = new();
+
     /// <summary>Candidates this far inside their range are clear of the effective-bound shift at a crossing (CrossingLimit).</summary>
     private const double RangeMargin = 1.5;
 
@@ -18,15 +26,15 @@ public sealed class PlateauTests
     public void AnEnthalpyInsideTheALNGapPinsThePiecesAtTheCut()
     {
         var c = HostSolver.Load("hp", "ap-htpb-al-fuelrich_of0.5_pc7MPa");
-        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var table = HostSolver.BuildTable(Cpu.Database, c);
         var pieces = table.IndicesOf("ALN(L)");
         Assert.Equal(2, pieces.Count);
         var bound = table.Arrays.IntervalBounds[table.Arrays.IntervalStart[pieces[0]] * 2 + 1];   // the cut of the committed record
         var pressure = HostSolver.PressureOf(c);
         var elementMoles = HostSolver.ElementMolesOf(c);
 
-        var below = HostSolver.Solve(CpuFixture.Shared.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles));
-        var above = HostSolver.Solve(CpuFixture.Shared.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles));
+        var below = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles));
+        var above = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles));
         Assert.Equal(CaseStatus.Ok, below.Status);
         Assert.Equal(CaseStatus.Ok, above.Status);
         Assert.True(below.Moles[pieces[0]] > 0.0, "the lower piece must hold the aluminium nitride just under the cut");
@@ -37,7 +45,7 @@ public sealed class PlateauTests
         var gap = above.State.Enthalpy - below.State.Enthalpy;
         Assert.True(gap > 5.0 * (2.0 * below.State.CpEquilibrium), $"the cut must carry a real enthalpy gap, got {gap} J/kg");
         var target = 0.5 * (below.State.Enthalpy + above.State.Enthalpy);
-        var pinned = HostSolver.Solve(CpuFixture.Shared.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
+        var pinned = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
         Assert.Equal(CaseStatus.Ok, pinned.Status);
         Assert.True(pinned.Moles[pieces[0]] > 0.0 && pinned.Moles[pieces[1]] > 0.0,
                     $"both pieces must stand in the solution (n = {pinned.Moles[pieces[0]]:R}, {pinned.Moles[pieces[1]]:R})");
@@ -62,19 +70,19 @@ public sealed class PlateauTests
     public void AnEnthalpyNoAdmissibleSetCanHoldIsRefusedRatherThanLiedAbout()
     {
         var c = HostSolver.Load("hp", "ap-htpb-al-fuelrich_of0.5_pc7MPa");
-        var full = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var full = HostSolver.BuildTable(Cpu.Database, c);
         var pieces = full.IndicesOf("ALN(L)");
         var bound = full.Arrays.IntervalBounds[full.Arrays.IntervalStart[pieces[0]] * 2 + 1];
         var pressure = HostSolver.PressureOf(c);
         var elementMoles = HostSolver.ElementMolesOf(c);
-        var below = HostSolver.Solve(CpuFixture.Shared.Accelerator, new EquilibriumCase(full, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles));
-        var above = HostSolver.Solve(CpuFixture.Shared.Accelerator, new EquilibriumCase(full, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles));
+        var below = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(full, ProblemKind.AssignedTemperaturePressure, pressure, bound - 1.0, 0.0, elementMoles));
+        var above = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(full, ProblemKind.AssignedTemperaturePressure, pressure, bound + 1.0, 0.0, elementMoles));
         var target = 0.5 * (below.State.Enthalpy + above.State.Enthalpy);
 
-        var duo = SpeciesTable.Build(CpuFixture.Shared.Database, HostSolver.ElementsOf(c),
-                                     [.. HostSolver.ProductsOf(c).Where(s => CpuFixture.Shared.Database[s].Phase == SpeciesPhase.Gas
+        var duo = SpeciesTable.Build(Cpu.Database, HostSolver.ElementsOf(c),
+                                     [.. HostSolver.ProductsOf(c).Where(s => Cpu.Database[s].Phase == SpeciesPhase.Gas
                                                                              || s == "AL4C3(cr)" || s == "ALN(L)")]);
-        var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, new EquilibriumCase(duo, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
+        var solution = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(duo, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
         Assert.Equal(CaseStatus.NotConverged, solution.Status);
     }
 
@@ -88,10 +96,10 @@ public sealed class PlateauTests
     public void AnOkSolutionLeavesNoCondensedCandidateWithPositiveInclusionGain(string name)
     {
         var c = HostSolver.Load("hp", name);
-        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
-        var solution = HostSolver.Solve(CpuFixture.Shared, c);
+        var table = HostSolver.BuildTable(Cpu.Database, c);
+        var solution = HostSolver.Solve(Cpu, c);
         Assert.Equal(CaseStatus.Ok, solution.Status);
-        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        using var buffers = SpeciesTableBuffers.Upload(Cpu.Accelerator, table);
         var view = buffers.View;
         var t = solution.State.Temperature;
         var count = table.SpeciesCount;
@@ -127,17 +135,17 @@ public sealed class PlateauTests
     public void AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner()
     {
         var c = HostSolver.Load("hp", "ap-htpb-al-fuelrich_of0.5_pc7MPa");
-        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var table = HostSolver.BuildTable(Cpu.Database, c);
         var pieces = table.IndicesOf("ALN(L)");
         Assert.Equal(2, pieces.Count);
         var lower = pieces[0];
         var upper = pieces[1];
 
-        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        using var buffers = SpeciesTableBuffers.Upload(Cpu.Accelerator, table);
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
-        using var doubles = CpuFixture.Shared.Accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        using var ints = CpuFixture.Shared.Accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        using var doubles = Cpu.Accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        using var ints = Cpu.Accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
         for (var j = 0; j < speciesCount; j++)
         {
