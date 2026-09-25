@@ -15,7 +15,7 @@ namespace APThermo.Cli.Tests;
 /// encodes, not from the document, so that a unit or a value changed in the document is seen.
 /// </summary>
 [Collection("cli")]
-public sealed class LibraryEqualityTests(CliFixture fixture)
+public sealed class LibraryEqualityTests
 {
     /// <summary>g0 of the root's invariant, m/s², transcribed rather than read from the node (BOOT.md: so a changed g0 in the node is seen).</summary>
     public const double StandardGravity = 9.80665;
@@ -26,7 +26,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
     {
         var c = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json"));
         var inputs = c.Inputs;
-        var builder = Propellant.From(fixture.Database);
+        var builder = Propellant.From(CliFixture.Shared.Database);
         foreach (var r in inputs.GetProperty("reactants").EnumerateArray())
         {
             var name = r.GetProperty("name").GetString()!;
@@ -41,11 +41,11 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
             PressureRatios = [.. inputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble())],
             Transport = inputs.GetProperty("transport").GetBoolean(),
         };
-        using var solver = Solver.Create(fixture.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        using var solver = Solver.Create(CliFixture.Shared.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
         var expected = solver.Solve(propellant, problem);
         Assert.Equal(CaseStatus.Ok, expected.Status);
 
-        var (code, document, _) = fixture.Produce("rocket", "rocket-lox-lh2.json");
+        var (code, document, _) = CliFixture.Shared.Produce("rocket", "rocket-lox-lh2.json");
         Assert.Equal(0, code);
         var actual = Assert.Single(document.RootElement.GetProperty("cases").EnumerateArray());
         Assert.Equal(propellant.OxidizerToFuelRatio, actual.GetProperty("inputs").GetProperty("oxidizerToFuel").GetDouble());
@@ -57,11 +57,11 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
     [Fact]
     public void TheEquilibriumExamplesEqualTheLibraryFieldByField()
     {
-        using var solver = Solver.Create(fixture.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        using var solver = Solver.Create(CliFixture.Shared.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
 
         // hp at the chamber pressure of the LOX/RP-1 reference case, the enthalpy the propellant's own
         var rocket = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium.json")).Inputs;
-        var builder = Propellant.From(fixture.Database);
+        var builder = Propellant.From(CliFixture.Shared.Database);
         foreach (var r in rocket.GetProperty("reactants").EnumerateArray())
         {
             var name = r.GetProperty("name").GetString()!;
@@ -72,7 +72,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
         var propellant = builder.OxidizerToFuelRatio(rocket.GetProperty("oxidizerToFuelRatio").GetDouble()).Build();
         var hp = solver.Solve(propellant, new EquilibriumProblem { Kind = ProblemKind.AssignedEnthalpyPressure, Pressure = rocket.GetProperty("chamberPressure").GetDouble() });
         Assert.Equal(CaseStatus.Ok, hp.Status);
-        var (code, document, _) = fixture.Produce("equilibrium", "equilibrium-hp.json");
+        var (code, document, _) = CliFixture.Shared.Produce("equilibrium", "equilibrium-hp.json");
         Assert.Equal(0, code);
         var actual = Assert.Single(document.RootElement.GetProperty("cases").EnumerateArray());
         Assert.Equal("hp", actual.GetProperty("inputs").GetProperty("kind").GetString());
@@ -91,7 +91,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
             Transport = true,
         });
         Assert.Equal(CaseStatus.Ok, state.Status);
-        (code, document, _) = fixture.Produce("equilibrium", "equilibrium-tp-elemental.json");
+        (code, document, _) = CliFixture.Shared.Produce("equilibrium", "equilibrium-tp-elemental.json");
         Assert.Equal(0, code);
         actual = Assert.Single(document.RootElement.GetProperty("cases").EnumerateArray());
         Assert.False(actual.GetProperty("inputs").TryGetProperty("oxidizerToFuel", out _));
@@ -105,9 +105,9 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
     {
         // The front door's own state batches (F-AR-02): a record without exits through SolveStates, one with
         // exits through SolveRocketStates, each field checked against the same call the states command now makes.
-        using var solver = Solver.Create(fixture.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        using var solver = Solver.Create(CliFixture.Shared.Database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
 
-        // Without exits: the N2O4/UDMH chamber, tp from element moles (the same fixture as the equilibrium tp-elemental example above).
+        // Without exits: the N2O4/UDMH chamber, tp from element moles (the same CliFixture.Shared as the equilibrium tp-elemental example above).
         var tp = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "tp", "nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_chamber.json")).Inputs;
         var moles = tp.GetProperty("elementMoles").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetDouble() * 1e3, StringComparer.Ordinal);
         var noExits = new StateRecord(tp.GetProperty("pressure").GetDouble(), moles, Temperature: tp.GetProperty("temperature").GetDouble());
@@ -116,7 +116,7 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
 
         // With exits: the LOX/LH2 rocket example's own mixture and enthalpy, from the library's own MixtureOf, not typed.
         var rocketInputs = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json")).Inputs;
-        var builder = Propellant.From(fixture.Database);
+        var builder = Propellant.From(CliFixture.Shared.Database);
         foreach (var r in rocketInputs.GetProperty("reactants").EnumerateArray())
         {
             var name = r.GetProperty("name").GetString()!;
@@ -135,9 +135,9 @@ public sealed class LibraryEqualityTests(CliFixture fixture)
 
         // The same two records, read by the CLI's states command, in that order.
         var records = new JsonArray(RecordJson(noExits), RecordJson(withExits));
-        var path = fixture.TempFile("states-example.json");
+        var path = CliFixture.Shared.TempFile("states-example.json");
         File.WriteAllText(path, records.ToJsonString());
-        var run = CliFixture.Invoke(fixture.Solving("states", path));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("states", path));
         Assert.True(run.Code is 0 or 1, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
         var cases = document.RootElement.GetProperty("cases").EnumerateArray().ToList();

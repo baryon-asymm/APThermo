@@ -4,13 +4,13 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>The command line as a separate process: real exit codes and standard streams, one run per exit code.</summary>
 [Collection("cli")]
-public sealed class ProcessTests(CliFixture fixture)
+public sealed class ProcessTests
 {
     /// <summary>The executable writes the document to standard output with exit 0.</summary>
     [Fact]
     public void TheExecutableWritesTheDocumentToStandardOutputWithExit0()
     {
-        var run = fixture.InvokeProcess(fixture.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json")));
+        var run = CliFixture.Shared.InvokeProcess(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json")));
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         Assert.Empty(run.Error);
         using var document = run.Json();
@@ -23,7 +23,7 @@ public sealed class ProcessTests(CliFixture fixture)
     [Fact]
     public void TheExecutableReturns1ForAFailingCaseAndStillWritesTheDocument()
     {
-        var run = fixture.InvokeProcess(fixture.Solving("rocket", CliFixture.Document("rocket-failing.json")));
+        var run = CliFixture.Shared.InvokeProcess(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-failing.json")));
         Assert.Equal(1, run.Code);
         using var document = run.Json();
         Assert.NotEqual("ok", document.RootElement.GetProperty("cases")[0].GetProperty("status").GetString());
@@ -33,7 +33,7 @@ public sealed class ProcessTests(CliFixture fixture)
     [Fact]
     public void TheExecutableReportsInvalidInputOnStandardErrorWithExit2()
     {
-        var run = fixture.InvokeProcess(fixture.Solving("rocket", CliFixture.Document(Path.Combine("invalid", "unknown-field.json"))));
+        var run = CliFixture.Shared.InvokeProcess(CliFixture.Shared.Solving("rocket", CliFixture.Document(Path.Combine("invalid", "unknown-field.json"))));
         Assert.Equal(2, run.Code);
         Assert.Contains("unknown field 'expansionRatio'", run.Error);
         Assert.Empty(run.Output);
@@ -43,7 +43,7 @@ public sealed class ProcessTests(CliFixture fixture)
     [Fact]
     public void TheExecutableReportsAForbiddenAcceleratorWithExit3()
     {
-        var run = fixture.InvokeProcess(["rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath, "--accelerator", "cuda"],
+        var run = CliFixture.Shared.InvokeProcess(["rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", CliFixture.Shared.DatabasePath, "--accelerator", "cuda"],
                                         new Dictionary<string, string> { [EngineOptions.NoCudaVariable] = "1" });
         Assert.Equal(3, run.Code);
         Assert.Contains(EngineOptions.NoCudaVariable, run.Error);
@@ -54,7 +54,7 @@ public sealed class ProcessTests(CliFixture fixture)
     [Fact]
     public void TheExecutablePrintsItsVersionWithExit0()
     {
-        var run = fixture.InvokeProcess(["--version"]);
+        var run = CliFixture.Shared.InvokeProcess(["--version"]);
         Assert.Equal(0, run.Code);
         Assert.Equal(Program.Version, run.Output.Trim());
         Assert.Empty(run.Error);
@@ -64,7 +64,7 @@ public sealed class ProcessTests(CliFixture fixture)
     [Fact]
     public void TheExecutableUsesTheEmbeddedDatabaseFromAnEmptyWorkingDirectory()
     {
-        var run = fixture.InvokeProcess(["species"]);
+        var run = CliFixture.Shared.InvokeProcess(["species"]);
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
         var database = document.RootElement.GetProperty("run").GetProperty("database");

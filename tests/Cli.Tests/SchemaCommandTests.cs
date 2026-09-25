@@ -9,7 +9,7 @@ namespace APThermo.Cli.Tests;
 /// typed list; a missing or an unknown name is exit code 2, no document, every embedded name in the message.
 /// </summary>
 [Collection("cli")]
-public sealed class SchemaCommandTests(CliFixture fixture)
+public sealed class SchemaCommandTests
 {
     private const string Extension = ".schema.json";
 
@@ -40,7 +40,7 @@ public sealed class SchemaCommandTests(CliFixture fixture)
     public void TheOutputOptionWritesExactlyTheFileBytes(string name)
     {
         var expected = File.ReadAllBytes(Path.Combine(SchemasDirectory, name + Extension));
-        var target = fixture.TempFile(name + Extension);
+        var target = CliFixture.Shared.TempFile(name + Extension);
         var run = CliFixture.Invoke("schema", name, "--output", target);
         Assert.Equal(0, run.Code);
         Assert.Empty(run.Output);

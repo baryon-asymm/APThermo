@@ -11,7 +11,7 @@ namespace APThermo.Cli.Tests;
 /// reordering of code moves no line; a legitimate change of the documents does, and is reviewed and re-approved with it.
 /// </summary>
 [Collection("cli")]
-public sealed class BitSnapshotTests(CliFixture fixture)
+public sealed class BitSnapshotTests
 {
     private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");
 
@@ -21,7 +21,7 @@ public sealed class BitSnapshotTests(CliFixture fixture)
     public void EveryExampleGivesTheRecordedOutput()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
-        var examples = BitExamples.ComputeAll(fixture);
+        var examples = BitExamples.ComputeAll();
         var problems = new List<string>();
         foreach (var example in examples)
         {
@@ -51,11 +51,11 @@ public sealed class BitSnapshotTests(CliFixture fixture)
     public void TheCapturedTextMatchesTheBytesDeliveredToTheOutputFile()
     {
         var document = CliFixture.Document("rocket-lox-lh2.json");
-        var captured = CliFixture.Invoke(fixture.Solving("rocket", document));
+        var captured = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", document));
         Assert.True(captured.Code is 0 or 1, $"exit code {captured.Code}: {captured.Error}");
 
-        var path = fixture.TempFile("delivered-lox-lh2.json");
-        var delivered = CliFixture.Invoke(fixture.Solving("rocket", document, "--output", path));
+        var path = CliFixture.Shared.TempFile("delivered-lox-lh2.json");
+        var delivered = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", document, "--output", path));
         Assert.True(delivered.Code is 0 or 1, $"exit code {delivered.Code}: {delivered.Error}");
 
         var capturedBytes = RunPropertyCut.Bytes(Encoding.UTF8.GetBytes(captured.Output), "the captured text");
@@ -80,33 +80,33 @@ internal sealed record RawExample(string Name, string Json, string Csv);
 /// </summary>
 internal static class BitExamples
 {
-    public static IReadOnlyList<BitExample> ComputeAll(CliFixture fixture) =>
-        [.. RawExamples(fixture).Select(e => new BitExample(e.Name, JsonSha256(e.Json, e.Name), Sha256(e.Csv)))];
+    public static IReadOnlyList<BitExample> ComputeAll() =>
+        [.. RawExamples().Select(e => new BitExample(e.Name, JsonSha256(e.Json, e.Name), Sha256(e.Csv)))];
 
     /// <summary>The same examples, before either the JSON or the CSV text is hashed (the delivered-bytes proof above reads this).</summary>
-    public static IReadOnlyList<RawExample> RawExamples(CliFixture fixture)
+    public static IReadOnlyList<RawExample> RawExamples()
     {
         var examples = new List<RawExample>();
         foreach (var name in CliFixture.ProblemDocumentNames())
         {
             var command = name.StartsWith("rocket", StringComparison.Ordinal) ? "rocket" : "equilibrium";
-            examples.Add(FromArgs(name, fixture.Solving(command, CliFixture.Document(name)), fixture.Solving(command, CliFixture.Document(name), "--format", "csv")));
+            examples.Add(FromArgs(name, CliFixture.Shared.Solving(command, CliFixture.Document(name)), CliFixture.Shared.Solving(command, CliFixture.Document(name), "--format", "csv")));
         }
 
         foreach (var name in CliFixture.StatesDocumentNames())
         {
-            examples.Add(FromArgs(name, fixture.Solving("states", CliFixture.Document(name)), fixture.Solving("states", CliFixture.Document(name), "--format", "csv")));
+            examples.Add(FromArgs(name, CliFixture.Shared.Solving("states", CliFixture.Document(name)), CliFixture.Shared.Solving("states", CliFixture.Document(name), "--format", "csv")));
         }
 
-        examples.AddRange(ApiProblemExamples(fixture));
-        examples.AddRange(ApiRecordExamples(fixture));
+        examples.AddRange(ApiProblemExamples());
+        examples.AddRange(ApiRecordExamples());
         examples.Add(FromArgs("species",
-            ["species", "--database", fixture.DatabasePath], ["species", "--database", fixture.DatabasePath, "--format", "csv"]));
+            ["species", "--database", CliFixture.Shared.DatabasePath], ["species", "--database", CliFixture.Shared.DatabasePath, "--format", "csv"]));
         return [.. examples.OrderBy(e => e.Name, StringComparer.Ordinal)];
     }
 
     /// <summary>The `## Input document` fences of the Cli API, each solved through the command its own problem type names.</summary>
-    private static IEnumerable<RawExample> ApiProblemExamples(CliFixture fixture)
+    private static IEnumerable<RawExample> ApiProblemExamples()
     {
         var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
         var inputs = CliFixture.JsonFencesOf(api, "## Input document ✅");
@@ -114,24 +114,24 @@ internal static class BitExamples
         {
             var name = $"API.md input example {i}";
             var isRocket = ProblemDocumentReader.Read(inputs[i], name).Problem is RocketDocument;
-            var path = fixture.TempFile($"bits-input-{i}.json");
+            var path = CliFixture.Shared.TempFile($"bits-input-{i}.json");
             File.WriteAllText(path, inputs[i]);
             var command = isRocket ? "rocket" : "equilibrium";
-            yield return FromArgs(name, fixture.Solving(command, path), fixture.Solving(command, path, "--format", "csv"));
+            yield return FromArgs(name, CliFixture.Shared.Solving(command, path), CliFixture.Shared.Solving(command, path, "--format", "csv"));
         }
     }
 
     /// <summary>The `## Command line` state-record fences of the Cli API, each solved through `states`.</summary>
-    private static IEnumerable<RawExample> ApiRecordExamples(CliFixture fixture)
+    private static IEnumerable<RawExample> ApiRecordExamples()
     {
         var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
         var records = CliFixture.JsonFencesOf(api, "## Command line ✅");
         for (var i = 0; i < records.Count; i++)
         {
             var name = $"API.md record example {i}";
-            var path = fixture.TempFile($"bits-record-{i}.json");
+            var path = CliFixture.Shared.TempFile($"bits-record-{i}.json");
             File.WriteAllText(path, records[i]);
-            yield return FromArgs(name, fixture.Solving("states", path), fixture.Solving("states", path, "--format", "csv"));
+            yield return FromArgs(name, CliFixture.Shared.Solving("states", path), CliFixture.Shared.Solving("states", path, "--format", "csv"));
         }
     }
 

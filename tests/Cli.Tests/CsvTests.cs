@@ -4,7 +4,7 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>L1: the CSV form against the approved file and its documented layout.</summary>
 [Collection("cli")]
-public sealed class CsvTests(CliFixture fixture)
+public sealed class CsvTests
 {
     /// <summary>Numbers of the approved file are compared as numbers: a cell may differ in its last digits on another CPU, never in its value.</summary>
     public const double Tolerance = 1e-12;
@@ -13,7 +13,7 @@ public sealed class CsvTests(CliFixture fixture)
     [Fact]
     public void TheCsvOfTheRocketExampleMatchesTheApprovedFile()
     {
-        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--format", "csv"));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--format", "csv"));
         Assert.Equal(0, run.Code);
         var actual = run.Output.TrimEnd('\n').Split('\n');
         var approved = File.ReadAllText(CliFixture.Document("rocket-lox-lh2.approved.csv")).Replace("\r", "").TrimEnd('\n').Split('\n');
@@ -43,7 +43,7 @@ public sealed class CsvTests(CliFixture fixture)
     [Fact]
     public void TheCsvHasOneRowPerCaseAndStationAndNoCompositions()
     {
-        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("rocket-sweep.json"), "--format", "csv"));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-sweep.json"), "--format", "csv"));
         Assert.Equal(0, run.Code);
         var lines = run.Output.TrimEnd('\n').Split('\n');
         Assert.Equal(1 + 8 * 4, lines.Length);
@@ -59,7 +59,7 @@ public sealed class CsvTests(CliFixture fixture)
     [Fact]
     public void AnEquilibriumCsvHasOneRowPerCaseWithEmptyPerformanceAndTransportCells()
     {
-        var run = CliFixture.Invoke(fixture.Solving("equilibrium", CliFixture.Document("equilibrium-hp.json"), "--format", "csv"));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("equilibrium", CliFixture.Document("equilibrium-hp.json"), "--format", "csv"));
         Assert.Equal(0, run.Code);
         var lines = run.Output.TrimEnd('\n').Split('\n');
         Assert.Equal(2, lines.Length);

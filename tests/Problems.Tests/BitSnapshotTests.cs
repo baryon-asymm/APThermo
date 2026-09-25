@@ -18,7 +18,7 @@ namespace APThermo.Problems.Tests;
 /// either a defect of the refactoring or a numerical change that must be named and re-approved in the same commit.
 /// </summary>
 [Collection("solver")]
-public sealed class BitSnapshotTests(SolverFixture fixture)
+public sealed class BitSnapshotTests
 {
     /// <summary>The path of this node's approved bit snapshot, platform-specific (root BOOT.md, Constraints).</summary>
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
@@ -34,8 +34,8 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
         foreach (var path in FixtureFiles.Enumerate("rocket"))
         {
             var c = CeaFixtures.Load(path);
-            var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-            var result = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
+            var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+            var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
             Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
         }
 
@@ -44,15 +44,15 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
             foreach (var path in FixtureFiles.Enumerate(kind))
             {
                 var c = CeaFixtures.Load(path);
-                var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-                var result = fixture.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
+                var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+                var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
                 Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
             }
         }
 
         foreach (var stale in snapshot.StaleKeys(keys))
         {
-            problems.Add($"{stale}: recorded in Bits.approved.txt but no enumerated fixture produced it");
+            problems.Add($"{stale}: recorded in Bits.approved.txt but no enumerated SolverFixture.Shared produced it");
         }
 
         Assert.True(problems.Count == 0,

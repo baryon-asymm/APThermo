@@ -8,7 +8,7 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>L0 and L1: the four exit codes in-process; the third one as a process, in ProcessTests.</summary>
 [Collection("cli")]
-public sealed class ExitCodeTests(CliFixture fixture)
+public sealed class ExitCodeTests
 {
     /// <summary>Relative slack on a mass read back from a message (as InputDocumentTests.GramsTolerance): the message rounds it to about 7 significant figures.</summary>
     private const double GramsTolerance = 1e-6;
@@ -24,8 +24,8 @@ public sealed class ExitCodeTests(CliFixture fixture)
     [Fact]
     public void AGoodDocumentIsExit0AndWritesTheDocumentToTheOutputPath()
     {
-        var output = fixture.TempFile("ok.json");
-        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--output", output));
+        var output = CliFixture.Shared.TempFile("ok.json");
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--output", output));
         Assert.Equal(0, run.Code);
         Assert.Empty(run.Output);
         Assert.Empty(run.Error);
@@ -40,7 +40,7 @@ public sealed class ExitCodeTests(CliFixture fixture)
     [Fact]
     public void AFailingCaseIsExit1WithTheStatusInTheDocument()
     {
-        var (code, document, _) = fixture.Produce("rocket", "rocket-failing.json");
+        var (code, document, _) = CliFixture.Shared.Produce("rocket", "rocket-failing.json");
         Assert.Equal(1, code);
         var c = document.RootElement.GetProperty("cases")[0];
         Assert.NotEqual("ok", c.GetProperty("status").GetString());
@@ -54,10 +54,10 @@ public sealed class ExitCodeTests(CliFixture fixture)
     [Fact]
     public void TheDocumentTypeMustMatchTheCommand()
     {
-        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("equilibrium-hp.json")));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Document("equilibrium-hp.json")));
         Assert.Equal(2, run.Code);
         Assert.Contains("run apthermo equilibrium", run.Error);
-        run = CliFixture.Invoke(fixture.Solving("equilibrium", CliFixture.Document("rocket-lox-lh2.json")));
+        run = CliFixture.Invoke(CliFixture.Shared.Solving("equilibrium", CliFixture.Document("rocket-lox-lh2.json")));
         Assert.Equal(2, run.Code);
         Assert.Contains("run apthermo rocket", run.Error);
     }
@@ -66,10 +66,10 @@ public sealed class ExitCodeTests(CliFixture fixture)
     [Fact]
     public void AMissingInputFileOrDatabaseDirectoryIsExit2()
     {
-        var run = CliFixture.Invoke(fixture.Solving("rocket", fixture.TempFile("nowhere.json")));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Shared.TempFile("nowhere.json")));
         Assert.Equal(2, run.Code);
         Assert.Contains("input file not found", run.Error);
-        run = CliFixture.Invoke("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", fixture.TempFile("nowhere"), "--accelerator", "cpu");
+        run = CliFixture.Invoke("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", CliFixture.Shared.TempFile("nowhere"), "--accelerator", "cpu");
         Assert.Equal(2, run.Code);
         Assert.Contains("thermo.inp", run.Error);
     }
@@ -78,8 +78,8 @@ public sealed class ExitCodeTests(CliFixture fixture)
     [Fact]
     public void AMissingOutputDirectoryIsExit2()
     {
-        var output = fixture.TempFile(Path.Combine("nowhere", "out.json"));
-        var run = CliFixture.Invoke(fixture.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--output", output));
+        var output = CliFixture.Shared.TempFile(Path.Combine("nowhere", "out.json"));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--output", output));
         Assert.Equal(2, run.Code);
         Assert.Contains(output, run.Error);
         Assert.Contains("directory not found", run.Error);
@@ -90,8 +90,8 @@ public sealed class ExitCodeTests(CliFixture fixture)
     [Fact]
     public void TransportOnADatabaseWithoutTheTransportFileIsExit2()
     {
-        var directory = Directory.CreateDirectory(fixture.TempFile("thermo-only")).FullName;
-        File.Copy(Path.Combine(fixture.DatabasePath, "thermo.inp"), Path.Combine(directory, "thermo.inp"), true);
+        var directory = Directory.CreateDirectory(CliFixture.Shared.TempFile("thermo-only")).FullName;
+        File.Copy(Path.Combine(CliFixture.Shared.DatabasePath, "thermo.inp"), Path.Combine(directory, "thermo.inp"), true);
         var run = CliFixture.Invoke("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", directory, "--accelerator", "cpu");
         Assert.Equal(2, run.Code);
         Assert.Contains("trans.inp", run.Error);
@@ -106,7 +106,7 @@ public sealed class ExitCodeTests(CliFixture fixture)
     public void ARecordThatWeighsOneKilogramIsExit0AndOneThatDoesNotIsNamedByItsLine()
     {
         // The record another simulation handed over (1000.015 g with the database's atomic weights) solves.
-        var (code, document, _) = fixture.Produce("states", "states-ap-al-record.json");
+        var (code, document, _) = CliFixture.Shared.Produce("states", "states-ap-al-record.json");
         Assert.Equal(0, code);
         var solved = Assert.Single(document.RootElement.GetProperty("cases").EnumerateArray());
         Assert.Equal("ok", solved.GetProperty("status").GetString());
@@ -116,9 +116,9 @@ public sealed class ExitCodeTests(CliFixture fixture)
         var good = JsonNode.Parse(File.ReadAllText(CliFixture.Document("states-ap-al-record.json")))![0]!;
         var doubled = JsonNode.Parse(File.ReadAllText(CliFixture.Document(Path.Combine("invalid", "states-two-kilograms.json"))))![0]!.AsObject();
         doubled["areaRatios"] = new JsonArray(10.0);
-        var lines = fixture.TempFile("mixed.jsonl");
+        var lines = CliFixture.Shared.TempFile("mixed.jsonl");
         File.WriteAllText(lines, good.ToJsonString() + "\n" + doubled.ToJsonString() + "\n");
-        var run = CliFixture.Invoke(fixture.Solving("states", lines));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("states", lines));
         Assert.Equal(2, run.Code);
         var prefix = $"{lines}:2: the composition weighs ";
         Assert.Contains(prefix, run.Error);
@@ -128,7 +128,7 @@ public sealed class ExitCodeTests(CliFixture fixture)
         var reported = double.Parse(run.Error[start..end], CultureInfo.InvariantCulture);
         // Read numerically rather than matched as text (InputDocumentTests.AssertMassReported): the message rounds
         // the mass it reports, so a full-precision, independently derived mass matches it only up to a relative tolerance.
-        var expectedGrams = fixture.GramsOf(CliFixture.CompositionOf(doubled["composition"]!));
+        var expectedGrams = CliFixture.Shared.GramsOf(CliFixture.CompositionOf(doubled["composition"]!));
         Assert.True(Math.Abs(reported - expectedGrams) <= GramsTolerance * Math.Max(1.0, Math.Abs(expectedGrams)), $"reported {reported:R} g, derived {expectedGrams:R} g");
         Assert.Empty(run.Output);
     }
@@ -149,23 +149,23 @@ public sealed class ExitCodeTests(CliFixture fixture)
                 composition[symbol] = composition[symbol]!.GetValue<double>() * factor;
             }
 
-            var path = fixture.TempFile(name);
+            var path = CliFixture.Shared.TempFile(name);
             File.WriteAllText(path, scaled.ToJsonString());
             return path;
         }
 
         var heavy = Scaled(1.02, "heavy-2pct.json");
-        var run = CliFixture.Invoke(fixture.Solving("states", heavy));
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("states", heavy));
         Assert.Equal(2, run.Code);
         Assert.Contains("within 1 %", run.Error);
-        run = CliFixture.Invoke(fixture.Solving("states", heavy, "--mass-tolerance", "0.03"));
+        run = CliFixture.Invoke(CliFixture.Shared.Solving("states", heavy, "--mass-tolerance", "0.03"));
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
         Assert.Equal(0.03, document.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
         var mass = document.RootElement.GetProperty("cases")[0].GetProperty("mixture").GetProperty("mass").GetDouble();
         Assert.True(Math.Abs(mass - 1.02) < ScaledMassTolerance, $"mass {mass:R} kg");
 
-        run = CliFixture.Invoke(fixture.Solving("states", Scaled(1.05, "heavy-5pct.json"), "--mass-tolerance", "0.03"));
+        run = CliFixture.Invoke(CliFixture.Shared.Solving("states", Scaled(1.05, "heavy-5pct.json"), "--mass-tolerance", "0.03"));
         Assert.Equal(2, run.Code);
         Assert.Contains("within 3 %", run.Error);
         Assert.Empty(run.Output);

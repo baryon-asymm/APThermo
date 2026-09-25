@@ -5,7 +5,7 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>L0: option parsing and the usage text.</summary>
 [Collection("cli")]
-public sealed class CommandLineTests(CliFixture fixture)
+public sealed class CommandLineTests
 {
     /// <summary>No command is exit 2 with the usage.</summary>
     [Fact]
@@ -132,7 +132,7 @@ public sealed class CommandLineTests(CliFixture fixture)
         // apart; a command accepted by the first but missing from the second would fail here as "unknown command".
         foreach (var command in CommandTable.Names)
         {
-            var args = command is "species" or "devices" ? new[] { command } : [command, fixture.TempFile("missing.json")];
+            var args = command is "species" or "devices" ? new[] { command } : [command, CliFixture.Shared.TempFile("missing.json")];
             var run = CliFixture.Invoke(args);
             Assert.DoesNotContain("unknown command", run.Error);
         }

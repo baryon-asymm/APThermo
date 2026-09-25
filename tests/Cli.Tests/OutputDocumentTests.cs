@@ -13,7 +13,7 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>L1: every example document runs end to end and its result validates against the output schema; sweeps, states, thresholds, listings.</summary>
 [Collection("cli")]
-public sealed class OutputDocumentTests(CliFixture fixture)
+public sealed class OutputDocumentTests
 {
     /// <summary>Relative slack on an area ratio read back from a rocket station against the sweep or record document's own value: the performance node iterates an area-ratio exit past the report's tolerance to 1e-10 when it can (Performance API.md), so a reported station is at rounding level.</summary>
     private const double AreaRatioTolerance = 1e-9;
@@ -42,7 +42,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     {
         ArgumentNullException.ThrowIfNull(name);
         var command = name.StartsWith("rocket", StringComparison.Ordinal) ? "rocket" : "equilibrium";
-        var (code, document, error) = fixture.Produce(command, name);
+        var (code, document, error) = CliFixture.Shared.Produce(command, name);
         Assert.Equal(name == "rocket-failing.json" ? 1 : 0, code);
         Assert.Empty(error);
         var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(document.RootElement);
@@ -58,7 +58,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void TheStatesResultValidatesAndEchoesEveryRecordInOrder()
     {
-        var (code, document, _) = fixture.Produce("states", "states.json");
+        var (code, document, _) = CliFixture.Shared.Produce("states", "states.json");
         Assert.Equal(0, code);
         var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(document.RootElement);
         Assert.True(errors.Count == 0, string.Join("; ", errors));
@@ -85,10 +85,10 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void StatesFromAnArrayALinesFileAndSeveralFilesGiveTheSameCases()
     {
-        var (_, fromArray, _) = fixture.Produce("states", "states.json");
-        var (_, fromLines, _) = fixture.Produce("states", "states.jsonl");
+        var (_, fromArray, _) = CliFixture.Shared.Produce("states", "states.json");
+        var (_, fromLines, _) = CliFixture.Shared.Produce("states", "states.jsonl");
         var fromFiles = CliFixture.Invoke("states", CliFixture.Document("states-part1.json"), CliFixture.Document("states-part2.json"),
-                                       "--database", fixture.DatabasePath, "--accelerator", "cpu");
+                                       "--database", CliFixture.Shared.DatabasePath, "--accelerator", "cpu");
         Assert.Equal(0, fromFiles.Code);
         using var filesDocument = fromFiles.Json();
         var expected = fromArray.RootElement.GetProperty("cases");
@@ -100,7 +100,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void ARocketSweepExpandsRatioMajorThenPressureInOneDocument()
     {
-        var (code, document, _) = fixture.Produce("rocket", "rocket-sweep.json");
+        var (code, document, _) = CliFixture.Shared.Produce("rocket", "rocket-sweep.json");
         Assert.Equal(0, code);
         var cases = document.RootElement.GetProperty("cases").EnumerateArray().ToList();
         var expected = new List<(double, double)>();
@@ -127,7 +127,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void AnEquilibriumSweepExpandsPressureThenTemperature()
     {
-        var (code, document, _) = fixture.Produce("equilibrium", "equilibrium-sweep.json");
+        var (code, document, _) = CliFixture.Shared.Produce("equilibrium", "equilibrium-sweep.json");
         Assert.Equal(0, code);
         var cases = document.RootElement.GetProperty("cases").EnumerateArray().ToList();
         var expected = new List<(double, double)>();
@@ -148,9 +148,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void TheMassToleranceIsEchoedAndEveryCaseReportsTheMassOfItsMixture()
     {
-        var (_, standard, _) = fixture.Produce("states", "states.json");
+        var (_, standard, _) = CliFixture.Shared.Produce("states", "states.json");
         Assert.Equal(ElementalMixture.DefaultMassTolerance, standard.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
-        var (_, loose, _) = fixture.Produce("states", "states.json", "--mass-tolerance", "0.05");
+        var (_, loose, _) = CliFixture.Shared.Produce("states", "states.json", "--mass-tolerance", "0.05");
         Assert.Equal(0.05, loose.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
         foreach (var document in new[] { standard, loose })
         {
@@ -162,7 +162,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         }
 
         // The propellant path reports it too: every case of the LOX/LH2 sweep within the reactant records' rounding of one kilogram.
-        var (_, sweep, _) = fixture.Produce("rocket", "rocket-sweep.json");
+        var (_, sweep, _) = CliFixture.Shared.Produce("rocket", "rocket-sweep.json");
         Assert.Equal(ElementalMixture.DefaultMassTolerance, sweep.RootElement.GetProperty("run").GetProperty("massTolerance").GetDouble());
         Assert.All(sweep.RootElement.GetProperty("cases").EnumerateArray(),
                    c => Assert.True(Math.Abs(c.GetProperty("mixture").GetProperty("mass").GetDouble() - 1.0) < MassRoundingTolerance, c.GetProperty("mixture").GetProperty("mass").GetRawText()));
@@ -172,9 +172,9 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void TheThresholdOmitsSmallMoleFractionsAndTheDefaultIsTheReferencePrintThreshold()
     {
-        var (_, everything, _) = fixture.Produce("rocket", "rocket-lox-lh2.json", "--threshold", "0");
-        var (_, coarse, _) = fixture.Produce("rocket", "rocket-lox-lh2.json", "--threshold", CoarseThreshold.ToString(CultureInfo.InvariantCulture));
-        var (_, standard, _) = fixture.Produce("rocket", "rocket-lox-lh2.json");
+        var (_, everything, _) = CliFixture.Shared.Produce("rocket", "rocket-lox-lh2.json", "--threshold", "0");
+        var (_, coarse, _) = CliFixture.Shared.Produce("rocket", "rocket-lox-lh2.json", "--threshold", CoarseThreshold.ToString(CultureInfo.InvariantCulture));
+        var (_, standard, _) = CliFixture.Shared.Produce("rocket", "rocket-lox-lh2.json");
         var all = everything.RootElement.GetProperty("cases")[0].GetProperty("stations")[0].GetProperty("moleFractions").EnumerateObject().ToList();
         var few = coarse.RootElement.GetProperty("cases")[0].GetProperty("stations")[0].GetProperty("moleFractions").EnumerateObject().ToList();
         var some = standard.RootElement.GetProperty("cases")[0].GetProperty("stations")[0].GetProperty("moleFractions").EnumerateObject().ToList();
@@ -189,7 +189,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void TransportFiguresArePresentOnlyWhenRequested()
     {
-        var (_, with, _) = fixture.Produce("rocket", "rocket-lox-lh2.json");
+        var (_, with, _) = CliFixture.Shared.Produce("rocket", "rocket-lox-lh2.json");
         foreach (var station in with.RootElement.GetProperty("cases")[0].GetProperty("stations").EnumerateArray())
         {
             var transport = station.GetProperty("transport");
@@ -198,7 +198,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
             Assert.True(transport.GetProperty("speciesCount").GetInt32() > 0);
         }
 
-        var (_, without, _) = fixture.Produce("equilibrium", "equilibrium-hp.json");
+        var (_, without, _) = CliFixture.Shared.Produce("equilibrium", "equilibrium-hp.json");
         Assert.False(without.RootElement.GetProperty("cases")[0].GetProperty("stations")[0].TryGetProperty("transport", out _));
     }
 
@@ -206,7 +206,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
     [Fact]
     public void TheSpeciesListingValidatesAndFindsNamesCaseInsensitively()
     {
-        var run = CliFixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o");
+        var run = CliFixture.Invoke("species", "--database", CliFixture.Shared.DatabasePath, "--find", "h2o");
         Assert.Equal(0, run.Code);
         using var document = run.Json();
         var errors = JsonSchema.Parse(CliFixture.SchemaText("species")).Validate(document.RootElement);
@@ -218,7 +218,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         var water = document.RootElement.GetProperty("species").EnumerateArray().First(s => s.GetProperty("name").GetString() == "H2O");
         Assert.Equal("gas", water.GetProperty("phase").GetString());
         Assert.True(water.GetProperty("transportData").GetBoolean());
-        var csv = CliFixture.Invoke("species", "--database", fixture.DatabasePath, "--find", "h2o", "--format", "csv");
+        var csv = CliFixture.Invoke("species", "--database", CliFixture.Shared.DatabasePath, "--find", "h2o", "--format", "csv");
         Assert.Equal(0, csv.Code);
         Assert.StartsWith("name,section,phase,formula,molarMass", csv.Output);
         Assert.Equal(names.Count + 1, csv.Output.TrimEnd('\n').Split('\n').Length);
@@ -231,7 +231,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         // A separate process (ProcessTests' own pattern): APTHERMO_NO_CUDA is a process environment variable, and
         // this run must not affect any accelerator choice of a test running elsewhere in this collection.
         var environment = new Dictionary<string, string> { [EngineOptions.NoCudaVariable] = "1" };
-        var run = fixture.InvokeProcess(["rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", fixture.DatabasePath], environment);
+        var run = CliFixture.Shared.InvokeProcess(["rocket", CliFixture.Document("rocket-lox-lh2.json"), "--database", CliFixture.Shared.DatabasePath], environment);
         Assert.True(run.Code == 0, $"exit code {run.Code}: {run.Error}");
         using var document = run.Json();
         var errors = JsonSchema.Parse(CliFixture.SchemaText("output")).Validate(document.RootElement);
@@ -242,7 +242,7 @@ public sealed class OutputDocumentTests(CliFixture fixture)
         Assert.Equal(JsonValueKind.String, reason.ValueKind);
         Assert.Contains(EngineOptions.NoCudaVariable, reason.GetString());
 
-        var devices = fixture.InvokeProcess(["devices"], environment);
+        var devices = CliFixture.Shared.InvokeProcess(["devices"], environment);
         Assert.Equal(0, devices.Code);
         using var devicesDocument = devices.Json();
         var devicesErrors = JsonSchema.Parse(CliFixture.SchemaText("devices")).Validate(devicesDocument.RootElement);

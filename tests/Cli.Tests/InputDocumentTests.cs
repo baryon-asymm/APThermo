@@ -9,7 +9,7 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>L0: the strict readers of the input documents, their messages, and the examples of the API document.</summary>
 [Collection("cli")]
-public sealed class InputDocumentTests(CliFixture fixture)
+public sealed class InputDocumentTests
 {
     /// <summary>
     /// Relative slack on a mass read back from a message: the message rounds it to about 7 significant figures
@@ -66,14 +66,14 @@ public sealed class InputDocumentTests(CliFixture fixture)
     }
 
     /// <summary>The message names the composition by <paramref name="prefix"/> and reports its mass, the library's, with the database's atomic weights.</summary>
-    private void AssertMassReported(string prefix, string name, string error)
+    private static void AssertMassReported(string prefix, string name, string error)
     {
         Assert.Contains(prefix, error);
         var start = error.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length;
         var end = error.IndexOf(" g", start, StringComparison.Ordinal);
         Assert.True(end > start, $"no ' g' after '{prefix}' in: {error}");
         var reported = double.Parse(error[start..end], CultureInfo.InvariantCulture);
-        var expected = fixture.GramsOf(CompositionOf(name));
+        var expected = CliFixture.Shared.GramsOf(CompositionOf(name));
         Assert.True(Math.Abs(reported - expected) <= GramsTolerance * Math.Max(1.0, Math.Abs(expected)), $"reported {reported:R} g, derived {expected:R} g");
     }
 
@@ -85,8 +85,8 @@ public sealed class InputDocumentTests(CliFixture fixture)
         ArgumentNullException.ThrowIfNull(name);
         var path = CliFixture.Document(Path.Combine("invalid", name));
         var command = name.StartsWith("states", StringComparison.Ordinal) ? "states" : "rocket";
-        var output = fixture.TempFile(name + ".out.json");
-        var run = CliFixture.Invoke(fixture.Solving(command, path, "--output", output));
+        var output = CliFixture.Shared.TempFile(name + ".out.json");
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving(command, path, "--output", output));
         Assert.Equal(2, run.Code);
         if (Expected.TryGetValue(name, out var fragment))
         {
@@ -156,9 +156,9 @@ public sealed class InputDocumentTests(CliFixture fixture)
             Assert.NotEmpty(StateRecordReader.Read([($"API.md record example {i}", records[i])]));
 
             // An example record is a real record: it solves, and in particular it weighs one kilogram (2026-09-13: the earlier example did not).
-            var path = fixture.TempFile($"api-record-{i}.json");
+            var path = CliFixture.Shared.TempFile($"api-record-{i}.json");
             File.WriteAllText(path, records[i]);
-            var run = CliFixture.Invoke(fixture.Solving("states", path));
+            var run = CliFixture.Invoke(CliFixture.Shared.Solving("states", path));
             Assert.True(run.Code == 0, $"API.md record example {i}: exit code {run.Code}: {run.Error}");
         }
 

@@ -9,17 +9,32 @@ using APThermo.Problems;
 namespace APThermo.Cli.Tests;
 
 /// <summary>The result of one invocation: exit code, standard output and standard error.</summary>
-public sealed record Run(int Code, string Output, string Error)
+internal sealed record Run(int Code, string Output, string Error)
 {
     /// <summary>Json.</summary>
     public JsonDocument Json() => JsonDocument.Parse(Output);
 }
 
-/// <summary>Paths of this node and of the database, a temporary directory, and the in-process and process-level invocations.</summary>
-public sealed class CliFixture : IDisposable
+/// <summary>
+/// Paths of this node and of the database, a temporary directory, and the in-process and process-level invocations,
+/// shared by every test class of this node. Held as the single <see cref="Shared"/> instance rather than through
+/// <c>ICollectionFixture&lt;T&gt;</c>: xUnit requires a class fixture's consuming constructor to be the class's
+/// single public constructor, which would force this internal-only helper public for no reason a consumer outside
+/// this node has (CA1515). The classes that shared one <c>CliFixture</c> through the "cli"
+/// <c>ICollectionFixture&lt;T&gt;</c> collection at 8375261 still run sequentially relative to each other, tagged
+/// <c>[Collection(CollectionName)]</c>, a string-named xUnit collection that needs no public
+/// <c>[CollectionDefinition]</c> class to exist.
+/// </summary>
+internal sealed class CliFixture : IDisposable
 {
+    /// <summary>The xUnit collection name every consuming class of this node is tagged with.</summary>
+    public const string CollectionName = "cli";
+
     /// <summary>The command line's assembly name, for <see cref="CliAssemblyPath"/> and <see cref="InvokeProcess"/>.</summary>
     public const string CliAssembly = "APThermo.Cli";
+
+    /// <summary>The one instance every test class of this node shares.</summary>
+    public static readonly CliFixture Shared = new();
 
     private readonly Lazy<SpeciesDatabase> _database = new(() => SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Path.Combine(RepositoryPaths.Data, "trans.inp")));
 
@@ -27,6 +42,7 @@ public sealed class CliFixture : IDisposable
     public CliFixture()
     {
         Temp = Directory.CreateTempSubdirectory("apthermo-tests-").FullName;
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Dispose();
     }
 
     /// <summary>This node's own directory, the root of <see cref="DocumentsDirectory"/>.</summary>
@@ -219,16 +235,4 @@ public sealed class CliFixture : IDisposable
             // a file of a failed test may still be open; the temporary directory is cleaned by the system
         }
     }
-}
-
-/// <summary>Declares the "cli" xUnit collection so every test class of this node shares one <see cref="CliFixture"/>. Public
-/// because xUnit's own analyzer (xUnit1027) requires a collection definition class to be public for the runtime to
-/// discover it reliably — tried internal first, per a review finding for the other test group; the build then failed on
-/// xUnit1027 itself rather than CA1515, so the unresolvable-in-code conflict is CA1515 on this class, not a choice this
-/// node made freely. The node's test classes reference the collection by the literal name "cli" (2026-09-25), not through
-/// this class, so nothing else here needs to be public.</summary>
-[CollectionDefinition(Name)]
-public sealed class CliCollectionDefinition : ICollectionFixture<CliFixture>
-{
-    private const string Name = "cli";
 }
