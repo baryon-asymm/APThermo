@@ -4,8 +4,7 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L1: frozen mode against the frozen stations of the reference rocket cases and against the equilibrium solve itself.</summary>
-[Collection(CpuCollection.Name)]
-public sealed class FrozenModeTests(CpuFixture fixture)
+public sealed class FrozenModeTests
 {
     /// <summary>
     /// Station outputs not compared: the reference computes no Cv at a frozen station (it prints zero or the previous station's
@@ -15,28 +14,38 @@ public sealed class FrozenModeTests(CpuFixture fixture)
     private static readonly HashSet<string> NotFrozenFields = ["cpEquilibrium", "cvEquilibrium", "cvFrozen", "mach"];
 
     /// <summary>The rocket fixtures whose flow is frozen somewhere.</summary>
-    public static IEnumerable<object[]> FrozenRocketCases() =>
-        FixtureFiles.Enumerate("rocket")
-            .Select(path => (Name: Path.GetFileNameWithoutExtension(path), Case: CeaFixtures.Load(path)))
-            .Where(x => x.Case.Outputs.GetProperty("stations").EnumerateArray().Any(s => s.GetProperty("frozen").GetBoolean()))
-            .Select(x => new object[] { x.Name });
-
-    /// <summary>The three equilibrium cases the self-consistency tests below are run over, one of each problem kind.</summary>
-    public static IEnumerable<object[]> SelfConsistencyCases()
+    public static TheoryData<string> FrozenRocketCases()
     {
-        yield return ["tp", "rp1311-example1_r1.0_p1.0atm_T3000"];
-        yield return ["hp", "lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber"];
-        yield return ["sp", "nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_exit2"];
+        var data = new TheoryData<string>();
+        foreach (var path in FixtureFiles.Enumerate("rocket"))
+        {
+            var c = CeaFixtures.Load(path);
+            if (c.Outputs.GetProperty("stations").EnumerateArray().Any(s => s.GetProperty("frozen").GetBoolean()))
+            {
+                data.Add(Path.GetFileNameWithoutExtension(path));
+            }
+        }
+
+        return data;
     }
 
+    /// <summary>The three equilibrium cases the self-consistency tests below are run over, one of each problem kind.</summary>
+    public static TheoryData<string, string> SelfConsistencyCases() => new()
+    {
+        { "tp", "rp1311-example1_r1.0_p1.0atm_T3000" },
+        { "hp", "lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber" },
+        { "sp", "nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_exit2" },
+    };
+
+    /// <summary>Frozen stations of the reference are reproduced from the frozen composition.</summary>
     [Theory]
     [MemberData(nameof(FrozenRocketCases))]
-    public void Frozen_stations_of_the_reference_are_reproduced_from_the_frozen_composition(string name)
+    public void FrozenStationsOfTheReferenceAreReproducedFromTheFrozenComposition(string name)
     {
         var c = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", name + ".json"));
         var stations = c.Outputs.GetProperty("stations").EnumerateArray().ToList();
         var source = stations.Last(s => !s.GetProperty("frozen").GetBoolean());
-        var table = SpeciesTable.Build(fixture.Database, HostSolver.ElementsOf(c), HostSolver.ProductsOf(c));
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, HostSolver.ElementsOf(c), HostSolver.ProductsOf(c));
 
         // The composition is frozen at the last equilibrium station: moles per kilogram from its mole fractions and M = 1/n.
         var totalMoles = 1.0 / source.GetProperty("molarMass").GetDouble();
@@ -59,7 +68,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
             var expansion = new EquilibriumCase(table, ProblemKind.AssignedEntropyPressure,
                                                 Pressure: station.GetProperty("pressure").GetDouble(),
                                                 Temperature: 0.0, Target: entropy, ElementMoles: elementMoles);
-            var solution = HostSolver.SolveFrozen(fixture.Accelerator, expansion, moles);
+            var solution = HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, expansion, moles);
             Assert.True(solution.Status == CaseStatus.Ok, $"{label}: status {solution.Status}");
             compared += CompareStation(station, solution, label, mismatches);
         }
@@ -68,9 +77,10 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
     }
 
+    /// <summary>Frozen mode at the equilibrium composition recovers the equilibrium state.</summary>
     [Theory]
     [MemberData(nameof(SelfConsistencyCases))]
-    public void Frozen_mode_at_the_equilibrium_composition_recovers_the_equilibrium_state(string kind, string name)
+    public void FrozenModeAtTheEquilibriumCompositionRecoversTheEquilibriumState(string kind, string name)
     {
         var (equilibrium, frozen) = FrozenAtEquilibrium(kind, name);
         foreach (var state in frozen)
@@ -84,9 +94,10 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         }
     }
 
+    /// <summary>A frozen state reports the frozen heat capacities as the equilibrium ones.</summary>
     [Theory]
     [MemberData(nameof(SelfConsistencyCases))]
-    public void A_frozen_state_reports_the_frozen_heat_capacities_as_the_equilibrium_ones(string kind, string name)
+    public void AFrozenStateReportsTheFrozenHeatCapacitiesAsTheEquilibriumOnes(string kind, string name)
     {
         var (_, frozen) = FrozenAtEquilibrium(kind, name);
         foreach (var state in frozen)
@@ -96,9 +107,10 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         }
     }
 
+    /// <summary>A frozen state carries the ideal gas derivatives.</summary>
     [Theory]
     [MemberData(nameof(SelfConsistencyCases))]
-    public void A_frozen_state_carries_the_ideal_gas_derivatives(string kind, string name)
+    public void AFrozenStateCarriesTheIdealGasDerivatives(string kind, string name)
     {
         var (_, frozen) = FrozenAtEquilibrium(kind, name);
         foreach (var state in frozen)
@@ -110,7 +122,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
     }
 
     /// <summary>Every field of one frozen station the reference settles, against the tolerance table; returns how many were compared.</summary>
-    private int CompareStation(System.Text.Json.JsonElement station, HostSolution solution, string? label, List<string> mismatches)
+    private static int CompareStation(System.Text.Json.JsonElement station, HostSolution solution, string? label, List<string> mismatches)
     {
         var compared = 0;
         foreach (var (field, expected, info) in StateComparison.StateFields(station, strict: false))
@@ -121,7 +133,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
             }
 
             var actual = (double)info.GetValue(solution.State)!;
-            if (!fixture.Tolerances.Matches(field, expected, actual))
+            if (!CpuFixture.Shared.Tolerances.Matches(field, expected, actual))
             {
                 mismatches.Add($"{label} {field}: reference {expected:R}, tree {actual:R}");
             }
@@ -131,7 +143,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
 
         // In frozen flow the reference's equilibrium heat capacity is the frozen one.
         var cpEquilibrium = station.GetProperty("cpEquilibrium").GetDouble();
-        if (!fixture.Tolerances.Matches("cpEquilibrium", cpEquilibrium, solution.State.CpEquilibrium))
+        if (!CpuFixture.Shared.Tolerances.Matches("cpEquilibrium", cpEquilibrium, solution.State.CpEquilibrium))
         {
             mismatches.Add($"{label} cpEquilibrium: reference {cpEquilibrium:R}, tree {solution.State.CpEquilibrium:R}");
         }
@@ -143,10 +155,10 @@ public sealed class FrozenModeTests(CpuFixture fixture)
     /// One equilibrium solve of the fixture case, then the same composition held frozen and solved for its temperature three
     /// ways: from the enthalpy, from the entropy, and at the temperature itself. All four states describe one point.
     /// </summary>
-    private (MixtureState Equilibrium, MixtureState[] Frozen) FrozenAtEquilibrium(string kind, string name)
+    private static (MixtureState Equilibrium, MixtureState[] Frozen) FrozenAtEquilibrium(string kind, string name)
     {
         var c = HostSolver.Load(kind, name);
-        var equilibrium = HostSolver.Solve(fixture, c);
+        var equilibrium = HostSolver.Solve(CpuFixture.Shared, c);
         Assert.Equal(CaseStatus.Ok, equilibrium.Status);
         var held = HostSolver.Of(equilibrium.Case.Table, c);
         var state = equilibrium.State;
@@ -158,7 +170,7 @@ public sealed class FrozenModeTests(CpuFixture fixture)
         var cases = new[] { byEnthalpy, byEntropy, atTemperature };
         for (var i = 0; i < cases.Length; i++)
         {
-            var solution = HostSolver.SolveFrozen(fixture.Accelerator, cases[i], equilibrium.Moles);
+            var solution = HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, cases[i], equilibrium.Moles);
             Assert.Equal(CaseStatus.Ok, solution.Status);
             frozen[i] = solution.State;
         }

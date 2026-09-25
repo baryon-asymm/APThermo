@@ -32,13 +32,13 @@ internal static class HostSolver
     };
 
     public static string[] ElementsOf(CeaCase c) =>
-        c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name).ToArray();
+        [.. c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name)];
 
     public static double[] ElementMolesOf(CeaCase c) =>
-        c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Value.GetDouble()).ToArray();
+        [.. c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Value.GetDouble())];
 
     public static string[] ProductsOf(CeaCase c) =>
-        c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!).ToArray();
+        [.. c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!)];
 
     public static double PressureOf(CeaCase c) => c.Inputs.GetProperty("pressure").GetDouble();
 
@@ -113,9 +113,21 @@ internal static class HostSolver
             State: state.GetAsArray1D()[0], Status: (CaseStatus)status.GetAsArray1D()[0], Iterations: iterations.GetAsArray1D()[0]);
     }
 
+    /// <summary>The fixture file names of a kind, without extension; <see cref="Load"/> reads one back.</summary>
+    public static IEnumerable<string> CaseNames(string kind) =>
+        FixtureFiles.Enumerate(kind).Select(Path.GetFileNameWithoutExtension)!;
+
     /// <summary>The fixture files of a kind as theory data: the file name without extension; <see cref="Load"/> reads it back.</summary>
-    public static IEnumerable<object[]> Cases(string kind) =>
-        FixtureFiles.Enumerate(kind).Select(path => new object[] { Path.GetFileNameWithoutExtension(path) });
+    public static TheoryData<string> Cases(string kind)
+    {
+        var data = new TheoryData<string>();
+        foreach (var name in CaseNames(kind))
+        {
+            data.Add(name);
+        }
+
+        return data;
+    }
 
     public static CeaCase Load(string kind, string name) =>
         CeaFixtures.Load(Path.Combine(FixtureFiles.Root, kind, name + ".json"));

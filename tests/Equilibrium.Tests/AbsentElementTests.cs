@@ -3,14 +3,14 @@ using APThermo.Thermo;
 namespace APThermo.Equilibrium.Tests;
 
 /// <summary>L0: an element with zero abundance masks its species; the result equals a table without them, bit for bit.</summary>
-[Collection(CpuCollection.Name)]
-public sealed class AbsentElementTests(CpuFixture fixture)
+public sealed class AbsentElementTests
 {
+    /// <summary>A zero abundance equals a table without the element.</summary>
     [Theory]
     [InlineData("tp", "rp1311-example1_r1.0_p1.0atm_T3000", "C")]
     [InlineData("hp", "rp1311-example3_p10bar", "AR")]
     [InlineData("sp", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium_throat", "C")]
-    public void A_zero_abundance_equals_a_table_without_the_element(string kind, string name, string element)
+    public void AZeroAbundanceEqualsATableWithoutTheElement(string kind, string name, string element)
     {
         var c = HostSolver.Load(kind, name);
         var elements = HostSolver.ElementsOf(c);
@@ -21,16 +21,16 @@ public sealed class AbsentElementTests(CpuFixture fixture)
 
         var masked = (double[])elementMoles.Clone();
         masked[removed] = 0.0;
-        var full = HostSolver.Solve(fixture.Accelerator,
-                                    HostSolver.Of(HostSolver.BuildTable(fixture.Database, c), c) with { ElementMoles = masked });
+        var full = HostSolver.Solve(CpuFixture.Shared.Accelerator,
+                                    HostSolver.Of(HostSolver.BuildTable(CpuFixture.Shared.Database, c), c) with { ElementMoles = masked });
 
         var keptElements = elements.Where(e => e != element).ToArray();
-        var keptProducts = products.Where(p => fixture.Database[p].Formula.All(
+        var keptProducts = products.Where(p => CpuFixture.Shared.Database[p].Formula.All(
             f => !string.Equals(f.Symbol, element, StringComparison.OrdinalIgnoreCase))).ToArray();
         Assert.True(keptProducts.Length < products.Length, "the element must remove at least one species");
-        var reducedTable = SpeciesTable.Build(fixture.Database, keptElements, keptProducts);
+        var reducedTable = SpeciesTable.Build(CpuFixture.Shared.Database, keptElements, keptProducts);
         var reducedMoles = masked.Where((_, i) => i != removed).ToArray();
-        var reduced = HostSolver.Solve(fixture.Accelerator, HostSolver.Of(reducedTable, c) with { ElementMoles = reducedMoles });
+        var reduced = HostSolver.Solve(CpuFixture.Shared.Accelerator, HostSolver.Of(reducedTable, c) with { ElementMoles = reducedMoles });
 
         Assert.Equal(CaseStatus.Ok, full.Status);
         Assert.Equal(reduced.Status, full.Status);

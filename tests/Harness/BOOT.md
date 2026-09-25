@@ -114,9 +114,19 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
 Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class library
 (`System.Text.Json` for the JSON-document helpers); xunit 2.9.3, for `TheoryData<>` alone
-(`FixtureFamilies.Of`, 2026-09-24, so its callers' theory sources are typed and the Diagnostics
-constraint's xUnit1042 has no untyped `object[]` row to flag) — this node stays a plain library
-(`IsTestProject` false), not a test project: no `Microsoft.NET.Test.Sdk` or test runner is pulled in.
+(`FixtureFamilies.Keys`/`CasesOf`, 2026-09-24, so its callers' theory sources are typed and the
+Diagnostics constraint's xUnit1042 has no untyped `object[]` row to flag) — this node stays a
+plain library (`IsTestProject` false), not a test project: no `Microsoft.NET.Test.Sdk` or test
+runner is pulled in.
+
+⚠ 2026-09-25: the same-day entry above named a single method, `FixtureFamilies.Of`, returning
+`TheoryData<string, int, IReadOnlyList<CeaCase>>`. Its callers (the kernel-equality tests of
+`Equilibrium.Tests`, `Performance.Tests`, `Transport.Tests`) then failed xUnit1045: a `CeaCase`
+collection is not a type xUnit knows how to serialize for Test Explorer's row enumeration, only
+the fields of `TheoryData<>` themselves. `Of` is now `Keys` (theory data: key and count only,
+both serializable) plus `CasesOf` (the family's cases, read back inside the test body, the same
+pattern `HostSolver.CaseNames`/`Load` already uses for a single case). Found fixing the
+Diagnostics constraint in those three test nodes.
 
 ## Constraints
 

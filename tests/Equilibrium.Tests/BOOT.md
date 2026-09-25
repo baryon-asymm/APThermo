@@ -141,12 +141,12 @@ creation names its arguments; it passes them by position today (the criterion be
       condensed cases: `FixtureSolveTests` over the enumerated tp, hp and sp
       directories; `CondensedSpeciesTests` over the fixture cases with condensed
       candidates (the alumina and the water-condensation tests); `FrozenModeTests`:
-      `Frozen_stations_of_the_reference_are_reproduced_from_the_frozen_composition`
+      `FrozenStationsOfTheReferenceAreReproducedFromTheFrozenComposition`
       over the reference rocket cases with a frozen station, and the self-consistency
       cases, one per problem kind, over
-      `Frozen_mode_at_the_equilibrium_composition_recovers_the_equilibrium_state`,
-      `A_frozen_state_reports_the_frozen_heat_capacities_as_the_equilibrium_ones` and
-      `A_frozen_state_carries_the_ideal_gas_derivatives`; `KernelEqualityTests` over
+      `FrozenModeAtTheEquilibriumCompositionRecoversTheEquilibriumState`,
+      `AFrozenStateReportsTheFrozenHeatCapacitiesAsTheEquilibriumOnes` and
+      `AFrozenStateCarriesTheIdealGasDerivatives`; `KernelEqualityTests` over
       the table families of the enumerated directory.
 
       ⚠ 2026-09-14: until this date these two criteria carried hand-typed fixture
@@ -157,9 +157,9 @@ creation names its arguments; it passes them by position today (the criterion be
       enumerated directory itself, which is the list; found by the test review of
       2026-09-14 (F-TK-03). `FrozenModeTests`' single named test is replaced by the
       three tests its split into the same day (F-TK-11).
-- [x] 2026-09-14 — L2 green: `PlateauTests.An_enthalpy_inside_the_ALN_gap_pins_the_pieces_at_the_cut`,
-      `An_enthalpy_no_admissible_set_can_hold_is_refused_rather_than_lied_about`, and
-      `An_ok_solution_leaves_no_condensed_candidate_with_positive_inclusion_gain` (a
+- [x] 2026-09-14 — L2 green: `PlateauTests.AnEnthalpyInsideTheALNGapPinsThePiecesAtTheCut`,
+      `AnEnthalpyNoAdmissibleSetCanHoldIsRefusedRatherThanLiedAbout`, and
+      `AnOkSolutionLeavesNoCondensedCandidateWithPositiveInclusionGain` (a
       theory over every hp fixture case). The class named itself L2 in its own comment
       since 2026-09-14 while this node's level table and criteria did not; both now
       say the same thing (F-TK-02).
@@ -241,7 +241,7 @@ creation names its arguments; it passes them by position today (the criterion be
       the defect fact below), `tests/Equilibrium.Tests/Bits.approved.txt` unchanged
       (`65788e23f4390305763c80ab1f66b2054ff1907a`); the public surface does not move,
       `HostSolution` and `EquilibriumCase` both internal.
-- [x] 2026-09-15 — L2: `PlateauTests.A_stood_down_record_is_neither_adjacent_to_nor_found_beside_its_in_play_partner`
+- [x] 2026-09-15 — L2: `PlateauTests.AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner`
       proves the node's own defect fix (`src/Equilibrium/BOOT.md`, the acceptance
       criterion of the same date): seen red on the code before the fix
       (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
