@@ -1268,10 +1268,23 @@ Each fact is shown red once by a mutation applied alone and restored:
       changed, only internal test code); the protocol lint 0 errors, 0 warnings;
       `git status --short` clean of every scratch mutation.
 
-- [ ] 2026-09-26 — The Diagnostics walk skips every dot-prefixed directory except
+- [x] 2026-09-26 — The Diagnostics walk skips every dot-prefixed directory except
       `.github` (the ⚠ of that date under "## Diagnostics check"), and both scope
-      mutations listed there are seen as stated. The CI run of the fix is green on both
-      hosted runners.
+      mutations listed there are seen as stated.
+
+      Evidence at `7474f21` plus the fix (`DiagnosticsSyntax.Walk`): a scratch
+      `.nuget-packages/pkg/build/pkg.props` setting `WarningsNotAsErrors` leaves
+      `NoBuildFileSuppressesOrOverridesADiagnostic` green (5/5 of `DiagnosticsTests`
+      still passing); a scratch `.github/scratch/Scratch.csproj` setting `NoWarn` turns
+      that same fact red ("`.github/scratch/Scratch.csproj: sets NoWarn to 'CA1000'`");
+      the earlier fact-3 mutation (`<NoWarn>` in `tests/Thermo.Tests/APThermo.Thermo.Tests.csproj`)
+      is still red with its own message. Both scratch mutations were applied alone and
+      removed, never committed. After restoring: `dotnet build APThermo.sln -c Release`
+      0 warnings, 0 errors; `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests -c
+      Release --no-build` 28/28 green; the protocol lint 0 errors, 0 warnings;
+      `git status --short` clean but for this fix.
+
+      Pending the CI run: "The CI run of the fix is green on both hosted runners."
 
 ## Taboos
 

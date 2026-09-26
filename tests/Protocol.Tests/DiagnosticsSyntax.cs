@@ -39,7 +39,13 @@ internal static class DiagnosticsSyntax
 
         foreach (var child in Directory.GetDirectories(directory))
         {
-            if (Tree.Skipped.Contains(Path.GetFileName(child)))
+            var name = Path.GetFileName(child);
+
+            // A directory name starting with '.' is a tool's cache or state (.nuget-packages, .vs, .venv, .idea, .claude),
+            // never part of the repository, except .github: it is committed, and CI builds the C# project under
+            // .github/diagnostics/IsaProbe with the root's settings, so its build files stay checked (BOOT.md, "Diagnostics
+            // check", the ⚠ of 2026-09-26).
+            if (Tree.Skipped.Contains(name) || (name.StartsWith('.') && name is not ".github"))
             {
                 continue;
             }
