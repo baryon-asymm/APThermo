@@ -82,26 +82,47 @@ public sealed class InvalidInputTests
     }
 
     /// <summary>
-    /// A composition with a non-finite or negative mole number, gaseous or condensed, is invalid input (BOOT.md, the
-    /// audit's finding 5, 2026-09-26): the prior check only rejected a gas sum that was not positive, so a NaN,
-    /// infinite or negative mole number elsewhere in the composition passed through to the state and performance
-    /// formulas below.
+    /// A composition with a non-finite or negative mole number, gaseous or condensed, is invalid input for every
+    /// problem kind (BOOT.md, the audit's finding 5, 2026-09-26): the prior check only rejected a gas sum that was
+    /// not positive, so a NaN, infinite or negative mole number elsewhere in the composition passed through to the
+    /// state and performance formulas below. The validation runs before any kind-specific branch, so tp, hp and sp
+    /// all take the same path; the theory names all three rather than assuming it.
     /// </summary>
     [Theory]
-    [InlineData("H2", -1.0)]
-    [InlineData("H2", double.NaN)]
-    [InlineData("H2", double.PositiveInfinity)]
-    [InlineData("H2O(L)", -1.0)]
-    [InlineData("H2O(L)", double.NaN)]
-    [InlineData("H2O(L)", double.PositiveInfinity)]
-    public void FrozenModeRejectsAnInvalidMoleNumberGaseousOrCondensed(string name, double invalid)
+    [InlineData(ProblemKind.AssignedTemperaturePressure, "H2", -1.0)]
+    [InlineData(ProblemKind.AssignedTemperaturePressure, "H2", double.NaN)]
+    [InlineData(ProblemKind.AssignedTemperaturePressure, "H2", double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedTemperaturePressure, "H2O(L)", -1.0)]
+    [InlineData(ProblemKind.AssignedTemperaturePressure, "H2O(L)", double.NaN)]
+    [InlineData(ProblemKind.AssignedTemperaturePressure, "H2O(L)", double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, "H2", -1.0)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, "H2", double.NaN)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, "H2", double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, "H2O(L)", -1.0)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, "H2O(L)", double.NaN)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, "H2O(L)", double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, "H2", -1.0)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, "H2", double.NaN)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, "H2", double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, "H2O(L)", -1.0)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, "H2O(L)", double.NaN)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, "H2O(L)", double.PositiveInfinity)]
+    public void FrozenModeRejectsAnInvalidMoleNumberGaseousOrCondensed(ProblemKind kind, string name, double invalid)
     {
         var table = SpeciesTable.Build(CpuFixture.Shared.Database, Elements, Species);
         var composition = new double[table.SpeciesCount];
         composition[table.IndexOf("H2")] = 0.1;
         composition[table.IndexOf("O2")] = 0.05;
         composition[table.IndexOf(name)] = invalid;
-        var problem = new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, 1e5, 0.0, -1e6, [0.1, 0.05]);
+        var temperature = kind == ProblemKind.AssignedTemperaturePressure ? 3000.0 : 0.0;
+        var target = kind switch
+        {
+            ProblemKind.AssignedEnthalpyPressure => -1e6,
+            ProblemKind.AssignedEntropyPressure => 1e4,
+            ProblemKind.AssignedTemperaturePressure => 0.0,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "unhandled problem kind"),
+        };
+        var problem = new EquilibriumCase(table, kind, 1e5, temperature, target, [0.1, 0.05]);
         var solution = HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, problem, composition);
         Assert.Equal(CaseStatus.InvalidInput, solution.Status);
     }

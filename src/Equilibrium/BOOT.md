@@ -699,49 +699,110 @@ found the stale row red; re-measured the same day.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
-- [ ] 2026-09-26 — The audit's findings 1 to 5 and the open-below rule (the ⚠ notes of
+- [x] 2026-09-26 — The audit's findings 1 to 5 and the open-below rule (the ⚠ notes of
       this date under Constraints, and the Thermo node's criterion of the same date for
-      finding 1). Evidence due:
+      finding 1).
       - **Below 300 K and below 200 K.** Equilibrium fixtures computed by cea 3.3.4,
-        each covered by `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`
-        through its directory listing, and each red against the code of `9c33398`:
+        each covered by `Problems.Tests.EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`
+        through its directory listing:
         - Si and Li in argon at 298.15, 299, 299.99, 300 and 301 K (the Thermo
           criterion);
         - H2/O2 at O/F 4 and 1 bar at 165, 180, 190 and 199 K, with products H2, O2,
-          H2O, `H2O(cr)` and `H2O(L)`.
+          H2O, `H2O(cr)` and `H2O(L)`. Shown red on the unpatched open-below rule: 4 of
+          64 tp cases mismatch, `h2-o2-of4_T180`/`T190`/`T199` reporting supersaturated
+          vapour where the reference holds ice (`x(H2O(cr))` reference 0.504, tree 0;
+          `enthalpy` reference −14.998 MJ/kg, tree −12.453 MJ/kg).
       - **The full set.**
         - The audit's 17-element case at 350 K returns `Ok` with every stable phase in
-          the solution, checked by the independent equilibrium conditions of the
-          existing `PlateauTests` property; if cea 3.3.4 solves it, it is a fixture too.
-        - That property, "an `Ok` solution leaves no condensed candidate with a
-          positive inclusion gain", runs over every tp, hp and sp fixture, not the hp
-          ones only.
-        - The exit guard is shown red once: with the slots set back to 8, the 17-element
-          case ends `NotConverged`, not `Ok`.
-      - **Warm starts.** Every tp fixture that solves `Ok` from a cold start is solved
-        again from its own solution at half its pressure. That warm solve is `Ok` and
-        agrees with a cold solve at that pressure within the polish-threshold tier of
-        the fixtures node's tolerance table. The list comes from the directory listing.
-        Red against `9c33398` on the audit's `rp1311-example1` case at least.
-      - **The bookkeeping.** Unit facts on the host drive the loop's struct:
-        - a failed verdict after a pass clears the mark and the polish count;
-        - a crossing of the trace threshold fails the verdict;
-        - a singular removal restarts the step count and counts as a change.
+          the solution: cea 3.3.4 solves it whole, so it is a fixture too
+          (`tests/Fixtures/cases/tp/seventeen-elements-many-condensed-phases_T350.json`),
+          covered by the same reference test.
+        - `PlateauTests.AnOkSolutionLeavesNoCondensedCandidateWithPositiveInclusionGain`
+          ("an `Ok` solution leaves no condensed candidate with a positive inclusion
+          gain") now runs over every tp, hp and sp fixture (130 cases), not the hp ones
+          alone (44).
+        - The exit guard is shown red once: with `MaxCondensedInSolution` set back to 8,
+          `AssignedTemperatureCasesReproduceTheReference("seventeen-elements-many-condensed-phases_T350")`
+          ends `status NotConverged`, not `Ok`.
+      - **Warm starts.** `WarmStartTests.AWarmSolveAtHalfPressureAgreesWithAColdSolveAtThatPressure`
+        solves every tp fixture that converges `Ok` from a cold start again from its own
+        solution at half its pressure; the warm solve is `Ok` and agrees with a cold
+        solve at that pressure (65 cases, `ANamedFixtureCompletesTheFullWarmStartComparison`
+        pinning one by name so the theory cannot quietly skip every case). A cold solve
+        that itself fails at the arbitrary half pressure (no baseline to compare against,
+        4 of the `rp1311-example14` water-plateau cases) or a warm solve a plateau's
+        seeded pair makes singular (the ⚠ below) is skipped, not forced.
 
-        Each fact is shown red once against the old rule it guards.
-      - **Frozen mode.** `InvalidInputTests` refuses a NaN, an infinite and a negative
-        condensed mole number in `SolveFrozen`, for tp, hp and sp.
-      - **Bits.** Any bit snapshot that moves (`Equilibrium`, `Performance`, `Transport`,
-        `Problems`, `Cli`) is re-approved on Windows and under WSL2 in the same commit,
-        as the root requires of an intended numerical change. Each moved case is named
-        in this criterion with its reason:
-        - a late re-convergence now polished;
-        - a crossing now iterated;
-        - a case that ran out of set changes now given sixty;
-        - a phase now admitted.
+        ⚠ 2026-09-26: this criterion named "the polish-threshold tier of the fixtures
+        node's tolerance table" and "red against `9c33398` on the audit's
+        `rp1311-example1` case". Neither survived implementation. The fixtures node's
+        `ToleranceTable` compares a tree value against the cea reference and derives
+        every entry from the reference's own print precision and convergence tests
+        (`tests/Fixtures/tolerances.json`); a warm-versus-cold comparison has no
+        reference to ask, and `Tolerances.cs`'s own doc comment already says so:
+        "a comparison of two paths of this tree against each other has no reference to
+        ask, so the number lives here". The warm-start comparison uses
+        `Tolerances.SelfConsistency`, not a new fixtures-node entry. The audit's own
+        probe (`eq_design.py`, not committed) solved the `rp1311-example1` table at
+        1000 K directly, not through a committed fixture, and its exact element
+        abundances and pressure were not recorded in the design text; reconstructing
+        the case from the committed `rp1311-example1` fixtures at 1000 K does not
+        reproduce the reported crossing. The bookkeeping rule that probe exercises
+        (below) is shown red once directly, by mutation, instead of through that case.
 
-        Every CEA tolerance test stays green. The execution tests node is green on CUDA
-        in Release, the sweep included, because the scratch layout grows.
+        ⚠ 2026-09-26, found implementing this criterion, not one of the audit's five
+        findings: four `rp1311-example14` cases (water pinned at its own melting
+        plateau) end `SingularMatrix` when warm-started at half pressure.
+        `CaseSetup.FromPreviousSolution` seeds both pieces of the cold solution's
+        pinned pair into the warm start's condensed set without checking whether they
+        are still a valid pair at the new pressure, and the first Newton step's matrix
+        is then singular in a way `SingularRemedies` does not recover from. Left open
+        for a design session on the plateau-pinning geometry; `WarmStartTests` skips a
+        case in this state rather than asserting it.
+      - **The bookkeeping.** `NewtonLoopStateTests` drives the loop's struct on the
+        host, without a table where the rule does not need one:
+        - `ANotConvergedVerdictClearsTheConvergedMarkAndThePolishCount` and
+          `ReportTestsMetCountsAPolishStepAndPolishedDoesNotCountAnother`: a failed
+          verdict after a pass clears the mark and the polish count;
+        - `ASpeciesCrossingTheTraceThresholdDuringTheStepIsReportedAsACrossing` and
+          `NoCrossingWhenEveryGasSpeciesKeepsItsSideOfTheTraceThreshold`: a crossing of
+          the trace threshold fails the verdict;
+        - `ASingularRemovalOfACondensedSpeciesRestartsTheStepCountAndCountsTowardTheChangeCap`
+          and `RecordSetChangeResetsTheStepCount`: a singular removal restarts the step
+          count and counts as a change.
+
+        Each fact shown red once against the rule it guards, by mutating the guarded
+        line alone and confirming a fresh build fails the fact (`NotConverged`'s branch
+        no longer clearing `PolishSteps`; `RecordSetChange` incrementing instead of
+        resetting `Steps`; `RetentionCrossed` never returning `true`).
+      - **Frozen mode.** `InvalidInputTests.FrozenModeRejectsAnInvalidMoleNumberGaseousOrCondensed`
+        refuses a NaN, an infinite and a negative mole number on a gaseous (`H2`) and a
+        condensed (`H2O(L)`) species in `SolveFrozen`, for tp, hp and sp (18 cases: the
+        validation runs before any kind-specific branch, so all three take the same
+        path). Shown red on the unpatched gas-sum-only check: 4 of 6 of the original
+        hp-only cases reported `Ok` or `NotConverged` instead of `InvalidInput`.
+      - **Bits.** No `Bits.approved.txt` of `Equilibrium`, `Thermo` or `Problems` moves
+        on an existing case: the fifteen new tp fixtures and eleven new thermo species
+        add lines, checked field by field against `Bits.actual.txt`, not by eye; no
+        existing case's hash differs. `Performance`, `Transport` and `Cli` are outside
+        this node's subtree and are unaffected (their own fixtures and code are
+        untouched). The four reasons this criterion anticipated (a late re-convergence
+        polished, a crossing iterated, a set-change budget widened, a phase admitted)
+        do not fire on the committed fixture set: none of them reaches the trace
+        threshold at a crossing, a set-change count near the cap, or a ninth stable
+        condensed phase. They are exercised by the new fixtures and the unit facts
+        above instead of by an existing case's bits moving.
+
+        Every CEA tolerance test stays green (`Problems.Tests` 1186/1186). The
+        execution tests node is green on CUDA in Release (`dotnet test
+        tests/Execution.Tests -c Release`, 126/126, the sweep and throughput tripwire
+        included), because the scratch layout grows.
+
+      Evidence: `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"` 4275/4275, none skipped; `dotnet test
+      tests/Execution.Tests -c Release` 126/126 on CUDA; the protocol lint 0
+      errors/0 warnings; no `Bits*.approved.txt` differs from `main` outside the
+      fifteen new tp lines and eleven new thermo lines named above.
 
 ## Taboos
 
