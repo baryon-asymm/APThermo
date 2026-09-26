@@ -18,12 +18,11 @@ public sealed class WarmStartTests
     /// One fixture pinned by name, with every skip branch of
     /// <see cref="AWarmSolveAtHalfPressureAgreesWithAColdSolveAtThatPressure"/> unreachable for it, so the full
     /// comparison always runs for at least this case and the theory cannot quietly degenerate into a no-op (AGENTS.md
-    /// §13). The audit's own probe (a synthetic case over the <c>rp1311-example1</c> table at 1000 K, where atomic H
-    /// crossed the trace threshold during an already-polished step, rejected by 5.76e-10 kmol/kg) is not this fixture:
-    /// its exact element abundances and pressure were not recorded in the design text, and reconstructing the case
-    /// from the committed <c>rp1311-example1</c> fixtures at 1000 K does not reproduce the crossing (probably the
-    /// abundances or the pressure differ). The bookkeeping rules that probe exercises are shown red once directly,
-    /// by mutation, in <see cref="NewtonLoopStateTests"/> instead.
+    /// §13). The audit's own probe cases — the ones that actually crossed the trace threshold — are reproduced
+    /// exactly instead, in <see cref="TheAuditsExactCasesWarmStartOkAndAgreeWithAFreshColdSolve"/>: their table,
+    /// element moles, pressure and temperature come from the audit's harness
+    /// (<c>scratchpad/audit/harness/ZzAuditRepro.cs</c>, not committed) and its recorded output
+    /// (<c>scratchpad/audit/repro1.txt</c>), not from a guess at the fixture's own committed conditions.
     /// </summary>
     [Fact]
     public void ANamedFixtureCompletesTheFullWarmStartComparison()
@@ -94,6 +93,71 @@ public sealed class WarmStartTests
         AssertClose(name, "entropy", freshCold.State.Entropy, warm.State.Entropy, 0.0);
         AssertClose(name, "density", freshCold.State.Density, warm.State.Density, 0.0);
         AssertClose(name, "molar mass", freshCold.State.MolarMass, warm.State.MolarMass, 0.0);
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            var coldFraction = freshCold.Moles[j] / freshCold.TotalMoles;
+            var warmFraction = warm.Moles[j] / warm.TotalMoles;
+            var bound = Tolerances.SelfConsistency + Tolerances.SelfConsistency * coldFraction;
+            Assert.True(Math.Abs(coldFraction - warmFraction) <= bound,
+                        $"{name}: {table.Species[j]} mole fraction cold {coldFraction:R} vs warm {warmFraction:R}");
+        }
+    }
+
+    /// <summary>
+    /// The audit's own probe cases, reproduced exactly from its harness
+    /// (<c>scratchpad/audit/harness/ZzAuditRepro.cs</c>, not committed) and its recorded output
+    /// (<c>scratchpad/audit/repro1.txt</c>): the fixture's own table and element moles, a cold solve at the
+    /// fixture's own pressure times a factor and a given temperature (the fixture's own enthalpy target for hp),
+    /// then a warm solve from that solution at half that pressure. Each cold solve was `Ok` in the audit's run (24,
+    /// 16 and 12 iterations); the unpatched warm solve was `NotConverged` after one iteration on all three, atomic H
+    /// crossing the trace threshold by 5.757753e-10, 9.312757e-10 and 9.301270e-10 kmol/kg respectively.
+    /// </summary>
+    public static TheoryData<string, string, double, double> AuditCases()
+    {
+        var data = new TheoryData<string, string, double, double>
+        {
+            { "tp", "rp1311-example1_r1.5_p0.01atm_T2000", 1.0, 1000.0 },
+            { "tp", "rp1311-example8_exit5", 0.1, 1000.0 },
+            { "hp", "rp1311-example8_exit3", 100.0, 0.0 },
+        };
+        return data;
+    }
+
+    /// <summary>
+    /// The audit's exact cases: the warm solve is `Ok` and agrees with a fresh cold solve at half pressure. Red once
+    /// with the retention-crossing rule off (<c>NewtonIteration.cs</c>'s <c>if (verdict != NotConverged &amp;&amp;
+    /// RetentionCrossed(...))</c> replaced by <c>&amp;&amp; false</c>): every case then ends `NotConverged` after one
+    /// iteration (BOOT.md, warm starts, the audit's findings 3 and 4).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AuditCases))]
+    public void TheAuditsExactCasesWarmStartOkAndAgreeWithAFreshColdSolve(string kind, string name, double pressureFactor, double temperature)
+    {
+        var c = HostSolver.Load(kind, name);
+        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var kindEnum = HostSolver.KindOf(c);
+        var pressure = HostSolver.PressureOf(c) * pressureFactor;
+        var target = HostSolver.TargetOf(c);
+        var elementMoles = HostSolver.ElementMolesOf(c);
+        var accelerator = CpuFixture.Shared.Accelerator;
+
+        var cold = new EquilibriumCase(table, kindEnum, pressure, temperature, target, elementMoles);
+        var coldSolution = HostSolver.Solve(accelerator, cold);
+        Assert.Equal(CaseStatus.Ok, coldSolution.Status);
+
+        // For hp there is no assigned temperature to hold; the warm start's own estimate is the cold solution's
+        // converged temperature (BOOT.md, "The caller's previous solution in result.Moles, and problem.Temperature
+        // when it is positive"), exactly as the audit's harness passed it.
+        var warmTemperature = kindEnum == ProblemKind.AssignedTemperaturePressure ? temperature : coldSolution.State.Temperature;
+        var warmProblem = cold with { Pressure = pressure / 2.0, Temperature = warmTemperature };
+        var warm = HostSolver.Solve(accelerator, warmProblem, coldSolution.Moles);
+        Assert.Equal(CaseStatus.Ok, warm.Status);
+
+        var freshColdProblem = cold with { Pressure = pressure / 2.0 };
+        var freshCold = HostSolver.Solve(accelerator, freshColdProblem);
+        Assert.Equal(CaseStatus.Ok, freshCold.Status);
+
+        AssertClose(name, "enthalpy", freshCold.State.Enthalpy, warm.State.Enthalpy, Tolerances.EnthalpyFloor);
         for (var j = 0; j < table.SpeciesCount; j++)
         {
             var coldFraction = freshCold.Moles[j] / freshCold.TotalMoles;

@@ -733,22 +733,49 @@ found the stale row red; re-measured the same day.
         4 of the `rp1311-example14` water-plateau cases) or a warm solve a plateau's
         seeded pair makes singular (the ⚠ below) is skipped, not forced.
 
+        `TheAuditsExactCasesWarmStartOkAndAgreeWithAFreshColdSolve` reproduces the
+        audit's own three probe cases exactly, over the fixture's own table and element
+        moles, cold at the fixture's pressure times a factor and a given temperature
+        (the fixture's own enthalpy target for hp), warm from that solution at half that
+        pressure:
+        - `("tp", "rp1311-example1_r1.5_p0.01atm_T2000", 1.0, 1000 K)`;
+        - `("tp", "rp1311-example8_exit5", 0.1, 1000 K)`;
+        - `("hp", "rp1311-example8_exit3", 100.0, the fixture's own enthalpy target)`,
+          the warm temperature estimate being the cold solution's own converged
+          temperature, since hp assigns none of its own.
+
+        All three: `Ok` cold (24, 16, 12 iterations, matching the audit's own run),
+        `Ok` warm, agreeing with a fresh cold solve at the halved pressure. Shown red
+        once: with `NewtonIteration.cs`'s `if (verdict != NotConverged &&
+        RetentionCrossed(...))` replaced by `&& false` (the retention-crossing rule
+        off), all three warm solves end `NotConverged` (`Assert.Equal() Failure:
+        Expected: Ok, Actual: NotConverged`) — the audit's own run recorded the same
+        outcome, atomic H crossing the trace threshold by 5.757753e-10, 9.312757e-10
+        and 9.301270e-10 kmol/kg respectively after one iteration
+        (`scratchpad/audit/repro1.txt`, not committed).
+
         ⚠ 2026-09-26: this criterion named "the polish-threshold tier of the fixtures
-        node's tolerance table" and "red against `9c33398` on the audit's
-        `rp1311-example1` case". Neither survived implementation. The fixtures node's
-        `ToleranceTable` compares a tree value against the cea reference and derives
-        every entry from the reference's own print precision and convergence tests
-        (`tests/Fixtures/tolerances.json`); a warm-versus-cold comparison has no
-        reference to ask, and `Tolerances.cs`'s own doc comment already says so:
-        "a comparison of two paths of this tree against each other has no reference to
+        node's tolerance table". That did not survive implementation. The fixtures
+        node's `ToleranceTable` compares a tree value against the cea reference and
+        derives every entry from the reference's own print precision and convergence
+        tests (`tests/Fixtures/tolerances.json`); a warm-versus-cold comparison has no
+        reference to ask, and `Tolerances.cs`'s own doc comment already says so: "a
+        comparison of two paths of this tree against each other has no reference to
         ask, so the number lives here". The warm-start comparison uses
-        `Tolerances.SelfConsistency`, not a new fixtures-node entry. The audit's own
-        probe (`eq_design.py`, not committed) solved the `rp1311-example1` table at
-        1000 K directly, not through a committed fixture, and its exact element
-        abundances and pressure were not recorded in the design text; reconstructing
-        the case from the committed `rp1311-example1` fixtures at 1000 K does not
-        reproduce the reported crossing. The bookkeeping rule that probe exercises
-        (below) is shown red once directly, by mutation, instead of through that case.
+        `Tolerances.SelfConsistency`, not a new fixtures-node entry.
+
+        ⚠ 2026-09-26, corrected on review: this ⚠ first said the audit's probe
+        parameters "were not recorded in the design text" and that reconstructing the
+        case from the committed `rp1311-example1` fixtures at 1000 K did not reproduce
+        the crossing. Both were true of the design text alone, not of the audit's own
+        working files: its harness (`scratchpad/audit/harness/ZzAuditRepro.cs`, not
+        committed — a fixture's own table and element moles, the fixture's pressure
+        times a named factor, a given temperature, warm at half that pressure) and its
+        recorded run (`scratchpad/audit/repro1.txt`) name the exact three cases above.
+        `TheAuditsExactCasesWarmStartOkAndAgreeWithAFreshColdSolve` reproduces them
+        directly; the review that found this also found the general theory's coverage
+        of them degenerate (it warm-starts at the fixtures' own committed temperatures
+        and pressures, none of which crosses the trace threshold).
 
         ⚠ 2026-09-26, found implementing this criterion, not one of the audit's five
         findings: four `rp1311-example14` cases (water pinned at its own melting
@@ -799,10 +826,10 @@ found the stale row red; re-measured the same day.
         included), because the scratch layout grows.
 
       Evidence: `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
-      "Category!=LongRunning"` 4275/4275, none skipped; `dotnet test
-      tests/Execution.Tests -c Release` 126/126 on CUDA; the protocol lint 0
-      errors/0 warnings; no `Bits*.approved.txt` differs from `main` outside the
-      fifteen new tp lines and eleven new thermo lines named above.
+      "Category!=LongRunning"` 4278/4278, none skipped (`Equilibrium.Tests` 695);
+      `dotnet test tests/Execution.Tests -c Release` 126/126 on CUDA; the protocol
+      lint 0 errors/0 warnings; no `Bits*.approved.txt` differs from `main` outside
+      the fifteen new tp lines and eleven new thermo lines named above.
 
 ## Taboos
 
