@@ -11,15 +11,31 @@ generator's own reader and the formulas are written out in their general form,
 with the eight exponents e_k taken from the record (the eighth is unused when zero and its
 coefficient is absent). Interval selection follows the rule of the Thermo node: the first
 interval whose upper bound is not below T; below the first bound or above the last one the
-nearest interval's polynomial is used and the point is flagged out of range.
+nearest interval's polynomial is used and the point is flagged out of range. A record's range
+is the lowest lower and the highest upper bound over its intervals, bound by bound (the
+reference's `minval(T_fit(:, 1))`/`maxval(T_fit(:, 2))`, cea 3.3.4 equilibrium.f90 1692-1693 and
+1913-1915), not the first and last interval's own bounds: eleven condensed records of the
+committed file begin with an interval that runs backwards (Thermo BOOT.md, 2026-09-26).
 """
 from __future__ import annotations
 
 import math
+import os
 import sys
 
-from common import Record, read_thermo_joined
+from common import ROOT, Record, read_thermo_joined
 from writer import Writer, main_of
+
+# The Data node's approved anomaly list: condensed records whose first interval is not ascending
+# (tests/Data.Tests/records/interval-anomalies.approved.txt). Read from that file, not typed, so the two lists
+# cannot drift apart (Thermo BOOT.md, 2026-09-26).
+ANOMALY_LIST_PATH = os.path.join(ROOT, "tests", "Data.Tests", "records", "interval-anomalies.approved.txt")
+
+
+def anomaly_species() -> list[str]:
+    with open(ANOMALY_LIST_PATH, encoding="utf-8") as f:
+        return [line.split(" [", 1)[0] for line in f if line.strip()]
+
 
 SPECIES = [
     "H2O", "CO2", "H2", "N2", "O2", "H", "O", "OH", "CO", "N", "NO", "Ar", "HCL", "CL", "CL2",
@@ -29,7 +45,7 @@ SPECIES = [
     # Multi-record and multi-piece condensed species (the Thermo node's join-and-cut): Cr(cr) is two records
     # joined into one contiguous fit, ALN(L) one record whose fits disagree at 2700 K by a real latent heat.
     "Cr(cr)", "ALN(L)",
-]
+] + anomaly_species()
 
 TEMPERATURES = [200.0, 298.15, 500.0, 1000.0, 1000.0001, 2000.0, 3000.0, 5000.0, 6000.0]
 OUT_OF_RANGE_FACTOR = 0.05   # one point 5 % below the first bound and one 5 % above the last
@@ -42,8 +58,14 @@ def interval_of(record: Record, temperature: float) -> int:
     return len(record.intervals) - 1
 
 
+def record_bounds(record: Record) -> tuple[float, float]:
+    """The lowest lower and the highest upper bound over the record's intervals, bound by bound."""
+    return min(iv.t_low for iv in record.intervals), max(iv.t_high for iv in record.intervals)
+
+
 def in_range(record: Record, temperature: float) -> bool:
-    return record.intervals[0].t_low <= temperature <= record.intervals[-1].t_high
+    low, high = record_bounds(record)
+    return low <= temperature <= high
 
 
 def functions(record: Record, temperature: float) -> tuple[int, float, float, float]:
@@ -62,7 +84,7 @@ def functions(record: Record, temperature: float) -> tuple[int, float, float, fl
 
 def points(record: Record) -> list[float]:
     """The standard temperatures inside the record's range, the range's bounds and midpoint, and one point beyond each end."""
-    first, last = record.intervals[0].t_low, record.intervals[-1].t_high
+    first, last = record_bounds(record)
     inside = sorted({t for t in TEMPERATURES if first <= t <= last} | {first, 0.5 * (first + last), last})
     below = first * (1.0 - OUT_OF_RANGE_FACTOR)
     above = last * (1.0 + OUT_OF_RANGE_FACTOR)

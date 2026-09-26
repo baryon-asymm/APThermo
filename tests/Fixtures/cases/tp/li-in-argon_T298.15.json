@@ -1,0 +1,84 @@
+{
+  "case": {
+    "name": "li-in-argon_T298.15",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "Li",
+          "massFraction": 0.00861272042099464,
+          "temperature": null
+        },
+        {
+          "name": "Ar",
+          "massFraction": 0.9913872795790054,
+          "temperature": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "AR": 0.024816944016696842,
+        "LI": 0.0012408472008348422
+      },
+      "temperature": 298.15,
+      "pressure": 100000.0,
+      "transport": false,
+      "products": [
+        "Li",
+        "Li2",
+        "Ar",
+        "Li(cr)",
+        "Li(L)"
+      ],
+      "omit": [],
+      "trace": null,
+      "only": [
+        "Li",
+        "Li2",
+        "Ar",
+        "Li(cr)",
+        "Li(L)"
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "low_temperature.py",
+    "scriptSha256": "37523db84985798219a10737faa20f03b24ea30f4d60e8aad05d13627ade9cf0",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "temperature": 298.15,
+    "pressure": 100000.0,
+    "density": 1.6254747415815665,
+    "enthalpy": -1.6918712942848941e-06,
+    "internalEnergy": -61520.488411558676,
+    "entropy": 3878.954437431811,
+    "gibbsEnergy": -1156510.2655219862,
+    "molarMass": 40.29504999999995,
+    "mixtureMolarMass": 38.376238095238044,
+    "cpFrozen": 546.6992843967497,
+    "cpEquilibrium": 546.6992843967497,
+    "cvFrozen": 340.3585552004834,
+    "cvEquilibrium": 340.3585552004834,
+    "gammaS": 1.6062451671729663,
+    "dlnVdlnT": 0.9999999999999999,
+    "dlnVdlnP": -0.9999999999999999,
+    "soundSpeed": 314.3516934747911,
+    "moleFractions": {
+      "Li": 6.2930186990151e-23,
+      "Li2": 2.5287030399734644e-31,
+      "Ar": 0.9523809523809524,
+      "Li(cr)": 0.04761904761904764,
+      "Li(L)": 0.0
+    },
+    "converged": true
+  }
+}

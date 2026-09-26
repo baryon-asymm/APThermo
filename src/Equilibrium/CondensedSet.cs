@@ -48,16 +48,25 @@ internal static class CondensedSet
     }
 
     /// <summary>
-    /// True when a record stood down by the anti-cycling rule would qualify for inclusion at the final state: inside its
-    /// effective range, no phase partner in the solution, and a gain above the rounding of the converged multipliers. An Ok
-    /// status must not hide such a candidate (BOOT.md); the caller turns it into NotConverged.
+    /// True when some condensed record whose elements are all present, not in the solution, would qualify for
+    /// inclusion at the final state: inside its effective range, no phase partner in the solution, and a gain above
+    /// the rounding of the converged multipliers. An Ok status must not hide such a candidate (BOOT.md, the exit
+    /// guard); the caller turns it into NotConverged.
     /// </summary>
-    public static bool StoodDownCandidateRemains(in SpeciesTableView table, in EquilibriumScratch scratch,
-                                                 in EquilibriumResult result, in IterationState state)
+    /// <remarks>
+    /// Widened 2026-09-26 from the stood-down records alone (the anti-cycling rule's own honesty check) to every
+    /// record whose elements are present, <see cref="SpeciesMark.StoodDown"/> included: the prior scope let a
+    /// candidate left out only because the condensed set was full — marked <see cref="SpeciesMark.Active"/>, never
+    /// stood down — pass as a false Ok (BOOT.md, the audit's finding 2). Only <see cref="SpeciesMark.Absent"/> (an
+    /// element of the species missing from the mixture) is skipped; <see cref="SpeciesMarks.InPlay"/> would skip
+    /// <see cref="SpeciesMark.StoodDown"/> too and silently drop the guard's original coverage.
+    /// </remarks>
+    public static bool ExitGuardFindsAPositiveCandidate(in SpeciesTableView table, in EquilibriumScratch scratch,
+                                                        in EquilibriumResult result, in IterationState state)
     {
         for (var j = table.GasCount; j < table.SpeciesCount; j++)
         {
-            if (SpeciesMarks.Of(scratch, j) != SpeciesMark.StoodDown || PhaseGeometry.InSolution(scratch, state.CondensedCount, j))
+            if (SpeciesMarks.Of(scratch, j) == SpeciesMark.Absent || PhaseGeometry.InSolution(scratch, state.CondensedCount, j))
             {
                 continue;
             }

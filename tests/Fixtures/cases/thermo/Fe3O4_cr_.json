@@ -1,0 +1,171 @@
+{
+  "case": {
+    "name": "Fe3O4(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "Fe3O4(cr)",
+      "line": 12330,
+      "phase": "condensed",
+      "molarMass": 231.5326,
+      "intervals": [
+        [
+          300.0,
+          298.15
+        ],
+        [
+          298.15,
+          800.0
+        ],
+        [
+          800.0,
+          850.0
+        ],
+        [
+          850.0,
+          1870.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        283.24249999999995,
+        298.15,
+        500.0,
+        1000.0,
+        1000.0001,
+        1084.075,
+        1870.0,
+        1963.5
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "64d5524e62075ec71cd4bc96a4b43cb4d0dc6e091d32a11958ccafd7a96ee6bf",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 283.24249999999995,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 17.640665813255282,
+        "hOverRT": -475.83461164040153,
+        "sOverR": 16.659563075533868,
+        "gOverRT": -492.4941747159354
+      },
+      {
+        "temperature": 298.15,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 18.13592012075469,
+        "hOverRT": -451.1481415902101,
+        "sOverR": 17.577336903753007,
+        "gOverRT": -468.7254784939631
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 23.186009742499984,
+        "hOverRT": -260.55838964904393,
+        "sOverR": 28.302619404820227,
+        "gOverRT": -288.86100905386417
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 3,
+        "cpOverR": 24.917056323,
+        "hOverRT": -116.55518946623341,
+        "sOverR": 47.1215556170464,
+        "gOverRT": -163.6767450832798
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 3,
+        "cpOverR": 24.917055162056666,
+        "hOverRT": -116.55517531901047,
+        "sOverR": 47.121558108751756,
+        "gOverRT": -163.67673342776223
+      },
+      {
+        "temperature": 1084.075,
+        "inRange": true,
+        "interval": 3,
+        "cpOverR": 24.141594058401893,
+        "hOverRT": -105.61585705331365,
+        "sOverR": 49.09963759420602,
+        "gOverRT": -154.71549464751968
+      },
+      {
+        "temperature": 1870.0,
+        "inRange": true,
+        "interval": 3,
+        "cpOverR": 25.186596187618232,
+        "hOverRT": -51.17195559388715,
+        "sOverR": 62.11339977924418,
+        "gOverRT": -113.28535537313132
+      },
+      {
+        "temperature": 1963.5,
+        "inRange": false,
+        "interval": 3,
+        "cpOverR": 25.600100486810604,
+        "hOverRT": -47.52577012790449,
+        "sOverR": 63.3524872023641,
+        "gOverRT": -110.87825733026858
+      }
+    ]
+  }
+}

@@ -37,8 +37,14 @@ internal readonly struct EquilibriumProblem(ProblemKind kind, double pressure, d
 /// <summary>Sizes of the per-case scratch; the caller allocates batch-sized buffers and slices them.</summary>
 internal static class ScratchLayout
 {
-    /// <summary>Condensed species that may be in the solution at once.</summary>
-    public const int MaxCondensedInSolution = 8;
+    /// <summary>
+    /// Condensed species that may be in the solution at once: <see cref="TableLimits.MaxElements"/> (2026-09-26; was
+    /// 8). The phase rule never needs more than one condensed phase per element beside the gas phase, plus one more
+    /// on a pinned plateau, but a table may declare up to <see cref="TableLimits.MaxElements"/> elements, and the
+    /// prior 8-slot limit silently dropped stable phases beyond it into a false <c>Ok</c> (Equilibrium BOOT.md, the
+    /// audit's finding 2).
+    /// </summary>
+    public const int MaxCondensedInSolution = TableLimits.MaxElements;
 
     /// <summary>Unknowns of the reduced system: elements + condensed species in the solution + ln n + ln T.</summary>
     public static int MaxUnknowns(int elementCount) => elementCount + MaxCondensedInSolution + 2;

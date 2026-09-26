@@ -1,0 +1,123 @@
+{
+  "case": {
+    "name": "NH4F(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "NH4F(cr)",
+      "line": 13521,
+      "phase": "condensed",
+      "molarMass": 37.0368632,
+      "intervals": [
+        [
+          300.0,
+          298.15
+        ],
+        [
+          298.15,
+          511.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        283.24249999999995,
+        298.15,
+        404.575,
+        500.0,
+        511.0,
+        536.5500000000001
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "64d5524e62075ec71cd4bc96a4b43cb4d0dc6e091d32a11958ccafd7a96ee6bf",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 283.24249999999995,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 7.62537889539243,
+        "hOverRT": -198.94470142892973,
+        "sOverR": 8.259030139572062,
+        "gOverRT": -207.20373156850178
+      },
+      {
+        "temperature": 298.15,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 7.850011731630502,
+        "hOverRT": -188.61050279166793,
+        "sOverR": 8.655953573024334,
+        "gOverRT": -197.26645636469226
+      },
+      {
+        "temperature": 404.575,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 10.09392534982575,
+        "hOverRT": -136.63568474577505,
+        "sOverR": 11.377157784852574,
+        "gOverRT": -148.01284253062764
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 12.105944910000002,
+        "hOverRT": -108.4403416925,
+        "sOverR": 13.720287963032856,
+        "gOverRT": -122.16062965553286
+      },
+      {
+        "temperature": 511.0,
+        "inRange": true,
+        "interval": 1,
+        "cpOverR": 12.337878000509999,
+        "hOverRT": -105.84291549949549,
+        "sOverR": 13.98624583589135,
+        "gOverRT": -119.82916133538684
+      },
+      {
+        "temperature": 536.5500000000001,
+        "inRange": false,
+        "interval": 1,
+        "cpOverR": 12.876595315285503,
+        "hOverRT": -100.20243206342913,
+        "sOverR": 14.601248119237912,
+        "gOverRT": -114.80368018266704
+      }
+    ]
+  }
+}

@@ -57,8 +57,16 @@ public sealed class OverloadPinningTests
             var interval = intervals[k];
             // Every interval's own upper bound and midpoint are unambiguous (the interval rule gives a shared bound
             // to the lower interval); the lower bound is tested only for the very first interval, where it is the
-            // piece's own RecordLow and nothing precedes it to share it with.
-            foreach (var temperature in k == 0 ? [interval.TLow, Midpoint(interval), interval.THigh] : new[] { Midpoint(interval), interval.THigh })
+            // piece's own RecordLow and nothing precedes it to share it with. That assumes the first interval
+            // ascends: eleven condensed records begin with an inverted interval instead (Thermo BOOT.md, "Interval
+            // selection is defined", 2026-09-26), whose own lower bound and midpoint both lie above its own upper
+            // bound, so IntervalOf never resolves to it there — only its upper bound does.
+            double[] points = k == 0
+                ? interval.TLow <= interval.THigh
+                    ? [interval.TLow, Midpoint(interval), interval.THigh]
+                    : [interval.THigh]
+                : [Midpoint(interval), interval.THigh];
+            foreach (var temperature in points)
             {
                 var piece = table.PieceOf(name, temperature);
                 Assert.True(piece >= 0, $"{name} at {temperature} K: PieceOf found no piece");

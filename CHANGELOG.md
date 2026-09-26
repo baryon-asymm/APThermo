@@ -29,6 +29,33 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
   now completes only the wrappers ILGPU did not already define. The CUDA binding also
   now loads a probe kernel first, so that a device on which no kernel can load is
   never reported as bound.
+- The hidden-defect audit of `Thermo` and `Equilibrium` (2026-09-26):
+  - `SpeciesFunctions.RecordLow`/`RecordHigh` now take the lowest lower bound and the
+    highest upper bound over every interval of a species, matching NASA CEA's
+    `minval`/`maxval` rule, instead of only the first and last interval's own bounds.
+    Eleven condensed records begin with an inverted first interval (`300` down to a
+    lower temperature); the prior rule wrongly excluded the gap between the inverted
+    interval's low end and its own upper bound from the species' range.
+  - The condensed-species rules now leave a record with no lower bound when its
+    lowest lower bound equals the equilibrium solver's gas-data floor (200 K) and no
+    record of its formula adjoins it below (`H2O(cr)` in the committed database),
+    instead of quietly treating that floor as a real physical bound.
+  - `ScratchLayout.MaxCondensedInSolution` rises from 8 to `TableLimits.MaxElements`
+    (20): a state with more stable condensed phases than the prior 8-slot limit could
+    represent silently dropped the excess and reported a false `Ok`.
+  - The Ok-exit honesty check (the exit guard) now scans every condensed record whose
+    elements are present, not only the anti-cycling rule's stood-down records, so a
+    positive-gain candidate left out only because the condensed set was full can no
+    longer pass as a false `Ok`.
+  - `EquilibriumSolver.SolveFrozen` now validates every mole number, gaseous and
+    condensed, as finite and non-negative, with a positive gas-phase sum, before
+    reporting `Ok`.
+  - A warm start whose last step carried a gas across the trace threshold ended
+    `NotConverged`; the convergence verdict now covers the gases the step leaves above
+    the threshold.
+  - Results change only where a phase was wrongly excluded before (the nine condensed
+    records between 298.15 K and 300 K, ice below 200 K, states with more than eight
+    stable condensed phases). No result of the reference fixtures moved.
 
 ## [0.1.0] - 2026-09-18
 

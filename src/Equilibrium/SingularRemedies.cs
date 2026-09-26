@@ -13,10 +13,11 @@ internal static class SingularRemedies
 
     /// <summary>
     /// The remedies, in order: reset the gaseous species that vanished, twice; then drop the last condensed species. False
-    /// when neither remedy is left and the case is singular.
+    /// when neither remedy is left and the case is singular. A removal is a change of the condensed set: it restarts
+    /// <paramref name="loop"/>'s step count, as every other change does (BOOT.md, the loop's bookkeeping, 2026-09-26).
     /// </summary>
     public static bool Recover(in EquilibriumScratch scratch, in EquilibriumResult result, int gasCount,
-                               ref int singularResets, ref IterationState state)
+                               ref int singularResets, ref NewtonLoopState loop, ref IterationState state)
     {
         if (singularResets < MaxSingularResets)
         {
@@ -36,6 +37,7 @@ internal static class SingularRemedies
         {
             state.CondensedCount = CondensedSet.Remove(scratch, result, state.CondensedCount, state.CondensedCount - 1);
             state.SetChanges++;
+            loop.RecordSetChange();
             singularResets = 0;
             return true;
         }

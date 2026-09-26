@@ -1,0 +1,84 @@
+{
+  "case": {
+    "name": "h2-o2-of4_T180",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "H2",
+          "massFraction": 0.2,
+          "temperature": null
+        },
+        {
+          "name": "O2",
+          "massFraction": 0.8,
+          "temperature": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "H": 0.19842450939540052,
+        "O": 0.050001875070315144
+      },
+      "temperature": 180.0,
+      "pressure": 100000.0,
+      "transport": false,
+      "products": [
+        "H2",
+        "O2",
+        "H2O",
+        "H2O(cr)",
+        "H2O(L)"
+      ],
+      "omit": [],
+      "trace": null,
+      "only": [
+        "H2",
+        "O2",
+        "H2O",
+        "H2O(cr)",
+        "H2O(L)"
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "low_temperature.py",
+    "scriptSha256": "37523db84985798219a10737faa20f03b24ea30f4d60e8aad05d13627ade9cf0",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "temperature": 180.0,
+    "pressure": 100000.0,
+    "density": 1.3577946592239647,
+    "enthalpy": -14998135.00433209,
+    "internalEnergy": -15071783.843146313,
+    "entropy": 7148.456810125726,
+    "gibbsEnergy": -16284857.23015472,
+    "molarMass": 20.320915089715644,
+    "mixtureMolarMass": 10.079399999999987,
+    "cpFrozen": 2604.3285018195847,
+    "cpEquilibrium": 2604.3540962390525,
+    "cvFrozen": 2195.168286185007,
+    "cvEquilibrium": 2195.1923979029666,
+    "gammaS": 1.1863898389669911,
+    "dlnVdlnT": 1.0000018389117957,
+    "dlnVdlnP": -1.0000000540592373,
+    "soundSpeed": 295.59471243733896,
+    "moleFractions": {
+      "H2": 0.49601110041626506,
+      "O2": 0.0,
+      "H2O": 2.681398169119953e-08,
+      "H2O(cr)": 0.5039888727697532,
+      "H2O(L)": 0.0
+    },
+    "converged": true
+  }
+}
