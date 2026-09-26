@@ -136,6 +136,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the conductivity in μW/(cm·K). The node stores the fits and the units as in the
   file; conversion to SI belongs to `Transport`.
 
+- **Two notes of the hidden-defect audit of 2026-09-26.** Both are fixed here, and no
+  record of the committed file changes:
+  - `ReadFormula` drops a zero-count pair, as `API.md` says; it kept them. The
+    committed file has none.
+  - A format error's message carries the file and line once; the command line's
+    `DatabaseFiles` prefixed a message that already held them, printing
+    `thermo.inp:66: thermo.inp:66: …`. The prefix belongs to this node's message, and
+    the command line prints it as given; the fix is the command line's.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). Each
@@ -341,6 +350,9 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       once (AGENTS.md §13): the embedded `thermo.inp` truncated to its first 100
       lines turned the hash test and the equality test both red; reverted, nothing of
       the mutation committed.
+
+- [ ] 2026-09-26 — A formula line with a zero-count pair reads without that pair; a
+      unit fact over a one-record text, red against `9c33398`.
 
 ## Taboos
 

@@ -343,10 +343,12 @@ name, `performance` with every field of `PerformanceFigures` plus the two
 `…Seconds` conversions (rocket stations only), the compositions by name above the
 threshold (`moleFractions` over all species, `condensedMassFractions` as n_j M_j),
 and `transport` with `status` and, when it is `ok`, every field of
-`TransportFigures` (present only when transport was requested). A non-finite number
+`TransportFigures` (present only when transport was requested and the station converged,
+2026-09-26). A non-finite number
 is written as `null`. Statuses are the library's `CaseStatus` names in camel case.
 
-The CSV form has one row per case and station: `case`, the scalar inputs, `station`,
+The CSV form has one row per case and station: `case`, the scalar inputs under the
+prefix `inputs.` (2026-09-26: so that no name repeats a state field's), `station`,
 `status`, the state fields, the performance fields with the two conversions,
 `transportStatus` and the transport fields, in that order; cells that do not apply
 are empty; compositions are not in CSV, nor is the `mixture` section (its mass

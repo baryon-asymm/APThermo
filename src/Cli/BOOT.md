@@ -161,6 +161,42 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `download`), which the front door does not expose; the tool reports its own phases
   (`database` load, `solve`).
 
+- **Audit fixes of 2026-09-26** (the hidden-defect audit of that day, Data, Problems and
+  Cli, findings 1, 2, 3, 7, 8 and 9, and its note on the database error). Each child
+  node named holds its part:
+  - **Output.** CSV column names are unique. The input columns carry the prefix
+    `inputs.`, the JSON member they come from (`inputs.pressure` beside the state's
+    `pressure`).
+    - ⚠ For `equilibrium` and `states`, `pressure`, `temperature`, `enthalpy` and
+      `entropy` appeared twice. pandas read the second as `pressure.1`, Python's
+      `csv.DictReader` kept the last, and on a rocket record's exit row the two
+      readers returned the chamber and the exit pressure under one name.
+  - **Documents.** A JSON member given twice is refused with its path.
+    - ⚠ The last value won. `"chamberPressure": 7.0e6, "chamberPressure": 7.0e5`
+      solved the 0.7 MPa case with exit 0.
+  - **Syntax.** An option given with an empty value (`--output=`, `--database=`) is a
+    bad option value: exit 2 naming the option.
+    - ⚠ `--output=` exited 3 with an unhandled `ArgumentException`, and `--database=`
+      read `thermo.inp` from the working directory.
+  - **States.** A refusal from the front door names the record's source (file and
+    record, or JSON Lines line). This node maps the front door's `StateRecordException.Index`
+    within each group back to the record it came from.
+    - ⚠ Only the shape and mass refusals were mapped. A zero pressure on line 3 was
+      reported as `equilibrium problem 1`, which reads as line 2.
+  - **Mass tolerance.** `--mass-tolerance` applies to documents that carry element
+    moles (`states`, `propellant.elementMoles`). With a reactant propellant it is an
+    option that does not apply: exit 2. There the front door's propellant path holds
+    its mixtures to `DefaultMassTolerance`, and `run.massTolerance` records that
+    value. A reactant document's refusal names `the propellant's mixture (case i)`,
+    as the front door's propellant path does.
+    - ⚠ `run.massTolerance` echoed the option while the check in force was 1e-2. The
+      refusal said `mixture i` and cited 1 % under `--mass-tolerance 0.9`.
+  - **Transport.** A station's `transport` object is present when transport was
+    requested and the station converged; the `API.md` wording follows the front door's
+    corrected contract.
+  - **Database errors.** They are printed as the Data node gives them, with no second
+    prefix.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
@@ -502,6 +538,23 @@ Every other type of the node measures 14 or below by the dependency check's walk
       tree, the same shape as `Program.Main`'s handler, throwing after installing it:
       exit code 3, `InvalidOperationException: a defect of this node` on standard
       error, `dotnet run -c Release` on 2026-09-24.
+
+- [ ] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
+      red once against the code of `9c33398`:
+      - every CSV header this node writes, over every command, format and approved
+        example, has unique names;
+      - a document with a repeated member is refused (exit 2, with its path), in a
+        problem document and in a state record;
+      - `--output=` and `--database=` are exit 2 naming the option;
+      - the audit's `misname.jsonl` refusal names line 3;
+      - `--mass-tolerance` with a reactant document is exit 2;
+      - `run.massTolerance` of a reactant document is 0.01;
+      - a malformed database line is reported with one prefix.
+
+      Every approved CSV output (the tests node's, the docs tests node's, the bit
+      snapshots) is re-approved for the new header in the same commit, and nothing
+      else in them moves. The schemas are unchanged: the JSON documents did not change
+      shape.
 
 ## Taboos
 
