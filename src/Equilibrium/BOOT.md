@@ -786,6 +786,27 @@ found the stale row red; re-measured the same day.
         is then singular in a way `SingularRemedies` does not recover from. Left open
         for a design session on the plateau-pinning geometry; `WarmStartTests` skips a
         case in this state rather than asserting it.
+
+        ⚠ 2026-09-27, the explanation above is wrong (checked by the orchestrator with a
+        scratch trace at `89bb619`): the four cold solutions hold `H2O(L)` alone, no pair.
+        At half the pressure (0.0253 bar) the total pressure lies below water's saturation
+        pressure at 300–304.3 K, so no state with the liquid exists. The seeded liquid goes
+        negative at step 4, the loop never removes it (removal is tested only after
+        convergence, as the reference does, `equilibrium.f90:2602`), `ln n` grows by the
+        damping cap of 0.4 per step with λ shrinking geometrically, and at step 41–44 the
+        matrix is singular; the remedies then drop the liquid from a destroyed gas state
+        and fail again. Seeded without the liquid, the same warm starts are `Ok` in 5–11
+        steps; at ×0.9 to ×0.99 of the pressure they are `Ok`.
+
+        Design (2026-09-27), for the next Equilibrium coder: a warm start whose
+        convergence fails (the singular remedies exhausted, or the step cap) while a
+        condensed species seeded from the previous solution holds negative moles falls
+        back once to the cold start of section 3.1, with its iterations counted in the
+        case's total. Nothing else changes; a cold start never falls back. Evidence due:
+        the four `rp1311-example14` cases warm at ×0.5 end `Ok` and agree with a cold
+        solve (the skip in `WarmStartTests` is removed), red once with the fallback off;
+        a counter confirms no fixture, rocket stations included, reaches the fallback, so
+        no bit snapshot moves.
       - **The bookkeeping.** `NewtonLoopStateTests` drives the loop's struct on the
         host, without a table where the rule does not need one:
         - `ANotConvergedVerdictClearsTheConvergedMarkAndThePolishCount` and
