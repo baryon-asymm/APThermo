@@ -100,16 +100,31 @@ reference, recovered from its source:
   component species per active element, chosen as the reference does (gaseous species
   in decreasing moles, each given the first element row it contains that is still free,
   provided its stoichiometry column is not that of an earlier component and stays
-  independent of the rows' default species, the monatomic gases); then every gaseous
+  independent of the rows' default species, the monatomic gases). When the rows are
+  reduced and a component's pivot has vanished, because its column was proportional to
+  an earlier component's, the row takes back its default species before it is reduced,
+  and is skipped only when that pivot is zero too (cea 3.3.4 `equilibrium.f90:2264-2285`,
+  2026-09-26). Then every gaseous
   species with moles not below n/(ng·10^k), k = 1, 2, …, until the set carries
-  (1 − 1e-9)(1 − 1e-6) of the gaseous moles n, the set is full, or the threshold falls
-  below 1e-11 n (ng is the number of gaseous species of the case: those of the table
+  (1 − 1e-9)(1 − 1e-6) of the gaseous moles n, the set is full, the threshold falls
+  below 1e-11 n, or ng passes have run (the reference's bound, cea 3.3.4
+  `equilibrium.f90:5278`; this bound was missing from the sentence until 2026-09-26,
+  while the code had it) (ng is the number of gaseous species of the case: those of the table
   whose every element the case holds, which in a table built for the case alone is
   the table's gas count, the reference's product list; see the Invariants for the
   correction of 2026-09-13). Within a pass the
   species are taken in table order, which matters only when the set fills: the
   AP/HTPB/Al chamber needs 56 species for the coverage and takes the first 40. Mole
   fractions x_s are relative to the set.
+
+  ⚠ 2026-09-26: the rows were reduced with the component kept even when its pivot had
+  vanished. The row was skipped, but the species still counted as a component, and
+  every reaction took coefficients from an unreduced row. On a restricted product list
+  (`N2O4 ⇌ 2 NO2` at 400 K) all five reactions failed to conserve the elements, and
+  the status was `Ok`. The reaction terms stayed plausible: the conductivity's was 0.17
+  of the reference rule's, and the heat capacity's 0.10. Found by the hidden-defect
+  audit of 2026-09-26 (finding F4). The sentence above said the components were chosen
+  "as the reference does", which held for the choice and not for the reduction.
 - Species without data: η_i = (5/16)·sqrt(k_B M_i T/(π N_A))/(σ₀² Ω_i) with
   σ₀ = 1 Å and Ω_i = max(1, ln(50 M_i^4.6/T^1.4)), and
   λ_i = η_i (R/M_i)(3.75 + 1.32 (Cp_i/R − 2.5)). A species with viscosity fits but
@@ -383,10 +398,31 @@ row.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [ ] 2026-09-26 — The reaction basis reverts a vanished pivot to its default species,
+      as the reference does, and every estimated species is counted (the ⚠ notes of
+      this date). Evidence due:
+      - **The audit's stage run as a fact.** Table `[N, O]`, products
+        `[NO2, N2O4, N, O, N2, O2, NO]`, a composition dominated by NO2 then N2O4, at
+        400 K. Every reaction of the set conserves every element: the check is
+        computed, not typed. The fact is red against the code of `9c33398`, where all
+        five reactions fail to conserve.
+      - **Conservation everywhere.** Over every rocket fixture with transport, every
+        reaction of every station's set conserves the elements.
+      - **Estimates.** A species with viscosity fits and no conductivity fits (`UF6`,
+        the one such species in `trans.inp`) is counted in `EstimatedSpeciesCount` and
+        its mole fraction in `EstimatedMoleFraction`.
+      - **Bits.** No bit snapshot moves (no fixture's basis has a vanished pivot, and
+        no fixture holds `UF6`). The coder confirms both.
 
 ## Taboos
 
 - No silent estimate: every estimated species is counted and its mole fraction reported.
+  A species is estimated when either its viscosity or its conductivity comes from the
+  estimate (2026-09-26).
+
+  ⚠ 2026-09-26: only a missing viscosity was counted. `UF6`, which has viscosity fits
+  and no conductivity fits, had its conductivity estimated and was counted nowhere
+  (the hidden-defect audit, its notes).
 - No unit other than SI leaves this node; the file's units are folded into the table
   once and nowhere else.
 - No re-solving of the equilibrium here: the composition is an input.

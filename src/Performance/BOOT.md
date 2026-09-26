@@ -19,9 +19,39 @@ restate the equations. Whoever codes this node reads chapter 6.
 
 - **Isentropic expansion.** Every station downstream of the chamber has the chamber
   entropy: `|s_station − s_chamber| ≤ 1e-9 · |s_chamber|` at convergence; a station
-  violating it is reported as `NotConverged`.
-- **Sonic throat.** At the throat `|u²/a² − 1| ≤ 4e-5` (the report's tolerance, with
-  the equilibrium sound speed in equilibrium flow and the frozen one in frozen flow).
+  violating it is reported as `NotConverged`. This node checks it at every station it
+  accepts (2026-09-26).
+
+  ⚠ 2026-09-26: no code of this node compared the entropies. The sentence relied on the
+  equilibrium solver's convergence and was never checked; no violation had been
+  observed. Found by the hidden-defect audit of 2026-09-26 (its notes).
+- **The throat carries the largest mass flux.** The throat is the point of largest
+  mass flux `ρu` along the chamber isentrope. Where `u²/a²` crosses 1 continuously,
+  it is the sonic point, `|u²/a² − 1| ≤ 4e-5` (the report's tolerance, with the
+  equilibrium sound speed in equilibrium flow and the frozen one in frozen flow).
+  Where `u²/a²` jumps across 1, the throat is the edge where it jumps. That happens
+  at the high-pressure edge of a melting plateau, where the equilibrium sound speed
+  is discontinuous between the single-phase state and the pinned pair (2026-09-26).
+  `ρu` is continuous there and has its maximum at the edge. The throat's state is
+  then the single-phase state on the chamber side of the edge, and its Mach number is
+  below 1.
+
+  ⚠ 2026-09-26: stood "**Sonic throat.** At the throat `|u²/a² − 1| ≤ 4e-5` …". At a
+  plateau edge `u²/a²` has no root, and the momentum update oscillated across the edge
+  until `ThroatNotFound`. Cases where this happened:
+  - AP/HTPB/Al at h − 2.25 MJ/kg, at 1, 3, 7 and 15 MPa: `u²/a²` jumps from 0.946 to
+    1.121 at `AL2O3`'s 2327 K;
+  - RP-1311 example 13 at 5 MPa, h + 250 kJ/kg: from 0.880 to 1.017 at `BeO`'s
+    2851 K;
+  - 85 of 648 variants of example 13.
+
+  Found by the hidden-defect audit of 2026-09-26 (finding F1). The reference is no
+  guide there. Its throat loop (cea 3.3.4 `rocket.f90:518-556`) moves the pressure to
+  the melting temperature without re-solving the state, and never reports failure.
+  Run the same day for the AP/HTPB/Al case at 7 MPa, it reports a throat at Mach
+  0.9197 with c* = 1411.7 m/s. Its neighbours at h − 2.20 and h − 2.30 MJ/kg give
+  1336.5 and 1333.2 m/s. The state it prints was solved at a pressure other than the
+  one it reports.
 - **Area ratios are met by construction.** An exit station requested by area ratio
   satisfies `|(ρ_t u_t)/(ρ_e u_e) − ε| ≤ 1e-6 · ε` at convergence.
 - **Frozen means frozen.** In frozen flow the composition downstream of the freezing
@@ -51,16 +81,58 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Inputs per case: the element moles per kilogram, the reactant enthalpy per kilogram,
   the chamber pressure, the flow model (`ShiftingEquilibrium`, `FrozenAtChamber`,
   `FrozenAtThroat`), and a fixed number of exit stations per batch (possibly none),
-  each either an area ratio (`≥ 1`, supersonic branch) or a pressure ratio `p_c/p_e (> 1)`.
+  each either an area ratio (`> 1`, supersonic branch; 2026-09-26) or a pressure ratio
+  `p_c/p_e (> 1)`. A flow model other than the three named values is `InvalidInput` for
+  the case (2026-09-26).
+
+  ⚠ 2026-09-26: undefined flow model values (a cast, or a number in deserialized input)
+  were solved as `FrozenAtThroat`, because every stage compared with two named values
+  only (the hidden-defect audit, finding F5).
 - Throat: initial pressure ratio from the chamber `γ_s` as in the report (6.15);
-  the momentum update of (6.17) on the throat pressure; at most 20 iterations, else
-  `ThroatNotFound`. The report stops at `|u² − a²|/u² ≤ 4e-5` (6.16); this node goes
-  on to `1e-10` when it can, so that the reported throat is at rounding level, and
-  accepts the report's tolerance as `Ok` otherwise.
+  the momentum update of (6.17) on the throat pressure; at most 20 iterations. The
+  report stops at `|u² − a²|/u² ≤ 4e-5` (6.16); this node goes on to `1e-10` when it
+  can, so that the reported throat is at rounding level, and accepts the report's
+  tolerance as `Ok` otherwise.
+
+  The bracket (2026-09-26). The search keeps the smallest pressure solved with
+  `u²/a² < 1` and the largest solved with `u²/a² > 1`. When the 20 momentum
+  iterations end without either tolerance and such a bracket exists, the search
+  halves the bracket in `ln p`:
+  - It stops when a solve meets the tight tolerance: that is the sonic throat.
+  - Otherwise it stops when the bracket is narrower than `1e-10` in `ln p`. If the
+    condensed sets at its two ends differ, the throat is the plateau edge: the state at
+    the high-pressure end.
+  - At most `MaxThroatBisections` (60) solves.
+  - Anything else ends `ThroatNotFound`: no bracket, or a jump without a change of
+    the condensed set, or the report's tolerance still unmet at the end of the
+    bisection.
+
+  A case whose momentum iterations converge never reaches the bisection, so no
+  converging case changes. The throat's figures are those of the state actually solved:
+  its pressure ratio is `p_c` over that state's pressure (2026-09-26).
+
+  ⚠ 2026-09-26: after an exhausted search the throat's pressure ratio and the
+  reference the exits start from used the pressure the last update produced, not the
+  one the reported state was solved at. The mismatch is at most 2.3e-5, and it was
+  never reached by a fixture (the audit's finding F6, by reading).
 - Exit by area ratio: initial pressure ratio from the report's estimates, the
   correction of (6.23)–(6.24) on `ln(p_c/p_e)`; at most 20 iterations; the
-  supersonic branch only, so an area ratio below 1 is `AreaRatioInvalid`. The report
-  stops at `4e-5` on the correction (6.25); this node goes on to `1e-10` when it can.
+  supersonic branch only. An area ratio not above 1 is `AreaRatioInvalid`, as the
+  reference refuses it ("Supersonic area ratio must be greater than 1.0", cea 3.3.4
+  `rocket.f90:888-890`); the throat itself is station 1. The report stops at `4e-5` on
+  the correction (6.25); this node goes on to `1e-10` when it can. A pass that lands on
+  the subsonic side is stepped outward and never accepted: a station is accepted only
+  on a supersonic pass (2026-09-26).
+
+  ⚠ 2026-09-26: stood "an area ratio below 1 is `AreaRatioInvalid`", which admitted
+  exactly 1. There the first estimate is the throat, where the derivative (6.23)
+  vanishes. The correction was rounding noise over rounding noise, and the station's
+  fate hung on the sign of `u² − a²` at the throat's last iterate, about 1e-11. It
+  failed in one of the 98 fixtures when their exits were set to 1, and in 43 of 1 420
+  sweep cases. That sign is a last-bit quantity that libdevice and .NET can decide
+  differently. Also, a subsonic final pass kept the verdict of the supersonic pass
+  before it and was accepted: 164 `Ok` stations had Mach below 1, all at ε = 1. Found
+  by the hidden-defect audit of 2026-09-26 (findings F2 and F3).
 
   ⚠ 2026-09-12: stood "initial pressure ratio from the isentropic relation with the
   throat γ_s". The report's own estimates are used instead: the extrapolation with the
@@ -368,6 +440,46 @@ efferent-coupling row.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [ ] 2026-09-26 — The audit's findings F1, F2, F3, F5 and F6 and the entropy check
+      (the ⚠ notes of this date). Evidence due:
+      - **The plateau-edge throat.** The audit's cases end `Ok`:
+        - AP/HTPB/Al (the fixtures node's plateau composition) at h − 2.25 MJ/kg, at
+          1, 3, 7 and 15 MPa;
+        - RP-1311 example 13 at 5 MPa, h + 250 kJ/kg.
+
+        For each, three properties are checked independently:
+        - the throat's `ρu` is not below that of sp solves at `p(1 ± 1e-4)`, so it is
+          the maximum;
+        - the throat's state is single-phase and its Mach number is below 1;
+        - its c* lies between the c* of the same propellant at h − 2.20 and
+          h − 2.30 MJ/kg (for AP/HTPB/Al at 7 MPa, which cea 3.3.4 solves regularly:
+          1336.538 and 1333.227 m/s).
+
+        A sweep over the audit's grid (example 13 over p_c 2 to 40 MPa and h ± 400
+        kJ/kg, shifting and frozen-at-throat) has no `ThroatNotFound`. It is
+        `Category=LongRunning` if it takes more than a few seconds. Each fact is shown
+        red against the code of `9c33398`.
+      - **ε = 1.** An exit at an area ratio of exactly 1 is `AreaRatioInvalid` for that
+        station only, and the rest of the case is unchanged; the audit's failing
+        fixture `lox-rp1_of3.2_pc7MPa_shiftingEquilibrium` is used. An exit at
+        1 + 1e-9 is `Ok` and supersonic.
+      - **Supersonic acceptance.** Over every rocket fixture, and over the sweeps
+        above, every `Ok` station requested by area ratio has Mach ≥ 1. The fact is
+        shown red once by restoring the stale verdict.
+      - **Flow models.** `(FlowModel)7` and `(FlowModel)(-1)` are `InvalidInput`.
+      - **Throat figures.** Over every rocket fixture and the sweeps, every station's
+        `PressureRatio` equals `p_c` over its state's pressure bit for bit. The
+        exhausted-search path is driven once through the internal stage with a
+        20-iteration cap cut short.
+      - **Entropy.** Every `Ok` station of every rocket fixture passes the node's
+        entropy check. The check is shown red once by perturbing a station's entropy
+        target.
+      - **Bits and records.**
+        - No bit snapshot moves. No fixture reaches the bisection or an area ratio of
+          1, and the coder confirms both.
+        - `API.md` states the statuses as above.
+        - The guide's troubleshooting row for `AreaRatioInvalid` reads "not above 1".
+        - `CHANGELOG.md` names the fixes and the `AreaRatioInvalid` change for ε = 1.
 
 ## Taboos
 

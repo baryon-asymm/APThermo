@@ -91,6 +91,7 @@ internal static class RocketSolver                         // kernel-compatible
     public const double SonicTolerance = 4.0e-5;         // equation (6.16), on |u² − a²|/u²
     public const double AreaRatioTolerance = 4.0e-5;     // equation (6.25), on the last correction of ln(p_c/p_e)
     public const int MaxThroatIterations = 20;
+    public const int MaxThroatBisections = 60;         // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
     public const int MaxAreaRatioIterations = 20;
     public static void Solve(in SpeciesTableView table, in RocketProblem problem,
                              in EquilibriumScratch scratch, in RocketResult result);
@@ -121,12 +122,19 @@ equilibrium iteration counts are kept for diagnostics. The sketch's `InvalidInpu
 The solver never throws. The case status is `Ok` only when every station is `Ok`;
 otherwise it is the first failure found, and the stations after a failed exit are
 still computed from the last converged station. Statuses: `InvalidInput` (non-positive
-chamber pressure, empty table; a pressure ratio not above 1 for that station),
-`AreaRatioInvalid` (an area ratio below 1, that station), `ThroatNotFound` (the sonic
-condition not met within `MaxThroatIterations`), `NotConverged` (an area ratio not met
+chamber pressure, empty table, a flow model other than the three named values; a
+pressure ratio not above 1 for that station), `AreaRatioInvalid` (an area ratio not
+above 1, that station; the reference's rule, 2026-09-26), `ThroatNotFound` (neither the
+sonic condition within `MaxThroatIterations` nor the bracket's bisection found the
+throat; `BOOT.md`, the largest mass flux), `NotConverged` (an area ratio not met
 within `MaxAreaRatioIterations`), and the statuses of `Equilibrium` propagated from a
 station's solve. A chamber or throat failure ends the case; the exits keep
 `InvalidInput`.
+
+At the high-pressure edge of a melting plateau the throat is the edge, and its `Mach`
+figure is below 1 (2026-09-26, `BOOT.md`'s invariant "The throat carries the largest mass
+flux"). An exit at an area ratio of exactly 1 used to be accepted; it is now
+`AreaRatioInvalid`. The throat is always station 1.
 
 ## Side effects
 
