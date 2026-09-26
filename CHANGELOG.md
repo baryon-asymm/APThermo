@@ -76,6 +76,18 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
     failed. `EngineOptions.LibNvvmPath` given without `LibDevicePath`, or the reverse,
     silently fell through to discovery; it is now an `ArgumentException` naming the
     missing option. Each is fixed.
+- The hidden-defect audit of `Transport` (2026-09-26):
+  - When two of a station's transport-set components shared a proportional
+    stoichiometry column, the row reduction zeroed the second component's own pivot
+    but kept it as a component; every reaction then took coefficients from an
+    unreduced row and failed to conserve the elements, with a plausible but wrong
+    reacting conductivity and heat capacity under status `Ok`. The row now reverts to
+    its default species before reducing, as NASA CEA does, and is left unreduced only
+    when that pivot is zero too.
+  - A species with viscosity fits but no conductivity fit (`UF6`, the only such
+    species in the committed `trans.inp`) was estimated in its conductivity but not
+    counted in `TransportFigures.EstimatedSpeciesCount` or `EstimatedMoleFraction`. A
+    species now counts as estimated when either figure is estimated.
 
 ## [0.1.0] - 2026-09-18
 
