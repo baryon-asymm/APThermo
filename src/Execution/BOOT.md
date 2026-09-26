@@ -264,6 +264,44 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the CPU accelerator with 16 threads, 56–65×. These bound expectations; they are
   not requirements.
 
+- **The audit's findings F2 and F3 and its observations** (the hidden-defect audit of
+  2026-09-26; decided that day, F3 by the owner):
+  - **The library before the device (F2).** The choice loads libnvvm and asks its IR
+    version (`NvvmAPI.Create`, `GetIRVersion`), and reads the bitcode, before it
+    creates any CUDA context. The session keeps that binding, instead of a second
+    `NvvmAPI.Create` after the accelerator. A failure there is an
+    `AcceleratorUnavailableException` naming `[dll, bitcode]`, as `CudaContext` already
+    does for the context. `CreateCudaAccelerator` is wrapped the same way, so every
+    bind failure has the documented exception type. With `Auto` it becomes the
+    fallback reason, with its paths.
+    - ⚠ ILGPU's accelerator constructor creates the CUDA context first and loads
+      libnvvm after. A libnvvm that exists but does not load threw a raw
+      `BadImageFormatException` from an explicit `Cuda` request. With `Auto` the
+      fallback reason held no path. Each attempt leaked the context already created,
+      about 190 MiB of device memory: 20 `Auto` creations lost 3 800 MiB. A failure
+      inside ILGPU's constructor after the context, for a cause this check cannot
+      foresee, still leaks: ILGPU gives no handle to release. The known cause, a bad
+      library, no longer reaches the device.
+  - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
+    through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
+    On a count ILGPU's warp layout cannot express exactly, the nearest layout not above
+    the count is used, and the choice is documented where it is made. On the reference
+    machine the count is 16, the layout is today's, and no throughput record moves.
+    Results do not depend on the thread count (Invariants: deterministic batches).
+    - ⚠ `CPUDevice.Default` is one multiprocessor of four warps of four threads,
+      whatever the machine. Every "all cores" of the tree (`Options.cs`, this
+      document, the root) was true only on the 16-thread reference machine. A
+      64-thread workstation ran 16 threads, and a 4-vCPU runner oversubscribed four
+      times. The owner chose all cores over documenting 16.
+  - **Observations.**
+    - A driver or libnvvm log is trimmed of NUL padding as well as white space (the
+      trial load's message carried 45 NULs).
+    - `Engine.Upload` disposes the buffers it already uploaded when a later upload
+      fails.
+    - A half-given explicit path pair (`LibNvvmPath` without `LibDevicePath`, or the
+      reverse) is an `ArgumentException` at `Create` naming the missing option. It was
+      tried as `("", path)` and then replaced by discovery without a word.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The engine
@@ -773,6 +811,26 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         and in the Errors table) from the design; `CHANGELOG.md` names the fix under
         `[Unreleased]`'s "Fixed" (the release after 0.1.0 is 0.2.0, per the Diagnostics
         phase's binary break already recorded there).
+
+- [ ] 2026-09-26 — The audit's F2, F3 and observations (Constraints). Evidence due, each
+      fact red once against the code before the change:
+      - **The bad library.** A file named as the platform's libnvvm that is not a
+        library, with the real bitcode and discovery off:
+        - `Cuda` throws `AcceleratorUnavailableException` naming both paths;
+        - `Auto` binds the CPU with a `CudaSkippedBecause` that names the library
+          path;
+        - on the reference machine, the free device memory after 20 such `Auto`
+          creations is within 64 MiB of the memory before (`Category=Cuda`).
+      - **All cores.** Under `DOTNET_PROCESSOR_COUNT` 4, 16 and 64, the CPU engine
+        reports that many threads in `AcceleratorInfo.ThreadsOrMultiprocessors`, or
+        the documented nearest layout. A batch gives the same bits at each count. The
+        fact runs the processor counts in child processes.
+      - **Observations.** A message built from a NUL-padded log holds no NUL. An
+        upload made to fail after the species buffers leaves no live buffer. A half
+        pair is refused naming the missing option.
+      - **Nothing else moves.** No bit, throughput or surface record changes; the
+        node's CUDA tests are green in Release. `API.md` states the half-pair refusal
+        and the thread count. `Options.cs` and every "all cores" sentence stay true.
 
 ## Taboos
 

@@ -35,7 +35,7 @@ public sealed record EngineOptions
     public const long DefaultScratchBytes = 256L << 20;
     public AcceleratorKind Accelerator { get; init; } = AcceleratorKind.Auto;
     public int CudaDeviceIndex { get; init; } = 0;
-    public string? LibNvvmPath { get; init; }          // explicit libnvvm path (nvvm64_40_0.dll on Windows, libnvvm.so on Linux), tried first
+    public string? LibNvvmPath { get; init; }          // explicit libnvvm path (nvvm64_40_0.dll on Windows, libnvvm.so on Linux), tried first; given together with LibDevicePath or not at all (2026-09-26)
     public string? LibDevicePath { get; init; }        // explicit libdevice.10.bc, tried first
     public bool LibDeviceDiscovery { get; init; } = true;   // CUDA_PATH and the toolkit directories after the explicit pair
     public int ChunkSize { get; init; } = DefaultChunkSize;         // cases (or stations) per launch
@@ -290,6 +290,7 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | `AcceleratorKind.Cuda` requested and CUDA forbidden, no libnvvm or libdevice, no device at the index, or the context cannot be created | `AcceleratorUnavailableException` naming the missing piece and every path tried |
 | `AcceleratorKind.Cuda` requested and the math probe kernel cannot be post-linked or loaded on the device (2026-09-26) | `AcceleratorUnavailableException` at `Engine.Create` or `AcceleratorProbe.Describe`, its inner exception the post-link's `InvalidOperationException` (the next rows); with `Auto`, the CPU accelerator, the post-link's message in `CudaSkippedBecause` |
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create` (reached through `AcceleratorProbe.Describe` or `Problems`' `Solver.Create`), naming the ILGPU version |
+| one of `LibNvvmPath` and `LibDevicePath` given without the other (2026-09-26) | `ArgumentException` at `Engine.Create` or `AcceleratorProbe.Describe`, naming the missing option |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
 | a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
 | a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |

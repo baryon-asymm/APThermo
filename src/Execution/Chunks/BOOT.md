@@ -77,6 +77,19 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 - SI units do not apply here: every quantity this node handles is a count, a byte
   size or an offset, never a physical quantity.
 
+- **A chunk's buffers stay within 32-bit offsets** (2026-09-26, the audit's finding F4).
+  The kernels slice their buffers with `Index1D` arithmetic, which is 32-bit.
+  `ChunkPlan.For` therefore also caps a chunk so that `chunk × perCase` of every
+  declared buffer stays within `int.MaxValue` elements. `ChunkBuffers` exposes the
+  largest per-case element count of its declarations beside `BytesPerCase`. The
+  kernels and their PTX do not change.
+  - ⚠ Only bytes bounded a chunk. With `ScratchBytes` above 16 GiB, legal on a large
+    GPU or on the CPU accelerator, a table at `TableLimits` (13 248 doubles per case)
+    wrapped the offset at case 162 100. On CUDA a thread then wrote before its buffer
+    (`CUDA_ERROR_ILLEGAL_ADDRESS`, or silent corruption). Found by the hidden-defect
+    audit of 2026-09-26 by reading the IL; the allocation needed to run it was too
+    large to try.
+
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The split changes no result: `tests/Execution.Tests`' bit-for-bit
@@ -97,6 +110,12 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       count as the pre-split tree (no test method added or removed by this split): the
       libdevice post-link ran on the kernel module this node's buffers feed, and the
       namespace change did not touch it.
+
+- [ ] 2026-09-26 — The element cap. A host fact plans a table at `TableLimits` with
+      `ScratchBytes` of 64 GiB and `ChunkSize` of `int.MaxValue`, and every chunk has
+      `chunk × perCase ≤ int.MaxValue` for every buffer. The fact is red against the
+      byte-only rule. No other plan moves, since the default options are far below
+      the cap.
 
 ## Taboos
 
