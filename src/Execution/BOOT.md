@@ -302,6 +302,34 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       reverse) is an `ArgumentException` at `Create` naming the missing option. It was
       tried as `("", path)` and then replaced by discovery without a word.
 
+- **Every CUDA context of a process binds under WSL** (2026-09-27). ILGPU 1.5.3's
+  `builder.Cuda()` calls `NativeLibrary.SetDllImportResolver` on its own assembly
+  whenever the process runs under WSL (`CudaContextExtensions.CudaInternal`, source tag
+  `v1.5.3`), to load `libcuda` from the WSL driver directory. .NET allows one resolver
+  per assembly, so the second CUDA context of a process throws
+  `InvalidOperationException` ("A resolver is already set for the assembly") before any
+  device is registered.
+  - Rule: the context build calls `builder.Cuda()` as today. When that call throws
+    this exception under WSL, the resolver ILGPU needs is already in place, and the
+    build registers the CUDA devices itself through ILGPU's internal
+    `CudaDevice.GetDevices(configure, predicate, builder.DeviceRegistry)`, the call
+    `CudaInternal` makes after the resolver. The internal members are reached by
+    reflection, which the pinned version makes stable. A missing member is an
+    `AcceleratorUnavailableException` naming it, so that a changed ILGPU fails loudly
+    at the first bind.
+  - No static state: the build tries the public call first every time, so nothing
+    records that a resolver was set. Outside WSL the public call never throws this
+    exception, and the path is never taken.
+  - ⚠ Under WSL every `Engine.Create` after the first CUDA context of a process failed.
+    With `Auto` it bound the CPU with the reason "the CUDA context could not be created
+    (driver or device problem): A resolver is already set for the assembly". With
+    `Cuda` it threw. The tests had always met one CUDA context per process, until
+    the bind-time facts of 2026-09-26 created two:
+    `AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`
+    failed under WSL at `89bb619` right after the `Auto` fact, and passed alone. Found
+    by the orchestrator's WSL run of 2026-09-27. The native Linux path does not take
+    ILGPU's branch, and was not run.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The engine
@@ -951,6 +979,17 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
         '**/PublicSurface.approved.txt'` empty: no snapshot moved;
       - the protocol lint: 0 errors, 0 warnings.
+
+- [ ] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints).
+      Evidence due, under WSL on the reference machine, `Category=Cuda`:
+      - a fact creates three CUDA engines one after another in one process, each binding
+        CUDA and running the probe; it is red at `89bb619` on its second engine, and it
+        runs on Windows too, where it is green before and after;
+      - the two probe facts pass in one run, in either order;
+      - `dotnet test tests/Execution.Tests -c Release` is green under WSL and on Windows,
+        with no bit or throughput record moved;
+      - a removed or renamed internal member (simulated through the name the build
+        looks up) is an `AcceleratorUnavailableException` naming it.
 
 ## Taboos
 

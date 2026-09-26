@@ -257,6 +257,11 @@ delivery (2026-09-15, `## Delivery` below).
   completes the wrappers ILGPU dropped; nothing else in the tree may know about the
   mechanism.
 
+  A second defect of the same version (2026-09-27): under WSL, ILGPU installs a
+  `DllImport` resolver on every CUDA context it creates, which .NET allows once per
+  process, so the second CUDA engine of a process failed to bind. The execution node
+  registers the devices of every later context itself. Its `BOOT.md` records the rule.
+
   ⚠ 2026-09-26: stood "defective with libnvvm 12.9 and 13.3 … The execution node links
   the libdevice wrappers itself". The defect depends on the target architecture, not on
   the libnvvm version. It was measured only on the reference machine's SM_120, where
