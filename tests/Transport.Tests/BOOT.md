@@ -81,6 +81,25 @@ dependency went away with it.
 - Part of the default test command; no CUDA.
 - Paths from the repository root; no writes into the working directory.
 
+- **The trace-eliminated stations are pinned** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F1). The stations
+  where the reference's reacting conductivity is skipped are a committed list of keys
+  (fixture file and station), nine today, not whatever the tree eliminates.
+  - A station that eliminates a trace species and is not on the list fails.
+  - A listed station whose reference does not show the defect's signature (k_r/k_f
+    above `DefectRatio`) fails.
+  - At the listed stations the tree's own reacting fields are checked against their
+    definitions, with tolerances and without the reference:
+    - `ReactionCount` is 0;
+    - k_r = k_f + the reaction term;
+    - Pr_r = μ·cp_eq/k_r.
+
+  These facts run in the hosted matrix, not only in the bit snapshot.
+  - ⚠ The skip was keyed on the tree's own `TraceEliminations > 0`. The only
+    assertion on the skipped set was that it was not empty, and `reactingPrandtl` was
+    not compared at all. Tripling k_r at every eliminated station left the hosted
+    filter 2861/2861 green; only this node's bit snapshot, which hosted CI does not
+    run, went red.
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — L0 green: `FitTests` (every transport fit fixture, enumerated by
@@ -244,6 +263,11 @@ dependency went away with it.
       found in the three sibling nodes) occurs anywhere in this node; the Invariants
       above already record that the node owns such tolerances. No code changed for
       F-TK-10 here.
+
+- [ ] 2026-09-26 — The pinned trace stations (Constraints). The audit's mutation
+      (k_r = 3·k_f at eliminated stations) turns a hosted-filter fact red. A station
+      removed from the list and a key added for a station without the signature each
+      fail. The list's nine keys come from a scan recorded with the list.
 
 ## Taboos
 

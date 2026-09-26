@@ -151,6 +151,13 @@ Outside the tree: xunit.
   field dump is a caller's opt-in").
 - One solver and one engine on the CPU accelerator are shared by the collection.
 
+- **No NaN-blind predicate** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5 and F6). The rules are those of
+  the Performance tests node:
+  - `StationEquality` fails when a mole fraction is NaN on either side; `Math.Max(p, q)`
+    made it skip one.
+  - The comparisons of `ReferenceComparison` fail on NaN.
+  - The frozen cv skip is keyed on the reference's signature.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 green: `PropellantTests`
@@ -372,6 +379,9 @@ Outside the tree: xunit.
       `SCRATCH/bits-diag/reference-lox-lh2_of4_pc5MPa_frozenAtThroat.txt` before the
       approved line was restored byte for byte (`git diff` empty) and the test green
       again, 1/1. No approved file moved by this criterion.
+
+- [ ] 2026-09-26 — The NaN and cv guards: a NaN mole fraction on one side, and a
+      frozen exit's cv edited in a fixture copy, each red.
 
 ## Taboos
 

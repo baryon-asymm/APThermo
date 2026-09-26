@@ -142,6 +142,14 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 - The node has no tests node of its own: it is proven through its consumers (the
   acceptance criteria below).
 
+- **`Bits.Differences<T>` reads fields and properties** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F10). It
+  compares every public `double` and `int` field and property of `T`. It throws when `T`
+  has none, so that a comparison can never be empty by accident.
+  - ⚠ It read properties only, while its contract says fields. On a struct of public
+    fields it compared nothing: a tuple `(1e6, 3000)` against `(2e6, NaN)` returned no
+    difference. The tree's descriptor structs are public-field structs, and no caller
+    passes one today.
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — The node holds the types of `API.md` and the copies are gone: the
@@ -330,6 +338,10 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       the tripwire and its approved file (`tests/Execution.Tests`), out of scope here:
       this task touched no `src/`, no test code outside this node, and no approved
       file.
+
+- [ ] 2026-09-26 — `Bits.Differences` over a public-field struct names each differing
+      field, and over a type with no double or int member throws. Both are red against
+      `9c33398`. No snapshot moves.
 
 ## Taboos
 

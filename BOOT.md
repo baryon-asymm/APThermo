@@ -822,6 +822,20 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     human and an agent navigate them alike.
 - **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
   configuration and is not a node.
+
+  ⚠ 2026-09-26, declared deviation from AGENTS.md §1 (a directory with a build
+  manifest is a node): `.github/diagnostics/IsaProbe` is a C# console project with no
+  `BOOT.md` or `API.md`. It prints the instruction sets .NET sees on a runner, for the
+  runner-diagnostics step of both workflows (`2bab62d`, the hosted-runner bit
+  investigation of 2026-09-18). It is configuration's tool, not the product's.
+  - What replaces the pair: its header comment states its purpose.
+  - What still binds it: the Diagnostics constraint, since `Directory.Build.props`
+    covers it and `DiagnosticsTests` reads `.github`.
+  - What lifts the deviation: removing the step and the project once the runner
+    diagnostics are retired.
+
+  Found by the guards audit of 2026-09-26: the linter's dot-directory exclusion left
+  it outside the tree with nothing saying so.
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
     the build, the fast suite with `APTHERMO_NO_CUDA=1` and without the bit snapshots
     (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint), and
