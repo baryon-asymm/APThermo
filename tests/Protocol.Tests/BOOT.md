@@ -1284,7 +1284,10 @@ Each fact is shown red once by a mutation applied alone and restored:
       Release --no-build` 28/28 green; the protocol lint 0 errors, 0 warnings;
       `git status --short` clean but for this fix.
 
-      Pending the CI run: "The CI run of the fix is green on both hosted runners."
+      The CI run of the fix: run 36228757530 of `ddb41af` passed the fast suite, the
+      protocol tests included, on `windows-latest` and `ubuntu-latest` (it failed a later
+      step, the packed-tool example, fixed in `a94a108`), and run 36229326350 of `a94a108`
+      is green end to end on both (2026-09-26).
 
 ## Taboos
 

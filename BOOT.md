@@ -538,8 +538,15 @@ There is no external ancestor: the tree root is the repository root, and the loa
         (`0899500`);
       - the protocol lint: 0 errors, 0 warnings.
 
-      Linux is not part of this evidence. The first CI run of the branch gives it on
-      hosted runners.
+      Linux, and a second Windows machine: CI run 36229326350 of `a94a108` (2026-09-26)
+      is green on `windows-latest` and `ubuntu-latest`, fast suite without the bit
+      snapshots, packing, samples against the package and the packed tool's example
+      included. The two runs before it failed on two gaps this phase opened outside
+      the tree's own build:
+      - `DiagnosticsTests` read the NuGet cache CI keeps inside the workspace, fixed in
+        the protocol tests node (the ⚠ of 2026-09-26 there);
+      - the workflow's scratch program compiled a public Harness type into an
+        executable (CA1515), fixed in `.github/workflows/ci.yml`.
 
       ⚠ 2026-09-25: the surface sentence named only the structs and the four library
       exceptions. Fixing the test nodes and the benchmarks node moved three more entries
