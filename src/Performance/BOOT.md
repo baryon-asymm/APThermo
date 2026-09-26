@@ -45,13 +45,21 @@ restate the equations. Whoever codes this node reads chapter 6.
     2851 K;
   - 85 of 648 variants of example 13.
 
-  Found by the hidden-defect audit of 2026-09-26 (finding F1). The reference is no
-  guide there. Its throat loop (cea 3.3.4 `rocket.f90:518-556`) moves the pressure to
-  the melting temperature without re-solving the state, and never reports failure.
-  Run the same day for the AP/HTPB/Al case at 7 MPa, it reports a throat at Mach
-  0.9197 with c* = 1411.7 m/s. Its neighbours at h − 2.20 and h − 2.30 MJ/kg give
-  1336.5 and 1333.2 m/s. The state it prints was solved at a pressure other than the
-  one it reports.
+  Found by the hidden-defect audit of 2026-09-26 (finding F1). The report defines this
+  throat: RP-1311 section 6.3.4 places the throat at a plateau onset at the melting
+  temperature and moves the pressure there by its equation (6.18). The bisection
+  below finds the same point, to `1e-10` in `ln p`, without (6.18)'s linearization.
+  The melting-plateau session of 2026-09-13 left (6.18) out: every fixture's throat
+  then lay on a plateau or off it, never at its onset, and example 13 converged
+  without it.
+
+  The reference's code does not follow the report. cea 3.3.4 applies (6.18) only in
+  the first three trials (`rocket.f90:538-554`), does not re-solve the state at the
+  pressure it moves to, and never reports failure. Run the same day for the
+  AP/HTPB/Al case at 7 MPa, it reports a throat at Mach 0.9197 with
+  c* = 1411.7 m/s; its neighbours at h − 2.20 and h − 2.30 MJ/kg give 1336.5 and
+  1333.2 m/s. The state it prints was solved at a pressure other than the one it
+  reports, so no fixture is taken from it there.
 - **Area ratios are met by construction.** An exit station requested by area ratio
   satisfies `|(ρ_t u_t)/(ρ_e u_e) − ε| ≤ 1e-6 · ε` at convergence.
 - **Frozen means frozen.** In frozen flow the composition downstream of the freezing
