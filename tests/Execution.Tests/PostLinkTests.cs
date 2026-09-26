@@ -109,6 +109,17 @@ public sealed class PostLinkTests
         Assert.Contains("a compiler diagnostic line", failure.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>A log padded with NUL characters, as ILGPU's own log buffer returns one (BOOT.md, the audit's observations),
+    /// carries no NUL in the message: a plain <see cref="string.Trim()"/> leaves them, since NUL is not whitespace.</summary>
+    [Fact]
+    public void ALogWithNulPaddingIsTrimmedOfIt()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(
+            () => LibDevicePostLink.ThrowIfFailed(NvvmResult.NVVM_ERROR_COMPILATION, "CompileProgram", "compute_80", "a driver diagnostic\0\0\0\0\0"));
+        Assert.Contains("a driver diagnostic", failure.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain('\0', failure.Message);
+    }
+
     /// <summary>Without a log the message still names the post-link, the library, the call, the result and the target.</summary>
     [Fact]
     public void WithoutALogTheMessageStillNamesTheLibraryTheCallTheResultAndTheTarget()

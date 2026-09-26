@@ -229,6 +229,20 @@ public sealed class AcceleratorChoiceTests
         _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
     }
 
+    /// <summary>A half-given explicit library path pair (BOOT.md, the audit's observations) is refused at <c>Create</c>, naming
+    /// the missing option, rather than silently falling through to discovery as `("", path)` used to.</summary>
+    [Fact]
+    public void AHalfGivenExplicitLibraryPairIsRefused()
+    {
+        var missingBitcode = Assert.Throws<ArgumentException>(
+            () => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, LibNvvmPath = @"X:\nowhere\nvvm64_40_0.dll" }));
+        Assert.Contains(nameof(EngineOptions.LibDevicePath), missingBitcode.Message, StringComparison.Ordinal);
+
+        var missingDll = Assert.Throws<ArgumentException>(
+            () => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, LibDevicePath = @"X:\nowhere\libdevice.10.bc" }));
+        Assert.Contains(nameof(EngineOptions.LibNvvmPath), missingDll.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// A chunk's buffers stay within 32-bit offsets (BOOT.md, `Execution.Chunks`, the audit's F4): bytes alone bounded a chunk,
     /// so a table at the tree's own size limits with a large enough <see cref="EngineOptions.ScratchBytes"/> and
