@@ -72,6 +72,10 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
       `regenerate.py --check` exits 0 immediately afterwards; a fixture altered by hand
       is reported as `changed` with exit 1, a deleted one as `missing`, an extra file as
       `stale` (run by hand on the reference machine; the run printed 261 fixtures).
+
+      ⚠ 2026-09-27: "the seven kinds" is now eight — `throat_scan.py` added the `throat`
+      kind (the parent's case matrix). `regenerate.py --check` exits 0 on the current
+      tree, 327 fixtures, none stale or missing.
 - [x] 2026-09-12 — Every family script runs standalone and sweeps only the kinds it
       produces. Seen red once: `thermo_functions.py` run alone removed `constants/R.json`
       until `Writer.finish` was limited to the kinds of the run.
