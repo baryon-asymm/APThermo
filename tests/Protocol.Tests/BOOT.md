@@ -678,7 +678,20 @@ raised because someone suppressed it: a pragma, an attribute, a `NoWarn`, a lowe
 severity, a project that overrides the root's properties. This level reads the files
 that could do that. It reads text and syntax, not assemblies, as the Shape level
 already does, and it walks the tree with the same exclusions (`bin`, `obj`, `.git`,
-`.claude`).
+`.claude`) and, in addition, every directory whose name starts with a dot except
+`.github`.
+
+⚠ 2026-09-26: the walk first used only the exclusions of `Tree.Skipped`. The first CI
+run of the merged Diagnostics phase (run 36227210496 of `e1c2d55`) failed facts 3 and 4
+on both hosted runners. The workflow sets `NUGET_PACKAGES` to `.nuget-packages` inside
+the workspace, and the walk read third-party package files there:
+`microsoft.codeanalysis.analyzers/3.11.0/buildTransitive/*.props` and `*.targets` set
+`WarningsNotAsErrors`. Locally the package cache lies outside the repository, so the
+check was green there and the gap went unseen. A directory that starts with a dot is a
+tool's cache or state (`.nuget-packages`, `.vs`, `.venv`, `.idea`, `.claude`), not part
+of the tree; `.github` is the exception. It is part of the repository, and CI builds
+the C# project under `.github/diagnostics/IsaProbe` with the root's settings, so its
+build files stay checked.
 
 The facts of `DiagnosticsTests`, each failing on an empty set:
 
@@ -715,7 +728,10 @@ Each fact is shown red once by a mutation applied alone and restored:
 - `<NoWarn>` in a test `.csproj` (3);
 - `GenerateDocumentationFile` false in one `.csproj` (3);
 - `dotnet_diagnostic.CA1707.severity = none` in a scratch `tests/.editorconfig` (4);
-- `WarningLevel` 10 in the root props (5).
+- `WarningLevel` 10 in the root props (5);
+- (2026-09-26, the walk's scope) a scratch `.nuget-packages/pkg/build/pkg.props` that
+  sets `WarningsNotAsErrors` leaves fact 3 green, and a scratch
+  `.github/scratch/Scratch.csproj` that sets `NoWarn` turns it red.
 
 ## Acceptance criteria
 
@@ -1251,6 +1267,24 @@ Each fact is shown red once by a mutation applied alone and restored:
       `4287b7d22ea12cf380b579d496310ff8332b0625`, before and after — no exported type
       changed, only internal test code); the protocol lint 0 errors, 0 warnings;
       `git status --short` clean of every scratch mutation.
+
+- [x] 2026-09-26 — The Diagnostics walk skips every dot-prefixed directory except
+      `.github` (the ⚠ of that date under "## Diagnostics check"), and both scope
+      mutations listed there are seen as stated.
+
+      Evidence at `7474f21` plus the fix (`DiagnosticsSyntax.Walk`): a scratch
+      `.nuget-packages/pkg/build/pkg.props` setting `WarningsNotAsErrors` leaves
+      `NoBuildFileSuppressesOrOverridesADiagnostic` green (5/5 of `DiagnosticsTests`
+      still passing); a scratch `.github/scratch/Scratch.csproj` setting `NoWarn` turns
+      that same fact red ("`.github/scratch/Scratch.csproj: sets NoWarn to 'CA1000'`");
+      the earlier fact-3 mutation (`<NoWarn>` in `tests/Thermo.Tests/APThermo.Thermo.Tests.csproj`)
+      is still red with its own message. Both scratch mutations were applied alone and
+      removed, never committed. After restoring: `dotnet build APThermo.sln -c Release`
+      0 warnings, 0 errors; `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests -c
+      Release --no-build` 28/28 green; the protocol lint 0 errors, 0 warnings;
+      `git status --short` clean but for this fix.
+
+      Pending the CI run: "The CI run of the fix is green on both hosted runners."
 
 ## Taboos
 
