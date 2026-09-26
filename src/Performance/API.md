@@ -91,7 +91,6 @@ internal static class RocketSolver                         // kernel-compatible
     public const double SonicTolerance = 4.0e-5;         // equation (6.16), on |u² − a²|/u²
     public const double AreaRatioTolerance = 4.0e-5;     // equation (6.25), on the last correction of ln(p_c/p_e)
     public const int MaxThroatIterations = 20;
-    public const int MaxThroatBisections = 60;         // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
     public const int MaxAreaRatioIterations = 20;
     public static void Solve(in SpeciesTableView table, in RocketProblem problem,
                              in EquilibriumScratch scratch, in RocketResult result);
@@ -116,6 +115,23 @@ last station that converged. A case may have no exit at all: chamber and throat 
 the throat's `C_F`, `Isp` and `Ivac`), so the figures are per station, and the
 equilibrium iteration counts are kept for diagnostics. The sketch's `InvalidInput` for
 "no exits" is dropped: a case with chamber and throat only is valid.
+
+## Throat bracket (tree contract) ⏳
+
+```csharp
+internal static class RocketSolver
+{
+    public const int MaxThroatBisections = 60;         // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
+}
+```
+
+Planned with the throat's largest-mass-flux rule (`BOOT.md`, 2026-09-26). It moves under
+the ✅ block above once the code carries it.
+
+⚠ 2026-09-26: the design commit `9a6888f` first placed this constant inside the ✅
+block, before any code had it. `DeclarationTests.EveryDeclarationUnderATickExists`
+went red on `main`. The Execution coder of the same day found it and reported it
+(AGENTS.md §7: a ✅ may be placed only after what is declared exists).
 
 ## Errors
 
