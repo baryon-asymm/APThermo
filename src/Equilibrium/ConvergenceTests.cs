@@ -35,6 +35,28 @@ internal static class ConvergenceTests
                 : ConvergenceVerdict.ReportTestsMet;
     }
 
+    /// <summary>
+    /// Whether the step just applied moved a gaseous species across the trace threshold, in either direction. The
+    /// tests above are taken over the gases <c>result.Moles</c> already retains from the step's own linearization
+    /// point, so a crossing means those tests covered a set the final refresh would not report; the step is not a
+    /// converged one whatever its corrections (BOOT.md, the loop's bookkeeping, 2026-09-26). <paramref name="logN"/>
+    /// is the iterate's <c>ln n</c> after the step, <see cref="IterationState.LogN"/>.
+    /// </summary>
+    public static bool RetentionCrossed(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN)
+    {
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            var wasRetained = result.Moles[j] > 0.0;
+            var isRetained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -EquilibriumSolver.TraceThreshold;
+            if (wasRetained != isRetained)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Equation (3.5) on the undamped corrections: the largest mole-number correction as a share of the whole mixture.</summary>
     private static double Worst(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                 in SystemLayout layout, in MixtureSums sums)

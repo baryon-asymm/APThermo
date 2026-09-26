@@ -100,11 +100,22 @@ internal static class PhaseGeometry
         return Math.Abs(crossing - bound) <= CrossingLimit ? crossing : bound;
     }
 
-    /// <summary>The record's lower bound, moved to the crossing when it touches an adjacent record of its formula.</summary>
+    /// <summary>
+    /// The record's lower bound, moved to the crossing when it touches an adjacent record of its formula. Open below
+    /// (2026-09-26): with no such neighbour, a record whose own lower bound is the gas data floor
+    /// (<see cref="EquilibriumSolver.GasDataFloor"/>) has no lower bound at all (BOOT.md, open below); in the
+    /// committed file this is <c>H2O(cr)</c> alone.
+    /// </summary>
     public static double EffectiveLow(in SpeciesTableView table, in EquilibriumScratch scratch, int j)
     {
         var below = Adjacent(table, scratch, j, false);
-        return below >= 0 ? Crossing(table, below, j, SpeciesFunctions.RecordLow(table, j)) : SpeciesFunctions.RecordLow(table, j);
+        if (below >= 0)
+        {
+            return Crossing(table, below, j, SpeciesFunctions.RecordLow(table, j));
+        }
+
+        var low = SpeciesFunctions.RecordLow(table, j);
+        return low == EquilibriumSolver.GasDataFloor ? double.NegativeInfinity : low;
     }
 
     /// <summary>The record's upper bound, moved to the crossing when it touches an adjacent record of its formula.</summary>

@@ -473,13 +473,21 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
 | `EquilibriumSolver` | efferent coupling | 19 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
-| `NewtonIteration` | efferent coupling | 17 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
+| `NewtonIteration` | efferent coupling | 18 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 12 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 Every other type of the node measures 10 or below by the dependency check's walk
 (`CaseSetup` and `CondensedSet`, tied at 10 as the highest of the rest since the
 repair review moved the mark accessors into `CaseSetup`'s own dependencies
 2026-09-15, R-Equilibrium-6), well below the root's limit of 14.
+
+⚠ 2026-09-26: `NewtonIteration`'s row stood at 17. The hidden-defect audit's loop
+bookkeeping fix (the audit's finding 3) added `NewtonLoopState` (Carriers.cs), a small
+kernel-compatible struct tracking steps-since-last-set-change, the converged mark and
+the polish-step count, and `Converge` now names it directly (`ref NewtonLoopState loop`)
+instead of holding that bookkeeping in loose locals; the walk counts the new type,
+raising the measurement to 18. `ShapeTests.NoSrcTypeNamesMoreThan14TypesOfTheTree`
+found the stale row red; re-measured the same day.
 
 ## Acceptance criteria
 

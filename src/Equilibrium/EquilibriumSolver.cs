@@ -33,6 +33,14 @@ internal static class EquilibriumSolver
 
     internal const double MaxTemperature = 20000.0;
 
+    /// <summary>
+    /// K: the reference's minimum gas temperature defined in thermo data (cea 3.3.4 <c>equilibrium.f90:1845</c>,
+    /// applied at 1913-1914); also the first standard range bound of the committed <c>thermo.inp</c> header. A
+    /// condensed record whose data begin here has no lower bound in the condensed-species rules, unless a record of
+    /// its formula adjoins it below (BOOT.md, open below, 2026-09-26): in the committed file this is <c>H2O(cr)</c> alone.
+    /// </summary>
+    internal const double GasDataFloor = 200.0;
+
     /// <summary>Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's temperature) are the initial estimate.</summary>
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                              in EquilibriumResult result, bool useMolesAsEstimate)
@@ -95,14 +103,18 @@ internal static class EquilibriumSolver
         }
 
         var sumGas = 0.0;
-        for (var j = 0; j < table.GasCount; j++)
+        for (var j = 0; j < table.SpeciesCount; j++)
         {
-            if (!(result.Moles[j] >= 0.0))
+            var moles = result.Moles[j];
+            if (moles is not (>= 0.0 and not double.PositiveInfinity))
             {
                 return;
             }
 
-            sumGas += result.Moles[j];
+            if (j < table.GasCount)
+            {
+                sumGas += moles;
+            }
         }
 
         if (!(sumGas > 0.0))
@@ -147,7 +159,7 @@ internal static class EquilibriumSolver
                                     in EquilibriumResult result, double logPressure, in IterationState state)
     {
         if (!ElementBalance.WithinInvariant(table, problem, scratch, result)
-            || CondensedSet.StoodDownCandidateRemains(table, scratch, result, state))
+            || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state))
         {
             return CaseStatus.NotConverged;
         }
