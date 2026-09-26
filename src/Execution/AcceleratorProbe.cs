@@ -11,8 +11,9 @@ namespace APThermo.Execution;
 public static class AcceleratorProbe
 {
     /// <summary>
-    /// Binds an accelerator exactly as <c>Engine.Create</c> would, releases it immediately, and returns its
-    /// description. Throws <see cref="AcceleratorUnavailableException"/> exactly as <c>Engine.Create</c> does.
+    /// Binds an accelerator exactly as <c>Engine.Create</c> would — the bind-time math probe included (2026-09-26): a CUDA
+    /// device on which no kernel can load is never reported as bound — releases it immediately, and returns its description.
+    /// Throws <see cref="AcceleratorUnavailableException"/> exactly as <c>Engine.Create</c> does.
     /// Creating a CUDA context takes time; call this once per accelerator kind, not per case.
     /// </summary>
     /// <param name="options">The engine options to bind with, or <see langword="null"/> for the default

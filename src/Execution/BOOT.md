@@ -682,8 +682,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       shape above: the release's own result is stored but checked only on the success
       path, so nothing is ever thrown and swallowed.
 
-- [ ] 2026-09-26 — Every GPU architecture (the root's criterion of the same date; audit
-      finding F1). Evidence due, in the tests node:
+- [x] 2026-09-26 — Every GPU architecture (the root's criterion of the same date; audit
+      finding F1).
       - **The architecture fact** (`Category=Cuda`, `Category=LongRunning`, about three
         minutes on the reference machine). The architectures are every
         `CudaArchitecture` ILGPU 1.5.3 declares from SM_75 up, and the entry points are
@@ -701,17 +701,49 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
           CUDA probe bit for bit;
         - it stays within `GpuCpuTolerances.MathUlp` of the CPU accelerator.
 
-        Shown red once against `LibDevicePostLink` as it stands at `9c33398`, where it
-        throws "…wrapper __nv_exp_param_0, for which ILGPU 1.5.3.0 has no fragment" on
-        every architecture from SM_75 to SM_90.
+        Implemented as `ArchitectureTests.EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice`
+        (`tests/Execution.Tests/ArchitectureTests.cs`), reflecting over the 11 `CudaArchitecture`
+        fields from `SM_75` to `SM_121` and the 5 entry points of `Kernels`
+        (`Equilibrium`, `Rocket`, `Transport`, `Functions`, `Probe`); green on the
+        reference machine (RTX 5070 Ti, SM_120, libnvvm 13.4), first (cold JIT cache)
+        run 3 m 41 s, subsequent runs about 14 s once the CUDA driver's own compute
+        cache is warm. `SM_75`..`SM_90` measured `DefinedByIlgpu.Count > 0` and
+        `Compiled.Count == 0` (ILGPU defined every wrapper); `SM_100`..`SM_121`
+        measured the reverse (the post-link compiled every wrapper), so both paths are
+        exercised. Every architecture's normalized PTX equalled the device's own
+        (`SM_120`'s), and the probe matched the engine's own CUDA probe bit for bit and
+        the CPU accelerator within `GpuCpuTolerances.MathUlp` on every architecture.
+
+        Shown red once, reproduced directly against `LibDevicePostLink` as it stands at
+        `9c33398` (a throwaway repro compiling `Kernels.Probe` for `SM_75`, `SM_80`,
+        `SM_86`, `SM_89`, `SM_90` and calling the old `Link`, not committed): every one
+        threw `InvalidOperationException`, "the kernel calls the libdevice wrapper
+        __nv_exp_param_0, for which ILGPU 1.5.3.0 has no fragment.", exactly the message
+        this criterion predicted.
       - **The wrapper inventory without a GPU**, on the hosted runners. Two text
         fixtures hold ILGPU 1.5.3's PTX of the probe kernel: one for SM_89, which
         defines the wrappers, and one for SM_120, which defines none. Their provenance
         is in the tests node's `BOOT.md`. On both, the inventory reads the same called
         set, the math list's libdevice functions. It reads them all as defined on
         SM_89 and none on SM_120. No `_param_` name is read as a call. The result is
-        the same with LF and CRLF line ends. Shown red once against the old
-        `WrappersCalled`, which reads the parameter names.
+        the same with LF and CRLF line ends.
+
+        Implemented as `WrapperInventoryTests` (`tests/Execution.Tests/WrapperInventoryTests.cs`,
+        5 facts, no GPU needed), over `tests/Execution.Tests/Ptx/probe.sm_89.ptx` and
+        `probe.sm_120.ptx`, generated on the reference machine with libnvvm 13.4 the same
+        day (a throwaway generator, not committed). Shown red once against the old
+        `WrapperCall` regex (`__ilgpu__nv_[A-Za-z0-9_]+`, no `call`-site or comma
+        requirement, `WrappersCalled` reading `m.Value` instead of a capture group): 3
+        of the 5 facts failed —
+        `OnSm89EveryCalledWrapperIsAlreadyDefined` and
+        `BothArchitecturesCallTheSameWrappers`, "Assert.Equal() Failure: HashSets differ
+        … Expected: [\"__nv_exp\", \"__nv_exp_param_0\", \"__nv_log\",
+        \"__nv_log_param_0\", \"__nv_log10\", ···] … Actual: [\"__nv_exp\", \"__nv_log\",
+        \"__nv_log10\", \"__nv_pow\", \"__nv_sqrt\", ···]", and
+        `NoParameterNameIsReadAsACall`, "Assert.DoesNotContain() Failure: Filter matched
+        in collection … Collection: [\"__nv_exp\", \"__nv_exp_param_0\", \"__nv_log\",
+        \"__nv_log_param_0\", \"__nv_log10\", ···]" — the parameter names read as calls,
+        exactly the defect. Reverted; a clean rebuild confirmed all 5 green again.
       - **The bind-time probe** (`Category=Cuda`). The real libnvvm is paired with a
         libdevice path to a file that is not libdevice bitcode, and discovery is off:
         - `Auto` binds the CPU accelerator, and `CudaSkippedBecause` names the
@@ -719,14 +751,28 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         - `Cuda` throws `AcceleratorUnavailableException` whose inner exception is the
           post-link's.
 
-        If ILGPU's own accelerator constructor already refuses such a file, the coder
-        picks another input that reaches the post-link at bind time and records which.
+        ILGPU's own accelerator constructor does not refuse such a file at context
+        creation (it validates libdevice's content only lazily, when the post-link
+        actually compiles against it), so no substitute input was needed: a file that
+        exists but holds arbitrary text reaches the post-link at bind and fails there
+        with `NVVM_ERROR_COMPILATION`, wrapped as designed. Implemented as
+        `AcceleratorChoiceTests.AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind`
+        and `...AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`,
+        green on the reference machine.
       - **Nothing else moves.** No `Bits*.approved.txt`, `Throughput*.approved.txt` or
-        `PublicSurface.approved.txt` changes. The node's CUDA tests are green in
-        Release, the sweep and the throughput tripwire included. The fast suite and the
-        protocol lint are green.
-      - **The records.** `API.md` states the bind-time probe (under `Engine`, and in
-        the Errors table) and `CHANGELOG.md` names the fix under 0.2.0's "Fixed".
+        `PublicSurface.approved.txt` changed
+        (`git diff 8dfe20f --stat -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty). The node's CUDA tests are green in
+        Release (`dotnet test tests/Execution.Tests -c Release`, no filter, from a clean
+        `bin`/`obj`): 134 of 134, the sweep and the throughput tripwire included. The
+        fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+        "Category!=LongRunning"`, from a clean `bin`/`obj`): 3185 of 3185, none skipped
+        (3178 before this change plus the 5 inventory facts and the 2 bind-time facts).
+        The protocol lint: 0 errors, 0 warnings.
+      - **The records.** `API.md` already stated the bind-time probe (under `Engine`,
+        and in the Errors table) from the design; `CHANGELOG.md` names the fix under
+        `[Unreleased]`'s "Fixed" (the release after 0.1.0 is 0.2.0, per the Diagnostics
+        phase's binary break already recorded there).
 
 ## Taboos
 

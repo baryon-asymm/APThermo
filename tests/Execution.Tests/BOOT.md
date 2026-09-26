@@ -10,8 +10,8 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
 | L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ✅ (2026-09-14) |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
-| L0 | the post-link's wrapper inventory over ILGPU 1.5.3's own PTX of the probe kernel, one fixture with the wrappers defined (SM_89) and one without (SM_120): the called set from `call` sites only, the defined set from `.func` headers, the missing set, with LF and CRLF line ends (2026-09-26) | the text fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, whose provenance is under Constraints | ⏳ (2026-09-26) |
-| L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ⏳ (2026-09-26) |
+| L0 | the post-link's wrapper inventory over ILGPU 1.5.3's own PTX of the probe kernel, one fixture with the wrappers defined (SM_89) and one without (SM_120): the called set from `call` sites only, the defined set from `.func` headers, the missing set, with LF and CRLF line ends (2026-09-26) | the text fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, whose provenance is under Constraints | ✅ (2026-09-26) |
+| L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ✅ (2026-09-26) |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
@@ -430,11 +430,53 @@ libdevice for the CUDA category.
         "Category!=LongRunning"`) 3101/3101 throughout, none skipped; every
         `Bits*.approved.txt` and the protocol tests node's `PublicSurface.approved.txt`
         unchanged.
-- [ ] 2026-09-26 — The post-link on every architecture (`Execution`'s criterion of the
+- [x] 2026-09-26 — The post-link on every architecture (`Execution`'s criterion of the
       same date, which lists the facts and their red-once proofs): the two L0 and L1
       rows of that date green, the inventory facts on the hosted runners of both
       platforms, the architecture and bind-time facts on the reference machine in
       Release.
+
+      Evidence, on the reference machine (Windows, RTX 5070 Ti, driver 13.4, CUDA
+      toolkits 12.9/13.3/13.4), from a tree with every `bin` and `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3185 of 3185, none skipped (3178 before this change
+        plus `WrapperInventoryTests`' 5 facts and the two new
+        `AcceleratorChoiceTests` bind-time facts; `ArchitectureTests`' one fact is
+        `Category=LongRunning` and so excluded here);
+      - `dotnet test tests/Execution.Tests -c Release` (no filter): 134 of 134, the
+        100 000-case sweep and the throughput tripwire included;
+      - no `Bits*.approved.txt`, `Throughput*.approved.txt` or the protocol tests
+        node's `PublicSurface.approved.txt` differs from `8dfe20f`;
+      - the protocol lint: 0 errors, 0 warnings;
+      - the protocol tests node's `ShapeTests`: 10 of 10 (the extraction of
+        `KernelCache.Load` to a static method and `AcceleratorChoice`'s new
+        `ProbeBinding` moved no type past its coupling or size limit).
+
+      `WrapperInventoryTests` is pure text and regex over the two committed fixtures,
+      with no OS-conditional code and no native call, the same shape as every other
+      CPU-only fact of this node already proven identical on both hosted platforms; its
+      confirmation on the Linux runner is the ordinary CI push, not a separate local
+      run this task could reproduce (no such runner is available inside this task's
+      worktree). The architecture and bind-time facts are `Category=Cuda` and run only
+      where a device exists, as every other CUDA fact of this node does.
+
+      Red-once proofs, both reverted before committing:
+      - `WrapperInventoryTests` against the pre-fix `WrapperCall` regex
+        (`__ilgpu__nv_[A-Za-z0-9_]+`, no `call`-site or comma requirement,
+        `WrappersCalled` reading the whole match instead of a capture group): 3 of 5
+        facts failed, `OnSm89EveryCalledWrapperIsAlreadyDefined` and
+        `BothArchitecturesCallTheSameWrappers` with "Assert.Equal() Failure: HashSets
+        differ … Expected: [\"__nv_exp\", \"__nv_exp_param_0\", \"__nv_log\", …] …
+        Actual: [\"__nv_exp\", \"__nv_log\", \"__nv_log10\", …]" and
+        `NoParameterNameIsReadAsACall` with "Assert.DoesNotContain() Failure: Filter
+        matched in collection … Collection: [\"__nv_exp\", \"__nv_exp_param_0\", …]".
+      - `ArchitectureTests`' algorithm, reproduced directly against `LibDevicePostLink`
+        as it stood at `9c33398` (a throwaway repro, not committed, compiling
+        `Kernels.Probe` for SM_75, SM_80, SM_86, SM_89 and SM_90 and calling the old
+        `Link`): every one threw `InvalidOperationException`, "the kernel calls the
+        libdevice wrapper __nv_exp_param_0, for which ILGPU 1.5.3.0 has no fragment.",
+        the message `Execution`'s criterion predicted.
 
 ## Taboos
 
