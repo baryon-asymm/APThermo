@@ -16,11 +16,12 @@ import plateaus
 import propellants
 import rp1311
 import thermo_functions
+import throat_scan
 import transport_fits
 from writer import Writer
 
 SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants, plateaus, low_temperature,
-          condensed_phase_limit]
+          condensed_phase_limit, throat_scan]
 
 
 def main() -> int:

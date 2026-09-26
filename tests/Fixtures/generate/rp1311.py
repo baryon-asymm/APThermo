@@ -74,6 +74,21 @@ EXAMPLE12_PRODUCTS = ["CO", "CO2", "H", "HNO", "HNO2", "HO2",
                       "N2", "N2O", "O", "OH", "O2", "HCO", "NH",
                       "CH4", "NH2", "NH3", "H2O(L)", "C(gr)"]
 
+# The N2H4/Be/H2O2 mixture of example 13, hoisted to module level (2026-09-27) so the throat family
+# (throat_scan.py) can build the same reactants and composition by import, never by copy.
+EXAMPLE13_REACTANTS = ["N2H4(L)", "Be(a)", "H2O2(L)"]
+EXAMPLE13_TEMPERATURES = np.array([298.15, 298.15, 298.15])
+EXAMPLE13_OF_RATIO = 33.0 / 67.0
+EXAMPLE13_INSERT = ["BeO(L)"]
+EXAMPLE13_TRACE = 1e-10
+
+
+def example13_mixture():
+    """The reactant and product mixtures and the mass weights of example 13's N2H4/Be 80/20 propellant."""
+    reac, prod = make_mixtures(EXAMPLE13_REACTANTS)
+    weights = reac.of_ratio_to_weights(np.array([0.0, 0.0, 1.0]), np.array([0.8, 0.2, 0.0]), EXAMPLE13_OF_RATIO)
+    return reac, prod, weights
+
 
 def example1(writer: Writer) -> None:
     reactants = ["H2", "Air"]
@@ -183,16 +198,15 @@ def example13(writer: Writer) -> None:
     The throat and the first exit sit on the BeO(b)/BeO(L) melting plateau at 2851 K, which the package only
     converges with `insert` seeding the liquid; without it the case loses 0.61 % of Ivac (Fixtures BOOT.md,
     the station guard). The trace threshold keeps the beryllium condensed pair printed at every station."""
-    reactants = ["N2H4(L)", "Be(a)", "H2O2(L)"]
-    temperatures = np.array([298.15, 298.15, 298.15])
-    of_ratio = 33.0 / 67.0
-    reac, prod = make_mixtures(reactants)
-    weights = reac.of_ratio_to_weights(np.array([0.0, 0.0, 1.0]), np.array([0.8, 0.2, 0.0]), of_ratio)
+    reactants = EXAMPLE13_REACTANTS
+    temperatures = EXAMPLE13_TEMPERATURES
+    of_ratio = EXAMPLE13_OF_RATIO
+    reac, prod, weights = example13_mixture()
     descriptions = describe_reactants(reactants, weights, temperatures)
     chamber_pressure_pa = cea.units.psi_to_bar(3000.0) * BAR_TO_PA
     pressure_ratios = [3.0, 10.0, 30.0, 300.0]
-    insert = ["BeO(L)"]
-    trace = 1e-10
+    insert = EXAMPLE13_INSERT
+    trace = EXAMPLE13_TRACE
     solution, enthalpy = solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa, FLOW_SHIFTING, False,
                                       pressure_ratios=pressure_ratios, insert=insert, trace=trace)
     writer.case(
