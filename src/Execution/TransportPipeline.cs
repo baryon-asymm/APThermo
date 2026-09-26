@@ -29,7 +29,7 @@ internal static class TransportPipeline
         using var buffers = new ChunkBuffers(session.Accelerator);
         var temperatureBuffer = buffers.Input(batch.Temperature, 1);
         var molesBuffer = buffers.Input(batch.Moles, speciesCount);
-        var scratchDoubles = buffers.Scratch<double>(TransportLayout.DoublesPerCase(speciesCount, elementCount));
+        var scratchDoubles = buffers.Scratch<double>(TransportLayout.DoublesPerCase(elementCount));
         var scratchInts = buffers.Scratch<int>(TransportLayout.IntsPerCase(speciesCount, elementCount));
         var figureBuffer = buffers.Output(figures, 1);
         var statusBuffer = buffers.Output(status, 1);
@@ -40,6 +40,6 @@ internal static class TransportPipeline
                                             figureBuffer.View, statusBuffer.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, transportBuffers.View, views));
-        return new TransportBatchResult(figures, status.Select(code => (CaseStatus)code).ToArray(), timer.Timings(), session.Info);
+        return new TransportBatchResult(figures, [.. status.Select(code => (CaseStatus)code)], timer.Timings(), session.Info);
     }
 }

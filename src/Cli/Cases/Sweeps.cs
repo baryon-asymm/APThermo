@@ -12,12 +12,12 @@ internal static class Sweeps
         var pressures = Axis(sweep?.Pressure);
         var temperatures = Axis(sweep?.Temperature);
 
-        return (from ratio in ratios
-                from chamberPressure in chamberPressures
-                from pressure in pressures
-                from temperature in temperatures
-                select new Combination(ratio, chamberPressure, pressure, temperature)).ToList();
+        return [.. from ratio in ratios
+                   from chamberPressure in chamberPressures
+                   from pressure in pressures
+                   from temperature in temperatures
+                   select new Combination(ratio, chamberPressure, pressure, temperature)];
     }
 
-    private static IReadOnlyList<double?> Axis(IReadOnlyList<double>? values) => values?.Select(v => (double?)v).ToList() ?? [null];
+    private static List<double?> Axis(IReadOnlyList<double>? values) => values?.Select(v => (double?)v).ToList() ?? [null];
 }

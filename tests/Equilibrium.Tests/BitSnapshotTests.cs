@@ -10,17 +10,19 @@ namespace APThermo.Equilibrium.Tests;
 /// the commit saying so. The same role <c>PublicSurface.approved.txt</c> plays for the contract, and the same shape:
 /// one approved file, an actual file written beside it on a difference, and instructions in the failure.
 /// </summary>
-[Collection(CpuCollection.Name)]
-public sealed class BitSnapshotTests(CpuFixture fixture)
+[Collection(CpuFixture.CollectionName)]
+public sealed class BitSnapshotTests
 {
     /// <summary>The problem kinds whose fixture directories the snapshot covers.</summary>
     private static readonly string[] Kinds = ["tp", "hp", "sp"];
 
+    /// <summary>The path of this node's approved bit snapshot.</summary>
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Equilibrium.Tests"), "Bits");
 
+    /// <summary>The host solve of every tp, hp and sp fixture case gives the recorded bits.</summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void Every_fixture_case_gives_the_recorded_bits()
+    public void EveryFixtureCaseGivesTheRecordedBits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
         var keys = new List<string>();
@@ -32,7 +34,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
                 var name = Path.GetFileNameWithoutExtension(path);
                 var key = kind + "/" + name + ".json";
                 keys.Add(key);
-                var problem = snapshot.Problem(key, Hash(HostSolver.Solve(fixture, HostSolver.Load(kind, name))));
+                var problem = snapshot.Problem(key, Hash(HostSolver.Solve(CpuFixture.Shared, HostSolver.Load(kind, name))));
                 if (problem is not null)
                 {
                     hashProblems.Add(problem);
@@ -58,9 +60,9 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     private static string Hash(HostSolution solution)
     {
         var hash = new BitHash().Add(solution.Moles).Add(solution.Multipliers);
-        foreach (var field in typeof(MixtureState).GetFields())
+        foreach (var field in typeof(MixtureState).GetProperties())
         {
-            hash.Add((double)field.GetValue(solution.State)!);
+            _ = hash.Add((double)field.GetValue(solution.State)!);
         }
 
         return hash.Add((int)solution.Status).Add(solution.Iterations).ToHex();

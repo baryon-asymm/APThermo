@@ -4,35 +4,37 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>L1 and L2: every rocket fixture through the library, batches against single cases, elemental mixtures against propellants.</summary>
-[Collection(SolverCollection.Name)]
-public sealed class RocketTests(SolverFixture fixture)
+[Collection("solver")]
+public sealed class RocketTests
 {
-    public static IEnumerable<object[]> Cases() => FixtureCases.Names("rocket");
+    /// <summary>The theory data of every rocket fixture name.</summary>
+    public static TheoryData<string> Cases() => FixtureCases.Names("rocket");
 
     /// <summary>A result's mole fractions are a sum over its own species table; two solves of the tree's own code agree to summation-order rounding.</summary>
     public const double MoleFractionSumTolerance = 1e-12;
 
+    /// <summary>The rocket case reproduces the reference end to end.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void The_rocket_case_reproduces_the_reference_end_to_end(string name)
+    public void TheRocketCaseReproducesTheReferenceEndToEnd(string name)
     {
         var c = FixtureCases.Load("rocket", name);
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var problem = FixtureCases.RocketProblemOf(c);
-        var result = fixture.Solver.Solve(propellant, problem);
+        var result = SolverFixture.Shared.Solver.Solve(propellant, problem);
         Assert.True(result.Status == CaseStatus.Ok, $"status {result.Status}; stations [{string.Join(", ", result.Stations.Select(s => s.Status))}]");
         var reference = FixtureCases.ReferenceStationsOf(c);
         Assert.Equal(reference.Count, result.Stations.Count);
         var transport = problem.Transport;
         var species = SpeciesList.Of(result.Species);
-        var defective = FixtureCases.DefectiveStationsOf(fixture, c, result.Species);
+        var defective = FixtureCases.DefectiveStationsOf(SolverFixture.Shared, c, result.Species);
         var mismatches = new List<string>();
         for (var s = 0; s < reference.Count; s++)
         {
             var label = reference[s].GetProperty("station").GetString()!;
             var frozen = reference[s].GetProperty("frozen").GetBoolean();
             var caveats = new StationCaveats(Transport: transport, Frozen: frozen, ReferenceDefective: defective.Contains(s));
-            mismatches.AddRange(ReferenceComparison.Compare(reference[s], result.Stations[s], species, label, fixture.Tolerances, caveats));
+            mismatches.AddRange(ReferenceComparison.Compare(reference[s], result.Stations[s], species, label, SolverFixture.Shared.Tolerances, caveats));
         }
 
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
@@ -48,18 +50,18 @@ public sealed class RocketTests(SolverFixture fixture)
     /// batch mechanism as any other call over a union of mixtures, and it equals its cases solved one by one bit for bit.
     /// </summary>
     [Fact]
-    public void A_ratio_and_pressure_product_as_one_batch_equals_its_cases_solved_one_by_one()
+    public void ARatioAndPressureProductAsOneBatchEqualsItsCasesSolvedOneByOne()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
         double[] ratios = [4.0, 5.5, 7.0];
         double[] pressures = [5.0e6, 8.0e6];
         double[] areas = [20.0, 77.5];
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var mixtures = new List<ElementalMixture>();
         var problems = new List<RocketProblem>();
         foreach (var ratio in ratios)
         {
-            var mixture = fixture.Solver.MixtureOf(propellant, ratio);
+            var mixture = SolverFixture.Shared.Solver.MixtureOf(propellant, ratio);
             foreach (var pressure in pressures)
             {
                 mixtures.Add(mixture);
@@ -67,15 +69,15 @@ public sealed class RocketTests(SolverFixture fixture)
             }
         }
 
-        var results = fixture.Solver.Solve(mixtures, problems);
+        var results = SolverFixture.Shared.Solver.Solve(mixtures, problems);
         Assert.Equal(ratios.Length * pressures.Length, results.Count);
         var i = 0;
         foreach (var ratio in ratios)
         {
-            var withRatio = FixtureCases.PropellantOf(fixture.Database, c, ratio);
+            var withRatio = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c, ratio);
             foreach (var pressure in pressures)
             {
-                var one = fixture.Solver.Solve(withRatio, new RocketProblem { ChamberPressure = pressure, AreaRatios = areas, Transport = true });
+                var one = SolverFixture.Shared.Solver.Solve(withRatio, new RocketProblem { ChamberPressure = pressure, AreaRatios = areas, Transport = true });
                 Assert.Equal(CaseStatus.Ok, one.Status);
                 Assert.Equal(one.Status, results[i].Status);
                 Assert.Equal(one.Mixture.ElementMoles, results[i].Mixture.ElementMoles);
@@ -91,16 +93,17 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>An elemental mixture reproduces its propellant bit for bit.</summary>
     [Fact]
-    public void An_elemental_mixture_reproduces_its_propellant_bit_for_bit()
+    public void AnElementalMixtureReproducesItsPropellantBitForBit()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var problem = FixtureCases.RocketProblemOf(c);
-        var viaPropellant = fixture.Solver.Solve(propellant, problem);
+        var viaPropellant = SolverFixture.Shared.Solver.Solve(propellant, problem);
         var mixture = viaPropellant.Mixture;
         var elemental = ElementalMixture.Create(mixture.ElementMoles, mixture.Enthalpy, propellant.Omit, propellant.Only);
-        var viaMixture = fixture.Solver.Solve(elemental, problem);
+        var viaMixture = SolverFixture.Shared.Solver.Solve(elemental, problem);
         Assert.Null(viaMixture.Propellant);
         Assert.Null(viaMixture.OxidizerToFuelRatio);
         Assert.Equal(viaPropellant.Species, viaMixture.Species);
@@ -113,13 +116,13 @@ public sealed class RocketTests(SolverFixture fixture)
 
     /// <summary>A record with exits is a rocket case whose Pressure is the chamber pressure (BOOT.md, F-AR-02): it equals the same mixture and problem solved through the batch over mixtures, bit for bit, transport included.</summary>
     [Fact]
-    public void A_state_record_with_exits_equals_its_case_through_the_batch_over_mixtures()
+    public void AStateRecordWithExitsEqualsItsCaseThroughTheBatchOverMixtures()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-        var mixture = fixture.Solver.MixtureOf(propellant);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+        var mixture = SolverFixture.Shared.Solver.MixtureOf(propellant);
         var problem = new RocketProblem { ChamberPressure = 7.0e6, PressureRatios = [50.0], AreaRatios = [20.0, 77.5], Flow = FlowModel.FrozenAtThroat, Transport = true };
-        var viaMixture = fixture.Solver.Solve(mixture, problem);
+        var viaMixture = SolverFixture.Shared.Solver.Solve(mixture, problem);
         Assert.Equal(CaseStatus.Ok, viaMixture.Status);
 
         var record = new StateRecord(problem.ChamberPressure, mixture.ElementMoles, Enthalpy: mixture.Enthalpy)
@@ -129,7 +132,7 @@ public sealed class RocketTests(SolverFixture fixture)
             Flow = problem.Flow,
         };
         Assert.True(record.HasExits);
-        var viaState = Assert.Single(fixture.Solver.SolveRocketStates([record], new StateBatchOptions(Transport: true)));
+        var viaState = Assert.Single(SolverFixture.Shared.Solver.SolveRocketStates([record], new StateBatchOptions(Transport: true)));
         Assert.Equal(CaseStatus.Ok, viaState.Status);
         Assert.Null(viaState.Propellant);
         Assert.Equal(viaMixture.Stations.Count, viaState.Stations.Count);
@@ -139,15 +142,16 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Identical problems give identical results alone and in one call.</summary>
     [Fact]
-    public void Identical_problems_give_identical_results_alone_and_in_one_call()
+    public void IdenticalProblemsGiveIdenticalResultsAloneAndInOneCall()
     {
         var c = FixtureCases.Load("rocket", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var problem = FixtureCases.RocketProblemOf(c);
-        var first = fixture.Solver.Solve(propellant, problem);
-        var second = fixture.Solver.Solve(propellant, problem);
-        var both = fixture.Solver.Solve(propellant, [problem, problem]);
+        var first = SolverFixture.Shared.Solver.Solve(propellant, problem);
+        var second = SolverFixture.Shared.Solver.Solve(propellant, problem);
+        var both = SolverFixture.Shared.Solver.Solve(propellant, [problem, problem]);
         Assert.Equal(2, both.Count);
         foreach (var other in new[] { second, both[0], both[1] })
         {
@@ -159,11 +163,12 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>Problems with different exit layouts are solved in one call in order.</summary>
     [Fact]
-    public void Problems_with_different_exit_layouts_are_solved_in_one_call_in_order()
+    public void ProblemsWithDifferentExitLayoutsAreSolvedInOneCallInOrder()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var problems = new List<RocketProblem>
         {
             new() { ChamberPressure = 7.0e6, AreaRatios = [20.0] },
@@ -171,12 +176,12 @@ public sealed class RocketTests(SolverFixture fixture)
             new() { ChamberPressure = 5.0e6, AreaRatios = [20.0], Transport = true },
             new() { ChamberPressure = 6.0e6 },
         };
-        var results = fixture.Solver.Solve(propellant, problems);
+        var results = SolverFixture.Shared.Solver.Solve(propellant, problems);
         Assert.Equal([3, 5, 3, 2], results.Select(r => r.Stations.Count));
         Assert.Equal(["chamber", "throat", "exit1", "exit2", "exit3"], results[1].Stations.Select(s => s.Name));
         for (var k = 0; k < problems.Count; k++)
         {
-            var single = fixture.Solver.Solve(propellant, problems[k]);
+            var single = SolverFixture.Shared.Solver.Solve(propellant, problems[k]);
             Assert.Same(problems[k], results[k].Problem);
             Assert.Equal(CaseStatus.Ok, results[k].Status);
             for (var s = 0; s < single.Stations.Count; s++)
@@ -191,19 +196,19 @@ public sealed class RocketTests(SolverFixture fixture)
 
     /// <summary>The transport pass is a second pass over the stations of the cases that asked (BOOT.md, F-PR-08): a batch mixing the flag equals every case solved alone, bit for bit, and reports no figures for the cases that did not ask.</summary>
     [Fact]
-    public void A_batch_mixing_transport_and_none_equals_each_problem_solved_alone()
+    public void ABatchMixingTransportAndNoneEqualsEachProblemSolvedAlone()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var problems = new List<RocketProblem>
         {
             new() { ChamberPressure = 7.0e6, AreaRatios = [20.0, 77.5], Transport = true },
             new() { ChamberPressure = 7.0e6, AreaRatios = [20.0, 77.5], Transport = false },
         };
-        var results = fixture.Solver.Solve(propellant, problems);
+        var results = SolverFixture.Shared.Solver.Solve(propellant, problems);
         for (var k = 0; k < problems.Count; k++)
         {
-            var single = fixture.Solver.Solve(propellant, problems[k]);
+            var single = SolverFixture.Shared.Solver.Solve(propellant, problems[k]);
             Assert.Equal(CaseStatus.Ok, results[k].Status);
             for (var s = 0; s < single.Stations.Count; s++)
             {
@@ -224,10 +229,10 @@ public sealed class RocketTests(SolverFixture fixture)
     /// counts or run (and then discard) the pass for a case that never asked.
     /// </summary>
     [Fact]
-    public void Cases_are_grouped_by_exit_layout_and_transport_flag()
+    public void CasesAreGroupedByExitLayoutAndTransportFlag()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
         var problems = new List<RocketProblem>
         {
             new() { ChamberPressure = 7.0e6, AreaRatios = [20.0], Transport = true },
@@ -235,14 +240,14 @@ public sealed class RocketTests(SolverFixture fixture)
             new() { ChamberPressure = 7.0e6, AreaRatios = [20.0], Transport = false },
             new() { ChamberPressure = 7.0e6, AreaRatios = [20.0, 77.5], Transport = true },
         };
-        var results = fixture.Solver.Solve(propellant, problems);
+        var results = SolverFixture.Shared.Solver.Solve(propellant, problems);
         Assert.Equal(problems.Count, results.Count);
         for (var k = 0; k < problems.Count; k++)
         {
             Assert.Same(problems[k], results[k].Problem);
             Assert.Equal(problems[k].AreaRatios.Count + 2, results[k].Stations.Count);
             Assert.All(results[k].Stations, s => Assert.Equal(problems[k].Transport, s.Transport.HasValue));
-            var single = fixture.Solver.Solve(propellant, problems[k]);
+            var single = SolverFixture.Shared.Solver.Solve(propellant, problems[k]);
             for (var s = 0; s < single.Stations.Count; s++)
             {
                 Assert.Empty(StationEquality.BitDifferences(single.Stations[s], results[k].Stations[s], $"problem {k} station {s}"));
@@ -250,27 +255,29 @@ public sealed class RocketTests(SolverFixture fixture)
         }
     }
 
+    /// <summary>A failing station is a status and not an exception.</summary>
     [Fact]
-    public void A_failing_station_is_a_status_and_not_an_exception()
+    public void AFailingStationIsAStatusAndNotAnException()
     {
         var c = FixtureCases.Load("rocket", "lox-lh2_of6_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-        var result = fixture.Solver.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6, AreaRatios = [0.5], Transport = true });
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+        var result = SolverFixture.Shared.Solver.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6, AreaRatios = [0.5], Transport = true });
         Assert.NotEqual(CaseStatus.Ok, result.Status);
         Assert.Equal(CaseStatus.Ok, result.Stations[0].Status);
         Assert.Equal(CaseStatus.Ok, result.Stations[1].Status);
         Assert.Equal(CaseStatus.AreaRatioInvalid, result.Stations[2].Status);
-        Assert.NotNull(result.Stations[0].Transport);
+        _ = Assert.NotNull(result.Stations[0].Transport);
         Assert.Null(result.Stations[2].Transport);
         Assert.Null(result.Stations[2].TransportStatus);
     }
 
+    /// <summary>Compositions are reported by name over all species.</summary>
     [Fact]
-    public void Compositions_are_reported_by_name_over_all_species()
+    public void CompositionsAreReportedByNameOverAllSpecies()
     {
         var c = FixtureCases.Load("rocket", "ap-htpb-al_pc7MPa_shiftingEquilibrium");
-        var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-        var result = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+        var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
         var chamber = result.Stations[0];
         Assert.Equal(result.Species, chamber.MoleFractions.Keys);
         Assert.True(Math.Abs(chamber.MoleFractions.Values.Sum() - 1.0) < MoleFractionSumTolerance);
@@ -284,27 +291,28 @@ public sealed class RocketTests(SolverFixture fixture)
         Assert.NotEmpty(present);
         foreach (var species in present)
         {
-            var molarMass = fixture.Database[species.Name].MolarMass;
+            var molarMass = SolverFixture.Shared.Database[species.Name].MolarMass;
             var expected = species.Value.GetDouble() * molarMass / mixtureMolarMass;
             var actual = chamber.CondensedMassFractions[species.Name];
-            var allowed = fixture.Tolerances.For("moleFraction").Absolute * molarMass / mixtureMolarMass + fixture.Tolerances.For("mixtureMolarMass").Relative * expected;
+            var allowed = SolverFixture.Shared.Tolerances.For("moleFraction").Absolute * molarMass / mixtureMolarMass + SolverFixture.Shared.Tolerances.For("mixtureMolarMass").Relative * expected;
             Assert.True(Math.Abs(actual - expected) <= allowed, $"{species.Name}: mass fraction {actual:R}, from the reference {expected:R}");
         }
     }
 
+    /// <summary>Rocket problems over several mixtures are one batch over the union of elements.</summary>
     [Fact]
-    public void Rocket_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements()
+    public void RocketProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements()
     {
         // Three propellants with different elements, one rocket problem each, in one call: the single solves bit for bit where
         // the union keeps the relative order of the case's elements, to rounding where it reorders them (Problems BOOT.md).
         var (names, propellants, problems, mixtures, union) = ThreeMixturesOverTheUnion();
-        var batch = fixture.Solver.Solve(mixtures, problems);
+        var batch = SolverFixture.Shared.Solver.Solve(mixtures, problems);
         Assert.Equal(names.Length, batch.Count);
-        var reorderedElementsTolerance = fixture.Tolerances.For("polishThresholdRelative").Relative;
-        var moleFractionFloor = fixture.Tolerances.For("moleFractionFloor").Absolute;
+        var reorderedElementsTolerance = SolverFixture.Shared.Tolerances.For("polishThresholdRelative").Relative;
+        var moleFractionFloor = SolverFixture.Shared.Tolerances.For("moleFractionFloor").Absolute;
         for (var i = 0; i < names.Length; i++)
         {
-            var single = fixture.Solver.Solve(propellants[i], problems[i]);
+            var single = SolverFixture.Shared.Solver.Solve(propellants[i], problems[i]);
             Assert.Null(batch[i].Propellant);
             Assert.Equal(single.Status, batch[i].Status);
             Assert.True(batch[i].Species.Count >= single.Species.Count);
@@ -315,36 +323,37 @@ public sealed class RocketTests(SolverFixture fixture)
                 var label = $"{names[i]} station {s}";
                 var differences = kept
                     ? StationEquality.BitDifferences(single.Stations[s], batch[i].Stations[s], label).ToList()
-                    : StationEquality.RelativeDifferences(single.Stations[s], batch[i].Stations[s], reorderedElementsTolerance, moleFractionFloor, label).ToList();
+                    : [.. StationEquality.RelativeDifferences(single.Stations[s], batch[i].Stations[s], reorderedElementsTolerance, moleFractionFloor, label)];
                 Assert.True(differences.Count == 0, string.Join("; ", differences));
             }
         }
     }
 
+    /// <summary>Equilibrium problems over several mixtures are one batch over the union of elements.</summary>
     [Fact]
-    public void Equilibrium_problems_over_several_mixtures_are_one_batch_over_the_union_of_elements()
+    public void EquilibriumProblemsOverSeveralMixturesAreOneBatchOverTheUnionOfElements()
     {
         var (names, propellants, _, mixtures, _) = ThreeMixturesOverTheUnion();
         var hp = new EquilibriumProblem { Kind = Equilibrium.ProblemKind.AssignedEnthalpyPressure, Pressure = 1.0e6 };
-        var states = fixture.Solver.Solve(mixtures, Enumerable.Repeat(hp, names.Length).ToList());
-        var reorderedElementsTolerance = fixture.Tolerances.For("polishThresholdRelative").Relative;
-        var moleFractionFloor = fixture.Tolerances.For("moleFractionFloor").Absolute;
+        var states = SolverFixture.Shared.Solver.Solve(mixtures, Enumerable.Repeat(hp, names.Length).ToList());
+        var reorderedElementsTolerance = SolverFixture.Shared.Tolerances.For("polishThresholdRelative").Relative;
+        var moleFractionFloor = SolverFixture.Shared.Tolerances.For("moleFractionFloor").Absolute;
         for (var i = 0; i < names.Length; i++)
         {
-            var differences = StationEquality.RelativeDifferences(fixture.Solver.Solve(propellants[i], hp).State, states[i].State,
+            var differences = StationEquality.RelativeDifferences(SolverFixture.Shared.Solver.Solve(propellants[i], hp).State, states[i].State,
                                                                    reorderedElementsTolerance, moleFractionFloor, $"{names[i]} state").ToList();
             Assert.True(differences.Count == 0, string.Join("; ", differences));
         }
     }
 
     /// <summary>Three fixture propellants with different elements, one rocket problem each, and their mixtures over the union (asserting the union both keeps and reorders some case's elements, so both comparison paths of the two facts above are exercised).</summary>
-    private (string[] Names, List<Propellant> Propellants, List<RocketProblem> Problems, List<ElementalMixture> Mixtures, List<string> Union) ThreeMixturesOverTheUnion()
+    private static (string[] Names, List<Propellant> Propellants, List<RocketProblem> Problems, List<ElementalMixture> Mixtures, List<string> Union) ThreeMixturesOverTheUnion()
     {
         string[] names = ["lox-lh2_of6_pc7MPa_shiftingEquilibrium", "lox-rp1_of2.6_pc10MPa_shiftingEquilibrium", "ap-htpb-al_pc7MPa_shiftingEquilibrium"];
         var cases = names.Select(n => FixtureCases.Load("rocket", n)).ToList();
-        var propellants = cases.Select(c => FixtureCases.PropellantOf(fixture.Database, c)).ToList();
+        var propellants = cases.Select(c => FixtureCases.PropellantOf(SolverFixture.Shared.Database, c)).ToList();
         var problems = cases.Select(FixtureCases.RocketProblemOf).ToList();
-        var mixtures = propellants.Select(p => fixture.Solver.MixtureOf(p)).ToList();
+        var mixtures = propellants.Select(p => SolverFixture.Shared.Solver.MixtureOf(p)).ToList();
         var union = new List<string>();
         foreach (var symbol in mixtures.SelectMany(m => m.Elements))
         {

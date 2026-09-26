@@ -22,7 +22,7 @@ internal static class StationComparison
     private static readonly HashSet<string> GasPhaseWithTransport = ["cpFrozen", "cvFrozen"];
 
     /// <summary>Every numeric station output mapped to a field of <see cref="MixtureState"/> or <see cref="PerformanceFigures"/>.</summary>
-    public static IEnumerable<(string Name, double Expected, FieldInfo Field, bool IsFigure)> Fields(JsonElement station)
+    public static IEnumerable<(string Name, double Expected, PropertyInfo Field, bool IsFigure)> Fields(JsonElement station)
     {
         foreach (var property in station.EnumerateObject())
         {
@@ -32,14 +32,14 @@ internal static class StationComparison
             }
 
             var fieldName = char.ToUpperInvariant(property.Name[0]) + property.Name[1..];
-            var stateField = typeof(MixtureState).GetField(fieldName);
+            var stateField = typeof(MixtureState).GetProperty(fieldName);
             if (stateField is not null)
             {
                 yield return (property.Name, property.Value.GetDouble(), stateField, false);
                 continue;
             }
 
-            var figureField = typeof(PerformanceFigures).GetField(fieldName)
+            var figureField = typeof(PerformanceFigures).GetProperty(fieldName)
                               ?? throw new InvalidOperationException($"the station output {property.Name} has no field in MixtureState or PerformanceFigures");
             yield return (property.Name, property.Value.GetDouble(), figureField, true);
         }

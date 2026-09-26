@@ -18,6 +18,12 @@ internal readonly record struct HostTransportStation(CaseStatus Status, Transpor
 /// <summary>One case run through the numerical nodes directly over the accelerator's own buffers: the L2 bit-equality standard.</summary>
 internal static class HostSolves
 {
+    /// <summary>The single-entry exit-value buffer for a case with no exit stations (CA1861: hoisted out of the per-case call).</summary>
+    private static readonly double[] NoExitValues = [0.0];
+
+    /// <summary>The single-entry exit-kind buffer for a case with no exit stations (CA1861: hoisted out of the per-case call).</summary>
+    private static readonly int[] NoExitKinds = [0];
+
     public static HostRocketCase Rocket(Accelerator accelerator, SpeciesTableBuffers buffers, RocketBatch batch, int k)
     {
         var table = buffers.Table;
@@ -25,8 +31,8 @@ internal static class HostSolves
         var elementCount = table.ElementCount;
         var stationCount = batch.StationCount;
         using var elements = accelerator.Allocate1D(batch.ElementMoles.AsSpan(k * elementCount, elementCount).ToArray());
-        using var exitValues = accelerator.Allocate1D(batch.Exits == 0 ? new[] { 0.0 } : batch.ExitValues.AsSpan(k * batch.Exits, batch.Exits).ToArray());
-        using var exitKinds = accelerator.Allocate1D(batch.Exits == 0 ? new[] { 0 } : batch.ExitKinds.Select(x => (int)x).ToArray());
+        using var exitValues = accelerator.Allocate1D(batch.Exits == 0 ? NoExitValues : batch.ExitValues.AsSpan(k * batch.Exits, batch.Exits).ToArray());
+        using var exitKinds = accelerator.Allocate1D(batch.Exits == 0 ? NoExitKinds : [.. batch.ExitKinds.Select(x => (int)x)]);
         using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
         using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
         using var stations = accelerator.Allocate1D<MixtureState>(stationCount);
@@ -50,7 +56,7 @@ internal static class HostSolves
         var view = buffers.View;
         RocketSolver.Solve(in view, in problem, in scratch, in result);
         return new HostRocketCase(stations.GetAsArray1D(), moles.GetAsArray1D(), figures.GetAsArray1D(),
-                                  stationStatus.GetAsArray1D().Select(s => (CaseStatus)s).ToArray(), iterations.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0]);
+                                  [.. stationStatus.GetAsArray1D().Select(s => (CaseStatus)s)], iterations.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0]);
     }
 
     public static HostEquilibriumCase Equilibrium(Accelerator accelerator, SpeciesTableBuffers buffers, EquilibriumBatch batch, int k)
@@ -82,7 +88,7 @@ internal static class HostSolves
         var speciesCount = species.Table.SpeciesCount;
         var elementCount = species.Table.ElementCount;
         using var molesBuffer = accelerator.Allocate1D(moles.AsSpan(offset, speciesCount).ToArray());
-        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(speciesCount, elementCount));
+        using var doubles = accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(elementCount));
         using var ints = accelerator.Allocate1D<int>(TransportLayout.IntsPerCase(speciesCount, elementCount));
         using var figures = accelerator.Allocate1D<TransportFigures>(1);
         var scratch = TransportScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);

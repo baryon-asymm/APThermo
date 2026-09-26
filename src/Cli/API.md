@@ -389,7 +389,22 @@ matching the behaviour before the clean-code pass. `DocumentWriter.Deliver` now 
 that one failure of the output path into the documented exit code 2 naming the path;
 every other I/O failure (a permissions error, a full disk) still falls to exit code 3.
 Found by the repair review of 2026-09-15; pinned by
-`ExitCodeTests.A_missing_output_directory_is_exit_2`.
+`ExitCodeTests.AMissingOutputDirectoryIsExit2`.
+
+⚠ 2026-09-24: "an unexpected failure" reached exit code 3 through a `catch (Exception)`
+in `Program.Run`. The root's Diagnostics constraint forbids that catch (CA1031) and any
+suppression of the rule, and the owner chose to keep the process contract unchanged.
+- `Program.Run` catches only the types it knows:
+  - `InputException` is exit code 2;
+  - `AcceleratorUnavailableException`, `IOException` and `UnauthorizedAccessException`
+    are exit code 3.
+- Every other exception leaves `Run`.
+- `Program.Main` installs an `AppDomain.CurrentDomain.UnhandledException` handler. It
+  writes the same `Type: message` line to standard error and ends the process with
+  `Environment.Exit(3)`.
+
+For a caller of the command, the table above is unchanged. An in-process caller of
+`Run`, the tests, now receives the unexpected exception instead of the code 3.
 
 ## Side effects
 

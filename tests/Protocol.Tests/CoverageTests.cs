@@ -10,8 +10,9 @@ namespace APThermo.Protocol.Tests;
 /// </summary>
 public sealed class CoverageTests
 {
+    /// <summary>Every exported type of a library assembly is named in its node's API.md.</summary>
     [Fact]
-    public void Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api()
+    public void EveryExportedTypeOfALibraryAssemblyIsNamedInItsNodesApi()
     {
         var problems = NodeAssemblies.CodeNodes
             .Where(node => !NodeAssemblies.IsTestAssembly(NodeAssemblies.AssemblyOf(node)!))
@@ -26,7 +27,7 @@ public sealed class CoverageTests
     /// 2026-09-15): a type whose namespace only a prefix of some node matches, with no node of the exact deeper path, is
     /// still misplaced.</summary>
     [Fact]
-    public void Every_type_of_every_assembly_lives_in_the_namespace_of_its_node()
+    public void EveryTypeOfEveryAssemblyLivesInTheNamespaceOfItsNode()
     {
         var problems = NodeAssemblies.Assemblies.Values.Distinct().OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal)
             .SelectMany(MisplacedTypeProblems)

@@ -29,7 +29,7 @@ The definition of what "`Performance` is ready" means.
   is re-approved with that reason recorded here. A fixture absent from the snapshot
   fails the test with instructions, as the surface snapshot does; a line of the
   snapshot that names no current fixture fails a test of its own instead of staying
-  silent (`Every_approved_line_names_a_rocket_fixture`, 2026-09-15).
+  silent (`EveryApprovedLineNamesARocketFixture`, 2026-09-15).
 
   ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
   now keeps a Windows and a Linux record, since the CPU accelerator's `System.Math`
@@ -45,8 +45,8 @@ The definition of what "`Performance` is ready" means.
   deviation from "every test runs on both platforms") holds that the bits are a
   record of the reference machine, not of the platform alone: hosted CI runners land
   on CPUs whose C runtime rounds the last bit differently from the reference
-  machine's. `Every_rocket_fixture_gives_the_recorded_bits` and
-  `Every_approved_line_names_a_rocket_fixture` now carry
+  machine's. `EveryRocketFixtureGivesTheRecordedBits` and
+  `EveryApprovedLineNamesARocketFixture` now carry
   `[Trait("Category", "BitSnapshot")]`, so both run in every local run (`CLAUDE.md`'s
   fast set) and in the release's self-hosted jobs
   (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
@@ -122,19 +122,19 @@ position today (the criterion below).
 
 ## Acceptance criteria
 
-- [x] 2026-09-14 — L0 green: `InvariantTests.The_throat_is_sonic`,
-      `Entropy_is_constant_along_the_nozzle`, `Velocity_follows_the_energy_equation`,
-      `Assigned_area_and_pressure_ratios_are_met`,
-      `The_composition_is_frozen_after_the_freezing_station` over the enumerated
-      rocket fixture directory, plus `An_area_ratio_below_one_fails_its_station_only`,
-      `A_pressure_ratio_not_above_one_fails_its_station_only`,
-      `A_case_without_exits_gives_the_chamber_and_the_throat`,
-      `A_non_positive_chamber_pressure_is_invalid_input`. (Re-dated from 2026-09-12:
+- [x] 2026-09-14 — L0 green: `InvariantTests.TheThroatIsSonic`,
+      `EntropyIsConstantAlongTheNozzle`, `VelocityFollowsTheEnergyEquation`,
+      `AssignedAreaAndPressureRatiosAreMet`,
+      `TheCompositionIsFrozenAfterTheFreezingStation` over the enumerated
+      rocket fixture directory, plus `AnAreaRatioBelowOneFailsItsStationOnly`,
+      `APressureRatioNotAboveOneFailsItsStationOnly`,
+      `ACaseWithoutExitsGivesTheChamberAndTheThroat`,
+      `ANonPositiveChamberPressureIsInvalidInput`. (Re-dated from 2026-09-12:
       the F-TK-06 split below renamed the theory; the hand-typed file count is gone,
       F-TK-03.)
 - [x] 2026-09-14 — L1 green for every rocket fixture case, equilibrium and frozen:
-      `RocketFixtureTests.The_rocket_case_reproduces_the_reference` over the enumerated
-      directory; `KernelEqualityTests.Kernel_and_host_give_the_same_bits` over its
+      `RocketFixtureTests.TheRocketCaseReproducesTheReference` over the enumerated
+      directory; `KernelEqualityTests.KernelAndHostGiveTheSameBits` over its
       batches, each a family of fixtures sharing a table and an exit layout. (Re-dated
       from 2026-09-12: the hand-typed file and batch counts are gone, F-TK-03.)
 - [x] 2026-09-14 — Every check proven non-degenerate once, by mutation runs, each
@@ -158,7 +158,7 @@ position today (the criterion below).
       tree; the criterion below mutates `TightTolerance` instead, the constant that
       actually gates convergence, and records what it found.
 - [x] 2026-09-14 — Bits level green:
-      `BitSnapshotTests.Every_rocket_fixture_gives_the_recorded_bits` over the
+      `BitSnapshotTests.EveryRocketFixtureGivesTheRecordedBits` over the
       enumerated rocket directory against `Bits.approved.txt`, recorded before any
       code of the decomposition moved (the code of `8e36a27`: the two commits between
       it and the snapshot changed documents only) and unchanged after it. Seen red
@@ -167,7 +167,7 @@ position today (the criterion below).
       ulp to `0.5000000000000001` — every one of the enumerated fixtures red; one line
       removed from `Bits.approved.txt` — that fixture red, naming it, with the
       instruction to approve, and the other fixtures green.
-- [x] 2026-09-15 — Bits level, the other direction: `BitSnapshotTests.Every_approved_line_names_a_rocket_fixture`
+- [x] 2026-09-15 — Bits level, the other direction: `BitSnapshotTests.EveryApprovedLineNamesARocketFixture`
       builds its keys from `FixtureFiles.Enumerate("rocket")` (no solve) and fails on
       any key `Harness.ApprovedSnapshot.StaleKeys` reports, naming it. Repair-review
       finding R-Performance.Tests-1: until this fact existed, a deleted or renamed
@@ -178,7 +178,7 @@ position today (the criterion below).
       the line removed again, `git hash-object tests/Performance.Tests/Bits.approved.txt`
       unchanged (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
 - [x] 2026-09-14 — The never-supersonic outcome:
-      `SubsonicStationTests.A_station_that_never_leaves_the_subsonic_side_is_not_converged`
+      `SubsonicStationTests.AStationThatNeverLeavesTheSubsonicSideIsNotConverged`
       drives `AreaRatioIteration` (through the node's new `InternalsVisibleTo`) from an
       estimate two units of `ln(p_c/p_e)` below the throat's, so that the twenty
       subsonic steps of the iteration cannot reach the sonic point, and asserts
@@ -193,27 +193,27 @@ position today (the criterion below).
       of code and nesting at most two, with the two previously inline tolerances (the energy
       equation, the pressure ratio) promoted to `VelocityTolerance` and
       `PressureRatioTolerance` beside the three existing ones and their origin named.
-      `InvariantTests` becomes one test per invariant (`The_throat_is_sonic`,
-      `Entropy_is_constant_along_the_nozzle`, `Velocity_follows_the_energy_equation`,
-      `Assigned_area_and_pressure_ratios_are_met`,
-      `The_composition_is_frozen_after_the_freezing_station`) over the enumerated
+      `InvariantTests` becomes one test per invariant (`TheThroatIsSonic`,
+      `EntropyIsConstantAlongTheNozzle`, `VelocityFollowsTheEnergyEquation`,
+      `AssignedAreaAndPressureRatiosAreMet`,
+      `TheCompositionIsFrozenAfterTheFreezingStation`) over the enumerated
       rocket fixture directory, each a three-line body. Non-degeneracy: with
       `RocketSolver.TightTolerance` loosened from `1e-10` to `1e-2` (the ⚠ above, in
       place of the now-inert `SonicTolerance`/`AreaRatioTolerance`),
-      `The_throat_is_sonic` turns red on every fixture and
-      `Assigned_area_and_pressure_ratios_are_met` on every fixture that carries an
-      exit, while `Entropy_is_constant_along_the_nozzle`,
-      `Velocity_follows_the_energy_equation` and
-      `The_composition_is_frozen_after_the_freezing_station` stay green throughout —
+      `TheThroatIsSonic` turns red on every fixture and
+      `AssignedAreaAndPressureRatiosAreMet` on every fixture that carries an
+      exit, while `EntropyIsConstantAlongTheNozzle`,
+      `VelocityFollowsTheEnergyEquation` and
+      `TheCompositionIsFrozenAfterTheFreezingStation` stay green throughout —
       a sharper proof than the single combined theory gave, because entropy and the
       energy-equation identity are guaranteed by the equilibrium solve itself and the
       frozen copy is bit-exact, none of the three sensitive to the throat/exit
-      search's own convergence. `KernelEqualityTests.Kernel_and_host_give_the_same_bits`
+      search's own convergence. `KernelEqualityTests.KernelAndHostGiveTheSameBits`
       is split at its two seams into `Fill` (`RocketBatchBuffers`: allocates and
       uploads one batch) and `AssertSameBits` (the field-by-field comparison), each
       under 60 lines; the kernel given a different chamber temperature estimate still
       turns every batch red. The self-consistency comparisons of
-      `An_area_ratio_below_one_fails_its_station_only` name the `SelfConsistency`
+      `AnAreaRatioBelowOneFailsItsStationOnly` name the `SelfConsistency`
       constant instead of an inline `1e-9` (F-TK-10). The hand-typed counts of files,
       flows and batches leave the criteria above; the enumerated directory is the
       list. Every mutation restored afterwards; the Bits level did not move (no
@@ -230,7 +230,7 @@ position today (the criterion below).
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
-      `## Shape exceptions`); `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`
+      `## Shape exceptions`); `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`
       now covers this on the merged tree: two sites tree-wide, this node's (the
       `RocketBatchViews` construction inside the `RocketBatchBuffers` constructor,
       re-verified in place after the R-Performance.Tests-4 cut below moved it) and
@@ -298,8 +298,8 @@ position today (the criterion below).
       assigned once, inside the constructor. `AssertSameBits` is unchanged but for its
       caller: it still calls `.GetAsArray1D()` on `buffers.Stations`, `.Moles`,
       `.Figures`, `.StationStatus`, `.Status` itself, exactly as before the cut.
-      `ShapeTests.No_type_spans_more_than_400_lines` and
-      `ShapeTests.No_method_spans_more_than_60_lines` both hold for it; its own
+      `ShapeTests.NoTypeSpansMoreThan400Lines` and
+      `ShapeTests.NoMethodSpansMoreThan60Lines` both hold for it; its own
       efferent coupling, recorded by `CouplingMeasures` (not limited — the root's
       coupling rule holds only for `src` types), fell to 13.
 

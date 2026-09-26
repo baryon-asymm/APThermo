@@ -7,31 +7,18 @@ using ILGPU.Runtime;
 
 namespace APThermo.Performance.Tests;
 
-/// <summary>The batch views of one kernel launch: structure of arrays, one case per thread, a fixed exit layout per batch.</summary>
-public readonly struct RocketBatchViews(
-    int exitCount, ArrayView<double> chamberPressures, ArrayView<double> reactantEnthalpies, ArrayView<int> flows,
-    ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds,
-    ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
-    ArrayView<MixtureState> stations, ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<PerformanceFigures> figures,
-    ArrayView<int> stationStatus, ArrayView<int> iterations, ArrayView<int> status)
-{
-    public readonly int ExitCount = exitCount;
-    public readonly ArrayView<double> ChamberPressures = chamberPressures;
-    public readonly ArrayView<double> ReactantEnthalpies = reactantEnthalpies;
-    public readonly ArrayView<int> Flows = flows;
-    public readonly ArrayView<double> ElementMoles = elementMoles;
-    public readonly ArrayView<double> ExitValues = exitValues;
-    public readonly ArrayView<int> ExitKinds = exitKinds;
-    public readonly ArrayView<double> ScratchDoubles = scratchDoubles;
-    public readonly ArrayView<int> ScratchInts = scratchInts;
-    public readonly ArrayView<MixtureState> Stations = stations;
-    public readonly ArrayView<double> Moles = moles;
-    public readonly ArrayView<double> Multipliers = multipliers;
-    public readonly ArrayView<PerformanceFigures> Figures = figures;
-    public readonly ArrayView<int> StationStatus = stationStatus;
-    public readonly ArrayView<int> Iterations = iterations;
-    public readonly ArrayView<int> Status = status;
-}
+/// <summary>
+/// The batch views of one kernel launch: structure of arrays, one case per thread, a fixed exit layout per batch. Internal:
+/// ILGPU 1.5.3 needs only <c>[assembly: InternalsVisibleTo("ILGPURuntime")]</c> on this assembly to reach it as a kernel
+/// parameter type (root BOOT.md, Delivery: Tree contracts), and no consumer outside this node has a reason to name it
+/// (CA1515). A record struct gives it value equality without a hand-written <c>Equals</c>/<c>==</c> (CA1815).
+/// </summary>
+internal readonly record struct RocketBatchViews(
+    int ExitCount, ArrayView<double> ChamberPressures, ArrayView<double> ReactantEnthalpies, ArrayView<int> Flows,
+    ArrayView<double> ElementMoles, ArrayView<double> ExitValues, ArrayView<int> ExitKinds,
+    ArrayView<double> ScratchDoubles, ArrayView<int> ScratchInts,
+    ArrayView<MixtureState> Stations, ArrayView<double> Moles, ArrayView<double> Multipliers, ArrayView<PerformanceFigures> Figures,
+    ArrayView<int> StationStatus, ArrayView<int> Iterations, ArrayView<int> Status);
 
 /// <summary>
 /// One batch's buffers on the accelerator, released together: allocates and uploads the cases' inputs, their scratch and their
@@ -69,10 +56,10 @@ internal sealed class RocketBatchBuffers : IDisposable
 
         Table = tableBuffers.View;
         Views = new RocketBatchViews(
-            exitCount: exitCount, chamberPressures: chamberPressures.View, reactantEnthalpies: reactantEnthalpies.View, flows: flows.View,
-            elementMoles: elementMoles.View, exitValues: exitValues.View, exitKinds: exitKinds.View, scratchDoubles: scratchDoubles.View,
-            scratchInts: scratchInts.View, stations: Stations.View, moles: Moles.View, multipliers: multipliers.View, figures: Figures.View,
-            stationStatus: StationStatus.View, iterations: iterations.View, status: Status.View);
+            ExitCount: exitCount, ChamberPressures: chamberPressures.View, ReactantEnthalpies: reactantEnthalpies.View, Flows: flows.View,
+            ElementMoles: elementMoles.View, ExitValues: exitValues.View, ExitKinds: exitKinds.View, ScratchDoubles: scratchDoubles.View,
+            ScratchInts: scratchInts.View, Stations: Stations.View, Moles: Moles.View, Multipliers: multipliers.View, Figures: Figures.View,
+            StationStatus: StationStatus.View, Iterations: iterations.View, Status: Status.View);
     }
 
     public SpeciesTableView Table { get; }
@@ -107,31 +94,48 @@ internal sealed class RocketBatchBuffers : IDisposable
 }
 
 /// <summary>L1: the rocket solver inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
-[Collection(CpuCollection.Name)]
-public sealed class KernelEqualityTests(CpuFixture fixture)
+[Collection(CpuFixture.CollectionName)]
+public sealed class KernelEqualityTests
 {
-    /// <summary>The families of rocket fixtures sharing one table and one exit layout, largest first; each is one batch.</summary>
-    public static IEnumerable<object[]> Batches() => FixtureFamilies.Of(["rocket"], c => RocketInputs.Of(c).BatchKey);
+    /// <summary>The kinds whose fixture cases are grouped into batches: one table and exit layout per batch.</summary>
+    private static readonly string[] Kinds = ["rocket"];
 
+    /// <summary>The batch key function: rocket fixtures sharing one table and one exit layout share a batch.</summary>
+    private static string BatchKeyOf(CeaCase c) => RocketInputs.Of(c).BatchKey;
+
+    /// <summary>The key and case count of every batch, largest first; <see cref="KernelAndHostGiveTheSameBits"/> reads the cases back.</summary>
+    public static TheoryData<string, int> Batches()
+    {
+        var data = new TheoryData<string, int>();
+        foreach (var family in FixtureFamilies.Keys(Kinds, BatchKeyOf))
+        {
+            data.Add(family.Key, family.Count);
+        }
+
+        return data;
+    }
+
+    /// <summary>The rocket solver inside a CPU-accelerator kernel gives the same bits as the host call, for one batch.</summary>
     [Theory]
     [MemberData(nameof(Batches))]
-    public void Kernel_and_host_give_the_same_bits(string key, int count, IReadOnlyList<CeaCase> cases)
+    public void KernelAndHostGiveTheSameBits(string key, int count)
     {
+        var cases = FixtureFamilies.CasesOf(Kinds, BatchKeyOf, key);
         Assert.Equal(count, cases.Count);
         var inputs = cases.Select(RocketInputs.Of).ToList();
-        var table = SpeciesTable.Build(fixture.Database, inputs[0].System.Elements, inputs[0].System.Products);
-        var host = inputs.Select(i => RocketHost.Solve(fixture.Accelerator, table, i)).ToList();
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, inputs[0].System.Elements, inputs[0].System.Products);
+        var host = inputs.Select(i => RocketHost.Solve(CpuFixture.Shared.Accelerator, table, i)).ToList();
 
-        using var buffers = new RocketBatchBuffers(fixture.Accelerator, table, inputs);
-        var kernel = fixture.Accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, RocketBatchViews>(SolveKernel);
+        using var buffers = new RocketBatchBuffers(CpuFixture.Shared.Accelerator, table, inputs);
+        var kernel = CpuFixture.Shared.Accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, RocketBatchViews>(SolveKernel);
         kernel(count, buffers.Table, buffers.Views);
-        fixture.Accelerator.Synchronize();
+        CpuFixture.Shared.Accelerator.Synchronize();
 
         AssertSameBits(host, table, buffers, cases, key);
     }
 
     /// <summary>Every station's state, figures and moles, bit for bit, host against kernel; the fields come from reflection.</summary>
-    private static void AssertSameBits(IReadOnlyList<RocketSolution> host, SpeciesTable table, RocketBatchBuffers buffers, IReadOnlyList<CeaCase> cases, string key)
+    private static void AssertSameBits(List<RocketSolution> host, SpeciesTable table, RocketBatchBuffers buffers, IReadOnlyList<CeaCase> cases, string key)
     {
         var stationCount = RocketLayout.StationCount(buffers.Views.ExitCount);
         var speciesCount = table.SpeciesCount;
@@ -140,8 +144,8 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         var kernelFigures = buffers.Figures.GetAsArray1D();
         var kernelStationStatus = buffers.StationStatus.GetAsArray1D();
         var kernelStatus = buffers.Status.GetAsArray1D();
-        var stateFields = typeof(MixtureState).GetFields();
-        var figureFields = typeof(PerformanceFigures).GetFields();
+        var stateFields = typeof(MixtureState).GetProperties();
+        var figureFields = typeof(PerformanceFigures).GetProperties();
         for (var k = 0; k < host.Count; k++)
         {
             var label = $"{key} {cases[k].Kind}:{cases[k].Name}";

@@ -13,7 +13,7 @@ public sealed class ToleranceTable
     private ToleranceTable(Dictionary<string, (Tolerance, string)> entries)
     {
         _entries = entries;
-        Fields = entries.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray();
+        Fields = [.. entries.Keys.OrderBy(k => k, StringComparer.Ordinal)];
     }
 
     /// <summary>The path of the table under the repository root.</summary>
@@ -22,8 +22,13 @@ public sealed class ToleranceTable
     /// <summary>The field names of the table, sorted ordinally.</summary>
     public IReadOnlyList<string> Fields { get; }
 
+    /// <summary>Loads the single tolerance table of the tree, <see cref="Path"/>.</summary>
+    /// <returns>The loaded table.</returns>
     public static ToleranceTable Load() => Load(Path);
 
+    /// <summary>Loads a tolerance table from an explicit path.</summary>
+    /// <param name="path">The path of the table document.</param>
+    /// <returns>The loaded table.</returns>
     public static ToleranceTable Load(string path)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(path));
@@ -50,12 +55,23 @@ public sealed class ToleranceTable
         return new ToleranceTable(entries);
     }
 
+    /// <summary>The absolute and relative tolerance recorded for a field.</summary>
+    /// <param name="field">The field name, as it appears in a fixture's outputs.</param>
+    /// <returns>The field's tolerance.</returns>
     public Tolerance For(string field) =>
         _entries.TryGetValue(field, out var entry) ? entry.Tolerance : throw new KeyNotFoundException($"no tolerance for '{field}'");
 
+    /// <summary>The recorded derivation of a field's tolerance, for diagnostics.</summary>
+    /// <param name="field">The field name, as it appears in a fixture's outputs.</param>
+    /// <returns>The field's derivation text.</returns>
     public string Derivation(string field) =>
         _entries.TryGetValue(field, out var entry) ? entry.Derivation : throw new KeyNotFoundException($"no tolerance for '{field}'");
 
+    /// <summary>Whether an actual value matches an expected value within the field's tolerance.</summary>
+    /// <param name="field">The field name, as it appears in a fixture's outputs.</param>
+    /// <param name="expected">The reference value.</param>
+    /// <param name="actual">The tree's value.</param>
+    /// <returns><see langword="true"/> when the two values agree within the field's tolerance.</returns>
     public bool Matches(string field, double expected, double actual)
     {
         var tolerance = For(field);
@@ -68,6 +84,7 @@ public sealed class ToleranceTable
     /// reference mole fraction, written once so the print threshold is not typed again at each of its call sites
     /// (BOOT.md, the tolerance-table invariant).
     /// </summary>
+    /// <param name="referenceValue">The reference's mole fraction of the species at the station.</param>
     public string MoleFractionField(double referenceValue) =>
         referenceValue >= For("moleFraction").Absolute ? "moleFraction" : "moleFractionTrace";
 
@@ -79,11 +96,8 @@ public sealed class ToleranceTable
         }
 
         var number = value.GetDouble();
-        if (!(number >= 0.0))
-        {
-            throw new FixtureFormatException(path, $"{field}.{property}", "a tolerance is not negative");
-        }
-
-        return number;
+        return number >= 0.0
+            ? number
+            : throw new FixtureFormatException(path, $"{field}.{property}", "a tolerance is not negative");
     }
 }

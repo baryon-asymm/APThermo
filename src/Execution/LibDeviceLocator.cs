@@ -80,6 +80,7 @@ internal static class LibDeviceLocator
     {
         LocatorPlatform.Windows => Path.Combine(environment("ProgramFiles") ?? @"C:\Program Files", "NVIDIA GPU Computing Toolkit", "CUDA"),
         LocatorPlatform.Linux => "/usr/local",
+        LocatorPlatform.Other => "",
         _ => "",
     };
 
@@ -91,6 +92,7 @@ internal static class LibDeviceLocator
     {
         LocatorPlatform.Windows => WindowsDllName,
         LocatorPlatform.Linux => LinuxDllName,
+        LocatorPlatform.Other => WindowsDllName,
         _ => WindowsDllName,
     };
 

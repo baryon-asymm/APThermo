@@ -63,7 +63,7 @@ internal static class RocketPipeline
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
         return new RocketBatchResult(
             speciesCount: speciesCount, stationCount: stations, stations: stationStates, moles: moles, figures: figures,
-            stationStatus: stationStatus.Select(code => (CaseStatus)code).ToArray(), iterations: iterations,
-            status: status.Select(code => (CaseStatus)code).ToArray(), timings: timer.Timings(), accelerator: session.Info);
+            stationStatus: [.. stationStatus.Select(code => (CaseStatus)code)], iterations: iterations,
+            status: [.. status.Select(code => (CaseStatus)code)], timings: timer.Timings(), accelerator: session.Info);
     }
 }

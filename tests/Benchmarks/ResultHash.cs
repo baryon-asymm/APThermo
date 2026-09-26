@@ -20,7 +20,7 @@ internal static class ResultHash
     {
         foreach (var species in moleFractions.Keys.OrderBy(name => name, StringComparer.Ordinal))
         {
-            hash.Add(moleFractions[species]);
+            _ = hash.Add(moleFractions[species]);
         }
         return hash;
     }

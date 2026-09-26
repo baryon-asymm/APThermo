@@ -46,7 +46,7 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
     {
         foreach (var element in elements)
         {
-            AtomicWeights.Of(database, element);
+            _ = AtomicWeights.Of(database, element);
         }
 
         var key = string.Join(",", elements) + "|" + string.Join(",", omit.Order(StringComparer.Ordinal)) + "|" + (only is null ? "*" : string.Join(",", only));
@@ -61,9 +61,9 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
             throw new ArgumentException($"no product species of the database consists of the elements {string.Join(", ", elements)} alone");
         }
 
-        var table = SpeciesTable.Build(database, elements.ToList(), candidates);
+        var table = SpeciesTable.Build(database, [.. elements], candidates);
         var transport = database.Transport is null ? null : TransportTable.Build(database.Transport, table);
-        system = new ChemicalSystem(elements.ToList(), table, engine.Upload(table, transport));
+        system = new ChemicalSystem([.. elements], table, engine.Upload(table, transport));
         _systems[key] = system;
         return system;
     }

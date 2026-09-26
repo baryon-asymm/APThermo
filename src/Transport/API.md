@@ -84,23 +84,35 @@ addressed through `PairIndex`.
 ## Evaluation ✅
 
 ```csharp
-public struct TransportFigures                           // one station; SI
+public struct TransportFigures : IEquatable<TransportFigures>   // one station; SI
 {
-    public double Viscosity;                             // Pa·s
-    public double FrozenConductivity;                    // W/(m·K)
-    public double ReactingConductivity;                  // W/(m·K), frozen plus reaction term
-    public double FrozenPrandtl;                         // Cp_fr η / λ_fr over the transport set
-    public double ReactingPrandtl;                       // Cp_eq η / λ_eq over the transport set
-    public double FrozenHeatCapacity;                    // J/(kg·K) of the set's gas: the reference's cp_fr with transport on
-    public double EquilibriumHeatCapacity;               // J/(kg·K), frozen plus reaction heat capacity of the set
-    public double EstimatedMoleFraction;                 // of the set, carried by species without data
-    public int SpeciesCount;                             // NM
-    public int ReactionCount;                            // NR, after the trace eliminations
-    public int EstimatedSpeciesCount;
-    public int TraceEliminations;                        // species of the set below TraceFraction removed from the reaction set
-    public int Capped;                                   // 1 when a species was refused because the set was full
+    public double Viscosity { get; set; }                // Pa·s
+    public double FrozenConductivity { get; set; }       // W/(m·K)
+    public double ReactingConductivity { get; set; }     // W/(m·K), frozen plus reaction term
+    public double FrozenPrandtl { get; set; }            // Cp_fr η / λ_fr over the transport set
+    public double ReactingPrandtl { get; set; }          // Cp_eq η / λ_eq over the transport set
+    public double FrozenHeatCapacity { get; set; }       // J/(kg·K) of the set's gas: the reference's cp_fr with transport on
+    public double EquilibriumHeatCapacity { get; set; }  // J/(kg·K), frozen plus reaction heat capacity of the set
+    public double EstimatedMoleFraction { get; set; }    // of the set, carried by species without data
+    public int SpeciesCount { get; set; }                // NM
+    public int ReactionCount { get; set; }               // NR, after the trace eliminations
+    public int EstimatedSpeciesCount { get; set; }
+    public int TraceEliminations { get; set; }           // species of the set below TraceFraction removed from the reaction set
+    public int Capped { get; set; }                      // 1 when a species was refused because the set was full
+
+    public readonly bool Equals(TransportFigures other);       // every property equal by Equals of its type (NaN equals NaN)
+    public override readonly bool Equals(object? obj);
+    public override readonly int GetHashCode();
+    public static bool operator ==(TransportFigures left, TransportFigures right);
+    public static bool operator !=(TransportFigures left, TransportFigures right);
 }
 ```
+
+⚠ 2026-09-24: until 0.1.0 the members were public fields without equality; the root's
+Diagnostics constraint (CA1051, CA1815) made them auto-properties with value equality.
+The consequences are the same as for `MixtureState` (`src/Thermo/API.md`):
+source-compatible for readers, a recompile for binaries built against 0.1.0, and
+unchanged layout and bits.
 
 ## Solver (tree contract) ✅
 
@@ -108,7 +120,7 @@ public struct TransportFigures                           // one station; SI
 internal static class TransportLayout
 {
     public const int MaxSpecies = 40;                                          // the reference's limit on the set
-    public static int DoublesPerCase(int speciesCount, int elementCount);      // 4 · MaxSpecies² + elements · MaxSpecies + 8 · MaxSpecies
+    public static int DoublesPerCase(int elementCount);                        // 4 · MaxSpecies² + elements · MaxSpecies + 8 · MaxSpecies
     public static int IntsPerCase(int speciesCount, int elementCount);         // species + 4 · MaxSpecies + 4 · elements
 }
 
@@ -177,12 +189,17 @@ Two slots of the scratch are shared between stages of the evaluation and hold
 nothing across a call: `Stx` is the normalised pivot row of the trace elimination
 and, later, the per-pair difference vector of the reaction terms; `Mark` carries
 "seen by the component search" and "in the set" for every species. A caller slices
-the scratch and reads nothing from it. `TransportLayout.DoublesPerCase` takes the
-species count and does not use it: the double scratch is `4·M² + E·M + 8·M` with
-`M = MaxSpecies`, and the set is capped at `MaxSpecies`, so the doubles per case do not
-grow with the table; the parameter mirrors `Equilibrium`'s `ScratchLayout` so that the
-execution node sizes every scratch the same way (recorded 2026-09-14, the clean-code
-review's F-TP-06 and F-TP-07).
+the scratch and reads nothing from it. `TransportLayout.DoublesPerCase` takes
+only the element count: the double scratch is `4·M² + E·M + 8·M` with `M = MaxSpecies`,
+and the set is capped at `MaxSpecies`, so the doubles per case do not grow with the
+table.
+
+⚠ 2026-09-24: it took the species count too and ignored it, so that the execution
+node would size every scratch the way `Equilibrium`'s `ScratchLayout` does (recorded
+2026-09-14, the clean-code review's F-TP-06 and F-TP-07). Under the root's Diagnostics
+constraint the unused parameter is IDE0060, and a discard that only silenced the rule
+was found at the review of the first Diagnostics branch. The parameter is gone, and the
+execution node passes the element count alone.
 
 ## Errors
 

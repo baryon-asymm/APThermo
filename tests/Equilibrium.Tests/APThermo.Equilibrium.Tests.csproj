@@ -13,4 +13,11 @@
     <PackageReference Include="ILGPU" />
   </ItemGroup>
 
+  <!-- ILGPU 1.5.3 needs only InternalsVisibleTo("ILGPURuntime") on this assembly to reach the internal
+       BatchViews (KernelEqualityTests.cs) as a kernel parameter type; ILGPU emits its kernel wrappers into a
+       dynamic assembly of that name (root BOOT.md, Delivery: Tree contracts). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ILGPURuntime" />
+  </ItemGroup>
+
 </Project>

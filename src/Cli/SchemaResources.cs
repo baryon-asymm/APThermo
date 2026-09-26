@@ -10,11 +10,10 @@ internal static class SchemaResources
 
     private static readonly Assembly Assembly = typeof(SchemaResources).Assembly;
 
-    public static IReadOnlyList<string> Names { get; } = Assembly.GetManifestResourceNames()
+    public static IReadOnlyList<string> Names { get; } = [.. Assembly.GetManifestResourceNames()
         .Where(n => n.StartsWith(Prefix, StringComparison.Ordinal) && n.EndsWith(Suffix, StringComparison.Ordinal))
         .Select(n => n[Prefix.Length..^Suffix.Length])
-        .Order(StringComparer.Ordinal)
-        .ToList();
+        .Order(StringComparer.Ordinal)];
 
     public static bool TryGet(string name, out string text)
     {

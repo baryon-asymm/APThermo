@@ -4,6 +4,7 @@ using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
 using BenchmarkDotNet.Attributes;
+using Consumer = BenchmarkDotNet.Engines.Consumer;
 
 namespace APThermo.Benchmarks;
 
@@ -17,16 +18,21 @@ public class BatchThroughputBenchmarks
 {
     private const string FixtureFile = "lox-lh2_of6_pc7MPa_shiftingEquilibrium.json";
 
+    /// <summary>How many identical copies of the fixture's rocket case this run batches.</summary>
     [Params(1000, 10000, 100000)]
     public int CaseCount { get; set; }
 
+    /// <summary>Which accelerator this run's batch executes on.</summary>
     [Params(AcceleratorKind.Cpu, AcceleratorKind.Cuda)]
     public AcceleratorKind Accelerator { get; set; }
 
+    private readonly Consumer _consumer = new();
     private Engine _engine = null!;
     private UploadedTables _tables = null!;
     private RocketBatch _batch = null!;
 
+    /// <summary>Loads the database and the fixture, uploads the species table, builds the batch of `CaseCount` identical
+    /// cases on the chosen accelerator, and runs one warm-up batch to record its diagnostics.</summary>
     [GlobalSetup]
     public void Setup()
     {
@@ -45,11 +51,13 @@ public class BatchThroughputBenchmarks
         RecordDiagnostics(_engine.Run(_tables, _batch));
     }
 
-    private RocketBatchResult? _lastResult;
-
+    /// <summary>Runs the batch through the raw engine once. `Engine.Run`'s result type is internal to the tree contract
+    /// (root BOOT.md, Delivery: Tree contracts), so a public method cannot return it (CS0050); a BenchmarkDotNet
+    /// <see cref="Consumer"/> consumes it in place instead, so the JIT cannot treat the call as dead code.</summary>
     [Benchmark]
-    public void SolveBatch() => _lastResult = _engine.Run(_tables, _batch);
+    public void SolveBatch() => _consumer.Consume(_engine.Run(_tables, _batch));
 
+    /// <summary>Disposes the uploaded tables and the engine after every benchmark of this class has run.</summary>
     [GlobalCleanup]
     public void Cleanup()
     {
@@ -62,9 +70,9 @@ public class BatchThroughputBenchmarks
         var hash = new BitHash();
         for (var i = 0; i < result.Stations.Length; i++)
         {
-            hash.AddState(result.Stations[i]);
+            _ = hash.AddState(result.Stations[i]);
         }
-        hash.Add(result.Moles);
+        _ = hash.Add(result.Moles);
         var okCount = result.Status.Count(status => status == CaseStatus.Ok);
         Console.WriteLine(
             $"[BatchThroughput] cases={CaseCount} accelerator={Accelerator} ok={okCount}/{result.Count} " +

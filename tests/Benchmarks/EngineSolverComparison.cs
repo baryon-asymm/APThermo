@@ -30,7 +30,7 @@ namespace APThermo.Benchmarks;
 /// (`moleFractionFloor`, `polishThresholdRelative`), the same relation the execution
 /// tests node applies to CUDA against the CPU accelerator, applied here to the consumer
 /// path against the engine.
-internal sealed class EngineSolverComparison
+internal sealed class EngineSolverComparison(ToleranceTable tolerances)
 {
     // The execution tests node's GPU/CPU tolerance tiers (`GpuCpuTolerances.Entries`),
     // already quoted in this node's own BOOT.md Invariants; Benchmarks may not name
@@ -39,20 +39,16 @@ internal sealed class EngineSolverComparison
     private const double TemperatureRelativeTolerance = 1.0e-10;
     private const double OtherFieldRelativeTolerance = 1.0e-9;
 
-    private static readonly FieldInfo[] StateFields = typeof(MixtureState).GetFields();
-    private static readonly FieldInfo[] PerformanceFields = typeof(APThermo.Performance.PerformanceFigures).GetFields();
+    private static readonly PropertyInfo[] StateFields = typeof(MixtureState).GetProperties();
+    private static readonly PropertyInfo[] PerformanceFields = typeof(Performance.PerformanceFigures).GetProperties();
 
-    private readonly ToleranceTable _tolerances;
+    private readonly ToleranceTable _tolerances = tolerances;
     private readonly List<string> _mismatches = [];
-    private double _worstFieldRelative;
-    private double _worstMoleFractionRelative;
-
-    public EngineSolverComparison(ToleranceTable tolerances) => _tolerances = tolerances;
 
     public bool Passed => _mismatches.Count == 0;
-    public bool ExactlyBitEqual => Passed && _worstFieldRelative == 0.0 && _worstMoleFractionRelative == 0.0;
-    public double WorstFieldRelative => _worstFieldRelative;
-    public double WorstMoleFractionRelative => _worstMoleFractionRelative;
+    public bool ExactlyBitEqual => Passed && WorstFieldRelative == 0.0 && WorstMoleFractionRelative == 0.0;
+    public double WorstFieldRelative { get; private set; }
+    public double WorstMoleFractionRelative { get; private set; }
     public IReadOnlyList<string> Mismatches => _mismatches;
 
     public void Compare(RocketBatchResult engine, IReadOnlyList<string> engineSpecies, IReadOnlyList<RocketResult> solver)
@@ -87,18 +83,25 @@ internal sealed class EngineSolverComparison
         CompareMoles(engine, species, station.MoleFractions, flat, caseIndex, stationIndex);
     }
 
-    private void CompareStructFields<T>(FieldInfo[] fields, T expected, T actual, int caseIndex, int stationIndex, string label)
+    private void CompareStructFields<T>(PropertyInfo[] fields, T expected, T actual, int caseIndex, int stationIndex, string label)
         where T : struct
     {
         foreach (var field in fields)
         {
-            if (field.FieldType != typeof(double)) continue;
+            if (field.PropertyType != typeof(double))
+            {
+                continue;
+            }
+
             var e = (double)field.GetValue(expected)!;
             var a = (double)field.GetValue(actual)!;
-            if (Bits.Same(e, a)) continue;
+            if (Bits.Same(e, a))
+            {
+                continue;
+            }
 
             var relative = RelativeDifference(e, a);
-            _worstFieldRelative = Math.Max(_worstFieldRelative, relative);
+            WorstFieldRelative = Math.Max(WorstFieldRelative, relative);
             var tolerance = field.Name == "Temperature" ? TemperatureRelativeTolerance : OtherFieldRelativeTolerance;
             if (relative > tolerance)
             {
@@ -128,11 +131,18 @@ internal sealed class EngineSolverComparison
         int caseIndex, int stationIndex)
     {
         var actual = solverFractions.TryGetValue(name, out var value) ? value : double.NaN;
-        if (Bits.Same(expected, actual)) return;
-        if (expected < _tolerances.For("moleFractionFloor").Absolute) return;
+        if (Bits.Same(expected, actual))
+        {
+            return;
+        }
+
+        if (expected < _tolerances.For("moleFractionFloor").Absolute)
+        {
+            return;
+        }
 
         var relative = RelativeDifference(expected, actual);
-        _worstMoleFractionRelative = Math.Max(_worstMoleFractionRelative, relative);
+        WorstMoleFractionRelative = Math.Max(WorstMoleFractionRelative, relative);
         if (relative > _tolerances.For("polishThresholdRelative").Relative)
         {
             _mismatches.Add(

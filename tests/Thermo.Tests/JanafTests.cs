@@ -8,14 +8,13 @@ namespace APThermo.Thermo.Tests;
 /// check of formulas and units: the tolerance per species, recorded in the fixture with the reason, reflects how far the
 /// NASA records' own sources differ from JANAF.
 /// </summary>
-public sealed class JanafTests : IClassFixture<CpuFixture>
+public sealed class JanafTests
 {
-    private readonly CpuFixture _cpu;
-
-    public JanafTests(CpuFixture cpu) => _cpu = cpu;
+    private static readonly CpuFixture Cpu = new();
 
     private static string FixturePath => RepositoryPaths.Resolve("tests", "Thermo.Tests", "janaf.json");
 
+    /// <summary>Theory data: one row per JANAF table entry, with the species' recorded relative tolerance.</summary>
     public static TheoryData<string, double, double, double, double, double> Rows()
     {
         var data = new TheoryData<string, double, double, double, double, double>();
@@ -34,11 +33,12 @@ public sealed class JanafTests : IClassFixture<CpuFixture>
         return data;
     }
 
+    /// <summary>Fits reproduce the JANAF rows within the recorded tolerance.</summary>
     [Theory]
     [MemberData(nameof(Rows))]
-    public void Fits_reproduce_the_JANAF_rows_within_the_recorded_tolerance(string species, double temperature, double cp, double entropy, double enthalpyIncrement, double tolerance)
+    public void FitsReproduceTheJANAFRowsWithinTheRecordedTolerance(string species, double temperature, double cp, double entropy, double enthalpyIncrement, double tolerance)
     {
-        using var buffers = _cpu.Upload(species);
+        using var buffers = Cpu.Upload(species);
         var view = buffers.View;
         var rMol = PhysicalConstants.R / 1000.0; // J/(mol K)
         var cpFit = SpeciesFunctions.CpOverR(view, 0, temperature) * rMol;
@@ -57,8 +57,9 @@ public sealed class JanafTests : IClassFixture<CpuFixture>
         }
     }
 
+    /// <summary>The fixture cites its source and bounds every tolerance.</summary>
     [Fact]
-    public void The_fixture_cites_its_source_and_bounds_every_tolerance()
+    public void TheFixtureCitesItsSourceAndBoundsEveryTolerance()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(FixturePath));
         var source = document.RootElement.GetProperty("source").GetString()!;
@@ -67,7 +68,7 @@ public sealed class JanafTests : IClassFixture<CpuFixture>
         foreach (var species in document.RootElement.GetProperty("species").EnumerateArray())
         {
             var tolerance = species.GetProperty("relativeTolerance").GetDouble();
-            Assert.True(tolerance > 0.0 && tolerance <= 0.025, $"{species.GetProperty("name").GetString()}: tolerance {tolerance}");
+            Assert.True(tolerance is > 0.0 and <= 0.025, $"{species.GetProperty("name").GetString()}: tolerance {tolerance}");
             Assert.False(string.IsNullOrWhiteSpace(species.GetProperty("note").GetString()));
             Assert.False(string.IsNullOrWhiteSpace(species.GetProperty("nasaSource").GetString()));
         }

@@ -63,6 +63,9 @@ public sealed class ToleranceTable
 
 public sealed class FixtureFormatException : Exception
 {
+    public FixtureFormatException();                                 // CA1032's parameterless constructor
+    public FixtureFormatException(string message);                   // CA1032's message constructor
+    public FixtureFormatException(string message, Exception innerException); // CA1032's third standard constructor
     public FixtureFormatException(string fileName, string field, string message);
     public string FileName { get; }
     public string Field { get; }                                     // "case.kind", "generator.version", "outputs", …

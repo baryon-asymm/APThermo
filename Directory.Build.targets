@@ -1,6 +1,16 @@
 <Project>
 
   <!--
+    Diagnostics (root BOOT.md, Constraints, 2026-09-24): the SDK ships a default NoWarn (1701;1702 and
+    others) that a props file cannot see, since it is set by the SDK's own targets, imported after
+    Directory.Build.props. Clearing it here, unconditionally and after that import, is the only way to
+    reach "no diagnostic is suppressed anywhere" for every project of the tree.
+  -->
+  <PropertyGroup>
+    <NoWarn></NoWarn>
+  </PropertyGroup>
+
+  <!--
     Package metadata and symbols (root BOOT.md, ## Delivery), applied only to the packable projects
     (src/Problems, src/Cli). This lives in a .targets file, not in Directory.Build.props: props files
     import before a project's own body, so a condition on IsPackable there would still see the SDK's

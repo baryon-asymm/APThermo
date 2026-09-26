@@ -203,7 +203,7 @@ the coding task reserves that change for alone. Confirmed red-handed by running
 stays the public property (contract truly unchanged); an `internal const int StrideCount = 10` was added
 beside it for the kernel to stride by (a `const` inlines into kernel-compatible code, a property touching
 the managed string array `Functions` does not), and
-`ProbeKernelTests.The_kernels_stride_constant_matches_the_function_list` asserts `StrideCount ==
+`ProbeKernelTests.TheKernelsStrideConstantMatchesTheFunctionList` asserts `StrideCount ==
 FunctionCount` so the two cannot drift silently.
 
 Decided 2026-09-15 (the child-nodes phase; root `BOOT.md`, 0aa7e60): a cluster of this
@@ -329,43 +329,43 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 - [x] 2026-09-12 — Probe kernel with every function of the root's math list: loads on
       CUDA through the post-link, and its results equal the CPU accelerator within the
       tolerance table (execution tests node; `ProbeKernelTests`:
-      `The_cpu_accelerator_reproduces_dotnet_math_exactly`,
-      `Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`).
+      `TheCpuAcceleratorReproducesDotnetMathExactly`,
+      `CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`).
 - [x] 2026-09-12 — The rocket batch of 100 000 cases on CUDA equals the same batch on
       the CPU accelerator within the tolerance table; the compared fields are
       enumerated by reflection over `MixtureState` and `PerformanceFigures`
-      (`CudaTests.The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`,
+      (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
       long-running). The table has two tiers for mole fractions, by whether both
       accelerators stopped after the same number of Newton steps at the station: see
       the tests node's invariants for the finding behind it.
 - [x] 2026-09-12 — Throughput: the 100 000-case rocket batch on CUDA is at least 5×
       faster than on the CPU accelerator with all cores on the reference machine; the
       measured figures are written to the approved benchmark file (long-running test
-      `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`;
+      `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`;
       `tests/Execution.Tests/Throughput.approved.txt`: 56.28×).
 - [x] 2026-09-12 — With `APTHERMO_NO_CUDA=1` every test of this node passes on the CPU
       accelerator and no CUDA API is called (verified by the absence of `nvcuda` and
       `nvvm` in the loaded modules of the test process:
-      `AcceleratorChoiceTests.No_cuda_driver_is_loaded_in_a_process_that_forbids_cuda`;
+      `AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda`;
       the whole solution's suite run with the variable set, see the root's criteria).
 - [x] 2026-09-12 — With `AcceleratorKind.Cuda` and libdevice paths pointing nowhere,
       the error names every path that was tried
-      (`AcceleratorChoiceTests.An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`,
-      `Discovery_reports_the_toolkit_paths_it_examined`).
+      (`AcceleratorChoiceTests.AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`,
+      `DiscoveryReportsTheToolkitPathsItExamined`).
 - [x] 2026-09-12 — The ILGPU version and reflected members are asserted at startup; a
       mutation test proves the assertion fails loudly
-      (`AcceleratorChoiceTests.The_ilgpu_assertion_fails_loudly_for_another_version`
+      (`AcceleratorChoiceTests.TheIlgpuAssertionFailsLoudlyForAnotherVersion`
       asserts against a wrong version; the mutation of `ExpectedIlgpuVersion` in the
       tests node's evidence list makes every test of the node red).
 - [x] 2026-09-12 — Two runs of the same batch on the same accelerator are bit-identical
-      (`BatchTests.Chunking_and_repetition_do_not_change_a_bit` on the CPU accelerator,
+      (`BatchTests.ChunkingAndRepetitionDoNotChangeABit` on the CPU accelerator,
       the sweep test above on CUDA).
 - [x] 2026-09-12 — The species-function batch equals the host calls of `Thermo`'s
       functions bit for bit on the CPU accelerator and matches CUDA within the tolerance
       table, inside and outside the records' ranges (`SpeciesFunctionTests`:
-      `The_cpu_accelerator_equals_the_host_functions_bit_for_bit`,
-      `Cuda_matches_the_cpu_accelerator_within_the_table`,
-      `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
+      `TheCpuAcceleratorEqualsTheHostFunctionsBitForBit`,
+      `CudaMatchesTheCpuAcceleratorWithinTheTable`,
+      `ASpeciesIndexOutsideTheTableIsRefusedBeforeAnyKernelRuns`).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): no type or method
       of the node above the root's code-shape limits, the declared exceptions being
       the four views structs' constructors and `Engine`'s and `Kernels`' Ce, both
@@ -374,7 +374,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       `AcceleratorInfo.CudaSkippedBecause`, in `c10ab0e` alone
       (`git diff 6af23b1..HEAD -- tests/Protocol.Tests/PublicSurface.approved.txt`:
       one line added, that property; `Protocol.Tests.SurfaceTests` green against it
-      unchanged since); `BatchTests.Chunking_and_repetition_do_not_change_a_bit`, the
+      unchanged since); `BatchTests.ChunkingAndRepetitionDoNotChangeABit`, the
       probe, species-function and accelerator-choice tests green
       (`APThermo.Execution.Tests.dll`: 41 passed); the fast
       suite of the whole solution green (`dotnet test
@@ -399,26 +399,26 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       rows, the four pipelines among them, and the constructors of
       `RocketBatchViews`, `EquilibriumBatchViews`, `RocketBatchResult` and
       `EquilibriumBatchResult`. `RocketPipeline.Run`'s size afterward is
-      `ShapeTests.No_method_spans_more_than_60_lines`'s to state; this node records
+      `ShapeTests.NoMethodSpansMoreThan60Lines`'s to state; this node records
       no line figure of its own. Found by the repair review (R-Execution-5).
 - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
       off and the explicit paths pointing nowhere, the engine is the CPU one and
       `CudaSkippedBecause` names what was missing and the paths tried
-      (`AcceleratorChoiceTests.An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried`,
-      the mirror of `An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`);
+      (`AcceleratorChoiceTests.AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried`,
+      the mirror of `AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`);
       committed in `c10ab0e`, where the equivalent test against the code of `8e36a27`
       (where `AcceleratorInfo` said nothing) would have been red.
 - [x] 2026-09-14 — The missing-definition guard of the post-link is proven
       non-degenerate: a wrapper body with one definition removed makes the check name
       that wrapper, without a GPU
-      (`PostLinkTests.A_wrapper_body_with_one_definition_removed_names_that_wrapper`,
+      (`PostLinkTests.AWrapperBodyWithOneDefinitionRemovedNamesThatWrapper`,
       `..._with_every_definition_removed_names_every_wrapper`, and
-      `A_call_site_is_not_mistaken_for_a_definition` against the two-substring-search
+      `ACallSiteIsNotMistakenForADefinition` against the two-substring-search
       shape the guard had before `23ccc1d`, which read the whole linked text instead
       of the wrapper body alone).
 - [x] 2026-09-14 — `ScratchBytes` of zero or less is refused at `Create` naming the
       option, like `ChunkSize`
-      (`AcceleratorChoiceTests.Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`,
+      (`AcceleratorChoiceTests.ChunksAreBoundedByTheChunkSizeAndTheScratchMemory`,
       committed in `fcb1128` with the chunk-plan extraction); the "inconsistent lengths" row was
       never a separate row of `API.md`'s error table by 2026-09-14
       (already merged into the one row above it), and the four branches that could
@@ -435,7 +435,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       method, kernels included, so no argument binds to another parameter; the fast set
       green with `APTHERMO_NO_CUDA=1` (41 tests on the CPU accelerator) and without it
       (the same 41 on CUDA). The fact,
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
       and not yet written; it takes over as the evidence when it is.
 - [x] 2026-09-15 — `Engine.ProbeMath`'s dead `RunTimer` (a `KernelCache.Get` overload
       once needed it; `a2a1d6e`'s `out warmUp` overload made it unreachable, and the
@@ -446,7 +446,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       described `ProbeMath` correctly. Found by the repair review (R-Execution-1).
       Verified: the CPU-accelerator fast suite green (`APTHERMO_NO_CUDA=1`), the
       re-measured Ce confirmed by
-      `ShapeTests.Every_shape_exception_is_measured_and_still_needed`, which holds
+      `ShapeTests.EveryShapeExceptionIsMeasuredAndStillNeeded`, which holds
       the `Engine` row at 25 on the merged tree.
 - [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice`, extracted from
       `CompileWrappers` in `23ccc1d` "bringing its nesting back to 3", took every
@@ -458,10 +458,10 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       compile, log and throw, read the compiled result, destroy the program in
       `finally`); `NvvmOptions`, which owns the unmanaged allocations, is unchanged.
       The merged method now satisfies both
-      `ShapeTests.No_control_flow_nests_deeper_than_3` and
-      `ShapeTests.No_method_spans_more_than_60_lines`. Found by the repair review
+      `ShapeTests.NoControlFlowNestsDeeperThan3` and
+      `ShapeTests.NoMethodSpansMoreThan60Lines`. Found by the repair review
       (R-Execution-2). Verified on the reference machine, `APTHERMO_NO_CUDA` unset:
-      `tests/Execution.Tests/ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
+      `tests/Execution.Tests/ProbeKernelTests.CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`
       green, exercising this exact method on real hardware (the probe kernel's
       wrappers compiled by it, linked, run, and matching the CPU accelerator within
       the ULP bound).
@@ -492,8 +492,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       "FullyQualifiedName~LibDeviceDiscoveryTests"`, all green. The ordering fact was
       shown red once and reverted (AGENTS.md §13): `VersionedDirectories`'s
       `OrderByDescending` flipped to `OrderBy` reddened both
-      `Windows_orders_the_toolkit_directories_newest_version_first` and
-      `Linux_orders_the_versioned_directories_newest_first`, reverted before
+      `WindowsOrdersTheToolkitDirectoriesNewestVersionFirst` and
+      `LinuxOrdersTheVersionedDirectoriesNewestFirst`, reverted before
       committing. The unavailable-accelerator message and the `EngineOptions` doc
       comments now name the platform's library instead of `nvvm64_40_0.dll`
       unconditionally (`LibDeviceLocator.LibraryFileName`); `AcceleratorChoiceTests`

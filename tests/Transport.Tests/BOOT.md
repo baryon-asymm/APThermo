@@ -40,7 +40,7 @@ The definition of what "`Transport` is ready" means.
   deviation from "every test runs on both platforms") holds that the bits are a
   record of the reference machine, not of the platform alone: hosted CI runners land
   on CPUs whose C runtime rounds the last bit differently from the reference
-  machine's. `Every_fixture_with_transport_gives_the_recorded_bits` now carries
+  machine's. `EveryFixtureWithTransportGivesTheRecordedBits` now carries
   `[Trait("Category", "BitSnapshot")]`, so it runs in every local run (`CLAUDE.md`'s
   fast set) and in the release's self-hosted jobs
   (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
@@ -91,17 +91,17 @@ dependency went away with it.
       silently the next time a fixture is added, so it is gone rather than re-typed.
 - [x] 2026-09-14 — L1 green for every rocket fixture run with transport, enumerated by
       `TransportHost.RocketCasesWithTransport`:
-      `StationTests.Station_figures_match_the_reference`,
-      `StationTests.The_reference_cpFrozen_is_the_transport_set_heat_capacity`,
-      `StationTests.Reacting_conductivity_is_never_below_the_frozen_one`,
-      `StationTests.The_trace_component_stations_carry_the_documented_reference_defect`
-      (nine defective stations), `StationTests.Species_without_data_are_estimated_on_the_aluminized_propellant`;
-      `KernelEqualityTests.Kernel_and_host_give_the_same_bits` (five batches). Re-dated
+      `StationTests.StationFiguresMatchTheReference`,
+      `StationTests.TheReferenceCpFrozenIsTheTransportSetHeatCapacity`,
+      `StationTests.ReactingConductivityIsNeverBelowTheFrozenOne`,
+      `StationTests.TheTraceComponentStationsCarryTheDocumentedReferenceDefect`
+      (nine defective stations), `StationTests.SpeciesWithoutDataAreEstimatedOnTheAluminizedPropellant`;
+      `KernelEqualityTests.KernelAndHostGiveTheSameBits` (five batches). Re-dated
       from 2026-09-12: `Stations_match_the_reference` split into the first three by
       F-TK-05 (below), and the hand-typed "39 files … 172 stations" left the wording
       (F-TK-03) — the enumerated directory is the list; on this date it is 39 files
       and 168 stations, so "172" had already fallen behind before this session.
-- [x] 2026-09-13 — `AbsentElementTests.A_table_with_the_species_of_absent_elements_gives_the_same_bits`
+- [x] 2026-09-13 — `AbsentElementTests.ATableWithTheSpeciesOfAbsentElementsGivesTheSameBits`
       (three pairs of propellants, the case's stations with transport, every field of
       the figures bit for bit); its mutation, the thresholds counting the table's
       gases, seen red on two of the three pairs (the LOX/RP-1 throat set of 14 species
@@ -113,52 +113,52 @@ dependency went away with it.
       predates the Bits level, so a mutation that changes a station's bits now also
       reddens `BitSnapshotTests`, counted below alongside the reference comparison it
       used to be reported with alone):
-      the viscosity SI factor 1e-7 → 1e-6 (`FitTests.Constant_terms_carry_the_si_factors`,
-      27× `Fit_values_match_the_independent_evaluation`, `BitSnapshotTests`, 39×
-      `Station_figures_match_the_reference`: 68 red, was "67 red in L0 and L1");
+      the viscosity SI factor 1e-7 → 1e-6 (`FitTests.ConstantTermsCarryTheSiFactors`,
+      27× `FitValuesMatchTheIndependentEvaluation`, `BitSnapshotTests`, 39×
+      `StationFiguresMatchTheReference`: 68 red, was "67 red in L0 and L1");
       the fit rule taking the upper fit on a shared bound (26×
-      `Fit_values_match_the_independent_evaluation`: 26 red, unchanged — the tie-break
+      `FitValuesMatchTheIndependentEvaluation`: 26 red, unchanged — the tie-break
       is exercised only by the fit fixtures, so the split does not touch it);
-      pair data ignored (`BitSnapshotTests`, 39× `Station_figures_match_the_reference`:
+      pair data ignored (`BitSnapshotTests`, 39× `StationFiguresMatchTheReference`:
       40 red, was "39 red");
       the hard-sphere constant 50 → 40 (`BitSnapshotTests`, the two AP/HTPB/Al rows of
-      `Station_figures_match_the_reference`: 3 red, was "the two AP/HTPB/Al cases red");
-      A* 1.1 → 1.0 (`BitSnapshotTests`, 39× `Station_figures_match_the_reference`: 40 red,
+      `StationFiguresMatchTheReference`: 3 red, was "the two AP/HTPB/Al cases red");
+      A* 1.1 → 1.0 (`BitSnapshotTests`, 39× `StationFiguresMatchTheReference`: 40 red,
       was "39 red");
       the trace reaction kept and only its pairs dropped, as cea 3.3.4's own no-op
       keeps it (`BitSnapshotTests`, the six LOX/LH2 defective rows of
-      `Station_figures_match_the_reference` — `FigureComparison`'s "the documented
-      defect is gone" message — and `The_trace_component_stations_carry_the_documented_reference_defect`:
+      `StationFiguresMatchTheReference` — `FigureComparison`'s "the documented
+      defect is gone" message — and `TheTraceComponentStationsCarryTheDocumentedReferenceDefect`:
       8 red; see the ⚠ below on the mutation actually run);
       the coverage 0.999999999 → 0.99 (`BitSnapshotTests`,
-      `Species_without_data_are_estimated_on_the_aluminized_propellant`, 39×
-      `Station_figures_match_the_reference`, 25× `The_reference_cpFrozen_is_the_transport_set_heat_capacity`:
+      `SpeciesWithoutDataAreEstimatedOnTheAluminizedPropellant`, 39×
+      `StationFiguresMatchTheReference`, 25× `TheReferenceCpFrozenIsTheTransportSetHeatCapacity`:
       66 red, was "38 red" against the L1 of 2026-09-12, before either the Bits level
       or the cpFrozen split existed to name the rest);
       the kernel comparison perturbed by one part in 1e15
-      (`KernelEqualityTests.Kernel_and_host_give_the_same_bits`: 5 red, not re-run this
+      (`KernelEqualityTests.KernelAndHostGiveTheSameBits`: 5 red, not re-run this
       session — the mutation and its test are both untouched by the F-TK-05 split);
       the table-mismatch check removed
-      (`InputTests.A_transport_table_of_another_species_table_is_invalid_input`: 1 red,
+      (`InputTests.ATransportTableOfAnotherSpeciesTableIsInvalidInput`: 1 red,
       unchanged);
       the set's heat capacity ×1.001 (`BitSnapshotTests`, 39×
-      `Station_figures_match_the_reference`, 39×
-      `The_reference_cpFrozen_is_the_transport_set_heat_capacity`: 79 red, was "39 red"
+      `StationFiguresMatchTheReference`, 39×
+      `TheReferenceCpFrozenIsTheTransportSetHeatCapacity`: 79 red, was "39 red"
       before the cpFrozen fact had its own test);
       a species without data not listed
-      (`FitTests.Species_without_an_entry_have_no_fits_and_are_listed`: 1 red, unchanged);
+      (`FitTests.SpeciesWithoutAnEntryHaveNoFitsAndAreListed`: 1 red, unchanged);
       the pair index not symmetric (`BitSnapshotTests`,
-      `FitTests.Pairs_are_those_of_the_database_with_both_species_gaseous_in_the_table`,
-      38× `Station_figures_match_the_reference`: 40 red, was "39 red" for the station
+      `FitTests.PairsAreThoseOfTheDatabaseWithBothSpeciesGaseousInTheTable`,
+      38× `StationFiguresMatchTheReference`: 40 red, was "39 red" for the station
       count alone);
       the ψ constant 2.41 → 2.4 (`BitSnapshotTests`, 16×
-      `Station_figures_match_the_reference`: 17 red, was "16 red");
+      `StationFiguresMatchTheReference`: 17 red, was "16 red");
       the estimated pair viscosity ×1.01 (`BitSnapshotTests`, 39×
-      `Station_figures_match_the_reference`: 40 red, was "39 red").
+      `StationFiguresMatchTheReference`: 40 red, was "39 red").
       One mutation stays green on every reference comparison and reddens only the
       tripwire: the set limit 40 → 50 changes the AP/HTPB/Al chamber and throat below
       1e-6 relative, under the 5e-4 of the tolerance table, so every L0/L1 test
-      (`Station_figures_match_the_reference` included) stays green, exactly as in
+      (`StationFiguresMatchTheReference` included) stays green, exactly as in
       2026-09-12 — but `BitSnapshotTests` is exact, not toleranced, and now catches the
       same change (1 red), which is what the Bits level's own criterion says it is for;
       the limit itself is the reference's number and not a claim the fixtures can prove.
@@ -170,7 +170,7 @@ dependency went away with it.
       the compiler folds the literal and reports the rest of the loop body unreachable
       (CS0162, an error under this tree's warnings-as-errors), and, worked around with
       a runtime-true condition instead, it also disabled the `TraceEliminations` count
-      itself, reddening `The_trace_component_stations_carry_the_documented_reference_defect`
+      itself, reddening `TheTraceComponentStationsCarryTheDocumentedReferenceDefect`
       for losing its candidate stations rather than for the figures the criterion
       names. The mutation actually run drops only the pivot row's removal
       (`DropRow`/`nr--` in `ReactionSet.EliminateTraces`, keeping `traceEliminations++`):
@@ -178,7 +178,7 @@ dependency went away with it.
       cea 3.3.4 leaves it, while `ReactionTerms`' own trace check still drops that
       species from the pair sums — the report's mechanism, not a stand-in for it.
 - [x] 2026-09-14 — Bits level green:
-      `BitSnapshotTests.Every_fixture_with_transport_gives_the_recorded_bits` over the
+      `BitSnapshotTests.EveryFixtureWithTransportGivesTheRecordedBits` over the
       enumerated rocket fixtures with transport (the enumeration of `StationTests`,
       one line each in `Bits.approved.txt`) against the snapshot recorded before any
       code of the decomposition moved: the code of `8e36a27`, which `e3e75a1` (the
@@ -202,14 +202,14 @@ dependency went away with it.
       stations the one-ulp difference is absorbed in rounding, so the criterion states
       the perturbation it was seen red with.
 - [x] 2026-09-14 — The `SingularMatrix` status holds the contract:
-      `StatusTests.A_reaction_system_that_cannot_be_solved_keeps_the_frozen_figures`
+      `StatusTests.AReactionSystemThatCannotBeSolvedKeepsTheFrozenFigures`
       drives `ReactionTerms` over a synthetic set of three species and two reactions
       whose second system is singular and whose first is not, and asserts that the
       reacting conductivity, the equilibrium heat capacity and the reacting Prandtl
       number equal the frozen ones and that the status is `SingularMatrix`; seen red
       against the code of `8e36a27` (the equilibrium heat capacity 10441.86 against
       the frozen 5001.70, the status and the conductivity already right).
-      `The_same_set_is_solved_when_every_pair_carries_a_diffusion_weight` holds the
+      `TheSameSetIsSolvedWhenEveryPairCarriesADiffusionWeight` holds the
       construction to its purpose: with a mass for the third species both systems are
       solved and both contributions are positive, so the first test cannot pass by
       failing everything.
@@ -217,10 +217,10 @@ dependency went away with it.
       (the test review's F-TK-05): `FigureComparison` turns one station's figures into
       the list of mismatches (the Transport counterpart of the sibling nodes'
       comparison types), and `Stations_match_the_reference` became
-      `Station_figures_match_the_reference`,
-      `The_reference_cpFrozen_is_the_transport_set_heat_capacity` and
-      `Reacting_conductivity_is_never_below_the_frozen_one`. The estimated-species
-      consistency joined `Species_without_data_are_estimated_on_the_aluminized_propellant`:
+      `StationFiguresMatchTheReference`,
+      `TheReferenceCpFrozenIsTheTransportSetHeatCapacity` and
+      `ReactingConductivityIsNeverBelowTheFrozenOne`. The estimated-species
+      consistency joined `SpeciesWithoutDataAreEstimatedOnTheAluminizedPropellant`:
       both the count/fraction cross-check the 2026-09-12 review counted as the fifth
       fact, and the "a species above the surely-selected fraction must have been
       estimated" check it did not name separately (F-TK-05's own measurement lists

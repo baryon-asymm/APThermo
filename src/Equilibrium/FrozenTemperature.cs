@@ -45,7 +45,7 @@ internal static class FrozenTemperature
             }
 
             state.Temperature += deltaT;
-            if (!(state.Temperature >= EquilibriumSolver.MinTemperature) || !(state.Temperature <= EquilibriumSolver.MaxTemperature))
+            if (state.Temperature is < EquilibriumSolver.MinTemperature or > EquilibriumSolver.MaxTemperature)
             {
                 return CaseStatus.TemperatureOutOfRange;
             }

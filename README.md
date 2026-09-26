@@ -45,13 +45,13 @@ var propellant = Propellant.From(database)
     .Build();
 
 using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-RocketResult result = solver.Solve(propellant, new RocketProblem
+var result = solver.Solve(propellant, new RocketProblem
 {
     ChamberPressure = 7.0e6,   // Pa
     AreaRatios = [20.0],
 });
 
-Station chamber = result.Stations[0];
+var chamber = result.Stations[0];
 if (chamber.Status == CaseStatus.Ok)
 {
     output.WriteLine($"chamber temperature = {chamber.State.Temperature:F1} K");

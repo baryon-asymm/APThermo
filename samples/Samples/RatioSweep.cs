@@ -1,7 +1,6 @@
 // snippet-start: RatioSweepUsings
 using APThermo.Data;
 using APThermo.Execution;
-using APThermo.Performance;
 using APThermo.Problems;
 using APThermo.Thermo;
 // snippet-end
@@ -28,12 +27,12 @@ internal sealed class RatioSweep
         var mixtures = ratios.Select(ratio => solver.MixtureOf(propellant, ratio)).ToList();
         var problems = ratios.Select(_ => new RocketProblem { ChamberPressure = 7.0e6, AreaRatios = [20.0] }).ToList();
 
-        IReadOnlyList<RocketResult> results = solver.Solve(mixtures, problems);
+        var results = solver.Solve(mixtures, problems);
 
         output.WriteLine("LOX/LH2 O/F sweep, one batch, Pc=7.0 MPa");
         for (var i = 0; i < ratios.Length; i++)
         {
-            Station exit = results[i].Stations[^1];
+            var exit = results[i].Stations[^1];
             if (exit.Status != CaseStatus.Ok)
             {
                 output.WriteLine($"  O/F={ratios[i]:F1}  FAILED: {exit.Status}");

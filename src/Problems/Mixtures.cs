@@ -191,6 +191,29 @@ public sealed class StateRecordException : ArgumentException
 
     /// <summary>The message without the subject, for a caller that names the record its own way.</summary>
     public string Reason { get; }
+
+    /// <summary>Initializes a new instance with a neutral index of −1 and an empty reason. The tree itself
+    /// always throws through the constructor above; this exists for the .NET exception conventions (CA1032).</summary>
+    public StateRecordException() : base()
+    {
+        Index = -1;
+        Reason = string.Empty;
+    }
+
+    /// <summary>Initializes a new instance with the given message as the reason and a neutral index of −1.</summary>
+    public StateRecordException(string message) : base(message)
+    {
+        Index = -1;
+        Reason = message;
+    }
+
+    /// <summary>Initializes a new instance with the given message as the reason and inner exception, and a
+    /// neutral index of −1.</summary>
+    public StateRecordException(string message, Exception innerException) : base(message, innerException)
+    {
+        Index = -1;
+        Reason = message;
+    }
 }
 
 /// <summary>
@@ -231,4 +254,35 @@ public sealed class MixtureMassException : ArgumentException
     private static string ReasonFor(double mass, double tolerance) => string.Create(
         CultureInfo.InvariantCulture,
         $"the composition weighs {mass * UnitFactors.GramsPerKilogram:G7} g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within {tolerance * 100.0:G3} %");
+
+    /// <summary>Initializes a new instance with a neutral index of −1, NaN mass and tolerance, and an empty
+    /// reason. The tree itself always throws through the constructor above; this exists for the .NET
+    /// exception conventions (CA1032).</summary>
+    public MixtureMassException() : base()
+    {
+        Index = -1;
+        Mass = double.NaN;
+        Tolerance = double.NaN;
+        Reason = string.Empty;
+    }
+
+    /// <summary>Initializes a new instance with the given message as the reason, a neutral index of −1 and
+    /// NaN mass and tolerance.</summary>
+    public MixtureMassException(string message) : base(message)
+    {
+        Index = -1;
+        Mass = double.NaN;
+        Tolerance = double.NaN;
+        Reason = message;
+    }
+
+    /// <summary>Initializes a new instance with the given message as the reason and inner exception, a
+    /// neutral index of −1 and NaN mass and tolerance.</summary>
+    public MixtureMassException(string message, Exception innerException) : base(message, innerException)
+    {
+        Index = -1;
+        Mass = double.NaN;
+        Tolerance = double.NaN;
+        Reason = message;
+    }
 }

@@ -6,8 +6,16 @@ Measures how fast the library computes, so that a change of the code, the clean-
 pass of 2026-09-14/15 first, can be compared against the code before it. The
 bit-for-bit guards prove that the numbers did not change; nothing proves the speed.
 Extracting kernel stages can change inlining on the CPU accelerator and in the
-NVVM-generated CUDA code. This node is a BenchmarkDotNet console project, run by
-hand, never by `dotnet test`. It records figures and asserts none.
+NVVM-generated CUDA code. This node is a library of BenchmarkDotNet benchmark classes,
+run by hand through its child node [Runner](Runner/BOOT.md) (2026-09-25), never by
+`dotnet test`. It records figures and asserts none.
+
+⚠ 2026-09-25: stood "a BenchmarkDotNet console project". The root's Diagnostics
+constraint (CA1515) forbids public types in an executable, and BenchmarkDotNet requires
+public benchmark classes (the Constraints ⚠ of the same date). CA1515 does not apply to a
+library, so the owner split the node: the benchmark classes, the job configuration and
+the shared inputs stay here in a library, and the console entry point moves to the child
+node `Runner`.
 
 ## Invariants
 
@@ -142,10 +150,33 @@ only the arguments a call site supplies.
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
-- **Project.** `APThermo.Benchmarks`, an executable in the
-  solution. It builds with the solution, so the protocol checks cover it. It has no
-  test SDK, so `dotnet test` runs nothing of it.
-  - BenchmarkDotNet requires public benchmark classes; each is named in `API.md`.
+- **Project.** `APThermo.Benchmarks`, a class library in the solution (2026-09-25; an
+  executable before). It builds with the solution, so the protocol checks cover it. It has
+  no test SDK, so `dotnet test` runs nothing of it. The executable is the child node
+  [Runner](Runner/BOOT.md), which holds only the entry point.
+  - BenchmarkDotNet requires public benchmark classes; each is named in `API.md`, and each
+    public member carries XML documentation (CS1591).
+  - The job configuration (`BenchmarkEnvironment.Config`) is public, so that the runner
+    passes it to `BenchmarkSwitcher`; the classes stay discoverable through this assembly.
+  - A benchmark whose result is a tree-contract type, which a public method cannot return
+    (CS0050), hands it to a BenchmarkDotNet `Consumer` (`BenchmarkDotNet.Engines`) so that
+    the call is not dead code. A field written only to defeat the JIT, and a read
+    contrived only to satisfy IDE0052 (a log line in `Cleanup`), are not allowed.
+
+    ⚠ 2026-09-25 (Diagnostics constraint, root BOOT.md): confirmed empirically rather
+    than asserted. Making one benchmark class (`SingleCaseBenchmarks`) `internal` for
+    CA1515 and running `dotnet run -c Release --filter '*SingleCaseBenchmarks*' --job
+    Dry` failed validation with `Benchmarked method 'Solve' is within a non-visible
+    class, all declaring types must be public`, from the `InProcessNoEmitToolchain`
+    this node's job configuration uses (`## Constraints`, Configuration); reverted, and
+    the same dry run then completed. CA1515 on the six benchmark classes
+    (`BatchThroughputBenchmarks`, `OneTimeCostBenchmarks`, `ProblemKindBenchmarks`,
+    `SingleCaseBenchmarks`, `SolverBatchBenchmarks`, `UserStatesBenchmarks`) and the two
+    enums a public benchmark class exposes through a `[Params]`/`[ParamsAllValues]`
+    property (`BenchmarkProblemKind`, `UserStateSelection` — a property's type cannot be
+    less accessible than the property itself) is therefore an unresolvable-in-code
+    conflict, reported rather than suppressed (root BOOT.md, Diagnostics constraint: "a
+    conflict that code cannot resolve goes to the owner").
   - The root's code-shape constraint holds as for every type of the tree.
 - **Configuration.** One job for every group:
   - Release, x64, the in-process toolchain, so that ILGPU's native libraries and the
@@ -335,6 +366,115 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       - `results/comparison-2026-09-15.md` marks every change beyond the confidence
         intervals (`## Marked changes`) and hands the list to a design session
         without guessing a cause.
+- [x] 2026-09-25 — Diagnostics (root BOOT.md, Constraints, 2026-09-24), after the split:
+      this node and `Runner` build at 0 warnings and 0 errors with no suppression; the
+      dry run `dotnet run -c Release --project tests/Benchmarks/Runner -- --filter
+      '*SingleCase*' --job Dry` completes; a full run of every benchmark completes with no
+      exception and `SolverBatchBenchmarks` still reports 0 mismatches.
+
+      ⚠ 2026-09-25: this criterion was ticked the same day with the words "except the
+      CA1515 conflict declared above", a criterion ticked while not met. The owner's
+      decision on the conflict is the split above. The record of that day's fixes follows
+      and stays true, except where the split changes it: the entry point moves to
+      `Runner`, and the IDE0052 reads in `Cleanup` give way to a `Consumer`.
+
+      Evidence of the split itself: `dotnet build tests/Benchmarks/APThermo.Benchmarks.csproj
+      -c Debug` and `dotnet build tests/Benchmarks/Runner/APThermo.Benchmarks.Runner.csproj
+      -c Debug`, each after clearing both projects' own `obj`/`bin`: 0 warnings, 0 errors on
+      both. `dotnet build APThermo.sln -c Release`: 0 warnings, 0 errors across the whole
+      tree. `dotnet run -c Release --project tests/Benchmarks/Runner -- --list flat` lists
+      the same ten `[Benchmark]` methods of the six classes as before the split. The
+      IDE0052 fix: `BatchThroughputBenchmarks.SolveBatch` and `OneTimeCostBenchmarks`'s
+      `AssembleChemicalSystem`, `CompileCpuKernel` and `CompileCudaKernel` — the four
+      methods whose result was kept in a field read only by a log line in `Cleanup` —
+      now hand that result straight to a `BenchmarkDotNet.Engines.Consumer` instead
+      (`_consumer.Consume(...)`), so nothing is stored and `Cleanup` reads nothing back;
+      `OneTimeCostBenchmarks.UploadSpeciesTable`'s field stays, since it is genuinely
+      disposed by `SetupUpload`'s next iteration and by `Cleanup`, not read only for a
+      log line. `BenchmarkEnvironment` and its `Config` property are `public` so the
+      child node can pass the job to `BenchmarkSwitcher` from its own assembly.
+
+      The dry run: `APTHERMO_NO_CUDA=1 dotnet run -c Release --project tests/Benchmarks/Runner
+      -- --filter '*SingleCase*' --job Dry` completed with exit code 0, no exception
+      (`SingleCaseBenchmarks.Solve`, both the node's own job and `Dry`, 8.97 KB
+      allocated each).
+
+      The full run: `dotnet run -c Release --project tests/Benchmarks/Runner -- --filter '*'`,
+      this node's own job config temporarily reduced to 1 warmup/1 iteration for the run's
+      length and restored after (`git diff` of `BenchmarkEnvironment.cs` clean of the
+      temporary edit once restored): exit code 0, "Global total time … executed
+      benchmarks: 40" (6 `BatchThroughputBenchmarks` + 12 `ProblemKindBenchmarks` + 1
+      `SingleCaseBenchmarks` + 5 `OneTimeCostBenchmarks` + 10 `UserStatesBenchmarks` + 6
+      `SolverBatchBenchmarks` configurations, matching every `[Params]`/`[ParamsAllValues]`
+      combination), no exception anywhere in the run.
+
+      `SolverBatchBenchmarks`'s 0-mismatches figure was re-measured directly with a
+      second, targeted dry run (`--filter '*SolverBatch*' --job Dry`, CUDA available):
+      at 1 000 and 10 000 cases the CPU-accelerator `equalsEngine=bitwise (same kernels,
+      same accelerator)` and the CUDA `equalsEngine=tolerance (…
+      worstFieldRelative=4.963e-013 worstMoleFractionRelative=3.488e-012)` reproduce the
+      exact figures of the 2026-09-15 measurement above, bit for bit, confirming the
+      split changed no numerical code; the 100 000-case configurations completed with the
+      same CPU/CUDA verdicts and no mismatch.
+
+      Protocol.Tests: `tests/Protocol.Tests/APThermo.Protocol.Tests.csproj` gained a
+      project reference to the new `Runner` project (its own `NodeAssemblies.Load`
+      requires every node's assembly in its build output), and
+      `PublicSurface.approved.txt` was re-approved for the one addition
+      (`BenchmarkEnvironment`) and the one new, empty node section
+      (`== APThermo.Benchmarks.Runner`, `Program` stays internal). `APTHERMO_NO_CUDA=1
+      dotnet test tests/Protocol.Tests` 28/28 green. Protocol lint: 0 errors, 0 warnings.
+
+- [x] 2026-09-25 — (record of the first Diagnostics pass) the node builds
+      at 0 warnings/0 errors except the CA1515 conflict declared above (the Constraints
+      ⚠ of 2026-09-25), unresolvable without either dropping BenchmarkDotNet's
+      `InProcessNoEmitToolchain` or moving the benchmark classes to a node of their own
+      — both a design decision for the owner, not a coding-task fix.
+      - CS1591: every hollow `<inheritdoc/>` `dotnet format` inserted where no base
+        member existed (47 across `BatchThroughputBenchmarks`, `OneTimeCostBenchmarks`,
+        `ProblemKindBenchmarks`, `Program`, `SingleCaseBenchmarks`,
+        `SolverBatchBenchmarks`, `UserStatesBenchmarks`, `UserStatesBenchmarks`'s own
+        `UserStateSelection` enum with it) replaced with a real `<summary>`.
+      - `Program` (the executable's entry point, never referenced by anything outside
+        the assembly, BenchmarkDotNet included) made `internal` for CA1515: a `Main`
+        method needs no accessibility for the runtime to find it.
+      - IDE0072's "populate switch" fix had planted `throw new NotImplementedException()`
+        on `ProblemKindBenchmarks.LoadRecord`'s three rocket-kind arms, each reached by
+        an ordinary run of that kind (the fixture-loading branch they replaced was the
+        one every rocket case took) — reverted to one combined arm covering all three,
+        with a genuine `ArgumentOutOfRangeException` default for a value outside the six
+        named kinds, satisfying IDE0072 without planting a live trap; the sibling
+        `WithFlow` switch's own three added arms (`Tp`/`Hp`/`Sp` throwing) are correct
+        as `dotnet format` left them, since `WithFlow` is only ever reached from the
+        three rocket-kind arms.
+      - IDE0052 ("value assigned … never read") on five benchmark methods that stored
+        their result in a private field only for BenchmarkDotNet to observe (preventing
+        the JIT from treating the call as dead code) resolved two ways: where the result
+        type is already on the package surface (`BatchThroughputBenchmarks.SolveBatch`
+        keeps its `RocketBatchResult` field, since `Execution`'s batch types left the
+        package surface with the rest of the tree contract, root BOOT.md, Delivery —
+        `Cleanup` now logs it, a genuine read) — a public benchmark method cannot return
+        an internal type either way (CS0050, hit while first trying the return-value
+        fix); `OneTimeCostBenchmarks`'s four (`AssembleChemicalSystem`,
+        `UploadSpeciesTable`, `CompileCpuKernel`, `CompileCudaKernel`) keep their fields
+        for the same CS0050 reason, `Cleanup` now logging the assembled table's species
+        count and the last compiled batch's status.
+      - CA1859: `OneTimeCostBenchmarks.BuildTrivialBatch`'s `molesPerKilogram` parameter
+        narrowed from `IReadOnlyList<double>` to `double[]`, matching what
+        `FixtureJson.ReadElementMoles` already returns.
+
+      Evidence: `dotnet build tests/Benchmarks/APThermo.Benchmarks.csproj -c Release`
+      (default, strict settings) after clearing this node's own `obj`/`bin`: 8 warnings,
+      all CA1515 on the six benchmark classes and the two enums named above, 0 errors,
+      0 of any other diagnostic. A full run of every benchmark
+      (`dotnet run -c Release --filter '*'`, `APTHERMO_NO_CUDA=1`, this node's own job
+      config temporarily reduced to 1 warmup/1 iteration for the run's length and
+      restored after) completed all 41 benchmark×parameter combinations with no
+      exception, `SolverBatchBenchmarks` again logging `equalsEngine=bitwise`/
+      `equalsEngine=tolerance` with 0 mismatches as the criterion above records.
+      Protocol lint: 0 errors, 0 warnings. `git status --short` clean of the temporary
+      job-config edit and of the `BenchmarkDotNet.Artifacts/` the run and the
+      CA1515 proof left behind (both `.gitignore`d, removed anyway).
 
 ## Taboos
 

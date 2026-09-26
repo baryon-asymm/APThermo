@@ -12,9 +12,9 @@ namespace APThermo.Performance.Tests;
 /// </summary>
 internal static class RocketBits
 {
-    private static readonly FieldInfo[] StateFields = Declared(typeof(MixtureState));
+    private static readonly PropertyInfo[] StateFields = Declared(typeof(MixtureState));
 
-    private static readonly FieldInfo[] FigureFields = Declared(typeof(PerformanceFigures));
+    private static readonly PropertyInfo[] FigureFields = Declared(typeof(PerformanceFigures));
 
     public static string Hash(RocketSolution solution)
     {
@@ -26,31 +26,31 @@ internal static class RocketBits
             var state = solution.Outcome.Stations[station];
             foreach (var field in StateFields)
             {
-                hash.Add((double)field.GetValue(state)!);
+                _ = hash.Add((double)field.GetValue(state)!);
             }
         }
 
         for (var station = 0; station < solution.StationCount; station++)
         {
-            hash.Add(solution.Outcome.Moles.AsSpan(station * speciesCount, speciesCount));
-            hash.Add(solution.Outcome.Multipliers.AsSpan(station * elementCount, elementCount));
+            _ = hash.Add(solution.Outcome.Moles.AsSpan(station * speciesCount, speciesCount));
+            _ = hash.Add(solution.Outcome.Multipliers.AsSpan(station * elementCount, elementCount));
             var figures = solution.Outcome.Figures[station];
             foreach (var field in FigureFields)
             {
-                hash.Add((double)field.GetValue(figures)!);
+                _ = hash.Add((double)field.GetValue(figures)!);
             }
         }
 
         foreach (var status in solution.Outcome.StationStatus)
         {
-            hash.Add((int)status);
+            _ = hash.Add((int)status);
         }
 
         return hash.Add(solution.Outcome.Iterations).Add((int)solution.Status).ToHex();
     }
 
-    /// <summary>The struct's fields in declaration order; <see cref="Type.GetFields()"/> promises no order, the metadata token carries it.</summary>
-    private static FieldInfo[] Declared(Type type) => type.GetFields().OrderBy(field => field.MetadataToken).ToArray();
+    /// <summary>The struct's properties in declaration order; <see cref="Type.GetProperties()"/> promises no order, the metadata token carries it.</summary>
+    private static PropertyInfo[] Declared(Type type) => [.. type.GetProperties().OrderBy(field => field.MetadataToken)];
 }
 
 /// <summary>
@@ -58,22 +58,25 @@ internal static class RocketBits
 /// contract (BOOT.md): a decomposition, a renaming or a reordering of code moves no line, so a moved line is a numerical change
 /// and must be named in the commit that moves it.
 /// </summary>
-[Collection(CpuCollection.Name)]
-public sealed class BitSnapshotTests(CpuFixture fixture)
+[Collection(CpuFixture.CollectionName)]
+public sealed class BitSnapshotTests
 {
     private static readonly ApprovedSnapshot Snapshot = ApprovedSnapshot.Load(ApprovedPath);
 
+    /// <summary>The path of this node's approved bit snapshot.</summary>
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Performance.Tests"), "Bits");
 
-    public static IEnumerable<object[]> Cases() => RocketHost.Cases();
+    /// <summary>The rocket fixture files as theory data, delegating to <see cref="RocketHost.Cases"/>.</summary>
+    public static TheoryData<string> Cases() => RocketHost.Cases();
 
+    /// <summary>The host solve of every rocket fixture gives the recorded bits.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
     [Trait("Category", "BitSnapshot")]
-    public void Every_rocket_fixture_gives_the_recorded_bits(string name)
+    public void EveryRocketFixtureGivesTheRecordedBits(string name)
     {
         var c = RocketHost.Load(name);
-        var bits = RocketBits.Hash(RocketHost.Solve(fixture, c));
+        var bits = RocketBits.Hash(RocketHost.Solve(CpuFixture.Shared, c));
         var problem = Snapshot.Problem(PathOf(c.Path), bits);
         Assert.True(problem is null, problem);
     }
@@ -84,7 +87,7 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     /// </summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void Every_approved_line_names_a_rocket_fixture()
+    public void EveryApprovedLineNamesARocketFixture()
     {
         var keys = FixtureFiles.Enumerate("rocket").Select(PathOf).ToList();
         var stale = Snapshot.StaleKeys(keys);

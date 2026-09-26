@@ -46,7 +46,7 @@ internal static class CommandLine
         foreach (var (name, value) in given)
         {
             options = CommandTable.FindOption(name)!.Apply(options, value);
-            names.Add(name);
+            _ = names.Add(name);
         }
 
         return options with { Given = names };

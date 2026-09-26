@@ -3,10 +3,8 @@
   <!-- Node src/Thermo: species tables and the kernel-compatible species functions. First kernel-capable level. -->
 
   <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public member
-       without a documentation comment fails the build, since warnings are errors (Directory.Build.props). -->
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+       without a documentation comment fails the build, since warnings are errors. Diagnostics (2026-09-24):
+       GenerateDocumentationFile is now set once, for every project, in the root Directory.Build.props. -->
 
   <ItemGroup>
     <ProjectReference Include="..\Data\APThermo.Data.csproj" />

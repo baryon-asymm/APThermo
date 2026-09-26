@@ -7,50 +7,24 @@ namespace APThermo.Problems;
 /// </summary>
 internal static class MixtureRule
 {
-    public static MixtureSpecification Validate(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named, double? ratio)
-    {
-        if (ratio is { } value)
-        {
-            if (!(value > 0.0) || double.IsInfinity(value))
-            {
-                throw new ArgumentException($"the oxidizer-to-fuel ratio must be positive and finite, not {value}");
-            }
-
-            if (oxidizers.Count == 0 || fuels.Count == 0)
-            {
-                throw new ArgumentException("an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel");
-            }
-
-            if (named.Count > 0)
-            {
-                throw new ArgumentException($"reactant '{named[0].Reactant.Name}' is named with a total mass fraction, which cannot be combined with an oxidizer-to-fuel ratio");
-            }
-
-            if (!(oxidizers.Sum(r => r.Mass) > 0.0))
-            {
-                throw new ArgumentException("the oxidizer group has zero mass");
-            }
-
-            if (!(fuels.Sum(r => r.Mass) > 0.0))
-            {
-                throw new ArgumentException("the fuel group has zero mass");
-            }
-
-            return new MixtureSpecification.OxidizerToFuel(value);
-        }
-
-        if (oxidizers.Count > 0 && fuels.Count > 0)
-        {
-            throw new ArgumentException("oxidizers and fuels were given without an oxidizer-to-fuel ratio; set the ratio, or name every reactant with a total mass fraction");
-        }
-
-        if (!(oxidizers.Concat(fuels).Concat(named).Sum(r => r.Mass) > 0.0))
-        {
-            throw new ArgumentException("the reactants have zero total mass");
-        }
-
-        return new MixtureSpecification.MassFractions();
-    }
+    public static MixtureSpecification Validate(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named, double? ratio) =>
+        ratio is { } value
+            ? !(value > 0.0) || double.IsInfinity(value)
+                ? throw new ArgumentException($"the oxidizer-to-fuel ratio must be positive and finite, not {value}")
+                : oxidizers.Count == 0 || fuels.Count == 0
+                    ? throw new ArgumentException("an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel")
+                    : named.Count > 0
+                        ? throw new ArgumentException($"reactant '{named[0].Reactant.Name}' is named with a total mass fraction, which cannot be combined with an oxidizer-to-fuel ratio")
+                        : !(oxidizers.Sum(r => r.Mass) > 0.0)
+                            ? throw new ArgumentException("the oxidizer group has zero mass")
+                            : !(fuels.Sum(r => r.Mass) > 0.0)
+                                ? throw new ArgumentException("the fuel group has zero mass")
+                                : new MixtureSpecification.OxidizerToFuel(value)
+            : oxidizers.Count > 0 && fuels.Count > 0
+                ? throw new ArgumentException("oxidizers and fuels were given without an oxidizer-to-fuel ratio; set the ratio, or name every reactant with a total mass fraction")
+                : !(oxidizers.Concat(fuels).Concat(named).Sum(r => r.Mass) > 0.0)
+                    ? throw new ArgumentException("the reactants have zero total mass")
+                    : new MixtureSpecification.MassFractions();
 
     /// <summary>The mass fraction of every reactant in one kilogram, for the mixture's ratio or the one given (BOOT.md, amounts).</summary>
     public static double[] MassFractionsOf(IReadOnlyList<ResolvedReactant> resolved, MixtureSpecification mixture, double? oxidizerToFuelRatio)

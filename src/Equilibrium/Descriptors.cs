@@ -17,30 +17,21 @@ public enum ProblemKind
 }
 
 /// <summary>One case: the assigned state and the element abundances of one kilogram of mixture.</summary>
-internal readonly struct EquilibriumProblem
+internal readonly struct EquilibriumProblem(ProblemKind kind, double pressure, double temperature, double target, ArrayView<double> elementMoles)
 {
-    public readonly ProblemKind Kind;
+    public readonly ProblemKind Kind = kind;
 
     /// <summary>Pa.</summary>
-    public readonly double Pressure;
+    public readonly double Pressure = pressure;
 
     /// <summary>K for tp; the initial estimate for hp and sp (0 = the default of 3800 K).</summary>
-    public readonly double Temperature;
+    public readonly double Temperature = temperature;
 
     /// <summary>h in J/kg for hp, s in J/(kg·K) for sp, unused for tp.</summary>
-    public readonly double Target;
+    public readonly double Target = target;
 
     /// <summary>[element], kmol of atoms per kg of mixture (b_i°); zero marks an absent element.</summary>
-    public readonly ArrayView<double> ElementMoles;
-
-    public EquilibriumProblem(ProblemKind kind, double pressure, double temperature, double target, ArrayView<double> elementMoles)
-    {
-        Kind = kind;
-        Pressure = pressure;
-        Temperature = temperature;
-        Target = target;
-        ElementMoles = elementMoles;
-    }
+    public readonly ArrayView<double> ElementMoles = elementMoles;
 }
 
 /// <summary>Sizes of the per-case scratch; the caller allocates batch-sized buffers and slices them.</summary>
@@ -64,40 +55,24 @@ internal static class ScratchLayout
 }
 
 /// <summary>Per-case scratch views. <see cref="Slice"/> cuts them from one double and one int view of the sizes in <see cref="ScratchLayout"/>.</summary>
-internal readonly struct EquilibriumScratch
+internal readonly struct EquilibriumScratch(
+    ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
+    ArrayView<double> logMoles, ArrayView<double> corrections,
+    ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
+    ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution)
 {
-    public readonly ArrayView<double> HOverRT;             // [species]
-    public readonly ArrayView<double> SOverR;              // [species]
-    public readonly ArrayView<double> CpOverR;             // [species]
-    public readonly ArrayView<double> GOverRT;             // [species]
-    public readonly ArrayView<double> LogMoles;            // [species], ln n_j of gaseous species
-    public readonly ArrayView<double> Corrections;         // [species], Δln n_j of gaseous species
-    public readonly ArrayView<double> Matrix;              // [MaxUnknowns * MaxUnknowns], row-major
-    public readonly ArrayView<double> RightHandSide;       // [MaxUnknowns]; holds the solution after a solve
-    public readonly ArrayView<double> RowScale;            // [MaxUnknowns]
-    public readonly ArrayView<int> SpeciesActive;          // [species], 1 when every element of the species is present
-    public readonly ArrayView<int> ElementActive;          // [element], 1 when the abundance is positive
-    public readonly ArrayView<int> CondensedInSolution;    // [MaxCondensedInSolution], species indices
-
-    public EquilibriumScratch(
-        ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
-        ArrayView<double> logMoles, ArrayView<double> corrections,
-        ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
-        ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution)
-    {
-        HOverRT = hOverRT;
-        SOverR = sOverR;
-        CpOverR = cpOverR;
-        GOverRT = gOverRT;
-        LogMoles = logMoles;
-        Corrections = corrections;
-        Matrix = matrix;
-        RightHandSide = rightHandSide;
-        RowScale = rowScale;
-        SpeciesActive = speciesActive;
-        ElementActive = elementActive;
-        CondensedInSolution = condensedInSolution;
-    }
+    public readonly ArrayView<double> HOverRT = hOverRT;             // [species]
+    public readonly ArrayView<double> SOverR = sOverR;               // [species]
+    public readonly ArrayView<double> CpOverR = cpOverR;             // [species]
+    public readonly ArrayView<double> GOverRT = gOverRT;             // [species]
+    public readonly ArrayView<double> LogMoles = logMoles;           // [species], ln n_j of gaseous species
+    public readonly ArrayView<double> Corrections = corrections;     // [species], Δln n_j of gaseous species
+    public readonly ArrayView<double> Matrix = matrix;               // [MaxUnknowns * MaxUnknowns], row-major
+    public readonly ArrayView<double> RightHandSide = rightHandSide; // [MaxUnknowns]; holds the solution after a solve
+    public readonly ArrayView<double> RowScale = rowScale;           // [MaxUnknowns]
+    public readonly ArrayView<int> SpeciesActive = speciesActive;    // [species], 1 when every element of the species is present
+    public readonly ArrayView<int> ElementActive = elementActive;    // [element], 1 when the abundance is positive
+    public readonly ArrayView<int> CondensedInSolution = condensedInSolution;    // [MaxCondensedInSolution], species indices
 
     /// <summary>Cuts the scratch of one case from views of at least <see cref="ScratchLayout.DoublesPerCase"/> and <see cref="ScratchLayout.IntsPerCase"/> elements.</summary>
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount)
@@ -133,21 +108,12 @@ internal readonly struct EquilibriumScratch
 }
 
 /// <summary>The views a solve writes into.</summary>
-internal readonly struct EquilibriumResult
+internal readonly struct EquilibriumResult(ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> state,
+                                           ArrayView<int> status, ArrayView<int> iterations)
 {
-    public readonly ArrayView<double> Moles;               // [species], kmol per kg; zero for absent species
-    public readonly ArrayView<double> Multipliers;         // [element], the dimensionless π_i of RP-1311
-    public readonly ArrayView<MixtureState> State;         // [1]
-    public readonly ArrayView<int> Status;                 // [1], CaseStatus
-    public readonly ArrayView<int> Iterations;             // [1], Newton steps taken
-
-    public EquilibriumResult(ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> state,
-                             ArrayView<int> status, ArrayView<int> iterations)
-    {
-        Moles = moles;
-        Multipliers = multipliers;
-        State = state;
-        Status = status;
-        Iterations = iterations;
-    }
+    public readonly ArrayView<double> Moles = moles;               // [species], kmol per kg; zero for absent species
+    public readonly ArrayView<double> Multipliers = multipliers;   // [element], the dimensionless π_i of RP-1311
+    public readonly ArrayView<MixtureState> State = state;         // [1]
+    public readonly ArrayView<int> Status = status;                // [1], CaseStatus
+    public readonly ArrayView<int> Iterations = iterations;        // [1], Newton steps taken
 }

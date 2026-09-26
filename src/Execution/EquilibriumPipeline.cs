@@ -52,7 +52,7 @@ internal static class EquilibriumPipeline
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
         return new EquilibriumBatchResult(
             speciesCount: speciesCount, state: states, moles: moles,
-            status: status.Select(code => (CaseStatus)code).ToArray(), iterations: iterations,
+            status: [.. status.Select(code => (CaseStatus)code)], iterations: iterations,
             timings: timer.Timings(), accelerator: session.Info);
     }
 }

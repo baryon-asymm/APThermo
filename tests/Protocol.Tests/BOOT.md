@@ -19,6 +19,7 @@ dependencies against the real ones.
 | Root invariants | double precision only and no mutable static field in the numerical nodes; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
 | Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
+| Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic, and the root build files set the maximum | the tree's `.cs`, project, props, targets, `.editorconfig` and `.globalconfig` files (`DiagnosticsTests`) | ✅ (2026-09-25) |
 
 ⚠ 2026-09-13: the sketch had five levels. The root `BOOT.md` claimed three of its
 invariants "checked by reflection" while no node held such a check; they are of the
@@ -153,6 +154,8 @@ which is the proof that nothing leaked.
 | `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
 | `TreeContractTests` | the four facts of the Tree contract level (2026-09-15, distribution phase; "## Tree contract" below): a library node's public surface, a declared type's section against its visibility, a friend crossing against the target's tree contract, and a `src` assembly's `InternalsVisibleTo` grants against their recognised friends |
+| `DiagnosticsSyntax` | the whole-tree file walk the Diagnostics level reads (2026-09-25; "## Diagnostics check" below): every C# source file, every MSBuild project/properties/targets file and every analyzer-configuration file from the tree root down, never scoped to a single node the way `SourceSyntax` is, because a suppression can hide in any file of the tree |
+| `DiagnosticsTests` | the five facts of the Diagnostics level (2026-09-25): no source file suppresses a diagnostic (directive trivia or a `[SuppressMessage]`/`[UnconditionalSuppressMessage]` attribute), no build file suppresses or overrides one, no analyzer-configuration file lowers a severity, and the root `Directory.Build.props`/`.targets` set the maximum |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
 Decisions taken with the review:
@@ -340,12 +343,12 @@ and asked this node to check them apart. The convention this node reads:
 
 Four facts, `TreeContractTests`:
 
-- **(a)** `Every_public_type_of_a_library_node_is_named_in_its_package_surface`: every
+- **(a)** `EveryPublicTypeOfALibraryNodeIsNamedInItsPackageSurface`: every
   exported type of a library node (root `BOOT.md`, Delivery: "Public surface") is named
   in a package-surface section of its own `API.md` — `CoverageTests`' own fact asks only
   that it is named *somewhere* under ✅; this one asks it is not hidden entirely inside
   tree-contract text, where a consumer reading the promise would miss it.
-- **(b)** `A_type_naming_a_friend_assemblys_internal_type_finds_it_in_the_tree_contract`:
+- **(b)** `ATypeNamingAFriendAssemblysInternalTypeFindsItInTheTreeContract`:
   every type of every code node (children included) that names a non-public type of
   another node, across an assembly boundary (an `InternalsVisibleTo` grant is the only
   way such code compiles at all), finds that type named in the target's own
@@ -356,7 +359,7 @@ Four facts, `TreeContractTests`:
   nodes (`tests/Y.Tests` → `src/Y`, `TreeContractTests.MirroredSourceNode`) — the design
   invariant every such node's own `InternalsVisibleTo` grant already encodes, not a
   friend relationship to audit type by type here.
-- **(c)** `Every_declared_type_of_a_library_node_matches_its_section_to_its_visibility`:
+- **(c)** `EveryDeclaredTypeOfALibraryNodeMatchesItsSectionToItsVisibility`:
   every type a library node's own `API.md` declares (`ApiDeclarations.
   DeclaredTypeSections`, the type-opening line of a ✅ C# block) is public only where it
   is declared in a package-surface section, and internal only where it never is. A
@@ -364,7 +367,7 @@ Four facts, `TreeContractTests`:
   package-surface text, is a mismatch between the document's own bookkeeping and the
   code's real visibility — the two ways an `API.md` can misstate which promise a type
   carries.
-- **(e)** `Every_internals_visible_to_grant_of_a_src_node_names_a_recognised_friend`:
+- **(e)** `EveryInternalsVisibleToGrantOfASrcNodeNamesARecognisedFriend`:
   every `InternalsVisibleTo` of a `src` node's assembly (`NodeAssemblies.
   InternalsVisibleTo`) names one of four recognised friends (root `BOOT.md`, Delivery:
   "Tree contracts") — `ILGPURuntime`; the node's own mirroring test assembly
@@ -474,7 +477,7 @@ never rise, so no type newly becomes a stable type by this fix; twenty-seven of 
 fifty-three previously listed dropped back under 10 (`AcceleratorSession` among them,
 `src/Execution`, old Ca 10 now 9), and the table below carries the twenty-six that remain,
 re-measured the same way. No stable type over 100 lines and undocumented in its node's
-`API.md` exists under either count (`Every_stable_type_is_small_or_a_contract` was green
+`API.md` exists under either count (`EveryStableTypeIsSmallOrAContract` was green
 before this fix and stays green after).
 
 ⚠ 2026-09-15 (child-nodes phase): the stable-dependencies row read "the `src` project
@@ -483,7 +486,7 @@ sentence carries the same correction, with the reason: splitting `src/Cli` into 
 project-less children, four of which use `Execution` in their own code, took
 `Execution`'s afferent count from 2 to 6 under the one-component-per-node reading and
 its instability from 0.667 to 0.400, below `Transport`'s 0.500, turning
-`No_src_dependency_points_to_a_less_stable_node` red although no dependency between
+`NoSrcDependencyPointsToALessStableNode` red although no dependency between
 the assemblies changed — a project-less child compiles into its ancestor's assembly
 (root `BOOT.md`, Constraints), so it is not a component of its own. `CouplingMeasures.NodeCoupling`
 now measures the `src` nodes that hold a project only, a child's own declared
@@ -504,7 +507,7 @@ moves. That the fold does not silently drop a real edge is shown by a mutation o
 child level specifically, seen red and reverted: `src/Execution/Chunks/BOOT.md`'s
 `## Dependencies` given a second line, `[Problems](../../Problems/API.md)` (declared
 only on the child, never on `src/Execution`'s own document), folds to `src/Execution`
-depending on `src/Problems`; `No_src_dependency_points_to_a_less_stable_node` red,
+depending on `src/Problems`; `NoSrcDependencyPointsToALessStableNode` red,
 "src/Execution (I=0.714) depends on src/Problems (I=0.750), which is less stable" (the
 mutation raises both nodes' Ce, moving their I figures with it). No matching code
 reference was added: `Execution`'s project has no reference to `Problems`'s (`Problems`
@@ -600,8 +603,8 @@ Why the numbers are what they are:
 The three rules above that name only `src` types (efferent coupling, stable type, stable
 dependencies) lie outside this node: a mutation of this node's own documents and code
 cannot reach the `src`-node code they measure. The facts that guard them
-(`No_src_type_names_more_than_14_types_of_the_tree`,
-`Every_stable_type_is_small_or_a_contract`, `No_src_dependency_points_to_a_less_stable_node`)
+(`NoSrcTypeNamesMoreThan14TypesOfTheTree`,
+`EveryStableTypeIsSmallOrAContract`, `NoSrcDependencyPointsToALessStableNode`)
 are proved red only through synthetic inputs to their own comparison helpers (the
 acceptance criterion below); the two tables here are the real inputs those same facts run
 over, taken through a temporary test calling only `CouplingMeasures`, `ShapeMeasures` and
@@ -667,10 +670,57 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
 | `src/Thermo` | 1 | 6 | 0.143 |
 | `src/Transport` | 3 | 3 | 0.500 |
 
+## Diagnostics check
+
+Designed 2026-09-24 for the root's Diagnostics constraint. Every build already fails on
+any diagnostic that is raised. What a build cannot see is a diagnostic that is never
+raised because someone suppressed it: a pragma, an attribute, a `NoWarn`, a lowered
+severity, a project that overrides the root's properties. This level reads the files
+that could do that. It reads text and syntax, not assemblies, as the Shape level
+already does, and it walks the tree with the same exclusions (`bin`, `obj`, `.git`,
+`.claude`).
+
+The facts of `DiagnosticsTests`, each failing on an empty set:
+
+1. `NoSourceFileSuppressesADiagnostic`: no C# file of the tree holds a
+   `#pragma warning` directive or a `#nullable` directive that disables or restores a
+   context. Read from the Roslyn syntax trees' directive trivia, not by text, so a
+   string or a comment that mentions them does not count.
+2. `NoSourceFileCarriesASuppressionAttribute`: no attribute named `SuppressMessage`
+   or `UnconditionalSuppressMessage`, with or without the `Attribute` suffix, on any
+   target, `assembly:` and `module:` included. No file is named
+   `GlobalSuppressions.cs`.
+3. `NoBuildFileSuppressesOrOverridesADiagnostic`: no `.csproj`, `.props` or `.targets`
+   file of the tree sets `NoWarn` or `WarningsNotAsErrors`, except that the root
+   `Directory.Build.targets` resets `NoWarn` to empty. None but the root
+   `Directory.Build.props` sets `TreatWarningsAsErrors`, `WarningLevel`, `Features`,
+   `AnalysisLevel`, any `AnalysisMode*` or `AnalysisLevel*`,
+   `EnforceCodeStyleInBuild`, `GenerateDocumentationFile`, `Nullable`,
+   `RunAnalyzers`, `RunAnalyzersDuringBuild` or `EnableNETAnalyzers`. Read as XML
+   elements, so a comment does not count.
+4. `NoAnalyzerConfigurationLowersASeverity`: every `.editorconfig` and `.globalconfig`
+   of the tree gives every key ending in `.severity` the value `warning` or `error`,
+   and every option value has no `:severity` suffix below warning. The root
+   `.editorconfig` holds `dotnet_analyzer_diagnostic.severity = warning`.
+5. `TheRootBuildRunsAtTheMaximum`: the root `Directory.Build.props` sets the values
+   the root names: `TreatWarningsAsErrors` true, `WarningLevel` 9999, `Features`
+   `strict`, `AnalysisLevel` `latest-all`, `EnforceCodeStyleInBuild` true and
+   `GenerateDocumentationFile` true. The root `Directory.Build.targets` sets `NoWarn`
+   to empty.
+
+Each fact is shown red once by a mutation applied alone and restored:
+- a `#pragma warning disable` in a test file (1);
+- a `#nullable disable` (1);
+- `[SuppressMessage]` on a method (2);
+- `<NoWarn>` in a test `.csproj` (3);
+- `GenerateDocumentationFile` false in one `.csproj` (3);
+- `dotnet_diagnostic.CA1707.severity = none` in a scratch `tests/.editorconfig` (4);
+- `WarningLevel` 10 in the root props (5).
+
 ## Acceptance criteria
 
 - [x] 2026-09-13 — Lint wired:
-      `LintTests.The_tree_passes_the_protocol_linter_with_no_error_and_no_warning`
+      `LintTests.TheTreePassesTheProtocolLinterWithNoErrorAndNoWarning`
       runs the linter as a process in strict mode; seen red on a source directory
       without documents (mutation 5 below), on a `## Dependencies` left without links
       (3a) and on a ✅ block declaring a type no source file names (10). A member
@@ -678,14 +728,14 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       and the Declarations level is what catches members.
 - [x] 2026-09-13 — Surface, Coverage, Declarations, Dependencies and the root
       invariants green on the tree:
-      `SurfaceTests.The_public_surface_of_the_library_assemblies_matches_the_approved_snapshot`,
-      `CoverageTests.Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api`,
-      `CoverageTests.Every_type_of_every_assembly_lives_in_the_namespace_of_its_node`,
-      `DeclarationTests.Every_declaration_under_a_tick_exists`,
-      `DependencyTests.Every_node_declares_the_neighbours_it_uses_and_no_other`,
-      `InvariantTests.Numerical_nodes_hold_no_single_precision_value_or_operation`,
-      `InvariantTests.Only_the_execution_node_and_its_tests_name_cuda_types`,
-      `InvariantTests.Numerical_nodes_have_no_mutable_static_field`. The first run over
+      `SurfaceTests.ThePublicSurfaceOfTheLibraryAssembliesMatchesTheApprovedSnapshot`,
+      `CoverageTests.EveryExportedTypeOfALibraryAssemblyIsNamedInItsNodesApi`,
+      `CoverageTests.EveryTypeOfEveryAssemblyLivesInTheNamespaceOfItsNode`,
+      `DeclarationTests.EveryDeclarationUnderATickExists`,
+      `DependencyTests.EveryNodeDeclaresTheNeighboursItUsesAndNoOther`,
+      `InvariantTests.NumericalNodesHoldNoSinglePrecisionValueOrOperation`,
+      `InvariantTests.OnlyTheExecutionNodeAndItsTestsNameCudaTypes`,
+      `InvariantTests.NumericalNodesHaveNoMutableStaticField`. The first run over
       the tree gave three findings. Two were real: `SpeciesFunctionBatchViews`,
       exported by `Execution` and not named in its `API.md` (fixed there with a dated
       note), and the regex source generator's classes in a namespace of their own
@@ -747,22 +797,22 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       descendant"); (3d) `src/Data/BOOT.md` linking `../Nowhere/API.md`: Dependencies
       red, "links ../Nowhere/API.md under ## Dependencies, and no node has that
       API.md", Lint red (error: "resolves to nothing").
-- [x] 2026-09-15 — Shape level green: `ShapeTests` (`No_type_spans_more_than_400_lines`,
-      `No_method_spans_more_than_60_lines`, `No_control_flow_nests_deeper_than_3`,
-      `No_method_takes_more_than_6_parameters`,
-      `No_src_type_names_more_than_14_types_of_the_tree`,
-      `Every_stable_type_is_small_or_a_contract`,
-      `No_src_dependency_points_to_a_less_stable_node`,
-      `No_partial_type_region_or_helpers_class`,
-      `Every_wide_constructor_is_called_with_named_arguments`,
-      `Every_shape_exception_is_measured_and_still_needed`) over the types and methods
+- [x] 2026-09-15 — Shape level green: `ShapeTests` (`NoTypeSpansMoreThan400Lines`,
+      `NoMethodSpansMoreThan60Lines`, `NoControlFlowNestsDeeperThan3`,
+      `NoMethodTakesMoreThan6Parameters`,
+      `NoSrcTypeNamesMoreThan14TypesOfTheTree`,
+      `EveryStableTypeIsSmallOrAContract`,
+      `NoSrcDependencyPointsToALessStableNode`,
+      `NoPartialTypeRegionOrHelpersClass`,
+      `EveryWideConstructorIsCalledWithNamedArguments`,
+      `EveryShapeExceptionIsMeasuredAndStillNeeded`) over the types and methods
       the check enumerates itself: 422 types, 1301 methods, all ten facts green
       (`dotnet test tests/Protocol.Tests`: 19 passed). The nodes' `## Shape exceptions`
       tables transcribe the exceptions their `## Structure` sections declare; a
       violation no node declared is a finding for a design session, not a new row.
 
       The five over-limit facts and the reverse fact
-      (`Every_shape_exception_is_measured_and_still_needed`) are themselves the
+      (`EveryShapeExceptionIsMeasuredAndStillNeeded`) are themselves the
       evidence that every one of the 36 declared rows matches its live figure and that
       no over-limit measurement anywhere in the tree lacks a row: the former fail an
       unmatched measurement, the latter fails a row below its measurement or past its
@@ -809,8 +859,8 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       degenerate, this re-measurement would have failed. Stable type and stable
       dependencies: the tables in `## Shape check` above are the real Ca, lines and
       `API.md`-naming, and the real Ce, Ca and I, that
-      `Every_stable_type_is_small_or_a_contract` and
-      `No_src_dependency_points_to_a_less_stable_node` measure — twenty-six `src`
+      `EveryStableTypeIsSmallOrAContract` and
+      `NoSrcDependencyPointsToALessStableNode` measure — twenty-six `src`
       types at Ca ≥ 10, counting only `src`-node dependants (fifty-three before the
       repair phase's R-Protocol.Tests-9 narrowed the count the same way below; none
       over 100 lines without being named, under either count) and the eight `src`
@@ -843,15 +893,15 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       R-Protocol.Tests-14), by the review's own letters, each guard seen red once with
       a temporary, uncommitted mutation and reverted:
       - **(a)** "if `SrcNodes()` is empty, facts 5 and 6 pass vacuously": the Ce fact
-        (`No_src_type_names_more_than_14_types_of_the_tree`) and the stable-type fact
-        (`Every_stable_type_is_small_or_a_contract`) each now assert `SrcNodes().Any()`
+        (`NoSrcTypeNamesMoreThan14TypesOfTheTree`) and the stable-type fact
+        (`EveryStableTypeIsSmallOrAContract`) each now assert `SrcNodes().Any()`
         before asserting zero problems, so an empty `src` node set fails loudly on its
         own rather than passing over nothing to check;
       - **(b)** "if `IsSrcNode` is false, `NodeCoupling()` is empty and fact 7 passes
         vacuously; 'src node' is written twice": the src-node predicate
         `CouplingMeasures` and `ShapeTests` each kept their own copy of, unified onto
         one definition, `Node.IsSrc`, both now read; the stable-dependencies fact
-        (`No_src_dependency_points_to_a_less_stable_node`) now also asserts
+        (`NoSrcDependencyPointsToALessStableNode`) now also asserts
         `coupling.Values.Sum(v => v.Dependencies.Count) > 0` before asserting zero
         problems;
       - **(c)** "`StableTypeProblems` silently skips a stable type whose reflection
@@ -868,14 +918,14 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       `"src/"` to `"source/"`, with R-Protocol.Tests-12's Ce mutation applied alongside
       it (a scratch type, `Cli.MutationMeasureCe`, naming fifteen real types, added to
       `src/Cli` and never declared as a row). Without the (a)/(b) guards this mutation
-      would leave `No_src_type_names_more_than_14_types_of_the_tree`,
-      `Every_stable_type_is_small_or_a_contract` and
-      `No_src_dependency_points_to_a_less_stable_node` all green — `SrcNodes()` and
+      would leave `NoSrcTypeNamesMoreThan14TypesOfTheTree`,
+      `EveryStableTypeIsSmallOrAContract` and
+      `NoSrcDependencyPointsToALessStableNode` all green — `SrcNodes()` and
       `NodeCoupling()` both empty, so none of the three would even look at `src/Cli`,
       and the real Ce violation sitting there would go unreported. With them, all
-      three red on the emptiness message: `No_src_type_names_more_than_14_types_of_the_tree`
-      and `Every_stable_type_is_small_or_a_contract`, "no `src` node exists in the
-      tree; this fact has nothing to check"; `No_src_dependency_points_to_a_less_stable_node`,
+      three red on the emptiness message: `NoSrcTypeNamesMoreThan14TypesOfTheTree`
+      and `EveryStableTypeIsSmallOrAContract`, "no `src` node exists in the
+      tree; this fact has nothing to check"; `NoSrcDependencyPointsToALessStableNode`,
       "the src node graph has no declared dependency edge; this fact has nothing to
       check". Both files reverted (`git status` clean); `dotnet test
       tests/Protocol.Tests` green again (19 passed).
@@ -916,13 +966,13 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       - efferent coupling: a scratch type, `Cli.MutationMeasureCe`, added to
         `src/Cli` naming fifteen distinct real types of seven other `src` nodes
         (already-declared dependencies of `Cli`, so no dependency line moved) and
-        removed again; `No_src_type_names_more_than_14_types_of_the_tree` red,
+        removed again; `NoSrcTypeNamesMoreThan14TypesOfTheTree` red,
         "src/Cli: MutationMeasureCe (src/Cli/MutationMeasureCe.cs:6) measures 15 for
         efferent coupling, over 14, and no row of src/Cli/BOOT.md declares it";
       - stable type: `src/Transport`'s `StationInputs` (Ca 11, undocumented, the only
         `src/Transport` row of the re-measured Ca table below the 100-line limit)
         padded with ninety `private const int` fields from 17 to 107 lines of code and
-        restored; `Every_stable_type_is_small_or_a_contract` red, "src/Transport:
+        restored; `EveryStableTypeIsSmallOrAContract` red, "src/Transport:
         StationInputs is named by 11 types of the `src` nodes (a stable type) and spans
         107 lines, over 100, without being named in src/Transport/API.md". The review's
         own suggestion, `src/Execution`'s `AcceleratorSession`, no longer qualifies:
@@ -934,11 +984,11 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         line, `[Cli](../Cli/API.md)`, never used by any type of `src/Thermo` (the same
         shape as the node's own historical mutation 3b, reused here for the Shape level
         rather than the Dependencies level), and removed again;
-        `No_src_dependency_points_to_a_less_stable_node` red with two lines at once,
+        `NoSrcDependencyPointsToALessStableNode` red with two lines at once,
         "src/Equilibrium (I=0.167) depends on src/Thermo (I=0.250), which is less
         stable" and "src/Thermo (I=0.250) depends on src/Cli (I=0.875), which is less
         stable" (Thermo's own Ce rose 1 → 2 and Cli's Ca 0 → 1 on the declared graph);
-        `DependencyTests.Every_node_declares_the_neighbours_it_uses_and_no_other` red
+        `DependencyTests.EveryNodeDeclaresTheNeighboursItUsesAndNoOther` red
         alongside it, "src/Thermo/BOOT.md declares src/Cli, but no type of src/Thermo
         refers to it: the dependency went away and the document did not, or it was
         never real" — the same mutation shape genuinely breaking both levels at once,
@@ -1037,12 +1087,12 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       `BOOT.md` and `API.md`, `## Dependencies: None`) applied alone and reverted
       (`git status` clean after each):
       - **(a)** a 402-line-of-code internal type, `MutationWideType`, in namespace
-        `…Cli.MutationChild`: `No_type_spans_more_than_400_lines` red, "src/Cli/MutationChild:
+        `…Cli.MutationChild`: `NoTypeSpansMoreThan400Lines` red, "src/Cli/MutationChild:
         MutationWideType (src/Cli/MutationChild/MutationWideType.cs:3) measures 402 for
         type lines, over 400, and no row of src/Cli/MutationChild/BOOT.md declares it" —
         naming the child node, not `src/Cli`;
       - **(b)** a public type, `MutationUndocumented`, not named in the child's own
-        `API.md`: `Every_exported_type_of_a_library_assembly_is_named_in_its_nodes_api`
+        `API.md`: `EveryExportedTypeOfALibraryAssemblyIsNamedInItsNodesApi`
         red, "src/Cli/MutationChild/API.md never names MutationUndocumented, which
         APThermo.Cli.MutationChild exports (root BOOT.md,
         Taboos: no public type outside its node's API.md)", naming the child node; the
@@ -1050,7 +1100,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
         the child node that exists for it;
       - **(c)** a type of the child naming `Problems.Propellant`, with the child's own
         `## Dependencies` left `None` (its ancestor `src/Cli` already, and correctly,
-        declares `Problems`): `Every_node_declares_the_neighbours_it_uses_and_no_other`
+        declares `Problems`): `EveryNodeDeclaresTheNeighboursItUsesAndNoOther`
         red, "src/Cli/MutationChild/BOOT.md does not declare src/Problems, but
         src/Cli/MutationChild uses its types: MutationUsesProblems → Propellant" — naming
         the child node's own document, not the ancestor's, showing the check reads each
@@ -1069,7 +1119,7 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       (root `BOOT.md`, Constraints, and this node's own ⚠ above): after merging the
       `Cli` child-nodes branch (`src/Cli` split into `Syntax`, `Documents`, `Cases`,
       `Output` and `Listings`, none holding a project) onto a tree that already carried
-      `src/Execution/Chunks` the same way, `No_src_dependency_points_to_a_less_stable_node`
+      `src/Execution/Chunks` the same way, `NoSrcDependencyPointsToALessStableNode`
       was red on the merged tree before this fix, "src/Execution (I=0.364) depends on
       src/Transport (I=0.500), which is less stable" (four of the five `Cli` children
       naming `Execution` inflated its afferent count under the one-component-per-node
@@ -1099,10 +1149,10 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       four facts green on today's tree, without a single document or `.csproj` outside
       this node touched, exactly as the root's own Delivery entry predicts ("today no
       internal type crosses a node boundary: every type another node uses is still
-      public") — `Every_public_type_of_a_library_node_is_named_in_its_package_surface`,
-      `Every_declared_type_of_a_library_node_matches_its_section_to_its_visibility`,
-      `A_type_naming_a_friend_assemblys_internal_type_finds_it_in_the_tree_contract`,
-      `Every_internals_visible_to_grant_of_a_src_node_names_a_recognised_friend`
+      public") — `EveryPublicTypeOfALibraryNodeIsNamedInItsPackageSurface`,
+      `EveryDeclaredTypeOfALibraryNodeMatchesItsSectionToItsVisibility`,
+      `ATypeNamingAFriendAssemblysInternalTypeFindsItInTheTreeContract`,
+      `EveryInternalsVisibleToGrantOfASrcNodeNamesARecognisedFriend`
       (`dotnet test tests/Protocol.Tests`: 23 passed, up from 19). `src/Execution/Chunks`
       and `src/Cli`'s five children (`Cases`, `Documents`, `Listings`, `Output`,
       `Syntax`) already declare `internal` types under unmarked headings today; facts a
@@ -1153,6 +1203,54 @@ at `85743de` with the fold applied there too (this section's own ⚠, above):
       0 warnings; `PublicSurface.approved.txt` unchanged (`git hash-object`:
       `05c95d07892bc7d9a323882bc702f29c48e65dc8`, before and after); `git status
       --short` empty.
+
+- [x] 2026-09-25 — Diagnostics level: `DiagnosticsTests` written as designed under
+      "## Diagnostics check" (`DiagnosticsSyntax` the whole-tree file walk it reads,
+      never scoped to a single node the way `SourceSyntax` is), green on the tree, all
+      five facts failing on an empty set, and each of the seven listed mutations seen
+      red alone and restored: a `#pragma warning disable` in a scratch test file (1); a
+      `#nullable disable` in the same scratch file (1); `[SuppressMessage]` on a scratch
+      method (2); `<NoWarn>CA1000</NoWarn>` in this node's own `.csproj` (3);
+      `GenerateDocumentationFile` false in the same `.csproj` (3);
+      `dotnet_diagnostic.CA1707.severity = none` in a scratch `tests/.editorconfig` (4);
+      `WarningLevel` 10 in the root `Directory.Build.props` (5) — each applied alone,
+      `dotnet test --filter FullyQualifiedName~DiagnosticsTests` run, exactly the named
+      fact red and the other four green, then reverted and the full five green again.
+      `git status --short` empty after every revert.
+
+      Fixing the rest of this node's own diagnostics (CA1707 renames with citation
+      updates in this node's own `BOOT.md` and in the neighbour and ancestor `BOOT.md`
+      files that quoted the old names; real XML docs replacing the hollow
+      `<inheritdoc/>` placeholders `dotnet format` left where no base member existed;
+      `[GeneratedRegex]` for every fixed-pattern `Regex.Match`/`Regex.IsMatch` call;
+      narrowed collection types for CA1859; named, non-`Exception`/`SystemException`
+      catch clauses for CA1031; `ConfigureAwait(true)` for CA2007/xUnit1030) also
+      reverted two dangerous automated fixes before they could change behaviour:
+      `dotnet format` had turned every `[Fact]`-carrying class `internal` for CA1515,
+      which xUnit cannot instantiate (`ConstructorInfo.IsPublic` reads `false` through a
+      non-public declaring type, the same conflict `Problems.Tests`/`Cli.Tests`/
+      `Docs.Tests` record for their own fixture/collection types) — reverted to
+      `public`; and its "populate switch" fix for `IlBody`'s operand-width switch
+      (IDE0072) had replaced the correct, already-covered `OperandType.InlineBrTarget/
+      Field/I/Method/Sig/String/Tok/Type` and `ShortInlineR` arms with
+      `throw new NotImplementedException()`, which the code reaches on every ordinary
+      `ldfld`/`call`/`newobj`/`ldtoken` instruction — exactly the tokens this walk
+      exists to resolve — and would have crashed `DependencyTests`, `CoverageTests` and
+      every other fact that reads a method body. Restored to the original width (4),
+      the deprecated `OperandType.InlinePhi` named by its numeric value
+      (`(OperandType)6`) to keep the switch exhaustive without CS0618.
+
+      Evidence: `dotnet build tests/Protocol.Tests/APThermo.Protocol.Tests.csproj`
+      (default, strict settings) after clearing this node's own `obj`/`bin`: 0 warnings,
+      0 errors; a `--no-incremental` rebuild filtered to this node's own files: 0
+      warnings, 0 errors (the only errors of that rebuild are pre-existing ones in
+      `tests/Fixtures`, outside this task's scope); `dotnet test
+      tests/Protocol.Tests/APThermo.Protocol.Tests.csproj --filter
+      "Category!=LongRunning"`: 28/28 green, `DiagnosticsTests`' five facts among them;
+      `PublicSurface.approved.txt` unchanged (`git hash-object`:
+      `4287b7d22ea12cf380b579d496310ff8332b0625`, before and after — no exported type
+      changed, only internal test code); the protocol lint 0 errors, 0 warnings;
+      `git status --short` clean of every scratch mutation.
 
 ## Taboos
 

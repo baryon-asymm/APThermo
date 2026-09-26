@@ -31,12 +31,12 @@ internal sealed class BatchSolve
         }).ToList();
 
         using var solver = Solver.Create(database, new EngineOptions { Accelerator = AcceleratorKind.Cpu });
-        IReadOnlyList<RocketResult> results = solver.Solve(propellant, problems);
+        var results = solver.Solve(propellant, problems);
 
         output.WriteLine("LOX/LH2 O/F=6.0  area ratios [20, 77.5]");
-        foreach (RocketResult result in results)
+        foreach (var result in results)
         {
-            Station exit = result.Stations[^1];
+            var exit = result.Stations[^1];
             var chamberPressure = result.Problem.ChamberPressure / 1e6;
             if (exit.Status != CaseStatus.Ok)
             {

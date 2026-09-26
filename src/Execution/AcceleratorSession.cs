@@ -11,22 +11,26 @@ namespace APThermo.Execution;
 /// </summary>
 internal sealed class AcceleratorSession : IDisposable
 {
-    private readonly Context _context;
     private Accelerator? _accelerator;
-    private NvvmAPI? _nvvm;
-    private AcceleratorInfo? _info;
     private bool _disposed;
 
-    private AcceleratorSession(Context context) => _context = context;
+    private AcceleratorSession(Context context)
+    {
+        Context = context;
+    }
 
     /// <summary>The accelerator; available once the build has attached it.</summary>
     public Accelerator Accelerator => _accelerator ?? throw new InvalidOperationException("the session has no accelerator: its build did not finish.");
 
     /// <summary>The libnvvm binding of the CUDA path, null on the CPU accelerator.</summary>
-    public NvvmAPI? Nvvm => _nvvm;
+    public NvvmAPI? Nvvm { get; private set; }
 
     /// <summary>What the session is bound to, as the results report it.</summary>
-    public AcceleratorInfo Info => _info ?? throw new InvalidOperationException("the session has no description: its build did not finish.");
+    public AcceleratorInfo Info
+    {
+        get => field ?? throw new InvalidOperationException("the session has no description: its build did not finish.");
+        private set;
+    }
 
     /// <summary>Builds a session around a context; whatever the build attached, the context included, is disposed when it throws.</summary>
     public static AcceleratorSession Build(Context context, Func<AcceleratorSession, AcceleratorInfo> build)
@@ -36,7 +40,7 @@ internal sealed class AcceleratorSession : IDisposable
         var session = new AcceleratorSession(context);
         try
         {
-            session._info = build(session);
+            session.Info = build(session);
             return session;
         }
         catch
@@ -54,10 +58,10 @@ internal sealed class AcceleratorSession : IDisposable
     }
 
     /// <summary>Hands the libnvvm binding to the session, which owns it from that moment.</summary>
-    public NvvmAPI Attach(NvvmAPI nvvm) => _nvvm = nvvm;
+    public NvvmAPI Attach(NvvmAPI nvvm) => Nvvm = nvvm;
 
     /// <summary>The context the accelerator was created on.</summary>
-    public Context Context => _context;
+    public Context Context { get; }
 
     /// <inheritdoc />
     public void Dispose()
@@ -68,8 +72,8 @@ internal sealed class AcceleratorSession : IDisposable
         }
 
         _disposed = true;
-        _nvvm?.Dispose();
+        Nvvm?.Dispose();
         _accelerator?.Dispose();
-        _context.Dispose();
+        Context.Dispose();
     }
 }

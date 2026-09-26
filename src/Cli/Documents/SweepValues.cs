@@ -17,23 +17,15 @@ internal static class SweepValues
         if (value.ValueKind == JsonValueKind.Array)
         {
             var list = StrictObject.AsNumberList(value, path);
-            if (list.Count == 0)
-            {
-                throw new InputException($"the list at {path} is empty");
-            }
-
-            return list;
+            return list.Count == 0 ? throw new InputException($"the list at {path} is empty") : list;
         }
 
-        if (value.ValueKind != JsonValueKind.Object)
-        {
-            throw new InputException($"expected a list of numbers or a range {{from, to, step}} at {path}, not {StrictObject.Describe(value)}");
-        }
-
-        return ReadRange(new StrictObject(value, path), path);
+        return value.ValueKind != JsonValueKind.Object
+            ? throw new InputException($"expected a list of numbers or a range {{from, to, step}} at {path}, not {StrictObject.Describe(value)}")
+            : ReadRange(new StrictObject(value, path), path);
     }
 
-    private static IReadOnlyList<double> ReadRange(StrictObject range, string path)
+    private static double[] ReadRange(StrictObject range, string path)
     {
         var from = range.Number("from");
         var to = range.Number("to");

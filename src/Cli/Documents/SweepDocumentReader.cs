@@ -25,11 +25,8 @@ internal static class SweepDocumentReader
         }
 
         sweep.Finish();
-        if (ratios is not null && propellant is not ReactantPropellant { OxidizerToFuel: not null })
-        {
-            throw new InputException($"a sweep over oxidizerToFuel at {sweep.Path} needs a propellant given with mixture.oxidizerToFuel");
-        }
-
-        return new SweepDocument(ratios, chamberPressures, pressures, temperatures);
+        return ratios is not null && propellant is not ReactantPropellant { OxidizerToFuel: not null }
+            ? throw new InputException($"a sweep over oxidizerToFuel at {sweep.Path} needs a propellant given with mixture.oxidizerToFuel")
+            : new SweepDocument(ratios, chamberPressures, pressures, temperatures);
     }
 }

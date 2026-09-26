@@ -1,5 +1,4 @@
 using ILGPU;
-using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
 
@@ -21,17 +20,33 @@ internal static class AcceleratorChoice
         ArgumentNullException.ThrowIfNull(options);
         if (options.Accelerator == AcceleratorKind.Cpu)
         {
-            return new AcceleratorDecision(Cpu(null), null, []);
+            return Decided(Cpu(null), null, []);
         }
 
         try
         {
-            return new AcceleratorDecision(Cuda(options), null, []);
+            return Decided(Cuda(options), null, []);
         }
         catch (Exception failure) when (options.Accelerator == AcceleratorKind.Auto && failure is not OutOfMemoryException)
         {
             var tried = failure is AcceleratorUnavailableException refused ? refused.PathsTried : [];
-            return new AcceleratorDecision(Cpu(failure.Message), failure.Message, tried);
+            return Decided(Cpu(failure.Message), failure.Message, tried);
+        }
+    }
+
+    /// <summary>Wraps a created session into its decision; disposes the session if wrapping it fails, since a session that
+    /// does not escape into the returned decision would otherwise leak (CA2000).</summary>
+    private static AcceleratorDecision Decided(AcceleratorSession session, string? cudaSkippedBecause, IReadOnlyList<string> pathsTried)
+    {
+        try
+        {
+            var decision = new AcceleratorDecision(session, cudaSkippedBecause, pathsTried);
+            session = null!;
+            return decision;
+        }
+        finally
+        {
+            session?.Dispose();
         }
     }
 
@@ -53,23 +68,20 @@ internal static class AcceleratorChoice
         }
 
         var (dll, bitcode, tried) = LibDeviceLocator.Locate(options);
-        if (dll is null || bitcode is null)
-        {
-            throw new AcceleratorUnavailableException($"libnvvm ({LibDeviceLocator.LibraryFileName}) and libdevice (libdevice.10.bc) were not found.", tried);
-        }
-
-        return AcceleratorSession.Build(CudaContext(dll, bitcode), session =>
-        {
-            var devices = session.Context.GetCudaDevices();
-            if (options.CudaDeviceIndex < 0 || options.CudaDeviceIndex >= devices.Count)
+        return dll is null || bitcode is null
+            ? throw new AcceleratorUnavailableException($"libnvvm ({LibDeviceLocator.LibraryFileName}) and libdevice (libdevice.10.bc) were not found.", tried)
+            : AcceleratorSession.Build(CudaContext(dll, bitcode), session =>
             {
-                throw new AcceleratorUnavailableException($"CUDA device {options.CudaDeviceIndex} was requested, but {devices.Count} device(s) exist.", [dll, bitcode]);
-            }
+                var devices = session.Context.GetCudaDevices();
+                if (options.CudaDeviceIndex < 0 || options.CudaDeviceIndex >= devices.Count)
+                {
+                    throw new AcceleratorUnavailableException($"CUDA device {options.CudaDeviceIndex} was requested, but {devices.Count} device(s) exist.", [dll, bitcode]);
+                }
 
-            var accelerator = session.Attach(session.Context.CreateCudaAccelerator(options.CudaDeviceIndex));
-            session.Attach(NvvmAPI.Create(dll, bitcode));
-            return new AcceleratorInfo(AcceleratorKind.Cuda, accelerator.Name, LibDevicePostLink.IlgpuVersion, dll, bitcode, accelerator.NumMultiprocessors);
-        });
+                var accelerator = session.Attach(session.Context.CreateCudaAccelerator(options.CudaDeviceIndex));
+                _ = session.Attach(NvvmAPI.Create(dll, bitcode));
+                return new AcceleratorInfo(AcceleratorKind.Cuda, accelerator.Name, LibDevicePostLink.IlgpuVersion, dll, bitcode, accelerator.NumMultiprocessors);
+            });
     }
 
     private static Context CudaContext(string dll, string bitcode)

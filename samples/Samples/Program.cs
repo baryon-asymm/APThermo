@@ -21,7 +21,7 @@ internal static class Program
         ("failures", Failures.Run),
     ];
 
-    public static IReadOnlyList<string> Scenarios { get; } = Table.Select(entry => entry.Name).ToList();
+    public static IReadOnlyList<string> Scenarios { get; } = [.. Table.Select(entry => entry.Name)];
 
     public static int Main(string[] args)
     {

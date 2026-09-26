@@ -74,12 +74,7 @@ internal static class ThermoFile
             i++;
         }
 
-        if (i >= lines.Length)
-        {
-            throw new DatabaseFormatException(fileName, lines.Length, "no 'thermo' line found");
-        }
-
-        return i;
+        return i >= lines.Length ? throw new DatabaseFormatException(fileName, lines.Length, "no 'thermo' line found") : i;
     }
 
     private static (IReadOnlyList<double> Bounds, string Date) ParseHeader(string line, string? fileName, int lineNumber)
@@ -97,11 +92,8 @@ internal static class ThermoFile
             bounds.Add(value);
         }
 
-        if (bounds.Count == 0)
-        {
-            throw new DatabaseFormatException(fileName, lineNumber, "the line after 'thermo' must start with the interval bounds");
-        }
-
-        return (bounds, string.Join(' ', tokens.Skip(k)));
+        return bounds.Count == 0
+            ? throw new DatabaseFormatException(fileName, lineNumber, "the line after 'thermo' must start with the interval bounds")
+            : (bounds, string.Join(' ', tokens.Skip(k)));
     }
 }

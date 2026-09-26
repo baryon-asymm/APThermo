@@ -31,20 +31,17 @@ internal sealed class StrictObject
 
     public string? OptionalString(string name) => Take(name) is { } value ? AsString(value, PathOf(name)) : null;
 
-    public bool OptionalBool(string name, bool fallback)
-    {
-        if (Take(name) is not { } value)
-        {
-            return fallback;
-        }
-
-        return value.ValueKind switch
-        {
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => throw new InputException($"expected true or false at {PathOf(name)}, not {Describe(value)}"),
-        };
-    }
+    public bool OptionalBool(string name, bool fallback) =>
+        Take(name) is not { } value
+            ? fallback
+            : value.ValueKind switch
+            {
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Undefined or JsonValueKind.Object or JsonValueKind.Array or JsonValueKind.String or JsonValueKind.Number or JsonValueKind.Null =>
+                    throw new InputException($"expected true or false at {PathOf(name)}, not {Describe(value)}"),
+                _ => throw new InputException($"expected true or false at {PathOf(name)}, not {Describe(value)}"),
+            };
 
     public StrictObject Object(string name) => new(Required(name), PathOf(name));
 
@@ -54,12 +51,9 @@ internal sealed class StrictObject
     {
         var value = Required(name);
         var path = PathOf(name);
-        if (value.ValueKind != JsonValueKind.Array)
-        {
-            throw new InputException($"expected an array at {path}, not {Describe(value)}");
-        }
-
-        return value.EnumerateArray().Select((item, i) => new StrictObject(item, $"{path}[{i}]")).ToList();
+        return value.ValueKind != JsonValueKind.Array
+            ? throw new InputException($"expected an array at {path}, not {Describe(value)}")
+            : [.. value.EnumerateArray().Select((item, i) => new StrictObject(item, $"{path}[{i}]"))];
     }
 
     public IReadOnlyList<double>? OptionalNumberList(string name) => Take(name) is { } value ? AsNumberList(value, PathOf(name)) : null;
@@ -72,12 +66,9 @@ internal sealed class StrictObject
         }
 
         var path = PathOf(name);
-        if (value.ValueKind != JsonValueKind.Array)
-        {
-            throw new InputException($"expected an array of strings at {path}, not {Describe(value)}");
-        }
-
-        return value.EnumerateArray().Select((item, i) => AsString(item, $"{path}[{i}]")).ToList();
+        return value.ValueKind != JsonValueKind.Array
+            ? throw new InputException($"expected an array of strings at {path}, not {Describe(value)}")
+            : [.. value.EnumerateArray().Select((item, i) => AsString(item, $"{path}[{i}]"))];
     }
 
     public IReadOnlyDictionary<string, double> NumberMap(string name) => AsNumberMap(Required(name), PathOf(name));
@@ -107,26 +98,16 @@ internal sealed class StrictObject
         }
 
         var number = value.GetDouble();
-        if (!double.IsFinite(number))
-        {
-            throw new InputException($"the number at {path} is out of range");
-        }
-
-        return number;
+        return double.IsFinite(number) ? number : throw new InputException($"the number at {path} is out of range");
     }
 
     public static string AsString(JsonElement value, string path) =>
         value.ValueKind == JsonValueKind.String ? value.GetString()! : throw new InputException($"expected a string at {path}, not {Describe(value)}");
 
-    public static IReadOnlyList<double> AsNumberList(JsonElement value, string path)
-    {
-        if (value.ValueKind != JsonValueKind.Array)
-        {
-            throw new InputException($"expected an array of numbers at {path}, not {Describe(value)}");
-        }
-
-        return value.EnumerateArray().Select((item, i) => AsNumber(item, $"{path}[{i}]")).ToList();
-    }
+    public static IReadOnlyList<double> AsNumberList(JsonElement value, string path) =>
+        value.ValueKind != JsonValueKind.Array
+            ? throw new InputException($"expected an array of numbers at {path}, not {Describe(value)}")
+            : [.. value.EnumerateArray().Select((item, i) => AsNumber(item, $"{path}[{i}]"))];
 
     public static IReadOnlyDictionary<string, double> AsNumberMap(JsonElement value, string path)
     {
@@ -155,6 +136,7 @@ internal sealed class StrictObject
         JsonValueKind.Number => "a number",
         JsonValueKind.True or JsonValueKind.False => "a boolean",
         JsonValueKind.Null => "null",
+        JsonValueKind.Undefined => "nothing",
         _ => "nothing",
     };
 
@@ -164,7 +146,7 @@ internal sealed class StrictObject
     {
         if (_element.TryGetProperty(name, out var value))
         {
-            _seen.Add(name);
+            _ = _seen.Add(name);
             return value;
         }
 

@@ -141,13 +141,13 @@ internal static class ReferenceComparison
     private static double FieldValue(Station station, string name)
     {
         var fieldName = char.ToUpperInvariant(name[0]) + name[1..];
-        var stateField = typeof(MixtureState).GetField(fieldName, BindingFlags.Public | BindingFlags.Instance);
+        var stateField = typeof(MixtureState).GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance);
         if (stateField is not null)
         {
             return (double)stateField.GetValue(station.State)!;
         }
 
-        var figureField = typeof(PerformanceFigures).GetField(fieldName, BindingFlags.Public | BindingFlags.Instance)
+        var figureField = typeof(PerformanceFigures).GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance)
                           ?? throw new InvalidOperationException($"the fixture output {name} has no field in MixtureState or PerformanceFigures");
         return (double)figureField.GetValue(station.Performance ?? throw new InvalidOperationException($"{name} is a performance field but the station has no figures"))!;
     }

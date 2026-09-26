@@ -9,11 +9,17 @@ namespace APThermo.Docs.Tests;
 /// `CommandLineExampleTests.cs` carried its own copy, narrower than the parser (`devices` accepts `--format` but
 /// the copy did not declare it) and never caught the drift, since nothing compared the copy with its source.
 /// </summary>
-internal static class CommandSynopses
+internal static partial class CommandSynopses
 {
-    private static readonly Regex Heading = new(@"^##\s+Command line\b", RegexOptions.Compiled);
-    private static readonly Regex BracketGroup = new(@"\[([^\[\]]+)\]", RegexOptions.Compiled);
-    private static readonly Regex LeadingVerb = new(@"^(\S+)", RegexOptions.Compiled);
+    private static readonly Regex Heading = MyRegex();
+    private static readonly Regex BracketGroup = BracketGroupRegex();
+    private static readonly Regex LeadingVerb = LeadingVerbRegex();
+
+    [GeneratedRegex(@"\[([^\[\]]+)\]")]
+    private static partial Regex BracketGroupRegex();
+
+    [GeneratedRegex(@"^(\S+)")]
+    private static partial Regex LeadingVerbRegex();
 
     /// <summary>Every command synopsis declared by `src/Cli/API.md`'s `## Command line` block, keyed by the first token after `apthermo`.</summary>
     public static IReadOnlyDictionary<string, (int MaxPositional, string[] ValueOptions, string[] FlagOptions)> FromCliApi()
@@ -44,11 +50,11 @@ internal static class CommandSynopses
 
     private static string[] FindConsoleBlockAfter(string[] lines, int headingLine, string path)
     {
-        foreach (var candidate in GuideDocuments.FencedBlocks(lines[headingLine..], path))
+        foreach (var (info, body, _) in GuideDocuments.FencedBlocks(lines[headingLine..], path))
         {
-            if (candidate.Info.Equals("console", StringComparison.OrdinalIgnoreCase))
+            if (info.Equals("console", StringComparison.OrdinalIgnoreCase))
             {
-                return candidate.Body;
+                return body;
             }
         }
 
@@ -109,4 +115,7 @@ internal static class CommandSynopses
 
         return maxPositional;
     }
+
+    [GeneratedRegex(@"^##\s+Command line\b", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

@@ -17,14 +17,16 @@ namespace APThermo.Problems.Tests;
 /// regrouping of batches, a renaming or a reordering of code must not move a line of <c>Bits.approved.txt</c>; a mismatch is
 /// either a defect of the refactoring or a numerical change that must be named and re-approved in the same commit.
 /// </summary>
-[Collection(SolverCollection.Name)]
-public sealed class BitSnapshotTests(SolverFixture fixture)
+[Collection("solver")]
+public sealed class BitSnapshotTests
 {
+    /// <summary>The path of this node's approved bit snapshot, platform-specific (root BOOT.md, Constraints).</summary>
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
 
+    /// <summary>Every fixture gives the recorded bits.</summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void Every_fixture_gives_the_recorded_bits()
+    public void EveryFixtureGivesTheRecordedBits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
         var problems = new List<string>();
@@ -32,8 +34,8 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
         foreach (var path in FixtureFiles.Enumerate("rocket"))
         {
             var c = CeaFixtures.Load(path);
-            var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-            var result = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
+            var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+            var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
             Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
         }
 
@@ -42,15 +44,15 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
             foreach (var path in FixtureFiles.Enumerate(kind))
             {
                 var c = CeaFixtures.Load(path);
-                var propellant = FixtureCases.PropellantOf(fixture.Database, c);
-                var result = fixture.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
+                var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
+                var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
                 Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
             }
         }
 
         foreach (var stale in snapshot.StaleKeys(keys))
         {
-            problems.Add($"{stale}: recorded in Bits.approved.txt but no enumerated fixture produced it");
+            problems.Add($"{stale}: recorded in Bits.approved.txt but no enumerated SolverFixture.Shared produced it");
         }
 
         Assert.True(problems.Count == 0,
@@ -83,23 +85,23 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
         var hash = new BitHash();
         foreach (var element in mixture.Elements)
         {
-            hash.Add(mixture.ElementMoles[element]);
+            _ = hash.Add(mixture.ElementMoles[element]);
         }
 
-        hash.Add(mixture.Enthalpy!.Value);
-        hash.Add(mixtureMass);
+        _ = hash.Add(mixture.Enthalpy!.Value);
+        _ = hash.Add(mixtureMass);
 
         foreach (var station in stations)
         {
             WriteState(hash, station.State);
 
-            hash.Add(station.Performance.HasValue);
+            _ = hash.Add(station.Performance.HasValue);
             if (station.Performance is { } figures)
             {
                 WriteFigures(hash, figures);
             }
 
-            hash.Add(station.Transport.HasValue);
+            _ = hash.Add(station.Transport.HasValue);
             if (station.Transport is { } transport)
             {
                 WriteTransport(hash, transport);
@@ -107,26 +109,26 @@ public sealed class BitSnapshotTests(SolverFixture fixture)
 
             foreach (var name in species)
             {
-                hash.Add(station.MoleFractions.GetValueOrDefault(name));
+                _ = hash.Add(station.MoleFractions.GetValueOrDefault(name));
             }
 
             foreach (var name in species)
             {
                 if (station.CondensedMassFractions.TryGetValue(name, out var massFraction))
                 {
-                    hash.Add(massFraction);
+                    _ = hash.Add(massFraction);
                 }
             }
 
-            hash.Add((int)station.Status);
-            hash.Add(station.TransportStatus.HasValue);
+            _ = hash.Add((int)station.Status);
+            _ = hash.Add(station.TransportStatus.HasValue);
             if (station.TransportStatus is { } transportStatus)
             {
-                hash.Add((int)transportStatus);
+                _ = hash.Add((int)transportStatus);
             }
         }
 
-        hash.Add((int)caseStatus);
+        _ = hash.Add((int)caseStatus);
         return hash;
     }
 

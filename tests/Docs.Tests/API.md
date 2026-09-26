@@ -32,7 +32,7 @@ region-name closure.
 
 ⚠ 2026-09-17 (third docs audit, this task): the first row did not yet prove a marked
 region physically sits inside the scenario's own `Run` method (ma2, closed by
-`Each_scenario_body_region_lies_inside_its_class_Run_method`); a new L1b row is added
+`EachScenarioBodyRegionLiesInsideItsClassRunMethod`); a new L1b row is added
 for the scenario-table fact `ci.yml`'s packaged-library step depends on (ma1). The
 third row's "every other verb is a counted, declared synopsis, except the two
 deterministic ones" is corrected: `devices` and `--version` are the only verbs left

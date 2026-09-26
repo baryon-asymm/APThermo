@@ -10,16 +10,17 @@ namespace APThermo.Docs.Tests;
 /// </summary>
 public sealed class FenceTagTests
 {
+    /// <summary>Every fence carries a tag from the allow list.</summary>
     [Fact]
-    public void Every_fence_carries_a_tag_from_the_allow_list()
+    public void EveryFenceCarriesATagFromTheAllowList()
     {
         var fences = new List<(string File, int Line, string Info)>();
         foreach (var file in GuideDocuments.SnippetSources())
         {
             var lines = GuideDocuments.Lines(file);
-            foreach (var block in GuideDocuments.FencedBlocks(lines, file))
+            foreach (var (info, _, startLine) in GuideDocuments.FencedBlocks(lines, file))
             {
-                fences.Add((file, block.StartLine, block.Info));
+                fences.Add((file, startLine, info));
             }
         }
 

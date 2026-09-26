@@ -5,11 +5,9 @@ using ILGPU.Runtime;
 namespace APThermo.Thermo.Tests;
 
 /// <summary>L1: the species functions inside an ILGPU kernel on the CPU accelerator give the same bits as the host calls.</summary>
-public sealed class KernelEqualityTests : IClassFixture<CpuFixture>
+public sealed class KernelEqualityTests
 {
-    private readonly CpuFixture _cpu;
-
-    public KernelEqualityTests(CpuFixture cpu) => _cpu = cpu;
+    private static readonly CpuFixture Cpu = new();
 
     private const int ValuesPerPoint = 6;
 
@@ -25,11 +23,12 @@ public sealed class KernelEqualityTests : IClassFixture<CpuFixture>
         results[i * ValuesPerPoint + 5] = SpeciesFunctions.IsInRange(table, j, t) ? 1.0 : 0.0;
     }
 
+    /// <summary>Kernel and host give the same bits.</summary>
     [Fact]
-    public void Kernel_and_host_give_the_same_bits()
+    public void KernelAndHostGiveTheSameBits()
     {
         string[] names = ["H2O", "CO2", "H2", "N2", "AL2O3(a)", "AL2O3(L)", "C(gr)", "W(cr)", "e-"];
-        using var buffers = _cpu.Upload(names);
+        using var buffers = Cpu.Upload(names);
         var view = buffers.View;
         double[] temperatures = [150.0, 200.0, 298.15, 500.0, 1000.0, 1000.0001, 2327.0, 3000.0, 6000.0, 6000.5, 12000.0, 25000.0];
 
@@ -44,12 +43,12 @@ public sealed class KernelEqualityTests : IClassFixture<CpuFixture>
             }
         }
 
-        using var speciesBuffer = _cpu.Accelerator.Allocate1D(species.ToArray());
-        using var temperatureBuffer = _cpu.Accelerator.Allocate1D(points.ToArray());
-        using var resultBuffer = _cpu.Accelerator.Allocate1D<double>(points.Count * ValuesPerPoint);
-        var kernel = _cpu.Accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, ArrayView<int>, ArrayView<double>, ArrayView<double>>(Evaluate);
+        using var speciesBuffer = Cpu.Accelerator.Allocate1D(species.ToArray());
+        using var temperatureBuffer = Cpu.Accelerator.Allocate1D(points.ToArray());
+        using var resultBuffer = Cpu.Accelerator.Allocate1D<double>(points.Count * ValuesPerPoint);
+        var kernel = Cpu.Accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, ArrayView<int>, ArrayView<double>, ArrayView<double>>(Evaluate);
         kernel(points.Count, view, speciesBuffer.View, temperatureBuffer.View, resultBuffer.View);
-        _cpu.Accelerator.Synchronize();
+        Cpu.Accelerator.Synchronize();
         var results = resultBuffer.GetAsArray1D();
 
         var compared = 0;

@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- TargetFramework, ImplicitUsings and Nullable are set once, for every project, in the root
+       Directory.Build.props (Diagnostics, 2026-09-24). -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <!-- Default build mode: the library projects directly, so a change in src/ is visible immediately. -->

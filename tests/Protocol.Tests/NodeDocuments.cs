@@ -6,14 +6,14 @@ namespace APThermo.Protocol.Tests;
 /// What a node's own <c>BOOT.md</c> declares: the links of its <c>## Dependencies</c> section, and the rows of its
 /// <c>## Shape exceptions</c> table (2026-09-14).
 /// </summary>
-internal static class NodeDocuments
+internal static partial class NodeDocuments
 {
     /// <summary>The nodes a BOOT.md declares in its `## Dependencies` section: every link resolving to a node's API.md, and the
     /// links that resolve to none.</summary>
     public static (IReadOnlySet<Node> Nodes, IReadOnlyList<string> Unresolved) DeclaredDependencies(Node node)
     {
         var boot = File.ReadAllText(node.Boot).ReplaceLineEndings("\n");
-        var section = Regex.Match(boot, @"^## Dependencies\s*$(.*?)(?=^## |\z)", RegexOptions.Multiline | RegexOptions.Singleline);
+        var section = DependenciesSectionRegex().Match(boot);
         var declared = new HashSet<Node>();
         var unresolved = new List<string>();
         if (!section.Success)
@@ -22,7 +22,7 @@ internal static class NodeDocuments
         }
 
         var byDirectory = Tree.Nodes.ToDictionary(n => Path.GetFullPath(n.Directory), n => n, StringComparer.OrdinalIgnoreCase);
-        foreach (Match link in Regex.Matches(section.Groups[1].Value, @"\]\(([^)\s]+)\)"))
+        foreach (Match link in LinkRegex().Matches(section.Groups[1].Value))
         {
             var target = link.Groups[1].Value;
             if (!target.EndsWith("API.md", StringComparison.Ordinal))
@@ -33,7 +33,7 @@ internal static class NodeDocuments
             var directory = Path.GetFullPath(Path.Combine(node.Directory, Path.GetDirectoryName(target) ?? string.Empty));
             if (byDirectory.TryGetValue(directory, out var found))
             {
-                declared.Add(found);
+                _ = declared.Add(found);
             }
             else
             {
@@ -50,15 +50,14 @@ internal static class NodeDocuments
     public static IReadOnlyList<ShapeException> ShapeExceptions(Node node)
     {
         var boot = File.ReadAllText(node.Boot).ReplaceLineEndings("\n");
-        var section = Regex.Match(boot, @"^## Shape exceptions\s*$(.*?)(?=^## |\z)", RegexOptions.Multiline | RegexOptions.Singleline);
+        var section = ShapeExceptionsSectionRegex().Match(boot);
         if (!section.Success)
         {
             return [];
         }
 
         var rows = new List<ShapeException>();
-        var pattern = @"^\|\s*(?<where>[^|\r\n]+?)\s*\|\s*(?<rule>[^|\r\n]+?)\s*\|\s*(?<measured>\d+)\s*\|\s*(?<reason>[^|\r\n]+?)\s*\|\s*$";
-        foreach (Match row in Regex.Matches(section.Groups[1].Value, pattern, RegexOptions.Multiline))
+        foreach (Match row in ShapeExceptionRowRegex().Matches(section.Groups[1].Value))
         {
             rows.Add(new ShapeException(StripBackticks(row.Groups["where"].Value), row.Groups["rule"].Value,
                 int.Parse(row.Groups["measured"].Value), row.Groups["reason"].Value));
@@ -68,4 +67,16 @@ internal static class NodeDocuments
     }
 
     private static string StripBackticks(string cell) => cell.Length >= 2 && cell[0] == '`' && cell[^1] == '`' ? cell[1..^1] : cell;
+
+    [GeneratedRegex(@"^## Dependencies\s*$(.*?)(?=^## |\z)", RegexOptions.Multiline | RegexOptions.Singleline)]
+    private static partial Regex DependenciesSectionRegex();
+
+    [GeneratedRegex(@"\]\(([^)\s]+)\)")]
+    private static partial Regex LinkRegex();
+
+    [GeneratedRegex(@"^## Shape exceptions\s*$(.*?)(?=^## |\z)", RegexOptions.Multiline | RegexOptions.Singleline)]
+    private static partial Regex ShapeExceptionsSectionRegex();
+
+    [GeneratedRegex(@"^\|\s*(?<where>[^|\r\n]+?)\s*\|\s*(?<rule>[^|\r\n]+?)\s*\|\s*(?<measured>\d+)\s*\|\s*(?<reason>[^|\r\n]+?)\s*\|\s*$", RegexOptions.Multiline)]
+    private static partial Regex ShapeExceptionRowRegex();
 }

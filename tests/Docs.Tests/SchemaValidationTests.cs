@@ -12,8 +12,9 @@ namespace APThermo.Docs.Tests;
 /// </summary>
 public sealed class SchemaValidationTests
 {
+    /// <summary>Every document under samples cli validates against its schema.</summary>
     [Fact]
-    public void Every_document_under_samples_cli_validates_against_its_schema()
+    public void EveryDocumentUnderSamplesCliValidatesAgainstItsSchema()
     {
         var documents = GuideDocuments.CliDocuments();
         Assert.True(documents.Count > 0, "no document was found under samples/cli/");
@@ -69,9 +70,9 @@ public sealed class SchemaValidationTests
     /// <summary>The schema as `apthermo schema &lt;name&gt;` prints it: read in-process through the command line's tree contract.</summary>
     private static JsonSchema Schema(string name)
     {
-        var output = new StringWriter();
-        var error = new StringWriter();
-        var code = APThermo.Cli.Program.Run(["schema", name], output, error);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var code = Cli.Program.Run(["schema", name], output, error);
         Assert.True(code == 0, $"apthermo schema {name} exited with {code}: {error}");
         return JsonSchema.Parse(output.ToString());
     }

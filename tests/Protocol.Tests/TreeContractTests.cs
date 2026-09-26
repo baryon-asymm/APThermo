@@ -16,29 +16,36 @@ namespace APThermo.Protocol.Tests;
 /// </summary>
 public sealed class TreeContractTests
 {
+    /// <summary>Every public type of a library node is named in its API.md's package surface section.</summary>
     [Fact]
-    public void Every_public_type_of_a_library_node_is_named_in_its_package_surface()
+    public void EveryPublicTypeOfALibraryNodeIsNamedInItsPackageSurface()
     {
         var problems = LibraryNodes().SelectMany(PackageSurfaceProblems).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>Every declared type of a library node's API.md matches its own section (package surface or tree contract)
+    /// to its reflected visibility (public or internal).</summary>
     [Fact]
-    public void Every_declared_type_of_a_library_node_matches_its_section_to_its_visibility()
+    public void EveryDeclaredTypeOfALibraryNodeMatchesItsSectionToItsVisibility()
     {
         var problems = LibraryNodes().SelectMany(SectionVisibilityProblems).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>A type naming a friend assembly's internal type, through an InternalsVisibleTo grant, finds that internal
+    /// type declared in the friend's own tree contract.</summary>
     [Fact]
-    public void A_type_naming_a_friend_assemblys_internal_type_finds_it_in_the_tree_contract()
+    public void ATypeNamingAFriendAssemblysInternalTypeFindsItInTheTreeContract()
     {
         var problems = NodeAssemblies.CodeNodes.SelectMany(TreeContractCrossingProblems).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
+    /// <summary>Every InternalsVisibleTo grant of a src node's assembly names a recognised friend: a node its own
+    /// `## Dependencies` declares, or a test or benchmark node that uses it.</summary>
     [Fact]
-    public void Every_internals_visible_to_grant_of_a_src_node_names_a_recognised_friend()
+    public void EveryInternalsVisibleToGrantOfASrcNodeNamesARecognisedFriend()
     {
         var problems = NodeAssemblies.Assemblies.Keys.Where(node => node.IsSrc).SelectMany(GrantProblems).ToList();
         Assert.True(problems.Count == 0, string.Join("\n", problems));
@@ -73,7 +80,7 @@ public sealed class TreeContractTests
         var sections = new Dictionary<string, HashSet<bool>>(StringComparer.Ordinal);
         foreach (var (name, treeContract) in ApiDeclarations.DeclaredTypeSections(File.ReadAllText(node.Api)))
         {
-            (sections.TryGetValue(name, out var flags) ? flags : sections[name] = []).Add(treeContract);
+            _ = (sections.TryGetValue(name, out var flags) ? flags : sections[name] = []).Add(treeContract);
         }
 
         foreach (var (name, flags) in sections.OrderBy(pair => pair.Key, StringComparer.Ordinal))
@@ -94,17 +101,11 @@ public sealed class TreeContractTests
             return null; // DeclarationTests already reports a declaration with no matching type.
         }
 
-        if (type.IsVisible && !sections.Contains(false))
-        {
-            return $"{name} is public, and declared only in a tree-contract section (root BOOT.md, Delivery: Tree contracts)";
-        }
-
-        if (!type.IsVisible && sections.Contains(false))
-        {
-            return $"{name} is internal, and declared in a package-surface section (root BOOT.md, Delivery: Tree contracts)";
-        }
-
-        return null;
+        return type.IsVisible && !sections.Contains(false)
+            ? $"{name} is public, and declared only in a tree-contract section (root BOOT.md, Delivery: Tree contracts)"
+            : !type.IsVisible && sections.Contains(false)
+            ? $"{name} is internal, and declared in a package-surface section (root BOOT.md, Delivery: Tree contracts)"
+            : null;
     }
 
     /// <summary>Every internal type a node's own code names across an assembly boundary, other than the two exemptions
@@ -131,22 +132,13 @@ public sealed class TreeContractTests
     private static string? CrossingProblem(Node node, Assembly? ownAssembly, Node? mirrored, Type type, Type referenced)
     {
         var target = NodeAssemblies.NodeOf(referenced);
-        if (target is null || target == node || target.IsDescendantOf(node) || referenced.IsVisible)
-        {
-            return null;
-        }
-
-        if (NodeAssemblies.AssemblyOf(target) == ownAssembly || (mirrored is not null && (target == mirrored || target.IsDescendantOf(mirrored))))
-        {
-            return null;
-        }
-
-        if (ApiDeclarations.NamesTypeInTreeContract(File.ReadAllText(target.Api), TypeShape.SimpleName(referenced)))
-        {
-            return null;
-        }
-
-        return $"{Tree.Relative(node.Boot)}: {TypeShape.SimpleName(TypeShape.Outermost(type))} names {TypeShape.SimpleName(referenced)}, an " +
+        return target is null || target == node || target.IsDescendantOf(node) || referenced.IsVisible
+            ? null
+            : NodeAssemblies.AssemblyOf(target) == ownAssembly || (mirrored is not null && (target == mirrored || target.IsDescendantOf(mirrored)))
+            ? null
+            : ApiDeclarations.NamesTypeInTreeContract(File.ReadAllText(target.Api), TypeShape.SimpleName(referenced))
+            ? null
+            : $"{Tree.Relative(node.Boot)}: {TypeShape.SimpleName(TypeShape.Outermost(type))} names {TypeShape.SimpleName(referenced)}, an " +
                $"internal type of {target.Name}, and {Tree.Relative(target.Api)} does not declare it in a tree-contract section " +
                "(root BOOT.md, Delivery: Tree contracts)";
     }
@@ -155,14 +147,14 @@ public sealed class TreeContractTests
     /// contracts), or null when the node is not shaped that way or names no such node.</summary>
     private static Node? MirroredSourceNode(Node node)
     {
-        const string Prefix = "tests/";
-        const string Suffix = ".Tests";
-        if (!node.RelativePath.StartsWith(Prefix, StringComparison.Ordinal) || !node.RelativePath.EndsWith(Suffix, StringComparison.Ordinal))
+        const string prefix = "tests/";
+        const string suffix = ".Tests";
+        if (!node.RelativePath.StartsWith(prefix, StringComparison.Ordinal) || !node.RelativePath.EndsWith(suffix, StringComparison.Ordinal))
         {
             return null;
         }
 
-        var name = node.RelativePath[Prefix.Length..^Suffix.Length];
+        var name = node.RelativePath[prefix.Length..^suffix.Length];
         return Tree.Nodes.FirstOrDefault(candidate => candidate.RelativePath == "src/" + name);
     }
 
@@ -188,12 +180,9 @@ public sealed class TreeContractTests
 
         var granteeAssembly = NodeAssemblies.Assemblies.Values.FirstOrDefault(assembly => assembly.GetName().Name == grant);
         var grantee = granteeAssembly is null ? null : NodeAssemblies.NodeOf(granteeAssembly);
-        if (grantee is null || granteeAssembly is null)
-        {
-            return $"{Tree.Relative(node.Boot)}: grants InternalsVisibleTo to {grant}, which is not a node of the tree and not ILGPURuntime";
-        }
-
-        return GrantIsJustified(node, grantee, granteeAssembly)
+        return grantee is null || granteeAssembly is null
+            ? $"{Tree.Relative(node.Boot)}: grants InternalsVisibleTo to {grant}, which is not a node of the tree and not ILGPURuntime"
+            : GrantIsJustified(node, grantee, granteeAssembly)
             ? null
             : $"{Tree.Relative(node.Boot)}: grants InternalsVisibleTo to {grant}, but {Tree.Relative(grantee.Boot)} neither declares " +
               $"{node.Name} in its ## Dependencies nor names a tree-contract type of it (root BOOT.md, Delivery: Tree contracts)";

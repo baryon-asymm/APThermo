@@ -24,11 +24,24 @@ internal static class FixtureCases
     /// <summary>Unit of the fixtures' element moles (kmol per kg) in the library's (mol per kg).</summary>
     public const double KilomolesToMoles = 1.0e3;
 
-    public static IEnumerable<object[]> Names(string kind) =>
-        FixtureFiles.Enumerate(kind).Select(path => new object[] { Path.GetFileNameWithoutExtension(path) });
+    /// <summary>Every fixture name of <paramref name="kind"/>, one theory row each.</summary>
+    public static TheoryData<string> Names(string kind) =>
+        [.. FixtureFiles.Enumerate(kind).Select(path => Path.GetFileNameWithoutExtension(path)!)];
 
-    public static IEnumerable<object[]> NamesWithReactants() =>
-        KindsWithReactants.SelectMany(kind => FixtureFiles.Enumerate(kind).Select(path => new object[] { kind, Path.GetFileNameWithoutExtension(path) }));
+    /// <summary>Every (kind, name) pair of <see cref="KindsWithReactants"/>, one theory row each.</summary>
+    public static TheoryData<string, string> NamesWithReactants()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var kind in KindsWithReactants)
+        {
+            foreach (var path in FixtureFiles.Enumerate(kind))
+            {
+                data.Add(kind, Path.GetFileNameWithoutExtension(path)!);
+            }
+        }
+
+        return data;
+    }
 
     public static CeaCase Load(string kind, string name) => CeaFixtures.Load(Path.Combine(FixtureFiles.Root, kind, name + ".json"));
 
@@ -62,40 +75,40 @@ internal static class FixtureCases
             {
                 var formula = r.GetProperty("formula").EnumerateObject().Select(p => new ElementCount(p.Name, p.Value.GetDouble())).ToList();
                 var definition = new CustomReactantDefinition(formula, r.GetProperty("enthalpy").GetDouble(), temperature!.Value);
-                builder.Custom(Reactant.Custom(name, definition, role, massFraction));
+                _ = builder.Custom(Reactant.Custom(name, definition, role, massFraction));
             }
             else
             {
-                builder.Add(Reactant.FromDatabase(name, role, massFraction, temperature));
+                _ = builder.Add(Reactant.FromDatabase(name, role, massFraction, temperature));
             }
         }
 
         if (ratio is { } value)
         {
-            builder.OxidizerToFuelRatio(value);
+            _ = builder.OxidizerToFuelRatio(value);
         }
 
         var omit = OmitOf(c);
         if (omit.Count > 0)
         {
-            builder.Omit([.. omit]);
+            _ = builder.Omit([.. omit]);
         }
 
         if (OnlyOf(c) is { } only)
         {
-            builder.Only([.. only]);
+            _ = builder.Only([.. only]);
         }
 
         return builder.Build();
     }
 
-    public static IReadOnlyList<string> OmitOf(CeaCase c) => c.Inputs.GetProperty("omit").EnumerateArray().Select(e => e.GetString()!).ToList();
+    public static IReadOnlyList<string> OmitOf(CeaCase c) => [.. c.Inputs.GetProperty("omit").EnumerateArray().Select(e => e.GetString()!)];
 
     /// <summary>The explicit product list the reference was given, or null when it selected the products from the elements.</summary>
     public static IReadOnlyList<string>? OnlyOf(CeaCase c) =>
         c.Inputs.TryGetProperty("only", out var only) ? only.EnumerateArray().Select(e => e.GetString()!).ToList() : null;
 
-    public static IReadOnlyList<string> ProductsOf(CeaCase c) => c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!).ToList();
+    public static IReadOnlyList<string> ProductsOf(CeaCase c) => [.. c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!)];
 
     /// <summary>The fixture's element moles in kmol per kg, by symbol.</summary>
     public static IReadOnlyDictionary<string, double> ElementMolesOf(CeaCase c) =>
@@ -120,8 +133,8 @@ internal static class FixtureCases
         {
             ChamberPressure = inputs.GetProperty("chamberPressure").GetDouble(),
             Flow = FlowOf(inputs.GetProperty("flow").GetString()!),
-            PressureRatios = inputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble()).ToList(),
-            AreaRatios = inputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble()).ToList(),
+            PressureRatios = [.. inputs.GetProperty("pressureRatios").EnumerateArray().Select(e => e.GetDouble())],
+            AreaRatios = [.. inputs.GetProperty("areaRatios").EnumerateArray().Select(e => e.GetDouble())],
             Transport = inputs.GetProperty("transport").GetBoolean(),
         };
     }
@@ -158,9 +171,7 @@ internal static class FixtureCases
 
     /// <summary>The fixture stations the result's stations correspond to: chamber, throat, then the exits without the subsonic ones.</summary>
     public static IReadOnlyList<JsonElement> ReferenceStationsOf(CeaCase c) =>
-        c.Outputs.GetProperty("stations").EnumerateArray()
-            .Where(s => !s.GetProperty("station").GetString()!.StartsWith("subsonic", StringComparison.Ordinal))
-            .ToList();
+        [.. c.Outputs.GetProperty("stations").EnumerateArray().Where(s => !s.GetProperty("station").GetString()!.StartsWith("subsonic", StringComparison.Ordinal))];
 
     /// <summary>
     /// The stations at which the reference's reacting conductivity carries its documented defect (Fixtures BOOT.md): those where the
@@ -176,7 +187,7 @@ internal static class FixtureCases
         }
 
         var reference = ReferenceStationsOf(c);
-        var table = SpeciesTable.Build(fixture.Database, ElementMolesOf(c).Keys.ToList(), species);
+        var table = SpeciesTable.Build(fixture.Database, [.. ElementMolesOf(c).Keys], species);
         var transport = TransportTable.Build(fixture.Database.Transport!, table);
         using var tables = fixture.Engine.Upload(table, transport);
         var batch = new TransportBatch(reference.Count, table.SpeciesCount);
@@ -202,7 +213,7 @@ internal static class FixtureCases
         {
             if (result.Status[s] == CaseStatus.Ok && result.Figures[s].TraceEliminations > 0)
             {
-                defective.Add(s);
+                _ = defective.Add(s);
             }
         }
 

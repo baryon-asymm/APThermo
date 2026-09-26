@@ -11,7 +11,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ✅ (2026-09-14) |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
-| Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`) | ✅ |
+| Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -145,18 +145,18 @@ libdevice for the CUDA category.
       description, paths nowhere, discovery paths, the variable forbids CUDA and
       `Auto` falls back, no driver loaded when forbidden, the ILGPU assertion,
       wrapper names, inconsistent batches refused, chunk bounds, result layouts),
-      `ProbeKernelTests` (`The_cpu_accelerator_reproduces_dotnet_math_exactly`,
-      `Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`).
-- [x] 2026-09-12 — L2 green: `BatchTests` (`A_rocket_family_equals_the_host_solver_bit_for_bit`
-      over every family, `Chunking_and_repetition_do_not_change_a_bit`,
-      `The_transport_pass_equals_the_host_evaluation_bit_for_bit`,
-      `An_equilibrium_family_equals_the_host_solver_bit_for_bit`); `CudaTests`
-      (`A_rocket_family_on_cuda_matches_the_cpu_accelerator` over every family with
-      the transport pass, `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`,
-      `The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`);
-      `SpeciesFunctionTests` (`The_cpu_accelerator_equals_the_host_functions_bit_for_bit`,
-      `Cuda_matches_the_cpu_accelerator_within_the_table`,
-      `A_species_index_outside_the_table_is_refused_before_any_kernel_runs`).
+      `ProbeKernelTests` (`TheCpuAcceleratorReproducesDotnetMathExactly`,
+      `CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`).
+- [x] 2026-09-12 — L2 green: `BatchTests` (`ARocketFamilyEqualsTheHostSolverBitForBit`
+      over every family, `ChunkingAndRepetitionDoNotChangeABit`,
+      `TheTransportPassEqualsTheHostEvaluationBitForBit`,
+      `AnEquilibriumFamilyEqualsTheHostSolverBitForBit`); `CudaTests`
+      (`ARocketFamilyOnCudaMatchesTheCpuAccelerator` over every family with
+      the transport pass, `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`,
+      `TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`);
+      `SpeciesFunctionTests` (`TheCpuAcceleratorEqualsTheHostFunctionsBitForBit`,
+      `CudaMatchesTheCpuAcceleratorWithinTheTable`,
+      `ASpeciesIndexOutsideTheTableIsRefusedBeforeAnyKernelRuns`).
 - [x] 2026-09-12 — Benchmark approved file present with the measured figures and the
       date of the measurement on the reference machine (`Throughput.approved.txt`:
       RTX 5070 Ti, 100 000 cases, 4 stations, 11 species, CUDA 0.170 s, CPU
@@ -174,13 +174,13 @@ libdevice for the CUDA category.
 - [x] 2026-09-14 — The three facts of 2026-09-14 (the level table's second L0 row):
       the `Auto` fallback with discovery off and the explicit paths nowhere yields
       the CPU engine and `CudaSkippedBecause` naming what was missing and the paths
-      tried (`AcceleratorChoiceTests.An_auto_fallback_says_why_cuda_was_skipped_and_which_paths_were_tried`,
-      the mirror of `An_explicit_cuda_request_with_paths_nowhere_names_every_path_tried`),
+      tried (`AcceleratorChoiceTests.AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried`,
+      the mirror of `AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`),
       red against the code of `8e36a27` (where `AcceleratorInfo` said nothing) before
       `c10ab0e`; `ScratchBytes` of zero or less refused at `Create` naming the option
-      (`Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`); the post-link's
+      (`ChunksAreBoundedByTheChunkSizeAndTheScratchMemory`); the post-link's
       missing-definition check names the wrapper when handed a wrapper body with one
-      definition removed, without a GPU (`PostLinkTests.A_wrapper_body_with_one_definition_removed_names_that_wrapper`
+      definition removed, without a GPU (`PostLinkTests.AWrapperBodyWithOneDefinitionRemovedNamesThatWrapper`
       and its two siblings) — the first non-degeneracy proof of the guard behind the
       node's third invariant.
 - [x] 2026-09-14 — The support code in shape (the test review's F-TF-06 and F-TF-13):
@@ -197,15 +197,15 @@ libdevice for the CUDA category.
       node's mutations re-run alone and seen red where the touched code moved: the
       rocket kernel's chamber pressure perturbed by a relative `1e-12`
       (`batch.ChamberPressures[index] * (1.0 + 1e-12)` in `Kernels.Rocket`) reddened
-      `A_rocket_family_equals_the_host_solver_bit_for_bit` for every family, and the
+      `ARocketFamilyEqualsTheHostSolverBitForBit` for every family, and the
       chunk bound with its memory clamp removed from `ChunkPlan.For` reddened
-      `Chunks_are_bounded_by_the_chunk_size_and_the_scratch_memory`; both reverted
+      `ChunksAreBoundedByTheChunkSizeAndTheScratchMemory`; both reverted
       and the suite green again before committing. The hand-typed fact counts left
       the criteria above; the listed names are the list.
 
       ⚠ 2026-09-15: "nested deeper than 3" was not measured: `inventory.py` counts
-      lines only, and `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`
-      and `SpeciesFunctionTests.Cuda_matches_the_cpu_accelerator_within_the_table`
+      lines only, and `BatchTests.ARocketFamilyEqualsTheHostSolverBitForBit`
+      and `SpeciesFunctionTests.CudaMatchesTheCpuAcceleratorWithinTheTable`
       nested 4 deep at this tick's commit (`7a3dedb`). Found by the repair review
       (R-Execution.Tests-4); both were brought to 3 on 2026-09-15 (the criterion
       below), where this document's earlier silence on the point is corrected.
@@ -220,7 +220,7 @@ libdevice for the CUDA category.
       fell from 8 to 5 parameters: the two mole arrays under comparison, the index
       into them and the species table that reads them became `MoleSample` (4
       parameters), a type local to `CudaTests.cs`; its two call sites (one in
-      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator`, the other in the
+      `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`, the other in the
       private `CompareRocket`, itself called from the rocket-family and the sweep
       tests) construct it in place of the four separate parameters.
 
@@ -229,10 +229,10 @@ libdevice for the CUDA category.
       criterion below.
 
       Two nesting-depth-4 violations found by the same review were fixed alongside:
-      `BatchTests.A_rocket_family_equals_the_host_solver_bit_for_bit`'s
+      `BatchTests.ARocketFamilyEqualsTheHostSolverBitForBit`'s
       species-by-species mole loop, four levels deep inside the case loop, the
       station loop and its own species loop, moved to `StationMoleDifferences`
-      (nesting 2 on its own); `SpeciesFunctionTests.Cuda_matches_the_cpu_accelerator_within_the_table`'s
+      (nesting 2 on its own); `SpeciesFunctionTests.CudaMatchesTheCpuAcceleratorWithinTheTable`'s
       three-function comparison, four levels deep inside the family loop, the entry
       loop and its own function loop, moved to `CompareFunctions` (nesting 2 on its
       own). Neither method nests deeper than 3 now.
@@ -260,7 +260,7 @@ libdevice for the CUDA category.
       `ExitKinds`) are gone; the four read call sites this document said were
       unchanged (`RocketFamily.Batch`, `RocketFamilies`, `Sweep`, all in
       `FixtureBatches.cs`) and the fifth this document did not mention
-      (`AcceleratorChoiceTests.Inconsistent_batches_are_refused_before_any_kernel_runs`)
+      (`AcceleratorChoiceTests.InconsistentBatchesAreRefusedBeforeAnyKernelRuns`)
       all name `.System.` or `.Mixture.` or `.Exits.` directly now. No behaviour
       changed: the same fields, on the same two records, under new names one level
       down.
@@ -298,10 +298,10 @@ libdevice for the CUDA category.
       now count steps the same way. No behaviour change: the same comparisons, the
       same tolerance calls, the same accumulation — `worst` shared across a test
       method's rocket-then-transport phases
-      (`A_rocket_family_on_cuda_matches_the_cpu_accelerator`) is still one dictionary
+      (`ARocketFamilyOnCudaMatchesTheCpuAccelerator`) is still one dictionary
       shared the same way, now the one instance's private field instead of a local
-      passed to both phases. `ShapeTests.No_type_spans_more_than_400_lines` and
-      `ShapeTests.No_method_spans_more_than_60_lines` both hold for `CudaTests` and
+      passed to both phases. `ShapeTests.NoTypeSpansMoreThan400Lines` and
+      `ShapeTests.NoMethodSpansMoreThan60Lines` both hold for `CudaTests` and
       `GpuCpuComparison`; `GpuCpuComparison`'s own Ce is 8, `CudaTests`' own Ce is 26,
       unchanged from before the cut, both recorded by `CouplingMeasures` and not
       limited, since the root's coupling rule holds for `src` types only.
@@ -314,16 +314,16 @@ libdevice for the CUDA category.
       side at the move. Applies R-Execution.Tests-2 of the repair review.
 
       Verified on the reference machine, `APTHERMO_NO_CUDA` unset, one run at a
-      time: `ProbeKernelTests.Cuda_matches_the_cpu_accelerator_within_the_ulp_bound_for_every_function`
+      time: `ProbeKernelTests.CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`
       green (R-Execution-2's own guard, exercising the merged `CompileWrappers`);
-      `CudaTests.A_rocket_family_on_cuda_matches_the_cpu_accelerator` and
-      `An_equilibrium_family_on_cuda_matches_the_cpu_accelerator` together, 9 of 9
+      `CudaTests.ARocketFamilyOnCudaMatchesTheCpuAccelerator` and
+      `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator` together, 9 of 9
       green (every rocket family plus the equilibrium family, through `Rocket`,
       `Moles`, `CountSteps` and `Record` on real hardware); then
-      `The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
+      `TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`
       alone, green (400 000 stations through `Rocket`, both accelerators agreeing
       within the tolerance table, CUDA deterministic across two runs).
-      `Throughput_is_recorded_and_not_below_the_approved_ratio` was not run, as the
+      `ThroughputIsRecordedAndNotBelowTheApprovedRatio` was not run, as the
       decision records.
 - [x] 2026-09-17 — `Throughput.linux.approved.txt` recorded from a green run under
       WSL2 on the reference machine (.NET SDK 10.0.112, this node's harness change on
@@ -334,20 +334,20 @@ libdevice for the CUDA category.
       invariant's ⚠ above). Before approving, the rest of the same `dotnet test
       tests/Execution.Tests` run was confirmed to need nothing else: 54/55, the one
       failure the expected "no approved throughput file" case, the 100 000-case
-      correctness sweep (`The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`)
+      correctness sweep (`TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`)
       already green in it. With the file in place, the same command gave 55/55; the
       fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
       "Category!=LongRunning"`) stayed 3098/3098 and `protocol_lint` gave 0 errors,
       0 warnings, both unaffected by this node's own change.
 - [x] 2026-09-17 — Shown red once, on Windows: `Throughput.approved.txt`'s `ratio`
       line mutated from `56.28` to `999.00`, then `dotnet test tests/Execution.Tests
-      --filter "FullyQualifiedName~Throughput_is_recorded_and_not_below_the_approved_ratio"`
+      --filter "FullyQualifiedName~ThroughputIsRecordedAndNotBelowTheApprovedRatio"`
       failed — "CUDA/CPU ratio 66.03 fell below 80 % of the approved 999.00
       (Throughput.approved.txt)" — naming the platform's own file, as
       `ApprovedPathFor` picks it. Reverted with `git checkout --
       tests/Execution.Tests/Throughput.approved.txt`; `dotnet test
       tests/Execution.Tests` confirmed 55/55 green again.
-- [x] 2026-09-17 — `Discovery_reports_the_toolkit_paths_it_examined` assumed every
+- [x] 2026-09-17 — `DiscoveryReportsTheToolkitPathsItExamined` assumed every
       machine offers the locator at least one candidate root, so `Assert.NotEmpty(tried)`
       held unconditionally. The first CI run on the public repository (GitHub Actions
       run 35258686217) failed it on `windows-latest`: no CUDA toolkit, no `CUDA_PATH`,
@@ -365,7 +365,7 @@ libdevice for the CUDA category.
       Shown red once: `LibDeviceLocator.Locate`'s internal `tried` list was seeded with
       a bogus `"MUTATION-wrong-shape.txt"` entry before its early-return checks; `dotnet
       test tests/Execution.Tests --filter
-      "FullyQualifiedName~Discovery_reports_the_toolkit_paths_it_examined"` failed —
+      "FullyQualifiedName~DiscoveryReportsTheToolkitPathsItExamined"` failed —
       `Assert.All() Failure: 1 out of 4 items in the collection did not pass` naming the
       bogus entry — then the mutation was reverted and the file diffed byte-identical
       against the pre-mutation copy. Reproduced the CI condition on the reference
@@ -377,9 +377,9 @@ libdevice for the CUDA category.
       Files\NVIDIA GPU Computing Toolkit\CUDA`, versions v12.9/v13.3/v13.4) the same
       overload still found `v13.4`'s dll and bitcode, `tried` non-empty, confirming
       discovery falls back to the directory scan when only the environment variable is
-      missing. `LibDeviceDiscoveryTests.Windows_with_no_cuda_path_and_no_toolkit_base_directory_examines_nothing`
+      missing. `LibDeviceDiscoveryTests.WindowsWithNoCudaPathAndNoToolkitBaseDirectoryExaminesNothing`
       pins the same empty-tried case deterministically, alongside the existing
-      `An_unsupported_platform_does_no_discovery`. Verified on the reference machine at
+      `AnUnsupportedPlatformDoesNoDiscovery`. Verified on the reference machine at
       `a0d0ebf` (which has `CUDA_PATH` set, so the environment fact's non-empty branch
       is exercised for real): `dotnet test tests/Execution.Tests` (CUDA included, the
       new fact among them) 56/56; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
@@ -409,7 +409,7 @@ libdevice for the CUDA category.
         "Category!=LongRunning"`) 3101/3101, matching the Windows count of the same day.
       - Shown red once on both platforms: the fact run in Debug (`dotnet test
         tests/Execution.Tests --filter
-        "FullyQualifiedName~Throughput_is_recorded_and_not_below_the_approved_ratio"`)
+        "FullyQualifiedName~ThroughputIsRecordedAndNotBelowTheApprovedRatio"`)
         against its platform's freshly re-approved, Release-measured file failed with
         the message quoted in the ⚠ above, naming `Throughput.approved.txt` on Windows
         and `Throughput.linux.approved.txt` on Linux.

@@ -1,29 +1,29 @@
-using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
-using APThermo.Transport;
 
 namespace APThermo.Execution.Tests;
 
 /// <summary>L2 on the CPU accelerator: the engine's batches equal the numerical nodes called case by case, bit for bit, whatever the chunking.</summary>
-[Collection(EngineCollection.Name)]
-public sealed class BatchTests(EngineFixture fixture)
+[Collection(EngineFixture.CollectionName)]
+public sealed class BatchTests
 {
-    public static IEnumerable<object[]> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
+    /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
+    public static TheoryData<string> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
 
+    /// <summary>A rocket family equals the host solver bit for bit.</summary>
     [Theory]
     [MemberData(nameof(Families))]
-    public void A_rocket_family_equals_the_host_solver_bit_for_bit(string name)
+    public void ARocketFamilyEqualsTheHostSolverBitForBit(string name)
     {
-        var family = FixtureBatches.Family(fixture.Database, name);
+        var family = FixtureBatches.Family(EngineFixture.Shared.Database, name);
         var batch = family.Batch();
-        using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
-        var result = fixture.Cpu.Run(tables, batch);
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
+        var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         var differences = new List<string>();
         var stationCount = result.StationCount;
         for (var k = 0; k < batch.Count; k++)
         {
-            var host = HostSolves.Rocket(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
+            var host = HostSolves.Rocket(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
             var label = family.Members[k];
             if (host.Status != result.Status[k])
             {
@@ -61,15 +61,16 @@ public sealed class BatchTests(EngineFixture fixture)
         }
     }
 
+    /// <summary>Chunking and repetition do not change a bit.</summary>
     [Fact]
-    public void Chunking_and_repetition_do_not_change_a_bit()
+    public void ChunkingAndRepetitionDoNotChangeABit()
     {
-        var family = FixtureBatches.RocketFamilies(fixture.Database)[0];
+        var family = FixtureBatches.RocketFamilies(EngineFixture.Shared.Database)[0];
         var batch = family.Batch();
         Assert.True(batch.Count >= 3);
-        using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
-        var first = fixture.Cpu.Run(tables, batch);
-        var second = fixture.Cpu.Run(tables, batch);
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
+        var first = EngineFixture.Shared.Cpu.Run(tables, batch);
+        var second = EngineFixture.Shared.Cpu.Run(tables, batch);
         using var chunked = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 2 });
         using var chunkedTables = chunked.Upload(family.Table, family.Transport);
         var third = chunked.Run(chunkedTables, batch);
@@ -82,7 +83,7 @@ public sealed class BatchTests(EngineFixture fixture)
         AssertSameRocketBits(first, fourth);
 
         var transport = TransportBatch.FromRocket(first);
-        var transportFirst = fixture.Cpu.Run(tables, transport);
+        var transportFirst = EngineFixture.Shared.Cpu.Run(tables, transport);
         var transportChunked = chunked.Run(chunkedTables, transport);
         for (var i = 0; i < transport.Count; i++)
         {
@@ -91,21 +92,22 @@ public sealed class BatchTests(EngineFixture fixture)
         }
     }
 
+    /// <summary>The transport pass equals the host evaluation bit for bit.</summary>
     [Fact]
-    public void The_transport_pass_equals_the_host_evaluation_bit_for_bit()
+    public void TheTransportPassEqualsTheHostEvaluationBitForBit()
     {
         var checkedStations = 0;
-        foreach (var family in FixtureBatches.RocketFamilies(fixture.Database).Where(f => f.Inputs.Any(i => i.Transport)))
+        foreach (var family in FixtureBatches.RocketFamilies(EngineFixture.Shared.Database).Where(f => f.Inputs.Any(i => i.Transport)))
         {
             var batch = family.Batch();
-            using var tables = fixture.Cpu.Upload(family.Table, family.Transport);
-            var rocket = fixture.Cpu.Run(tables, batch);
+            using var tables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
+            var rocket = EngineFixture.Shared.Cpu.Run(tables, batch);
             var transport = TransportBatch.FromRocket(rocket);
-            var result = fixture.Cpu.Run(tables, transport);
+            var result = EngineFixture.Shared.Cpu.Run(tables, transport);
             Assert.Equal(transport.Count, result.Count);
             for (var i = 0; i < transport.Count; i++)
             {
-                var host = HostSolves.Transport(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, tables.TransportBuffers!,
+                var host = HostSolves.Transport(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, tables.TransportBuffers!,
                                                                  transport.Temperature[i], transport.Moles, i * family.Table.SpeciesCount);
                 Assert.Equal(host.Status, result.Status[i]);
                 Assert.Empty(Bits.Differences(host.Figures, result.Figures[i], $"{family.Name} station {i}"));
@@ -120,16 +122,17 @@ public sealed class BatchTests(EngineFixture fixture)
         Assert.True(checkedStations > 100, $"only {checkedStations} stations checked");
     }
 
+    /// <summary>An equilibrium family equals the host solver bit for bit.</summary>
     [Fact]
-    public void An_equilibrium_family_equals_the_host_solver_bit_for_bit()
+    public void AnEquilibriumFamilyEqualsTheHostSolverBitForBit()
     {
-        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(fixture.Database, "lox-lh2_of6_pc7MPa");
-        using var tables = fixture.Cpu.Upload(table);
-        var result = fixture.Cpu.Run(tables, batch);
+        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-lh2_of6_pc7MPa");
+        using var tables = EngineFixture.Shared.Cpu.Upload(table);
+        var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         Assert.Equal(cases.Count, result.Count);
         for (var k = 0; k < batch.Count; k++)
         {
-            var host = HostSolves.Equilibrium(fixture.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
+            var host = HostSolves.Equilibrium(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
             Assert.Equal(CaseStatus.Ok, host.Status);
             Assert.Equal(host.Status, result.Status[k]);
             Assert.Equal(host.Iterations, result.Iterations[k]);
@@ -140,7 +143,7 @@ public sealed class BatchTests(EngineFixture fixture)
             }
 
             var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
-            Assert.True(fixture.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{cases[k].Name}: temperature {result.State[k].Temperature} vs {reference}");
+            Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{cases[k].Name}: temperature {result.State[k].Temperature} vs {reference}");
         }
 
         var transport = TransportBatch.FromEquilibrium(result);

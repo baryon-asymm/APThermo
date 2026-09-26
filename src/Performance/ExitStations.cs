@@ -71,6 +71,6 @@ internal static class ExitStations
         }
 
         // The station carries the verdict of the iteration: its figures when the area ratio was met, its status when it was not.
-        AreaRatioIteration.At(in context, in chamber, in throat, value, station, ref estimate);
+        _ = AreaRatioIteration.At(in context, in chamber, in throat, value, station, ref estimate);
     }
 }

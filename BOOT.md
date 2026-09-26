@@ -36,7 +36,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   run the same kernels on both accelerators and compare.
 - **Double precision only.** Numerical nodes contain no `float` or `Half` value or
   operation. Checked by reflection over the numerical assemblies
-  (`Protocol.Tests.InvariantTests.Numerical_nodes_hold_no_single_precision_value_or_operation`).
+  (`Protocol.Tests.InvariantTests.NumericalNodesHoldNoSinglePrecisionValueOrOperation`).
 - **Data come from files.** No thermodynamic or transport coefficient and no atomic
   weight is typed into code: every number comes from the committed NASA files, whose
   upstream commit hash is recorded next to them. Atomic weights are taken from the
@@ -51,7 +51,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
 - **The CPU path needs no NVIDIA software.** No numerical node references the
   `ILGPU.Runtime.Cuda` namespace; only the execution node does, and it works with the
   CPU accelerator when there is no CUDA device or no libdevice. Checked by reflection
-  over every assembly (`Protocol.Tests.InvariantTests.Only_the_execution_node_and_its_tests_name_cuda_types`).
+  over every assembly (`Protocol.Tests.InvariantTests.OnlyTheExecutionNodeAndItsTestsNameCudaTypes`).
 - **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU
   accelerator agree within the tolerance table owned by the execution tests node
   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
@@ -74,7 +74,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   conversion to seconds with g0 = 9.80665 m/s² happens only in the command-line front end.
 - **No hidden state.** A numerical routine takes every input and every scratch area
   through explicit parameters; numerical nodes have no mutable static fields. Checked
-  by reflection (`Protocol.Tests.InvariantTests.Numerical_nodes_have_no_mutable_static_field`).
+  by reflection (`Protocol.Tests.InvariantTests.NumericalNodesHaveNoMutableStaticField`).
 - **Failures are values.** Numerical code reports a per-case status code and never
   throws; the front door node turns statuses into results or exceptions.
 
@@ -168,6 +168,50 @@ delivery (2026-09-15, `## Delivery` below).
   protocol tests node attributes a type to the deepest node whose namespace it carries,
   as AGENTS.md §1 already defines membership by the directory of a file. Decided with
   the user on 2026-09-14 for the phase after the clean-code pass.
+- Diagnostics (2026-09-24): the compiler and every analyzer run at their maximum, every
+  diagnostic is an error, and nothing in the tree is exempt, the test, sample and
+  benchmark nodes included.
+  - `Directory.Build.props` sets, for every project:
+    - `TreatWarningsAsErrors`;
+    - `WarningLevel` 9999, every warning wave present and future;
+    - `Features` `strict`;
+    - `AnalysisLevel` `latest-all`;
+    - `EnforceCodeStyleInBuild`;
+    - `GenerateDocumentationFile`, so CS1591 holds for every publicly visible member,
+      and IDE0005 needs it in the build.
+
+    `Directory.Build.targets` clears the SDK's default `NoWarn`. No project file sets
+    any of these properties itself.
+  - The root `.editorconfig` raises every analyzer diagnostic to a warning
+    (`dotnet_analyzer_diagnostic.severity = warning`). It fixes the options of the style
+    rules to the style the code was written in: `var`, file-scoped namespaces,
+    `_camelCase` private instance fields, PascalCase constants and static fields,
+    parentheses for clarity in mixed logical and relational expressions and none in
+    arithmetic. A style option chooses between two forms; it is never chosen to silence
+    a rule.
+  - No diagnostic is suppressed anywhere:
+    - no `#pragma warning` and no `#nullable disable`;
+    - no `[SuppressMessage]` or `[UnconditionalSuppressMessage]`;
+    - no `NoWarn` and no `WarningsNotAsErrors`;
+    - no severity below `warning` in any `.editorconfig` or `.globalconfig`.
+  - A rule that conflicts with a framework is resolved in code:
+    - test methods are PascalCase (CA1707) and carry XML documentation like any public
+      member (CS1591);
+    - an awaited call in a test says `ConfigureAwait(true)`, which satisfies both CA2007
+      and xUnit1030;
+    - public exceptions carry the standard constructors (CA1032);
+    - the result structs `MixtureState`, `PerformanceFigures` and `TransportFigures`
+      expose properties and value equality (CA1051, CA1815). This breaks the binary
+      surface of 0.1.0, so the next release is 0.2.0 (`CHANGELOG.md`).
+  - A conflict that code cannot resolve goes to the owner; no node declares an exception
+    of its own.
+
+  Checked by every build and by the protocol tests node (`DiagnosticsTests`). Decided
+  with the owner on 2026-09-24, who asked for the maximum and rejected the scoped
+  exceptions proposed for the test nodes (CA1707, CS1591 and CA2007 in the tests;
+  CA1515 in the benchmarks) and for the public exceptions (CA1032). The measurement
+  before the change, at `0899500` with the settings above: 738 diagnostics with the
+  proposed exceptions, about 1 500 without them.
 - Namespaces mirror the directory path from the tree root (AGENTS.md §1). The root
   namespace is `APThermo`; the grouping directories `src/`, `tests/` and `samples/` are
   transparent: `src/Equilibrium` is `APThermo.Equilibrium`, `tests/Equilibrium.Tests` is
@@ -306,7 +350,7 @@ delivery (2026-09-15, `## Delivery` below).
   every child node as a component of its own. Splitting `src/Cli` into five children,
   four of which use `Execution` in their own code, took `Execution`'s afferent count from
   2 to 6 and its instability from 0.667 to 0.400, below `Transport`'s 0.500. That turned
-  `ShapeTests.No_src_dependency_points_to_a_less_stable_node` red although no dependency
+  `ShapeTests.NoSrcDependencyPointsToALessStableNode` red although no dependency
   between the assemblies changed. Stability is a property of what is built and released
   together, and a child node compiles into its ancestor's assembly (the language-and-build
   constraint above). It is not a component, so the sentence now measures the nodes that
@@ -322,12 +366,12 @@ There is no external ancestor: the tree root is the repository root, and the loa
       flow, agree with the NASA CEA reference outputs within the tolerance table of the
       fixtures node. The list of reference files is produced by a directory listing,
       and every file in it is covered:
-      `Problems.Tests.RocketTests.The_rocket_case_reproduces_the_reference_end_to_end`
+      `Problems.Tests.RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
       over every file of `tests/Fixtures/cases/rocket` (89 that day: the four
       propellants with and without transport, and the RP-1311 rocket examples) and
-      `EquilibriumTests.Assigned_temperature_cases_reproduce_the_reference`,
-      `Assigned_enthalpy_cases_reproduce_the_reference`,
-      `Assigned_entropy_cases_reproduce_the_reference` over every tp, hp and sp file
+      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`,
+      `AssignedEnthalpyCasesReproduceTheReference`,
+      `AssignedEntropyCasesReproduceTheReference` over every tp, hp and sp file
       (106). 2026-09-13: 98 rocket and 115 equilibrium files after the
       melting-plateau cases (example 13 and the plateau band), the same tests green.
       The documented defects of the reference (the fixtures node's BOOT.md: the
@@ -338,7 +382,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
       accelerator within the tolerance table; the list of compared fields is produced
       by reflection over the result type
-      (`CudaTests.The_sweep_of_100000_cases_on_cuda_matches_the_cpu_accelerator_and_is_deterministic`
+      (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`
       in the execution tests node, long-running; the table's second tier for mole
       fractions is described under the GPU-equals-CPU invariant above). Re-verified
       2026-09-15 on the decomposed code at `62cd99e`, same test, green on the
@@ -347,7 +391,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
       the CPU accelerator path with all cores on the 100 000-state batch; the measured
       figure is recorded in the benchmark's approved file
       (`tests/Execution.Tests/Throughput.approved.txt`: 56.28×, CUDA 0.170 s against
-      9.544 s; `CudaTests.Throughput_is_recorded_and_not_below_the_approved_ratio`).
+      9.544 s; `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`).
       Re-verified 2026-09-15 on the decomposed code at `62cd99e`, same test,
       `Throughput.approved.txt` unchanged. Re-measured 2026-09-19 in Release, the
       configuration the release runs, as the median of three runs of the release job's
@@ -451,9 +495,9 @@ There is no external ancestor: the tree root is the repository root, and the loa
         `FenceTagTests` for the fences' tags);
       - every `apthermo` invocation shown is run and its output approved, except the
         declared synopses whose output depends on the machine or the release
-        (`CommandLineExampleTests.Every_command_line_invocation_is_a_checked_example_or_a_declared_synopsis`);
+        (`CommandLineExampleTests.EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis`);
       - every sample prints its approved output
-        (`SampleOutputTests.The_scenario_prints_its_approved_output`, `ScenarioTableTests`);
+        (`SampleOutputTests.TheScenarioPrintsItsApprovedOutput`, `ScenarioTableTests`);
       - every link resolves (`LinkTests`);
       - every shown or sample document validates against its schema
         (`SchemaValidationTests`, `CliDocumentTests`);
@@ -467,6 +511,41 @@ There is no external ancestor: the tree root is the repository root, and the loa
       Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
       "Every code block … equals its sample region" predated the snippet markers and
       named only four of the six proofs.
+- [x] 2026-09-25 — Diagnostics (2026-09-24): the tree builds at the maximum of the Diagnostics
+      constraint with 0 warnings and 0 errors, and nothing suppresses a diagnostic.
+      - `DiagnosticsTests` is green, each of its facts shown red once and failing on an
+        empty set.
+      - The bit snapshots are unchanged, and the fast suite and the protocol lint are
+        green.
+      - The execution tests node is green on CUDA on the reference machine, its
+        long-running sweep included, because the result structs changed shape.
+      - The public surface snapshot moves only by the structs' properties and equality,
+        the standard exception constructors (the four library exceptions and the
+        fixtures node's `FixtureFormatException`), the harness's
+        `FixtureFamilies.Of` split into `Keys` and `CasesOf` with its `FixtureFamilyKey`,
+        and the benchmarks node's public `BenchmarkEnvironment` with the new, empty
+        `APThermo.Benchmarks.Runner` section.
+
+      Evidence at `b8cde93`, on the reference machine (Windows), from a tree with every
+      `bin` and `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3108 of 3108, none skipped, `DiagnosticsTests`
+        included (its red-once records are in the protocol tests node's `BOOT.md`);
+      - `dotnet test tests/Execution.Tests -c Release`: 56 of 56 on CUDA, the
+        100 000-case sweep and the throughput tripwire included;
+      - no `Bits*.approved.txt` or `Throughput*.approved.txt` differs from `main`
+        (`0899500`);
+      - the protocol lint: 0 errors, 0 warnings.
+
+      Linux is not part of this evidence. The first CI run of the branch gives it on
+      hosted runners.
+
+      ⚠ 2026-09-25: the surface sentence named only the structs and the four library
+      exceptions. Fixing the test nodes and the benchmarks node moved three more entries
+      for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
+      split of the benchmarks node). Found by the coder of the last step, who raised it
+      rather than editing the root.
 
 ## Taboos
 
@@ -486,6 +565,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - No loosening of a tolerance to turn a test green, and no expected value typed into a
   test when it exists in a fixture file.
 - No public type outside its node's `API.md`: undocumented surface is a contract nobody agreed to.
+- No suppressed diagnostic, in any form or scope: a warning is fixed in the code, and a
+  conflict the code cannot resolve goes to the owner (the Diagnostics constraint).
 
 ## Decomposition
 
@@ -558,7 +639,9 @@ JSON Schema subset validator and the run-section cut of the command line's docum
 `API.md` lists them) and names nothing above
 `Data` and `Fixtures`; `tests/Benchmarks` (2026-09-15) measures how fast the library
 computes, with BenchmarkDotNet, run by hand outside `dotnet test`, its figures recorded
-and never asserted; `samples/Samples` (2026-09-15) shows each consumer scenario as a
+and never asserted (since 2026-09-25 a library, run through its child node
+`tests/Benchmarks/Runner`, the Diagnostics constraint's CA1515 forbidding public types in
+an executable); `samples/Samples` (2026-09-15) shows each consumer scenario as a
 running program over the package surface, the source of the guide's code, and
 `tests/Docs.Tests` (2026-09-15) holds the approved outputs of the samples and
 command-line examples and proves the guide against them (`## Delivery`,

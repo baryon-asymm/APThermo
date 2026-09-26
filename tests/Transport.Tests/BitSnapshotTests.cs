@@ -10,26 +10,27 @@ namespace APThermo.Transport.Tests;
 /// Bits.approved.txt. A tripwire, not a contract (BOOT.md): a decomposition, a renaming or a reordering of code moves no line,
 /// and a line that does move is legitimate only with the numerical change that moved it named in the same commit.
 /// </summary>
-[Collection(CpuCollection.Name)]
-public sealed class BitSnapshotTests(CpuFixture fixture)
+[Collection(CpuFixture.CollectionName)]
+public sealed class BitSnapshotTests
 {
-    /// <summary>The fields of the figures in declaration order; read by reflection, so that a new field cannot be forgotten.</summary>
-    private static readonly IReadOnlyList<FieldInfo> FiguresFields =
-        [.. typeof(TransportFigures).GetFields(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken)];
+    /// <summary>The properties of the figures in declaration order; read by reflection, so that a new one cannot be forgotten.</summary>
+    private static readonly IReadOnlyList<PropertyInfo> FiguresFields =
+        [.. typeof(TransportFigures).GetProperties(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken)];
 
     /// <summary>The committed snapshot: one line per fixture, its path relative to the repository root, a space, the hash.</summary>
     public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Transport.Tests"), "Bits");
 
+    /// <summary>Every fixture with transport gives the recorded bits.</summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void Every_fixture_with_transport_gives_the_recorded_bits()
+    public void EveryFixtureWithTransportGivesTheRecordedBits()
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
         var keys = new List<string>();
         var problems = new List<string>();
-        foreach (var row in TransportHost.RocketCasesWithTransport())
+        foreach (var name in TransportHost.RocketCaseNamesWithTransport())
         {
-            var c = TransportHost.LoadRocket((string)row[0]);
+            var c = TransportHost.LoadRocket(name);
             var key = RelativePath(c);
             keys.Add(key);
             var problem = snapshot.Problem(key, HashOfStations(c));
@@ -50,17 +51,17 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
     }
 
     /// <summary>The SHA-256, lower-case hex, of the raw bits of every station of the case in station order: the figures, then the status.</summary>
-    private string HashOfStations(CeaCase c)
+    private static string HashOfStations(CeaCase c)
     {
-        var (table, transport) = TransportHost.TablesOf(fixture, c);
-        using var speciesBuffers = SpeciesTableBuffers.Upload(fixture.Accelerator, table);
-        using var transportBuffers = TransportTableBuffers.Upload(fixture.Accelerator, transport);
+        var (table, transport) = TransportHost.TablesOf(CpuFixture.Shared, c);
+        using var speciesBuffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        using var transportBuffers = TransportTableBuffers.Upload(CpuFixture.Shared.Accelerator, transport);
         var stations = TransportHost.StationsWithTransport(c);
         Assert.NotEmpty(stations);
         var hash = new BitHash();
         foreach (var station in stations)
         {
-            var evaluation = TransportHost.Evaluate(fixture.Accelerator, speciesBuffers, transportBuffers,
+            var evaluation = TransportHost.Evaluate(CpuFixture.Shared.Accelerator, speciesBuffers, transportBuffers,
                                                     station.GetProperty("temperature").GetDouble(), TransportHost.MolesOf(table, station));
             Append(hash, evaluation);
         }
@@ -76,14 +77,14 @@ public sealed class BitSnapshotTests(CpuFixture fixture)
             var value = field.GetValue(evaluation.Figures)!;
             if (value is double x)
             {
-                hash.Add(x);
+                _ = hash.Add(x);
                 continue;
             }
 
-            hash.Add((int)value);
+            _ = hash.Add((int)value);
         }
 
-        hash.Add((int)evaluation.Status);
+        _ = hash.Add((int)evaluation.Status);
     }
 
     private static string RelativePath(CeaCase c) => Path.GetRelativePath(RepositoryPaths.Root, c.Path).Replace('\\', '/');

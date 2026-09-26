@@ -17,7 +17,7 @@ internal sealed class Failures
 
         try
         {
-            Propellant.From(database).Oxidizer("NOT-A-REACTANT").Fuel("H2(L)").Build();
+            _ = Propellant.From(database).Oxidizer("NOT-A-REACTANT").Fuel("H2(L)").Build();
         }
         catch (KeyNotFoundException exception)
         {
@@ -26,7 +26,7 @@ internal sealed class Failures
 
         try
         {
-            Propellant.From(database)
+            _ = Propellant.From(database)
                 .Oxidizer("O2(L)")
                 .Fuel("H2(L)")
                 .Named("AL(cr)", massFraction: 0.1)
@@ -42,7 +42,7 @@ internal sealed class Failures
         try
         {
             var record = new StateRecord(Pressure: 1.0e6, Composition: composition, Temperature: 3000.0, Enthalpy: -1.0e6);
-            solver.SolveStates([record]);
+            _ = solver.SolveStates([record]);
         }
         catch (StateRecordException exception)
         {
@@ -53,7 +53,7 @@ internal sealed class Failures
         try
         {
             var mixture = ElementalMixture.Create(doubled, enthalpy: -1.0e6);
-            solver.Solve(mixture, new RocketProblem { ChamberPressure = 1.0e6, AreaRatios = [10.0] });
+            _ = solver.Solve(mixture, new RocketProblem { ChamberPressure = 1.0e6, AreaRatios = [10.0] });
         }
         catch (MixtureMassException exception)
         {
@@ -66,7 +66,7 @@ internal sealed class Failures
             .OxidizerToFuelRatio(6.0)
             .Build();
         var result = solver.Solve(propellant, new RocketProblem { ChamberPressure = 7.0e6, PressureRatios = [0.5] });
-        Station exit = result.Stations[^1];
+        var exit = result.Stations[^1];
         output.WriteLine($"a failed station carries a status instead of a partial state: {exit.Status}");
         // snippet-end
     }

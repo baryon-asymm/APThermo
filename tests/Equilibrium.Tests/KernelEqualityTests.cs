@@ -6,46 +6,51 @@ using ILGPU.Runtime;
 
 namespace APThermo.Equilibrium.Tests;
 
-/// <summary>The batch views of one kernel launch: structure of arrays, one case per thread.</summary>
-public readonly struct BatchViews(
-    ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
-    ArrayView<double> elementMoles, ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
-    ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> states,
-    ArrayView<int> statuses, ArrayView<int> iterations)
-{
-    public readonly ArrayView<int> Kinds = kinds;
-    public readonly ArrayView<double> Pressures = pressures;
-    public readonly ArrayView<double> Temperatures = temperatures;
-    public readonly ArrayView<double> Targets = targets;
-    public readonly ArrayView<double> ElementMoles = elementMoles;
-    public readonly ArrayView<double> ScratchDoubles = scratchDoubles;
-    public readonly ArrayView<int> ScratchInts = scratchInts;
-    public readonly ArrayView<double> Moles = moles;
-    public readonly ArrayView<double> Multipliers = multipliers;
-    public readonly ArrayView<MixtureState> States = states;
-    public readonly ArrayView<int> Statuses = statuses;
-    public readonly ArrayView<int> Iterations = iterations;
-}
+/// <summary>
+/// The batch views of one kernel launch: structure of arrays, one case per thread. Internal: ILGPU 1.5.3 needs only
+/// <c>[assembly: InternalsVisibleTo("ILGPURuntime")]</c> on this assembly to reach it as a kernel parameter type
+/// (root BOOT.md, Delivery: Tree contracts), and no consumer outside this node has a reason to name it (CA1515). A
+/// record struct gives it value equality without a hand-written <c>Equals</c>/<c>==</c> (CA1815).
+/// </summary>
+internal readonly record struct BatchViews(
+    ArrayView<int> Kinds, ArrayView<double> Pressures, ArrayView<double> Temperatures, ArrayView<double> Targets,
+    ArrayView<double> ElementMoles, ArrayView<double> ScratchDoubles, ArrayView<int> ScratchInts,
+    ArrayView<double> Moles, ArrayView<double> Multipliers, ArrayView<MixtureState> States,
+    ArrayView<int> Statuses, ArrayView<int> Iterations);
 
 /// <summary>What the kernel wrote for one batch, downloaded once, so that the host call and the kernel call may be compared.</summary>
 internal readonly record struct KernelBatchResult(double[] Moles, double[] Multipliers, MixtureState[] States, int[] Statuses, int[] Iterations);
 
 /// <summary>L1: the solver inside a CPU-accelerator kernel gives the same bits as the host call.</summary>
-[Collection(CpuCollection.Name)]
-public sealed class KernelEqualityTests(CpuFixture fixture)
+[Collection(CpuFixture.CollectionName)]
+public sealed class KernelEqualityTests
 {
-    /// <summary>The families of fixture cases sharing one table (elements and products), largest first; each is one batch.</summary>
-    public static IEnumerable<object[]> Batches() => FixtureFamilies.Of(["tp", "hp", "sp"], HostSolver.TableKey);
+    /// <summary>The kinds whose fixture cases are grouped into batches: one table (elements and products) per batch.</summary>
+    private static readonly string[] Kinds = ["tp", "hp", "sp"];
 
+    /// <summary>The key and case count of every batch, largest first; <see cref="KernelAndHostGiveTheSameBits"/> reads the cases back.</summary>
+    public static TheoryData<string, int> Batches()
+    {
+        var data = new TheoryData<string, int>();
+        foreach (var family in FixtureFamilies.Keys(Kinds, HostSolver.TableKey))
+        {
+            data.Add(family.Key, family.Count);
+        }
+
+        return data;
+    }
+
+    /// <summary>The solver inside a CPU-accelerator kernel gives the same bits as the host call, for one batch.</summary>
     [Theory]
     [MemberData(nameof(Batches))]
-    public void Kernel_and_host_give_the_same_bits(string key, int count, IReadOnlyList<CeaCase> cases)
+    public void KernelAndHostGiveTheSameBits(string key, int count)
     {
+        var cases = FixtureFamilies.CasesOf(Kinds, HostSolver.TableKey, key);
         Assert.Equal(count, cases.Count);
-        var table = HostSolver.BuildTable(fixture.Database, cases[0]);
-        var host = cases.Select(c => HostSolver.Solve(fixture.Accelerator, HostSolver.Of(table, c))).ToList();
+        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, cases[0]);
+        var host = cases.Select(c => HostSolver.Solve(CpuFixture.Shared.Accelerator, HostSolver.Of(table, c))).ToList();
 
-        var kernel = FillAndLaunch(fixture.Accelerator, table, cases, count);
+        var kernel = FillAndLaunch(CpuFixture.Shared.Accelerator, table, cases, count);
         AssertSameBits(host, kernel, table, cases, key);
     }
 
@@ -70,9 +75,9 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
         moles.MemSetToZero();
 
         var batch = new BatchViews(
-            kinds: kinds.View, pressures: pressures.View, temperatures: temperatures.View, targets: targets.View,
-            elementMoles: elementMoles.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
-            moles: moles.View, multipliers: multipliers.View, states: states.View, statuses: statuses.View, iterations: iterations.View);
+            Kinds: kinds.View, Pressures: pressures.View, Temperatures: temperatures.View, Targets: targets.View,
+            ElementMoles: elementMoles.View, ScratchDoubles: scratchDoubles.View, ScratchInts: scratchInts.View,
+            Moles: moles.View, Multipliers: multipliers.View, States: states.View, Statuses: statuses.View, Iterations: iterations.View);
         var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, BatchViews>(SolveKernel);
         kernel(count, buffers.View, batch);
         accelerator.Synchronize();
@@ -81,11 +86,11 @@ public sealed class KernelEqualityTests(CpuFixture fixture)
     }
 
     /// <summary>Every status, iteration count, mole, multiplier and state field of the batch, host against kernel, bit for bit.</summary>
-    private static void AssertSameBits(IReadOnlyList<HostSolution> host, KernelBatchResult kernel, SpeciesTable table, IReadOnlyList<CeaCase> cases, string key)
+    private static void AssertSameBits(List<HostSolution> host, KernelBatchResult kernel, SpeciesTable table, IReadOnlyList<CeaCase> cases, string key)
     {
         var speciesCount = table.SpeciesCount;
         var elementCount = table.ElementCount;
-        var fields = typeof(MixtureState).GetFields();
+        var fields = typeof(MixtureState).GetProperties();
         for (var k = 0; k < host.Count; k++)
         {
             var label = $"{key} {cases[k].Kind}:{cases[k].Name}";

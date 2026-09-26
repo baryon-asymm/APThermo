@@ -35,6 +35,6 @@ internal static class SpeciesFunctionPipeline
         var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
-        return new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, inRange.Select(flag => flag != 0).ToArray(), timer.Timings(), session.Info);
+        return new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, [.. inRange.Select(flag => flag != 0)], timer.Timings(), session.Info);
     }
 }

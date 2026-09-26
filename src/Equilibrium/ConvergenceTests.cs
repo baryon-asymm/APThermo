@@ -28,14 +28,11 @@ internal static class ConvergenceTests
         var worst = Worst(table, scratch, result, layout, sums);
         var deltaLogT = layout.IsTp ? 0.0 : scratch.RightHandSide[layout.TRow];
         var balanced = ElementBalance.WithinReportTest(table, problem, scratch, result);
-        if (!(worst <= CorrectionTest && balanced && (layout.IsTp || Math.Abs(deltaLogT) <= TemperatureTest)))
-        {
-            return ConvergenceVerdict.NotConverged;
-        }
-
-        return worst <= PolishTest && (layout.IsTp || Math.Abs(deltaLogT) <= PolishTest)
-            ? ConvergenceVerdict.Polished
-            : ConvergenceVerdict.ReportTestsMet;
+        return !(worst <= CorrectionTest && balanced && (layout.IsTp || Math.Abs(deltaLogT) <= TemperatureTest))
+            ? ConvergenceVerdict.NotConverged
+            : worst <= PolishTest && (layout.IsTp || Math.Abs(deltaLogT) <= PolishTest)
+                ? ConvergenceVerdict.Polished
+                : ConvergenceVerdict.ReportTestsMet;
     }
 
     /// <summary>Equation (3.5) on the undamped corrections: the largest mole-number correction as a share of the whole mixture.</summary>

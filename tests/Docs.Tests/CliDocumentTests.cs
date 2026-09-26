@@ -10,18 +10,19 @@ namespace APThermo.Docs.Tests;
 /// as a package README's example input, is tied to its `samples/cli/` file through a
 /// `&lt;!-- cli-document: path --&gt;` marker: the following ```json fence must equal that file byte for byte, and the
 /// shown document validates against the schema its top-level directory declares, the same way L5 validates the file
-/// itself (`Every_marked_cli_document_equals_its_samples_cli_file_and_validates_against_its_schema`). A second fact
+/// itself (`EveryMarkedCliDocumentEqualsItsSamplesCliFileAndValidatesAgainstItsSchema`). A second fact
 /// (MA1) requires that marker on every JSON fence of the guide (info `json`, first word, any case): before this task
 /// a JSON fence with no marker at all went entirely unchecked
-/// (`Every_json_fence_is_preceded_by_a_cli_document_marker`).
+/// (`EveryJsonFenceIsPrecededByACliDocumentMarker`).
 /// </summary>
-public sealed class CliDocumentTests
+public sealed partial class CliDocumentTests
 {
-    private static readonly Regex CliDocumentMarker = new(@"^<!--\s*cli-document:\s*([\w./-]+)\s*-->$", RegexOptions.Compiled);
+    private static readonly Regex CliDocumentMarker = MyRegex();
     private static readonly Dictionary<string, string> SchemaOfTopDirectory = new(StringComparer.Ordinal) { ["problems"] = "input", ["states"] = "states" };
 
+    /// <summary>Every marked cli document equals its samples cli file and validates against its schema.</summary>
     [Fact]
-    public void Every_marked_cli_document_equals_its_samples_cli_file_and_validates_against_its_schema()
+    public void EveryMarkedCliDocumentEqualsItsSamplesCliFileAndValidatesAgainstItsSchema()
     {
         var markers = new List<(string File, int Line, string RelativePath)>();
         foreach (var file in GuideDocuments.SnippetSources())
@@ -86,17 +87,17 @@ public sealed class CliDocumentTests
 
     /// <summary>MA1: a shown JSON fence (info string, first word, any case) must carry a `&lt;!-- cli-document: path --&gt;` marker above it, the same rule L1 holds C# fences to.</summary>
     [Fact]
-    public void Every_json_fence_is_preceded_by_a_cli_document_marker()
+    public void EveryJsonFenceIsPrecededByACliDocumentMarker()
     {
         var fences = new List<(string File, int Line)>();
         foreach (var file in GuideDocuments.SnippetSources())
         {
             var lines = GuideDocuments.Lines(file);
-            foreach (var block in GuideDocuments.FencedBlocks(lines, file))
+            foreach (var (info, _, startLine) in GuideDocuments.FencedBlocks(lines, file))
             {
-                if (GuideDocuments.IsJsonFenceInfo(block.Info))
+                if (GuideDocuments.IsJsonFenceInfo(info))
                 {
-                    fences.Add((file, block.StartLine));
+                    fences.Add((file, startLine));
                 }
             }
         }
@@ -126,10 +127,13 @@ public sealed class CliDocumentTests
     /// <summary>The schema as `apthermo schema &lt;name&gt;` prints it: read in-process through the command line's tree contract.</summary>
     private static JsonSchema Schema(string name)
     {
-        var output = new StringWriter();
-        var error = new StringWriter();
-        var code = APThermo.Cli.Program.Run(["schema", name], output, error);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var code = Cli.Program.Run(["schema", name], output, error);
         Assert.True(code == 0, $"apthermo schema {name} exited with {code}: {error}");
         return JsonSchema.Parse(output.ToString());
     }
+
+    [GeneratedRegex(@"^<!--\s*cli-document:\s*([\w./-]+)\s*-->$", RegexOptions.Compiled)]
+    private static partial Regex MyRegex();
 }

@@ -76,12 +76,8 @@ internal static class DerivativeSystem
         return -1;
     }
 
-    private static void Swap(in EquilibriumScratch scratch, int first, int second)
-    {
-        var held = scratch.CondensedInSolution[first];
-        scratch.CondensedInSolution[first] = scratch.CondensedInSolution[second];
-        scratch.CondensedInSolution[second] = held;
-    }
+    private static void Swap(in EquilibriumScratch scratch, int first, int second) =>
+        (scratch.CondensedInSolution[first], scratch.CondensedInSolution[second]) = (scratch.CondensedInSolution[second], scratch.CondensedInSolution[first]);
 
     /// <summary>The tp-shaped matrix at the converged composition with the right-hand side of table 2.3 or of table 2.4.</summary>
     private static void Assemble(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
@@ -131,11 +127,11 @@ internal static class DerivativeSystem
             scratch.RightHandSide[nRow] += nj * weight;
         }
 
-        CloseRows(table, scratch, result, layout, kind);
+        CloseRows(table, scratch, layout, kind);
     }
 
     /// <summary>The Δln n row, the unit rows of the absent elements and the condensed rows. At convergence Σ n_j − n vanishes, so the n-row diagonal is zero.</summary>
-    private static void CloseRows(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+    private static void CloseRows(in SpeciesTableView table, in EquilibriumScratch scratch,
                                   in SystemLayout layout, DerivativeKind kind)
     {
         var speciesCount = table.SpeciesCount;

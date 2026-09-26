@@ -11,16 +11,26 @@ namespace APThermo.Docs.Tests;
 /// </summary>
 public sealed class SampleOutputTests
 {
-    public static IEnumerable<object[]> Scenarios() =>
-        APThermo.Samples.Program.Scenarios.Select(name => new object[] { name, APThermo.Samples.Program.ClassNameOf(name) });
+    /// <summary>The theory data of (scenario, class name) pairs, one per sample scenario.</summary>
+    public static TheoryData<string, string> Scenarios()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var name in Samples.Program.Scenarios)
+        {
+            data.Add(name, Samples.Program.ClassNameOf(name));
+        }
 
+        return data;
+    }
+
+    /// <summary>The scenario prints its approved output.</summary>
     [Theory]
     [MemberData(nameof(Scenarios))]
-    public void The_scenario_prints_its_approved_output(string scenario, string className)
+    public void TheScenarioPrintsItsApprovedOutput(string scenario, string className)
     {
-        var output = new StringWriter();
-        var error = new StringWriter();
-        var code = APThermo.Samples.Program.Run([scenario], output, error);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var code = Samples.Program.Run([scenario], output, error);
         Assert.True(code == 0, $"the scenario '{scenario}' exited with {code}: {error}");
         Assert.True(error.ToString().Length == 0, $"the scenario '{scenario}' wrote to standard error: {error}");
 

@@ -1,4 +1,3 @@
-using APThermo.Equilibrium;
 using APThermo.Fixtures;
 using APThermo.Thermo;
 
@@ -9,8 +8,8 @@ namespace APThermo.Problems.Tests;
 /// and the melting-plateau states the reference cannot provide solve through the front door: the ALN(L) enthalpy
 /// gap of the record another simulation handed over, and a sweep across the alumina plateau by either path.
 /// </summary>
-[Collection(SolverCollection.Name)]
-public sealed class SplitRecordTests(SolverFixture fixture)
+[Collection("solver")]
+public sealed class SplitRecordTests
 {
     /// <summary>How far a pinned station's temperature may lie from a species record's transition bound: two solves of the tree's own code, the numerical solver's own convergence floor at a pinned pair.</summary>
     private const double TransitionBoundTolerance = 0.01;   // K
@@ -18,11 +17,12 @@ public sealed class SplitRecordTests(SolverFixture fixture)
     /// <summary>Two solves of the tree's own code on the same isentrope, or the same station reached by two paths (sequential sweep vs. alone): relative agreement to rounding at every step.</summary>
     private const double OwnCodeIsentropeTolerance = 1e-9;
 
+    /// <summary>A cut species reports one entry under its database name.</summary>
     [Fact]
-    public void A_cut_species_reports_one_entry_under_its_database_name()
+    public void ACutSpeciesReportsOneEntryUnderItsDatabaseName()
     {
         var c = FixtureCases.Load("hp", "ap-htpb-al-fuelrich_of0.5_pc7MPa");
-        var result = fixture.Solver.Solve(FixtureCases.PropellantOf(fixture.Database, c), FixtureCases.EquilibriumProblemOf(c));
+        var result = SolverFixture.Shared.Solver.Solve(FixtureCases.PropellantOf(SolverFixture.Shared.Database, c), FixtureCases.EquilibriumProblemOf(c));
         Assert.Equal(CaseStatus.Ok, result.Status);
         Assert.Equal(1, result.Species.Count(s => s == "ALN(L)"));
         Assert.DoesNotContain(result.Species, s => s.Contains('['));
@@ -31,14 +31,15 @@ public sealed class SplitRecordTests(SolverFixture fixture)
         Assert.True(result.State.CondensedMassFractions.ContainsKey("ALN(L)"), "the condensed report speaks the database name");
     }
 
+    /// <summary>An enthalpy inside the ALN gap solves through the front door.</summary>
     [Fact]
-    public void An_enthalpy_inside_the_ALN_gap_solves_through_the_front_door()
+    public void AnEnthalpyInsideTheALNGapSolvesThroughTheFrontDoor()
     {
         // The record of RejectionTests with an enthalpy inside the ALN(L) 2700 K gap: the state that had no
         // solution before the record was cut (the ⚠ of 2026-09-13 in BOOT.md); the pieces now pin at the cut.
-        var record = fixture.Database["ALN(L)"];
+        var record = SolverFixture.Shared.Database["ALN(L)"];
         var bound = record.Intervals[0].THigh;
-        var result = Assert.Single(fixture.Solver.SolveStates(
+        var result = Assert.Single(SolverFixture.Shared.Solver.SolveStates(
             [new StateRecord(RejectionTests.RecordPressure, RejectionTests.OneKilogram, Enthalpy: -1.7e6)]));
         Assert.Equal(CaseStatus.Ok, result.Status);
         Assert.True(Math.Abs(result.State.State.Temperature - bound) <= TransitionBoundTolerance,
@@ -47,8 +48,9 @@ public sealed class SplitRecordTests(SolverFixture fixture)
         Assert.Equal(0.0, result.State.State.CpEquilibrium);
     }
 
+    /// <summary>A sweep across the alumina plateau stays on the isentrope by either path.</summary>
     [Fact]
-    public void A_sweep_across_the_alumina_plateau_stays_on_the_isentrope_by_either_path()
+    public void ASweepAcrossTheAluminaPlateauStaysOnTheIsentropeByEitherPath()
     {
         // The single-exit plateau fixtures of the case matrix give the ratio band; the sequential multi-exit solve
         // is the tree's own (the reference's sequential path is what the fixtures node's guard rejects there).
@@ -60,11 +62,11 @@ public sealed class SplitRecordTests(SolverFixture fixture)
             .ToList();
         Assert.True(cases.Count >= 3, "the case matrix promises the plateau band and both edges");
         var ratios = cases.Select(c => c.Inputs.GetProperty("pressureRatios")[0].GetDouble()).ToList();
-        var propellant = FixtureCases.PropellantOf(fixture.Database, cases[0], byMassFractions: true);
+        var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, cases[0], byMassFractions: true);
         var chamberPressure = cases[0].Inputs.GetProperty("chamberPressure").GetDouble();
-        var bound = fixture.Database["AL2O3(a)"].Intervals[^1].THigh;
+        var bound = SolverFixture.Shared.Database["AL2O3(a)"].Intervals[^1].THigh;
 
-        var sequential = fixture.Solver.Solve(propellant, new RocketProblem { ChamberPressure = chamberPressure, PressureRatios = ratios });
+        var sequential = SolverFixture.Shared.Solver.Solve(propellant, new RocketProblem { ChamberPressure = chamberPressure, PressureRatios = ratios });
         Assert.Equal(CaseStatus.Ok, sequential.Status);
         var chamber = sequential.Stations[0].State;
         var pinned = 0;
@@ -90,7 +92,7 @@ public sealed class SplitRecordTests(SolverFixture fixture)
         // Path independence: each exit solved alone from its own chamber lands on the same station.
         for (var k = 0; k < cases.Count; k++)
         {
-            var single = fixture.Solver.Solve(propellant, FixtureCases.RocketProblemOf(cases[k]));
+            var single = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.RocketProblemOf(cases[k]));
             Assert.Equal(CaseStatus.Ok, single.Status);
             var alone = single.Stations[^1];
             var swept = sequential.Stations[2 + k];

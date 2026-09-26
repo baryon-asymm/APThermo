@@ -1,5 +1,3 @@
-using APThermo.Equilibrium;
-using APThermo.Performance;
 using APThermo.Thermo;
 using APThermo.Transport;
 using ILGPU;
@@ -51,13 +49,10 @@ internal sealed class Engine : IDisposable
     {
         ArgumentNullException.ThrowIfNull(species);
         ThrowIfDisposed();
-        if (transport is not null && !ReferenceEquals(transport.Species, species))
-        {
-            throw new ArgumentException("the transport table was built for another species table", nameof(transport));
-        }
-
-        return new UploadedTables(this, species, transport, SpeciesTableBuffers.Upload(_session.Accelerator, species),
-                                  transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport));
+        return transport is not null && !ReferenceEquals(transport.Species, species)
+            ? throw new ArgumentException("the transport table was built for another species table", nameof(transport))
+            : new UploadedTables(this, species, transport, SpeciesTableBuffers.Upload(_session.Accelerator, species),
+                                 transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport));
     }
 
     /// <summary>Solves every case of the batch.</summary>

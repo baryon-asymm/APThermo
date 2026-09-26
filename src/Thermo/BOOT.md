@@ -170,14 +170,14 @@ Decisions taken with the reviews of 2026-09-14:
   recorded here instead and the first record's value stands (the review's F-TD-09).
 
   Confirmed 2026-09-14 by a scan of `data/thermo.inp` (2 030 product records; the
-  scan's own count matches `ThermoLoadTests.Every_record_of_the_file_is_parsed`):
+  scan's own count matches `ThermoLoadTests.EveryRecordOfTheFileIsParsed`):
   ten names repeat in the PRODUCTS section — `Co(b)`, `Cr(cr)`, `Cr2O3(I)`, `Fe(a)`,
   `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`, the same ten
   the concatenation list above already named — and none disagrees in
   `FormationEnthalpy`. The join therefore refuses a disagreeing pair exactly as it
   refuses a differing formula or molar mass (`SpeciesResolution.Joins`); the tests
   node exercises the refusal on a synthetic pair, since no real one disagrees
-  (`JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`).
+  (`JoinAndCutTests.RecordsDisagreeingInFormationEnthalpyAreRefusedByName`).
 - **`MixtureMolarMass`'s summary in the code** says what `API.md` has said since
   2026-09-12: one kilogram over the moles of all species, condensed included (the
   review's F-TD-04: the rename of that day changed the field and the document and
@@ -219,13 +219,13 @@ of 14: no efferent coupling row is needed.
       independent Python evaluation of the same records), `Cp°/R`, `H°/RT`, `S°/R`,
       `G°/RT`, the interval used and the range flag equal the fixture within the
       `thermoFunction` entry of the tolerance table (1e-12 relative and absolute):
-      `Thermo.Tests`, `FunctionFixtureTests.Functions_equal_the_independent_evaluation`.
+      `Thermo.Tests`, `FunctionFixtureTests.FunctionsEqualTheIndependentEvaluation`.
 - [x] 2026-09-12 — For `H2O`, `CO2`, `H2`, `N2` the values at 298.15, 1000, 2000 and
       3000 K agree with the NIST-JANAF tables (typed into `tests/Thermo.Tests/janaf.json`
       with the tables' precision and citation) within a tolerance recorded per species
       in that file with the reason: 1e-3 for `H2` and `N2` (worst deviation 2.4e-4),
       2e-3 for `CO2` (worst 1.2e-3, Cp° at 3000 K), 2.5e-2 for `H2O` (worst 1.9e-2, Cp°
-      at 3000 K): `JanafTests.Fits_reproduce_the_JANAF_rows_within_the_recorded_tolerance`.
+      at 3000 K): `JanafTests.FitsReproduceTheJANAFRowsWithinTheRecordedTolerance`.
 
       ⚠ 2026-09-12: stood "within the fit accuracy stated by the NASA report: 0.1 %".
       That figure is the fit's accuracy against its own source data, and the sources of
@@ -237,21 +237,21 @@ of 14: no efferent coupling row is needed.
 - [x] 2026-09-12 — A bound shared by two intervals belongs to the lower one (1000 K,
       6000 K and every joint of `H2O`, `CO2`, `AL2O3(a)`, `W(cr)`), and below the first
       bound or above the last `IsInRange` is `false` while the value is the nearest
-      polynomial's: `IntervalRuleTests` (`A_shared_bound_belongs_to_the_lower_interval`,
-      `Outside_the_range_the_nearest_interval_is_used_and_flagged`) and the out-of-range
+      polynomial's: `IntervalRuleTests` (`ASharedBoundBelongsToTheLowerInterval`,
+      `OutsideTheRangeTheNearestIntervalIsUsedAndFlagged`) and the out-of-range
       points of every `thermo` fixture.
 - [x] 2026-09-12 — The builder's stoichiometry matrix equals the `Data` formulas for
       every entry of the table (the list is generated from the table, not typed), and a
       species with a foreign element is refused with its name and the element's in the
-      message: `TableBuilderTests` (`The_stoichiometry_matrix_equals_the_data_formulas`,
-      `A_species_with_a_foreign_element_is_refused_by_name`, and the order, interval,
+      message: `TableBuilderTests` (`TheStoichiometryMatrixEqualsTheDataFormulas`,
+      `ASpeciesWithAForeignElementIsRefusedByName`, and the order, interval,
       limit and lookup tests of the class).
 - [x] 2026-09-12 — `PhysicalConstants.R` equals the value in the fixture written by
       the reference package (`cases/constants/R.json`, `cea.R`):
-      `FunctionFixtureTests.R_equals_the_reference_package_constant`.
+      `FunctionFixtureTests.REqualsTheReferencePackageConstant`.
 - [x] 2026-09-12 — The functions run unchanged inside an ILGPU kernel on the CPU
       accelerator and give the same bits as the host call, for nine species at twelve
-      temperatures: `KernelEqualityTests.Kernel_and_host_give_the_same_bits` (the
+      temperatures: `KernelEqualityTests.KernelAndHostGiveTheSameBits` (the
       execution tests node covers CUDA).
 - [x] 2026-09-13 — The join-and-cut rule holds on the committed file: `Cr(cr)`
       builds as one species whose range reaches the second record's upper bound,
@@ -260,7 +260,7 @@ of 14: no efferent coupling row is needed.
       concatenate is refused by name (`JoinAndCutTests`, all three facts); the
       functions of the joined `Cr(cr)` and `Fe(a)` and of both `ALN(L)` pieces equal
       the independent evaluation piecewise
-      (`FunctionFixtureTests.Functions_equal_the_independent_evaluation` over their
+      (`FunctionFixtureTests.FunctionsEqualTheIndependentEvaluation` over their
       fixtures, the generator joining records the same way); and every species of
       the four reference propellants' tables builds and compares as before (the
       Equilibrium, Performance and Problems fixture suites of the same day).
@@ -276,13 +276,13 @@ of 14: no efferent coupling row is needed.
       and the fixture tests green, the fast suite green.
 - [x] 2026-09-14 — `PieceOf`, `RecordLow` and `RecordHigh` agree with `IntervalOf` and
       `IsInRange` over every fixture species: `RangeQuestionTests`
-      (`PieceOf_names_the_piece_the_interval_rule_chooses` over `ALN(L)`, the one cut
-      name of the thermo fixtures, `RecordLow_and_RecordHigh_are_the_bounds_IsInRange_uses`
+      (`PieceOfNamesThePieceTheIntervalRuleChooses` over `ALN(L)`, the one cut
+      name of the thermo fixtures, `RecordLowAndRecordHighAreTheBoundsIsInRangeUses`
       over all 40). The two `H°/RT` overloads agree bit for bit over the thermo
       fixtures' species and temperatures (the declared deviation under Invariants):
-      `OverloadPinningTests.Host_and_kernel_enthalpy_sums_give_the_same_bits`, 40
+      `OverloadPinningTests.HostAndKernelEnthalpySumsGiveTheSameBits`, 40
       species. The join refuses a same-name pair that disagrees in formation enthalpy,
-      the rule the scan above decided: `JoinAndCutTests.Records_disagreeing_in_formation_enthalpy_are_refused_by_name`.
+      the rule the scan above decided: `JoinAndCutTests.RecordsDisagreeingInFormationEnthalpyAreRefusedByName`.
 - [x] 2026-09-14 — Every creation of `SpeciesTableView` and `SpeciesTableArrays` in the
       tree names its arguments (the decision on the constructors of the view and the
       arrays), the protocol tests node's named-construction fact green once it exists;
@@ -295,7 +295,7 @@ of 14: no efferent coupling row is needed.
       another parameter; `Thermo.Tests` (378), `Equilibrium.Tests` (463) and
       `Transport.Tests` (157) green; `tests/Thermo.Tests/Bits.approved.txt` unchanged
       (blob `8bd5068e` before and after). The fact,
-      `ShapeTests.Every_wide_constructor_is_called_with_named_arguments`, is designed
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
       and not yet written; it takes over as the evidence when it is.
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite

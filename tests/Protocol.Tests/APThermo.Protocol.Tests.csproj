@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\Transport\APThermo.Transport.csproj" />
     <ProjectReference Include="..\..\samples\Samples\APThermo.Samples.csproj" />
     <ProjectReference Include="..\Benchmarks\APThermo.Benchmarks.csproj" />
+    <ProjectReference Include="..\Benchmarks\Runner\APThermo.Benchmarks.Runner.csproj" />
     <ProjectReference Include="..\Cli.Tests\APThermo.Cli.Tests.csproj" />
     <ProjectReference Include="..\Data.Tests\APThermo.Data.Tests.csproj" />
     <ProjectReference Include="..\Docs.Tests\APThermo.Docs.Tests.csproj" />

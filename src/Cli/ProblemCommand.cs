@@ -62,7 +62,7 @@ internal static class ProblemCommand
             }
 
             var mixture = Propellants.Build((ElementalPropellant)propellant, massTolerance);
-            return (combinations.Select(_ => mixture).ToList(), null);
+            return ([.. combinations.Select(_ => mixture)], null);
         }
         catch (Exception e) when (e is ArgumentException or KeyNotFoundException)
         {

@@ -135,14 +135,14 @@ internal sealed class TransportBatch
     public static TransportBatch FromRocket(RocketBatchResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
-        return new TransportBatch(result.Stations.Select(s => s.Temperature).ToArray(), result.Moles, result.SpeciesCount);
+        return new TransportBatch([.. result.Stations.Select(s => s.Temperature)], result.Moles, result.SpeciesCount);
     }
 
     /// <summary>Every case of an equilibrium batch result; the moles array is shared, not copied.</summary>
     public static TransportBatch FromEquilibrium(EquilibriumBatchResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
-        return new TransportBatch(result.State.Select(s => s.Temperature).ToArray(), result.Moles, result.SpeciesCount);
+        return new TransportBatch([.. result.State.Select(s => s.Temperature)], result.Moles, result.SpeciesCount);
     }
 
     internal void Validate(int speciesCount)

@@ -25,7 +25,7 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
         var warmUp = FixtureBatches.Sweep(family, From, To, 64, 5.0e6, 10.0e6);
 
         using var cpuTables = fixture.Cpu.Upload(family.Table);
-        fixture.Cpu.Run(cpuTables, warmUp);
+        _ = fixture.Cpu.Run(cpuTables, warmUp);
         var (cpu, cpuSeconds) = TimeMedian(TimedRunCount, () => fixture.Cpu.Run(cpuTables, batch));
 
         if (fixture.Cuda is not { } engine)
@@ -36,7 +36,7 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
         using var cudaTables = engine.Upload(family.Table);
         for (var i = 0; i < CudaWarmUpRunCount; i++)
         {
-            engine.Run(cudaTables, warmUp);
+            _ = engine.Run(cudaTables, warmUp);
         }
 
         var (cuda, cudaSeconds, again) = TimeMedianKeepingTwo(engine, cudaTables, batch);

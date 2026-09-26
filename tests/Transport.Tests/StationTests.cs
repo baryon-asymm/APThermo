@@ -9,8 +9,8 @@ namespace APThermo.Transport.Tests;
 /// table; and the node's own invariants (the defect at a trace elimination, the reacting conductivity never below the frozen,
 /// the estimated-species bookkeeping) hold beyond what the reference can check.
 /// </summary>
-[Collection(CpuCollection.Name)]
-public sealed class StationTests(CpuFixture fixture)
+[Collection(CpuFixture.CollectionName)]
+public sealed class StationTests
 {
     /// <summary>The reference's reacting conductivity at a defective station is at least this many times its frozen one (Fixtures BOOT.md).</summary>
     public const double DefectRatio = 10.0;
@@ -18,30 +18,33 @@ public sealed class StationTests(CpuFixture fixture)
     /// <summary>A gaseous species without data carrying this fraction of the gas cannot stay outside the transport set.</summary>
     public const double SurelySelectedFraction = 1e-3;
 
-    public static IEnumerable<object[]> Cases() => TransportHost.RocketCasesWithTransport();
+    /// <summary>The rocket fixture files run with transport, as theory data, delegating to <see cref="TransportHost.RocketCasesWithTransport"/>.</summary>
+    public static TheoryData<string> Cases() => TransportHost.RocketCasesWithTransport();
 
+    /// <summary>Station figures match the reference.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Station_figures_match_the_reference(string name)
+    public void StationFiguresMatchTheReference(string name)
     {
-        var stations = TransportHost.EvaluateStations(fixture, TransportHost.LoadRocket(name));
+        var stations = TransportHost.EvaluateStations(CpuFixture.Shared, TransportHost.LoadRocket(name));
         Assert.NotEmpty(stations);
-        var mismatches = stations.SelectMany(s => FigureComparison.Mismatches(s, fixture.Tolerances)).ToList();
+        var mismatches = stations.SelectMany(s => FigureComparison.Mismatches(s, CpuFixture.Shared.Tolerances)).ToList();
         Assert.True(mismatches.Count == 0, $"{name}:\n" + string.Join("\n", mismatches));
     }
 
+    /// <summary>The reference cpFrozen is the transport set heat capacity.</summary>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void The_reference_cpFrozen_is_the_transport_set_heat_capacity(string name)
+    public void TheReferenceCpFrozenIsTheTransportSetHeatCapacity(string name)
     {
-        var stations = TransportHost.EvaluateStations(fixture, TransportHost.LoadRocket(name));
+        var stations = TransportHost.EvaluateStations(CpuFixture.Shared, TransportHost.LoadRocket(name));
         Assert.NotEmpty(stations);
         var mismatches = new List<string>();
         foreach (var evaluated in stations.Where(s => s.Evaluation.Status == CaseStatus.Ok))
         {
             var expected = evaluated.Station.GetProperty("cpFrozen").GetDouble();
             var actual = evaluated.Evaluation.Figures.FrozenHeatCapacity;
-            if (!fixture.Tolerances.Matches("cpFrozen", expected, actual))
+            if (!CpuFixture.Shared.Tolerances.Matches("cpFrozen", expected, actual))
             {
                 mismatches.Add($"{evaluated.Label} cpFrozen (transport set): reference {expected:R}, tree {actual:R}");
             }
@@ -50,14 +53,15 @@ public sealed class StationTests(CpuFixture fixture)
         Assert.True(mismatches.Count == 0, $"{name}:\n" + string.Join("\n", mismatches));
     }
 
+    /// <summary>Reacting conductivity is never below the frozen one.</summary>
     [Fact]
-    public void Reacting_conductivity_is_never_below_the_frozen_one()
+    public void ReactingConductivityIsNeverBelowTheFrozenOne()
     {
         var mismatches = new List<string>();
-        foreach (var row in Cases())
+        foreach (var name in TransportHost.RocketCaseNamesWithTransport())
         {
-            var c = TransportHost.LoadRocket((string)row[0]);
-            foreach (var evaluated in TransportHost.EvaluateStations(fixture, c).Where(s => s.Evaluation.Status == CaseStatus.Ok))
+            var c = TransportHost.LoadRocket(name);
+            foreach (var evaluated in TransportHost.EvaluateStations(CpuFixture.Shared, c).Where(s => s.Evaluation.Status == CaseStatus.Ok))
             {
                 var figures = evaluated.Evaluation.Figures;
                 if (figures.ReactingConductivity < figures.FrozenConductivity)
@@ -70,15 +74,16 @@ public sealed class StationTests(CpuFixture fixture)
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
     }
 
+    /// <summary>The trace component stations carry the documented reference defect.</summary>
     [Fact]
-    public void The_trace_component_stations_carry_the_documented_reference_defect()
+    public void TheTraceComponentStationsCarryTheDocumentedReferenceDefect()
     {
         var defective = new List<string>();
         var stationsSeen = 0;
-        foreach (var row in Cases())
+        foreach (var name in TransportHost.RocketCaseNamesWithTransport())
         {
-            var c = TransportHost.LoadRocket((string)row[0]);
-            foreach (var evaluated in TransportHost.EvaluateStations(fixture, c))
+            var c = TransportHost.LoadRocket(name);
+            foreach (var evaluated in TransportHost.EvaluateStations(CpuFixture.Shared, c))
             {
                 stationsSeen++;
                 Assert.Equal(CaseStatus.Ok, evaluated.Evaluation.Status);
@@ -99,13 +104,14 @@ public sealed class StationTests(CpuFixture fixture)
         Assert.True(defective.Count > 0, "the documented reference defect no longer occurs: remove the caveat from the Fixtures BOOT.md and this test");
     }
 
+    /// <summary>Species without data are estimated on the aluminized propellant.</summary>
     [Fact]
-    public void Species_without_data_are_estimated_on_the_aluminized_propellant()
+    public void SpeciesWithoutDataAreEstimatedOnTheAluminizedPropellant()
     {
         var c = TransportHost.LoadRocket("ap-htpb-al_pc7MPa_shiftingEquilibrium");
-        var (table, transport) = TransportHost.TablesOf(fixture, c);
+        var (table, transport) = TransportHost.TablesOf(CpuFixture.Shared, c);
         var station = TransportHost.StationsWithTransport(c)[0];
-        var evaluation = TransportHost.Evaluate(fixture.Accelerator, table, transport, station.GetProperty("temperature").GetDouble(),
+        var evaluation = TransportHost.Evaluate(CpuFixture.Shared.Accelerator, table, transport, station.GetProperty("temperature").GetDouble(),
                                                 TransportHost.MolesOf(table, station));
         Assert.Equal(CaseStatus.Ok, evaluation.Status);
         Assert.True(evaluation.Figures.EstimatedSpeciesCount > 0);
@@ -114,9 +120,9 @@ public sealed class StationTests(CpuFixture fixture)
         Assert.Equal(1, evaluation.Figures.Capped);
 
         var mismatches = new List<string>();
-        foreach (var row in Cases())
+        foreach (var name in TransportHost.RocketCaseNamesWithTransport())
         {
-            mismatches.AddRange(EstimationMismatches(TransportHost.LoadRocket((string)row[0])));
+            mismatches.AddRange(EstimationMismatches(TransportHost.LoadRocket(name)));
         }
 
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
@@ -127,11 +133,11 @@ public sealed class StationTests(CpuFixture fixture)
     /// cannot have been left out of the estimate, and the estimated count and mole fraction must agree on whether anything was
     /// estimated. The estimated-species consistency check the reference cannot settle (Transport.Tests BOOT.md, F-TK-05).
     /// </summary>
-    private IReadOnlyList<string> EstimationMismatches(CeaCase c)
+    private static List<string> EstimationMismatches(CeaCase c)
     {
-        var (table, transport) = TransportHost.TablesOf(fixture, c);
+        var (table, transport) = TransportHost.TablesOf(CpuFixture.Shared, c);
         var mismatches = new List<string>();
-        foreach (var evaluated in TransportHost.EvaluateStations(fixture, c, table, transport).Where(s => s.Evaluation.Status == CaseStatus.Ok))
+        foreach (var evaluated in TransportHost.EvaluateStations(CpuFixture.Shared, c, table, transport).Where(s => s.Evaluation.Status == CaseStatus.Ok))
         {
             var figures = evaluated.Evaluation.Figures;
             var gas = TransportHost.GasFractionsOf(table, evaluated.Station);

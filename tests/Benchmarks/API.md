@@ -8,14 +8,22 @@ undocumented (root taboo).
 
 ## Entry point ✅
 
+The node is a library since 2026-09-25; the entry point is its child node
+[Runner](Runner/API.md), which the reader runs:
+
+```console
+dotnet run -c Release --project tests/Benchmarks/Runner -- [BenchmarkDotNet arguments]
+# e.g. --list flat, --filter *UserStates*, --job Dry
+```
+
+## Configuration ✅
+
 ```csharp
 namespace APThermo.Benchmarks;
 
-// dotnet run -c Release --project tests/Benchmarks -- [BenchmarkDotNet arguments]
-// e.g. --list flat, --filter *UserStates*, --job Dry
-public static class Program
+public static class BenchmarkEnvironment
 {
-    public static int Main(string[] args);   // BenchmarkSwitcher over the groups below, BenchmarkEnvironment.Config
+    public static IConfig Config { get; }                    // the one job of BOOT.md, Constraints, Configuration
 }
 ```
 
@@ -36,7 +44,7 @@ public class BatchThroughputBenchmarks
     public int CaseCount { get; set; }                       // [Params] 1000, 10000, 100000
     public AcceleratorKind Accelerator { get; set; }          // [Params] Cpu, Cuda
     public void Setup();                                      // [GlobalSetup]
-    public RocketBatchResult SolveBatch();                    // [Benchmark]
+    public void SolveBatch();                                 // [Benchmark] — RocketBatchResult is a tree-contract type (CS0050); a Consumer consumes it
     public void Cleanup();                                    // [GlobalCleanup]
 }
 
@@ -74,14 +82,14 @@ public class OneTimeCostBenchmarks
 {
     public void Setup();                                       // [GlobalSetup]
     public SpeciesDatabase LoadDatabase();                      // [Benchmark]
-    public SpeciesTable AssembleChemicalSystem();                // [Benchmark]
+    public void AssembleChemicalSystem();                       // [Benchmark] — SpeciesTable is a tree-contract type (CS0050); a Consumer consumes it
     public void SetupUpload();                                  // [IterationSetup(Target = nameof(UploadSpeciesTable))]
-    public UploadedTables UploadSpeciesTable();                  // [Benchmark]
+    public void UploadSpeciesTable();                           // [Benchmark] — UploadedTables is a tree-contract type (CS0050); kept in a field, disposed by SetupUpload/Cleanup
     public void SetupCpuCompile();                              // [IterationSetup(Target = nameof(CompileCpuKernel))]
-    public EquilibriumBatchResult CompileCpuKernel();            // [Benchmark]
+    public void CompileCpuKernel();                             // [Benchmark] — EquilibriumBatchResult is a tree-contract type (CS0050); a Consumer consumes it
     public void CleanupCpuCompile();                            // [IterationCleanup(Target = nameof(CompileCpuKernel))]
     public void SetupCudaCompile();                             // [IterationSetup(Target = nameof(CompileCudaKernel))]
-    public EquilibriumBatchResult CompileCudaKernel();           // [Benchmark]
+    public void CompileCudaKernel();                            // [Benchmark] — EquilibriumBatchResult is a tree-contract type (CS0050); a Consumer consumes it
     public void CleanupCudaCompile();                           // [IterationCleanup(Target = nameof(CompileCudaKernel))]
     public void Cleanup();                                      // [GlobalCleanup]
 }

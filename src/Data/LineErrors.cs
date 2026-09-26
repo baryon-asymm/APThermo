@@ -3,7 +3,23 @@ namespace APThermo.Data;
 /// <summary>A field-level format error, stamped with the 0-based index of the line it was read from.</summary>
 internal sealed class FieldException(int lineIndex, string message, Exception? inner) : FormatException(message, inner)
 {
+    /// <summary>The 0-based index of the line the field was read from.</summary>
     public int LineIndex { get; } = lineIndex;
+
+    /// <summary>Initializes a new instance with a neutral line index of 0.</summary>
+    public FieldException() : this(0, "A field-level format error occurred.", null)
+    {
+    }
+
+    /// <summary>Initializes a new instance with the given message and a neutral line index of 0.</summary>
+    public FieldException(string message) : this(0, message, null)
+    {
+    }
+
+    /// <summary>Initializes a new instance with the given message and inner exception and a neutral line index of 0.</summary>
+    public FieldException(string message, Exception innerException) : this(0, message, innerException)
+    {
+    }
 }
 
 /// <summary>
@@ -34,13 +50,6 @@ internal static class LineErrors
     });
 
     /// <summary>The line at <paramref name="index"/>, or a <see cref="DatabaseFormatException"/> naming the file's end when <paramref name="context"/> (e.g. "a record", "the block of H2") runs out of lines.</summary>
-    public static string Require(string[] lines, int index, string? fileName, string context)
-    {
-        if (index >= lines.Length)
-        {
-            throw new DatabaseFormatException(fileName, lines.Length, $"file ends inside {context}");
-        }
-
-        return lines[index];
-    }
+    public static string Require(string[] lines, int index, string? fileName, string context) =>
+        index >= lines.Length ? throw new DatabaseFormatException(fileName, lines.Length, $"file ends inside {context}") : lines[index];
 }

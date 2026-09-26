@@ -1,28 +1,20 @@
 namespace APThermo.Transport;
 
-/// <summary>The per-species runs collected by the build of a <see cref="TransportTable"/>; host side, written once.</summary>
-internal sealed class SpeciesRuns
+/// <summary>The per-species runs collected by the build of a <see cref="TransportTable"/>; host side, written once.
+/// Allocates the per-species arrays of a table of the given size.</summary>
+internal sealed class SpeciesRuns(int speciesCount)
 {
-    /// <summary>Allocates the per-species arrays of a table of the given size.</summary>
-    public SpeciesRuns(int speciesCount)
-    {
-        ViscosityStart = new int[speciesCount];
-        ViscosityCount = new int[speciesCount];
-        ConductivityStart = new int[speciesCount];
-        ConductivityCount = new int[speciesCount];
-    }
-
     /// <summary>[species] first fit of the viscosity run.</summary>
-    public int[] ViscosityStart { get; }
+    public int[] ViscosityStart { get; } = new int[speciesCount];
 
     /// <summary>[species] viscosity fits; zero without data.</summary>
-    public int[] ViscosityCount { get; }
+    public int[] ViscosityCount { get; } = new int[speciesCount];
 
     /// <summary>[species] first fit of the conductivity run.</summary>
-    public int[] ConductivityStart { get; }
+    public int[] ConductivityStart { get; } = new int[speciesCount];
 
     /// <summary>[species] conductivity fits; zero without data.</summary>
-    public int[] ConductivityCount { get; }
+    public int[] ConductivityCount { get; } = new int[speciesCount];
 
     /// <summary>Gaseous species with a viscosity fit, in table order.</summary>
     public List<string> WithData { get; } = [];

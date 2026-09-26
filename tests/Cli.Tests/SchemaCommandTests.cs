@@ -8,8 +8,8 @@ namespace APThermo.Cli.Tests;
 /// `--output`; the embedded names (`SchemaResources.Names`) equal a directory listing of `src/Cli/Schemas/`, never a
 /// typed list; a missing or an unknown name is exit code 2, no document, every embedded name in the message.
 /// </summary>
-[Collection(CliCollection.Name)]
-public sealed class SchemaCommandTests(CliFixture fixture)
+[Collection("cli")]
+public sealed class SchemaCommandTests
 {
     private const string Extension = ".schema.json";
 
@@ -17,44 +17,46 @@ public sealed class SchemaCommandTests(CliFixture fixture)
 
     /// <summary>The schema names of a directory listing, never typed (AGENTS.md §6): whatever `Schemas/` holds today.</summary>
     private static IReadOnlyList<string> SchemaFileNames() =>
-        Directory.GetFiles(SchemasDirectory, "*" + Extension).Select(p => Path.GetFileName(p)[..^Extension.Length]).Order(StringComparer.Ordinal).ToList();
+        [.. Directory.GetFiles(SchemasDirectory, "*" + Extension).Select(p => Path.GetFileName(p)[..^Extension.Length]).Order(StringComparer.Ordinal)];
 
-    public static IEnumerable<object[]> SchemaNames() => SchemaFileNames().Select(name => new object[] { name });
+    /// <summary>Schema names.</summary>
+    public static TheoryData<string> SchemaNames() => [.. SchemaFileNames()];
 
+    /// <summary>Standard output is exactly the file bytes.</summary>
     [Theory]
     [MemberData(nameof(SchemaNames))]
-    public void Standard_output_is_exactly_the_file_bytes(string name)
+    public void StandardOutputIsExactlyTheFileBytes(string name)
     {
         var expected = File.ReadAllBytes(Path.Combine(SchemasDirectory, name + Extension));
-        var run = fixture.Invoke("schema", name);
+        var run = CliFixture.Invoke("schema", name);
         Assert.Equal(0, run.Code);
         Assert.Empty(run.Error);
         Assert.Equal(expected, Encoding.UTF8.GetBytes(run.Output));
     }
 
+    /// <summary>The output option writes exactly the file bytes.</summary>
     [Theory]
     [MemberData(nameof(SchemaNames))]
-    public void The_output_option_writes_exactly_the_file_bytes(string name)
+    public void TheOutputOptionWritesExactlyTheFileBytes(string name)
     {
         var expected = File.ReadAllBytes(Path.Combine(SchemasDirectory, name + Extension));
-        var target = fixture.TempFile(name + Extension);
-        var run = fixture.Invoke("schema", name, "--output", target);
+        var target = CliFixture.Shared.TempFile(name + Extension);
+        var run = CliFixture.Invoke("schema", name, "--output", target);
         Assert.Equal(0, run.Code);
         Assert.Empty(run.Output);
         Assert.Empty(run.Error);
         Assert.Equal(expected, File.ReadAllBytes(target));
     }
 
+    /// <summary>The embedded names equal the directory listing.</summary>
     [Fact]
-    public void The_embedded_names_equal_the_directory_listing()
-    {
-        Assert.Equal(SchemaFileNames(), SchemaResources.Names);
-    }
+    public void TheEmbeddedNamesEqualTheDirectoryListing() => Assert.Equal(SchemaFileNames(), SchemaResources.Names);
 
+    /// <summary>A missing name is exit 2 listing every embedded name.</summary>
     [Fact]
-    public void A_missing_name_is_exit_2_listing_every_embedded_name()
+    public void AMissingNameIsExit2ListingEveryEmbeddedName()
     {
-        var run = fixture.Invoke("schema");
+        var run = CliFixture.Invoke("schema");
         Assert.Equal(2, run.Code);
         Assert.Empty(run.Output);
         foreach (var name in SchemaResources.Names)
@@ -63,10 +65,11 @@ public sealed class SchemaCommandTests(CliFixture fixture)
         }
     }
 
+    /// <summary>An unknown name is exit 2 listing every embedded name.</summary>
     [Fact]
-    public void An_unknown_name_is_exit_2_listing_every_embedded_name()
+    public void AnUnknownNameIsExit2ListingEveryEmbeddedName()
     {
-        var run = fixture.Invoke("schema", "bogus");
+        var run = CliFixture.Invoke("schema", "bogus");
         Assert.Equal(2, run.Code);
         Assert.Empty(run.Output);
         foreach (var name in SchemaResources.Names)

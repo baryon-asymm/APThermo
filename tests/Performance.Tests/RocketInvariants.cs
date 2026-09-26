@@ -130,6 +130,7 @@ internal static class RocketInvariants
     {
         FlowModel.FrozenAtChamber => RocketSolver.Chamber,
         FlowModel.FrozenAtThroat => RocketSolver.Throat,
+        FlowModel.ShiftingEquilibrium => -1,
         _ => -1,
     };
 

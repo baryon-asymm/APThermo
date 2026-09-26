@@ -1,14 +1,11 @@
-using System.Text.Json;
 using APThermo.Fixtures;
 
 namespace APThermo.Thermo.Tests;
 
 /// <summary>L0: the species functions against the independently generated `thermo` fixtures, and R against the `constants` fixture.</summary>
-public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
+public sealed class FunctionFixtureTests
 {
-    private readonly CpuFixture _cpu;
-
-    public FunctionFixtureTests(CpuFixture cpu) => _cpu = cpu;
+    private static readonly CpuFixture Cpu = new();
 
     /// <summary>One theory case per fixture file; the list comes from the directory, not from the test.</summary>
     public static TheoryData<string> ThermoFixtures()
@@ -22,13 +19,14 @@ public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
         return data;
     }
 
+    /// <summary>Functions equal the independent evaluation.</summary>
     [Theory]
     [MemberData(nameof(ThermoFixtures))]
-    public void Functions_equal_the_independent_evaluation(string fixturePath)
+    public void FunctionsEqualTheIndependentEvaluation(string fixturePath)
     {
         var fixture = CeaFixtures.Load(fixturePath);
         var name = fixture.Inputs.GetProperty("species").GetString()!;
-        using var buffers = _cpu.Upload(name);
+        using var buffers = Cpu.Upload(name);
         var table = buffers.Table;
         var view = buffers.View;
         var tolerance = "thermoFunction";
@@ -53,8 +51,9 @@ public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
         Assert.True(points >= 3, $"{name}: a fixture with fewer than three points proves little");
     }
 
+    /// <summary>Every fixture species has an out of range point on each side.</summary>
     [Fact]
-    public void Every_fixture_species_has_an_out_of_range_point_on_each_side()
+    public void EveryFixtureSpeciesHasAnOutOfRangePointOnEachSide()
     {
         foreach (var fixture in CeaFixtures.LoadAll("thermo"))
         {
@@ -65,12 +64,13 @@ public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
         }
     }
 
+    /// <summary>R equals the reference package constant.</summary>
     [Fact]
-    public void R_equals_the_reference_package_constant()
+    public void REqualsTheReferencePackageConstant()
     {
         var fixture = Assert.Single(CeaFixtures.LoadAll("constants"));
         var expected = fixture.Outputs.GetProperty("R").GetDouble();
-        Assert.True(_cpu.Tolerances.Matches("gasConstant", expected, PhysicalConstants.R), $"R = {PhysicalConstants.R}, reference {expected}");
+        Assert.True(Cpu.Tolerances.Matches("gasConstant", expected, PhysicalConstants.R), $"R = {PhysicalConstants.R}, reference {expected}");
     }
 
     /// <summary>
@@ -92,8 +92,6 @@ public sealed class FunctionFixtureTests : IClassFixture<CpuFixture>
         return table.SpeciesCount - 1;
     }
 
-    private void AssertClose(string field, double expected, double actual, string what)
-    {
-        Assert.True(_cpu.Tolerances.Matches(field, expected, actual), $"{what}: expected {expected:R}, got {actual:R}");
-    }
+    private static void AssertClose(string field, double expected, double actual, string what) =>
+        Assert.True(Cpu.Tolerances.Matches(field, expected, actual), $"{what}: expected {expected:R}, got {actual:R}");
 }

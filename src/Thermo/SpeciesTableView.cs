@@ -4,48 +4,33 @@ using ILGPU.Runtime;
 namespace APThermo.Thermo;
 
 /// <summary>The kernel-side view of a species table: the same layout as <see cref="SpeciesTableArrays"/>, over accelerator memory. Blittable.</summary>
-internal readonly struct SpeciesTableView
+internal readonly struct SpeciesTableView(
+    int speciesCount, int gasCount, int elementCount,
+    ArrayView<double> molarMass, ArrayView<double> formationEnthalpy, ArrayView<double> stoichiometry,
+    ArrayView<int> intervalStart, ArrayView<int> intervalCount,
+    ArrayView<double> intervalBounds, ArrayView<double> exponents, ArrayView<double> coefficients)
 {
-    public readonly int SpeciesCount;
+    public readonly int SpeciesCount = speciesCount;
 
-    public readonly int GasCount;
+    public readonly int GasCount = gasCount;
 
-    public readonly int ElementCount;
+    public readonly int ElementCount = elementCount;
 
-    public readonly ArrayView<double> MolarMass;
+    public readonly ArrayView<double> MolarMass = molarMass;
 
-    public readonly ArrayView<double> FormationEnthalpy;
+    public readonly ArrayView<double> FormationEnthalpy = formationEnthalpy;
 
-    public readonly ArrayView<double> Stoichiometry;
+    public readonly ArrayView<double> Stoichiometry = stoichiometry;
 
-    public readonly ArrayView<int> IntervalStart;
+    public readonly ArrayView<int> IntervalStart = intervalStart;
 
-    public readonly ArrayView<int> IntervalCount;
+    public readonly ArrayView<int> IntervalCount = intervalCount;
 
-    public readonly ArrayView<double> IntervalBounds;
+    public readonly ArrayView<double> IntervalBounds = intervalBounds;
 
-    public readonly ArrayView<double> Exponents;
+    public readonly ArrayView<double> Exponents = exponents;
 
-    public readonly ArrayView<double> Coefficients;
-
-    public SpeciesTableView(
-        int speciesCount, int gasCount, int elementCount,
-        ArrayView<double> molarMass, ArrayView<double> formationEnthalpy, ArrayView<double> stoichiometry,
-        ArrayView<int> intervalStart, ArrayView<int> intervalCount,
-        ArrayView<double> intervalBounds, ArrayView<double> exponents, ArrayView<double> coefficients)
-    {
-        SpeciesCount = speciesCount;
-        GasCount = gasCount;
-        ElementCount = elementCount;
-        MolarMass = molarMass;
-        FormationEnthalpy = formationEnthalpy;
-        Stoichiometry = stoichiometry;
-        IntervalStart = intervalStart;
-        IntervalCount = intervalCount;
-        IntervalBounds = intervalBounds;
-        Exponents = exponents;
-        Coefficients = coefficients;
-    }
+    public readonly ArrayView<double> Coefficients = coefficients;
 }
 
 /// <summary>

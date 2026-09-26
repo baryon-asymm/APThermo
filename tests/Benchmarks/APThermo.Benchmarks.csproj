@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Node tests/Benchmarks: measures how fast the library computes, with BenchmarkDotNet.
-       Run by hand (dotnet run -c Release), never by dotnet test: it carries no test SDK. -->
+  <!-- Node tests/Benchmarks: a library of BenchmarkDotNet benchmark classes measuring how fast the library computes.
+       Run by hand through its child node Runner (see tests/Benchmarks/Runner/APThermo.Benchmarks.Runner.csproj),
+       never by dotnet test: it carries no test SDK. A class library since 2026-09-25 (BOOT.md): the root's
+       Diagnostics constraint (CA1515) forbids public types in an executable, and BenchmarkDotNet requires public
+       benchmark classes, so the entry point moved to the child node Runner. -->
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <IsTestProject>false</IsTestProject>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
@@ -27,6 +29,16 @@
 
   <ItemGroup>
     <None Include="data\user-states.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The child node Runner is its own project, nested in the Runner subdirectory (BOOT.md). The SDK's default
+       globs only exclude this project's own bin/obj, not a nested project's, so its files (and its generated
+       obj/AssemblyInfo, once it has built) must be excluded here or they compile twice: once as this project's
+       own item, once as Runner's. -->
+  <ItemGroup>
+    <Compile Remove="Runner\**" />
+    <None Remove="Runner\**" />
+    <EmbeddedResource Remove="Runner\**" />
   </ItemGroup>
 
 </Project>

@@ -14,7 +14,7 @@ namespace APThermo.Execution;
 /// <see cref="Link"/> reads as the sequence of its stages: find the target, compile the wrapper body, check every call has a
 /// definition, splice it after the kernel's header, trial-load the result.
 /// </summary>
-internal static class LibDevicePostLink
+internal static partial class LibDevicePostLink
 {
     /// <summary>The ILGPU version whose internals this post-link was written against.</summary>
     public const string ExpectedIlgpuVersion = "1.5.3.0";
@@ -26,13 +26,16 @@ internal static class LibDevicePostLink
     private const string TargetDataLayout =
         "target datalayout = \"e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64\"";
 
-    private static readonly Regex WrapperCall = new(@"__ilgpu__nv_[A-Za-z0-9_]+", RegexOptions.Compiled);
+    [GeneratedRegex(@"__ilgpu__nv_[A-Za-z0-9_]+")]
+    private static partial Regex WrapperCall();
 
     /// <summary>A wrapper's own <c>.func</c> definition line, over the wrapper body only — never the kernel PTX that calls it.</summary>
-    private static readonly Regex WrapperDefinition =
-        new(@"^\s*\.(visible|weak)?\s*\.func\b[^;]*?(__ilgpu__nv_[A-Za-z0-9_]+)\s*\(", RegexOptions.Compiled | RegexOptions.Multiline);
+    [GeneratedRegex(@"^\s*\.(visible|weak)?\s*\.func\b[^;]*?(__ilgpu__nv_[A-Za-z0-9_]+)\s*\(", RegexOptions.Multiline)]
+    private static partial Regex WrapperDefinition();
 
-    private static readonly Regex Target = new(@"^\.target\s+sm_(\d+)", RegexOptions.Compiled | RegexOptions.Multiline);
+    [GeneratedRegex(@"^\.target\s+sm_(\d+)", RegexOptions.Multiline)]
+    private static partial Regex Target();
+
     private static readonly Lazy<(FieldInfo Fragments, FieldInfo Assembly)> Members = new(() => AssertIlgpu(ExpectedIlgpuVersion));
 
     /// <summary>The ILGPU version string of the loaded assembly.</summary>
@@ -59,17 +62,14 @@ internal static class LibDevicePostLink
         }
 
         var backing = typeof(PTXCompiledKernel).GetField(AssemblyField, BindingFlags.NonPublic | BindingFlags.Instance);
-        if (backing is null || backing.FieldType != typeof(string))
-        {
-            throw new InvalidOperationException($"ILGPU {version}: {nameof(PTXCompiledKernel)}.{AssemblyField} is not the string field the post-link expects.");
-        }
-
-        return (fragments, backing);
+        return backing is null || backing.FieldType != typeof(string)
+            ? throw new InvalidOperationException($"ILGPU {version}: {nameof(PTXCompiledKernel)}.{AssemblyField} is not the string field the post-link expects.")
+            : (fragments, backing);
     }
 
     /// <summary>The wrapper names a PTX text calls, without the <c>__ilgpu</c> prefix (as the fragment keys are), in order of appearance.</summary>
     public static IReadOnlyList<string> WrappersCalled(string ptx) =>
-        WrapperCall.Matches(ptx).Select(m => m.Value["__ilgpu".Length..]).Distinct().ToList();
+        [.. WrapperCall().Matches(ptx).Select(m => m.Value["__ilgpu".Length..]).Distinct()];
 
     /// <summary>Replaces the kernel's PTX by the PTX with the wrappers it calls defined, compiled by libnvvm for the kernel's target.</summary>
     public static PTXCompiledKernel Link(CudaAccelerator accelerator, NvvmAPI nvvm, PTXCompiledKernel compiled)
@@ -96,13 +96,10 @@ internal static class LibDevicePostLink
     /// <summary>The kernel's own target, from its <c>.target sm_XX</c> line: ILGPU's choice per device, not a fixed value.</summary>
     private static string TargetArch(string ptx)
     {
-        var match = Target.Match(ptx);
-        if (!match.Success)
-        {
-            throw new InvalidOperationException("the kernel PTX has no .target line.");
-        }
-
-        return "compute_" + match.Groups[1].Value;
+        var match = Target().Match(ptx);
+        return !match.Success
+            ? throw new InvalidOperationException("the kernel PTX has no .target line.")
+            : "compute_" + match.Groups[1].Value;
     }
 
     /// <summary>The wrapper PTX libnvvm compiles from ILGPU's own fragments, its module-header lines stripped (the kernel supplies its own).</summary>
@@ -117,13 +114,13 @@ internal static class LibDevicePostLink
             }
         }
 
-        nvvm.GetIRVersion(out var irMajor, out _, out _, out _);
+        _ = nvvm.GetIRVersion(out var irMajor, out _, out _, out _);
         var module = new StringBuilder();
-        module.Append(TargetTriple).Append('\n').Append(TargetDataLayout).Append('\n');
-        module.Append("!nvvmir.version = !{!0}\n!0 = !{i32 ").Append(irMajor).Append(", i32 0}\n");
+        _ = module.Append(TargetTriple).Append('\n').Append(TargetDataLayout).Append('\n');
+        _ = module.Append("!nvvmir.version = !{!0}\n!0 = !{i32 ").Append(irMajor).Append(", i32 0}\n");
         foreach (var name in names)
         {
-            module.Append(fragments[name]).Append('\n');
+            _ = module.Append(fragments[name]).Append('\n');
         }
 
         var wrapperPtx = CompileWrappers(nvvm, module.ToString(), arch);
@@ -136,7 +133,7 @@ internal static class LibDevicePostLink
     {
         var moduleBytes = Encoding.ASCII.GetBytes(module);
         var libdevice = nvvm.LibDeviceBytes.ToArray();
-        nvvm.CreateProgram(out var program);
+        _ = nvvm.CreateProgram(out var program);
         try
         {
             using var options = new NvvmOptions(arch);
@@ -145,10 +142,10 @@ internal static class LibDevicePostLink
                 fixed (byte* modulePointer = moduleBytes)
                 fixed (byte* libdevicePointer = libdevice)
                 {
-                    nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, (IntPtr)moduleBytes.Length, "apthermo-wrappers");
-                    nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, (IntPtr)libdevice.Length, "libdevice");
-                    var result = nvvm.CompileProgram(program, options.Count, options.Pointer);
-                    nvvm.GetProgramLog(program, out var log);
+                    _ = nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, moduleBytes.Length, "apthermo-wrappers");
+                    _ = nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, libdevice.Length, "libdevice");
+                    var result = nvvm.CompileProgram(program, NvvmOptions.Count, options.Pointer);
+                    _ = nvvm.GetProgramLog(program, out var log);
                     if (result != NvvmResult.NVVM_SUCCESS)
                     {
                         throw new InvalidOperationException($"libnvvm could not compile the libdevice wrappers for {arch} ({result}): {(log ?? "").Trim()}");
@@ -156,12 +153,12 @@ internal static class LibDevicePostLink
                 }
             }
 
-            nvvm.GetCompiledResult(program, out var wrapperPtx);
+            _ = nvvm.GetCompiledResult(program, out var wrapperPtx);
             return wrapperPtx ?? throw new InvalidOperationException("libnvvm returned no PTX for the libdevice wrappers.");
         }
         finally
         {
-            nvvm.DestroyProgram(ref program);
+            _ = nvvm.DestroyProgram(ref program);
         }
     }
 
@@ -185,7 +182,7 @@ internal static class LibDevicePostLink
     /// </summary>
     internal static void AssertEveryWrapperDefined(string body, IReadOnlyList<string> names)
     {
-        var defined = WrapperDefinition.Matches(body).Select(m => m.Groups[2].Value["__ilgpu".Length..]).ToHashSet(StringComparer.Ordinal);
+        var defined = WrapperDefinition().Matches(body).Select(m => m.Groups[2].Value["__ilgpu".Length..]).ToHashSet(StringComparer.Ordinal);
         var missing = names.Except(defined).ToList();
         if (missing.Count > 0)
         {
@@ -202,7 +199,7 @@ internal static class LibDevicePostLink
             throw new InvalidOperationException($"the linked PTX was refused by the CUDA driver ({error}): {(log ?? "").Trim()}");
         }
 
-        CudaAPI.CurrentAPI.DestroyModule(handle);
+        _ = CudaAPI.CurrentAPI.DestroyModule(handle);
     }
 
     /// <summary>The one-element libnvvm compiler-options array (<c>-arch=...</c>), owning its two unmanaged allocations.</summary>
@@ -219,7 +216,7 @@ internal static class LibDevicePostLink
 
         public IntPtr Pointer { get; }
 
-        public int Count => 1;
+        public static int Count => 1;
 
         public void Dispose()
         {

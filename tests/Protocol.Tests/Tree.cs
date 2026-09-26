@@ -56,13 +56,13 @@ internal static class Tree
     {
         var nodes = new List<Node>();
         Walk(Root);
-        return nodes.OrderBy(node => node.RelativePath, StringComparer.Ordinal).ToList();
+        return [.. nodes.OrderBy(node => node.RelativePath, StringComparer.Ordinal)];
 
         void Walk(string directory)
         {
             if (File.Exists(Path.Combine(directory, "BOOT.md")) && File.Exists(Path.Combine(directory, "API.md")))
             {
-                var projects = System.IO.Directory.GetFiles(directory, "*.csproj");
+                var projects = Directory.GetFiles(directory, "*.csproj");
                 if (projects.Length > 1)
                 {
                     throw new InvalidOperationException($"{Relative(directory)} holds {projects.Length} projects; a node has one assembly (root BOOT.md)");
@@ -71,7 +71,7 @@ internal static class Tree
                 nodes.Add(new Node(Relative(directory), directory, projects.Length == 1 ? Path.GetFileNameWithoutExtension(projects[0]) : null));
             }
 
-            foreach (var child in System.IO.Directory.GetDirectories(directory))
+            foreach (var child in Directory.GetDirectories(directory))
             {
                 if (!Skipped.Contains(Path.GetFileName(child)))
                 {

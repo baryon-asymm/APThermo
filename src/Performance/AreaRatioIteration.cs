@@ -65,7 +65,7 @@ internal static class AreaRatioIteration
             temperatureEstimate = state.Temperature;
         }
 
-        if (outcome != ExitOutcome.Converged && outcome != ExitOutcome.WithinReportTolerance)
+        if (outcome is not (ExitOutcome.Converged or ExitOutcome.WithinReportTolerance))
         {
             estimate.Extrapolable = false;
             result.StationStatus[station] = (int)CaseStatus.NotConverged;
@@ -84,17 +84,11 @@ internal static class AreaRatioIteration
     /// </summary>
     private static double InitialLogPressureRatio(in ThroatReference throat, double areaRatio, double logAreaRatio, in ExitEstimate estimate)
     {
-        if (estimate.Extrapolable && areaRatio > RocketSolver.ExtrapolationAreaRatio)
-        {
-            return estimate.LogPressureRatio + (logAreaRatio - estimate.LogAreaRatio) / estimate.Derivative;
-        }
-
-        if (areaRatio <= RocketSolver.ExtrapolationAreaRatio)
-        {
-            return throat.LogPressureRatio + Math.Sqrt(3.294 * logAreaRatio * logAreaRatio + 1.535 * logAreaRatio);
-        }
-
-        return throat.GammaS + 1.4 * logAreaRatio;
+        return estimate.Extrapolable && areaRatio > RocketSolver.ExtrapolationAreaRatio
+            ? estimate.LogPressureRatio + (logAreaRatio - estimate.LogAreaRatio) / estimate.Derivative
+            : areaRatio <= RocketSolver.ExtrapolationAreaRatio
+                ? throat.LogPressureRatio + Math.Sqrt(3.294 * logAreaRatio * logAreaRatio + 1.535 * logAreaRatio)
+                : throat.GammaS + 1.4 * logAreaRatio;
     }
 
     /// <summary>The station is met: its figures are written and it becomes the station the next one is extrapolated from.</summary>

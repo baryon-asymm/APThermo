@@ -73,12 +73,9 @@ internal static partial class TransportBlockReader
             i++;
         }
 
-        if (viscosity.Count != viscosityCount || conductivity.Count != conductivityCount)
-        {
-            throw new DatabaseFormatException(fileName, i, $"block of {species}: fit lines do not match the code V{viscosityCount}C{conductivityCount}");
-        }
-
-        return (viscosity, conductivity);
+        return viscosity.Count != viscosityCount || conductivity.Count != conductivityCount
+            ? throw new DatabaseFormatException(fileName, i, $"block of {species}: fit lines do not match the code V{viscosityCount}C{conductivityCount}")
+            : (viscosity, conductivity);
     }
 
     private static TransportFit ReadFit(string line) => new(

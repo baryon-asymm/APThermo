@@ -153,11 +153,19 @@ public sealed record TransportFit                         // internal constructo
 ```csharp
 public sealed class DatabaseFormatException : Exception
 {
+    public DatabaseFormatException();
+    public DatabaseFormatException(string message);
+    public DatabaseFormatException(string message, Exception innerException);
     public DatabaseFormatException(string? fileName, int lineNumber, string message, Exception? inner = null);
     public string? FileName { get; }     // null when parsed from a TextReader
     public int LineNumber { get; }       // 1-based line of the offending field
 }
 ```
+
+The first three constructors were added 2026-09-24 by the root's Diagnostics
+constraint (CA1032), for the .NET exception conventions; the tree itself always
+throws through the fourth. Their data properties take neutral values: `FileName`
+null, `LineNumber` 0.
 
 | Situation | Behaviour |
 |---|---|

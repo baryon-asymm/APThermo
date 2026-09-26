@@ -81,13 +81,13 @@ The definition of what "`Cli` is ready" means.
   deviation from "every test runs on both platforms") holds that the bits are a
   record of the reference machine, not of the platform alone: hosted CI runners land
   on CPUs whose C runtime rounds the last bit differently from the reference
-  machine's. `Every_example_gives_the_recorded_output` now carries
+  machine's. `EveryExampleGivesTheRecordedOutput` now carries
   `[Trait("Category", "BitSnapshot")]`, so it runs in every local run (`CLAUDE.md`'s
   fast set) and in the release's self-hosted jobs
   (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
   `Category=Cuda|Category=BitSnapshot`), and is filtered out of the hosted fast suite
   (`ci.yml`; `release.yml`'s `matrix` job; filter
-  `Category!=LongRunning&Category!=BitSnapshot`). `The_captured_text_matches_the_bytes_delivered_to_the_output_file`
+  `Category!=LongRunning&Category!=BitSnapshot`). `TheCapturedTextMatchesTheBytesDeliveredToTheOutputFile`
   carries no trait: it compares one run's captured text against the same run's
   delivered file, never against `Bits.approved.txt`, so it stays outside this
   deviation and keeps running on hosted CI.
@@ -131,41 +131,41 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
 
 ## Acceptance criteria
 
-- [x] 2026-09-13 — L0 green: `CommandLineTests` (`No_command_is_exit_2_with_the_usage`,
-      `Help_prints_the_usage_and_exits_0`, `Invalid_command_lines_are_exit_2_naming_the_offender`
-      over the command lines of its theory, `The_usage_names_every_command_and_option`,
-      `Options_may_be_given_with_an_equals_sign`); `InputDocumentTests`
-      (`An_invalid_document_is_exit_2_with_the_documented_message_and_no_output` over
+- [x] 2026-09-13 — L0 green: `CommandLineTests` (`NoCommandIsExit2WithTheUsage`,
+      `HelpPrintsTheUsageAndExits0`, `InvalidCommandLinesAreExit2NamingTheOffender`
+      over the command lines of its theory, `TheUsageNamesEveryCommandAndOption`,
+      `OptionsMayBeGivenWithAnEqualsSign`); `InputDocumentTests`
+      (`AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput` over
       `documents/invalid/` (2026-09-13: four more documents there, a state record
       doubled, in mol/g, one in kmol/kg and a doubled `propellant.elementMoles`, each
-      refused naming the record and the mass), `Every_example_document_validates_against_the_input_schema`,
-      `Every_states_document_validates_against_the_states_schema`,
-      `Every_example_of_the_api_document_is_read_or_validates_and_its_records_solve`
+      refused naming the record and the mass), `EveryExampleDocumentValidatesAgainstTheInputSchema`,
+      `EveryStatesDocumentValidatesAgainstTheStatesSchema`,
+      `EveryExampleOfTheApiDocumentIsReadOrValidatesAndItsRecordsSolve`
       (2026-09-13: the record examples are solved, not only read, since one of them
-      weighed 706 g), `State_records_may_come_as_an_array_a_single_object_or_lines`,
-      `A_range_expands_inclusively_and_lands_on_its_end`); `ExitCodeTests` (six facts;
+      weighed 706 g), `StateRecordsMayComeAsAnArrayASingleObjectOrLines`,
+      `ARangeExpandsInclusivelyAndLandsOnItsEnd`); `ExitCodeTests` (six facts;
       2026-09-13, a seventh: the record of another simulation is exit 0, and the same
       record doubled behind it in a JSON Lines file is named by file and line,
-      `A_record_that_weighs_one_kilogram_is_exit_0_and_one_that_does_not_is_named_by_its_line`).
+      `ARecordThatWeighsOneKilogramIsExit0AndOneThatDoesNotIsNamedByItsLine`).
 
   ⚠ 2026-09-14: stood "over sixteen command lines"; the theory had nineteen rows since
   the three of `--mass-tolerance` (the review's F-TF-16). A number repeating the length
   of a list, dropped: the theory's rows are the list.
 - [x] 2026-09-13 — L1 green: `OutputDocumentTests`
-      (`Every_example_document_runs_and_its_result_validates_against_the_output_schema`
-      over the directory listing, `The_states_result_validates_and_echoes_every_record_in_order`,
-      `States_from_an_array_a_lines_file_and_several_files_give_the_same_cases`,
-      `A_rocket_sweep_expands_ratio_major_then_pressure_in_one_document`,
-      `An_equilibrium_sweep_expands_pressure_then_temperature`,
-      `The_threshold_omits_small_mole_fractions_and_the_default_is_the_reference_print_threshold`,
-      `Transport_figures_are_present_only_when_requested`,
-      `The_species_listing_validates_and_finds_names_case_insensitively`,
-      `The_devices_listing_validates`, `The_schema_lists_every_field_of_the_library_result_structs`);
-      `CsvTests` (`The_csv_of_the_rocket_example_matches_the_approved_file`,
-      `The_csv_has_one_row_per_case_and_station_and_no_compositions`,
-      `An_equilibrium_csv_has_one_row_per_case_with_empty_performance_and_transport_cells`).
-- [x] 2026-09-13 — L2 green: `LibraryEqualityTests.The_rocket_example_equals_the_library_field_by_field`,
-      `The_equilibrium_examples_equal_the_library_field_by_field`; process level:
+      (`EveryExampleDocumentRunsAndItsResultValidatesAgainstTheOutputSchema`
+      over the directory listing, `TheStatesResultValidatesAndEchoesEveryRecordInOrder`,
+      `StatesFromAnArrayALinesFileAndSeveralFilesGiveTheSameCases`,
+      `ARocketSweepExpandsRatioMajorThenPressureInOneDocument`,
+      `AnEquilibriumSweepExpandsPressureThenTemperature`,
+      `TheThresholdOmitsSmallMoleFractionsAndTheDefaultIsTheReferencePrintThreshold`,
+      `TransportFiguresArePresentOnlyWhenRequested`,
+      `TheSpeciesListingValidatesAndFindsNamesCaseInsensitively`,
+      `TheDevicesListingValidates`, `TheSchemaListsEveryFieldOfTheLibraryResultStructs`);
+      `CsvTests` (`TheCsvOfTheRocketExampleMatchesTheApprovedFile`,
+      `TheCsvHasOneRowPerCaseAndStationAndNoCompositions`,
+      `AnEquilibriumCsvHasOneRowPerCaseWithEmptyPerformanceAndTransportCells`).
+- [x] 2026-09-13 — L2 green: `LibraryEqualityTests.TheRocketExampleEqualsTheLibraryFieldByField`,
+      `TheEquilibriumExamplesEqualTheLibraryFieldByField`; process level:
       `ProcessTests` (exit codes 0, 1, 2 and 3, the last with `APTHERMO_NO_CUDA=1` and
       `--accelerator cuda`).
 - [x] 2026-09-13 — Every check proven non-degenerate once, each mutation applied
@@ -185,21 +185,21 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
 - [x] 2026-09-13 — `--mass-tolerance` and the mass report (the `Cli` BOOT.md's design
       of the same day): `CommandLineTests` (the usage names the option; a negative
       value, `inf` and the option on a listing command are exit 2; `=` and the
-      default); `OutputDocumentTests.The_mass_tolerance_is_echoed_and_every_case_reports_the_mass_of_its_mixture`
+      default); `OutputDocumentTests.TheMassToleranceIsEchoedAndEveryCaseReportsTheMassOfItsMixture`
       (`run.massTolerance` echoes the option and its default, `mixture.mass` in every
       case of the states and sweep documents; both fields in `schemas/output.schema.json`
       and `run.massTolerance` in `species.schema.json`, since the listing writes the
       same run section); `LibraryEqualityTests` (`mixture.mass` exactly the library's
-      `MixtureMass`); `ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares`
+      `MixtureMass`); `ExitCodeTests.TheMassToleranceOptionIsTheToleranceTheRunDeclares`
       (the record of another simulation made 2 % heavy: exit 2 without the option,
       exit 0 with `--mass-tolerance 0.03` and the mass 1.02 reported; made 5 % heavy,
       exit 2 naming `3 %`).
 - [x] 2026-09-13 — Proven non-degenerate: the option not passed to the solver (the
       state records built at the library's default), applied alone, and
-      `ExitCodeTests.The_mass_tolerance_option_is_the_tolerance_the_run_declares` seen
+      `ExitCodeTests.TheMassToleranceOptionIsTheToleranceTheRunDeclares` seen
       red (the echo test stays green, as it should: the echo is not the check); the
       same test also red under the front door's own mutations (that node's BOOT.md).
-- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.Every_example_gives_the_recorded_output`
+- [x] 2026-09-14 — Bits level green: `BitSnapshotTests.EveryExampleGivesTheRecordedOutput`
       over the examples the level table lists (enumerated from `documents/` and from
       the `Cli` API, not typed), against `Bits.approved.txt`, recorded before any code
       of the decomposition moved (`f795f3c`) and unchanged after it (empty diff at the
@@ -210,18 +210,18 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       by span, not the review's compact re-serialization (R-Cli.Tests-2): the bytes
       hashed are the bytes captured in process, proven equal to what `--output` writes
       to a file for the LOX/LH2 rocket example
-      (`BitSnapshotTests.The_captured_text_matches_the_bytes_delivered_to_the_output_file`,
+      (`BitSnapshotTests.TheCapturedTextMatchesTheBytesDeliveredToTheOutputFile`,
       cutting `run` from both before comparing, since `run.timings` alone differs run to
       run); the cut is exact with `run` first, in the middle and last, each against the
       same document written without it
-      (`RunPropertyCutTests.The_top_level_run_property_is_cut_wherever_it_appears`),
+      (`RunPropertyCutTests.TheTopLevelRunPropertyIsCutWhereverItAppears`),
       seen red once with the cut's span shifted by one byte
       (`RunPropertyCut.Cut`, `document.AsSpan((int)cutEnd + 1)`): all three cases failed
       on `Assert.Equal() Failure: Strings differ`, each missing exactly the one byte
       immediately after the removed span, reverted; a document with no top-level `run`
       property or with more than one fails instead of hashing
-      (`RunPropertyCutTests.A_missing_top_level_run_property_fails_instead_of_hashing`,
-      `A_duplicated_top_level_run_property_fails_instead_of_hashing`). Every line of
+      (`RunPropertyCutTests.AMissingTopLevelRunPropertyFailsInsteadOfHashing`,
+      `ADuplicatedTopLevelRunPropertyFailsInsteadOfHashing`). Every line of
       `Bits.approved.txt` re-approved once, with two proofs, both over all 18 examples:
       the same run computed the old, compact-reserialization hash and the new one for
       every example from the same captured text, and every old hash still equalled its
@@ -235,12 +235,12 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       tests/Cli.Tests/Bits.approved.txt`: `483c979b75b5c98b5e11ddc4359f28812e225e15`
       (18 lines) before, `b6e7844aa27ee16b9e2c1cbb84396d043e44386d` (18 lines) after.
 - [x] 2026-09-14 — The facts of 2026-09-14 (the level table's new L0 and L2 rows):
-      `LibraryEqualityTests.The_states_example_equals_the_library_field_by_field` (a
-      records file with and without exits); `ExitCodeTests.An_exception_maps_to_its_documented_exit_code`
+      `LibraryEqualityTests.TheStatesExampleEqualsTheLibraryFieldByField` (a
+      records file with and without exits); `ExitCodeTests.AnExceptionMapsToItsDocumentedExitCode`
       (an input refusal 2, an accelerator failure 3, an unexpected exception 3);
-      `CommandLineTests.The_usage_states_the_library_defaults` and
-      `Every_command_of_the_table_has_a_handler`;
-      `OutputDocumentTests.An_auto_run_that_fell_back_says_why` (with
+      `CommandLineTests.TheUsageStatesTheLibraryDefaults` and
+      `EveryCommandOfTheTableHasAHandler`;
+      `OutputDocumentTests.AnAutoRunThatFellBackSaysWhy` (with
       `APTHERMO_NO_CUDA=1`: `run.accelerator.cudaSkippedBecause` and the devices
       listing name the variable, the schema files list the field); the pinned messages
       of `states-two-targets.json` and `states-rocket-without-enthalpy.json` the front
@@ -274,10 +274,10 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       rule, `Names.Camel` returning its argument unchanged (the three
       `LibraryEqualityTests` facts red).
 - [x] 2026-09-17 — `apthermo schema` (the audit's C1, C2, C3, C4, C5): `SchemaCommandTests`
-      (`Standard_output_is_exactly_the_file_bytes`, `The_output_option_writes_exactly_the_file_bytes`
-      over a directory listing of `src/Cli/Schemas/`, `The_embedded_names_equal_the_directory_listing`,
-      `A_missing_name_is_exit_2_listing_every_embedded_name`,
-      `An_unknown_name_is_exit_2_listing_every_embedded_name`). Each fact seen red once and
+      (`StandardOutputIsExactlyTheFileBytes`, `TheOutputOptionWritesExactlyTheFileBytes`
+      over a directory listing of `src/Cli/Schemas/`, `TheEmbeddedNamesEqualTheDirectoryListing`,
+      `AMissingNameIsExit2ListingEveryEmbeddedName`,
+      `AnUnknownNameIsExit2ListingEveryEmbeddedName`). Each fact seen red once and
       reverted: the assembly's glob narrowed to `devices.schema.json` alone turned nine of the
       thirteen facts red at once (both byte-equality theories over the four other names, and
       the embedded-names-equal-the-listing fact, since `SchemaResources.Names` then read from

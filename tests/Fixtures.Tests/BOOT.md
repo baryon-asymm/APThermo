@@ -41,32 +41,32 @@ Outside the tree: xunit.
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — L1 loader: `FixtureLoadingTests` (`Every_fixture_of_a_kind_loads`
-      for every kind directory, `The_kinds_present_are_those_of_the_case_matrix`,
-      `Every_fixture_is_tied_to_the_committed_data_files`,
-      `Every_fixture_names_the_pinned_package`, `Every_fixture_names_the_script_that_wrote_it`).
+- [x] 2026-09-12 — L1 loader: `FixtureLoadingTests` (`EveryFixtureOfAKindLoads`
+      for every kind directory, `TheKindsPresentAreThoseOfTheCaseMatrix`,
+      `EveryFixtureIsTiedToTheCommittedDataFiles`,
+      `EveryFixtureNamesThePinnedPackage`, `EveryFixtureNamesTheScriptThatWroteIt`).
 - [x] 2026-09-12 — L1 tolerance table: `ToleranceTableTests`
-      (`The_table_loads_with_a_derivation_for_every_field`, `Unknown_fields_are_reported_by_name`,
-      `Matches_adds_the_absolute_and_the_relative_part`,
-      `Every_state_field_of_the_fixtures_has_a_tolerance` for `rocket`, `tp`, `hp`, `sp`).
-- [x] 2026-09-12 — L1 malformed documents: `MalformedFixtureTests` (`A_complete_document_loads`,
-      `A_missing_field_names_the_file_and_the_field`, `A_missing_provenance_field_is_named`,
-      `A_kind_that_does_not_match_its_directory_is_rejected`,
-      `Text_that_is_not_json_is_rejected_with_the_file_name`,
-      `A_tolerance_without_a_derivation_is_rejected`, `A_negative_tolerance_is_rejected`).
+      (`TheTableLoadsWithADerivationForEveryField`, `UnknownFieldsAreReportedByName`,
+      `MatchesAddsTheAbsoluteAndTheRelativePart`,
+      `EveryStateFieldOfTheFixturesHasATolerance` for `rocket`, `tp`, `hp`, `sp`).
+- [x] 2026-09-12 — L1 malformed documents: `MalformedFixtureTests` (`ACompleteDocumentLoads`,
+      `AMissingFieldNamesTheFileAndTheField`, `AMissingProvenanceFieldIsNamed`,
+      `AKindThatDoesNotMatchItsDirectoryIsRejected`,
+      `TextThatIsNotJsonIsRejectedWithTheFileName`,
+      `AToleranceWithoutADerivationIsRejected`, `ANegativeToleranceIsRejected`).
 - [x] 2026-09-12 — Every check proven non-degenerate once (AGENTS.md §13): the
       `dataThermoSha256` of `cases/constants/R.json` altered turned
-      `Every_fixture_is_tied_to_the_committed_data_files` red with the file named; the
+      `EveryFixtureIsTiedToTheCommittedDataFiles` red with the file named; the
       `gammaS` entry removed from `tolerances.json` turned
-      `Every_state_field_of_the_fixtures_has_a_tolerance` red for `rocket`, `tp`, `hp` and
+      `EveryStateFieldOfTheFixturesHasATolerance` red for `rocket`, `tp`, `hp` and
       `sp` with the field named. Mutations reverted; `regenerate.py --check` confirmed the
       fixtures unchanged afterwards.
-- [x] 2026-09-15 — `Every_state_field_of_the_fixtures_has_a_tolerance`'s nesting fixed:
+- [x] 2026-09-15 — `EveryStateFieldOfTheFixturesHasATolerance`'s nesting fixed:
       the numeric-property check, four levels deep inside the case loop, the state loop
       and the property loop, moved to `ComparedFieldsOf`, a single filter-and-project
       expression with no nested control flow of its own; the outer test calls it once
       per state and now nests no deeper than 2, measured by the protocol tests node's
-      `ShapeMeasures.Nesting` (`Every_state_field_of_the_fixtures_has_a_tolerance` 2,
+      `ShapeMeasures.Nesting` (`EveryStateFieldOfTheFixturesHasATolerance` 2,
       `ComparedFieldsOf` 0). Verified: build clean, 0 warnings; `dotnet test
       tests/Fixtures.Tests`: 26 of 26 green; `protocol_lint` 0 errors, 0 warnings.
 

@@ -10,8 +10,9 @@ namespace APThermo.Protocol.Tests;
 /// </summary>
 public sealed class DeclarationTests
 {
+    /// <summary>Every declaration under a ✅ mark of an API.md exists in the code, the type and the member (AGENTS.md §7).</summary>
     [Fact]
-    public void Every_declaration_under_a_tick_exists()
+    public void EveryDeclarationUnderATickExists()
     {
         var problems = Tree.Nodes.SelectMany(ProblemsOf).ToList();
         if (!Tree.Nodes.Any(HasImplementedBlocks))
@@ -46,7 +47,7 @@ public sealed class DeclarationTests
         {
             if (declaration.IsType)
             {
-                typesInBlock.Add(declaration.Name);
+                _ = typesInBlock.Add(declaration.Name);
                 current = Find(node, declaration.Name);
                 if (current is null)
                 {
@@ -85,7 +86,7 @@ public sealed class DeclarationTests
 
     private static bool HasMember(Type type, string name)
     {
-        const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy;
-        return type.GetMember(name, Any).Length > 0 || type.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic) is not null;
+        const BindingFlags any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+        return type.GetMember(name, any).Length > 0 || type.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic) is not null;
     }
 }

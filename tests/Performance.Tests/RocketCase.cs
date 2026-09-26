@@ -33,13 +33,13 @@ internal sealed class RocketCase : IDisposable
         var exitKinds = Own(accelerator.Allocate1D(inputs.Exits.Kinds.Length == 0 ? [0] : inputs.Exits.Kinds.Select(k => (int)k).ToArray()));
         var doubles = Own(accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount)));
         var ints = Own(accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount)));
-        _stations = Own(accelerator.Allocate1D<MixtureState>(stationCount));
-        _moles = Own(accelerator.Allocate1D<double>((long)stationCount * speciesCount));
-        _multipliers = Own(accelerator.Allocate1D<double>((long)stationCount * elementCount));
-        _figures = Own(accelerator.Allocate1D<PerformanceFigures>(stationCount));
-        _stationStatus = Own(accelerator.Allocate1D<int>(stationCount));
-        _iterations = Own(accelerator.Allocate1D<int>(stationCount));
-        _status = Own(accelerator.Allocate1D<int>(1));
+        _stations = accelerator.Allocate1D<MixtureState>(stationCount);
+        _moles = accelerator.Allocate1D<double>((long)stationCount * speciesCount);
+        _multipliers = accelerator.Allocate1D<double>((long)stationCount * elementCount);
+        _figures = accelerator.Allocate1D<PerformanceFigures>(stationCount);
+        _stationStatus = accelerator.Allocate1D<int>(stationCount);
+        _iterations = accelerator.Allocate1D<int>(stationCount);
+        _status = accelerator.Allocate1D<int>(1);
         _moles.MemSetToZero();
         _stations.MemSetToZero();
 
@@ -65,7 +65,7 @@ internal sealed class RocketCase : IDisposable
     public RocketSolution Read()
     {
         var outcome = new RocketOutcome(_stations.GetAsArray1D(), _moles.GetAsArray1D(), _multipliers.GetAsArray1D(), _figures.GetAsArray1D(),
-                                        _stationStatus.GetAsArray1D().Select(s => (CaseStatus)s).ToArray(), _iterations.GetAsArray1D());
+                                        [.. _stationStatus.GetAsArray1D().Select(s => (CaseStatus)s)], _iterations.GetAsArray1D());
         return new RocketSolution(Table, Inputs, outcome, (CaseStatus)_status.GetAsArray1D()[0]);
     }
 
@@ -77,6 +77,13 @@ internal sealed class RocketCase : IDisposable
         }
 
         _owned.Clear();
+        _stations.Dispose();
+        _moles.Dispose();
+        _multipliers.Dispose();
+        _figures.Dispose();
+        _stationStatus.Dispose();
+        _iterations.Dispose();
+        _status.Dispose();
     }
 
     private T Own<T>(T buffer)

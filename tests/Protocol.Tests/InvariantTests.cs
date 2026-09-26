@@ -17,15 +17,18 @@ public sealed class InvariantTests
     /// <summary>The namespaces of ILGPU that exist only for NVIDIA hardware.</summary>
     public static readonly IReadOnlyList<string> CudaNamespaces = ["ILGPU.Runtime.Cuda", "ILGPU.Backends.PTX"];
 
+    /// <summary>Numerical nodes hold no single-precision (`float` or `Half`) value or operation (root BOOT.md, Invariants).</summary>
     [Fact]
-    public void Numerical_nodes_hold_no_single_precision_value_or_operation()
+    public void NumericalNodesHoldNoSinglePrecisionValueOrOperation()
     {
         var problems = Numerical().SelectMany(pair => SinglePrecisionProblems(pair.Node, pair.Assembly)).ToList();
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: double precision only.\n" + string.Join("\n", problems));
     }
 
+    /// <summary>Only the execution node and its own tests name a CUDA type (root BOOT.md, Invariants: the CPU path needs no
+    /// NVIDIA software).</summary>
     [Fact]
-    public void Only_the_execution_node_and_its_tests_name_cuda_types()
+    public void OnlyTheExecutionNodeAndItsTestsNameCudaTypes()
     {
         var problems = NodeAssemblies.Assemblies.OrderBy(pair => pair.Key.RelativePath, StringComparer.Ordinal)
             .Where(pair => !CudaNodes.Contains(pair.Key.RelativePath))
@@ -34,8 +37,9 @@ public sealed class InvariantTests
         Assert.True(problems.Count == 0, "root BOOT.md, Taboos: no CUDA type outside the execution node.\n" + string.Join("\n", problems.Distinct()));
     }
 
+    /// <summary>Numerical nodes have no mutable static field (root BOOT.md, Invariants: no hidden state).</summary>
     [Fact]
-    public void Numerical_nodes_have_no_mutable_static_field()
+    public void NumericalNodesHaveNoMutableStaticField()
     {
         var problems = Numerical().SelectMany(pair => MutableStaticFieldProblems(pair.Node, pair.Assembly)).ToList();
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: no hidden state.\n" + string.Join("\n", problems));

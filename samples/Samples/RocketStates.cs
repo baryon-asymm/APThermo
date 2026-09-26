@@ -1,7 +1,6 @@
 // snippet-start: RocketStatesUsings
 using APThermo.Data;
 using APThermo.Execution;
-using APThermo.Performance;
 using APThermo.Problems;
 using APThermo.Thermo;
 // snippet-end
@@ -19,8 +18,12 @@ internal sealed class RocketStates
 
         var composition = new Dictionary<string, double>
         {
-            ["C"] = 9.505849129331365, ["H"] = 35.214695099119155, ["O"] = 15.704786718374072,
-            ["N"] = 6.007718569653603, ["Cl"] = 3.3293409533388547, ["Al"] = 14.709996403305084,
+            ["C"] = 9.505849129331365,
+            ["H"] = 35.214695099119155,
+            ["O"] = 15.704786718374072,
+            ["N"] = 6.007718569653603,
+            ["Cl"] = 3.3293409533388547,
+            ["Al"] = 14.709996403305084,
         };   // mol/kg
 
         var record = new StateRecord(Pressure: 6.5e6, Composition: composition, Enthalpy: -1527829.408385985)
@@ -28,11 +31,11 @@ internal sealed class RocketStates
             AreaRatios = [8.0, 12.0],
         };
 
-        IReadOnlyList<RocketResult> results = solver.SolveRocketStates([record]);
-        RocketResult result = results[0];
+        var results = solver.SolveRocketStates([record]);
+        var result = results[0];
 
         output.WriteLine($"state record with exits  status={result.Status}  mass={result.MixtureMass:F4} kg");
-        foreach (Station station in result.Stations)
+        foreach (var station in result.Stations)
         {
             if (station.Status != CaseStatus.Ok)
             {

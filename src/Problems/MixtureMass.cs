@@ -33,11 +33,8 @@ internal static class MixtureMass
     public static double Check(SpeciesDatabase database, ElementalMixture mixture, string subject, int index)
     {
         var mass = Of(database, mixture);
-        if (Math.Abs(mass - 1.0) > mixture.MassTolerance)
-        {
-            throw new MixtureMassException(subject, index, mass, mixture.MassTolerance);
-        }
-
-        return mass;
+        return Math.Abs(mass - 1.0) > mixture.MassTolerance
+            ? throw new MixtureMassException(subject, index, mass, mixture.MassTolerance)
+            : mass;
     }
 }

@@ -8,25 +8,30 @@ namespace APThermo.Harness;
 /// </summary>
 public static class Bits
 {
+    /// <summary>Whether two doubles are bit-for-bit the same, signed zeros and NaN payloads told apart.</summary>
+    /// <param name="expected">The reference value.</param>
+    /// <param name="actual">The tree's value.</param>
+    /// <returns><see langword="true"/> when the two values' bits are identical.</returns>
     public static bool Same(double expected, double actual) =>
         BitConverter.DoubleToInt64Bits(expected) == BitConverter.DoubleToInt64Bits(actual);
 
     /// <summary>
-    /// Every public double or int field of <typeparamref name="T"/> whose bits differ between <paramref name="expected"/>
-    /// and <paramref name="actual"/>, as one message per field: <c>"label.Field: expected E, actual A"</c>, doubles in
-    /// round-trip form. A field of another type is compared with <see cref="object.Equals(object, object)"/>.
+    /// Every public double or int property of <typeparamref name="T"/> whose bits differ between
+    /// <paramref name="expected"/> and <paramref name="actual"/>, as one message per property:
+    /// <c>"label.Property: expected E, actual A"</c>, doubles in round-trip form. A property of another type is
+    /// compared with <see cref="object.Equals(object, object)"/>.
     /// </summary>
     public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct
     {
-        foreach (var field in typeof(T).GetFields())
+        foreach (var property in typeof(T).GetProperties())
         {
-            var e = field.GetValue(expected)!;
-            var a = field.GetValue(actual)!;
+            var e = property.GetValue(expected)!;
+            var a = property.GetValue(actual)!;
             if (e is double ed && a is double ad)
             {
                 if (!Same(ed, ad))
                 {
-                    yield return $"{label}.{field.Name}: expected {ed:R}, actual {ad:R}";
+                    yield return $"{label}.{property.Name}: expected {ed:R}, actual {ad:R}";
                 }
 
                 continue;
@@ -34,7 +39,7 @@ public static class Bits
 
             if (!Equals(e, a))
             {
-                yield return $"{label}.{field.Name}: expected {e}, actual {a}";
+                yield return $"{label}.{property.Name}: expected {e}, actual {a}";
             }
         }
     }

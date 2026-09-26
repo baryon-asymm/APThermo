@@ -18,7 +18,8 @@ internal sealed class StatesSolve
 
         var elementMoles = new Dictionary<string, double>
         {
-            ["H"] = 141.73179242528607, ["O"] = 53.57343757533765,
+            ["H"] = 141.73179242528607,
+            ["O"] = 53.57343757533765,
         };   // mol/kg, LOX/LH2 at O/F=6.0
 
         var mixture = ElementalMixture.Create(elementMoles);
@@ -30,11 +31,11 @@ internal sealed class StatesSolve
             Composition: elementMoles,
             Temperature: 3000.0)).ToList();     // K: a tp record
 
-        IReadOnlyList<EquilibriumResult> results = solver.SolveStates(records);
+        var results = solver.SolveStates(records);
 
         for (var i = 0; i < pressures.Length; i++)
         {
-            EquilibriumResult result = results[i];
+            var result = results[i];
             if (result.Status != CaseStatus.Ok)
             {
                 output.WriteLine($"  P={pressures[i] / 1e6:F2} MPa  FAILED: {result.Status}");

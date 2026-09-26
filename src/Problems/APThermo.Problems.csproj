@@ -5,11 +5,12 @@
     <IsPackable>true</IsPackable>
     <PackageId>APThermo</PackageId>
     <Description>Rocket propellant chemical equilibrium, thermodynamic and transport properties, and engine performance (NASA CEA's class of computation), CPU or CUDA, in double precision. The NASA thermodynamic database is embedded.</Description>
-    <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public
-         member without a documentation comment fails the build, since warnings are errors
-         (Directory.Build.props). -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <!-- The library assemblies ship their XML documentation (root BOOT.md, Delivery: Symbols); a public
+       member without a documentation comment fails the build, since warnings are errors. Diagnostics
+       (2026-09-24): GenerateDocumentationFile is now set once, for every project, in the root
+       Directory.Build.props. -->
 
   <ItemGroup>
     <None Include="..\..\docs\nuget\APThermo.md" Pack="true" PackagePath="README.md" />

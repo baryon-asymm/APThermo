@@ -54,17 +54,11 @@ internal static class DenseSolver
             {
                 for (var c = 0; c < n; c++)
                 {
-                    var held = matrix[k * stride + c];
-                    matrix[k * stride + c] = matrix[pivotRow * stride + c];
-                    matrix[pivotRow * stride + c] = held;
+                    (matrix[k * stride + c], matrix[pivotRow * stride + c]) = (matrix[pivotRow * stride + c], matrix[k * stride + c]);
                 }
 
-                var heldRhs = rhs[k];
-                rhs[k] = rhs[pivotRow];
-                rhs[pivotRow] = heldRhs;
-                var heldScale = rowScale[k];
-                rowScale[k] = rowScale[pivotRow];
-                rowScale[pivotRow] = heldScale;
+                (rhs[k], rhs[pivotRow]) = (rhs[pivotRow], rhs[k]);
+                (rowScale[k], rowScale[pivotRow]) = (rowScale[pivotRow], rowScale[k]);
             }
 
             var pivot = matrix[k * stride + k];
