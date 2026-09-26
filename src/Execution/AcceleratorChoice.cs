@@ -51,7 +51,7 @@ internal static class AcceleratorChoice
     }
 
     private static AcceleratorSession Cpu(string? cudaSkippedBecause) =>
-        AcceleratorSession.Build(Context.Create(builder => builder.CPU()), session =>
+        AcceleratorSession.Build(Context.Create(builder => builder.CPU(CpuDeviceFor(Environment.ProcessorCount))), session =>
         {
             var accelerator = session.Attach(session.Context.CreateCPUAccelerator(0));
             return new AcceleratorInfo(AcceleratorKind.Cpu, accelerator.Name, LibDevicePostLink.IlgpuVersion, null, null, accelerator.NumThreads)
@@ -59,6 +59,27 @@ internal static class AcceleratorChoice
                 CudaSkippedBecause = cudaSkippedBecause,
             };
         });
+
+    /// <summary>
+    /// A CPU device sized for <paramref name="processorCount"/> (BOOT.md, "All cores"; the audit's F3), not ILGPU's fixed
+    /// 16-thread <see cref="CPUDevice.Default"/>. The warp size is <paramref name="processorCount"/> clamped to [2, 4] (ILGPU
+    /// refuses a one-thread warp); the warps per multiprocessor is the largest power of two ILGPU accepts (its own
+    /// constraint on that count) that keeps the total at or under the processor count; the multiprocessor count stays 1. At
+    /// 16 processors, the reference machine's count, this reduces to (4, 4, 1): the layout every bit and throughput record
+    /// was measured against, unchanged. Below 4 processors the total can exceed the count by a couple of threads (the ILGPU
+    /// floor is 2 threads total); this is not exercised by the tree's own tests, which prove 4, 16 and 64.
+    /// </summary>
+    internal static CPUDevice CpuDeviceFor(int processorCount)
+    {
+        var threadsPerWarp = Math.Clamp(processorCount, 2, 4);
+        var warpsPerMultiprocessor = 1;
+        while (warpsPerMultiprocessor * 2 * threadsPerWarp <= processorCount)
+        {
+            warpsPerMultiprocessor *= 2;
+        }
+
+        return new CPUDevice(threadsPerWarp, warpsPerMultiprocessor, numMultiprocessors: 1);
+    }
 
     private static AcceleratorSession Cuda(EngineOptions options)
     {
