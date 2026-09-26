@@ -57,9 +57,12 @@ restate the equations. Whoever codes this node reads chapter 6.
   the first three trials (`rocket.f90:538-554`), does not re-solve the state at the
   pressure it moves to, and never reports failure. Run the same day for the
   AP/HTPB/Al case at 7 MPa, it reports a throat at Mach 0.9197 with
-  c* = 1411.7 m/s; its neighbours at h − 2.20 and h − 2.30 MJ/kg give 1336.5 and
-  1333.2 m/s. The state it prints was solved at a pressure other than the one it
-  reports, so no fixture is taken from it there.
+  c* = 1411.7 m/s. The largest `ρu` over the package's own sp solves along the same
+  isentrope gives 1330.444 m/s, 6.1 % lower. It lies at p/p_c = 0.584632 on the
+  plateau's edge (2327.0 K): there `u²/a²` jumps from 0.947 to 1.119 and γ_s from
+  1.180 to 0.999, while `ρu` is continuous. The state the package prints was solved at
+  a pressure other than the one it reports, so no fixture is taken from its rocket
+  solver there (the acceptance criterion below).
 - **Area ratios are met by construction.** An exit station requested by area ratio
   satisfies `|(ρ_t u_t)/(ρ_e u_e) − ε| ≤ 1e-6 · ε` at convergence.
 - **Frozen means frozen.** In frozen flow the composition downstream of the freezing
@@ -459,9 +462,25 @@ efferent-coupling row.
         - the throat's `ρu` is not below that of sp solves at `p(1 ± 1e-4)`, so it is
           the maximum;
         - the throat's state is single-phase and its Mach number is below 1;
-        - its c* lies between the c* of the same propellant at h − 2.20 and
-          h − 2.30 MJ/kg (for AP/HTPB/Al at 7 MPa, which cea 3.3.4 solves regularly:
-          1336.538 and 1333.227 m/s).
+        - its c* and throat pressure ratio match reference fixtures of a new family,
+          within the fixtures node's tolerance table.
+
+        The new fixtures are built by the fixtures node's generator without the
+        package's rocket solver: the throat is the maximum of `ρu` over the package's
+        own sp solves along the chamber isentrope. The method is proven on the regular
+        cases first. It reproduces cea 3.3.4's printed c* to 0.001 m/s at
+        h − 2.20, − 2.225 and − 2.30 MJ/kg (1336.537, 1333.066, 1333.226 m/s,
+        measured 2026-09-26). At h − 2.25 and − 2.275 MJ/kg it gives 1330.444 and
+        1330.435 m/s, where the package's rocket prints 1411.722 and 1359.032. Cases:
+        - AP/HTPB/Al at 7 MPa, h − 2.25 and − 2.275 MJ/kg;
+        - the same at 1, 3 and 15 MPa, h − 2.25 MJ/kg;
+        - RP-1311 example 13 at 5 MPa, h + 250 kJ/kg.
+
+        ⚠ 2026-09-26, the same day: the third property first read "its c* lies
+        between the c* at h − 2.20 and h − 2.30 MJ/kg (1336.538 and 1333.227 m/s)".
+        Wrong: c* has a shallow minimum of about 1330.4 m/s across the plateau-edge
+        range. The owner asked that no earlier conclusion be taken on faith, and the
+        scan above, run to check the throat definition, found it.
 
         A sweep over the audit's grid (example 13 over p_c 2 to 40 MPa and h ± 400
         kJ/kg, shifting and frozen-at-throat) has no `ThroatNotFound`. It is
