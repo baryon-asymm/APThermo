@@ -17,8 +17,9 @@ A child node of `src/Execution` (its `BOOT.md`, the child-nodes decision of
   is one launch's slice of a batch (its offset and length).
 
 The rest of `src/Execution` reaches this through `ChunkPlan.For`/`.Chunks()`,
-`ChunkBuffers`'s five declaration methods, `Allocate`, `UploadChunk`, `DownloadChunk`
-and `BytesPerCase`, and `ChunkBuffer<T>.View` on what a declaration returns — a
+`ChunkBuffers`'s five declaration methods, `Allocate`, `UploadChunk`, `DownloadChunk`,
+`BytesPerCase` and `MaxElementsPerCase` (2026-09-26, the audit's F4), and
+`ChunkBuffer<T>.View` on what a declaration returns — a
 contract far narrower than the six types behind it: `IChunkBuffer`, `ChunkTransfer`
 and the `Chunk` record are never named outside this node. The cluster has a reason of
 its own to change that the rest of `src/Execution` does not share: the chunking and
@@ -111,11 +112,31 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       libdevice post-link ran on the kernel module this node's buffers feed, and the
       namespace change did not touch it.
 
-- [ ] 2026-09-26 — The element cap. A host fact plans a table at `TableLimits` with
-      `ScratchBytes` of 64 GiB and `ChunkSize` of `int.MaxValue`, and every chunk has
-      `chunk × perCase ≤ int.MaxValue` for every buffer. The fact is red against the
-      byte-only rule. No other plan moves, since the default options are far below
-      the cap.
+- [x] 2026-09-26 — The element cap. A host fact plans a table at `TableLimits` (13 248
+      doubles per case, this node's own worked example above) with `ScratchBytes` of
+      64 GiB and `ChunkSize` of `int.MaxValue`, and asserts `chunk × perCase ≤
+      int.MaxValue`; a second plan with the default options is unaffected by the new
+      cap, confirming no other plan moves
+      (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`, `tests/Execution.Tests`).
+
+      Shown red once against the byte-only rule (`ChunkPlan.For`'s offset cap replaced
+      by `long.MaxValue`): `dotnet test tests/Execution.Tests --filter
+      "FullyQualifiedName~ChunksStayWithinInt32OffsetsAtTableLimits"` failed — "648394 *
+      13248 overflows a 32-bit offset" — then reverted, the same command green again.
+      `ChunkBuffers.MaxElementsPerCase` and `IChunkBuffer.ElementsPerCase` added
+      alongside `BytesPerCase`/`ElementsPerCase`; the four pipelines
+      (`EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`,
+      `SpeciesFunctionPipeline`) pass `buffers.MaxElementsPerCase` into `ChunkPlan.For`
+      beside `buffers.BytesPerCase`; the kernels and their PTX unchanged. Verified on
+      the reference machine: `dotnet build APThermo.sln` 0 warnings, 0 errors;
+      `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+      "Category!=LongRunning"` green on this node's own facts (the one unrelated
+      pre-existing failure, `Protocol.Tests.DeclarationTests.EveryDeclarationUnderATickExists`
+      on `src/Performance/API.md`'s `RocketSolver.MaxThroatBisections`, predates this
+      change and is outside this subtree, from the pending Performance/Transport design
+      of `9a6888f`); `dotnet test tests/Execution.Tests -c Release` green, the sweep and
+      throughput tripwire included, no `Bits*`/`Throughput*`/`PublicSurface.approved.txt`
+      record moved; the protocol lint 0 errors, 0 warnings.
 
 ## Taboos
 

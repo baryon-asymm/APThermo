@@ -41,7 +41,7 @@ internal static class EquilibriumPipeline
         var statusBuffer = buffers.Output(status, 1);
         var iterationBuffer = buffers.Output(iterations, 1);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, options);
+        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options);
         buffers.Allocate(plan.Size);
         var views = new EquilibriumBatchViews(
             kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,

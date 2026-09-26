@@ -56,6 +56,26 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
   - Results change only where a phase was wrongly excluded before (the nine condensed
     records between 298.15 K and 300 K, ice below 200 K, states with more than eight
     stable condensed phases). No result of the reference fixtures moved.
+- The hidden-defect audit of `Execution` (2026-09-26):
+  - A CUDA library present but unusable (a corrupt install, a foreign architecture, a
+    missing dependency) left a raw, unwrapped exception and leaked about 190 MiB of
+    device memory per attempt, because ILGPU's own accelerator constructor created the
+    CUDA context before loading the library. The choice now loads and checks libnvvm and
+    the bitcode itself first, so a bad library never reaches the device.
+  - The CPU accelerator always ran 16 threads, ILGPU's predefined default, regardless of
+    the machine's actual core count. It now sizes itself from `Environment.ProcessorCount`,
+    to the nearest multiple of 4 not above it (unchanged on the reference machine's 16
+    cores).
+  - A batch whose per-case device buffers were sized above roughly 16 GiB with a very
+    large `EngineOptions.ScratchBytes` and `ChunkSize` could make a kernel's 32-bit
+    offset arithmetic wrap and index outside its own buffer. A chunk's size is now also
+    capped so that no buffer's offset can overflow.
+  - A driver or libnvvm failure log kept the NUL padding of ILGPU's own buffer in the
+    exception message. `Engine.Upload` left the species buffers of a failed upload live
+    until the engine itself was disposed, when only the transport table's own upload
+    failed. `EngineOptions.LibNvvmPath` given without `LibDevicePath`, or the reverse,
+    silently fell through to discovery; it is now an `ArgumentException` naming the
+    missing option. Each is fixed.
 
 ## [0.1.0] - 2026-09-18
 

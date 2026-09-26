@@ -40,19 +40,39 @@ internal sealed class Engine : IDisposable
             throw new ArgumentException("the scratch bound must be positive", nameof(options));
         }
 
+        if ((options.LibNvvmPath is null) != (options.LibDevicePath is null))
+        {
+            var missing = options.LibNvvmPath is null ? nameof(EngineOptions.LibNvvmPath) : nameof(EngineOptions.LibDevicePath);
+            throw new ArgumentException($"an explicit libnvvm/libdevice path pair must be given together; {missing} is missing", nameof(options));
+        }
+
         LibDevicePostLink.AssertIlgpu();
         return new Engine(AcceleratorChoice.Decide(options).Session, options);
     }
 
-    /// <summary>Copies the tables to the accelerator; reusable across batches until disposed.</summary>
+    /// <summary>Copies the tables to the accelerator; reusable across batches until disposed. When a transport table is given
+    /// and its own upload then fails, the species buffers already uploaded are disposed rather than left live until the
+    /// engine itself is (BOOT.md, the audit's observations).</summary>
     public UploadedTables Upload(SpeciesTable species, TransportTable? transport = null)
     {
         ArgumentNullException.ThrowIfNull(species);
         ThrowIfDisposed();
-        return transport is not null && !ReferenceEquals(transport.Species, species)
-            ? throw new ArgumentException("the transport table was built for another species table", nameof(transport))
-            : new UploadedTables(this, species, transport, SpeciesTableBuffers.Upload(_session.Accelerator, species),
-                                 transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport));
+        if (transport is not null && !ReferenceEquals(transport.Species, species))
+        {
+            throw new ArgumentException("the transport table was built for another species table", nameof(transport));
+        }
+
+        var speciesBuffers = SpeciesTableBuffers.Upload(_session.Accelerator, species);
+        try
+        {
+            var transportBuffers = transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport);
+            return new UploadedTables(this, species, transport, speciesBuffers, transportBuffers);
+        }
+        catch
+        {
+            speciesBuffers.Dispose();
+            throw;
+        }
     }
 
     /// <summary>Solves every case of the batch.</summary>

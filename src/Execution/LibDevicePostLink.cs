@@ -153,7 +153,12 @@ internal static partial class LibDevicePostLink
     private static string FailureMessage(string outcome, string arch, string? log) =>
         log is null
             ? $"the libdevice post-link for {arch}: {outcome}."
-            : $"the libdevice post-link for {arch}: {outcome}: {log.Trim()}";
+            : $"the libdevice post-link for {arch}: {outcome}: {TrimLog(log)}";
+
+    /// <summary>Trims a driver or libnvvm log of both whitespace and the NUL padding of ILGPU's own log buffer (BOOT.md, the
+    /// audit's observations): a plain <see cref="string.Trim()"/> leaves the padding, which a caller sees as trailing
+    /// squares or nothing at all depending on the terminal.</summary>
+    private static string TrimLog(string log) => log.Trim(['\0', ' ', '\t', '\r', '\n']);
 
     /// <summary>The kernel's own target, from its <c>.target sm_XX</c> line: ILGPU's choice per device, not a fixed value.</summary>
     private static string TargetArch(string ptx)
