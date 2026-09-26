@@ -1,5 +1,6 @@
 using System.Text.Json;
 using APThermo.Thermo;
+using ILGPU.Runtime;
 
 namespace APThermo.Transport.Tests;
 
@@ -7,6 +8,9 @@ namespace APThermo.Transport.Tests;
 [Collection(CpuFixture.CollectionName)]
 public sealed class FitTests
 {
+    /// <summary>One kilomole per kilogram of a single-species table, for the estimated-species fact below.</summary>
+    private static readonly double[] SingleSpeciesMoles = [1.0];
+
     /// <summary>The transport fit fixture files as theory data, delegating to <see cref="TransportHost.FitCases"/>.</summary>
     public static TheoryData<string> Cases() => TransportHost.FitCases();
 
@@ -149,6 +153,36 @@ public sealed class FitTests
 
         var indexed = transport.Arrays.PairIndex.Count(i => i >= 0);
         Assert.Equal(2 * expected.Count, indexed);
+    }
+
+    /// <summary>
+    /// A species with viscosity fits but no conductivity fit (<c>UF6</c>, the one such species in <c>trans.inp</c>) is counted
+    /// as estimated, into both <see cref="TransportFigures.EstimatedSpeciesCount"/> and
+    /// <see cref="TransportFigures.EstimatedMoleFraction"/> (<c>BOOT.md</c>, the ⚠ of 2026-09-26: only a missing viscosity
+    /// was counted before this date, so <c>UF6</c> was estimated nowhere).
+    /// </summary>
+    [Fact]
+    public void ASpeciesWithViscosityFitsButNoConductivityFitIsCountedAsEstimated()
+    {
+        var entry = CpuFixture.Shared.Transport.Find("UF6")!;
+        Assert.True(entry.Viscosity.Count > 0, "UF6 must carry viscosity fits for this fact to exercise anything");
+        Assert.True(entry.Conductivity.Count == 0, "UF6 must carry no conductivity fit for this fact to exercise anything");
+
+        var (table, transport) = TablesFor("UF6", null);
+        using var speciesBuffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        using var transportBuffers = TransportTableBuffers.Upload(CpuFixture.Shared.Accelerator, transport);
+        using var moles = CpuFixture.Shared.Accelerator.Allocate1D(SingleSpeciesMoles);
+        using var doubles = CpuFixture.Shared.Accelerator.Allocate1D<double>(TransportLayout.DoublesPerCase(table.ElementCount));
+        using var ints = CpuFixture.Shared.Accelerator.Allocate1D<int>(TransportLayout.IntsPerCase(table.SpeciesCount, table.ElementCount));
+        using var figuresBuffer = CpuFixture.Shared.Accelerator.Allocate1D<TransportFigures>(1);
+        var scratch = TransportScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount);
+        var speciesView = speciesBuffers.View;
+        var transportView = transportBuffers.View;
+        var status = TransportSolver.Evaluate(in speciesView, in transportView, 400.0, moles.View, in scratch, figuresBuffer.View);
+        Assert.Equal(CaseStatus.Ok, status);
+        var figures = figuresBuffer.GetAsArray1D()[0];
+        Assert.Equal(1, figures.EstimatedSpeciesCount);
+        Assert.Equal(1.0, figures.EstimatedMoleFraction, 12);
     }
 
     private static bool IsGas(SpeciesTable table, string name)

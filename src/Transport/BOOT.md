@@ -398,21 +398,36 @@ row.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
-- [ ] 2026-09-26 — The reaction basis reverts a vanished pivot to its default species,
+- [x] 2026-09-27 — The reaction basis reverts a vanished pivot to its default species,
       as the reference does, and every estimated species is counted (the ⚠ notes of
-      this date). Evidence due:
-      - **The audit's stage run as a fact.** Table `[N, O]`, products
-        `[NO2, N2O4, N, O, N2, O2, NO]`, a composition dominated by NO2 then N2O4, at
-        400 K. Every reaction of the set conserves every element: the check is
-        computed, not typed. The fact is red against the code of `9c33398`, where all
-        five reactions fail to conserve.
-      - **Conservation everywhere.** Over every rocket fixture with transport, every
-        reaction of every station's set conserves the elements.
-      - **Estimates.** A species with viscosity fits and no conductivity fits (`UF6`,
-        the one such species in `trans.inp`) is counted in `EstimatedSpeciesCount` and
-        its mole fraction in `EstimatedMoleFraction`.
-      - **Bits.** No bit snapshot moves (no fixture's basis has a vanished pivot, and
-        no fixture holds `UF6`). The coder confirms both.
+      2026-09-26).
+      - **The audit's stage run as a fact.**
+        `Transport.Tests.ReactionConservationTests.TheAuditsRestrictedProductListConservesEveryReaction`:
+        table `[N, O]`, products `[NO2, N2O4, N, O, N2, O2, NO]`, a composition
+        dominated by NO2 then N2O4, at 400 K. Every reaction of the set conserves
+        every element (computed from the reaction coefficients and the species
+        stoichiometry, not typed). Seen red against the pre-fix `ReactionBasis.cs`
+        (the code of `9c33398`): all five reactions failed to conserve, the residuals
+        matching the audit's own trace exactly ("+2 NO2 −4 N2O4 −1 N2" off by N −8,
+        O −12 reproduced verbatim as reaction 2's residuals).
+      - **Conservation everywhere.**
+        `ReactionConservationTests.EveryReactionOfEveryStationsSetConservesTheElements`
+        over every rocket fixture with transport (the enumerated directory), every
+        station, every reaction of the set: green before and after the fix, since no
+        committed fixture's basis has a vanished pivot (the Bits confirmation below).
+      - **Estimates.** `FitTests.ASpeciesWithViscosityFitsButNoConductivityFitIsCountedAsEstimated`:
+        `UF6`, the one species in `trans.inp` with viscosity fits and no conductivity
+        fit, is counted in `EstimatedSpeciesCount` (1) and its mole fraction (1.0, the
+        only species of a one-species table) in `EstimatedMoleFraction`. Seen red
+        against the pre-fix `SetSpeciesProperties.cs`: `EstimatedSpeciesCount` was 0.
+      - **Bits.** No bit snapshot moved: the fast suite (3163 tests) and
+        `tests/Transport.Tests/Bits.approved.txt` are unchanged by the fix. Confirmed
+        with a temporary counter (`DiagnosticRevertCounter`, removed before the commit)
+        incremented by the revert branch of `ReactionBasis.Eliminate` and by the
+        viscosity-only branch of `SetSpeciesProperties.Fits`, run over every station of
+        every rocket fixture with transport (168 stations, 39 fixtures): both counters
+        read 0, so no committed fixture's basis has a vanished pivot and none holds
+        `UF6`.
 
 ## Taboos
 

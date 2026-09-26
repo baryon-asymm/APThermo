@@ -269,14 +269,35 @@ dependency went away with it.
       above already record that the node owns such tolerances. No code changed for
       F-TK-10 here.
 
-- [ ] 2026-09-26 — The pinned trace stations (Constraints). The audit's mutation
-      (k_r = 3·k_f at eliminated stations) turns a hosted-filter fact red. A station
-      removed from the list and a key added for a station without the signature each
-      fail. The list's nine keys come from a scan recorded with the list.
+- [x] 2026-09-27 — The pinned trace stations (Constraints):
+      `TraceEliminatedStations.Keys` (nine keys, the scan method recorded with the
+      list) and `TraceEliminationGuardTests`'
+      `OnlyThePinnedStationsEliminateATraceSpecies`,
+      `EveryPinnedStationShowsTheReferenceDefectSignature` and
+      `AtThePinnedStationsTheReactingFieldsMatchTheirDefinitions`, none carrying the
+      `BitSnapshot` trait. The audit's mutation (k_r = 3·k_f at eliminated stations,
+      applied to `SetProperties.cs`) turned `AtThePinnedStationsTheReactingFieldsMatchTheirDefinitions`
+      red at all nine stations (the independent recompute through `MixtureRules` and
+      `ReactionTerms` disagreed with the mutated `ReactingConductivity`), while the
+      other two facts, which do not read that field, stayed green — a hosted-filter
+      fact now catches what only the bit snapshot caught before (guards audit F1).
+      A station removed from the list turned `OnlyThePinnedStationsEliminateATraceSpecies`
+      red (the elimination it still performs is unlisted); a key added for a station
+      without the signature (the aluminized-propellant chamber) turned all three red
+      at once: no defect ratio, `ReactionCount` 4 not 0, and "no longer eliminates a
+      trace species there".
 
-- [ ] 2026-09-27 — No NaN-blind predicate: a NaN reacting conductivity fails
-      `ReactingConductivityIsNeverBelowTheFrozenOne`, red once; the coder records the
-      list of predicates rewritten.
+- [x] 2026-09-27 — No NaN-blind predicate: `StationTests.ReactingConductivityIsNeverBelowTheFrozenOne`'s
+      violation check was rewritten from `figures.ReactingConductivity < figures.FrozenConductivity`
+      to `!(figures.ReactingConductivity >= figures.FrozenConductivity)`. Seen red once:
+      with `SetProperties.Fill`'s `ReactingConductivity` temporarily forced to
+      `double.NaN`, the old form stayed green (a NaN comparison with `<` is always
+      false, so the violation was never flagged); the rewritten form failed over every
+      Ok station of every rocket fixture with transport, naming the NaN value. A scan
+      of every comparison of this node found no other predicate at risk: the rest
+      either compare integers (fit indices, species and gas counts, statuses) or
+      delegate to `ToleranceTable.Matches`, which already fails on NaN — so no other
+      rewrite was needed.
 
 ## Taboos
 

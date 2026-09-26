@@ -17,7 +17,9 @@ internal static class SetSpeciesProperties
     /// <summary>
     /// The mole fraction within the set, the species functions and the fitted viscosities and conductivities of the
     /// <paramref name="nm"/> species of the set, whose moles sum to <paramref name="total"/>; a species or a pair without data
-    /// is left at zero for <see cref="Estimates"/>. Counts the species without a viscosity entry into the figures.
+    /// is left at zero for <see cref="Estimates"/>. Counts into the figures a species estimated in either of its viscosity or
+    /// its conductivity (<c>BOOT.md</c>, the ⚠ of 2026-09-26: a species with viscosity fits but no conductivity fit, such as
+    /// <c>UF6</c>, was not counted).
     /// </summary>
     internal static void Fits(in StationInputs inputs, int nm, double total, ref TransportFigures figures)
     {
@@ -34,14 +36,12 @@ internal static class SetSpeciesProperties
             scratch.Xs[a] = inputs.Moles[j] / total;
             scratch.Cp[a] = SpeciesFunctions.CpOverR(in species, j, temperature);
             scratch.H[a] = SpeciesFunctions.HOverRT(in species, j, temperature);
-            scratch.Cond[a] = transport.ConductivityCount[j] > 0 ? TransportSolver.PureConductivity(in transport, j, temperature) : 0.0;
-            if (transport.ViscosityCount[j] > 0)
+            var hasConductivity = transport.ConductivityCount[j] > 0;
+            scratch.Cond[a] = hasConductivity ? TransportSolver.PureConductivity(in transport, j, temperature) : 0.0;
+            var hasViscosity = transport.ViscosityCount[j] > 0;
+            scratch.Eta[a * Stride + a] = hasViscosity ? TransportSolver.PureViscosity(in transport, j, temperature) : 0.0;
+            if (!hasViscosity || !hasConductivity)
             {
-                scratch.Eta[a * Stride + a] = TransportSolver.PureViscosity(in transport, j, temperature);
-            }
-            else
-            {
-                scratch.Eta[a * Stride + a] = 0.0;
                 estimatedCount++;
                 estimatedFraction += scratch.Xs[a];
             }
