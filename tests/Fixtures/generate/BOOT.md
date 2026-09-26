@@ -44,7 +44,8 @@ the environment lives in `.venv`, ignored by git); the tree's `data/thermo.inp` 
 Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 
 - Layout: one module per fixture family (`constants.py`, `thermo_functions.py`,
-  `transport_fits.py`, `rp1311.py`, `propellants.py`), the case builders over the
+  `transport_fits.py`, `rp1311.py`, `propellants.py`, `plateaus.py`, `throat_scan.py`
+  since 2026-09-27), the case builders over the
   package in `cea_cases.py`, shared helpers in `common.py`, the writer in `writer.py`,
   the driver `regenerate.py`. Every family module exposes `generate(writer)` and runs
   standalone.
@@ -57,6 +58,11 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 - Frozen rocket cases are generated without transport: the package's frozen expansion
   with transport on fails for product sets of about a hundred species (recorded in the
   parent's case matrix).
+- `throat_scan.py` (2026-09-27) builds the throat family by the method and the guard
+  the parent's case matrix states. It reuses the reactant lists and compositions of
+  `plateaus.py` and `rp1311.py` by import, never by copy. The scan solves only through
+  `cea_cases.solve_equilibrium`, and the guard's rocket solves only through
+  `cea_cases.solve_rocket`.
 - JSON form: indent 2, LF, UTF-8, `NaN` forbidden, floats in Python's shortest
   round-trip form, numpy values converted to Python numbers.
 

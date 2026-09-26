@@ -13,8 +13,9 @@ node generates the outputs itself, from committed scripts, and records how.
 ## Invariants
 
 - **Every fixture carries its provenance**: package name and version, the library
-  version string the package reports, the method (`cea-package` or
-  `independent-evaluation`), the script name and its SHA-256, the SHA-256 of the
+  version string the package reports, the method (`cea-package`,
+  `independent-evaluation`, or `cea-package-mass-flux-scan` for the throat family below,
+  2026-09-27), the script name and its SHA-256, the SHA-256 of the
   package's `thermo.lib` and `trans.lib`, the SHA-256 of the tree's `data/thermo.inp`
   and `data/trans.inp`, and the generation date. The date is the day the content last
   changed: the writer leaves a fixture untouched when the regenerated document differs
@@ -70,8 +71,8 @@ verified by [Fixtures.Tests](../Fixtures.Tests/BOOT.md)).
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Layout: `generate/` holds the Python scripts and `requirements.txt`; `cases/<kind>/`
-  holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `transport`,
-  `thermo`, `constants`); `tolerances.json` is the tolerance table; the C# loader is
+  holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `throat`,
+  `transport`, `thermo`, `constants`; `throat` since 2026-09-27); `tolerances.json` is the tolerance table; the C# loader is
   the node's assembly `APThermo.Fixtures`.
 - Procedure: `python -m venv tests/Fixtures/generate/.venv`, install
   `requirements.txt` into it, then `python tests/Fixtures/generate/regenerate.py`
@@ -239,7 +240,51 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   thousand files for the same coverage of the tp, hp and sp paths; narrowed to one
   case per propellant plus the two rocket examples when the generator was written.
 
-  - `thermo`: `Cp°/R`, `H°/RT`, `S°/R`, `G°/RT` for the species listed in
+  - `throat` (2026-09-27): the chamber and the throat of a shifting-equilibrium
+    rocket, with no exit, where the throat is the largest mass flux `ρu` along the
+    chamber isentrope, found over the package's own sp solves and never taken from its
+    rocket solver. It exists because the package's rocket solver reports a wrong
+    throat at the high-pressure edge of a melting plateau, while its equilibrium
+    solves there are sound. The performance node's `BOOT.md` states the defect, and
+    RP-1311 sections 6.3.3 and 6.3.4 define the throat this family computes.
+    - Cases, the enthalpy assigned relative to the reactants' own `h₀`:
+      - AP/HTPB/Al of the plateau cases above at 7 MPa, `h₀` − 2.20, − 2.225,
+        − 2.25, − 2.275 and − 2.30 MJ/kg;
+      - the same at 1, 3 and 15 MPa, `h₀` − 2.25 MJ/kg;
+      - RP-1311 example 13's propellant at 5 MPa, `h₀` and `h₀` + 250 kJ/kg, with
+        its trace threshold.
+    - Method, per case:
+      1. The chamber is the package's hp at the assigned enthalpy and `p_c`.
+      2. `ρu` is evaluated on 101 pressure ratios `p/p_c` evenly from 0.45 to 0.70,
+         each an sp solve at the chamber's entropy with `u = √(2(h_c − h))`. The
+         largest must lie strictly inside the grid, or the run stops.
+      3. The bracket of its two neighbours is refined by ternary search on `ρu` for
+         50 steps.
+      4. The throat is the sp solve at the bracket's high-pressure end, the chamber
+         side. At a plateau edge that is the single-phase state, as the performance
+         node defines it; elsewhere the two ends agree to rounding.
+      5. The throat's figures: pressure ratio `p_c/p`, `c* = p_c/(ρu)`, velocity and
+         specific impulse `u`, thrust coefficient `u/c*`, area ratio 1, Mach `u/a`
+         with the equilibrium sound speed.
+    - A guard proves the method on every case before it is written. The package's
+      rocket solver runs the same case. Where its throat is sonic (`|Mach − 1|` ≤
+      1e-4), the scan's c* must equal the package's within 1e-5 relative, or the run
+      stops. Where it is not, the generator logs both c* values, and the fixture records
+      the package's throat under `outputs.packageRocketThroat` (c*, Mach, pressure
+      ratio) for the record. No test compares with that object.
+    - Measured 2026-09-26/27 with the scratch versions of this method:
+      - AP/HTPB/Al at 7 MPa, `h₀` − 2.20, − 2.225, − 2.30 MJ/kg: 1336.537, 1333.066
+        and 1333.226 m/s, equal to the package's printed c* to 0.001 m/s;
+      - `h₀` − 2.25 and − 2.275: 1330.444 and 1330.435 m/s, where the package prints
+        1411.722 and 1359.032;
+      - example 13 at 5 MPa, `h₀`: 1957.753 m/s on the BeO plateau, the package
+        1957.755, both at Mach 1;
+      - `h₀` + 250 kJ/kg: 1941.006 m/s at `p/p_c` 0.612894, where `u²/a²` is 0.880
+        on the chamber side and 1.014 on the plateau. The package prints 1949.759 at
+        Mach 0.9335, solved at `p/p_c` 0.613466.
+    - The document is that of the rocket kind, with `stations` holding the chamber
+      and the throat only, and `inputs` marking `enthalpyAssigned` as the hp band
+      cases do. Frozen flow is not generated: a frozen throat has no plateau.
     `thermo_functions.py` (gaseous and condensed records, one with four intervals), at
     those of 200, 298.15, 500, 1000, 1000.0001, 2000, 3000, 5000, 6000 K that lie in the
     record's range, the record's first bound, midpoint and last bound (so that a narrow
@@ -381,6 +426,15 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       `ReadProvenance`, each argument now reading its own named field directly; the
       re-verification is this tick's own evidence, not a new one.
 
+
+- [ ] 2026-09-27 — The throat family (the case matrix). Evidence due:
+      - `regenerate.py` writes the ten cases, and `--check` exits 0 right after;
+      - the method guard passes on every case whose package throat is sonic, and was
+        shown red once, with the high-pressure end replaced by the low one on a
+        regular case or the scan's grid cut short;
+      - the loader reads the kind, and `Fixtures.Tests` covers its form and its
+        provenance method;
+      - the logged c* values reproduce the measurements above to 0.001 m/s.
 
 ## Taboos
 
