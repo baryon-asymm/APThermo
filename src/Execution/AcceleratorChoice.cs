@@ -72,17 +72,67 @@ internal static class AcceleratorChoice
             ? throw new AcceleratorUnavailableException($"libnvvm ({LibDeviceLocator.LibraryFileName}) and libdevice (libdevice.10.bc) were not found.", tried)
             : AcceleratorSession.Build(CudaContext(dll, bitcode), session =>
             {
+                // The library before the device (BOOT.md, the audit's F2): libnvvm is loaded and asked its IR version, and
+                // the bitcode is read, before any CUDA context exists. The session keeps this one binding; no second
+                // NvvmAPI.Create follows once the accelerator is up.
+                var nvvm = session.Attach(LoadNvvm(dll, bitcode));
                 var devices = session.Context.GetCudaDevices();
                 if (options.CudaDeviceIndex < 0 || options.CudaDeviceIndex >= devices.Count)
                 {
                     throw new AcceleratorUnavailableException($"CUDA device {options.CudaDeviceIndex} was requested, but {devices.Count} device(s) exist.", [dll, bitcode]);
                 }
 
-                var accelerator = session.Attach(session.Context.CreateCudaAccelerator(options.CudaDeviceIndex));
-                _ = session.Attach(NvvmAPI.Create(dll, bitcode));
+                var accelerator = session.Attach(CreateAccelerator(session.Context, options.CudaDeviceIndex, dll, bitcode));
                 ProbeBinding(session, dll, bitcode);
                 return new AcceleratorInfo(AcceleratorKind.Cuda, accelerator.Name, LibDevicePostLink.IlgpuVersion, dll, bitcode, accelerator.NumMultiprocessors);
             });
+    }
+
+    /// <summary>
+    /// Loads libnvvm, asks its IR version and reads the bitcode, before any CUDA context exists (BOOT.md, the audit's F2): a
+    /// bad library or an unreadable bitcode then never reaches <see cref="CreateAccelerator"/>, so it never leaks the raw
+    /// CUDA context ILGPU's own accelerator constructor would otherwise have created first and had no handle left to
+    /// release. Wraps every failure as <see cref="AcceleratorUnavailableException"/> naming both paths, the way
+    /// <see cref="CudaContext"/> already does for the context.
+    /// </summary>
+    private static NvvmAPI LoadNvvm(string dll, string bitcode)
+    {
+        NvvmAPI? nvvm = null;
+        try
+        {
+            nvvm = NvvmAPI.Create(dll, bitcode);
+            var result = nvvm.GetIRVersion(out _, out _, out _, out _);
+            if (result != NvvmResult.NVVM_SUCCESS)
+            {
+                throw new InvalidOperationException($"libnvvm's GetIRVersion returned {result}.");
+            }
+
+            _ = nvvm.LibDeviceBytes.Length; // the bitcode itself: a failure to read it surfaces here, not at the first compile
+            return nvvm;
+        }
+        catch (Exception failure) when (failure is not OutOfMemoryException)
+        {
+            nvvm?.Dispose();
+            throw new AcceleratorUnavailableException($"libnvvm or libdevice could not be loaded: {failure.Message}", [dll, bitcode], failure);
+        }
+    }
+
+    /// <summary>
+    /// Wraps ILGPU's own accelerator constructor (BOOT.md, the audit's F2): its failures otherwise escape unwrapped, and,
+    /// for a cause this check cannot foresee, still leak the CUDA context ILGPU had already created before the failure,
+    /// since ILGPU gives no handle to release one. <see cref="LoadNvvm"/> above keeps the known cause, a bad library, from
+    /// ever reaching this call.
+    /// </summary>
+    private static CudaAccelerator CreateAccelerator(Context context, int deviceIndex, string dll, string bitcode)
+    {
+        try
+        {
+            return context.CreateCudaAccelerator(deviceIndex);
+        }
+        catch (Exception failure) when (failure is not OutOfMemoryException)
+        {
+            throw new AcceleratorUnavailableException($"the CUDA accelerator could not be created: {failure.Message}", [dll, bitcode], failure);
+        }
     }
 
     /// <summary>
