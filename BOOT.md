@@ -579,12 +579,20 @@ There is no external ancestor: the tree root is the repository root, and the loa
       for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
       split of the benchmarks node). Found by the coder of the last step, who raised it
       rather than editing the root.
-- [ ] Every GPU architecture (2026-09-26): the CUDA path runs on every architecture
+- [x] 2026-09-26 — Every GPU architecture (2026-09-26): the CUDA path runs on every architecture
       ILGPU 1.5.3 declares from compute capability 7.5 up, and an engine that binds
       CUDA has loaded a kernel carrying every wrapper of the math list. The list of
       architectures comes from ILGPU by reflection. The evidence is the execution
       node's criterion of the same date. Until it is ticked, 0.1.0 throws on every CUDA
       run of every GPU older than Blackwell, and `CHANGELOG.md` says so under 0.2.0.
+
+      Evidence: merged as `f973870`, on the reference machine. The architecture fact
+      covers the 11 architectures SM_75 … SM_121 and the 5 entry points; both paths of
+      the post-link occur; the PTX is equal and the probe bits are identical. The
+      bind-time facts are green, and `tests/Execution.Tests` in Release is 134 of 134.
+      Every architecture is compiled for and then run on the RTX 5070 Ti; no GPU older
+      than Blackwell has run it. A one-time run on rented hardware (a T4 or an L4) is
+      planned by the owner and will be recorded here.
 
 ## Taboos
 

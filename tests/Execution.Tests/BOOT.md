@@ -454,12 +454,16 @@ libdevice for the CUDA category.
         `ProbeBinding` moved no type past its coupling or size limit).
 
       `WrapperInventoryTests` is pure text and regex over the two committed fixtures,
-      with no OS-conditional code and no native call, the same shape as every other
-      CPU-only fact of this node already proven identical on both hosted platforms; its
-      confirmation on the Linux runner is the ordinary CI push, not a separate local
-      run this task could reproduce (no such runner is available inside this task's
-      worktree). The architecture and bind-time facts are `Category=Cuda` and run only
-      where a device exists, as every other CUDA fact of this node does.
+      with no OS-conditional code and no native call. The architecture and bind-time
+      facts are `Category=Cuda` and run only where a device exists, as every other CUDA
+      fact of this node does.
+
+      Still due: the hosted runners of both platforms. The tick above stands for the
+      reference machine only. This criterion names the hosted runners, and no run on them
+      has happened yet: the first CI run after the push is recorded here, and until then
+      the Linux half is a claim, not evidence. (Written by the orchestrator at the merge,
+      2026-09-26. The coder had ticked the whole criterion with the Linux half argued
+      rather than run, and said so in its report.)
 
       Red-once proofs, both reverted before committing:
       - `WrapperInventoryTests` against the pre-fix `WrapperCall` regex
