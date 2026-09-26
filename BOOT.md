@@ -85,7 +85,10 @@ None.
 Outside the tree: .NET SDK 10.0 (C# 14), pinned by `global.json` to 10.0.112 with
 `rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled SourceLink replaces
 the explicit package the tree briefly referenced; ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
-used); for the GPU path an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
+used); for the GPU path an NVIDIA GPU of compute capability 7.5 or newer (2026-09-26,
+the range the execution node proves; an older device may work with a 12.x toolkit and is
+not verified, and a 13.x libnvvm refuses its target when the engine binds, which the
+`Auto` choice turns into the CPU accelerator with the reason), an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
 (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
 `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
 `nvvm/bin/x64`; on Linux, and under WSL2, the toolkit's `nvvm/lib64`); NASA CEA data `thermo.inp` and `trans.inp` from
@@ -246,10 +249,30 @@ delivery (2026-09-15, `## Delivery` below).
   (the transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
   architecture review found the eleventh name unlisted). Adding a function is a root
   decision, because the execution node must provide its libdevice wrapper.
-- ILGPU 1.5.3 is pinned, and its libdevice support is defective with libnvvm 12.9 and
-  13.3: it emits the NVVM version metadata before the target lines, libnvvm rejects the
-  module, and ILGPU silently drops the wrappers. The execution node links the libdevice
-  wrappers itself; nothing else in the tree may know about the mechanism.
+- ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
+  `compute_100` and newer (Blackwell): it emits the NVVM version metadata before the
+  target lines, libnvvm rejects that module for those targets, and ILGPU silently drops
+  the wrappers. For `compute_75` to `compute_90` libnvvm accepts the same module and
+  ILGPU defines the wrappers itself. The execution node checks every kernel and
+  completes the wrappers ILGPU dropped; nothing else in the tree may know about the
+  mechanism.
+
+  ⚠ 2026-09-26: stood "defective with libnvvm 12.9 and 13.3 … The execution node links
+  the libdevice wrappers itself". The defect depends on the target architecture, not on
+  the libnvvm version. It was measured only on the reference machine's SM_120, where
+  ILGPU always drops the wrappers. On every older GPU ILGPU defined them itself, the
+  post-link then inserted a second copy, and every CUDA run of 0.1.0 threw on SM_75 to
+  SM_90 (the hidden-defect audit of 2026-09-26, `Execution` finding F1). Measured the
+  same day with libnvvm 12.9, 13.3 and 13.4 by compiling for every architecture on the
+  reference device:
+  - ILGPU's order compiles for `compute_75` to `compute_90` with all three, and
+    `compute_60`/`compute_70` with 12.9 only;
+  - it fails for `compute_100` and newer with all three;
+  - the kernels ILGPU completes itself equal, as PTX text, the kernels the post-link
+    completes, up to ILGPU's generated names and the `.target` line;
+  - their probe outputs are the same bits.
+
+  The execution node's `BOOT.md` records the design.
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
   during a solve.
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
@@ -273,7 +296,10 @@ delivery (2026-09-15, `## Delivery` below).
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
 - Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, CUDA
-  Toolkits 12.9 and 13.3, 16 logical CPU cores. Recorded, not required.
+  Toolkits 12.9, 13.3 and 13.4 (13.4 recorded 2026-09-26; discovery binds the newest),
+  16 logical CPU cores. Recorded, not required. It is the only GPU the tree is run on:
+  older architectures are proven by compiling for them and running the result on this
+  device (the execution node's architecture fact), not on their own hardware.
 - Code shape (2026-09-14, the clean-code pass): a type spans at most 400 lines of
   code from its declaration to its closing brace, a method at most 60 (a line of code
   holds more than white space and comments), control flow
@@ -553,6 +579,12 @@ There is no external ancestor: the tree root is the repository root, and the loa
       for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
       split of the benchmarks node). Found by the coder of the last step, who raised it
       rather than editing the root.
+- [ ] Every GPU architecture (2026-09-26): the CUDA path runs on every architecture
+      ILGPU 1.5.3 declares from compute capability 7.5 up, and an engine that binds
+      CUDA has loaded a kernel carrying every wrapper of the math list. The list of
+      architectures comes from ILGPU by reflection. The evidence is the execution
+      node's criterion of the same date. Until it is ticked, 0.1.0 throws on every CUDA
+      run of every GPU older than Blackwell, and `CHANGELOG.md` says so under 0.2.0.
 
 ## Taboos
 

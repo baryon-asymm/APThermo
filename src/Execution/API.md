@@ -64,7 +64,7 @@ public sealed class AcceleratorUnavailableException : Exception
 
 public static class AcceleratorProbe             // replaces Engine on the package surface (F1)
 {
-    public static AcceleratorInfo Describe(EngineOptions? options = null);   // binds as Engine.Create would, releases the device, returns its description
+    public static AcceleratorInfo Describe(EngineOptions? options = null);   // binds as Engine.Create would (the probe kernel included, 2026-09-26), releases the device, returns its description
     public static bool CudaForbidden { get; }     // the environment variable is "1"
 }
 ```
@@ -110,10 +110,21 @@ internal static class MathProbe
 }
 ```
 
-`Create` with `Auto` binds CUDA when CUDA is not forbidden, libnvvm and libdevice are
-found and the device exists, and the CPU accelerator otherwise, including when the
-CUDA context cannot be created. With `Cuda` every one of those failures is an
-`AcceleratorUnavailableException`. The kernel of each program is compiled (and on
+`Create` with `Auto` binds CUDA when all of the following hold, and the CPU
+accelerator otherwise:
+- CUDA is not forbidden;
+- libnvvm and libdevice are found;
+- the device exists and its CUDA context can be created;
+- the math probe kernel, which calls every libdevice wrapper of the math list,
+  post-links and loads on that device (2026-09-26).
+
+With `Cuda` every one of those failures is an `AcceleratorUnavailableException`. A CUDA
+engine therefore never reaches its first run on a device where no kernel can load.
+
+⚠ 2026-09-26: the probe kernel was not part of the binding. On every GPU older than
+Blackwell the post-link threw at the first run of every program: `Auto` had already
+bound CUDA and had no fallback left, and `Describe` reported the device as usable
+(`BOOT.md`, the ⚠ of the invariant "Every CUDA kernel goes through the post-link"). The kernel of each program is compiled (and on
 CUDA post-linked) on its first run per engine and cached; that time is the run's
 `WarmUp`. Batches are processed in chunks of at most `ChunkSize` cases, and fewer
 when a chunk's device bytes would exceed `ScratchBytes`; the results of a batch do not
@@ -277,10 +288,11 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | Situation | Behaviour |
 |---|---|
 | `AcceleratorKind.Cuda` requested and CUDA forbidden, no libnvvm or libdevice, no device at the index, or the context cannot be created | `AcceleratorUnavailableException` naming the missing piece and every path tried |
+| `AcceleratorKind.Cuda` requested and the math probe kernel cannot be post-linked or loaded on the device (2026-09-26) | `AcceleratorUnavailableException` at `Engine.Create` or `AcceleratorProbe.Describe`, its inner exception the post-link's `InvalidOperationException` (the next rows); with `Auto`, the CPU accelerator, the post-link's message in `CudaSkippedBecause` |
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create` (reached through `AcceleratorProbe.Describe` or `Problems`' `Solver.Create`), naming the ILGPU version |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
 | a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
-| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program |
+| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |
 

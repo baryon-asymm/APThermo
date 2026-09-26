@@ -10,6 +10,8 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
 | L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ✅ (2026-09-14) |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
+| L0 | the post-link's wrapper inventory over ILGPU 1.5.3's own PTX of the probe kernel, one fixture with the wrappers defined (SM_89) and one without (SM_120): the called set from `call` sites only, the defined set from `.func` headers, the missing set, with LF and CRLF line ends (2026-09-26) | the text fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, whose provenance is under Constraints | ⏳ (2026-09-26) |
+| L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ⏳ (2026-09-26) |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
@@ -133,7 +135,17 @@ libdevice for the CUDA category.
 
 - The CPU-only part of the node runs in the default test command; the CUDA category
   runs in the full set on the reference machine; the long-running category (the
-  sweep and the benchmark, about 20 s) is excluded from the fast set.
+  sweep and the benchmark, about 20 s, and since 2026-09-26 the architecture fact,
+  about three minutes, most of it the driver compiling the rocket kernel once per
+  architecture) is excluded from the fast set.
+- The PTX fixtures (2026-09-26) are ILGPU 1.5.3's PTX of `Kernels.Probe`, taken before
+  the post-link from a `PTXBackend` for SM_89 and for SM_120 with libnvvm 13.4 on the
+  reference machine. They are text, generated once and committed with a header comment
+  naming ILGPU, libnvvm, the architecture and the date. They are inputs of the
+  inventory, not expected values: the facts assert only what the root's math list and
+  the regime imply (which wrappers are called, whether they are defined). They are
+  regenerated when ILGPU is upgraded, which the version assertion already forces to be
+  a deliberate act.
 - Paths from the repository root; the actual throughput file is the only write, next
   to the approved one, and it is git-ignored.
 - One engine per accelerator is shared by the collection; tests that need a fresh
@@ -418,6 +430,11 @@ libdevice for the CUDA category.
         "Category!=LongRunning"`) 3101/3101 throughout, none skipped; every
         `Bits*.approved.txt` and the protocol tests node's `PublicSurface.approved.txt`
         unchanged.
+- [ ] 2026-09-26 — The post-link on every architecture (`Execution`'s criterion of the
+      same date, which lists the facts and their red-once proofs): the two L0 and L1
+      rows of that date green, the inventory facts on the hosted runners of both
+      platforms, the architecture and bind-time facts on the reference machine in
+      Release.
 
 ## Taboos
 
