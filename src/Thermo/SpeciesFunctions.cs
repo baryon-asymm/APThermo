@@ -44,15 +44,37 @@ internal static class SpeciesFunctions
         return count - 1;
     }
 
-    /// <summary>The first (lowest) lower bound of the species' intervals; with <see cref="RecordHigh"/>, the bounds <see cref="IsInRange"/> compares.</summary>
-    public static double RecordLow(in SpeciesTableView table, int species) =>
-        table.IntervalBounds[table.IntervalStart[species] * TableLayout.BoundsStride];
+    /// <summary>
+    /// The lowest lower bound over the species' intervals, taken bound by bound (2026-09-26; the reference's
+    /// <c>minval(T_fit(:, 1))</c>): with <see cref="RecordHigh"/>, the bounds <see cref="IsInRange"/> compares. Not
+    /// the first interval's own lower bound, which eleven condensed records of the committed file write inverted
+    /// (`Thermo` BOOT.md, "Interval selection is defined").
+    /// </summary>
+    public static double RecordLow(in SpeciesTableView table, int species)
+    {
+        var start = table.IntervalStart[species];
+        var count = table.IntervalCount[species];
+        var low = table.IntervalBounds[start * TableLayout.BoundsStride];
+        for (var k = 1; k < count; k++)
+        {
+            low = Math.Min(low, table.IntervalBounds[(start + k) * TableLayout.BoundsStride]);
+        }
 
-    /// <summary>The last (highest) upper bound of the species' intervals.</summary>
+        return low;
+    }
+
+    /// <summary>The highest upper bound over the species' intervals, taken bound by bound (the reference's <c>maxval(T_fit(:, 2))</c>).</summary>
     public static double RecordHigh(in SpeciesTableView table, int species)
     {
-        var last = table.IntervalStart[species] + table.IntervalCount[species] - 1;
-        return table.IntervalBounds[last * TableLayout.BoundsStride + 1];
+        var start = table.IntervalStart[species];
+        var count = table.IntervalCount[species];
+        var high = table.IntervalBounds[start * TableLayout.BoundsStride + 1];
+        for (var k = 1; k < count; k++)
+        {
+            high = Math.Max(high, table.IntervalBounds[(start + k) * TableLayout.BoundsStride + 1]);
+        }
+
+        return high;
     }
 
     /// <summary>True when the temperature lies between the first interval's lower bound and the last interval's upper bound.</summary>
