@@ -29,6 +29,30 @@ numerical node stays testable without it.
   wrapper generation is never relied on (it is defective with libnvvm 12.9 and 13.3,
   see Constraints); a kernel whose PTX calls a `__ilgpu__nv_*` wrapper that the
   post-link did not provide is refused at load with the wrapper's name in the error.
+- **No libnvvm or driver result is ignored** (2026-09-26). The post-link checks the
+  result of every call it makes into libnvvm (`GetIRVersion`, `CreateProgram`,
+  `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`,
+  `GetCompiledResult`, `DestroyProgram`) and into the CUDA driver (`LoadModule`,
+  `DestroyModule`). A result other than success is an `InvalidOperationException`
+  that names the call, the result code and the target `compute_XX`, carrying the
+  compiler's or the driver's log where one exists (`API.md`, Errors).
+  - The log of a failed compilation is read after the failure. If reading the log
+    fails too, the compilation's exception still propagates and says the log could
+    not be read, naming that result.
+  - Releasing a program or a module (`DestroyProgram`, `DestroyModule`) is checked only
+    when the path before it succeeded. When an earlier call has already failed, the
+    earlier exception propagates unchanged and the release is best-effort, so that a
+    cleanup failure never hides the cause.
+  - One internal method turns a result into the exception, so the message has one
+    shape. It is unit-tested on the CPU with every non-success value of `NvvmResult`
+    and a failing `CudaError`. The success path is proven by the CUDA tests of this
+    node, which must stay green with no bit or throughput record moving.
+
+  ⚠ 2026-09-26: until then only `CompileProgram` and `LoadModule` were checked; the
+  other calls' results were dropped, a fact the Diagnostics pass made visible when
+  IDE0058 turned the silent drops into explicit discards (`_ = nvvm.…`). A failure of,
+  say, `AddModuleToProgram` surfaced later as a compilation error with a misleading log,
+  or not at all.
 - **The wrapper list equals the root's math list.** The post-link provides wrappers
   for exactly the `System.Math` functions the root allows; a probe kernel using each
   of them loads and matches the CPU accelerator within the tolerance table.
@@ -511,6 +535,14 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       the machine has a device); `protocol_lint` 0 errors, 0 warnings; every
       `Bits.approved.txt` and the surface snapshot unchanged (the seam is internal, no
       public type added).
+
+- [ ] 2026-09-26 — No libnvvm or driver result is ignored: no `NvvmResult` or
+      `CudaError` returned by a call of the post-link is discarded (no `_ =` on such a
+      call remains in `LibDevicePostLink.cs`); the result-to-exception method is tested
+      with every non-success `NvvmResult` and a failing `CudaError`; the CUDA tests of
+      this node are green in Release, the long-running sweep and the throughput tripwire
+      included, with no `Bits*` or `Throughput*` record moving; the fast suite and the
+      lint are green.
 
 ## Taboos
 

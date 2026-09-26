@@ -280,7 +280,7 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create` (reached through `AcceleratorProbe.Describe` or `Problems`' `Solver.Create`), naming the ILGPU version |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
 | a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
-| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX | `InvalidOperationException` naming the wrapper or carrying the compiler's log, on the first run of that program |
+| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |
 
