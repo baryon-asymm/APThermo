@@ -21,6 +21,15 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
   exception) on `DatabaseFormatException`, `AcceleratorUnavailableException`,
   `StateRecordException` and `MixtureMassException`.
 
+### Fixed
+- 0.1.0 threw on every CUDA run on GPUs older than Blackwell (compute capability 7.5
+  to 9.0): ILGPU 1.5.3 defines the libdevice wrappers itself on those architectures,
+  and the post-link, written on the reference machine's Blackwell device alone, read
+  the definitions' own parameter names as calls it had no fragment for. The post-link
+  now completes only the wrappers ILGPU did not already define. The CUDA binding also
+  now loads a probe kernel first, so that a device on which no kernel can load is
+  never reported as bound.
+
 ## [0.1.0] - 2026-09-18
 
 ### Added
