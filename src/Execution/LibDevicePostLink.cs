@@ -12,7 +12,9 @@ namespace APThermo.Execution;
 /// Links ILGPU's libdevice wrappers into a compiled CUDA kernel, the one place in the tree that knows ILGPU's internals: ILGPU
 /// 1.5.3 emits the NVVM version metadata before the target lines, libnvvm rejects the module and the wrappers silently go missing.
 /// <see cref="Link"/> reads as the sequence of its stages: find the target, compile the wrapper body, check every call has a
-/// definition, splice it after the kernel's header, trial-load the result.
+/// definition, splice it after the kernel's header, trial-load the result. No libnvvm or driver result of that sequence is
+/// ignored (BOOT.md, "No libnvvm or driver result is ignored"): every call into libnvvm or the CUDA driver is checked through
+/// the <c>ThrowIfFailed</c> overloads, the one place that turns a non-success result into an exception.
 /// </summary>
 internal static partial class LibDevicePostLink
 {
@@ -88,10 +90,37 @@ internal static partial class LibDevicePostLink
 
         // The driver checks the PTX against a context bound to the calling thread; bind the accelerator's before the trial load.
         accelerator.Bind();
-        TrialLoad(linked);
+        TrialLoad(linked, arch);
         Members.Value.Assembly.SetValue(compiled, linked);
         return compiled;
     }
+
+    /// <summary>
+    /// The one shape every checked libnvvm failure throws in: it names the post-link, the target, libnvvm and the call, and the
+    /// result code, with the log where one exists. Throws nothing for <see cref="NvvmResult.NVVM_SUCCESS"/>.
+    /// </summary>
+    internal static void ThrowIfFailed(NvvmResult result, string call, string arch, string? log = null)
+    {
+        if (result != NvvmResult.NVVM_SUCCESS)
+        {
+            throw new InvalidOperationException(FailureMessage($"libnvvm {call} returned {result}", arch, log));
+        }
+    }
+
+    /// <summary>The same shape for a CUDA driver result. Throws nothing for <see cref="CudaError.CUDA_SUCCESS"/>.</summary>
+    internal static void ThrowIfFailed(CudaError result, string call, string arch, string? log = null)
+    {
+        if (result != CudaError.CUDA_SUCCESS)
+        {
+            throw new InvalidOperationException(FailureMessage($"the CUDA driver's {call} returned {result}", arch, log));
+        }
+    }
+
+    /// <summary>The one message shape: the post-link, the target, what failed (its library, its call and its result), and, where one exists, the log.</summary>
+    private static string FailureMessage(string outcome, string arch, string? log) =>
+        log is null
+            ? $"the libdevice post-link for {arch}: {outcome}."
+            : $"the libdevice post-link for {arch}: {outcome}: {log.Trim()}";
 
     /// <summary>The kernel's own target, from its <c>.target sm_XX</c> line: ILGPU's choice per device, not a fixed value.</summary>
     private static string TargetArch(string ptx)
@@ -114,7 +143,7 @@ internal static partial class LibDevicePostLink
             }
         }
 
-        _ = nvvm.GetIRVersion(out var irMajor, out _, out _, out _);
+        ThrowIfFailed(nvvm.GetIRVersion(out var irMajor, out _, out _, out _), nameof(NvvmAPI.GetIRVersion), arch);
         var module = new StringBuilder();
         _ = module.Append(TargetTriple).Append('\n').Append(TargetDataLayout).Append('\n');
         _ = module.Append("!nvvmir.version = !{!0}\n!0 = !{i32 ").Append(irMajor).Append(", i32 0}\n");
@@ -133,7 +162,8 @@ internal static partial class LibDevicePostLink
     {
         var moduleBytes = Encoding.ASCII.GetBytes(module);
         var libdevice = nvvm.LibDeviceBytes.ToArray();
-        _ = nvvm.CreateProgram(out var program);
+        ThrowIfFailed(nvvm.CreateProgram(out var program), nameof(NvvmAPI.CreateProgram), arch);
+        var succeeded = false;
         try
         {
             using var options = new NvvmOptions(arch);
@@ -142,23 +172,49 @@ internal static partial class LibDevicePostLink
                 fixed (byte* modulePointer = moduleBytes)
                 fixed (byte* libdevicePointer = libdevice)
                 {
-                    _ = nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, moduleBytes.Length, "apthermo-wrappers");
-                    _ = nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, libdevice.Length, "libdevice");
+                    ThrowIfFailed(nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, moduleBytes.Length, "apthermo-wrappers"), nameof(NvvmAPI.AddModuleToProgram), arch);
+                    ThrowIfFailed(nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, libdevice.Length, "libdevice"), nameof(NvvmAPI.LazyAddModuleToProgram), arch);
                     var result = nvvm.CompileProgram(program, NvvmOptions.Count, options.Pointer);
-                    _ = nvvm.GetProgramLog(program, out var log);
                     if (result != NvvmResult.NVVM_SUCCESS)
                     {
-                        throw new InvalidOperationException($"libnvvm could not compile the libdevice wrappers for {arch} ({result}): {(log ?? "").Trim()}");
+                        ThrowCompileFailure(nvvm, program, result, arch);
                     }
                 }
             }
 
-            _ = nvvm.GetCompiledResult(program, out var wrapperPtx);
-            return wrapperPtx ?? throw new InvalidOperationException("libnvvm returned no PTX for the libdevice wrappers.");
+            ThrowIfFailed(nvvm.GetCompiledResult(program, out var wrapperPtx), nameof(NvvmAPI.GetCompiledResult), arch);
+            succeeded = true;
+            return wrapperPtx ?? throw new InvalidOperationException($"libnvvm returned no PTX for the libdevice wrappers ({arch}).");
         }
         finally
         {
-            _ = nvvm.DestroyProgram(ref program);
+            ReleaseProgram(nvvm, ref program, arch, succeeded);
+        }
+    }
+
+    /// <summary>
+    /// The compile log is read only after a failed compile (BOOT.md: "read it only after a failed CompileProgram"). If reading
+    /// it fails too, the compile failure still propagates, saying the log could not be read and naming that result.
+    /// </summary>
+    private static void ThrowCompileFailure(NvvmAPI nvvm, IntPtr program, NvvmResult result, string arch)
+    {
+        var logResult = nvvm.GetProgramLog(program, out var log);
+        var reason = logResult == NvvmResult.NVVM_SUCCESS ? log : $"the log could not be read ({logResult})";
+        ThrowIfFailed(result, nameof(NvvmAPI.CompileProgram), arch, reason);
+    }
+
+    /// <summary>
+    /// <see cref="NvvmAPI.DestroyProgram"/> is checked only when the path before it succeeded (BOOT.md: "checked only when the
+    /// path before them succeeded"). When an earlier call already failed, its exception is propagating through this
+    /// <c>finally</c>; the release is still attempted but its own result is not checked, since throwing for it here would
+    /// replace the exception already in flight with the release's instead of letting the primary one through.
+    /// </summary>
+    private static void ReleaseProgram(NvvmAPI nvvm, ref IntPtr program, string arch, bool succeeded)
+    {
+        var released = nvvm.DestroyProgram(ref program);
+        if (succeeded)
+        {
+            ThrowIfFailed(released, nameof(NvvmAPI.DestroyProgram), arch);
         }
     }
 
@@ -191,15 +247,16 @@ internal static partial class LibDevicePostLink
         }
     }
 
-    private static void TrialLoad(string linked)
+    /// <summary>
+    /// Loads the linked PTX once through the CUDA driver as a trial and destroys the module again. The driver's
+    /// <c>DestroyModule</c> is reached only when its <c>LoadModule</c> already succeeded, so it is always checked in the
+    /// ordinary (not best-effort) way.
+    /// </summary>
+    private static void TrialLoad(string linked, string arch)
     {
-        var error = CudaAPI.CurrentAPI.LoadModule(out var handle, linked, out var log);
-        if (error != CudaError.CUDA_SUCCESS)
-        {
-            throw new InvalidOperationException($"the linked PTX was refused by the CUDA driver ({error}): {(log ?? "").Trim()}");
-        }
-
-        _ = CudaAPI.CurrentAPI.DestroyModule(handle);
+        var loadResult = CudaAPI.CurrentAPI.LoadModule(out var handle, linked, out var log);
+        ThrowIfFailed(loadResult, nameof(CudaAPI.LoadModule), arch, log);
+        ThrowIfFailed(CudaAPI.CurrentAPI.DestroyModule(handle), nameof(CudaAPI.DestroyModule), arch);
     }
 
     /// <summary>The one-element libnvvm compiler-options array (<c>-arch=...</c>), owning its two unmanaged allocations.</summary>

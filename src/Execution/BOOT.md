@@ -29,6 +29,31 @@ numerical node stays testable without it.
   wrapper generation is never relied on (it is defective with libnvvm 12.9 and 13.3,
   see Constraints); a kernel whose PTX calls a `__ilgpu__nv_*` wrapper that the
   post-link did not provide is refused at load with the wrapper's name in the error.
+- **No libnvvm or driver result is ignored** (2026-09-26). The post-link checks the
+  result of every call it makes into libnvvm (`GetIRVersion`, `CreateProgram`,
+  `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`,
+  `GetCompiledResult`, `DestroyProgram`) and into the CUDA driver (`LoadModule`,
+  `DestroyModule`). A result other than success is an `InvalidOperationException`
+  that names the post-link, the target `compute_XX`, which library failed (libnvvm or
+  the CUDA driver) and its call, and the result code, carrying the compiler's or the
+  driver's log where one exists (`API.md`, Errors).
+  - The log of a failed compilation is read after the failure. If reading the log
+    fails too, the compilation's exception still propagates and says the log could
+    not be read, naming that result.
+  - Releasing a program or a module (`DestroyProgram`, `DestroyModule`) is checked only
+    when the path before it succeeded. When an earlier call has already failed, the
+    earlier exception propagates unchanged and the release is best-effort, so that a
+    cleanup failure never hides the cause.
+  - One internal method turns a result into the exception, so the message has one
+    shape. It is unit-tested on the CPU with every non-success value of `NvvmResult`
+    and a failing `CudaError`. The success path is proven by the CUDA tests of this
+    node, which must stay green with no bit or throughput record moving.
+
+  ⚠ 2026-09-26: until then only `CompileProgram` and `LoadModule` were checked; the
+  other calls' results were dropped, a fact the Diagnostics pass made visible when
+  IDE0058 turned the silent drops into explicit discards (an underscore assigned in
+  front of the call). A failure of, say, `AddModuleToProgram` surfaced later as a
+  compilation error with a misleading log, or not at all.
 - **The wrapper list equals the root's math list.** The post-link provides wrappers
   for exactly the `System.Math` functions the root allows; a probe kernel using each
   of them loads and matches the CPU accelerator within the tolerance table.
@@ -511,6 +536,71 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       the machine has a device); `protocol_lint` 0 errors, 0 warnings; every
       `Bits.approved.txt` and the surface snapshot unchanged (the seam is internal, no
       public type added).
+
+- [x] 2026-09-26 — No libnvvm or driver result is ignored: no `NvvmResult` or
+      `CudaError` returned by a call of the post-link is discarded (no `_ =` on such a
+      call remains in `LibDevicePostLink.cs`); the result-to-exception method is tested
+      with every non-success `NvvmResult` and a failing `CudaError`; the CUDA tests of
+      this node are green in Release, the long-running sweep and the throughput tripwire
+      included, with no `Bits*` or `Throughput*` record moving; the fast suite and the
+      lint are green.
+
+      Implemented as two `ThrowIfFailed` overloads (`NvvmResult`, `CudaError`), the one
+      shape every checked call throws in: `"the libdevice post-link for {arch}: libnvvm
+      {call} returned {result}"` or `"…: the CUDA driver's {call} returned {result}"`,
+      followed by `": {log}"` where one exists (or the "log could not be read (…)" text
+      below, in its place). Every checked call of the invariant's list (`GetIRVersion`,
+      `CreateProgram`, `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`,
+      `GetProgramLog`, `GetCompiledResult`, `DestroyProgram`, `LoadModule`,
+      `DestroyModule`) now goes through one of the two overloads; the compile log is
+      read only after a failed `CompileProgram` (`ThrowCompileFailure`), and a
+      `GetProgramLog` failure of its own is folded into the compile exception's message
+      ("the log could not be read (…)") rather than raising a second exception.
+      `DestroyProgram`'s release in `CompileWrappers`'s `finally` (`ReleaseProgram`) is
+      attempted either way, but its own result is checked (and can throw) only when the
+      path before it succeeded; when an earlier call's exception is already propagating
+      through the same `finally`, the release's result is not checked at all, so it
+      cannot throw a second exception that would replace the one already in flight — no
+      catch of any kind is needed for this. `DestroyModule` in `TrialLoad` is reached
+      only after `LoadModule` succeeded, so it is always checked in the ordinary way.
+
+      Evidence, on this worktree (branch `claude/nvvm-result-codes`, on top of
+      `6d5d57e`):
+      - a repository-wide search for the old silent-discard pattern (an underscore
+        assigned to the return value of an `nvvm.` or `CudaAPI.` call) over `src` finds
+        none; this file's own history note above, which once quoted that pattern in
+        prose, was reworded to drop it, without changing its meaning — quoting the
+        pattern verbatim here would trip the same search against this paragraph;
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `PostLinkTests` (`tests/Execution.Tests/PostLinkTests.cs`):
+        `TheSuccessResultOfEitherKindThrowsNothing`,
+        `EveryNonSuccessNvvmResultNamesTheLibraryTheCallTheResultAndTheTarget` (a theory
+        over every value of `NvvmResult` but `NVVM_SUCCESS`, read from the enum: 9
+        cases, each asserting the message names "the libdevice post-link", "libnvvm",
+        the call, the result and the target),
+        `EveryNonSuccessCudaErrorNamesTheLibraryTheCallTheResultAndTheTarget` (the same
+        over every value of `CudaError` but `CUDA_SUCCESS`: 58 cases, asserting "the
+        libdevice post-link", "the CUDA driver", the call, the result and the target),
+        `ALogWhereOneExistsIsCarriedInTheMessage`,
+        `WithoutALogTheMessageStillNamesTheLibraryTheCallTheResultAndTheTarget`, and the
+        four pre-existing `AssertEveryWrapperDefined` facts, all green;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3178 of 3178, none skipped (3108 before this change
+        plus the 70 new theory cases and facts above);
+      - `dotnet test tests/Execution.Tests -c Release` on the reference machine (RTX
+        5070 Ti), no filter: 126 of 126, the long-running 100 000-case sweep and the
+        throughput tripwire included (124 of the fast set plus these 2);
+      - no `Bits*.approved.txt` or `Throughput*.approved.txt` differs from `main`;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      ⚠ 2026-09-26, review: the first cut named only the call and the result
+      ("CompileProgram failed for compute_120 (…)"), losing what actually failed — that
+      it was the libdevice post-link, and which library. The message now leads with
+      "the libdevice post-link for {arch}" and names the library ("libnvvm" or "the CUDA
+      driver's") beside the call, and `ReleaseProgram`'s best-effort branch dropped the
+      throw-then-catch-the-exact-type pattern (an empty catch block) for the simpler
+      shape above: the release's own result is stored but checked only on the success
+      path, so nothing is ever thrown and swallowed.
 
 ## Taboos
 
