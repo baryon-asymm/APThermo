@@ -88,6 +88,11 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
     species in the committed `trans.inp`) was estimated in its conductivity but not
     counted in `TransportFigures.EstimatedSpeciesCount` or `EstimatedMoleFraction`. A
     species now counts as estimated when either figure is estimated.
+- Under WSL, the second CUDA engine created in a process failed: ILGPU 1.5.3 installs
+  a `DllImportResolver` on its own assembly every time it binds CUDA there, and .NET
+  allows only one per assembly. The engine now falls back to registering the devices
+  itself when that happens, so every CUDA context of a process binds, not only the
+  first.
 
 ## [0.1.0] - 2026-09-18
 
