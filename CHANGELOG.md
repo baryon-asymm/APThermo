@@ -29,6 +29,23 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
   now completes only the wrappers ILGPU did not already define. The CUDA binding also
   now loads a probe kernel first, so that a device on which no kernel can load is
   never reported as bound.
+- A CUDA library present but unusable (a corrupt install, a foreign architecture, a
+  missing dependency) left a raw, unwrapped exception and leaked about 190 MiB of
+  device memory per attempt, because ILGPU's own accelerator constructor created the
+  CUDA context before loading the library. The choice now loads and checks libnvvm and
+  the bitcode itself first, so a bad library never reaches the device.
+- The CPU accelerator always ran 16 threads, ILGPU's predefined default, regardless of
+  the machine's actual core count. It now sizes itself from `Environment.ProcessorCount`
+  (unchanged on the reference machine's 16 cores).
+- A batch whose per-case device buffers were sized above roughly 16 GiB with a very
+  large `EngineOptions.ScratchBytes` and `ChunkSize` could make a kernel's 32-bit
+  offset arithmetic wrap and index outside its own buffer. A chunk's size is now also
+  capped so that no buffer's offset can overflow.
+- A driver or libnvvm failure log kept the NUL padding of ILGPU's own buffer in the
+  exception message. `Engine.Upload` left the species buffers of a failed upload live
+  until the engine itself was disposed, when only the transport table's own upload
+  failed. `EngineOptions.LibNvvmPath` given without `LibDevicePath`, or the reverse,
+  silently fell through to discovery instead of being refused.
 
 ## [0.1.0] - 2026-09-18
 

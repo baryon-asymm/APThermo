@@ -812,25 +812,97 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         `[Unreleased]`'s "Fixed" (the release after 0.1.0 is 0.2.0, per the Diagnostics
         phase's binary break already recorded there).
 
-- [ ] 2026-09-26 — The audit's F2, F3 and observations (Constraints). Evidence due, each
-      fact red once against the code before the change:
-      - **The bad library.** A file named as the platform's libnvvm that is not a
-        library, with the real bitcode and discovery off:
+- [x] 2026-09-26 — The audit's F2, F3 and observations (Constraints), every fact but
+      one (noted below) shown red once against the code before the change:
+      - **The bad library.** `AcceleratorChoice.Cuda` now loads libnvvm and asks its IR
+        version, then reads the bitcode, through one new internal `LoadNvvm`, before
+        `CreateAccelerator` (also new) ever creates a CUDA context; the session keeps
+        that one `NvvmAPI` binding, so no second `NvvmAPI.Create` follows once the
+        accelerator is up. A file named as the platform's libnvvm that is not a
+        library, with the real bitcode and discovery off
+        (`BadLibraryTests.ABadLibraryNamesBothPathsAndNeverReachesTheDevice`,
+        `Category=Cuda`):
         - `Cuda` throws `AcceleratorUnavailableException` naming both paths;
         - `Auto` binds the CPU with a `CudaSkippedBecause` that names the library
           path;
         - on the reference machine, the free device memory after 20 such `Auto`
-          creations is within 64 MiB of the memory before (`Category=Cuda`).
-      - **All cores.** Under `DOTNET_PROCESSOR_COUNT` 4, 16 and 64, the CPU engine
-        reports that many threads in `AcceleratorInfo.ThreadsOrMultiprocessors`, or
-        the documented nearest layout. A batch gives the same bits at each count. The
-        fact runs the processor counts in child processes.
-      - **Observations.** A message built from a NUL-padded log holds no NUL. An
-        upload made to fail after the species buffers leaves no live buffer. A half
-        pair is refused naming the missing option.
-      - **Nothing else moves.** No bit, throughput or surface record changes; the
-        node's CUDA tests are green in Release. `API.md` states the half-pair refusal
-        and the thread count. `Options.cs` and every "all cores" sentence stay true.
+          creations is within 64 MiB of the memory before it (measured: 15 037 MiB
+          before, 15 037 MiB after, 0 MiB lost — the audit's own run of the
+          pre-fix code lost 3 800 MiB over the same 20 attempts).
+
+        Shown red once against the pre-fix order (device before the library,
+        unwrapped): the same fact failed —
+        `Assert.Throws() Failure: Exception type was not an exact match Expected:
+        typeof(APThermo.Execution.AcceleratorUnavailableException) Actual:
+        typeof(System.BadImageFormatException)`, its inner exception "An attempt was
+        made to load a program with an incorrect format. (0x8007000B)" — exactly the
+        audit's own finding; reverted before committing.
+      - **All cores.** `AcceleratorChoice.CpuDeviceFor(int)` sizes the CPU device from
+        `Environment.ProcessorCount`: the warp size is the count clamped to [2, 4]
+        (ILGPU refuses a one-thread warp), the warps per multiprocessor the largest
+        power of two ILGPU accepts that keeps the total at or under the count (ILGPU's
+        own constraint on that count, measured while designing the fix), one
+        multiprocessor throughout. At 16 this is exactly (4, 4, 1), the layout every
+        bit and throughput record was measured against.
+
+        Proven under `DOTNET_PROCESSOR_COUNT` 4, 16 and 64, each its own `dotnet test`
+        child process — `Environment.ProcessorCount` is read once, at process start —
+        spawned by the same test class acting as its own worker
+        (`AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`,
+        `AllCoresLayoutWorker`, `tests/Execution.Tests`): the reported thread count is
+        4, 16 and 64 respectively, and a rocket batch's result hash (specific impulse,
+        c*, thrust coefficient over every station) is identical at every count.
+
+        Shown red once against `builder.CPU()` (ILGPU's fixed 16-thread
+        `CPUDevice.Default`): the same fact failed at the 4-processor child process —
+        `Assert.Equal() Failure: Values differ Expected: 4 Actual: 16` — reverted
+        before committing.
+      - **Observations.** `LibDevicePostLink.FailureMessage` now trims a log of NUL
+        (`\0`) alongside whitespace (`TrimLog`), so a NUL-padded driver or libnvvm log
+        carries no NUL in the exception message
+        (`PostLinkTests.ALogWithNulPaddingIsTrimmedOfIt`, shown red once against a plain
+        `.Trim()`: the message still held the NUL). `Engine.Create` refuses one of
+        `LibNvvmPath`/`LibDevicePath` given without the other with an `ArgumentException`
+        naming the missing option, rather than silently falling through to discovery as
+        `("", path)` used to (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`,
+        shown red once: no exception thrown against the code before this change; the row
+        `API.md` already carried from the design). `Engine.Upload` disposes the species
+        buffers it already uploaded when the transport table's own upload then fails —
+        correct by inspection of the try/catch/dispose pattern, with no dedicated
+        reproduction: the tree's only path to a `TransportTable` is `TransportTable.Build`,
+        which always produces an internally consistent shape, so no legitimate call
+        makes `TransportTableBuffers.Upload` fail short of exhausting device memory.
+      - **Nothing else moves.** No `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        the protocol tests node's `PublicSurface.approved.txt` changed (`git status
+        --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty); `Throughput.approved.txt` still reads
+        "cpu: CPUAccelerator with 16 threads" on the reference machine, unchanged
+        (16 processors reduces to the same (4, 4, 1) layout as before). The node's CUDA
+        tests are green in Release. `API.md`'s Errors table already stated the
+        half-pair refusal from the design; `Options.cs` and every "all cores" sentence
+        of this node are now literally true, not only on the reference machine.
+
+      Evidence, on the reference machine (RTX 5070 Ti, driver 13.4, CUDA toolkits
+      12.9/13.3/13.4), from a tree with every `bin` and `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3191 total, 3190 passed, 0 skipped; the one failure,
+        `Protocol.Tests.DeclarationTests.EveryDeclarationUnderATickExists` on
+        `src/Performance/API.md`'s `RocketSolver.MaxThroatBisections`, predates this
+        change (present on an untouched checkout of the same commit, `src/Performance`
+        and `tests/Protocol.Tests` outside this coding task's subtree) and is the
+        coding half of the Performance/Transport hidden-defect audit's own design
+        commit (`9a6888f`), not yet landed;
+      - `dotnet test tests/Execution.Tests -c Release` (no filter): 140 of 140 (134
+        before this change plus six new facts: `ChunksStayWithinInt32OffsetsAtTableLimits`,
+        `AllCoresLayoutWorker`, `TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`,
+        `BadLibraryTests.ABadLibraryNamesBothPathsAndNeverReachesTheDevice`,
+        `PostLinkTests.ALogWithNulPaddingIsTrimmedOfIt`,
+        `AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`), the
+        100 000-case sweep and the throughput tripwire included;
+      - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty: no snapshot moved;
+      - the protocol lint: 0 errors, 0 warnings.
 
 ## Taboos
 
