@@ -169,7 +169,7 @@ internal static class SpeciesFunctions                       // kernel-compatibl
     public static double SOverR(in SpeciesTableView table, int species, double temperature);
     public static double GOverRT(in SpeciesTableView table, int species, double temperature); // H/RT − S/R
     public static int IntervalOf(in SpeciesTableView table, int species, double temperature);  // 0-based within the species: the first whose upper bound is not below T, else the last
-    public static bool IsInRange(in SpeciesTableView table, int species, double temperature); // first lower bound ≤ T ≤ last upper bound
+    public static bool IsInRange(in SpeciesTableView table, int species, double temperature); // RecordLow ≤ T ≤ RecordHigh
 }
 ```
 
@@ -209,8 +209,8 @@ in `BOOT.md`.
 ```csharp
 internal static class SpeciesFunctions
 {
-    public static double RecordLow(in SpeciesTableView table, int species);    // the first lower bound of the species' intervals
-    public static double RecordHigh(in SpeciesTableView table, int species);   // the last upper bound; IsInRange compares T with these two
+    public static double RecordLow(in SpeciesTableView table, int species);    // the lowest lower bound over the species' intervals (the reference's minval, 2026-09-26)
+    public static double RecordHigh(in SpeciesTableView table, int species);   // the highest upper bound (maxval); IsInRange compares T with these two
 }
 
 internal sealed class SpeciesTable
@@ -227,6 +227,11 @@ identical expressions and are the only supported way to ask a table about a spec
 temperature range; the strides of `SpeciesTableArrays` stay published for the upload
 and the tests, not for that. Implemented the same day, `IsInRange` rewritten through
 them; the surface snapshot moves in the same commit.
+
+⚠ 2026-09-26: `RecordLow` and `RecordHigh` were the first interval's lower bound and the
+last interval's upper bound. For the nine condensed records that begin with an inverted
+piece (300 → 298.15 K) that excluded the phase between 298.15 and 300 K, where the
+reference admits it. The signatures are unchanged; `BOOT.md` has the measurement.
 
 ## Errors
 

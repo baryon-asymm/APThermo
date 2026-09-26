@@ -93,7 +93,7 @@ internal static class EquilibriumSolver                  // kernel-compatible
 
 internal static class ScratchLayout
 {
-    public const int MaxCondensedInSolution = 8;
+    public const int MaxCondensedInSolution = 20;                              // = TableLimits.MaxElements (2026-09-26; was 8)
     public static int MaxUnknowns(int elementCount);                          // elementCount + MaxCondensedInSolution + 2
     public static int DoublesPerCase(int speciesCount, int elementCount);     // 6 · species + MaxUnknowns² + 2 · MaxUnknowns
     public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + MaxCondensedInSolution
@@ -120,8 +120,13 @@ carry the equilibrium derivatives of RP-1311 section 2.5. `SolveFrozen` writes t
 frozen state: `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`, `DlnVdlnT = 1`,
 `DlnVdlnP = −1`, `GammaS = Cp/Cv`. `State.Velocity` and `State.Mach` are left at zero
 by this node. A gaseous species whose mole fraction fell below `1e-8` at convergence
-is reported with zero moles, as the reference prints it; its logarithm stays in the
-scratch for the next estimate.
+is reported with zero moles, as the reference prints it. A warm start (a previous
+solution as the estimate) re-seeds every gas with zero moles one e-fold below the trace
+threshold, and does not read the logarithm left in the scratch.
+
+⚠ 2026-09-26: the sentence ended "its logarithm stays in the scratch for the next
+estimate". The logarithm stays, but no estimate reads it (the hidden-defect audit,
+finding 3; `BOOT.md`, the loop's bookkeeping).
 
 At a pinned two-phase state — two records of one formula in the solution at their
 transition, hp and sp problems only (`BOOT.md`, the condensed-species rule) —
@@ -154,10 +159,13 @@ An element with zero abundance is allowed: the species containing it are inactiv
 for the case and get mole number zero. The solver never throws. `Status` is one of
 `Ok`, `InvalidInput` (every abundance zero, negative abundance, empty table,
 non-positive pressure, non-positive temperature for tp, more elements than
-`TableLimits.MaxElements`; for `SolveFrozen` also a composition without gaseous moles),
+`TableLimits.MaxElements`; for `SolveFrozen` also a composition without gaseous moles, or
+with any mole number negative or not finite, 2026-09-26),
 `NotConverged` (the report's tests not met within `MaxNewtonSteps` after the last
-change of the condensed set, more than `MaxCondensedSetChanges` changes, or the element
-conservation invariant violated at the end), `SingularMatrix` (after the remedies of
+change of the condensed set, more than `MaxCondensedSetChanges` changes, the element
+conservation invariant violated at the end, or, since 2026-09-26, a condensed candidate
+left out of an otherwise converged state by more than 1e-9 per mole: `BOOT.md`, the exit
+guard), `SingularMatrix` (after the remedies of
 RP-1311 section 3.6), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`).
 On any status but `Ok`, `Moles` hold the last iterate and `State` is not written; on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written.

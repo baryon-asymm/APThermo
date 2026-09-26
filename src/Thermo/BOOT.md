@@ -38,7 +38,34 @@ can be uploaded to an accelerator and evaluated without allocation.
 - **Interval selection is defined.** For a temperature `T`, the interval used is the
   first one with `T ≤ THigh`; below the first interval or above the last, the nearest
   interval's polynomial is used and `IsInRange` reports `false`. `IsInRange` is exact
-  against the record's own bounds; for gaseous species it is advisory.
+  against the record's own bounds; for gaseous species it is advisory. The record's
+  bounds are the lowest lower bound and the highest upper bound over its intervals,
+  taken bound by bound (2026-09-26). This is the reference's rule
+  (`minval(T_fit(:, 1))` and `maxval(T_fit(:, 2))`, cea 3.3.4 `equilibrium.f90`
+  1692–1693 and 1913–1915). Interval selection itself is unchanged. It is the
+  reference's selection too: for `Si(cr)` cea 3.3.4 evaluates the inverted first piece
+  at 298.15 K and the second interval at 299 K and 300 K, as `IntervalOf` does.
+  Measured 2026-09-26 through the package's `calc_property`. It agrees to 5.7e-6
+  relative in H°/RT, which is the package's older gas constant 8.31451.
+
+  ⚠ 2026-09-26: `RecordLow` was "the first interval's lower bound" and `RecordHigh` "the
+  last interval's upper bound", which assumes a record's intervals ascend. Eleven
+  condensed records of the committed file begin with an inverted interval (the Data
+  node's anomaly list).
+  - Nine run 300 → 298.15 before a regular interval from 298.15 K (`Ca(a)`, `CrN(cr)`,
+    `FeCL3(cr)`, `FeOCL(cr)`, `Fe3O4(cr)`, `Li(cr)`, `NH4F(cr)`, `Si(cr)`,
+    `Ti3O5(a)`). The old rule refused them between 298.15 and 300 K, where their data
+    hold and the reference admits them.
+  - A tp of Si in argon at 299 K returned `Ok` with Si3 vapour (253 kJ/kg) where cea
+    3.3.4 has `Si(cr)` (0 kJ/kg). The two agree to the last printed digit from 300 K on.
+  - For `Br2(cr)` (one interval, 300 → 265.9) and `U3O8(II)` (300 → 300, then
+    300 → 483) the two rules agree: `Br2(cr)` is in range nowhere, in the reference
+    too.
+
+  Found by the hidden-defect audit of 2026-09-26 (Thermo and Equilibrium, finding 1),
+  confirmed against cea 3.3.4 the same day. The tests missed it for two reasons: the
+  fixture generator used the same first-bound rule, and no fixture species had an
+  inverted interval.
 
   ⚠ 2026-09-13: stood "for condensed species `IsInRange` is the candidacy test other
   nodes rely on". The melting-plateau analysis of this date moved the equilibrium
@@ -302,6 +329,28 @@ of 14: no efferent coupling row is needed.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [ ] 2026-09-26 — The record bounds are the reference's (the invariant "Interval
+      selection is defined" and its ⚠ of this date). Evidence due:
+      - The fixtures node's thermo-function generator applies the reference's rule
+        (the lowest lower and the highest upper bound, bound by bound), citing it. Its
+        species list gains the eleven records of the Data node's anomaly list, read
+        from that approved file rather than typed. `IsInRange` and the four functions
+        then match the regenerated fixtures over those species at their bounds and
+        between 298.15 and 300 K.
+      - The equilibrium fixtures gain tp cases computed by cea 3.3.4 below 300 K:
+        - Si in argon and Li in argon at 298.15, 299, 299.99, 300 and 301 K, each with
+          its gases, crystal and liquid as the product list;
+        - they are covered by `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`
+          through its directory listing, and red against the code of `9c33398`, which
+          reports vapour below 300 K.
+      - `RangeQuestionTests` keeps its agreement facts, and adds one that is not
+        tautological: over every condensed record of the committed file, from a list
+        generated from the database, `RecordLow` and `RecordHigh` equal the extremes
+        of the record's own bounds as the Data node stores them. The fact is red
+        against the old rule on the nine records named in the ⚠.
+      - No bit snapshot moves. No fixture case outside the new ones has a species with
+        an inverted interval at a temperature where the two rules differ; the coder
+        checks this and records it.
 
 ## Taboos
 

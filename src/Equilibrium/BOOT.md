@@ -82,7 +82,22 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   batch-sized buffers by the caller (`EquilibriumScratch.Slice`, `ScratchLayout`).
 - Unknowns of the reduced system: elements + condensed species in the solution + 1
   (total moles) + 1 (temperature, hp and sp only). Limits: at most 20 elements and at
-  most 8 condensed species in the solution at once, hence a matrix of at most 30 × 30.
+  most 20 condensed species in the solution at once
+  (`ScratchLayout.MaxCondensedInSolution` equals `TableLimits.MaxElements`, 2026-09-26),
+  hence a matrix of at most 42 × 42. The second limit is never the binding one. By the
+  phase rule at an assigned or a pinned temperature and pressure, a state holds at most
+  one condensed phase per element: fewer beside a gas phase, and one more only on a
+  pinned plateau, where the temperature row goes.
+
+  ⚠ 2026-09-26: stood "at most 8 condensed species … a matrix of at most 30 × 30". The
+  limit sized the scratch and was below what a table of 20 elements can require. A
+  full set made the inclusion test return "no change", and the case closed `Ok` with
+  stable phases missing. The audit's case: 17 elements at 350 K, with `BaO(cr)`,
+  `CuO(cr)`, `KCL(cr)` and `NaCL(cr)` left out at gains from +52 to +221, and Ba and Cu
+  vapour at x = 0.0032. Found by the hidden-defect audit of 2026-09-26 (finding 2).
+  The scratch grows by at most `(42² − 30²) + 2·12` doubles and 12 ints per case, at
+  20 elements. The budget of set changes grows with the slots (`MaxCondensedSetChanges`
+  is three per slot, as before).
   The dense solve is Gaussian elimination with scaled partial pivoting, internal to
   this node (visible to its tests node only).
 - The reduced equations are those of RP-1311 tables 2.1 and 2.2 with the gaseous
@@ -108,6 +123,37 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   report's tests pass, up to six further steps polish the iterate until the largest
   correction is below `1e-11`, so that the reported state is at rounding level and the
   tolerance table measures the reference's convergence, not this node's.
+
+  The bookkeeping of the loop (2026-09-26) is a small internal struct, kernel-compatible
+  and unit-tested on the host through its transitions. It holds the steps since the
+  last change of the condensed set, the mark that the report's tests have passed, and
+  the polish steps taken. Its rules:
+  - **A verdict is taken over the gases the step leaves above the trace threshold.** A
+    step that carries a gas across the threshold, in either direction, is not a
+    converged step, whatever its corrections, and the iteration goes on. The tests of
+    that step covered a set of gases the final refresh would not report.
+  - **A failed verdict clears the mark and the polish count.** Polish counts only an
+    unbroken run of passed verdicts, so a later pass polishes afresh. A step cap
+    reached after a failed verdict is `NotConverged`, never `Ok`.
+  - **A singular remedy that removes a condensed species is a change of the set.** It
+    restarts the count of steps and counts toward `MaxCondensedSetChanges`, as every
+    other change does.
+
+  ⚠ 2026-09-26: the verdict covered only the gases retained at the start of the step.
+  The mark and the polish count were never cleared, and the singular remedy's removal
+  did not restart the step count, although this bullet counts steps "after the last
+  change of the condensed species set". Found by the hidden-defect audit of 2026-09-26
+  (findings 3 and 4):
+  - A warm start from a converged solution at half the pressure ended `NotConverged`
+    after one step. On the `rp1311-example1` table at 1000 K, atomic H crossed the
+    threshold during an already-polished step, and the element guard then rejected
+    the state by exactly its 5.76e-10 kmol/kg. The case solves `Ok` from a cold start.
+  - A fixture case at tp 300 K (`rp1311-example5`'s table) passed the tests at step
+    19, lost them at 24 to a vanishing HCL, and exited unpolished when they passed
+    again at 38.
+
+  `API.md`'s sentence that a trace species' logarithm "stays in the scratch for the
+  next estimate" was true, but the next estimate never read it; it is corrected there.
 
   ⚠ 2026-09-14: stood "at most 10 changes of that set per case". The plateau rules of
   2026-09-13 need up to three changes per slot, and the code's constant became
@@ -144,7 +190,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
      singularity" stop) — and an `Ok` exit is then guarded: a stood-down record
      that would qualify at the final state (in effective range, no partner in the
      solution, per-mole gain above the 1e-9 rounding of the converged multipliers)
-     turns the status into `NotConverged` rather than a false equilibrium.
+     turns the status into `NotConverged` rather than a false equilibrium. Since
+     2026-09-26 that guard covers every condensed record, not the stood-down ones only
+     (the exit guard below).
   3. The inclusion test: the species whose `Σ π_i a_ij − g_j/RT` is largest and
      positive is added, one at a time, compared per mole as RP-1311 section 3.4
      words it (the reference's code — cea2.f as 3.3.4 — divides the gain by the
@@ -153,6 +201,22 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
      by rule 2, never by inclusion; and, once, the record just removed for range
      while another positive candidate exists — the anti-cycling rule; when it is the
      only positive candidate it is taken, so no equilibrium is lost.
+
+  Open below (2026-09-26): a condensed record whose lowest lower bound equals the gas
+  data floor has no lower bound in any of these rules. The floor is 200 K,
+  `EquilibriumSolver.GasDataFloor`: the reference's `T_min` parameter, "minimum gas
+  temperature defined in thermo data", cea 3.3.4 `equilibrium.f90:1845`, applied at
+  1913–1914; it is also the first standard range bound in the committed `thermo.inp`
+  header. The record is a candidate, and stays in the solution, at any temperature
+  the solver allows below its range, unless a record of its formula adjoins it below.
+  In the committed file this is `H2O(cr)` alone. Measured the same day, a tp of
+  H2/O2 (O/F 4) at 1 bar:
+  - cea 3.3.4 holds ice at 165, 180, 190 and 199 K, with vapour below 1e-6;
+  - this node reported supersaturated vapour as `Ok`, −12.5 MJ/kg against −14.9 with
+    ice.
+
+  ⚠ 2026-09-26: the rule was missing. The hidden-defect audit did not find it; it came
+  up while its finding 1 was being checked against the same line of the reference.
 
   Effective range: where two records of one formula share a bound `T_b` and the
   latent heat there is real, the boundary between them is the crossing of their
@@ -168,6 +232,14 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   temperature to the record with the lower Gibbs energy. The memories (switched out,
   removed for range once, stood down) are per-case state — the stand-down mark
   lives in the species mask — and the scratch layout is unchanged.
+  Exit guard (2026-09-26): an `Ok` exit is re-checked over every condensed record in
+  play that is not in the solution, lies in its effective range at the final state,
+  and has no record of its formula in the solution. If one of them would gain more
+  than 1e-9 per mole, the rounding of the converged multipliers, the status becomes
+  `NotConverged`. The guard is the stood-down guard of rule 2 widened; it reports
+  whatever the rules above failed to include, a full set among it, instead of
+  returning a false equilibrium.
+
   Singular matrices are reported as `SingularMatrix` after the report's remedies
   (resetting vanished species to `1e-6`, twice; then removing the last condensed
   species) have been tried.
@@ -195,7 +267,14 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   fixtures node records the guard).
 - Frozen mode: with the composition fixed, solve for the temperature that gives the
   requested enthalpy or entropy (Newton on `T`, to `1e-10` relative) and compute the
-  frozen properties; this mode serves frozen nozzle flow. Its state carries
+  frozen properties; this mode serves frozen nozzle flow. The composition is valid when
+  every mole number, gaseous and condensed, is finite and not negative and the gaseous
+  ones sum to more than zero; otherwise the case is `InvalidInput` (2026-09-26).
+
+  ⚠ 2026-09-26: only the gaseous mole numbers were checked. A NaN condensed mole number
+  gave a tp `Ok` with h, cp and MW all NaN, and −0.01 kmol/kg of `H2O(L)` gave `Ok`
+  with MW 24.39. Found by the hidden-defect audit of 2026-09-26 (finding 5). The only
+  in-tree caller passes an `Ok` composition, so no result of the tree moved. Its state carries
   `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`, the derivatives 1 and −1 and
   `γ_s = Cp/Cv`.
 - Outputs: mole numbers per species (kmol per kg of mixture), the mixture state
@@ -612,6 +691,49 @@ repair review moved the mark accessors into `CaseSetup`'s own dependencies
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
+- [ ] 2026-09-26 — The audit's findings 1 to 5 and the open-below rule (the ⚠ notes of
+      this date under Constraints, and the Thermo node's criterion of the same date for
+      finding 1). Evidence due:
+      - **Below 300 K and below 200 K.** Equilibrium fixtures computed by cea 3.3.4,
+        each covered by `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`
+        through its directory listing, and each red against the code of `9c33398`:
+        - Si and Li in argon at 298.15, 299, 299.99, 300 and 301 K (the Thermo
+          criterion);
+        - H2/O2 at O/F 4 and 1 bar at 165, 180, 190 and 199 K, with products H2, O2,
+          H2O, `H2O(cr)` and `H2O(L)`.
+      - **The full set.**
+        - The audit's 17-element case at 350 K returns `Ok` with every stable phase in
+          the solution, checked by the independent equilibrium conditions of the
+          existing `PlateauTests` property; if cea 3.3.4 solves it, it is a fixture too.
+        - That property, "an `Ok` solution leaves no condensed candidate with a
+          positive inclusion gain", runs over every tp, hp and sp fixture, not the hp
+          ones only.
+        - The exit guard is shown red once: with the slots set back to 8, the 17-element
+          case ends `NotConverged`, not `Ok`.
+      - **Warm starts.** Every tp fixture that solves `Ok` from a cold start is solved
+        again from its own solution at half its pressure. That warm solve is `Ok` and
+        agrees with a cold solve at that pressure within the polish-threshold tier of
+        the fixtures node's tolerance table. The list comes from the directory listing.
+        Red against `9c33398` on the audit's `rp1311-example1` case at least.
+      - **The bookkeeping.** Unit facts on the host drive the loop's struct:
+        - a failed verdict after a pass clears the mark and the polish count;
+        - a crossing of the trace threshold fails the verdict;
+        - a singular removal restarts the step count and counts as a change.
+
+        Each fact is shown red once against the old rule it guards.
+      - **Frozen mode.** `InvalidInputTests` refuses a NaN, an infinite and a negative
+        condensed mole number in `SolveFrozen`, for tp, hp and sp.
+      - **Bits.** Any bit snapshot that moves (`Equilibrium`, `Performance`, `Transport`,
+        `Problems`, `Cli`) is re-approved on Windows and under WSL2 in the same commit,
+        as the root requires of an intended numerical change. Each moved case is named
+        in this criterion with its reason:
+        - a late re-convergence now polished;
+        - a crossing now iterated;
+        - a case that ran out of set changes now given sixty;
+        - a phase now admitted.
+
+        Every CEA tolerance test stays green. The execution tests node is green on CUDA
+        in Release, the sweep included, because the scratch layout grows.
 
 ## Taboos
 

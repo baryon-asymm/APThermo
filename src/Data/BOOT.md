@@ -98,9 +98,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   The node stores the exponents and coefficients; it does not evaluate them.
 - Interval bounds are stored as written. Eleven condensed records of the committed file
   carry a first interval whose upper bound is not above its lower one (`Br2(cr)`
-  300..265.9, `Si(cr)` 300..298.15, `U3O8(II)` 300..300: phases with data at 298.15 K
-  only); the node neither rejects nor reorders them, and the tests node keeps them on
-  its approved anomaly list.
+  300..265.9, `Si(cr)` 300..298.15, `U3O8(II)` 300..300); the node neither rejects nor
+  reorders them, and the tests node keeps them on its approved anomaly list. What such
+  a record's range is, is the Thermo node's rule (its `API.md`, range questions).
+
+  ⚠ 2026-09-26: the parenthesis ended "phases with data at 298.15 K only". It is true of
+  no record on the list. Nine of the eleven continue with a regular interval from
+  298.15 K (`Si(cr)` to 1690 K). `Br2(cr)` holds one inverted interval and
+  `U3O8(II)` a degenerate first one before 300..483 K. Found by the hidden-defect audit
+  of 2026-09-26, which traced a Thermo defect to the reading this sentence invited.
 - Condensed phases of one substance are separate records (`AL2O3(a)`, `AL2O3(L)`),
   each with its own temperature range; the node does not relate them. One condensed
   substance may also be written as several records under one name, one per
