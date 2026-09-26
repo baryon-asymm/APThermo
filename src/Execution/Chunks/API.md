@@ -17,17 +17,20 @@ internal readonly struct ChunkPlan
     public int Count { get; }
     public int Size { get; }
 
-    public static ChunkPlan For(int count, long bytesPerCase, EngineOptions options);
+    public static ChunkPlan For(int count, long bytesPerCase, long maxElementsPerCase, EngineOptions options);
     public IEnumerable<Chunk> Chunks();
 }
 ```
 
 `ChunkPlan.For` takes the batch's case count, the device bytes one case of the
 declared buffers costs (`ChunkBuffers.BytesPerCase`, read after every buffer of the
-program is declared) and the parent node's `EngineOptions`; `options.ChunkSize` and
-`options.ScratchBytes` are assumed positive, validated by the parent's `Engine.Create`
-before a plan is ever built. `Chunks()` enumerates the batch's chunks in order,
-`Offset + Length` never exceeding `Count`.
+program is declared), the largest per-case element count of any declared buffer
+(`ChunkBuffers.MaxElementsPerCase`, 2026-09-26: the audit's F4) and the parent node's
+`EngineOptions`; `options.ChunkSize` and `options.ScratchBytes` are assumed positive,
+validated by the parent's `Engine.Create` before a plan is ever built. The size is also
+capped so that `chunk × maxElementsPerCase` never exceeds `int.MaxValue`, since the
+kernels slice a buffer with 32-bit `Index1D` arithmetic. `Chunks()` enumerates the
+batch's chunks in order, `Offset + Length` never exceeding `Count`.
 
 ## Chunk buffers ✅
 
@@ -46,6 +49,7 @@ internal enum ChunkTransfer
 internal interface IChunkBuffer : IDisposable
 {
     long BytesPerCase { get; }
+    long ElementsPerCase { get; }
     void Allocate(Accelerator accelerator, int chunk);
     void UploadChunk(int offset, int length);
     void DownloadChunk(int offset, int length);
@@ -57,6 +61,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
 
     public ArrayView<T> View { get; }
     public long BytesPerCase { get; }
+    public long ElementsPerCase { get; }
     public void Allocate(Accelerator accelerator, int chunk);
     public void UploadChunk(int offset, int length);
     public void DownloadChunk(int offset, int length);
@@ -66,6 +71,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
 internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
 {
     public long BytesPerCase { get; }
+    public long MaxElementsPerCase { get; }         // 2026-09-26: the audit's F4, what ChunkPlan.For's offset cap clamps against
 
     public ChunkBuffer<T> Input<T>(T[] host, long perCase) where T : unmanaged;
     public ChunkBuffer<T> Output<T>(T[] host, long perCase) where T : unmanaged;
@@ -81,8 +87,8 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
 ```
 
 A pipeline builds one `ChunkBuffers` per run, declares every buffer its program's
-kernel needs through the five typed methods above, reads `BytesPerCase` into
-`ChunkPlan.For`, then calls `Allocate(plan.Size)` once; `BatchRun` (the parent node's
+kernel needs through the five typed methods above, reads `BytesPerCase` and
+`MaxElementsPerCase` into `ChunkPlan.For`, then calls `Allocate(plan.Size)` once; `BatchRun` (the parent node's
 own file) drives `UploadChunk`/`DownloadChunk` per chunk and `Dispose` at the end. A
 declaration's returned `ChunkBuffer<T>` is where a pipeline reads `.View` to build its
 kernel's views struct. `IChunkBuffer` and `ChunkTransfer` exist so `ChunkBuffers` can

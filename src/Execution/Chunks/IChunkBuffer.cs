@@ -8,6 +8,11 @@ internal interface IChunkBuffer : IDisposable
     /// <summary>Device bytes one case of a chunk costs in this buffer; zero for a buffer that does not grow with the chunk.</summary>
     long BytesPerCase { get; }
 
+    /// <summary>Elements one case of a chunk costs in this buffer; zero for a buffer that does not grow with the chunk. What a
+    /// kernel's <c>index * perCase</c> offset arithmetic must not overflow (BOOT.md, "A chunk's buffers stay within 32-bit
+    /// offsets"; the audit's F4).</summary>
+    long ElementsPerCase { get; }
+
     /// <summary>Allocates the buffer for a chunk of the given size, and uploads it if it is a constant.</summary>
     void Allocate(Accelerator accelerator, int chunk);
 

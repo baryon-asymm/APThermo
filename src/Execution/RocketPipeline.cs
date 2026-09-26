@@ -49,7 +49,7 @@ internal static class RocketPipeline
         var iterationBuffer = buffers.Output(iterations, stations);
         var statusBuffer = buffers.Output(status, 1);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, options);
+        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options);
         buffers.Allocate(plan.Size);
         var views = new RocketBatchViews(
             exitCount: exits, chamberPressures: pressureBuffer.View, reactantEnthalpies: enthalpyBuffer.View,
