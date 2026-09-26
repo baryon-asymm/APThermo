@@ -152,6 +152,24 @@ libdevice for the CUDA category.
 - One engine per accelerator is shared by the collection; tests that need a fresh
   engine (warm-up timing, chunk size) create and dispose their own.
 
+- **The probe covers the solver's whole input domain** (2026-09-27, the guards audit of
+  2026-09-26, F11). Until now the inputs were 1e-13 to 1e13 plus a few positive values,
+  and `Pow` took the exponent 1.37 only. The solver's `exp` arguments are mostly
+  negative, `Floor` and `Ceiling` never saw a negative value, and `Min` and `Max` never
+  saw NaN.
+  - The inputs gain the negatives of the decade span, ±0, ±∞, NaN, the smallest
+    subnormal and the largest subnormal, the smallest normal, and −0.5, −1.5 and −2.5.
+    `Pow` is probed at the exponents 1.37, 1.4 and 4.6 (`MathProbe` in the execution
+    node, which holds the list).
+  - The comparison counts NaN on both sides as equal and compares ±0 and ±∞ exactly,
+    with the sign.
+  - The CPU accelerator must still reproduce `System.Math` bit for bit on every input.
+  - Suspected by the audit, not run: `.NET`'s `Math.Max(NaN, x)` is NaN, while PTX
+    `max.f64` returns the other operand. The coder records what CUDA returns for every
+    special input. If CUDA and the CPU accelerator differ on any, the coder stops and
+    reports the list; the decision on it is the owner's, since it bears on the root's
+    GPU-equals-CPU invariant. No tolerance is widened, and no input is dropped to pass.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 and L1 green: `AcceleratorChoiceTests` (the CPU engine's
@@ -504,6 +522,13 @@ libdevice for the CUDA category.
       0 errors, 0 warnings. The red-once messages are recorded in `Execution`'s own
       criterion, alongside the one fact (the upload-disposal fix) that has no dedicated
       reproduction and is verified by inspection instead, as that criterion says.
+
+- [ ] 2026-09-27 — The probe's input domain (Constraints). Evidence due:
+      - the CPU fact green on every new input, red once by perturbing one special
+        input's expected value;
+      - the CUDA fact's outcome on every special input recorded here, as a table from
+        the run, not typed;
+      - no other record moves (the PTX fixtures are inputs of the inventory, and stay).
 
 ## Taboos
 
