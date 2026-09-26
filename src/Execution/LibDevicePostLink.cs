@@ -96,14 +96,14 @@ internal static partial class LibDevicePostLink
     }
 
     /// <summary>
-    /// The one shape every checked libnvvm failure throws in: the call, the target and the result code, with the log where one
-    /// exists. Throws nothing for <see cref="NvvmResult.NVVM_SUCCESS"/>.
+    /// The one shape every checked libnvvm failure throws in: it names the post-link, the target, libnvvm and the call, and the
+    /// result code, with the log where one exists. Throws nothing for <see cref="NvvmResult.NVVM_SUCCESS"/>.
     /// </summary>
     internal static void ThrowIfFailed(NvvmResult result, string call, string arch, string? log = null)
     {
         if (result != NvvmResult.NVVM_SUCCESS)
         {
-            throw new InvalidOperationException(FailureMessage(call, arch, result.ToString(), log));
+            throw new InvalidOperationException(FailureMessage($"libnvvm {call} returned {result}", arch, log));
         }
     }
 
@@ -112,15 +112,15 @@ internal static partial class LibDevicePostLink
     {
         if (result != CudaError.CUDA_SUCCESS)
         {
-            throw new InvalidOperationException(FailureMessage(call, arch, result.ToString(), log));
+            throw new InvalidOperationException(FailureMessage($"the CUDA driver's {call} returned {result}", arch, log));
         }
     }
 
-    /// <summary>The one message shape: the call, the target, the result code and, where one exists, the log.</summary>
-    private static string FailureMessage(string call, string arch, string result, string? log) =>
+    /// <summary>The one message shape: the post-link, the target, what failed (its library, its call and its result), and, where one exists, the log.</summary>
+    private static string FailureMessage(string outcome, string arch, string? log) =>
         log is null
-            ? $"{call} failed for {arch} ({result})."
-            : $"{call} failed for {arch} ({result}): {log.Trim()}";
+            ? $"the libdevice post-link for {arch}: {outcome}."
+            : $"the libdevice post-link for {arch}: {outcome}: {log.Trim()}";
 
     /// <summary>The kernel's own target, from its <c>.target sm_XX</c> line: ILGPU's choice per device, not a fixed value.</summary>
     private static string TargetArch(string ptx)
@@ -205,26 +205,16 @@ internal static partial class LibDevicePostLink
 
     /// <summary>
     /// <see cref="NvvmAPI.DestroyProgram"/> is checked only when the path before it succeeded (BOOT.md: "checked only when the
-    /// path before them succeeded"). When an earlier call already failed, that exception is propagating through this
-    /// <c>finally</c>; the release is best-effort and must not replace it, so a release failure here is caught by its own exact
-    /// type (not a catch-all: CA1031) and dropped rather than masking the primary exception.
+    /// path before them succeeded"). When an earlier call already failed, its exception is propagating through this
+    /// <c>finally</c>; the release is still attempted but its own result is not checked, since throwing for it here would
+    /// replace the exception already in flight with the release's instead of letting the primary one through.
     /// </summary>
     private static void ReleaseProgram(NvvmAPI nvvm, ref IntPtr program, string arch, bool succeeded)
     {
+        var released = nvvm.DestroyProgram(ref program);
         if (succeeded)
         {
-            ThrowIfFailed(nvvm.DestroyProgram(ref program), nameof(NvvmAPI.DestroyProgram), arch);
-            return;
-        }
-
-        try
-        {
-            ThrowIfFailed(nvvm.DestroyProgram(ref program), nameof(NvvmAPI.DestroyProgram), arch);
-        }
-        catch (InvalidOperationException)
-        {
-            // Best-effort: the exception from the earlier failed call is already propagating through this finally block;
-            // a release failure must not mask it.
+            ThrowIfFailed(released, nameof(NvvmAPI.DestroyProgram), arch);
         }
     }
 

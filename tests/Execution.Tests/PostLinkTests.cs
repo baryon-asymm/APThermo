@@ -71,23 +71,30 @@ public sealed class PostLinkTests
         LibDevicePostLink.ThrowIfFailed(CudaError.CUDA_SUCCESS, "LoadModule", "compute_80");
     }
 
-    /// <summary>Every non-success <see cref="NvvmResult"/> names the call, the result and the target.</summary>
+    /// <summary>Every non-success <see cref="NvvmResult"/> names the post-link, libnvvm, the call, the result and the target.</summary>
     [Theory]
     [MemberData(nameof(NonSuccessNvvmResults))]
-    public void EveryNonSuccessNvvmResultNamesTheCallTheResultAndTheTarget(NvvmResult result)
+    public void EveryNonSuccessNvvmResultNamesTheLibraryTheCallTheResultAndTheTarget(NvvmResult result)
     {
         var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.ThrowIfFailed(result, "CompileProgram", "compute_80"));
+        Assert.Contains("the libdevice post-link", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("libnvvm", failure.Message, StringComparison.Ordinal);
         Assert.Contains("CompileProgram", failure.Message, StringComparison.Ordinal);
         Assert.Contains(result.ToString(), failure.Message, StringComparison.Ordinal);
         Assert.Contains("compute_80", failure.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Every non-success <see cref="CudaError"/> names the call, the result and the target, the same shape as an <see cref="NvvmResult"/>.</summary>
+    /// <summary>
+    /// Every non-success <see cref="CudaError"/> names the post-link, the CUDA driver, the call, the result and the target, the
+    /// same shape as an <see cref="NvvmResult"/>.
+    /// </summary>
     [Theory]
     [MemberData(nameof(NonSuccessCudaErrors))]
-    public void EveryNonSuccessCudaErrorNamesTheCallTheResultAndTheTarget(CudaError error)
+    public void EveryNonSuccessCudaErrorNamesTheLibraryTheCallTheResultAndTheTarget(CudaError error)
     {
         var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.ThrowIfFailed(error, "LoadModule", "compute_80"));
+        Assert.Contains("the libdevice post-link", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("the CUDA driver", failure.Message, StringComparison.Ordinal);
         Assert.Contains("LoadModule", failure.Message, StringComparison.Ordinal);
         Assert.Contains(error.ToString(), failure.Message, StringComparison.Ordinal);
         Assert.Contains("compute_80", failure.Message, StringComparison.Ordinal);
@@ -102,12 +109,14 @@ public sealed class PostLinkTests
         Assert.Contains("a compiler diagnostic line", failure.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Without a log the message still names the call, the result and the target.</summary>
+    /// <summary>Without a log the message still names the post-link, the library, the call, the result and the target.</summary>
     [Fact]
-    public void WithoutALogTheMessageStillNamesTheCallTheResultAndTheTarget()
+    public void WithoutALogTheMessageStillNamesTheLibraryTheCallTheResultAndTheTarget()
     {
         var failure = Assert.Throws<InvalidOperationException>(
             () => LibDevicePostLink.ThrowIfFailed(CudaError.CUDA_ERROR_INVALID_PTX, "LoadModule", "compute_80"));
+        Assert.Contains("the libdevice post-link", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("the CUDA driver", failure.Message, StringComparison.Ordinal);
         Assert.Contains("LoadModule", failure.Message, StringComparison.Ordinal);
         Assert.Contains("CUDA_ERROR_INVALID_PTX", failure.Message, StringComparison.Ordinal);
         Assert.Contains("compute_80", failure.Message, StringComparison.Ordinal);
