@@ -838,25 +838,57 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         made to load a program with an incorrect format. (0x8007000B)" — exactly the
         audit's own finding; reverted before committing.
       - **All cores.** `AcceleratorChoice.CpuDeviceFor(int)` sizes the CPU device from
-        `Environment.ProcessorCount`: the warp size is the count clamped to [2, 4]
-        (ILGPU refuses a one-thread warp), the warps per multiprocessor the largest
-        power of two ILGPU accepts that keeps the total at or under the count (ILGPU's
-        own constraint on that count, measured while designing the fix), one
-        multiprocessor throughout. At 16 this is exactly (4, 4, 1), the layout every
-        bit and throughput record was measured against.
+        `Environment.ProcessorCount`. Below 4 processors the warp size alone carries the
+        count (`Math.Max(2, count)`, one warp, one multiprocessor: ILGPU refuses a
+        one-thread warp, so 2 and 3 match exactly and 1 does not). At 4 and above the
+        warp size stays fixed at 4 — so 16 processors still reduce to exactly (4, 4, 1),
+        the layout every bit and throughput record was measured against — and the count
+        of whole 4-thread groups the processor count allows,
+        `fourThreadGroups = processorCount / 4`, splits into a power-of-two warps count
+        (its lowest set bit) and a multiprocessor count (the remaining factor), whose
+        product reconstructs `fourThreadGroups` exactly; a processor count that is not a
+        multiple of 4 falls back to the largest multiple of 4 not above it, since every
+        group total this construction can reach is already at or under the count.
 
-        Proven under `DOTNET_PROCESSOR_COUNT` 4, 16 and 64, each its own `dotnet test`
-        child process — `Environment.ProcessorCount` is read once, at process start —
-        spawned by the same test class acting as its own worker
+        ILGPU 1.5.3's `CPUDevice` constructor was measured directly by reflection
+        (its summary records the figures): the warp size needs no upper bound and only
+        refuses 1; the warps per multiprocessor must be a power of two, and every
+        non-power-of-two value tried (3, 5, 6, 7, 9, 10, 12, 24, 48) throws
+        `ArgumentOutOfRangeException`, misnaming `numThreadsPerWarp` although the warps
+        argument is the one at fault; the multiprocessor count carries no constraint
+        ILGPU checks at all, from 2 to 1 000 000. The corrected construction uses only
+        layouts this probe confirmed the constructor accepts.
+
+        Proven under `DOTNET_PROCESSOR_COUNT` 4, 12, 16 and 64, each its own
+        `dotnet test` child process — `Environment.ProcessorCount` is read once, at
+        process start — spawned by the same test class acting as its own worker
         (`AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`,
         `AllCoresLayoutWorker`, `tests/Execution.Tests`): the reported thread count is
-        4, 16 and 64 respectively, and a rocket batch's result hash (specific impulse,
-        c*, thrust coefficient over every station) is identical at every count.
+        4, 12, 16 and 64 respectively, and a rocket batch's result hash (specific
+        impulse, c*, thrust coefficient over every station) is identical at every
+        count. A second, host-only fact
+        (`TheAllCoresLayoutMatchesEveryProcessorCountOrTheDocumentedFallback`) asserts
+        the layout's thread total, with no child process, at every count of 1, 2, 3, 4,
+        6, 8, 12, 16, 20, 24, 32, 48, 64 and 128: exact at every one of them except 1
+        (the ILGPU floor of 2 threads exceeds it) and 6 (not a multiple of 4, so the
+        layout falls back to 4), each asserted against its documented fallback instead
+        of equality.
 
-        Shown red once against `builder.CPU()` (ILGPU's fixed 16-thread
-        `CPUDevice.Default`): the same fact failed at the 4-processor child process —
-        `Assert.Equal() Failure: Values differ Expected: 4 Actual: 16` — reverted
-        before committing.
+        ⚠ 2026-09-26: this criterion first described the construction above as "one
+        multiprocessor throughout", the warps count alone reaching the largest power of
+        two not over the count. The coordinator's review found that this loses threads
+        at every count that needs more than one multiprocessor to reach exactly: 12 → 8,
+        24 → 16, 48 → 32, 20 → 16. The construction now chosen keeps the warp size fixed
+        at 4 from 4 processors up (so 16 still reduces to (4, 4, 1)) and uses the
+        multiprocessor count, not just the warps count, to reach every multiple of 4
+        exactly, as ILGPU's own unconstrained multiprocessor argument allows. Shown red
+        once against the superseded rule: the new host-only fact failed at 12 —
+        `Assert.Equal() Failure: Values differ Expected: 12 Actual: 8` — matching the
+        coordinator's own example; reverted before committing. The superseded rule's own
+        red-once record (against `builder.CPU()`, ILGPU's fixed 16-thread
+        `CPUDevice.Default`, failing the 4-processor child process with
+        `Assert.Equal() Failure: Values differ Expected: 4 Actual: 16`) still holds for
+        the corrected rule, unchanged by this correction.
       - **Observations.** `LibDevicePostLink.FailureMessage` now trims a log of NUL
         (`\0`) alongside whitespace (`TrimLog`), so a NUL-padded driver or libnvvm log
         carries no NUL in the exception message
@@ -900,6 +932,22 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         `PostLinkTests.ALogWithNulPaddingIsTrimmedOfIt`,
         `AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`), the
         100 000-case sweep and the throughput tripwire included;
+      - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty: no snapshot moved;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      Evidence for the "All cores" correction above (2026-09-26, on the same reference
+      machine), added to the evidence already recorded, not replacing it:
+      - `dotnet build APThermo.sln -c Release`: 0 warnings, 0 errors;
+      - `dotnet test tests/Execution.Tests -c Release` (no filter): 141 of 141 (the
+        140 already recorded plus
+        `TheAllCoresLayoutMatchesEveryProcessorCountOrTheDocumentedFallback`), the
+        100 000-case sweep and the throughput tripwire included;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3192 total, 3191 passed, 0 skipped; the one failure is
+        the same pre-existing `DeclarationTests` fact named above, now fixed on `main`
+        at `a6bc55d` (outside this coding task's subtree, not rebased onto here on the
+        coordinator's own instruction);
       - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
         '**/PublicSurface.approved.txt'` empty: no snapshot moved;
       - the protocol lint: 0 errors, 0 warnings.

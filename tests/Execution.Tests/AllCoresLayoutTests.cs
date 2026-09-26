@@ -43,14 +43,16 @@ public sealed class AllCoresLayoutTests
     }
 
     /// <summary>
-    /// At 4, 16 and 64 processors, each its own process, the reported thread count is the documented layout (4, 16 and 64:
-    /// <see cref="AcceleratorChoice.CpuDeviceFor"/>'s own formula, so a change to one without the other reddens this fact) and
-    /// the batch's result hash is the same at every count (BOOT.md, "results do not depend on the thread count").
+    /// At 4, 12, 16 and 64 processors, each its own process, the reported thread count is the documented layout (4, 12, 16
+    /// and 64: <see cref="AcceleratorChoice.CpuDeviceFor"/>'s own formula, so a change to one without the other reddens this
+    /// fact) and the batch's result hash is the same at every count (BOOT.md, "results do not depend on the thread count").
+    /// 12 is the coordinator's own example of a multiprocessor-count layout (4, 1, 3): the one
+    /// <see cref="AcceleratorChoice.CpuDeviceFor"/> used to under-report as 8 by keeping the multiprocessor count fixed at 1.
     /// </summary>
     [Fact]
     public void TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove()
     {
-        var expectedThreads = new Dictionary<int, int> { [4] = 4, [16] = 16, [64] = 64 };
+        var expectedThreads = new Dictionary<int, int> { [4] = 4, [12] = 12, [16] = 16, [64] = 64 };
         string? hash = null;
         foreach (var (processorCount, threads) in expectedThreads)
         {
@@ -58,6 +60,42 @@ public sealed class AllCoresLayoutTests
             Assert.Equal(threads, reportedThreads);
             hash ??= reportedHash;
             Assert.Equal(hash, reportedHash);
+        }
+    }
+
+    /// <summary>
+    /// <see cref="AcceleratorChoice.CpuDeviceFor"/>'s thread total, in this process, at every processor count of the
+    /// coordinator's list (BOOT.md, "All cores"): exact whenever the count is a multiple of 4 (or 2 or 3, below one full
+    /// group of 4), and otherwise the largest multiple of 4 not above the count — 1 (the ILGPU floor of 2 threads exceeds
+    /// it) and 6 (not a multiple of 4) are the two counts of this list with no exact layout, and are asserted against that
+    /// documented fallback instead of equality.
+    /// </summary>
+    [Fact]
+    public void TheAllCoresLayoutMatchesEveryProcessorCountOrTheDocumentedFallback()
+    {
+        var counts = new[] { 1, 2, 3, 4, 6, 8, 12, 16, 20, 24, 32, 48, 64, 128 };
+
+        // The two counts of the coordinator's list with no exact layout, and why: 1 falls below the ILGPU floor of 2
+        // threads (a warp needs at least 2), so the layout exceeds it instead of falling back under it; 6 is not a
+        // multiple of 4, so the layout is the largest multiple of 4 not above it.
+        var reasons = new Dictionary<int, string>
+        {
+            [1] = "below the ILGPU floor of 2 threads per warp, so the layout exceeds the count instead of falling under it",
+            [6] = "not a multiple of 4, so the layout is the largest multiple of 4 not above the count",
+        };
+        var fallbackTotals = new Dictionary<int, int> { [1] = 2, [6] = 4 };
+
+        foreach (var count in counts)
+        {
+            var total = AcceleratorChoice.CpuDeviceFor(count).NumThreads;
+            if (fallbackTotals.TryGetValue(count, out var fallbackTotal))
+            {
+                Assert.True(total == fallbackTotal, $"{count} threads: expected the documented fallback {fallbackTotal} ({reasons[count]}), got {total}.");
+            }
+            else
+            {
+                Assert.Equal(count, total);
+            }
         }
     }
 

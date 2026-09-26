@@ -62,23 +62,37 @@ internal static class AcceleratorChoice
 
     /// <summary>
     /// A CPU device sized for <paramref name="processorCount"/> (BOOT.md, "All cores"; the audit's F3), not ILGPU's fixed
-    /// 16-thread <see cref="CPUDevice.Default"/>. The warp size is <paramref name="processorCount"/> clamped to [2, 4] (ILGPU
-    /// refuses a one-thread warp); the warps per multiprocessor is the largest power of two ILGPU accepts (its own
-    /// constraint on that count) that keeps the total at or under the processor count; the multiprocessor count stays 1. At
-    /// 16 processors, the reference machine's count, this reduces to (4, 4, 1): the layout every bit and throughput record
-    /// was measured against, unchanged. Below 4 processors the total can exceed the count by a couple of threads (the ILGPU
-    /// floor is 2 threads total); this is not exercised by the tree's own tests, which prove 4, 16 and 64.
+    /// 16-thread <see cref="CPUDevice.Default"/>.
+    ///
+    /// ILGPU 1.5.3's <see cref="CPUDevice"/> constructor was measured directly (a reflection probe against the three
+    /// constructor arguments, warp size, warps per multiprocessor and multiprocessors, each varied alone): the warp size
+    /// needs no upper bound and only refuses 1 (thread counts of 2 through at least 1000 all construct); the warps per
+    /// multiprocessor must be a power of two, and every one of 3, 5, 6, 7, 9, 10, 12, 24 and 48 throws
+    /// <see cref="ArgumentOutOfRangeException"/> (misnaming <c>numThreadsPerWarp</c> even though the warps argument is the
+    /// one at fault); the multiprocessor count carries no constraint ILGPU checks at all — every value tried, from 2 to
+    /// 1 000 000, constructs. Keeping the warp size fixed at today's 4 (so the layout at 16 processors stays exactly
+    /// (4, 4, 1), the shape every bit and throughput record was measured against) therefore reaches every total that is a
+    /// multiple of 4 exactly, by choosing the multiprocessor count instead of leaving it at 1: the number of whole groups of
+    /// 4 threads the count allows, <c>fourThreadGroups = processorCount / 4</c>, splits into a power-of-two warp count (its
+    /// lowest set bit, the largest power of two that divides it) and an unconstrained multiprocessor count (the remaining
+    /// factor), whose product reconstructs <c>fourThreadGroups</c> exactly. A count not a multiple of 4 (and, since the warp
+    /// size floor is 2, a count of 1) cannot be matched exactly this way; the layout then falls back to the nearest total not
+    /// above the count, which this same construction already produces (a group total is always at or under the count).
     /// </summary>
     internal static CPUDevice CpuDeviceFor(int processorCount)
     {
-        var threadsPerWarp = Math.Clamp(processorCount, 2, 4);
-        var warpsPerMultiprocessor = 1;
-        while (warpsPerMultiprocessor * 2 * threadsPerWarp <= processorCount)
+        var count = Math.Max(processorCount, 1);
+        if (count < 4)
         {
-            warpsPerMultiprocessor *= 2;
+            // Below one full group of 4 the warp size itself carries the count; 2 and 3 match exactly, 1 does not (ILGPU
+            // refuses a one-thread warp, so the total floor is 2).
+            return new CPUDevice(Math.Max(2, count), numWarpsPerMultiprocessor: 1, numMultiprocessors: 1);
         }
 
-        return new CPUDevice(threadsPerWarp, warpsPerMultiprocessor, numMultiprocessors: 1);
+        var fourThreadGroups = count / 4;
+        var warpsPerMultiprocessor = fourThreadGroups & -fourThreadGroups;
+        var multiprocessors = fourThreadGroups / warpsPerMultiprocessor;
+        return new CPUDevice(4, warpsPerMultiprocessor, multiprocessors);
     }
 
     private static AcceleratorSession Cuda(EngineOptions options)
