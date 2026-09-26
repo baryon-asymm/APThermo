@@ -46,8 +46,18 @@ restate the equations. Whoever codes this node reads chapter 6.
   - 85 of 648 variants of example 13.
 
   Found by the hidden-defect audit of 2026-09-26 (finding F1). The report defines this
-  throat: RP-1311 section 6.3.4 places the throat at a plateau onset at the melting
-  temperature and moves the pressure there by its equation (6.18). The bisection
+  throat, in two places:
+  - Section 6.3.3 defines the throat as the pressure "for which the area ratio is a
+    minimum or, equivalently, for which the velocity of flow is equal to the velocity
+    of sound". The report uses the second form. A minimum area ratio is the largest
+    mass flux, the definition this invariant takes.
+  - Section 6.3.4, "Discontinuities at Throat", covers the case where "the velocity of
+    sound is discontinuous at the throat", as at "a melting point … being calculated
+    at the throat". Its equation (6.18) estimates "the throat pressure at the melting
+    point, where the solid phase just begins to appear" (Gordon 1970).
+
+  Both passages were read in the report itself on 2026-09-26 (NASA NTRS 19950013764),
+  at the owner's request that the session of 2026-09-13 not be trusted from memory. The bisection
   below finds the same point, to `1e-10` in `ln p`, without (6.18)'s linearization.
   The melting-plateau session of 2026-09-13 left (6.18) out: every fixture's throat
   then lay on a plateau or off it, never at its onset, and example 13 converged
