@@ -107,18 +107,39 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Size limits are fixed here because they size the scratch of every consumer: at most
   20 elements, at most 2 048 species per table, at most 5 intervals per species
   (after concatenation; the builder refuses an overflow by name).
-- The join-and-cut threshold is `SpeciesFunctions.LatentHeatThreshold` = 1e-3 on
-  `|ΔH°/RT|` at a shared bound, the one constant separating a real latent heat from
-  fit noise: the smallest real transition of the committed file is BeO a/b at
-  1.34e-2, the largest interval-split artifact 3.9e-4 (`Cr(cr)`). It lives here
-  because the equilibrium node's pair rule tests the same quantity against the same
-  constant. On the committed file the cut fires exactly once — `ALN(L)`, whose two
-  intervals differ by 68 kJ/mol at 2700 K, the only such jump among the 203
-  multi-interval condensed product records — and the concatenation covers every
-  same-name record split of the file (`Co(b)`, `Cr(cr)`, `Cr2O3(I)` — three
-  records — `Fe(a)`, `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`,
-  `SnS(cr)`), whose upper records were unreachable before (the database index
-  returns the first record per name).
+- The join-and-cut threshold is `SpeciesFunctions.LatentHeatThreshold` = 5e-3 on
+  `|ΔH°/RT|` at a shared bound (2026-09-27). It is the one constant separating a real
+  latent heat from fit noise, and it lives here because the equilibrium node's pair
+  rule tests the same quantity against the same constant. The committed file, scanned
+  2026-09-27 over every shared bound of the condensed product records, inside a record
+  and between two records of one formula:
+  - the largest fit noise is 2.2e-3, `NaCN(II)` → `NaCN(III)` at 288.5 K, a lambda
+    transition, which has no latent heat; inside a record the largest is 1.34e-3,
+    `NaCN(III)` at 293.15 K;
+  - the smallest real transition is 1.34e-2, `BeO(a)` → `BeO(b)` at 2373 K;
+  - nothing lies between the two, and 5e-3 sits at their geometric middle.
+
+  On the committed file the cut fires twice:
+  - `ALN(L)`, whose two intervals differ by 68 kJ/mol at 2700 K;
+  - the joined `SnS(cr)` at 875 K (|ΔH°/RT| 9.2e-2), where the file's two records of
+    that name are the rhombic and the cubic phase.
+
+  The concatenation covers every same-name record split of the file (`Co(b)`,
+  `Cr(cr)`, `Cr2O3(I)` — three records — `Fe(a)`, `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`,
+  `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`), whose upper records were unreachable before (the
+  database index returns the first record per name).
+
+  ⚠ 2026-09-27: stood "= 1e-3 … the smallest real transition of the committed file is
+  BeO a/b at 1.34e-2, the largest interval-split artifact 3.9e-4 (`Cr(cr)`) … On the
+  committed file the cut fires exactly once — `ALN(L)` … the only such jump among the
+  203 multi-interval condensed product records". The scan of 2026-09-13 missed `NaCN`
+  and did not count the bound a join creates. With 1e-3 the cut also fired at
+  `NaCN(II)` 287.7 K and `NaCN(III)` 293.15 K, splitting each into pieces with a
+  phantom latent heat of about 3 J/mol, and the pair rule pinned `NaCN(II)`/`NaCN(III)`
+  at 288.5 K as a melting plateau. The reference treats each record as one species.
+  The `SnS(cr)` cut is real and stays. Found by the Equilibrium coder of 2026-09-26,
+  whose many-phase fixture split `SnS(cr)` and `NaCN(III)`; the orchestrator's scan
+  confirmed it with the generator's own reader.
 - A cut piece is named `NAME[TLow-THigh]` over the piece's range in kelvin
   (`ALN(L)[1800-2700]`, `ALN(L)[2700-6000]`; square brackets occur in no database
   name); the pieces stand adjacent, ascending, in the place of their record in the
@@ -351,6 +372,17 @@ of 14: no efferent coupling row is needed.
       - No bit snapshot moves. No fixture case outside the new ones has a species with
         an inverted interval at a temperature where the two rules differ; the coder
         checks this and records it.
+
+- [ ] 2026-09-27 — The threshold separates the committed file's transitions (the ⚠ of
+      this date under Constraints). Evidence due:
+      - a fact scans every shared bound of the condensed product records (inside a
+        record after the join, and between two records of one formula) and asserts
+        that none has `|ΔH°/RT|` within a factor 2 of `LatentHeatThreshold`, on either
+        side; it fails on an empty scan, and is red at 1e-3 (the `NaCN` bounds);
+      - the cut fires on `ALN(L)` and `SnS(cr)` only, from a list the scan generates;
+      - `NaCN(II)` and `NaCN(III)` build as one species each;
+      - bits: the coder reports which snapshots move, and explains each moved key by a
+        table holding `NaCN`; any other movement stops the work.
 
 ## Taboos
 

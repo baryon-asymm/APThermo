@@ -183,7 +183,7 @@ through `Math.Pow`.
 ```csharp
 internal static class SpeciesFunctions
 {
-    public const double LatentHeatThreshold = 1.0e-3;   // |ΔH°/RT| at a shared bound: at or above it, two adjacent condensed fits are a real transition
+    public const double LatentHeatThreshold = 5.0e-3;   // |ΔH°/RT| at a shared bound: at or above it, two adjacent condensed fits are a real transition (1e-3 until 2026-09-27, BOOT.md)
 }
 
 internal sealed class SpeciesTable
