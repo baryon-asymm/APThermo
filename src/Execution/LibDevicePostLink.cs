@@ -9,12 +9,13 @@ using ILGPU.Runtime.Cuda;
 namespace APThermo.Execution;
 
 /// <summary>
-/// Links ILGPU's libdevice wrappers into a compiled CUDA kernel, the one place in the tree that knows ILGPU's internals: ILGPU
-/// 1.5.3 emits the NVVM version metadata before the target lines, libnvvm rejects the module and the wrappers silently go missing.
-/// <see cref="Link"/> reads as the sequence of its stages: find the target, compile the wrapper body, check every call has a
-/// definition, splice it after the kernel's header, trial-load the result. No libnvvm or driver result of that sequence is
-/// ignored (BOOT.md, "No libnvvm or driver result is ignored"): every call into libnvvm or the CUDA driver is checked through
-/// the <c>ThrowIfFailed</c> overloads, the one place that turns a non-success result into an exception.
+/// Completes, rather than replaces, ILGPU's own libdevice wrappers in a compiled CUDA kernel: the one place in the tree that
+/// knows ILGPU's internals. ILGPU 1.5.3 defines the wrappers itself for the targets <c>compute_75</c> to <c>compute_90</c> and
+/// silently drops them for <c>compute_100</c> and newer (root <c>BOOT.md</c>, the ILGPU constraint); <see cref="Link"/> reads
+/// which wrappers a kernel calls and which it already defines, compiles only the missing ones from ILGPU's own fragments, and
+/// trial-loads the result on either path, so that a refusal carries the driver's log. No libnvvm or driver result of that
+/// sequence is ignored (BOOT.md, "No libnvvm or driver result is ignored"): every call into libnvvm or the CUDA driver is
+/// checked through the <c>ThrowIfFailed</c> overloads, the one place that turns a non-success result into an exception.
 /// </summary>
 internal static partial class LibDevicePostLink
 {
@@ -28,10 +29,21 @@ internal static partial class LibDevicePostLink
     private const string TargetDataLayout =
         "target datalayout = \"e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64\"";
 
-    [GeneratedRegex(@"__ilgpu__nv_[A-Za-z0-9_]+")]
+    /// <summary>
+    /// A wrapper name at an actual <c>call</c> instruction, never a parameter declaration or a <c>.func</c> header: both share
+    /// the <c>__ilgpu__nv_*</c> prefix (a parameter of <c>__nv_exp</c> is named <c>__ilgpu__nv_exp_param_0</c>), but only the
+    /// callee name at a call site is immediately followed by a comma, never a definition's name (followed by <c>(</c>) or a
+    /// parameter's (followed by end of line or another parameter's own text, never a bare comma right after the identifier).
+    /// The lazy span from <c>call</c> never crosses a <c>;</c>, so it never reaches into an unrelated statement.
+    /// </summary>
+    [GeneratedRegex(@"\bcall(?:\.uni)?\b[^;]*?(__ilgpu__nv_[A-Za-z0-9_]+)\s*,")]
     private static partial Regex WrapperCall();
 
-    /// <summary>A wrapper's own <c>.func</c> definition line, over the wrapper body only — never the kernel PTX that calls it.</summary>
+    /// <summary>
+    /// A wrapper's own <c>.func</c> definition line, wherever it appears: in a kernel's own PTX, to find what ILGPU already
+    /// defined, or in the post-link's own compiled body, to check what it inserted. Never a call site, which spells the name
+    /// followed by a comma, not a parenthesis.
+    /// </summary>
     [GeneratedRegex(@"^\s*\.(visible|weak)?\s*\.func\b[^;]*?(__ilgpu__nv_[A-Za-z0-9_]+)\s*\(", RegexOptions.Multiline)]
     private static partial Regex WrapperDefinition();
 
@@ -69,30 +81,51 @@ internal static partial class LibDevicePostLink
             : (fragments, backing);
     }
 
-    /// <summary>The wrapper names a PTX text calls, without the <c>__ilgpu</c> prefix (as the fragment keys are), in order of appearance.</summary>
+    /// <summary>The wrapper names a PTX text calls, from actual <c>call</c> instructions only, without the <c>__ilgpu</c> prefix
+    /// (as the fragment keys are), in order of appearance.</summary>
     public static IReadOnlyList<string> WrappersCalled(string ptx) =>
-        [.. WrapperCall().Matches(ptx).Select(m => m.Value["__ilgpu".Length..]).Distinct()];
+        [.. WrapperCall().Matches(ptx).Select(m => m.Groups[1].Value["__ilgpu".Length..]).Distinct()];
 
-    /// <summary>Replaces the kernel's PTX by the PTX with the wrappers it calls defined, compiled by libnvvm for the kernel's target.</summary>
-    public static PTXCompiledKernel Link(CudaAccelerator accelerator, NvvmAPI nvvm, PTXCompiledKernel compiled)
+    /// <summary>The wrapper names a PTX text defines as its own <c>.func</c> headers, without the <c>__ilgpu</c> prefix, distinct.</summary>
+    public static IReadOnlyList<string> WrappersDefined(string ptx) =>
+        [.. WrapperDefinition().Matches(ptx).Select(m => m.Groups[2].Value["__ilgpu".Length..]).Distinct()];
+
+    /// <summary>What <see cref="Link"/> did to a kernel: which of its called wrappers ILGPU had already defined, and which this
+    /// method compiled from its own fragments. Both empty when the kernel calls no wrapper at all.</summary>
+    internal readonly record struct LinkResult(PTXCompiledKernel Kernel, IReadOnlyList<string> DefinedByIlgpu, IReadOnlyList<string> Compiled);
+
+    /// <summary>
+    /// Completes the kernel's PTX with the libdevice wrappers it calls and ILGPU did not already define (BOOT.md, "The
+    /// post-link"): compiles only the missing ones from ILGPU's own fragments, splices them in, and trial-loads the result
+    /// through the CUDA driver on either path (nothing missing, or something compiled), so that a refusal carries the driver's
+    /// log. A kernel that calls no wrapper at all is returned untouched, without a trial load.
+    /// </summary>
+    public static LinkResult Link(CudaAccelerator accelerator, NvvmAPI nvvm, PTXCompiledKernel compiled)
     {
         var ptx = compiled.PTXAssembly;
-        var names = WrappersCalled(ptx);
-        if (names.Count == 0)
+        var called = WrappersCalled(ptx);
+        if (called.Count == 0)
         {
-            return compiled;
+            return new LinkResult(compiled, [], []);
         }
 
+        var missing = called.Except(WrappersDefined(ptx)).ToList();
         var arch = TargetArch(ptx);
-        var body = WrapperBody(nvvm, names, arch);
-        AssertEveryWrapperDefined(body, names);
-        var linked = InsertAfterHeader(ptx, body);
 
         // The driver checks the PTX against a context bound to the calling thread; bind the accelerator's before the trial load.
         accelerator.Bind();
+        if (missing.Count == 0)
+        {
+            TrialLoad(ptx, arch);
+            return new LinkResult(compiled, called, []);
+        }
+
+        var body = WrapperBody(nvvm, missing, arch);
+        AssertEveryWrapperDefined(body, missing);
+        var linked = InsertAfterHeader(ptx, body);
         TrialLoad(linked, arch);
         Members.Value.Assembly.SetValue(compiled, linked);
-        return compiled;
+        return new LinkResult(compiled, [.. called.Except(missing)], missing);
     }
 
     /// <summary>

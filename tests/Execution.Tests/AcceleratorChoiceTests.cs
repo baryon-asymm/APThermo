@@ -228,6 +228,82 @@ public sealed class AcceleratorChoiceTests
         _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
     }
 
+    /// <summary>
+    /// The bind-time probe (BOOT.md, "CUDA is bound only when a kernel runs on it"): a real libnvvm paired with a libdevice path
+    /// that exists but is not libdevice bitcode reaches the post-link at bind, and an <c>Auto</c> request falls back to the CPU
+    /// accelerator with the post-link's own message as the reason.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind()
+    {
+        var bogus = BogusLibDevice();
+        try
+        {
+            using var engine = Engine.Create(ProbeFailureOptions(AcceleratorKind.Auto, bogus));
+            Assert.Equal(AcceleratorKind.Cpu, engine.Accelerator.Kind);
+            var reason = engine.Accelerator.CudaSkippedBecause;
+            Assert.NotNull(reason);
+            if (Engine.CudaForbidden)
+            {
+                Assert.Contains(EngineOptions.NoCudaVariable, reason, StringComparison.Ordinal);
+                return;
+            }
+
+            Assert.Contains("libdevice post-link", reason, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(bogus);
+        }
+    }
+
+    /// <summary>The same input, requested explicitly: <see cref="AcceleratorUnavailableException"/> whose inner exception is the post-link's own.</summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind()
+    {
+        var bogus = BogusLibDevice();
+        try
+        {
+            var refused = Assert.Throws<AcceleratorUnavailableException>(() => Engine.Create(ProbeFailureOptions(AcceleratorKind.Cuda, bogus)));
+            if (Engine.CudaForbidden)
+            {
+                Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
+                return;
+            }
+
+            Assert.Contains("the math probe kernel could not be loaded", refused.Message, StringComparison.Ordinal);
+            var inner = Assert.IsType<InvalidOperationException>(refused.InnerException);
+            Assert.Contains("libdevice post-link", inner.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(bogus);
+        }
+    }
+
+    /// <summary>A file that exists (so it passes discovery's existence check) but holds no libdevice bitcode at all.</summary>
+    private static string BogusLibDevice()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path, "not libdevice bitcode, just some text");
+        return path;
+    }
+
+    /// <summary>The real libnvvm this machine's discovery would find, paired with the given (bogus) libdevice path, discovery off.</summary>
+    private static EngineOptions ProbeFailureOptions(AcceleratorKind kind, string bogusLibDevice)
+    {
+        var (dll, _, _) = LibDeviceLocator.Locate(new EngineOptions());
+        return new EngineOptions
+        {
+            Accelerator = kind,
+            LibNvvmPath = dll ?? @"X:\nowhere\nvvm64_40_0.dll",
+            LibDevicePath = bogusLibDevice,
+            LibDeviceDiscovery = false,
+        };
+    }
+
     /// <summary>Result layouts follow the station and species counts.</summary>
     [Fact]
     public void ResultLayoutsFollowTheStationAndSpeciesCounts()

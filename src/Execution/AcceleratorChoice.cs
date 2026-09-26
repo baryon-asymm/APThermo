@@ -80,8 +80,27 @@ internal static class AcceleratorChoice
 
                 var accelerator = session.Attach(session.Context.CreateCudaAccelerator(options.CudaDeviceIndex));
                 _ = session.Attach(NvvmAPI.Create(dll, bitcode));
+                ProbeBinding(session, dll, bitcode);
                 return new AcceleratorInfo(AcceleratorKind.Cuda, accelerator.Name, LibDevicePostLink.IlgpuVersion, dll, bitcode, accelerator.NumMultiprocessors);
             });
+    }
+
+    /// <summary>
+    /// CUDA is bound only when a kernel runs on it (BOOT.md): the math probe kernel is compiled, post-linked and loaded through
+    /// the same path <see cref="KernelCache"/> uses, and released at once. A failure here becomes the same
+    /// <see cref="AcceleratorUnavailableException"/> shape as every other bind failure, its inner exception the post-link's own,
+    /// so a device on which no kernel can load is never reported as bound.
+    /// </summary>
+    private static void ProbeBinding(AcceleratorSession session, string dll, string bitcode)
+    {
+        try
+        {
+            using var probe = KernelCache.Load(session, nameof(Kernels.Probe));
+        }
+        catch (Exception failure) when (failure is not OutOfMemoryException)
+        {
+            throw new AcceleratorUnavailableException($"the math probe kernel could not be loaded: {failure.Message}", [dll, bitcode], failure);
+        }
     }
 
     private static Context CudaContext(string dll, string bitcode)
