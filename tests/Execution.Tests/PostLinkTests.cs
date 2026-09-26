@@ -1,6 +1,12 @@
+using ILGPU.Runtime.Cuda;
+
 namespace APThermo.Execution.Tests;
 
-/// <summary>L0: the post-link's missing-definition guard, driven directly without a GPU — it reads only the wrapper body libnvvm returned, never the kernel PTX.</summary>
+/// <summary>
+/// L0: the post-link's missing-definition guard and its result-to-exception check, both driven directly without a GPU — the
+/// guard reads only the wrapper body libnvvm returned, never the kernel PTX, and the result-to-exception check needs no libnvvm
+/// or driver call at all (BOOT.md, "No libnvvm or driver result is ignored").
+/// </summary>
 public sealed class PostLinkTests
 {
     /// <summary>Two definitions, in the shape libnvvm actually returns: the wrapper's name immediately before its parameter list's parenthesis.</summary>
@@ -55,5 +61,79 @@ public sealed class PostLinkTests
         const string callSiteOnly = "call.uni (r), __ilgpu__nv_exp, (a);";
         var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.AssertEveryWrapperDefined(callSiteOnly, ["__nv_exp"]));
         Assert.Contains("__nv_exp", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The success result of either kind throws nothing.</summary>
+    [Fact]
+    public void TheSuccessResultOfEitherKindThrowsNothing()
+    {
+        LibDevicePostLink.ThrowIfFailed(NvvmResult.NVVM_SUCCESS, "CompileProgram", "compute_80");
+        LibDevicePostLink.ThrowIfFailed(CudaError.CUDA_SUCCESS, "LoadModule", "compute_80");
+    }
+
+    /// <summary>Every non-success <see cref="NvvmResult"/> names the call, the result and the target.</summary>
+    [Theory]
+    [MemberData(nameof(NonSuccessNvvmResults))]
+    public void EveryNonSuccessNvvmResultNamesTheCallTheResultAndTheTarget(NvvmResult result)
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.ThrowIfFailed(result, "CompileProgram", "compute_80"));
+        Assert.Contains("CompileProgram", failure.Message, StringComparison.Ordinal);
+        Assert.Contains(result.ToString(), failure.Message, StringComparison.Ordinal);
+        Assert.Contains("compute_80", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every non-success <see cref="CudaError"/> names the call, the result and the target, the same shape as an <see cref="NvvmResult"/>.</summary>
+    [Theory]
+    [MemberData(nameof(NonSuccessCudaErrors))]
+    public void EveryNonSuccessCudaErrorNamesTheCallTheResultAndTheTarget(CudaError error)
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.ThrowIfFailed(error, "LoadModule", "compute_80"));
+        Assert.Contains("LoadModule", failure.Message, StringComparison.Ordinal);
+        Assert.Contains(error.ToString(), failure.Message, StringComparison.Ordinal);
+        Assert.Contains("compute_80", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>A log, where one exists, is trimmed and carried in the message.</summary>
+    [Fact]
+    public void ALogWhereOneExistsIsCarriedInTheMessage()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(
+            () => LibDevicePostLink.ThrowIfFailed(NvvmResult.NVVM_ERROR_COMPILATION, "CompileProgram", "compute_80", "  a compiler diagnostic line  "));
+        Assert.Contains("a compiler diagnostic line", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Without a log the message still names the call, the result and the target.</summary>
+    [Fact]
+    public void WithoutALogTheMessageStillNamesTheCallTheResultAndTheTarget()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(
+            () => LibDevicePostLink.ThrowIfFailed(CudaError.CUDA_ERROR_INVALID_PTX, "LoadModule", "compute_80"));
+        Assert.Contains("LoadModule", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("CUDA_ERROR_INVALID_PTX", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("compute_80", failure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Every value of <see cref="NvvmResult"/> but the success one, read from the enum rather than typed out by hand.</summary>
+    public static TheoryData<NvvmResult> NonSuccessNvvmResults()
+    {
+        var data = new TheoryData<NvvmResult>();
+        foreach (var result in Enum.GetValues<NvvmResult>().Where(result => result != NvvmResult.NVVM_SUCCESS))
+        {
+            data.Add(result);
+        }
+
+        return data;
+    }
+
+    /// <summary>Every value of <see cref="CudaError"/> but the success one, read from the enum rather than typed out by hand.</summary>
+    public static TheoryData<CudaError> NonSuccessCudaErrors()
+    {
+        var data = new TheoryData<CudaError>();
+        foreach (var error in Enum.GetValues<CudaError>().Where(error => error != CudaError.CUDA_SUCCESS))
+        {
+            data.Add(error);
+        }
+
+        return data;
     }
 }

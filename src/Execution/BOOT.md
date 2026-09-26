@@ -50,9 +50,9 @@ numerical node stays testable without it.
 
   ⚠ 2026-09-26: until then only `CompileProgram` and `LoadModule` were checked; the
   other calls' results were dropped, a fact the Diagnostics pass made visible when
-  IDE0058 turned the silent drops into explicit discards (`_ = nvvm.…`). A failure of,
-  say, `AddModuleToProgram` surfaced later as a compilation error with a misleading log,
-  or not at all.
+  IDE0058 turned the silent drops into explicit discards (an underscore assigned in
+  front of the call). A failure of, say, `AddModuleToProgram` surfaced later as a
+  compilation error with a misleading log, or not at all.
 - **The wrapper list equals the root's math list.** The post-link provides wrappers
   for exactly the `System.Math` functions the root allows; a probe kernel using each
   of them loads and matches the CPU accelerator within the tolerance table.
@@ -536,13 +536,54 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       `Bits.approved.txt` and the surface snapshot unchanged (the seam is internal, no
       public type added).
 
-- [ ] 2026-09-26 — No libnvvm or driver result is ignored: no `NvvmResult` or
+- [x] 2026-09-26 — No libnvvm or driver result is ignored: no `NvvmResult` or
       `CudaError` returned by a call of the post-link is discarded (no `_ =` on such a
       call remains in `LibDevicePostLink.cs`); the result-to-exception method is tested
       with every non-success `NvvmResult` and a failing `CudaError`; the CUDA tests of
       this node are green in Release, the long-running sweep and the throughput tripwire
       included, with no `Bits*` or `Throughput*` record moving; the fast suite and the
       lint are green.
+
+      Implemented as two `ThrowIfFailed` overloads (`NvvmResult`, `CudaError`), the one
+      shape every checked call throws in: the call name, the target `compute_XX` and the
+      result code, with the log where one exists. Every checked call of the invariant's
+      list (`GetIRVersion`, `CreateProgram`, `AddModuleToProgram`,
+      `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`, `GetCompiledResult`,
+      `DestroyProgram`, `LoadModule`, `DestroyModule`) now goes through one of the two
+      overloads; the compile log is read only after a failed `CompileProgram`
+      (`ThrowCompileFailure`), and a `GetProgramLog` failure of its own is folded into
+      the compile exception's message ("the log could not be read (…)") rather than
+      raising a second exception. `DestroyProgram`'s release in `CompileWrappers`'s
+      `finally` (`ReleaseProgram`) is checked normally when the path before it
+      succeeded and is best-effort, via a catch of the exact `InvalidOperationException`
+      `ThrowIfFailed` itself throws (not a catch-all: CA1031), when an earlier call's
+      exception is already propagating through the same `finally`; `DestroyModule` in
+      `TrialLoad` is reached only after `LoadModule` succeeded, so it needs no such
+      branch.
+
+      Evidence, on this worktree (branch `claude/nvvm-result-codes`, on top of
+      `6d5d57e`):
+      - `git grep -n "_ = nvvm\.|_ = CudaAPI" -- src` empty (one incidental match in
+        this file's own history note above was reworded to drop the literal pattern,
+        without changing its meaning);
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `PostLinkTests` (`tests/Execution.Tests/PostLinkTests.cs`):
+        `TheSuccessResultOfEitherKindThrowsNothing`,
+        `EveryNonSuccessNvvmResultNamesTheCallTheResultAndTheTarget` (a theory over
+        every value of `NvvmResult` but `NVVM_SUCCESS`, read from the enum: 9 cases),
+        `EveryNonSuccessCudaErrorNamesTheCallTheResultAndTheTarget` (the same over
+        every value of `CudaError` but `CUDA_SUCCESS`: 58 cases),
+        `ALogWhereOneExistsIsCarriedInTheMessage`,
+        `WithoutALogTheMessageStillNamesTheCallTheResultAndTheTarget`, and the four
+        pre-existing `AssertEveryWrapperDefined` facts, all green;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3178 of 3178, none skipped (3108 before this change
+        plus the 70 new theory cases and facts above);
+      - `dotnet test tests/Execution.Tests -c Release` on the reference machine (RTX
+        5070 Ti), no filter: 126 of 126, the long-running 100 000-case sweep and the
+        throughput tripwire included (124 of the fast set plus these 2);
+      - no `Bits*.approved.txt` or `Throughput*.approved.txt` differs from `main`;
+      - the protocol lint: 0 errors, 0 warnings.
 
 ## Taboos
 
