@@ -100,6 +100,11 @@ dependency went away with it.
     filter 2861/2861 green; only this node's bit snapshot, which hosted CI does not
     run, went red.
 
+- **No NaN-blind predicate** (2026-09-27, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5). Every predicate of this
+  node that compares a value with a bound fails on NaN (`!(x >= y)` rather than
+  `x < y`), or asserts finiteness first. `StationTests.ReactingConductivityIsNeverBelowTheFrozenOne`
+  is the audit's instance: a NaN reacting conductivity passed it.
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — L0 green: `FitTests` (every transport fit fixture, enumerated by
@@ -268,6 +273,10 @@ dependency went away with it.
       (k_r = 3·k_f at eliminated stations) turns a hosted-filter fact red. A station
       removed from the list and a key added for a station without the signature each
       fail. The list's nine keys come from a scan recorded with the list.
+
+- [ ] 2026-09-27 — No NaN-blind predicate: a NaN reacting conductivity fails
+      `ReactingConductivityIsNeverBelowTheFrozenOne`, red once; the coder records the
+      list of predicates rewritten.
 
 ## Taboos
 

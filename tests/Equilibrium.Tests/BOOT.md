@@ -119,6 +119,22 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   2026-09-12. The struct stays public here; nothing in this node's own scope required
   the change.
 
+- **No NaN-blind predicate, and the frozen cv skip keyed on the reference**
+  (2026-09-27, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5 and F6). The rules are those of the performance tests node:
+  - Every predicate of this node that compares a value with a bound is written so that
+    NaN fails it (`!(x <= bound)`), or asserts finiteness first. This covers
+    `ElementConservationTests`, and every other predicate the coder finds by searching
+    for `> ` against a bound or a tolerance.
+  - `FrozenModeTests` skips `cvFrozen` and `cvEquilibrium` at a frozen station only
+    where the reference shows the defect's signature: both 0, or both equal to the
+    freezing station's values. Anywhere else the two fields are compared with the
+    table like any other.
+  - ⚠ A NaN residual passed `ElementConservationTests`, since `NaN > bound` is false.
+    A frozen exit's cv edited in a fixture copy, from 0 to 2500 and 9999, left this node
+    463/463 green: the fields were skipped for every frozen station. Today all 124
+    frozen stations of the fixtures carry the signature (109 exits at 0/0, 15 throats
+    with the chamber's values, counted by the audit), so no comparison changes.
+
 ## Shape exceptions
 
 Added 2026-09-14 by the design session, after the protocol tests node's measurements found
@@ -246,6 +262,14 @@ creation names its arguments; it passes them by position today (the criterion be
       criterion of the same date): seen red on the code before the fix
       (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
       instead of −1) and green after it, with no bit of `Bits.approved.txt` moved.
+
+- [ ] 2026-09-27 — The NaN and cv guards (Constraints). Evidence due, each red once:
+      - a NaN mole number on a conserved solution fails `ElementConservationTests`;
+      - a fixture copy whose frozen exit carries cv 2500 and 9999 fails
+        `FrozenModeTests`, and one carrying 0/0 or the freezing station's values
+        passes;
+      - the coder records the list of predicates rewritten;
+      - no bit snapshot moves.
 
 ## Taboos
 
