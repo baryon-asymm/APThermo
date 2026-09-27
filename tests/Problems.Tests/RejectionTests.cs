@@ -247,7 +247,12 @@ public sealed partial class RejectionTests
         var unknown = Assert.Throws<ArgumentException>(() => SolverFixture.Shared.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["XX"] = 1.0 }, Temperature: 3000.0)]));
         Assert.Contains("XX", unknown.Message, StringComparison.Ordinal);
         _ = Assert.Throws<ArgumentException>(() => SolverFixture.Shared.Solver.SolveStates([]));
-        _ = Assert.Throws<ArgumentException>(() => SolverFixture.Shared.Solver.SolveStates([new StateRecord(0.0, composition, Temperature: 3000.0)]));
+
+        // A rule ProblemValidation applies (here, a non-positive pressure) is a StateRecordException naming the
+        // record's own index too, not a plain ArgumentException worded from the batch's own position (2026-09-26,
+        // the audit fixes; AuditFixTests carries the full fact over a multi-record batch).
+        var zeroPressure = Assert.Throws<StateRecordException>(() => SolverFixture.Shared.Solver.SolveStates([new StateRecord(0.0, composition, Temperature: 3000.0)]));
+        Assert.Equal(0, zeroPressure.Index);
         _ = Assert.Throws<ArgumentException>(() => ElementalMixture.Create(new Dictionary<string, double>()));
         _ = Assert.Throws<ArgumentException>(() => ElementalMixture.Create(new Dictionary<string, double> { ["h"] = 1.0, ["H"] = 2.0 }));
     }

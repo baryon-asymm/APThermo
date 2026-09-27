@@ -15,7 +15,7 @@ internal static class AtomicWeights
         }
         catch (KeyNotFoundException inner)
         {
-            throw new ArgumentException($"element '{element}' has no record in the database", inner);
+            throw new ArgumentException($"element '{element}' has no monatomic record to take its atomic weight from", inner);
         }
     }
 }

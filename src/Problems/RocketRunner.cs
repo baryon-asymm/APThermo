@@ -27,7 +27,7 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
         {
             var (mixture, problem, propellant, _) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
-            ProblemValidation.Rocket(database, mixture, problem, k);
+            ProblemValidation.Rocket(database, mixture, problem, noun, k);
             var mass = MixtureMass.Check(database, mixture, MixtureMass.Subject(propellant, noun, k), k);
             admitted[k] = new AdmittedCase(cases[k], mass);
             var key = (problem.PressureRatios.Count, problem.AreaRatios.Count);

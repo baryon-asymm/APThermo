@@ -7,7 +7,29 @@ namespace APThermo.Problems;
 /// </summary>
 internal static class MixtureRule
 {
-    public static MixtureSpecification Validate(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named, double? ratio) =>
+    public static MixtureSpecification Validate(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named, double? ratio)
+    {
+        ValidateOneAmountKindPerGroup(oxidizers, "oxidizer");
+        ValidateOneAmountKindPerGroup(fuels, "fuel");
+        ValidateOneAmountKindPerGroup(named, "named");
+        return ValidateRatio(oxidizers, fuels, named, ratio);
+    }
+
+    /// <summary>
+    /// One role group must use one amount kind (BOOT.md, the audit fixes of 2026-09-26): a mass fraction has no unit
+    /// and a mole amount becomes amount x M in g/mol, so summing the two within a group would weigh a fraction as if
+    /// it were grams.
+    /// </summary>
+    private static void ValidateOneAmountKindPerGroup(IReadOnlyList<ResolvedReactant> group, string groupName)
+    {
+        if (group.Select(r => r.Reactant.AmountKind).Distinct().Count() > 1)
+        {
+            var names = string.Join(", ", group.Select(r => $"'{r.Reactant.Name}'"));
+            throw new ArgumentException($"the {groupName} group mixes mass-fraction and mole amounts ({names}); one role group must use one amount kind");
+        }
+    }
+
+    private static MixtureSpecification ValidateRatio(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named, double? ratio) =>
         ratio is { } value
             ? !(value > 0.0) || double.IsInfinity(value)
                 ? throw new ArgumentException($"the oxidizer-to-fuel ratio must be positive and finite, not {value}")

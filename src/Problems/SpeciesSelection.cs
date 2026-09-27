@@ -41,6 +41,36 @@ internal static class SpeciesSelection
         return gases;
     }
 
+    /// <summary>
+    /// Every element must appear in the formula of at least one candidate; an element that survives only in ionized or
+    /// inert records (<c>E</c>, <c>IH</c>, <c>IO</c> of the committed file) has none, and the mixture is unsupported
+    /// (BOOT.md, the audit fixes of 2026-09-26: it used to enter the table as a row with no species and fail later as
+    /// a numerical <c>singularMatrix</c>).
+    /// </summary>
+    public static void ValidateElementsHaveCandidates(SpeciesDatabase database, IReadOnlyList<string> elements, IReadOnlyList<string> candidates)
+    {
+        var present = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in candidates)
+        {
+            if (database.TryGet(name, out var species))
+            {
+                foreach (var pair in species.Formula)
+                {
+                    _ = present.Add(Spelling(pair.Symbol));
+                }
+            }
+        }
+
+        foreach (var element in elements)
+        {
+            var spelling = Spelling(element);
+            if (!present.Contains(spelling))
+            {
+                throw new ArgumentException($"element '{spelling}' has no candidate species: only ionized or inert records carry it");
+            }
+        }
+    }
+
     /// <summary>Every name of an Only list must be a product species whose elements lie within the mixture's.</summary>
     public static void ValidateOnly(SpeciesDatabase database, IReadOnlyList<string> elements, IReadOnlyList<string> only)
     {

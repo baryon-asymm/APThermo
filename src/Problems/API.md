@@ -284,7 +284,7 @@ public sealed record Station               // internal constructor (M1): a consu
     public IReadOnlyDictionary<string, double> MoleFractions { get; init; }  // every species of the table, n_j over the moles of all species
     public IReadOnlyDictionary<string, double> CondensedMassFractions { get; init; }   // every condensed species, n_j M_j
     public TransportFigures? Transport { get; init; }                        // null when not requested or not Ok
-    public CaseStatus? TransportStatus { get; init; }                        // null when transport was not requested
+    public CaseStatus? TransportStatus { get; init; }                        // null when transport was not requested or the station did not converge (2026-09-27)
     public CaseStatus Status { get; init; }
 }
 
@@ -321,6 +321,13 @@ a solve. They are nominal now, with an internal constructor; `Station`'s propert
 are `init` so that this node's own tests can build a comparison copy with `with`
 (`tests/Problems.Tests/EquilibriumTests.cs`), `RocketResult`'s and
 `EquilibriumResult`'s are get-only. A field added in 0.x now breaks no consumer.
+
+⚠ 2026-09-27 (the hidden-defect audit of 2026-09-26): `Station.TransportStatus`'s
+comment said "null when transport was not requested"; `StationFactory.TransportOf`
+had always also left it null when the station's own status was not `Ok`, and the test
+pinning that behaviour (`RocketTests.AFailingStationIsAStatusAndNotAnException`)
+asserted the code's actual behaviour, not the comment's. The code never changed; the
+comment now names both cases.
 
 ⚠ 2026-09-14: `RocketSweep` and `Solver.Solve(RocketSweep)` are retired (the
 clean-code review's F-PR-06): a `RocketSweep` expanded to every (ratio, chamber
