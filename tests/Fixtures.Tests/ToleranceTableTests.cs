@@ -48,6 +48,7 @@ public sealed class ToleranceTableTests
     /// <summary>The list of compared fields is read from the fixtures themselves, so a new output field without a tolerance is caught here.</summary>
     [Theory]
     [InlineData("rocket")]
+    [InlineData("throat")]
     [InlineData("tp")]
     [InlineData("hp")]
     [InlineData("sp")]
@@ -57,7 +58,7 @@ public sealed class ToleranceTableTests
         var fields = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var c in CeaFixtures.LoadAll(kind))
         {
-            var states = kind == "rocket"
+            var states = kind is "rocket" or "throat"
                 ? c.Outputs.GetProperty("stations").EnumerateArray()
                 : new[] { c.Outputs }.AsEnumerable();
             foreach (var state in states)

@@ -180,11 +180,14 @@ def solve_equilibrium(reac, prod, weights, kind: str, value_si: float, pressure_
 
 
 def solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa: float, flow: str, transport: bool,
-                 area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None, insert=None, trace=None):
+                 area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None, insert=None, trace=None,
+                 enthalpy: float | None = None):
     """Solves the infinite-area-chamber rocket problem; returns (solution, reactant enthalpy in J/kg).
 
-    `insert` seeds condensed species the package's own inclusion test misses (RP-1311 example 13). Every
-    solution passes the station guard of BOOT.md before it is returned."""
+    `insert` seeds condensed species the package's own inclusion test misses (RP-1311 example 13). `enthalpy`
+    overrides the reactants' own enthalpy (`reac.calc_property`) with an assigned value, as the throat family's
+    guard does when it re-runs the package's rocket solver at an enthalpy stepped away from the reactants'
+    (BOOT.md, the throat family). Every solution passes the station guard of BOOT.md before it is returned."""
     options = {"transport": transport}
     if insert is not None:
         options["insert"] = list(insert)
@@ -192,7 +195,8 @@ def solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa: float, 
         options["trace"] = trace
     solver = cea.RocketSolver(prod, reactants=reac, **options)
     solution = cea.RocketSolution(solver)
-    enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))   # J/kg
+    if enthalpy is None:
+        enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))   # J/kg
     solver.solve(solution, weights, chamber_pressure_pa / BAR_TO_PA, pi_p=pressure_ratios,
                  subar=subsonic_area_ratios, supar=area_ratios, iac=True, hc=enthalpy / cea.R, n_frz=N_FRZ[flow])
     if not solution.converged:
@@ -280,7 +284,7 @@ def rocket_outputs(solution: cea.RocketSolution, transport: bool, flow: str = FL
 def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressure_pa: float, reactant_enthalpy: float,
                   flow: str, transport: bool, area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None,
                   of_ratio: float | None = None, omit: list[str] | None = None, trace: float | None = None,
-                  only: list[str] | None = None, insert: list[str] | None = None) -> dict:
+                  only: list[str] | None = None, insert: list[str] | None = None, extra: dict | None = None) -> dict:
     d = {
         "reactants": descriptions,
         "oxidizerToFuelRatio": of_ratio,
@@ -300,6 +304,8 @@ def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressur
         d["only"] = list(only)   # the explicit product list the package was given, when there was one
     if insert:
         d["insert"] = list(insert)   # the package's condensed seed list, recorded when one was needed (example 13)
+    if extra:
+        d.update(extra)   # the throat family's enthalpyAssigned marker, as equilibrium_inputs already allows
     return d
 
 

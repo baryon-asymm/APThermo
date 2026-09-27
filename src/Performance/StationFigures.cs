@@ -26,22 +26,30 @@ internal static class StationFigures
     /// <summary>The area ratio A/A_t from the throat's mass flux and the station's: (ρ_t u_t)/(ρ u).</summary>
     public static double AreaRatio(double throatMassFlux, in MixtureState state, double velocity) => throatMassFlux / (state.Density * velocity);
 
-    /// <summary>Writes the velocity and Mach number into the station's state and its performance figures (6.2).</summary>
-    public static void Write(in RocketContext context, int station, double velocity, double areaRatio, double pressureRatio,
-                             double characteristicVelocity)
+    /// <summary>
+    /// Writes the velocity and Mach number into the station's state and its performance figures (6.2), then checks
+    /// the isentropic-expansion invariant (BOOT.md, Invariants, 2026-09-26): a station whose entropy departs from the
+    /// chamber's by more than <see cref="RocketSolver.EntropyTolerance"/> relative is reported as NotConverged instead.
+    /// </summary>
+    public static void Write(in RocketContext context, int station, in StationFigureInputs inputs, double chamberEntropy)
     {
         var result = context.Result;
         var state = result.Stations[station];
+        var velocity = inputs.Velocity;
         state.Velocity = velocity;
         state.Mach = velocity / state.SoundSpeed;
         result.Stations[station] = state;
         var figures = result.Figures[station];
-        figures.AreaRatio = areaRatio;
-        figures.PressureRatio = pressureRatio;
-        figures.CharacteristicVelocity = characteristicVelocity;
-        figures.ThrustCoefficient = velocity / characteristicVelocity;
+        figures.AreaRatio = inputs.AreaRatio;
+        figures.PressureRatio = inputs.PressureRatio;
+        figures.CharacteristicVelocity = inputs.CharacteristicVelocity;
+        figures.ThrustCoefficient = velocity / inputs.CharacteristicVelocity;
         figures.SpecificImpulse = velocity;
         figures.VacuumSpecificImpulse = velocity + state.Pressure / (state.Density * velocity);
         result.Figures[station] = figures;
+        if (!(Math.Abs(state.Entropy - chamberEntropy) <= RocketSolver.EntropyTolerance * Math.Abs(chamberEntropy)))
+        {
+            result.StationStatus[station] = (int)CaseStatus.NotConverged;
+        }
     }
 }

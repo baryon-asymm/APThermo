@@ -7,7 +7,7 @@ namespace APThermo.Fixtures.Tests;
 /// <summary>L1: every committed fixture loads, names its kind, and is tied to the committed data files and the pinned package.</summary>
 public sealed partial class FixtureLoadingTests
 {
-    private static readonly string[] KnownMethods = ["cea-package", "independent-evaluation"];
+    private static readonly string[] KnownMethods = ["cea-package", "independent-evaluation", "cea-package-mass-flux-scan"];
 
     [GeneratedRegex(@"^cea==(\S+)\s*$", RegexOptions.Multiline)]
     private static partial Regex PinnedPackage();
@@ -51,7 +51,7 @@ public sealed partial class FixtureLoadingTests
     public void TheKindsPresentAreThoseOfTheCaseMatrix()
     {
         var present = Directory.GetDirectories(FixtureFiles.Root).Select(Path.GetFileName).OrderBy(k => k, StringComparer.Ordinal);
-        Assert.Equal(["constants", "hp", "rocket", "sp", "thermo", "tp", "transport"], present);
+        Assert.Equal(["constants", "hp", "rocket", "sp", "thermo", "throat", "tp", "transport"], present);
     }
 
     /// <summary>Every fixture is tied to the committed data files.</summary>

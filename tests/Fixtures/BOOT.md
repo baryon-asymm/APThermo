@@ -427,14 +427,60 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       re-verification is this tick's own evidence, not a new one.
 
 
-- [ ] 2026-09-27 — The throat family (the case matrix). Evidence due:
-      - `regenerate.py` writes the ten cases, and `--check` exits 0 right after;
-      - the method guard passes on every case whose package throat is sonic, and was
-        shown red once, with the high-pressure end replaced by the low one on a
-        regular case or the scan's grid cut short;
-      - the loader reads the kind, and `Fixtures.Tests` covers its form and its
-        provenance method;
-      - the logged c* values reproduce the measurements above to 0.001 m/s.
+- [x] 2026-09-27 — The throat family (the case matrix): `tests/Fixtures/generate/throat_scan.py`
+      (merged as `efe7d7e`), registered in `regenerate.py`.
+      - `regenerate.py` writes the ten cases, and `regenerate.py --check` exits 0 right
+        after (over all 327 fixtures of every kind).
+      - The method guard (cea's own rocket throat, wherever it is sonic within 1e-4 of
+        Mach 1, must match the scan's c* within 1e-5 relative) was shown red once by
+        cutting the grid to exclude the true peak (`the largest mass flux lies at the
+        grid edge`, on the sonic dh −2.20 MJ/kg AP/HTPB/Al case at 7 MPa), and again by
+        perturbing the scan's returned c* by 1 % on the same case (`scan c* … against
+        the package's sonic throat c* …`); both reverted before this tick. The other
+        named mutation, the bracket's high-pressure end replaced by the low one, was
+        tried first and found degenerate on a regular (non-plateau) case: the two ends
+        agree to rounding there (`BOOT.md`'s own Method step 4), so the swap moves
+        nothing and cannot serve as red-once evidence; the grid-edge and the
+        c*-perturbation mutations replace it.
+      - The loader reads the kind (`FixtureLoadingTests.TheKindsPresentAreThoseOfTheCaseMatrix`,
+        `EveryFixtureNamesTheScriptThatWroteIt` now knows `cea-package-mass-flux-scan`)
+        and `ToleranceTableTests.EveryStateFieldOfTheFixturesHasATolerance` covers its
+        form (`[InlineData("throat")]`, alongside `rocket`, whose `stations` array shape
+        it shares); `tests/Fixtures.Tests` 28/28 green.
+      - The logged c* values reproduce the measurements above to 0.001 m/s: 1336.5371,
+        1333.0661, 1330.4435, 1330.4352, 1333.2261 m/s at 7 MPa; 1957.7526 and
+        1941.0062 m/s for example 13 (against 1336.537, 1333.066, 1330.444, 1330.435,
+        1333.226, 1957.753 and 1941.006 m/s recorded above).
+
+      ⚠ 2026-09-27, found while writing the guard: `cea_cases.solve_rocket` raises
+      *before* Mach or c* can be read from its `RocketSolution`, because its own
+      station guard (`guard_stations`, the multi-station entropy-consistency check)
+      runs right after the solve and is exactly what catches the chamber/throat
+      inconsistency at a plateau edge — the defect this family exists to work around.
+      The design's wording ("the fixture records the package's throat under
+      `outputs.packageRocketThroat` (c*, Mach, pressure ratio)") assumed the package's
+      Mach would always be readable even when far from 1; empirically it is not, for
+      exactly the cases that need the fallback. `packageRocketThroat` therefore holds
+      `{"cStar", "mach", "pressureRatio"}` when the package's own solve and guard both
+      pass, and `{"guardError": "…"}` (the guard's message) when they do not; no test
+      reads either shape.
+
+      ⚠ 2026-09-27: `throat_scan.py` reuses `plateaus.py`'s AP/HTPB/Al composition and
+      `rp1311.py`'s example 13 mixture by import, as this node's Constraints require.
+      `rp1311.py`'s `example13()` built its reactants, temperatures, O/F ratio, insert
+      list and trace threshold as local variables; they are now module-level constants
+      (`EXAMPLE13_REACTANTS`, `EXAMPLE13_TEMPERATURES`, `EXAMPLE13_OF_RATIO`,
+      `EXAMPLE13_INSERT`, `EXAMPLE13_TRACE`) plus an `example13_mixture()` builder, with
+      no change to any computed value. `cea_cases.solve_rocket` gained an optional
+      `enthalpy` override (the scan's assigned enthalpy, not the reactants' own) and
+      `rocket_inputs` an optional `extra` dict, mirroring `equilibrium_inputs`, for the
+      `enthalpyAssigned` marker the hp band cases already carry. Touching `rp1311.py`'s
+      bytes re-provenanced (new `scriptSha256`, `generatedOn`) all 63 of its
+      already-committed fixtures; verified field by field (every key but `generator`)
+      that none of them differs from the committed ones. This is the ordinary
+      consequence of the first invariant above ("fixtures are generated, never
+      edited") applied to a shared generator module, not a hand edit, and is recorded
+      here rather than left to be found in the diff.
 
 ## Taboos
 

@@ -112,7 +112,7 @@ Per-case `CaseStatus` values, read off a `Station`, a `RocketResult` or an
 | `SingularMatrix` | The derivative matrix stayed singular after the reference's remedies; for transport, a reaction system could not be solved, so the frozen figures stand in for the reacting ones. |
 | `TemperatureOutOfRange` | An hp or sp iterate left the database's temperature range `[100 K, 20000 K]`. This is a status, not an exception: the solve does not throw for it. |
 | `ThroatNotFound` | A rocket case's sonic condition was not met within the throat search's step budget; the case ends there. |
-| `AreaRatioInvalid` | A rocket exit's area ratio was below 1. |
+| `AreaRatioInvalid` | A rocket exit's area ratio was not above 1. |
 | `NoTransportData` | No gaseous species carried positive moles, so transport has nothing to evaluate. |
 
 On any status but `Ok`, the state is zero, not partial — check `Status` first.
