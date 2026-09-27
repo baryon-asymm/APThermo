@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -95,6 +96,94 @@ public sealed partial class FixtureLoadingTests
             Assert.True(scripts.Contains(c.Generator.Script), $"{c.Path}: unknown script {c.Generator.Script}");
             Assert.Contains(c.Generator.Method, KnownMethods);
         }
+    }
+
+    /// <summary>
+    /// Every fixture's <c>scriptSha256</c> equals the hash of its named script as committed (the guards audit's
+    /// F7): the SHA-256 of the script's bytes with CRLF normalized to LF, the same normalization the generator
+    /// uses (generate/BOOT.md), so a Windows and a Linux checkout agree.
+    /// </summary>
+    [Fact]
+    public void EveryFixturesScriptSha256MatchesItsCommittedScript()
+    {
+        var generateDirectory = RepositoryPaths.Resolve("tests", "Fixtures", "generate");
+        var hashes = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var c in AllCases())
+        {
+            if (!hashes.TryGetValue(c.Generator.Script, out var expected))
+            {
+                expected = Sha256Normalized(Path.Combine(generateDirectory, c.Generator.Script));
+                hashes[c.Generator.Script] = expected;
+            }
+
+            Assert.True(expected == c.Generator.ScriptSha256, $"{c.Path}: scriptSha256 does not match the committed {c.Generator.Script}");
+        }
+    }
+
+    /// <summary>
+    /// Every fixture's <c>generatorSha256</c> equals the hash the test computes over <c>generate/</c> by the rule
+    /// of generate/BOOT.md (the guards audit's F7): the concatenation, over every <c>*.py</c> file of that
+    /// directory and <c>requirements.txt</c> in ordinal order of their names, of the file name, a LF, and the
+    /// file's bytes with CRLF normalized to LF.
+    /// </summary>
+    [Fact]
+    public void EveryFixturesGeneratorSha256MatchesTheCommittedGenerator()
+    {
+        var expected = GeneratorSha256(RepositoryPaths.Resolve("tests", "Fixtures", "generate"));
+        var cases = AllCases().ToList();
+        Assert.NotEmpty(cases);
+        foreach (var c in cases)
+        {
+            Assert.True(expected == c.Generator.GeneratorSha256, $"{c.Path}: generatorSha256 does not match the committed generator");
+        }
+    }
+
+    /// <summary>All fixtures carry one <c>thermoLibSha256</c> and one <c>transLibSha256</c>: the pinned package
+    /// ships one pair of library files, and every fixture was generated with the same one.</summary>
+    [Fact]
+    public void AllFixturesCarryOneThermoLibSha256AndOneTransLibSha256()
+    {
+        var cases = AllCases().ToList();
+        Assert.NotEmpty(cases);
+        _ = Assert.Single(cases.Select(c => c.Generator.ThermoLibSha256).Distinct(StringComparer.Ordinal));
+        _ = Assert.Single(cases.Select(c => c.Generator.TransLibSha256).Distinct(StringComparer.Ordinal));
+    }
+
+    private static string GeneratorSha256(string generateDirectory)
+    {
+        var names = Directory.GetFiles(generateDirectory)
+            .Select(Path.GetFileName)
+            .Where(n => n is not null && (n.EndsWith(".py", StringComparison.Ordinal) || n == "requirements.txt"))
+            .OrderBy(n => n, StringComparer.Ordinal);
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        foreach (var name in names)
+        {
+            hasher.AppendData(Encoding.UTF8.GetBytes(name!));
+            hasher.AppendData([(byte)'\n']);
+            hasher.AppendData(NormalizeCrLf(File.ReadAllBytes(Path.Combine(generateDirectory, name!))));
+        }
+
+        return Convert.ToHexStringLower(hasher.GetHashAndReset());
+    }
+
+    private static string Sha256Normalized(string path) =>
+        Convert.ToHexStringLower(SHA256.HashData(NormalizeCrLf(File.ReadAllBytes(path))));
+
+    /// <summary>CRLF sequences replaced by LF, mirroring the generator's own normalization (generate/BOOT.md).</summary>
+    private static byte[] NormalizeCrLf(byte[] bytes)
+    {
+        using var output = new MemoryStream(bytes.Length);
+        for (var i = 0; i < bytes.Length; i++)
+        {
+            if (bytes[i] == (byte)'\r' && i + 1 < bytes.Length && bytes[i + 1] == (byte)'\n')
+            {
+                continue;
+            }
+
+            output.WriteByte(bytes[i]);
+        }
+
+        return output.ToArray();
     }
 
     private static string Sha256(string path)

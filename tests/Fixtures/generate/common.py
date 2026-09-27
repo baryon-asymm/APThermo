@@ -39,6 +39,28 @@ def sha256_of(path: str) -> str:
         return hashlib.sha256(f.read()).hexdigest()
 
 
+def sha256_of_normalized(path: str) -> str:
+    """SHA-256 of a text file's bytes with CRLF normalized to LF, so a Windows and a Linux checkout of the same
+    file agree (generate/BOOT.md, Constraints). Used for the generator's own source files, never for the
+    committed NASA data or the package's binary library files, which are compared byte for byte."""
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read().replace(b"\r\n", b"\n")).hexdigest()
+
+
+def generator_sha256() -> str:
+    """The SHA-256 of the whole generator (generate/BOOT.md, Constraints): the concatenation, over every `*.py`
+    file of this directory and `requirements.txt` in ordinal order of their names, of the file name, a LF, and
+    the file's bytes with CRLF normalized to LF."""
+    names = sorted(f for f in os.listdir(HERE) if f.endswith(".py") or f == "requirements.txt")
+    hasher = hashlib.sha256()
+    for name in names:
+        hasher.update(name.encode("utf-8"))
+        hasher.update(b"\n")
+        with open(os.path.join(HERE, name), "rb") as f:
+            hasher.update(f.read().replace(b"\r\n", b"\n"))
+    return hasher.hexdigest()
+
+
 def safe_name(name: str) -> str:
     """A file-name-safe rendering of a case or species name."""
     return re.sub(r"[^A-Za-z0-9._-]", "_", name)

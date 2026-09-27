@@ -17,7 +17,7 @@ import numpy as np
 
 import cea
 
-from common import CASES, THERMO_INP, TRANS_INP, safe_name, sha256_of
+from common import CASES, THERMO_INP, TRANS_INP, generator_sha256, safe_name, sha256_of, sha256_of_normalized
 
 _DATE = re.compile(r'"generatedOn": "\d{4}-\d{2}-\d{2}"')
 
@@ -50,6 +50,7 @@ class Writer:
             "package": "cea",
             "version": cea.__version__,
             "libraryVersion": cea.lib_version(),
+            "generatorSha256": generator_sha256(),
             "thermoLibSha256": sha256_of(os.path.join(package_dir, "data", "thermo.lib")),
             "transLibSha256": sha256_of(os.path.join(package_dir, "data", "trans.lib")),
             "dataThermoSha256": sha256_of(THERMO_INP),
@@ -63,7 +64,7 @@ class Writer:
                 **self._package_fields,
                 "method": method,
                 "script": os.path.basename(script_path),
-                "scriptSha256": sha256_of(script_path),
+                "scriptSha256": sha256_of_normalized(script_path),
                 "generatedOn": datetime.date.today().isoformat(),
             }
         return self._provenance[key]
