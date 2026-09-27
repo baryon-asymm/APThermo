@@ -383,6 +383,12 @@ Outside the tree: xunit.
 - [ ] 2026-09-26 — The NaN and cv guards: a NaN mole fraction on one side, and a
       frozen exit's cv edited in a fixture copy, each red.
 
+- [ ] 2026-09-27 — A fixture's reactant roles come from the fixture (its `role`, the
+      fixtures node's document of 2026-09-27), never from a list typed in this node:
+      `FixtureCases.Oxidizers` is removed. Every ratio case of the fixtures, the sodium
+      case included, builds its propellant from the recorded roles, and the four facts
+      that threw on the sodium case pass.
+
 ## Taboos
 
 - Do not loosen a tolerance for green; do not exclude a failing propellant or station.
