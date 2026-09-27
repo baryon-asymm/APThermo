@@ -427,7 +427,7 @@ of 14: no efferent coupling row is needed.
       three facts shown red once against the code of `9c33398` (threshold 1e-3) and
       green after `LatentHeatThreshold` was raised to 5e-3.
 
-- [ ] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence so far:
+- [x] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence:
       - `IntervalLimitTests.NoProductNameExceedsTheIntervalLimitAfterTheJoin` (`tests/Thermo.Tests`)
         computes, from `Cpu.Database.Products`, the interval count of every product name
         joined the way `SpeciesResolution` joins it (one name's records concatenated,
@@ -444,28 +444,33 @@ of 14: no efferent coupling row is needed.
         listing, green (`dotnet test tests/Equilibrium.Tests`, 702/702), which builds
         the table (`NaCN(II)` among the candidate species), solves hp and compares
         every field with the fixture within the tolerance table.
-      - No bit snapshot moves apart from the new fixture's key:
-        `tests/Equilibrium.Tests/Bits.approved.txt` gained exactly one line
-        (`hp/nano3-rp1_of4_pc7MPa.json`, `git diff --stat`: 1 insertion, 0 deletions);
-        `tests/Thermo.Tests/Bits*.approved.txt` unchanged (the sodium case holds no
-        `thermo` fixture). `Bits.linux.approved.txt` cannot be produced from this
-        session (no WSL here); the orchestrator records it under WSL.
+      - The front-door leg (`Problems.Tests`) is green too, once the fixtures node's
+        `role` field replaced the front-door's own guess: `PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
+        `PropellantTests.ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
+        `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference` and
+        `BitSnapshotTests.EveryFixtureGivesTheRecordedBits` all pass on the new case
+        (`dotnet test tests/Problems.Tests --filter "Category!=LongRunning"`, 1191/1191;
+        the fix and its own evidence are recorded in the fixtures node's and
+        `Problems.Tests`' own `BOOT.md`, not repeated here per `AGENTS.md` §8's rule
+        against retelling a foreign node's claim).
+      - No bit snapshot moves apart from the new fixture's key in the two nodes that
+        enumerate hp fixtures: `tests/Equilibrium.Tests/Bits.approved.txt` and
+        `tests/Problems.Tests/Bits.approved.txt` each gained exactly one line
+        (`hp/nano3-rp1_of4_pc7MPa.json`, `git diff --stat` on each: 1 insertion, 0
+        deletions); `tests/Thermo.Tests/Bits*.approved.txt` unchanged (the sodium case
+        holds no `thermo` fixture). `Bits.linux.approved.txt` cannot be produced from
+        this session (no WSL here); the orchestrator records the two Linux keys under
+        WSL.
 
-      ⚠ 2026-09-27, blocking the front-door leg of this criterion: `Problems.Tests`'
-      `PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
-      `PropellantTests.ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
-      `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference` and
-      `BitSnapshotTests.EveryFixtureGivesTheRecordedBits` all fail on the new case with
-      `System.ArgumentException: an oxidizer-to-fuel ratio needs at least one oxidizer
-      and one fuel` (`Problems.MixtureRule.Validate`). The cause is outside `Thermo` and
-      `Fixtures`: `tests/Problems.Tests/FixtureCases.cs`'s `Oxidizers` set (a hardcoded
-      list of the reactant names the reference's role the fixture harness reads as an
-      oxidizer: `O2(L)`, `N2O4(L)`, `Air`, `NH4CLO4(I)`, `H2O2(L)`) does not name
-      `NaNO3(a)`, so both reactants of the new case resolve to `ReactantRole.Fuel` and
-      the ratio check finds no oxidizer. `tests/Problems.Tests` is a neighbour test node
-      of neither `Thermo` nor `Fixtures`; this criterion cannot be closed from here.
-      Escalated to the orchestrator (`AGENTS.md` §11): the fix is one entry,
-      `"NaNO3(a)"`, added to that `HashSet<string>` literal.
+      ⚠ 2026-09-27: this criterion first stood partial, blocked on `Problems.Tests`'
+      `FixtureCases.Oxidizers`, a hand-typed set of oxidizer reactant names that did
+      not carry `NaNO3(a)`, found while adding the sodium case above and escalated to
+      the orchestrator rather than patched by name (`AGENTS.md` §11: the fix touched a
+      neighbour test node of neither `Thermo` nor `Fixtures`). The orchestrator's design
+      gave every ratio case's reactant a recorded `role` in the fixture document itself,
+      written by the generator from the oxidizer and fuel vectors it already builds,
+      removing the guess rather than growing its name list (the fixtures node's `BOOT.md`
+      and `Problems.Tests`' `BOOT.md` carry the design and the evidence).
 - [ ] 2026-09-27 — `KernelMath` (Constraints). Evidence due:
       - a CPU fact compares `KernelMath.Min` and `Max` with `System.Math` bit for bit
         over every ordered pair of a set holding ±0, ±∞, NaN, the subnormal bounds,
