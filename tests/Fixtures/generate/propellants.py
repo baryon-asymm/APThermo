@@ -1,5 +1,6 @@
 """The four reference propellants of the case matrix: rocket cases over the O/F, pressure and flow grid,
-and equilibrium cases derived from the stations of one central case per propellant.
+and equilibrium cases derived from the stations of one central case per propellant; plus the sodium case,
+one hp case of a fifth propellant pair added for its six-interval product (see below).
 
 HTPB is not a thermo.inp record; the definition used here is provisional (see the Fixtures BOOT.md):
 C 7.3165 H 10.3416 O 0.0674, assigned enthalpy -250 cal/mol at 298.15 K, molar mass from the
@@ -11,8 +12,11 @@ import sys
 
 import numpy as np
 
+import cea
+
 from cea_cases import (FLOW_FROZEN_CHAMBER, FLOW_FROZEN_THROAT, FLOW_SHIFTING, Custom, derive_equilibrium_cases,
-                       describe_reactants, make_mixtures, rocket_inputs, rocket_outputs, solve_rocket)
+                       describe_reactants, equilibrium_inputs, make_mixtures, rocket_inputs, rocket_outputs,
+                       solve_equilibrium, solve_rocket)
 from writer import Writer, main_of
 
 MPA_TO_PA = 1.0e6
@@ -68,9 +72,11 @@ def generate_propellant(writer: Writer, prop: dict) -> None:
     for of_ratio in of_ratios:
         if of_ratio is None:
             weights = np.array(prop["massFractions"])
+            descriptions = describe_reactants(prop["reactants"], weights, temperatures)
         else:
-            weights = reac.of_ratio_to_weights(np.array(prop["oxidizer"]), np.array(prop["fuel"]), of_ratio)
-        descriptions = describe_reactants(prop["reactants"], weights, temperatures)
+            oxidizer, fuel = np.array(prop["oxidizer"]), np.array(prop["fuel"])
+            weights = reac.of_ratio_to_weights(oxidizer, fuel, of_ratio)
+            descriptions = describe_reactants(prop["reactants"], weights, temperatures, oxidizer=oxidizer, fuel=fuel)
         for pc_mpa in prop["chamberPressuresMPa"]:
             chamber_pressure_pa = pc_mpa * MPA_TO_PA
             for flow in prop["flows"]:
@@ -92,9 +98,35 @@ def generate_propellant(writer: Writer, prop: dict) -> None:
                                              list(range(solution.num_pts)), of_ratio=of_ratio)
 
 
+SODIUM_REACTANTS = ["NaNO3(a)", "RP-1"]
+SODIUM_TEMPERATURES = np.array([298.15, 298.15])
+SODIUM_OXIDIZER = np.array([1.0, 0.0])
+SODIUM_FUEL = np.array([0.0, 1.0])
+SODIUM_OF_RATIO = 4.0
+SODIUM_PRESSURE_PA = 7.0 * MPA_TO_PA
+
+
+def sodium_hp(writer: Writer) -> None:
+    """The sodium case (2026-09-27, the Fixtures case matrix): NaNO3(a) with RP-1, both at 298.15 K, O/F 4,
+    7 MPa, one hp case. Its candidate products include NaCN(II), the six-interval record the Thermo node's
+    table limit refused until that day (its BOOT.md)."""
+    reac, prod = make_mixtures(SODIUM_REACTANTS)
+    weights = reac.of_ratio_to_weights(SODIUM_OXIDIZER, SODIUM_FUEL, SODIUM_OF_RATIO)
+    descriptions = describe_reactants(SODIUM_REACTANTS, weights, SODIUM_TEMPERATURES,
+                                      oxidizer=SODIUM_OXIDIZER, fuel=SODIUM_FUEL)
+    enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, SODIUM_TEMPERATURES))
+    outputs = solve_equilibrium(reac, prod, weights, "hp", enthalpy, SODIUM_PRESSURE_PA, transport=False)
+    writer.case(
+        "hp", "nano3-rp1_of4_pc7MPa",
+        inputs=equilibrium_inputs(descriptions, prod.species_names, "hp", enthalpy, SODIUM_PRESSURE_PA, False,
+                                  of_ratio=SODIUM_OF_RATIO),
+        outputs=outputs, script_path=__file__)
+
+
 def generate(writer: Writer) -> None:
     for prop in PROPELLANTS:
         generate_propellant(writer, prop)
+    sodium_hp(writer)
 
 
 if __name__ == "__main__":

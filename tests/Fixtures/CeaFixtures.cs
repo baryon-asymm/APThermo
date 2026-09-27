@@ -106,8 +106,40 @@ public static class CeaFixtures
                 throw new FixtureFormatException(path, "case.kind", $"the kind '{kind}' does not match the directory '{directoryKind}'");
             }
 
+            RequireReactantRoles(path, inputs);
             var provenance = ReadProvenance(path, generator);
             return new CeaCase(name, kind, inputs.Clone(), outputs.Clone(), provenance, path);
+        }
+    }
+
+    /// <summary>
+    /// Every reactant of a case given with an oxidizer-to-fuel ratio names its role (BOOT.md, the fixture-document
+    /// Constraints): the generator writes it from the oxidizer and fuel vectors it passes to the package, never
+    /// guessed downstream from a reactant's name. A case with no ratio (<c>oxidizerToFuelRatio</c> missing or
+    /// <c>null</c>) carries no role and none is required.
+    /// </summary>
+    private static void RequireReactantRoles(string path, JsonElement inputs)
+    {
+        if (!inputs.TryGetProperty("oxidizerToFuelRatio", out var ratio) || ratio.ValueKind != JsonValueKind.Number)
+        {
+            return;
+        }
+
+        if (!inputs.TryGetProperty("reactants", out var reactants) || reactants.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        var index = 0;
+        foreach (var reactant in reactants.EnumerateArray())
+        {
+            if (!reactant.TryGetProperty("role", out var role) || role.ValueKind != JsonValueKind.String)
+            {
+                throw new FixtureFormatException(path, $"case.inputs.reactants[{index}].role",
+                                                 "a reactant of a ratio case has no role");
+            }
+
+            index++;
         }
     }
 

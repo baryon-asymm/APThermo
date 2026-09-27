@@ -7,17 +7,20 @@
         {
           "name": "N2H4(L)",
           "massFraction": 0.5359999977636337,
-          "temperature": 298.15
+          "temperature": 298.15,
+          "role": "fuel"
         },
         {
           "name": "Be(a)",
           "massFraction": 0.13399999944090843,
-          "temperature": 298.15
+          "temperature": 298.15,
+          "role": "fuel"
         },
         {
           "name": "H2O2(L)",
           "massFraction": 0.33000000279545777,
-          "temperature": 298.15
+          "temperature": 298.15,
+          "role": "oxidizer"
         }
       ],
       "oxidizerToFuelRatio": 0.4925373134328358,
@@ -112,7 +115,7 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "cea-package",
     "script": "rp1311.py",
-    "scriptSha256": "1596e3a668a10d68245f6f88dd485bbde959fcd0de098c3cc4acd716d354338b",
+    "scriptSha256": "18ce7c0a7376e3dd80434827f6d97fcef1488f72d2faf0790ec32b5c30a7f435",
     "generatedOn": "2026-09-27"
   },
   "outputs": {

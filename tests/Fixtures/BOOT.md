@@ -79,6 +79,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   (writes changed fixtures, removes stale ones) or `regenerate.py --check` (compares
   only, exit code 1 on any difference). Each script also runs standalone and sweeps
   only the kinds it produces.
+
+  ⚠ 2026-09-27: "sweeps only the kinds it produces" reads as if a standalone run were
+  always safe, but a kind directory several scripts share (`tp`, `hp`, `sp` and
+  `rocket` are each written by `propellants.py`, `rp1311.py`, `plateaus.py` and, for
+  `tp`, `low_temperature.py` and `condensed_phase_limit.py` too) has no script that
+  "produces" it alone: a standalone run of one script still sweeps that whole
+  directory, since the sweep only knows the paths its own run wrote, and removes or
+  reports as stale every fixture the *other* scripts placed there. Found by the coder
+  of this date: `python propellants.py` alone removed 93 committed fixtures of `rp1311.py`,
+  `plateaus.py`, `low_temperature.py` and `condensed_phase_limit.py` and rewrote more
+  (`git status`, immediately reverted with `git checkout --`). A standalone run is safe
+  only for a kind exactly one script writes (`constants`, `thermo`, `transport`,
+  `throat`); regenerating a shared kind, or committing any change to a script that
+  writes one, goes through the full `regenerate.py` driver, never a single family
+  script alone.
 - The node also owns the repository-path resolution every test node uses
   (`RepositoryPaths`): the root is the nearest directory above this node's source file
   that holds `AGENTS.md`, found with `[CallerFilePath]`, never by `../..` chains or
@@ -487,7 +502,25 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       edited") applied to a shared generator module, not a hand edit, and is recorded
       here rather than left to be found in the diff.
 
-- [ ] 2026-09-27 — Every reactant of a case given with an oxidizer-to-fuel ratio records
+- [x] 2026-09-27 — The sodium case (the case matrix): `propellants.py` gains
+      `sodium_hp`, one hp case (`cases/hp/nano3-rp1_of4_pc7MPa.json`) of NaNO3(a) with
+      RP-1, both at 298.15 K, O/F 4, 7 MPa, generated the way `plateaus.py`'s
+      `fuel_rich_hp` generates a standalone hp case (`make_mixtures`,
+      `describe_reactants`, `solve_equilibrium`, `equilibrium_inputs`), transport off as
+      every equilibrium-only case is.
+      - The package converges (`converged: true`) to 1741.58 K; its candidate product
+        list carries `NaCN(II)`, the six-interval record `Thermo`'s table limit refused
+        until this date (its `BOOT.md`), at mole fraction 0.0 in the solution — the case
+        exists for the candidate list, not for a nonzero `NaCN(II)` composition.
+      - `regenerate.py --check` exits 0 over all 328 fixtures after `regenerate.py`
+        writes the one new file.
+      - Touching `propellants.py` re-provenanced (new `scriptSha256`, `generatedOn`) all
+        135 of its already-committed fixtures; verified the same way as the `rp1311.py`
+        entry above (`git diff --numstat`: every one of the 135 changes exactly 2 lines,
+        and grep over the diff's added and removed lines found none outside
+        `scriptSha256` and `generatedOn`). The ordinary consequence of the first
+        invariant, as above, not a hand edit.
+- [x] 2026-09-27 — Every reactant of a case given with an oxidizer-to-fuel ratio records
       its `role`, written by the generator from the oxidizer and fuel vectors it passes
       to the package. `regenerate.py --check` exits 0 after the regeneration, and
       `Fixtures.Tests` refuses a ratio case whose reactant lacks a role, red once on a
@@ -498,6 +531,30 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       `NaNO3(a)` was missing from: both reactants read as fuel, and four facts threw
       "an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel". Found by
       the coder who added the case.
+
+      Evidence: `cea_cases.describe_reactants` gains `oxidizer` and `fuel` parameters
+      (the same vectors the caller already built for `of_ratio_to_weights`) and writes
+      each reactant's `role` (`"oxidizer"` where the oxidizer vector is positive,
+      `"fuel"` where the fuel vector is positive, nothing when the case carries no
+      ratio) — never a name list. Every ratio call site of `propellants.py`, `rp1311.py`
+      and `plateaus.py` passes its own vectors through; `throat_scan.py`'s
+      `example13_throats` imports `rp1311.py`'s newly hoisted `EXAMPLE13_OXIDIZER`/
+      `EXAMPLE13_FUEL` constants for the same reason `example13_mixture` was already
+      shared, never by copy.
+      - `regenerate.py` (full driver only, the standalone-run hazard above) writes 224
+        fixtures; `regenerate.py --check` exits 0 over all 328 immediately after.
+      - A structural, field-by-field comparison of every changed fixture against its
+        previous committed content (every key but `role`, `generator.scriptSha256` and
+        `generator.generatedOn`) found zero mismatches over the 224 files: 175 gained a
+        `role` on each reactant, the rest were re-provenanced only, by touching the
+        shared scripts (`propellants.py`, `rp1311.py`, `plateaus.py`, `throat_scan.py`).
+      - `CeaFixtures.Load` refuses a reactant of a ratio case with no `role`
+        (`RequireReactantRoles`, naming the file and the reactant's index);
+        `MalformedFixtureTests.ARatioCaseReactantWithNoRoleIsRejected` proves it on a
+        copy in a temporary directory, shown red once by relaxing the guard so it never
+        ran (reverted before this tick); `ARoleIsNotRequiredWithoutARatio` proves a
+        role is not demanded where there is no ratio. `dotnet test tests/Fixtures.Tests`:
+        30/30, `FixtureLoadingTests` confirming every committed fixture still loads.
 
 ## Taboos
 

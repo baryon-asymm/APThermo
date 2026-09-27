@@ -427,13 +427,50 @@ of 14: no efferent coupling row is needed.
       three facts shown red once against the code of `9c33398` (threshold 1e-3) and
       green after `LatentHeatThreshold` was raised to 5e-3.
 
-- [ ] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence due:
-      - a fact computes the largest interval count of every product record after the
-        join from the committed file, asserts it is at most the limit, fails on an
-        empty file, and is red at 5;
-      - NaNO3(a) with RP-1 builds a table and solves hp `Ok`, compared with a reference
-        fixture of the fixtures node (an hp case the fixtures node adds to its matrix);
-      - no bit snapshot moves apart from the keys of that new fixture.
+- [x] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence:
+      - `IntervalLimitTests.NoProductNameExceedsTheIntervalLimitAfterTheJoin` (`tests/Thermo.Tests`)
+        computes, from `Cpu.Database.Products`, the interval count of every product name
+        joined the way `SpeciesResolution` joins it (one name's records concatenated,
+        products only), asserts the largest is at most `TableLimits.MaxIntervalsPerSpecies`,
+        fails on an empty scan, and was shown red at the limit of 5 (`NaCN(II) has 6
+        intervals after the join, more than the limit of 5`); green at 6.
+        `IntervalLimitTests.NaCnTwoIsTheOnlyRecordAtTheLimit` confirms `NaCN(II)` is the
+        only name the scan finds at the limit, from the generated list. `dotnet test
+        tests/Thermo.Tests`, 1180/1180 (`Category!=LongRunning`; three new facts).
+      - NaNO3(a) with RP-1 builds a table and solves hp `Ok`: the fixtures node's new
+        case (`cases/hp/nano3-rp1_of4_pc7MPa.json`, `propellants.py`'s `sodium_hp`,
+        `regenerate.py --check` exits 0 over 328 fixtures) is covered automatically by
+        `Equilibrium.Tests.AssignedEnthalpyCasesReproduceTheReference`'s directory
+        listing, green (`dotnet test tests/Equilibrium.Tests`, 702/702), which builds
+        the table (`NaCN(II)` among the candidate species), solves hp and compares
+        every field with the fixture within the tolerance table.
+      - The front-door leg (`Problems.Tests`) is green too, once the fixtures node's
+        `role` field replaced the front-door's own guess: `PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
+        `PropellantTests.ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
+        `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference` and
+        `BitSnapshotTests.EveryFixtureGivesTheRecordedBits` all pass on the new case
+        (`dotnet test tests/Problems.Tests --filter "Category!=LongRunning"`, 1191/1191;
+        the fix and its own evidence are recorded in the fixtures node's and
+        `Problems.Tests`' own `BOOT.md`, not repeated here per `AGENTS.md` §8's rule
+        against retelling a foreign node's claim).
+      - No bit snapshot moves apart from the new fixture's key in the two nodes that
+        enumerate hp fixtures: `tests/Equilibrium.Tests/Bits.approved.txt` and
+        `tests/Problems.Tests/Bits.approved.txt` each gained exactly one line
+        (`hp/nano3-rp1_of4_pc7MPa.json`, `git diff --stat` on each: 1 insertion, 0
+        deletions); `tests/Thermo.Tests/Bits*.approved.txt` unchanged (the sodium case
+        holds no `thermo` fixture). `Bits.linux.approved.txt` cannot be produced from
+        this session (no WSL here); the orchestrator records the two Linux keys under
+        WSL.
+
+      ⚠ 2026-09-27: this criterion first stood partial, blocked on `Problems.Tests`'
+      `FixtureCases.Oxidizers`, a hand-typed set of oxidizer reactant names that did
+      not carry `NaNO3(a)`, found while adding the sodium case above and escalated to
+      the orchestrator rather than patched by name (`AGENTS.md` §11: the fix touched a
+      neighbour test node of neither `Thermo` nor `Fixtures`). The orchestrator's design
+      gave every ratio case's reactant a recorded `role` in the fixture document itself,
+      written by the generator from the oxidizer and fuel vectors it already builds,
+      removing the guess rather than growing its name list (the fixtures node's `BOOT.md`
+      and `Problems.Tests`' `BOOT.md` carry the design and the evidence).
 - [ ] 2026-09-27 — `KernelMath` (Constraints). Evidence due:
       - a CPU fact compares `KernelMath.Min` and `Max` with `System.Math` bit for bit
         over every ordered pair of a set holding ±0, ±∞, NaN, the subnormal bounds,

@@ -81,6 +81,38 @@ public sealed class MalformedFixtureTests : IDisposable
         Assert.Equal(path, e.FileName);
     }
 
+    /// <summary>
+    /// A reactant of a ratio case with no role is rejected, naming the file and the reactant's index (BOOT.md's
+    /// role criterion). Shown red once: the check itself, removed, let the same document load without complaint
+    /// (reverted before this test was committed).
+    /// </summary>
+    [Fact]
+    public void ARatioCaseReactantWithNoRoleIsRejected()
+    {
+        var path = Write("hp", $$$"""
+            {"case": {"name": "x", "kind": "hp", "inputs": {
+              "oxidizerToFuelRatio": 4.0,
+              "reactants": [{"name": "a"}, {"name": "b", "role": "fuel"}]
+            }}, {{{Generator}}}, "outputs": {}}
+            """);
+        var e = Assert.Throws<FixtureFormatException>(() => CeaFixtures.Load(path));
+        Assert.Equal("case.inputs.reactants[0].role", e.Field);
+    }
+
+    /// <summary>A reactant with a role, but no oxidizer-to-fuel ratio recorded, needs no role and loads.</summary>
+    [Fact]
+    public void ARoleIsNotRequiredWithoutARatio()
+    {
+        var path = Write("hp", $$$"""
+            {"case": {"name": "x", "kind": "hp", "inputs": {
+              "oxidizerToFuelRatio": null,
+              "reactants": [{"name": "a"}, {"name": "b"}]
+            }}, {{{Generator}}}, "outputs": {}}
+            """);
+        var c = CeaFixtures.Load(path);
+        Assert.Equal("x", c.Name);
+    }
+
     /// <summary>A tolerance without a derivation is rejected.</summary>
     [Fact]
     public void AToleranceWithoutADerivationIsRejected()
