@@ -193,7 +193,19 @@ internal static class AcceleratorChoice
         try
         {
             // LibDevice() makes ILGPU emit the intrinsic calls; the wrappers themselves come from this node's post-link.
-            return Context.Create(builder => builder.Cuda().Math(MathMode.Default).LibDevice(dll, bitcode));
+            // CudaWslDevices.Register replaces the bare builder.Cuda() (BOOT.md, "Every CUDA context of a process binds under
+            // WSL"): it tries that same public call first, every time, and only under WSL, from the second CUDA context of
+            // the process on, falls back to registering the devices itself.
+            return Context.Create(builder =>
+            {
+                CudaWslDevices.Register(builder);
+                _ = builder.Math(MathMode.Default).LibDevice(dll, bitcode);
+            });
+        }
+        catch (AcceleratorUnavailableException)
+        {
+            // CudaWslDevices.Register already names the missing ILGPU member; wrapping it again would only bury the name.
+            throw;
         }
         catch (Exception failure)
         {

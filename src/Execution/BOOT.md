@@ -364,6 +364,7 @@ four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
 | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
+| `CudaWslDevices` | the WSL workaround (2026-09-27, Constraints, "Every CUDA context of a process binds under WSL"): tries `builder.Cuda()` first, every call, and only on the resolver-already-set exception registers the devices itself by reflecting ILGPU's own internal `CudaDevice.GetDevices` | internal |
 
 ⚠ 2026-09-14: this row first read "`FunctionCount` is the constant the kernel strides by" (F-EX-07's own
 wording: `public const int FunctionCount = 10;`), which would have turned `FunctionCount` from a property
@@ -980,16 +981,58 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         '**/PublicSurface.approved.txt'` empty: no snapshot moved;
       - the protocol lint: 0 errors, 0 warnings.
 
-- [ ] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints).
-      Evidence due, under WSL on the reference machine, `Category=Cuda`:
-      - a fact creates three CUDA engines one after another in one process, each binding
-        CUDA and running the probe; it is red at `89bb619` on its second engine, and it
-        runs on Windows too, where it is green before and after;
-      - the two probe facts pass in one run, in either order;
-      - `dotnet test tests/Execution.Tests -c Release` is green under WSL and on Windows,
-        with no bit or throughput record moved;
-      - a removed or renamed internal member (simulated through the name the build
-        looks up) is an `AcceleratorUnavailableException` naming it.
+- [x] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints).
+      Implemented as `CudaWslDevices.Register` (`src/Execution/CudaWslDevices.cs`):
+      tries `builder.Cuda()` first, every time (no static state records that a resolver
+      was ever set); when that call throws `InvalidOperationException` ("A resolver is
+      already set for the assembly"), registers the devices itself through ILGPU's
+      internal `CudaDevice.GetDevices(configure, predicate, registry)`, reflected by
+      name (the property and the method are internal to ILGPU, which grants this
+      assembly no `InternalsVisibleTo`), with the same no-op `configure` and the same
+      `predicate` (a device with a known architecture and an instruction set the PTX
+      backend supports) the no-argument `Cuda()` overload passes to it. A missing
+      member is an `AcceleratorUnavailableException` naming it.
+
+      Evidence, on the reference machine:
+      - **Red once, under WSL** (WSL2 Ubuntu 24.04, .NET SDK 10.0.112, CUDA 12.9
+        libnvvm, a clone at `~/apthermo` whose `origin` is this repository, git
+        checkout `89bb619` detached): the existing
+        `AcceleratorChoiceTests.AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`
+        (`dotnet test tests/Execution.Tests -c Release --filter
+        "FullyQualifiedName~ProbeKernelCannotBind"`) failed on its second CUDA context
+        (the `Auto` fact right before it in `AcceleratorChoiceTests` already having
+        created the first) — "Assert.Contains() Failure … Not found: \"the math probe
+        kernel could not be loaded\"", the message instead "the CUDA context could not
+        be created (driver or device problem): A resolver is already set for the
+        assembly", exactly the defect. A throwaway three-engine fact (this criterion's
+        own, without `CudaWslDevices` yet — not committed) failed the same way on its
+        second engine: `AcceleratorUnavailableException`, inner
+        `InvalidOperationException` "A resolver is already set for the assembly.",
+        through `CudaContextExtensions.CudaInternal` → `NativeLibrary.SetDllImportResolver`.
+      - **Green after the fix, under WSL**, at `bfab662`: the new
+        `CudaWslDevicesTests.EveryCudaEngineOfTheProcessBindsAndProbes` (three fresh
+        CUDA engines, each binding and probing) and
+        `AcceleratorChoiceTests.AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind`
+        together with `...AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`
+        (the two bind-time probe facts, in one run) both green;
+        `dotnet test tests/Execution.Tests -c Release`, no filter: 143 of 143, the
+        100 000-case sweep and the throughput tripwire included, `git status --short`
+        against `Bits*.approved.txt`, `Throughput*.approved.txt` and the protocol tests
+        node's `PublicSurface.approved.txt` empty; the throughput ratio 27.48× (the
+        actual run measured 34.16×, comfortably above 80 % of it and the root's 5×
+        floor, so `Throughput.linux.approved.txt` was not re-approved).
+      - **Green on Windows, before and after**: `dotnet test tests/Execution.Tests -c
+        Release`, no filter, on a clean `bin`/`obj`: 143 of 143 both at `89bb619` (where
+        the resolver defect does not exist, since `IsRunningOnWSL()` is false) and at
+        `bfab662`; the throughput ratio at `bfab662` 28.38× (against the approved
+        23.58×), no `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        `PublicSurface.approved.txt` changed; `protocol_lint` 0 errors, 0 warnings.
+      - **The missing-member path**: `CudaWslDevicesTests.ARenamedIlgpuMemberNamesItself`
+        calls the internal `CudaWslDevices.Reflect(registryPropertyName,
+        getDevicesMethodName)` seam directly with a wrong name for each of the two
+        members in turn (no WSL needed to reach it this way) and asserts the exception
+        names it; the same call with the real names still resolves, proving the fact
+        exercises a wrong name, not a broken reflection call.
 
 ## Taboos
 
