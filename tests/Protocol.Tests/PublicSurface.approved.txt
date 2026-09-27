@@ -239,10 +239,11 @@ sealed class APThermo.Fixtures.FixtureFormatException : Exception, ISerializable
     String FileName { get; }
 
 sealed class (record) APThermo.Fixtures.Provenance : IEquatable<Provenance>
-    .ctor(String Package, String Version, String LibraryVersion, String Method, String Script, String ScriptSha256, String ThermoLibSha256, String TransLibSha256, String DataThermoSha256, String DataTransSha256, DateOnly GeneratedOn)
+    .ctor(String Package, String Version, String LibraryVersion, String GeneratorSha256, String ThermoLibSha256, String TransLibSha256, String DataThermoSha256, String DataTransSha256, String Method, String Script, String ScriptSha256, DateOnly GeneratedOn)
     DateOnly GeneratedOn { get; init; }
     String DataThermoSha256 { get; init; }
     String DataTransSha256 { get; init; }
+    String GeneratorSha256 { get; init; }
     String LibraryVersion { get; init; }
     String Method { get; init; }
     String Package { get; init; }
