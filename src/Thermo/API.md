@@ -233,18 +233,24 @@ last interval's upper bound. For the nine condensed records that begin with an i
 piece (300 → 298.15 K) that excluded the phase between 298.15 and 300 K, where the
 reference admits it. The signatures are unchanged; `BOOT.md` has the measurement.
 
-## Kernel minimum and maximum (tree contract) ⏳
+## Kernel minimum and maximum (tree contract) ✅
 
 ```csharp
 internal static class KernelMath
 {
-    public static double Min(double a, double b);   // equals System.Math.Min(a, b) bit for bit, on both accelerators
-    public static double Max(double a, double b);   // equals System.Math.Max(a, b) bit for bit, on both accelerators
+    public static double Min(double val1, double val2);   // equals System.Math.Min(val1, val2) bit for bit, on both accelerators
+    public static double Max(double val1, double val2);   // equals System.Math.Max(val1, val2) bit for bit, on both accelerators
 }
 ```
 
-Planned (`BOOT.md`, 2026-09-27). It moves under ✅ once the code carries it, and the
-table limits above then read `MaxIntervalsPerSpecies = 6`.
+Implemented 2026-09-27 (`BOOT.md`): written with comparisons and selections only,
+following the logic of the .NET 10 source of `System.Math.Min(double, double)` and
+`Math.Max(double, double)`. NaN propagates from either operand; of two equal values
+(`+0`/`−0` included) `Min` treats `−0` as smaller and `Max` treats `+0` as larger.
+`double.IsNaN` and `double.IsNegative` are used here and nowhere else in the numerical
+nodes (root `BOOT.md`, "Math in numerical nodes"; the protocol tests node's reflection
+fact of the same date). The root's math list's `Min` and `Max` now name this type,
+never `System.Math.Min`/`Max`, in every numerical node.
 
 ## Errors
 

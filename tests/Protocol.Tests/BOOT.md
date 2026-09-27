@@ -1337,12 +1337,36 @@ Each fact is shown red once by a mutation applied alone and restored:
       and every `API.md` ✅ tree-contract block agrees with it. Mutation (4) is re-run
       on a public type and its message recorded.
 
-- [ ] 2026-09-27 — No `Math.Min` or `Math.Max` in the numerical nodes (the root's math
-      constraint of this date). A reflection fact reads the IL of every method of the
-      numerical assemblies and refuses a call to `System.Math.Min` or `System.Math.Max`
-      of any overload. The same fact refuses `double.IsNaN` and `double.IsNegative`
-      outside the thermo node's `KernelMath`. It fails on an empty set of methods, and
-      is red once with one call site restored.
+- [x] 2026-09-27 — No `Math.Min` or `Math.Max` in the numerical nodes (the root's math
+      constraint of this date).
+      `InvariantTests.NumericalNodesCallNoMathMinOrMaxAndNoNanOrNegativeCheckOutsideKernelMath`
+      reads the IL of every method of the numerical assemblies (`Thermo`,
+      `Equilibrium`, `Performance`, `Transport`, the same `NumericalNodes` list the
+      other invariant facts use) and refuses a call to `System.Math.Min` or
+      `System.Math.Max` of any overload, and a call to `double.IsNaN` or
+      `double.IsNegative` outside the thermo node's `KernelMath`; it asserts the
+      scanned node and method lists are non-empty first, so it cannot pass on an
+      empty walk.
+
+      Shown red once, two ways, both reverted before committing:
+      - one call site restored (`StationFigures.VelocityClamped` back to
+        `Math.Max`): "root BOOT.md, Constraints: Min and Max come from
+        KernelMath.Min/Max, never from Math.Min/Max, and double.IsNaN/IsNegative are
+        used nowhere outside KernelMath.\nsrc/Performance:
+        APThermo.Performance.StationFigures.VelocityClamped calls Math.Max";
+      - a `double.IsNaN` call added outside `KernelMath` (`DenseSolver.Scale`):
+        "…\nsrc/Equilibrium: APThermo.Equilibrium.DenseSolver.Scale calls
+        double.IsNaN outside KernelMath".
+
+      The fact's own three-level walk (type → method → instruction) nests no deeper
+      than the root's limit of 3, split into `KernelMathProblems`,
+      `KernelMathProblemsInType` and `KernelMathProblemsInMethod`.
+
+      Evidence: `dotnet test tests/Protocol.Tests`, 29/29;
+      `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`,
+      4547/4547, none skipped; the protocol lint 0 errors, 0 warnings; no
+      `Bits*.approved.txt` or `PublicSurface.approved.txt` differs from `main`
+      (`KernelMath` is internal, so the surface snapshot is unaffected).
 
 ## Taboos
 

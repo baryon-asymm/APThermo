@@ -37,7 +37,7 @@ internal static class DampedStep
 
         var deltaLogN = scratch.RightHandSide[layout.NRow];
         var deltaLogT = layout.IsTp ? 0.0 : scratch.RightHandSide[layout.TRow];
-        var largest = Math.Max(ControlFactorWeight * Math.Abs(deltaLogT), ControlFactorWeight * Math.Abs(deltaLogN));
+        var largest = KernelMath.Max(ControlFactorWeight * Math.Abs(deltaLogT), ControlFactorWeight * Math.Abs(deltaLogN));
         var lambda2 = double.MaxValue;
         for (var j = 0; j < table.GasCount; j++)
         {
@@ -64,21 +64,21 @@ internal static class DampedStep
 
             if (logFraction > -EquilibriumSolver.TraceThreshold)
             {
-                largest = Math.Max(largest, delta);
+                largest = KernelMath.Max(largest, delta);
             }
             else if (delta - deltaLogN > 0.0)
             {
-                lambda2 = Math.Min(lambda2, (-logFraction - SmallSpeciesBound) / (delta - deltaLogN));
+                lambda2 = KernelMath.Min(lambda2, (-logFraction - SmallSpeciesBound) / (delta - deltaLogN));
             }
         }
 
         var lambda = 1.0;
         if (largest > 0.0)
         {
-            lambda = Math.Min(lambda, ControlFactorLimit / largest);
+            lambda = KernelMath.Min(lambda, ControlFactorLimit / largest);
         }
 
-        return Math.Min(lambda, lambda2);
+        return KernelMath.Min(lambda, lambda2);
     }
 
     /// <summary>Equation (3.4): the damped corrections onto the iterate. False when the new temperature left the node's window.</summary>

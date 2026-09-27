@@ -21,7 +21,7 @@ internal static class StationFigures
     /// one rule with the never-supersonic outcome and is decided in its own session (BOOT.md, the Structure of 2026-09-14).
     /// </summary>
     public static double VelocityClamped(double chamberEnthalpy, in MixtureState state) =>
-        Math.Sqrt(Math.Max(VelocitySquared(chamberEnthalpy, in state), 0.0));
+        Math.Sqrt(KernelMath.Max(VelocitySquared(chamberEnthalpy, in state), 0.0));
 
     /// <summary>The area ratio A/A_t from the throat's mass flux and the station's: (ρ_t u_t)/(ρ u).</summary>
     public static double AreaRatio(double throatMassFlux, in MixtureState state, double velocity) => throatMassFlux / (state.Density * velocity);

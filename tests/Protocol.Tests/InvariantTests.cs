@@ -45,6 +45,26 @@ public sealed class InvariantTests
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: no hidden state.\n" + string.Join("\n", problems));
     }
 
+    /// <summary>
+    /// Numerical nodes call no `System.Math.Min`/`Max` overload, and call `double.IsNaN`/`IsNegative` nowhere outside
+    /// `KernelMath` (root BOOT.md, "Math in numerical nodes", 2026-09-27): both accelerators must run the same
+    /// comparisons and selections, which only the thermo node's `KernelMath` provides, and ILGPU compiles `Math.Min`
+    /// and `Math.Max` to PTX instructions that return the other operand on a NaN input instead of propagating it.
+    /// Fails on an empty scan, so a broken walk over the numerical assemblies cannot pass silently.
+    /// </summary>
+    [Fact]
+    public void NumericalNodesCallNoMathMinOrMaxAndNoNanOrNegativeCheckOutsideKernelMath()
+    {
+        var scanned = Numerical().ToList();
+        Assert.NotEmpty(scanned);
+        var methods = scanned.SelectMany(pair => pair.Assembly.GetTypes().SelectMany(TypeShape.MethodsOf)).ToList();
+        Assert.NotEmpty(methods);
+        var problems = scanned.SelectMany(pair => KernelMathProblems(pair.Node, pair.Assembly)).ToList();
+        Assert.True(problems.Count == 0,
+            "root BOOT.md, Constraints: Min and Max come from KernelMath.Min/Max, never from Math.Min/Max, " +
+            "and double.IsNaN/IsNegative are used nowhere outside KernelMath.\n" + string.Join("\n", problems));
+    }
+
     private static IEnumerable<(Node Node, Assembly Assembly)> Numerical()
     {
         foreach (var path in NumericalNodes)
@@ -122,6 +142,55 @@ public sealed class InvariantTests
                 {
                     yield return $"{node.Name}: {type.FullName}.{field.Name} is a static readonly array, whose elements are mutable state";
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The calls of one type's method bodies that the Constraint above forbids: any overload of <c>Math.Min</c> or
+    /// <c>Math.Max</c>, and, outside <c>KernelMath</c> itself, <c>double.IsNaN</c> or <c>double.IsNegative</c>. Split
+    /// into three small methods, one per level of the walk (type, method, instruction), so that no method nests
+    /// deeper than the root's limit of 3.
+    /// </summary>
+    private static IEnumerable<string> KernelMathProblems(Node node, Assembly assembly)
+    {
+        foreach (var type in assembly.GetTypes())
+        {
+            foreach (var problem in KernelMathProblemsInType(node, type))
+            {
+                yield return problem;
+            }
+        }
+    }
+
+    private static IEnumerable<string> KernelMathProblemsInType(Node node, Type type)
+    {
+        var isKernelMath = type.FullName == "APThermo.Thermo.KernelMath";
+        foreach (var method in TypeShape.MethodsOf(type))
+        {
+            foreach (var problem in KernelMathProblemsInMethod(node, type, method, isKernelMath))
+            {
+                yield return problem;
+            }
+        }
+    }
+
+    private static IEnumerable<string> KernelMathProblemsInMethod(Node node, Type type, MethodBase method, bool isKernelMath)
+    {
+        foreach (var instruction in IlBody.Instructions(method))
+        {
+            if (instruction.Operand is not MethodBase called || called.DeclaringType is not { } declaring)
+            {
+                continue;
+            }
+
+            if (declaring == typeof(Math) && called.Name is "Min" or "Max")
+            {
+                yield return $"{node.Name}: {type.FullName}.{method.Name} calls Math.{called.Name}";
+            }
+            else if (!isKernelMath && declaring == typeof(double) && called.Name is "IsNaN" or "IsNegative")
+            {
+                yield return $"{node.Name}: {type.FullName}.{method.Name} calls double.{called.Name} outside KernelMath";
             }
         }
     }

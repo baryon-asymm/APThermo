@@ -91,14 +91,29 @@ internal static class GpuCpuTolerances
         }
     }
 
+    /// <summary>
+    /// NaN counts as equal to NaN, and ±0 and ±∞ are compared exactly, with the sign (2026-09-27, the guards audit's F11): the
+    /// probe's inputs now include them, and a plain <c>a == b</c> would call +0 and -0 equal, while <see cref="double.IsNaN"/>
+    /// would call two NaNs (produced deterministically by the same code on both accelerators) an infinite mismatch.
+    /// </summary>
     public static long UlpDistance(double a, double b)
     {
-        if (a == b)
+        if (double.IsNaN(a) && double.IsNaN(b))
         {
             return 0;
         }
 
-        if (double.IsNaN(a) || double.IsNaN(b) || double.IsInfinity(a) || double.IsInfinity(b))
+        if (double.IsNaN(a) || double.IsNaN(b))
+        {
+            return long.MaxValue;
+        }
+
+        if (a == b)
+        {
+            return double.IsNegative(a) == double.IsNegative(b) ? 0 : long.MaxValue;
+        }
+
+        if (double.IsInfinity(a) || double.IsInfinity(b))
         {
             return long.MaxValue;
         }

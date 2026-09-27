@@ -58,7 +58,7 @@ internal static class SpeciesFunctions
         var low = table.IntervalBounds[start * TableLayout.BoundsStride];
         for (var k = 1; k < count; k++)
         {
-            low = Math.Min(low, table.IntervalBounds[(start + k) * TableLayout.BoundsStride]);
+            low = KernelMath.Min(low, table.IntervalBounds[(start + k) * TableLayout.BoundsStride]);
         }
 
         return low;
@@ -72,7 +72,7 @@ internal static class SpeciesFunctions
         var high = table.IntervalBounds[start * TableLayout.BoundsStride + 1];
         for (var k = 1; k < count; k++)
         {
-            high = Math.Max(high, table.IntervalBounds[(start + k) * TableLayout.BoundsStride + 1]);
+            high = KernelMath.Max(high, table.IntervalBounds[(start + k) * TableLayout.BoundsStride + 1]);
         }
 
         return high;

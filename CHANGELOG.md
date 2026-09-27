@@ -125,6 +125,16 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
     chamber's entropy to a relative `1e-9`; a station whose converged entropy drifts
     beyond that is `NotConverged` instead of a silently accepted isentropic-expansion
     violation.
+- The guards audit's F11 (2026-09-27): `.NET`'s `Math.Min`/`Max` return `NaN` when
+  either operand is `NaN`, while ILGPU compiles them to the PTX instructions
+  `min.f64`/`max.f64`, which return the other operand instead. A NaN reaching the
+  convergence tests, the damped step, the row scaling of the linear solve or the
+  station velocity therefore failed a case on the CPU accelerator and could pass, or
+  report a velocity of zero in place of NaN, on CUDA. The thermo node's own
+  `KernelMath.Min`/`Max`, written with comparisons and selections and equal to
+  `System.Math.Min`/`Max` bit for bit, now stand in every numerical node and in the
+  execution node's math probe; no other function of the root's math list diverged
+  between the two accelerators. No result of the reference fixtures moved.
 
 ## [0.1.0] - 2026-09-18
 

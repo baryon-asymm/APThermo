@@ -434,16 +434,40 @@ of 14: no efferent coupling row is needed.
       - NaNO3(a) with RP-1 builds a table and solves hp `Ok`, compared with a reference
         fixture of the fixtures node (an hp case the fixtures node adds to its matrix);
       - no bit snapshot moves apart from the keys of that new fixture.
-- [ ] 2026-09-27 — `KernelMath` (Constraints). Evidence due:
-      - a CPU fact compares `KernelMath.Min` and `Max` with `System.Math` bit for bit
-        over every ordered pair of a set holding ±0, ±∞, NaN, the subnormal bounds,
-        equal values and a random sample; it is red once with a NaN branch removed;
-      - the execution node's probe runs them on CUDA, and they equal the CPU on every
-        pair (the execution tests node's criterion of the same date);
-      - the cost, which the owner asked about: the CUDA and CPU times of the
-        throughput sweep in Release, as the median of three runs before and after
-        the change, are recorded here. A CUDA time more than 2 % slower goes to the
-        owner before the change is merged.
+- [x] 2026-09-27 — `KernelMath` (Constraints).
+      - `Thermo.Tests.KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
+        compares `KernelMath.Min` and `Max` with `System.Math.Min`/`Max` bit for bit,
+        via the harness's `Bits.Same`, over every ordered pair of a domain holding ±0,
+        ±∞, NaN, the smallest and largest subnormal, the smallest normal, eight
+        ordinary values and a fixed 32-value sample spanning 30 decades on both signs
+        (104² = 10 816 ordered pairs, both functions, fails on an empty domain). Shown
+        red once: with the NaN branch of `KernelMath.Min` removed, the fact failed on
+        every pair with one NaN operand — "Min(NaN, 2.2250738585072014E-308):
+        Math.Min NaN, KernelMath.Min 2.2250738585072014E-308" among them — reverted,
+        green again.
+      - The execution node's probe runs `KernelMath.Min`/`Max` in place of
+        `Math.Min`/`Max` (`Kernels.Probe`) and they equal the CPU accelerator on every
+        input, NaN included: the execution tests node's criterion of the same date,
+        `ProbeKernelTests.TheSpecialInputsAreRecordedAgainstCuda`, 0 ULP on every one
+        of the 17 special inputs × 12 functions, `Min` and `Max` included.
+      - The cost, measured on the reference machine (RTX 5070 Ti), the median of three
+        `dotnet test tests/Execution.Tests -c Release --filter
+        "FullyQualifiedName~ThroughputIsRecordedAndNotBelowTheApprovedRatio"` runs
+        before the call-site change (`Math.Min`/`Max`, at `b3b9d5b`) and three after
+        (`KernelMath.Min`/`Max`): CUDA 0.192 s → 0.189 s (1.6 % faster, not slower),
+        CUDA kernel alone 0.118 s → 0.120 s, CPU accelerator 5.257 s → 4.409 s (the
+        machine's other load varied between runs, `nvidia-smi` showing a second
+        worktree's CUDA tests running concurrently during the noisiest sample,
+        12.561 s). No `Throughput.approved.txt` or `Throughput.linux.approved.txt`
+        was re-approved; the CUDA time did not regress, so nothing went to the owner.
+
+      Evidence: `dotnet test tests/Thermo.Tests`, 1178/1178 (the new fact);
+      `dotnet test tests/Execution.Tests -c Release` (no filter), 144/144 on CUDA —
+      the 100 000-case sweep, the architecture fact over SM_75…SM_121, and the two
+      probe facts included; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
+      0 warnings; no `Bits*.approved.txt` differs from `main` (`git status --short`
+      names only the files this task touched, `Throughput*.approved.txt` excluded).
 
 ## Taboos
 
