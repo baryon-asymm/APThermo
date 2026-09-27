@@ -130,6 +130,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the conductivity in μW/(cm·K). The node stores the fits and the units as in the
   file; conversion to SI belongs to `Transport`.
 
+- **Two notes of the hidden-defect audit of 2026-09-26.** Both are fixed here, and no
+  record of the committed file changes:
+  - `ReadFormula` drops a zero-count pair, as `API.md` says; it kept a pair with a
+    symbol and a zero count (only an empty symbol was dropped before this fix). The
+    committed file has no such pair.
+  - A format error's message carries the file and line once; the command line's
+    `DatabaseFiles` prefixed a message that already held them, printing
+    `thermo.inp:66: thermo.inp:66: …`. The prefix belongs to this node's message, and
+    the command line prints it as given; the fix is the command line's.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). Each
@@ -335,6 +345,15 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       once (AGENTS.md §13): the embedded `thermo.inp` truncated to its first 100
       lines turned the hash test and the equality test both red; reverted, nothing of
       the mutation committed.
+
+- [x] 2026-09-27 — The audit fix of 2026-09-26: a formula line with a zero-count pair
+      and a populated symbol reads without that pair. Red once against the
+      pre-fix `ReadFormula` (`ThermoLoadTests.AFormulaPairWithASymbolAndAZeroCountIsDropped`,
+      the pre-fix code returning `[("H", 0), ("O", 1)]` against the expected
+      `[("O", 1)]`), green after the fix.
+      `dotnet test tests/Data.Tests`: 43/43. `dotnet build APThermo.sln`: 0
+      warnings, 0 errors. The database error double-prefix note is the command
+      line's fix; its own criterion below records the evidence.
 
 ## Taboos
 

@@ -186,6 +186,33 @@ public sealed partial class ThermoLoadTests
         _ = Assert.Throws<KeyNotFoundException>(() => database.AtomicWeight("Xx"));
     }
 
+    /// <summary>
+    /// A formula pair with a symbol but a zero count is dropped, as <see cref="Species.Formula"/>'s own contract
+    /// says ("zero-count pairs dropped"), not kept as a phantom element with no atoms (2026-09-26, the hidden-defect
+    /// audit's note: only a pair with an empty symbol was ever dropped before this fix). The committed file has no
+    /// such pair, so this is a mutation on an in-memory copy of the real H2O record, its H count zeroed and its
+    /// symbol kept.
+    /// </summary>
+    [Fact]
+    public void AFormulaPairWithASymbolAndAZeroCountIsDropped()
+    {
+        var lines = new[]
+        {
+            "H2O               Hf:Cox,1989. Woolley,1987. TRC(10/88) tuv25.",
+            " 2 g 8/89 H   0.00O   1.00    0.00    0.00    0.00 0   18.0152800    -241826.000",
+            "    200.000   1000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         9904.092",
+            "-3.947960830D+04 5.755731020D+02 9.317826530D-01 7.222712860D-03-7.342557370D-06",
+            " 4.955043490D-09-1.336933246D-12                -3.303974310D+04 1.724205775D+01",
+            "   1000.000   6000.0007 -2.0 -1.0  0.0  1.0  2.0  3.0  4.0  0.0         9904.092",
+            " 1.034972096D+06-2.412698562D+03 4.646110780D+00 2.291998307D-03-6.836830480D-07",
+            " 9.426468930D-11-4.822380530D-15                -1.384286509D+04-7.978148510D+00",
+        };
+        var text = "thermo\n    200.00   1000.00   6000.00  20000.   9/8/2021\n" + string.Join('\n', lines) + "\nEND PRODUCTS\nEND REACTANTS\n";
+        var database = SpeciesDatabase.Parse(new StringReader(text));
+        var species = database["H2O"];
+        Assert.Equal([("O", 1.00)], species.Formula.Select(p => (p.Symbol, p.Count)));
+    }
+
     /// <summary>Unknown names are reported by name.</summary>
     [Fact]
     public void UnknownNamesAreReportedByName()
