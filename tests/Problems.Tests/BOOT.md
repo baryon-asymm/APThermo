@@ -383,11 +383,24 @@ Outside the tree: xunit.
 - [ ] 2026-09-26 — The NaN and cv guards: a NaN mole fraction on one side, and a
       frozen exit's cv edited in a fixture copy, each red.
 
-- [ ] 2026-09-27 — A fixture's reactant roles come from the fixture (its `role`, the
+- [x] 2026-09-27 — A fixture's reactant roles come from the fixture (its `role`, the
       fixtures node's document of 2026-09-27), never from a list typed in this node:
       `FixtureCases.Oxidizers` is removed. Every ratio case of the fixtures, the sodium
       case included, builds its propellant from the recorded roles, and the four facts
       that threw on the sodium case pass.
+
+      Evidence: `FixtureCases.Oxidizers` deleted; `PropellantOf` reads each reactant's
+      role from the fixture (`RoleOf`, mapping `"oxidizer"`/`"fuel"` to `ReactantRole`,
+      throwing by name on anything else) instead of testing the reactant's name against
+      the removed set. `dotnet test tests/Problems.Tests --filter "Category!=LongRunning"`:
+      1191/1191, none skipped, the four facts that threw on the sodium case
+      (`PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
+      `PropellantTests.ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
+      `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference`,
+      `BitSnapshotTests.EveryFixtureGivesTheRecordedBits`) included. `Bits.approved.txt`
+      gains exactly the sodium case's key (`git diff --stat`: 1 insertion, 0 deletions;
+      `diff` of the file against `Bits.actual.txt` with that one line excluded: no other
+      difference); no key of any other fixture moved.
 
 ## Taboos
 
