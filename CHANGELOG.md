@@ -56,6 +56,17 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
   - Results change only where a phase was wrongly excluded before (the nine condensed
     records between 298.15 K and 300 K, ice below 200 K, states with more than eight
     stable condensed phases). No result of the reference fixtures moved.
+- `Thermo` and `Equilibrium` (2026-09-27):
+  - `SpeciesFunctions.LatentHeatThreshold` rises from 1e-3 to 5e-3: at 1e-3 the
+    join-and-cut wrongly split `NaCN(II)` and `NaCN(III)` at their own internal fit
+    noise (up to 1.34e-3), phantom transitions of about 3 J/mol with no data holding
+    them. The cut now fires only on the two real transitions of the committed file,
+    `ALN(L)` and the joined `SnS(cr)`. No result of the reference fixtures moved.
+  - A warm start seeded with a condensed species that turns out infeasible at the new
+    state (RP-1311 example 14's water pieces at half their saturation pressure) could
+    drive the Newton iteration to a singular matrix instead of dropping the species and
+    converging cold; it now retries once from a cold start when this happens, with its
+    iterations counted into the case's total.
 - The hidden-defect audit of `Execution` (2026-09-26):
   - A CUDA library present but unusable (a corrupt install, a foreign architecture, a
     missing dependency) left a raw, unwrapped exception and leaked about 190 MiB of

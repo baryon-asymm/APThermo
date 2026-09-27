@@ -71,14 +71,7 @@ public sealed class WarmStartTests
 
         var atHalfPressure = cold with { Pressure = cold.Pressure / 2.0 };
         var warm = HostSolver.Solve(accelerator, atHalfPressure, coldSolution.Moles);
-        if (warm.Status != CaseStatus.Ok)
-        {
-            // A cold solution pinned at a plateau (rp1311-example14's water pieces, BOOT.md's ⚠ of 2026-09-26 on
-            // this fact) seeds a warm start with both pieces of a pair that is no longer valid at the new pressure,
-            // and CaseSetup.FromPreviousSolution does not know to drop one: a singular matrix at the first step, not
-            // one of the audit's five findings. Documented rather than silently accepted or forced green.
-            return;
-        }
+        Assert.Equal(CaseStatus.Ok, warm.Status);
 
         var freshCold = HostSolver.Solve(accelerator, atHalfPressure);
         if (freshCold.Status != CaseStatus.Ok)

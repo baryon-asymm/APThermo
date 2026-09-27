@@ -23,10 +23,11 @@ internal static class SpeciesFunctions
     /// <summary>
     /// |ΔH°/RT| at a bound shared by two condensed fits at or above which the two sides are a real transition: the
     /// builder cuts a species there (BOOT.md, join-and-cut) and the equilibrium solver pins a two-phase pair there.
-    /// The smallest real transition of the committed file is BeO a/b at 1.34e-2, the largest interval-split artifact
-    /// 3.9e-4 (Cr(cr)).
+    /// The committed file's largest fit noise is 2.2e-3 (NaCN(II) → NaCN(III) at 288.5 K, a lambda transition with
+    /// no latent heat) and, inside one record, 1.34e-3 (NaCN(III) at 293.15 K); the smallest real transition is
+    /// 1.34e-2 (BeO a/b), with nothing between the two and this value at their geometric middle (BOOT.md, 2026-09-27).
     /// </summary>
-    public const double LatentHeatThreshold = 1.0e-3;
+    public const double LatentHeatThreshold = 5.0e-3;
 
     /// <summary>The interval of the species used at the temperature, 0-based within the species: the first whose upper bound is not below T, else the last.</summary>
     public static int IntervalOf(in SpeciesTableView table, int species, double temperature)
