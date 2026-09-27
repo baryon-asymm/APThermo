@@ -105,6 +105,14 @@ internal static class SpeciesRecordReader
                 continue;
             }
 
+            if (count == 0.0)
+            {
+                // Zero-count pairs are dropped (BOOT.md, format facts; API.md's Species.Formula), a symbol with a
+                // zero count included: only an empty symbol was ever dropped before this fix (2026-09-26, the
+                // hidden-defect audit's note). The committed file has no such pair.
+                continue;
+            }
+
             formula.Add(new ElementCount(symbol, count));
         }
 

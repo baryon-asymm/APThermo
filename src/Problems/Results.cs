@@ -46,7 +46,11 @@ public sealed record Station
     /// <summary>Null when not requested or not Ok; see <see cref="TransportStatus"/>.</summary>
     public TransportFigures? Transport { get; init; }
 
-    /// <summary>Null when transport was not requested.</summary>
+    /// <summary>
+    /// Null when transport was not requested or the station's own status was not Ok (2026-09-26, the audit fixes):
+    /// this comment used to say "null when transport was not requested" only, contrary to what <see cref="StationFactory.TransportOf"/>
+    /// always did and to the test that pinned the behaviour (<c>RocketTests.AFailingStationIsAStatusAndNotAnException</c>).
+    /// </summary>
     public CaseStatus? TransportStatus { get; init; }
 
     /// <value>The outcome of the numerical solve at this station.</value>

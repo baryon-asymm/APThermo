@@ -17,6 +17,7 @@ internal sealed class StrictObject
 
         _element = element;
         Path = path;
+        CheckNoDuplicateFields();
     }
 
     public string Path { get; }
@@ -139,6 +140,23 @@ internal sealed class StrictObject
         JsonValueKind.Undefined => "nothing",
         _ => "nothing",
     };
+
+    /// <summary>
+    /// A member given twice is refused instead of letting the last value win silently (2026-09-26, the audit's
+    /// finding 2): <see cref="JsonElement.EnumerateObject"/> yields every member in file order, duplicates included,
+    /// while <see cref="JsonElement.TryGetProperty(string, out JsonElement)"/> would quietly resolve to the last one.
+    /// </summary>
+    private void CheckNoDuplicateFields()
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in _element.EnumerateObject())
+        {
+            if (!names.Add(property.Name))
+            {
+                throw new InputException($"the field '{property.Name}' at {Path} is given twice");
+            }
+        }
+    }
 
     private JsonElement Required(string name) => Take(name) ?? throw new InputException($"missing field '{name}' at {Path}");
 

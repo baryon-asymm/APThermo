@@ -61,6 +61,7 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
             throw new ArgumentException($"no product species of the database consists of the elements {string.Join(", ", elements)} alone");
         }
 
+        SpeciesSelection.ValidateElementsHaveCandidates(database, elements, candidates);
         var table = SpeciesTable.Build(database, [.. elements], candidates);
         var transport = database.Transport is null ? null : TransportTable.Build(database.Transport, table);
         system = new ChemicalSystem([.. elements], table, engine.Upload(table, transport));

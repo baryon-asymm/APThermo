@@ -16,13 +16,28 @@ internal static class ProblemCommand
         var document = ProblemDocumentReader.Read(InputFile.ReadAllText(path), path);
         CheckProblemType(document.Problem, invocation.Command, path);
         var options = invocation.Options;
+        CheckMassToleranceApplies(document.Propellant, options);
         var accelerator = options.Accelerator ?? document.Accelerator ?? AcceleratorKind.Auto;
         using var session = SolverSession.Open(options.Database, accelerator);
         var combinations = Sweeps.Expand(document.Sweep);
         var (mixtures, ownRatio) = BuildMixtures(session.Solver, document.Propellant, combinations, options.MassTolerance);
         var cases = SolveCases(session.Solver, document, mixtures, combinations, ownRatio, path);
-        var run = session.Stop(invocation.Command, [path], new RunLimits(options.Threshold, options.MassTolerance));
+        var massTolerance = document.Propellant is ReactantPropellant ? ElementalMixture.DefaultMassTolerance : options.MassTolerance;
+        var run = session.Stop(invocation.Command, [path], new RunLimits(options.Threshold, massTolerance));
         return DocumentWriter.Write(run, cases, options, output);
+    }
+
+    /// <summary>
+    /// <c>--mass-tolerance</c> applies to a document that carries element moles; a reactant propellant's mixture is
+    /// always held to the library's own default, so the option does not apply to it (2026-09-26, Problems BOOT.md,
+    /// the audit fixes: "Mass tolerance").
+    /// </summary>
+    private static void CheckMassToleranceApplies(PropellantDocument propellant, CommandOptions options)
+    {
+        if (options.Given.Contains("mass-tolerance") && propellant is ReactantPropellant)
+        {
+            throw new InputException("option --mass-tolerance does not apply to a propellant given by reactants");
+        }
     }
 
     private static IReadOnlyList<CaseOutput> SolveCases(Solver solver, InputDocument document, IReadOnlyList<ElementalMixture> mixtures,
@@ -41,6 +56,15 @@ internal static class ProblemCommand
         {
             // The library names the mixture by its index in the batch; the document has one, at a JSON path.
             throw new InputException($"{path}: $.propellant.elementMoles: {e.Reason}");
+        }
+        catch (MixtureMassException e) when (document.Propellant is ReactantPropellant)
+        {
+            // A reactant propellant's mixture is built from a single library Propellant, held at the default
+            // tolerance; naming it "the propellant's mixture (case i)" matches the front door's own propellant path
+            // (MixtureMass.Subject) instead of the batch-over-mixtures wording this command's own Solve call would
+            // otherwise carry, since building the mixtures per combination already drops the Propellant reference
+            // (2026-09-26, Problems BOOT.md, the audit fixes: "Mass tolerance").
+            throw new InputException($"the propellant's mixture (case {e.Index}): {e.Reason}");
         }
         catch (Exception e) when (e is ArgumentException or KeyNotFoundException)
         {

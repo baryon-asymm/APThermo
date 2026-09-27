@@ -745,7 +745,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (packing is not part of `dotnet test`; the distribution phase's report has the
       transcript), not by a committed test.
 
-- [ ] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
+- [x] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
       red once against the code of `9c33398`:
       - a batch of three records split by exits, the third with pressure 0, refused
         with `Index` 2;
@@ -763,6 +763,50 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       The public surface does not move. No bit snapshot moves except the cases of a
       fixture that names `n-Butanol` or a multi-record reactant, if any; the coder
       checks for them and names them.
+
+      Ticked 2026-09-27, each fact shown red once against the pre-fix code and green
+      after, in the new `tests/Problems.Tests/AuditFixTests.cs`:
+      - `ARuleProblemValidationAppliesIsRefusedByTheRecordsOwnIndexNotABatchLocalOne`:
+        a batch of three records with the third's pressure 0 (a rocket problem,
+        non-shape rule) refused with a `StateRecordException` whose `Index` is 2,
+        red before the `noun`/`Refuse` change (a plain `ArgumentException` naming
+        `equilibrium problem 1` instead);
+      - `AnElementThatSurvivesOnlyInIonizedOrInertRecordsIsRefusedByName` and
+        `AnElementWithNoMonatomicRecordIsRefusedNamingWhatIsMissing` (naming `IC` of
+        `InertRP-1` and saying it has no monatomic record), both red before
+        `SpeciesSelection.ValidateElementsHaveCandidates` existed (the case solved,
+        or failed as `SingularMatrix`, instead of refusing);
+      - `MixedAmountKindsInOneRoleGroupAreRejected`: a fuel group of one
+        mass-fraction and one mole reactant refused, red before
+        `MixtureRule.ValidateOneAmountKindPerGroup` (the two amounts were summed
+        instead);
+      - `AMultiRecordProductNamesRangeIsTheUnionOfItsRecordsAndItsEnthalpyEqualsTheJoinedTable`:
+        `Fe2O3(cr)` accepted at 1000 K with its enthalpy equal to the joined table
+        species' at that temperature (an independent cross-check through
+        `SolverFixture.Shared.Engine` and `SpeciesFunctionBatch`, not a typed value),
+        red before `ReactantResolver.FromDatabase` took the union of every record's
+        interval (the first record's narrower range refused the case);
+      - `SeveralReactantOnlyRecordsOfOneNameResolveToTheLast`: `n-Butanol`'s
+        (`records[^1]`, the liquid) enthalpy per kilogram equal to the database
+        record's own field, not the gas record's, red before the `records[^1]` rule
+        (the first record, the gas, was taken).
+
+      `dotnet test tests/Problems.Tests`: 1117/1117, none skipped. The public surface
+      is unchanged (`tests/Protocol.Tests/PublicSurface.approved.txt` unchanged; the
+      `SurfaceTests` fact of the full run is green). No bit snapshot of this node
+      moves for these five fixes: `dotnet test APThermo.sln --filter
+      "Category!=LongRunning"` after every change here is green on the merged tree
+      (this criterion's own re-run count is in the merge's own record below), the
+      `BitSnapshotTests` of every node included, and the only lines any
+      `Bits*.approved.txt` of the tree moves on are the CSV-hash half of `Cli`'s
+      (its own criterion below); `n-Butanol` is the reactants-only section's only
+      multi-record name (`data/thermo.inp` lines 15478-15802 inspected by hand) and
+      is absent from every committed rocket and equilibrium fixture and approved
+      example, and no fixture names a product species as a reactant whose interval
+      union differs from its last record's own intervals. The `TransportStatus` doc
+      correction is a comment-only fix to `Results.cs` and this node's `API.md`; no
+      test changes because the code already matched the corrected wording
+      (`RocketTests.AFailingStationIsAStatusAndNotAnException` already pinned it).
 
 ## Taboos
 

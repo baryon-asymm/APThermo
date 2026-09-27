@@ -351,8 +351,15 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       lines turned the hash test and the equality test both red; reverted, nothing of
       the mutation committed.
 
-- [ ] 2026-09-26 — A formula line with a zero-count pair reads without that pair; a
+- [x] 2026-09-26 — A formula line with a zero-count pair reads without that pair; a
       unit fact over a one-record text, red against `9c33398`.
+
+      Ticked 2026-09-27: `ThermoLoadTests.AFormulaPairWithASymbolAndAZeroCountIsDropped`
+      shown red once against the pre-fix `ReadFormula` (it returned `[("H", 0), ("O",
+      1)]` against the expected `[("O", 1)]`), green after the fix. `dotnet test
+      tests/Data.Tests`: 43/43. `dotnet build APThermo.sln`: 0 warnings, 0 errors.
+      The database error double-prefix note is the command line's fix; its own
+      criterion records that evidence.
 
 ## Taboos
 

@@ -41,18 +41,29 @@ internal static class ReactantResolver
 
     private static ResolvedReactant FromDatabase(SpeciesDatabase database, Reactant reactant)
     {
-        if (!database.TryGet(reactant.Name, out var record))
+        var records = database.Records(reactant.Name);
+        if (records.Count == 0)
         {
             throw new KeyNotFoundException($"reactant '{reactant.Name}' is not in the database");
         }
 
-        var hasFits = record.Intervals.Count > 0;
+        // Several records of one name resolve to the last, as cea 3.3.4 does (BOOT.md, the audit fixes of
+        // 2026-09-26: reactant-only names such as n-Butanol carry a gas and a liquid record; the reference takes the
+        // liquid, the one written last). A name whose every record carries polynomial intervals (a condensed species
+        // Thermo joins into one continuous curve, e.g. Fe2O3(cr)) shares one formula and molar mass across its
+        // records, so the choice of record does not change them; only the accepted temperature range does, below.
+        var record = records[^1];
+        var hasFits = records.Any(r => r.Intervals.Count > 0);
         var t = reactant.Temperature ?? (hasFits ? Reactant.DefaultTemperature : record.AssignedTemperature);
         double low, high;
         if (hasFits)
         {
-            low = record.Intervals.Min(i => i.TLow);
-            high = record.Intervals.Max(i => i.THigh);
+            // The range Thermo's join-and-cut covers: the union of every record's intervals, not one record's own
+            // (the audit's finding 6: a first-record-only range rejected Fe2O3(cr) at 1000 K although the joined
+            // table species, which PropellantMixtures actually evaluates, covers 298.15-6000 K).
+            var intervals = records.SelectMany(r => r.Intervals).ToList();
+            low = intervals.Min(i => i.TLow);
+            high = intervals.Max(i => i.THigh);
         }
         else
         {

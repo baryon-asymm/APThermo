@@ -21,7 +21,7 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
         {
             var (mixture, problem, propellant) = cases[k];
             ArgumentNullException.ThrowIfNull(problem);
-            var target = ProblemValidation.Equilibrium(database, mixture, problem, k);
+            var target = ProblemValidation.Equilibrium(database, mixture, problem, noun, k);
             var mass = MixtureMass.Check(database, mixture, MixtureMass.Subject(propellant, noun, k), k);
             admitted[k] = new AdmittedCase(cases[k], mass, target);
         }

@@ -54,7 +54,10 @@ internal static class DatabaseFiles
         }
         catch (DatabaseFormatException e)
         {
-            throw new InputException($"{e.FileName ?? "database"}:{e.LineNumber}: {e.Message}");
+            // e.Message already carries "file:line: " (Data's own DatabaseFormatException), so it is printed as
+            // given (2026-09-26, Data BOOT.md's note): prefixing it a second time doubled it, "thermo.inp:66:
+            // thermo.inp:66: ...".
+            throw new InputException(e.Message);
         }
         catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
         {

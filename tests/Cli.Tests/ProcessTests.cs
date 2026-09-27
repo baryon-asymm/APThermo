@@ -71,4 +71,40 @@ public sealed class ProcessTests
         Assert.Equal(DatabaseFiles.EmbeddedThermoMarker, database.GetProperty("thermoPath").GetString());
         Assert.Equal(DatabaseFiles.EmbeddedTransMarker, database.GetProperty("transPath").GetString());
     }
+
+    /// <summary>
+    /// An empty <c>--output</c> value is exit 2 naming the option, as a real process (2026-09-26, the audit's
+    /// finding 9): it used to reach <c>File.WriteAllText</c> with an empty path, an unhandled
+    /// <see cref="ArgumentException"/> the process-level handler turned into exit 3.
+    /// </summary>
+    [Fact]
+    public void AnEmptyOutputValueIsExit2AsARealProcess()
+    {
+        var run = CliFixture.Shared.InvokeProcess(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--output="));
+        Assert.Equal(2, run.Code);
+        Assert.Contains("--output", run.Error, StringComparison.Ordinal);
+        Assert.Empty(run.Output);
+    }
+
+    /// <summary>
+    /// An empty <c>--database</c> value is exit 2 naming the option even when the working directory itself holds a
+    /// <c>thermo.inp</c> (2026-09-26, the audit's exact reproduction of finding 9): it used to combine to the bare
+    /// file name and silently read whatever the working directory happened to hold, exit 0.
+    /// </summary>
+    [Fact]
+    public void AnEmptyDatabaseValueIsExit2EvenWhenTheWorkingDirectoryHoldsAThermoInpFile()
+    {
+        File.Copy(Path.Combine(CliFixture.Shared.DatabasePath, "thermo.inp"), Path.Combine(CliFixture.Shared.Temp, "thermo.inp"), overwrite: true);
+        try
+        {
+            var run = CliFixture.Shared.InvokeProcess(["species", "--database="]);
+            Assert.Equal(2, run.Code);
+            Assert.Contains("--database", run.Error, StringComparison.Ordinal);
+            Assert.Empty(run.Output);
+        }
+        finally
+        {
+            File.Delete(Path.Combine(CliFixture.Shared.Temp, "thermo.inp"));
+        }
+    }
 }

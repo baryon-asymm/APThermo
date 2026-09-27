@@ -47,8 +47,14 @@ public sealed class CsvTests
         Assert.Equal(0, run.Code);
         var lines = run.Output.TrimEnd('\n').Split('\n');
         Assert.Equal(1 + 8 * 4, lines.Length);
-        Assert.StartsWith("case,oxidizerToFuel,chamberPressure,station,status,temperature,pressure,", lines[0]);
+        Assert.StartsWith("case,inputs.oxidizerToFuel,inputs.chamberPressure,station,status,temperature,pressure,", lines[0]);
         Assert.DoesNotContain("H2O", lines[0]);
+
+        // Column names are unique (2026-09-26, the audit's finding 1): the scalar inputs carry the prefix
+        // "inputs.", so an input name that also names a MixtureState field ("pressure", "temperature") no longer
+        // collides with it.
+        var header = lines[0].Split(',');
+        Assert.Equal(header.Length, header.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(",specificImpulseSeconds,", lines[0]);
         Assert.Contains(",transportStatus,", lines[0]);
         Assert.StartsWith("0,4,5000000,chamber,ok,", lines[1]);
@@ -69,6 +75,24 @@ public sealed class CsvTests
         Assert.Equal("", cells[Array.IndexOf(header, "specificImpulse")]);
         Assert.Equal("", cells[Array.IndexOf(header, "transportStatus")]);
         Assert.Equal("state", cells[Array.IndexOf(header, "station")]);
-        Assert.Equal("hp", cells[Array.IndexOf(header, "kind")]);
+        Assert.Equal("hp", cells[Array.IndexOf(header, "inputs.kind")]);
+        Assert.Equal(header.Length, header.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// The header names are unique for every case a scalar input collides with a station field (2026-09-26, the
+    /// audit's finding 1): "pressure", "temperature" and "enthalpy" of a rocket record's exit row used to carry the
+    /// chamber's own input value and the exit station's value under the same name, so pandas renamed the second
+    /// column "pressure.1" and Python's <c>csv.DictReader</c> kept only the last, losing the input value.
+    /// </summary>
+    [Fact]
+    public void TheStatesCsvHeaderNamesAreUniqueEvenWhenAnInputCollidesWithAStationField()
+    {
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("states", CliFixture.Document("states.json"), "--format", "csv"));
+        Assert.Equal(0, run.Code);
+        var header = run.Output.Split('\n')[0].Split(',');
+        Assert.Equal(header.Length, header.Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains("inputs.pressure", header);
+        Assert.Contains("pressure", header);
     }
 }

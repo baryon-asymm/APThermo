@@ -322,6 +322,13 @@ are `init` so that this node's own tests can build a comparison copy with `with`
 (`tests/Problems.Tests/EquilibriumTests.cs`), `RocketResult`'s and
 `EquilibriumResult`'s are get-only. A field added in 0.x now breaks no consumer.
 
+⚠ 2026-09-27 (the hidden-defect audit of 2026-09-26): `Station.TransportStatus`'s
+comment said "null when transport was not requested"; `StationFactory.TransportOf`
+had always also left it null when the station's own status was not `Ok`, and the test
+pinning that behaviour (`RocketTests.AFailingStationIsAStatusAndNotAnException`)
+asserted the code's actual behaviour, not the comment's. The code never changed; the
+comment now names both cases.
+
 ⚠ 2026-09-14: `RocketSweep` and `Solver.Solve(RocketSweep)` are retired (the
 clean-code review's F-PR-06): a `RocketSweep` expanded to every (ratio, chamber
 pressure) pair, all in one batch, results ratio-major then by pressure — but it built

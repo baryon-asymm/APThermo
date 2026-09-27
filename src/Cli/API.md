@@ -354,6 +354,17 @@ prefix `inputs.` (2026-09-26: so that no name repeats a state field's), `station
 are empty; compositions are not in CSV, nor is the `mixture` section (its mass
 included). Numbers are written in round-trip form.
 
+⚠ 2026-09-27 (the hidden-defect audit of 2026-09-26, findings 1 and 5): the CSV input
+columns carried the JSON member's own name, so `equilibrium`'s and `states`'
+`pressure`, `temperature`, `enthalpy` and `entropy` repeated a state field's name.
+pandas read the second column as `pressure.1`; Python's `csv.DictReader` kept only the
+last value under the shared key, so a rocket record's exit row read back the exit
+pressure under the name `pressure` where the chamber's own value belonged. The `Transport`
+comment stood "present only when transport was requested"; `StationFactory.TransportOf`
+also left it null on a station that did not converge, which the CSV and JSON writers
+already reflected (a failed station's transport cells were empty). The comment now
+names both cases; no writer changed.
+
 ⚠ 2026-09-12: the sketch had `elementMoles` and `reactantEnthalpy` on the case, a
 `performance` list per exit next to the stations, only a few named state fields, and
 no `index`, `inputs` or `mixture`. The library reports the figures per station and

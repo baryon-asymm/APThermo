@@ -539,7 +539,7 @@ Every other type of the node measures 14 or below by the dependency check's walk
       exit code 3, `InvalidOperationException: a defect of this node` on standard
       error, `dotnet run -c Release` on 2026-09-24.
 
-- [ ] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
+- [x] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
       red once against the code of `9c33398`:
       - every CSV header this node writes, over every command, format and approved
         example, has unique names;
@@ -555,6 +555,54 @@ Every other type of the node measures 14 or below by the dependency check's walk
       snapshots) is re-approved for the new header in the same commit, and nothing
       else in them moves. The schemas are unchanged: the JSON documents did not change
       shape.
+
+      Ticked 2026-09-27, each fact shown red once against the pre-fix code:
+      - `CsvTests.TheStatesCsvHeaderNamesAreUniqueEvenWhenAnInputCollidesWithAStationField`:
+        every CSV header column name is unique even when an input collides with a
+        station field name; red before `CsvOutput.HeaderOf`'s `inputs.` prefix (48
+        distinct names expected, 45 actual, the collision);
+      - `InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`
+        over `duplicate-field.json` and `states-duplicate-field.json`: a document
+        with a repeated member is exit 2 naming the field and its path, red before
+        `StrictObject`'s duplicate check (exit 0, the last value silently used);
+      - `ProcessTests.AnEmptyOutputValueIsExit2AsARealProcess`,
+        `ProcessTests.AnEmptyDatabaseValueIsExit2EvenWhenTheWorkingDirectoryHoldsAThermoInpFile`
+        and two `CommandLineTests.InvalidCommandLinesAreExit2NamingTheOffender`
+        rows (`--output=`, `--database=`): both empty-valued options are exit 2
+        naming the option, red before `OptionValues.ParsePath` (exit 3 unhandled,
+        or the working directory's `thermo.inp` silently read);
+      - `ExitCodeTests.ARuleProblemValidationAppliesIsNamedByTheRecordsFileAndLineNotABatchLocalIndex`
+        (the audit's own `misname.jsonl` reproduction: three lines, the third
+        offending): the refusal names line 3, red before the front door's
+        `noun`/`StateRecordException` change (it named line 2, the batch-local
+        index misread as the line);
+      - `ExitCodeTests.MassToleranceDoesNotApplyToAReactantPropellant` and
+        `ExitCodeTests.AReactantPropellantsMassRefusalNamesThePropellantsMixture`:
+        `--mass-tolerance` with a reactant document is exit 2, and a reactant
+        propellant's own mass refusal names `the propellant's mixture (case i)`
+        rather than `mixture i`; both red before `ProblemCommand`'s
+        `CheckMassToleranceApplies` and its `MixtureMassException` catch (exit 0
+        with the option silently ignored, and the front door's own wording);
+      - `ExitCodeTests.AMalformedDatabaseLineIsReportedWithOnePrefix`: a malformed
+        database line is reported with exactly one `file:line:` prefix, red before
+        `DatabaseFiles.ReadDatabase` dropped the redundant one (`thermo.inp:5758:
+        thermo.inp:5758: …` doubled).
+
+      Every approved CSV output this node's own tests carry is re-approved for the
+      new header in the same commit as the fix, and the bit snapshot moves on no
+      other line (`Cli.Tests/Bits.approved.txt`'s diff: the JSON-hash half of every
+      line is unchanged, the CSV-hash half of every line that has a CSV form moved,
+      `species` — which has none — unchanged; `Bits.linux.approved.txt` is re-approved
+      by the owner under WSL, outside this coder's evidence). The docs tests node
+      carries no approved CSV output (`tests/Docs.Tests` stayed 29/29 unchanged
+      through this fix), so it needed no re-approval. The schemas are unchanged: the
+      JSON documents did not change shape.
+
+      `dotnet test tests/Cli.Tests`: 129/129, none skipped.
+      `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`:
+      green on the merged tree (the merge commit's own record has the final count).
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors. The protocol lint: 0 errors,
+      0 warnings. The public surface is unchanged.
 
 ## Taboos
 
