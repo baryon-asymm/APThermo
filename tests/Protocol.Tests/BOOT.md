@@ -1337,6 +1337,13 @@ Each fact is shown red once by a mutation applied alone and restored:
       and every `API.md` ✅ tree-contract block agrees with it. Mutation (4) is re-run
       on a public type and its message recorded.
 
+- [ ] 2026-09-27 — No `Math.Min` or `Math.Max` in the numerical nodes (the root's math
+      constraint of this date). A reflection fact reads the IL of every method of the
+      numerical assemblies and refuses a call to `System.Math.Min` or `System.Math.Max`
+      of any overload. The same fact refuses `double.IsNaN` and `double.IsNegative`
+      outside the thermo node's `KernelMath`. It fails on an empty set of methods, and
+      is red once with one call site restored.
+
 ## Taboos
 
 - Do not make a check pass by editing the documents when the check is wrong: fix the check.

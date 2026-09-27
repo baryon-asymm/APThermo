@@ -169,6 +169,12 @@ libdevice for the CUDA category.
     special input. If CUDA and the CPU accelerator differ on any, the coder stops and
     reports the list; the decision on it is the owner's, since it bears on the root's
     GPU-equals-CPU invariant. No tolerance is widened, and no input is dropped to pass.
+  - Measured 2026-09-27 on the reference device, by the coder of that day: every
+    function of the list equals the CPU accelerator on every input, except `Math.Min`
+    and `Math.Max` with a NaN operand (CPU NaN, CUDA the other operand). The owner
+    decided the root's `KernelMath`. The probe therefore runs `KernelMath.Min` and
+    `KernelMath.Max` in place of `Math.Min` and `Math.Max`, and they must equal the CPU
+    on every input, NaN included.
 
 ## Acceptance criteria
 

@@ -105,8 +105,27 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - The functions and the view are kernel-compatible C# (static methods, blittable
   structs, no allocation, no exceptions). The builder is ordinary .NET.
 - Size limits are fixed here because they size the scratch of every consumer: at most
-  20 elements, at most 2 048 species per table, at most 5 intervals per species
-  (after concatenation; the builder refuses an overflow by name).
+  20 elements, at most 2 048 species per table, at most 6 intervals per species
+  (after concatenation; the builder refuses an overflow by name). The interval limit is
+  at least the largest interval count of a product record of the committed file after
+  the join, which a test computes from the file (2026-09-27).
+
+  ⚠ 2026-09-27: stood "at most 5 intervals per species". `NaCN(II)` has six intervals
+  in one record, the only such product record of the committed file, so every table
+  whose elements include Na, C and N was refused. `apthermo equilibrium` on NaNO3(a) and
+  RP-1 at O/F 4, 7 MPa, hp, printed "species 'NaCN(II)' has 6 intervals, more than the
+  limit of 5" at `1dfc44e`, and the front door let the builder's `ArgumentException`
+  through. Found by the Thermo coder of 2026-09-27 while testing the latent-heat
+  threshold; the orchestrator's scan with the generator's reader confirmed that no
+  other record exceeds 5.
+- **`KernelMath`** (2026-09-27, the root's math constraint): `Min(double, double)` and
+  `Max(double, double)` for every numerical node. They return what `System.Math.Min`
+  and `System.Math.Max` return for every pair of doubles, NaN and signed zeros included,
+  since that is the CPU accelerator's result. They are written with comparisons and
+  selections only, following the logic of .NET's own implementation: NaN if either
+  operand is NaN, −0 below +0. So both accelerators run the same instructions. The
+  names `double.IsNaN` and `double.IsNegative` are allowed inside `KernelMath`, and
+  nowhere else in the numerical nodes, if ILGPU compiles them without libdevice.
 - The join-and-cut threshold is `SpeciesFunctions.LatentHeatThreshold` = 5e-3 on
   `|ΔH°/RT|` at a shared bound (2026-09-27). It is the one constant separating a real
   latent heat from fit noise, and it lives here because the equilibrium node's pair
@@ -407,6 +426,24 @@ of 14: no efferent coupling row is needed.
       Evidence: `dotnet test tests/Thermo.Tests`, 1177/1177 (three new facts); the
       three facts shown red once against the code of `9c33398` (threshold 1e-3) and
       green after `LatentHeatThreshold` was raised to 5e-3.
+
+- [ ] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence due:
+      - a fact computes the largest interval count of every product record after the
+        join from the committed file, asserts it is at most the limit, fails on an
+        empty file, and is red at 5;
+      - NaNO3(a) with RP-1 builds a table and solves hp `Ok`, compared with a reference
+        fixture of the fixtures node (an hp case the fixtures node adds to its matrix);
+      - no bit snapshot moves apart from the keys of that new fixture.
+- [ ] 2026-09-27 — `KernelMath` (Constraints). Evidence due:
+      - a CPU fact compares `KernelMath.Min` and `Max` with `System.Math` bit for bit
+        over every ordered pair of a set holding ±0, ±∞, NaN, the subnormal bounds,
+        equal values and a random sample; it is red once with a NaN branch removed;
+      - the execution node's probe runs them on CUDA, and they equal the CPU on every
+        pair (the execution tests node's criterion of the same date);
+      - the cost, which the owner asked about: the CUDA and CPU times of the
+        throughput sweep in Release, as the median of three runs before and after
+        the change, are recorded here. A CUDA time more than 2 % slower goes to the
+        owner before the change is merged.
 
 ## Taboos
 

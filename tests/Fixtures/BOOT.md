@@ -240,6 +240,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   thousand files for the same coverage of the tp, hp and sp paths; narrowed to one
   case per propellant plus the two rocket examples when the generator was written.
 
+  - A sodium case (2026-09-27): NaNO3(a) with RP-1, both at 298.15 K, O/F 4, 7 MPa,
+    one hp case. It holds the six-interval `NaCN(II)` among its products, which the
+    thermo node refused until that day (its `BOOT.md`).
   - `throat` (2026-09-27): the chamber and the throat of a shifting-equilibrium
     rocket, with no exit, where the throat is the largest mass flux `ρu` along the
     chamber isentrope, found over the package's own sp solves and never taken from its

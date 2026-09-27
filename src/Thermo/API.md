@@ -233,6 +233,19 @@ last interval's upper bound. For the nine condensed records that begin with an i
 piece (300 → 298.15 K) that excluded the phase between 298.15 and 300 K, where the
 reference admits it. The signatures are unchanged; `BOOT.md` has the measurement.
 
+## Kernel minimum and maximum (tree contract) ⏳
+
+```csharp
+internal static class KernelMath
+{
+    public static double Min(double a, double b);   // equals System.Math.Min(a, b) bit for bit, on both accelerators
+    public static double Max(double a, double b);   // equals System.Math.Max(a, b) bit for bit, on both accelerators
+}
+```
+
+Planned (`BOOT.md`, 2026-09-27). It moves under ✅ once the code carries it, and the
+table limits above then read `MaxIntervalsPerSpecies = 6`.
+
 ## Errors
 
 | Situation | Behaviour |

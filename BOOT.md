@@ -244,11 +244,25 @@ delivery (2026-09-15, `## Delivery` below).
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
   the case index is the thread index.
 - Math in numerical nodes: only the `double` overloads of `System.Math` from this
-  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Min`, `Max`, `Floor`, `Ceiling`,
-  plus the constant `Math.PI`, which the compiler inlines and which needs no wrapper
-  (the transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
-  architecture review found the eleventh name unlisted). Adding a function is a root
-  decision, because the execution node must provide its libdevice wrapper.
+  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Floor`, `Ceiling`, plus the
+  constant `Math.PI`, which the compiler inlines and which needs no wrapper (the
+  transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
+  architecture review found the eleventh name unlisted). The minimum and the maximum
+  come from the thermo node's `KernelMath.Min` and `KernelMath.Max`, never from
+  `Math.Min` or `Math.Max` (2026-09-27). Adding a function is a root decision, because
+  the execution node must provide its libdevice wrapper.
+
+  ⚠ 2026-09-27: `Min` and `Max` stood in the list. ILGPU compiles `Math.Min` and
+  `Math.Max` to PTX `min.f64` and `max.f64`, which return the other operand when one is
+  NaN, while .NET returns NaN. The guards audit's probe inputs (F11) measured it on the
+  reference device: `Min(NaN, 1)` and `Max(NaN, 1)` are NaN on the CPU accelerator and
+  1 on CUDA, the only divergence over the whole probed domain. The numerical nodes call
+  them in the convergence tests, the damped step, the row scaling of the linear solve
+  and the station velocity. There a NaN fails a case on the CPU and passes on the GPU:
+  a false `Ok`, or a velocity of 0 in place of NaN. The owner chose functions of the
+  tree's own, written once in comparisons and selections, so that both accelerators run
+  the same instructions and propagate NaN as .NET does. Documenting the divergence, or
+  proving that no NaN reaches any call, were the alternatives.
 - ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
   `compute_100` and newer (Blackwell): it emits the NVVM version metadata before the
   target lines, libnvvm rejects that module for those targets, and ILGPU silently drops
