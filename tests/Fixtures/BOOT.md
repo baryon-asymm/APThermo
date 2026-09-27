@@ -13,8 +13,10 @@ node generates the outputs itself, from committed scripts, and records how.
 ## Invariants
 
 - **Every fixture carries its provenance**: package name and version, the library
-  version string the package reports, the method (`cea-package` or
-  `independent-evaluation`), the script name and its SHA-256, the SHA-256 of the
+  version string the package reports, since 2026-09-27 the SHA-256 of the whole
+  generator (`generatorSha256`, defined in `generate/BOOT.md`), the method (`cea-package`,
+  `independent-evaluation`, or `cea-package-mass-flux-scan` for the throat family below,
+  2026-09-27), the script name and its SHA-256, the SHA-256 of the
   package's `thermo.lib` and `trans.lib`, the SHA-256 of the tree's `data/thermo.inp`
   and `data/trans.inp`, and the generation date. The date is the day the content last
   changed: the writer leaves a fixture untouched when the regenerated document differs
@@ -70,21 +72,38 @@ verified by [Fixtures.Tests](../Fixtures.Tests/BOOT.md)).
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Layout: `generate/` holds the Python scripts and `requirements.txt`; `cases/<kind>/`
-  holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `transport`,
-  `thermo`, `constants`); `tolerances.json` is the tolerance table; the C# loader is
+  holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `throat`,
+  `transport`, `thermo`, `constants`; `throat` since 2026-09-27); `tolerances.json` is the tolerance table; the C# loader is
   the node's assembly `APThermo.Fixtures`.
 - Procedure: `python -m venv tests/Fixtures/generate/.venv`, install
   `requirements.txt` into it, then `python tests/Fixtures/generate/regenerate.py`
   (writes changed fixtures, removes stale ones) or `regenerate.py --check` (compares
   only, exit code 1 on any difference). Each script also runs standalone and sweeps
   only the kinds it produces.
+
+  ⚠ 2026-09-27: "sweeps only the kinds it produces" reads as if a standalone run were
+  always safe, but a kind directory several scripts share (`tp`, `hp`, `sp` and
+  `rocket` are each written by `propellants.py`, `rp1311.py`, `plateaus.py` and, for
+  `tp`, `low_temperature.py` and `condensed_phase_limit.py` too) has no script that
+  "produces" it alone: a standalone run of one script still sweeps that whole
+  directory, since the sweep only knows the paths its own run wrote, and removes or
+  reports as stale every fixture the *other* scripts placed there. Found by the coder
+  of this date: `python propellants.py` alone removed 93 committed fixtures of `rp1311.py`,
+  `plateaus.py`, `low_temperature.py` and `condensed_phase_limit.py` and rewrote more
+  (`git status`, immediately reverted with `git checkout --`). A standalone run is safe
+  only for a kind exactly one script writes (`constants`, `thermo`, `transport`,
+  `throat`); regenerating a shared kind, or committing any change to a script that
+  writes one, goes through the full `regenerate.py` driver, never a single family
+  script alone.
 - The node also owns the repository-path resolution every test node uses
   (`RepositoryPaths`): the root is the nearest directory above this node's source file
   that holds `AGENTS.md`, found with `[CallerFilePath]`, never by `../..` chains or
   from the binary's location (AGENTS.md §13).
 - Fixture document: `{ "case": { "name", "kind", "inputs" }, "generator": { provenance },
   "outputs": { by name, SI } }`. Inputs carry the reactants (name or custom definition,
-  mass fraction, temperature), `elementMoles` in kmol per kg computed by the generator
+  mass fraction, temperature, and since 2026-09-27 `role`, `oxidizer` or `fuel`, in every
+  case given with an oxidizer-to-fuel ratio, from the vectors the generator splits the
+  kilogram with), `elementMoles` in kmol per kg computed by the generator
   from the file's formulas and the recorded mass fractions, `products` (the species
   list the package used), `omit` (the names given to the package, whether or not each
   names a product: the package ignores the rest), `only` when the case was given an
@@ -239,7 +258,54 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   thousand files for the same coverage of the tp, hp and sp paths; narrowed to one
   case per propellant plus the two rocket examples when the generator was written.
 
-  - `thermo`: `Cp°/R`, `H°/RT`, `S°/R`, `G°/RT` for the species listed in
+  - A sodium case (2026-09-27): NaNO3(a) with RP-1, both at 298.15 K, O/F 4, 7 MPa,
+    one hp case. It holds the six-interval `NaCN(II)` among its products, which the
+    thermo node refused until that day (its `BOOT.md`).
+  - `throat` (2026-09-27): the chamber and the throat of a shifting-equilibrium
+    rocket, with no exit, where the throat is the largest mass flux `ρu` along the
+    chamber isentrope, found over the package's own sp solves and never taken from its
+    rocket solver. It exists because the package's rocket solver reports a wrong
+    throat at the high-pressure edge of a melting plateau, while its equilibrium
+    solves there are sound. The performance node's `BOOT.md` states the defect, and
+    RP-1311 sections 6.3.3 and 6.3.4 define the throat this family computes.
+    - Cases, the enthalpy assigned relative to the reactants' own `h₀`:
+      - AP/HTPB/Al of the plateau cases above at 7 MPa, `h₀` − 2.20, − 2.225,
+        − 2.25, − 2.275 and − 2.30 MJ/kg;
+      - the same at 1, 3 and 15 MPa, `h₀` − 2.25 MJ/kg;
+      - RP-1311 example 13's propellant at 5 MPa, `h₀` and `h₀` + 250 kJ/kg, with
+        its trace threshold.
+    - Method, per case:
+      1. The chamber is the package's hp at the assigned enthalpy and `p_c`.
+      2. `ρu` is evaluated on 101 pressure ratios `p/p_c` evenly from 0.45 to 0.70,
+         each an sp solve at the chamber's entropy with `u = √(2(h_c − h))`. The
+         largest must lie strictly inside the grid, or the run stops.
+      3. The bracket of its two neighbours is refined by ternary search on `ρu` for
+         50 steps.
+      4. The throat is the sp solve at the bracket's high-pressure end, the chamber
+         side. At a plateau edge that is the single-phase state, as the performance
+         node defines it; elsewhere the two ends agree to rounding.
+      5. The throat's figures: pressure ratio `p_c/p`, `c* = p_c/(ρu)`, velocity and
+         specific impulse `u`, thrust coefficient `u/c*`, area ratio 1, Mach `u/a`
+         with the equilibrium sound speed.
+    - A guard proves the method on every case before it is written. The package's
+      rocket solver runs the same case. Where its throat is sonic (`|Mach − 1|` ≤
+      1e-4), the scan's c* must equal the package's within 1e-5 relative, or the run
+      stops. Where it is not, the generator logs both c* values, and the fixture records
+      the package's throat under `outputs.packageRocketThroat` (c*, Mach, pressure
+      ratio) for the record. No test compares with that object.
+    - Measured 2026-09-26/27 with the scratch versions of this method:
+      - AP/HTPB/Al at 7 MPa, `h₀` − 2.20, − 2.225, − 2.30 MJ/kg: 1336.537, 1333.066
+        and 1333.226 m/s, equal to the package's printed c* to 0.001 m/s;
+      - `h₀` − 2.25 and − 2.275: 1330.444 and 1330.435 m/s, where the package prints
+        1411.722 and 1359.032;
+      - example 13 at 5 MPa, `h₀`: 1957.753 m/s on the BeO plateau, the package
+        1957.755, both at Mach 1;
+      - `h₀` + 250 kJ/kg: 1941.006 m/s at `p/p_c` 0.612894, where `u²/a²` is 0.880
+        on the chamber side and 1.014 on the plateau. The package prints 1949.759 at
+        Mach 0.9335, solved at `p/p_c` 0.613466.
+    - The document is that of the rocket kind, with `stations` holding the chamber
+      and the throat only, and `inputs` marking `enthalpyAssigned` as the hp band
+      cases do. Frozen flow is not generated: a frozen throat has no plateau.
     `thermo_functions.py` (gaseous and condensed records, one with four intervals), at
     those of 200, 298.15, 500, 1000, 1000.0001, 2000, 3000, 5000, 6000 K that lie in the
     record's range, the record's first bound, midpoint and last bound (so that a narrow
@@ -381,6 +447,131 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       `ReadProvenance`, each argument now reading its own named field directly; the
       re-verification is this tick's own evidence, not a new one.
 
+
+- [x] 2026-09-27 — The throat family (the case matrix): `tests/Fixtures/generate/throat_scan.py`
+      (merged as `efe7d7e`), registered in `regenerate.py`.
+      - `regenerate.py` writes the ten cases, and `regenerate.py --check` exits 0 right
+        after (over all 327 fixtures of every kind).
+      - The method guard (cea's own rocket throat, wherever it is sonic within 1e-4 of
+        Mach 1, must match the scan's c* within 1e-5 relative) was shown red once by
+        cutting the grid to exclude the true peak (`the largest mass flux lies at the
+        grid edge`, on the sonic dh −2.20 MJ/kg AP/HTPB/Al case at 7 MPa), and again by
+        perturbing the scan's returned c* by 1 % on the same case (`scan c* … against
+        the package's sonic throat c* …`); both reverted before this tick. The other
+        named mutation, the bracket's high-pressure end replaced by the low one, was
+        tried first and found degenerate on a regular (non-plateau) case: the two ends
+        agree to rounding there (`BOOT.md`'s own Method step 4), so the swap moves
+        nothing and cannot serve as red-once evidence; the grid-edge and the
+        c*-perturbation mutations replace it.
+      - The loader reads the kind (`FixtureLoadingTests.TheKindsPresentAreThoseOfTheCaseMatrix`,
+        `EveryFixtureNamesTheScriptThatWroteIt` now knows `cea-package-mass-flux-scan`)
+        and `ToleranceTableTests.EveryStateFieldOfTheFixturesHasATolerance` covers its
+        form (`[InlineData("throat")]`, alongside `rocket`, whose `stations` array shape
+        it shares); `tests/Fixtures.Tests` 28/28 green.
+      - The logged c* values reproduce the measurements above to 0.001 m/s: 1336.5371,
+        1333.0661, 1330.4435, 1330.4352, 1333.2261 m/s at 7 MPa; 1957.7526 and
+        1941.0062 m/s for example 13 (against 1336.537, 1333.066, 1330.444, 1330.435,
+        1333.226, 1957.753 and 1941.006 m/s recorded above).
+
+      ⚠ 2026-09-27, found while writing the guard: `cea_cases.solve_rocket` raises
+      *before* Mach or c* can be read from its `RocketSolution`, because its own
+      station guard (`guard_stations`, the multi-station entropy-consistency check)
+      runs right after the solve and is exactly what catches the chamber/throat
+      inconsistency at a plateau edge — the defect this family exists to work around.
+      The design's wording ("the fixture records the package's throat under
+      `outputs.packageRocketThroat` (c*, Mach, pressure ratio)") assumed the package's
+      Mach would always be readable even when far from 1; empirically it is not, for
+      exactly the cases that need the fallback. `packageRocketThroat` therefore holds
+      `{"cStar", "mach", "pressureRatio"}` when the package's own solve and guard both
+      pass, and `{"guardError": "…"}` (the guard's message) when they do not; no test
+      reads either shape.
+
+      ⚠ 2026-09-27: `throat_scan.py` reuses `plateaus.py`'s AP/HTPB/Al composition and
+      `rp1311.py`'s example 13 mixture by import, as this node's Constraints require.
+      `rp1311.py`'s `example13()` built its reactants, temperatures, O/F ratio, insert
+      list and trace threshold as local variables; they are now module-level constants
+      (`EXAMPLE13_REACTANTS`, `EXAMPLE13_TEMPERATURES`, `EXAMPLE13_OF_RATIO`,
+      `EXAMPLE13_INSERT`, `EXAMPLE13_TRACE`) plus an `example13_mixture()` builder, with
+      no change to any computed value. `cea_cases.solve_rocket` gained an optional
+      `enthalpy` override (the scan's assigned enthalpy, not the reactants' own) and
+      `rocket_inputs` an optional `extra` dict, mirroring `equilibrium_inputs`, for the
+      `enthalpyAssigned` marker the hp band cases already carry. Touching `rp1311.py`'s
+      bytes re-provenanced (new `scriptSha256`, `generatedOn`) all 63 of its
+      already-committed fixtures; verified field by field (every key but `generator`)
+      that none of them differs from the committed ones. This is the ordinary
+      consequence of the first invariant above ("fixtures are generated, never
+      edited") applied to a shared generator module, not a hand edit, and is recorded
+      here rather than left to be found in the diff.
+
+- [x] 2026-09-27 — The sodium case (the case matrix): `propellants.py` gains
+      `sodium_hp`, one hp case (`cases/hp/nano3-rp1_of4_pc7MPa.json`) of NaNO3(a) with
+      RP-1, both at 298.15 K, O/F 4, 7 MPa, generated the way `plateaus.py`'s
+      `fuel_rich_hp` generates a standalone hp case (`make_mixtures`,
+      `describe_reactants`, `solve_equilibrium`, `equilibrium_inputs`), transport off as
+      every equilibrium-only case is.
+      - The package converges (`converged: true`) to 1741.58 K; its candidate product
+        list carries `NaCN(II)`, the six-interval record `Thermo`'s table limit refused
+        until this date (its `BOOT.md`), at mole fraction 0.0 in the solution — the case
+        exists for the candidate list, not for a nonzero `NaCN(II)` composition.
+      - `regenerate.py --check` exits 0 over all 328 fixtures after `regenerate.py`
+        writes the one new file.
+      - Touching `propellants.py` re-provenanced (new `scriptSha256`, `generatedOn`) all
+        135 of its already-committed fixtures; verified the same way as the `rp1311.py`
+        entry above (`git diff --numstat`: every one of the 135 changes exactly 2 lines,
+        and grep over the diff's added and removed lines found none outside
+        `scriptSha256` and `generatedOn`). The ordinary consequence of the first
+        invariant, as above, not a hand edit.
+- [x] 2026-09-27 — Every reactant of a case given with an oxidizer-to-fuel ratio records
+      its `role`, written by the generator from the oxidizer and fuel vectors it passes
+      to the package. `regenerate.py --check` exits 0 after the regeneration, and
+      `Fixtures.Tests` refuses a ratio case whose reactant lacks a role, red once on a
+      copy.
+
+      ⚠ 2026-09-27: the role lived nowhere in the fixtures. The front door's tests
+      guessed it from a hand-typed set of five oxidizer names, which the sodium case's
+      `NaNO3(a)` was missing from: both reactants read as fuel, and four facts threw
+      "an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel". Found by
+      the coder who added the case.
+
+      Evidence: `cea_cases.describe_reactants` gains `oxidizer` and `fuel` parameters
+      (the same vectors the caller already built for `of_ratio_to_weights`) and writes
+      each reactant's `role` (`"oxidizer"` where the oxidizer vector is positive,
+      `"fuel"` where the fuel vector is positive, nothing when the case carries no
+      ratio) — never a name list. Every ratio call site of `propellants.py`, `rp1311.py`
+      and `plateaus.py` passes its own vectors through; `throat_scan.py`'s
+      `example13_throats` imports `rp1311.py`'s newly hoisted `EXAMPLE13_OXIDIZER`/
+      `EXAMPLE13_FUEL` constants for the same reason `example13_mixture` was already
+      shared, never by copy.
+      - `regenerate.py` (full driver only, the standalone-run hazard above) writes 224
+        fixtures; `regenerate.py --check` exits 0 over all 328 immediately after.
+      - A structural, field-by-field comparison of every changed fixture against its
+        previous committed content (every key but `role`, `generator.scriptSha256` and
+        `generator.generatedOn`) found zero mismatches over the 224 files: 175 gained a
+        `role` on each reactant, the rest were re-provenanced only, by touching the
+        shared scripts (`propellants.py`, `rp1311.py`, `plateaus.py`, `throat_scan.py`).
+      - `CeaFixtures.Load` refuses a reactant of a ratio case with no `role`
+        (`RequireReactantRoles`, naming the file and the reactant's index);
+        `MalformedFixtureTests.ARatioCaseReactantWithNoRoleIsRejected` proves it on a
+        copy in a temporary directory, shown red once by relaxing the guard so it never
+        ran (reverted before this tick); `ARoleIsNotRequiredWithoutARatio` proves a
+        role is not demanded where there is no ratio. `dotnet test tests/Fixtures.Tests`:
+        30/30, `FixtureLoadingTests` confirming every committed fixture still loads.
+
+- [ ] 2026-09-27 — The provenance ties every fixture to the committed generator (the
+      guards audit of 2026-09-26, F7). Evidence due, in `Fixtures.Tests`, each red once
+      and failing on an empty set:
+      - every fixture's `scriptSha256` equals the hash of its named script as committed;
+      - every fixture's `generatorSha256` equals the hash the test computes over
+        `generate/` by the rule of `generate/BOOT.md`;
+      - all fixtures carry one `thermoLibSha256` and one `transLibSha256`;
+      - `regenerate.py --check` exits 0 after the regeneration that adds the field, and
+        no fixture changes beyond its provenance.
+
+      ⚠ 2026-09-26, the guards audit's F7: only the length of the three hashes was
+      checked, and the recorded script hash covered the entry script, not the modules
+      it imports (the SI factors in `common.py`, the derived fields and the station
+      guard in `cea_cases.py`). A fixture whose `scriptSha256` was replaced by 64 zeros
+      left `Fixtures.Tests` 26/26 green.
 
 ## Taboos
 

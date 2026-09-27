@@ -28,6 +28,9 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     /// <inheritdoc />
     public long BytesPerCase => _transfer == ChunkTransfer.Constant ? 0 : _perCase * Unsafe.SizeOf<T>();
 
+    /// <inheritdoc />
+    public long ElementsPerCase => _transfer == ChunkTransfer.Constant ? 0 : _perCase;
+
     private MemoryBuffer1D<T, Stride1D.Dense> Allocated =>
         _buffer ?? throw new InvalidOperationException("the chunk buffers have not been allocated yet.");
 

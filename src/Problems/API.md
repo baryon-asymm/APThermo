@@ -284,7 +284,7 @@ public sealed record Station               // internal constructor (M1): a consu
     public IReadOnlyDictionary<string, double> MoleFractions { get; init; }  // every species of the table, n_j over the moles of all species
     public IReadOnlyDictionary<string, double> CondensedMassFractions { get; init; }   // every condensed species, n_j M_j
     public TransportFigures? Transport { get; init; }                        // null when not requested or not Ok
-    public CaseStatus? TransportStatus { get; init; }                        // null when transport was not requested or the station did not converge (2026-09-27)
+    public CaseStatus? TransportStatus { get; init; }                        // null when transport was not requested or the station did not converge (2026-09-26)
     public CaseStatus Status { get; init; }
 }
 

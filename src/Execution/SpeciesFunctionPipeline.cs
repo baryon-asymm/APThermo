@@ -30,7 +30,7 @@ internal static class SpeciesFunctionPipeline
         var sBuffer = buffers.Output(sOverR, 1);
         var rangeBuffer = buffers.Output(inRange, 1);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, options);
+        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options);
         buffers.Allocate(plan.Size);
         var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
         BatchRun.Execute(session, plan, buffers, timer,

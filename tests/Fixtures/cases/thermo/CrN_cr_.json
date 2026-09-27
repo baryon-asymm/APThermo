@@ -1,0 +1,167 @@
+{
+  "case": {
+    "name": "CrN(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "CrN(cr)",
+      "line": 11769,
+      "phase": "condensed",
+      "molarMass": 66.0028,
+      "intervals": [
+        [
+          300.0,
+          298.15
+        ],
+        [
+          298.15,
+          400.0
+        ],
+        [
+          400.0,
+          2500.0
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ],
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        283.24249999999995,
+        298.15,
+        500.0,
+        1000.0,
+        1000.0001,
+        1399.075,
+        2000.0,
+        2500.0,
+        2625.0
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "64d5524e62075ec71cd4bc96a4b43cb4d0dc6e091d32a11958ccafd7a96ee6bf",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 283.24249999999995,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 5.953070049978673,
+        "hOverRT": -50.06897956898814,
+        "sOverR": 4.220486869263255,
+        "gOverRT": -54.289466438251395
+      },
+      {
+        "temperature": 298.15,
+        "inRange": true,
+        "interval": 0,
+        "cpOverR": 6.3355507415564984,
+        "hOverRT": -47.25831507075035,
+        "sOverR": 4.535564935921896,
+        "gOverRT": -51.79388000667225
+      },
+      {
+        "temperature": 500.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.0133376994625,
+        "hOverRT": -25.8309339517293,
+        "sOverR": 7.536814348828061,
+        "gOverRT": -33.36774830055736
+      },
+      {
+        "temperature": 1000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.3849371638,
+        "hOverRT": -9.817959595167125,
+        "sOverR": 11.816282094979314,
+        "gOverRT": -21.63424169014644
+      },
+      {
+        "temperature": 1000.0001,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.384937243296316,
+        "hOverRT": -9.81795797487761,
+        "sOverR": 11.816282733473,
+        "gOverRT": -21.63424070835061
+      },
+      {
+        "temperature": 1399.075,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 6.703016856962885,
+        "hOverRT": -5.150806715480303,
+        "sOverR": 14.010885851807817,
+        "gOverRT": -19.16169256728812
+      },
+      {
+        "temperature": 2000.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 7.183676176149999,
+        "hOverRT": -1.5172929629428191,
+        "sOverR": 16.48650765951494,
+        "gOverRT": -18.003800622457756
+      },
+      {
+        "temperature": 2500.0,
+        "inRange": true,
+        "interval": 2,
+        "cpOverR": 7.585857859394501,
+        "hOverRT": 0.2634442031763754,
+        "sOverR": 18.133060171127873,
+        "gOverRT": -17.869615967951496
+      },
+      {
+        "temperature": 2625.0,
+        "inRange": false,
+        "interval": 2,
+        "cpOverR": 7.67953642726574,
+        "hOverRT": 0.6143828649735033,
+        "sOverR": 18.505464518254804,
+        "gOverRT": -17.8910816532813
+      }
+    ]
+  }
+}

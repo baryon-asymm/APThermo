@@ -6,8 +6,15 @@ using APThermo.Thermo;
 
 namespace APThermo.Problems.Tests;
 
-/// <summary>One caveat set applied to one comparison: transport requested, a frozen station, a singular or defective reference (Problems.Tests BOOT.md, invariants).</summary>
-internal readonly record struct StationCaveats(bool Transport, bool Frozen, bool ReferenceDefective = false, bool SingularReference = false);
+/// <summary>
+/// One caveat set applied to one comparison: transport requested, a frozen station, a singular or defective reference
+/// (Problems.Tests BOOT.md, invariants). <paramref name="FreezingStationReference"/> is the reference's own freezing
+/// station (chamber or throat), used to key the frozen-station cv skip on the reference's defect signature rather than
+/// on the <see cref="Frozen"/> flag alone (BOOT.md, 2026-09-26, the guards audit's F5/F6); null when <see cref="Frozen"/>
+/// is false or the case has no freezing station (a shifting-equilibrium flow, or a tp/hp/sp problem).
+/// </summary>
+internal readonly record struct StationCaveats(
+    bool Transport, bool Frozen, bool ReferenceDefective = false, bool SingularReference = false, JsonElement? FreezingStationReference = null);
 
 /// <summary>
 /// One result station against one fixture station or state, the field list taken from the fixture: state and performance
@@ -90,7 +97,8 @@ internal static class ReferenceComparison
             }
 
             var expected = property.Value.GetDouble();
-            if (caveats.Frozen && ReferenceCaveats.NotAtFrozenStations.Contains(name))
+            if (caveats.Frozen && ReferenceCaveats.NotAtFrozenStations.Contains(name)
+                && IsFrozenCvDefectSignature(expected, caveats.FreezingStationReference, name))
             {
                 continue;
             }
@@ -136,6 +144,14 @@ internal static class ReferenceComparison
             }
         }
     }
+
+    /// <summary>
+    /// The frozen-station cv defect's own signature on the reference (BOOT.md, 2026-09-26, the guards audit's F5/F6): the
+    /// reference's <paramref name="name"/> at this frozen station is either exactly zero, or exactly the freezing
+    /// station's own recorded value for the same field. Anywhere else the field is compared like any other.
+    /// </summary>
+    private static bool IsFrozenCvDefectSignature(double expected, JsonElement? freezingStationReference, string name) =>
+        expected == 0.0 || (freezingStationReference is { } freeze && expected == freeze.GetProperty(name).GetDouble());
 
     /// <summary>A numeric station output as a field of MixtureState or PerformanceFigures.</summary>
     private static double FieldValue(Station station, string name)

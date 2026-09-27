@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using APThermo.Execution.Chunks;
 using APThermo.Performance;
+using APThermo.Thermo;
 using APThermo.Transport;
 
 namespace APThermo.Execution.Tests;
@@ -217,15 +218,125 @@ public sealed class AcceleratorChoiceTests
     public void ChunksAreBoundedByTheChunkSizeAndTheScratchMemory()
     {
         var small = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10, ScratchBytes = 1000 };
-        Assert.Equal(10, ChunkPlan.For(1000, 12, small).Size);            // by chunk size
-        Assert.Equal(5, ChunkPlan.For(1000, 200, small).Size);            // by memory: 200 bytes per case against the 1000 allowed
-        Assert.Equal(1, ChunkPlan.For(1000, 8000, small).Size);           // never below one case
-        Assert.Equal(3, ChunkPlan.For(3, 12, small).Size);                // never above the count
-        Assert.Equal([new Chunk(0, 10), new Chunk(10, 10), new Chunk(20, 5)], ChunkPlan.For(25, 12, small).Chunks());
+        Assert.Equal(10, ChunkPlan.For(1000, 12, 1, small).Size);            // by chunk size
+        Assert.Equal(5, ChunkPlan.For(1000, 200, 1, small).Size);            // by memory: 200 bytes per case against the 1000 allowed
+        Assert.Equal(1, ChunkPlan.For(1000, 8000, 1, small).Size);           // never below one case
+        Assert.Equal(3, ChunkPlan.For(3, 12, 1, small).Size);                // never above the count
+        Assert.Equal([new Chunk(0, 10), new Chunk(10, 10), new Chunk(20, 5)], ChunkPlan.For(25, 12, 1, small).Chunks());
         _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 0 }));
         var refused = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = 0 }));
         Assert.Contains("scratch bound", refused.Message, StringComparison.Ordinal);
         _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
+    }
+
+    /// <summary>A half-given explicit library path pair (BOOT.md, the audit's observations) is refused at <c>Create</c>, naming
+    /// the missing option, rather than silently falling through to discovery as `("", path)` used to.</summary>
+    [Fact]
+    public void AHalfGivenExplicitLibraryPairIsRefused()
+    {
+        var missingBitcode = Assert.Throws<ArgumentException>(
+            () => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, LibNvvmPath = @"X:\nowhere\nvvm64_40_0.dll" }));
+        Assert.Contains(nameof(EngineOptions.LibDevicePath), missingBitcode.Message, StringComparison.Ordinal);
+
+        var missingDll = Assert.Throws<ArgumentException>(
+            () => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, LibDevicePath = @"X:\nowhere\libdevice.10.bc" }));
+        Assert.Contains(nameof(EngineOptions.LibNvvmPath), missingDll.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A chunk's buffers stay within 32-bit offsets (BOOT.md, `Execution.Chunks`, the audit's F4): bytes alone bounded a chunk,
+    /// so a table at the tree's own size limits with a large enough <see cref="EngineOptions.ScratchBytes"/> and
+    /// <see cref="EngineOptions.ChunkSize"/> let <c>chunk × perCase</c> wrap a 32-bit <see cref="int"/> offset. 13 248 doubles
+    /// per case is `Execution.Chunks`' own `BOOT.md` figure for a table at <c>TableLimits</c> (its worked example), not a value
+    /// this fact derives from a neighbour's code.
+    /// </summary>
+    [Fact]
+    public void ChunksStayWithinInt32OffsetsAtTableLimits()
+    {
+        const long perCase = 13_248;
+        var huge = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = int.MaxValue, ScratchBytes = 64L << 30 };
+        var plan = ChunkPlan.For(1_000_000_000, perCase * sizeof(double), perCase, huge);
+        Assert.True(plan.Size * perCase <= int.MaxValue, $"{plan.Size} * {perCase} overflows a 32-bit offset");
+
+        // No other plan moves: the default options are far below the cap, so an ordinary chunk is unaffected by it.
+        var ordinary = ChunkPlan.For(1_000_000, TableLimits.MaxSpecies * sizeof(double), TableLimits.MaxSpecies, new EngineOptions());
+        Assert.Equal(EngineOptions.DefaultChunkSize, ordinary.Size);
+    }
+
+    /// <summary>
+    /// The bind-time probe (BOOT.md, "CUDA is bound only when a kernel runs on it"): a real libnvvm paired with a libdevice path
+    /// that exists but is not libdevice bitcode reaches the post-link at bind, and an <c>Auto</c> request falls back to the CPU
+    /// accelerator with the post-link's own message as the reason.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind()
+    {
+        var bogus = BogusLibDevice();
+        try
+        {
+            using var engine = Engine.Create(ProbeFailureOptions(AcceleratorKind.Auto, bogus));
+            Assert.Equal(AcceleratorKind.Cpu, engine.Accelerator.Kind);
+            var reason = engine.Accelerator.CudaSkippedBecause;
+            Assert.NotNull(reason);
+            if (Engine.CudaForbidden)
+            {
+                Assert.Contains(EngineOptions.NoCudaVariable, reason, StringComparison.Ordinal);
+                return;
+            }
+
+            Assert.Contains("libdevice post-link", reason, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(bogus);
+        }
+    }
+
+    /// <summary>The same input, requested explicitly: <see cref="AcceleratorUnavailableException"/> whose inner exception is the post-link's own.</summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind()
+    {
+        var bogus = BogusLibDevice();
+        try
+        {
+            var refused = Assert.Throws<AcceleratorUnavailableException>(() => Engine.Create(ProbeFailureOptions(AcceleratorKind.Cuda, bogus)));
+            if (Engine.CudaForbidden)
+            {
+                Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
+                return;
+            }
+
+            Assert.Contains("the math probe kernel could not be loaded", refused.Message, StringComparison.Ordinal);
+            var inner = Assert.IsType<InvalidOperationException>(refused.InnerException);
+            Assert.Contains("libdevice post-link", inner.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(bogus);
+        }
+    }
+
+    /// <summary>A file that exists (so it passes discovery's existence check) but holds no libdevice bitcode at all.</summary>
+    private static string BogusLibDevice()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path, "not libdevice bitcode, just some text");
+        return path;
+    }
+
+    /// <summary>The real libnvvm this machine's discovery would find, paired with the given (bogus) libdevice path, discovery off.</summary>
+    private static EngineOptions ProbeFailureOptions(AcceleratorKind kind, string bogusLibDevice)
+    {
+        var (dll, _, _) = LibDeviceLocator.Locate(new EngineOptions());
+        return new EngineOptions
+        {
+            Accelerator = kind,
+            LibNvvmPath = dll ?? @"X:\nowhere\nvvm64_40_0.dll",
+            LibDevicePath = bogusLibDevice,
+            LibDeviceDiscovery = false,
+        };
     }
 
     /// <summary>Result layouts follow the station and species counts.</summary>

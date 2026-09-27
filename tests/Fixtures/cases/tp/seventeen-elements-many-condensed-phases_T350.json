@@ -1,0 +1,392 @@
+{
+  "case": {
+    "name": "seventeen-elements-many-condensed-phases_T350",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "pure-H",
+          "custom": true,
+          "formula": {
+            "H": 1.0
+          },
+          "molarMass": 1.00794,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.02109969271021223,
+          "note": null
+        },
+        {
+          "name": "pure-O",
+          "custom": true,
+          "formula": {
+            "O": 1.0
+          },
+          "molarMass": 15.9994,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.6698462677297647,
+          "note": null
+        },
+        {
+          "name": "pure-C",
+          "custom": true,
+          "formula": {
+            "C": 1.0
+          },
+          "molarMass": 12.0107,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.06285643967759638,
+          "note": null
+        },
+        {
+          "name": "pure-N",
+          "custom": true,
+          "formula": {
+            "N": 1.0
+          },
+          "molarMass": 14.0067,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.14660449326553646,
+          "note": null
+        },
+        {
+          "name": "pure-CL",
+          "custom": true,
+          "formula": {
+            "CL": 1.0
+          },
+          "molarMass": 35.453,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.037107734867906535,
+          "note": null
+        },
+        {
+          "name": "pure-AL",
+          "custom": true,
+          "formula": {
+            "AL": 1.0
+          },
+          "molarMass": 26.981538,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.002824087548112558,
+          "note": null
+        },
+        {
+          "name": "pure-MG",
+          "custom": true,
+          "formula": {
+            "MG": 1.0
+          },
+          "molarMass": 24.305,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.002543941262980476,
+          "note": null
+        },
+        {
+          "name": "pure-K",
+          "custom": true,
+          "formula": {
+            "K": 1.0
+          },
+          "molarMass": 39.0983,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.004092317575905762,
+          "note": null
+        },
+        {
+          "name": "pure-NA",
+          "custom": true,
+          "formula": {
+            "NA": 1.0
+          },
+          "molarMass": 22.98977,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.002406279552743496,
+          "note": null
+        },
+        {
+          "name": "pure-CA",
+          "custom": true,
+          "formula": {
+            "CA": 1.0
+          },
+          "molarMass": 40.078,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.004194860231957685,
+          "note": null
+        },
+        {
+          "name": "pure-TI",
+          "custom": true,
+          "formula": {
+            "TI": 1.0
+          },
+          "molarMass": 47.867,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.005010114644521145,
+          "note": null
+        },
+        {
+          "name": "pure-ZR",
+          "custom": true,
+          "formula": {
+            "ZR": 1.0
+          },
+          "molarMass": 91.224,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.009548179295376711,
+          "note": null
+        },
+        {
+          "name": "pure-SR",
+          "custom": true,
+          "formula": {
+            "SR": 1.0
+          },
+          "molarMass": 87.62,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.009170957970061688,
+          "note": null
+        },
+        {
+          "name": "pure-BA",
+          "custom": true,
+          "formula": {
+            "BA": 1.0
+          },
+          "molarMass": 137.327,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.014373660638606041,
+          "note": null
+        },
+        {
+          "name": "pure-BE",
+          "custom": true,
+          "formula": {
+            "BE": 1.0
+          },
+          "molarMass": 9.012182,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.000943281697563872,
+          "note": null
+        },
+        {
+          "name": "pure-CU",
+          "custom": true,
+          "formula": {
+            "CU": 1.0
+          },
+          "molarMass": 63.546,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.0066511948774884725,
+          "note": null
+        },
+        {
+          "name": "pure-LI",
+          "custom": true,
+          "formula": {
+            "LI": 1.0
+          },
+          "molarMass": 6.941,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.0007264964536658089,
+          "note": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "AL": 0.00010466740436043926,
+        "BA": 0.00010466740436043925,
+        "BE": 0.00010466740436043925,
+        "C": 0.005233370218021963,
+        "CA": 0.00010466740436043925,
+        "CL": 0.0010466740436043927,
+        "CU": 0.00010466740436043925,
+        "H": 0.02093348087208785,
+        "K": 0.00010466740436043925,
+        "LI": 0.00010466740436043926,
+        "MG": 0.00010466740436043925,
+        "N": 0.010466740436043925,
+        "NA": 0.00010466740436043926,
+        "O": 0.0418669617441757,
+        "SR": 0.00010466740436043925,
+        "TI": 0.00010466740436043925,
+        "ZR": 0.00010466740436043926
+      },
+      "temperature": 350.0,
+      "pressure": 100000.0,
+      "transport": false,
+      "products": [
+        "H2O",
+        "CO2",
+        "N2",
+        "O2",
+        "HCL",
+        "CL2",
+        "AL",
+        "Mg",
+        "K",
+        "Na",
+        "Ca",
+        "Ti",
+        "Zr",
+        "Sr",
+        "Ba",
+        "Be",
+        "Cu",
+        "Li",
+        "KCL",
+        "NaCL",
+        "H2",
+        "CO",
+        "O",
+        "H",
+        "OH",
+        "NO",
+        "AL2O3(a)",
+        "MgO(cr)",
+        "CaO(cr)",
+        "TiO2(cr)",
+        "ZrO2(III)",
+        "SrO(cr)",
+        "BaO(cr)",
+        "BeO(a)",
+        "CuO(cr)",
+        "Li2O(cr)",
+        "KCL(cr)",
+        "NaCL(cr)"
+      ],
+      "omit": [],
+      "trace": null,
+      "only": [
+        "H2O",
+        "CO2",
+        "N2",
+        "O2",
+        "HCL",
+        "CL2",
+        "AL",
+        "Mg",
+        "K",
+        "Na",
+        "Ca",
+        "Ti",
+        "Zr",
+        "Sr",
+        "Ba",
+        "Be",
+        "Cu",
+        "Li",
+        "KCL",
+        "NaCL",
+        "H2",
+        "CO",
+        "O",
+        "H",
+        "OH",
+        "NO",
+        "AL2O3(a)",
+        "MgO(cr)",
+        "CaO(cr)",
+        "TiO2(cr)",
+        "ZrO2(III)",
+        "SrO(cr)",
+        "BaO(cr)",
+        "BeO(a)",
+        "CuO(cr)",
+        "Li2O(cr)",
+        "KCL(cr)",
+        "NaCL(cr)"
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "condensed_phase_limit.py",
+    "scriptSha256": "696d38c8cec22897efc5ac19b82989efa78d517e7bcb4dd70432bec7acad92ed",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "temperature": 350.0,
+    "pressure": 100000.0,
+    "density": 1.1016466310511772,
+    "enthalpy": -5285385.8166206535,
+    "internalEnergy": -5376159.025725448,
+    "entropy": 6798.739603212596,
+    "gibbsEnergy": -7664944.677745062,
+    "molarMass": 32.058781756194634,
+    "mixtureMolarMass": 30.917594656780647,
+    "cpFrozen": 1078.0939764490072,
+    "cpEquilibrium": 1083.9503949670998,
+    "cvFrozen": 818.741950435311,
+    "cvEquilibrium": 824.3054614240256,
+    "gammaS": 1.3149672694491479,
+    "dlnVdlnT": 1.0005717747314824,
+    "dlnVdlnP": -1.0000144779628357,
+    "soundSpeed": 345.49066400652146,
+    "moleFractions": {
+      "H2O": 0.3234942261276606,
+      "CO2": 0.16180321908966394,
+      "N2": 0.16180321908966522,
+      "O2": 0.3042461579144136,
+      "HCL": 0.00022442410334788383,
+      "CL2": 0.01283204547549914,
+      "AL": 0.0,
+      "Mg": 0.0,
+      "K": 0.0,
+      "Na": 0.0,
+      "Ca": 0.0,
+      "Ti": 0.0,
+      "Zr": 0.0,
+      "Sr": 0.0,
+      "Ba": 0.0,
+      "Be": 0.0,
+      "Cu": 0.0,
+      "Li": 0.0,
+      "KCL": 1.077275304386822e-25,
+      "NaCL": 8.454036343944729e-27,
+      "H2": 9.946213585299343e-35,
+      "CO": 0.0,
+      "O": 4.0435566209477897e-35,
+      "H": 0.0,
+      "OH": 1.0094192437443942e-22,
+      "NO": 2.3514455371078884e-14,
+      "AL2O3(a)": 0.0016180321908966528,
+      "MgO(cr)": 0.0032360643817933056,
+      "CaO(cr)": 0.0032360643817933056,
+      "TiO2(cr)": 0.003236064381793305,
+      "ZrO2(III)": 0.0032360643817933056,
+      "SrO(cr)": 0.0032360643817933056,
+      "BaO(cr)": 0.0032360643817933056,
+      "BeO(a)": 0.0032360643817933056,
+      "CuO(cr)": 0.0032360643817933056,
+      "Li2O(cr)": 0.0016180321908966528,
+      "KCL(cr)": 0.0032360643817933056,
+      "NaCL(cr)": 0.0032360643817933056
+    },
+    "converged": true
+  }
+}

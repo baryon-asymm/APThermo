@@ -44,7 +44,8 @@ the environment lives in `.venv`, ignored by git); the tree's `data/thermo.inp` 
 Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 
 - Layout: one module per fixture family (`constants.py`, `thermo_functions.py`,
-  `transport_fits.py`, `rp1311.py`, `propellants.py`), the case builders over the
+  `transport_fits.py`, `rp1311.py`, `propellants.py`, `plateaus.py`, `throat_scan.py`
+  since 2026-09-27), the case builders over the
   package in `cea_cases.py`, shared helpers in `common.py`, the writer in `writer.py`,
   the driver `regenerate.py`. Every family module exposes `generate(writer)` and runs
   standalone.
@@ -57,6 +58,16 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 - Frozen rocket cases are generated without transport: the package's frozen expansion
   with transport on fails for product sets of about a hundred species (recorded in the
   parent's case matrix).
+- `throat_scan.py` (2026-09-27) builds the throat family by the method and the guard
+  the parent's case matrix states. It reuses the reactant lists and compositions of
+  `plateaus.py` and `rp1311.py` by import, never by copy. The scan solves only through
+  `cea_cases.solve_equilibrium`, and the guard's rocket solves only through
+  `cea_cases.solve_rocket`.
+- `generatorSha256` (2026-09-27) is the SHA-256 of the concatenation, over every `*.py`
+  file of this directory and `requirements.txt` in ordinal order of their names, of the
+  file name, a LF, and the file's bytes with CRLF normalized to LF. The script hashes
+  use the same normalization, so that a Windows checkout and a Linux one agree. The
+  fixtures node's tests recompute both from the committed files.
 - JSON form: indent 2, LF, UTF-8, `NaN` forbidden, floats in Python's shortest
   round-trip form, numpy values converted to Python numbers.
 
@@ -66,9 +77,22 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
       `regenerate.py --check` exits 0 immediately afterwards; a fixture altered by hand
       is reported as `changed` with exit 1, a deleted one as `missing`, an extra file as
       `stale` (run by hand on the reference machine; the run printed 261 fixtures).
+
+      ⚠ 2026-09-27: "the seven kinds" is now eight — `throat_scan.py` added the `throat`
+      kind (the parent's case matrix). `regenerate.py --check` exits 0 on the current
+      tree, 327 fixtures, none stale or missing.
+
+      ⚠ 2026-09-27, the sodium case (the parent's case matrix): `propellants.py` gains
+      `sodium_hp`, one hp file. `regenerate.py --check` exits 0 on the current tree, 328
+      fixtures, none stale or missing.
 - [x] 2026-09-12 — Every family script runs standalone and sweeps only the kinds it
       produces. Seen red once: `thermo_functions.py` run alone removed `constants/R.json`
       until `Writer.finish` was limited to the kinds of the run.
+
+      ⚠ 2026-09-27: this criterion is true only kind by kind, not script by script, for
+      a kind several scripts write (`tp`, `hp`, `sp`, `rocket`): the parent `BOOT.md`'s ⚠
+      of this date records the hazard, found running `propellants.py` alone for the
+      sodium case above.
 - [x] 2026-09-12 — The derived equilibrium cases reproduce their station: the tp, hp
       and sp solves at a station's values return the station's temperature (for the
       LOX/LH2 throat, 3292.3746 K against 3292.3746 K), so the package's hp and sp inputs

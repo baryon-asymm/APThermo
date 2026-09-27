@@ -27,7 +27,7 @@ public sealed class CpuHost : IDisposable                  // one per test assem
 public static class Bits
 {
     public static bool Same(double expected, double actual);                  // DoubleToInt64Bits equal
-    public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct;   // one line per public field whose value differs: doubles by their bits, any other field by Equals
+    public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct;   // one line per public double or int field or property whose value differs: doubles by their bits, ints by Equals; throws when T has none
 }
 
 public sealed class BitHash                                 // SHA-256 over little-endian bytes, in the order added; one instance computes one digest
@@ -87,6 +87,7 @@ public static class RunPropertyCut
 | Situation | Behaviour |
 |---|---|
 | the database or the tolerance table cannot be loaded | the `Data` or `Fixtures` exception, from the `CpuHost` constructor |
+| `Bits.Differences<T>` is called on a `T` with no public `double` or `int` field or property | `InvalidOperationException`, naming the type |
 | a schema uses a keyword outside `Validate`'s list | `InvalidOperationException`, naming the keyword |
 | a schema's `$ref` is not local (does not start with `#/`), or does not resolve | `InvalidOperationException`, naming the reference |
 | a schema names a `type` `Validate` does not know | `InvalidOperationException`, naming the type |

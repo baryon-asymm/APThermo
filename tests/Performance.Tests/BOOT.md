@@ -106,6 +106,19 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   2026-09-12. The struct stays public here; nothing in this node's own scope required
   the change.
 
+- **No NaN-blind predicate** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5 and F6):
+  - Every tolerance predicate of this node is written so that NaN fails it
+    (`!(|a − b| <= tol)`), or asserts finiteness first. This covers
+    `RocketInvariants` and `StationComparison`, and every other predicate the coder
+    finds by searching for `> ` against a tolerance.
+  - A fact asserts `Velocity == SpecificImpulse` and both finite at every `Ok` station
+    of every fixture, since the fixtures carry no `velocity` to compare with.
+  - The frozen-station cv skip applies only where the reference shows the defect's
+    signature: `cvFrozen` and `cvEquilibrium` 0, or the freezing station's values.
+    Anywhere else the fields are compared.
+  - ⚠ `state.Velocity = NaN` at every station left this node 601/601 green, and a
+    fixture's frozen exit cv edited from 0 to 2500 and 9999 left it green too.
+
 ## Shape exceptions
 
 Added 2026-09-14 by the design session, after the protocol tests node's measurements found
@@ -317,6 +330,55 @@ position today (the criterion below).
 
       Verified: 700/700 tests green, `Bits.approved.txt` hash unchanged
       (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
+
+- [x] 2026-09-27 — The NaN and cv guards (Constraints). The audit's two mutations
+      (`Velocity = NaN`; a frozen exit's cv edited in a fixture copy) each turn this
+      node red.
+
+      Predicates rewritten to fail on NaN (`!(|a − b| <= tol)` in place of `> tol`):
+      `RocketInvariants.SonicThroat`, `ConstantEntropy`, `EnergyEquation` and the two
+      branches of `ExitMismatch` (`AssignedExit`'s area-ratio and pressure-ratio
+      checks). `SupersonicAreaRatioExits` (finding F3) already used the safe form
+      (`!(mach >= 1.0)`) and needed no change; the two bit-exact checks
+      (`PressureRatioMatchesTheSolvedPressure`, `FrozenComposition`) compare raw bits
+      and were never blind to begin with. A new invariant,
+      `RocketInvariants.VelocityEqualsSpecificImpulse`, asserts `Velocity ==
+      SpecificImpulse` bit for bit and both finite at every `Ok` station, run as
+      `InvariantTests.VelocityEqualsSpecificImpulseAtEveryOkStation` over every rocket
+      fixture (`StationFigures.Write`, `src/Performance`, sets both from the same local
+      variable, so the identity holds by construction — the fixtures carry no
+      `velocity` field of their own to compare with).
+
+      The frozen-station cv skip of `StationComparison.Compare` no longer fires on the
+      `frozen` flag alone: `IsFrozenCvDefectSignature` also requires the reference's
+      own `cvFrozen`/`cvEquilibrium` at that station to be exactly zero, or exactly the
+      freezing station's own recorded value for the same field (`RocketInvariants.
+      FreezingStationOf`, made `internal` so both types share the one mapping from
+      `FlowModel` to the chamber or throat station index). Anywhere else the field is
+      compared like any other.
+
+      Evidence, each mutation applied through a temporary, uncommitted fact
+      (`ZzGuardsAuditRedOnce.cs`, deleted before this commit) and seen red, never
+      reverted into the tree:
+      - every station's `Velocity` set to `double.NaN` on a solved
+        `lox-lh2_of4_pc5MPa_frozenAtThroat` case: at least one of `SonicThroat`,
+        `ConstantEntropy`, `EnergyEquation`, `AssignedExit`,
+        `VelocityEqualsSpecificImpulse` now reports a violation (before this fix, all
+        five stayed silent under the old `> tol` form and the bit-exact checks do not
+        read `Velocity`);
+      - the same fixture's frozen exit `cvFrozen`/`cvEquilibrium` edited in an
+        in-memory copy of its reference JSON, from `0`/`0` to `2500`/`9999` (neither
+        the defect's zero nor the freezing station's own value):
+        `StationComparison.Compare` now reports a mismatch, where the old,
+        unconditional `frozen && NotAtFrozenStations.Contains(name)` skip stayed
+        silent.
+
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Performance.Tests --filter
+      "Category!=LongRunning"`: 1035/1035 (up from 937 by the 98 fixture cases of the
+      new invariant's theory), none skipped. `Bits.approved.txt` unchanged
+      (`git hash-object`: `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the same figure
+      this node's own 2026-09-15 criterion recorded). The protocol lint: 0 errors, 0
+      warnings.
 
 ## Taboos
 

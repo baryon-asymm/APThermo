@@ -25,10 +25,40 @@ numerical node stays testable without it.
 - **The same kernels everywhere.** A kernel is one static entry point per program; it
   is loaded on the CPU accelerator and on CUDA from the same method; there is no
   accelerator-specific numerical code.
-- **Every CUDA kernel goes through the post-link.** ILGPU 1.5.3's own libdevice
-  wrapper generation is never relied on (it is defective with libnvvm 12.9 and 13.3,
-  see Constraints); a kernel whose PTX calls a `__ilgpu__nv_*` wrapper that the
-  post-link did not provide is refused at load with the wrapper's name in the error.
+- **Every CUDA kernel goes through the post-link, which completes it.** ILGPU 1.5.3
+  defines the libdevice wrappers itself for the targets `compute_75` to `compute_90`
+  and silently drops them for `compute_100` and newer (the root's ILGPU constraint).
+  The post-link reads which wrappers the kernel calls and which it already defines. It
+  compiles and inserts only the missing ones, and inserts nothing when none is missing.
+  Every kernel that calls a wrapper is loaded once as a trial on either path. A kernel
+  that still calls an undefined wrapper is refused at load, and the error names the
+  wrapper. Either path yields the same program: the kernels ILGPU completes equal the
+  kernels the post-link completes, as PTX text, up to ILGPU's generated names and the
+  `.target` line (the architecture fact, Acceptance criteria).
+
+  ⚠ 2026-09-26: stood "ILGPU 1.5.3's own libdevice wrapper generation is never relied
+  on (it is defective with libnvvm 12.9 and 13.3 …)". It was measured on the reference
+  machine's SM_120 only, where ILGPU always drops the wrappers. On SM_75 to SM_90 ILGPU
+  defined them itself, and the post-link had two faults:
+  - it read the definitions' parameter names (`__ilgpu__nv_exp_param_0`) as wrappers
+    called, and threw for want of a fragment;
+  - read correctly, it would have inserted a second copy, which the driver refuses
+    ("Duplicate definition").
+
+  So every CUDA run of 0.1.0 threw on every GPU older than Blackwell. Found by the
+  hidden-defect audit of 2026-09-26 (finding F1), on kernels compiled for those
+  architectures and run on the reference device. The measurements behind the new
+  wording are in the root's ⚠ of the same date.
+- **CUDA is bound only when a kernel runs on it** (2026-09-26). The choice accepts a
+  CUDA session only after the math probe kernel, which calls every wrapper of the math
+  list, has been compiled, post-linked and loaded on its device. `Engine.Create` and
+  `AcceleratorProbe.Describe` therefore never report a CUDA device on which no kernel
+  can load.
+
+  ⚠ 2026-09-26: before, a CUDA session was accepted once its context existed. The
+  first failure then surfaced at the first `Run`, where `Auto` has no fallback left. A
+  post-link defect or a device whose target libnvvm refuses turned every run into an
+  exception, while `apthermo devices` showed CUDA as usable. Found by the same audit.
 - **No libnvvm or driver result is ignored** (2026-09-26). The post-link checks the
   result of every call it makes into libnvvm (`GetIRVersion`, `CreateProgram`,
   `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`,
@@ -73,7 +103,8 @@ numerical node stays testable without it.
 - [Performance](../Performance/API.md) — the rocket solver and its descriptors.
 - [Transport](../Transport/API.md) — the transport table and evaluation.
 
-Outside the tree: ILGPU 1.5.3 (NuGet); for CUDA an NVIDIA driver with CUDA 12.8 or
+Outside the tree: ILGPU 1.5.3 (NuGet); for CUDA an NVIDIA GPU of compute capability 7.5
+or newer (2026-09-26, the root's range), an NVIDIA driver with CUDA 12.8 or
 newer, libnvvm (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
 `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
 
@@ -87,10 +118,22 @@ line now names both.
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - **Accelerator choice** (`AcceleratorKind.Auto`): CUDA if `APTHERMO_NO_CUDA` is not
-  `1`, libnvvm and libdevice are found, the device at the requested index exists and
-  the context and accelerator can be created; otherwise the CPU accelerator with all
-  cores. `AcceleratorKind.Cuda` fails instead of falling back and names what was
-  missing, with every path tried. `AcceleratorKind.Cpu` never looks for CUDA.
+  `1`, libnvvm and libdevice are found, the device at the requested index exists, the
+  context and accelerator can be created, and the math probe kernel post-links and
+  loads on the device (2026-09-26, the invariant "CUDA is bound only when a kernel runs
+  on it"); otherwise the CPU accelerator with all cores. `AcceleratorKind.Cuda` fails
+  instead of falling back and names what was missing, with every path tried.
+  `AcceleratorKind.Cpu` never looks for CUDA.
+
+  When the probe fails:
+  - with `Auto`, its failure is the fallback reason in `CudaSkippedBecause`, with the
+    post-link's message;
+  - with `Cuda`, it is an `AcceleratorUnavailableException` carrying the post-link's
+    exception as its inner exception;
+  - in both cases the session is disposed before the choice returns.
+
+  The probe kernel loaded for the check is released at once. It costs 0.05 to 0.2 s per
+  CUDA engine on the reference machine (measured 2026-09-26).
 - **libdevice discovery order**: an explicit path pair in the options is tried first,
   on every platform. Unless `LibDeviceDiscovery` is off, the platform is then chosen
   with `OperatingSystem.IsWindows()` / `IsLinux()`; any other OS does no discovery (the
@@ -120,24 +163,61 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `LibDeviceLocator` now branches on the platform; every other stage of discovery and
   of the post-link is unchanged, since the root constraint restricts the platform
   split to library discovery paths and file names.
-- **The post-link**, the one place in the tree that knows ILGPU internals: compile
-  the entry point with the CUDA accelerator's backend; collect the distinct
-  `__ilgpu__nv_*` names from the PTX; build an NVVM module from ILGPU's own wrapper
-  fragments (the private static `fragments` dictionary of
-  `ILGPU.Backends.PTX.PTXLibDeviceNvvm`, read by reflection) with the header in the
-  order libnvvm accepts (`target triple`, `target datalayout`, then
-  `!nvvmir.version`); compile it with ILGPU's `NvvmAPI` for the `compute_XX` of the
-  `.target sm_XX` line of the kernel PTX; strip `.version`, `.target` and
-  `.address_size` from the result; insert it right after the `.address_size` line
-  of the kernel PTX; check that every wrapper called has a definition; bind the
-  accelerator's context to the calling thread and load the linked PTX once through
-  the CUDA driver API as a trial, so that a refusal carries the driver's log; set the
-  private backing field of `PTXCompiledKernel.PTXAssembly` by reflection; load with
-  `LoadAutoGroupedKernel`. The CPU accelerator loads the same method through
-  `LoadAutoGroupedKernel(MethodInfo)` without any of this. The ILGPU assembly version
-  and the presence and types of every reflected member are asserted once per
-  process, at the first `Engine.Create`, and a mismatch is an error that names the
-  ILGPU version.
+- **The post-link**, the one place in the tree that knows ILGPU internals. Its stages,
+  in order:
+  1. Compile the entry point with the CUDA accelerator's backend.
+  2. Take the wrapper inventory of the kernel PTX (2026-09-26):
+     - the wrappers *called* are the `__ilgpu__nv_*` names at `call` instructions
+       only, never parameter names or `ld.param` operands;
+     - the wrappers *defined* are the names of the kernel's own `.func` headers.
+
+     Both sets drop the `__ilgpu` prefix, as the fragment keys do.
+  3. The *missing* wrappers are those called and not defined.
+     - When no wrapper is called, the kernel is returned untouched, without a trial
+       load (as before).
+     - When none is missing, nothing is compiled or inserted: ILGPU defined them all.
+  4. Otherwise build an NVVM module from ILGPU's own fragments of the missing wrappers
+     only. The fragments are the private static `fragments` dictionary of
+     `ILGPU.Backends.PTX.PTXLibDeviceNvvm`, read by reflection. The header goes in the
+     order libnvvm accepts: `target triple`, `target datalayout`, then
+     `!nvvmir.version`.
+  5. Compile that module with ILGPU's `NvvmAPI` for the `compute_XX` of the kernel's
+     `.target sm_XX` line.
+  6. Strip `.version`, `.target` and `.address_size` from the result.
+  7. Insert it right after the kernel's `.address_size` line.
+  8. Check that every missing wrapper now has a definition in the inserted text.
+  9. Bind the accelerator's context to the calling thread and load the PTX once through
+     the CUDA driver API as a trial, so that a refusal carries the driver's log. This
+     happens on both paths of stage 3.
+  10. When anything was inserted, set the private backing field of
+      `PTXCompiledKernel.PTXAssembly` by reflection.
+  11. Load with `LoadAutoGroupedKernel`.
+
+  A kernel with some wrappers defined and some missing is not refused by a branch of
+  its own. ILGPU 1.5.3 compiles all of a kernel's fragments in one libnvvm program, so
+  it defines all of them or none. If a mix ever arrived, the completion would insert
+  only the missing ones. A definition both sides emitted, such as libdevice's
+  `__internal_accurate_pow`, would then be refused by the trial load with the driver's
+  "Duplicate definition" log.
+
+  `Link` reports what it did as a value (the wrappers ILGPU defined, the wrappers it
+  compiled), so that the tests can see which path a kernel took. It stays internal.
+
+  The CPU accelerator loads the same method through `LoadAutoGroupedKernel(MethodInfo)`
+  without any of this. The ILGPU assembly version and the presence and types of every
+  reflected member are asserted once per process, at the first `Engine.Create`, and a
+  mismatch is an error that names the ILGPU version.
+
+  ⚠ 2026-09-26: stood as one sentence whose second step was "collect the distinct
+  `__ilgpu__nv_*` names from the PTX", followed by unconditional compilation and
+  insertion. That read the parameter names of ILGPU's own definitions as calls. It was
+  also a replacement, not a completion, and doubled every definition ILGPU had already
+  made (the ⚠ of the invariant "Every CUDA kernel goes through the post-link"). Rejected alternatives, measured the same day:
+  - Compile with a backend that has no `NvvmAPI`, so that ILGPU never defines the
+    wrappers: ILGPU 1.5.3 then refuses every kernel that uses the math list with an
+    `InternalCompilerException`.
+  - Cut ILGPU's definitions out of the text and insert the post-link's own: that
+    rewrites the same text into the same text, since the two are equal.
 
   ⚠ 2026-09-12: the sketch compiled the wrappers for a fixed `compute_80`, "the PTX
   target ILGPU 1.5.3 emits". That is what ILGPU emits for the reference machine's
@@ -184,6 +264,72 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the CPU accelerator with 16 threads, 56–65×. These bound expectations; they are
   not requirements.
 
+- **The audit's findings F2 and F3 and its observations** (the hidden-defect audit of
+  2026-09-26; decided that day, F3 by the owner):
+  - **The library before the device (F2).** The choice loads libnvvm and asks its IR
+    version (`NvvmAPI.Create`, `GetIRVersion`), and reads the bitcode, before it
+    creates any CUDA context. The session keeps that binding, instead of a second
+    `NvvmAPI.Create` after the accelerator. A failure there is an
+    `AcceleratorUnavailableException` naming `[dll, bitcode]`, as `CudaContext` already
+    does for the context. `CreateCudaAccelerator` is wrapped the same way, so every
+    bind failure has the documented exception type. With `Auto` it becomes the
+    fallback reason, with its paths.
+    - ⚠ ILGPU's accelerator constructor creates the CUDA context first and loads
+      libnvvm after. A libnvvm that exists but does not load threw a raw
+      `BadImageFormatException` from an explicit `Cuda` request. With `Auto` the
+      fallback reason held no path. Each attempt leaked the context already created,
+      about 190 MiB of device memory: 20 `Auto` creations lost 3 800 MiB. A failure
+      inside ILGPU's constructor after the context, for a cause this check cannot
+      foresee, still leaks: ILGPU gives no handle to release. The known cause, a bad
+      library, no longer reaches the device.
+  - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
+    through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
+    On a count ILGPU's warp layout cannot express exactly, the nearest layout not above
+    the count is used, and the choice is documented where it is made. On the reference
+    machine the count is 16, the layout is today's, and no throughput record moves.
+    Results do not depend on the thread count (Invariants: deterministic batches).
+    - ⚠ `CPUDevice.Default` is one multiprocessor of four warps of four threads,
+      whatever the machine. Every "all cores" of the tree (`Options.cs`, this
+      document, the root) was true only on the 16-thread reference machine. A
+      64-thread workstation ran 16 threads, and a 4-vCPU runner oversubscribed four
+      times. The owner chose all cores over documenting 16.
+  - **Observations.**
+    - A driver or libnvvm log is trimmed of NUL padding as well as white space (the
+      trial load's message carried 45 NULs).
+    - `Engine.Upload` disposes the buffers it already uploaded when a later upload
+      fails.
+    - A half-given explicit path pair (`LibNvvmPath` without `LibDevicePath`, or the
+      reverse) is an `ArgumentException` at `Create` naming the missing option. It was
+      tried as `("", path)` and then replaced by discovery without a word.
+
+- **Every CUDA context of a process binds under WSL** (2026-09-27). ILGPU 1.5.3's
+  `builder.Cuda()` calls `NativeLibrary.SetDllImportResolver` on its own assembly
+  whenever the process runs under WSL (`CudaContextExtensions.CudaInternal`, source tag
+  `v1.5.3`), to load `libcuda` from the WSL driver directory. .NET allows one resolver
+  per assembly, so the second CUDA context of a process throws
+  `InvalidOperationException` ("A resolver is already set for the assembly") before any
+  device is registered.
+  - Rule: the context build calls `builder.Cuda()` as today. When that call throws
+    this exception under WSL, the resolver ILGPU needs is already in place, and the
+    build registers the CUDA devices itself through ILGPU's internal
+    `CudaDevice.GetDevices(configure, predicate, builder.DeviceRegistry)`, the call
+    `CudaInternal` makes after the resolver. The internal members are reached by
+    reflection, which the pinned version makes stable. A missing member is an
+    `AcceleratorUnavailableException` naming it, so that a changed ILGPU fails loudly
+    at the first bind.
+  - No static state: the build tries the public call first every time, so nothing
+    records that a resolver was set. Outside WSL the public call never throws this
+    exception, and the path is never taken.
+  - ⚠ Under WSL every `Engine.Create` after the first CUDA context of a process failed.
+    With `Auto` it bound the CPU with the reason "the CUDA context could not be created
+    (driver or device problem): A resolver is already set for the assembly". With
+    `Cuda` it threw. The tests had always met one CUDA context per process, until
+    the bind-time facts of 2026-09-26 created two:
+    `AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`
+    failed under WSL at `89bb619` right after the `Auto` fact, and passed alone. Found
+    by the orchestrator's WSL run of 2026-09-27. The native Linux path does not take
+    ILGPU's branch, and was not run.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The engine
@@ -215,9 +361,10 @@ four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
 | `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
-| `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
+| `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 26 by the dependency check's walk on 2026-09-27, 25 on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
 | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
-| `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the NVVM module from the fragments, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load | internal |
+| `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
+| `CudaWslDevices` | the WSL workaround (2026-09-27, Constraints, "Every CUDA context of a process binds under WSL"): tries `builder.Cuda()` first, every call, and only on the resolver-already-set exception registers the devices itself by reflecting ILGPU's own internal `CudaDevice.GetDevices` | internal |
 
 ⚠ 2026-09-14: this row first read "`FunctionCount` is the constant the kernel strides by" (F-EX-07's own
 wording: `public const int FunctionCount = 10;`), which would have turned `FunctionCount` from a property
@@ -336,7 +483,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
 | `Engine` | efferent coupling | 25 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
-| `Kernels` | efferent coupling | 25 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
+| `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
 | `RocketPipeline` | efferent coupling | 23 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
 | `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
 | `EquilibriumPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
@@ -348,6 +495,12 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 `SpeciesFunctionBatchViews` and `TransportBatchViews`, the other two views structs
 `## Structure` names, take six parameters each and need no row, as it already says.
+
+⚠ 2026-09-27: `Kernels`' row read 25. `Kernels.Probe` now calls the thermo node's
+`KernelMath.Min` and `KernelMath.Max` in place of `System.Math.Min`/`Max` (the root's
+math constraint), which names one more type of the tree. Measured 26 by the
+dependency check's walk on this commit; the protocol tests node's `ShapeTests`
+confirms it.
 
 ## Acceptance criteria
 
@@ -602,12 +755,302 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       shape above: the release's own result is stored but checked only on the success
       path, so nothing is ever thrown and swallowed.
 
+- [x] 2026-09-26 — Every GPU architecture (the root's criterion of the same date; audit
+      finding F1).
+      - **The architecture fact** (`Category=Cuda`, `Category=LongRunning`, about three
+        minutes on the reference machine). The architectures are every
+        `CudaArchitecture` ILGPU 1.5.3 declares from SM_75 up, and the entry points are
+        every entry point of `Kernels`; both lists come from reflection. For each
+        pair, the fact compiles the entry point with a `PTXBackend` for that
+        architecture and the session's libnvvm, passes it through `Link`, and loads it
+        on the reference device. It then asserts four things:
+        - both paths of the post-link occur: at least one architecture where ILGPU
+          defined every wrapper and `Link` compiled none, and one where `Link` compiled
+          them all;
+        - every kernel's PTX equals the same entry point's PTX for the device's own
+          architecture, once ILGPU's generated numeric suffixes, comment lines, blank
+          lines and the `.target` line are set aside;
+        - the probe launched from each architecture's kernel returns the engine's own
+          CUDA probe bit for bit;
+        - it stays within `GpuCpuTolerances.MathUlp` of the CPU accelerator.
+
+        Implemented as `ArchitectureTests.EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice`
+        (`tests/Execution.Tests/ArchitectureTests.cs`), reflecting over the 11 `CudaArchitecture`
+        fields from `SM_75` to `SM_121` and the 5 entry points of `Kernels`
+        (`Equilibrium`, `Rocket`, `Transport`, `Functions`, `Probe`); green on the
+        reference machine (RTX 5070 Ti, SM_120, libnvvm 13.4), first (cold JIT cache)
+        run 3 m 41 s, subsequent runs about 14 s once the CUDA driver's own compute
+        cache is warm. `SM_75`..`SM_90` measured `DefinedByIlgpu.Count > 0` and
+        `Compiled.Count == 0` (ILGPU defined every wrapper); `SM_100`..`SM_121`
+        measured the reverse (the post-link compiled every wrapper), so both paths are
+        exercised. Every architecture's normalized PTX equalled the device's own
+        (`SM_120`'s), and the probe matched the engine's own CUDA probe bit for bit and
+        the CPU accelerator within `GpuCpuTolerances.MathUlp` on every architecture.
+
+        Shown red once, reproduced directly against `LibDevicePostLink` as it stands at
+        `9c33398` (a throwaway repro compiling `Kernels.Probe` for `SM_75`, `SM_80`,
+        `SM_86`, `SM_89`, `SM_90` and calling the old `Link`, not committed): every one
+        threw `InvalidOperationException`, "the kernel calls the libdevice wrapper
+        __nv_exp_param_0, for which ILGPU 1.5.3.0 has no fragment.", exactly the message
+        this criterion predicted.
+      - **The wrapper inventory without a GPU**, on the hosted runners. Two text
+        fixtures hold ILGPU 1.5.3's PTX of the probe kernel: one for SM_89, which
+        defines the wrappers, and one for SM_120, which defines none. Their provenance
+        is in the tests node's `BOOT.md`. On both, the inventory reads the same called
+        set, the math list's libdevice functions. It reads them all as defined on
+        SM_89 and none on SM_120. No `_param_` name is read as a call. The result is
+        the same with LF and CRLF line ends.
+
+        Implemented as `WrapperInventoryTests` (`tests/Execution.Tests/WrapperInventoryTests.cs`,
+        5 facts, no GPU needed), over `tests/Execution.Tests/Ptx/probe.sm_89.ptx` and
+        `probe.sm_120.ptx`, generated on the reference machine with libnvvm 13.4 the same
+        day (a throwaway generator, not committed). Shown red once against the old
+        `WrapperCall` regex (`__ilgpu__nv_[A-Za-z0-9_]+`, no `call`-site or comma
+        requirement, `WrappersCalled` reading `m.Value` instead of a capture group): 3
+        of the 5 facts failed —
+        `OnSm89EveryCalledWrapperIsAlreadyDefined` and
+        `BothArchitecturesCallTheSameWrappers`, "Assert.Equal() Failure: HashSets differ
+        … Expected: [\"__nv_exp\", \"__nv_exp_param_0\", \"__nv_log\",
+        \"__nv_log_param_0\", \"__nv_log10\", ···] … Actual: [\"__nv_exp\", \"__nv_log\",
+        \"__nv_log10\", \"__nv_pow\", \"__nv_sqrt\", ···]", and
+        `NoParameterNameIsReadAsACall`, "Assert.DoesNotContain() Failure: Filter matched
+        in collection … Collection: [\"__nv_exp\", \"__nv_exp_param_0\", \"__nv_log\",
+        \"__nv_log_param_0\", \"__nv_log10\", ···]" — the parameter names read as calls,
+        exactly the defect. Reverted; a clean rebuild confirmed all 5 green again.
+      - **The bind-time probe** (`Category=Cuda`). The real libnvvm is paired with a
+        libdevice path to a file that is not libdevice bitcode, and discovery is off:
+        - `Auto` binds the CPU accelerator, and `CudaSkippedBecause` names the
+          libdevice post-link;
+        - `Cuda` throws `AcceleratorUnavailableException` whose inner exception is the
+          post-link's.
+
+        ILGPU's own accelerator constructor does not refuse such a file at context
+        creation (it validates libdevice's content only lazily, when the post-link
+        actually compiles against it), so no substitute input was needed: a file that
+        exists but holds arbitrary text reaches the post-link at bind and fails there
+        with `NVVM_ERROR_COMPILATION`, wrapped as designed. Implemented as
+        `AcceleratorChoiceTests.AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind`
+        and `...AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`,
+        green on the reference machine.
+      - **Nothing else moves.** No `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        `PublicSurface.approved.txt` changed
+        (`git diff 8dfe20f --stat -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty). The node's CUDA tests are green in
+        Release (`dotnet test tests/Execution.Tests -c Release`, no filter, from a clean
+        `bin`/`obj`): 134 of 134, the sweep and the throughput tripwire included. The
+        fast suite (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+        "Category!=LongRunning"`, from a clean `bin`/`obj`): 3185 of 3185, none skipped
+        (3178 before this change plus the 5 inventory facts and the 2 bind-time facts).
+        The protocol lint: 0 errors, 0 warnings.
+      - **The records.** `API.md` already stated the bind-time probe (under `Engine`,
+        and in the Errors table) from the design; `CHANGELOG.md` names the fix under
+        `[Unreleased]`'s "Fixed" (the release after 0.1.0 is 0.2.0, per the Diagnostics
+        phase's binary break already recorded there).
+
+- [x] 2026-09-26 — The audit's F2, F3 and observations (Constraints), every fact but
+      one (noted below) shown red once against the code before the change:
+      - **The bad library.** `AcceleratorChoice.Cuda` now loads libnvvm and asks its IR
+        version, then reads the bitcode, through one new internal `LoadNvvm`, before
+        `CreateAccelerator` (also new) ever creates a CUDA context; the session keeps
+        that one `NvvmAPI` binding, so no second `NvvmAPI.Create` follows once the
+        accelerator is up. A file named as the platform's libnvvm that is not a
+        library, with the real bitcode and discovery off
+        (`BadLibraryTests.ABadLibraryNamesBothPathsAndNeverReachesTheDevice`,
+        `Category=Cuda`):
+        - `Cuda` throws `AcceleratorUnavailableException` naming both paths;
+        - `Auto` binds the CPU with a `CudaSkippedBecause` that names the library
+          path;
+        - on the reference machine, the free device memory after 20 such `Auto`
+          creations is within 64 MiB of the memory before it (measured: 15 037 MiB
+          before, 15 037 MiB after, 0 MiB lost — the audit's own run of the
+          pre-fix code lost 3 800 MiB over the same 20 attempts).
+
+        Shown red once against the pre-fix order (device before the library,
+        unwrapped): the same fact failed —
+        `Assert.Throws() Failure: Exception type was not an exact match Expected:
+        typeof(APThermo.Execution.AcceleratorUnavailableException) Actual:
+        typeof(System.BadImageFormatException)`, its inner exception "An attempt was
+        made to load a program with an incorrect format. (0x8007000B)" — exactly the
+        audit's own finding; reverted before committing.
+      - **All cores.** `AcceleratorChoice.CpuDeviceFor(int)` sizes the CPU device from
+        `Environment.ProcessorCount`. Below 4 processors the warp size alone carries the
+        count (`Math.Max(2, count)`, one warp, one multiprocessor: ILGPU refuses a
+        one-thread warp, so 2 and 3 match exactly and 1 does not). At 4 and above the
+        warp size stays fixed at 4 — so 16 processors still reduce to exactly (4, 4, 1),
+        the layout every bit and throughput record was measured against — and the count
+        of whole 4-thread groups the processor count allows,
+        `fourThreadGroups = processorCount / 4`, splits into a power-of-two warps count
+        (its lowest set bit) and a multiprocessor count (the remaining factor), whose
+        product reconstructs `fourThreadGroups` exactly; a processor count that is not a
+        multiple of 4 falls back to the largest multiple of 4 not above it, since every
+        group total this construction can reach is already at or under the count.
+
+        ILGPU 1.5.3's `CPUDevice` constructor was measured directly by reflection
+        (its summary records the figures): the warp size needs no upper bound and only
+        refuses 1; the warps per multiprocessor must be a power of two, and every
+        non-power-of-two value tried (3, 5, 6, 7, 9, 10, 12, 24, 48) throws
+        `ArgumentOutOfRangeException`, misnaming `numThreadsPerWarp` although the warps
+        argument is the one at fault; the multiprocessor count carries no constraint
+        ILGPU checks at all, from 2 to 1 000 000. The corrected construction uses only
+        layouts this probe confirmed the constructor accepts.
+
+        Proven under `DOTNET_PROCESSOR_COUNT` 4, 12, 16 and 64, each its own
+        `dotnet test` child process — `Environment.ProcessorCount` is read once, at
+        process start — spawned by the same test class acting as its own worker
+        (`AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`,
+        `AllCoresLayoutWorker`, `tests/Execution.Tests`): the reported thread count is
+        4, 12, 16 and 64 respectively, and a rocket batch's result hash (specific
+        impulse, c*, thrust coefficient over every station) is identical at every
+        count. A second, host-only fact
+        (`TheAllCoresLayoutMatchesEveryProcessorCountOrTheDocumentedFallback`) asserts
+        the layout's thread total, with no child process, at every count of 1, 2, 3, 4,
+        6, 8, 12, 16, 20, 24, 32, 48, 64 and 128: exact at every one of them except 1
+        (the ILGPU floor of 2 threads exceeds it) and 6 (not a multiple of 4, so the
+        layout falls back to 4), each asserted against its documented fallback instead
+        of equality.
+
+        ⚠ 2026-09-26: this criterion first described the construction above as "one
+        multiprocessor throughout", the warps count alone reaching the largest power of
+        two not over the count. The coordinator's review found that this loses threads
+        at every count that needs more than one multiprocessor to reach exactly: 12 → 8,
+        24 → 16, 48 → 32, 20 → 16. The construction now chosen keeps the warp size fixed
+        at 4 from 4 processors up (so 16 still reduces to (4, 4, 1)) and uses the
+        multiprocessor count, not just the warps count, to reach every multiple of 4
+        exactly, as ILGPU's own unconstrained multiprocessor argument allows. Shown red
+        once against the superseded rule: the new host-only fact failed at 12 —
+        `Assert.Equal() Failure: Values differ Expected: 12 Actual: 8` — matching the
+        coordinator's own example; reverted before committing. The superseded rule's own
+        red-once record (against `builder.CPU()`, ILGPU's fixed 16-thread
+        `CPUDevice.Default`, failing the 4-processor child process with
+        `Assert.Equal() Failure: Values differ Expected: 4 Actual: 16`) still holds for
+        the corrected rule, unchanged by this correction.
+      - **Observations.** `LibDevicePostLink.FailureMessage` now trims a log of NUL
+        (`\0`) alongside whitespace (`TrimLog`), so a NUL-padded driver or libnvvm log
+        carries no NUL in the exception message
+        (`PostLinkTests.ALogWithNulPaddingIsTrimmedOfIt`, shown red once against a plain
+        `.Trim()`: the message still held the NUL). `Engine.Create` refuses one of
+        `LibNvvmPath`/`LibDevicePath` given without the other with an `ArgumentException`
+        naming the missing option, rather than silently falling through to discovery as
+        `("", path)` used to (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`,
+        shown red once: no exception thrown against the code before this change; the row
+        `API.md` already carried from the design). `Engine.Upload` disposes the species
+        buffers it already uploaded when the transport table's own upload then fails —
+        correct by inspection of the try/catch/dispose pattern, with no dedicated
+        reproduction: the tree's only path to a `TransportTable` is `TransportTable.Build`,
+        which always produces an internally consistent shape, so no legitimate call
+        makes `TransportTableBuffers.Upload` fail short of exhausting device memory.
+      - **Nothing else moves.** No `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        the protocol tests node's `PublicSurface.approved.txt` changed (`git status
+        --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty); `Throughput.approved.txt` still reads
+        "cpu: CPUAccelerator with 16 threads" on the reference machine, unchanged
+        (16 processors reduces to the same (4, 4, 1) layout as before). The node's CUDA
+        tests are green in Release. `API.md`'s Errors table already stated the
+        half-pair refusal from the design; `Options.cs` and every "all cores" sentence
+        of this node are now literally true, not only on the reference machine.
+
+      Evidence, on the reference machine (RTX 5070 Ti, driver 13.4, CUDA toolkits
+      12.9/13.3/13.4), from a tree with every `bin` and `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3191 total, 3190 passed, 0 skipped; the one failure,
+        `Protocol.Tests.DeclarationTests.EveryDeclarationUnderATickExists` on
+        `src/Performance/API.md`'s `RocketSolver.MaxThroatBisections`, predates this
+        change (present on an untouched checkout of the same commit, `src/Performance`
+        and `tests/Protocol.Tests` outside this coding task's subtree) and is the
+        coding half of the Performance/Transport hidden-defect audit's own design
+        commit (`9a6888f`), not yet landed;
+      - `dotnet test tests/Execution.Tests -c Release` (no filter): 140 of 140 (134
+        before this change plus six new facts: `ChunksStayWithinInt32OffsetsAtTableLimits`,
+        `AllCoresLayoutWorker`, `TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`,
+        `BadLibraryTests.ABadLibraryNamesBothPathsAndNeverReachesTheDevice`,
+        `PostLinkTests.ALogWithNulPaddingIsTrimmedOfIt`,
+        `AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`), the
+        100 000-case sweep and the throughput tripwire included;
+      - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty: no snapshot moved;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      Evidence for the "All cores" correction above (2026-09-26, on the same reference
+      machine), added to the evidence already recorded, not replacing it:
+      - `dotnet build APThermo.sln -c Release`: 0 warnings, 0 errors;
+      - `dotnet test tests/Execution.Tests -c Release` (no filter): 141 of 141 (the
+        140 already recorded plus
+        `TheAllCoresLayoutMatchesEveryProcessorCountOrTheDocumentedFallback`), the
+        100 000-case sweep and the throughput tripwire included;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3192 total, 3191 passed, 0 skipped; the one failure is
+        the same pre-existing `DeclarationTests` fact named above, now fixed on `main`
+        at `a6bc55d` (outside this coding task's subtree, not rebased onto here on the
+        coordinator's own instruction);
+      - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty: no snapshot moved;
+      - the protocol lint: 0 errors, 0 warnings.
+
+- [x] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints).
+      Implemented as `CudaWslDevices.Register` (`src/Execution/CudaWslDevices.cs`):
+      tries `builder.Cuda()` first, every time (no static state records that a resolver
+      was ever set); when that call throws `InvalidOperationException` ("A resolver is
+      already set for the assembly"), registers the devices itself through ILGPU's
+      internal `CudaDevice.GetDevices(configure, predicate, registry)`, reflected by
+      name (the property and the method are internal to ILGPU, which grants this
+      assembly no `InternalsVisibleTo`), with the same no-op `configure` and the same
+      `predicate` (a device with a known architecture and an instruction set the PTX
+      backend supports) the no-argument `Cuda()` overload passes to it. A missing
+      member is an `AcceleratorUnavailableException` naming it.
+
+      Evidence, on the reference machine:
+      - **Red once, under WSL** (WSL2 Ubuntu 24.04, .NET SDK 10.0.112, CUDA 12.9
+        libnvvm, a clone at `~/apthermo` whose `origin` is this repository, git
+        checkout `89bb619` detached): the existing
+        `AcceleratorChoiceTests.AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`
+        (`dotnet test tests/Execution.Tests -c Release --filter
+        "FullyQualifiedName~ProbeKernelCannotBind"`) failed on its second CUDA context
+        (the `Auto` fact right before it in `AcceleratorChoiceTests` already having
+        created the first) — "Assert.Contains() Failure … Not found: \"the math probe
+        kernel could not be loaded\"", the message instead "the CUDA context could not
+        be created (driver or device problem): A resolver is already set for the
+        assembly", exactly the defect. A throwaway three-engine fact (this criterion's
+        own, without `CudaWslDevices` yet — not committed) failed the same way on its
+        second engine: `AcceleratorUnavailableException`, inner
+        `InvalidOperationException` "A resolver is already set for the assembly.",
+        through `CudaContextExtensions.CudaInternal` → `NativeLibrary.SetDllImportResolver`.
+      - **Green after the fix, under WSL**, at `bfab662`: the new
+        `CudaWslDevicesTests.EveryCudaEngineOfTheProcessBindsAndProbes` (three fresh
+        CUDA engines, each binding and probing) and
+        `AcceleratorChoiceTests.AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind`
+        together with `...AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind`
+        (the two bind-time probe facts, in one run) both green;
+        `dotnet test tests/Execution.Tests -c Release`, no filter: 143 of 143, the
+        100 000-case sweep and the throughput tripwire included, `git status --short`
+        against `Bits*.approved.txt`, `Throughput*.approved.txt` and the protocol tests
+        node's `PublicSurface.approved.txt` empty; the throughput ratio 27.48× (the
+        actual run measured 34.16×, comfortably above 80 % of it and the root's 5×
+        floor, so `Throughput.linux.approved.txt` was not re-approved).
+      - **Green on Windows, before and after**: `dotnet test tests/Execution.Tests -c
+        Release`, no filter, on a clean `bin`/`obj`: 143 of 143 both at `89bb619` (where
+        the resolver defect does not exist, since `IsRunningOnWSL()` is false) and at
+        `bfab662`; the throughput ratio at `bfab662` 28.38× (against the approved
+        23.58×), no `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        `PublicSurface.approved.txt` changed; `protocol_lint` 0 errors, 0 warnings.
+      - **The missing-member path**: `CudaWslDevicesTests.ARenamedIlgpuMemberNamesItself`
+        calls the internal `CudaWslDevices.Reflect(registryPropertyName,
+        getDevicesMethodName)` seam directly with a wrong name for each of the two
+        members in turn (no WSL needed to reach it this way) and asserts the exception
+        names it; the same call with the real names still resolves, proving the fact
+        exercises a wrong name, not a broken reflection call.
+
 ## Taboos
 
 - No numerical formula in this node: kernels only slice and call.
 - No ILGPU.Algorithms, no `XMath`, no `LibDevice.*` calls: the wrappers are provided by
   the post-link and the numerical nodes call `System.Math`.
-- No reliance on `Context.Builder.LibDevice()` to produce wrappers: it does not.
+- No kernel whose wrappers go unchecked: `Context.Builder.LibDevice()` defines them for
+  some targets and silently drops them for others (the post-link constraint).
+
+  ⚠ 2026-09-26: stood "No reliance on `Context.Builder.LibDevice()` to produce
+  wrappers: it does not." It does, for `compute_75` to `compute_90`; the taboo was
+  written on SM_120 alone (the ⚠ of the invariant "Every CUDA kernel goes through the post-link").
 - No fallback from an explicitly requested CUDA accelerator to the CPU: silent
   fallbacks hide the very failures this node exists to surface.
 - No reduction, atomic or shared-memory construct in a kernel: determinism first.

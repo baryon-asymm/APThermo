@@ -28,7 +28,7 @@ internal static class RocketInvariants
     {
         var throat = solution.Outcome.Stations[RocketSolver.Throat];
         var sonic = throat.Velocity * throat.Velocity / (throat.SoundSpeed * throat.SoundSpeed);
-        return Math.Abs(sonic - 1.0) > SonicTolerance ? [$"throat u²/a² = {sonic:R}"] : [];
+        return !(Math.Abs(sonic - 1.0) <= SonicTolerance) ? [$"throat u²/a² = {sonic:R}"] : [];
     }
 
     /// <summary>Every station downstream of the chamber carries the chamber's entropy.</summary>
@@ -39,7 +39,7 @@ internal static class RocketInvariants
         for (var s = 1; s < solution.StationCount; s++)
         {
             var entropy = solution.Outcome.Stations[s].Entropy;
-            if (Math.Abs(entropy - chamber.Entropy) > EntropyTolerance * Math.Abs(chamber.Entropy))
+            if (!(Math.Abs(entropy - chamber.Entropy) <= EntropyTolerance * Math.Abs(chamber.Entropy)))
             {
                 violations.Add($"station {s} entropy {entropy:R} against the chamber's {chamber.Entropy:R}");
             }
@@ -57,7 +57,7 @@ internal static class RocketInvariants
         {
             var state = solution.Outcome.Stations[s];
             var expected = Math.Sqrt(2.0 * (chamber.Enthalpy - state.Enthalpy));
-            if (Math.Abs(state.Velocity - expected) > VelocityTolerance * expected)
+            if (!(Math.Abs(state.Velocity - expected) <= VelocityTolerance * expected))
             {
                 violations.Add($"station {s} velocity {state.Velocity:R} against the energy equation's {expected:R}");
             }
@@ -80,6 +80,83 @@ internal static class RocketInvariants
             if (message is not null)
             {
                 violations.Add(message);
+            }
+        }
+
+        return violations;
+    }
+
+    /// <summary>Every accepted area-ratio exit station is supersonic (Performance BOOT.md, 2026-09-26, finding F3).</summary>
+    public static IReadOnlyList<string> SupersonicAreaRatioExits(RocketSolution solution)
+    {
+        var inputs = solution.Inputs;
+        var violations = new List<string>();
+        for (var k = 0; k < inputs.ExitCount; k++)
+        {
+            var station = RocketLayout.FixedStations + k;
+            if (inputs.Exits.Kinds[k] != ExitSpecification.AreaRatio || solution.Outcome.StationStatus[station] != CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var mach = solution.Outcome.Stations[station].Mach;
+            if (!(mach >= 1.0))
+            {
+                violations.Add($"station {station} Mach {mach:R} is not supersonic");
+            }
+        }
+
+        return violations;
+    }
+
+    /// <summary>
+    /// Every <c>Ok</c> station's <c>Velocity</c> equals its <c>SpecificImpulse</c> bit for bit, and both are finite
+    /// (Performance BOOT.md, 2026-09-26, the guards audit's F5/F6: the fixtures carry no <c>velocity</c> field to compare
+    /// with, so this is the tree's own check of the identity <c>StationFigures.Write</c> keeps by construction).
+    /// </summary>
+    public static IReadOnlyList<string> VelocityEqualsSpecificImpulse(RocketSolution solution)
+    {
+        var violations = new List<string>();
+        for (var s = 0; s < solution.StationCount; s++)
+        {
+            if (solution.Outcome.StationStatus[s] != CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var velocity = solution.Outcome.Stations[s].Velocity;
+            var specificImpulse = solution.Outcome.Figures[s].SpecificImpulse;
+            if (!double.IsFinite(velocity) || !double.IsFinite(specificImpulse)
+                || BitConverter.DoubleToInt64Bits(velocity) != BitConverter.DoubleToInt64Bits(specificImpulse))
+            {
+                violations.Add($"station {s} velocity {velocity:R} against SpecificImpulse {specificImpulse:R}");
+            }
+        }
+
+        return violations;
+    }
+
+    /// <summary>
+    /// Every station's <c>PressureRatio</c> is p_c/p of the state actually solved there, to rounding level (Performance
+    /// BOOT.md, 2026-09-26, finding F6: the throat's figure must come from the pressure actually solved, not one
+    /// momentum step past it).
+    /// </summary>
+    public static IReadOnlyList<string> PressureRatioMatchesTheSolvedPressure(RocketSolution solution)
+    {
+        var chamberPressure = solution.Outcome.Stations[RocketSolver.Chamber].Pressure;
+        var violations = new List<string>();
+        for (var s = 1; s < solution.StationCount; s++)
+        {
+            if (solution.Outcome.StationStatus[s] != CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var expected = chamberPressure / solution.Outcome.Stations[s].Pressure;
+            var actual = solution.Outcome.Figures[s].PressureRatio;
+            if (BitConverter.DoubleToInt64Bits(expected) != BitConverter.DoubleToInt64Bits(actual))
+            {
+                violations.Add($"station {s} PressureRatio {actual:R} against p_c/p {expected:R}");
             }
         }
 
@@ -115,18 +192,21 @@ internal static class RocketInvariants
         if (inputs.Exits.Kinds[k] == ExitSpecification.AreaRatio)
         {
             var areaRatio = massFluxThroat / (state.Density * state.Velocity);
-            return Math.Abs(areaRatio - inputs.Exits.Values[k]) > AreaRatioTolerance * inputs.Exits.Values[k]
+            return !(Math.Abs(areaRatio - inputs.Exits.Values[k]) <= AreaRatioTolerance * inputs.Exits.Values[k])
                 ? $"station {s} area ratio {areaRatio:R} against the assigned {inputs.Exits.Values[k]:R}"
                 : null;
         }
 
         var pressureRatio = chamber.Pressure / state.Pressure;
-        return Math.Abs(pressureRatio - inputs.Exits.Values[k]) > PressureRatioTolerance * inputs.Exits.Values[k]
+        return !(Math.Abs(pressureRatio - inputs.Exits.Values[k]) <= PressureRatioTolerance * inputs.Exits.Values[k])
             ? $"station {s} pressure ratio {pressureRatio:R} against the assigned {inputs.Exits.Values[k]:R}"
             : null;
     }
 
-    private static int FreezingStationOf(FlowModel flow) => flow switch
+    /// <summary>The chamber or the throat, whichever a frozen flow model freezes at; -1 for shifting equilibrium. Shared
+    /// with <see cref="StationComparison"/>, which keys the frozen-station cv skip on this same station's reference
+    /// value (Performance BOOT.md, the guards audit's F5/F6).</summary>
+    internal static int FreezingStationOf(FlowModel flow) => flow switch
     {
         FlowModel.FrozenAtChamber => RocketSolver.Chamber,
         FlowModel.FrozenAtThroat => RocketSolver.Throat,

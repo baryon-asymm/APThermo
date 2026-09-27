@@ -114,7 +114,10 @@ internal static class StationEquality
         foreach (var (name, p) in expected.MoleFractions)
         {
             var q = actual.MoleFractions.GetValueOrDefault(name);
-            if (Math.Max(p, q) >= moleFractionFloor && !Close(p, q, relative))
+
+            // Math.Max(p, q) returns NaN when either argument is NaN, which would otherwise fail the floor test below and
+            // skip the pair silently (the guards audit's F5/F6): a NaN mole fraction is checked regardless of the floor.
+            if ((double.IsNaN(p) || double.IsNaN(q) || Math.Max(p, q) >= moleFractionFloor) && !Close(p, q, relative))
             {
                 yield return $"{label} x({name}): {p:R} vs {q:R}";
             }

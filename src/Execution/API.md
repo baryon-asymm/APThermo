@@ -35,7 +35,7 @@ public sealed record EngineOptions
     public const long DefaultScratchBytes = 256L << 20;
     public AcceleratorKind Accelerator { get; init; } = AcceleratorKind.Auto;
     public int CudaDeviceIndex { get; init; } = 0;
-    public string? LibNvvmPath { get; init; }          // explicit libnvvm path (nvvm64_40_0.dll on Windows, libnvvm.so on Linux), tried first
+    public string? LibNvvmPath { get; init; }          // explicit libnvvm path (nvvm64_40_0.dll on Windows, libnvvm.so on Linux), tried first; given together with LibDevicePath or not at all (2026-09-26)
     public string? LibDevicePath { get; init; }        // explicit libdevice.10.bc, tried first
     public bool LibDeviceDiscovery { get; init; } = true;   // CUDA_PATH and the toolkit directories after the explicit pair
     public int ChunkSize { get; init; } = DefaultChunkSize;         // cases (or stations) per launch
@@ -64,7 +64,7 @@ public sealed class AcceleratorUnavailableException : Exception
 
 public static class AcceleratorProbe             // replaces Engine on the package surface (F1)
 {
-    public static AcceleratorInfo Describe(EngineOptions? options = null);   // binds as Engine.Create would, releases the device, returns its description
+    public static AcceleratorInfo Describe(EngineOptions? options = null);   // binds as Engine.Create would (the probe kernel included, 2026-09-26), releases the device, returns its description
     public static bool CudaForbidden { get; }     // the environment variable is "1"
 }
 ```
@@ -104,16 +104,32 @@ internal sealed class UploadedTables : IDisposable        // device copies of th
 
 internal static class MathProbe
 {
-    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow, Sqrt, Abs, Min, Max, Floor, Ceiling
+    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow(1.37), Pow(1.4), Pow(4.6), Sqrt, Abs, Min, Max, Floor, Ceiling
     public static int FunctionCount { get; }
-    public const double PowExponent = 1.37;
+    public static readonly IReadOnlyList<double> PowExponents;   // 1.37, 1.4, 4.6 (2026-09-27, the guards audit's F11)
+    public const double PowExponent1 = 1.37;
+    public const double PowExponent2 = 1.4;
+    public const double PowExponent3 = 4.6;
 }
 ```
 
-`Create` with `Auto` binds CUDA when CUDA is not forbidden, libnvvm and libdevice are
-found and the device exists, and the CPU accelerator otherwise, including when the
-CUDA context cannot be created. With `Cuda` every one of those failures is an
-`AcceleratorUnavailableException`. The kernel of each program is compiled (and on
+⚠ 2026-09-27 (the guards audit's F11): `MathProbe` had one `PowExponent = 1.37` and `Functions` listed a single `Pow` entry, so the probe never exercised any other exponent. `Pow` is now probed at three exponents (1.37, 1.4, 4.6), each its own libdevice call; `PowExponent` is replaced by `PowExponent1`/`PowExponent2`/`PowExponent3` (the kernel-compatible consts `Kernels.Probe` inlines) and the host-readable `PowExponents`, and `Functions` names each exponent. `MathProbe` stays internal; the change is a tree-contract one, not a package-surface one.
+
+`Create` with `Auto` binds CUDA when all of the following hold, and the CPU
+accelerator otherwise:
+- CUDA is not forbidden;
+- libnvvm and libdevice are found;
+- the device exists and its CUDA context can be created;
+- the math probe kernel, which calls every libdevice wrapper of the math list,
+  post-links and loads on that device (2026-09-26).
+
+With `Cuda` every one of those failures is an `AcceleratorUnavailableException`. A CUDA
+engine therefore never reaches its first run on a device where no kernel can load.
+
+⚠ 2026-09-26: the probe kernel was not part of the binding. On every GPU older than
+Blackwell the post-link threw at the first run of every program: `Auto` had already
+bound CUDA and had no fallback left, and `Describe` reported the device as usable
+(`BOOT.md`, the ⚠ of the invariant "Every CUDA kernel goes through the post-link"). The kernel of each program is compiled (and on
 CUDA post-linked) on its first run per engine and cached; that time is the run's
 `WarmUp`. Batches are processed in chunks of at most `ChunkSize` cases, and fewer
 when a chunk's device bytes would exceed `ScratchBytes`; the results of a batch do not
@@ -277,10 +293,12 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | Situation | Behaviour |
 |---|---|
 | `AcceleratorKind.Cuda` requested and CUDA forbidden, no libnvvm or libdevice, no device at the index, or the context cannot be created | `AcceleratorUnavailableException` naming the missing piece and every path tried |
+| `AcceleratorKind.Cuda` requested and the math probe kernel cannot be post-linked or loaded on the device (2026-09-26) | `AcceleratorUnavailableException` at `Engine.Create` or `AcceleratorProbe.Describe`, its inner exception the post-link's `InvalidOperationException` (the next rows); with `Auto`, the CPU accelerator, the post-link's message in `CudaSkippedBecause` |
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create` (reached through `AcceleratorProbe.Describe` or `Problems`' `Solver.Create`), naming the ILGPU version |
+| one of `LibNvvmPath` and `LibDevicePath` given without the other (2026-09-26) | `ArgumentException` at `Engine.Create` or `AcceleratorProbe.Describe`, naming the missing option |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
 | a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
-| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program |
+| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |
 

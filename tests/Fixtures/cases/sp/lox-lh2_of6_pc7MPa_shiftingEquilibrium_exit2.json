@@ -7,12 +7,14 @@
         {
           "name": "O2(L)",
           "massFraction": 0.8571428571428571,
-          "temperature": 90.17
+          "temperature": 90.17,
+          "role": "oxidizer"
         },
         {
           "name": "H2(L)",
           "massFraction": 0.14285714285714285,
-          "temperature": 20.27
+          "temperature": 20.27,
+          "role": "fuel"
         }
       ],
       "oxidizerToFuelRatio": 6.0,
@@ -56,8 +58,8 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "cea-package",
     "script": "propellants.py",
-    "scriptSha256": "0b0b532738f394da8fc20f6b4d8416e2d20ced511001c23bb06e4b257332ca98",
-    "generatedOn": "2026-09-12"
+    "scriptSha256": "17a4a5cc00e24dfed3f66257019d3a72b86eb56ab9a26479e32d30cdc97d689d",
+    "generatedOn": "2026-09-27"
   },
   "outputs": {
     "temperature": 1212.4589186525525,

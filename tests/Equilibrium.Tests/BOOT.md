@@ -119,6 +119,22 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
   2026-09-12. The struct stays public here; nothing in this node's own scope required
   the change.
 
+- **No NaN-blind predicate, and the frozen cv skip keyed on the reference**
+  (2026-09-27, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5 and F6). The rules are those of the performance tests node:
+  - Every predicate of this node that compares a value with a bound is written so that
+    NaN fails it (`!(x <= bound)`), or asserts finiteness first. This covers
+    `ElementConservationTests`, and every other predicate the coder finds by searching
+    for `> ` against a bound or a tolerance.
+  - `FrozenModeTests` skips `cvFrozen` and `cvEquilibrium` at a frozen station only
+    where the reference shows the defect's signature: both 0, or both equal to the
+    freezing station's values. Anywhere else the two fields are compared with the
+    table like any other.
+  - ⚠ A NaN residual passed `ElementConservationTests`, since `NaN > bound` is false.
+    A frozen exit's cv edited in a fixture copy, from 0 to 2500 and 9999, left this node
+    463/463 green: the fields were skipped for every frozen station. Today all 124
+    frozen stations of the fixtures carry the signature (109 exits at 0/0, 15 throats
+    with the chamber's values, counted by the audit), so no comparison changes.
+
 ## Shape exceptions
 
 Added 2026-09-14 by the design session, after the protocol tests node's measurements found
@@ -246,6 +262,44 @@ creation names its arguments; it passes them by position today (the criterion be
       criterion of the same date): seen red on the code before the fix
       (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
       instead of −1) and green after it, with no bit of `Bits.approved.txt` moved.
+
+- [x] 2026-09-27 — The NaN and cv guards (Constraints).
+      - `ElementConservationTests` scanned for a bound comparison the manual way
+        (`grep -n "if (" *.cs | grep -E "[<>]="`, then read); the one predicate
+        recording a violation from a solver-computed value was
+        `ElementsAreConservedAtTheInvariantTolerance`'s `if (residual > bound)`,
+        rewritten `if (!(residual <= bound))`. Every other comparison found the same
+        way (`CondensedSpeciesTests`, `PlateauTests`) is either already the NaN-safe
+        negated form or a direct `Assert.True(condition)` on the "must hold" condition,
+        which a NaN condition already fails correctly; none records a violation into a
+        list under an un-negated `>`/`<` test, so none needed rewriting.
+        `ElementConservationTests.ANaNMoleNumberIsAConservationViolation` sets one mole
+        of a real `Ok` solution (`rp1311-example1_r1.0_p1.0atm_T3000`) to `NaN` and
+        asserts the (now factored-out) `Violations` helper reports it. Shown red with
+        the old form restored: `Assert.NotEmpty() Failure: Collection was empty`.
+      - `FrozenModeTests`' `NotFrozenFields` no longer carries `cvFrozen` or
+        `cvEquilibrium`; a new `ShowsTheFrozenCvDefectSignature(station,
+        freezingStation)` reads both fields of the current and the freezing station
+        from the fixture itself and returns whether they show the defect (both zero, or
+        both equal to the freezing station's own), and `CompareStation` skips the two
+        fields only where it does. `AFrozenExitOutsideTheSignatureIsCompared` writes a
+        copy of `lox-lh2_of4_pc10MPa_frozenAtChamber.json` to a temporary directory (never
+        the committed file, deleted afterwards) with `exit1`'s `cvFrozen`/`cvEquilibrium`
+        set to 2500/9999 — neither zero nor the freezing (`chamber`) station's own
+        3825.2/4819.6 — and asserts the comparison now reports a mismatch on one of
+        the two fields; the same copy with both set to zero (the defect's own
+        signature) reports none. Shown red with the old, unconditional skip restored
+        (`NotFrozenFields` carrying `"cvFrozen"`, `"cvEquilibrium"` again):
+        `Assert.Contains() Failure: Filter not matched in collection` against an empty
+        mismatch list — the 2500/9999 copy passed silently, exactly the defect BOOT.md
+        records (a fixture copy with cv 2500/9999 left this node's suite green).
+      - Bits: no `Bits.approved.txt` or `Bits.linux.approved.txt` of any node moved
+        (`git status` before and after, unchanged); the two new facts run against real
+        or temporary-copy fixtures only, writing nothing into the committed tree.
+
+      Evidence: `dotnet test tests/Equilibrium.Tests`, 697/697 (695 plus the two new
+      facts), none skipped; the full fast suite of the tree green
+      (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`).
 
 ## Taboos
 

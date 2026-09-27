@@ -18,15 +18,23 @@ internal readonly struct ChunkPlan
     /// <summary>Cases (or stations) one launch takes.</summary>
     public int Size { get; }
 
-    /// <summary>The plan for a batch whose chunk costs the given device bytes per case (every buffer of the chunk, <see cref="ChunkBuffers"/>).</summary>
-    public static ChunkPlan For(int count, long bytesPerCase, EngineOptions options)
+    /// <summary>
+    /// The plan for a batch whose chunk costs the given device bytes per case (every buffer of the chunk,
+    /// <see cref="ChunkBuffers.BytesPerCase"/>), capped so that no buffer's largest per-case element count
+    /// (<see cref="ChunkBuffers.MaxElementsPerCase"/>) ever multiplies by the chunk size past <see cref="int.MaxValue"/>
+    /// (BOOT.md, "A chunk's buffers stay within 32-bit offsets"; the audit's F4): the kernels slice a buffer with
+    /// <c>Index1D</c> arithmetic, 32-bit, and a chunk bounded by bytes alone could still overflow it on a huge
+    /// <see cref="EngineOptions.ScratchBytes"/> against a table with few, wide buffers.
+    /// </summary>
+    public static ChunkPlan For(int count, long bytesPerCase, long maxElementsPerCase, EngineOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         // ChunkSize and ScratchBytes are positive (Engine.Create validates them); the clamps keep a chunk of one case
-        // when a single case costs more than the bound, and a program with no per-case buffer from dividing by zero.
+        // when a single case costs more than a bound, and a program with no per-case buffer from dividing by zero.
         var byMemory = Math.Max(1L, options.ScratchBytes / Math.Max(1L, bytesPerCase));
-        return new ChunkPlan(count, (int)Math.Min(count, Math.Min(options.ChunkSize, byMemory)));
+        var byOffset = maxElementsPerCase <= 0 ? long.MaxValue : Math.Max(1L, int.MaxValue / maxElementsPerCase);
+        return new ChunkPlan(count, (int)Math.Min(count, Math.Min(options.ChunkSize, Math.Min(byMemory, byOffset))));
     }
 
     /// <summary>The chunks covering the batch, in order.</summary>

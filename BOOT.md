@@ -85,7 +85,10 @@ None.
 Outside the tree: .NET SDK 10.0 (C# 14), pinned by `global.json` to 10.0.112 with
 `rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled SourceLink replaces
 the explicit package the tree briefly referenced; ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
-used); for the GPU path an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
+used); for the GPU path an NVIDIA GPU of compute capability 7.5 or newer (2026-09-26,
+the range the execution node proves; an older device may work with a 12.x toolkit and is
+not verified, and a 13.x libnvvm refuses its target when the engine binds, which the
+`Auto` choice turns into the CPU accelerator with the reason), an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
 (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
 `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
 `nvvm/bin/x64`; on Linux, and under WSL2, the toolkit's `nvvm/lib64`); NASA CEA data `thermo.inp` and `trans.inp` from
@@ -241,15 +244,54 @@ delivery (2026-09-15, `## Delivery` below).
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
   the case index is the thread index.
 - Math in numerical nodes: only the `double` overloads of `System.Math` from this
-  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Min`, `Max`, `Floor`, `Ceiling`,
-  plus the constant `Math.PI`, which the compiler inlines and which needs no wrapper
-  (the transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
-  architecture review found the eleventh name unlisted). Adding a function is a root
-  decision, because the execution node must provide its libdevice wrapper.
-- ILGPU 1.5.3 is pinned, and its libdevice support is defective with libnvvm 12.9 and
-  13.3: it emits the NVVM version metadata before the target lines, libnvvm rejects the
-  module, and ILGPU silently drops the wrappers. The execution node links the libdevice
-  wrappers itself; nothing else in the tree may know about the mechanism.
+  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Floor`, `Ceiling`, plus the
+  constant `Math.PI`, which the compiler inlines and which needs no wrapper (the
+  transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
+  architecture review found the eleventh name unlisted). The minimum and the maximum
+  come from the thermo node's `KernelMath.Min` and `KernelMath.Max`, never from
+  `Math.Min` or `Math.Max` (2026-09-27). Adding a function is a root decision, because
+  the execution node must provide its libdevice wrapper.
+
+  ⚠ 2026-09-27: `Min` and `Max` stood in the list. ILGPU compiles `Math.Min` and
+  `Math.Max` to PTX `min.f64` and `max.f64`, which return the other operand when one is
+  NaN, while .NET returns NaN. The guards audit's probe inputs (F11) measured it on the
+  reference device: `Min(NaN, 1)` and `Max(NaN, 1)` are NaN on the CPU accelerator and
+  1 on CUDA, the only divergence over the whole probed domain. The numerical nodes call
+  them in the convergence tests, the damped step, the row scaling of the linear solve
+  and the station velocity. There a NaN fails a case on the CPU and passes on the GPU:
+  a false `Ok`, or a velocity of 0 in place of NaN. The owner chose functions of the
+  tree's own, written once in comparisons and selections, so that both accelerators run
+  the same instructions and propagate NaN as .NET does. Documenting the divergence, or
+  proving that no NaN reaches any call, were the alternatives.
+- ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
+  `compute_100` and newer (Blackwell): it emits the NVVM version metadata before the
+  target lines, libnvvm rejects that module for those targets, and ILGPU silently drops
+  the wrappers. For `compute_75` to `compute_90` libnvvm accepts the same module and
+  ILGPU defines the wrappers itself. The execution node checks every kernel and
+  completes the wrappers ILGPU dropped; nothing else in the tree may know about the
+  mechanism.
+
+  A second defect of the same version (2026-09-27): under WSL, ILGPU installs a
+  `DllImport` resolver on every CUDA context it creates, which .NET allows once per
+  process, so the second CUDA engine of a process failed to bind. The execution node
+  registers the devices of every later context itself. Its `BOOT.md` records the rule.
+
+  ⚠ 2026-09-26: stood "defective with libnvvm 12.9 and 13.3 … The execution node links
+  the libdevice wrappers itself". The defect depends on the target architecture, not on
+  the libnvvm version. It was measured only on the reference machine's SM_120, where
+  ILGPU always drops the wrappers. On every older GPU ILGPU defined them itself, the
+  post-link then inserted a second copy, and every CUDA run of 0.1.0 threw on SM_75 to
+  SM_90 (the hidden-defect audit of 2026-09-26, `Execution` finding F1). Measured the
+  same day with libnvvm 12.9, 13.3 and 13.4 by compiling for every architecture on the
+  reference device:
+  - ILGPU's order compiles for `compute_75` to `compute_90` with all three, and
+    `compute_60`/`compute_70` with 12.9 only;
+  - it fails for `compute_100` and newer with all three;
+  - the kernels ILGPU completes itself equal, as PTX text, the kernels the post-link
+    completes, up to ILGPU's generated names and the `.target` line;
+  - their probe outputs are the same bits.
+
+  The execution node's `BOOT.md` records the design.
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
   during a solve.
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
@@ -273,7 +315,10 @@ delivery (2026-09-15, `## Delivery` below).
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
 - Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, CUDA
-  Toolkits 12.9 and 13.3, 16 logical CPU cores. Recorded, not required.
+  Toolkits 12.9, 13.3 and 13.4 (13.4 recorded 2026-09-26; discovery binds the newest),
+  16 logical CPU cores. Recorded, not required. It is the only GPU the tree is run on:
+  older architectures are proven by compiling for them and running the result on this
+  device (the execution node's architecture fact), not on their own hardware.
 - Code shape (2026-09-14, the clean-code pass): a type spans at most 400 lines of
   code from its declaration to its closing brace, a method at most 60 (a line of code
   holds more than white space and comments), control flow
@@ -553,6 +598,20 @@ There is no external ancestor: the tree root is the repository root, and the loa
       for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
       split of the benchmarks node). Found by the coder of the last step, who raised it
       rather than editing the root.
+- [x] 2026-09-26 — Every GPU architecture (2026-09-26): the CUDA path runs on every architecture
+      ILGPU 1.5.3 declares from compute capability 7.5 up, and an engine that binds
+      CUDA has loaded a kernel carrying every wrapper of the math list. The list of
+      architectures comes from ILGPU by reflection. The evidence is the execution
+      node's criterion of the same date. Until it is ticked, 0.1.0 throws on every CUDA
+      run of every GPU older than Blackwell, and `CHANGELOG.md` says so under 0.2.0.
+
+      Evidence: merged as `f973870`, on the reference machine. The architecture fact
+      covers the 11 architectures SM_75 … SM_121 and the 5 entry points; both paths of
+      the post-link occur; the PTX is equal and the probe bits are identical. The
+      bind-time facts are green, and `tests/Execution.Tests` in Release is 134 of 134.
+      Every architecture is compiled for and then run on the RTX 5070 Ti; no GPU older
+      than Blackwell has run it. A one-time run on rented hardware (a T4 or an L4) is
+      planned by the owner and will be recorded here.
 
 ## Taboos
 
@@ -782,6 +841,20 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     human and an agent navigate them alike.
 - **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
   configuration and is not a node.
+
+  ⚠ 2026-09-26, declared deviation from AGENTS.md §1 (a directory with a build
+  manifest is a node): `.github/diagnostics/IsaProbe` is a C# console project with no
+  `BOOT.md` or `API.md`. It prints the instruction sets .NET sees on a runner, for the
+  runner-diagnostics step of both workflows (`2bab62d`, the hosted-runner bit
+  investigation of 2026-09-18). It is configuration's tool, not the product's.
+  - What replaces the pair: its header comment states its purpose.
+  - What still binds it: the Diagnostics constraint, since `Directory.Build.props`
+    covers it and `DiagnosticsTests` reads `.github`.
+  - What lifts the deviation: removing the step and the project once the runner
+    diagnostics are retired.
+
+  Found by the guards audit of 2026-09-26: the linter's dot-directory exclusion left
+  it outside the tree with nothing saying so.
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
     the build, the fast suite with `APTHERMO_NO_CUDA=1` and without the bit snapshots
     (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint), and

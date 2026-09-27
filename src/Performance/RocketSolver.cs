@@ -28,6 +28,16 @@ internal static class RocketSolver
     public const int MaxThroatIterations = 20;
     public const int MaxAreaRatioIterations = 20;
 
+    /// <summary>Halvings of the throat bracket in ln p when the momentum iterations end without a sonic throat (BOOT.md, 2026-09-26).</summary>
+    public const int MaxThroatBisections = 60;
+
+    /// <summary>The bracket's width in ln p below which the bisection stops (BOOT.md, 2026-09-26).</summary>
+    internal const double ThroatBracketWidth = 1.0e-10;
+
+    /// <summary>Isentropic expansion (BOOT.md, Invariants, 2026-09-26): every accepted station downstream of the
+    /// chamber keeps the chamber's entropy to this relative tolerance.</summary>
+    internal const double EntropyTolerance = 1.0e-9;
+
     /// <summary>Above this area ratio the report's analytic extrapolation from the previous station gives the initial estimate.</summary>
     internal const double ExtrapolationAreaRatio = 2.0;
 
@@ -48,7 +58,7 @@ internal static class RocketSolver
             result.Figures[station] = default;
         }
 
-        if (!(problem.ChamberPressure > 0.0) || table.SpeciesCount <= 0 || table.ElementCount <= 0)
+        if (!(problem.ChamberPressure > 0.0) || table.SpeciesCount <= 0 || table.ElementCount <= 0 || !IsDefinedFlow(problem.Flow))
         {
             return;
         }
@@ -70,4 +80,8 @@ internal static class RocketSolver
 
         result.Status[0] = (int)ExitStations.All(in context, in chamber, in throat);
     }
+
+    /// <summary>A flow model other than the three named values is <see cref="CaseStatus.InvalidInput"/> for the case (BOOT.md, 2026-09-26).</summary>
+    private static bool IsDefinedFlow(FlowModel flow) =>
+        flow is FlowModel.ShiftingEquilibrium or FlowModel.FrozenAtChamber or FlowModel.FrozenAtThroat;
 }

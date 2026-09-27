@@ -142,6 +142,14 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 - The node has no tests node of its own: it is proven through its consumers (the
   acceptance criteria below).
 
+- **`Bits.Differences<T>` reads fields and properties** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F10). It
+  compares every public `double` and `int` field and property of `T`. It throws when `T`
+  has none, so that a comparison can never be empty by accident.
+  - ⚠ It read properties only, while its contract says fields. On a struct of public
+    fields it compared nothing: a tuple `(1e6, 3000)` against `(2e6, NaN)` returned no
+    difference. The tree's descriptor structs are public-field structs, and no caller
+    passes one today.
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — The node holds the types of `API.md` and the copies are gone: the
@@ -330,6 +338,39 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       the tripwire and its approved file (`tests/Execution.Tests`), out of scope here:
       this task touched no `src/`, no test code outside this node, and no approved
       file.
+
+- [x] 2026-09-27 — `Bits.Differences` over a public-field struct names each differing
+      field, and over a type with no double or int member throws. Both are red against
+      `9c33398`. No snapshot moves.
+
+      `Differences<T>` now walks `T`'s public instance fields as well as its
+      properties, keeping only the `double`- and `int`-typed members of either kind
+      (a small `MembersOf` helper, one boxing reader per member so a field and a
+      property are read the same way); it throws `InvalidOperationException` before
+      returning anything when that set is empty, so a comparison can never pass by
+      finding nothing to compare. This node has no tests node of its own (`##
+      Constraints`, "proven through its consumers"), so both branches were shown red
+      through a temporary, uncommitted fact in a consumer (`tests/Performance.Tests/
+      ZzGuardsAuditRedOnce.cs`, deleted before this commit), with `tests/Harness/
+      Bits.cs` itself reverted to its pre-fix form (`9c33398`) for the red run and
+      restored immediately after, `git diff --stat` empty afterwards:
+      - `(double, double)`, a real public-field struct (`System.ValueTuple`'s `Item1`,
+        `Item2`), `(1e6, 3000.0)` against `(2e6, double.NaN)`: at `9c33398`,
+        `Differences` returned no lines at all ("expected the public-field tuple's
+        differences to be reported", the exact blind spot the audit's example names);
+        with the fix, it reports both fields;
+      - a scratch struct with a single `string` field and no `double` or `int`
+        member: at `9c33398`, `Differences` returned an empty sequence instead of
+        throwing ("Assert.Throws() Failure: No exception was thrown"); with the fix,
+        it throws `InvalidOperationException` naming the type.
+
+      `dotnet build tests/Harness/APThermo.Harness.csproj`: 0 warnings, 0 errors;
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Performance.Tests --filter
+      "Category!=LongRunning"` and `dotnet test tests/Problems.Tests --filter
+      "Category!=LongRunning"` green throughout (the six consumers of
+      `Bits.Differences` never call it on a public-field struct or on a type with no
+      numeric member today, so none of their `Bits.approved.txt` moves); the protocol
+      lint 0 errors, 0 warnings.
 
 ## Taboos
 

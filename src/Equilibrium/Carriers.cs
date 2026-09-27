@@ -52,6 +52,50 @@ internal enum SpeciesMark
     StoodDown = 3,
 }
 
+/// <summary>
+/// The Newton loop's bookkeeping between steps (2026-09-26): how many steps have run since the condensed set last
+/// changed, whether the most recent verdict passed the report's tests, and how many polish steps have followed
+/// since. A struct rather than three loop locals so its transitions can be unit-tested on the host without a table
+/// (BOOT.md, the loop's bookkeeping). Kernel-compatible.
+/// </summary>
+internal struct NewtonLoopState
+{
+    /// <summary>Newton steps taken since the condensed set last changed.</summary>
+    public int Steps;
+
+    /// <summary>Whether the most recent verdict passed the report's tests (equations (3.5) and (3.6), the element balance).</summary>
+    public bool Converged;
+
+    /// <summary>Polish steps taken in the current unbroken run of passed verdicts.</summary>
+    public int PolishSteps;
+
+    /// <summary>
+    /// A change of the condensed set — an inclusion, a phase change, or a singular remedy's removal — restarts the
+    /// step count, since the cap is "steps after the last change of the condensed species set" (BOOT.md).
+    /// </summary>
+    public void RecordSetChange() => Steps = 0;
+
+    /// <summary>
+    /// One step's verdict: a failed one clears the mark and the polish count, so a later pass polishes afresh and a
+    /// step cap reached after a failure is never reported as converged (BOOT.md, the loop's bookkeeping).
+    /// </summary>
+    public void RecordVerdict(ConvergenceVerdict verdict)
+    {
+        if (verdict == ConvergenceVerdict.NotConverged)
+        {
+            Converged = false;
+            PolishSteps = 0;
+            return;
+        }
+
+        Converged = true;
+        if (verdict == ConvergenceVerdict.ReportTestsMet)
+        {
+            PolishSteps++;
+        }
+    }
+}
+
 /// <summary>The mark accessors of <c>scratch.SpeciesActive</c> (<see cref="SpeciesMark"/>), used by every stage of the iteration.</summary>
 internal static class SpeciesMarks
 {
@@ -196,4 +240,13 @@ internal struct IterationState
 
     /// <summary>The record removed for its range at the last convergence, skipped by one inclusion pass; −1 if none.</summary>
     public int LastRemovedForRange;
+
+    /// <summary>
+    /// Whether the most recent <see cref="NewtonIteration.Converge"/> call dropped a negative-mole condensed record
+    /// through the singular remedies' last resort (BOOT.md, the warm-start fallback, 2026-09-27): the remedy removes
+    /// the last record of the set unconditionally, and this is the one place that still sees its mole number before
+    /// <see cref="CondensedSet.Remove"/> zeroes it. Reset at the start of every <c>Converge</c> call, so a caller
+    /// reads only what the call that just returned did.
+    /// </summary>
+    public bool CondensedWentNegative;
 }

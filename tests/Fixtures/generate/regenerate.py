@@ -9,15 +9,19 @@ from __future__ import annotations
 
 import sys
 
+import condensed_phase_limit
 import constants
+import low_temperature
 import plateaus
 import propellants
 import rp1311
 import thermo_functions
+import throat_scan
 import transport_fits
 from writer import Writer
 
-SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants, plateaus]
+SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants, plateaus, low_temperature,
+          condensed_phase_limit, throat_scan]
 
 
 def main() -> int:

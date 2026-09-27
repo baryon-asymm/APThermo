@@ -23,6 +23,7 @@ internal static class PressureRatioStation
         var state = result.Stations[station];
         var velocity = StationFigures.VelocityClamped(chamber.Enthalpy, in state);
         var areaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
-        StationFigures.Write(in context, station, velocity, areaRatio, value, throat.CharacteristicVelocity);
+        var inputs = new StationFigureInputs(velocity, areaRatio, value, throat.CharacteristicVelocity);
+        StationFigures.Write(in context, station, in inputs, chamber.Entropy);
     }
 }

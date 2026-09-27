@@ -34,7 +34,7 @@ internal static class TransportPipeline
         var figureBuffer = buffers.Output(figures, 1);
         var statusBuffer = buffers.Output(status, 1);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, options);
+        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options);
         buffers.Allocate(plan.Size);
         var views = new TransportBatchViews(temperatureBuffer.View, molesBuffer.View, scratchDoubles.View, scratchInts.View,
                                             figureBuffer.View, statusBuffer.View);

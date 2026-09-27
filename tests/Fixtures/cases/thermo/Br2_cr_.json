@@ -1,0 +1,99 @@
+{
+  "case": {
+    "name": "Br2(cr)",
+    "kind": "thermo",
+    "inputs": {
+      "species": "Br2(cr)",
+      "line": 11539,
+      "phase": "condensed",
+      "molarMass": 159.808,
+      "intervals": [
+        [
+          300.0,
+          265.9
+        ]
+      ],
+      "exponents": [
+        [
+          -2.0,
+          -1.0,
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          0.0
+        ]
+      ],
+      "temperatures": [
+        285.0,
+        265.9,
+        282.95,
+        300.0,
+        279.195
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "independent-evaluation",
+    "script": "thermo_functions.py",
+    "scriptSha256": "64d5524e62075ec71cd4bc96a4b43cb4d0dc6e091d32a11958ccafd7a96ee6bf",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "values": [
+      {
+        "temperature": 285.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 7.840025269467787,
+        "hOverRT": -4.993508884796682,
+        "sOverR": 12.9978231320909,
+        "gOverRT": -17.991332016887583
+      },
+      {
+        "temperature": 265.9,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 7.413545712590462,
+        "hOverRT": -5.899551276467925,
+        "sOverR": 12.46940823892541,
+        "gOverRT": -18.368959515393335
+      },
+      {
+        "temperature": 282.95,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 7.7904889600879415,
+        "hOverRT": -5.086309164532949,
+        "sOverR": 12.94140565019137,
+        "gOverRT": -18.02771481472432
+      },
+      {
+        "temperature": 300.0,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 8.219019514443744,
+        "hOverRT": -4.342444399580074,
+        "sOverR": 13.409511217192232,
+        "gOverRT": -17.751955616772307
+      },
+      {
+        "temperature": 279.195,
+        "inRange": false,
+        "interval": 0,
+        "cpOverR": 7.701866560151473,
+        "hOverRT": -5.258894971360604,
+        "sOverR": 12.83792321939761,
+        "gOverRT": -18.096818190758214
+      }
+    ]
+  }
+}

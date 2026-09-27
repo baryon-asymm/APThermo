@@ -179,8 +179,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     - ⚠ `--output=` exited 3 with an unhandled `ArgumentException`, and `--database=`
       read `thermo.inp` from the working directory.
   - **States.** A refusal from the front door names the record's source (file and
-    record, or JSON Lines line). This node maps the front door's
-    `StateRecordException.Index` within each group back to the record it came from.
+    record, or JSON Lines line). This node maps the front door's `StateRecordException.Index`
+    within each group back to the record it came from.
     - ⚠ Only the shape and mass refusals were mapped. A zero pressure on line 3 was
       reported as `equilibrium problem 1`, which reads as line 2.
   - **Mass tolerance.** `--mass-tolerance` applies to documents that carry element
@@ -190,11 +190,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     value. A reactant document's refusal names `the propellant's mixture (case i)`,
     as the front door's propellant path does.
     - ⚠ `run.massTolerance` echoed the option while the check in force was 1e-2. The
-      refusal said `mixture i` and cited the option's tolerance regardless of whether
-      it applied.
+      refusal said `mixture i` and cited 1 % under `--mass-tolerance 0.9`.
   - **Transport.** A station's `transport` object is present when transport was
-    requested and the station converged; the `API.md` wording follows the front
-    door's corrected contract.
+    requested and the station converged; the `API.md` wording follows the front door's
+    corrected contract.
   - **Database errors.** They are printed as the Data node gives them, with no second
     prefix.
 
@@ -540,8 +539,24 @@ Every other type of the node measures 14 or below by the dependency check's walk
       exit code 3, `InvalidOperationException: a defect of this node` on standard
       error, `dotnet run -c Release` on 2026-09-24.
 
-- [x] 2026-09-27 — The audit fixes of 2026-09-26 (Constraints), each fact red once
-      against the pre-fix code:
+- [x] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
+      red once against the code of `9c33398`:
+      - every CSV header this node writes, over every command, format and approved
+        example, has unique names;
+      - a document with a repeated member is refused (exit 2, with its path), in a
+        problem document and in a state record;
+      - `--output=` and `--database=` are exit 2 naming the option;
+      - the audit's `misname.jsonl` refusal names line 3;
+      - `--mass-tolerance` with a reactant document is exit 2;
+      - `run.massTolerance` of a reactant document is 0.01;
+      - a malformed database line is reported with one prefix.
+
+      Every approved CSV output (the tests node's, the docs tests node's, the bit
+      snapshots) is re-approved for the new header in the same commit, and nothing
+      else in them moves. The schemas are unchanged: the JSON documents did not change
+      shape.
+
+      Ticked 2026-09-27, each fact shown red once against the pre-fix code:
       - `CsvTests.TheStatesCsvHeaderNamesAreUniqueEvenWhenAnInputCollidesWithAStationField`:
         every CSV header column name is unique even when an input collides with a
         station field name; red before `CsvOutput.HeaderOf`'s `inputs.` prefix (48
@@ -577,15 +592,17 @@ Every other type of the node measures 14 or below by the dependency check's walk
       new header in the same commit as the fix, and the bit snapshot moves on no
       other line (`Cli.Tests/Bits.approved.txt`'s diff: the JSON-hash half of every
       line is unchanged, the CSV-hash half of every line that has a CSV form moved,
-      `species` — which has none — unchanged; `Bits.linux.approved.txt` is not
-      re-approved because no Linux machine was available to this coder, and needs a
-      Linux run before this criterion's evidence is complete for that platform). The
-      schemas are unchanged: the JSON documents did not change shape.
+      `species` — which has none — unchanged; `Bits.linux.approved.txt` is re-approved
+      by the owner under WSL, outside this coder's evidence). The docs tests node
+      carries no approved CSV output (`tests/Docs.Tests` stayed 29/29 unchanged
+      through this fix), so it needed no re-approval. The schemas are unchanged: the
+      JSON documents did not change shape.
 
       `dotnet test tests/Cli.Tests`: 129/129, none skipped.
       `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`:
-      3196/3196, none skipped. `dotnet build APThermo.sln`: 0 warnings, 0 errors.
-      The protocol lint: 0 errors, 0 warnings. The public surface is unchanged.
+      green on the merged tree (the merge commit's own record has the final count).
+      `dotnet build APThermo.sln`: 0 warnings, 0 errors. The protocol lint: 0 errors,
+      0 warnings. The public surface is unchanged.
 
 ## Taboos
 

@@ -60,6 +60,15 @@ public sealed class FunctionFixtureTests
             var flags = fixture.Outputs.GetProperty("values").EnumerateArray().Select(v => v.GetProperty("inRange").GetBoolean()).ToArray();
             Assert.False(flags[0], fixture.Name);
             Assert.False(flags[^1], fixture.Name);
+            var name = fixture.Inputs.GetProperty("species").GetString()!;
+            if (name == "Br2(cr)")
+            {
+                // Its only interval is inverted with nothing to continue it, so RecordLow exceeds RecordHigh and the
+                // range is empty everywhere, in the reference too (Thermo BOOT.md, RangeQuestionTests's twin fact).
+                Assert.DoesNotContain(true, flags);
+                continue;
+            }
+
             Assert.Contains(true, flags);
         }
     }

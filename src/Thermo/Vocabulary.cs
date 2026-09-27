@@ -160,5 +160,5 @@ internal static class TableLimits
 
     public const int MaxSpecies = 2048;
 
-    public const int MaxIntervalsPerSpecies = 5;
+    public const int MaxIntervalsPerSpecies = 6;
 }

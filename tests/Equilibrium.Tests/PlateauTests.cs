@@ -21,6 +21,23 @@ public sealed class PlateauTests
     /// <summary>Candidates this far inside their range are clear of the effective-bound shift at a crossing (CrossingLimit).</summary>
     private const double RangeMargin = 1.5;
 
+    private static readonly string[] Kinds = ["tp", "hp", "sp"];
+
+    /// <summary>Every fixture case of every kind (2026-09-26): the inclusion-gain honesty check holds for tp and sp too, not the hp cases alone.</summary>
+    public static TheoryData<string, string> CasesOfEveryKind()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var kind in Kinds)
+        {
+            foreach (var name in HostSolver.CaseNames(kind))
+            {
+                data.Add(kind, name);
+            }
+        }
+
+        return data;
+    }
+
     /// <summary>An enthalpy inside the ALN gap pins the pieces at the cut.</summary>
     [Fact]
     public void AnEnthalpyInsideTheALNGapPinsThePiecesAtTheCut()
@@ -92,10 +109,10 @@ public sealed class PlateauTests
     /// per-mole inclusion gain g_j/RT − Σ a_ij π_i &lt; 0 (BOOT.md, the condensed-species rule).
     /// </summary>
     [Theory]
-    [MemberData(nameof(HostSolver.Cases), "hp", MemberType = typeof(HostSolver))]
-    public void AnOkSolutionLeavesNoCondensedCandidateWithPositiveInclusionGain(string name)
+    [MemberData(nameof(CasesOfEveryKind))]
+    public void AnOkSolutionLeavesNoCondensedCandidateWithPositiveInclusionGain(string kind, string name)
     {
-        var c = HostSolver.Load("hp", name);
+        var c = HostSolver.Load(kind, name);
         var table = HostSolver.BuildTable(Cpu.Database, c);
         var solution = HostSolver.Solve(Cpu, c);
         Assert.Equal(CaseStatus.Ok, solution.Status);

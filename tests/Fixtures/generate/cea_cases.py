@@ -53,24 +53,43 @@ class Custom:
                             enthalpy=self.enthalpy_cal_per_mol, enthalpy_units="cal/mol", temperature=self.temperature)
 
 
-def describe_reactants(reactants: list, weights, temperatures=None) -> list[dict]:
-    """Reactant descriptions with mass fractions (weights normalized) and temperatures, custom reactants spelled out."""
+def _roles(count: int, oxidizer, fuel) -> list[str | None]:
+    """One role per reactant, read from the oxidizer and fuel vectors a ratio case passes to `of_ratio_to_weights`
+    (never from a name list, Fixtures BOOT.md's role criterion): `"oxidizer"` where the oxidizer vector is positive,
+    `"fuel"` where the fuel vector is positive, `None` for a case given no such vectors (no oxidizer-to-fuel ratio)."""
+    if oxidizer is None and fuel is None:
+        return [None] * count
+    oxidizer_vec = np.asarray(oxidizer, dtype=float)
+    fuel_vec = np.asarray(fuel, dtype=float)
+    return ["oxidizer" if o > 0.0 else "fuel" if f > 0.0 else None for o, f in zip(oxidizer_vec, fuel_vec)]
+
+
+def describe_reactants(reactants: list, weights, temperatures=None, oxidizer=None, fuel=None) -> list[dict]:
+    """Reactant descriptions with mass fractions (weights normalized) and temperatures, custom reactants spelled out.
+
+    `oxidizer` and `fuel` are the same vectors the caller passed to `of_ratio_to_weights` when the case was given
+    an oxidizer-to-fuel ratio: each reactant then carries a `role` (`"oxidizer"` or `"fuel"`), read from them, never
+    guessed downstream from a reactant's name (Fixtures BOOT.md, the fixture-document Constraints)."""
     weights = np.asarray(weights, dtype=float)
     fractions = weights / weights.sum()
     if temperatures is None:
         temperatures = [None] * len(reactants)
     elif np.isscalar(temperatures):
         temperatures = [float(temperatures)] * len(reactants)
+    roles = _roles(len(reactants), oxidizer, fuel)
     out = []
-    for r, w, t in zip(reactants, fractions, temperatures):
+    for r, w, t, role in zip(reactants, fractions, temperatures, roles):
         if isinstance(r, Custom):
-            out.append({
+            d = {
                 "name": r.name, "custom": True, "formula": {k.upper(): v for k, v in r.formula.items()},
                 "molarMass": r.molar_mass, "enthalpy": r.enthalpy_cal_per_mol * CAL_TO_J,
                 "temperature": r.temperature, "massFraction": float(w), "note": r.note,
-            })
+            }
         else:
-            out.append({"name": r, "massFraction": float(w), "temperature": None if t is None else float(t)})
+            d = {"name": r, "massFraction": float(w), "temperature": None if t is None else float(t)}
+        if role is not None:
+            d["role"] = role
+        out.append(d)
     return out
 
 
@@ -180,11 +199,14 @@ def solve_equilibrium(reac, prod, weights, kind: str, value_si: float, pressure_
 
 
 def solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa: float, flow: str, transport: bool,
-                 area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None, insert=None, trace=None):
+                 area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None, insert=None, trace=None,
+                 enthalpy: float | None = None):
     """Solves the infinite-area-chamber rocket problem; returns (solution, reactant enthalpy in J/kg).
 
-    `insert` seeds condensed species the package's own inclusion test misses (RP-1311 example 13). Every
-    solution passes the station guard of BOOT.md before it is returned."""
+    `insert` seeds condensed species the package's own inclusion test misses (RP-1311 example 13). `enthalpy`
+    overrides the reactants' own enthalpy (`reac.calc_property`) with an assigned value, as the throat family's
+    guard does when it re-runs the package's rocket solver at an enthalpy stepped away from the reactants'
+    (BOOT.md, the throat family). Every solution passes the station guard of BOOT.md before it is returned."""
     options = {"transport": transport}
     if insert is not None:
         options["insert"] = list(insert)
@@ -192,7 +214,8 @@ def solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa: float, 
         options["trace"] = trace
     solver = cea.RocketSolver(prod, reactants=reac, **options)
     solution = cea.RocketSolution(solver)
-    enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))   # J/kg
+    if enthalpy is None:
+        enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))   # J/kg
     solver.solve(solution, weights, chamber_pressure_pa / BAR_TO_PA, pi_p=pressure_ratios,
                  subar=subsonic_area_ratios, supar=area_ratios, iac=True, hc=enthalpy / cea.R, n_frz=N_FRZ[flow])
     if not solution.converged:
@@ -280,7 +303,7 @@ def rocket_outputs(solution: cea.RocketSolution, transport: bool, flow: str = FL
 def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressure_pa: float, reactant_enthalpy: float,
                   flow: str, transport: bool, area_ratios=None, pressure_ratios=None, subsonic_area_ratios=None,
                   of_ratio: float | None = None, omit: list[str] | None = None, trace: float | None = None,
-                  only: list[str] | None = None, insert: list[str] | None = None) -> dict:
+                  only: list[str] | None = None, insert: list[str] | None = None, extra: dict | None = None) -> dict:
     d = {
         "reactants": descriptions,
         "oxidizerToFuelRatio": of_ratio,
@@ -300,6 +323,8 @@ def rocket_inputs(descriptions: list[dict], products: list[str], chamber_pressur
         d["only"] = list(only)   # the explicit product list the package was given, when there was one
     if insert:
         d["insert"] = list(insert)   # the package's condensed seed list, recorded when one was needed (example 13)
+    if extra:
+        d.update(extra)   # the throat family's enthalpyAssigned marker, as equilibrium_inputs already allows
     return d
 
 

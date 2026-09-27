@@ -88,3 +88,80 @@ internal readonly struct StationRequest(int station, double pressure, double tem
     public readonly double Entropy = entropy;
     public readonly StationFlow Flow = flow;
 }
+
+/// <summary>
+/// What <see cref="StationFigures.Write"/> writes into one station: its velocity (also the source of its Mach number)
+/// and the three figures a station's own stage has just computed. Grouped so that <c>Write</c>, which also takes the
+/// chamber's entropy for the isentropic-expansion check (BOOT.md, Invariants, 2026-09-26), stays within the root's
+/// parameter limit.
+/// </summary>
+internal readonly struct StationFigureInputs(double velocity, double areaRatio, double pressureRatio, double characteristicVelocity)
+{
+    public readonly double Velocity = velocity;
+    public readonly double AreaRatio = areaRatio;
+    public readonly double PressureRatio = pressureRatio;
+    public readonly double CharacteristicVelocity = characteristicVelocity;
+}
+
+/// <summary>
+/// What every stage of the throat search (<see cref="ThroatBracketSearch"/>) shares: the case, the chamber it
+/// expands from, and the flow model the throat's own station is solved with. Grouped so that the search's methods
+/// stay within the root's parameter limit, as <see cref="StationFigureInputs"/> does for <see cref="StationFigures.Write"/>.
+/// </summary>
+internal readonly struct ThroatQuery(in RocketContext context, in ChamberReference chamber)
+{
+    public readonly RocketContext Context = context;
+    public readonly ChamberReference Chamber = chamber;
+    public readonly StationFlow Flow = context.Problem.Flow == FlowModel.FrozenAtChamber ? StationFlow.Frozen : StationFlow.Shifting;
+}
+
+/// <summary>
+/// The throat's bracket (BOOT.md, "The throat carries the largest mass flux"): the smallest pressure solved with
+/// u²/a² &lt; 1 (the subsonic end, closest to the chamber) and the largest solved with u²/a² &gt; 1 (the supersonic
+/// end), each carrying the temperature and the condensed-species fingerprint of the state solved there. Tracking
+/// keeps whichever end is closer to the sonic point, so the same rule serves the momentum trials and the
+/// bisection that narrows the bracket between them.
+/// </summary>
+internal struct ThroatBracket
+{
+    public bool HasSubsonic;
+    public double SubsonicPressure;
+    public double SubsonicTemperature;
+    public long SubsonicFingerprint;
+
+    public bool HasSupersonic;
+    public double SupersonicPressure;
+    public double SupersonicTemperature;
+    public long SupersonicFingerprint;
+
+    /// <summary>Both ends of the bracket have been seen.</summary>
+    public readonly bool IsComplete => HasSubsonic && HasSupersonic;
+
+    /// <summary>The bracket's width in ln p; meaningful only while <see cref="IsComplete"/>.</summary>
+    public readonly double LogWidth => Math.Log(SubsonicPressure) - Math.Log(SupersonicPressure);
+
+    /// <summary>Records one trial if it narrows its side of the bracket (the smallest subsonic pressure, the largest supersonic one).</summary>
+    public void Track(double pressure, double temperature, double sonicRatio, long fingerprint)
+    {
+        if (sonicRatio < 1.0)
+        {
+            if (!HasSubsonic || pressure < SubsonicPressure)
+            {
+                HasSubsonic = true;
+                SubsonicPressure = pressure;
+                SubsonicTemperature = temperature;
+                SubsonicFingerprint = fingerprint;
+            }
+        }
+        else if (sonicRatio > 1.0)
+        {
+            if (!HasSupersonic || pressure > SupersonicPressure)
+            {
+                HasSupersonic = true;
+                SupersonicPressure = pressure;
+                SupersonicTemperature = temperature;
+                SupersonicFingerprint = fingerprint;
+            }
+        }
+    }
+}

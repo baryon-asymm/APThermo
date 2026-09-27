@@ -60,8 +60,9 @@ def fuel_rich_hp(writer: Writer) -> None:
     corner of the composition space where the equilibrium node's inclusion memory is exercised."""
     reac, prod = make_mixtures(REACTANTS)
     of_ratio = 0.5
-    weights = reac.of_ratio_to_weights(np.array([1.0, 0.0, 0.0]), np.array([0.0, 14.0 / 32.0, 18.0 / 32.0]), of_ratio)
-    descriptions = describe_reactants(REACTANTS, weights, TEMPERATURES)
+    oxidizer, fuel = np.array([1.0, 0.0, 0.0]), np.array([0.0, 14.0 / 32.0, 18.0 / 32.0])
+    weights = reac.of_ratio_to_weights(oxidizer, fuel, of_ratio)
+    descriptions = describe_reactants(REACTANTS, weights, TEMPERATURES, oxidizer=oxidizer, fuel=fuel)
     enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, TEMPERATURES))
     pressure_pa = 7.0 * MPA_TO_PA
     outputs = solve_equilibrium(reac, prod, weights, "hp", enthalpy, pressure_pa, transport=False)

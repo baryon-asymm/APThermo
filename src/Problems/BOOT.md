@@ -244,8 +244,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   seen, and the reactant enthalpies of every propellant instance, until it is disposed.
 
 - **Audit fixes of 2026-09-26** (the hidden-defect audit of that day, Data, Problems and
-  Cli, findings 3 to 8). Each rule below is a decision recorded here and implemented
-  2026-09-27:
+  Cli, findings 3 to 8). Each rule below is a decision of the design session of that day:
   - **A refused state record is named by its own index.** Every refusal of a record by
     `SolveStates` or `SolveRocketStates` is a `StateRecordException` whose `Index` is
     the record's position in the list given. That covers the shape rules, the rules
@@ -255,10 +254,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     - ⚠ The shape rules threw it; the others threw a plain `ArgumentException` worded
       `equilibrium problem k` with the index of the problem inside the batch the runner
       built. A caller that splits records into groups, as the command line does, then
-      named the wrong record. `ProblemValidation.Rocket`/`.Equilibrium` now take a
-      `noun` and an index; a `noun` of `"state record"` throws `StateRecordException`,
-      any other noun keeps the plain `ArgumentException` a direct `Solve` call gave
-      before (its wording is unchanged for that caller).
+      named the wrong record.
   - **An element with no candidate species is refused.** The refusal is an
     `ArgumentException` naming the element and saying that only ionized or inert
     records carry it (`E`, `IH`, `IO` in the committed file). An element with no
@@ -276,12 +272,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       into one table species.
     - Several reactant-only records of one name resolve to the last, as cea 3.3.4
       does. The committed file has one such name, `n-Butanol`: gas then liquid. It
-      now resolves to the liquid, as cea 3.3.4 gives, measured 2026-09-27 through the
-      package's `calc_property` and cross-checked independently against the database
-      record's own enthalpy field (`AuditFixTests.AMultiRecordReactantOnlyNameResolvesToItsLastRecord`).
+      now resolves to the liquid, −3.757 MJ/kg as cea 3.3.4 gives, measured
+      2026-09-26 through the package's `calc_property`.
     - ⚠ The first record was taken for both. That refused `Fe2O3(cr)` at 1000 K
-      (range "298.15-960 K"), which cea 3.3.4 evaluates. It also made `n-Butanol` the
-      gas rather than the liquid.
+      (range "298.15-960 K"), which cea 3.3.4 evaluates (−4.533 MJ/kg). It also made
+      `n-Butanol` the gas, 369 kJ/kg above the reference.
   - **A failed station's transport status is null.** `TransportStatus` is null when
     transport was not requested or when the station did not converge. The station's
     own status tells the two apart. The code did this already; the contract said
@@ -750,9 +745,27 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       (packing is not part of `dotnet test`; the distribution phase's report has the
       transcript), not by a committed test.
 
-- [x] 2026-09-27 — The audit fixes of 2026-09-26 (Constraints), each fact red once
-      against the pre-fix code and green after, in the new
-      `tests/Problems.Tests/AuditFixTests.cs`:
+- [x] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
+      red once against the code of `9c33398`:
+      - a batch of three records split by exits, the third with pressure 0, refused
+        with `Index` 2;
+      - an `InertH2(L)` fuel, and a record with `E` among its elements, each refused
+        naming the element; `InertRP-1` refused naming `IC` and the missing monatomic
+        record;
+      - a fuel group of one mass-fraction and one mole reactant refused;
+      - `Fe2O3(cr)` at 1000 K accepted, its enthalpy equal to the joined table
+        species' at that temperature;
+      - `n-Butanol`'s enthalpy per kilogram equal to the liquid record's, compared with
+        the database record, not a typed value;
+      - a failed station with transport requested has a null `TransportStatus`, as
+        the corrected contract says.
+
+      The public surface does not move. No bit snapshot moves except the cases of a
+      fixture that names `n-Butanol` or a multi-record reactant, if any; the coder
+      checks for them and names them.
+
+      Ticked 2026-09-27, each fact shown red once against the pre-fix code and green
+      after, in the new `tests/Problems.Tests/AuditFixTests.cs`:
       - `ARuleProblemValidationAppliesIsRefusedByTheRecordsOwnIndexNotABatchLocalOne`:
         a batch of three records with the third's pressure 0 (a rocket problem,
         non-shape rule) refused with a `StateRecordException` whose `Index` is 2,
@@ -782,8 +795,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       is unchanged (`tests/Protocol.Tests/PublicSurface.approved.txt` unchanged; the
       `SurfaceTests` fact of the full run is green). No bit snapshot of this node
       moves for these five fixes: `dotnet test APThermo.sln --filter
-      "Category!=LongRunning"` after every change here is 3196/3196, none skipped,
-      the `BitSnapshotTests` of every node included, and the only lines any
+      "Category!=LongRunning"` after every change here is green on the merged tree
+      (this criterion's own re-run count is in the merge's own record below), the
+      `BitSnapshotTests` of every node included, and the only lines any
       `Bits*.approved.txt` of the tree moves on are the CSV-hash half of `Cli`'s
       (its own criterion below); `n-Butanol` is the reactants-only section's only
       multi-record name (`data/thermo.inp` lines 15478-15802 inspected by hand) and

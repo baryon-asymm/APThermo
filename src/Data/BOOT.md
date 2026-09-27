@@ -98,9 +98,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   The node stores the exponents and coefficients; it does not evaluate them.
 - Interval bounds are stored as written. Eleven condensed records of the committed file
   carry a first interval whose upper bound is not above its lower one (`Br2(cr)`
-  300..265.9, `Si(cr)` 300..298.15, `U3O8(II)` 300..300: phases with data at 298.15 K
-  only); the node neither rejects nor reorders them, and the tests node keeps them on
-  its approved anomaly list.
+  300..265.9, `Si(cr)` 300..298.15, `U3O8(II)` 300..300); the node neither rejects nor
+  reorders them, and the tests node keeps them on its approved anomaly list. What such
+  a record's range is, is the Thermo node's rule (its `API.md`, range questions).
+
+  ⚠ 2026-09-26: the parenthesis ended "phases with data at 298.15 K only". It is true of
+  no record on the list. Nine of the eleven continue with a regular interval from
+  298.15 K (`Si(cr)` to 1690 K). `Br2(cr)` holds one inverted interval and
+  `U3O8(II)` a degenerate first one before 300..483 K. Found by the hidden-defect audit
+  of 2026-09-26, which traced a Thermo defect to the reading this sentence invited.
 - Condensed phases of one substance are separate records (`AL2O3(a)`, `AL2O3(L)`),
   each with its own temperature range; the node does not relate them. One condensed
   substance may also be written as several records under one name, one per
@@ -132,9 +138,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - **Two notes of the hidden-defect audit of 2026-09-26.** Both are fixed here, and no
   record of the committed file changes:
-  - `ReadFormula` drops a zero-count pair, as `API.md` says; it kept a pair with a
-    symbol and a zero count (only an empty symbol was dropped before this fix). The
-    committed file has no such pair.
+  - `ReadFormula` drops a zero-count pair, as `API.md` says; it kept them. The
+    committed file has none.
   - A format error's message carries the file and line once; the command line's
     `DatabaseFiles` prefixed a message that already held them, printing
     `thermo.inp:66: thermo.inp:66: …`. The prefix belongs to this node's message, and
@@ -346,14 +351,15 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       lines turned the hash test and the equality test both red; reverted, nothing of
       the mutation committed.
 
-- [x] 2026-09-27 — The audit fix of 2026-09-26: a formula line with a zero-count pair
-      and a populated symbol reads without that pair. Red once against the
-      pre-fix `ReadFormula` (`ThermoLoadTests.AFormulaPairWithASymbolAndAZeroCountIsDropped`,
-      the pre-fix code returning `[("H", 0), ("O", 1)]` against the expected
-      `[("O", 1)]`), green after the fix.
-      `dotnet test tests/Data.Tests`: 43/43. `dotnet build APThermo.sln`: 0
-      warnings, 0 errors. The database error double-prefix note is the command
-      line's fix; its own criterion below records the evidence.
+- [x] 2026-09-26 — A formula line with a zero-count pair reads without that pair; a
+      unit fact over a one-record text, red against `9c33398`.
+
+      Ticked 2026-09-27: `ThermoLoadTests.AFormulaPairWithASymbolAndAZeroCountIsDropped`
+      shown red once against the pre-fix `ReadFormula` (it returned `[("H", 0), ("O",
+      1)]` against the expected `[("O", 1)]`), green after the fix. `dotnet test
+      tests/Data.Tests`: 43/43. `dotnet build APThermo.sln`: 0 warnings, 0 errors.
+      The database error double-prefix note is the command line's fix; its own
+      criterion records that evidence.
 
 ## Taboos
 

@@ -7,7 +7,8 @@
         {
           "name": "NH4CLO4(I)",
           "massFraction": 0.3333333333333333,
-          "temperature": 298.15
+          "temperature": 298.15,
+          "role": "oxidizer"
         },
         {
           "name": "HTPB",
@@ -21,12 +22,14 @@
           "enthalpy": -1046.0,
           "temperature": 298.15,
           "massFraction": 0.29166666666666663,
-          "note": "provisional definition, to be confirmed against a cited source (Fixtures BOOT.md)"
+          "note": "provisional definition, to be confirmed against a cited source (Fixtures BOOT.md)",
+          "role": "fuel"
         },
         {
           "name": "AL(cr)",
           "massFraction": 0.37499999999999994,
-          "temperature": 298.15
+          "temperature": 298.15,
+          "role": "fuel"
         }
       ],
       "oxidizerToFuelRatio": 0.5,
@@ -295,8 +298,8 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "cea-package",
     "script": "plateaus.py",
-    "scriptSha256": "f35b26755f74d57154986ae2fcc1da173f91d82cb8e7aac8dc3c5dc89b8fadeb",
-    "generatedOn": "2026-09-13"
+    "scriptSha256": "95278d826a402c7a1a62d3d8e1209dd915c38b069489d1b35af9df0d1c039c68",
+    "generatedOn": "2026-09-27"
   },
   "outputs": {
     "temperature": 2577.4881750416766,

@@ -1,0 +1,87 @@
+{
+  "case": {
+    "name": "si-in-argon_T299.99",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "Si",
+          "massFraction": 0.03395883297835488,
+          "temperature": null
+        },
+        {
+          "name": "Ar",
+          "massFraction": 0.9660411670216451,
+          "temperature": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "AR": 0.024182466381837516,
+        "SI": 0.0012091233190918759
+      },
+      "temperature": 299.99,
+      "pressure": 100000.0,
+      "transport": false,
+      "products": [
+        "Si",
+        "Si2",
+        "Si3",
+        "Ar",
+        "Si(cr)",
+        "Si(L)"
+      ],
+      "omit": [],
+      "trace": null,
+      "only": [
+        "Si",
+        "Si2",
+        "Si3",
+        "Ar",
+        "Si(cr)",
+        "Si(L)"
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "low_temperature.py",
+    "scriptSha256": "37523db84985798219a10737faa20f03b24ea30f4d60e8aad05d13627ade9cf0",
+    "generatedOn": "2026-09-26"
+  },
+  "outputs": {
+    "temperature": 299.99,
+    "pressure": 100000.0,
+    "density": 1.6578909823555505,
+    "enthalpy": 969.0005134030893,
+    "internalEnergy": -59348.596399946924,
+    "entropy": 3770.5578878818983,
+    "gibbsEnergy": -1130160.6602722877,
+    "molarMass": 41.35227499999999,
+    "mixtureMolarMass": 39.38311904761904,
+    "cpFrozen": 526.6704610718394,
+    "cpEquilibrium": 526.6704610718394,
+    "cvFrozen": 325.60510251538756,
+    "cvEquilibrium": 325.6051025153875,
+    "gammaS": 1.6175129228724232,
+    "dlnVdlnT": 1.0,
+    "dlnVdlnP": -1.0,
+    "soundSpeed": 312.3531534720811,
+    "moleFractions": {
+      "Si": 0.0,
+      "Si2": 0.0,
+      "Si3": 0.0,
+      "Ar": 0.9523809523809523,
+      "Si(cr)": 0.04761904761904771,
+      "Si(L)": 0.0
+    },
+    "converged": true
+  }
+}

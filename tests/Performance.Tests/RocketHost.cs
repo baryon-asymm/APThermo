@@ -88,10 +88,13 @@ internal static class RocketHost
     }
 
     /// <summary>The rocket fixture files as theory data: the file name without extension.</summary>
-    public static TheoryData<string> Cases()
+    public static TheoryData<string> Cases() => Cases("rocket");
+
+    /// <summary>The fixture files of one rocket-shaped kind (<c>rocket</c> or <c>throat</c>) as theory data.</summary>
+    public static TheoryData<string> Cases(string kind)
     {
         var data = new TheoryData<string>();
-        foreach (var path in FixtureFiles.Enumerate("rocket"))
+        foreach (var path in FixtureFiles.Enumerate(kind))
         {
             data.Add(Path.GetFileNameWithoutExtension(path));
         }
@@ -99,5 +102,8 @@ internal static class RocketHost
         return data;
     }
 
-    public static CeaCase Load(string name) => CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", name + ".json"));
+    public static CeaCase Load(string name) => Load("rocket", name);
+
+    /// <summary>Loads one fixture of a rocket-shaped kind (<c>rocket</c> or <c>throat</c>) by its file name.</summary>
+    public static CeaCase Load(string kind, string name) => CeaFixtures.Load(Path.Combine(FixtureFiles.Root, kind, name + ".json"));
 }

@@ -5,7 +5,8 @@ namespace APThermo.Performance;
 /// <summary>
 /// One exit station assigned by area ratio (RP-1311 section 6.3.5): the initial ln(p_c/p_e) of the report's estimates (6.21) to
 /// (6.23), the correction of (6.24) and (6.25), and the verdict on the station. The supersonic branch only: a pass that falls
-/// on the subsonic side of the sonic point is stepped outward, never accepted.
+/// on the subsonic side of the sonic point is stepped outward, never accepted — a station is accepted only when its last pass
+/// was supersonic (BOOT.md, 2026-09-26, finding F3), whether or not an earlier pass of the same iteration had converged.
 /// </summary>
 internal static class AreaRatioIteration
 {
@@ -26,6 +27,7 @@ internal static class AreaRatioIteration
         var logPressureRatio = InitialLogPressureRatio(in throat, areaRatio, logAreaRatio, in estimate);
         var temperatureEstimate = estimate.Temperature;
         var outcome = ExitOutcome.NeverSupersonic;
+        var lastPassSupersonic = false;
         var derivative = 1.0;
         for (var iteration = 0; iteration < RocketSolver.MaxAreaRatioIterations; iteration++)
         {
@@ -42,12 +44,14 @@ internal static class AreaRatioIteration
             var soundSquared = state.SoundSpeed * state.SoundSpeed;
             if (!(velocitySquared > soundSquared))
             {
-                // Subsonic side of the sonic point: move outward and try again.
+                // Subsonic side of the sonic point: move outward and try again; never accepted (finding F3).
+                lastPassSupersonic = false;
                 logPressureRatio += SubsonicStep;
                 temperatureEstimate = state.Temperature;
                 continue;
             }
 
+            lastPassSupersonic = true;
             var velocity = Math.Sqrt(velocitySquared);
             var currentAreaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
             // Equation (6.23): ∂ln(A_e/A_t)/∂ln(p_c/p_e) at constant entropy.
@@ -65,7 +69,9 @@ internal static class AreaRatioIteration
             temperatureEstimate = state.Temperature;
         }
 
-        if (outcome is not (ExitOutcome.Converged or ExitOutcome.WithinReportTolerance))
+        // Accepted only when the last pass was supersonic and met a tolerance there and then (finding F3): a subsonic
+        // final pass keeps neither the verdict nor the acceptance of a supersonic pass earlier in the same iteration.
+        if (!lastPassSupersonic || outcome is not (ExitOutcome.Converged or ExitOutcome.WithinReportTolerance))
         {
             estimate.Extrapolable = false;
             result.StationStatus[station] = (int)CaseStatus.NotConverged;
@@ -98,8 +104,8 @@ internal static class AreaRatioIteration
         var state = context.Result.Stations[station];
         var velocity = StationFigures.Velocity(chamber.Enthalpy, in state);
         var currentAreaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
-        StationFigures.Write(in context, station, velocity, currentAreaRatio, chamber.Pressure / state.Pressure,
-                             throat.CharacteristicVelocity);
+        var inputs = new StationFigureInputs(velocity, currentAreaRatio, chamber.Pressure / state.Pressure, throat.CharacteristicVelocity);
+        StationFigures.Write(in context, station, in inputs, chamber.Entropy);
         estimate.Extrapolable = areaRatio > RocketSolver.ExtrapolationAreaRatio;
         estimate.LogPressureRatio = Math.Log(chamber.Pressure / state.Pressure);
     }

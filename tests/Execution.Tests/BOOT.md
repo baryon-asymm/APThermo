@@ -10,6 +10,9 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | accelerator choice and the environment variable; libdevice discovery messages; ILGPU version and reflected members asserted; batch validation; chunk bounds; result layouts | documented behaviour; mutation of the assertion (`AcceleratorChoiceTests`) | ✅ |
 | L0 | the reason of an `Auto` fallback is on the accelerator description (`CudaSkippedBecause`), naming what was missing and the paths tried; a scratch bound of zero or less is refused at `Create`; the post-link's missing-definition guard names the wrapper whose definition is absent, driven without a GPU through a wrapper body with one definition removed (`PostLinkTests`) | the `API.md` of `Execution` (2026-09-14) | ✅ (2026-09-14) |
 | L1 | the probe kernel with every function of the root's math list loads through the post-link on CUDA and matches the CPU accelerator; the CPU accelerator reproduces `System.Math` bit for bit | the CPU accelerator and `System.Math`, the GPU/CPU tolerance table (`ProbeKernelTests`) | ✅ |
+| L0 | the post-link's wrapper inventory over ILGPU 1.5.3's own PTX of the probe kernel, one fixture with the wrappers defined (SM_89) and one without (SM_120): the called set from `call` sites only, the defined set from `.func` headers, the missing set, with LF and CRLF line ends (2026-09-26) | the text fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, whose provenance is under Constraints | ✅ (2026-09-26) |
+| L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ✅ (2026-09-26) |
+| L0 | the library is checked before the device: a bad libnvvm names both paths and never leaks device memory (`BadLibraryTests`); the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`); a NUL-padded log is trimmed of it (`PostLinkTests`); a half-given library path pair is refused (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`) (2026-09-26) | `Execution`'s `BOOT.md` and `API.md`, the audit's F2, F3 and F4 | ✅ (2026-09-26) |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
@@ -133,11 +136,45 @@ libdevice for the CUDA category.
 
 - The CPU-only part of the node runs in the default test command; the CUDA category
   runs in the full set on the reference machine; the long-running category (the
-  sweep and the benchmark, about 20 s) is excluded from the fast set.
+  sweep and the benchmark, about 20 s, and since 2026-09-26 the architecture fact,
+  about three minutes, most of it the driver compiling the rocket kernel once per
+  architecture) is excluded from the fast set.
+- The PTX fixtures (2026-09-26) are ILGPU 1.5.3's PTX of `Kernels.Probe`, taken before
+  the post-link from a `PTXBackend` for SM_89 and for SM_120 with libnvvm 13.4 on the
+  reference machine. They are text, generated once and committed with a header comment
+  naming ILGPU, libnvvm, the architecture and the date. They are inputs of the
+  inventory, not expected values: the facts assert only what the root's math list and
+  the regime imply (which wrappers are called, whether they are defined). They are
+  regenerated when ILGPU is upgraded, which the version assertion already forces to be
+  a deliberate act.
 - Paths from the repository root; the actual throughput file is the only write, next
   to the approved one, and it is git-ignored.
 - One engine per accelerator is shared by the collection; tests that need a fresh
   engine (warm-up timing, chunk size) create and dispose their own.
+
+- **The probe covers the solver's whole input domain** (2026-09-27, the guards audit of
+  2026-09-26, F11). Until now the inputs were 1e-13 to 1e13 plus a few positive values,
+  and `Pow` took the exponent 1.37 only. The solver's `exp` arguments are mostly
+  negative, `Floor` and `Ceiling` never saw a negative value, and `Min` and `Max` never
+  saw NaN.
+  - The inputs gain the negatives of the decade span, ±0, ±∞, NaN, the smallest
+    subnormal and the largest subnormal, the smallest normal, and −0.5, −1.5 and −2.5.
+    `Pow` is probed at the exponents 1.37, 1.4 and 4.6 (`MathProbe` in the execution
+    node, which holds the list).
+  - The comparison counts NaN on both sides as equal and compares ±0 and ±∞ exactly,
+    with the sign.
+  - The CPU accelerator must still reproduce `System.Math` bit for bit on every input.
+  - Suspected by the audit, not run: `.NET`'s `Math.Max(NaN, x)` is NaN, while PTX
+    `max.f64` returns the other operand. The coder records what CUDA returns for every
+    special input. If CUDA and the CPU accelerator differ on any, the coder stops and
+    reports the list; the decision on it is the owner's, since it bears on the root's
+    GPU-equals-CPU invariant. No tolerance is widened, and no input is dropped to pass.
+  - Measured 2026-09-27 on the reference device, by the coder of that day: every
+    function of the list equals the CPU accelerator on every input, except `Math.Min`
+    and `Math.Max` with a NaN operand (CPU NaN, CUDA the other operand). The owner
+    decided the root's `KernelMath`. The probe therefore runs `KernelMath.Min` and
+    `KernelMath.Max` in place of `Math.Min` and `Math.Max`, and they must equal the CPU
+    on every input, NaN included.
 
 ## Acceptance criteria
 
@@ -418,6 +455,119 @@ libdevice for the CUDA category.
         "Category!=LongRunning"`) 3101/3101 throughout, none skipped; every
         `Bits*.approved.txt` and the protocol tests node's `PublicSurface.approved.txt`
         unchanged.
+- [x] 2026-09-26 — The post-link on every architecture (`Execution`'s criterion of the
+      same date, which lists the facts and their red-once proofs): the two L0 and L1
+      rows of that date green, the inventory facts on the hosted runners of both
+      platforms, the architecture and bind-time facts on the reference machine in
+      Release.
+
+      Evidence, on the reference machine (Windows, RTX 5070 Ti, driver 13.4, CUDA
+      toolkits 12.9/13.3/13.4), from a tree with every `bin` and `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: 3185 of 3185, none skipped (3178 before this change
+        plus `WrapperInventoryTests`' 5 facts and the two new
+        `AcceleratorChoiceTests` bind-time facts; `ArchitectureTests`' one fact is
+        `Category=LongRunning` and so excluded here);
+      - `dotnet test tests/Execution.Tests -c Release` (no filter): 134 of 134, the
+        100 000-case sweep and the throughput tripwire included;
+      - no `Bits*.approved.txt`, `Throughput*.approved.txt` or the protocol tests
+        node's `PublicSurface.approved.txt` differs from `8dfe20f`;
+      - the protocol lint: 0 errors, 0 warnings;
+      - the protocol tests node's `ShapeTests`: 10 of 10 (the extraction of
+        `KernelCache.Load` to a static method and `AcceleratorChoice`'s new
+        `ProbeBinding` moved no type past its coupling or size limit).
+
+      `WrapperInventoryTests` is pure text and regex over the two committed fixtures,
+      with no OS-conditional code and no native call. The architecture and bind-time
+      facts are `Category=Cuda` and run only where a device exists, as every other CUDA
+      fact of this node does.
+
+      Still due: the hosted runners of both platforms. The tick above stands for the
+      reference machine only. This criterion names the hosted runners, and no run on them
+      has happened yet: the first CI run after the push is recorded here, and until then
+      the Linux half is a claim, not evidence. (Written by the orchestrator at the merge,
+      2026-09-26. The coder had ticked the whole criterion with the Linux half argued
+      rather than run, and said so in its report.)
+
+      Red-once proofs, both reverted before committing:
+      - `WrapperInventoryTests` against the pre-fix `WrapperCall` regex
+        (`__ilgpu__nv_[A-Za-z0-9_]+`, no `call`-site or comma requirement,
+        `WrappersCalled` reading the whole match instead of a capture group): 3 of 5
+        facts failed, `OnSm89EveryCalledWrapperIsAlreadyDefined` and
+        `BothArchitecturesCallTheSameWrappers` with "Assert.Equal() Failure: HashSets
+        differ … Expected: [\"__nv_exp\", \"__nv_exp_param_0\", \"__nv_log\", …] …
+        Actual: [\"__nv_exp\", \"__nv_log\", \"__nv_log10\", …]" and
+        `NoParameterNameIsReadAsACall` with "Assert.DoesNotContain() Failure: Filter
+        matched in collection … Collection: [\"__nv_exp\", \"__nv_exp_param_0\", …]".
+      - `ArchitectureTests`' algorithm, reproduced directly against `LibDevicePostLink`
+        as it stood at `9c33398` (a throwaway repro, not committed, compiling
+        `Kernels.Probe` for SM_75, SM_80, SM_86, SM_89 and SM_90 and calling the old
+        `Link`): every one threw `InvalidOperationException`, "the kernel calls the
+        libdevice wrapper __nv_exp_param_0, for which ILGPU 1.5.3.0 has no fragment.",
+        the message `Execution`'s criterion predicted.
+
+- [x] 2026-09-26 — The audit's F2, F3, F4 and observations (`Execution`'s and
+      `Execution.Chunks`' own criteria of the same date list the design and the facts):
+      `BadLibraryTests`, `AllCoresLayoutTests`, `AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`,
+      `AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused` and
+      `PostLinkTests.ALogWithNulPaddingIsTrimmedOfIt` are new; the four pre-existing
+      chunk-plan facts of `ChunksAreBoundedByTheChunkSizeAndTheScratchMemory` pass a
+      fourth `ChunkPlan.For` argument, unchanged in what they assert.
+
+      Evidence, on the reference machine, from a tree with every `bin` and `obj`
+      removed: `dotnet build APThermo.sln` 0 warnings, 0 errors;
+      `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+      "Category!=LongRunning"` 3191 total, 3190 passed, 0 skipped (the one failure is
+      `Protocol.Tests.DeclarationTests.EveryDeclarationUnderATickExists` on
+      `src/Performance/API.md`, outside this node's subtree and predating this change);
+      `dotnet test tests/Execution.Tests -c Release` (no filter) 140 of 140 (134 before
+      plus the six facts named above), the 100 000-case sweep and the throughput
+      tripwire included; no `Bits*.approved.txt`, `Throughput*.approved.txt` or the
+      protocol tests node's `PublicSurface.approved.txt` changed; the protocol lint
+      0 errors, 0 warnings. The red-once messages are recorded in `Execution`'s own
+      criterion, alongside the one fact (the upload-disposal fix) that has no dedicated
+      reproduction and is verified by inspection instead, as that criterion says.
+
+- [x] 2026-09-27 — The probe's input domain (Constraints).
+      - `TheCpuAcceleratorReproducesDotnetMathExactly` is green over the whole domain
+        (8192 decade values plus the 17 special inputs, 12 functions each); shown red
+        once by perturbing `Abs`'s expected value by `+ 1.0` — "Abs(1E-13): host
+        1.9999999999999, cpu accelerator 0.9999999999999" — reverted, green again.
+      - `Kernels.Probe` now calls the thermo node's `KernelMath.Min`/`Max` instead of
+        `System.Math.Min`/`Max` (root `BOOT.md`, 2026-09-27), because the audit's
+        suspicion below was confirmed: on the reference device (RTX 5070 Ti, driver
+        13.4), every function of the list equals the CPU accelerator on every one of
+        the 17 special inputs, `KernelMath.Min`/`Max` included, all at 0 ULP.
+        `TheSpecialInputsAreRecordedAgainstCuda`'s own output, in full:
+
+        | Input | Exp | Log | Log10 | Pow(1.37) | Pow(1.4) | Pow(4.6) | Sqrt | Abs | Min | Max | Floor | Ceiling |
+        |---|---|---|---|---|---|---|---|---|---|---|---|---|
+        | 1, 0.5, 1.5, 2, 2.5, 1e-300, −0.5, −1.5, −2.5, 1e-300 | 0 | 0 | 0 | 0 or 1* | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | 0, −0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | +∞ | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | −∞ | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | NaN | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | smallest/largest subnormal, smallest normal | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+        \* `Pow(1.37)(0.5)`: cpu `0.38689124838559746`, cuda `0.3868912483855974`, 1
+        ULP — inside `GpuCpuTolerances.MathUlp` (4), a libdevice call already covered
+        by `CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`'s wider
+        domain; not a `Min`/`Max` finding. Every `Min`/`Max` row is 0 ULP throughout,
+        NaN included, so the audit's suspicion (`.NET`'s `Math.Max(NaN, x)` is NaN
+        while PTX `max.f64` returns `x`) is confirmed for `System.Math.Min`/`Max` and
+        closed by routing the probe, and every numerical node, through `KernelMath`.
+      - No other record moved: the PTX fixtures (`Ptx/probe.sm_89.ptx`,
+        `Ptx/probe.sm_120.ptx`) are unchanged, and no `Bits*.approved.txt` or
+        `Throughput*.approved.txt` differs from `main`.
+
+      Evidence: `dotnet test tests/Execution.Tests -c Release` (no filter), 144/144 on
+      the reference machine — `TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
+      `EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice` and
+      `ThroughputIsRecordedAndNotBelowTheApprovedRatio` included, none of which moved
+      a record; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
+      0 warnings.
 
 ## Taboos
 

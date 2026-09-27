@@ -1,14 +1,17 @@
-# The table bits of every fixture case (tests/Thermo.Tests/BOOT.md, the Bits level).
-# One line per case: the case file relative to the repository root, then the SHA-256 of the species names
-# joined by commas (UTF-8) followed by the eight arrays of SpeciesTableArrays in their declared order
-# (MolarMass, FormationEnthalpy, Stoichiometry, IntervalStart, IntervalCount, IntervalBounds, Exponents,
-# Coefficients), each value as its little-endian bytes.
-# A tripwire, not a contract: a decomposition, a rename or a reordering of code moves no line here.
 tests/Fixtures/cases/tp/ap-htpb-al-plateau_T2327.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
 tests/Fixtures/cases/tp/ap-htpb-al_pc7MPa_shiftingEquilibrium_chamber.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
 tests/Fixtures/cases/tp/ap-htpb-al_pc7MPa_shiftingEquilibrium_exit1.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
 tests/Fixtures/cases/tp/ap-htpb-al_pc7MPa_shiftingEquilibrium_exit2.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
 tests/Fixtures/cases/tp/ap-htpb-al_pc7MPa_shiftingEquilibrium_throat.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
+tests/Fixtures/cases/tp/h2-o2-of4_T165.json c088ce5128bab49f8a2e6e842fd6f24dffe9df1ba8da09a47e2a36187ea26e69
+tests/Fixtures/cases/tp/h2-o2-of4_T180.json c088ce5128bab49f8a2e6e842fd6f24dffe9df1ba8da09a47e2a36187ea26e69
+tests/Fixtures/cases/tp/h2-o2-of4_T190.json c088ce5128bab49f8a2e6e842fd6f24dffe9df1ba8da09a47e2a36187ea26e69
+tests/Fixtures/cases/tp/h2-o2-of4_T199.json c088ce5128bab49f8a2e6e842fd6f24dffe9df1ba8da09a47e2a36187ea26e69
+tests/Fixtures/cases/tp/li-in-argon_T298.15.json 478936f55d2dbd15addea76c35ba89c1946c0dffd3e5891f1144ebafaa35b033
+tests/Fixtures/cases/tp/li-in-argon_T299.99.json 478936f55d2dbd15addea76c35ba89c1946c0dffd3e5891f1144ebafaa35b033
+tests/Fixtures/cases/tp/li-in-argon_T299.json 478936f55d2dbd15addea76c35ba89c1946c0dffd3e5891f1144ebafaa35b033
+tests/Fixtures/cases/tp/li-in-argon_T300.json 478936f55d2dbd15addea76c35ba89c1946c0dffd3e5891f1144ebafaa35b033
+tests/Fixtures/cases/tp/li-in-argon_T301.json 478936f55d2dbd15addea76c35ba89c1946c0dffd3e5891f1144ebafaa35b033
 tests/Fixtures/cases/tp/lox-lh2_of6_pc7MPa_shiftingEquilibrium_chamber.json f3b44effde5af1eabeaeb06c2fd625489e3101c307147476a424237aaf9ce1a4
 tests/Fixtures/cases/tp/lox-lh2_of6_pc7MPa_shiftingEquilibrium_exit1.json f3b44effde5af1eabeaeb06c2fd625489e3101c307147476a424237aaf9ce1a4
 tests/Fixtures/cases/tp/lox-lh2_of6_pc7MPa_shiftingEquilibrium_exit2.json f3b44effde5af1eabeaeb06c2fd625489e3101c307147476a424237aaf9ce1a4
@@ -53,6 +56,12 @@ tests/Fixtures/cases/tp/rp1311-example8_exit5.json f3b44effde5af1eabeaeb06c2fd62
 tests/Fixtures/cases/tp/rp1311-example8_exit6.json f3b44effde5af1eabeaeb06c2fd625489e3101c307147476a424237aaf9ce1a4
 tests/Fixtures/cases/tp/rp1311-example8_exit7.json f3b44effde5af1eabeaeb06c2fd625489e3101c307147476a424237aaf9ce1a4
 tests/Fixtures/cases/tp/rp1311-example8_throat.json f3b44effde5af1eabeaeb06c2fd625489e3101c307147476a424237aaf9ce1a4
+tests/Fixtures/cases/tp/seventeen-elements-many-condensed-phases_T350.json b0cba3ccc1948f0f7848e7b86ff1ed1df06117677be8a034ca56598c92d1f0b7
+tests/Fixtures/cases/tp/si-in-argon_T298.15.json bebc0e3956636ed4a5f904d7c56dd8cbe884b3e4af02957fcf95e9fea632b0ff
+tests/Fixtures/cases/tp/si-in-argon_T299.99.json bebc0e3956636ed4a5f904d7c56dd8cbe884b3e4af02957fcf95e9fea632b0ff
+tests/Fixtures/cases/tp/si-in-argon_T299.json bebc0e3956636ed4a5f904d7c56dd8cbe884b3e4af02957fcf95e9fea632b0ff
+tests/Fixtures/cases/tp/si-in-argon_T300.json bebc0e3956636ed4a5f904d7c56dd8cbe884b3e4af02957fcf95e9fea632b0ff
+tests/Fixtures/cases/tp/si-in-argon_T301.json bebc0e3956636ed4a5f904d7c56dd8cbe884b3e4af02957fcf95e9fea632b0ff
 tests/Fixtures/cases/hp/ap-htpb-al-fuelrich_of0.5_pc7MPa.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
 tests/Fixtures/cases/hp/ap-htpb-al-plateau_p700kPa_band0.1.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
 tests/Fixtures/cases/hp/ap-htpb-al-plateau_p700kPa_band0.3.json 035a8719d50f3fc6a94b5e6417175b1309a80370f0c49734c92b5a87b84952f0
@@ -71,6 +80,7 @@ tests/Fixtures/cases/hp/lox-rp1_of2.6_pc10MPa_shiftingEquilibrium_chamber.json 3
 tests/Fixtures/cases/hp/lox-rp1_of2.6_pc10MPa_shiftingEquilibrium_exit1.json 32cbd50ec912fa161601939d820c540f8bd8e587cc7cc45ec4c096dadf333b16
 tests/Fixtures/cases/hp/lox-rp1_of2.6_pc10MPa_shiftingEquilibrium_exit2.json 32cbd50ec912fa161601939d820c540f8bd8e587cc7cc45ec4c096dadf333b16
 tests/Fixtures/cases/hp/lox-rp1_of2.6_pc10MPa_shiftingEquilibrium_throat.json 32cbd50ec912fa161601939d820c540f8bd8e587cc7cc45ec4c096dadf333b16
+tests/Fixtures/cases/hp/nano3-rp1_of4_pc7MPa.json 8b8f28e6d7c5c4bdd9d9619ba829e76a14a2f3fe5378d3d2a1b8cd8d7f3b4b43
 tests/Fixtures/cases/hp/nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_chamber.json 4bb2c617184c88a9f94c77fcd0e4cf2e88b16a715d9e378a0ee4b34a935f648f
 tests/Fixtures/cases/hp/nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_exit1.json 4bb2c617184c88a9f94c77fcd0e4cf2e88b16a715d9e378a0ee4b34a935f648f
 tests/Fixtures/cases/hp/nto-udmh_of2.2_pc2MPa_shiftingEquilibrium_exit2.json 4bb2c617184c88a9f94c77fcd0e4cf2e88b16a715d9e378a0ee4b34a935f648f

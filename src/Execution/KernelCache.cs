@@ -28,14 +28,19 @@ internal sealed class KernelCache(AcceleratorSession session)
             }
 
             var watch = Stopwatch.StartNew();
-            var launcher = Load(name).CreateLauncherDelegate<TDelegate>();
+            var launcher = Load(session, name).CreateLauncherDelegate<TDelegate>();
             _launchers[name] = launcher;
             warmUp = watch.Elapsed;
             return launcher;
         }
     }
 
-    private Kernel Load(string name)
+    /// <summary>
+    /// Compiles — and on CUDA post-links — the named entry point and loads it on the session's accelerator: the one load path
+    /// every kernel of this node goes through, the bind-time probe (<see cref="AcceleratorChoice"/>) included, so that no
+    /// caller has a second copy of the compile-post-link-load sequence.
+    /// </summary>
+    internal static Kernel Load(AcceleratorSession session, string name)
     {
         var method = typeof(Kernels).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic)
                      ?? throw new InvalidOperationException($"no kernel named {name}");
@@ -47,6 +52,6 @@ internal sealed class KernelCache(AcceleratorSession session)
         // Every CUDA kernel goes through the post-link; the CPU accelerator loads the method as ILGPU does.
         var entry = EntryPointDescription.FromImplicitlyGroupedKernel(method);
         var compiled = (PTXCompiledKernel)cuda.Backend.Compile(entry, KernelSpecialization.Empty);
-        return cuda.LoadAutoGroupedKernel(LibDevicePostLink.Link(cuda, session.Nvvm!, compiled));
+        return cuda.LoadAutoGroupedKernel(LibDevicePostLink.Link(cuda, session.Nvvm!, compiled).Kernel);
     }
 }

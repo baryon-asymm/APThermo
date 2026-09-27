@@ -15,12 +15,6 @@ internal static class FixtureCases
     /// <summary>The kinds whose inputs carry reactants.</summary>
     public static readonly IReadOnlyList<string> KindsWithReactants = ["rocket", "tp", "hp", "sp"];
 
-    /// <summary>
-    /// The reactants the reference treats as oxidizers in the cases given with an oxidizer-to-fuel ratio: the four propellants of the
-    /// case matrix (Fixtures BOOT.md) and the RP-1311 examples. A role, not an expected value; the mass fractions come from the file.
-    /// </summary>
-    public static readonly IReadOnlySet<string> Oxidizers = new HashSet<string>(StringComparer.Ordinal) { "O2(L)", "N2O4(L)", "Air", "NH4CLO4(I)", "H2O2(L)" };
-
     /// <summary>Unit of the fixtures' element moles (kmol per kg) in the library's (mol per kg).</summary>
     public const double KilomolesToMoles = 1.0e3;
 
@@ -52,6 +46,18 @@ internal static class FixtureCases
     }
 
     /// <summary>
+    /// The role the fixture recorded for one reactant of a ratio case (Fixtures BOOT.md): written by the generator
+    /// from the oxidizer and fuel vectors it passed to the package, never guessed here from the reactant's name (the
+    /// gap the sodium case found, `NaNO3(a)` missing from a hand-typed set of oxidizer names).
+    /// </summary>
+    private static ReactantRole RoleOf(JsonElement reactant) => reactant.GetProperty("role").GetString() switch
+    {
+        "oxidizer" => ReactantRole.Oxidizer,
+        "fuel" => ReactantRole.Fuel,
+        var other => throw new ArgumentException($"unknown reactant role '{other}'", nameof(reactant)),
+    };
+
+    /// <summary>
     /// The propellant as the fixture describes it: with the reference's ratio and roles when it has one (or the ratio given instead),
     /// else by total mass fractions; <paramref name="byMassFractions"/> takes the recorded mass fractions as they are, without a ratio.
     /// </summary>
@@ -70,7 +76,7 @@ internal static class FixtureCases
             var massFraction = r.GetProperty("massFraction").GetDouble();
             var t = r.GetProperty("temperature");
             double? temperature = t.ValueKind == JsonValueKind.Null ? null : t.GetDouble();
-            var role = ratio is null ? ReactantRole.Named : Oxidizers.Contains(name) ? ReactantRole.Oxidizer : ReactantRole.Fuel;
+            var role = ratio is null ? ReactantRole.Named : RoleOf(r);
             if (r.TryGetProperty("custom", out var custom) && custom.GetBoolean())
             {
                 var formula = r.GetProperty("formula").EnumerateObject().Select(p => new ElementCount(p.Name, p.Value.GetDouble())).ToList();

@@ -25,11 +25,10 @@ internal static class NewtonIteration
                                       in EquilibriumResult result, double logPressure, ref IterationState state)
     {
         var stride = ScratchLayout.MaxUnknowns(table.ElementCount);
-        var converged = false;
-        var polishSteps = 0;
         var singularResets = 0;
-        var steps = 0;
-        while (steps < EquilibriumSolver.MaxNewtonSteps + MaxPolishSteps)
+        var loop = new NewtonLoopState();
+        state.CondensedWentNegative = false;
+        while (loop.Steps < EquilibriumSolver.MaxNewtonSteps + MaxPolishSteps)
         {
             Composition.Evaluate(table, scratch, ref state);
             var sums = Composition.Sums(table, scratch, result, state.LogN, logPressure, state.Temperature);
@@ -37,7 +36,7 @@ internal static class NewtonIteration
             IterationMatrix.Assemble(table, problem, scratch, result, layout, sums);
             if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride))
             {
-                if (SingularRemedies.Recover(scratch, result, table.GasCount, ref singularResets, ref state))
+                if (SingularRemedies.Recover(scratch, result, table.GasCount, ref singularResets, ref loop, ref state))
                 {
                     continue;
                 }
@@ -45,7 +44,7 @@ internal static class NewtonIteration
                 return CaseStatus.SingularMatrix;
             }
 
-            steps++;
+            loop.Steps++;
             state.Iterations++;
             var lambda = DampedStep.ControlFactor(table, scratch, result, layout, sums);
             if (!DampedStep.Apply(table, scratch, result, layout, lambda, ref state))
@@ -54,9 +53,15 @@ internal static class NewtonIteration
             }
 
             var verdict = ConvergenceTests.Evaluate(table, problem, scratch, result, layout, sums);
+            if (verdict != ConvergenceVerdict.NotConverged && ConvergenceTests.RetentionCrossed(table, scratch, result, state.LogN))
+            {
+                verdict = ConvergenceVerdict.NotConverged;
+            }
+
+            loop.RecordVerdict(verdict);
             if (verdict == ConvergenceVerdict.NotConverged)
             {
-                if (steps >= EquilibriumSolver.MaxNewtonSteps)
+                if (loop.Steps >= EquilibriumSolver.MaxNewtonSteps)
                 {
                     break;
                 }
@@ -65,15 +70,12 @@ internal static class NewtonIteration
             }
 
             // The report's tests passed; a few more steps bring the corrections to rounding level.
-            converged = true;
-            if (verdict == ConvergenceVerdict.Polished || polishSteps >= MaxPolishSteps)
+            if (verdict == ConvergenceVerdict.Polished || loop.PolishSteps >= MaxPolishSteps)
             {
                 break;
             }
-
-            polishSteps++;
         }
 
-        return converged ? CaseStatus.Ok : CaseStatus.NotConverged;
+        return loop.Converged ? CaseStatus.Ok : CaseStatus.NotConverged;
     }
 }

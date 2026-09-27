@@ -33,20 +33,58 @@ internal static class EquilibriumSolver
 
     internal const double MaxTemperature = 20000.0;
 
+    /// <summary>
+    /// K: the reference's minimum gas temperature defined in thermo data (cea 3.3.4 <c>equilibrium.f90:1845</c>,
+    /// applied at 1913-1914); also the first standard range bound of the committed <c>thermo.inp</c> header. A
+    /// condensed record whose data begin here has no lower bound in the condensed-species rules, unless a record of
+    /// its formula adjoins it below (BOOT.md, open below, 2026-09-26): in the committed file this is <c>H2O(cr)</c> alone.
+    /// </summary>
+    internal const double GasDataFloor = 200.0;
+
     /// <summary>Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's temperature) are the initial estimate.</summary>
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                              in EquilibriumResult result, bool useMolesAsEstimate)
     {
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        var state = new IterationState();
         var source = useMolesAsEstimate ? EstimateSource.PreviousSolution : EstimateSource.Defaults;
-        if (CaseSetup.Begin(table, problem, scratch, result, source, ref state) != CaseStatus.Ok)
+        var canFallBack = useMolesAsEstimate;
+        var priorIterations = 0;
+        while (true)
         {
+            var state = new IterationState();
+            if (CaseSetup.Begin(table, problem, scratch, result, source, ref state) != CaseStatus.Ok)
+            {
+                return;
+            }
+
+            var logPressure = CaseSetup.LogPressure(problem);
+            var status = RunToConvergence(table, problem, scratch, result, logPressure, ref state);
+
+            if (canFallBack && FallsBackToColdStart(status, scratch, result, state))
+            {
+                canFallBack = false;
+                source = EstimateSource.Defaults;
+                priorIterations += state.Iterations;
+                continue;
+            }
+
+            state.Iterations += priorIterations;
+            if (status == CaseStatus.Ok)
+            {
+                status = Close(table, problem, scratch, result, logPressure, state);
+            }
+
+            result.Iterations[0] = state.Iterations;
+            result.Status[0] = (int)status;
             return;
         }
+    }
 
-        var logPressure = CaseSetup.LogPressure(problem);
+    /// <summary>One convergence sequence: the Newton loop, then one change of the condensed set per convergence until the report's tests hold with no further change.</summary>
+    private static CaseStatus RunToConvergence(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                               in EquilibriumResult result, double logPressure, ref IterationState state)
+    {
         CaseStatus status;
         while (true)
         {
@@ -71,13 +109,41 @@ internal static class EquilibriumSolver
             }
         }
 
-        if (status == CaseStatus.Ok)
+        return status;
+    }
+
+    /// <summary>
+    /// The warm-start fallback (BOOT.md, 2026-09-27): a warm start whose convergence fails - the singular remedies
+    /// exhausted, or the step cap - while a condensed species seeded from the previous solution still holds negative
+    /// moles retries once from the cold start of section 3.1. The seeded liquid going negative and never being
+    /// tested for removal before a convergence (rule 1 of the condensed-species rule fires only between
+    /// convergences) is the seed's own contradiction with the new state, not a later step's; a cold start never
+    /// triggers this, since it is never given <c>useMolesAsEstimate</c>. Two ways the negative mole shows at a
+    /// failure: the singular remedies' last resort already dropped it, zeroing its mole
+    /// (<see cref="IterationState.CondensedWentNegative"/>, the one place that still saw the sign); or the step cap
+    /// ran out with it still in the set and still negative, checked directly here.
+    /// </summary>
+    private static bool FallsBackToColdStart(CaseStatus status, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state)
+    {
+        if (status is not (CaseStatus.SingularMatrix or CaseStatus.NotConverged))
         {
-            status = Close(table, problem, scratch, result, logPressure, state);
+            return false;
         }
 
-        result.Iterations[0] = state.Iterations;
-        result.Status[0] = (int)status;
+        if (state.CondensedWentNegative)
+        {
+            return true;
+        }
+
+        for (var c = 0; c < state.CondensedCount; c++)
+        {
+            if (result.Moles[scratch.CondensedInSolution[c]] < 0.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -95,14 +161,18 @@ internal static class EquilibriumSolver
         }
 
         var sumGas = 0.0;
-        for (var j = 0; j < table.GasCount; j++)
+        for (var j = 0; j < table.SpeciesCount; j++)
         {
-            if (!(result.Moles[j] >= 0.0))
+            var moles = result.Moles[j];
+            if (moles is not (>= 0.0 and not double.PositiveInfinity))
             {
                 return;
             }
 
-            sumGas += result.Moles[j];
+            if (j < table.GasCount)
+            {
+                sumGas += moles;
+            }
         }
 
         if (!(sumGas > 0.0))
@@ -147,7 +217,7 @@ internal static class EquilibriumSolver
                                     in EquilibriumResult result, double logPressure, in IterationState state)
     {
         if (!ElementBalance.WithinInvariant(table, problem, scratch, result)
-            || CondensedSet.StoodDownCandidateRemains(table, scratch, result, state))
+            || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state))
         {
             return CaseStatus.NotConverged;
         }

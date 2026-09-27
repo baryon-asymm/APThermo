@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using APThermo.Fixtures;
 using APThermo.Thermo;
 
@@ -8,11 +9,18 @@ namespace APThermo.Equilibrium.Tests;
 public sealed class FrozenModeTests
 {
     /// <summary>
-    /// Station outputs not compared: the reference computes no Cv at a frozen station (it prints zero or the previous station's
-    /// value; see the fixtures node), its equilibrium Cp is the frozen one there (compared separately), and the flow speed is
-    /// the performance node's.
+    /// Station outputs never compared: its equilibrium Cp is the frozen one there (compared separately below), and the
+    /// flow speed is the performance node's. <c>cvFrozen</c> and <c>cvEquilibrium</c> are not in this set (2026-09-27,
+    /// the guards audit's F6): the reference computes no Cv at a frozen station and prints zero or the freezing
+    /// station's own value there, but only where it actually does so, checked field by field in
+    /// <see cref="ShowsTheFrozenCvDefectSignature"/> against the fixture itself rather than skipped everywhere a
+    /// station happens to be frozen. A defect in the reference elsewhere in one of these two fields would otherwise
+    /// pass unseen (BOOT.md, Constraints).
     /// </summary>
-    private static readonly HashSet<string> NotFrozenFields = ["cpEquilibrium", "cvEquilibrium", "cvFrozen", "mach"];
+    private static readonly HashSet<string> NotFrozenFields = ["cpEquilibrium", "mach"];
+
+    /// <summary>The two fields <see cref="ShowsTheFrozenCvDefectSignature"/> guards, read together as one signature.</summary>
+    private static readonly string[] CvFields = ["cvFrozen", "cvEquilibrium"];
 
     /// <summary>The rocket fixtures whose flow is frozen somewhere.</summary>
     public static TheoryData<string> FrozenRocketCases()
@@ -44,6 +52,36 @@ public sealed class FrozenModeTests
     public void FrozenStationsOfTheReferenceAreReproducedFromTheFrozenComposition(string name)
     {
         var c = CeaFixtures.Load(Path.Combine(FixtureFiles.Root, "rocket", name + ".json"));
+        var (mismatches, compared) = FrozenStationMismatches(c);
+        Assert.True(compared > 0, "no frozen station field was compared");
+        Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
+    }
+
+    /// <summary>
+    /// The frozen-Cv skip is keyed on the reference's own signature, not on a station's <c>frozen</c> flag alone
+    /// (2026-09-27, the guards audit's F6): a copy of a committed fixture - never the committed file itself, written
+    /// to a temporary path and deleted afterwards - with a frozen exit's <c>cvFrozen</c> and <c>cvEquilibrium</c> set
+    /// to 2500 and 9999, neither zero nor the freezing station's own values, is compared like any other field and so
+    /// reports a mismatch; the same copy with the values restored to zero passes. Shown red with the old,
+    /// unconditional skip (<c>NotFrozenFields</c> carrying <c>"cvFrozen"</c> and <c>"cvEquilibrium"</c> again): the
+    /// 2500/9999 copy then reports no mismatch at all, hiding the garbage values.
+    /// </summary>
+    [Fact]
+    public void AFrozenExitOutsideTheSignatureIsCompared()
+    {
+        const string name = "lox-lh2_of4_pc10MPa_frozenAtChamber";
+        var original = File.ReadAllText(Path.Combine(FixtureFiles.Root, "rocket", name + ".json"));
+
+        var (outsideMismatches, _) = FrozenStationMismatches(LoadTempCopy(WithExitOneCv(original, 2500.0, 9999.0)));
+        Assert.Contains(outsideMismatches, m => m.Contains("cvFrozen", StringComparison.Ordinal) || m.Contains("cvEquilibrium", StringComparison.Ordinal));
+
+        var (zeroMismatches, _) = FrozenStationMismatches(LoadTempCopy(WithExitOneCv(original, 0.0, 0.0)));
+        Assert.DoesNotContain(zeroMismatches, m => m.Contains("cvFrozen", StringComparison.Ordinal) || m.Contains("cvEquilibrium", StringComparison.Ordinal));
+    }
+
+    /// <summary>Every frozen station of a rocket case against the reference; the mismatches found and how many fields were compared.</summary>
+    private static (List<string> Mismatches, int Compared) FrozenStationMismatches(CeaCase c)
+    {
         var stations = c.Outputs.GetProperty("stations").EnumerateArray().ToList();
         var source = stations.Last(s => !s.GetProperty("frozen").GetBoolean());
         var table = SpeciesTable.Build(CpuFixture.Shared.Database, HostSolver.ElementsOf(c), HostSolver.ProductsOf(c));
@@ -71,11 +109,41 @@ public sealed class FrozenModeTests
                                                 Temperature: 0.0, Target: entropy, ElementMoles: elementMoles);
             var solution = HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, expansion, moles);
             Assert.True(solution.Status == CaseStatus.Ok, $"{label}: status {solution.Status}");
-            compared += CompareStation(station, solution, label, mismatches);
+            compared += CompareStation(station, source, solution, label, mismatches);
         }
 
-        Assert.True(compared > 0, "no frozen station field was compared");
-        Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches: " + string.Join("; ", mismatches));
+        return (mismatches, compared);
+    }
+
+    /// <summary>A copy of a rocket fixture's JSON text with <c>exit1</c>'s cvFrozen and cvEquilibrium replaced.</summary>
+    private static string WithExitOneCv(string json, double cvFrozen, double cvEquilibrium)
+    {
+        var root = JsonNode.Parse(json)!;
+        var exit1 = root["outputs"]!["stations"]!.AsArray().First(s => s!["station"]!.GetValue<string>() == "exit1")!;
+        exit1["cvFrozen"] = cvFrozen;
+        exit1["cvEquilibrium"] = cvEquilibrium;
+        return root.ToJsonString();
+    }
+
+    /// <summary>
+    /// Writes the given fixture text to a temporary file, loads it, then deletes the directory: never the committed
+    /// fixture. The loader checks the file's kind against its directory name, so the temporary directory is itself
+    /// named <c>rocket</c>.
+    /// </summary>
+    private static CeaCase LoadTempCopy(string json)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"apthermo-frozen-cv-{Guid.NewGuid():N}", "rocket");
+        _ = Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "lox-lh2_of4_pc10MPa_frozenAtChamber.json");
+        File.WriteAllText(path, json);
+        try
+        {
+            return CeaFixtures.Load(path);
+        }
+        finally
+        {
+            Directory.Delete(Path.GetDirectoryName(directory)!, recursive: true);
+        }
     }
 
     /// <summary>Frozen mode at the equilibrium composition recovers the equilibrium state.</summary>
@@ -122,13 +190,31 @@ public sealed class FrozenModeTests
         }
     }
 
+    /// <summary>
+    /// Whether the reference itself shows the frozen-Cv defect's signature at this station (2026-09-27, the guards
+    /// audit's F6): it prints no Cv at a frozen station and instead repeats zero, or the freezing station's own
+    /// values, in both <c>cvFrozen</c> and <c>cvEquilibrium</c> together. Checked against the fixture, not assumed
+    /// from the station's own <c>frozen</c> flag alone: a frozen station whose reference carries a real Cv (were the
+    /// reference ever to print one) is compared like any other field.
+    /// </summary>
+    private static bool ShowsTheFrozenCvDefectSignature(System.Text.Json.JsonElement station, System.Text.Json.JsonElement freezingStation)
+    {
+        var cvFrozen = station.GetProperty("cvFrozen").GetDouble();
+        var cvEquilibrium = station.GetProperty("cvEquilibrium").GetDouble();
+        return (cvFrozen == 0.0 && cvEquilibrium == 0.0)
+               || (cvFrozen == freezingStation.GetProperty("cvFrozen").GetDouble()
+                   && cvEquilibrium == freezingStation.GetProperty("cvEquilibrium").GetDouble());
+    }
+
     /// <summary>Every field of one frozen station the reference settles, against the tolerance table; returns how many were compared.</summary>
-    private static int CompareStation(System.Text.Json.JsonElement station, HostSolution solution, string? label, List<string> mismatches)
+    private static int CompareStation(System.Text.Json.JsonElement station, System.Text.Json.JsonElement freezingStation,
+                                      HostSolution solution, string? label, List<string> mismatches)
     {
         var compared = 0;
+        var skipCv = ShowsTheFrozenCvDefectSignature(station, freezingStation);
         foreach (var (field, expected, info) in StateComparison.StateFields(station, strict: false))
         {
-            if (NotFrozenFields.Contains(field))
+            if (NotFrozenFields.Contains(field) || (skipCv && CvFields.Contains(field)))
             {
                 continue;
             }

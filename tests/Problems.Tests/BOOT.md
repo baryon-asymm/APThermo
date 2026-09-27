@@ -151,6 +151,13 @@ Outside the tree: xunit.
   field dump is a caller's opt-in").
 - One solver and one engine on the CPU accelerator are shared by the collection.
 
+- **No NaN-blind predicate** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5 and F6). The rules are those of
+  the Performance tests node:
+  - `StationEquality` fails when a mole fraction is NaN on either side; `Math.Max(p, q)`
+    made it skip one.
+  - The comparisons of `ReferenceComparison` fail on NaN.
+  - The frozen cv skip is keyed on the reference's signature.
+
 ## Acceptance criteria
 
 - [x] 2026-09-12 — L0 green: `PropellantTests`
@@ -372,6 +379,67 @@ Outside the tree: xunit.
       `SCRATCH/bits-diag/reference-lox-lh2_of4_pc5MPa_frozenAtThroat.txt` before the
       approved line was restored byte for byte (`git diff` empty) and the test green
       again, 1/1. No approved file moved by this criterion.
+
+- [x] 2026-09-27 — The NaN and cv guards: a NaN mole fraction on one side, and a
+      frozen exit's cv edited in a fixture copy, each red.
+
+      `StationEquality.RelativeDifferences`'s mole-fraction loop no longer lets
+      `Math.Max(p, q)` hide a NaN behind the trace floor: `Math.Max` returns NaN when
+      either argument is NaN (.NET's documented behaviour), which made
+      `Math.Max(p, q) >= moleFractionFloor` false and skipped the pair before `Close`
+      ever ran. The floor test now also fires when either side is NaN
+      (`double.IsNaN(p) || double.IsNaN(q) || Math.Max(p, q) >= moleFractionFloor`),
+      so `Close`'s own NaN-safe form (already `!(<=)`-shaped) is reached. `BitDifferences`
+      was never blind (`Bits.Same` compares raw bits) and needed no change.
+
+      `ReferenceComparison`'s frozen-station cv skip is keyed on the reference's
+      defect signature the same way `Performance.Tests`' `StationComparison` now is
+      (that node's BOOT.md, the same finding): `StationCaveats` carries an added
+      `FreezingStationReference` (the reference's own chamber or throat station,
+      `RocketTests.FreezingStationReferenceOf`, from the case's `FlowModel`), and
+      `IsFrozenCvDefectSignature` requires the reference's `cvFrozen`/`cvEquilibrium`
+      at the frozen station to be exactly zero or exactly that station's own recorded
+      value before skipping; `EquilibriumTests`' two callers pass `Frozen: false`
+      always (tp/hp/sp problems have no frozen station), so they carry no freezing
+      reference and are unaffected.
+
+      Evidence, each mutation applied through a temporary, uncommitted fact
+      (`ZzGuardsAuditRedOnce.cs`, deleted before this commit) and seen red, never
+      reverted into the tree:
+      - two minimal `Station` records differing only in one mole fraction, `NaN`
+        against `0.5`, both far below `moleFractionFloor`:
+        `StationEquality.RelativeDifferences` now reports the pair, where the old
+        `Math.Max` guard stayed silent;
+      - `lox-lh2_of4_pc5MPa_frozenAtThroat` solved, its frozen exit's
+        `cvFrozen`/`cvEquilibrium` edited in an in-memory copy of the reference JSON
+        from `0`/`0` to `2500`/`9999`: `ReferenceComparison.Compare` now reports a
+        mismatch, where the old, unconditional `caveats.Frozen &&
+        NotAtFrozenStations.Contains(name)` skip stayed silent.
+
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Problems.Tests --filter
+      "Category!=LongRunning"`: 1191/1191, none skipped, the same count as before this
+      fix (no fixture-enumerated theory added here). `Bits.approved.txt` unchanged
+      (`git hash-object`: `5663fb464dfd1aab6792f177de7b70546306a231`). The protocol
+      lint: 0 errors, 0 warnings.
+
+- [x] 2026-09-27 — A fixture's reactant roles come from the fixture (its `role`, the
+      fixtures node's document of 2026-09-27), never from a list typed in this node:
+      `FixtureCases.Oxidizers` is removed. Every ratio case of the fixtures, the sodium
+      case included, builds its propellant from the recorded roles, and the four facts
+      that threw on the sodium case pass.
+
+      Evidence: `FixtureCases.Oxidizers` deleted; `PropellantOf` reads each reactant's
+      role from the fixture (`RoleOf`, mapping `"oxidizer"`/`"fuel"` to `ReactantRole`,
+      throwing by name on anything else) instead of testing the reactant's name against
+      the removed set. `dotnet test tests/Problems.Tests --filter "Category!=LongRunning"`:
+      1191/1191, none skipped, the four facts that threw on the sodium case
+      (`PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
+      `PropellantTests.ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
+      `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference`,
+      `BitSnapshotTests.EveryFixtureGivesTheRecordedBits`) included. `Bits.approved.txt`
+      gains exactly the sodium case's key (`git diff --stat`: 1 insertion, 0 deletions;
+      `diff` of the file against `Bits.actual.txt` with that one line excluded: no other
+      difference); no key of any other fixture moved.
 
 ## Taboos
 

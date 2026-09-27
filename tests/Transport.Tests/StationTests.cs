@@ -64,7 +64,7 @@ public sealed class StationTests
             foreach (var evaluated in TransportHost.EvaluateStations(CpuFixture.Shared, c).Where(s => s.Evaluation.Status == CaseStatus.Ok))
             {
                 var figures = evaluated.Evaluation.Figures;
-                if (figures.ReactingConductivity < figures.FrozenConductivity)
+                if (!(figures.ReactingConductivity >= figures.FrozenConductivity))
                 {
                     mismatches.Add($"{evaluated.Label}: reacting conductivity {figures.ReactingConductivity:R} below the frozen {figures.FrozenConductivity:R}");
                 }

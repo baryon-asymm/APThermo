@@ -23,10 +23,11 @@ internal static class SpeciesFunctions
     /// <summary>
     /// |ΔH°/RT| at a bound shared by two condensed fits at or above which the two sides are a real transition: the
     /// builder cuts a species there (BOOT.md, join-and-cut) and the equilibrium solver pins a two-phase pair there.
-    /// The smallest real transition of the committed file is BeO a/b at 1.34e-2, the largest interval-split artifact
-    /// 3.9e-4 (Cr(cr)).
+    /// The committed file's largest fit noise is 2.2e-3 (NaCN(II) → NaCN(III) at 288.5 K, a lambda transition with
+    /// no latent heat) and, inside one record, 1.34e-3 (NaCN(III) at 293.15 K); the smallest real transition is
+    /// 1.34e-2 (BeO a/b), with nothing between the two and this value at their geometric middle (BOOT.md, 2026-09-27).
     /// </summary>
-    public const double LatentHeatThreshold = 1.0e-3;
+    public const double LatentHeatThreshold = 5.0e-3;
 
     /// <summary>The interval of the species used at the temperature, 0-based within the species: the first whose upper bound is not below T, else the last.</summary>
     public static int IntervalOf(in SpeciesTableView table, int species, double temperature)
@@ -44,15 +45,37 @@ internal static class SpeciesFunctions
         return count - 1;
     }
 
-    /// <summary>The first (lowest) lower bound of the species' intervals; with <see cref="RecordHigh"/>, the bounds <see cref="IsInRange"/> compares.</summary>
-    public static double RecordLow(in SpeciesTableView table, int species) =>
-        table.IntervalBounds[table.IntervalStart[species] * TableLayout.BoundsStride];
+    /// <summary>
+    /// The lowest lower bound over the species' intervals, taken bound by bound (2026-09-26; the reference's
+    /// <c>minval(T_fit(:, 1))</c>): with <see cref="RecordHigh"/>, the bounds <see cref="IsInRange"/> compares. Not
+    /// the first interval's own lower bound, which eleven condensed records of the committed file write inverted
+    /// (`Thermo` BOOT.md, "Interval selection is defined").
+    /// </summary>
+    public static double RecordLow(in SpeciesTableView table, int species)
+    {
+        var start = table.IntervalStart[species];
+        var count = table.IntervalCount[species];
+        var low = table.IntervalBounds[start * TableLayout.BoundsStride];
+        for (var k = 1; k < count; k++)
+        {
+            low = KernelMath.Min(low, table.IntervalBounds[(start + k) * TableLayout.BoundsStride]);
+        }
 
-    /// <summary>The last (highest) upper bound of the species' intervals.</summary>
+        return low;
+    }
+
+    /// <summary>The highest upper bound over the species' intervals, taken bound by bound (the reference's <c>maxval(T_fit(:, 2))</c>).</summary>
     public static double RecordHigh(in SpeciesTableView table, int species)
     {
-        var last = table.IntervalStart[species] + table.IntervalCount[species] - 1;
-        return table.IntervalBounds[last * TableLayout.BoundsStride + 1];
+        var start = table.IntervalStart[species];
+        var count = table.IntervalCount[species];
+        var high = table.IntervalBounds[start * TableLayout.BoundsStride + 1];
+        for (var k = 1; k < count; k++)
+        {
+            high = KernelMath.Max(high, table.IntervalBounds[(start + k) * TableLayout.BoundsStride + 1]);
+        }
+
+        return high;
     }
 
     /// <summary>True when the temperature lies between the first interval's lower bound and the last interval's upper bound.</summary>
