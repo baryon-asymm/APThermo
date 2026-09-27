@@ -85,7 +85,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   from the binary's location (AGENTS.md §13).
 - Fixture document: `{ "case": { "name", "kind", "inputs" }, "generator": { provenance },
   "outputs": { by name, SI } }`. Inputs carry the reactants (name or custom definition,
-  mass fraction, temperature), `elementMoles` in kmol per kg computed by the generator
+  mass fraction, temperature, and since 2026-09-27 `role`, `oxidizer` or `fuel`, in every
+  case given with an oxidizer-to-fuel ratio, from the vectors the generator splits the
+  kilogram with), `elementMoles` in kmol per kg computed by the generator
   from the file's formulas and the recorded mass fractions, `products` (the species
   list the package used), `omit` (the names given to the package, whether or not each
   names a product: the package ignores the rest), `only` when the case was given an
@@ -484,6 +486,18 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       consequence of the first invariant above ("fixtures are generated, never
       edited") applied to a shared generator module, not a hand edit, and is recorded
       here rather than left to be found in the diff.
+
+- [ ] 2026-09-27 — Every reactant of a case given with an oxidizer-to-fuel ratio records
+      its `role`, written by the generator from the oxidizer and fuel vectors it passes
+      to the package. `regenerate.py --check` exits 0 after the regeneration, and
+      `Fixtures.Tests` refuses a ratio case whose reactant lacks a role, red once on a
+      copy.
+
+      ⚠ 2026-09-27: the role lived nowhere in the fixtures. The front door's tests
+      guessed it from a hand-typed set of five oxidizer names, which the sodium case's
+      `NaNO3(a)` was missing from: both reactants read as fuel, and four facts threw
+      "an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel". Found by
+      the coder who added the case.
 
 ## Taboos
 
