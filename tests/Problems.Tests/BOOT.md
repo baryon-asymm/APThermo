@@ -380,8 +380,47 @@ Outside the tree: xunit.
       approved line was restored byte for byte (`git diff` empty) and the test green
       again, 1/1. No approved file moved by this criterion.
 
-- [ ] 2026-09-26 — The NaN and cv guards: a NaN mole fraction on one side, and a
+- [x] 2026-09-27 — The NaN and cv guards: a NaN mole fraction on one side, and a
       frozen exit's cv edited in a fixture copy, each red.
+
+      `StationEquality.RelativeDifferences`'s mole-fraction loop no longer lets
+      `Math.Max(p, q)` hide a NaN behind the trace floor: `Math.Max` returns NaN when
+      either argument is NaN (.NET's documented behaviour), which made
+      `Math.Max(p, q) >= moleFractionFloor` false and skipped the pair before `Close`
+      ever ran. The floor test now also fires when either side is NaN
+      (`double.IsNaN(p) || double.IsNaN(q) || Math.Max(p, q) >= moleFractionFloor`),
+      so `Close`'s own NaN-safe form (already `!(<=)`-shaped) is reached. `BitDifferences`
+      was never blind (`Bits.Same` compares raw bits) and needed no change.
+
+      `ReferenceComparison`'s frozen-station cv skip is keyed on the reference's
+      defect signature the same way `Performance.Tests`' `StationComparison` now is
+      (that node's BOOT.md, the same finding): `StationCaveats` carries an added
+      `FreezingStationReference` (the reference's own chamber or throat station,
+      `RocketTests.FreezingStationReferenceOf`, from the case's `FlowModel`), and
+      `IsFrozenCvDefectSignature` requires the reference's `cvFrozen`/`cvEquilibrium`
+      at the frozen station to be exactly zero or exactly that station's own recorded
+      value before skipping; `EquilibriumTests`' two callers pass `Frozen: false`
+      always (tp/hp/sp problems have no frozen station), so they carry no freezing
+      reference and are unaffected.
+
+      Evidence, each mutation applied through a temporary, uncommitted fact
+      (`ZzGuardsAuditRedOnce.cs`, deleted before this commit) and seen red, never
+      reverted into the tree:
+      - two minimal `Station` records differing only in one mole fraction, `NaN`
+        against `0.5`, both far below `moleFractionFloor`:
+        `StationEquality.RelativeDifferences` now reports the pair, where the old
+        `Math.Max` guard stayed silent;
+      - `lox-lh2_of4_pc5MPa_frozenAtThroat` solved, its frozen exit's
+        `cvFrozen`/`cvEquilibrium` edited in an in-memory copy of the reference JSON
+        from `0`/`0` to `2500`/`9999`: `ReferenceComparison.Compare` now reports a
+        mismatch, where the old, unconditional `caveats.Frozen &&
+        NotAtFrozenStations.Contains(name)` skip stayed silent.
+
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Problems.Tests --filter
+      "Category!=LongRunning"`: 1191/1191, none skipped, the same count as before this
+      fix (no fixture-enumerated theory added here). `Bits.approved.txt` unchanged
+      (`git hash-object`: `5663fb464dfd1aab6792f177de7b70546306a231`). The protocol
+      lint: 0 errors, 0 warnings.
 
 - [x] 2026-09-27 — A fixture's reactant roles come from the fixture (its `role`, the
       fixtures node's document of 2026-09-27), never from a list typed in this node:

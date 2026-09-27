@@ -57,6 +57,8 @@ internal static class StationComparison
         }
 
         var transport = c.Inputs.GetProperty("transport").GetBoolean();
+        var freezingStation = RocketInvariants.FreezingStationOf(solution.Inputs.Flow);
+        var freezingReference = freezingStation >= 0 && freezingStation < referenceStations.Count ? referenceStations[freezingStation] : (JsonElement?)null;
         for (var s = 0; s < solution.StationCount; s++)
         {
             var reference = referenceStations[s];
@@ -66,7 +68,7 @@ internal static class StationComparison
             var condensedPresent = moleFractions.EnumerateObject().Any(p => p.Value.GetDouble() > 0.0 && IsCondensed(solution.Table, p.Name));
             foreach (var (name, expected, field, isFigure) in Fields(reference))
             {
-                if (frozen && NotAtFrozenStations.Contains(name))
+                if (frozen && NotAtFrozenStations.Contains(name) && IsFrozenCvDefectSignature(expected, freezingReference, name))
                 {
                     continue;
                 }
@@ -109,4 +111,12 @@ internal static class StationComparison
         var indices = table.IndicesOf(species);
         return indices.Count > 0 && indices[0] >= table.GasCount;
     }
+
+    /// <summary>
+    /// The frozen-station cv defect's own signature on the reference (Performance BOOT.md, 2026-09-26, the guards
+    /// audit's F5/F6): the reference's <paramref name="name"/> at this frozen station is either exactly zero, or exactly
+    /// the freezing station's own recorded value for the same field. Anywhere else the field is compared like any other.
+    /// </summary>
+    private static bool IsFrozenCvDefectSignature(double expected, JsonElement? freezingReference, string name) =>
+        expected == 0.0 || (freezingReference is { } freeze && expected == freeze.GetProperty(name).GetDouble());
 }

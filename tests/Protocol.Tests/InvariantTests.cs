@@ -1,4 +1,7 @@
 using System.Reflection;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace APThermo.Protocol.Tests;
 
@@ -23,6 +26,21 @@ public sealed class InvariantTests
     {
         var problems = Numerical().SelectMany(pair => SinglePrecisionProblems(pair.Node, pair.Assembly)).ToList();
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: double precision only.\n" + string.Join("\n", problems));
+    }
+
+    /// <summary>
+    /// Numerical nodes' own source files name no <c>float</c>, <c>Half</c>, <c>System.Single</c> or <c>MathF</c>, and carry
+    /// no numeric literal with an <c>f</c> or <c>F</c> suffix (root BOOT.md, Invariants: double precision only; the guards
+    /// audit's F4). The IL-level fact above stays: it sees a conversion, while the compiler folds a <c>float</c> constant
+    /// into a plain <c>double</c> load (<c>ldc.r8</c>) no IL walk can tell apart from a literal written as a double.
+    /// </summary>
+    [Fact]
+    public void NumericalNodeSourcesNameNoSinglePrecisionSyntax()
+    {
+        var scanned = Numerical().SelectMany(pair => SourceSyntax.Trees(pair.Node).Select(entry => (pair.Node, entry.Tree))).ToList();
+        Assert.NotEmpty(scanned);
+        var problems = scanned.SelectMany(pair => SinglePrecisionSyntaxProblems(pair.Node, pair.Tree)).ToList();
+        Assert.True(problems.Count == 0, "root BOOT.md, Invariants: double precision only, at the source level.\n" + string.Join("\n", problems));
     }
 
     /// <summary>Only the execution node and its own tests name a CUDA type (root BOOT.md, Invariants: the CPU path needs no
@@ -104,6 +122,49 @@ public sealed class InvariantTests
         }
     }
 
+    /// <summary>The source-level single-precision markers of one syntax tree: the <c>float</c> keyword, the identifiers
+    /// <c>Half</c>, <c>Single</c> and <c>MathF</c> (bare or qualified, since a qualified name's rightmost identifier is one
+    /// of these too), and a numeric literal token with an <c>f</c>/<c>F</c> suffix that is not a hexadecimal or binary
+    /// literal's own trailing digit.</summary>
+    private static IEnumerable<string> SinglePrecisionSyntaxProblems(Node node, SyntaxTree tree)
+    {
+        var root = tree.GetRoot();
+        foreach (var predefined in root.DescendantNodes().OfType<PredefinedTypeSyntax>())
+        {
+            if (predefined.Keyword.IsKind(SyntaxKind.FloatKeyword))
+            {
+                yield return SyntaxProblem(node, tree, predefined.Span, "float");
+            }
+        }
+
+        foreach (var identifier in root.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (identifier.Identifier.Text is "Half" or "Single" or "MathF")
+            {
+                yield return SyntaxProblem(node, tree, identifier.Span, identifier.Identifier.Text);
+            }
+        }
+
+        foreach (var token in root.DescendantTokens())
+        {
+            if (token.IsKind(SyntaxKind.NumericLiteralToken) && IsFloatLiteral(token.Text))
+            {
+                yield return SyntaxProblem(node, tree, token.Span, token.Text);
+            }
+        }
+    }
+
+    private static bool IsFloatLiteral(string text) =>
+        text.Length > 0 && text[^1] is 'f' or 'F'
+        && !text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+        && !text.StartsWith("0b", StringComparison.OrdinalIgnoreCase);
+
+    private static string SyntaxProblem(Node node, SyntaxTree tree, Microsoft.CodeAnalysis.Text.TextSpan span, string what)
+    {
+        var line = tree.GetLineSpan(span).StartLinePosition.Line + 1;
+        return $"{node.Name}: {Tree.Relative(tree.FilePath!)}:{line} names {what}";
+    }
+
     private static IEnumerable<string> CudaProblems(Node node, Assembly assembly)
     {
         foreach (var type in assembly.GetTypes())
@@ -127,24 +188,61 @@ public sealed class InvariantTests
                 continue;
             }
 
-            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly))
+            foreach (var problem in StaticFieldProblems(node, type))
             {
-                if (field.IsLiteral || TypeShape.IsCompilerGenerated(field))
-                {
-                    continue;
-                }
+                yield return problem;
+            }
 
-                if (!field.IsInitOnly)
-                {
-                    yield return $"{node.Name}: {type.FullName}.{field.Name} is a static field that is neither const nor readonly";
-                }
-                else if (field.FieldType.IsArray)
-                {
-                    yield return $"{node.Name}: {type.FullName}.{field.Name} is a static readonly array, whose elements are mutable state";
-                }
+            foreach (var problem in StaticPropertyProblems(node, type))
+            {
+                yield return problem;
             }
         }
     }
+
+    private static IEnumerable<string> StaticFieldProblems(Node node, Type type)
+    {
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly))
+        {
+            if (field.IsLiteral || TypeShape.IsCompilerGenerated(field))
+            {
+                continue;
+            }
+
+            if (!field.IsInitOnly)
+            {
+                yield return $"{node.Name}: {type.FullName}.{field.Name} is a static field that is neither const nor readonly";
+            }
+            else if (field.FieldType.IsArray)
+            {
+                yield return $"{node.Name}: {type.FullName}.{field.Name} is a static readonly array, whose elements are mutable state";
+            }
+            else if (!IsAllowedStaticReadonlyType(field.FieldType))
+            {
+                yield return $"{node.Name}: {type.FullName}.{field.Name} is a static readonly field of type {field.FieldType.Name}, not a primitive, string or enum";
+            }
+        }
+    }
+
+    /// <summary>Every static property with a setter, auto or not (root BOOT.md, Invariants: no hidden state; the guards
+    /// audit's F3): a getter alone reads state owned elsewhere, but a setter is a place to hide it.</summary>
+    private static IEnumerable<string> StaticPropertyProblems(Node node, Type type)
+    {
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly))
+        {
+            if (TypeShape.IsCompilerGenerated(property) || property.GetSetMethod(nonPublic: true) is null)
+            {
+                continue;
+            }
+
+            yield return $"{node.Name}: {type.FullName}.{property.Name} is a static property with a setter";
+        }
+    }
+
+    /// <summary>The allow-list of a static readonly field's type (root BOOT.md, Invariants: no hidden state; the guards
+    /// audit's F3): primitives, `string` and enums are the tree's own immutable value kinds; anything else (a mutable
+    /// collection included) is state that outlives a call.</summary>
+    private static bool IsAllowedStaticReadonlyType(Type type) => type.IsPrimitive || type == typeof(string) || type.IsEnum;
 
     /// <summary>
     /// The calls of one type's method bodies that the Constraint above forbids: any overload of <c>Math.Min</c> or

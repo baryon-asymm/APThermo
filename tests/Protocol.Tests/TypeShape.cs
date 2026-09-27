@@ -29,9 +29,25 @@ internal static class TypeShape
         return type;
     }
 
-    /// <summary>Written by the compiler or a source generator (the regex generator marks its classes GeneratedCode), not by the author.</summary>
+    /// <summary>
+    /// Written by the compiler or a source generator (the regex generator marks its classes GeneratedCode; a C# 11
+    /// <c>file</c> type's own metadata name is mangled with a leading <c>&lt;</c> by the compiler itself), not by the
+    /// author. A <see cref="Type"/> is accepted only when its own name contains <c>&lt;</c>, the one character no
+    /// identifier the author writes can hold, and every synthesized type this walk meets is named that way (root
+    /// BOOT.md, the guards audit's F2): a hand-written <c>[GeneratedCode]</c> or <c>[CompilerGenerated]</c> attribute on
+    /// an ordinarily named class no longer exempts it from a check that calls this method with a <see cref="Type"/>. A
+    /// non-type member (a method, property, field or constructor) keeps the attribute-only test: a record's synthesized
+    /// <c>Equals</c>, <c>GetHashCode</c>, <c>ToString</c>, <c>PrintMembers</c>, its equality operators and its
+    /// <c>EqualityContract</c> carry the compiler's own <c>[CompilerGenerated]</c> under their ordinary, unmangled
+    /// names, so narrowing this branch the same way would stop excluding them from every check that reads a member
+    /// (`CoverageTests`' namespace fact aside, which reads types only) — the Coverage, Surface and Shape levels would
+    /// all measure boilerplate no author wrote. The Diagnostics level's own new fact refuses a hand-written marker
+    /// outright, on a member or a type alike, which is what actually closes the member-level half of this finding: a
+    /// human cannot add such an attribute to a real field without failing the build before any reflection check runs.
+    /// </summary>
     public static bool IsCompilerGenerated(MemberInfo member) =>
-        member.GetCustomAttributesData().Any(attribute => attribute.AttributeType.Name is "CompilerGeneratedAttribute" or "EmbeddedAttribute" or "GeneratedCodeAttribute");
+        (member is not Type || member.Name.Contains('<', StringComparison.Ordinal))
+        && member.GetCustomAttributesData().Any(attribute => attribute.AttributeType.Name is "CompilerGeneratedAttribute" or "EmbeddedAttribute" or "GeneratedCodeAttribute");
 
     /// <summary>Every method body a type owns: methods, constructors and the type initializer, declared on the type itself.</summary>
     public static IEnumerable<MethodBase> MethodsOf(Type type)
