@@ -79,6 +79,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   (writes changed fixtures, removes stale ones) or `regenerate.py --check` (compares
   only, exit code 1 on any difference). Each script also runs standalone and sweeps
   only the kinds it produces.
+
+  ⚠ 2026-09-27: "sweeps only the kinds it produces" reads as if a standalone run were
+  always safe, but a kind directory several scripts share (`tp`, `hp`, `sp` and
+  `rocket` are each written by `propellants.py`, `rp1311.py`, `plateaus.py` and, for
+  `tp`, `low_temperature.py` and `condensed_phase_limit.py` too) has no script that
+  "produces" it alone: a standalone run of one script still sweeps that whole
+  directory, since the sweep only knows the paths its own run wrote, and removes or
+  reports as stale every fixture the *other* scripts placed there. Found by the coder
+  of this date: `python propellants.py` alone removed 93 committed fixtures of `rp1311.py`,
+  `plateaus.py`, `low_temperature.py` and `condensed_phase_limit.py` and rewrote more
+  (`git status`, immediately reverted with `git checkout --`). A standalone run is safe
+  only for a kind exactly one script writes (`constants`, `thermo`, `transport`,
+  `throat`); regenerating a shared kind, or committing any change to a script that
+  writes one, goes through the full `regenerate.py` driver, never a single family
+  script alone.
 - The node also owns the repository-path resolution every test node uses
   (`RepositoryPaths`): the root is the nearest directory above this node's source file
   that holds `AGENTS.md`, found with `[CallerFilePath]`, never by `../..` chains or
@@ -484,6 +499,25 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       consequence of the first invariant above ("fixtures are generated, never
       edited") applied to a shared generator module, not a hand edit, and is recorded
       here rather than left to be found in the diff.
+
+- [x] 2026-09-27 — The sodium case (the case matrix): `propellants.py` gains
+      `sodium_hp`, one hp case (`cases/hp/nano3-rp1_of4_pc7MPa.json`) of NaNO3(a) with
+      RP-1, both at 298.15 K, O/F 4, 7 MPa, generated the way `plateaus.py`'s
+      `fuel_rich_hp` generates a standalone hp case (`make_mixtures`,
+      `describe_reactants`, `solve_equilibrium`, `equilibrium_inputs`), transport off as
+      every equilibrium-only case is.
+      - The package converges (`converged: true`) to 1741.58 K; its candidate product
+        list carries `NaCN(II)`, the six-interval record `Thermo`'s table limit refused
+        until this date (its `BOOT.md`), at mole fraction 0.0 in the solution — the case
+        exists for the candidate list, not for a nonzero `NaCN(II)` composition.
+      - `regenerate.py --check` exits 0 over all 328 fixtures after `regenerate.py`
+        writes the one new file.
+      - Touching `propellants.py` re-provenanced (new `scriptSha256`, `generatedOn`) all
+        135 of its already-committed fixtures; verified the same way as the `rp1311.py`
+        entry above (`git diff --numstat`: every one of the 135 changes exactly 2 lines,
+        and grep over the diff's added and removed lines found none outside
+        `scriptSha256` and `generatedOn`). The ordinary consequence of the first
+        invariant, as above, not a hand edit.
 
 ## Taboos
 

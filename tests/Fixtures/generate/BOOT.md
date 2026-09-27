@@ -76,9 +76,18 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
       ⚠ 2026-09-27: "the seven kinds" is now eight — `throat_scan.py` added the `throat`
       kind (the parent's case matrix). `regenerate.py --check` exits 0 on the current
       tree, 327 fixtures, none stale or missing.
+
+      ⚠ 2026-09-27, the sodium case (the parent's case matrix): `propellants.py` gains
+      `sodium_hp`, one hp file. `regenerate.py --check` exits 0 on the current tree, 328
+      fixtures, none stale or missing.
 - [x] 2026-09-12 — Every family script runs standalone and sweeps only the kinds it
       produces. Seen red once: `thermo_functions.py` run alone removed `constants/R.json`
       until `Writer.finish` was limited to the kinds of the run.
+
+      ⚠ 2026-09-27: this criterion is true only kind by kind, not script by script, for
+      a kind several scripts write (`tp`, `hp`, `sp`, `rocket`): the parent `BOOT.md`'s ⚠
+      of this date records the hazard, found running `propellants.py` alone for the
+      sodium case above.
 - [x] 2026-09-12 — The derived equilibrium cases reproduce their station: the tp, hp
       and sp solves at a station's values return the station's temperature (for the
       LOX/LH2 throat, 3292.3746 K against 3292.3746 K), so the package's hp and sp inputs

@@ -301,8 +301,8 @@
     "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
     "method": "cea-package",
     "script": "propellants.py",
-    "scriptSha256": "0b0b532738f394da8fc20f6b4d8416e2d20ced511001c23bb06e4b257332ca98",
-    "generatedOn": "2026-09-12"
+    "scriptSha256": "54fcf140fee8f78e03bdfbf119f03523ee53d9f59ab821cca228bfbc2f15edf1",
+    "generatedOn": "2026-09-27"
   },
   "outputs": {
     "temperature": 2236.846575614165,
