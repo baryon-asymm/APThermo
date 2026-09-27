@@ -373,16 +373,40 @@ of 14: no efferent coupling row is needed.
         an inverted interval at a temperature where the two rules differ; the coder
         checks this and records it.
 
-- [ ] 2026-09-27 — The threshold separates the committed file's transitions (the ⚠ of
-      this date under Constraints). Evidence due:
-      - a fact scans every shared bound of the condensed product records (inside a
-        record after the join, and between two records of one formula) and asserts
-        that none has `|ΔH°/RT|` within a factor 2 of `LatentHeatThreshold`, on either
-        side; it fails on an empty scan, and is red at 1e-3 (the `NaCN` bounds);
-      - the cut fires on `ALN(L)` and `SnS(cr)` only, from a list the scan generates;
-      - `NaCN(II)` and `NaCN(III)` build as one species each;
-      - bits: the coder reports which snapshots move, and explains each moved key by a
-        table holding `NaCN`; any other movement stops the work.
+- [x] 2026-09-27 — The threshold separates the committed file's transitions (the ⚠ of
+      this date under Constraints).
+      - `LatentHeatThresholdTests.NoSharedBoundFallsWithinAFactorTwoOfTheThreshold`
+        scans every shared bound of the condensed product records (inside a record
+        after the join, and between two records of one formula that concatenate),
+        computing `|ΔH°/RT|` at each with `SpeciesFunctions.HOverRT(TemperatureInterval,
+        double)`, the node's own function; it fails on an empty scan and asserts none
+        falls within a factor 2 of `LatentHeatThreshold` on either side. Shown red at
+        1e-3: `NaCN(II)` at 287.7 K (1.233e-3) and `NaCN(III)` at 290.4 K (8.470e-4) and
+        293.15 K (1.336e-3) all land inside the old threshold's factor-2 band
+        (`[0.5e-3, 2e-3]`); at 5e-3 the same scan is green (band `[2.5e-3, 1e-2]`).
+      - `LatentHeatThresholdTests.TheCutFiresOnlyOnAlnAndSnS` generates the list of
+        names whose scanned bounds reach the threshold and asserts it equals exactly
+        `["ALN(L)", "SnS(cr)"]`; at 1e-3 the generated list also held `NaCN(II)` and
+        `NaCN(III)`.
+      - `LatentHeatThresholdTests.NaCnTwoAndNaCnThreeEachStayOnePiece` confirms both
+        names are scanned (each has at least one internal bound) and that neither
+        reaches the threshold, so each stays one piece; neither can be built alone
+        through `SpeciesTable.Build` to check this the way `RangeQuestionTests` checks
+        other cut names, since `NaCN(II)` alone has 6 intervals, over
+        `TableLimits.MaxIntervalsPerSpecies`, independent of any threshold (confirmed
+        by a scratch probe: `SpeciesTable.Build` throws "has 6 intervals, more than the
+        limit of 5" regardless of `LatentHeatThreshold`), and no fixture holds either
+        name.
+      - Bits: no `Bits.approved.txt` or `Bits.linux.approved.txt` of any node moved
+        (`git status` on all six files before and after, unchanged); the full
+        `Thermo.Tests`, `Equilibrium.Tests`, `Performance.Tests` and `Problems.Tests`
+        suites stay green (1177, 697, 700, 1186 respectively), confirming the
+        Equilibrium pair rule (`CondensedSet.Pinnable`, the same constant) moves
+        nothing either, since no committed fixture holds `NaCN`.
+
+      Evidence: `dotnet test tests/Thermo.Tests`, 1177/1177 (three new facts); the
+      three facts shown red once against the code of `9c33398` (threshold 1e-3) and
+      green after `LatentHeatThreshold` was raised to 5e-3.
 
 ## Taboos
 
