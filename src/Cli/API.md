@@ -343,14 +343,28 @@ name, `performance` with every field of `PerformanceFigures` plus the two
 `…Seconds` conversions (rocket stations only), the compositions by name above the
 threshold (`moleFractions` over all species, `condensedMassFractions` as n_j M_j),
 and `transport` with `status` and, when it is `ok`, every field of
-`TransportFigures` (present only when transport was requested). A non-finite number
+`TransportFigures` (present only when transport was requested and the station
+converged, 2026-09-27). A non-finite number
 is written as `null`. Statuses are the library's `CaseStatus` names in camel case.
 
-The CSV form has one row per case and station: `case`, the scalar inputs, `station`,
+The CSV form has one row per case and station: `case`, the scalar inputs under the
+prefix `inputs.` (2026-09-27: so that an input column never collides with a station
+field, `inputs.pressure` beside the state's own `pressure`), `station`,
 `status`, the state fields, the performance fields with the two conversions,
 `transportStatus` and the transport fields, in that order; cells that do not apply
 are empty; compositions are not in CSV, nor is the `mixture` section (its mass
 included). Numbers are written in round-trip form.
+
+⚠ 2026-09-27 (the hidden-defect audit of 2026-09-26, findings 1 and 5): the CSV input
+columns carried the JSON member's own name, so `equilibrium`'s and `states`'
+`pressure`, `temperature`, `enthalpy` and `entropy` repeated a state field's name.
+pandas read the second column as `pressure.1`; Python's `csv.DictReader` kept only the
+last value under the shared key, so a rocket record's exit row read back the exit
+pressure under the name `pressure` where the chamber's own value belonged. The `Transport`
+comment stood "present only when transport was requested"; `StationFactory.TransportOf`
+also left it null on a station that did not converge, which the CSV and JSON writers
+already reflected (a failed station's transport cells were empty). The comment now
+names both cases; no writer changed.
 
 ⚠ 2026-09-12: the sketch had `elementMoles` and `reactantEnthalpy` on the case, a
 `performance` list per exit next to the stations, only a few named state fields, and

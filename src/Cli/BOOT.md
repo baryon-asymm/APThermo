@@ -161,6 +161,43 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `download`), which the front door does not expose; the tool reports its own phases
   (`database` load, `solve`).
 
+- **Audit fixes of 2026-09-26** (the hidden-defect audit of that day, Data, Problems and
+  Cli, findings 1, 2, 3, 7, 8 and 9, and its note on the database error). Each child
+  node named holds its part:
+  - **Output.** CSV column names are unique. The input columns carry the prefix
+    `inputs.`, the JSON member they come from (`inputs.pressure` beside the state's
+    `pressure`).
+    - ⚠ For `equilibrium` and `states`, `pressure`, `temperature`, `enthalpy` and
+      `entropy` appeared twice. pandas read the second as `pressure.1`, Python's
+      `csv.DictReader` kept the last, and on a rocket record's exit row the two
+      readers returned the chamber and the exit pressure under one name.
+  - **Documents.** A JSON member given twice is refused with its path.
+    - ⚠ The last value won. `"chamberPressure": 7.0e6, "chamberPressure": 7.0e5`
+      solved the 0.7 MPa case with exit 0.
+  - **Syntax.** An option given with an empty value (`--output=`, `--database=`) is a
+    bad option value: exit 2 naming the option.
+    - ⚠ `--output=` exited 3 with an unhandled `ArgumentException`, and `--database=`
+      read `thermo.inp` from the working directory.
+  - **States.** A refusal from the front door names the record's source (file and
+    record, or JSON Lines line). This node maps the front door's
+    `StateRecordException.Index` within each group back to the record it came from.
+    - ⚠ Only the shape and mass refusals were mapped. A zero pressure on line 3 was
+      reported as `equilibrium problem 1`, which reads as line 2.
+  - **Mass tolerance.** `--mass-tolerance` applies to documents that carry element
+    moles (`states`, `propellant.elementMoles`). With a reactant propellant it is an
+    option that does not apply: exit 2. There the front door's propellant path holds
+    its mixtures to `DefaultMassTolerance`, and `run.massTolerance` records that
+    value. A reactant document's refusal names `the propellant's mixture (case i)`,
+    as the front door's propellant path does.
+    - ⚠ `run.massTolerance` echoed the option while the check in force was 1e-2. The
+      refusal said `mixture i` and cited the option's tolerance regardless of whether
+      it applied.
+  - **Transport.** A station's `transport` object is present when transport was
+    requested and the station converged; the `API.md` wording follows the front
+    door's corrected contract.
+  - **Database errors.** They are printed as the Data node gives them, with no second
+    prefix.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
@@ -502,6 +539,53 @@ Every other type of the node measures 14 or below by the dependency check's walk
       tree, the same shape as `Program.Main`'s handler, throwing after installing it:
       exit code 3, `InvalidOperationException: a defect of this node` on standard
       error, `dotnet run -c Release` on 2026-09-24.
+
+- [x] 2026-09-27 — The audit fixes of 2026-09-26 (Constraints), each fact red once
+      against the pre-fix code:
+      - `CsvTests.TheStatesCsvHeaderNamesAreUniqueEvenWhenAnInputCollidesWithAStationField`:
+        every CSV header column name is unique even when an input collides with a
+        station field name; red before `CsvOutput.HeaderOf`'s `inputs.` prefix (48
+        distinct names expected, 45 actual, the collision);
+      - `InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`
+        over `duplicate-field.json` and `states-duplicate-field.json`: a document
+        with a repeated member is exit 2 naming the field and its path, red before
+        `StrictObject`'s duplicate check (exit 0, the last value silently used);
+      - `ProcessTests.AnEmptyOutputValueIsExit2AsARealProcess`,
+        `ProcessTests.AnEmptyDatabaseValueIsExit2EvenWhenTheWorkingDirectoryHoldsAThermoInpFile`
+        and two `CommandLineTests.InvalidCommandLinesAreExit2NamingTheOffender`
+        rows (`--output=`, `--database=`): both empty-valued options are exit 2
+        naming the option, red before `OptionValues.ParsePath` (exit 3 unhandled,
+        or the working directory's `thermo.inp` silently read);
+      - `ExitCodeTests.ARuleProblemValidationAppliesIsNamedByTheRecordsFileAndLineNotABatchLocalIndex`
+        (the audit's own `misname.jsonl` reproduction: three lines, the third
+        offending): the refusal names line 3, red before the front door's
+        `noun`/`StateRecordException` change (it named line 2, the batch-local
+        index misread as the line);
+      - `ExitCodeTests.MassToleranceDoesNotApplyToAReactantPropellant` and
+        `ExitCodeTests.AReactantPropellantsMassRefusalNamesThePropellantsMixture`:
+        `--mass-tolerance` with a reactant document is exit 2, and a reactant
+        propellant's own mass refusal names `the propellant's mixture (case i)`
+        rather than `mixture i`; both red before `ProblemCommand`'s
+        `CheckMassToleranceApplies` and its `MixtureMassException` catch (exit 0
+        with the option silently ignored, and the front door's own wording);
+      - `ExitCodeTests.AMalformedDatabaseLineIsReportedWithOnePrefix`: a malformed
+        database line is reported with exactly one `file:line:` prefix, red before
+        `DatabaseFiles.ReadDatabase` dropped the redundant one (`thermo.inp:5758:
+        thermo.inp:5758: …` doubled).
+
+      Every approved CSV output this node's own tests carry is re-approved for the
+      new header in the same commit as the fix, and the bit snapshot moves on no
+      other line (`Cli.Tests/Bits.approved.txt`'s diff: the JSON-hash half of every
+      line is unchanged, the CSV-hash half of every line that has a CSV form moved,
+      `species` — which has none — unchanged; `Bits.linux.approved.txt` is not
+      re-approved because no Linux machine was available to this coder, and needs a
+      Linux run before this criterion's evidence is complete for that platform). The
+      schemas are unchanged: the JSON documents did not change shape.
+
+      `dotnet test tests/Cli.Tests`: 129/129, none skipped.
+      `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`:
+      3196/3196, none skipped. `dotnet build APThermo.sln`: 0 warnings, 0 errors.
+      The protocol lint: 0 errors, 0 warnings. The public surface is unchanged.
 
 ## Taboos
 

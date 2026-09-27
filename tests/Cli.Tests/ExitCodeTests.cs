@@ -133,6 +133,28 @@ public sealed class ExitCodeTests
         Assert.Empty(run.Output);
     }
 
+    /// <summary>
+    /// A rule <c>ProblemValidation</c> applies (a non-positive pressure) is named by the record's own file and line,
+    /// not the position it happens to hold inside the group <see cref="StatesCommand"/> splits records
+    /// into (2026-09-26, the audit's exact reproduction, <c>misname.jsonl</c>): line 1 is a valid rocket record,
+    /// line 2 a valid hp record (the good record ahead of the offender, so the batch-local "problem 1" of the old
+    /// wording would misname it), line 3 the offending one.
+    /// </summary>
+    [Fact]
+    public void ARuleProblemValidationAppliesIsNamedByTheRecordsFileAndLineNotABatchLocalIndex()
+    {
+        var lines = File.ReadAllLines(CliFixture.Document("states.jsonl"));
+        var rocket = lines[2];
+        var hp = lines[0];
+        const string badPressure = """{"pressure": 0.0, "temperature": 1659.18, "composition": {"C": 10.0, "H": 40.0, "O": 30.0}}""";
+        var path = CliFixture.Shared.TempFile("misname.jsonl");
+        File.WriteAllText(path, rocket + "\n" + hp + "\n" + badPressure + "\n");
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("states", path));
+        Assert.Equal(2, run.Code);
+        Assert.Contains($"{path}:3: the pressure must be positive and finite, not 0", run.Error, StringComparison.Ordinal);
+        Assert.Empty(run.Output);
+    }
+
     /// <summary>The mass tolerance option is the tolerance the run declares.</summary>
     [Fact]
     public void TheMassToleranceOptionIsTheToleranceTheRunDeclares()
@@ -168,6 +190,67 @@ public sealed class ExitCodeTests
         run = CliFixture.Invoke(CliFixture.Shared.Solving("states", Scaled(1.05, "heavy-5pct.json"), "--mass-tolerance", "0.03"));
         Assert.Equal(2, run.Code);
         Assert.Contains("within 3 %", run.Error);
+        Assert.Empty(run.Output);
+    }
+
+    /// <summary>
+    /// <c>--mass-tolerance</c> does not apply to a propellant given by reactants, exit 2 naming the option
+    /// (2026-09-26, the audit's finding 7): the front door always holds such a mixture to its own default, since
+    /// its mixture is the tree's own, not a caller's record.
+    /// </summary>
+    [Fact]
+    public void MassToleranceDoesNotApplyToAReactantPropellant()
+    {
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("rocket", CliFixture.Document("rocket-lox-lh2.json"), "--mass-tolerance", "0.5"));
+        Assert.Equal(2, run.Code);
+        Assert.Contains("--mass-tolerance", run.Error, StringComparison.Ordinal);
+        Assert.Contains("reactants", run.Error, StringComparison.Ordinal);
+        Assert.Empty(run.Output);
+    }
+
+    /// <summary>
+    /// A reactant propellant's mass refusal names "the propellant's mixture (case i)", as the front door's own
+    /// propellant path does (2026-09-26, the audit's finding 7): the mixtures this command builds per sweep
+    /// combination lose the <c>Propellant</c> reference before <c>Solve</c>, and used to be named "mixture i" with
+    /// the tolerance in force misreported as the (inapplicable) option's own value.
+    /// </summary>
+    [Fact]
+    public void AReactantPropellantsMassRefusalNamesThePropellantsMixture()
+    {
+        const string document = """
+            {
+              "propellant": { "reactants": [ { "name": "ADN", "role": "named", "amount": 1.0 } ] },
+              "problem": { "type": "equilibrium", "kind": "tp", "pressure": 1.0e6, "temperature": 2000.0 }
+            }
+            """;
+        var path = CliFixture.Shared.TempFile("adn.json");
+        File.WriteAllText(path, document);
+        var run = CliFixture.Invoke(CliFixture.Shared.Solving("equilibrium", path));
+        Assert.Equal(2, run.Code);
+        Assert.Contains("the propellant's mixture (case 0): the composition weighs ", run.Error, StringComparison.Ordinal);
+        Assert.Empty(run.Output);
+    }
+
+    /// <summary>
+    /// A malformed database line is reported with one prefix, not two (2026-09-26, Data BOOT.md's note): Data's own
+    /// <see cref="APThermo.Data.DatabaseFormatException"/> message already carries "file:line: ", and
+    /// <see cref="DatabaseFiles"/> used to add it a second time, "thermo.inp:66: thermo.inp:66: ...".
+    /// </summary>
+    [Fact]
+    public void AMalformedDatabaseLineIsReportedWithOnePrefix()
+    {
+        var directory = Directory.CreateDirectory(CliFixture.Shared.TempFile("corrupt-db")).FullName;
+        var lines = File.ReadAllLines(Path.Combine(CliFixture.Shared.DatabasePath, "thermo.inp"));
+        var start = Array.FindIndex(lines, l => l.StartsWith("H2O ", StringComparison.Ordinal));
+        lines[start + 3] = lines[start + 3][..20] + "X" + lines[start + 3][21..];
+        File.WriteAllLines(Path.Combine(directory, "thermo.inp"), lines);
+        var run = CliFixture.Invoke("species", "--database", directory);
+        Assert.Equal(2, run.Code);
+        const string prefix = "thermo.inp:";
+        var firstIndex = run.Error.IndexOf(prefix, StringComparison.Ordinal);
+        Assert.True(firstIndex >= 0, run.Error);
+        var secondIndex = run.Error.IndexOf(prefix, firstIndex + prefix.Length, StringComparison.Ordinal);
+        Assert.True(secondIndex < 0, $"the prefix '{prefix}' appears twice: {run.Error}");
         Assert.Empty(run.Output);
     }
 

@@ -35,6 +35,8 @@ public sealed class InputDocumentTests
         ["states-two-targets.json"] = "exactly one of enthalpy, temperature and entropy",
         ["states-unknown-field.json"] = "unknown field 'pressureBar'",
         ["states-rocket-without-enthalpy.json"] = "a record with exits needs an enthalpy",
+        ["duplicate-field.json"] = "the field 'chamberPressure' at $.problem is given twice",
+        ["states-duplicate-field.json"] = "the field 'pressure' at $ is given twice",
     };
 
     /// <summary>

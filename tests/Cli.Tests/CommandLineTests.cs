@@ -75,6 +75,8 @@ public sealed class CommandLineTests
     [InlineData(new[] { "rocket", "x.json", "--output" }, "needs a value")]
     [InlineData(new[] { "rocket", "x.json", "--output", "a", "--output", "b" }, "twice")]
     [InlineData(new[] { "states", "x.json", "--transport=yes" }, "no value")]
+    [InlineData(new[] { "rocket", "x.json", "--output=" }, "option --output needs a non-empty value")]
+    [InlineData(new[] { "species", "--database=" }, "option --database needs a non-empty value")]
     public void InvalidCommandLinesAreExit2NamingTheOffender(string[] args, string fragment)
     {
         var run = CliFixture.Invoke(args);

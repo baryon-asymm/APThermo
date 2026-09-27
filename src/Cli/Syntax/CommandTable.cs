@@ -14,14 +14,14 @@ internal static class CommandTable
     public static readonly IReadOnlyList<OptionSpec> Options =
     [
         new("output", true, "  --output PATH                write the document to PATH instead of standard output\n",
-            (o, v) => o with { Output = v }),
+            (o, v) => o with { Output = OptionValues.ParsePath(v!, "output") }),
         new("format", true, "  --format json|csv            document format (default json; devices: json only)\n",
             (o, v) => o with { Format = OptionValues.ParseFormat(v!) }),
         new("accelerator", true, "  --accelerator auto|cpu|cuda  where to solve (default: the document's engine.accelerator, else auto)\n",
             (o, v) => o with { Accelerator = DocumentWords.ParseAccelerator(v!, null) }),
         new("database", true,
             "  --database DIR               directory with thermo.inp and trans.inp (default: the database bundled with apthermo)\n",
-            (o, v) => o with { Database = v }),
+            (o, v) => o with { Database = OptionValues.ParsePath(v!, "database") }),
         new("threshold", true,
             $"  --threshold X                omit mole fractions below X from the compositions (default {CommandOptions.DefaultThreshold.ToString(CultureInfo.InvariantCulture)})\n",
             (o, v) => o with { Threshold = OptionValues.ParseThreshold(v!) }),

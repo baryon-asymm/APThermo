@@ -54,7 +54,7 @@ internal static class CsvOutput
     private static List<string> HeaderOf(IReadOnlyList<string> inputColumns)
     {
         var header = new List<string> { "case" };
-        header.AddRange(inputColumns);
+        header.AddRange(inputColumns.Select(name => "inputs." + name));
         header.AddRange(["station", "status"]);
         header.AddRange(StationFields.StateNames);
         header.AddRange(StationFields.PerformanceNames);
