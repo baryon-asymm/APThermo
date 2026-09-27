@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace APThermo.Harness;
 
 /// <summary>
@@ -16,22 +18,33 @@ public static class Bits
         BitConverter.DoubleToInt64Bits(expected) == BitConverter.DoubleToInt64Bits(actual);
 
     /// <summary>
-    /// Every public double or int property of <typeparamref name="T"/> whose bits differ between
-    /// <paramref name="expected"/> and <paramref name="actual"/>, as one message per property:
-    /// <c>"label.Property: expected E, actual A"</c>, doubles in round-trip form. A property of another type is
-    /// compared with <see cref="object.Equals(object, object)"/>.
+    /// Every public <see langword="double"/> or <see langword="int"/> field or property of <typeparamref name="T"/> whose
+    /// value differs between <paramref name="expected"/> and <paramref name="actual"/>, as one message per member:
+    /// <c>"label.Member: expected E, actual A"</c>, doubles compared by their bits and in round-trip form, ints by
+    /// <see cref="object.Equals(object, object)"/>. Throws when <typeparamref name="T"/> has no such field or property, so
+    /// that a comparison can never be empty by accident (`tests/Harness/BOOT.md`, "Bits.Differences&lt;T&gt; reads fields
+    /// and properties").
     /// </summary>
     public static IEnumerable<string> Differences<T>(T expected, T actual, string label) where T : struct
     {
-        foreach (var property in typeof(T).GetProperties())
+        var members = MembersOf(typeof(T));
+        return members.Count == 0
+            ? throw new InvalidOperationException($"{typeof(T)} has no public double or int field or property for Bits.Differences to compare")
+            : DifferencesOf(members, expected, actual, label);
+    }
+
+    private static IEnumerable<string> DifferencesOf<T>(IReadOnlyList<(string Name, Func<object, object> Read)> members, T expected, T actual, string label)
+        where T : struct
+    {
+        foreach (var (name, read) in members)
         {
-            var e = property.GetValue(expected)!;
-            var a = property.GetValue(actual)!;
+            var e = read(expected);
+            var a = read(actual);
             if (e is double ed && a is double ad)
             {
                 if (!Same(ed, ad))
                 {
-                    yield return $"{label}.{property.Name}: expected {ed:R}, actual {ad:R}";
+                    yield return $"{label}.{name}: expected {ed:R}, actual {ad:R}";
                 }
 
                 continue;
@@ -39,8 +52,32 @@ public static class Bits
 
             if (!Equals(e, a))
             {
-                yield return $"{label}.{property.Name}: expected {e}, actual {a}";
+                yield return $"{label}.{name}: expected {e}, actual {a}";
             }
         }
+    }
+
+    /// <summary>Every public instance field and property of <paramref name="type"/> whose own type is <see langword="double"/>
+    /// or <see langword="int"/>, each with a boxing reader that works on both a field and a property.</summary>
+    private static List<(string Name, Func<object, object> Read)> MembersOf(Type type)
+    {
+        var members = new List<(string Name, Func<object, object> Read)>();
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (field.FieldType == typeof(double) || field.FieldType == typeof(int))
+            {
+                members.Add((field.Name, obj => field.GetValue(obj)!));
+            }
+        }
+
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.PropertyType == typeof(double) || property.PropertyType == typeof(int))
+            {
+                members.Add((property.Name, obj => property.GetValue(obj)!));
+            }
+        }
+
+        return members;
     }
 }
