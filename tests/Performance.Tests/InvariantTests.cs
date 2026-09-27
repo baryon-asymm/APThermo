@@ -76,6 +76,15 @@ public sealed class InvariantTests
         Assert.True(violations.Count == 0, string.Join("; ", violations));
     }
 
+    /// <summary>Every Ok station's velocity equals its specific impulse, both finite (the guards audit's F5/F6).</summary>
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void VelocityEqualsSpecificImpulseAtEveryOkStation(string name)
+    {
+        var violations = RocketInvariants.VelocityEqualsSpecificImpulse(Load(name));
+        Assert.True(violations.Count == 0, string.Join("; ", violations));
+    }
+
     /// <summary>Every station's PressureRatio is p_c/p of the state actually solved there (finding F6).</summary>
     [Theory]
     [MemberData(nameof(Cases))]

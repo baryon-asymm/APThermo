@@ -1,3 +1,4 @@
+using System.Text.Json;
 using APThermo.Performance;
 using APThermo.Thermo;
 
@@ -28,12 +29,14 @@ public sealed class RocketTests
         var transport = problem.Transport;
         var species = SpeciesList.Of(result.Species);
         var defective = FixtureCases.DefectiveStationsOf(SolverFixture.Shared, c, result.Species);
+        var freezingStationReference = FreezingStationReferenceOf(reference, problem.Flow);
         var mismatches = new List<string>();
         for (var s = 0; s < reference.Count; s++)
         {
             var label = reference[s].GetProperty("station").GetString()!;
             var frozen = reference[s].GetProperty("frozen").GetBoolean();
-            var caveats = new StationCaveats(Transport: transport, Frozen: frozen, ReferenceDefective: defective.Contains(s));
+            var caveats = new StationCaveats(
+                Transport: transport, Frozen: frozen, ReferenceDefective: defective.Contains(s), FreezingStationReference: freezingStationReference);
             mismatches.AddRange(ReferenceComparison.Compare(reference[s], result.Stations[s], species, label, SolverFixture.Shared.Tolerances, caveats));
         }
 
@@ -42,6 +45,37 @@ public sealed class RocketTests
         Assert.Equal(["chamber", "throat"], result.Stations.Take(2).Select(s => s.Name));
         Assert.Equal(FixtureCases.OxidizerToFuelRatioOf(c), result.OxidizerToFuelRatio);
         Assert.Same(propellant, result.Propellant);
+    }
+
+    /// <summary>
+    /// The reference's own freezing station (chamber or throat, by the flow model the case reports), used to key the
+    /// frozen-station cv skip on the reference's defect signature (BOOT.md, 2026-09-26, the guards audit's F5/F6); null
+    /// for shifting equilibrium, where no station freezes.
+    /// </summary>
+    private static JsonElement? FreezingStationReferenceOf(IReadOnlyList<JsonElement> reference, FlowModel flow)
+    {
+        var label = flow switch
+        {
+            FlowModel.FrozenAtChamber => "chamber",
+            FlowModel.FrozenAtThroat => "throat",
+            FlowModel.ShiftingEquilibrium => null,
+            _ => null,
+        };
+
+        if (label is null)
+        {
+            return null;
+        }
+
+        foreach (var station in reference)
+        {
+            if (station.GetProperty("station").GetString() == label)
+            {
+                return station;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
