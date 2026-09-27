@@ -72,9 +72,11 @@ def generate_propellant(writer: Writer, prop: dict) -> None:
     for of_ratio in of_ratios:
         if of_ratio is None:
             weights = np.array(prop["massFractions"])
+            descriptions = describe_reactants(prop["reactants"], weights, temperatures)
         else:
-            weights = reac.of_ratio_to_weights(np.array(prop["oxidizer"]), np.array(prop["fuel"]), of_ratio)
-        descriptions = describe_reactants(prop["reactants"], weights, temperatures)
+            oxidizer, fuel = np.array(prop["oxidizer"]), np.array(prop["fuel"])
+            weights = reac.of_ratio_to_weights(oxidizer, fuel, of_ratio)
+            descriptions = describe_reactants(prop["reactants"], weights, temperatures, oxidizer=oxidizer, fuel=fuel)
         for pc_mpa in prop["chamberPressuresMPa"]:
             chamber_pressure_pa = pc_mpa * MPA_TO_PA
             for flow in prop["flows"]:
@@ -98,6 +100,8 @@ def generate_propellant(writer: Writer, prop: dict) -> None:
 
 SODIUM_REACTANTS = ["NaNO3(a)", "RP-1"]
 SODIUM_TEMPERATURES = np.array([298.15, 298.15])
+SODIUM_OXIDIZER = np.array([1.0, 0.0])
+SODIUM_FUEL = np.array([0.0, 1.0])
 SODIUM_OF_RATIO = 4.0
 SODIUM_PRESSURE_PA = 7.0 * MPA_TO_PA
 
@@ -107,8 +111,9 @@ def sodium_hp(writer: Writer) -> None:
     7 MPa, one hp case. Its candidate products include NaCN(II), the six-interval record the Thermo node's
     table limit refused until that day (its BOOT.md)."""
     reac, prod = make_mixtures(SODIUM_REACTANTS)
-    weights = reac.of_ratio_to_weights(np.array([1.0, 0.0]), np.array([0.0, 1.0]), SODIUM_OF_RATIO)
-    descriptions = describe_reactants(SODIUM_REACTANTS, weights, SODIUM_TEMPERATURES)
+    weights = reac.of_ratio_to_weights(SODIUM_OXIDIZER, SODIUM_FUEL, SODIUM_OF_RATIO)
+    descriptions = describe_reactants(SODIUM_REACTANTS, weights, SODIUM_TEMPERATURES,
+                                      oxidizer=SODIUM_OXIDIZER, fuel=SODIUM_FUEL)
     enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, SODIUM_TEMPERATURES))
     outputs = solve_equilibrium(reac, prod, weights, "hp", enthalpy, SODIUM_PRESSURE_PA, transport=False)
     writer.case(

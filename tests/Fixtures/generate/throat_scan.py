@@ -19,7 +19,8 @@ from cea_cases import FLOW_SHIFTING, describe_reactants, make_mixtures, rocket_i
 from plateaus import MASS_FRACTIONS as AP_HTPB_AL_MASS_FRACTIONS
 from plateaus import REACTANTS as AP_HTPB_AL_REACTANTS
 from plateaus import TEMPERATURES as AP_HTPB_AL_TEMPERATURES
-from rp1311 import EXAMPLE13_INSERT, EXAMPLE13_OF_RATIO, EXAMPLE13_REACTANTS, EXAMPLE13_TEMPERATURES, EXAMPLE13_TRACE
+from rp1311 import (EXAMPLE13_FUEL, EXAMPLE13_INSERT, EXAMPLE13_OF_RATIO, EXAMPLE13_OXIDIZER, EXAMPLE13_REACTANTS,
+                    EXAMPLE13_TEMPERATURES, EXAMPLE13_TRACE)
 from rp1311 import example13_mixture
 from writer import Writer, main_of
 
@@ -153,7 +154,8 @@ def ap_htpb_al_throats(writer: Writer) -> None:
 def example13_throats(writer: Writer) -> None:
     reac, prod, weights = example13_mixture()
     h0 = float(reac.calc_property(cea.ENTHALPY, weights, EXAMPLE13_TEMPERATURES))
-    descriptions = describe_reactants(EXAMPLE13_REACTANTS, weights, EXAMPLE13_TEMPERATURES)
+    descriptions = describe_reactants(EXAMPLE13_REACTANTS, weights, EXAMPLE13_TEMPERATURES,
+                                      oxidizer=EXAMPLE13_OXIDIZER, fuel=EXAMPLE13_FUEL)
     for name, dh in EXAMPLE13_CASES:
         enthalpy = h0 + dh
         outputs = _throat_outputs(name, reac, prod, weights, EXAMPLE13_TEMPERATURES, EXAMPLE13_CHAMBER_PRESSURE_PA,

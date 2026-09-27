@@ -53,24 +53,43 @@ class Custom:
                             enthalpy=self.enthalpy_cal_per_mol, enthalpy_units="cal/mol", temperature=self.temperature)
 
 
-def describe_reactants(reactants: list, weights, temperatures=None) -> list[dict]:
-    """Reactant descriptions with mass fractions (weights normalized) and temperatures, custom reactants spelled out."""
+def _roles(count: int, oxidizer, fuel) -> list[str | None]:
+    """One role per reactant, read from the oxidizer and fuel vectors a ratio case passes to `of_ratio_to_weights`
+    (never from a name list, Fixtures BOOT.md's role criterion): `"oxidizer"` where the oxidizer vector is positive,
+    `"fuel"` where the fuel vector is positive, `None` for a case given no such vectors (no oxidizer-to-fuel ratio)."""
+    if oxidizer is None and fuel is None:
+        return [None] * count
+    oxidizer_vec = np.asarray(oxidizer, dtype=float)
+    fuel_vec = np.asarray(fuel, dtype=float)
+    return ["oxidizer" if o > 0.0 else "fuel" if f > 0.0 else None for o, f in zip(oxidizer_vec, fuel_vec)]
+
+
+def describe_reactants(reactants: list, weights, temperatures=None, oxidizer=None, fuel=None) -> list[dict]:
+    """Reactant descriptions with mass fractions (weights normalized) and temperatures, custom reactants spelled out.
+
+    `oxidizer` and `fuel` are the same vectors the caller passed to `of_ratio_to_weights` when the case was given
+    an oxidizer-to-fuel ratio: each reactant then carries a `role` (`"oxidizer"` or `"fuel"`), read from them, never
+    guessed downstream from a reactant's name (Fixtures BOOT.md, the fixture-document Constraints)."""
     weights = np.asarray(weights, dtype=float)
     fractions = weights / weights.sum()
     if temperatures is None:
         temperatures = [None] * len(reactants)
     elif np.isscalar(temperatures):
         temperatures = [float(temperatures)] * len(reactants)
+    roles = _roles(len(reactants), oxidizer, fuel)
     out = []
-    for r, w, t in zip(reactants, fractions, temperatures):
+    for r, w, t, role in zip(reactants, fractions, temperatures, roles):
         if isinstance(r, Custom):
-            out.append({
+            d = {
                 "name": r.name, "custom": True, "formula": {k.upper(): v for k, v in r.formula.items()},
                 "molarMass": r.molar_mass, "enthalpy": r.enthalpy_cal_per_mol * CAL_TO_J,
                 "temperature": r.temperature, "massFraction": float(w), "note": r.note,
-            })
+            }
         else:
-            out.append({"name": r, "massFraction": float(w), "temperature": None if t is None else float(t)})
+            d = {"name": r, "massFraction": float(w), "temperature": None if t is None else float(t)}
+        if role is not None:
+            d["role"] = role
+        out.append(d)
     return out
 
 

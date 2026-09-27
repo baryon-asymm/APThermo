@@ -78,6 +78,8 @@ EXAMPLE12_PRODUCTS = ["CO", "CO2", "H", "HNO", "HNO2", "HO2",
 # (throat_scan.py) can build the same reactants and composition by import, never by copy.
 EXAMPLE13_REACTANTS = ["N2H4(L)", "Be(a)", "H2O2(L)"]
 EXAMPLE13_TEMPERATURES = np.array([298.15, 298.15, 298.15])
+EXAMPLE13_OXIDIZER = np.array([0.0, 0.0, 1.0])
+EXAMPLE13_FUEL = np.array([0.8, 0.2, 0.0])
 EXAMPLE13_OF_RATIO = 33.0 / 67.0
 EXAMPLE13_INSERT = ["BeO(L)"]
 EXAMPLE13_TRACE = 1e-10
@@ -86,7 +88,7 @@ EXAMPLE13_TRACE = 1e-10
 def example13_mixture():
     """The reactant and product mixtures and the mass weights of example 13's N2H4/Be 80/20 propellant."""
     reac, prod = make_mixtures(EXAMPLE13_REACTANTS)
-    weights = reac.of_ratio_to_weights(np.array([0.0, 0.0, 1.0]), np.array([0.8, 0.2, 0.0]), EXAMPLE13_OF_RATIO)
+    weights = reac.of_ratio_to_weights(EXAMPLE13_OXIDIZER, EXAMPLE13_FUEL, EXAMPLE13_OF_RATIO)
     return reac, prod, weights
 
 
@@ -98,7 +100,7 @@ def example1(writer: Writer) -> None:
     for eq_ratio in [1.0, 1.5]:
         of_ratio = reac.chem_eq_ratio_to_of_ratio(oxidant_weights, fuel_weights, eq_ratio)
         weights = reac.of_ratio_to_weights(oxidant_weights, fuel_weights, of_ratio)
-        descriptions = describe_reactants(reactants, weights)
+        descriptions = describe_reactants(reactants, weights, oxidizer=oxidant_weights, fuel=fuel_weights)
         for p_atm in [1.0, 0.1, 0.01]:
             pressure_pa = cea.units.atm_to_bar(p_atm) * BAR_TO_PA
             for t in [3000.0, 2000.0]:
@@ -115,8 +117,9 @@ def example3(writer: Writer) -> None:
     reactants = ["Air", "C7H8(L)", "C8H18(L),n-octa"]
     temperatures = np.array([700.0, 298.15, 298.15])
     reac, prod = make_mixtures(reactants, omit=EXAMPLE3_OMIT)
-    weights = reac.of_ratio_to_weights(np.array([1.0, 0.0, 0.0]), np.array([0.0, 0.4, 0.6]), 17.0)
-    descriptions = describe_reactants(reactants, weights, temperatures)
+    oxidizer, fuel = np.array([1.0, 0.0, 0.0]), np.array([0.0, 0.4, 0.6])
+    weights = reac.of_ratio_to_weights(oxidizer, fuel, 17.0)
+    descriptions = describe_reactants(reactants, weights, temperatures, oxidizer=oxidizer, fuel=fuel)
     enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))
     for p_bar in [100.0, 10.0, 1.0]:
         pressure_pa = p_bar * BAR_TO_PA
@@ -151,8 +154,9 @@ def example8(writer: Writer) -> None:
     temperatures = np.array([20.27, 90.17])
     of_ratio = 5.55157
     reac, prod = make_mixtures(reactants)
-    weights = reac.of_ratio_to_weights(np.array([0.0, 1.0]), np.array([1.0, 0.0]), of_ratio)
-    descriptions = describe_reactants(reactants, weights, temperatures)
+    oxidizer, fuel = np.array([0.0, 1.0]), np.array([1.0, 0.0])
+    weights = reac.of_ratio_to_weights(oxidizer, fuel, of_ratio)
+    descriptions = describe_reactants(reactants, weights, temperatures, oxidizer=oxidizer, fuel=fuel)
     chamber_pressure_pa = 53.3172 * BAR_TO_PA
     pressure_ratios, subsonic, area_ratios = [10.0, 100.0, 1000.0], [1.58], [25.0, 50.0, 75.0]
     solution, enthalpy = solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa, FLOW_SHIFTING, True,
@@ -175,8 +179,9 @@ def example12(writer: Writer) -> None:
     temperatures = np.array([298.15, 298.15])
     of_ratio = 2.5
     reac, prod = make_mixtures(reactants, products=EXAMPLE12_PRODUCTS)
-    weights = reac.of_ratio_to_weights(np.array([0.0, 1.0]), np.array([1.0, 0.0]), of_ratio)
-    descriptions = describe_reactants(reactants, weights, temperatures)
+    oxidizer, fuel = np.array([0.0, 1.0]), np.array([1.0, 0.0])
+    weights = reac.of_ratio_to_weights(oxidizer, fuel, of_ratio)
+    descriptions = describe_reactants(reactants, weights, temperatures, oxidizer=oxidizer, fuel=fuel)
     chamber_pressure_pa = cea.units.psi_to_bar(1000.0) * BAR_TO_PA
     pressure_ratios, area_ratios = [68.0457], [5.0, 10.0, 25.0, 50.0, 75.0, 100.0, 150.0, 200.0]
     solution, enthalpy = solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa, FLOW_FROZEN_THROAT, True,
@@ -202,7 +207,7 @@ def example13(writer: Writer) -> None:
     temperatures = EXAMPLE13_TEMPERATURES
     of_ratio = EXAMPLE13_OF_RATIO
     reac, prod, weights = example13_mixture()
-    descriptions = describe_reactants(reactants, weights, temperatures)
+    descriptions = describe_reactants(reactants, weights, temperatures, oxidizer=EXAMPLE13_OXIDIZER, fuel=EXAMPLE13_FUEL)
     chamber_pressure_pa = cea.units.psi_to_bar(3000.0) * BAR_TO_PA
     pressure_ratios = [3.0, 10.0, 30.0, 300.0]
     insert = EXAMPLE13_INSERT

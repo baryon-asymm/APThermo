@@ -520,7 +520,7 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
         and grep over the diff's added and removed lines found none outside
         `scriptSha256` and `generatedOn`). The ordinary consequence of the first
         invariant, as above, not a hand edit.
-- [ ] 2026-09-27 — Every reactant of a case given with an oxidizer-to-fuel ratio records
+- [x] 2026-09-27 — Every reactant of a case given with an oxidizer-to-fuel ratio records
       its `role`, written by the generator from the oxidizer and fuel vectors it passes
       to the package. `regenerate.py --check` exits 0 after the regeneration, and
       `Fixtures.Tests` refuses a ratio case whose reactant lacks a role, red once on a
@@ -531,6 +531,30 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
       `NaNO3(a)` was missing from: both reactants read as fuel, and four facts threw
       "an oxidizer-to-fuel ratio needs at least one oxidizer and one fuel". Found by
       the coder who added the case.
+
+      Evidence: `cea_cases.describe_reactants` gains `oxidizer` and `fuel` parameters
+      (the same vectors the caller already built for `of_ratio_to_weights`) and writes
+      each reactant's `role` (`"oxidizer"` where the oxidizer vector is positive,
+      `"fuel"` where the fuel vector is positive, nothing when the case carries no
+      ratio) — never a name list. Every ratio call site of `propellants.py`, `rp1311.py`
+      and `plateaus.py` passes its own vectors through; `throat_scan.py`'s
+      `example13_throats` imports `rp1311.py`'s newly hoisted `EXAMPLE13_OXIDIZER`/
+      `EXAMPLE13_FUEL` constants for the same reason `example13_mixture` was already
+      shared, never by copy.
+      - `regenerate.py` (full driver only, the standalone-run hazard above) writes 224
+        fixtures; `regenerate.py --check` exits 0 over all 328 immediately after.
+      - A structural, field-by-field comparison of every changed fixture against its
+        previous committed content (every key but `role`, `generator.scriptSha256` and
+        `generator.generatedOn`) found zero mismatches over the 224 files: 175 gained a
+        `role` on each reactant, the rest were re-provenanced only, by touching the
+        shared scripts (`propellants.py`, `rp1311.py`, `plateaus.py`, `throat_scan.py`).
+      - `CeaFixtures.Load` refuses a reactant of a ratio case with no `role`
+        (`RequireReactantRoles`, naming the file and the reactant's index);
+        `MalformedFixtureTests.ARatioCaseReactantWithNoRoleIsRejected` proves it on a
+        copy in a temporary directory, shown red once by relaxing the guard so it never
+        ran (reverted before this tick); `ARoleIsNotRequiredWithoutARatio` proves a
+        role is not demanded where there is no ratio. `dotnet test tests/Fixtures.Tests`:
+        30/30, `FixtureLoadingTests` confirming every committed fixture still loads.
 
 ## Taboos
 
