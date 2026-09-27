@@ -63,6 +63,11 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
   `plateaus.py` and `rp1311.py` by import, never by copy. The scan solves only through
   `cea_cases.solve_equilibrium`, and the guard's rocket solves only through
   `cea_cases.solve_rocket`.
+- `generatorSha256` (2026-09-27) is the SHA-256 of the concatenation, over every `*.py`
+  file of this directory and `requirements.txt` in ordinal order of their names, of the
+  file name, a LF, and the file's bytes with CRLF normalized to LF. The script hashes
+  use the same normalization, so that a Windows checkout and a Linux one agree. The
+  fixtures node's tests recompute both from the committed files.
 - JSON form: indent 2, LF, UTF-8, `NaN` forbidden, floats in Python's shortest
   round-trip form, numpy values converted to Python numbers.
 

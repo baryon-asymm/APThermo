@@ -13,7 +13,8 @@ node generates the outputs itself, from committed scripts, and records how.
 ## Invariants
 
 - **Every fixture carries its provenance**: package name and version, the library
-  version string the package reports, the method (`cea-package`,
+  version string the package reports, since 2026-09-27 the SHA-256 of the whole
+  generator (`generatorSha256`, defined in `generate/BOOT.md`), the method (`cea-package`,
   `independent-evaluation`, or `cea-package-mass-flux-scan` for the throat family below,
   2026-09-27), the script name and its SHA-256, the SHA-256 of the
   package's `thermo.lib` and `trans.lib`, the SHA-256 of the tree's `data/thermo.inp`
@@ -555,6 +556,22 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
         ran (reverted before this tick); `ARoleIsNotRequiredWithoutARatio` proves a
         role is not demanded where there is no ratio. `dotnet test tests/Fixtures.Tests`:
         30/30, `FixtureLoadingTests` confirming every committed fixture still loads.
+
+- [ ] 2026-09-27 — The provenance ties every fixture to the committed generator (the
+      guards audit of 2026-09-26, F7). Evidence due, in `Fixtures.Tests`, each red once
+      and failing on an empty set:
+      - every fixture's `scriptSha256` equals the hash of its named script as committed;
+      - every fixture's `generatorSha256` equals the hash the test computes over
+        `generate/` by the rule of `generate/BOOT.md`;
+      - all fixtures carry one `thermoLibSha256` and one `transLibSha256`;
+      - `regenerate.py --check` exits 0 after the regeneration that adds the field, and
+        no fixture changes beyond its provenance.
+
+      ⚠ 2026-09-26, the guards audit's F7: only the length of the three hashes was
+      checked, and the recorded script hash covered the entry script, not the modules
+      it imports (the SI factors in `common.py`, the derived fields and the station
+      guard in `cea_cases.py`). A fixture whose `scriptSha256` was replaced by 64 zeros
+      left `Fixtures.Tests` 26/26 green.
 
 ## Taboos
 
