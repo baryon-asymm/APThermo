@@ -62,6 +62,11 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
     noise (up to 1.34e-3), phantom transitions of about 3 J/mol with no data holding
     them. The cut now fires only on the two real transitions of the committed file,
     `ALN(L)` and the joined `SnS(cr)`. No result of the reference fixtures moved.
+  - `TableLimits.MaxIntervalsPerSpecies` rises from 5 to 6: `NaCN(II)` has six intervals
+    in its one product record, so every table whose species included Na, C and N (for
+    example NaNO3(a) with RP-1) was refused with `species 'NaCN(II)' has 6 intervals,
+    more than the limit of 5`. The limit is now the largest joined interval count of any
+    product record of the committed file.
   - A warm start seeded with a condensed species that turns out infeasible at the new
     state (RP-1311 example 14's water pieces at half their saturation pressure) could
     drive the Newton iteration to a singular matrix instead of dropping the species and
