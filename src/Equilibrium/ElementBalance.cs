@@ -39,7 +39,7 @@ internal static class ElementBalance
         var largest = 0.0;
         for (var i = 0; i < table.ElementCount; i++)
         {
-            largest = Math.Max(largest, problem.ElementMoles[i]);
+            largest = KernelMath.Max(largest, problem.ElementMoles[i]);
         }
 
         for (var i = 0; i < table.ElementCount; i++)
@@ -69,7 +69,7 @@ internal static class ElementBalance
                 continue;
             }
 
-            if (Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i)) > Invariant * Math.Max(1.0, problem.ElementMoles[i]))
+            if (Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i)) > Invariant * KernelMath.Max(1.0, problem.ElementMoles[i]))
             {
                 return false;
             }

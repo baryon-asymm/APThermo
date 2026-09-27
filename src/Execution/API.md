@@ -104,11 +104,16 @@ internal sealed class UploadedTables : IDisposable        // device copies of th
 
 internal static class MathProbe
 {
-    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow, Sqrt, Abs, Min, Max, Floor, Ceiling
+    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow(1.37), Pow(1.4), Pow(4.6), Sqrt, Abs, Min, Max, Floor, Ceiling
     public static int FunctionCount { get; }
-    public const double PowExponent = 1.37;
+    public static readonly IReadOnlyList<double> PowExponents;   // 1.37, 1.4, 4.6 (2026-09-27, the guards audit's F11)
+    public const double PowExponent1 = 1.37;
+    public const double PowExponent2 = 1.4;
+    public const double PowExponent3 = 4.6;
 }
 ```
+
+⚠ 2026-09-27 (the guards audit's F11): `MathProbe` had one `PowExponent = 1.37` and `Functions` listed a single `Pow` entry, so the probe never exercised any other exponent. `Pow` is now probed at three exponents (1.37, 1.4, 4.6), each its own libdevice call; `PowExponent` is replaced by `PowExponent1`/`PowExponent2`/`PowExponent3` (the kernel-compatible consts `Kernels.Probe` inlines) and the host-readable `PowExponents`, and `Functions` names each exponent. `MathProbe` stays internal; the change is a tree-contract one, not a package-surface one.
 
 `Create` with `Auto` binds CUDA when all of the following hold, and the CPU
 accelerator otherwise:

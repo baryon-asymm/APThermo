@@ -453,14 +453,16 @@ of 14: no efferent coupling row is needed.
         the fix and its own evidence are recorded in the fixtures node's and
         `Problems.Tests`' own `BOOT.md`, not repeated here per `AGENTS.md` §8's rule
         against retelling a foreign node's claim).
-      - No bit snapshot moves apart from the new fixture's key in the two nodes that
-        enumerate hp fixtures: `tests/Equilibrium.Tests/Bits.approved.txt` and
-        `tests/Problems.Tests/Bits.approved.txt` each gained exactly one line
-        (`hp/nano3-rp1_of4_pc7MPa.json`, `git diff --stat` on each: 1 insertion, 0
-        deletions); `tests/Thermo.Tests/Bits*.approved.txt` unchanged (the sodium case
-        holds no `thermo` fixture). `Bits.linux.approved.txt` cannot be produced from
-        this session (no WSL here); the orchestrator records the two Linux keys under
-        WSL.
+      - No bit snapshot moves apart from the new fixture's key in the three nodes that
+        enumerate hp fixtures: `tests/Equilibrium.Tests/Bits.approved.txt`,
+        `tests/Problems.Tests/Bits.approved.txt` and `tests/Thermo.Tests/Bits.approved.txt`
+        each gained exactly one line (`hp/nano3-rp1_of4_pc7MPa.json`, `git diff --stat`
+        on each: 1 insertion, 0 deletions). The Linux keys are recorded by the
+        orchestrator under WSL.
+
+        Corrected 2026-09-27 by the coder the same day: this item first said the thermo
+        tests node's snapshot was unchanged, but its `BitSnapshotTests` enumerate every
+        fixture case, hp included, and its new key was missing.
 
       ⚠ 2026-09-27: this criterion first stood partial, blocked on `Problems.Tests`'
       `FixtureCases.Oxidizers`, a hand-typed set of oxidizer reactant names that did
@@ -471,16 +473,40 @@ of 14: no efferent coupling row is needed.
       written by the generator from the oxidizer and fuel vectors it already builds,
       removing the guess rather than growing its name list (the fixtures node's `BOOT.md`
       and `Problems.Tests`' `BOOT.md` carry the design and the evidence).
-- [ ] 2026-09-27 — `KernelMath` (Constraints). Evidence due:
-      - a CPU fact compares `KernelMath.Min` and `Max` with `System.Math` bit for bit
-        over every ordered pair of a set holding ±0, ±∞, NaN, the subnormal bounds,
-        equal values and a random sample; it is red once with a NaN branch removed;
-      - the execution node's probe runs them on CUDA, and they equal the CPU on every
-        pair (the execution tests node's criterion of the same date);
-      - the cost, which the owner asked about: the CUDA and CPU times of the
-        throughput sweep in Release, as the median of three runs before and after
-        the change, are recorded here. A CUDA time more than 2 % slower goes to the
-        owner before the change is merged.
+- [x] 2026-09-27 — `KernelMath` (Constraints).
+      - `Thermo.Tests.KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
+        compares `KernelMath.Min` and `Max` with `System.Math.Min`/`Max` bit for bit,
+        via the harness's `Bits.Same`, over every ordered pair of a domain holding ±0,
+        ±∞, NaN, the smallest and largest subnormal, the smallest normal, eight
+        ordinary values and a fixed 32-value sample spanning 30 decades on both signs
+        (104² = 10 816 ordered pairs, both functions, fails on an empty domain). Shown
+        red once: with the NaN branch of `KernelMath.Min` removed, the fact failed on
+        every pair with one NaN operand — "Min(NaN, 2.2250738585072014E-308):
+        Math.Min NaN, KernelMath.Min 2.2250738585072014E-308" among them — reverted,
+        green again.
+      - The execution node's probe runs `KernelMath.Min`/`Max` in place of
+        `Math.Min`/`Max` (`Kernels.Probe`) and they equal the CPU accelerator on every
+        input, NaN included: the execution tests node's criterion of the same date,
+        `ProbeKernelTests.TheSpecialInputsAreRecordedAgainstCuda`, 0 ULP on every one
+        of the 17 special inputs × 12 functions, `Min` and `Max` included.
+      - The cost, measured on the reference machine (RTX 5070 Ti), the median of three
+        `dotnet test tests/Execution.Tests -c Release --filter
+        "FullyQualifiedName~ThroughputIsRecordedAndNotBelowTheApprovedRatio"` runs
+        before the call-site change (`Math.Min`/`Max`, at `b3b9d5b`) and three after
+        (`KernelMath.Min`/`Max`): CUDA 0.192 s → 0.189 s (1.6 % faster, not slower),
+        CUDA kernel alone 0.118 s → 0.120 s, CPU accelerator 5.257 s → 4.409 s (the
+        machine's other load varied between runs, `nvidia-smi` showing a second
+        worktree's CUDA tests running concurrently during the noisiest sample,
+        12.561 s). No `Throughput.approved.txt` or `Throughput.linux.approved.txt`
+        was re-approved; the CUDA time did not regress, so nothing went to the owner.
+
+      Evidence: `dotnet test tests/Thermo.Tests`, 1178/1178 (the new fact);
+      `dotnet test tests/Execution.Tests -c Release` (no filter), 144/144 on CUDA —
+      the 100 000-case sweep, the architecture fact over SM_75…SM_121, and the two
+      probe facts included; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
+      0 warnings; no `Bits*.approved.txt` differs from `main` (`git status --short`
+      names only the files this task touched, `Throughput*.approved.txt` excluded).
 
 ## Taboos
 

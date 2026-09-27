@@ -529,12 +529,45 @@ libdevice for the CUDA category.
       criterion, alongside the one fact (the upload-disposal fix) that has no dedicated
       reproduction and is verified by inspection instead, as that criterion says.
 
-- [ ] 2026-09-27 — The probe's input domain (Constraints). Evidence due:
-      - the CPU fact green on every new input, red once by perturbing one special
-        input's expected value;
-      - the CUDA fact's outcome on every special input recorded here, as a table from
-        the run, not typed;
-      - no other record moves (the PTX fixtures are inputs of the inventory, and stay).
+- [x] 2026-09-27 — The probe's input domain (Constraints).
+      - `TheCpuAcceleratorReproducesDotnetMathExactly` is green over the whole domain
+        (8192 decade values plus the 17 special inputs, 12 functions each); shown red
+        once by perturbing `Abs`'s expected value by `+ 1.0` — "Abs(1E-13): host
+        1.9999999999999, cpu accelerator 0.9999999999999" — reverted, green again.
+      - `Kernels.Probe` now calls the thermo node's `KernelMath.Min`/`Max` instead of
+        `System.Math.Min`/`Max` (root `BOOT.md`, 2026-09-27), because the audit's
+        suspicion below was confirmed: on the reference device (RTX 5070 Ti, driver
+        13.4), every function of the list equals the CPU accelerator on every one of
+        the 17 special inputs, `KernelMath.Min`/`Max` included, all at 0 ULP.
+        `TheSpecialInputsAreRecordedAgainstCuda`'s own output, in full:
+
+        | Input | Exp | Log | Log10 | Pow(1.37) | Pow(1.4) | Pow(4.6) | Sqrt | Abs | Min | Max | Floor | Ceiling |
+        |---|---|---|---|---|---|---|---|---|---|---|---|---|
+        | 1, 0.5, 1.5, 2, 2.5, 1e-300, −0.5, −1.5, −2.5, 1e-300 | 0 | 0 | 0 | 0 or 1* | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | 0, −0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | +∞ | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | −∞ | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | NaN | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+        | smallest/largest subnormal, smallest normal | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+        \* `Pow(1.37)(0.5)`: cpu `0.38689124838559746`, cuda `0.3868912483855974`, 1
+        ULP — inside `GpuCpuTolerances.MathUlp` (4), a libdevice call already covered
+        by `CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`'s wider
+        domain; not a `Min`/`Max` finding. Every `Min`/`Max` row is 0 ULP throughout,
+        NaN included, so the audit's suspicion (`.NET`'s `Math.Max(NaN, x)` is NaN
+        while PTX `max.f64` returns `x`) is confirmed for `System.Math.Min`/`Max` and
+        closed by routing the probe, and every numerical node, through `KernelMath`.
+      - No other record moved: the PTX fixtures (`Ptx/probe.sm_89.ptx`,
+        `Ptx/probe.sm_120.ptx`) are unchanged, and no `Bits*.approved.txt` or
+        `Throughput*.approved.txt` differs from `main`.
+
+      Evidence: `dotnet test tests/Execution.Tests -c Release` (no filter), 144/144 on
+      the reference machine — `TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
+      `EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice` and
+      `ThroughputIsRecordedAndNotBelowTheApprovedRatio` included, none of which moved
+      a record; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
+      0 warnings.
 
 ## Taboos
 

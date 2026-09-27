@@ -1,3 +1,4 @@
+using APThermo.Thermo;
 using ILGPU;
 
 namespace APThermo.Equilibrium;
@@ -32,7 +33,7 @@ internal static class DenseSolver
             var scale = 0.0;
             for (var c = 0; c < n; c++)
             {
-                scale = Math.Max(scale, Math.Abs(matrix[r * stride + c]));
+                scale = KernelMath.Max(scale, Math.Abs(matrix[r * stride + c]));
             }
 
             rowScale[r] = scale;

@@ -361,7 +361,7 @@ four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
 | `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
-| `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 25 by the dependency check's walk on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
+| `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 26 by the dependency check's walk on 2026-09-27, 25 on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
 | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
 | `CudaWslDevices` | the WSL workaround (2026-09-27, Constraints, "Every CUDA context of a process binds under WSL"): tries `builder.Cuda()` first, every call, and only on the resolver-already-set exception registers the devices itself by reflecting ILGPU's own internal `CudaDevice.GetDevices` | internal |
@@ -483,7 +483,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
 | `Engine` | efferent coupling | 25 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
-| `Kernels` | efferent coupling | 25 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
+| `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
 | `RocketPipeline` | efferent coupling | 23 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
 | `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
 | `EquilibriumPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
@@ -495,6 +495,12 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 `SpeciesFunctionBatchViews` and `TransportBatchViews`, the other two views structs
 `## Structure` names, take six parameters each and need no row, as it already says.
+
+⚠ 2026-09-27: `Kernels`' row read 25. `Kernels.Probe` now calls the thermo node's
+`KernelMath.Min` and `KernelMath.Max` in place of `System.Math.Min`/`Max` (the root's
+math constraint), which names one more type of the tree. Measured 26 by the
+dependency check's walk on this commit; the protocol tests node's `ShapeTests`
+confirms it.
 
 ## Acceptance criteria
 

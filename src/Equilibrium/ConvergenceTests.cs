@@ -72,13 +72,13 @@ internal static class ConvergenceTests
         {
             if (result.Moles[j] > 0.0)
             {
-                worst = Math.Max(worst, result.Moles[j] * Math.Abs(scratch.Corrections[j]) / total);
+                worst = KernelMath.Max(worst, result.Moles[j] * Math.Abs(scratch.Corrections[j]) / total);
             }
         }
 
         for (var c = 0; c < layout.CondensedCount; c++)
         {
-            worst = Math.Max(worst, Math.Abs(scratch.RightHandSide[layout.ElementCount + c]) / total);
+            worst = KernelMath.Max(worst, Math.Abs(scratch.RightHandSide[layout.ElementCount + c]) / total);
         }
 
         return worst;
