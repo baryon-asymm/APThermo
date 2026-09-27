@@ -6,7 +6,7 @@ namespace APThermo.Performance.Tests;
 [Collection(CpuFixture.CollectionName)]
 public sealed class RocketFixtureTests
 {
-    /// <summary>The rocket fixture files as theory data, delegating to <see cref="RocketHost.Cases"/>.</summary>
+    /// <summary>The rocket fixture files as theory data, delegating to <see cref="RocketHost.Cases()"/>.</summary>
     public static TheoryData<string> Cases() => RocketHost.Cases();
 
     /// <summary>The rocket case reproduces the reference.</summary>

@@ -62,9 +62,10 @@ internal static class ExitStations
             return;
         }
 
-        if (!(value >= 1.0))
+        if (!(value > 1.0))
         {
-            // The supersonic branch only: an area ratio below 1 is not a station of version 1.
+            // The supersonic branch only: an area ratio not above 1 is not a station of version 1 (BOOT.md, 2026-09-26:
+            // the reference's own rule, "Supersonic area ratio must be greater than 1.0"; exactly 1 used to be accepted).
             estimate.Extrapolable = false;
             context.Result.StationStatus[station] = (int)CaseStatus.AreaRatioInvalid;
             return;

@@ -86,6 +86,56 @@ internal static class RocketInvariants
         return violations;
     }
 
+    /// <summary>Every accepted area-ratio exit station is supersonic (Performance BOOT.md, 2026-09-26, finding F3).</summary>
+    public static IReadOnlyList<string> SupersonicAreaRatioExits(RocketSolution solution)
+    {
+        var inputs = solution.Inputs;
+        var violations = new List<string>();
+        for (var k = 0; k < inputs.ExitCount; k++)
+        {
+            var station = RocketLayout.FixedStations + k;
+            if (inputs.Exits.Kinds[k] != ExitSpecification.AreaRatio || solution.Outcome.StationStatus[station] != CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var mach = solution.Outcome.Stations[station].Mach;
+            if (!(mach >= 1.0))
+            {
+                violations.Add($"station {station} Mach {mach:R} is not supersonic");
+            }
+        }
+
+        return violations;
+    }
+
+    /// <summary>
+    /// Every station's <c>PressureRatio</c> is p_c/p of the state actually solved there, to rounding level (Performance
+    /// BOOT.md, 2026-09-26, finding F6: the throat's figure must come from the pressure actually solved, not one
+    /// momentum step past it).
+    /// </summary>
+    public static IReadOnlyList<string> PressureRatioMatchesTheSolvedPressure(RocketSolution solution)
+    {
+        var chamberPressure = solution.Outcome.Stations[RocketSolver.Chamber].Pressure;
+        var violations = new List<string>();
+        for (var s = 1; s < solution.StationCount; s++)
+        {
+            if (solution.Outcome.StationStatus[s] != CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var expected = chamberPressure / solution.Outcome.Stations[s].Pressure;
+            var actual = solution.Outcome.Figures[s].PressureRatio;
+            if (BitConverter.DoubleToInt64Bits(expected) != BitConverter.DoubleToInt64Bits(actual))
+            {
+                violations.Add($"station {s} PressureRatio {actual:R} against p_c/p {expected:R}");
+            }
+        }
+
+        return violations;
+    }
+
     /// <summary>The composition downstream of the freezing station is bit-identical to it.</summary>
     public static IReadOnlyList<string> FrozenComposition(RocketSolution solution)
     {
