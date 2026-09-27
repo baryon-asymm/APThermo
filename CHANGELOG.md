@@ -56,6 +56,27 @@ To be released as 0.2.0: the changes below break the binary surface of 0.1.0.
   - Results change only where a phase was wrongly excluded before (the nine condensed
     records between 298.15 K and 300 K, ice below 200 K, states with more than eight
     stable condensed phases). No result of the reference fixtures moved.
+- The hidden-defect audit of `Performance` (2026-09-26):
+  - The throat search now tracks a bracket of the smallest-subsonic and
+    largest-supersonic pressures seen during the momentum iterations and, where the
+    twenty iterations end without the sonic point, bisects that bracket in ln p; at a
+    melting plateau's edge, where u²/a² jumps across 1 instead of crossing it
+    continuously, the throat is accepted as the state at the plateau's high-pressure,
+    single-phase side instead of ending `ThroatNotFound`.
+  - A rocket exit's area ratio must now be strictly greater than 1: exactly 1 is
+    `AreaRatioInvalid`, matching the reference's own rule.
+  - An area-ratio exit is accepted only when its last pass was supersonic; a station
+    whose iteration ends on the subsonic side of the sonic point is `NotConverged`
+    even if an earlier pass of the same iteration had converged.
+  - A flow model other than the three named values is now `InvalidInput` for the
+    whole case, instead of an undefined kernel read.
+  - The throat's `PressureRatio`, and what the exit stations start from, now come
+    from the pressure of the state actually solved, not a pressure one momentum step
+    past it.
+  - Every station downstream of the chamber that the node accepts must now keep the
+    chamber's entropy to a relative `1e-9`; a station whose converged entropy drifts
+    beyond that is `NotConverged` instead of a silently accepted isentropic-expansion
+    violation.
 
 ## [0.1.0] - 2026-09-18
 

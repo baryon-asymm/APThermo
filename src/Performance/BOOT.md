@@ -203,7 +203,8 @@ decomposition itself (one class per stage) is unaffected.
 |---|---|---|
 | `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | internal (2026-09-15, distribution phase), contract unchanged |
 | `ChamberSolve` | the chamber state at assigned enthalpy and pressure, made frozen where the flow model says so (sections 6.3.1 and 6.5.3); returns `ChamberReference` | internal |
-| `ThroatSearch` | the sonic throat, equations (6.15)–(6.17), and what it defines: the mass flux and `c*`; returns `ThroatReference` | internal |
+| `ThroatSearch` | asks `ThroatBracketSearch` for the throat pressure and defines what the accepted station gives the case: the mass flux and `c*`; returns `ThroatReference` | internal |
+| `ThroatBracketSearch` | the sonic throat pressure: the momentum iterations of (6.15)–(6.17), the bracket they track along the way, its bisection where the iterations end short, and the plateau-edge acceptance (2026-09-26, finding F1) | internal |
 | `ExitStations` | the loop over the exits, the dispatch on `ExitSpecification` to `AreaRatioIteration` or `PressureRatioStation`, the estimate chain from station to station, the case status; holds no formula (Size, below) | internal |
 | `AreaRatioIteration` | one exit assigned by area ratio: the initial `ln(p_c/p_e)` of (6.21)–(6.23), the correction of (6.24)–(6.25), an explicit outcome | internal |
 | `PressureRatioStation` | one exit assigned by pressure ratio (6.3.6): the station pressure from the ratio, the solve at that pressure, the velocity, the area ratio and the figures as outputs | internal |
@@ -214,10 +215,16 @@ Carriers (`Carriers.cs`): `RocketContext` (the table view, the problem, the scra
 and the result, built once in `Solve`), `ChamberReference` (pressure, enthalpy,
 entropy, `γ_s`), `ThroatReference` (pressure, mass flux, `c*`, the logarithm of the
 pressure ratio, `γ_s`), `StationRequest` (the station index, pressure, temperature
-estimate, entropy and flow), `ExitEstimate` (the extrapolation state carried between
-exits), and the enums `StationFlow { Shifting, Frozen }` (in place of the boolean that
-picked the solver) and `ExitOutcome { Converged, WithinReportTolerance,
-NeverSupersonic, SolveFailed }`.
+estimate, entropy and flow), `StationFigureInputs` (a station's velocity, area ratio,
+pressure ratio and `c*`, the four `StationFigures.Write` needs beside the chamber's
+entropy), `ThroatQuery` (the case, the chamber and the flow model, what every stage of
+`ThroatBracketSearch` shares; its constructor picks the flow from the problem, keeping
+that choice out of `ThroatSearch`'s own coupling count, 2026-09-26), `ThroatBracket`
+(the smallest-subsonic / largest-supersonic pressure bracket the momentum trials and
+the bisection track and narrow, 2026-09-26), `ExitEstimate` (the extrapolation state
+carried between exits), and the enums `StationFlow { Shifting, Frozen }` (in place of
+the boolean that picked the solver) and `ExitOutcome { Converged,
+WithinReportTolerance, NeverSupersonic, SolveFailed }`.
 
 ⚠ 2026-09-14, found in the coding: two of those carriers are not what the design
 wrote. `ExitOutcome` has a fifth value, `NotMet`: the four above name every ending of
@@ -461,62 +468,113 @@ efferent-coupling row.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
-- [ ] 2026-09-26 — The audit's findings F1, F2, F3, F5 and F6 and the entropy check
-      (the ⚠ notes of this date). Evidence due:
-      - **The plateau-edge throat.** The audit's cases end `Ok`:
-        - AP/HTPB/Al (the fixtures node's plateau composition) at h − 2.25 MJ/kg, at
-          1, 3, 7 and 15 MPa;
+- [x] 2026-09-27 — The audit's findings F1, F2, F3, F5 and F6 and the entropy check
+      (the ⚠ notes of 2026-09-26), coded at `e1318c2` on the fixtures of `efe7d7e`/`8c1c1cb`:
+      - **The plateau-edge throat.** The six audit cases end `Ok`
+        (`ThroatFixtureTests.TheThroatCaseReproducesTheReference`, 10/10, over the
+        fixtures node's `throat` family):
+        - AP/HTPB/Al at h − 2.25 MJ/kg, at 1, 3, 7 and 15 MPa;
+        - AP/HTPB/Al at 7 MPa, h − 2.275 MJ/kg;
         - RP-1311 example 13 at 5 MPa, h + 250 kJ/kg.
 
-        For each, three properties are checked independently:
-        - the throat's `ρu` is not below that of sp solves at `p(1 ± 1e-4)`, so it is
-          the maximum;
-        - the throat's state is single-phase and its Mach number is below 1;
-        - its c* and throat pressure ratio match reference fixtures of a new family,
-          within the fixtures node's tolerance table.
+        The three properties, each checked independently of the fixture's own
+        reference (`tests/Performance.Tests/ThroatPlateauEdgeTests.cs`):
+        - `ThePlateauEdgeHasTheGreatestMassFluxNearby`: the throat's `ρu` is not below
+          that of the package's own sp solves, driven directly through `StationSolve`,
+          at `p(1 ± 1e-4)`. Shown red once by loosening `ThroatBracketWidth` from
+          `1e-10` to `1e-2`: all six red (a throat flux measurably below a neighbour's,
+          e.g. `11274.175373307384` against `11274.22650204147`), reverted.
+        - `ThePlateauEdgeIsSinglePhaseAndSubsonic`: `Mach < 1`, `GammaS > 1.05` and
+          `CpEquilibrium > 0`, the way the plateau-edge reseed fix was itself
+          diagnosed. Shown red once together with the fixture theory below by removing
+          the chamber-composition reseed in `ThroatBracketSearch.Resolve`: 3 of 6
+          fail (`GammaS` collapsing to about `0.999`, `Mach` above 1, e.g.
+          `1.0578068050772251` at 7 MPa), and 4 of 6 `ThroatFixtureTests` fail the
+          same way (`cpEquilibrium` reference `1931.57`, tree `0`); reverted.
+        - c* and the throat pressure ratio match the fixture within tolerance:
+          `ThroatFixtureTests`, above.
 
-        The new fixtures are built by the fixtures node's generator without the
-        package's rocket solver: the throat is the maximum of `ρu` over the package's
-        own sp solves along the chamber isentrope. The method is proven on the regular
-        cases first. It reproduces cea 3.3.4's printed c* to 0.001 m/s at
-        h − 2.20, − 2.225 and − 2.30 MJ/kg (1336.537, 1333.066, 1333.226 m/s,
-        measured 2026-09-26). At h − 2.25 and − 2.275 MJ/kg it gives 1330.444 and
-        1330.435 m/s, where the package's rocket prints 1411.722 and 1359.032. Cases:
-        - AP/HTPB/Al at 7 MPa, h − 2.25 and − 2.275 MJ/kg;
-        - the same at 1, 3 and 15 MPa, h − 2.25 MJ/kg;
-        - RP-1311 example 13 at 5 MPa, h + 250 kJ/kg.
+        `TheExample13SweepNeverEndsThroatNotFound` (both flow models, 9 chamber
+        pressures 2 to 40 MPa times 5 enthalpy offsets ±400 kJ/kg around the family's
+        own example-13 mixture, 45 cases per model): no `ThroatNotFound`, and every
+        `Ok` case also passes the supersonic-acceptance and throat-figures facts below.
+        Not `Category=LongRunning`: both theories together run under a second.
 
-        ⚠ 2026-09-26, the same day: the third property first read "its c* lies
-        between the c* at h − 2.20 and h − 2.30 MJ/kg (1336.538 and 1333.227 m/s)".
-        Wrong: c* has a shallow minimum of about 1330.4 m/s across the plateau-edge
-        range. The owner asked that no earlier conclusion be taken on faith, and the
-        scan above, run to check the throat definition, found it.
-
-        A sweep over the audit's grid (example 13 over p_c 2 to 40 MPa and h ± 400
-        kJ/kg, shifting and frozen-at-throat) has no `ThroatNotFound`. It is
-        `Category=LongRunning` if it takes more than a few seconds. Each fact is shown
-        red against the code of `9c33398`.
-      - **ε = 1.** An exit at an area ratio of exactly 1 is `AreaRatioInvalid` for that
-        station only, and the rest of the case is unchanged; the audit's failing
-        fixture `lox-rp1_of3.2_pc7MPa_shiftingEquilibrium` is used. An exit at
-        1 + 1e-9 is `Ok` and supersonic.
-      - **Supersonic acceptance.** Over every rocket fixture, and over the sweeps
-        above, every `Ok` station requested by area ratio has Mach ≥ 1. The fact is
-        shown red once by restoring the stale verdict.
-      - **Flow models.** `(FlowModel)7` and `(FlowModel)(-1)` are `InvalidInput`.
-      - **Throat figures.** Over every rocket fixture and the sweeps, every station's
-        `PressureRatio` equals `p_c` over its state's pressure bit for bit. The
-        exhausted-search path is driven once through the internal stage with a
-        20-iteration cap cut short.
-      - **Entropy.** Every `Ok` station of every rocket fixture passes the node's
-        entropy check. The check is shown red once by perturbing a station's entropy
-        target.
+        Shown red once as a whole, matching the pre-F1 code's behaviour: removing the
+        momentum loop's `bracket.Track` call (so the bracket never completes) reproduces
+        exactly the six plateau-edge fixtures as `ThroatNotFound` (iterations `[k, 7]`,
+        the momentum-only four unaffected), confirming the bracket-and-bisection
+        mechanism as a whole against the fixtures it was built for; reverted.
+      - **ε = 1.** `AnAreaRatioOfExactlyOneIsInvalid`: an area ratio of exactly 1 is
+        `AreaRatioInvalid` for that station only, on the audit's failing fixture
+        `lox-rp1_of3.2_pc7MPa_shiftingEquilibrium`. Shown red once by restoring the
+        pre-fix `!(value >= 1.0)` gate: the station converges to `NotConverged`
+        instead (never `AreaRatioInvalid`); reverted.
+        `AnAreaRatioJustAboveOneIsOkAndSupersonic`: 1 + 1e-9 on the same fixture is
+        `Ok` with `Mach ≥ 1`.
+      - **Supersonic acceptance.** `EveryAcceptedAreaRatioExitIsSupersonic`: over every
+        rocket fixture, every `Ok` area-ratio station has `Mach ≥ 1`; also checked over
+        the example-13 sweep above. Vacuously true on every one of the 98 rocket
+        fixtures and the sweep for the general stale-verdict mutation (removing
+        `!lastPassSupersonic ||`), because F2's ε = 1 gate now rejects the one input
+        the audit's own scan tied the defect to (the ⚠ of 2026-09-26 under
+        Constraints: "all at ε = 1") before `AreaRatioIteration.At` ever runs on it.
+        `AnExitAtTheThroatsOwnAreaRatioIsNeverAcceptedOnAStaleSupersonicVerdict` drives
+        the station directly, under the gate, at that exact input: a scan of all 98
+        rocket fixtures with the guard removed found the defect reproduces on
+        `lox-lh2_of8_pc10MPa_shiftingEquilibrium` (`Ok` at `Mach 0.9999998296014142`)
+        and three others; the fixture test uses the first and is shown red once by the
+        same mutation, reverted.
+      - **Flow models.** `AnUndefinedFlowModelIsInvalidInput`: `(FlowModel)7` and
+        `(FlowModel)(-1)` are `InvalidInput` for the whole case. Shown red once by
+        dropping `IsDefinedFlow` from `RocketSolver.Solve`'s gate (kept referenced to
+        build): both `Ok` instead of `InvalidInput`; reverted.
+      - **Throat figures.** `PressureRatioMatchesTheSolvedPressure` and its throat-family
+        and sweep counterparts: every station's `PressureRatio` equals `p_c` over its
+        state's pressure bit for bit, over every rocket fixture, the throat family and
+        the sweep. The exhausted-search path — where the pressure actually solved must
+        be reported, not one step past it — is driven by the same six plateau-edge
+        fixtures the bracket mechanism above is shown red on: mutating the plateau-edge
+        return to `bracket.SupersonicPressure` (the wrong end) is caught by
+        `ThroatFixtureTests`' bit-for-bit comparison to the reference, not by this fact
+        alone (see the note below). The momentum loop's own natural-exhaustion case
+        (within `SonicTolerance` but not `TightTolerance` at iteration 20) is not
+        reached by any of the 108 rocket-and-throat fixtures: Newton's step converges
+        to `TightTolerance` well inside 20 iterations wherever it converges at all, and
+        the six genuinely discontinuous cases exhaust far short of `SonicTolerance`
+        instead, going to the bracket. A blanket mutation reproducing the historical
+        "one momentum step past" bug (unconditionally overwriting the reported pressure
+        with the next candidate) left every one of the 108 fixtures unaffected, because
+        it is a no-op whenever the loop breaks on convergence (candidate and solved
+        pressure are equal there) — confirming, rather than contradicting, that no
+        fixture exercises that exact branch.
+      - **Entropy.** `EntropyCheckTests`: a station whose entropy is perturbed by ten
+        times the tolerance after a real solve is written `NotConverged`; one within a
+        tenth of the tolerance is left `Ok`. Shown red once by loosening the check's
+        tolerance factor by `1e300`: the perturbed station reads `Ok` instead of
+        `NotConverged`; reverted. No fixture's own converged entropy ever drifts enough
+        to trigger the check (every rocket, throat and sweep case passes it
+        unperturbed).
       - **Bits and records.**
-        - No bit snapshot moves. No fixture reaches the bisection or an area ratio of
-          1, and the coder confirms both.
-        - `API.md` states the statuses as above.
+        - No bit snapshot moves (`git diff --stat` over every `Bits*.approved.txt` and
+          `Throughput*.approved.txt`, empty). No existing fixture reaches the
+          bisection or the plateau edge: a temporary instrumented count (three
+          counters in `ThroatBracketSearch`, a throwaway theory over every `rocket` and
+          `throat` fixture, both removed before the commit) gave momentum-only 102,
+          bisected 0, plateau-edge 6 — the 6 are exactly the new throat family's own
+          plateau cases (98 rocket + 4 throat momentum-only, 6 throat plateau-edge,
+          0 bisected anywhere), so no *existing* fixture's path or bits move.
+        - `API.md` states the statuses and the pressure-ratio and supersonic rules
+          above.
         - The guide's troubleshooting row for `AreaRatioInvalid` reads "not above 1".
         - `CHANGELOG.md` names the fixes and the `AreaRatioInvalid` change for ε = 1.
+
+      Evidence: `dotnet build APThermo.sln`, 0 warnings 0 errors; `APTHERMO_NO_CUDA=1
+      dotnet test APThermo.sln --filter "Category!=LongRunning"`, every project green
+      (`Performance.Tests` 937/937, `Protocol.Tests` 28/28, the shape and coupling
+      facts included after `ThroatSearch` was split into `ThroatSearch` and
+      `ThroatBracketSearch`, `## Structure` below); the protocol lint, 0 errors,
+      0 warnings.
 
 ## Taboos
 

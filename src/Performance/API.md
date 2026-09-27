@@ -92,6 +92,7 @@ internal static class RocketSolver                         // kernel-compatible
     public const double AreaRatioTolerance = 4.0e-5;     // equation (6.25), on the last correction of ln(p_c/p_e)
     public const int MaxThroatIterations = 20;
     public const int MaxAreaRatioIterations = 20;
+    public const int MaxThroatBisections = 60;           // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
     public static void Solve(in SpeciesTableView table, in RocketProblem problem,
                              in EquilibriumScratch scratch, in RocketResult result);
 }
@@ -116,22 +117,14 @@ the throat's `C_F`, `Isp` and `Ivac`), so the figures are per station, and the
 equilibrium iteration counts are kept for diagnostics. The sketch's `InvalidInput` for
 "no exits" is dropped: a case with chamber and throat only is valid.
 
-## Throat bracket (tree contract) ⏳
-
-```csharp
-internal static class RocketSolver
-{
-    public const int MaxThroatBisections = 60;         // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
-}
-```
-
-Planned with the throat's largest-mass-flux rule (`BOOT.md`, 2026-09-26). It moves under
-the ✅ block above once the code carries it.
-
-⚠ 2026-09-26: the design commit `9a6888f` first placed this constant inside the ✅
-block, before any code had it. `DeclarationTests.EveryDeclarationUnderATickExists`
-went red on `main`. The Execution coder of the same day found it and reported it
-(AGENTS.md §7: a ✅ may be placed only after what is declared exists).
+⚠ 2026-09-26: the design commit `9a6888f` first placed `MaxThroatBisections` inside
+this ✅ block, before any code had it, in a separate `## Throat bracket (tree
+contract) ⏳` section meant to hold it until the code existed.
+`DeclarationTests.EveryDeclarationUnderATickExists` went red on `main`. The Execution
+coder of the same day found it and reported it (AGENTS.md §7: a ✅ may be placed only
+after what is declared exists); the constant was moved to a ⏳ section until the code
+was written. The throat's largest-mass-flux rule (`BOOT.md`, 2026-09-26) now carries
+the constant, and it moved back into the block above, with this note kept as history.
 
 ## Errors
 
@@ -143,14 +136,17 @@ pressure ratio not above 1 for that station), `AreaRatioInvalid` (an area ratio 
 above 1, that station; the reference's rule, 2026-09-26), `ThroatNotFound` (neither the
 sonic condition within `MaxThroatIterations` nor the bracket's bisection found the
 throat; `BOOT.md`, the largest mass flux), `NotConverged` (an area ratio not met
-within `MaxAreaRatioIterations`), and the statuses of `Equilibrium` propagated from a
-station's solve. A chamber or throat failure ends the case; the exits keep
-`InvalidInput`.
+within `MaxAreaRatioIterations`, or an accepted station's entropy off the chamber's by
+more than the relative tolerance `1e-9`, `BOOT.md`'s entropy check), and the statuses
+of `Equilibrium` propagated from a station's solve. A chamber or throat failure ends
+the case; the exits keep `InvalidInput`.
 
 At the high-pressure edge of a melting plateau the throat is the edge, and its `Mach`
 figure is below 1 (2026-09-26, `BOOT.md`'s invariant "The throat carries the largest mass
 flux"). An exit at an area ratio of exactly 1 used to be accepted; it is now
-`AreaRatioInvalid`. The throat is always station 1.
+`AreaRatioInvalid`. The throat is always station 1. An area-ratio pass that lands on
+the subsonic side of the sonic point is never accepted for that station: only a last
+pass that is supersonic is (2026-09-26, `BOOT.md`, finding F3).
 
 ## Side effects
 
