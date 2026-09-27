@@ -47,14 +47,44 @@ internal static class EquilibriumSolver
     {
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        var state = new IterationState();
         var source = useMolesAsEstimate ? EstimateSource.PreviousSolution : EstimateSource.Defaults;
-        if (CaseSetup.Begin(table, problem, scratch, result, source, ref state) != CaseStatus.Ok)
+        var canFallBack = useMolesAsEstimate;
+        var priorIterations = 0;
+        while (true)
         {
+            var state = new IterationState();
+            if (CaseSetup.Begin(table, problem, scratch, result, source, ref state) != CaseStatus.Ok)
+            {
+                return;
+            }
+
+            var logPressure = CaseSetup.LogPressure(problem);
+            var status = RunToConvergence(table, problem, scratch, result, logPressure, ref state);
+
+            if (canFallBack && FallsBackToColdStart(status, scratch, result, state))
+            {
+                canFallBack = false;
+                source = EstimateSource.Defaults;
+                priorIterations += state.Iterations;
+                continue;
+            }
+
+            state.Iterations += priorIterations;
+            if (status == CaseStatus.Ok)
+            {
+                status = Close(table, problem, scratch, result, logPressure, state);
+            }
+
+            result.Iterations[0] = state.Iterations;
+            result.Status[0] = (int)status;
             return;
         }
+    }
 
-        var logPressure = CaseSetup.LogPressure(problem);
+    /// <summary>One convergence sequence: the Newton loop, then one change of the condensed set per convergence until the report's tests hold with no further change.</summary>
+    private static CaseStatus RunToConvergence(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                               in EquilibriumResult result, double logPressure, ref IterationState state)
+    {
         CaseStatus status;
         while (true)
         {
@@ -79,13 +109,41 @@ internal static class EquilibriumSolver
             }
         }
 
-        if (status == CaseStatus.Ok)
+        return status;
+    }
+
+    /// <summary>
+    /// The warm-start fallback (BOOT.md, 2026-09-27): a warm start whose convergence fails - the singular remedies
+    /// exhausted, or the step cap - while a condensed species seeded from the previous solution still holds negative
+    /// moles retries once from the cold start of section 3.1. The seeded liquid going negative and never being
+    /// tested for removal before a convergence (rule 1 of the condensed-species rule fires only between
+    /// convergences) is the seed's own contradiction with the new state, not a later step's; a cold start never
+    /// triggers this, since it is never given <c>useMolesAsEstimate</c>. Two ways the negative mole shows at a
+    /// failure: the singular remedies' last resort already dropped it, zeroing its mole
+    /// (<see cref="IterationState.CondensedWentNegative"/>, the one place that still saw the sign); or the step cap
+    /// ran out with it still in the set and still negative, checked directly here.
+    /// </summary>
+    private static bool FallsBackToColdStart(CaseStatus status, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state)
+    {
+        if (status is not (CaseStatus.SingularMatrix or CaseStatus.NotConverged))
         {
-            status = Close(table, problem, scratch, result, logPressure, state);
+            return false;
         }
 
-        result.Iterations[0] = state.Iterations;
-        result.Status[0] = (int)status;
+        if (state.CondensedWentNegative)
+        {
+            return true;
+        }
+
+        for (var c = 0; c < state.CondensedCount; c++)
+        {
+            if (result.Moles[scratch.CondensedInSolution[c]] < 0.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

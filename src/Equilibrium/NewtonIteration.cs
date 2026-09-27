@@ -27,6 +27,7 @@ internal static class NewtonIteration
         var stride = ScratchLayout.MaxUnknowns(table.ElementCount);
         var singularResets = 0;
         var loop = new NewtonLoopState();
+        state.CondensedWentNegative = false;
         while (loop.Steps < EquilibriumSolver.MaxNewtonSteps + MaxPolishSteps)
         {
             Composition.Evaluate(table, scratch, ref state);

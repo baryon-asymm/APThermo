@@ -240,4 +240,13 @@ internal struct IterationState
 
     /// <summary>The record removed for its range at the last convergence, skipped by one inclusion pass; −1 if none.</summary>
     public int LastRemovedForRange;
+
+    /// <summary>
+    /// Whether the most recent <see cref="NewtonIteration.Converge"/> call dropped a negative-mole condensed record
+    /// through the singular remedies' last resort (BOOT.md, the warm-start fallback, 2026-09-27): the remedy removes
+    /// the last record of the set unconditionally, and this is the one place that still sees its mole number before
+    /// <see cref="CondensedSet.Remove"/> zeroes it. Reset at the start of every <c>Converge</c> call, so a caller
+    /// reads only what the call that just returned did.
+    /// </summary>
+    public bool CondensedWentNegative;
 }

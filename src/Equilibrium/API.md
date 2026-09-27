@@ -122,7 +122,11 @@ frozen state: `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`, `DlnVdlnT 
 by this node. A gaseous species whose mole fraction fell below `1e-8` at convergence
 is reported with zero moles, as the reference prints it. A warm start (a previous
 solution as the estimate) re-seeds every gas with zero moles one e-fold below the trace
-threshold, and does not read the logarithm left in the scratch.
+threshold, and does not read the logarithm left in the scratch. A warm start whose
+convergence fails - `SingularMatrix`, or `NotConverged` from the step cap - while a
+condensed species seeded from the previous solution holds negative moles retries once
+from the cold start of RP-1311 section 3.1 and reports the combined iteration count; a
+cold start never retries (2026-09-27, `BOOT.md`, the warm-start fallback).
 
 ⚠ 2026-09-26: the sentence ended "its logarithm stays in the scratch for the next
 estimate". The logarithm stays, but no estimate reads it (the hidden-defect audit,

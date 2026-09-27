@@ -798,15 +798,52 @@ found the stale row red; re-measured the same day.
         and fail again. Seeded without the liquid, the same warm starts are `Ok` in 5–11
         steps; at ×0.9 to ×0.99 of the pressure they are `Ok`.
 
-        Design (2026-09-27), for the next Equilibrium coder: a warm start whose
-        convergence fails (the singular remedies exhausted, or the step cap) while a
-        condensed species seeded from the previous solution holds negative moles falls
-        back once to the cold start of section 3.1, with its iterations counted in the
-        case's total. Nothing else changes; a cold start never falls back. Evidence due:
-        the four `rp1311-example14` cases warm at ×0.5 end `Ok` and agree with a cold
-        solve (the skip in `WarmStartTests` is removed), red once with the fallback off;
-        a counter confirms no fixture, rocket stations included, reaches the fallback, so
-        no bit snapshot moves.
+        Design (2026-09-27), implemented the same day: a warm start whose convergence
+        fails (the singular remedies exhausted, or the step cap) while a condensed
+        species seeded from the previous solution holds negative moles falls back once
+        to the cold start of section 3.1, with its iterations counted in the case's
+        total. Nothing else changes; a cold start never falls back
+        (`EquilibriumSolver.Solve`'s own outer loop only offers the fallback when
+        `useMolesAsEstimate` was true, and only once).
+
+        The negative mole is not always there to read at the point of failure: the
+        singular remedies' last resort drops the last condensed record unconditionally
+        and zeroes its mole number (`CondensedSet.Remove`) before `Converge` returns, so
+        by the time `Solve` sees `SingularMatrix` the seed's own negative value is
+        already gone. `IterationState.CondensedWentNegative` (`Carriers.cs`) is the one
+        place that still sees the sign: `SingularRemedies.Recover` sets it, immediately
+        before that removal, when the record being dropped was negative; `Converge`
+        resets it to `false` at the start of every call, so a caller reads only what the
+        call that just returned did. `EquilibriumSolver.FallsBackToColdStart` triggers on
+        either this flag or, for the plain step-cap path where nothing was ever removed,
+        a direct read of `scratch.CondensedInSolution`.
+
+        Evidence: `WarmStartTests.AWarmSolveAtHalfPressureAgreesWithAColdSolveAtThatPressure`'s
+        skip for this state is removed (`Assert.Equal(CaseStatus.Ok, warm.Status)`
+        unconditional); all four `rp1311-example14` cases (T300, T304, T304.2, T304.3),
+        warm-started at ×0.5 pressure from their cold solution, end `Ok` and agree with a
+        fresh cold solve at that pressure (`Equilibrium.Tests`, 68/68 of that class).
+        Shown red once with the fallback disabled (`canFallBack` forced `false`
+        regardless of `useMolesAsEstimate`): the same four cases end `SingularMatrix`,
+        the rest of the class unaffected (4 failed of 68).
+
+        A temporary `Console.Error.WriteLine` at the fallback's trigger (reverted before
+        this commit; `HostSolver.Solve` calls `EquilibriumSolver.Solve` directly, not
+        through a compiled kernel, so the print did not disturb that path) counted its
+        firings: `dotnet test tests/Equilibrium.Tests --filter
+        "FullyQualifiedName!~KernelEqualityTests"` fired it exactly 4 times (the four
+        `rp1311-example14` cases above, and no other of the 682 remaining tests), and
+        `dotnet test tests/Performance.Tests --filter
+        "FullyQualifiedName!~KernelEqualityTests"` (the rocket stations' own warm starts
+        across every rocket fixture) fired it 0 times. `KernelEqualityTests` of both
+        nodes were excluded only for this temporary print, which ILGPU's kernel compiler
+        cannot compile (a `NullReferenceException` inside `IRContext.Optimize`, confirmed
+        and then reverted); with the print removed, both nodes' full suites pass,
+        `Equilibrium.Tests` 695/695 and `Performance.Tests` 700/700, `KernelEqualityTests`
+        included. No `Bits.approved.txt` or `Bits.linux.approved.txt` of `Equilibrium`,
+        `Thermo`, `Performance` or `Problems` moved (`git status` before and after,
+        unchanged), matching the counter: no fixture besides the four deliberate
+        half-pressure probes ever reaches the fallback.
       - **The bookkeeping.** `NewtonLoopStateTests` drives the loop's struct on the
         host, without a table where the rule does not need one:
         - `ANotConvergedVerdictClearsTheConvergedMarkAndThePolishCount` and

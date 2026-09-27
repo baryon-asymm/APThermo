@@ -35,7 +35,13 @@ internal static class SingularRemedies
 
         if (state.CondensedCount > 0)
         {
-            state.CondensedCount = CondensedSet.Remove(scratch, result, state.CondensedCount, state.CondensedCount - 1);
+            var last = state.CondensedCount - 1;
+            if (result.Moles[scratch.CondensedInSolution[last]] < 0.0)
+            {
+                state.CondensedWentNegative = true;
+            }
+
+            state.CondensedCount = CondensedSet.Remove(scratch, result, state.CondensedCount, last);
             state.SetChanges++;
             loop.RecordSetChange();
             singularResets = 0;
