@@ -28,10 +28,11 @@ public static class FixtureFiles
 ```csharp
 public sealed record Provenance(
     string Package, string Version, string LibraryVersion,           // "cea", "3.3.4", the library's version string
-    string Method,                                                   // "cea-package" or "independent-evaluation"
-    string Script, string ScriptSha256,
+    string GeneratorSha256,                                          // SHA-256 of generate/, generate/BOOT.md's rule
     string ThermoLibSha256, string TransLibSha256,                   // the package's data libraries
     string DataThermoSha256, string DataTransSha256,                 // the tree's data/ files
+    string Method,                                                   // "cea-package" or "independent-evaluation"
+    string Script, string ScriptSha256,
     DateOnly GeneratedOn);                                           // the day the content last changed
 
 public sealed record CeaCase(

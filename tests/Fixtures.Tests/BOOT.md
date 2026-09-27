@@ -10,6 +10,7 @@ provenance and coverage, never their values (AGENTS.md §1).
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
 | L1 | every committed fixture loads through the loader, names its kind, its script and the pinned package version, and carries the hashes of the committed data files | the directory listing of `cases/`, `generate/requirements.txt`, the SHA-256 of `data/thermo.inp` and `data/trans.inp` computed in the test | ✅ 2026-09-12 |
+| L1 | every fixture's `scriptSha256` and `generatorSha256` equal the hashes the test recomputes over the committed generator scripts, and all fixtures carry one `thermoLibSha256` and one `transLibSha256` | the committed files of `generate/`, hashed by the test with the CRLF-to-LF normalization of `generate/BOOT.md` | ✅ 2026-09-27 |
 | L1 | the tolerance table loads, every field has a derivation, an unknown field throws, the comparison is absolute plus relative, and every numeric state field the rocket and equilibrium fixtures report has an entry | `tolerances.json` and the fixture files themselves (field names read from them) | ✅ 2026-09-12 |
 | L1 | a malformed document is rejected with the file name and the field | documents written to a temporary directory | ✅ 2026-09-12 |
 | L2 | regeneration is byte-identical (`regenerate.py --check` exits 0) | the generator environment; a command of the Fixtures node's procedure, run by hand or in CI, not by xunit | manual |
@@ -69,6 +70,16 @@ Outside the tree: xunit.
       `ShapeMeasures.Nesting` (`EveryStateFieldOfTheFixturesHasATolerance` 2,
       `ComparedFieldsOf` 0). Verified: build clean, 0 warnings; `dotnet test
       tests/Fixtures.Tests`: 26 of 26 green; `protocol_lint` 0 errors, 0 warnings.
+
+- [x] 2026-09-27 — The provenance ties every fixture to the committed generator (the
+      guards audit's F7, `Fixtures/BOOT.md`'s acceptance criterion of the same date):
+      `EveryFixturesScriptSha256MatchesItsCommittedScript`,
+      `EveryFixturesGeneratorSha256MatchesTheCommittedGenerator` and
+      `AllFixturesCarryOneThermoLibSha256AndOneTransLibSha256` (`FixtureLoadingTests.cs`),
+      each shown red once against a mutation (a fixture copy with `scriptSha256`
+      replaced by 64 zeros; a comment added to `common.py`, left unregenerated),
+      reverted before this tick, the evidence recorded in `Fixtures/BOOT.md`.
+      `dotnet test tests/Fixtures.Tests`: 33/33.
 
 ## Taboos
 

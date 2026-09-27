@@ -355,7 +355,11 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Provenance.Provenance` | parameters | 11 | the `generator` block of a fixture file, field for field; its one creation names its arguments |
+| `Provenance.Provenance` | parameters | 12 | the `generator` block of a fixture file, field for field; its one creation names its arguments |
+
+⚠ 2026-09-27: the row read 11. The guards audit's F7 added `generatorSha256` to the `generator` block
+(`generate/BOOT.md`'s rule), so `Provenance` gained a field of its own; the row now records the current
+measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully named.
 
 ## Acceptance criteria
 
@@ -557,15 +561,44 @@ exists to guard against. Re-cut by the repair review of 2026-09-15
         role is not demanded where there is no ratio. `dotnet test tests/Fixtures.Tests`:
         30/30, `FixtureLoadingTests` confirming every committed fixture still loads.
 
-- [ ] 2026-09-27 — The provenance ties every fixture to the committed generator (the
-      guards audit of 2026-09-26, F7). Evidence due, in `Fixtures.Tests`, each red once
-      and failing on an empty set:
-      - every fixture's `scriptSha256` equals the hash of its named script as committed;
-      - every fixture's `generatorSha256` equals the hash the test computes over
-        `generate/` by the rule of `generate/BOOT.md`;
-      - all fixtures carry one `thermoLibSha256` and one `transLibSha256`;
-      - `regenerate.py --check` exits 0 after the regeneration that adds the field, and
-        no fixture changes beyond its provenance.
+- [x] 2026-09-27 — The provenance ties every fixture to the committed generator (the
+      guards audit of 2026-09-26, F7): every fixture's `generator` block now carries
+      `generatorSha256` (`generate/BOOT.md`'s rule: the SHA-256 of the concatenation,
+      over every `*.py` file of `generate/` and `requirements.txt` in ordinal order of
+      their names, of the file name, a LF and the file's bytes with CRLF normalized to
+      LF), and `scriptSha256` uses the same CRLF-to-LF normalization as `generatorSha256`,
+      so a Windows and a Linux checkout agree on both.
+      - `regenerate.py` (full driver only) wrote 318 of the 328 fixtures; `regenerate.py
+        --check` exits 0 immediately afterward, none stale or missing.
+      - A structural, field-by-field comparison of every changed fixture's JSON against
+        its previously committed content, with `generatorSha256`, `scriptSha256` and
+        `generatedOn` stripped from both sides before comparing, found zero mismatches
+        over the 318 files: the regeneration touched provenance only.
+      - `Fixtures.Tests` gains `EveryFixturesScriptSha256MatchesItsCommittedScript`,
+        `EveryFixturesGeneratorSha256MatchesTheCommittedGenerator` and
+        `AllFixturesCarryOneThermoLibSha256AndOneTransLibSha256`
+        (`FixtureLoadingTests.cs`), each failing on an empty fixture set (`Assert.NotEmpty`
+        or the loop's own `AllCases()`, which throws first). `dotnet test
+        tests/Fixtures.Tests`: 33/33.
+      - Each shown red once, reverted before this tick:
+        - a temporary fact loaded a copy of `cases/tp/rp1311-example14_T300.json` from a
+          temporary directory with `scriptSha256` replaced by 64 zeros and re-ran the
+          script-hash comparison against it: `"...\rp1311-example14_T300.json:
+          scriptSha256 does not match the committed rp1311.py"`; the temporary fact was
+          deleted afterward;
+        - a comment added to `common.py`, left unregenerated, turned
+          `EveryFixturesGeneratorSha256MatchesTheCommittedGenerator` red:
+          `"...\cases\constants\R.json: generatorSha256 does not match the committed
+          generator"`; the comment was reverted and the fixtures were confirmed
+          unchanged (`git status`).
+      - `Provenance` gained a twelfth parameter (`GeneratorSha256`), read by
+        `CeaFixtures.ReadProvenance` like every other field, named at its one call site;
+        the `## Shape exceptions` row above is re-measured (12).
+      - No `Bits*.approved.txt` or `Throughput*.approved.txt` moved. `PublicSurface.approved.txt`
+        did move, in the same commit: `APThermo.Fixtures` carries no reference to xunit, so
+        `Protocol.Tests.SurfaceTests` reads it as a library assembly and `Provenance`'s
+        added parameter and property are on the snapshot (its `.ctor` line and one new
+        `String GeneratorSha256 { get; init; }`); nothing else on the snapshot moved.
 
       ⚠ 2026-09-26, the guards audit's F7: only the length of the three hashes was
       checked, and the recorded script hash covered the entry script, not the modules

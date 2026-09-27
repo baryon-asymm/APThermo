@@ -16,9 +16,9 @@ public sealed class MalformedFixtureTests : IDisposable
 
     private const string Generator = """
         "generator": {
-          "package": "cea", "version": "3.3.4", "libraryVersion": "3.3.4", "method": "cea-package",
-          "script": "x.py", "scriptSha256": "0", "thermoLibSha256": "0", "transLibSha256": "0",
-          "dataThermoSha256": "0", "dataTransSha256": "0", "generatedOn": "2026-09-12"
+          "package": "cea", "version": "3.3.4", "libraryVersion": "3.3.4", "generatorSha256": "0",
+          "method": "cea-package", "script": "x.py", "scriptSha256": "0", "thermoLibSha256": "0",
+          "transLibSha256": "0", "dataThermoSha256": "0", "dataTransSha256": "0", "generatedOn": "2026-09-12"
         }
         """;
 

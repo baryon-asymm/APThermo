@@ -8,13 +8,14 @@ public sealed record Provenance(
     string Package,
     string Version,
     string LibraryVersion,
-    string Method,
-    string Script,
-    string ScriptSha256,
+    string GeneratorSha256,
     string ThermoLibSha256,
     string TransLibSha256,
     string DataThermoSha256,
     string DataTransSha256,
+    string Method,
+    string Script,
+    string ScriptSha256,
     DateOnly GeneratedOn);
 
 /// <summary>One reference case: its inputs and outputs by name, in SI, and its provenance.</summary>
@@ -167,10 +168,11 @@ public static class CeaFixtures
         }
 
         return new Provenance(
-            Package: Text("package"), Version: Text("version"), LibraryVersion: Text("libraryVersion"), Method: Text("method"),
-            Script: Text("script"), ScriptSha256: Text("scriptSha256"), ThermoLibSha256: Text("thermoLibSha256"),
+            Package: Text("package"), Version: Text("version"), LibraryVersion: Text("libraryVersion"),
+            GeneratorSha256: Text("generatorSha256"), ThermoLibSha256: Text("thermoLibSha256"),
             TransLibSha256: Text("transLibSha256"), DataThermoSha256: Text("dataThermoSha256"),
-            DataTransSha256: Text("dataTransSha256"), GeneratedOn: Date());
+            DataTransSha256: Text("dataTransSha256"), Method: Text("method"), Script: Text("script"),
+            ScriptSha256: Text("scriptSha256"), GeneratedOn: Date());
     }
 
     private static JsonElement Required(string path, JsonElement parent, string field, JsonValueKind kind) =>
