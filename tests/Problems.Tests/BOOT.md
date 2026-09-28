@@ -440,15 +440,31 @@ Outside the tree: xunit.
       gains exactly the sodium case's key (`git diff --stat`: 1 insertion, 0 deletions;
       `diff` of the file against `Bits.actual.txt` with that one line excluded: no other
       difference); no key of any other fixture moved.
-- [ ] The reacting fields' skip is pinned (the second hidden-defect audit of
-      2026-09-28, guards part, observation O1). `ReferenceComparison` skips the reacting
-      conductivity and heat capacity wherever the tree's own run eliminates a trace
-      species (`TraceEliminations > 0`), and no end-to-end station eliminates one
+- [x] 2026-09-28 — The reacting fields' skip is pinned (the second hidden-defect audit
+      of 2026-09-28, guards part, observation O1). `ReferenceComparison` skips the
+      reacting conductivity and heat capacity wherever the tree's own run eliminates a
+      trace species (`TraceEliminations > 0`), and no end-to-end station eliminates one
       today. A fact asserts that list, generated over every rocket fixture with
       transport, equals a pinned list (empty today). A future elimination then turns
-      the fact red and is looked at, instead of being skipped silently. The fact is
-      red with an elimination forced at one station, a mutation that left every fact
-      of this node green before.
+      the fact red and is looked at, instead of being skipped silently.
+
+      Evidence: `ReactingFieldsPinningTests.NoEndToEndRocketStationEliminatesATraceSpeciesToday`
+      solves every rocket fixture with `transport: true` (`FixtureFiles.Enumerate("rocket")`,
+      the fixture's own flag, not a typed list), collects every
+      `"fixtureName[stationName]"` whose tree-solved `Station.Transport.TraceEliminations`
+      is above zero, and asserts the list equals `[]`. This is independent of
+      `FixtureCases.DefectiveStationsOf`, which evaluates the reference's own
+      composition (the nine known stations of the Fixtures node's documented defect)
+      and stays a separate trigger of the same skip.
+
+      Red-once: a one-line, uncommitted mutation inside the fact's own collection
+      method (`eliminating.Add("RED-ONCE-MUTATION[forced]")` appended unconditionally
+      before the return) turned the fact red
+      (`Assert.Equal() Failure: … Expected: [] Actual: ["RED-ONCE-MUTATION[forced]"]`);
+      reverted, the fact and the rest of the node are green again:
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Problems.Tests --filter
+      "Category!=LongRunning"`: 1206/1206, none skipped (1205 before this fact).
+      `Bits.approved.txt` unchanged; the protocol lint: 0 errors, 0 warnings.
 
 ## Taboos
 
