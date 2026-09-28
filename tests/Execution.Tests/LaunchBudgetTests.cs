@@ -7,7 +7,14 @@ namespace APThermo.Execution.Tests;
 /// L0: the launch budget (BOOT.md, "A launch fits a time budget"; the second audit's Execution finding F2) — the pure
 /// arithmetic of <see cref="LaunchBudget"/> and <see cref="ChunkPlan.FirstChunkCases"/>/<see cref="ChunkPlan.NextChunkCases"/>,
 /// and the timeout translation of <see cref="BatchRun"/>, all driven with injected times and an injected failure, no GPU needed.
+/// Joins <see cref="EngineFixture.CollectionName"/>, not for the shared fixture (every fact here builds its own engine or
+/// none at all) but so its two <c>Cuda</c>-tagged facts never run concurrently with <see cref="EngineFixture.Shared"/>'s own
+/// CUDA engine creation on another thread: constructing a real <see cref="CudaException(CudaError)"/> touches the driver
+/// (<c>cuGetErrorString</c>) the same way <see cref="EngineFixture"/>'s lazy CUDA engine does, and a genuine CUDA run under
+/// WSL found the two racing — <c>CUDA device 0 was requested, but 0 device(s) exist</c> on roughly a third of runs of the
+/// full suite, never on a run of either fact alone.
 /// </summary>
+[Collection(EngineFixture.CollectionName)]
 public sealed class LaunchBudgetTests
 {
     /// <summary>No budget never bounds a chunk: the very first size, and every later one, is <see cref="int.MaxValue"/>
