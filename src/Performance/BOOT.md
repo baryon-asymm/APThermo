@@ -751,13 +751,61 @@ this node needs no other efferent-coupling row.
         bit-exact — a separate fact,
         `TheChamberSGammaSIsWithinTheLimitsToleranceOnTheAuditsNamedLiOHPoints`, checks
         the tolerance on the audit's own nine named points, which is why the formula-level
-        fact above, not a real-mixture sweep, is what actually proves the fix.
+        fact above, not a real-mixture sweep, is what actually proves the fix. That fact
+        also asserts the sweep's full width: all 50 cases `Ok`, none `ThroatNotFound`, not
+        only the nine named points (`TheThroatSearchNeverEndsThroatNotFoundAcrossTheLiOHPlateauAt7MPa`);
+        the nine-point tolerance fact is a second, narrower one over the same sweep.
+
+        ⚠ 2026-09-28, `RocketSolver.GammaOneTolerance = 1.0e-6` justified (asked at the
+        coordinator's second review): a throwaway probe (`ZzDiag2.cs`, deleted before this
+        commit) ran equation (6.15)'s own ordinary branch, `1.0 / Math.Pow(0.5 * (gamma +
+        1.0), gamma / (gamma - 1.0))`, in this tree's own arithmetic, for `gamma = 1.0 +
+        delta` at `delta` from 1e-3 down to 0, against the analytic limit `Math.Exp(-0.5)`.
+        The ordinary branch's own relative error scales cleanly as ≈0.375·`delta` from
+        `delta = 1e-3` (relative 3.748e-4) down to `delta = 1e-13` (relative 3.752e-14),
+        then breaks down: at `delta = 1e-14` the relative error jumps to 1.117e-2, at
+        `1e-15` to 0.1052, and at `delta = 0` (or any `delta` below one ULP of 1.0) the
+        ordinary branch collapses to exactly 1 (`Math.Pow(1, ±∞) = 1` firing, F4's own
+        degeneracy), a relative error of 0.6487. `GammaOneTolerance = 1e-6` sits about
+        eight orders of magnitude above where the ordinary branch's own error becomes
+        significant (≈1e-13): choosing the limit branch there costs no accuracy the
+        ordinary branch would otherwise have kept, since its own error at `delta = 1e-6`
+        (3.751e-7) is already inside the fixture tolerance table's 1e-4 rows. The figure is
+        set instead by the pinned-pair convention's own numbers, not by the formula's
+        accuracy floor: the audit's harness measured the `li-o-h` mixture's chamber
+        `GammaS − 1 = 0` exactly at `5a732f0`; after the Equilibrium rules A and B it
+        measures 5.53e-10 here (above, F4). `1e-6` is about 1 800× above that measured
+        deviation, leaving headroom against further last-bit drift in `Equilibrium`, while
+        staying about 600× below the AP/HTPB/Al system's own, genuinely distinct chamber
+        exponent (0.9994, `|Δ| = 6.00e-4`, not a pinned-pair state) found during the F4
+        review. The tolerance therefore separates the pinned-pair convention's own
+        last-bit noise from a real, non-degenerate exponent with three to four orders of
+        margin on each side, far inside the range where the ordinary branch would still
+        compute the correct limit on its own.
       - **The bit move.** `rp1311-example13` (rocket family) moved: its own record is
         `tests/Performance.Tests/BOOT.md`'s 2026-09-28 entry (the oracle's one maximum —
         the audit's "no fixture has two maxima" holds for this case — and the actual
         mechanism, `UpstreamChokeCheck`'s unconditional re-solve across a melting-plateau
         boundary the search crosses on its way to the sonic point, not a second maximum).
         `tests/Problems.Tests/BOOT.md` records the same case's `Bits.approved.txt` move.
+
+        ⚠ 2026-09-28, the move measured field by field (asked at the coordinator's second
+        review): a throwaway diagnostic (`ZzDiag.cs`, deleted before this commit) printed
+        the throat station's pressure, temperature, c*, mass flux, `GammaS`, Mach and every
+        non-zero mole fraction, once with `ThroatSearch.At`'s `UpstreamChokeCheck.Verify`
+        call temporarily skipped (the pre-`627f815` path, `ThroatBracketSearch.Locate`'s
+        own candidate stands unchanged) and once with the tree's current code. Pressure
+        (12694259.494254986), temperature (2851.0000144702376) and `GammaS`
+        (0.9978925188362665) are bit-identical between the two runs — the momentum search
+        finds the same candidate either way, as the doc comment above already says. Every
+        other field differs only at the rounding floor: the largest relative change of any
+        field is 4.378e-13, on the condensed `BeO(b)` mole fraction (old
+        0.020208206802093842, new 0.02020820680210269); c*, mass flux and Mach each move by
+        about 3.4e-14 relative. Every one of these is many orders below the ~1e-9 relative
+        floor a genuine divergence would have to clear, and below the fixture tolerance
+        table's own rows by nine to eleven orders: the claim "a re-solve's rounding", not a
+        physical change, holds by this measurement, not only by the mechanism's own
+        description.
       - **A structural finding beyond the audit's own scope**: the `throat` fixture
         family's own reference generation is not immune to F3 either — its ternary
         search can refine onto the pinned-pair side of a plateau edge, past Mach 1

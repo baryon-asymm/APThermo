@@ -408,6 +408,24 @@ position today (the criterion below).
       last bits without moving the accepted pressure or any physical figure outside
       tolerance.
 
+      ⚠ 2026-09-28, measured field by field (the coordinator's second review, which
+      asked for a number, not only the mechanism): a throwaway diagnostic (`ZzDiag.cs`,
+      deleted before this commit) printed the throat station's pressure, temperature,
+      c*, mass flux, `GammaS`, Mach and every non-zero mole fraction, once with
+      `ThroatSearch.At`'s `UpstreamChokeCheck.Verify` call skipped (the pre-`627f815`
+      path standing unchanged) and once with the tree's current code, both against the
+      real `rp1311-example13` mixture (not the synthetic chamber of F4's own fact).
+      Pressure (12694259.494254986), temperature (2851.0000144702376) and `GammaS`
+      (0.9978925188362665) are bit-identical between the two runs. Every other field
+      differs only at the rounding floor: the largest relative change of any field,
+      over pressure, temperature, c*, mass flux, `GammaS`, Mach and 38 non-zero mole
+      fractions (41 fields in all), is 4.378e-13, on the condensed `BeO(b)` mole
+      fraction (old 0.020208206802093842, new 0.02020820680210269); c*, mass flux and
+      Mach each move by about 3.4e-14 relative. Both figures are nine to eleven orders
+      below the fixture tolerance table's own rows and far below a ~1e-9 relative floor
+      a genuine (non-rounding) divergence would have to clear: "a re-solve's rounding"
+      is what the measurement shows, not only what the mechanism's description implies.
+
       Old throat (before `627f815`, no `UpstreamChokeCheck` in the tree): p/p_c
       1.629424878440996⁻¹ = 0.613715559…, c* matching this node's own pre-`627f815`
       `Bits.approved.txt` line (superseded, not separately re-measured: the case's
