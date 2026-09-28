@@ -16,10 +16,10 @@ dependencies against the real ones.
 | Coverage | every type a library assembly exports is named in the `API.md` of its node; every type of every assembly lives in the namespace of its node | the documents; the project names (`CoverageTests`) | ✅ |
 | Declarations | every type and member under ✅ in any `API.md` exists | the assemblies (`DeclarationTests`) | ✅ |
 | Dependencies | `## Dependencies` of every node with an assembly equals the nodes whose types its code uses, in signatures and method bodies; ancestors allowed, descendants never | the assemblies' IL (`DependencyTests`) | ✅ |
-| Root invariants | double precision only and no mutable static field in the numerical nodes; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL (`InvariantTests`) | ✅ |
+| Root invariants | double precision only and no mutable static field in the numerical nodes; only the allow-listed `System.Math`/`System.Double` members called, and no constant left of an ordered floating-point comparison; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL, and the semantic model of a compilation over each numerical node's sources (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
 | Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
-| Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic, and the root build files set the maximum | the tree's `.cs`, project, props, targets, `.editorconfig` and `.globalconfig` files (`DiagnosticsTests`) | ✅ (2026-09-25) |
+| Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic (Roslyn's own generated-code markers and every MSBuild severity channel included), the root build files set the maximum, every compiled source lives in a node directory, and no kernel-reached method throws, allocates or boxes | the tree's `.cs`, project, props, targets, `.editorconfig`, `.globalconfig` and `Directory.Build.rsp` files, and the call graph from the execution node's `Kernels` (`DiagnosticsTests`) | ✅ (2026-09-25; extended 2026-09-28) |
 
 ⚠ 2026-09-13: the sketch had five levels. The root `BOOT.md` claimed three of its
 invariants "checked by reflection" while no node held such a check; they are of the
@@ -186,15 +186,19 @@ which is the proof that nothing leaked.
 | `IlBody` | the instructions of a method body, the operand width from the runtime's opcode table, and the types they bind to; takes methods, so that `TypeShape` → `IlBody` is one-way |
 | `NodeDocuments` | what a node's own `BOOT.md` declares: the links of `## Dependencies` and the rows of `## Shape exceptions` |
 | `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests`; the tree-contract mark of a section heading (2026-09-15, distribution phase), the one meaning of "package surface" and "tree contract" for `TreeContractTests` |
-| `SourceSyntax` | the C# syntax trees of a node's source files, the build directories and generated files skipped |
+| `SourceSyntax` | the C# syntax trees of a node's own source files, from `CompiledSources` filtered to the node's own directory and not a descendant's (2026-09-28, the guards audit's F5) |
+| `CompiledSources` | every C# path an assembly of the tree was actually compiled from, read from its own portable PDB document table (2026-09-28, the guards audit's F5), `bin`/`obj` and anything outside the tree root dropped |
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
 | `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node that holds a project over the declared dependency graph, a project-less child's own declared dependencies folded into its nearest project ancestor's (`NodeAssemblies.ProjectNodeOf`, root `BOOT.md`, Constraints, 2026-09-15 child-nodes phase) |
 | `ShapeMechanics` | the mechanics rule read from syntax: no `partial`/`#region`/banned-suffix type name |
 | `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
 | `TreeContractTests` | the four facts of the Tree contract level (2026-09-15, distribution phase; "## Tree contract" below): a library node's public surface, a declared type's section against its visibility, a friend crossing against the target's tree contract, and a `src` assembly's `InternalsVisibleTo` grants against their recognised friends |
-| `DiagnosticsSyntax` | the whole-tree file walk the Diagnostics level reads (2026-09-25; "## Diagnostics check" below): every C# source file, every MSBuild project/properties/targets file and every analyzer-configuration file from the tree root down, never scoped to a single node the way `SourceSyntax` is, because a suppression can hide in any file of the tree |
-| `DiagnosticsTests` | the five facts of the Diagnostics level (2026-09-25): no source file suppresses a diagnostic (directive trivia or a `[SuppressMessage]`/`[UnconditionalSuppressMessage]` attribute), no build file suppresses or overrides one, no analyzer-configuration file lowers a severity, and the root `Directory.Build.props`/`.targets` set the maximum |
+| `DiagnosticsSyntax` | the whole-tree file walk the Diagnostics level reads (2026-09-25; "## Diagnostics check" below): every C# source file (`CompiledSources.All` plus `.github`'s own, 2026-09-28), every MSBuild project/properties/targets file, every `Directory.Build.rsp` and every analyzer-configuration file from the tree root down, never scoped to a single node the way `SourceSyntax` is, because a suppression can hide in any file of the tree |
+| `DiagnosticsTests` | the facts of the Diagnostics level (2026-09-25; extended 2026-09-28, the guards audit's F1, F3, F4 and F5, and O6): no source file suppresses a diagnostic (directive trivia or a `[SuppressMessage]`/`[UnconditionalSuppressMessage]` attribute), no build file suppresses, overrides or brings in an analyzer-configuration item, no analyzer-configuration file lowers a severity, the root `Directory.Build.props`/`.targets` set the maximum, no source file carries a generated-code marker Roslyn itself would honour, every compiled source lives in a node directory, and no method reached from a kernel entry point (`KernelReachability`) throws, allocates or boxes |
+| `KernelReachability` | the call graph reached from the execution node's internal `Kernels` type, walked through the tree's own assemblies only (2026-09-28, the guards audit's O6): its entry points, and the `throw`/`newarr`/reference-`newobj`/`box` problems in every method reached |
+| `ConstantLeftComparisons` | the root's third ILGPU defect (2026-09-28): every ordered floating-point comparison of a numerical node's own sources whose left operand is a literal or a `const`, read from the semantic model of a compilation built over that node's own files |
+| `MemberAccessibility` | the declared accessibility of a member or a nested type, one reading shared by the Surface and Tree contract snapshots (2026-09-28, the guards audit's O7): `IsPublic` for the public-surface floor, `IsPublicOrInternal` for the wider tree-contract one, and the leading keyword (`Prefix`) a snapshot line below public carries |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
 Decisions taken with the review:
@@ -831,6 +835,14 @@ suppression passed every guard of the hosted suite.
   2026-09-28). It replaces the fact that matched `Math.Min` and `Math.Max` by name.
   - ⚠ `double.Max` in place of `KernelMath.Max` compiled to the same PTX `max.f64` and
     passed, and so did `Math.Tanh`, `Math.Cbrt` and `Math.Clamp`.
+  - ⚠ 2026-09-28, coding: the fact reads only static members of `System.Double`.
+    `double.Equals`, `double.ToString` and `double.CompareTo` are instance methods the
+    hand-written `IEquatable<T>` structs (`MixtureState`, `PerformanceFigures`,
+    `TransportFigures`) and an exception message in `SpeciesResolution` already call on
+    the host side, never inside a kernel; reading every instance member too would have
+    turned the fact red on the tree as committed, over calls the root's math constraint
+    was never written to reach. `Math.Min`/`Max` and `double.Min`/`Max` are all static,
+    so the narrower reading still closes F1.
 - **No constant on the left of an ordered comparison (the root's third ILGPU
   defect).** A syntax fact over the numerical nodes' sources: no literal and no
   `const` stands on the left of `<`, `<=`, `>` or `>=` between floating-point
@@ -868,6 +880,19 @@ suppression passed every guard of the hosted suite.
     `__pycache__` and `.venv` from every syntax fact, while the SDK compiles `.cs`
     files there. A `#pragma`, a `0.1f` and a `[CompilerGenerated]` mutable static
     field in `src/Thermo/templates/` passed every guard.
+  - ⚠ 2026-09-28, coding: "a member" narrows to a mangled name only for a `FieldInfo`
+    or a `PropertyInfo`, never a `MethodBase` or an `EventInfo`. A record's synthesized
+    `Equals`, `GetHashCode`, `ToString`, `PrintMembers`, `Deconstruct` and its equality
+    operators are all methods, carry `[CompilerGenerated]` under their ordinary,
+    unmangled names, and are public on every public record of the tree; narrowing that
+    branch the same way would have listed all of them on `PublicSurface.approved.txt`
+    for the first time, moving the snapshot for a reason unrelated to this fix and
+    against this criterion's own "no `PublicSurface.approved.txt` moves". No committed
+    field or property relies on the wider test (the four numerical nodes hold none, as
+    the F3 mutation record above already states), so narrowing those two kinds moves
+    nothing either. `DiagnosticsTests.NoSourceFileCarriesAGeneratedCodeMarker` still
+    refuses a hand-written marker on a method outright, from the syntax alone, which is
+    what actually closes this finding for methods.
 - **The numerical nodes are found, not typed (O4).** The list the invariant facts use
   is generated from the root's four numerical nodes and their descendants. The syntax
   facts include a numerical node's child nodes.
@@ -1588,27 +1613,84 @@ suppression passed every guard of the hosted suite.
       ⚠ 2026-09-28: the fact matched the declaring type `System.Math` and two names;
       `double.Max` passed (the Diagnostics check's audit fixes of that date). The
       criterion below replaces it as the evidence.
-- [ ] The audit fixes of 2026-09-28 (the Diagnostics check). Each fact is shown red
-      once by the audit's own probe, applied alone and restored, and each fails on an
-      empty set:
+- [x] 2026-09-28 — The audit fixes of 2026-09-28 (the Diagnostics check). Each fact is
+      shown red once by the audit's own probe, applied alone and restored, and each
+      fails on an empty set:
       - `double.Max` at `ConvergenceTests.cs` and at `StationFigures.cs`, and a thermo
-        method calling `Math.Tanh`, `Math.Cbrt` and `Math.Clamp`: the allow-list fact
-        names each call;
-      - `1.0 < x` over doubles in a numerical node: the comparison fact names the file
-        and line; `x > 1.0` and an integer `0 < i` pass;
-      - `ZzAudit.g.cs`, a second-line `// <auto-generated/>` and a
-        `/* <autogenerated /> */` header: the generated-code fact names each;
+        method calling `Math.Tanh`, `Math.Cbrt` and `Math.Clamp` (`src/Thermo/ZzMathProbe.cs`,
+        temporary): `NumericalNodesCallOnlyTheAllowedMathAndDoubleMembers` named all
+        five, "calls Math.Tanh, outside the allow-list" / "calls Math.Cbrt…" /
+        "calls Math.Clamp…" / "calls double.Max, outside the allow-list" at
+        `ConvergenceTests.Worst` and at `StationFigures.VelocityClamped`; reverted
+        (`git checkout --`), the fact green again;
+      - `1.0 < x` over doubles in a numerical node: confirmed already recorded (this
+        session read the existing record rather than re-running it, since the mutation
+        needs no rebuild and nothing since touched `ConstantLeftComparisons.cs`);
+      - `ZzAudit.g.cs` (a `.g.cs` file name), a second-line `// <auto-generated>` and a
+        second-line `/* <autogenerated /> */` block comment, all in
+        `tests/Protocol.Tests/` (temporary, reverted):
+        `NoSourceFileCarriesAGeneratedCodeMarker` named all three — "a generated file
+        name (ZzAudit.g.cs)", and a "comment naming <auto-generated or <autogenerated"
+        at line 2 of each of the other two files;
       - a `GlobalAnalyzerConfigFiles` item, `CodeAnalysisTreatWarningsAsErrors` false
-        and a `Directory.Build.rsp`: fact 3 names each;
-      - a `#pragma`, a `0.1f` and a `[CompilerGenerated]` mutable static field in
-        `src/Thermo/templates/`: the syntax facts and the static-state fact name them,
-        and the tree invariant names the directory;
-      - a `throw` and a `new double[1]` in a method a kernel reaches: the kernel IL
-        fact names the method and the entry point that reaches it;
-      - `TreeContract.approved.txt` is re-approved with its internal members, additions
-        only, checked line by line.
+        (both in a standalone `tests/Protocol.Tests/Zz.Probe.props`, not imported by
+        any project) and a `tests/Protocol.Tests/Directory.Build.rsp` (temporary,
+        reverted): `NoBuildFileSuppressesOrOverridesADiagnostic` named all three in one
+        run — "sets CodeAnalysisTreatWarningsAsErrors, reserved to the root Directory.Build.props",
+        "brings in a GlobalAnalyzerConfigFiles item", "a Directory.Build.rsp exists";
+      - a `#pragma warning disable`/`restore` pair, a mutable `float` static field and
+        its single-precision operations, in `src/Thermo/templates/ZzAuditHidden.cs`
+        (temporary, reverted, `src/Thermo` rebuilt before and after): all four facts
+        named it in one run —
+        `NumericalNodesHoldNoSinglePrecisionValueOrOperation` ("field Value is Single",
+        "performs single-precision operations (ldc.r4)", the static constructor
+        included), `NumericalNodesHaveNoMutableStaticField` ("Value is a static field
+        that is neither const nor readonly"), `NoSourceFileSuppressesADiagnostic` (both
+        pragma directives, by line), `EveryCompiledSourceLivesInANodeDirectory`
+        ("src/Thermo/templates: holds a compiled C# source but no BOOT.md and API.md");
+      - a `throw` and a `newarr`/`newobj` added to `KernelMath.Max` (`src/Thermo/KernelMath.cs`,
+        temporary, reverted, rebuilt before and after) via a helper `Probe` method
+        `Max` now calls: `KernelReachedMethodsAllocateNothingAndThrowNothing` named all
+        three problems on `KernelMath.Probe`, each "reached from Kernels.Equilibrium"
+        (the real call chain `Kernels.Equilibrium → EquilibriumSolver.Solve →
+        ElementBalance/DenseSolver/DampedStep → KernelMath.Max`, confirmed by `grep`
+        before the mutation) — "allocates a reference type (System.InvalidOperationException,
+        newobj)", "throws", "allocates an array (newarr)";
+      - `TreeContract.approved.txt` re-approved with the internal and protected-internal
+        members beside the public ones (O7): confirmed additions-only by a Python
+        `Counter`-based multiset diff against the pre-change file (33 lines added, 0
+        removed, 0 changed).
 
-      No `Bits*.approved.txt` moves, and neither does `PublicSurface.approved.txt`.
+      Bonus (not on this criterion's own list, but the same finding, O4): a temporary
+      child node `src/Thermo/ZzChild` (`BOOT.md`, `API.md`, and `ZzChildProbe.cs` with
+      `internal const float Value = 0.1f;`) showed `NumericalNodeSourcesNameNoSinglePrecisionSyntax`
+      red, naming `src/Thermo/ZzChild/ZzChildProbe.cs:5` for both `float` and `0.1f`,
+      proving the fixed `Numerical()` walks a numerical node's descendants for the
+      syntax-level facts (`SourceSyntax.Files` excludes a descendant's own files unless
+      the descendant is separately yielded); reverted, `src/Thermo` rebuilt clean again.
+
+      No `Bits*.approved.txt` moves, and `PublicSurface.approved.txt` is unchanged
+      (`git diff --stat` empty for both patterns); `TreeContract.approved.txt` is the
+      only snapshot this criterion moves, additions-only as above.
+
+      Evidence, on branch `worktree-agent-af8fe073ab46d715b`, base commit `7da07dc`,
+      every mutation above applied alone and reverted before the next, `src/` and
+      `tests/Protocol.Tests/` (probe files) confirmed clean by `git status --short`
+      after every revert:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `dotnet test tests/Protocol.Tests`: 35/35;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`:
+        5013/5013, none skipped (Data.Tests 43, Fixtures.Tests 34, Transport.Tests 167,
+        Protocol.Tests 35, Equilibrium.Tests 926, Thermo.Tests 1192, Performance.Tests
+        1035, Problems.Tests 1251, Execution.Tests 159, Docs.Tests 29, Cli.Tests 142),
+        run twice (once before the O4 bonus mutation, once after every mutation was
+        reverted), same counts both times;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      The Fixtures node's O5 criterion (`tests/Fixtures/BOOT.md`) is a separate,
+      still-unticked criterion: the CI step is written and its local equivalent
+      (`regenerate.py --check --sample` and the full `--check`) both exit 0, but a real
+      CI run needs the owner's push.
 
 ## Taboos
 

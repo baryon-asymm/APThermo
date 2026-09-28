@@ -50,6 +50,20 @@ jobs:
       - name: Protocol lint
         run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates
 
+      # The fixtures' provenance hashes bind an output to the scripts that produced it, never to the reference
+      # package's own answer (tests/Fixtures/BOOT.md, "The outputs are bound to the generator"): a hand-edited
+      # expected value passes every other guard. This step regenerates a sample with the pinned `cea` package in a
+      # fresh virtual environment and fails the job on any difference beyond the family's own tolerance rule.
+      # Linux only: the reference package is proven against this tree only on the platforms the root BOOT.md's
+      # platform constraint names, and one hosted platform is enough to bind the outputs to the generator.
+      - name: Fixtures are bound to the generator
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          python3 -m venv .venv-fixtures
+          .venv-fixtures/bin/pip install --disable-pip-version-check -r tests/Fixtures/generate/requirements.txt
+          .venv-fixtures/bin/python tests/Fixtures/generate/regenerate.py --check --sample
+
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
