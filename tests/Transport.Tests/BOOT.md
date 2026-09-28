@@ -12,6 +12,7 @@ The definition of what "`Transport` is ready" means.
 | L1 | a table that also holds the species of elements the case lacks gives the same bits as the case's own table, at every station with transport | the evaluation on the case's own table | ✅ |
 | Statuses | bad inputs are statuses, never exceptions; a pure gas gives its own fits; a reaction system that cannot be solved is `SingularMatrix` with the reacting figures equal to the frozen ones, driven through the `ReactionTerms` stage (2026-09-14) | the `API.md` of `Transport` | ✅ |
 | Bits | the host evaluation of every station of every rocket fixture run with transport gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of every field of every station's figures and status, in station order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ (2026-09-14) |
+| L2 | element conservation and the transport set's `EquilibriumHeatCapacity` against an independently solved state's `CpEquilibrium`, generated over state sweeps rather than a fixed fixture (2026-09-28) | `Equilibrium`'s own solver, through the `InternalsVisibleTo` grant of that date | ✅ (2026-09-28) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ## Invariants
@@ -67,6 +68,9 @@ The definition of what "`Transport` is ready" means.
 - [Transport](../../src/Transport/API.md) — what is being checked.
 - [Thermo](../../src/Thermo/API.md) — species tables and their upload.
 - [Data](../../src/Data/API.md) — the databases.
+- [Equilibrium](../../src/Equilibrium/API.md) — an independently solved state's
+  `CpEquilibrium`, cross-checked against the transport set's `EquilibriumHeatCapacity`
+  (2026-09-28).
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
 - [Harness](../Harness/API.md) — the CPU host, bit comparison, bit snapshots and fixture families.
 
@@ -75,6 +79,14 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 ⚠ 2026-09-12: the sketch listed `Equilibrium` for "the station solutions the
 evaluation takes". The stations are taken from the fixtures, not solved here; the
 dependency went away with it.
+
+⚠ 2026-09-28: `Equilibrium` is back, for a different reason: the consistency facts of
+`src/Transport/BOOT.md`'s acceptance criteria (the components-settled criterion) need
+an independently solved state to cross-check the transport set's
+`EquilibriumHeatCapacity` against, which only `Equilibrium`'s own solver can give. The
+orchestrator's decision of that date (`AGENTS.md` §11) grants this node
+`InternalsVisibleTo` from `APThermo.Equilibrium` for exactly that; the stations of the
+existing L1 facts above are still taken from the fixtures, not solved here.
 
 ## Constraints
 
@@ -298,6 +310,18 @@ dependency went away with it.
       either compare integers (fit indices, species and gas counts, statuses) or
       delegate to `ToleranceTable.Matches`, which already fails on NaN — so no other
       rewrite was needed.
+
+- [x] 2026-09-28 — L2 green: `ReactionConservationTests.TheAuditsRestrictedProductListConservesEveryReactionWhenTheRevertedDefaultCarriesNoMoles`,
+      `TheAuditsRestrictedListMatchesEquilibriumsHeatCapacity`,
+      `EquilibriumConsistencyTests.HydrogenFluorideAgreesBetweenElementOrdersOverTheAuditsGrid`,
+      `TransportsEquilibriumHeatCapacityMatchesEquilibriumOverStateSweeps`; the full
+      evidence, the exact figures and the red-once records are in `src/Transport/BOOT.md`'s
+      components-settled criterion, dated the same day. `EquilibriumHost.cs` runs
+      `Equilibrium`'s solver on the host, through the `InternalsVisibleTo` grant of that
+      date, mirroring this node's own `TransportHost` pattern; `Conservation` and
+      `EvaluateAndCheckConservation` (`ReactionConservationTests`) moved from `private`
+      to `internal` so `EquilibriumConsistencyTests` shares them rather than
+      re-implementing the conservation check.
 
 ## Taboos
 

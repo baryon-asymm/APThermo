@@ -94,6 +94,47 @@ public sealed class ReactionConservationTests
         Assert.True(violations.Count == 0, string.Join("\n", violations));
     }
 
+    /// <summary>
+    /// The audit's own six-species restricted list (2026-09-28, <c>NO2, N2O4, NO, O2, N, O</c>, no N2), solved by
+    /// `Equilibrium` itself from pure N2O4's element ratio (N:O = 1:2) at 400 K, 0.1 MPa — the audit's "from N2O4(L)".
+    /// Without N2 as a candidate the true equilibrium cannot collapse all the way to N2 + O2, so it stays
+    /// NO2/N2O4-dominated and `Equilibrium`'s own converged state reports the same zero moles for atomic N and O that
+    /// the previous fact hand-picks. Feeding that composition to `Transport` reproduces the second hidden-defect
+    /// audit's own finding: the reverted default is seeded and immediately trace-eliminated, and the transport set's
+    /// `EquilibriumHeatCapacity` matches `Equilibrium`'s own `CpEquilibrium` of the same state to double-precision
+    /// rounding — the audit's own value, 1 998.469288525117 J/(kg·K), is not typed here; this fact reads it fresh from
+    /// `Equilibrium` (<c>BOOT.md</c>, the components-settled criterion).
+    /// </summary>
+    [Fact]
+    public void TheAuditsRestrictedListMatchesEquilibriumsHeatCapacity()
+    {
+        string[] elements = ["N", "O"];
+        string[] products = ["NO2", "N2O4", "NO", "O2", "N", "O"];
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, elements, products);
+        var transport = TransportTable.Build(CpuFixture.Shared.Transport, table);
+
+        // Pure N2O4 by element ratio, normalised so the element masses sum to 1 kg of mixture: the molar mass comes
+        // from the table's own data (the root's "no coefficient typed into code" invariant), the atom counts (2, 4)
+        // from N2O4's formula. `table.Elements` is ["N", "O"], the order `elements` above was given in.
+        var n2O4MolarMass = table.Arrays.MolarMass[table.IndexOf("N2O4")];
+        var elementMoles = new double[table.ElementCount];
+        elementMoles[0] = 2.0 / n2O4MolarMass;
+        elementMoles[1] = 4.0 / n2O4MolarMass;
+
+        var equilibrium = EquilibriumHost.SolveTp(CpuFixture.Shared.Accelerator, table, elementMoles, temperature: 400.0, pressure: 1e5);
+        Assert.Equal(CaseStatus.Ok, equilibrium.Status);
+
+        var (status, figures, violations) = EvaluateAndCheckConservation(table, transport, equilibrium.Moles, temperature: 400.0);
+        Assert.Equal(CaseStatus.Ok, status);
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+
+        // The reverted default carries the zero moles Equilibrium itself converges to, and is trace-eliminated at once.
+        Assert.Equal(1, figures.TraceEliminations);
+        var relativeDifference = Math.Abs(figures.EquilibriumHeatCapacity - equilibrium.State.CpEquilibrium) / equilibrium.State.CpEquilibrium;
+        Assert.True(relativeDifference < 1e-9,
+            $"transport {figures.EquilibriumHeatCapacity:R} vs equilibrium {equilibrium.State.CpEquilibrium:R} ({relativeDifference:E} relative)");
+    }
+
     /// <summary>Every reaction of every station's set, over every rocket fixture run with transport, conserves the elements.</summary>
     [Fact]
     public void EveryReactionOfEveryStationsSetConservesTheElements()
@@ -127,8 +168,10 @@ public sealed class ReactionConservationTests
         Assert.True(violations.Count == 0, string.Join("\n", violations));
     }
 
-    /// <summary>Runs the solver on the host and checks the conservation of every reaction the set formed.</summary>
-    private static (CaseStatus Status, TransportFigures Figures, IReadOnlyList<string> Violations) EvaluateAndCheckConservation(
+    /// <summary>Runs the solver on the host and checks the conservation of every reaction the set formed. Shared with
+    /// <see cref="EquilibriumConsistencyTests"/>, which cross-checks the same figures against an independently solved
+    /// state, so the conservation check is written once.</summary>
+    internal static (CaseStatus Status, TransportFigures Figures, IReadOnlyList<string> Violations) EvaluateAndCheckConservation(
         SpeciesTable table, TransportTable transport, double[] moles, double temperature)
     {
         var accelerator = CpuFixture.Shared.Accelerator;
