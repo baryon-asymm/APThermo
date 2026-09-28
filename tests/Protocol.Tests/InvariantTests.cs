@@ -11,7 +11,9 @@ namespace APThermo.Protocol.Tests;
 /// </summary>
 public sealed class InvariantTests
 {
-    /// <summary>The numerical nodes, the kernel-capable levels the root BOOT.md names (Decomposition).</summary>
+    /// <summary>The four numerical nodes the root <c>BOOT.md</c> names directly (Decomposition): the kernel-capable
+    /// levels. <see cref="Numerical"/> generates the full list every fact reads from these four and the tree's own node
+    /// list, so a future child node of one of them is found, not typed by hand (the guards audit's O4).</summary>
     public static readonly IReadOnlyList<string> NumericalNodes = ["src/Thermo", "src/Equilibrium", "src/Performance", "src/Transport"];
 
     /// <summary>The nodes allowed to name CUDA types: the execution node and its tests (root BOOT.md, Invariants and Taboos).</summary>
@@ -43,6 +45,23 @@ public sealed class InvariantTests
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: double precision only, at the source level.\n" + string.Join("\n", problems));
     }
 
+    /// <summary>
+    /// No numerical node's own sources put a literal or a <c>const</c> on the left of an ordered floating-point comparison
+    /// (root BOOT.md, Constraints, the third ILGPU defect of 2026-09-28): ILGPU 1.5.3 moves a constant-left operand of such
+    /// a comparison to the right and inverts its NaN ordering while doing so, so the comparison's truth on a NaN input
+    /// depends on which side of the source the constant was written. Read from the semantic model of a compilation over
+    /// each numerical node's own files (<see cref="ConstantLeftComparisons"/>), since a syntax walk alone cannot tell a
+    /// floating-point operand from an integer one.
+    /// </summary>
+    [Fact]
+    public void NumericalNodeSourcesPutNoConstantLeftOfAnOrderedFloatingComparison()
+    {
+        var scanned = Numerical().ToList();
+        Assert.NotEmpty(scanned);
+        var problems = scanned.SelectMany(pair => ConstantLeftComparisons.Problems(pair.Node, [.. SourceSyntax.Files(pair.Node)])).ToList();
+        Assert.True(problems.Count == 0, "root BOOT.md, Constraints: no constant left of an ordered floating-point comparison.\n" + string.Join("\n", problems));
+    }
+
     /// <summary>Only the execution node and its own tests name a CUDA type (root BOOT.md, Invariants: the CPU path needs no
     /// NVIDIA software).</summary>
     [Fact]
@@ -63,15 +82,30 @@ public sealed class InvariantTests
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: no hidden state.\n" + string.Join("\n", problems));
     }
 
+    /// <summary>The double overloads of `System.Math` a numerical node may call (root BOOT.md, "Math in numerical
+    /// nodes", 2026-09-28): every one of them is accepted only when every one of its parameters is `double`, so an
+    /// overload for another type of the same name (`Math.Abs(int)`) is refused like any unlisted member.</summary>
+    private static readonly IReadOnlyList<string> AllowedMathMethods = ["Exp", "Log", "Log10", "Pow", "Sqrt", "Abs", "Floor", "Ceiling"];
+
+    /// <summary>The static `System.Double` members a numerical node may call, and only inside `KernelMath` (unchanged
+    /// from 2026-09-27; `double.Min`/`Max` are never on this list, root BOOT.md, the guards audit's F1). Only static
+    /// members are read at all: `double.Equals`, `double.ToString` and `double.CompareTo` are instance methods the
+    /// hand-written `IEquatable&lt;T&gt;` structs and an exception message call on the host side, never kernel code,
+    /// and the root's math constraint is about the functions a kernel might run, not the formatting or equality of a
+    /// result once it is off the GPU.</summary>
+    private static readonly IReadOnlyList<string> AllowedDoubleMethods = ["IsNaN", "IsNegative"];
+
     /// <summary>
-    /// Numerical nodes call no `System.Math.Min`/`Max` overload, and call `double.IsNaN`/`IsNegative` nowhere outside
-    /// `KernelMath` (root BOOT.md, "Math in numerical nodes", 2026-09-27): both accelerators must run the same
-    /// comparisons and selections, which only the thermo node's `KernelMath` provides, and ILGPU compiles `Math.Min`
-    /// and `Math.Max` to PTX instructions that return the other operand on a NaN input instead of propagating it.
-    /// Fails on an empty scan, so a broken walk over the numerical assemblies cannot pass silently.
+    /// Numerical nodes call no member of `System.Math` or `System.Double` outside the root's allow-list (root BOOT.md,
+    /// "Math in numerical nodes", 2026-09-28, the guards audit's F1): both accelerators must run the same comparisons,
+    /// selections and functions, which only the wrappers the execution node completes provide, and an unlisted member
+    /// either compiles to a PTX instruction with different NaN behaviour (`Math.Min`/`Max`, `double.Min`/`Max`, all four
+    /// compiling to the same `min.f64`/`max.f64` regardless of the declaring type the source names) or is not proven to
+    /// compile for CUDA at all. Fails on an empty scan, so a broken walk over the numerical assemblies cannot pass
+    /// silently.
     /// </summary>
     [Fact]
-    public void NumericalNodesCallNoMathMinOrMaxAndNoNanOrNegativeCheckOutsideKernelMath()
+    public void NumericalNodesCallOnlyTheAllowedMathAndDoubleMembers()
     {
         var scanned = Numerical().ToList();
         Assert.NotEmpty(scanned);
@@ -79,17 +113,26 @@ public sealed class InvariantTests
         Assert.NotEmpty(methods);
         var problems = scanned.SelectMany(pair => KernelMathProblems(pair.Node, pair.Assembly)).ToList();
         Assert.True(problems.Count == 0,
-            "root BOOT.md, Constraints: Min and Max come from KernelMath.Min/Max, never from Math.Min/Max, " +
-            "and double.IsNaN/IsNegative are used nowhere outside KernelMath.\n" + string.Join("\n", problems));
+            "root BOOT.md, Constraints: only the double overloads of System.Math named in the allow-list, and " +
+            "double.IsNaN/IsNegative nowhere outside KernelMath.\n" + string.Join("\n", problems));
     }
 
+    /// <summary>The numerical nodes and every descendant of the four the root <c>BOOT.md</c> names (the guards audit's
+    /// O4): generated from the tree's own node list rather than typed by hand, so a future child node of one of the
+    /// four is found automatically instead of silently escaping every fact that reads this method.</summary>
     private static IEnumerable<(Node Node, Assembly Assembly)> Numerical()
     {
         foreach (var path in NumericalNodes)
         {
-            var node = Tree.Nodes.SingleOrDefault(candidate => candidate.RelativePath == path)
+            var root = Tree.Nodes.SingleOrDefault(candidate => candidate.RelativePath == path)
                        ?? throw new InvalidOperationException($"{path} is not a node of the tree; the list of numerical nodes is stale");
-            yield return (node, NodeAssemblies.Assemblies[node]);
+            foreach (var node in Tree.Nodes.Where(candidate => candidate == root || candidate.IsDescendantOf(root)))
+            {
+                if (NodeAssemblies.AssemblyOf(node) is { } assembly)
+                {
+                    yield return (node, assembly);
+                }
+            }
         }
     }
 
@@ -282,16 +325,31 @@ public sealed class InvariantTests
                 continue;
             }
 
-            if (declaring == typeof(Math) && called.Name is "Min" or "Max")
+            if (declaring == typeof(Math))
             {
-                yield return $"{node.Name}: {type.FullName}.{method.Name} calls Math.{called.Name}";
+                if (!AllowedMathMethods.Contains(called.Name, StringComparer.Ordinal) || !IsDoubleOverload(called))
+                {
+                    yield return $"{node.Name}: {type.FullName}.{method.Name} calls Math.{called.Name}, outside the allow-list";
+                }
             }
-            else if (!isKernelMath && declaring == typeof(double) && called.Name is "IsNaN" or "IsNegative")
+            else if (declaring == typeof(double) && called.IsStatic)
             {
-                yield return $"{node.Name}: {type.FullName}.{method.Name} calls double.{called.Name} outside KernelMath";
+                if (!AllowedDoubleMethods.Contains(called.Name, StringComparer.Ordinal))
+                {
+                    yield return $"{node.Name}: {type.FullName}.{method.Name} calls double.{called.Name}, outside the allow-list";
+                }
+                else if (!isKernelMath)
+                {
+                    yield return $"{node.Name}: {type.FullName}.{method.Name} calls double.{called.Name} outside KernelMath";
+                }
             }
         }
     }
+
+    /// <summary>Whether every parameter of a `System.Math` overload is `double`: the allow-list names the double
+    /// overload only, so a same-named overload of another type (`Math.Abs(Int32)`) is refused like any unlisted
+    /// member.</summary>
+    private static bool IsDoubleOverload(MethodBase method) => method.GetParameters().All(parameter => parameter.ParameterType == typeof(double));
 
     /// <summary>Whether a type is, or is built from, <c>float</c> or <c>Half</c> anywhere in its shape (root BOOT.md,
     /// Invariants: double precision only): the same unwrap <see cref="TypeShape.ReferencedTypes"/> uses

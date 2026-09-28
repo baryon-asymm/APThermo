@@ -5,6 +5,7 @@
 == samples/Samples
 
 static class APThermo.Samples.Program
+    internal static String ClassNameOf(String scenario)
     static IReadOnlyList<String> Scenarios { get; }
     static Int32 Main(String[] args)
     static Int32 Run(String[] args, TextWriter output, TextWriter error)
@@ -66,6 +67,11 @@ static class APThermo.Equilibrium.EquilibriumSolver
     const Double TraceThreshold = 18.420681
     const Int32 MaxCondensedSetChanges = 60
     const Int32 MaxNewtonSteps = 50
+    internal const Double GasDataFloor = 200
+    internal const Double MaxMixtureTemperature = 22000
+    internal const Double MaxTemperature = 20000
+    internal const Double MinMixtureTemperature = 160
+    internal const Double MinTemperature = 100
     static Double RetentionThreshold(in IterationState state)
     static Void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, Boolean useMolesAsEstimate)
     static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
@@ -87,6 +93,9 @@ sealed class APThermo.Execution.Engine : IDisposable
     TransportBatchResult Run(UploadedTables tables, TransportBatch batch)
     UploadedTables Upload(SpeciesTable species, TransportTable? transport = null)
     Void Dispose()
+    internal Accelerator IlgpuAccelerator { get; }
+    internal LaunchBudget Budget { get; }
+    internal Void RunBatchLoop(ChunkPlan plan, ChunkBuffers buffers, RunTimer timer, Action<Int32> launch)
     static Boolean CudaForbidden { get; }
     static Engine Create(EngineOptions? options = null)
 
@@ -99,6 +108,7 @@ sealed class APThermo.Execution.EquilibriumBatch
     Int32 Count { get; }
     Int32 ElementCount { get; }
     ProblemKind[] Kind { get; }
+    internal Void Validate(Int32 elementCount)
 
 sealed class APThermo.Execution.EquilibriumBatchResult
     AcceleratorInfo Accelerator { get; }
@@ -109,11 +119,14 @@ sealed class APThermo.Execution.EquilibriumBatchResult
     Int32[] Iterations { get; }
     MixtureState[] State { get; }
     RunTimings Timings { get; }
+    internal .ctor(Int32 speciesCount, MixtureState[] state, Double[] moles, CaseStatus[] status, Int32[] iterations, RunTimings timings, AcceleratorInfo accelerator)
 
 static class APThermo.Execution.MathProbe
     const Double PowExponent1 = 1.37
     const Double PowExponent2 = 1.4
     const Double PowExponent3 = 4.6
+    internal const Int32 LibdeviceFunctionCount = 9
+    internal const Int32 StrideCount = 14
     static Int32 FunctionCount { get; }
     static readonly IReadOnlyList<Double> PowExponents
     static readonly IReadOnlyList<String> Functions
@@ -131,6 +144,7 @@ sealed class APThermo.Execution.RocketBatch
     Int32 ElementCount { get; }
     Int32 Exits { get; }
     Int32 StationCount { get; }
+    internal Void Validate(Int32 elementCount)
 
 sealed class APThermo.Execution.RocketBatchResult
     AcceleratorInfo Accelerator { get; }
@@ -144,6 +158,7 @@ sealed class APThermo.Execution.RocketBatchResult
     MixtureState[] Stations { get; }
     PerformanceFigures[] Figures { get; }
     RunTimings Timings { get; }
+    internal .ctor(Int32 speciesCount, Int32 stationCount, MixtureState[] stations, Double[] moles, PerformanceFigures[] figures, CaseStatus[] stationStatus, Int32[] iterations, CaseStatus[] status, RunTimings timings, AcceleratorInfo accelerator)
 
 sealed class (record) APThermo.Execution.RunTimings : IEquatable<RunTimings>
     .ctor(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download)
@@ -157,6 +172,7 @@ sealed class APThermo.Execution.SpeciesFunctionBatch
     Double[] Temperature { get; }
     Int32 Count { get; }
     Int32[] Species { get; }
+    internal Void Validate(Int32 speciesCount)
 
 sealed class APThermo.Execution.SpeciesFunctionBatchResult
     AcceleratorInfo Accelerator { get; }
@@ -166,6 +182,7 @@ sealed class APThermo.Execution.SpeciesFunctionBatchResult
     Double[] SOverR { get; }
     Int32 Count { get; }
     RunTimings Timings { get; }
+    internal .ctor(Double[] cpOverR, Double[] hOverRT, Double[] sOverR, Boolean[] inRange, RunTimings timings, AcceleratorInfo accelerator)
 
 sealed class APThermo.Execution.TransportBatch
     .ctor(Int32 stationCount, Int32 speciesCount)
@@ -173,6 +190,7 @@ sealed class APThermo.Execution.TransportBatch
     Double[] Temperature { get; }
     Int32 Count { get; }
     Int32 SpeciesCount { get; }
+    internal Void Validate(Int32 speciesCount)
     static TransportBatch FromEquilibrium(EquilibriumBatchResult result)
     static TransportBatch FromRocket(RocketBatchResult result)
 
@@ -182,11 +200,16 @@ sealed class APThermo.Execution.TransportBatchResult
     Int32 Count { get; }
     RunTimings Timings { get; }
     TransportFigures[] Figures { get; }
+    internal .ctor(TransportFigures[] figures, CaseStatus[] status, RunTimings timings, AcceleratorInfo accelerator)
 
 sealed class APThermo.Execution.UploadedTables : IDisposable
     SpeciesTable Species { get; }
     TransportTable? Transport { get; }
     Void Dispose()
+    internal .ctor(Engine engine, SpeciesTable species, TransportTable? transport, SpeciesTableBuffers speciesBuffers, TransportTableBuffers? transportBuffers)
+    internal SpeciesTableBuffers SpeciesBuffers { get; }
+    internal TransportTableBuffers? TransportBuffers { get; }
+    internal Void ThrowIfNotOwned(Engine engine)
 
 == src/Performance
 
@@ -224,6 +247,12 @@ static class APThermo.Performance.RocketSolver
     const Int32 MaxAreaRatioIterations = 20
     const Int32 MaxThroatBisections = 60
     const Int32 MaxThroatIterations = 20
+    internal const Double EntropyTolerance = 1E-09
+    internal const Double ExtrapolationAreaRatio = 2
+    internal const Double ThroatBracketWidth = 1E-10
+    internal const Double TightTolerance = 1E-10
+    internal const Int32 Chamber = 0
+    internal const Int32 Throat = 1
     static Void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
 
 == src/Problems
@@ -250,6 +279,7 @@ static class APThermo.Thermo.PhysicalConstants
 
 static class APThermo.Thermo.SpeciesFunctions
     const Double LatentHeatThreshold = 0.005
+    internal static Double HOverRT(TemperatureInterval interval, Double temperature)
     static Boolean IsInRange(in SpeciesTableView table, Int32 species, Double temperature)
     static Double CpOverR(in SpeciesTableView table, Int32 species, Double temperature)
     static Double GOverRT(in SpeciesTableView table, Int32 species, Double temperature)
@@ -283,6 +313,7 @@ sealed class APThermo.Thermo.SpeciesTableArrays
     Int32 IntervalTotal { get; }
     Int32[] IntervalCount { get; }
     Int32[] IntervalStart { get; }
+    internal .ctor(Double[] molarMass, Double[] formationEnthalpy, Double[] stoichiometry, Int32[] intervalStart, Int32[] intervalCount, Double[] intervalBounds, Double[] exponents, Double[] coefficients)
 
 sealed class APThermo.Thermo.SpeciesTableBuffers : IDisposable
     SpeciesTable Table { get; }
@@ -357,6 +388,7 @@ static class APThermo.Transport.TransportSolver
     const Double TraceFraction = 1E-10
     const Double UnitCountTolerance = 1E-08
     const Int32 MaxSpecies = 40
+    internal const Int32 Stride = 40
     static CaseStatus Evaluate(in SpeciesTableView species, in TransportTableView transport, Double temperature, ArrayView<Double> moles, in TransportScratch scratch, ArrayView<TransportFigures> figures)
     static Double FitValue(in TransportTableView transport, Int32 fit, Double temperature)
     static Double PairViscosity(in TransportTableView transport, Int32 pair, Double temperature)
@@ -387,6 +419,7 @@ sealed class APThermo.Transport.TransportTableArrays
     Int32[] PairStart { get; }
     Int32[] ViscosityCount { get; }
     Int32[] ViscosityStart { get; }
+    internal .ctor(Int32[] viscosityStart, Int32[] viscosityCount, Int32[] conductivityStart, Int32[] conductivityCount, Double[] fits, Int32[] pairIndex, Int32[] pairStart, Int32[] pairCount, Int32 pairTotal)
 
 sealed class APThermo.Transport.TransportTableBuffers : IDisposable
     TransportTable Table { get; }
