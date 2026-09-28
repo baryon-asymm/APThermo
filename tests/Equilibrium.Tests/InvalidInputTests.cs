@@ -126,4 +126,38 @@ public sealed class InvalidInputTests
         var solution = HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, problem, composition);
         Assert.Equal(CaseStatus.InvalidInput, solution.Status);
     }
+
+    /// <summary>
+    /// A frozen tp at a non-finite temperature is InvalidInput; at a finite but absurdly low one, below the frozen
+    /// floor (BOOT.md, 0.8 of the lowest lower bound of the gases present), it is TemperatureOutOfRange (the second
+    /// hidden-defect audit's finding F4, 2026-09-28). Before the fix all three returned `Ok`: +∞ and 1e-300 K with
+    /// every state property NaN, and (by a separate probe, not repeated here) 1e6 K with an unphysical finite Cp.
+    /// </summary>
+    [Theory]
+    [InlineData(double.PositiveInfinity, CaseStatus.InvalidInput)]
+    [InlineData(double.NaN, CaseStatus.InvalidInput)]
+    [InlineData(1e-300, CaseStatus.TemperatureOutOfRange)]
+    public void FrozenTpAtANonFiniteOrAbsurdTemperatureIsRefused(double temperature, CaseStatus expected)
+    {
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, Elements, Species);
+        var composition = new double[table.SpeciesCount];
+        composition[table.IndexOf("H2")] = 0.1;
+        composition[table.IndexOf("O2")] = 0.05;
+        var problem = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, 1e5, temperature, 0.0, [0.1, 0.05]);
+        var solution = HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, problem, composition);
+        Assert.Equal(expected, solution.Status);
+    }
+
+    /// <summary>
+    /// A tp Solve at +∞ is InvalidInput (BOOT.md, finding F4): the prior check refused only a non-positive
+    /// temperature, so +∞ passed it and reached a singular Newton system instead of being refused as bad input.
+    /// </summary>
+    [Fact]
+    public void SolveTpAtPositiveInfinityIsInvalidInput()
+    {
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, Elements, Species);
+        var problem = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, 1e5, double.PositiveInfinity, 0.0, [0.1, 0.05]);
+        var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
+        Assert.Equal(CaseStatus.InvalidInput, solution.Status);
+    }
 }

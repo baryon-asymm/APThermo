@@ -56,7 +56,35 @@ public sealed class WarmStartTests
     /// <summary>A warm solve at half pressure agrees with a cold solve at that pressure.</summary>
     [Theory]
     [MemberData(nameof(TpCases))]
-    public void AWarmSolveAtHalfPressureAgreesWithAColdSolveAtThatPressure(string name)
+    public void AWarmSolveAtHalfPressureAgreesWithAColdSolveAtThatPressure(string name) =>
+        AssertWarmStartAgreesWithFreshCold(name, c => c with { Pressure = c.Pressure / 2.0 });
+
+    /// <summary>
+    /// A warm solve at a tenth of the pressure agrees with a cold solve at that pressure: the second of the three
+    /// perturbations the second hidden-defect audit's own probe used on fixture tables at 300 K and 600 K, alongside
+    /// P/2 above and T×1.1 below (BOOT.md, finding F3, 2026-09-28).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(TpCases))]
+    public void AWarmSolveAtOneTenthPressureAgreesWithAColdSolveAtThatPressure(string name) =>
+        AssertWarmStartAgreesWithFreshCold(name, c => c with { Pressure = c.Pressure / 10.0 });
+
+    /// <summary>
+    /// A warm solve at 1.1 times the temperature agrees with a cold solve at that temperature: the third of the
+    /// audit's own three perturbations (BOOT.md, finding F3).
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(TpCases))]
+    public void AWarmSolveAt1Point1TimesTemperatureAgreesWithAColdSolveAtThatTemperature(string name) =>
+        AssertWarmStartAgreesWithFreshCold(name, c => c with { Temperature = c.Temperature * 1.1 });
+
+    /// <summary>
+    /// The body shared by the three perturbation theories above: solves <paramref name="name"/>'s own fixture cold,
+    /// warm-starts the case <paramref name="perturb"/> derives from it, and checks the warm solve against a fresh
+    /// cold solve of the same perturbed case (BOOT.md, finding F3: every warm start whose cold solve is Ok ends Ok
+    /// and agrees with it).
+    /// </summary>
+    private static void AssertWarmStartAgreesWithFreshCold(string name, Func<EquilibriumCase, EquilibriumCase> perturb)
     {
         var c = HostSolver.Load("tp", name);
         var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
@@ -69,14 +97,14 @@ public sealed class WarmStartTests
             return;
         }
 
-        var atHalfPressure = cold with { Pressure = cold.Pressure / 2.0 };
-        var warm = HostSolver.Solve(accelerator, atHalfPressure, coldSolution.Moles);
+        var perturbed = perturb(cold);
+        var warm = HostSolver.Solve(accelerator, perturbed, coldSolution.Moles);
         Assert.Equal(CaseStatus.Ok, warm.Status);
 
-        var freshCold = HostSolver.Solve(accelerator, atHalfPressure);
+        var freshCold = HostSolver.Solve(accelerator, perturbed);
         if (freshCold.Status != CaseStatus.Ok)
         {
-            // The warm solve is required to converge; a cold solve at an arbitrary half pressure is not (BOOT.md
+            // The warm solve is required to converge; a cold solve at an arbitrary perturbed state is not (BOOT.md
             // says the warm solve "agrees with a cold solve at that pressure", not that one exists at every
             // pressure). Without a baseline there is nothing to compare against.
             return;

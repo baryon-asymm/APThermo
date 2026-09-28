@@ -78,7 +78,7 @@ internal static class SpeciesFunctions
         return high;
     }
 
-    /// <summary>True when the temperature lies between the first interval's lower bound and the last interval's upper bound.</summary>
+    /// <summary>True when the temperature lies between the lowest lower bound and the highest upper bound of the species' intervals, taken bound by bound (<see cref="RecordLow"/>, <see cref="RecordHigh"/>).</summary>
     public static bool IsInRange(in SpeciesTableView table, int species, double temperature) =>
         temperature >= RecordLow(table, species) && temperature <= RecordHigh(table, species);
 

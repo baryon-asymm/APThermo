@@ -13,10 +13,19 @@ internal static class DenseSolver
     /// Solves A x = b for a row-major n×n matrix held in <paramref name="matrix"/> (stride <paramref name="stride"/>) and the
     /// right-hand side in <paramref name="rhs"/>; the solution replaces <paramref name="rhs"/>. Returns false when a pivot vanishes.
     /// </summary>
-    public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride)
+    public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride) =>
+        Solve(matrix, rhs, rowScale, n, stride, out _);
+
+    /// <summary>
+    /// As <see cref="Solve(ArrayView{double}, ArrayView{double}, ArrayView{double}, int, int)"/>, but also names the row
+    /// whose pivot could not be found (BOOT.md, the targeted singular remedy, 2026-09-28): a failed condensed or element
+    /// row lets the remedy remove the smallest-mole species that shares its dependency instead of always the last
+    /// condensed species. <paramref name="failedRow"/> is −1 when the matrix is not singular.
+    /// </summary>
+    public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride, out int failedRow)
     {
         Scale(matrix, rowScale, n, stride);
-        if (!Eliminate(matrix, rhs, rowScale, n, stride))
+        if (!Eliminate(matrix, rhs, rowScale, n, stride, out failedRow))
         {
             return false;
         }
@@ -41,13 +50,14 @@ internal static class DenseSolver
     }
 
     /// <summary>Forward elimination with scaled partial pivoting; false when the column has no usable pivot left.</summary>
-    private static bool Eliminate(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride)
+    private static bool Eliminate(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride, out int failedRow)
     {
         for (var k = 0; k < n; k++)
         {
             var pivotRow = PivotRow(matrix, rowScale, k, n, stride);
             if (pivotRow < 0)
             {
+                failedRow = k;
                 return false;
             }
 
@@ -81,6 +91,7 @@ internal static class DenseSolver
             }
         }
 
+        failedRow = -1;
         return true;
     }
 

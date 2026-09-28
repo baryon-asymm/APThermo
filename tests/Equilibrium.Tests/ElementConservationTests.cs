@@ -1,4 +1,5 @@
 using APThermo.Thermo;
+using ILGPU.Runtime;
 
 namespace APThermo.Equilibrium.Tests;
 
@@ -10,6 +11,8 @@ public sealed class ElementConservationTests
     private const double Invariant = 1e-12;
 
     private static readonly string[] Kinds = ["tp", "hp", "sp"];
+    private static readonly double[] TwoElementMoles = [0.2, 0.1];
+    private static readonly double[] OneNaNMole = [double.NaN, 0.05];
 
     /// <summary>Theory data: every fixture case of the three equilibrium kinds.</summary>
     public static TheoryData<string, string> Cases()
@@ -55,6 +58,37 @@ public sealed class ElementConservationTests
         solution.Moles[0] = double.NaN;
 
         Assert.NotEmpty(Violations(solution));
+    }
+
+    /// <summary>
+    /// <see cref="ElementBalance.WithinInvariant"/> itself reads a NaN abundance as outside the invariant (2026-09-28,
+    /// the guards audit's O8): the fact above drives the test node's own <see cref="Violations"/>, a second
+    /// implementation of the same comparison, not this production method. Shown red with the method's guard written
+    /// <c>residual > bound</c> in place of <c>!(residual &lt;= bound)</c>: a NaN residual satisfies neither, so the
+    /// old form returned true (within the invariant) for the doctored composition below.
+    /// </summary>
+    [Fact]
+    public void WithinInvariantItselfReadsANaNAbundanceAsOutsideTheInvariant()
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, ["H", "O"], ["H2", "O2"]);
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        var view = buffers.View;
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(view.SpeciesCount, view.ElementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(view.SpeciesCount, view.ElementCount));
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        using var elements = accelerator.Allocate1D(TwoElementMoles);
+        using var molesBuffer = accelerator.Allocate1D(OneNaNMole);
+        using var multipliers = accelerator.Allocate1D<double>(view.ElementCount);
+        using var state = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        var result = new EquilibriumResult(molesBuffer.View, multipliers.View, state.View, status.View, iterations.View);
+        var problem = new EquilibriumProblem(ProblemKind.AssignedTemperaturePressure, 1e5, 3000.0, 0.0, elements.View);
+        scratch.ElementActive[0] = 1;
+        scratch.ElementActive[1] = 1;
+
+        Assert.False(ElementBalance.WithinInvariant(view, problem, scratch, result));
     }
 
     /// <summary>The residual of every element's conservation check against the invariant's bound; empty when it holds.</summary>
