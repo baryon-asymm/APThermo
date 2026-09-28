@@ -465,6 +465,23 @@ Outside the tree: xunit.
       `APTHERMO_NO_CUDA=1 dotnet test tests/Problems.Tests --filter
       "Category!=LongRunning"`: 1206/1206, none skipped (1205 before this fact).
       `Bits.approved.txt` unchanged; the protocol lint: 0 errors, 0 warnings.
+- [x] 2026-09-28 — The second hidden-defect audit's F1/F3/F4/F5/O1/O2 fixes (`627f815`)
+      moved this node's own `Bits.approved.txt` line for `rp1311-example13`, the same
+      case and the same commit as the Performance.Tests node's own record of the
+      move, which this entry points to rather than repeats: the oracle's two maxima
+      (there is only one; the audit's "no fixture has two maxima" holds for this
+      case), the old and new throat (p/p_c, c*), the CEA reference's own throat
+      pressure ratio and c* against the fixture tolerance table, and the actual
+      mechanism (the new, unconditional `UpstreamChokeCheck.Verify` re-solving the
+      throat row across a melting-plateau boundary it crosses between the chamber and
+      the momentum search's own candidate, not a second flux maximum).
+
+      Evidence: `RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd` green over
+      `rp1311-example13.json` throughout the investigation (no reference field moved
+      outside tolerance); `git hash-object tests/Problems.Tests/Bits.approved.txt`
+      differs from `main` only in this one case's line, matching the diff recorded at
+      `627f815` (`tests/Performance.Tests/BOOT.md`'s 2026-09-28 entry has the field
+      values).
 
 ## Taboos
 

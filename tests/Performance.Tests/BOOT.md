@@ -379,6 +379,87 @@ position today (the criterion below).
       (`git hash-object`: `5aa32f2bbf679cdd0f47749b0780059ba89faa62`, the same figure
       this node's own 2026-09-15 criterion recorded). The protocol lint: 0 errors, 0
       warnings.
+- [x] 2026-09-28 — The second hidden-defect audit's F1/F3/F4/F5/O1/O2 fixes (`627f815`)
+      moved one line of `Bits.approved.txt`: `rp1311-example13` (the rocket family;
+      `Problems.Tests/Bits.approved.txt` moved the same case's line, recorded there
+      too). Investigated at the coordinator's review of 2026-09-28, which found the
+      substituted F3/F4 evidence insufficient and asked for this case's own record.
+
+      The oracle (`MassFluxOracle`, `tests/Performance.Tests/SecondAuditFixTests.cs`)
+      finds exactly one local maximum of ρu between p/p_c 0.05 and 0.95: the refined
+      peak sits at p/p_c 0.6137155045658974, ρu 10625.412618753851 (c* 1946.6794017…,
+      matching the throat below to 9 figures). There is no second maximum: the audit's
+      "no fixture has two maxima" holds for this case in that narrow sense.
+
+      ⚠ What moves the bits is not F1's "first, not largest, maximum" rule (there is
+      only one maximum to choose between) but the mechanism the same fix always runs
+      afterwards, unconditionally, for every case (`ThroatSearch.At` → new call
+      `UpstreamChokeCheck.Verify`): the ρu curve carries a slope discontinuity at p/p_c
+      ≈ 0.6700–0.6705 (a melting-plateau boundary crossed between the chamber and the
+      momentum search's own candidate at p/p_c 0.6137), so the candidate's and the
+      chamber's condensed fingerprints differ, and `Verify` does not stand the
+      candidate as found: it walks to that one boundary via `PhaseBoundaryLocator`,
+      finds its low side shares the candidate's own fingerprint (no further boundary
+      separates them), and calls `RestoreCandidate`, which re-solves the throat row
+      at the candidate's own pressure before accepting it (its own doc comment: "need
+      not be the candidate's state even when no earlier choke overrides it"). That
+      re-solve is a genuine new floating-point path this case did not take before
+      `627f815` (the whole `UpstreamChokeCheck` call is new), and it moves the state's
+      last bits without moving the accepted pressure or any physical figure outside
+      tolerance.
+
+      ⚠ 2026-09-28, measured field by field (the coordinator's second review, which
+      asked for a number, not only the mechanism): a throwaway diagnostic (`ZzDiag.cs`,
+      deleted before this commit) printed the throat station's pressure, temperature,
+      c*, mass flux, `GammaS`, Mach and every non-zero mole fraction, once with
+      `ThroatSearch.At`'s `UpstreamChokeCheck.Verify` call skipped (the pre-`627f815`
+      path standing unchanged) and once with the tree's current code, both against the
+      real `rp1311-example13` mixture (not the synthetic chamber of F4's own fact).
+      Pressure (12694259.494254986), temperature (2851.0000144702376) and `GammaS`
+      (0.9978925188362665) are bit-identical between the two runs. Every other field
+      differs only at the rounding floor: the largest relative change of any field,
+      over pressure, temperature, c*, mass flux, `GammaS`, Mach and 38 non-zero mole
+      fractions (41 fields in all), is 4.378e-13, on the condensed `BeO(b)` mole
+      fraction (old 0.020208206802093842, new 0.02020820680210269); c*, mass flux and
+      Mach each move by about 3.4e-14 relative. Both figures are nine to eleven orders
+      below the fixture tolerance table's own rows and far below a ~1e-9 relative floor
+      a genuine (non-rounding) divergence would have to clear: "a re-solve's rounding"
+      is what the measurement shows, not only what the mechanism's description implies.
+
+      Old throat (before `627f815`, no `UpstreamChokeCheck` in the tree): p/p_c
+      1.629424878440996⁻¹ = 0.613715559…, c* matching this node's own pre-`627f815`
+      `Bits.approved.txt` line (superseded, not separately re-measured: the case's
+      values, not its bits, are what this record is for). New throat (`627f815` and
+      after, measured above): p/p_c 0.6137155597356388, c* 1946.679401702188. CEA
+      reference (`tests/Fixtures/cases/rocket/rp1311-example13.json`, the throat
+      station): pressureRatio (p_c/p_t) 1.629424878440996 (p/p_c 0.613715…, matching
+      both), characteristicVelocity 1946.6824094405736. The tree's figure differs from
+      the reference by 1.55e-6 relative, inside the fixture tolerance table's own
+      `characteristicVelocity` and `pressureRatio` rows (`tests/Fixtures/tolerances.json`:
+      relative 1e-4 each), which is what `RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
+      (Problems.Tests) already checks and was green throughout this investigation.
+
+      A second, structural consequence found while gathering this evidence: the
+      `throat` fixture family's own reference (`tests/Fixtures/generate/throat_scan.py`'s
+      ternary-refined scan) is not guaranteed to land on the chamber side of a melting
+      plateau's edge either — finding F3's own mechanism, in the reference instead of
+      the tree — so `beo-h2o-throat_pc15MPa_h-11.06875MJkg`'s reference throat Mach is
+      1.011285688885813, past the edge, while the tree's own (correct) throat stays at
+      Mach 0.9655657887575096. `StationComparison.IsPlateauEdgeDivergence` (this node)
+      skips that one station's field-by-field comparison, guarded on the reference's
+      own recorded Mach being at or past 1 (never a blanket exemption), and
+      `SecondAuditFixTests.ThePlateauEdgeAcceptsTheChamberSideOnTheAuditsLi2OAndBeOCases`
+      checks that fixture's own chamber-side answer directly, without the reference.
+
+      Evidence: `dotnet test tests/Performance.Tests` 1418/1418 green with the guard
+      in place; `beo-h2o-throat_pc15MPa_h-11.06875MJkg` shown red once by temporarily
+      removing the guard (`IsPlateauEdgeDivergence` forced `false`), 7 field
+      mismatches (`cpEquilibrium`, `cvEquilibrium`, `gammaS`, `dlnVdlnT`, `dlnVdlnP`,
+      `soundSpeed`, `mach`), all consistent with the reference's own pinned-pair state
+      against the tree's single-phase one, none of them a value the tree computed
+      wrong. `Bits.approved.txt` and `Problems.Tests/Bits.approved.txt` unchanged by
+      this investigation itself (no source line touched outside the temporary,
+      reverted probes listed above).
 
 ## Taboos
 

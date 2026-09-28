@@ -302,7 +302,12 @@ entropy), `ThroatQuery` (the case, the chamber and the flow model, what every st
 that choice out of `ThroatSearch`'s own coupling count, 2026-09-26), `ThroatBracket`
 (the smallest-subsonic / largest-supersonic pressure bracket the momentum trials and
 the bisection track and narrow, 2026-09-26), `ExitEstimate` (the extrapolation state
-carried between exits), and the enums `StationFlow { Shifting, Frozen }` (in place of
+carried between exits), `PhaseBoundaryEnd` (a point's pressure, temperature, sonic
+ratio and condensed fingerprint, 2026-09-28), `PhaseBoundaryQuery` (the outer end,
+closer to the chamber, whose fingerprint `PhaseBoundaryLocator.Locate` holds fixed
+while it narrows, and the inner end, closer to the candidate throat, 2026-09-28),
+`PhaseBoundary` (one located boundary's `Hi` and `Lo` ends, 2026-09-28), and the enums
+`StationFlow { Shifting, Frozen }` (in place of
 the boolean that picked the solver) and `ExitOutcome { Converged,
 WithinReportTolerance, NeverSupersonic, SolveFailed }`.
 
@@ -382,12 +387,13 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 |---|---|---|---|
 | `RocketProblem.RocketProblem` | parameters | 7 | mirrors, one argument per field, the case the kernel reads, as `API.md` publishes it; grouping it would move the contract and re-emit the kernels (the decision "The descriptors keep their constructors"); every creation names its arguments |
 | `RocketResult.RocketResult` | parameters | 7 | mirrors, one argument per field, the views the solver writes into, as `RocketProblem` above |
+| `UpstreamChokeCheck` | efferent coupling | 15 | the first-maximum orchestration stage (2026-09-28, finding F1): it walks `PhaseBoundaryLocator`'s boundaries and hands each to `ThroatBracketSearch`'s own `Bisect` or `AcceptPlateauEdge`, so it names every carrier the two together use (`RocketContext`, `ThroatQuery`, `ChamberReference`, `CaseStatus`, `PhaseBoundaryEnd`, `PhaseBoundaryQuery`, `PhaseBoundary`, `ThroatBracket`, `StationRequest`, `MixtureState`) plus the four stages themselves (`PhaseBoundaryLocator`, `ThroatBracketSearch`, `StationSolve`, `RocketSolver`) — the same kind of figure the root's own history records for the decomposed kernel stages (12 to 16, `BOOT.md`'s Code shape note of 2026-09-14); it holds no formula of its own, only the walk and the acceptance dispatch |
 
 No type of this node names more than 14 distinct types of the tree by the dependency
-check's walk (`ExitStations` and `ChamberSolve` tie at 14, the ceiling): the Size
-bullet's composition-root exception, reserved above for `ExitStations` before
-`PressureRatioStation` was split from it, is not claimed, and this node needs no
-efferent-coupling row.
+check's walk, outside the row above (`ExitStations` and `ChamberSolve` tie at 14, the
+ceiling): the Size bullet's composition-root exception, reserved above for
+`ExitStations` before `PressureRatioStation` was split from it, is not claimed, and
+this node needs no other efferent-coupling row.
 
 ## Acceptance criteria
 
@@ -703,6 +709,141 @@ efferent-coupling row.
         bits if the audit is right that no fixture has two maxima. The coder counts the
         fixtures that reach the new stages; a moved bit snapshot is re-approved only with
         the case named, its oracle shown, and every CEA tolerance test green.
+
+      ⚠ 2026-09-28, corrected at the coordinator's review: the paragraph below (same
+      date) stood in place of this one, substituting `ThePlateauEdgeIsSinglePhaseAndSubsonic`
+      for F3 and the AP/HTPB/Al band for F4 because the audit's own Li2O, BeO/H2O and
+      Li/O/H scratch cases (its harness under `scratchpad/`) were thought unavailable in
+      this worktree. The review found both substitutions insufficient:
+      `ThePlateauEdgeIsSinglePhaseAndSubsonic` ran on the six fixtures already committed,
+      every one of which happens to land on the chamber side even with the old,
+      unconditional accept (so the fact was green before the fix too, proving nothing),
+      and the AP/HTPB/Al band's chamber `GammaS` (0.9994) is not the audit's `γ_s = 1`
+      degeneracy, so that sweep exercises the ordinary branch of equation (6.15), not
+      the limit. The audit's harness and reports are at absolute paths outside the
+      tree (kept there per `AGENTS.md` §2) and were read directly, at the coordinator's
+      direction, to build the evidence below.
+      - **F3** is proven on representative points of the audit's own Li2O (`li-o-h`)
+        and BeO/H2O (`be-o-h`) systems, generated into the `throat` family
+        (`PLATEAU_EDGE_CASES`, Fixtures BOOT.md): `SecondAuditFixTests.ThePlateauEdgeAcceptsTheChamberSideOnTheAuditsLi2OAndBeOCases`.
+        Shown red once by reverting `AcceptPlateauEdge` to its old, unconditional
+        accept: the 0.3 MPa Li2O case's Mach then measures 1.0674725047617122 (inside
+        the audit's own reported range for that band, "Mach 1.067 to 1.124"), against
+        0.9803150262208528 with the fix; the 3 MPa Li2O and 15 MPa BeO/H2O points do
+        not move under that revert (this system's exact numbers already land on the
+        chamber side on the first, unchecked trial), so they stand as the audit's own
+        further citations, not as independent red-once proofs.
+      - **F4** is proven directly against the degenerate formula, not against a real
+        mixture: `SecondAuditFixTests.TheGammaOneLimitProducesABracketInsteadOfThroatNotFound`
+        builds a synthetic `ChamberReference` with `GammaS` set to the literal `1.0`
+        (every other field borrowed from a real, ordinary chamber solve) and calls
+        `ThroatBracketSearch.Locate` directly. Shown red once by reverting the limit
+        and the u² ≤ 0 step together: the search then ends `ThroatNotFound`, its one
+        trial solved at exactly the chamber's own pressure (equation (6.15) computing
+        `Math.Pow(1, ±∞) = 1`), giving u² = 0 exactly and no bracket ever tracked. The
+        audit's own "no `ThroatNotFound`" claim, over its own `li-o-h` system, 7 MPa
+        and 50-case sweep width, is proven separately
+        (`TheThroatSearchNeverEndsThroatNotFoundAcrossTheLiOHPlateauAt7MPa`): all 50
+        `Ok`. Its own bit-exact `γ_s = 1` no longer reproduces on this branch after the
+        Equilibrium rules A and B (merged into this branch after the audit's own
+        snapshot at `5a732f0`): the mixture's chamber `GammaS` measures
+        0.999999999446852 here, inside `RocketSolver.GammaOneTolerance` (1e-6) but not
+        bit-exact — a separate fact,
+        `TheChamberSGammaSIsWithinTheLimitsToleranceOnTheAuditsNamedLiOHPoints`, checks
+        the tolerance on the audit's own nine named points, which is why the formula-level
+        fact above, not a real-mixture sweep, is what actually proves the fix. That fact
+        also asserts the sweep's full width: all 50 cases `Ok`, none `ThroatNotFound`, not
+        only the nine named points (`TheThroatSearchNeverEndsThroatNotFoundAcrossTheLiOHPlateauAt7MPa`);
+        the nine-point tolerance fact is a second, narrower one over the same sweep.
+
+        ⚠ 2026-09-28, `RocketSolver.GammaOneTolerance = 1.0e-6` justified (asked at the
+        coordinator's second review): a throwaway probe (`ZzDiag2.cs`, deleted before this
+        commit) ran equation (6.15)'s own ordinary branch, `1.0 / Math.Pow(0.5 * (gamma +
+        1.0), gamma / (gamma - 1.0))`, in this tree's own arithmetic, for `gamma = 1.0 +
+        delta` at `delta` from 1e-3 down to 0, against the analytic limit `Math.Exp(-0.5)`.
+        The ordinary branch's own relative error scales cleanly as ≈0.375·`delta` from
+        `delta = 1e-3` (relative 3.748e-4) down to `delta = 1e-13` (relative 3.752e-14),
+        then breaks down: at `delta = 1e-14` the relative error jumps to 1.117e-2, at
+        `1e-15` to 0.1052, and at `delta = 0` (or any `delta` below one ULP of 1.0) the
+        ordinary branch collapses to exactly 1 (`Math.Pow(1, ±∞) = 1` firing, F4's own
+        degeneracy), a relative error of 0.6487. `GammaOneTolerance = 1e-6` sits about
+        eight orders of magnitude above where the ordinary branch's own error becomes
+        significant (≈1e-13): choosing the limit branch there costs no accuracy the
+        ordinary branch would otherwise have kept, since its own error at `delta = 1e-6`
+        (3.751e-7) is already inside the fixture tolerance table's 1e-4 rows. The figure is
+        set instead by the pinned-pair convention's own numbers, not by the formula's
+        accuracy floor: the audit's harness measured the `li-o-h` mixture's chamber
+        `GammaS − 1 = 0` exactly at `5a732f0`; after the Equilibrium rules A and B it
+        measures 5.53e-10 here (above, F4). `1e-6` is about 1 800× above that measured
+        deviation, leaving headroom against further last-bit drift in `Equilibrium`, while
+        staying about 600× below the AP/HTPB/Al system's own, genuinely distinct chamber
+        exponent (0.9994, `|Δ| = 6.00e-4`, not a pinned-pair state) found during the F4
+        review. The tolerance therefore separates the pinned-pair convention's own
+        last-bit noise from a real, non-degenerate exponent with three to four orders of
+        margin on each side, far inside the range where the ordinary branch would still
+        compute the correct limit on its own.
+      - **The bit move.** `rp1311-example13` (rocket family) moved: its own record is
+        `tests/Performance.Tests/BOOT.md`'s 2026-09-28 entry (the oracle's one maximum —
+        the audit's "no fixture has two maxima" holds for this case — and the actual
+        mechanism, `UpstreamChokeCheck`'s unconditional re-solve across a melting-plateau
+        boundary the search crosses on its way to the sonic point, not a second maximum).
+        `tests/Problems.Tests/BOOT.md` records the same case's `Bits.approved.txt` move.
+
+        ⚠ 2026-09-28, the move measured field by field (asked at the coordinator's second
+        review): a throwaway diagnostic (`ZzDiag.cs`, deleted before this commit) printed
+        the throat station's pressure, temperature, c*, mass flux, `GammaS`, Mach and every
+        non-zero mole fraction, once with `ThroatSearch.At`'s `UpstreamChokeCheck.Verify`
+        call temporarily skipped (the pre-`627f815` path, `ThroatBracketSearch.Locate`'s
+        own candidate stands unchanged) and once with the tree's current code. Pressure
+        (12694259.494254986), temperature (2851.0000144702376) and `GammaS`
+        (0.9978925188362665) are bit-identical between the two runs — the momentum search
+        finds the same candidate either way, as the doc comment above already says. Every
+        other field differs only at the rounding floor: the largest relative change of any
+        field is 4.378e-13, on the condensed `BeO(b)` mole fraction (old
+        0.020208206802093842, new 0.02020820680210269); c*, mass flux and Mach each move by
+        about 3.4e-14 relative. Every one of these is many orders below the ~1e-9 relative
+        floor a genuine divergence would have to clear, and below the fixture tolerance
+        table's own rows by nine to eleven orders: the claim "a re-solve's rounding", not a
+        physical change, holds by this measurement, not only by the mechanism's own
+        description.
+      - **A structural finding beyond the audit's own scope**: the `throat` fixture
+        family's own reference generation is not immune to F3 either — its ternary
+        search can refine onto the pinned-pair side of a plateau edge, past Mach 1
+        (`beo-h2o-throat_pc15MPa_h-11.06875MJkg`'s reference Mach is 1.011285688885813).
+        `tests/Performance.Tests/StationComparison.IsPlateauEdgeDivergence` skips that
+        one station's comparison, guarded on the reference's own recorded Mach; the
+        Performance.Tests `BOOT.md` entry above has the red-once evidence.
+
+      The evidence for F1, F5, O1 and O2 below is this coder's own, verified against
+      the running code, not retyped from the audit report:
+      - **F1**: `SecondAuditFixTests.TheThroatIsTheOraclesFirstMaximum` (every rocket
+        and throat fixture), `…OverTheApHtpbAlBand` (h −4.42 to −4.32 MJ/kg at 1, 3, 7
+        and 15 MPa) and `…OverTheElementMixtureCases` (the three new element-mixture
+        throat fixtures). Red at `5a732f0` (`ThroatBracketSearch.Momentum` returned the
+        grid's overall maximum, not the first met from the chamber); green after. A
+        first probe of the band fact used the oracle's entire grid instead of only the
+        region between the chamber and the throat (BOOT.md's own wording, above) and
+        failed on a real second maximum at 3 MPa, h = −4.36 MJ/kg (throat 2211.42 m/s
+        at p/p_c 0.6067, a downstream maximum of 2221.32 m/s at 0.5565): the fact was
+        narrowed to that region, not the tolerance, and the case is not a regression —
+        the accepted throat is the correct, first (upstream) one.
+      - **F5**: `AFrozenAtThroatExitAtOrAboveTheThroatIsInvalidInput` and
+        `EveryOkStationCarriesOnlyFiniteFigures`, both over every rocket and throat
+        fixture. Red at `5a732f0` (the rule did not exist; a pressure ratio at or above
+        the throat gave an `Ok` station with infinite area ratio and vacuum Isp).
+      - **O1, O2**: `ABisectionAcceptedWithinTheSonicToleranceIsOk` exercises
+        `ThroatBracketSearch.Bisect`'s own acceptance line directly, over brackets of
+        very different widths and asymmetries around a real sonic throat
+        (`rp1311-example13-throat_pc5MPa_dh0`); every one converges within the tight
+        polish tolerance on this system (a fact the test also records), so the wider,
+        report-tolerance branch stayed unreached by any swept bracket — a probe (not
+        committed) found the same over eight bracket widths spanning six orders of
+        magnitude. The branch is read directly rather than forced: the fact confirms
+        every accepted state meets `RocketSolver.SonicTolerance`, the bound the
+        acceptance line itself reads, not a narrower one a regression could still pass.
+        `TryRatioNeverLeavesAStaleRatioOnFailure` is the direct fact for O2: a
+        non-positive sound speed makes `TryRatio` report failure with `ratio` at 0,
+        never left at the caller's previous value.
 
 ## Taboos
 

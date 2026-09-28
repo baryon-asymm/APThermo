@@ -58,6 +58,16 @@ internal static class ExitStations
                 return;
             }
 
+            if (context.Problem.Flow == FlowModel.FrozenAtThroat && !(chamber.Pressure / value < throat.Pressure))
+            {
+                // Upstream of the freezing point the flow is in equilibrium, and the reference omits such a point
+                // (BOOT.md, 2026-09-28, finding F5): "FOR FROZEN PERFORMANCE, POINT OMITTED BECAUSE ASSIGNED pi/p IS
+                // LESS THAN VALUE AT nfz". Freezing the throat's composition there put the state at an enthalpy
+                // above the chamber's, and the clamped velocity gave an Ok station with infinite A/A_t and Ivac.
+                context.Result.StationStatus[station] = (int)CaseStatus.InvalidInput;
+                return;
+            }
+
             PressureRatioStation.At(in context, in chamber, in throat, value, station, estimate.Temperature);
             return;
         }
