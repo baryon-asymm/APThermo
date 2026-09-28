@@ -23,10 +23,32 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
   - a `FlowModel` value other than the three named ones is `InvalidInput`; 0.1.0
     solved it as frozen at the throat;
   - a propellant group (oxidizer, fuel or named reactants) that mixes mass-fraction
-    and mole amounts is refused, instead of summing the two as one unit;
+    and mole amounts is refused, instead of summing the two as one unit; without an
+    oxidizer-to-fuel ratio this now applies across every group of the propellant, not
+    only within one, since the whole propellant is then one unit of normalization;
   - an element with no candidate species, or with no monatomic record to take its
     atomic weight from, is refused, instead of being silently dropped or ending in an
-    unrelated numerical status;
+    unrelated numerical status; this now applies only when some mixture of the batch
+    gives the element a nonzero abundance, so an element listed at zero everywhere
+    (as a plasma-capable code writes a neutral mixture) is masked, as an absent
+    element already is; the refusal names the `Only` or `Omit` list as its cause when
+    one excluded the element, and an `Only` name that is an ionized species or an
+    inert pseudo-element record is refused by name;
+  - `SolveStates` and `SolveRocketStates` now check each record's own elements before
+    the union of the batch is built, so an unknown element or a candidate-less
+    abundance is refused by that record's own index, not the union's; a condition of
+    the batch itself (transport requested without `trans.inp`, an invalid mass
+    tolerance) is refused naming the option instead of blaming the batch's first
+    record;
+  - a rocket's temperature estimate and an equilibrium problem's assigned temperature
+    of positive or negative infinity are refused, as `NaN` and negative values
+    already were;
+  - a propellant group whose amounts sum to a non-finite mass is refused, naming the
+    group, instead of a later, misleading mass share;
+  - a multi-record reactant's accepted temperature window now covers the lowest lower
+    and the highest upper bound of its own records' intervals; `Br2(cr)` (written
+    300 → 265.9 K) can now be used as a reactant, where 0.1.0 and the first 0.2.0
+    candidate could not use it at any temperature;
   - `EngineOptions.LibNvvmPath` without `LibDevicePath`, or the reverse, is an
     `ArgumentException` naming the missing option, instead of falling back to
     discovery.
@@ -37,12 +59,23 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
     pressure under the chamber's column);
   - a JSON document with a member given twice is refused with exit 2, naming the
     field, instead of keeping the last value;
-  - an option given an empty value (`--output=`, `--database=`) is exit 2, instead of
-    an unhandled exception or reading `thermo.inp` from the working directory;
+  - an option given an empty or a white-space-only value (`--output=`, `--output " "`,
+    `--database=`) is exit 2, instead of an unhandled exception, a file named a single
+    space, or reading `thermo.inp` from the working directory;
   - `--mass-tolerance` is refused (exit 2) on a document whose propellant is given by
-    reactants, since it applies only to element moles given directly;
+    reactants, since it applies only to element moles given directly; the refusal now
+    carries the document's own path, like every other refusal of the command;
+  - a sweep range whose step count is not finite, or whose axis or the document's
+    Cartesian product exceeds a declared limit (1,000,000 values per axis, 10,000,000
+    cases per document), is refused by its path, instead of an unhandled
+    `OverflowException` or `OutOfMemoryException`, or a range of three billion steps
+    failing the "ends on a step" test for a false reason;
+  - a lone UTF-16 surrogate in a JSON member name or string value is refused naming
+    its path, instead of an unhandled exception;
   - a refused state record is named by its own file and line, not by its position in
-    an internal batch.
+    an internal batch;
+  - the `species` listing's `run` section no longer records a `threshold` or a
+    `massTolerance`, options the command does not take.
 - The CPU accelerator runs as many threads as the machine has logical cores, rounded
   down to a multiple of 4. 0.1.0 always ran 16. Results do not depend on the count.
 - The build enables every compiler and analyzer diagnostic and treats each one as an
@@ -108,6 +141,10 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
   - A formula pair with a symbol and a zero count is dropped when the database is
     read.
   - A malformed database line is reported with one `file:line:` prefix, not two.
+  - Two `omit` lists that joined to the same comma-separated text (a product name may
+    itself contain a comma) reused one cached species table for what should have been
+    two different ones; the cache key no longer joins names with a separator that can
+    appear in a name.
 
 ## [0.1.0] - 2026-09-18
 

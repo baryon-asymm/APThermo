@@ -640,21 +640,71 @@ Every other type of the node measures 14 or below by the dependency check's walk
       green on the merged tree (the merge commit's own record has the final count).
       `dotnet build APThermo.sln`: 0 warnings, 0 errors. The protocol lint: 0 errors,
       0 warnings. The public surface is unchanged.
-- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once against
-      `5a732f0`, as a process or through `Program.Run`, asserting the exit code and
-      the path in the message:
-      - the audit's three range documents (`range-inf`, `range-intmax`,
-        `range-overflow`) and `range-3e9`: exit 2 naming `$.sweep.<axis>` and the
-        limit;
-      - a product of three axes above the case limit: exit 2 before any solve;
+- [x] 2026-09-28 — The audit fixes of 2026-09-28 (Constraints). Each fact is red once
+      against `5a732f0`, as a process or through `Program.Run`, asserting the exit
+      code and the path in the message
+      (`tests/Cli.Tests/SecondAuditFixTests.cs`):
+      - the audit's three range documents (`range-inf`: `{"from": 1.0, "to": 1e308,
+        "step": 1e-300}`, `range-intmax`: `{"from": 1.0, "to": 2147483648.0, "step":
+        1.0}`, `range-overflow`: `{"from": -1e308, "to": 1e308, "step": 1e300}`) and
+        `range-3e9` (`{"from": 0.0, "to": 3e9, "step": 1.0}`): exit 2 naming
+        `$.sweep.pressure` and the limit, `range-3e9` by the true reason, not the old
+        false "not an integer" one
+        (`ARangeWithANonFiniteStepCountIsRefusedNamingThePathAndTheLimit`,
+        `ARangeOfTwoToTheThirtyOneStepsIsRefusedNamingThePathAndTheLimit`,
+        `ARangeSpanningTheWholeDoubleRangeIsRefusedNamingThePathAndTheLimit`,
+        `ARangeOfThreeBillionStepsIsRefusedByTheAxisLimitNotAFalseStepReason`);
+      - a product of three axes above the case limit (300 x 300 x 300 = 27 000 000):
+        exit 2 naming `$.sweep` and the limit, before any solve
+        (`ASweepWhoseCartesianProductExceedsTheCaseLimitIsRefusedBeforeAnySolve`);
       - a lone surrogate in a reactant name, a composition key, an unknown record
-        member and an unknown root member: exit 2 naming the path;
-      - `--output " "` and `--output "  "`: exit 2 naming the option;
+        member and an unknown root member: exit 2 naming the path
+        (`ALoneSurrogateInAReactantNameIsExit2NamingThePath`,
+        `ALoneSurrogateInACompositionKeyIsExit2NamingThePath`,
+        `ALoneSurrogateInAnUnknownRecordMemberIsExit2NamingThePath`,
+        `ALoneSurrogateInAnUnknownRootMemberIsExit2NamingThePath`);
+      - `--output " "` and `--output "  "`: exit 2 naming the option
+        (`AWhitespaceOnlyOutputValueIsExit2NamingTheOption`);
       - `equilibrium <reactant document> --mass-tolerance 0.01`: exit 2, as `API.md`
-        now says; a reactant document's mass refusal starts with the document's path.
+        now says; a reactant document's mass refusal starts with the document's path
+        (`MassToleranceAgainstAReactantDocumentIsExit2AsApiNowSays`,
+        `ExitCodeTests.AReactantPropellantsMassRefusalNamesThePropellantsMixture`);
+      - the `species` listing's `run` section records neither `threshold` nor
+        `massTolerance` (`TheSpeciesListingsRunSectionRecordsNoThresholdOrMassTolerance`,
+        observation 8).
 
-      The docs tests node stays green, and its approved outputs move only where the
-      guide's sentence on `--mass-tolerance` changed. The schemas do not change.
+      Red-once: `src/Cli` checked out to `5a732f0`
+      (`git checkout 5a732f0 -- src/Cli`), the file's constant references pinned to
+      their literal values for the run (the constants do not exist at that commit),
+      12 of the 13 facts failed for the documented mechanism (an unhandled
+      `OverflowException` on the two step-count facts, an unhandled
+      `OutOfMemoryException` on the case-count fact against the old, unbounded
+      allocation, an unhandled `ArgumentException` on the blank-output facts, an
+      unhandled `InvalidOperationException` on the four surrogate facts, and the old
+      false "not an integer" reason on the three-billion-step fact); the thirteenth
+      (the reactant document's `--mass-tolerance` exit code, whose refusal already
+      existed at `5a732f0`, only its message's path prefix being new) passed, as
+      expected, since it pins existing behaviour, not this day's fix. `src/Cli`
+      restored (`git checkout HEAD -- src/Cli` after committing the fix), all 13
+      green.
+
+      `API.md` states every refusal and both limits (`SweepValues.MaxAxisValues`,
+      `SweepDocumentReader.MaxCases`) in its errors table and the `sweep` field list;
+      the guide's `--mass-tolerance` sentence names the documents and commands the
+      option applies to and says a reactant propellant's document is exit 2.
+      `CHANGELOG.md`'s 0.2.0 entry names every user-visible change above.
+
+      Evidence: `dotnet test tests/Cli.Tests/APThermo.Cli.Tests.csproj` is 142 of 142
+      (129 baseline, plus these 13 facts); `dotnet test
+      tests/Docs.Tests/APThermo.Docs.Tests.csproj` is 29 of 29, unchanged, no approved
+      output moved (the guide's `--mass-tolerance` sentence is prose, not a checked
+      invocation). No `Bits*.approved.txt` or `PublicSurface.approved.txt` moved
+      (`git status --short`): the `run` section is cut out before the bit hash is
+      taken (`Harness.RunPropertyCut`), so removing `species`'s `threshold` and
+      `massTolerance` moves no snapshot. The schemas are unchanged save
+      `species.schema.json`, whose `run` no longer requires or declares `threshold`
+      and `massTolerance`. `dotnet build APThermo.sln`: 0 warnings, 0 errors. The
+      protocol lint: 0 errors, 0 warnings.
 
 ## Taboos
 
