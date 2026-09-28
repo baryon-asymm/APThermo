@@ -5,16 +5,39 @@ namespace APThermo.Performance.Tests;
 
 /// <summary>
 /// L0/L1: the second hidden-defect audit of 2026-09-28 (Performance, `BOOT.md`'s own acceptance criterion),
-/// findings F1, F4 and F5 and observations O1 and O2. Finding F3 (the plateau edge's far-side check) is covered by
-/// <see cref="ThroatPlateauEdgeTests.ThePlateauEdgeIsSinglePhaseAndSubsonic"/> over the generated
-/// <see cref="ThroatPlateauEdgeTests.PlateauEdgeCases"/>, which already asserts the two properties F3 names
-/// (single-phase, subsonic) on every fixture that reaches a plateau edge; no separate fact duplicates it here.
+/// findings F1, F3, F4 and F5 and observations O1 and O2.
 ///
-/// The audit's own Li2O and Li/O/H scratch cases (F3's Li2O/BeO systems, F4's Li/O/H system) live outside this
-/// tree (its own harness under `scratchpad/`, kept out of the tree with every audit report, `AGENTS.md` §2) and
-/// were not available in this worktree. F4's coverage below uses the AP/HTPB/Al system already in the `throat`
-/// fixture family instead: its own melting plateau exercises the same `γ_s → 1` code path the audit found, over a
-/// dense enthalpy sweep of the audit's own width and step (306.25 kJ/kg, 6.25 kJ/kg steps, 50 cases).
+/// F3 is proven against representative points of the audit's own Li2O (`li-o-h`) and BeO/H2O (`be-o-h`)
+/// melting-plateau systems (`scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs`, read at the
+/// coordinator's direction), generated into the `throat` fixture family's `PLATEAU_EDGE_CASES`
+/// (`tests/Fixtures/generate/throat_scan.py`; Fixtures BOOT.md records the generation). Two of the three
+/// (`li2o-throat_pc0.3MPa_h3.29375MJkg`, `li2o-throat_pc3MPa_h2.2375MJkg`) also fall under
+/// <see cref="ThroatPlateauEdgeTests.PlateauEdgeCases"/> by the reference's own throat Mach and so are already
+/// checked by <see cref="ThroatPlateauEdgeTests.ThePlateauEdgeIsSinglePhaseAndSubsonic"/>; the fixed-name fact
+/// below (<see cref="ThePlateauEdgeAcceptsTheChamberSideOnTheAuditsLi2OAndBeOCases"/>) checks all three
+/// independently of that filter, including the BeO/H2O point, whose reference throat Mach (1.011) is itself at
+/// the edge and so is excluded from the auto-discovered set.
+///
+/// F4 is proven directly against the degenerate formula
+/// (<see cref="TheGammaOneLimitProducesABracketInsteadOfThroatNotFound"/>: a synthetic chamber with `GammaS` set
+/// to the literal `1.0`), because the audit's own Li/O/H mixture no longer reaches that exact bit pattern on this
+/// branch (the ⚠ below); its "no `ThroatNotFound`" claim over the audit's own system, pressure and 50-case sweep
+/// width is proven separately by <see cref="TheThroatSearchNeverEndsThroatNotFoundAcrossTheLiOHPlateauAt7MPa"/>.
+///
+/// ⚠ 2026-09-28 (found at the coordinator's review): the audit's own `li-o-h` mixture (Li 0.10, O 0.50, H 0.40 by
+/// mass) at 7 MPa, over its own 50-case sweep (h −8.1125 MJ/kg upward in 6.25 kJ/kg steps), measures chamber
+/// `GammaS` at 0.999999999446852 on every one of the 50 cases here — not exactly 1, though within
+/// `RocketSolver.GammaOneTolerance` (1e-6) throughout, and all 50 are `Ok` regardless (0 `ThroatNotFound`, matching
+/// the fix's own intent). Reverting both the `γ_s → 1` limit and the u² ≤ 0 step changed none of that: with
+/// `GammaS` off by 5.5e-10, `gammaChamber / (gammaChamber - 1.0)` is a large but finite number, not the literal
+/// ±∞ that makes `Math.Pow`'s `pow(1, ±∞) = 1` branch fire, so the reverted formula computes the same, correct
+/// limit anyway. The audit's own harness measured `GammaS − 1 = 0` exactly on this mixture at `5a732f0`; the
+/// Equilibrium rules A and B, merged into this branch afterwards (`da50a0a`, `74d0715`), moved the pinned pair's
+/// last few bits enough to lose the exact equality, without moving any AP/HTPB/Al or example-13 bit this node's
+/// own `Bits.approved.txt` records. The formula-level fact above reproduces the exact bug directly, unaffected by
+/// which mixture or which Equilibrium revision produced the real chamber it borrows its other fields from; the
+/// AP/HTPB/Al band's own 50-case sweep (<see cref="TheThroatSearchNeverEndsThroatNotFoundAcrossThePlateauBand"/>)
+/// stays as an independent, unrelated system's coverage of the same "no `ThroatNotFound`" claim.
 /// </summary>
 [Collection(CpuFixture.CollectionName)]
 public sealed class SecondAuditFixTests
@@ -62,6 +85,126 @@ public sealed class SecondAuditFixTests
     {
         var inputs = RocketInputs.Of(RocketHost.Load("throat", name));
         AssertFirstMaximum(inputs, name);
+    }
+
+    /// <summary>
+    /// Finding F3: the plateau-edge re-solve is accepted only on the chamber's own (subsonic, single-phase) side
+    /// of the edge, over the audit's own Li2O and BeO/H2O systems (the class doc-comment). Shown red once by
+    /// reverting <see cref="ThroatBracketSearch.AcceptPlateauEdge"/> to accept its first, unchecked trial: the
+    /// 0.3 MPa Li2O case's Mach then measures 1.0674725047617122 (the audit's own reported range, "Mach 1.067 to
+    /// 1.124"), against 0.9803150262208528 here; the 3 MPa Li2O and 15 MPa BeO/H2O cases do not move under that
+    /// revert (their first trial already lands on the chamber side for this system's exact numbers), so they are
+    /// carried as the audit's own further citations, not as independent red-once proofs.
+    /// </summary>
+    [Theory]
+    [InlineData("li2o-throat_pc0.3MPa_h3.29375MJkg")]
+    [InlineData("li2o-throat_pc3MPa_h2.2375MJkg")]
+    [InlineData("beo-h2o-throat_pc15MPa_h-11.06875MJkg")]
+    public void ThePlateauEdgeAcceptsTheChamberSideOnTheAuditsLi2OAndBeOCases(string name)
+    {
+        using var rocketCase = SolveThroat(name, out _, out var throat);
+        var context = rocketCase.Context;
+        var throatState = context.Result.Stations[RocketSolver.Throat];
+        Assert.True(throatState.Mach < 1.0, $"{name}: throat Mach {throatState.Mach:R}");
+        Assert.True(throat.GammaS > 1.05, $"{name}: throat GammaS {throat.GammaS:R} is not a single-phase exponent");
+    }
+
+    /// <summary>
+    /// Finding F4, at the formula that degenerates: with the chamber's own isentropic exponent set to the literal
+    /// `1.0` (the equilibrium node's plateau convention for an undissociated gas, `BOOT.md`), equation (6.15)'s
+    /// first estimate is the chamber pressure through its limit, not the chamber pressure itself, and the search
+    /// still ends `Ok`. A synthetic <see cref="ChamberReference"/> borrows every other field from a real, ordinary
+    /// chamber solve (example 13's), so the only thing under test is the formula's own behaviour at `γ_s = 1`
+    /// exactly — not whether some real mixture happens to reach that bit pattern (the class doc-comment's ⚠).
+    /// Shown red once by reverting the limit and the u² ≤ 0 step together: the search then ends `ThroatNotFound`,
+    /// with the loop's only trial solved at exactly the chamber's own pressure (`Math.Pow(1, ±∞) = 1`, so equation
+    /// (6.15) returns 1 and the first candidate is the chamber pressure itself), giving u² = 0 exactly and no
+    /// bracket ever tracked.
+    /// </summary>
+    [Fact]
+    public void TheGammaOneLimitProducesABracketInsteadOfThroatNotFound()
+    {
+        using var rocketCase = SolveThroat("rp1311-example13-throat_pc5MPa_dh0", out var chamber, out _);
+        var context = rocketCase.Context;
+        var temperature = context.Result.Stations[RocketSolver.Chamber].Temperature;
+        var degenerateChamber = new ChamberReference(chamber.Pressure, chamber.Enthalpy, chamber.Entropy, 1.0);
+        var query = new ThroatQuery(in context, in degenerateChamber);
+        var status = ThroatBracketSearch.Locate(in query, temperature, out var pressureSolved);
+        Assert.Equal(CaseStatus.Ok, status);
+        Assert.True(pressureSolved < chamber.Pressure, $"the throat pressure {pressureSolved:R} should be below the chamber's {chamber.Pressure:R}");
+    }
+
+    /// <summary>
+    /// Finding F4's "no `ThroatNotFound`" claim, over the audit's own system, pressure and sweep width: the
+    /// `li-o-h` mixture at 7 MPa, over the audit's own 50-case sweep (h −8.1125 MJ/kg upward in 6.25 kJ/kg steps).
+    /// Every case is `Ok`. The chamber's own `GammaS` at the plateau's own nine points is checked separately
+    /// (<see cref="TheChamberSGammaSIsWithinTheLimitsToleranceOnTheAuditsNamedLiOHPoints"/>): four of these 50
+    /// (the highest, h ≥ −7 825 000 J/kg) have already left the plateau, where `GammaS` is not near 1.
+    /// </summary>
+    [Fact]
+    public void TheThroatSearchNeverEndsThroatNotFoundAcrossTheLiOHPlateauAt7MPa()
+    {
+        var baseInputs = RocketInputs.Of(RocketHost.Load("throat", "li2o-throat_pc0.3MPa_h3.29375MJkg"));
+        const double lowEnthalpy = -8112500.0;
+        const int caseCount = 50;
+        const double stepJPerKg = 6250.0;
+        var failures = new List<string>();
+        for (var k = 0; k < caseCount; k++)
+        {
+            var enthalpy = lowEnthalpy + k * stepJPerKg;
+            var mixture = new Mixture(baseInputs.Mixture.ElementMoles, enthalpy);
+            var inputs = baseInputs with { ChamberPressure = 7.0e6, Mixture = mixture, Exits = new ExitPlan([], []) };
+            var table = SpeciesTable.Build(CpuFixture.Shared.Database, inputs.System.Elements, inputs.System.Products);
+            using var rocketCase = new RocketCase(CpuFixture.Shared.Accelerator, table, inputs);
+            var context = rocketCase.Context;
+            if (ChamberSolve.At(in context, out var chamber) != CaseStatus.Ok)
+            {
+                failures.Add($"h={enthalpy:R} J/kg: chamber did not solve");
+                continue;
+            }
+
+            var status = ThroatSearch.At(in context, in chamber, out _);
+            if (status != CaseStatus.Ok)
+            {
+                failures.Add($"h={enthalpy:R} J/kg: {status}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    /// <summary>
+    /// Finding F4's chamber `GammaS`, at the audit's own nine inspected points of the `li-o-h` plateau at 7 MPa
+    /// (`ChamberOnPlateau`, `scratchpad/audit2/harness/pt/performance/ZzAuditGammaOne.cs`): within
+    /// `RocketSolver.GammaOneTolerance` of 1 on every one (the class doc-comment's ⚠: not exactly 1 here, but
+    /// inside the tolerance the fix's own branch reads, after the Equilibrium rules A and B).
+    /// </summary>
+    [Fact]
+    public void TheChamberSGammaSIsWithinTheLimitsToleranceOnTheAuditsNamedLiOHPoints()
+    {
+        var baseInputs = RocketInputs.Of(RocketHost.Load("throat", "li2o-throat_pc0.3MPa_h3.29375MJkg"));
+        double[] enthalpies = [-8125000.0, -8118750.0, -8112500.0, -8106250.0, -8100000.0, -8093750.0, -8087500.0, -8000000.0, -7950000.0];
+        var failures = new List<string>();
+        foreach (var enthalpy in enthalpies)
+        {
+            var mixture = new Mixture(baseInputs.Mixture.ElementMoles, enthalpy);
+            var inputs = baseInputs with { ChamberPressure = 7.0e6, Mixture = mixture, Exits = new ExitPlan([], []) };
+            var table = SpeciesTable.Build(CpuFixture.Shared.Database, inputs.System.Elements, inputs.System.Products);
+            using var rocketCase = new RocketCase(CpuFixture.Shared.Accelerator, table, inputs);
+            var context = rocketCase.Context;
+            if (ChamberSolve.At(in context, out var chamber) != CaseStatus.Ok)
+            {
+                failures.Add($"h={enthalpy:R} J/kg: chamber did not solve");
+                continue;
+            }
+
+            if (!(Math.Abs(chamber.GammaS - 1.0) <= RocketSolver.GammaOneTolerance))
+            {
+                failures.Add($"h={enthalpy:R} J/kg: chamber GammaS {chamber.GammaS:R} outside the tolerance");
+            }
+        }
+
+        Assert.Empty(failures);
     }
 
     /// <summary>

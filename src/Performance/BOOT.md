@@ -710,23 +710,61 @@ this node needs no other efferent-coupling row.
         fixtures that reach the new stages; a moved bit snapshot is re-approved only with
         the case named, its oracle shown, and every CEA tolerance test green.
 
-      ⚠ 2026-09-28, found while closing this criterion: the audit's own Li2O, BeO/H2O
-      and Li/O/H scratch cases for F3 and F4 (its harness under `scratchpad/`) were not
-      present in this worktree — the scratch reports of every audit are kept out of the
-      tree (`AGENTS.md` §2), and this coder's worktree never held that directory. Two
-      substitutions, both verified rather than guessed:
-      - **F3** is covered by `ThroatPlateauEdgeTests.ThePlateauEdgeIsSinglePhaseAndSubsonic`
-        over the generated `PlateauEdgeCases` (guard O4): it already asserts exactly the
-        two properties F3 names (single-phase, subsonic) on every committed fixture whose
-        own reference reaches a plateau edge, which exercises the same `AcceptPlateauEdge`
-        code path the Li2O/BeO systems would have. No separate fact was added.
-      - **F4** uses the AP/HTPB/Al system already in the `throat` family instead of
-        Li/O/H: `SecondAuditFixTests.TheThroatSearchNeverEndsThroatNotFoundAcrossThePlateauBand`
-        sweeps 50 cases, 6.25 kJ/kg apart (the audit's own width and step), across its
-        7 MPa melting plateau. A probe there (kept only as this note, not committed)
-        found the chamber's own `GammaS` at 0.9994 mid-band — the same `γ_s → 1`
-        condition F4 names — so the fix's own code path is exercised, even though the
-        chemical system differs from the audit's.
+      ⚠ 2026-09-28, corrected at the coordinator's review: the paragraph below (same
+      date) stood in place of this one, substituting `ThePlateauEdgeIsSinglePhaseAndSubsonic`
+      for F3 and the AP/HTPB/Al band for F4 because the audit's own Li2O, BeO/H2O and
+      Li/O/H scratch cases (its harness under `scratchpad/`) were thought unavailable in
+      this worktree. The review found both substitutions insufficient:
+      `ThePlateauEdgeIsSinglePhaseAndSubsonic` ran on the six fixtures already committed,
+      every one of which happens to land on the chamber side even with the old,
+      unconditional accept (so the fact was green before the fix too, proving nothing),
+      and the AP/HTPB/Al band's chamber `GammaS` (0.9994) is not the audit's `γ_s = 1`
+      degeneracy, so that sweep exercises the ordinary branch of equation (6.15), not
+      the limit. The audit's harness and reports are at absolute paths outside the
+      tree (kept there per `AGENTS.md` §2) and were read directly, at the coordinator's
+      direction, to build the evidence below.
+      - **F3** is proven on representative points of the audit's own Li2O (`li-o-h`)
+        and BeO/H2O (`be-o-h`) systems, generated into the `throat` family
+        (`PLATEAU_EDGE_CASES`, Fixtures BOOT.md): `SecondAuditFixTests.ThePlateauEdgeAcceptsTheChamberSideOnTheAuditsLi2OAndBeOCases`.
+        Shown red once by reverting `AcceptPlateauEdge` to its old, unconditional
+        accept: the 0.3 MPa Li2O case's Mach then measures 1.0674725047617122 (inside
+        the audit's own reported range for that band, "Mach 1.067 to 1.124"), against
+        0.9803150262208528 with the fix; the 3 MPa Li2O and 15 MPa BeO/H2O points do
+        not move under that revert (this system's exact numbers already land on the
+        chamber side on the first, unchecked trial), so they stand as the audit's own
+        further citations, not as independent red-once proofs.
+      - **F4** is proven directly against the degenerate formula, not against a real
+        mixture: `SecondAuditFixTests.TheGammaOneLimitProducesABracketInsteadOfThroatNotFound`
+        builds a synthetic `ChamberReference` with `GammaS` set to the literal `1.0`
+        (every other field borrowed from a real, ordinary chamber solve) and calls
+        `ThroatBracketSearch.Locate` directly. Shown red once by reverting the limit
+        and the u² ≤ 0 step together: the search then ends `ThroatNotFound`, its one
+        trial solved at exactly the chamber's own pressure (equation (6.15) computing
+        `Math.Pow(1, ±∞) = 1`), giving u² = 0 exactly and no bracket ever tracked. The
+        audit's own "no `ThroatNotFound`" claim, over its own `li-o-h` system, 7 MPa
+        and 50-case sweep width, is proven separately
+        (`TheThroatSearchNeverEndsThroatNotFoundAcrossTheLiOHPlateauAt7MPa`): all 50
+        `Ok`. Its own bit-exact `γ_s = 1` no longer reproduces on this branch after the
+        Equilibrium rules A and B (merged into this branch after the audit's own
+        snapshot at `5a732f0`): the mixture's chamber `GammaS` measures
+        0.999999999446852 here, inside `RocketSolver.GammaOneTolerance` (1e-6) but not
+        bit-exact — a separate fact,
+        `TheChamberSGammaSIsWithinTheLimitsToleranceOnTheAuditsNamedLiOHPoints`, checks
+        the tolerance on the audit's own nine named points, which is why the formula-level
+        fact above, not a real-mixture sweep, is what actually proves the fix.
+      - **The bit move.** `rp1311-example13` (rocket family) moved: its own record is
+        `tests/Performance.Tests/BOOT.md`'s 2026-09-28 entry (the oracle's one maximum —
+        the audit's "no fixture has two maxima" holds for this case — and the actual
+        mechanism, `UpstreamChokeCheck`'s unconditional re-solve across a melting-plateau
+        boundary the search crosses on its way to the sonic point, not a second maximum).
+        `tests/Problems.Tests/BOOT.md` records the same case's `Bits.approved.txt` move.
+      - **A structural finding beyond the audit's own scope**: the `throat` fixture
+        family's own reference generation is not immune to F3 either — its ternary
+        search can refine onto the pinned-pair side of a plateau edge, past Mach 1
+        (`beo-h2o-throat_pc15MPa_h-11.06875MJkg`'s reference Mach is 1.011285688885813).
+        `tests/Performance.Tests/StationComparison.IsPlateauEdgeDivergence` skips that
+        one station's comparison, guarded on the reference's own recorded Mach; the
+        Performance.Tests `BOOT.md` entry above has the red-once evidence.
 
       The evidence for F1, F5, O1 and O2 below is this coder's own, verified against
       the running code, not retyped from the audit report:
