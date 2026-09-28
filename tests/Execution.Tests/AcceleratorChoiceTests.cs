@@ -235,6 +235,65 @@ public sealed class AcceleratorChoiceTests
         _ = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Upload(otherTable, family.Transport));
     }
 
+    /// <summary>
+    /// A batch constructor refuses a count whose per-case array would overflow a 32-bit array length (BOOT.md, the
+    /// second audit's observation 6), before attempting the allocation: plain <c>int</c> arithmetic wraps silently
+    /// past <see cref="int.MaxValue"/> instead of throwing, so the checked computation must run first.
+    /// </summary>
+    [Fact]
+    public void BatchConstructorsRefuseACountWhoseArrayOverflowsA32BitLength()
+    {
+        // 100 000 cases of 30 000 elements each is above int.MaxValue (~2.147e9): the array is never allocated.
+        var equilibrium = Assert.Throws<ArgumentOutOfRangeException>(() => new EquilibriumBatch(100_000, 30_000));
+        Assert.Contains("overflows a 32-bit array length", equilibrium.Message, StringComparison.Ordinal);
+
+        var rocket = Assert.Throws<ArgumentOutOfRangeException>(() => new RocketBatch(100_000, 30_000, []));
+        Assert.Contains("overflows a 32-bit array length", rocket.Message, StringComparison.Ordinal);
+
+        var transport = Assert.Throws<ArgumentOutOfRangeException>(() => new TransportBatch(100_000, 30_000));
+        Assert.Contains("overflows a 32-bit array length", transport.Message, StringComparison.Ordinal);
+
+        // A count just inside the bound still allocates: the check is on the product, not on either factor alone.
+        Assert.Equal(2_000_000_000, new EquilibriumBatch(100_000, 20_000).ElementMoles.Length);
+    }
+
+    /// <summary>
+    /// A chunk buffer refuses to move a chunk the host array is too short for (BOOT.md, the second audit's
+    /// observation 6), before the unsafe <c>ref</c> copy: <c>ArrayView&lt;T&gt;.CopyFromCPU</c>/<c>CopyToCPU</c> take
+    /// a reference and a length with no bounds check of their own.
+    /// </summary>
+    [Fact]
+    public void AChunkBufferRefusesAHostArrayShorterThanTheChunkNeeds()
+    {
+        using var buffers = new Chunks.ChunkBuffers(EngineFixture.Shared.Cpu.IlgpuAccelerator);
+        var shortHost = new double[5];
+        var input = buffers.Input(shortHost, perCase: 1);
+        buffers.Allocate(10);
+        var uploadFailure = Assert.Throws<ArgumentException>(() => input.UploadChunk(0, 10));
+        Assert.Contains("the host array has 5 elements", uploadFailure.Message, StringComparison.Ordinal);
+
+        using var downloadBuffers = new Chunks.ChunkBuffers(EngineFixture.Shared.Cpu.IlgpuAccelerator);
+        var shortOutput = new double[5];
+        var output = downloadBuffers.Output(shortOutput, perCase: 1);
+        downloadBuffers.Allocate(10);
+        var downloadFailure = Assert.Throws<ArgumentException>(() => output.DownloadChunk(0, 10));
+        Assert.Contains("the host array has 5 elements", downloadFailure.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <see cref="Engine.ProbeMath"/> refuses an input count whose output would overflow a 32-bit offset (BOOT.md,
+    /// the second audit's observation 7): <c>Kernels.Probe</c> strides its output by
+    /// <see cref="MathProbe.FunctionCount"/> with 32-bit <c>Index1D</c> arithmetic.
+    /// </summary>
+    [Fact]
+    public void ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset()
+    {
+        // int.MaxValue / MathProbe.FunctionCount (14) + 1 inputs: index * FunctionCount then overflows.
+        var tooMany = int.MaxValue / MathProbe.FunctionCount + 1;
+        var failure = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.ProbeMath(new double[tooMany]));
+        Assert.Contains("overflows a 32-bit offset", failure.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Chunks are bounded by the chunk size and the scratch memory.</summary>
     [Fact]
     public void ChunksAreBoundedByTheChunkSizeAndTheScratchMemory()
@@ -380,5 +439,27 @@ public sealed class AcceleratorChoiceTests
         Assert.Same(result.Moles, transport.Moles);
         Assert.Equal(result.Stations.Select(s => s.Temperature), transport.Temperature);
         _ = Assert.IsType<TransportFigures[]>(EngineFixture.Shared.Cpu.Run(tables, transport).Figures);
+    }
+
+    /// <summary>
+    /// The launch budget a bind actually builds (BOOT.md, "A launch fits a time budget"; the second audit's Execution
+    /// finding F2): the CPU accelerator's is unbounded, and on the reference machine — a display GPU, its kernel
+    /// run-time limit enabled under both Windows and WSL2 (the audit's own measurement) — the CUDA engine's is bounded.
+    /// This is the one fact that reads <see cref="Engine.Budget"/> off a real bind rather than an injected
+    /// <see cref="LaunchBudget"/>; every other launch-budget fact is in <c>LaunchBudgetTests</c>.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void TheCpuAcceleratorsBudgetIsUnboundedAndTheReferenceDevicesIsBounded()
+    {
+        Assert.False(EngineFixture.Shared.Cpu.Budget.IsBounded);
+
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        Assert.True(cuda.Budget.IsBounded);
     }
 }
