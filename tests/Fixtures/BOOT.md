@@ -303,6 +303,17 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - A sodium case (2026-09-27): NaNO3(a) with RP-1, both at 298.15 K, O/F 4, 7 MPa,
     one hp case. It holds the six-interval `NaCN(II)` among its products, which the
     thermo node refused until that day (its `BOOT.md`).
+  - Rules A and B (2026-09-28, `generate/retention_threshold.py`; the orchestrator's
+    investigation 6, Equilibrium `BOOT.md`, "Two rules come before the remedies
+    above"): four tp cases the reference converges but that the equilibrium node
+    reached `SingularMatrix` on before the two rules.
+    - NaClO4 and KClO4, Na (or K) : Cl : O = 1 : 1 : 4, fed to the package as three
+      pure-element `Custom` reactants at the salt's own mole ratio (neither salt is
+      a `thermo.inp` reactant), at 500 K and 800 K, 1 bar; the reference reduces
+      both almost entirely to `O2` + `NaCL(cr)`/`KCL(cr)`.
+    - AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass
+      fractions and product table as the `ap-htpb-al` chamber fixture (imported from
+      `propellants.py`, not copied): a direct tp solve, not a rocket station.
   - `throat` (2026-09-27): the chamber and the throat of a shifting-equilibrium
     rocket, with no exit, where the throat is the largest mass flux `ρu` along the
     chamber isentrope, found over the package's own sp solves and never taken from its

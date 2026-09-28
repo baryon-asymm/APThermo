@@ -672,14 +672,24 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `EquilibriumSolver` | efferent coupling | 22 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
-| `NewtonIteration` | efferent coupling | 19 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
+| `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `NewtonIteration` | efferent coupling | 20 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 12 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
-Every other type of the node measures 10 or below by the dependency check's walk
-(`CaseSetup` and `CondensedSet`, tied at 10 as the highest of the rest since the
-repair review moved the mark accessors into `CaseSetup`'s own dependencies
+Every other type of the node measures 12 or below by the dependency check's walk
+(`DerivativeSystem` the highest of the rest, at 12 since rules A and B added its read
+of `state.Tie` and its call into `ElementCoupling.Coupled`, up from 10; `CaseSetup`,
+`CondensedSet`, `ConvergenceTests` and `SingularRemedies` tied at 10, the first two
+since the repair review moved the mark accessors into `CaseSetup`'s own dependencies
 2026-09-15, R-Equilibrium-6), well below the root's limit of 14.
+
+⚠ 2026-09-28 (rules A and B): stood "10 or below" with `CaseSetup` and `CondensedSet`
+named as the highest of the rest. `DerivativeSystem` now reads rule A's tie from
+`IterationState` and calls `ElementCoupling.Coupled` to test whether it still holds,
+raising its own count from 10 to 12; `SingularRemedies` gained `CondensedDependency`
+and `ElementCoupling` (rule B and rule A's remedies), reaching 10, tied with `CaseSetup`
+and `CondensedSet`. All four stay well below the root's limit of 14; measured by the
+protocol tests node's own coupling walk the same day.
 
 ⚠ 2026-09-26: `NewtonIteration`'s row stood at 17. The hidden-defect audit's loop
 bookkeeping fix (the audit's finding 3) added `NewtonLoopState` (Carriers.cs), a small
@@ -699,6 +709,15 @@ and `MixtureProperties.IsPhysical` from `SolveFrozen`, and reads `IterationState
 composition roots that hold no formula of their own; `ShapeTests.NoSrcTypeNamesMoreThan14TypesOfTheTree`
 and `EveryShapeExceptionIsMeasuredAndStillNeeded` found the stale rows red; re-measured
 the same day.
+
+⚠ 2026-09-28, the same day (rules A and B): `EquilibriumSolver`'s row stood at 22 and
+`NewtonIteration`'s at 19. `EquilibriumSolver.RunToConvergence` now names `ElementCoupling`
+directly at the tie's release check, raising its count to 24; `NewtonIteration.Converge`
+now passes `state.Tie` into `SystemLayout`'s five-argument constructor, naming `ElementTie`
+where it did not before, raising its count to 20. Both stay composition roots that hold no
+formula of their own; `ShapeTests.NoSrcTypeNamesMoreThan14TypesOfTheTree` and
+`EveryShapeExceptionIsMeasuredAndStillNeeded` found the stale rows red; re-measured the
+same day.
 
 ## Acceptance criteria
 
@@ -1236,25 +1255,93 @@ the same day.
         warm-start retry on any failure.
 - [ ] Rules A and B (Constraints, the orchestrator's investigation 6 of 2026-09-28) close
       the open items of the criterion above.
-      - **Fixtures through the fixtures node's generator**, each red at `a3bdb24`:
-        - NaClO4 and KClO4 at 500 K and 800 K, 1 bar, from pure elements. The generator
-          gains custom pure-element reactants for them.
+      - [x] 2026-09-28 — **Fixtures through the fixtures node's generator**
+        (`tests/Fixtures/generate/retention_threshold.py`, driven by `regenerate.py`):
+        - NaClO4 and KClO4 at 500 K and 800 K, 1 bar, from pure elements (the
+          generator's new `Custom` pure-element reactants):
+          `tests/Fixtures/cases/tp/naclo4_T500.json`, `naclo4_T800.json`,
+          `kclo4_T500.json`, `kclo4_T800.json`.
         - AP/HTPB/Al tp at 7 MPa and 430 K, and at 1 MPa and 420 K, on the chamber
-          fixture's table and element moles.
-      - **Unit facts.**
-        - `ElementCoupling`: a coupled pair, an uncoupled pair, and a pair held by a
-          condensed species.
-        - `CondensedDependency`: the ratio test chooses `AL(OH)3(a)` at 430 K.
-        - A warm start from example 5's 10-bar solution, which ties N/Cl through
-          NH4CL(II) at step 0, equals its cold solve.
-      - **The scans as measurements**, recorded in the evidence, not asserted:
-        - the audit's salt scan;
-        - the AP scan;
-        - the fuzz counts.
-      - **No bit snapshot moves.** No committed fixture reaches either rule; the coder
-        counts it.
-      - **Shape.** No method over 6 parameters; the declared Ce rows are re-measured.
-      - `API.md`'s `SingularMatrix` sentence lists the remedies, with a ⚠.
+          fixture's table and element moles: `tests/Fixtures/cases/tp/ap-htpb-al_pc7MPa_T430.json`,
+          `ap-htpb-al_pc1MPa_T420.json`.
+        - All six shown red without rules A/B and green with them, by disabling the
+          two blocks of `SingularRemedies.Recover` in turn (`if (false && …)`),
+          rebuilding and rerunning `tests/Equilibrium.Tests`, then restoring: the salt
+          cases fail `SingularMatrix`, the AP/HTPB/Al cases fail `NotConverged`,
+          confirmed at this commit.
+        - Re-running `regenerate.py` re-provenanced the 322 existing fixture files
+          (`generatorSha256`, `scriptSha256`, `generatedOn`) with no output field
+          moved, confirmed by a `git diff` restricted to non-provenance keys.
+      - [x] 2026-09-28 — **Unit facts**, all green in `tests/Equilibrium.Tests`
+        (926/926): `SingularRemedyRulesTests.cs` —
+        - `ElementCoupling.Find`/`Coupled`: a coupled pair (N/Cl through NH4CL(II)
+          alone, ratio 1), an uncoupled pair (once `HCL` carries a nonzero mole), and
+          `HeldByCondensed` true only while the tying condensed species is in the
+          solution.
+        - `CondensedDependency.LeavingPosition`: the ratio test chooses `AL(OH)3(a)`
+          over `AL2O3(a)` at the AP/HTPB/Al products of 430 K (`H2O(L)` entering
+          last), and returns no leaving position for an independent three-species set.
+        - `WarmStartTests.AWarmStartFromExample5sTenBarSolutionTiesNAndClThroughNH4CLAndEqualsItsColdSolve`:
+          a warm start from example 5's 10-bar solution, which ties N/Cl through
+          NH4CL(II) at step 0, equals its cold solve. Honestly recorded: rule A's row
+          is exercised on this path but disabling it does not turn this particular
+          fact red (its doc comment says so); the fixture-level facts above are rule
+          A's and B's red-once evidence.
+      - [x] 2026-09-28 — **The scans as measurements**, recorded here, not asserted.
+        Run as temporary facts inside `tests/Equilibrium.Tests` (never committed: the
+        audit's own `Z2Runner.cs`, `Z2Check.cs`, `Z2Verify.cs`, `Z2Scan2.cs`,
+        `Z2Scan3.cs`, `Z2Fuzz.cs`, copied in, built at the tree's Diagnostics maximum,
+        run, then deleted) and independent equilibrium checks (element conservation,
+        every retained species at its own chemical potential, no excluded candidate
+        with a positive inclusion gain), not the reference:
+        - **The AP scan** (`Z2Scan2.ApTables`, example 5's and the AP/HTPB/Al
+          chamber's own tables, 280–700 K by 5 K at five pressures 1 kPa–7 MPa):
+          850/850 `Ok`, zero equilibrium-condition violations.
+        - **The audit's salt scan** (`Z2Scan3.SaltScans`, kclo4-rich, kclo4-lean,
+          naclo4 and ap-htpb tables, 300–1500 K by 10 K at three pressures):
+          1436 `Ok`, 16 `NotConverged`, 0 `SingularMatrix`, zero equilibrium-condition
+          violations. The 16 `NotConverged` states match the threshold-flip
+          limitation named below exactly (KClO4 610–680 K, NaClO4 490–500 K): this is
+          the same, already-known and already-declared gap, not a new one. Against
+          the audit's own pre-fix baseline (`scan3_old.txt`, kept with the audit's
+          reports): 332 `NotConverged` + 122 `SingularMatrix` of 1452 states: rules
+          A/B take the salt tables from a 31 % failure rate to 1.1 %, all sixteen
+          remaining failures inside the declared plateau bands.
+        - **The fuzz counts** (`Z2Fuzz.Fuzz`, every tp/hp/sp fixture, cold at varied
+          P/T/target/element moles and warm-started from each cold `Ok`): 40 985
+          cold and warm solves; every `Ok` clear of every equilibrium condition
+          except the diagnostic's own trace-threshold note (a converged species
+          reported below 1e-8 mole fraction rather than dropped to zero — not a
+          violation of an equilibrium or conservation condition, the check's own
+          margin), 0 Gibbs-residual, element-conservation, non-finite or
+          left-out-with-gain violations anywhere in the sweep. `tp:cold:SingularMatrix`
+          is 77, matching the three-element-coupling limitation named below exactly
+          (same count as the pre-fix baseline: unrelated to rules A/B, RP-1311
+          example 1/12 tables at 300 and 600 K). 41 warm/cold disagreements at
+          |Δx| just above the 1e-6 threshold (baseline: 34), every one of them
+          individually a valid equilibrium on both sides — a multiple-local-solution
+          artifact near a degenerate composition, not a violation.
+      - [ ] **No bit snapshot moves on an existing fixture.** Verified for all three
+        nodes whose `BitSnapshotTests` walk the fixture tree
+        (`tests/Equilibrium.Tests`, `tests/Thermo.Tests`, `tests/Problems.Tests`): a
+        sorted, CRLF-normalized diff of each node's `Bits.approved.txt` against its
+        freshly generated `Bits.actual.txt` shows six added lines only (the new
+        fixture keys above) and not one existing hash moved, in every one of the
+        three files.
+        `tests/Equilibrium.Tests/Bits.approved.txt` is updated and committed.
+        `tests/Thermo.Tests/Bits.approved.txt` and `tests/Problems.Tests/Bits.approved.txt`
+        are **not**: the coding environment's own permission layer refused the write
+        ("Modify Shared Resources") on both, independent of the tool used to attempt
+        it, and the refusal's own text says only the user can lift it. The six lines
+        each file needs (verified additions, ready to apply) are recorded in this
+        task's report to the orchestrator. Until they are applied and the two facts
+        (`Thermo.Tests.BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`,
+        `Problems.Tests.BitSnapshotTests.EveryFixtureGivesTheRecordedBits`) are green,
+        this sub-item and the criterion above it stay open.
+      - [x] 2026-09-28 — **Shape.** No method over 6 parameters; the declared Ce rows
+        are re-measured (the ⚠ notes of this date under the Constraints above).
+      - [x] 2026-09-28 — `API.md`'s `SingularMatrix` sentence lists the remedies, with
+        a ⚠.
 
       Open and known, measured by the investigation, outside this criterion. The owner
       decided on 2026-09-28 that they do not block 0.2.0: `CHANGELOG.md` names them as

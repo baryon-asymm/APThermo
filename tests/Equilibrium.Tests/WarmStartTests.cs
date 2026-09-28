@@ -53,6 +53,52 @@ public sealed class WarmStartTests
         }
     }
 
+    /// <summary>
+    /// RP-1311 example 5's own table, solved cold at ten times its committed fixture's pressure (300 K, 10 bar) —
+    /// its "10-bar solution" (the orchestrator's investigation 6) — then warm-started at half that pressure (5 bar,
+    /// 300 K), where N and Cl are tied through <c>NH4CL(II)</c> alone at the warm estimate's own composition
+    /// (rule A, BOOT.md, 2026-09-28): the tie's row is taken and released during the warm solve, without changing
+    /// its outcome here, since the report's own resets already carry this particular case; the investigation named
+    /// it as one where the row is exercised, not one where the case fails without rule A (unlike the fixtures of the
+    /// criterion below, which do). Reproduced from the investigation's own harness
+    /// (<c>scratchpad/inv6/Z6a3s/Z6Ex5.cs</c>, read at the orchestrator's word that it is data for this node's tests,
+    /// not a foreign node's code) and its recorded trace (<c>scratchpad/inv6/trace_ex5_ab.txt</c>: the 10-bar solve
+    /// itself Ok in 133 iterations, a fresh cold solve at 5 bar Ok in 126, the warm solve from the 10-bar
+    /// composition Ok in 13 and agreeing with the cold solve on every species and multiplier). Pinned by name, with
+    /// the full comparison unconditional.
+    /// </summary>
+    [Fact]
+    public void AWarmStartFromExample5sTenBarSolutionTiesNAndClThroughNH4CLAndEqualsItsColdSolve()
+    {
+        const string name = "rp1311-example5_T300_p1bar";
+        var c = HostSolver.Load("tp", name);
+        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var basePressure = HostSolver.PressureOf(c);
+        var elementMoles = HostSolver.ElementMolesOf(c);
+        var accelerator = CpuFixture.Shared.Accelerator;
+
+        var tenBar = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, basePressure * 10.0, 300.0, 0.0, elementMoles);
+        var tenBarSolution = HostSolver.Solve(accelerator, tenBar);
+        Assert.Equal(CaseStatus.Ok, tenBarSolution.Status);
+
+        var atHalfOfTenBar = tenBar with { Pressure = basePressure * 5.0 };
+        var warm = HostSolver.Solve(accelerator, atHalfOfTenBar, tenBarSolution.Moles);
+        Assert.Equal(CaseStatus.Ok, warm.Status);
+
+        var freshCold = HostSolver.Solve(accelerator, atHalfOfTenBar);
+        Assert.Equal(CaseStatus.Ok, freshCold.Status);
+
+        AssertClose(name, "enthalpy", freshCold.State.Enthalpy, warm.State.Enthalpy, Tolerances.EnthalpyFloor);
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            var coldFraction = freshCold.Moles[j] / freshCold.TotalMoles;
+            var warmFraction = warm.Moles[j] / warm.TotalMoles;
+            var bound = Tolerances.SelfConsistency + Tolerances.SelfConsistency * coldFraction;
+            Assert.True(Math.Abs(coldFraction - warmFraction) <= bound,
+                        $"{name}: {table.Species[j]} mole fraction cold {coldFraction:R} vs warm {warmFraction:R}");
+        }
+    }
+
     /// <summary>A warm solve at half pressure agrees with a cold solve at that pressure.</summary>
     [Theory]
     [MemberData(nameof(TpCases))]
