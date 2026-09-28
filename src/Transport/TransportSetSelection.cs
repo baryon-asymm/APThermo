@@ -5,8 +5,9 @@ namespace APThermo.Transport;
 /// case above a threshold descending by decades joins it, until the set carries the coverage fraction of the gaseous moles, is
 /// full, or the threshold falls under the cutoff (<c>BOOT.md</c>, Constraints). The thresholds count the gases of the case —
 /// those whose every element is active — and not the gases of the table, which may hold the species of other cases.
-/// Scratch: reads <c>RowActive</c>, <c>Component</c> and the "in the set" bit of <c>Mark</c>, cleared by
-/// <see cref="TransportComponents"/>; writes <c>IndexList</c> and that bit.
+/// Scratch: reads <c>RowActive</c> and the "in the set" bit of <c>Mark</c>, cleared by <see cref="TransportComponents"/>, and
+/// <c>Component</c> as settled by <see cref="ComponentBasis"/> — every component is seeded whatever its moles, a zero-mole
+/// default included (2026-09-28); writes <c>IndexList</c> and that bit.
 /// </summary>
 internal static class TransportSetSelection
 {

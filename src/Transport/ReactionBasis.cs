@@ -4,11 +4,12 @@ namespace APThermo.Transport;
 /// Stage 7 of the evaluation: the stoichiometry of the set reduced so that the column of every component is a unit vector. The
 /// row operations act on every column alike, so the reduced rows are the formation coefficients the reactions are read from
 /// (<c>BOOT.md</c>, Constraints: the reference reduces only when a component differs from its row's monatomic default, which is
-/// the same matrix wherever the monatomic gases are present). When a component's own column has been zeroed by an earlier row's
-/// elimination — its column was proportional to that earlier component's — the row takes back its default species before it is
-/// reduced, and is left unreduced only when that pivot is zero too (cea 3.3.4 <c>equilibrium.f90:2264-2285</c>; <c>BOOT.md</c>,
-/// the ⚠ of 2026-09-26, hidden-defect audit finding F4).
-/// Scratch: reads <c>IndexList</c>, <c>RowActive</c>, <c>Default</c>; reads and writes <c>Component</c>; writes <c>Basis</c>.
+/// the same matrix wherever the monatomic gases are present). The components are already settled by
+/// <see cref="ComponentBasis"/> before the set was seeded, so every component has its column in the set; this stage no longer
+/// reverts one (2026-09-28): a pivot that is still zero here — the set's cleaning threshold drove it there after the set was
+/// built, not a proportional column <see cref="ComponentBasis"/> already resolved — leaves its row unreduced, as the
+/// reference's <c>tem == 0</c> does (cea 3.3.4 <c>equilibrium.f90:2272-2273</c>).
+/// Scratch: reads <c>IndexList</c>, <c>RowActive</c>, <c>Component</c>; writes <c>Basis</c>.
 /// </summary>
 internal static class ReactionBasis
 {
@@ -56,9 +57,9 @@ internal static class ReactionBasis
         }
     }
 
-    /// <summary>Gauss–Jordan over the component columns, with the entries below the cleaning threshold set to zero. A component
-    /// whose own column has been driven to zero by an earlier pivot reverts to its row's default species before the row is
-    /// reduced (cea 3.3.4 <c>equilibrium.f90:2264-2285</c>).</summary>
+    /// <summary>Gauss–Jordan over the component columns, with the entries below the cleaning threshold set to zero. Every
+    /// component was already settled by <see cref="ComponentBasis"/>, so a zero pivot here leaves the row unreduced
+    /// (cea 3.3.4 <c>equilibrium.f90:2272-2273</c>, its own <c>tem == 0</c> skip).</summary>
     private static void Eliminate(in StationInputs inputs, int nm)
     {
         var scratch = inputs.Scratch;
@@ -73,12 +74,7 @@ internal static class ReactionBasis
             var pivot = PivotAt(in inputs, nm, i, scratch.Component[i], out var column);
             if (pivot == 0.0)
             {
-                scratch.Component[i] = scratch.Default[i];
-                pivot = PivotAt(in inputs, nm, i, scratch.Component[i], out column);
-                if (pivot == 0.0)
-                {
-                    continue;
-                }
+                continue;
             }
 
             if (pivot != 1.0)

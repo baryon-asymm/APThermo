@@ -52,6 +52,48 @@ public sealed class ReactionConservationTests
         Assert.True(violations.Count == 0, string.Join("\n", violations));
     }
 
+    /// <summary>
+    /// The same restricted list with the row defaults carrying no moles at all (the second hidden-defect audit's F2,
+    /// 2026-09-28): the N row's component is still NO2, but N2O4's column is proportional to NO2's, so the O row's pivot
+    /// vanishes once the N row is reduced and it reverts to the atomic oxygen default — which this station gives zero
+    /// moles. <see cref="ComponentBasis"/> settles the revert before the set is seeded, so the default is seeded despite
+    /// its zero moles (<c>BOOT.md</c>, Constraints, the ⚠ of 2026-09-28) and trace-eliminated from the reactions rather
+    /// than left out of the basis entirely, which is what broke conservation before the fix.
+    /// </summary>
+    [Fact]
+    public void TheAuditsRestrictedProductListConservesEveryReactionWhenTheRevertedDefaultCarriesNoMoles()
+    {
+        string[] elements = ["N", "O"];
+        string[] products = ["NO2", "N2O4", "N", "O", "N2", "O2", "NO"];
+        var moles = new Dictionary<string, double>(StringComparer.Ordinal)
+        {
+            ["NO2"] = 0.6,
+            ["N2O4"] = 0.3,
+            ["N"] = 0.0,
+            ["O"] = 0.0,
+            ["N2"] = 0.01,
+            ["O2"] = 0.01,
+            ["NO"] = 0.01,
+        };
+
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, elements, products);
+        var transport = TransportTable.Build(CpuFixture.Shared.Transport, table);
+        var moleArray = new double[table.SpeciesCount];
+        foreach (var (name, value) in moles)
+        {
+            moleArray[table.IndexOf(name)] = value;
+        }
+
+        var (status, figures, violations) = EvaluateAndCheckConservation(table, transport, moleArray, temperature: 400.0);
+        Assert.Equal(CaseStatus.Ok, status);
+
+        // The set carries every product but the atomic nitrogen the N row never needed (its component stayed NO2); the
+        // atomic oxygen the O row reverted to is seeded with zero moles and immediately trace-eliminated.
+        Assert.Equal(products.Length - 1, figures.SpeciesCount);
+        Assert.Equal(1, figures.TraceEliminations);
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
+
     /// <summary>Every reaction of every station's set, over every rocket fixture run with transport, conserves the elements.</summary>
     [Fact]
     public void EveryReactionOfEveryStationsSetConservesTheElements()
