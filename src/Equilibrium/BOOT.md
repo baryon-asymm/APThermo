@@ -369,6 +369,66 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the singular cycle of the ⚠ above. Present since the first version; found by the
   second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium, finding F5).
 
+  Two rules come before the remedies above (2026-09-28, the orchestrator's
+  investigation 6), in this order:
+  - **Rule B: a dependent inclusion is a basis change.** When the matrix is singular
+    and the condensed species added last is a linear combination of the other condensed
+    species of the solution, the entering species stays. The least-squares residual on
+    the element vectors must be at most 1e-9 per element. The species that the
+    favourable reaction uses up first leaves: the smallest `n_p/c_p` over the positive
+    coefficients `c_p` of the combination, the simplex ratio test. This is a change of
+    the set, and it is not marked for the anti-cycling skip. In hp and sp the
+    temperature column keeps such a set non-singular, so in practice this is a tp rule.
+  - **Rule A: an element tie.**
+    - **Trigger.** The matrix is singular, the failed pivot is element row `k`, and
+      another active element `i` appears in one common ratio `r = a_kj/a_ij` in every
+      species of the sums (the retained gases and the condensed species of the
+      solution).
+    - **Action.** Row `k` is replaced by the linearized balance of `b_k − r·b_i`,
+      summed over every in-play gaseous species, retained or not, plus the condensed
+      columns. This fixes the one direction of the multipliers, `π_k − r·π_i`, that the
+      retained species leave free, from the trace species that fix it at the true
+      equilibrium.
+    - **When.** At once when a condensed species of the solution holds both elements;
+      otherwise only after the two resets, which still handle transient couplings.
+    - **Release.** Once the condensed-set update finds no further change and some
+      species of the sums tells the pair apart, the tie is released, at most once per
+      solve, and the settled set converges again on the element's own row.
+    - **Derivatives.** A tie that survives to the close gives the derivative system a
+      unit row that fixes the tied element's multiplier derivative at 0.
+
+  The tie is per-case state carried in `IterationState` (`ElementTie`: active, element,
+  partner, ratio, released). `ElementCoupling` holds the read-only queries,
+  `CondensedDependency` rule B's tests, and `IterationMatrix` stays the only writer of
+  Newton rows. `SingularRemedies.Recover` tries rule B, then rule A, then the resets,
+  then the targeted removal.
+
+  ⚠ 2026-09-28, the same day: the targeted removal above did not close the AP/HTPB/Al
+  states it was written for. At 7 MPa and 430 K, `H2O(L)` enters with gain +0.2105
+  beside `AL2O3(a)` and `AL(OH)3(a)`, and the matrix fails on its row. The removal takes
+  the smallest species sharing an element with it, `AL2O3(a)`, which is a product of the
+  favourable reaction. It does so twice, stands it down, and settles on
+  {AL(OH)3(a), C(gr), NH4CL(II)}. That set's Gibbs energy is 64.8 kJ/kg above cea's at
+  430 K and 57.9 above at 420 K, and the exit guard rightly returned `NotConverged`.
+  cea's state is the equilibrium: `AL(OH)3(a)` gains −0.3158 there, stable only below
+  415.948 K. Separately, NaClO4 and KClO4 (Na or K : Cl : O = 1:1:4, tp at 500 and
+  800 K) ended `SingularMatrix` in the all-gas trial. The polish drove the last
+  alkali carrier without Cl, `Na2O2`/`K2O2`, across the threshold, so the alkali and
+  Cl rows became identical, with no condensed species to remove. cea never meets a
+  singular matrix there. The last carrier sits at e^−30 to e^−70 at equilibrium, and a
+  switch of the threshold before the polish only moves the crossing (measured). Both
+  rules measured on a prototype:
+  - all six states `Ok`, within 7e-9 of cea;
+  - the audit's salt scan went from 1 132 to 1 436 `Ok` of 1 452, with no
+    `SingularMatrix` left;
+  - the AP scan went from 842 to 850 of 850;
+  - warm-start failures in the fuzz went from 13 to 0, with 6 warm/cold disagreements
+    at trace level, all inside `WarmStartTests`' tolerance;
+  - no committed fixture reaches either rule, so no bit moves.
+
+  A bare widening of the threshold to 80, the reference's remedy, fixed none of the six
+  states and added hundreds of warm/cold disagreements; it stays rejected.
+
   ⚠ 2026-09-13: until this date the rule read "a condensed species outside its
   temperature range is not a candidate at that temperature … when the temperature is
   a variable and the range is missed by less than 50 K both records stay, the
@@ -1174,6 +1234,40 @@ the same day.
       - `API.md` states the changes: the retention stages, the targeted remedy, the
         window, the guard, the non-finite temperatures under `InvalidInput`, the
         warm-start retry on any failure.
+- [ ] Rules A and B (Constraints, the orchestrator's investigation 6 of 2026-09-28) close
+      the open items of the criterion above.
+      - **Fixtures through the fixtures node's generator**, each red at `a3bdb24`:
+        - NaClO4 and KClO4 at 500 K and 800 K, 1 bar, from pure elements. The generator
+          gains custom pure-element reactants for them.
+        - AP/HTPB/Al tp at 7 MPa and 430 K, and at 1 MPa and 420 K, on the chamber
+          fixture's table and element moles.
+      - **Unit facts.**
+        - `ElementCoupling`: a coupled pair, an uncoupled pair, and a pair held by a
+          condensed species.
+        - `CondensedDependency`: the ratio test chooses `AL(OH)3(a)` at 430 K.
+        - A warm start from example 5's 10-bar solution, which ties N/Cl through
+          NH4CL(II) at step 0, equals its cold solve.
+      - **The scans as measurements**, recorded in the evidence, not asserted:
+        - the audit's salt scan;
+        - the AP scan;
+        - the fuzz counts.
+      - **No bit snapshot moves.** No committed fixture reaches either rule; the coder
+        counts it.
+      - **Shape.** No method over 6 parameters; the declared Ce rows are re-measured.
+      - `API.md`'s `SingularMatrix` sentence lists the remedies, with a ⚠.
+
+      Open and known, measured by the investigation, outside this criterion; the owner
+      decides whether they block 0.2.0:
+      - **The threshold flip.** Two carriers cross the threshold alternately every
+        step, so the polish never completes: KClO4 at 610–680 K, NaClO4 at 490–500 K,
+        16 salt-scan states `NotConverged`. The matrix is never singular.
+      - **The three-element coupling.** With only CO2, H2O and N2 retained, row O
+        equals 2·C + ½·H. 77 fuzz tp states on example 1 and example 12 tables at
+        300 K and 600 K end `SingularMatrix`, which a pair tie cannot express.
+      - **The reaction plateau.** hp inside the Al(OH)3/Al2O3/H2O(L) reaction plateau
+        (T* = 415.948 K, 157 kJ/kg wide at 7 MPa) ends `SingularMatrix` in the
+        derivative system: the pinned-pair convention covers two records of one
+        formula only.
 
 ## Taboos
 
