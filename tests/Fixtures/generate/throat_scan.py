@@ -1,8 +1,10 @@
 """The throat family (2026-09-27): the chamber and the throat of a shifting-equilibrium rocket, with the throat
-found as the largest mass flux rho*u over the package's own sp solves along the chamber isentrope, never taken
-from the package's own rocket solver (Fixtures BOOT.md, the case matrix). It exists because the package's rocket
-solver reports a wrong throat at the high-pressure edge of a melting plateau (Performance BOOT.md, "The throat
-carries the largest mass flux"; RP-1311 sections 6.3.3 and 6.3.4).
+found as the first local maximum of the mass flux rho*u met from the chamber, over the package's own sp solves
+along the chamber isentrope, never taken from the package's own rocket solver (Fixtures BOOT.md, the case
+matrix). It exists because the package's rocket solver reports a wrong throat at the high-pressure edge of a
+melting plateau, and (the second hidden-defect audit's finding F1, 2026-09-28) can also converge to a second,
+larger-rho*u maximum further downstream of the true, first one near such a plateau (Performance BOOT.md, "the
+throat is the first maximum of the mass flux met from the chamber"; RP-1311 sections 6.3.3 and 6.3.4).
 
 Reuses the reactant lists and compositions of plateaus.py (AP/HTPB/Al) and rp1311.py (example 13's N2H4/Be/H2O2)
 by import, never by copy. The scan solves only through cea_cases.solve_equilibrium, and the guard's rocket solves
@@ -48,6 +50,10 @@ AP_HTPB_AL_CASES = [
     ("ap-htpb-al-throat_pc1MPa_dh-2.25MJkg", 1.0 * MPA_TO_PA, -2.25e6),
     ("ap-htpb-al-throat_pc3MPa_dh-2.25MJkg", 3.0 * MPA_TO_PA, -2.25e6),
     ("ap-htpb-al-throat_pc15MPa_dh-2.25MJkg", 15.0 * MPA_TO_PA, -2.25e6),
+    # The second hidden-defect audit's finding F1 (2026-09-28): the true (first, upstream) maximum sits on the
+    # pinned AL2O3(a)/AL2O3(L) pair itself, with a second, larger-rho*u maximum further downstream that the tree
+    # used to return (Performance BOOT.md, "the throat is the first maximum of the mass flux met from the chamber").
+    ("ap-htpb-al-throat_pc7MPa_dh-2.625MJkg", 7.0 * MPA_TO_PA, -2.625e6),
 ]
 
 EXAMPLE13_CHAMBER_PRESSURE_PA = 5.0 * MPA_TO_PA
@@ -55,6 +61,20 @@ EXAMPLE13_CASES = [
     ("rp1311-example13-throat_pc5MPa_dh0", 0.0),
     ("rp1311-example13-throat_pc5MPa_dh+250kJkg", 250.0e3),
 ]
+
+# The second hidden-defect audit's finding F1 (2026-09-28), the two further cases outside the AP/HTPB/Al and
+# example 13 systems: plain elemental reactants at 298.15 K, whose reference-state enthalpy is zero, so the
+# enthalpy below is assigned directly rather than as an offset from a propellant's own h0. Reproduces, by element
+# and mass fraction, the audit's own "b-o-h" and "li-f-h" element systems
+# (scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs) and its "al-o-h-lean" system, at the pressures
+# and enthalpies its own sweep found the second, larger-rho*u maximum at (scratchpad/audit2/out/pt/throat-sweep-misc.csv).
+# (name, reactants, mass fractions, chamber pressure in Pa, enthalpy in J/kg)
+ELEMENT_MIXTURE_CASES = [
+    ("al-o-h-lean-throat_pc7MPa", ["AL(cr)", "O2", "H2"], [0.08, 0.62, 0.30], 7.0 * MPA_TO_PA, 1.9125e6),
+    ("b2o3-throat_pc0.3MPa", ["B(b)", "O2", "H2"], [0.10, 0.55, 0.35], 0.3 * MPA_TO_PA, -7.775e6),
+    ("lif-throat_pc7MPa", ["Li(cr)", "F2", "H2"], [0.08, 0.62, 0.30], 7.0 * MPA_TO_PA, -7.575e6),
+]
+ELEMENT_MIXTURE_TEMPERATURE_K = 298.15
 
 
 def _flux(reac, prod, weights, entropy: float, chamber_pressure_pa: float, chamber_enthalpy: float, ratio: float,
@@ -65,16 +85,29 @@ def _flux(reac, prod, weights, entropy: float, chamber_pressure_pa: float, chamb
     return state["density"] * velocity, state, velocity
 
 
+def _first_local_max(fluxes: list[float]) -> int:
+    """The first local maximum of rho*u scanning from the chamber side (the grid's high-ratio, high-pressure end)
+    toward the low-pressure end (Performance BOOT.md, 2026-09-28, "the throat is the first maximum of the mass flux
+    met from the chamber"): the highest-pressure index where the flux stops rising. Near a melting plateau there can
+    be a second, lower-pressure maximum further down the grid; this picks the one a converging nozzle's subsonic
+    flow actually reaches first. Where none is found scanning this way, the grid's own edge (`len(fluxes) - 1`) is
+    returned, so the caller's existing edge check raises the same way it always did."""
+    for i in range(len(fluxes) - 2, 0, -1):
+        if fluxes[i] > fluxes[i - 1] and fluxes[i] >= fluxes[i + 1]:
+            return i
+    return len(fluxes) - 1
+
+
 def _scan_throat(reac, prod, weights, chamber_pressure_pa: float, enthalpy: float, trace: float | None = None):
-    """The chamber's hp solve, then the largest rho*u over the grid, refined by ternary search; returns
-    (chamber, throat, velocity, c*, p/p_c)."""
+    """The chamber's hp solve, then the first rho*u maximum met from the chamber over the grid, refined by ternary
+    search; returns (chamber, throat, velocity, c*, p/p_c)."""
     chamber = solve_equilibrium(reac, prod, weights, "hp", enthalpy, chamber_pressure_pa, False, trace=trace)
     grid = np.linspace(GRID_LOW, GRID_HIGH, GRID_POINTS)
     fluxes = [_flux(reac, prod, weights, chamber["entropy"], chamber_pressure_pa, chamber["enthalpy"], r, trace)[0]
              for r in grid]
-    peak = int(np.argmax(fluxes))
+    peak = _first_local_max(fluxes)
     if peak == 0 or peak == len(grid) - 1:
-        raise RuntimeError(f"the largest mass flux lies at the grid edge (index {peak})")
+        raise RuntimeError(f"the first local maximum lies at the grid edge (index {peak})")
     low, high = float(grid[peak - 1]), float(grid[peak + 1])
     for _ in range(TERNARY_STEPS):
         left, right = low + (high - low) / 3.0, high - (high - low) / 3.0
@@ -125,15 +158,28 @@ def _throat_outputs(name: str, reac, prod, weights, temperatures, chamber_pressu
         _station(throat, "throat", 1, mach, 1.0, chamber_pressure_pa / throat["pressure"], c_star, velocity),
     ]}
     package, guard_error = _package_throat(reac, prod, weights, temperatures, chamber_pressure_pa, enthalpy, insert, trace)
-    if package is not None and abs(package["mach"] - 1.0) <= GUARD_MACH_TOLERANCE:
-        if abs(package["cStar"] - c_star) > GUARD_CSTAR_RTOL * abs(package["cStar"]):
-            raise RuntimeError(f"{name}: scan c* {c_star!r} against the package's sonic throat c* {package['cStar']!r}")
-        print(f"    {name}: scan c* {c_star:.4f} matches the package's sonic throat {package['cStar']:.4f}")
-    else:
+    if package is None or abs(package["mach"] - 1.0) > GUARD_MACH_TOLERANCE:
         reason = guard_error if package is None else f"Mach {package['mach']:.4f}"
         print(f"    {name}: scan c* {c_star:.4f}, package rocket throat not usable ({reason})")
         outputs["packageRocketThroat"] = package if package is not None else {"guardError": guard_error}
-    return outputs
+        return outputs
+
+    if abs(package["cStar"] - c_star) <= GUARD_CSTAR_RTOL * abs(package["cStar"]):
+        print(f"    {name}: scan c* {c_star:.4f} matches the package's sonic throat {package['cStar']:.4f}")
+        return outputs
+
+    # The second hidden-defect audit's finding F1 (2026-09-28): the package's own rocket solver can converge to the
+    # same downstream (larger p_c/p, lower rho*u) sonic point the tree used to, near a melting plateau with two
+    # maxima. The scan's first maximum, upstream of it (a smaller p_c/p, so a larger ratio here) and with no more
+    # mass flux (a c* no higher), is exactly the geometry the audit found and not a disagreement to guard against.
+    package_ratio = 1.0 / package["pressureRatio"]
+    if ratio > package_ratio and c_star <= package["cStar"]:
+        print(f"    {name}: scan c* {c_star:.4f} at p/p_c {ratio:.6f}, upstream of the package's own sonic but "
+             f"downstream throat {package['cStar']:.4f} at p/p_c {package_ratio:.6f} (finding F1)")
+        outputs["packageRocketThroat"] = package
+        return outputs
+
+    raise RuntimeError(f"{name}: scan c* {c_star!r} against the package's sonic throat c* {package['cStar']!r}")
 
 
 def ap_htpb_al_throats(writer: Writer) -> None:
@@ -168,9 +214,26 @@ def example13_throats(writer: Writer) -> None:
             outputs=outputs, script_path=__file__, method="cea-package-mass-flux-scan")
 
 
+def element_mixture_throats(writer: Writer) -> None:
+    """The second hidden-defect audit's finding F1 (2026-09-28): plain elemental reactants, at the pressure and
+    enthalpy the audit's own sweep found a second, larger-rho*u maximum downstream of the true one."""
+    for name, reactants, mass_fractions, chamber_pressure_pa, enthalpy in ELEMENT_MIXTURE_CASES:
+        weights = np.array(mass_fractions)
+        temperatures = np.full(len(reactants), ELEMENT_MIXTURE_TEMPERATURE_K)
+        reac, prod = make_mixtures(reactants)
+        descriptions = describe_reactants(reactants, weights, temperatures)
+        outputs = _throat_outputs(name, reac, prod, weights, temperatures, chamber_pressure_pa, enthalpy)
+        writer.case(
+            "throat", name,
+            inputs=rocket_inputs(descriptions, prod.species_names, chamber_pressure_pa, enthalpy, FLOW_SHIFTING, False,
+                                 extra={"enthalpyAssigned": True}),
+            outputs=outputs, script_path=__file__, method="cea-package-mass-flux-scan")
+
+
 def generate(writer: Writer) -> None:
     ap_htpb_al_throats(writer)
     example13_throats(writer)
+    element_mixture_throats(writer)
 
 
 if __name__ == "__main__":

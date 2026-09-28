@@ -304,23 +304,40 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     one hp case. It holds the six-interval `NaCN(II)` among its products, which the
     thermo node refused until that day (its `BOOT.md`).
   - `throat` (2026-09-27): the chamber and the throat of a shifting-equilibrium
-    rocket, with no exit, where the throat is the largest mass flux `ρu` along the
-    chamber isentrope, found over the package's own sp solves and never taken from its
-    rocket solver. It exists because the package's rocket solver reports a wrong
-    throat at the high-pressure edge of a melting plateau, while its equilibrium
-    solves there are sound. The performance node's `BOOT.md` states the defect, and
-    RP-1311 sections 6.3.3 and 6.3.4 define the throat this family computes.
-    - Cases, the enthalpy assigned relative to the reactants' own `h₀`:
+    rocket, with no exit, where the throat is the first local maximum of the mass
+    flux `ρu` met from the chamber along the chamber isentrope, found over the
+    package's own sp solves and never taken from its rocket solver. It exists because
+    the package's rocket solver reports a wrong throat at the high-pressure edge of a
+    melting plateau, while its equilibrium solves there are sound. The performance
+    node's `BOOT.md` states the defect, and RP-1311 sections 6.3.3 and 6.3.4 define
+    the throat this family computes.
+    - Cases, the enthalpy assigned relative to the reactants' own `h₀` unless stated:
       - AP/HTPB/Al of the plateau cases above at 7 MPa, `h₀` − 2.20, − 2.225,
         − 2.25, − 2.275 and − 2.30 MJ/kg;
       - the same at 1, 3 and 15 MPa, `h₀` − 2.25 MJ/kg;
       - RP-1311 example 13's propellant at 5 MPa, `h₀` and `h₀` + 250 kJ/kg, with
-        its trace threshold.
+        its trace threshold;
+      - the second hidden-defect audit's finding F1 (2026-09-28): AP/HTPB/Al at
+        7 MPa, `h₀` − 2.625 MJ/kg, where the true (first, upstream) maximum sits on
+        the pinned `AL2O3(a)`/`AL2O3(L)` pair itself, with a second, larger-`ρu`
+        maximum further downstream that the tree used to return; a lean Al/O/H
+        mixture (mass fractions 0.08/0.62/0.30) at 7 MPa and 1.9125 MJ/kg (reference
+        state, not an offset); a B/O/H mixture forming `B2O3` (0.10/0.55/0.35) at
+        0.3 MPa and −7.775 MJ/kg; a Li/F/H mixture forming `LiF` (0.08/0.62/0.30) at
+        7 MPa and −7.575 MJ/kg. The last three reproduce, by element and mass
+        fraction, the audit's own scratch harness
+        (`scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs`) and its
+        sweep's own reproducing points
+        (`scratchpad/audit2/out/pt/throat-sweep-misc.csv`).
     - Method, per case:
       1. The chamber is the package's hp at the assigned enthalpy and `p_c`.
       2. `ρu` is evaluated on 101 pressure ratios `p/p_c` evenly from 0.45 to 0.70,
          each an sp solve at the chamber's entropy with `u = √(2(h_c − h))`. The
-         largest must lie strictly inside the grid, or the run stops.
+         first local maximum met scanning from the high-pressure (chamber) end
+         toward the low-pressure end must lie strictly inside the grid, or the run
+         stops (2026-09-28, finding F1: earlier the scan took the grid's overall
+         largest, which is the same point away from a plateau but the wrong,
+         second/downstream one on one).
       3. The bracket of its two neighbours is refined by ternary search on `ρu` for
          50 steps.
       4. The throat is the sp solve at the bracket's high-pressure end, the chamber
@@ -335,6 +352,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       stops. Where it is not, the generator logs both c* values, and the fixture records
       the package's throat under `outputs.packageRocketThroat` (c*, Mach, pressure
       ratio) for the record. No test compares with that object.
+
+      ⚠ 2026-09-28, finding F1: the guard's only accepted disagreement used to be "the
+      package's own throat is not sonic". The four new cases' own package rocket
+      solver converges to the same wrong, second/downstream sonic point the tree used
+      to return, so it reports a throat that is sonic but not equal to the scan's. A
+      second accepted branch: when the scan's ratio `p/p_c` is above the package's own
+      (upstream of it, since a smaller `p/p_c` is downstream) and the scan's c* is no
+      higher than the package's, the disagreement is exactly this known divergence,
+      not a defect of the method; the package's throat is still recorded under
+      `outputs.packageRocketThroat` for the record.
     - Measured 2026-09-26/27 with the scratch versions of this method:
       - AP/HTPB/Al at 7 MPa, `h₀` − 2.20, − 2.225, − 2.30 MJ/kg: 1336.537, 1333.066
         and 1333.226 m/s, equal to the package's printed c* to 0.001 m/s;
@@ -345,9 +372,16 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       - `h₀` + 250 kJ/kg: 1941.006 m/s at `p/p_c` 0.612894, where `u²/a²` is 0.880
         on the chamber side and 1.014 on the plateau. The package prints 1949.759 at
         Mach 0.9335, solved at `p/p_c` 0.613466.
+    - Measured 2026-09-28 for the four F1 cases (the generator's own run):
+      `h₀` − 2.625 MJ/kg gives 1356.2237 m/s at `p/p_c` 0.606665, upstream of and no
+      less than the package's own sonic, downstream throat of 1358.2296 m/s at
+      `p/p_c` 0.554635; the lean Al/O/H, B2O3 and LiF mixtures reproduce the audit's
+      own sweep figures within its own tolerance, each accepted by the same branch.
     - The document is that of the rocket kind, with `stations` holding the chamber
       and the throat only, and `inputs` marking `enthalpyAssigned` as the hp band
-      cases do. Frozen flow is not generated: a frozen throat has no plateau.
+      cases do (the reference-state cases carry the flag `true` too: the assigned
+      enthalpy equals the offset since `h₀ = 0` there). Frozen flow is not generated:
+      a frozen throat has no plateau.
     `thermo_functions.py` (gaseous and condensed records, one with four intervals), at
     those of 200, 298.15, 500, 1000, 1000.0001, 2000, 3000, 5000, 6000 K that lie in the
     record's range, the record's first bound, midpoint and last bound (so that a narrow
@@ -548,6 +582,41 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       consequence of the first invariant above ("fixtures are generated, never
       edited") applied to a shared generator module, not a hand edit, and is recorded
       here rather than left to be found in the diff.
+
+- [x] 2026-09-28 — The throat family's four F1 cases (the case matrix; the second
+      hidden-defect audit's finding F1, Performance `BOOT.md`): `throat_scan.py` gains
+      `_first_local_max` (the first local maximum met scanning from the chamber side,
+      in place of the grid's overall maximum), the `ELEMENT_MIXTURE_CASES` list and
+      `element_mixture_throats`, and the guard's second accepted branch (the ⚠ of
+      2026-09-27 above, extended: the package's own rocket solver can converge to the
+      same wrong, second/downstream sonic point, so its throat is sonic but not equal
+      to the scan's; accepted when the scan's `p/p_c` is upstream of the package's and
+      its c* is no higher).
+      - `regenerate.py throat` writes all 14 cases of the family (the ten of
+        2026-09-27 plus the AP/HTPB/Al `h₀` − 2.625 MJ/kg case and the lean Al/O/H,
+        B2O3 and LiF element-mixture cases), and `regenerate.py --check throat` then
+        reports `fixtures: unchanged 14`.
+      - Touching `throat_scan.py` re-provenanced (new `scriptSha256`) the ten
+        already-committed throat fixtures, and its `generatorSha256` (the hash over
+        every `*.py` and `requirements.txt` of `generate/`, this node's own rule
+        above) re-provenanced every other fixture of the tree as well — 312 of them,
+        `regenerate.py` run in full, not by kind. Verified field by field, over all
+        322 changed files, that only `generator.*` keys differ from the committed
+        ones; `Fixtures.Tests` 34/34 green after, `EveryFixturesGeneratorSha256MatchesTheCommittedGenerator`
+        included.
+      - The four new cases' own figures (scan c*, its `p/p_c`, and the package's own
+        downstream sonic throat where the guard's second branch accepts the case) are
+        recorded in the performance node's `BOOT.md`, matched to the audit report's own
+        cited numbers for the AP/HTPB/Al case.
+
+      ⚠ 2026-09-28: the "ten cases" and "all 327/328 fixtures" figures of the entries
+      above are the state of 2026-09-27 and are left as written (AGENTS.md §8: a
+      number that repeats a list's length is not corrected retroactively once the
+      list has changed; it was true the day it was ticked). The throat family now
+      holds 14 cases; the repository-wide fixture total is not re-quoted here, since
+      no criterion of this node asserts it as an "all" quantifier the machine checks
+      — `regenerate.py --check` (no kind filter) is that check, and it is run by the
+      full suite (`Fixtures.Tests`), not read off a typed number in this document.
 
 - [x] 2026-09-27 — The sodium case (the case matrix): `propellants.py` gains
       `sodium_hp`, one hp case (`cases/hp/nano3-rp1_of4_pc7MPa.json`) of NaNO3(a) with
