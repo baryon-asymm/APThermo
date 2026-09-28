@@ -1256,8 +1256,9 @@ the same day.
       - **Shape.** No method over 6 parameters; the declared Ce rows are re-measured.
       - `API.md`'s `SingularMatrix` sentence lists the remedies, with a ⚠.
 
-      Open and known, measured by the investigation, outside this criterion; the owner
-      decides whether they block 0.2.0:
+      Open and known, measured by the investigation, outside this criterion. The owner
+      decided on 2026-09-28 that they do not block 0.2.0: `CHANGELOG.md` names them as
+      known limitations of 0.2.0, and they are designed and fixed for 0.2.1:
       - **The threshold flip.** Two carriers cross the threshold alternately every
         step, so the polish never completes: KClO4 at 610–680 K, NaClO4 at 490–500 K,
         16 salt-scan states `NotConverged`. The matrix is never singular.
