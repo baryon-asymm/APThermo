@@ -5,6 +5,24 @@ using APThermo.Transport;
 
 namespace APThermo.Execution;
 
+/// <summary>
+/// The length of one flat, per-case host array of a batch, refusing a count whose array a kernel's <c>Index1D</c> arithmetic
+/// could not address (2026-09-28, the second audit's observation 6): a batch constructor multiplied its count by a per-case
+/// stride in plain <see cref="int"/> arithmetic, which wraps silently past <see cref="int.MaxValue"/> instead of throwing,
+/// unlike the checked <see cref="long"/> computation here.
+/// </summary>
+internal static class BatchLength
+{
+    /// <summary>The array length for <paramref name="count"/> cases of <paramref name="perCase"/> elements each.</summary>
+    public static int Of(int count, long perCase)
+    {
+        var length = count * perCase;
+        return length > int.MaxValue
+            ? throw new ArgumentOutOfRangeException(nameof(count), count, $"{count} cases of {perCase} elements each overflows a 32-bit array length.")
+            : (int)length;
+    }
+}
+
 /// <summary>A batch of equilibrium cases, structure of arrays, one entry per case; the element order is the table's.</summary>
 internal sealed class EquilibriumBatch
 {
@@ -17,7 +35,7 @@ internal sealed class EquilibriumBatch
         Pressure = new double[count];
         Temperature = new double[count];
         Target = new double[count];
-        ElementMoles = new double[count * elementCount];
+        ElementMoles = new double[BatchLength.Of(count, elementCount)];
     }
 
     public int Count => Kind.Length;
@@ -61,8 +79,8 @@ internal sealed class RocketBatch
         ReactantEnthalpy = new double[count];
         TemperatureEstimate = new double[count];
         Flow = new FlowModel[count];
-        ElementMoles = new double[count * elementCount];
-        ExitValues = new double[count * exitKinds.Length];
+        ElementMoles = new double[BatchLength.Of(count, elementCount)];
+        ExitValues = new double[BatchLength.Of(count, exitKinds.Length)];
     }
 
     public int Count => ChamberPressure.Length;
@@ -111,7 +129,7 @@ internal sealed class TransportBatch
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(speciesCount);
         SpeciesCount = speciesCount;
         Temperature = new double[stationCount];
-        Moles = new double[stationCount * speciesCount];
+        Moles = new double[BatchLength.Of(stationCount, speciesCount)];
     }
 
     private TransportBatch(double[] temperature, double[] moles, int speciesCount)

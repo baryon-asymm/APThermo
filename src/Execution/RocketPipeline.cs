@@ -49,7 +49,7 @@ internal static class RocketPipeline
         var iterationBuffer = buffers.Output(iterations, stations);
         var statusBuffer = buffers.Output(status, 1);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options);
+        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
         buffers.Allocate(plan.Size);
         var views = new RocketBatchViews(
             exitCount: exits, chamberPressures: pressureBuffer.View, reactantEnthalpies: enthalpyBuffer.View,
@@ -65,5 +65,31 @@ internal static class RocketPipeline
             speciesCount: speciesCount, stationCount: stations, stations: stationStates, moles: moles, figures: figures,
             stationStatus: [.. stationStatus.Select(code => (CaseStatus)code)], iterations: iterations,
             status: [.. status.Select(code => (CaseStatus)code)], timings: timer.Timings(), accelerator: session.Info);
+    }
+
+    /// <summary>The same buffer declarations <see cref="Run"/> makes for a table of the given shape, with empty host
+    /// arrays and no device allocation (2026-09-28, the guards audit's F8): see the note on
+    /// <see cref="EquilibriumPipeline.DeclareBuffers"/>.</summary>
+    internal static ChunkBuffers DeclareBuffers(Accelerator accelerator, int speciesCount, int elementCount, int exits)
+    {
+        var stations = RocketLayout.StationCount(exits);
+        var buffers = new ChunkBuffers(accelerator);
+        _ = buffers.Input(Array.Empty<double>(), 1);
+        _ = buffers.Input(Array.Empty<double>(), 1);
+        _ = buffers.Input(Array.Empty<double>(), 1);
+        _ = buffers.Input(Array.Empty<int>(), 1);
+        _ = buffers.Input(Array.Empty<double>(), elementCount);
+        _ = buffers.Input(Array.Empty<double>(), exits);
+        _ = buffers.Constant(Array.Empty<int>());
+        _ = buffers.Scratch<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        _ = buffers.Scratch<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        _ = buffers.ClearedOutput(Array.Empty<MixtureState>(), stations);
+        _ = buffers.ClearedOutput(Array.Empty<double>(), (long)stations * speciesCount);
+        _ = buffers.Scratch<double>((long)stations * elementCount);
+        _ = buffers.ClearedOutput(Array.Empty<PerformanceFigures>(), stations);
+        _ = buffers.Output(Array.Empty<int>(), stations);
+        _ = buffers.Output(Array.Empty<int>(), stations);
+        _ = buffers.Output(Array.Empty<int>(), 1);
+        return buffers;
     }
 }

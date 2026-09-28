@@ -149,11 +149,16 @@ internal static partial class LibDevicePostLink
         }
     }
 
-    /// <summary>The one message shape: the post-link, the target, what failed (its library, its call and its result), and, where one exists, the log.</summary>
-    private static string FailureMessage(string outcome, string arch, string? log) =>
-        log is null
+    /// <summary>The one message shape: the post-link, the target, what failed (its library, its call and its result), and, where
+    /// one exists, a non-empty log. An empty log (after trimming) is treated as no log at all, so the message carries no
+    /// trailing ": " with nothing after it (2026-09-28, the second audit's observation 7).</summary>
+    private static string FailureMessage(string outcome, string arch, string? log)
+    {
+        var trimmed = log is null ? null : TrimLog(log);
+        return string.IsNullOrEmpty(trimmed)
             ? $"the libdevice post-link for {arch}: {outcome}."
-            : $"the libdevice post-link for {arch}: {outcome}: {TrimLog(log)}";
+            : $"the libdevice post-link for {arch}: {outcome}: {trimmed}";
+    }
 
     /// <summary>Trims a driver or libnvvm log of both whitespace and the NUL padding of ILGPU's own log buffer (BOOT.md, the
     /// audit's observations): a plain <see cref="string.Trim()"/> leaves the padding, which a caller sees as trailing

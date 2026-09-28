@@ -1,3 +1,4 @@
+using APThermo.Execution.Chunks;
 using ILGPU;
 using ILGPU.Runtime.CPU;
 using ILGPU.Runtime.Cuda;
@@ -15,7 +16,18 @@ internal static class AcceleratorChoice
     public static bool CudaForbidden => Environment.GetEnvironmentVariable(EngineOptions.NoCudaVariable)?.Trim() == "1";
 
     /// <summary>The session the options ask for, with the reason when CUDA was skipped. The caller owns the session.</summary>
-    public static AcceleratorDecision Decide(EngineOptions options)
+    public static AcceleratorDecision Decide(EngineOptions options) => Decide(options, CudaForbidden);
+
+    /// <summary>
+    /// The same decision, with the CUDA-forbidden flag given explicitly instead of read from the environment
+    /// (2026-09-28, the guards audit's F7): on every hosted CI job <c>APTHERMO_NO_CUDA=1</c> makes the CUDA path
+    /// refuse before <see cref="LibDeviceLocator.Locate(EngineOptions)"/> ever runs, so the "not found" message
+    /// discovery itself builds is otherwise never exercised there. This seam lets a test force the flag to
+    /// <see langword="false"/> and reach that refusal on every runner, CUDA forbidden or not;
+    /// <see cref="Decide(EngineOptions)"/> is the only caller outside tests and always passes the real
+    /// <see cref="CudaForbidden"/>.
+    /// </summary>
+    internal static AcceleratorDecision Decide(EngineOptions options, bool cudaForbidden)
     {
         ArgumentNullException.ThrowIfNull(options);
         if (options.Accelerator == AcceleratorKind.Cpu)
@@ -25,7 +37,7 @@ internal static class AcceleratorChoice
 
         try
         {
-            return Decided(Cuda(options), null, []);
+            return Decided(Cuda(options, cudaForbidden), null, []);
         }
         catch (Exception failure) when (options.Accelerator == AcceleratorKind.Auto && failure is not OutOfMemoryException)
         {
@@ -54,6 +66,7 @@ internal static class AcceleratorChoice
         AcceleratorSession.Build(Context.Create(builder => builder.CPU(CpuDeviceFor(Environment.ProcessorCount))), session =>
         {
             var accelerator = session.Attach(session.Context.CreateCPUAccelerator(0));
+            _ = session.Attach(LaunchBudget.None); // the CPU accelerator never runs under a display driver's watchdog
             return new AcceleratorInfo(AcceleratorKind.Cpu, accelerator.Name, LibDevicePostLink.IlgpuVersion, null, null, accelerator.NumThreads)
             {
                 CudaSkippedBecause = cudaSkippedBecause,
@@ -95,9 +108,9 @@ internal static class AcceleratorChoice
         return new CPUDevice(4, warpsPerMultiprocessor, multiprocessors);
     }
 
-    private static AcceleratorSession Cuda(EngineOptions options)
+    private static AcceleratorSession Cuda(EngineOptions options, bool cudaForbidden)
     {
-        if (CudaForbidden)
+        if (cudaForbidden)
         {
             throw new AcceleratorUnavailableException($"CUDA was requested, but {EngineOptions.NoCudaVariable}=1 forbids it.", []);
         }
@@ -118,9 +131,22 @@ internal static class AcceleratorChoice
                 }
 
                 var accelerator = session.Attach(CreateAccelerator(session.Context, options.CudaDeviceIndex, dll, bitcode));
+                _ = session.Attach(LaunchBudgetFor(accelerator));
                 ProbeBinding(session, dll, bitcode);
                 return new AcceleratorInfo(AcceleratorKind.Cuda, accelerator.Name, LibDevicePostLink.IlgpuVersion, dll, bitcode, accelerator.NumMultiprocessors);
             });
+    }
+
+    /// <summary>
+    /// The device's own run-time-limit attribute, read at bind time (BOOT.md, "A launch fits a time budget", the second
+    /// audit's Execution finding F2): a device that reports the limit enabled gets a budget of a quarter of Windows'
+    /// default (<see cref="LaunchBudget.DefaultRunTimeLimit"/>) — the CUDA driver reports only whether the limit is
+    /// enabled, never its value — and a device that reports it disabled (TCC mode, headless) gets none.
+    /// </summary>
+    private static LaunchBudget LaunchBudgetFor(CudaAccelerator accelerator)
+    {
+        var hasLimit = CudaAPI.CurrentAPI.GetDeviceAttribute(DeviceAttributeKind.CU_DEVICE_ATTRIBUTE_KERNEL_EXEC_TIMEOUT, accelerator.DeviceId) != 0;
+        return hasLimit ? LaunchBudget.FromRunTimeLimit(LaunchBudget.DefaultRunTimeLimit) : LaunchBudget.None;
     }
 
     /// <summary>

@@ -24,53 +24,75 @@ public sealed class AcceleratorChoiceTests
         Assert.Null(info.CudaSkippedBecause);   // an engine asked for the CPU never tried CUDA
     }
 
-    /// <summary>An auto fallback says why cuda was skipped and which paths were tried.</summary>
+    /// <summary>
+    /// An auto fallback says why cuda was skipped and which paths were tried. Decided with <c>cudaForbidden: false</c>
+    /// (2026-09-28, the guards audit's F7): on every hosted CI job <c>APTHERMO_NO_CUDA=1</c> made
+    /// <see cref="AcceleratorChoice.Decide(EngineOptions)"/> refuse for that reason alone, before discovery's own "not
+    /// found" message was ever built there, and this fact's assertions on that message ran only on a local machine. The
+    /// injected seam reaches discovery's refusal on every runner, CUDA forbidden or not.
+    /// </summary>
     [Fact]
     public void AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried()
     {
         const string dll = @"X:\nowhere\nvvm64_40_0.dll";
         const string bitcode = @"X:\nowhere\libdevice.10.bc";
         var options = new EngineOptions { Accelerator = AcceleratorKind.Auto, LibNvvmPath = dll, LibDevicePath = bitcode, LibDeviceDiscovery = false };
-        using var engine = Engine.Create(options);
-        Assert.Equal(AcceleratorKind.Cpu, engine.Accelerator.Kind);
-        var reason = engine.Accelerator.CudaSkippedBecause;
-        Assert.NotNull(reason);
-        if (Engine.CudaForbidden)
-        {
-            Assert.Contains(EngineOptions.NoCudaVariable, reason, StringComparison.Ordinal);
-            return;
-        }
-
-        Assert.Contains("libdevice", reason, StringComparison.Ordinal);
-        Assert.Contains(dll, reason, StringComparison.Ordinal);
-        Assert.Contains(bitcode, reason, StringComparison.Ordinal);
-
-        // The reason survives the fallback as a value, not only as a sentence: the decision carries the paths it examined.
-        var decision = AcceleratorChoice.Decide(options);
+        var decision = AcceleratorChoice.Decide(options, cudaForbidden: false);
         using (decision.Session)
         {
-            Assert.Equal(reason, decision.CudaSkippedBecause);
+            Assert.Equal(AcceleratorKind.Cpu, decision.Session.Info.Kind);
+            var reason = decision.CudaSkippedBecause;
+            Assert.NotNull(reason);
+            Assert.Contains("libdevice", reason, StringComparison.Ordinal);
+            Assert.Contains(dll, reason, StringComparison.Ordinal);
+            Assert.Contains(bitcode, reason, StringComparison.Ordinal);
+            Assert.Equal(reason, decision.Session.Info.CudaSkippedBecause);
             Assert.Equal([dll, bitcode], decision.PathsTried);
         }
     }
 
-    /// <summary>An explicit cuda request with paths nowhere names every path tried.</summary>
+    /// <summary>
+    /// An explicit cuda request with paths nowhere names every path tried. Decided with <c>cudaForbidden: false</c>, the
+    /// same reason as <see cref="AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried"/> (F7).
+    /// </summary>
     [Fact]
     public void AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried()
     {
         const string dll = @"X:\nowhere\nvvm64_40_0.dll";
         const string bitcode = @"X:\nowhere\libdevice.10.bc";
         var options = new EngineOptions { Accelerator = AcceleratorKind.Cuda, LibNvvmPath = dll, LibDevicePath = bitcode, LibDeviceDiscovery = false };
-        var refused = Assert.Throws<AcceleratorUnavailableException>(() => Engine.Create(options));
-        if (Engine.CudaForbidden)
-        {
-            Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
-            return;
-        }
-
+        var refused = Assert.Throws<AcceleratorUnavailableException>(() => AcceleratorChoice.Decide(options, cudaForbidden: false));
         Assert.Contains(dll, refused.Message, StringComparison.Ordinal);
         Assert.Contains(bitcode, refused.Message, StringComparison.Ordinal);
         Assert.Equal([dll, bitcode], refused.PathsTried);
+    }
+
+    /// <summary>
+    /// The same two requests with <c>cudaForbidden: true</c> refuse for that reason alone, before discovery ever runs:
+    /// the other half of the injected seam (F7), proving <c>cudaForbidden</c> actually gates the "not found" branch
+    /// rather than being ignored.
+    /// </summary>
+    [Fact]
+    public void CudaForbiddenRefusesBeforeDiscoveryEverRuns()
+    {
+        var options = new EngineOptions
+        {
+            Accelerator = AcceleratorKind.Auto,
+            LibNvvmPath = @"X:\nowhere\nvvm64_40_0.dll",
+            LibDevicePath = @"X:\nowhere\libdevice.10.bc",
+            LibDeviceDiscovery = false,
+        };
+        var decision = AcceleratorChoice.Decide(options, cudaForbidden: true);
+        using (decision.Session)
+        {
+            Assert.Contains(EngineOptions.NoCudaVariable, decision.CudaSkippedBecause, StringComparison.Ordinal);
+            Assert.Empty(decision.PathsTried);   // the paths are never even looked at
+        }
+
+        var refused = Assert.Throws<AcceleratorUnavailableException>(
+            () => AcceleratorChoice.Decide(options with { Accelerator = AcceleratorKind.Cuda }, cudaForbidden: true));
+        Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
+        Assert.Empty(refused.PathsTried);
     }
 
     /// <summary>Discovery reports the toolkit paths it examined.</summary>
