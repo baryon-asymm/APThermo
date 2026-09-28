@@ -665,7 +665,7 @@ this node needs no other efferent-coupling row.
       ⚠ 2026-09-28: `ThePlateauEdgeHasTheGreatestMassFluxNearby` compared the throat
       with `p(1 ± 1e-4)` only, and `TheThroatIsSonic` accepted any sonic point, so a
       throat at the second maximum passed both (the ⚠ of that date under Invariants).
-- [ ] The second hidden-defect audit of 2026-09-28 (Performance, findings F1, F3, F4,
+- [x] 2026-09-28 — The second hidden-defect audit of 2026-09-28 (Performance, findings F1, F3, F4,
       F5 and observations O1, O2; the guards part's O3 and O4) is closed by the rules of
       that date.
       - **The first maximum (F1).** A mass-flux oracle in the tests node: `ρu` from sp
@@ -844,6 +844,16 @@ this node needs no other efferent-coupling row.
         `TryRatioNeverLeavesAStaleRatioOnFailure` is the direct fact for O2: a
         non-positive sound speed makes `TryRatio` report failure with `ratio` at 0,
         never left at the caller's previous value.
+
+      Evidence, merged into `main` from `88c6a03`: `dotnet build APThermo.sln` 0 warnings,
+      0 errors; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
+      "Category!=LongRunning"` 5396 of 5396, none skipped; the protocol lint 0 errors,
+      0 warnings; `dotnet test tests/Execution.Tests -c Release` on CUDA 144 of 144 at
+      `417bff0`, the last commit of the branch that changed code under `src`; every
+      fixture outside the seven new `throat` cases moved in its provenance keys only
+      (a field-by-field comparison with `main`); the bits moved for
+      `rp1311-example13` only, in this node's and the front door's snapshots, as
+      measured above. Ticked by the orchestrator at the merge.
 
 ## Taboos
 

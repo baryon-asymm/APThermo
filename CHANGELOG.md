@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.2.0] - 2026-09-27
 
 This release breaks the binary surface of 0.1.0: code built against 0.1.0 must be
-recompiled. It fixes the findings of a hidden-defect audit of the whole library, the
+recompiled. It fixes the findings of two hidden-defect audits of the whole library, the
 most important being that 0.1.0 could not run on CUDA on any GPU older than Blackwell.
 
 ### Changed
@@ -51,7 +51,21 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
     candidate could not use it at any temperature;
   - `EngineOptions.LibNvvmPath` without `LibDevicePath`, or the reverse, is an
     `ArgumentException` naming the missing option, instead of falling back to
-    discovery.
+    discovery;
+  - an equilibrium state whose temperature ends outside [160 K, 22 000 K], the
+    mixture window of NASA CEA, is `TemperatureOutOfRange`, an assigned-temperature
+    problem included, and so is a state whose heat capacities, isentropic exponent or
+    sound speed are not finite and positive; 0.1.0 reported ice at 60 to 150 K as
+    `Ok` with a negative heat capacity or a NaN sound speed;
+  - a frozen state at an infinite, NaN or vanishing temperature is refused, as a
+    shifting one already was;
+  - in flow frozen at the throat, an exit given by a pressure ratio at or above the
+    throat's pressure is `InvalidInput`; 0.1.0 reported it `Ok` with an infinite area
+    ratio.
+- An equilibrium composition now reports every gaseous species above 1e-11 of the
+  gas at its converged amount. 0.1.0 zeroed species between 1e-11 and 1e-8 in the
+  report after converging with them, so the reported moles did not conserve the
+  elements to the last digits; the figures move in their trailing digits only.
 - Command line:
   - the CSV output's input columns carry the prefix `inputs.`, so an input never
     repeats a result field's name (`pressure`, `temperature`, `enthalpy` and
@@ -102,10 +116,26 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
     of 0 instead of NaN, on the GPU only. Both accelerators now behave as .NET does.
   - Very large `ScratchBytes` and `ChunkSize` settings could overflow a kernel's
     32-bit offsets; a chunk is now capped below that.
+  - On a GPU that drives a display, the driver kills a launch that runs longer than
+    its limit (2 s by default on Windows and under WSL2). Chunks are now sized to a
+    quarter of that limit from the measured time per case, and a launch the driver
+    kills anyway is an `AcceleratorUnavailableException` that names the limit. One
+    case of about 16 or more elements can exceed the limit alone; such systems belong
+    on the CPU accelerator or on a GPU without the limit.
 - Equilibrium and condensed phases:
   - A condensed species' temperature range now spans all its intervals, as NASA CEA
     reads it; nine condensed records between 298.15 K and 300 K were excluded before.
-  - Ice (`H2O(cr)`) may appear below 200 K, the lower end of the gas data.
+  - Ice (`H2O(cr)`) may appear below 200 K, the lower end of the gas data, down to
+    the 160 K floor of the mixture window, as in NASA CEA.
+  - The trace threshold has two stages, as in NASA CEA: 1e-8 of the gas until the
+    first convergence, then 1e-11. Low-temperature states such as RP-1311 example 5
+    at 300 to 340 K, and AP/HTPB/Al at 300 to 350 K, ended `NotConverged` and now
+    converge.
+  - A singular Newton matrix now removes the species on its failing row, ties an
+    element whose balance is carried by one other element's species, and brings a
+    condensed species in by a basis change when the retained set is linearly
+    dependent. Salt decompositions (NaClO4, KClO4) and AP/HTPB/Al at 420 to 430 K
+    ended `SingularMatrix` and now converge.
   - A state with more than eight stable condensed phases dropped the excess and
     reported `Ok`; up to twenty are now held, and an `Ok` result is checked to leave
     no condensed species that should have entered.
@@ -116,14 +146,20 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
   - A solve started from a previous solution could end `NotConverged` or
     `SingularMatrix` where a cold start converges: when a gas crossed the trace
     threshold on the last step, or when a condensed species of the previous state
-    cannot exist at the new one. Both now converge.
+    cannot exist at the new one. A warm start that fails for any reason is now
+    retried from a cold start (at 3 800 K for an hp or sp problem).
   - The frozen composition's mole numbers are validated before `Ok` is reported.
 - Rocket performance:
   - At the high-pressure edge of a melting plateau (for example Al2O3 in an
     aluminized propellant), where the sound speed jumps, the throat search ended
-    `ThroatNotFound`. The throat is now the point of largest mass flux, as RP-1311
-    defines it, and there its Mach number is below 1. NASA CEA reports a wrong c*
-    there, about 6 % high in the worst measured case.
+    `ThroatNotFound`. The throat is now the first maximum of the mass flux met from
+    the chamber, where the flow first chokes, and at a plateau edge its state is the
+    single-phase one on the chamber side, with a Mach number below 1. Where the mass
+    flux has two maxima around a melting plateau, the throat is the upstream one,
+    which the momentum search alone could miss. NASA CEA reports a wrong c* at a
+    plateau edge, about 6 % high in the worst measured case.
+  - A chamber on a melting plateau, whose isentropic exponent is exactly 1, ended
+    `ThroatNotFound` or `Ok` by rounding; it is now solved.
   - An exit found by area ratio is accepted only on the supersonic branch.
   - The throat's pressure ratio, and the start of the exit stations, come from the
     state actually solved.
@@ -145,6 +181,19 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
     itself contain a comma) reused one cached species table for what should have been
     two different ones; the cache key no longer joins names with a separator that can
     appear in a name.
+
+### Known limitations
+These equilibrium failures are measured, reported by status (never as a wrong `Ok`),
+and planned for 0.2.1:
+- Two trace species can cross the trace threshold alternately on every step, so the
+  solve never completes its final polish: KClO4 at 610 to 680 K and NaClO4 at 490 to
+  500 K end `NotConverged`.
+- When the retained gases tie three elements together (only CO2, H2O and N2 at low
+  temperature, where the oxygen row equals a combination of the carbon and hydrogen
+  rows), an assigned-temperature state can end `SingularMatrix`.
+- An assigned-enthalpy state inside a reaction plateau between different condensed
+  species (for example Al(OH)3, Al2O3 and liquid water near 416 K at 7 MPa) ends
+  `SingularMatrix`; melting plateaus of one species are solved.
 
 ## [0.1.0] - 2026-09-18
 
