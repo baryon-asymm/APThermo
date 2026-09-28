@@ -13,8 +13,12 @@ namespace APThermo.Equilibrium;
 /// </remarks>
 internal static class MixtureProperties
 {
-    /// <summary>The converged equilibrium state, with the derivatives of section 2.5 or the plateau convention of a pinned pair.</summary>
-    public static void WriteEquilibrium(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums,
+    /// <summary>
+    /// The converged equilibrium state, with the derivatives of section 2.5 or the plateau convention of a pinned pair.
+    /// False, with nothing written, when the state guard (<see cref="IsPhysical"/>) fails (the third pass of
+    /// 2026-09-28, finding F3): the guard is decided before <c>result.State[0]</c> is touched, not after.
+    /// </summary>
+    public static bool WriteEquilibrium(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums,
                                         in Derivatives derivatives)
     {
         var state = Common(problem, sums);
@@ -35,11 +39,14 @@ internal static class MixtureProperties
             state.GammaS = -(state.CpEquilibrium / state.CvEquilibrium) / state.DlnVdlnP;
         }
 
-        Close(result, sums, state);
+        return Close(result, sums, state, derivatives.Pinned);
     }
 
-    /// <summary>The frozen state: an ideal gas of fixed composition, whose equilibrium response is its frozen one.</summary>
-    public static void WriteFrozen(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums)
+    /// <summary>
+    /// The frozen state: an ideal gas of fixed composition, whose equilibrium response is its frozen one. False, with
+    /// nothing written, when the state guard fails (the third pass of 2026-09-28, finding F3).
+    /// </summary>
+    public static bool WriteFrozen(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums)
     {
         var state = Common(problem, sums);
         state.CpEquilibrium = state.CpFrozen;
@@ -47,7 +54,7 @@ internal static class MixtureProperties
         state.DlnVdlnT = 1.0;
         state.DlnVdlnP = -1.0;
         state.GammaS = state.CpFrozen / state.CvFrozen;
-        Close(result, sums, state);
+        return Close(result, sums, state, pinned: false);
     }
 
     /// <summary>Everything that does not depend on which response the state carries.</summary>
@@ -78,11 +85,22 @@ internal static class MixtureProperties
         return state;
     }
 
-    /// <summary>The sound speed needs the isentropic exponent, so it is written after the closure; the flow speed is the performance node's.</summary>
-    private static void Close(in EquilibriumResult result, in MixtureSums sums, MixtureState state)
+    /// <summary>
+    /// The sound speed needs the isentropic exponent, so it is computed after the closure; the flow speed is the
+    /// performance node's. The state guard is decided on this local state before anything is written (the third
+    /// pass of 2026-09-28, finding F3): a caller reading a failing status never finds a stale or partial
+    /// <c>result.State[0]</c>.
+    /// </summary>
+    private static bool Close(in EquilibriumResult result, in MixtureSums sums, MixtureState state, bool pinned)
     {
         state.SoundSpeed = Math.Sqrt(sums.SumGas * PhysicalConstants.R * sums.Temperature * state.GammaS);
+        if (!IsPhysical(state, pinned))
+        {
+            return false;
+        }
+
         result.State[0] = state;
+        return true;
     }
 
     /// <summary>
@@ -92,7 +110,7 @@ internal static class MixtureProperties
     /// <c>CvEquilibrium</c> convention (Property definitions, BOOT.md) is exempt for <paramref name="pinned"/>: a
     /// frozen state's heat capacities are never legitimately zero.
     /// </summary>
-    public static bool IsPhysical(in MixtureState state, bool pinned)
+    private static bool IsPhysical(in MixtureState state, bool pinned)
     {
         var equilibriumOk = pinned || (IsFinitePositive(state.CpEquilibrium) && IsFinitePositive(state.CvEquilibrium));
         return IsFinitePositive(state.CpFrozen) && IsFinitePositive(state.CvFrozen) && equilibriumOk

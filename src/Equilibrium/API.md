@@ -55,16 +55,22 @@ internal readonly struct EquilibriumScratch              // slices of batch-size
     public readonly ArrayView<double> GOverRT;         // [species]
     public readonly ArrayView<double> LogMoles;        // [species], ln n_j of the gaseous species
     public readonly ArrayView<double> Corrections;     // [species], Δln n_j of the gaseous species
+    public readonly ArrayView<double> TieLogMoles;     // [species], rule A's release snapshot of LogMoles (the third pass of 2026-09-28, finding F1)
+    public readonly ArrayView<double> TieCondensedMoles; // [MaxCondensedInSolution], the snapshot's condensed moles
+    public readonly ArrayView<double> TieMultipliers;    // [MaxCondensedInSolution], the snapshot's Lagrange multipliers ([0, elementCount))
     public readonly ArrayView<double> Matrix;          // [MaxUnknowns * MaxUnknowns], row-major
     public readonly ArrayView<double> RightHandSide;   // [MaxUnknowns]; the solution after a solve
     public readonly ArrayView<double> RowScale;        // [MaxUnknowns]
     public readonly ArrayView<int> SpeciesActive;      // [species], the species mark: 0 Absent (an element missing), 1 Active, 2 ForgivenOnce, 3 StoodDown (BOOT.md, the condensed-species rule)
     public readonly ArrayView<int> ElementActive;      // [element], 1 when the abundance is positive
     public readonly ArrayView<int> CondensedInSolution;// [MaxCondensedInSolution], species indices, −1 beyond the count
+    public readonly ArrayView<int> TieCondensedSet;    // [MaxCondensedInSolution], the snapshot's condensed set
     public EquilibriumScratch(ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
                               ArrayView<double> logMoles, ArrayView<double> corrections,
+                              ArrayView<double> tieLogMoles, ArrayView<double> tieCondensedMoles, ArrayView<double> tieMultipliers,
                               ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
-                              ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution);
+                              ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution,
+                              ArrayView<int> tieCondensedSet);
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount);
         // cuts one case's scratch from views of at least DoublesPerCase and IntsPerCase elements
 }
@@ -99,8 +105,8 @@ internal static class ScratchLayout
 {
     public const int MaxCondensedInSolution = 20;                              // = TableLimits.MaxElements (2026-09-26; was 8)
     public static int MaxUnknowns(int elementCount);                          // elementCount + MaxCondensedInSolution + 2
-    public static int DoublesPerCase(int speciesCount, int elementCount);     // 6 · species + MaxUnknowns² + 2 · MaxUnknowns
-    public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + MaxCondensedInSolution
+    public static int DoublesPerCase(int speciesCount, int elementCount);     // 7 · species + 2 · MaxCondensedInSolution + MaxUnknowns² + 2 · MaxUnknowns
+    public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + 2 · MaxCondensedInSolution
 }
 
 internal static class DenseSolver                        // kernel-compatible; shared with Transport
@@ -117,6 +123,21 @@ internal static class DenseSolver                        // kernel-compatible; s
 ⚠ 2026-09-12: `DenseSolver` was internal. The Transport node solves the two linear
 systems of its reaction terms and, by the root's first invariant, may not carry a
 second elimination; the solver became public and part of this contract.
+
+⚠ 2026-09-28 (the third pass, finding F1): the scratch grew by a seventh per-species
+double array and two more `MaxCondensedInSolution`-sized double arrays, plus a second
+`MaxCondensedInSolution`-sized int array: rule A's release now keeps the tied
+converged iterate (the gaseous logarithms, the condensed set with its mole numbers,
+and the Lagrange multipliers) in these snapshot slices, so that a re-convergence
+which fails on the element's own row can be undone rather than reported as the
+release's own failure (BOOT.md, "Release"). `n`, `T`, the condensed count and the tie
+itself travel as the caller's own locals across the one Newton call the release
+makes and need no scratch of their own. `DoublesPerCase` and `IntsPerCase` are
+functions, not stored constants, so a caller that sizes its buffers by calling them,
+as this node's own tests do, picks up the new size without a change of its own; this
+task's evidence is every consuming node's own test suite green after the change
+(`Performance.Tests`, `Transport.Tests`, `Problems.Tests`, `Cli.Tests`,
+`Execution.Tests`), none of them touched.
 
 Units: SI throughout; mole numbers in kmol per kilogram of mixture, so that
 `Σ n_j M_j = 1` over the whole mixture. `Multipliers` are the dimensionless `π_i` of
@@ -190,10 +211,13 @@ callers cut a case's scratch the same way everywhere.
 An element with zero abundance is allowed: the species containing it are inactive
 for the case and get mole number zero. The solver never throws. `Status` is one of
 `Ok`, `InvalidInput` (every abundance zero, negative abundance, empty table,
-non-positive pressure, a tp temperature that is non-positive or not finite, more
-elements than `TableLimits.MaxElements`; for `SolveFrozen` also a composition without
-gaseous moles, any mole number negative or not finite (2026-09-26), or an initial
-temperature estimate that is non-positive or not finite (2026-09-28)),
+non-positive pressure, a tp temperature that is non-positive or not finite, a
+*given* (nonzero) hp or sp temperature estimate that is not finite and positive —
+0 stays the sentinel for "none given", defaulting to 3800 K, the third pass of
+2026-09-28, observation O1 — more elements than `TableLimits.MaxElements`; for
+`SolveFrozen` also a composition without gaseous moles, any mole number negative or
+not finite (2026-09-26), or an initial temperature estimate that is non-positive or
+not finite (2026-09-28)),
 `NotConverged` (the report's tests not met within `MaxNewtonSteps` after the last
 change of the condensed set, more than `MaxCondensedSetChanges` changes, the element
 conservation invariant violated at the end, or, since 2026-09-26, a condensed candidate

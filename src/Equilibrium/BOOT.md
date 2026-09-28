@@ -546,6 +546,7 @@ below) is the proof.
 | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
 | `FrozenTemperature` | Newton on the temperature at a fixed composition, to the frozen test, with its own step cap | internal |
 | `DenseSolver` | contract unchanged; `Solve` split into scaling, elimination and back substitution | internal (2026-09-15, distribution phase), contract unchanged |
+| `TieSnapshot` | rule A's way back (the third pass of 2026-09-28, finding F1): saves and restores the gaseous logarithms, the condensed set with its mole numbers, and the Lagrange multipliers of the tied converged iterate a release starts from | internal |
 
 ⚠ 2026-09-15 (distribution phase): the Visibility column read "public" for
 `EquilibriumSolver` and `DenseSolver`, and `API.md` published `EquilibriumProblem`,
@@ -695,14 +696,22 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 |---|---|---|---|
 | `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
 | `NewtonIteration` | efferent coupling | 20 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
-| `EquilibriumScratch.EquilibriumScratch` | parameters | 12 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
+| `EquilibriumScratch.EquilibriumScratch` | parameters | 16 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
-Every other type of the node measures 12 or below by the dependency check's walk
-(`DerivativeSystem` the highest of the rest, at 12 since rules A and B added its read
-of `state.Tie` and its call into `ElementCoupling.Coupled`, up from 10; `CaseSetup`,
-`CondensedSet`, `ConvergenceTests` and `SingularRemedies` tied at 10, the first two
-since the repair review moved the mark accessors into `CaseSetup`'s own dependencies
-2026-09-15, R-Equilibrium-6), well below the root's limit of 14.
+⚠ 2026-09-28 (the third pass, finding F1): this row stood at 12. Rule A's way back
+(the "Release" paragraph under Constraints) added four more slices — the tie
+snapshot's gaseous logarithms, condensed moles, multipliers and condensed set —
+raising the constructor's own parameter count to 16; `Slice` still names every
+argument, its one construction site. `ShapeTests.NoMethodTakesMoreThan6Parameters`
+and `EveryShapeExceptionIsMeasuredAndStillNeeded` found the stale row red;
+re-measured the same day.
+
+Every other type of the node measures 11 or below by the dependency check's walk
+(`DerivativeSystem` the highest of the rest, at 11 since it reads `state.Tie` for
+rule A's release, up from 10; `CaseSetup`, `CondensedSet`, `ConvergenceTests` and
+`SingularRemedies` tied at 10, the first two since the repair review moved the mark
+accessors into `CaseSetup`'s own dependencies 2026-09-15, R-Equilibrium-6), well below
+the root's limit of 14.
 
 ⚠ 2026-09-28 (rules A and B): stood "10 or below" with `CaseSetup` and `CondensedSet`
 named as the highest of the rest. `DerivativeSystem` now reads rule A's tie from
@@ -711,6 +720,22 @@ raising its own count from 10 to 12; `SingularRemedies` gained `CondensedDepende
 and `ElementCoupling` (rule B and rule A's remedies), reaching 10, tied with `CaseSetup`
 and `CondensedSet`. All four stay well below the root's limit of 14; measured by the
 protocol tests node's own coupling walk the same day.
+
+⚠ 2026-09-28 (the third pass, finding F1): the paragraph above raised `DerivativeSystem`
+to 12 for its read of `state.Tie` together with its call into `ElementCoupling.Coupled`,
+which re-derived whether the tie still held. Rule A's way back (the "Release" paragraph
+under Constraints, and `## Structure`'s note on `DerivativeSystem.Solve` above) trusts
+`IterationState.Tie`'s own `Active` flag instead: the caller's release-and-restore keeps
+a tie active exactly at the composition the coupling test found untied, so the recheck
+undid the restore for no gain. Removing the call drops `DerivativeSystem`'s own count
+back to 11 (`SpeciesTableView`, `EquilibriumScratch`, `EquilibriumResult`,
+`IterationState`, `Derivatives`, `SystemLayout`, `ProblemKind`, `DerivativeKind`,
+`PhaseGeometry`, `ElementTie`, `DenseSolver`, by the same walk applied to the file by
+hand); it stays the highest of the rest, since `CaseSetup`, `CondensedSet`,
+`ConvergenceTests` and `SingularRemedies` are untouched by this fix and stay tied at 10.
+`ShapeTests.NoSrcTypeNamesMoreThan14TypesOfTheTree` was green both before and after,
+since 11 and 12 both stay well below 14; this correction is about the prose figure, not
+about a check moving.
 
 ⚠ 2026-09-26: `NewtonIteration`'s row stood at 17. The hidden-defect audit's loop
 bookkeeping fix (the audit's finding 3) added `NewtonLoopState` (Carriers.cs), a small
@@ -1380,8 +1405,8 @@ same day.
         (T* = 415.948 K, 157 kJ/kg wide at 7 MPa) ends `SingularMatrix` in the
         derivative system: the pinned-pair convention covers two records of one
         formula only.
-- [ ] The third audit pass of 2026-09-28 (part 1: findings F1 to F3, observation O1)
-      is closed by the rules of that date.
+- [x] 2026-09-29 — The third audit pass of 2026-09-28 (part 1: findings F1 to F3,
+      observation O1) is closed by the rules of that date.
       - **The way back from a release (F1).** The six salt states named in the ⚠ under
         rule A's release: each `Ok`, with the audit's independent checks (element
         residual ≤ 1e-12, gas chemical potentials ≤ 1e-6, no absent condensed candidate
@@ -1402,10 +1427,80 @@ same day.
         a fact that a guarded failure leaves `State` untouched, as `API.md` states. The
         stale comment of `Composition.cs` (a first-stage re-apply no caller makes) is
         corrected.
-      - **The hp/sp estimate (O1).** +∞, NaN, 0 and −1 K as a given estimate are
-        `InvalidInput`; `API.md`'s `InvalidInput` clause lists it.
+      - **The hp/sp estimate (O1).** +∞, NaN and −1 K as a *given* (nonzero) estimate
+        are `InvalidInput`; `API.md`'s `InvalidInput` clause lists it. A tp temperature
+        is always assigned and follows the same rule with no sentinel: 0 K and every
+        other non-positive or non-finite value are `InvalidInput` there too.
+
+        ⚠ 2026-09-28: this bullet, written the same day as the rest of the criterion,
+        listed "0" among the values an hp/sp estimate must refuse. `ColdRetryProblem`'s
+        warm-start fallback (`API.md`, "the fallback ... retries once from the cold
+        start") already relies on 0 as the documented sentinel for "no estimate given",
+        defaulting to 3 800 K (`CaseSetup.InitialTemperature`); refusing it would break
+        that fallback's own cold retry, which passes 0 on purpose. The implemented rule
+        checks the nonzero values only (`CaseSetup.Begin`'s `badEstimate` guard, gated
+        on `problem.Temperature != 0.0` for hp/sp), and `API.md`'s clause already states
+        the sentinel this way. Found while ticking this criterion, before any test used
+        the wrong wording as its expected behaviour.
       - **Bits.** A moved snapshot is re-approved with the cases named and the largest
         relative change per field; statuses move only on the states named here.
+
+      Evidence: `TieSnapshot.Save`/`Restore` (F1), the reordered `Solve`/`Close` and the
+      loop-local `awaitingRelease` restore-and-force-`Ok` path of `RunToConvergence` (F2),
+      the `bool`-returning `MixtureProperties.WriteEquilibrium`/`WriteFrozen` deciding
+      the state guard before `State[0]` is written (F3), and `CaseSetup.Begin`'s
+      nonzero-estimate check (O1) — every fix shown red once against `c02e14d` before
+      being accepted, then green:
+      - `tests/Equilibrium.Tests/TiedReleaseTests.cs`,
+        `TheReleasedTieRestoresAndClosesOk`: the six named salt states, each `Ok` and
+        clear of every independent equilibrium condition (element residual, gas
+        chemical potentials at 1e-6, no absent condensed candidate with gain above
+        1e-9 — `EquilibriumConditions.Violations`), with cea 3.3.4's own converged `G`
+        for each recorded in the test's own doc comment.
+      - `tests/Equilibrium.Tests/WarmStartTests.cs`,
+        `AFailureFoundAtTheCloseRetriesFromTheColdStart`: a warm start whose failure is
+        found only at the close (the mixture window, below `c02e14d`'s own Newton-loop
+        status) reports at least the fresh cold solve's own iteration count, proving the
+        retry ran.
+      - `tests/Equilibrium.Tests/MixturePropertiesTests.cs`: three facts against a
+        sentinel `MixtureState` and a NaN-`Cp` `MixtureSums`, proving `WriteEquilibrium`
+        and `WriteFrozen` leave `State` untouched on a guarded failure rather than
+        writing it and then discarding it.
+      - `tests/Equilibrium.Tests/InvalidInputTests.cs`,
+        `AGivenHpOrSpEstimateThatIsNotFiniteAndPositiveIsInvalidInput` (+∞, NaN and a
+        negative value, hp and sp, 6 cases) and
+        `AZeroHpOrSpEstimateStaysTheNoEstimateSentinel` (hp and sp, 2 cases): the given
+        estimate is refused, the sentinel is not.
+      - The audit's own salt sweep (its `Z2Scan3`-style harness over the salt tables,
+        300 to 1500 K by 10 K at 1e4, 1e5, 1e6 and 7e6 Pa, cold and warm from each
+        neighbour, copied in, run, then deleted, never committed): cold `NotConverged`
+        30 (down from the pre-fix baseline of 36 by exactly the six named states),
+        cold `Ok` 2390, warm `NotConverged` 2, warm `Ok` 4739, zero
+        equilibrium-condition violations over the whole sweep
+        (`scratchpad/audit3_verify/third_pass_sweep.txt`, kept out of the tree). The
+        thirty remaining `NotConverged` states are the already-declared threshold-flip
+        band (the ⚠ above under "The threshold flip", 29 of the same 968 states on the
+        same two fixture compositions) — none of them among the six named states, which
+        this sweep's own list of failures confirms by name.
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`,
+        run project by project in the foreground (the combined run exceeds the session's
+        tool-level time budget before completing, unrelated to this fix): `Data.Tests`
+        43/43, `Thermo.Tests` 1192/1192, `Equilibrium.Tests` 944/944, `Performance.Tests`
+        1418/1418, `Transport.Tests` 167/167, `Execution.Tests` 159/159 (CUDA forbidden),
+        `Problems.Tests` 1251/1251, `Fixtures.Tests` 34/34, `Protocol.Tests` 35/35 —
+        5243 of 5243, none skipped. `Cli.Tests` and `Docs.Tests` were not run to
+        completion this pass: both drive the command line through real `dotnet` process
+        launches per example (`CliFixture.Invoke`), which the session's tools could not
+        finish within a single foreground call; neither node's code, fixtures or
+        approved output is touched by this change (`git status` confined to
+        `src/Equilibrium` and `tests/Equilibrium.Tests`), and `Problems.Tests`' own
+        bit-for-bit fact — the layer `Cli` serializes — is unchanged, so no mechanism is
+        known by which either node's result would move. Left for the next session that
+        touches this node to confirm directly.
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors. Protocol lint: 0 errors,
+        0 warnings. No `Bits*.approved.txt` or `Throughput*.approved.txt` differs from
+        `main` anywhere in the tree (`git status`: only the files named in this pass's
+        commits changed).
 
 ## Taboos
 

@@ -160,4 +160,45 @@ public sealed class InvalidInputTests
         var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
         Assert.Equal(CaseStatus.InvalidInput, solution.Status);
     }
+
+    /// <summary>
+    /// A given (nonzero) hp or sp temperature estimate that is not finite and positive is InvalidInput (the third
+    /// pass of 2026-09-28, observation O1): before the fix +∞, NaN and a negative estimate all reached the Newton
+    /// loop unchecked (SingularMatrix or NotConverged instead of a clean refusal, the audit's own probe on the
+    /// lox-lh2_of6 chamber). The tp check next to this one already refused these values for an assigned temperature;
+    /// this extends the same refusal to a *given* hp or sp estimate.
+    /// </summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, double.NaN)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, -1.0)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, double.PositiveInfinity)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, double.NaN)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, -1.0)]
+    public void AGivenHpOrSpEstimateThatIsNotFiniteAndPositiveIsInvalidInput(ProblemKind kind, double estimate)
+    {
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, Elements, Species);
+        var target = kind == ProblemKind.AssignedEnthalpyPressure ? -1e6 : 1e4;
+        var problem = new EquilibriumCase(table, kind, 1e5, estimate, target, [0.1, 0.05]);
+        var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
+        Assert.Equal(CaseStatus.InvalidInput, solution.Status);
+        Assert.Equal(0, solution.Iterations);
+    }
+
+    /// <summary>
+    /// 0 K stays the sentinel for "no estimate given" (`EquilibriumProblem.Temperature`'s own documented meaning,
+    /// which the warm-start fallback's cold retry relies on: `ColdRetryProblem` builds its retry with `Temperature:
+    /// 0.0` for hp and sp on purpose) and converges from the default of section 3.1, not InvalidInput.
+    /// </summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure)]
+    [InlineData(ProblemKind.AssignedEntropyPressure)]
+    public void AZeroHpOrSpEstimateStaysTheNoEstimateSentinel(ProblemKind kind)
+    {
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, Elements, Species);
+        var target = kind == ProblemKind.AssignedEnthalpyPressure ? -1e6 : 1e4;
+        var problem = new EquilibriumCase(table, kind, 1e5, 0.0, target, [0.1, 0.05]);
+        var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
+        Assert.Equal(CaseStatus.Ok, solution.Status);
+    }
 }

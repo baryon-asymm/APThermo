@@ -49,23 +49,31 @@ internal static class ScratchLayout
     /// <summary>Unknowns of the reduced system: elements + condensed species in the solution + ln n + ln T.</summary>
     public static int MaxUnknowns(int elementCount) => elementCount + MaxCondensedInSolution + 2;
 
-    /// <summary>Doubles per case: six per species, the matrix, the right-hand side and the row scales.</summary>
+    /// <summary>
+    /// Doubles per case: seven per species (the seventh being rule A's tie snapshot of the gaseous logarithms, BOOT.md,
+    /// the third pass of 2026-09-28, finding F1), the matrix, the right-hand side, the row scales, and two more
+    /// <see cref="MaxCondensedInSolution"/>-sized slices for the tie snapshot's condensed moles and multipliers.
+    /// </summary>
     public static int DoublesPerCase(int speciesCount, int elementCount)
     {
         var unknowns = MaxUnknowns(elementCount);
-        return 6 * speciesCount + unknowns * unknowns + 2 * unknowns;
+        return 7 * speciesCount + 2 * MaxCondensedInSolution + unknowns * unknowns + 2 * unknowns;
     }
 
-    /// <summary>Ints per case: the species mask, the element mask and the condensed set.</summary>
-    public static int IntsPerCase(int speciesCount, int elementCount) => speciesCount + elementCount + MaxCondensedInSolution;
+    /// <summary>
+    /// Ints per case: the species mask, the element mask, the condensed set, and rule A's tie snapshot of the condensed
+    /// set (BOOT.md, the third pass of 2026-09-28, finding F1).
+    /// </summary>
+    public static int IntsPerCase(int speciesCount, int elementCount) => speciesCount + elementCount + 2 * MaxCondensedInSolution;
 }
 
 /// <summary>Per-case scratch views. <see cref="Slice"/> cuts them from one double and one int view of the sizes in <see cref="ScratchLayout"/>.</summary>
 internal readonly struct EquilibriumScratch(
     ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
     ArrayView<double> logMoles, ArrayView<double> corrections,
+    ArrayView<double> tieLogMoles, ArrayView<double> tieCondensedMoles, ArrayView<double> tieMultipliers,
     ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
-    ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution)
+    ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution, ArrayView<int> tieCondensedSet)
 {
     public readonly ArrayView<double> HOverRT = hOverRT;             // [species]
     public readonly ArrayView<double> SOverR = sOverR;               // [species]
@@ -73,12 +81,16 @@ internal readonly struct EquilibriumScratch(
     public readonly ArrayView<double> GOverRT = gOverRT;             // [species]
     public readonly ArrayView<double> LogMoles = logMoles;           // [species], ln n_j of gaseous species
     public readonly ArrayView<double> Corrections = corrections;     // [species], Δln n_j of gaseous species
+    public readonly ArrayView<double> TieLogMoles = tieLogMoles;             // [species], rule A's release snapshot of LogMoles (2026-09-28)
+    public readonly ArrayView<double> TieCondensedMoles = tieCondensedMoles; // [MaxCondensedInSolution], the snapshot's condensed moles
+    public readonly ArrayView<double> TieMultipliers = tieMultipliers;      // [MaxCondensedInSolution], the snapshot's Lagrange multipliers ([0, elementCount))
     public readonly ArrayView<double> Matrix = matrix;               // [MaxUnknowns * MaxUnknowns], row-major
     public readonly ArrayView<double> RightHandSide = rightHandSide; // [MaxUnknowns]; holds the solution after a solve
     public readonly ArrayView<double> RowScale = rowScale;           // [MaxUnknowns]
     public readonly ArrayView<int> SpeciesActive = speciesActive;    // [species], 1 when every element of the species is present
     public readonly ArrayView<int> ElementActive = elementActive;    // [element], 1 when the abundance is positive
     public readonly ArrayView<int> CondensedInSolution = condensedInSolution;    // [MaxCondensedInSolution], species indices
+    public readonly ArrayView<int> TieCondensedSet = tieCondensedSet;            // [MaxCondensedInSolution], the snapshot's condensed set
 
     /// <summary>Cuts the scratch of one case from views of at least <see cref="ScratchLayout.DoublesPerCase"/> and <see cref="ScratchLayout.IntsPerCase"/> elements.</summary>
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount)
@@ -97,6 +109,12 @@ internal readonly struct EquilibriumScratch(
         offset += speciesCount;
         var corrections = doubles.SubView(offset, speciesCount);
         offset += speciesCount;
+        var tieLogMoles = doubles.SubView(offset, speciesCount);
+        offset += speciesCount;
+        var tieCondensedMoles = doubles.SubView(offset, ScratchLayout.MaxCondensedInSolution);
+        offset += ScratchLayout.MaxCondensedInSolution;
+        var tieMultipliers = doubles.SubView(offset, ScratchLayout.MaxCondensedInSolution);
+        offset += ScratchLayout.MaxCondensedInSolution;
         var matrix = doubles.SubView(offset, unknowns * unknowns);
         offset += unknowns * unknowns;
         var rightHandSide = doubles.SubView(offset, unknowns);
@@ -106,10 +124,12 @@ internal readonly struct EquilibriumScratch(
         var speciesActive = ints.SubView(0, speciesCount);
         var elementActive = ints.SubView(speciesCount, elementCount);
         var condensed = ints.SubView(speciesCount + elementCount, ScratchLayout.MaxCondensedInSolution);
+        var tieCondensedSet = ints.SubView(speciesCount + elementCount + ScratchLayout.MaxCondensedInSolution, ScratchLayout.MaxCondensedInSolution);
         return new EquilibriumScratch(
             hOverRT: hOverRT, sOverR: sOverR, cpOverR: cpOverR, gOverRT: gOverRT, logMoles: logMoles, corrections: corrections,
+            tieLogMoles: tieLogMoles, tieCondensedMoles: tieCondensedMoles, tieMultipliers: tieMultipliers,
             matrix: matrix, rightHandSide: rightHandSide, rowScale: rowScale,
-            speciesActive: speciesActive, elementActive: elementActive, condensedInSolution: condensed);
+            speciesActive: speciesActive, elementActive: elementActive, condensedInSolution: condensed, tieCondensedSet: tieCondensedSet);
     }
 }
 
