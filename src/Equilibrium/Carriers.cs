@@ -69,6 +69,9 @@ internal struct NewtonLoopState
     /// <summary>Polish steps taken in the current unbroken run of passed verdicts.</summary>
     public int PolishSteps;
 
+    /// <summary>Vanished-species resets tried in the current <c>Converge</c> call before a condensed removal is attempted (RP-1311 section 3.6).</summary>
+    public int SingularResets;
+
     /// <summary>
     /// A change of the condensed set — an inclusion, a phase change, or a singular remedy's removal — restarts the
     /// step count, since the cap is "steps after the last change of the condensed species set" (BOOT.md).
@@ -242,11 +245,11 @@ internal struct IterationState
     public int LastRemovedForRange;
 
     /// <summary>
-    /// Whether the most recent <see cref="NewtonIteration.Converge"/> call dropped a negative-mole condensed record
-    /// through the singular remedies' last resort (BOOT.md, the warm-start fallback, 2026-09-27): the remedy removes
-    /// the last record of the set unconditionally, and this is the one place that still sees its mole number before
-    /// <see cref="CondensedSet.Remove"/> zeroes it. Reset at the start of every <c>Converge</c> call, so a caller
-    /// reads only what the call that just returned did.
+    /// Whether the case has already switched its gaseous retention threshold to the second stage (BOOT.md, the
+    /// two-stage retention threshold, 2026-09-28): the case starts at the first stage (1e-8) and switches once, at
+    /// its first convergence, to the second (1e-11) for the rest of the solve — one attempt of
+    /// <see cref="EquilibriumSolver.Solve"/>, a warm start's own cold retry included, since each attempt gets a fresh
+    /// <see cref="IterationState"/>.
     /// </summary>
-    public bool CondensedWentNegative;
+    public bool RetentionSecondStage;
 }

@@ -25,18 +25,17 @@ internal static class NewtonIteration
                                       in EquilibriumResult result, double logPressure, ref IterationState state)
     {
         var stride = ScratchLayout.MaxUnknowns(table.ElementCount);
-        var singularResets = 0;
         var loop = new NewtonLoopState();
-        state.CondensedWentNegative = false;
         while (loop.Steps < EquilibriumSolver.MaxNewtonSteps + MaxPolishSteps)
         {
             Composition.Evaluate(table, scratch, ref state);
-            var sums = Composition.Sums(table, scratch, result, state.LogN, logPressure, state.Temperature);
+            var traceThreshold = EquilibriumSolver.RetentionThreshold(state);
+            var sums = Composition.Sums(table, scratch, result, state, logPressure, traceThreshold);
             var layout = new SystemLayout(problem.Kind, table.ElementCount, state.CondensedCount, stride);
             IterationMatrix.Assemble(table, problem, scratch, result, layout, sums);
-            if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride))
+            if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride, out var failedRow))
             {
-                if (SingularRemedies.Recover(scratch, result, table.GasCount, ref singularResets, ref loop, ref state))
+                if (SingularRemedies.Recover(table, scratch, result, failedRow, ref loop, ref state))
                 {
                     continue;
                 }
@@ -53,7 +52,7 @@ internal static class NewtonIteration
             }
 
             var verdict = ConvergenceTests.Evaluate(table, problem, scratch, result, layout, sums);
-            if (verdict != ConvergenceVerdict.NotConverged && ConvergenceTests.RetentionCrossed(table, scratch, result, state.LogN))
+            if (verdict != ConvergenceVerdict.NotConverged && ConvergenceTests.RetentionCrossed(table, scratch, result, state.LogN, traceThreshold))
             {
                 verdict = ConvergenceVerdict.NotConverged;
             }
@@ -70,10 +69,22 @@ internal static class NewtonIteration
             }
 
             // The report's tests passed; a few more steps bring the corrections to rounding level.
-            if (verdict == ConvergenceVerdict.Polished || loop.PolishSteps >= MaxPolishSteps)
+            if (verdict != ConvergenceVerdict.Polished && loop.PolishSteps < MaxPolishSteps)
             {
-                break;
+                continue;
             }
+
+            // The case's first convergence switches the retention threshold to its second stage and needs one more
+            // convergence under it, as a change of the retained set (BOOT.md, the two-stage retention threshold,
+            // 2026-09-28): the switch happens once per solve, so every later exit below finds it already made.
+            if (!state.RetentionSecondStage)
+            {
+                state.RetentionSecondStage = true;
+                loop.RecordSetChange();
+                continue;
+            }
+
+            break;
         }
 
         return loop.Converged ? CaseStatus.Ok : CaseStatus.NotConverged;

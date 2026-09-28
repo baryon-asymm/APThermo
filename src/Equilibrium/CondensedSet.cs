@@ -165,7 +165,7 @@ internal static class CondensedSet
         }
         else if (k < 0)
         {
-            StandDown(scratch, j, ref state);
+            MarkRemoved(scratch, j, ref state);
         }
     }
 
@@ -196,11 +196,13 @@ internal static class CondensedSet
     }
 
     /// <summary>
-    /// Anti-cycling (BOOT.md): the first escape through its own bound is forgiven and only skipped for one inclusion pass;
-    /// a record that escapes twice in one solve chases a temperature the solution keeps leaving, and stands down for the
-    /// rest of it.
+    /// Anti-cycling (BOOT.md): the first escape through a boundary is forgiven and only skipped for one inclusion pass; a
+    /// record that escapes twice in one solve chases a boundary the solution keeps leaving and stands down for the rest of
+    /// it. Used by a removal for range and, since 2026-09-28, by the targeted singular remedy
+    /// (<see cref="SingularRemedies"/>), which marks the record it removes the same way rather than a second
+    /// implementation of the rule.
     /// </summary>
-    private static void StandDown(in EquilibriumScratch scratch, int j, ref IterationState state)
+    public static void MarkRemoved(in EquilibriumScratch scratch, int j, ref IterationState state)
     {
         if (SpeciesMarks.Of(scratch, j) == SpeciesMark.ForgivenOnce)
         {

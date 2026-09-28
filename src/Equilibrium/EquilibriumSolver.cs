@@ -19,8 +19,24 @@ namespace APThermo.Equilibrium;
 /// </remarks>
 internal static class EquilibriumSolver
 {
-    /// <summary>−ln(1e-8): gaseous species below this mole fraction are held at zero in the sums but keep their logarithms.</summary>
+    /// <summary>
+    /// −ln(1e-8): the first-stage retention threshold, in force until a case's first convergence (BOOT.md, the
+    /// two-stage retention threshold, 2026-09-28; cea 3.3.4's <c>tsize</c>). The report holds whatever
+    /// <see cref="RetentionThreshold"/> was active at the case's last <c>Composition.Refresh</c>, which for any
+    /// <c>Ok</c> exit is always the second stage below, not this one (BOOT.md, the ⚠ 2026-09-28 correction).
+    /// </summary>
     public const double TraceThreshold = 18.420681;
+
+    /// <summary>
+    /// −ln(1e-11): the second-stage retention threshold, in force for the rest of the solve after a case's first
+    /// convergence (2026-09-28; cea 3.3.4's <c>xsize</c>). The threshold every <c>Ok</c> report is taken at, since
+    /// the switch to this stage is itself a change of the retained set that the case must converge again under
+    /// before it may exit (BOOT.md).
+    /// </summary>
+    public const double SecondStageTraceThreshold = 25.328436;
+
+    /// <summary>The case's active retention threshold: the first stage until its first convergence, the second for the rest of the solve (BOOT.md, 2026-09-28).</summary>
+    public static double RetentionThreshold(in IterationState state) => state.RetentionSecondStage ? SecondStageTraceThreshold : TraceThreshold;
 
     /// <summary>Newton steps allowed after the last change of the condensed set.</summary>
     public const int MaxNewtonSteps = 50;
@@ -41,6 +57,11 @@ internal static class EquilibriumSolver
     /// </summary>
     internal const double GasDataFloor = 200.0;
 
+    /// <summary>K: an Ok state, tp included, is valid only within this window at convergence (BOOT.md, the mixture window, 2026-09-28; cea 3.3.4's `T_min`/`T_max` of the solver, `equilibrium.f90:78-80`).</summary>
+    internal const double MinMixtureTemperature = 160.0;
+
+    internal const double MaxMixtureTemperature = 22000.0;
+
     /// <summary>Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's temperature) are the initial estimate.</summary>
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                              in EquilibriumResult result, bool useMolesAsEstimate)
@@ -50,21 +71,23 @@ internal static class EquilibriumSolver
         var source = useMolesAsEstimate ? EstimateSource.PreviousSolution : EstimateSource.Defaults;
         var canFallBack = useMolesAsEstimate;
         var priorIterations = 0;
+        var current = problem;
         while (true)
         {
             var state = new IterationState();
-            if (CaseSetup.Begin(table, problem, scratch, result, source, ref state) != CaseStatus.Ok)
+            if (CaseSetup.Begin(table, current, scratch, result, source, ref state) != CaseStatus.Ok)
             {
                 return;
             }
 
-            var logPressure = CaseSetup.LogPressure(problem);
-            var status = RunToConvergence(table, problem, scratch, result, logPressure, ref state);
+            var logPressure = CaseSetup.LogPressure(current);
+            var status = RunToConvergence(table, current, scratch, result, logPressure, ref state);
 
-            if (canFallBack && FallsBackToColdStart(status, scratch, result, state))
+            if (canFallBack && FallsBackToColdStart(status))
             {
                 canFallBack = false;
                 source = EstimateSource.Defaults;
+                current = ColdRetryProblem(current);
                 priorIterations += state.Iterations;
                 continue;
             }
@@ -72,7 +95,7 @@ internal static class EquilibriumSolver
             state.Iterations += priorIterations;
             if (status == CaseStatus.Ok)
             {
-                status = Close(table, problem, scratch, result, logPressure, state);
+                status = Close(table, current, scratch, result, logPressure, state);
             }
 
             result.Iterations[0] = state.Iterations;
@@ -80,6 +103,17 @@ internal static class EquilibriumSolver
             return;
         }
     }
+
+    /// <summary>
+    /// The cold retry takes no part of the warm attempt's own seed (BOOT.md, 2026-09-28): for hp and sp it starts at
+    /// section 3.1's 3800 K, never at the failed warm attempt's temperature estimate, which is part of the seed the
+    /// retry is discarding, since <see cref="CaseSetup.InitialTemperature"/> reads a positive <see cref="EquilibriumProblem.Temperature"/>
+    /// as an estimate regardless of source. A tp's temperature is assigned, not an estimate, and is kept.
+    /// </summary>
+    private static EquilibriumProblem ColdRetryProblem(in EquilibriumProblem problem) =>
+        problem.Kind == ProblemKind.AssignedTemperaturePressure
+            ? problem
+            : new EquilibriumProblem(problem.Kind, problem.Pressure, 0.0, problem.Target, problem.ElementMoles);
 
     /// <summary>One convergence sequence: the Newton loop, then one change of the condensed set per convergence until the report's tests hold with no further change.</summary>
     private static CaseStatus RunToConvergence(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
@@ -113,38 +147,17 @@ internal static class EquilibriumSolver
     }
 
     /// <summary>
-    /// The warm-start fallback (BOOT.md, 2026-09-27): a warm start whose convergence fails - the singular remedies
-    /// exhausted, or the step cap - while a condensed species seeded from the previous solution still holds negative
-    /// moles retries once from the cold start of section 3.1. The seeded liquid going negative and never being
-    /// tested for removal before a convergence (rule 1 of the condensed-species rule fires only between
-    /// convergences) is the seed's own contradiction with the new state, not a later step's; a cold start never
-    /// triggers this, since it is never given <c>useMolesAsEstimate</c>. Two ways the negative mole shows at a
-    /// failure: the singular remedies' last resort already dropped it, zeroing its mole
-    /// (<see cref="IterationState.CondensedWentNegative"/>, the one place that still saw the sign); or the step cap
-    /// ran out with it still in the set and still negative, checked directly here.
+    /// The warm-start fallback (BOOT.md, 2026-09-27, widened 2026-09-28): a warm start whose convergence fails, in any
+    /// way other than <see cref="CaseStatus.InvalidInput"/> — which never reaches this point, since
+    /// <see cref="CaseSetup.Begin"/> already returned by then — retries once from the cold start of section 3.1. A
+    /// sign test on a seeded condensed mole cannot tell a diverged seed from a sound one (the second hidden-defect
+    /// audit's finding F3): the seeded liquid can also diverge positive, or go negative and recover before the
+    /// remedies or the step cap ever see it, so every failure is retried rather than only the ones a sign test catches.
     /// </summary>
-    private static bool FallsBackToColdStart(CaseStatus status, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state)
-    {
-        if (status is not (CaseStatus.SingularMatrix or CaseStatus.NotConverged))
-        {
-            return false;
-        }
+    private static bool FallsBackToColdStart(CaseStatus status) => status != CaseStatus.Ok;
 
-        if (state.CondensedWentNegative)
-        {
-            return true;
-        }
-
-        for (var c = 0; c < state.CondensedCount; c++)
-        {
-            if (result.Moles[scratch.CondensedInSolution[c]] < 0.0)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    /// <summary>0.8: the frozen floor factor of the reference's stop of a frozen expansion (cea 3.3.4 <c>rocket.f90:331-341</c>, BOOT.md, 2026-09-28).</summary>
+    private const double FrozenFloorFactor = 0.8;
 
     /// <summary>
     /// With the composition fixed to the result's moles, solves for the temperature (hp, sp) or evaluates at the assigned one
@@ -180,20 +193,29 @@ internal static class EquilibriumSolver
             return;
         }
 
-        var state = new IterationState { Temperature = CaseSetup.InitialTemperature(problem), LogN = Math.Log(sumGas) };
-        if (!(state.Temperature > 0.0))
+        var initialTemperature = CaseSetup.InitialTemperature(problem);
+        if (initialTemperature is not (> 0.0 and < double.PositiveInfinity))
         {
             return;
         }
 
+        var state = new IterationState { Temperature = initialTemperature, LogN = Math.Log(sumGas) };
         var logPressure = CaseSetup.LogPressure(problem);
         var status = problem.Kind == ProblemKind.AssignedTemperaturePressure
             ? CaseStatus.Ok
             : FrozenTemperature.Solve(table, problem, scratch, result, logPressure, ref state);
         if (status != CaseStatus.Ok)
         {
-            result.Iterations[0] = state.Iterations;
-            result.Status[0] = (int)status;
+            Exit(result, state, status);
+            return;
+        }
+
+        // The floor is 0.8 of the lowest lower bound of the fits of the gases present (cea 3.3.4 rocket.f90:331-341);
+        // the mixture window's own ceiling bounds it above (BOOT.md, 2026-09-28).
+        var floor = FrozenFloorFactor * LowestGasBound(table, result);
+        if (state.Temperature < floor || state.Temperature > MaxMixtureTemperature)
+        {
+            Exit(result, state, CaseStatus.TemperatureOutOfRange);
             return;
         }
 
@@ -205,24 +227,53 @@ internal static class EquilibriumSolver
         }
 
         MixtureProperties.WriteFrozen(problem, result, Composition.FrozenSums(table, scratch, result, state, logPressure));
+        Exit(result, state, MixtureProperties.IsPhysical(result.State[0], pinned: false) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange);
+    }
+
+    /// <summary>Writes the case's iteration count and final status, the last thing every exit of <see cref="SolveFrozen"/> does.</summary>
+    private static void Exit(in EquilibriumResult result, in IterationState state, CaseStatus status)
+    {
         result.Iterations[0] = state.Iterations;
-        result.Status[0] = (int)CaseStatus.Ok;
+        result.Status[0] = (int)status;
+    }
+
+    /// <summary>The lowest lower bound over the gaseous species present (a positive mole number); +∞ when none are.</summary>
+    private static double LowestGasBound(in SpeciesTableView table, in EquilibriumResult result)
+    {
+        var low = double.PositiveInfinity;
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (result.Moles[j] > 0.0)
+            {
+                low = KernelMath.Min(low, SpeciesFunctions.RecordLow(table, j));
+            }
+        }
+
+        return low;
     }
 
     /// <summary>
-    /// The exit guards of an Ok status and the state record: element conservation at the node's invariant, no condensed
-    /// candidate hidden by the anti-cycling rule, then the derivatives of section 2.5 and the mixture properties of section 2.6.
+    /// The exit guards of an Ok status and the state record: the mixture's temperature window, element conservation at
+    /// the node's invariant, no condensed candidate hidden by the anti-cycling rule, then the derivatives of section
+    /// 2.5, the mixture properties of section 2.6 and the state guard (BOOT.md, 2026-09-28). The reported moles are
+    /// exactly the composition every one of these checks was taken over: <c>Composition.Refresh</c>'s last call, at
+    /// the case's own active threshold (BOOT.md, "The report's own zeroing", corrected 2026-09-28).
     /// </summary>
     private static CaseStatus Close(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                     in EquilibriumResult result, double logPressure, in IterationState state)
     {
+        if (state.Temperature is < MinMixtureTemperature or > MaxMixtureTemperature)
+        {
+            return CaseStatus.TemperatureOutOfRange;
+        }
+
         if (!ElementBalance.WithinInvariant(table, problem, scratch, result)
             || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state))
         {
             return CaseStatus.NotConverged;
         }
 
-        var sums = Composition.Sums(table, scratch, result, state.LogN, logPressure, state.Temperature);
+        var sums = Composition.Sums(table, scratch, result, state, logPressure, RetentionThreshold(state));
         var derivatives = DerivativeSystem.Solve(table, scratch, result, state.CondensedCount,
                                                  ScratchLayout.MaxUnknowns(table.ElementCount));
         if (!derivatives.Solved)
@@ -231,6 +282,6 @@ internal static class EquilibriumSolver
         }
 
         MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives);
-        return CaseStatus.Ok;
+        return MixtureProperties.IsPhysical(result.State[0], derivatives.Pinned) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange;
     }
 }

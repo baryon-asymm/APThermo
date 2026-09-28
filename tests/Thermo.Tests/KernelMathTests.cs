@@ -5,18 +5,21 @@ namespace APThermo.Thermo.Tests;
 /// <summary>
 /// <see cref="KernelMath.Min"/> and <see cref="KernelMath.Max"/> equal <see cref="Math.Min(double, double)"/> and
 /// <see cref="Math.Max(double, double)"/> bit for bit, over every ordered pair of a domain that holds the values the
-/// two functions treat specially (BOOT.md, "`KernelMath`"): ±0, ±∞, NaN, the subnormal bounds, and, since the domain
-/// is squared, every value paired with itself (the "equal values" case, +0/−0 included). A fixed random sample adds
-/// ordinary finite values of mixed sign and magnitude. The execution tests node's <c>ProbeKernelTests</c> proves the
-/// same equality on CUDA.
+/// two functions treat specially (BOOT.md, "`KernelMath`"): ±0, ±∞, two NaNs of different payloads, the subnormal
+/// bounds, and, since the domain is squared, every value paired with itself (the "equal values" case, +0/−0
+/// included). The two NaN payloads prove the first-operand-payload rule for two NaNs (2026-09-28: the reordered form
+/// tests <c>val1</c> for NaN before <c>val2</c>, and a pair of two different NaNs is the only case that can tell
+/// which operand's bits the result carries). A fixed random sample adds ordinary finite values of mixed sign and
+/// magnitude. The execution tests node's <c>ProbeKernelTests</c> proves the same equality on CUDA.
 /// </summary>
 public sealed class KernelMathTests
 {
-    /// <summary>±0, ±∞, NaN, the smallest and largest subnormal, and the smallest normal.</summary>
+    /// <summary>±0, ±∞, two NaNs of different payloads, the smallest and largest subnormal, and the smallest normal.</summary>
     private static readonly double[] SpecialValues =
     [
         0.0, -0.0,
         double.PositiveInfinity, double.NegativeInfinity, double.NaN,
+        BitConverter.UInt64BitsToDouble(0xFFF8_0000_0000_0001UL), // a NaN of a different payload than double.NaN
         double.Epsilon,                                           // the smallest subnormal
         BitConverter.UInt64BitsToDouble(0x000F_FFFF_FFFF_FFFFUL), // the largest subnormal
         BitConverter.UInt64BitsToDouble(0x0010_0000_0000_0000UL), // the smallest normal

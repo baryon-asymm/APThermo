@@ -243,14 +243,21 @@ internal static class KernelMath
 }
 ```
 
-Implemented 2026-09-27 (`BOOT.md`): written with comparisons and selections only,
-following the logic of the .NET 10 source of `System.Math.Min(double, double)` and
-`Math.Max(double, double)`. NaN propagates from either operand; of two equal values
-(`+0`/`−0` included) `Min` treats `−0` as smaller and `Max` treats `+0` as larger.
-`double.IsNaN` and `double.IsNegative` are used here and nowhere else in the numerical
-nodes (root `BOOT.md`, "Math in numerical nodes"; the protocol tests node's reflection
-fact of the same date). The root's math list's `Min` and `Max` now name this type,
-never `System.Math.Min`/`Max`, in every numerical node.
+Implemented 2026-09-27 (`BOOT.md`): written with comparisons and selections only. NaN
+propagates from either operand; of two equal values (`+0`/`−0` included) `Min` treats
+`−0` as smaller and `Max` treats `+0` as larger. `double.IsNaN` and `double.IsNegative`
+are used here and nowhere else in the numerical nodes (root `BOOT.md`, "Math in
+numerical nodes"; the protocol tests node's reflection fact of the same date). The
+root's math list's `Min` and `Max` now name this type, never `System.Math.Min`/`Max`,
+in every numerical node.
+
+⚠ 2026-09-28: both operands are now tested for NaN before either takes part in an
+ordered comparison (root `BOOT.md`, the third ILGPU defect). The prior form tested only
+the first operand and let an ordered comparison decide a NaN second operand, following
+.NET 10's own `Math.Min`/`Max`; ILGPU moves a constant left operand of a comparison to
+the right and inverts its NaN ordering while doing so, so once inlining made an operand
+a compile-time constant, `Min(1.0, NaN)` read 1.0 on CUDA against NaN on the CPU. The
+signatures and every returned value are unchanged.
 
 ## Errors
 

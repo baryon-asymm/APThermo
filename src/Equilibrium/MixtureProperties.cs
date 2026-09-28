@@ -84,4 +84,21 @@ internal static class MixtureProperties
         state.SoundSpeed = Math.Sqrt(sums.SumGas * PhysicalConstants.R * sums.Temperature * state.GammaS);
         result.State[0] = state;
     }
+
+    /// <summary>
+    /// The state guard (BOOT.md, 2026-09-28): true when every heat capacity, γs and the sound speed of the state are
+    /// finite and positive — a species evaluated outside its fitted range can still return a finite but unphysical
+    /// polynomial value inside the mixture's temperature window. The pinned pair's zero <c>CpEquilibrium</c>/
+    /// <c>CvEquilibrium</c> convention (Property definitions, BOOT.md) is exempt for <paramref name="pinned"/>: a
+    /// frozen state's heat capacities are never legitimately zero.
+    /// </summary>
+    public static bool IsPhysical(in MixtureState state, bool pinned)
+    {
+        var equilibriumOk = pinned || (IsFinitePositive(state.CpEquilibrium) && IsFinitePositive(state.CvEquilibrium));
+        return IsFinitePositive(state.CpFrozen) && IsFinitePositive(state.CvFrozen) && equilibriumOk
+               && IsFinitePositive(state.GammaS) && IsFinitePositive(state.SoundSpeed);
+    }
+
+    /// <summary>Finite and strictly positive: excludes NaN (every comparison with it is false), zero, negative values and +∞.</summary>
+    private static bool IsFinitePositive(double value) => value is > 0.0 and < double.PositiveInfinity;
 }
