@@ -122,10 +122,36 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `Max(double, double)` for every numerical node. They return what `System.Math.Min`
   and `System.Math.Max` return for every pair of doubles, NaN and signed zeros included,
   since that is the CPU accelerator's result. They are written with comparisons and
-  selections only, following the logic of .NET's own implementation: NaN if either
-  operand is NaN, −0 below +0. So both accelerators run the same instructions. The
-  names `double.IsNaN` and `double.IsNegative` are allowed inside `KernelMath`, and
-  nowhere else in the numerical nodes, if ILGPU compiles them without libdevice.
+  selections only: NaN if either operand is NaN, −0 below +0. Both operands are
+  tested for NaN before any ordered comparison (2026-09-28):
+
+  ```text
+  Min(a, b) = IsNaN(a) ? a : IsNaN(b) ? b : a != b ? (a < b ? a : b) : (IsNegative(a) ? a : b)
+  Max(a, b) = IsNaN(a) ? a : IsNaN(b) ? b : a != b ? (b < a ? a : b) : (IsNegative(b) ? a : b)
+  ```
+
+  This returns what .NET 10 returns for every pair, two NaNs included (the first
+  operand's payload), and no ordered comparison inside them ever sees a NaN, whichever
+  side ILGPU moves a constant to (the root's third ILGPU defect). The names
+  `double.IsNaN` and `double.IsNegative` are allowed inside `KernelMath`, and nowhere
+  else in the numerical nodes, if ILGPU compiles them without libdevice.
+
+  ⚠ 2026-09-28: stood "following the logic of .NET's own implementation … So both
+  accelerators run the same instructions". .NET's form tests only the first operand
+  for NaN and lets the ordered comparison `val1 < val2` decide a NaN second operand.
+  ILGPU 1.5.3 moves a constant left operand of a float comparison to the right and
+  inverts its NaN ordering while doing so (`IR/Construction/Compare.cs:67-85` and
+  `UpdateFlags` in `IR/Values/Compare.cs:128-140`: the toggle that is right for an
+  inversion is applied to a swap), so once inlining makes `val1` a constant,
+  `1.0 < v` compiles to `setp.gtu.f64` and `Min(1.0, NaN)` is 1.0 on CUDA and NaN on
+  the CPU. Run on the reference device: 18 mismatches over 12 outputs and 10 inputs,
+  all at the three NaN inputs. `Max` was safe in either order. The one production call
+  of that shape, `DampedStep`'s `Min(lambda, …)` with `lambda` = 1.0, cannot receive a
+  NaN (`largest > 0.0` guards it), so no result moved. The probe called only
+  `Min(v, 1.0)` and `Max(v, 1.0)`, variable first, and the host facts run where nothing
+  is swapped. Found by the second hidden-defect audit of 2026-09-28, independently by
+  its Execution part (finding F1, on the device and in ILGPU's source) and its guards
+  part (finding F2, by an offline PTX compile).
 - The join-and-cut threshold is `SpeciesFunctions.LatentHeatThreshold` = 5e-3 on
   `|ΔH°/RT|` at a shared bound (2026-09-27). It is the one constant separating a real
   latent heat from fit noise, and it lives here because the equilibrium node's pair
@@ -427,6 +453,13 @@ of 14: no efferent coupling row is needed.
       three facts shown red once against the code of `9c33398` (threshold 1e-3) and
       green after `LatentHeatThreshold` was raised to 5e-3.
 
+      ⚠ 2026-09-28: the third bullet's two reasons stopped holding the same day. The
+      interval limit became 6, so `NaCN(II)` builds alone, and the sodium fixture lists
+      both names. All three facts read the constant, so writing `>= 1.0e-3` in the
+      builder in place of it left them green (the guards audit of 2026-09-28, finding
+      F6). The criterion "The latent-heat cut is guarded where it happens" below closes
+      this.
+
 - [x] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence:
       - `IntervalLimitTests.NoProductNameExceedsTheIntervalLimitAfterTheJoin` (`tests/Thermo.Tests`)
         computes, from `Cpu.Database.Products`, the interval count of every product name
@@ -507,6 +540,41 @@ of 14: no efferent coupling row is needed.
       "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
       0 warnings; no `Bits*.approved.txt` differs from `main` (`git status --short`
       names only the files this task touched, `Throughput*.approved.txt` excluded).
+
+      ⚠ 2026-09-28: "they equal the CPU accelerator on every input, NaN included" held
+      for the order the probe ran, a variable first and a constant second, and not for
+      `Min(constant, NaN)` (the ⚠ of that date under Constraints). The criterion below
+      carries the proof for both orders.
+- [ ] `KernelMath` tests both operands for NaN before any ordered comparison
+      (Constraints, 2026-09-28).
+      - `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair` stays
+        green with the new form, over the same domain (two NaNs of different payloads
+        added to it, so the first-operand payload rule is proven).
+      - The execution node's probe gains `KernelMath.Min(1.0, v)` and
+        `KernelMath.Max(1.0, v)`; they equal the CPU accelerator bit for bit on every
+        special input on CUDA (the execution tests node's criterion of the same date).
+        Red against the form of 2026-09-27 at the NaN inputs.
+      - No `Bits*.approved.txt` moves: no in-tree call passes a NaN to either function.
+- [ ] The latent-heat cut is guarded where it happens, not at its constant (the second
+      hidden-defect audit of 2026-09-28, guards finding F6).
+      - A fact asks the builder: the names whose single-name table
+        (`SpeciesTable.Build` over that name alone) has more than one piece equal the
+        list the threshold scan generates. Red with `>= 1.0e-3` written in
+        `SpeciesResolution` in place of the constant, which leaves every threshold fact
+        of 2026-09-27 green today.
+      - `RangeQuestionTests.CondensedDatabaseRecordNames` fails on a name it cannot build
+        as one piece unless the builder's cut list holds it; it no longer swallows an
+        `ArgumentException`.
+      - `LatentHeatThresholdTests`' summary of `NaCnTwoAndNaCnThreeEachStayOnePiece` is
+        corrected: since the interval limit of 6 both names build alone, and the sodium
+        fixture lists both (at zero moles). The fact then builds each alone and asserts
+        one piece.
+      - `IsInRange`'s summary says what the code does since 2026-09-26: the lowest
+        lower and the highest upper bound, bound by bound (the audit's O5).
+      - The unticked record-bounds criterion above is completed or its missing piece
+        stated: its thermo fixtures sample 298.15 K and 300 K but nothing strictly
+        between, as it asks. Either the generator adds 299 K for the eleven anomaly
+        records, or the criterion is reformulated with a note (AGENTS.md §6).
 
 ## Taboos
 

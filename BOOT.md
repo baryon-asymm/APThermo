@@ -249,8 +249,20 @@ delivery (2026-09-15, `## Delivery` below).
   transport node's hard-sphere estimate uses it; recorded 2026-09-14 after the
   architecture review found the eleventh name unlisted). The minimum and the maximum
   come from the thermo node's `KernelMath.Min` and `KernelMath.Max`, never from
-  `Math.Min` or `Math.Max` (2026-09-27). Adding a function is a root decision, because
-  the execution node must provide its libdevice wrapper.
+  `Math.Min` or `Math.Max` (2026-09-27), nor from `double.Min`, `double.Max` or any
+  other member of `System.Math` or `System.Double` outside this list: `double.Max` is
+  `Math.Max` in CoreLib's IL and compiles to the same `max.f64` (2026-09-28). The
+  protocol tests node checks the list itself, as an allow-list of the calls a numerical
+  node makes into `System.Math` and `System.Double`, `double.IsNaN` and
+  `double.IsNegative` allowed inside `KernelMath` only. Adding a function is a root
+  decision, because the execution node must provide its libdevice wrapper.
+
+  ⚠ 2026-09-28: the check of 2026-09-27 matched the declaring type `System.Math` and
+  the names `Min` and `Max`. `double.Max` in place of `KernelMath.Max` at the
+  convergence test and the station velocity, and `Math.Tanh`, `Math.Cbrt` and
+  `Math.Clamp` in the thermo node, built and passed the whole hosted suite; the
+  offline PTX of `double.Max` is `max.f64`. Nothing checked the rest of this list.
+  Found by the second hidden-defect audit of 2026-09-28 (guards, finding F1).
 
   ⚠ 2026-09-27: `Min` and `Max` stood in the list. ILGPU compiles `Math.Min` and
   `Math.Max` to PTX `min.f64` and `max.f64`, which return the other operand when one is
@@ -275,6 +287,19 @@ delivery (2026-09-15, `## Delivery` below).
   `DllImport` resolver on every CUDA context it creates, which .NET allows once per
   process, so the second CUDA engine of a process failed to bind. The execution node
   registers the devices of every later context itself. Its `BOOT.md` records the rule.
+
+  A third defect of the same version (2026-09-28): ILGPU moves a constant left operand
+  of a floating-point comparison to the right and inverts its NaN ordering while doing
+  so (`IR/Construction/Compare.cs:67-85`, `UpdateFlags` in `IR/Values/Compare.cs:128-140`),
+  so `1.0 < v` compiles to `setp.gtu.f64` and is true for a NaN `v` on CUDA and false
+  on the CPU. The rule for the numerical nodes: an ordered floating-point comparison
+  (`<`, `<=`, `>`, `>=`) either has no literal or constant on its left in the source,
+  or runs after a NaN test of its operands. The protocol tests node checks the source
+  half; the half that appears only after inlining (a local assigned a constant, a
+  constant argument of an inlined method) is the reason `KernelMath` tests both
+  operands for NaN first, and the execution node's probe runs `KernelMath` with the
+  constant in either position. Found by the second hidden-defect audit of 2026-09-28,
+  on the reference device and in ILGPU's source.
 
   ⚠ 2026-09-26: stood "defective with libnvvm 12.9 and 13.3 … The execution node links
   the libdevice wrappers itself". The defect depends on the target architecture, not on
@@ -612,6 +637,20 @@ There is no external ancestor: the tree root is the repository root, and the loa
       Every architecture is compiled for and then run on the RTX 5070 Ti; no GPU older
       than Blackwell has run it. A one-time run on rented hardware (a T4 or an L4) is
       planned by the owner and will be recorded here.
+- [ ] The second hidden-defect audit (2026-09-28, five read-only parts at `5a732f0`,
+      reports kept out of the tree with the first audit's) is closed before 0.2.0 is
+      tagged: every finding of every part is fixed or answered by an owner's decision,
+      recorded in the node it concerns. The owner decided on 2026-09-28:
+      - everything is fixed before the tag, minor findings and guard gaps included;
+      - the throat is the first maximum of the mass flux met from the chamber (the
+        performance node's `BOOT.md`);
+      - below 200 K the equilibrium node follows the reference's mixture window;
+      - the retention threshold has the reference's two stages.
+
+      Two findings were regressions of the first audit's own fixes (the reaction basis
+      of `Transport`, the loop rules of `Equilibrium`). Every fix is therefore accepted
+      only with the audit's own failing cases as facts, and a short third pass over the
+      changed code follows before the rehearsal.
 
 ## Taboos
 

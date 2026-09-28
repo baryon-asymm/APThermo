@@ -109,13 +109,44 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   species)` kmol per kg with `n = 0.1` when no estimate is given, `T = 3800 K` for hp
   and sp when no estimate is given; callers may pass a previous solution as the
   estimate (the nozzle does).
+
+  A warm start that fails, with any status other than `InvalidInput`, falls back once
+  to the cold start of section 3.1, with the iterations of both attempts counted in the
+  case's total (2026-09-28). A cold start never falls back. The cold start takes no part
+  of the seed: for hp and sp it starts at 3 800 K, not at the previous solution's
+  temperature, since that temperature is part of the seed.
+
+  ⚠ 2026-09-28: the fallback of 2026-09-27 (the acceptance criteria, the warm-start
+  criterion) fired only when a seeded condensed species was still negative at the
+  failure. A warm start also fails in two other ways the sign test does not see: the
+  iterate diverges with the seeded liquid positive (`ln n` growing by the damping cap to
+  the step cap, the liquid at thousands of kmol/kg), or the liquid goes negative and
+  comes back positive before the cap. The audit counted 29 warm tp restarts at P/10,
+  P/2 and T×1.1 of fixture tables at 300 K and 600 K ending `NotConverged` where a
+  fresh cold solve is `Ok` in 12 to 50 steps; retrying on any failure recovered all 29
+  and moved no other count. Its observation O3: the "cold" retry of an hp or sp kept
+  the caller's temperature estimate, which for a warm start is the previous
+  solution's. Found by the second hidden-defect audit of 2026-09-28 (Thermo and
+  Equilibrium, finding F3 and observation O3).
 - Convergence tests and control factor as RP-1311 chapter 3: the `λ` damping of
   equations (3.1)–(3.3) with the two branches for species above and below the trace
   threshold, the tests (3.5) and (3.6) on `Δln n_j`, `Δln n`, `Δln T`, the
-  condensed-species mole numbers and the element residuals; trace threshold
-  `ln(n_j/n) = −18.420681` (that is `n_j/n = 1e-8`) as in the report, below which a
-  gaseous species is held at zero in the sums, keeps its logarithm, and is reported
-  with zero moles. Iteration cap: 50 Newton steps after the last change of the
+  condensed-species mole numbers and the element residuals. The retention threshold
+  has two stages, as the reference's `tsize`/`xsize` (2026-09-28; cea 3.3.4
+  `equilibrium.f90:60-64`, switched at 1293-1304): `ln(n_j/n) = −18.420681`
+  (`n_j/n = 1e-8`, the report's) until the first convergence of the case, then
+  `ln(n_j/n) = −25.328436` (`1e-11`) for the rest of the solve. Below the threshold a
+  gaseous species is held at zero in the sums and keeps its logarithm. The switch
+  recomputes the retained amounts and counts as a change of the retained set: the loop
+  must converge once more under the second stage before it may exit, so every `Ok`
+  has been converged under 1e-11. The switch happens once per solve, including a
+  warm start. The report is unchanged: a gaseous species below 1e-8 of the gas
+  is reported with zero moles, a step applied to the final state only and nowhere in
+  the iteration. `Composition` stays the one place the retention rule is applied, and
+  the stage is per-case state of the loop's bookkeeping struct. A singular matrix
+  does not widen the threshold; the reference's widening to 80 (`1994-1995`) was
+  measured by the second audit to add warm-versus-cold disagreements and is not
+  copied. Iteration cap: 50 Newton steps after the last change of the
   condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
   case: three per slot of the condensed set, an inclusion, a forgiveness and a
   stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
@@ -154,6 +185,27 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
   `API.md`'s sentence that a trace species' logarithm "stays in the scratch for the
   next estimate" was true, but the next estimate never read it; it is corrected there.
+
+  ⚠ 2026-09-28: stood "trace threshold `ln(n_j/n) = −18.420681` … as in the report",
+  one threshold for the whole solve. Together with the two rules above it turned
+  converging states into failures. In ammonium perchlorate products below about 350 K,
+  NH4CL(II) holds all of the N and Cl, leaving HCL, NH3 and N2 between 1e-11 and 2e-7,
+  on the threshold:
+  - retaining one carrier pushes another across 1e-8, so every step is a crossing and
+    the crossing rule overrides every passing verdict to the step cap (RP-1311
+    example 5 at 300 K, 1 bar);
+  - when the last carrier drops out of the sums, the N and Cl rows see only
+    NH4CL(II), the matrix is singular, the resets re-seed the carriers, and the
+    cleared polish count lets them fall back through the threshold, until the change
+    cap (AP/HTPB/Al at 7 MPa, 300 K, up to 1 907 steps).
+
+  16 tp states that were `Ok` at `9c33398` ended `NotConverged`; for example 5 the old
+  answer matches cea 3.3.4 to five digits. The reference retains down to 1e-11 after
+  its first convergence, where no carrier sits; the audit's clone with only that
+  change converged all 16 and 11 older failures, matched cea to the printed digits,
+  and lost no `Ok` in its fuzz. Found by the second hidden-defect audit of 2026-09-28
+  (Thermo and Equilibrium, finding F1); the two-stage rule was checked against
+  `equilibrium.f90` by the orchestrator.
 
   ⚠ 2026-09-14: stood "at most 10 changes of that set per case". The plateau rules of
   2026-09-13 need up to three changes per slot, and the code's constant became
@@ -218,6 +270,30 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   ⚠ 2026-09-26: the rule was missing. The hidden-defect audit did not find it; it came
   up while its finding 1 was being checked against the same line of the reference.
 
+  The mixture's temperature window (2026-09-28): an `Ok` of any kind, tp included, is
+  valid only when the final temperature lies in [160 K, 22 000 K], the reference's
+  `T_min` and `T_max` of the solver (cea 3.3.4 `equilibrium.f90:78-80`, checked after
+  convergence at 2682-2685, where the state is then not converged). Outside it the
+  status is `TemperatureOutOfRange`. The iterate window of hp and sp, [100 K,
+  20 000 K], is unchanged. The window bounds the open-below rule: ice is a candidate
+  below 200 K, and a state holding it is valid down to 160 K.
+
+  A state guard (2026-09-28), this node's own and not the reference's: an `Ok` whose
+  frozen or equilibrium heat capacity (Cp or Cv), `γ_s` or sound speed is not finite
+  and positive is `TemperatureOutOfRange`. The window above keeps every case the
+  committed data can serve, and the guard catches what a polynomial evaluated outside
+  its fit may still produce inside the window. The pinned pair's `Cp_eq = Cv_eq = 0`
+  convention (Property definitions below) is exempt for the equilibrium pair only.
+
+  ⚠ 2026-09-28: stood "at any temperature the solver allows below its range". A tp has
+  no iterate window, so ice was held at any temperature. The `H2O(cr)` fit evaluated
+  below its 200 K bound gives `Cp°/R` −3.53 at 100 K and −44.5 at 60 K. With ice in the
+  solution a tp returned `Ok` with negative mixture Cp and Cv at 100 K and below, and
+  `γ_s < 0` with a NaN sound speed at 102.6 and 105 K. cea 3.3.4 returns "not
+  converged" at 60 to 150 K by the window above, whose floor the rule did not know.
+  Found by the second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium,
+  finding F2); the window checked against `equilibrium.f90` by the orchestrator.
+
   Effective range: where two records of one formula share a bound `T_b` and the
   latent heat there is real, the boundary between them is the crossing of their
   linearized Gibbs curves, `T* = T_b (1 + Δg/Δh)` with `Δg` and `Δh` the differences
@@ -240,9 +316,31 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   whatever the rules above failed to include, a full set among it, instead of
   returning a false equilibrium.
 
-  Singular matrices are reported as `SingularMatrix` after the report's remedies
-  (resetting vanished species to `1e-6`, twice; then removing the last condensed
-  species) have been tried.
+  Singular matrices are reported as `SingularMatrix` after the remedies have been
+  tried: resetting vanished species to `1e-6`, twice (the report's); then removing one
+  condensed species chosen by the row whose pivot failed, as the reference does
+  (2026-09-28; cea 3.3.4 `equilibrium.f90:2001-2059`):
+  - a failed **condensed** row: the condensed species of the solution with the
+    smallest mole number that shares an element with the last one added;
+  - a failed **element** row: the condensed species of the solution with the smallest
+    mole number that carries that element;
+  - any other row, or no such species: the last condensed species, as before.
+
+  The removal is a change of the set, as above, and marks the removed record, as a
+  removal for range does: the next inclusion passes it over once while another positive
+  candidate exists. To know the row, the dense solver gains a second entry that returns
+  the index of the row whose pivot failed. `Solve` and its `bool` stay as they are, so
+  `Transport`, which calls `Solve`, is untouched; the new entry is internal to this node.
+
+  ⚠ 2026-09-28: stood "removing the last condensed species". On the products of
+  AP/HTPB/Al at 420–450 K and 1–7 MPa, `H2O(L)` is included beside `AL2O3(a)` and
+  `AL(OH)3(a)`, which are linearly dependent with it (2 Al(OH)3 = Al2O3 + 3 H2O). The
+  matrix is singular, the remedy removes `H2O(L)`, and the next inclusion puts it back,
+  every 9 steps, until the change cap: `NotConverged` in 8 states where cea 3.3.4
+  converges (7 MPa, 430 K: AL2O3(a), C(gr), H2O(L), NH4CL(II), no AL(OH)3(a)). The same
+  last-species rule removed `C(gr)`, which had nothing to do with the dependency, in
+  the singular cycle of the ⚠ above. Present since the first version; found by the
+  second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium, finding F5).
 
   ⚠ 2026-09-13: until this date the rule read "a condensed species outside its
   temperature range is not a candidate at that temperature … when the temperature is
@@ -270,6 +368,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   frozen properties; this mode serves frozen nozzle flow. The composition is valid when
   every mole number, gaseous and condensed, is finite and not negative and the gaseous
   ones sum to more than zero; otherwise the case is `InvalidInput` (2026-09-26).
+  The temperature is valid when it is finite and positive: for tp the assigned one, for
+  hp and sp the estimate, which is replaced as in `Solve` when it is not
+  (2026-09-28); otherwise the case is `InvalidInput`. An `Ok` frozen state has a
+  temperature not below 0.8 times the lowest lower bound of the fits of the gases
+  present, the reference's stop of a frozen expansion (cea 3.3.4 `rocket.f90:331-341`,
+  0.8 × 200 K = 160 K with the committed data). Below it, or above the mixture window's
+  22 000 K, the status is `TemperatureOutOfRange`, and the state guard of the
+  equilibrium path applies to a frozen `Ok` too.
+
+  ⚠ 2026-09-28: only the mole numbers were validated. A frozen tp at +∞ or 1e-300 K
+  returned `Ok` with h, s, g, Cp, Cv, `γ_s` and the sound speed all NaN, and at 1e6 K
+  `Ok` with Cp −1.89e12 J/(kg·K). No caller of the tree passes a frozen tp, so nothing
+  reached it. Found by the second hidden-defect audit of 2026-09-28 (Thermo and
+  Equilibrium, finding F4). `Solve`'s tp check (`CaseSetup`) had the same gap and ended
+  in `SingularMatrix`; it now answers `InvalidInput` for a non-finite temperature too.
 
   ⚠ 2026-09-26: only the gaseous mole numbers were checked. A NaN condensed mole number
   gave a tp `Ok` with h, cp and MW all NaN, and −0.01 kmol/kg of `H2O(L)` gave `Ok`
@@ -888,6 +1001,57 @@ found the stale row red; re-measured the same day.
       `dotnet test tests/Execution.Tests -c Release` 126/126 on CUDA; the protocol
       lint 0 errors/0 warnings; no `Bits*.approved.txt` differs from `main` outside
       the fifteen new tp lines and eleven new thermo lines named above.
+- [ ] The second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium, findings
+      F1 to F5, and the guards part's O8 and F9) is closed by the rules of that date
+      under Constraints.
+      - **The two-stage threshold (F1).**
+        - New tp fixtures from cea 3.3.4 through the fixtures node's generator: RP-1311
+          example 5's table at 300 K, 1 bar and 70 bar, and 305 K, 1 MPa; NaClO4 at
+          500 K and 800 K, 1 bar; AP/HTPB/Al at 7 MPa, 430 K and 1 MPa, 420 K (the F5
+          states cea converges). Covered by `AssignedTemperatureCasesReproduceTheReference`
+          through its directory listing; each red at `5a732f0`.
+        - The audit's 16 regression states (its F1 table), where cea aborts for
+          AP/HTPB/Al: `Ok`, and each passes the tests node's independent equilibrium
+          checks (element conservation, every gas at its chemical potential, no absent
+          condensed record in its effective range with a positive gain). Red at
+          `5a732f0`.
+        - A unit fact on the loop's struct: the switch to the second stage counts as a
+          change of the retained set, and an exit needs a convergence after it.
+        - The report's zeroing below 1e-8 is unchanged: an existing fixture's reported
+          mole numbers keep their zeros.
+      - **The targeted singular remedy (F5).** The dense solver's new entry returns the
+        failed row, a unit fact on a constructed singular matrix. The AP/HTPB/Al states
+        at 420–450 K, 1–7 MPa converge and agree with cea where cea was asked (above).
+        A singular removal marks its record, a fact on the anti-cycling skip.
+      - **The mixture window and the state guard (F2).** A tp of the `h2-o2-of4` table
+        at 1 bar, 60 K to 159 K: `TemperatureOutOfRange`. At 160 K and above: `Ok`,
+        with finite positive Cp, Cv, `γ_s` and sound speed. The fixtures at 165–199 K
+        stay green. A fact over every `Ok` of the fixtures and of the audit's grids:
+        the guard's quantities are finite and positive, the pinned pair's
+        `Cp_eq = Cv_eq = 0` excepted.
+      - **The fallback on any failure (F3).** `WarmStartTests` extended to P/10, P/2
+        and T×1.1 over the fixture tables at 300 K and 600 K (the audit's six named
+        cases among them): every warm start whose cold solve is `Ok` ends `Ok` and
+        agrees with it. The step-cap trigger has a fact of its own (guards F9: no test
+        reached it). The hp and sp cold retry starts at 3 800 K.
+      - **Frozen validation (F4).** `InvalidInputTests` gains frozen tp at +∞, NaN and
+        1e-300 K (`InvalidInput` for the first two; `TemperatureOutOfRange` for the
+        third, below 0.8 of the gas floor), and `Solve` tp at +∞ (`InvalidInput`).
+      - **NaN in the element guard (guards O8).** `ElementBalance.WithinInvariant`
+        reads a NaN abundance as outside the invariant; a fact drives the method itself,
+        not the test node's own `Violations`.
+      - **Bits.** The two-stage threshold changes the final iterates, so bit snapshots
+        of this node and of the nodes that consume it (`Performance`, `Transport`,
+        `Problems`, `Cli`) move. The orchestrator decided on 2026-09-28 that this
+        coder re-approves them in the same commit, with a field-by-field report of the
+        largest relative change per field, every CEA tolerance test of the tree green,
+        and no status or iteration count changed except where the audit named the
+        case. The Linux files are recorded by the orchestrator under WSL. The
+        execution tests node's CUDA sweep and throughput tripwire run again on the
+        reference machine.
+      - `API.md` states the changes: the retention stages, the targeted remedy, the
+        window, the guard, the non-finite temperatures under `InvalidInput`, the
+        warm-start retry on any failure.
 
 ## Taboos
 

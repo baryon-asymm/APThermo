@@ -100,11 +100,15 @@ reference, recovered from its source:
   component species per active element, chosen as the reference does (gaseous species
   in decreasing moles, each given the first element row it contains that is still free,
   provided its stoichiometry column is not that of an earlier component and stays
-  independent of the rows' default species, the monatomic gases). When the rows are
-  reduced and a component's pivot has vanished, because its column was proportional to
-  an earlier component's, the row takes back its default species before it is reduced,
-  and is skipped only when that pivot is zero too (cea 3.3.4 `equilibrium.f90:2264-2285`,
-  2026-09-26). Then every gaseous
+  independent of the rows' default species, the monatomic gases). The components are
+  then settled before anything is seeded (2026-09-28): the element rows are reduced
+  over the columns of the components and of the defaults, row by row in element order,
+  and a row whose component's pivot has vanished, because its column was proportional
+  to an earlier component's, takes back its default species; the row is skipped only
+  when that pivot is zero too (cea 3.3.4 `equilibrium.f90:2264-2291`, which reverts
+  inside its basis update and stores the reverted list). The set is seeded with the
+  settled components, whatever their moles, a zero-mole default included (cea 3.3.4
+  `equilibrium.f90:5221-5236`, where only "already selected" skips a component). Then every gaseous
   species with moles not below n/(ng·10^k), k = 1, 2, …, until the set carries
   (1 − 1e-9)(1 − 1e-6) of the gaseous moles n, the set is full, the threshold falls
   below 1e-11 n, or ng passes have run (the reference's bound, cea 3.3.4
@@ -125,6 +129,22 @@ reference, recovered from its source:
   of the reference rule's, and the heat capacity's 0.10. Found by the hidden-defect
   audit of 2026-09-26 (finding F4). The sentence above said the components were chosen
   "as the reference does", which held for the choice and not for the reduction.
+
+  ⚠ 2026-09-28: the fix of 2026-09-26 put the revert in the reduction of the set's
+  basis (stage 7), after the set had been seeded (stages 4 and 5). A default species
+  with zero moles was then never in the set: the reverted row had no column, stayed
+  unreduced, and its element had no component, so the reactions did not conserve it
+  ("HF − F", "2HF − F2"). The status stayed `Ok` and the reacting figures were off by
+  one to three orders of magnitude: `rocket` H2(L)/F2(L) at O/F 22, ε 150, gave an
+  equilibrium heat capacity of 92 308 J/(kg·K) against `Equilibrium`'s 3 334, and
+  H2 + HF with H listed first 20 of 29 states wrong, up to 1 660× in the heat capacity
+  and 2 938× in the reacting conductivity; the restricted N2O4/NO2 list +3.7 %. Before
+  that fix the same stations were off by 0.05 to 0.35 %. The four verification
+  propellants never revert, which is why no fixture saw it. The sentence read "the row
+  takes back its default species before it is reduced", true of the reduction and
+  silent on the seeding, which the reference does after the revert. Found by the
+  second hidden-defect audit of 2026-09-28 (Performance and Transport, finding F2),
+  confirmed against `equilibrium.f90` by the orchestrator.
 - Species without data: η_i = (5/16)·sqrt(k_B M_i T/(π N_A))/(σ₀² Ω_i) with
   σ₀ = 1 Å and Ω_i = max(1, ln(50 M_i^4.6/T^1.4)), and
   λ_i = η_i (R/M_i)(3.75 + 1.32 (Cp_i/R − 2.5)). A species with viscosity fits but
@@ -137,7 +157,8 @@ reference, recovered from its source:
   for 4√2; the 3e-8 the fixtures show against the tree is that rounding.
 - Mixing: equations (5.3) and (5.4) with φ_ij = 2 M_j η_i/(η_ij (M_i+M_j)) (5.7) for
   every pair, data or estimate, and ψ_ij from φ_ij by (5.6).
-- Reactions: the components are those of the seeding; the stoichiometry of the set is
+- Reactions: the components are those of the seeding, settled before it (above), so
+  every component has its column in the set; the stoichiometry of the set is
   reduced so that the component columns are unit vectors (always; the reference reduces
   only when a component differs from the row's monatomic default, which is the same
   matrix in every case with the monatomic gases present); one reaction forms each
@@ -203,9 +224,10 @@ class per stage) is unaffected.
 | `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Its efferent coupling, 14 by the dependency check's walk on 2026-09-14, is within the root's limit since that limit was recalibrated to 14 the same day, so it claims no exception (it was named here first as the composition root above the first limit of 10, about 14 after the split) | internal |
 | `TransportInput` | may this station be evaluated, and how much gas it holds: the temperature, table and mole checks, the gaseous mole sum, `InvalidInput` and `NoTransportData` | internal |
 | `TransportComponents` | the active element rows, each row's default species, the component of each row (with the predicates `AtomCount`, `OfCase`, `SameColumn`) | internal |
+| `ComponentBasis` | the components settled before the seeding (2026-09-28): the element rows reduced over the columns of the components and the defaults, in element order, a vanished pivot reverting its row to the default species; writes `Component` and nothing the later stages read besides it | internal |
 | `TransportSetSelection` | which species take part: the case's gas count, the components, the decade passes to the coverage or the cutoff, `Capped` | internal |
 | `SetSpeciesProperties` | the per-species and per-pair η, λ, `Cp°/R` and `H°/RT` of the set: from the fits where there are data, from the estimates where there are none (two entries, run at the present positions 6 and 10 of the order) | internal |
-| `ReactionBasis` | the stoichiometry of the set reduced so that the component columns are unit vectors (with `LocalIndex`) | internal |
+| `ReactionBasis` | the stoichiometry of the set reduced so that the component columns are unit vectors (with `LocalIndex`); since 2026-09-28 it reads `Component` and no longer writes it, a zero pivot leaving its row unreduced as the reference's `tem == 0` does | internal |
 | `ReactionSet` | the independent reactions among the set's species and the trace eliminations | internal |
 | `MixtureRules` | the mixture viscosity and frozen conductivity, equations (5.3)–(5.7) | internal |
 | `ReactionTerms` | the reaction contribution to conductivity and heat capacity (Butler and Brokaw): the enthalpy differences, the two matrices, the two dense solves, `SingularMatrix` | internal |
@@ -428,6 +450,36 @@ row.
         every rocket fixture with transport (168 stations, 39 fixtures): both counters
         read 0, so no committed fixture's basis has a vanished pivot and none holds
         `UF6`.
+
+      ⚠ 2026-09-28: "reverts … as the reference does" held for the reduction and not
+      for the seeding, and the restricted-list fact gave N and O 0.01 mol each, so the
+      reverted default was always in the set; with a zero-mole default the fix broke
+      conservation by orders of magnitude (the ⚠ of that date under Constraints). The
+      criterion below replaces this one's first bullet as the evidence.
+- [ ] The components are settled before the set is seeded, and every component is in
+      the set (the ⚠ of 2026-09-28 under Constraints).
+      - **The audit's cases as facts, each seen red against `5a732f0`:**
+        - the restricted list `[NO2, N2O4, N, O, N2, O2, NO]` at 400 K with N and O at
+          zero moles: every reaction conserves every element, and the equilibrium heat
+          capacity equals the independent value the audit's emulation gave
+          (1 998.469288525117 J/(kg·K) there; the test reads it from `Equilibrium`'s
+          `CpEquilibrium` of the same state, not typed);
+        - H2 + HF (H:F = 2:1 by atoms) over the audit's grid (300 to 3 000 K; 1 kPa,
+          0.1 MPa, 10 MPa), in both element orders: every reaction conserves, and the
+          two orders agree field by field within the tolerance derived below.
+      - **Consistency over sweeps, both element orders.** Over state sweeps of H/F, of
+        N/O from N2O4 and of the four verification propellants' element sets: wherever
+        no species is trace-eliminated and no condensed species is present (the
+        transport figures are per kilogram of the set's gas), the transport's `EquilibriumHeatCapacity`
+        equals `Equilibrium`'s `CpEquilibrium` of the same state within a tolerance the
+        test derives from the coverage the set leaves out (`CoverageFraction`,
+        `CoverageTolerance`), not tuned to pass; the list of states is generated, and
+        the fact fails on an empty list.
+      - **Conservation everywhere** (`EveryReactionOfEveryStationsSetConservesTheElements`)
+        extended to the sweeps above.
+      - **Bits.** The fixtures never revert (the criterion above), so every
+        `Bits*.approved.txt` of the tree stays unchanged; if one moves, the coder stops
+        and reports the case instead of approving it.
 
 ## Taboos
 
