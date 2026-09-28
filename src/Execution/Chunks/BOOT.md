@@ -151,6 +151,68 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       throughput tripwire included, no `Bits*`/`Throughput*`/`PublicSurface.approved.txt`
       record moved; the protocol lint 0 errors, 0 warnings.
 
+- [x] 2026-09-28 — A launch fits a time budget (the second audit's Execution finding
+      F2). `LaunchBudget` holds no ILGPU type (`NoBudgetNeverBoundsAChunk`,
+      `ABoundedBudgetScalesFromThePreviousChunksTimePerCase`,
+      `ABoundedBudgetNeverAnswersBelowOneCase`), `ChunkPlan.FirstChunkCases` and
+      `.NextChunkCases` stay within `Size` and the batch's remainder with and without a
+      budget (`TheFirstChunkIsSizeWithNoBudgetAndOneWaveWithABudget`,
+      `NextChunkCasesStaysWithinSizeAndTheRemainder`), and `BatchRun`'s timeout
+      translation is exercised with an injected `CudaException`, no real device or real
+      timeout (`ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy`,
+      `ANonTimeoutCudaFailurePassesThroughUnwrapped`, the second gated the same way as
+      the library-discovery facts elsewhere in the parent node: `CudaException`'s own
+      constructor asks the driver for the error text). All seven in
+      `tests/Execution.Tests/LaunchBudgetTests.cs`.
+
+      Shown red once: `BatchRun.Launch`'s catch filter changed from
+      `CUDA_ERROR_LAUNCH_TIMEOUT` to `CUDA_ERROR_OUT_OF_MEMORY` —
+      `ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy`
+      failed, the injected `CudaException` passing through unwrapped instead of
+      becoming `AcceleratorUnavailableException` — then reverted, the same command
+      green again (`dotnet test tests/Execution.Tests --filter
+      "FullyQualifiedName~LaunchBudgetTests"`, 7/7).
+
+      Verified on the reference machine: `dotnet build tests/Execution.Tests` 0
+      warnings, 0 errors (the Cli.Tests project of a concurrent full-suite run held its
+      own copy of `APThermo.Execution.dll`, so this node's own project is built and
+      tested directly rather than the whole solution for this step; the full-solution
+      build is re-verified separately); `dotnet test tests/Protocol.Tests` 32/32 with
+      `src/Execution/BOOT.md`'s `## Shape exceptions` numbers re-measured for `Engine`
+      (25 → 30, `Budget`/`RunBatchLoop` added) and the four pipelines (`LaunchBudget`
+      now named through `session.Budget`); the protocol lint 0 errors, 0 warnings.
+
+- [x] 2026-09-28 — The cap is proven as wiring (the guards part's F8). Each of
+      `EquilibriumPipeline`, `RocketPipeline` and `TransportPipeline` gained an
+      internal `DeclareBuffers` method mirroring its `Run`'s buffer declarations with
+      empty host arrays (no device allocation); a fact feeds each a large synthetic
+      case count through `ChunkPlan.For` directly and asserts the chosen plan's
+      `Size × expectedLargestStride` stays within a 32-bit offset, where
+      `expectedLargestStride` is computed independently from the same production
+      layout formulas (`ScratchLayout`, `RocketLayout`, `TransportLayout`), never by
+      reading `buffers.MaxElementsPerCase` back — the read-back would make the fact
+      pass under any mutation of that property, since the wrong number would then
+      compare against itself.
+      `ChunkPlanWiringTests.EachPipelinesChosenPlanRespectsItsOwnOffsetCap`
+      (`tests/Execution.Tests/ChunkPlanWiringTests.cs`), a theory over the three
+      pipelines (`SpeciesFunctionPipeline` excepted: every one of its strides is 1, so
+      the cap is vacuous there and it gained no `DeclareBuffers`).
+
+      Shown red once: `ChunkBuffers.MaxElementsPerCase` changed from the declared
+      buffers' own maximum to `_buffers.Count` (still instance data, so the mutation
+      compiles) — all three theory rows failed, each naming its own pipeline and an
+      overflow the mutated, too-small stride no longer caught — then reverted, the
+      same filter green again (`dotnet test tests/Execution.Tests --filter
+      "FullyQualifiedName~ChunkPlanWiringTests"`, 3/3). This is exactly the mutation
+      `AGENTS.md` §13 warns a check must survive: the earlier fact
+      (`ChunksStayWithinInt32OffsetsAtTableLimits`, above) calls `ChunkPlan.For` with
+      explicit numbers, and would not have caught a pipeline itself passing the wrong
+      `MaxElementsPerCase` — only a fact that drives the real pipeline construction
+      does.
+
+      Verified on the reference machine alongside the criterion above (same build and
+      protocol-test evidence).
+
 ## Taboos
 
 - No public type: a cluster that needs one stays at the parent's own level instead

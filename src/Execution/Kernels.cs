@@ -161,10 +161,12 @@ internal static class Kernels
         outputs[o + 4] = Math.Pow(v, MathProbe.PowExponent2);
         outputs[o + 5] = Math.Pow(v, MathProbe.PowExponent3);
         outputs[o + 6] = Math.Sqrt(v);
-        outputs[o + 7] = Math.Abs(v - 1.0);
-        outputs[o + 8] = KernelMath.Min(v, 1.0);
-        outputs[o + 9] = KernelMath.Max(v, 1.0);
-        outputs[o + 10] = Math.Floor(v);
-        outputs[o + 11] = Math.Ceiling(v);
+        outputs[o + 7] = Math.Floor(v);
+        outputs[o + 8] = Math.Ceiling(v);
+        outputs[o + 9] = Math.Abs(v - 1.0);
+        outputs[o + 10] = KernelMath.Min(v, 1.0);
+        outputs[o + 11] = KernelMath.Max(v, 1.0);
+        outputs[o + 12] = KernelMath.Min(1.0, v);
+        outputs[o + 13] = KernelMath.Max(1.0, v);
     }
 }

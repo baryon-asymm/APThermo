@@ -284,12 +284,20 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       library, no longer reaches the device.
   - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
     through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
-    On a count ILGPU's warp layout cannot express exactly, the nearest layout not above
-    the count is used, and the choice is documented where it is made. (⚠ 2026-09-28:
-    "cannot express exactly" is wrong; the audit fixes of that date below give the real
-    reason.) On the reference
+    The layout rounds down to the nearest multiple of 4 not above the count, and the
+    choice is documented where it is made. On the reference
     machine the count is 16, the layout is today's, and no throughput record moves.
     Results do not depend on the thread count (Invariants: deterministic batches).
+
+    ⚠ 2026-09-28 (the second hidden-defect audit, guards observation O8): this bullet
+    said the layout is rounded because "a count ILGPU's warp layout cannot express
+    exactly". `AcceleratorChoice.CpuDeviceFor`'s own summary already said otherwise: any
+    warp size from 2 constructs (ILGPU's `CPUDevice` constructor refuses only 1). The
+    real reason the layout is fixed at a multiple of 4 rather than reaching every count
+    exactly is to keep the (4, 4, 1) shape at 16 threads that every bit and throughput
+    record was measured against; a processor count that is not a multiple of 4 then
+    leaves up to 3 threads idle, the cost of that choice, not a limit ILGPU imposes.
+    Found by the guards audit reading `AcceleratorChoice.cs` against this document.
     - ⚠ `CPUDevice.Default` is one multiprocessor of four warps of four threads,
       whatever the machine. Every "all cores" of the tree (`Options.cs`, this
       document, the root) was true only on the 16-thread reference machine. A
@@ -435,14 +443,14 @@ four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 25 by the dependency check's walk on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2: the session's time budget and the chunk loop, exposed for the tests node's own chunk-plan facts), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 30 by the dependency check's walk on 2026-09-28, 25 on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
 | `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
 | `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
-| `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache). By the dependency check's walk on 2026-09-14, a constructed generic type counted once: `RocketPipeline` 23, `TransportPipeline` 22, `EquilibriumPipeline` 21, `SpeciesFunctionPipeline` 17 | internal |
+| `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache, and since 2026-09-28 `LaunchBudget`, threaded from `session.Budget` into `ChunkPlan.For`, F2). Three of the four also gained an internal `DeclareBuffers` test-support method for the F8 wiring fact, naming no new type. By the dependency check's walk on 2026-09-28 (2026-09-14 in parentheses): `RocketPipeline` 25 (23), `TransportPipeline` 23 (22), `EquilibriumPipeline` 22 (21), `SpeciesFunctionPipeline` 18 (17) | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 26 by the dependency check's walk on 2026-09-27, 25 on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
 | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
@@ -564,12 +572,12 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Engine` | efferent coupling | 25 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Engine` | efferent coupling | 30 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
 | `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
-| `RocketPipeline` | efferent coupling | 23 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
-| `TransportPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
-| `EquilibriumPipeline` | efferent coupling | 21 | the same case as `RocketPipeline` above |
-| `SpeciesFunctionPipeline` | efferent coupling | 17 | the same case as `RocketPipeline` above |
+| `RocketPipeline` | efferent coupling | 25 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
+| `TransportPipeline` | efferent coupling | 23 | the same case as `RocketPipeline` above |
+| `EquilibriumPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
+| `SpeciesFunctionPipeline` | efferent coupling | 18 | the same case as `RocketPipeline` above |
 | `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
 | `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 12 | the same case as `RocketBatchViews` above |
 | `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
@@ -839,8 +847,7 @@ confirms it.
 
 - [x] 2026-09-26 — Every GPU architecture (the root's criterion of the same date; audit
       finding F1).
-      - **The architecture fact** (`Category=Cuda`, `Category=LongRunning`, about three
-        minutes on the reference machine). The architectures are every
+      - **The architecture fact** (`Category=Cuda`, `Category=LongRunning`). The architectures are every
         `CudaArchitecture` ILGPU 1.5.3 declares from SM_75 up, and the entry points are
         every entry point of `Kernels`; both lists come from reflection. For each
         pair, the fact compiles the entry point with a `PTXBackend` for that
@@ -860,14 +867,13 @@ confirms it.
         (`tests/Execution.Tests/ArchitectureTests.cs`), reflecting over the 11 `CudaArchitecture`
         fields from `SM_75` to `SM_121` and the 5 entry points of `Kernels`
         (`Equilibrium`, `Rocket`, `Transport`, `Functions`, `Probe`); green on the
-        reference machine (RTX 5070 Ti, SM_120, libnvvm 13.4), first (cold JIT cache)
-        run 3 m 41 s, subsequent runs about 14 s once the CUDA driver's own compute
-        cache is warm. `SM_75`..`SM_90` measured `DefinedByIlgpu.Count > 0` and
-        `Compiled.Count == 0` (ILGPU defined every wrapper); `SM_100`..`SM_121`
-        measured the reverse (the post-link compiled every wrapper), so both paths are
-        exercised. Every architecture's normalized PTX equalled the device's own
-        (`SM_120`'s), and the probe matched the engine's own CUDA probe bit for bit and
-        the CPU accelerator within `GpuCpuTolerances.MathUlp` on every architecture.
+        reference machine (RTX 5070 Ti, SM_120, libnvvm 13.4). `SM_75`..`SM_90` measured
+        `DefinedByIlgpu.Count > 0` and `Compiled.Count == 0` (ILGPU defined every
+        wrapper); `SM_100`..`SM_121` measured the reverse (the post-link compiled every
+        wrapper), so both paths are exercised. Every architecture's normalized PTX
+        equalled the device's own (`SM_120`'s), and the probe matched the engine's own
+        CUDA probe bit for bit and the CPU accelerator within `GpuCpuTolerances.MathUlp`
+        on every architecture.
 
         Shown red once, reproduced directly against `LibDevicePostLink` as it stands at
         `9c33398` (a throwaway repro compiling `Kernels.Probe` for `SM_75`, `SM_80`,
@@ -875,6 +881,17 @@ confirms it.
         threw `InvalidOperationException`, "the kernel calls the libdevice wrapper
         __nv_exp_param_0, for which ILGPU 1.5.3.0 has no fragment.", exactly the message
         this criterion predicted.
+
+        ⚠ 2026-09-28: this record said "about three minutes" for the fact and "first
+        (cold JIT cache) run 3 m 41 s, subsequent runs about 14 s once the CUDA driver's
+        own compute cache is warm". The second audit's warm-up measurement (finding,
+        "The first audit's fixes", observation 3) found the driver's compute cache is
+        keyed by the PTX text and ILGPU's generated names come from process-wide
+        counters, so every engine after the first in a process misses it regardless of
+        an earlier run; the fact creates several engines and never warms a shared
+        cache. Measured again: 8 m 2 s on Windows, 11 m 3 s under WSL2, both green. The
+        assertions and the architecture and entry-point coverage are unchanged; only
+        the duration claim was wrong.
       - **The wrapper inventory without a GPU**, on the hosted runners. Two text
         fixtures hold ILGPU 1.5.3's PTX of the probe kernel: one for SM_89, which
         defines the wrappers, and one for SM_120, which defines none. Their provenance
@@ -1121,37 +1138,122 @@ confirms it.
         members in turn (no WSL needed to reach it this way) and asserts the exception
         names it; the same call with the real names still resolves, proving the fact
         exercises a wrong name, not a broken reflection call.
-- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once, against
-      `5a732f0` or by the mutation named:
-      - **The probe (F1).** `ProbeKernelTests` over the special inputs on CUDA:
-        `KernelMath.Min(1.0, v)` and `Max(1.0, v)` equal the CPU accelerator bit for bit.
-        Red with the thermo node's `KernelMath` of 2026-09-27 at the NaN inputs; green
-        with the NaN-first form. The PTX fixtures are regenerated, and the inventory
-        facts stay green.
-      - **The launch budget (F2).**
-        - Unit facts on `LaunchBudget` and `ChunkPlan`, with injected times per case:
-          the first chunk is one wave, later chunks fit the budget, and a device without
-          the limit has no fourth bound.
-        - The timeout translation: an injected launch-timeout failure through `BatchRun`
-          becomes `AcceleratorUnavailableException` with the documented message.
-        - The bits of a rocket batch are unchanged when the budget splits it into
-          several chunks on CUDA.
-        - On the reference machine the budget reads the device's limit (it has one) and
-          the CPU accelerator's has none.
-        - No kill is provoked.
-      - **The WSL workaround by `TargetSite`.** Green under WSL (the three-engine fact),
-        and a unit fact with a constructed exception whose message is a resource key.
-      - **Small items.** `ProbeMath` and the batch constructors refuse counts beyond the
-        32-bit offsets; `ChunkBuffer` refuses a short host array; the post-link message
-        has no trailing ": ". Each is a unit fact.
-      - **Guards (F7, F8, O2).**
-        - The not-found facts assert in the hosted filter. Red when the refusal's
-          `tried` list is emptied, a mutation that stayed green before.
-        - The wiring fact is red with `MaxElementsPerCase => 0`.
-        - `SpeciesFunctionTests` is red on an injected NaN.
-      - `dotnet test tests/Execution.Tests -c Release` on the reference machine, on
-        Windows and under WSL. The sweep and the throughput tripwire are included, and
-        no `Throughput*.approved.txt` is re-approved unless the configuration changed.
+- [x] 2026-09-28 — The audit fixes of 2026-09-28 (Constraints). Each fact is red once,
+      against `5a732f0` or by the mutation named, then reverted:
+      - **The probe (F1).** `Kernels.Probe` now calls `KernelMath.Min`/`Max` with the
+        constant in both operand orders (`Min(v,1)`/`Max(v,1)` and `Min(1,v)`/`Max(1,v)`,
+        `StrideCount` 12 → 14); `ProbeKernelTests` and `ArchitectureTests` compare every
+        order against the CPU accelerator on CUDA. The two PTX fixtures are regenerated
+        from the current probe on the reference machine and the wrapper-inventory facts
+        (`WrapperInventoryTests`, no GPU) stay green against them (5/5).
+      - **The launch budget (F2).** `LaunchBudgetTests` (7 facts): `LaunchBudget`'s
+        arithmetic and `ChunkPlan.FirstChunkCases`/`NextChunkCases`, with injected times
+        per case (no budget never bounds a chunk; a bounded one scales from the previous
+        chunk's measured rate, never below one case; the first chunk is one wave with a
+        budget and `Size` without one; later chunks stay within `Size` and the
+        remainder); the timeout translation, an injected `CudaException` through
+        `BatchRun.Execute` on the CPU accelerator becoming `AcceleratorUnavailableException`
+        naming the limit, the chunk's case count and the CPU accelerator, red once by
+        mismatching the catch filter; a non-timeout `CudaException` passes through
+        unwrapped. `AcceleratorChoiceTests.TheCpuAcceleratorsBudgetIsUnboundedAndTheReferenceDevicesIsBounded`
+        reads a real bind's `Engine.Budget`: unbounded on the CPU accelerator, bounded on
+        the reference device (its run-time limit is enabled, on Windows and under WSL2).
+        No kill is provoked anywhere: every timeout fact injects a `CudaException`
+        directly into the launch delegate, on the CPU accelerator, never a real device or
+        a real timeout; every real launch of this task stayed under a few seconds.
+      - **The WSL workaround by `TargetSite`.** Green under WSL (`CudaWslDevicesTests.EveryCudaEngineOfTheProcessBindsAndProbes`,
+        three engines in one process); `TheResolverAlreadySetFailureIsRecognisedByTargetSiteNotByMessage`
+        constructs a real second-resolver failure (a fresh on-disk copy of an
+        already-built assembly, loaded into its own load context, since
+        `NativeLibrary.SetDllImportResolver` refuses a dynamic in-memory assembly) and a
+        look-alike exception with the same English text but a different origin; red once
+        by reverting `IsResolverAlreadySet` to a message-text match, which then accepted
+        the look-alike.
+      - **Small items.** `BatchConstructorsRefuseACountWhoseArrayOverflowsA32BitLength`
+        (`EquilibriumBatch`, `RocketBatch`, `TransportBatch`, and a count just inside the
+        bound still allocates); `AChunkBufferRefusesAHostArrayShorterThanTheChunkNeeds`
+        (both directions); `ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset`;
+        `ALogThatTrimsToNothingLeavesNoTrailingColon`, red once by narrowing the
+        post-link's emptiness check from "trims to nothing" to "is null", which then left
+        a trailing ": " with nothing after it.
+      - **Guards (F7, F8, O2).** `AcceleratorChoice.Decide`/`Cuda` gained internal
+        overloads taking an explicit `cudaForbidden` flag; `AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried`,
+        `AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried` and
+        `CudaForbiddenRefusesBeforeDiscoveryEverRuns` call it directly and so run
+        regardless of `APTHERMO_NO_CUDA`; red once by emptying the refusal's `tried` list
+        unconditionally, which the first two facts had asserted a real list from.
+        `ChunkPlanWiringTests.EachPipelinesChosenPlanRespectsItsOwnOffsetCap` (F8) drives
+        three of the four pipelines' own buffer declarations (a new internal
+        `DeclareBuffers` each, `SpeciesFunctionPipeline` excepted: every one of its
+        strides is 1) through `ChunkPlan.For` and compares against an independently
+        computed expected stride, never `buffers.MaxElementsPerCase` read back; red once
+        with `MaxElementsPerCase => _buffers.Count` (still instance data, so the mutation
+        compiles), all three theory rows failing. `SpeciesFunctionTests.CompareFunctions`
+        (O2) is NaN-aware; `TheComparisonIsNaNAwareAndCatchesAMismatchOnlyOneSideMakesNaN`
+        is red once by removing the two NaN branches, which then missed a value NaN on
+        one accelerator and not the other.
+      - `ArchitectureTests` gives each backend its own `NvvmAPI` (observation 4): a
+        shared instance, freed once per backend's `Dispose`, only worked because the
+        fixture's own CUDA engine kept the same libnvvm loaded; not independently
+        reproduced with a different libnvvm (would need a second engine construction
+        path this task did not build), accepted by inspection against ILGPU's
+        `PTXBackend.Dispose` (`PTXBackend.cs:149-158`, cited by the audit).
+
+      A genuine WSL race, found only on a full `-c Release` run of `tests/Execution.Tests`
+      on real CUDA hardware (never on an isolated fact): `LaunchBudgetTests` had no
+      xUnit `[Collection]`, so its two `Cuda`-tagged facts (a real `CudaException`
+      construction, which touches the driver) could run on a separate thread
+      concurrently with `EngineFixture`'s own lazy CUDA engine creation, and the two
+      raced during the process's first real CUDA use: "CUDA device 0 was requested, but
+      0 device(s) exist", 22 facts failing together, on about a third of full-suite runs.
+      Fixed by joining `LaunchBudgetTests` to `EngineFixture.CollectionName`, serializing
+      it against every other CUDA-touching class; not independently red-onced against
+      the race itself, since the race was not reliably reproducible on demand, only
+      observed and then absent over two full re-runs after the fix.
+
+      Evidence, on the reference machine, from a tree with every `bin` and `obj`
+      removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: every project green, `Execution.Tests` 159/159,
+        `Protocol.Tests` 32/32 (with the `## Shape exceptions` table's `Engine` and the
+        four pipelines' Ce re-measured for `LaunchBudget` and the new members);
+      - `dotnet test tests/Execution.Tests -c Release` (no filter), on Windows:
+        162/162, the 100 000-case sweep, the architecture fact and the throughput
+        tripwire included, twice (once before and once after the collection fix, both
+        green — the race was never observed on Windows);
+      - the same command under WSL2 (Ubuntu 24.04, libnvvm 12.9, a throwaway scratch
+        clone of this branch, never `~/apthermo`): 162/162 on the commit with the
+        collection fix (a prior run of the commit before it hit the race above, 22
+        failures, all resolved by the fix); `Throughput.linux.approved.txt` unchanged
+        (27.48×, the 2026-09-19 figure — this task changed no numerical code path the
+        throughput measures);
+      - no `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        `Protocol.Tests/PublicSurface.approved.txt` differs from before this task's
+        first commit, in this node's own subtree;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      ⚠ 2026-09-28: under WSL (`APTHERMO_NO_CUDA=1`, the fast filter), six other test
+      nodes fail: `Equilibrium.Tests` 1/876, `Thermo.Tests` 3/1186, `Performance.Tests`
+      98/1035, `Problems.Tests` 1/1221 (an aggregate fact over the same 98 rocket
+      fixtures), `Docs.Tests` 1/29 and `Cli.Tests` 1/142, every one a
+      `Bits.linux.approved.txt` or approved-output mismatch. `Execution.Tests` itself
+      stayed 159/159 and 162/162 throughout every run of this task. Confirmed
+      pre-existing and outside this subtree for `Performance.Tests`, checked directly,
+      cloned separately in WSL: green (1035/1035) at the root's own `5a732f0` baseline
+      (the second audit's own commit, no code change since), the identical 98 failures
+      and identical hashes already present at `2744915` (the commit immediately before
+      this task's first commit). `Performance`'s only change between the two is a
+      design-only commit (`3d9fb4e`); the regression traces to the Thermo/Equilibrium/
+      Transport code fixes of the same second audit (`8109bfa`, `4b26152`, `88c1522`),
+      merged into this branch's shared base before this task began, whose Linux bits
+      were apparently never re-approved.
+      The other five nodes' failures were not individually re-verified against
+      `2744915` for time, but sit downstream of the same Thermo/Equilibrium chain and
+      none touch anything this task's commits changed. Reported, not fixed:
+      `Thermo`, `Equilibrium`, `Transport`, `Performance`, `Problems`, `Cli` and
+      `Docs.Tests` are outside this task's subtree (`src/Execution`,
+      `src/Execution/Chunks`, `tests/Execution.Tests` only).
 
 ## Taboos
 

@@ -1,3 +1,4 @@
+using APThermo.Execution.Chunks;
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
@@ -24,6 +25,12 @@ internal sealed class AcceleratorSession : IDisposable
 
     /// <summary>The libnvvm binding of the CUDA path, null on the CPU accelerator.</summary>
     public NvvmAPI? Nvvm { get; private set; }
+
+    /// <summary>The launch budget of this session's accelerator (2026-09-28, "A launch fits a time budget"):
+    /// <see cref="LaunchBudget.None"/> until the build delegate calls <see cref="Attach(LaunchBudget)"/>, which every
+    /// build path does before <see cref="Build"/> returns — the CPU accelerator and a CUDA device with no run-time
+    /// limit attach <see cref="LaunchBudget.None"/> explicitly, a CUDA device that has one attaches a bounded budget.</summary>
+    public LaunchBudget Budget { get; private set; } = LaunchBudget.None;
 
     /// <summary>What the session is bound to, as the results report it.</summary>
     public AcceleratorInfo Info
@@ -59,6 +66,9 @@ internal sealed class AcceleratorSession : IDisposable
 
     /// <summary>Hands the libnvvm binding to the session, which owns it from that moment.</summary>
     public NvvmAPI Attach(NvvmAPI nvvm) => Nvvm = nvvm;
+
+    /// <summary>Records the launch budget the build delegate decided for this session's accelerator.</summary>
+    public LaunchBudget Attach(LaunchBudget budget) => Budget = budget;
 
     /// <summary>The context the accelerator was created on.</summary>
     public Context Context { get; }

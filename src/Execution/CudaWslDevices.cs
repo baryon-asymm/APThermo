@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using ILGPU;
 using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
@@ -14,7 +15,7 @@ namespace APThermo.Execution;
 /// </summary>
 internal static class CudaWslDevices
 {
-    private const string ResolverAlreadySet = "A resolver is already set for the assembly";
+    private const string SetDllImportResolverName = "SetDllImportResolver";
 
     /// <summary>
     /// Registers CUDA devices on <paramref name="builder"/> exactly as the no-argument <c>builder.Cuda()</c> would. The public
@@ -33,11 +34,24 @@ internal static class CudaWslDevices
         {
             _ = builder.Cuda();
         }
-        catch (InvalidOperationException failure) when (failure.Message.Contains(ResolverAlreadySet, StringComparison.Ordinal))
+        catch (InvalidOperationException failure) when (IsResolverAlreadySet(failure))
         {
             RegisterByReflection(builder);
         }
     }
+
+    /// <summary>
+    /// Recognises the resolver-already-set failure by where it was thrown, not by its message text (2026-09-28, the second
+    /// audit's observation 5): <see cref="NativeLibrary.SetDllImportResolver(System.Reflection.Assembly, DllImportResolver)"/>
+    /// throws <see cref="InvalidOperationException"/> with the English text "A resolver is already set for the assembly",
+    /// but an application trimmed with <c>UseSystemResourceKeys</c> gets the resource key in its place, and a message check
+    /// would then miss the failure — every later engine of the process would fall back to the CPU accelerator instead of
+    /// binding CUDA under WSL, with no failure of its own to explain why. Internal, not private, so a test can hand it any
+    /// <see cref="InvalidOperationException"/> — including one whose message happens to match but whose <c>TargetSite</c>
+    /// does not — without needing WSL to reach this code the way <see cref="Register"/> does.
+    /// </summary>
+    internal static bool IsResolverAlreadySet(InvalidOperationException failure) =>
+        failure.TargetSite?.Name == SetDllImportResolverName && failure.TargetSite.DeclaringType == typeof(NativeLibrary);
 
     /// <summary>The predicate the no-argument <c>Cuda()</c> overload passes to <c>CudaInternal</c>: a device with a known
     /// architecture and an instruction set the PTX backend supports. Both members are public on the pinned ILGPU version, so
