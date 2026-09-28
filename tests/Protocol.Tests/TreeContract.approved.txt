@@ -249,6 +249,7 @@ static class APThermo.Performance.RocketSolver
     const Int32 MaxThroatIterations = 20
     internal const Double EntropyTolerance = 1E-09
     internal const Double ExtrapolationAreaRatio = 2
+    internal const Double GammaOneTolerance = 1E-06
     internal const Double ThroatBracketWidth = 1E-10
     internal const Double TightTolerance = 1E-10
     internal const Int32 Chamber = 0
