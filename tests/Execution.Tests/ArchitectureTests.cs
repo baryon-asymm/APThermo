@@ -49,9 +49,8 @@ public sealed partial class ArchitectureTests
 
         var accelerator = (CudaAccelerator)cuda.IlgpuAccelerator;
         var (dll, bitcode, _) = LibDeviceLocator.Locate(new EngineOptions());
-        using var nvvm = NvvmAPI.Create(dll!, bitcode!);
         var methods = EntryPoints();
-        var baseline = Baseline(accelerator, nvvm, methods);
+        var baseline = Baseline(accelerator, dll!, bitcode!, methods);
 
         var inputs = ProbeInputs();
         var cpuProbe = EngineFixture.Shared.Cpu.ProbeMath(inputs);
@@ -63,7 +62,7 @@ public sealed partial class ArchitectureTests
         {
             foreach (var method in methods)
             {
-                var (ptx, link) = CompileAndLink(accelerator, nvvm, arch, method);
+                var (ptx, link) = CompileAndLink(accelerator, dll!, bitcode!, arch, method);
                 Assert.Equal(baseline[method.Name], Normalize(ptx));
                 sawIlgpuComplete |= link.DefinedByIlgpu.Count > 0 && link.Compiled.Count == 0;
                 sawPostLinkComplete |= link.Compiled.Count > 0 && link.DefinedByIlgpu.Count == 0;
@@ -83,22 +82,29 @@ public sealed partial class ArchitectureTests
     }
 
     /// <summary>The normalized, post-linked PTX of every entry point, compiled for the device's own architecture: the baseline every other architecture's PTX is compared against.</summary>
-    private static Dictionary<string, string> Baseline(CudaAccelerator accelerator, NvvmAPI nvvm, IReadOnlyList<MethodInfo> methods)
+    private static Dictionary<string, string> Baseline(CudaAccelerator accelerator, string dll, string bitcode, IReadOnlyList<MethodInfo> methods)
     {
         var baseline = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var method in methods)
         {
-            var (ptx, _) = CompileAndLink(accelerator, nvvm, accelerator.Architecture, method);
+            var (ptx, _) = CompileAndLink(accelerator, dll, bitcode, accelerator.Architecture, method);
             baseline[method.Name] = Normalize(ptx);
         }
 
         return baseline;
     }
 
-    /// <summary>Compiles one entry point for one architecture with a backend of its own, and passes it through the post-link.</summary>
+    /// <summary>
+    /// Compiles one entry point for one architecture with a backend of its own, and passes it through the post-link. Creates
+    /// its own <see cref="NvvmAPI"/> rather than sharing one across backends (2026-09-28, the second audit's observation 4):
+    /// <c>PTXBackend.Dispose</c> frees the <c>NvvmAPI</c> it was given, so a shared instance is freed once per backend, which
+    /// only appeared to work in this fixture because the CUDA engine created earlier keeps the same libnvvm library loaded; a
+    /// libnvvm held by nothing else crashed in <c>NvvmAPI.GetIRVersion</c> once the audit tried it.
+    /// </summary>
     private static (string Ptx, LibDevicePostLink.LinkResult Link) CompileAndLink(
-        CudaAccelerator accelerator, NvvmAPI nvvm, CudaArchitecture arch, MethodInfo method)
+        CudaAccelerator accelerator, string dll, string bitcode, CudaArchitecture arch, MethodInfo method)
     {
+        using var nvvm = NvvmAPI.Create(dll, bitcode);
         using var backend = new PTXBackend(accelerator.Context, arch, accelerator.InstructionSet, nvvm);
         var compiled = (PTXCompiledKernel)backend.Compile(EntryPointDescription.FromImplicitlyGroupedKernel(method), KernelSpecialization.Empty);
         var linked = LibDevicePostLink.Link(accelerator, nvvm, compiled);
