@@ -68,7 +68,8 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
             {
                 Math.Exp(v), Math.Log(v), Math.Log10(v),
                 Math.Pow(v, MathProbe.PowExponent1), Math.Pow(v, MathProbe.PowExponent2), Math.Pow(v, MathProbe.PowExponent3),
-                Math.Sqrt(v), Math.Abs(v - 1.0), Math.Min(v, 1.0), Math.Max(v, 1.0), Math.Floor(v), Math.Ceiling(v),
+                Math.Sqrt(v), Math.Floor(v), Math.Ceiling(v), Math.Abs(v - 1.0),
+                Math.Min(v, 1.0), Math.Max(v, 1.0), Math.Min(1.0, v), Math.Max(1.0, v),
             };
             for (var f = 0; f < MathProbe.FunctionCount; f++)
             {
@@ -115,7 +116,7 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
         Assert.True(worst.Max() <= GpuCpuTolerances.MathUlp, report);
         for (var f = MathProbe.LibdeviceFunctionCount; f < MathProbe.FunctionCount; f++)
         {
-            Assert.True(worst[f] == 0, $"{MathProbe.Functions[f]} is a PTX instruction, not a libdevice call, and must be exact: {worst[f]} ULP");
+            Assert.True(worst[f] == 0, $"{MathProbe.Functions[f]} is not a libdevice call and must be exact: {worst[f]} ULP");
         }
     }
 

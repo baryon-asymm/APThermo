@@ -4,10 +4,13 @@ using ILGPU;
 namespace APThermo.Equilibrium;
 
 /// <summary>
-/// The remedies of RP-1311 section 3.6 for a Newton system that came out singular: reset the gaseous species that
-/// vanished, twice; then remove one condensed species chosen by the row whose pivot failed (2026-09-28, cea 3.3.4
-/// <c>equilibrium.f90:2001-2059</c>), as <see cref="TargetedPosition"/> picks it, rather than always the last
-/// species of the solution. Kernel-compatible.
+/// Two rules come before the remedies of RP-1311 section 3.6 (BOOT.md, "Two rules come before the remedies above",
+/// 2026-09-28): rule B resolves a condensed set whose last species is a linear combination of the others
+/// (<see cref="CondensedDependency"/>), and rule A ties an element row found to duplicate another's
+/// (<see cref="ElementCoupling"/>) instead of answering it with a removal. Only once both find nothing do the
+/// report's own remedies run: reset the gaseous species that vanished, twice; then remove one condensed species
+/// chosen by the row whose pivot failed (2026-09-28, cea 3.3.4 <c>equilibrium.f90:2001-2059</c>), as
+/// <see cref="TargetedPosition"/> picks it, rather than always the last species of the solution. Kernel-compatible.
 /// </summary>
 internal static class SingularRemedies
 {
@@ -17,15 +20,48 @@ internal static class SingularRemedies
     private const int MaxSingularResets = 2;
 
     /// <summary>
-    /// The remedies, in order: reset the gaseous species that vanished, twice; then remove the species
-    /// <see cref="TargetedPosition"/> names. False when neither remedy is left and the case is singular. A removal is a
-    /// change of the condensed set: it restarts <paramref name="loop"/>'s step count, as every other change does
-    /// (BOOT.md, the loop's bookkeeping, 2026-09-26), and marks the removed record for the anti-cycling skip, as a
-    /// removal for range does (BOOT.md, the targeted singular remedy, 2026-09-28).
+    /// The remedies, in order: rule B's dependent-set ratio test; rule A's element tie; then reset the gaseous species
+    /// that vanished, twice; then remove the species <see cref="TargetedPosition"/> names. False when nothing is left
+    /// and the case is singular. A removal is a change of the condensed set: it restarts <paramref name="loop"/>'s
+    /// step count, as every other change does (BOOT.md, the loop's bookkeeping, 2026-09-26), and marks the removed
+    /// record for the anti-cycling skip, as a removal for range does (BOOT.md, the targeted singular remedy,
+    /// 2026-09-28).
     /// </summary>
     public static bool Recover(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                int failedRow, ref NewtonLoopState loop, ref IterationState state)
     {
+        // Rule B (BOOT.md, 2026-09-28): a dependent condensed set is resolved by the ratio test before any other
+        // remedy. A change of the set, and not marked for the anti-cycling skip: the species that stays is the one
+        // just included, not one that cycled out.
+        if (state.CondensedCount >= 2)
+        {
+            var leaving = CondensedDependency.LeavingPosition(table, scratch, result, state.CondensedCount);
+            if (leaving >= 0)
+            {
+                state.CondensedCount = CondensedSet.Remove(scratch, result, state.CondensedCount, leaving);
+                state.SetChanges++;
+                loop.RecordSetChange();
+                loop.SingularResets = 0;
+                return true;
+            }
+        }
+
+        // Rule A (BOOT.md, 2026-09-28): an element row that duplicates another's is tied, not answered by a removal —
+        // at once when a condensed species of the solution holds the pair, otherwise only after the two resets below,
+        // which still handle transient couplings.
+        if (!state.Tie.Active && failedRow >= 0 && failedRow < table.ElementCount
+            && (state.CondensedCount > 0 || loop.SingularResets >= MaxSingularResets))
+        {
+            var tie = ElementCoupling.Find(table, scratch, result, state.CondensedCount, failedRow);
+            if (tie.Active
+                && (loop.SingularResets >= MaxSingularResets || ElementCoupling.HeldByCondensed(table, scratch, state.CondensedCount, tie)))
+            {
+                state.Tie = tie;
+                loop.SingularResets = 0;
+                return true;
+            }
+        }
+
         if (loop.SingularResets < MaxSingularResets)
         {
             loop.SingularResets++;

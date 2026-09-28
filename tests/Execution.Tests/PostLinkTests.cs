@@ -120,6 +120,23 @@ public sealed class PostLinkTests
         Assert.DoesNotContain('\0', failure.Message);
     }
 
+    /// <summary>
+    /// A log that trims to nothing (all NUL padding, or whitespace, with no diagnostic text) is treated as no log at all
+    /// (2026-09-28, the second audit's observation 7): before the fix, the message still appended ": " and then nothing,
+    /// a trailing colon with no diagnostic after it. The message now ends in a plain "." exactly as the no-log case does.
+    /// </summary>
+    [Fact]
+    public void ALogThatTrimsToNothingLeavesNoTrailingColon()
+    {
+        var withNulOnly = Assert.Throws<InvalidOperationException>(
+            () => LibDevicePostLink.ThrowIfFailed(NvvmResult.NVVM_ERROR_COMPILATION, "CompileProgram", "compute_80", "\0\0\0"));
+        var withoutLog = Assert.Throws<InvalidOperationException>(
+            () => LibDevicePostLink.ThrowIfFailed(NvvmResult.NVVM_ERROR_COMPILATION, "CompileProgram", "compute_80"));
+        Assert.Equal(withoutLog.Message, withNulOnly.Message);
+        Assert.EndsWith(".", withNulOnly.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(": .", withNulOnly.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Without a log the message still names the post-link, the library, the call, the result and the target.</summary>
     [Fact]
     public void WithoutALogTheMessageStillNamesTheLibraryTheCallTheResultAndTheTarget()

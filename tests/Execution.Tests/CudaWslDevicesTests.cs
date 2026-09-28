@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Runtime.InteropServices;
+
 namespace APThermo.Execution.Tests;
 
 /// <summary>
@@ -54,5 +57,33 @@ public sealed class CudaWslDevicesTests
         // reflection call.
         var (found, _) = CudaWslDevices.Reflect("DeviceRegistry", "GetDevices");
         Assert.NotNull(found);
+    }
+
+    /// <summary>
+    /// The resolver-already-set failure is recognised by <c>TargetSite</c>, not by message text (2026-09-28, the second
+    /// audit's observation 5): a real second <see cref="NativeLibrary.SetDllImportResolver(Assembly, DllImportResolver)"/>
+    /// on the same assembly throws exactly the shape ILGPU's own resolver install does, and is recognised; a different
+    /// <see cref="InvalidOperationException"/> that happens to carry the identical English text, thrown from ordinary code
+    /// rather than from <see cref="NativeLibrary.SetDllImportResolver(Assembly, DllImportResolver)"/> itself, is not — the
+    /// mutation this fact guards against (matching by message alone) would accept both.
+    /// </summary>
+    [Fact]
+    public void TheResolverAlreadySetFailureIsRecognisedByTargetSiteNotByMessage()
+    {
+        // A fresh, on-disk copy of an already-built assembly, loaded into its own load context so it is a distinct
+        // runtime Assembly object from the one every other test uses: NativeLibrary.SetDllImportResolver refuses a
+        // dynamic (in-memory) assembly, and there is no public way to clear a resolver once set, so setting one on
+        // the real, shared copy would leak it for the rest of the process.
+        var source = Path.Combine(AppContext.BaseDirectory, "APThermo.Harness.dll");
+        var copy = Path.Combine(Path.GetTempPath(), $"APThermo.Harness.{Guid.NewGuid():N}.dll");
+        File.Copy(source, copy);
+        var assembly = Assembly.LoadFile(copy);
+        NativeLibrary.SetDllImportResolver(assembly, (_, _, _) => IntPtr.Zero);
+        var real = Assert.Throws<InvalidOperationException>(
+            () => NativeLibrary.SetDllImportResolver(assembly, (_, _, _) => IntPtr.Zero));
+        Assert.True(CudaWslDevices.IsResolverAlreadySet(real));
+
+        var lookAlike = new InvalidOperationException("A resolver is already set for the assembly.");
+        Assert.False(CudaWslDevices.IsResolverAlreadySet(lookAlike));
     }
 }

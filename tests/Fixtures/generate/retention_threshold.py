@@ -5,23 +5,34 @@ threshold): tp fixtures at conditions where a trace gaseous carrier sits on the 
 RP-1311 example 5's table (ammonium perchlorate propellant) at 300 K, 1 bar and 70 bar, and at 305 K, 1 MPa:
 the audit's own example of the crossing failure ("RP-1311 example 5 at 300 K, 1 bar").
 
-A NaClO4 decomposition and AP/HTPB/Al at 420-430 K were also asked for (the orchestrator's task) and were tried
-here; both are recorded as not converging by the current equilibrium node and are not committed (Equilibrium
-BOOT.md, the F1/F5 criterion's escalation note): NaClO4 (Na:Cl:O = 1:1:4 from pure elements) reduces almost
-entirely to NaCL(cr) + O2 at 500 K and 800 K, 1 bar, so the all-gaseous cold-start trial never converges and the
-condensed inclusion test (run only after a converged gaseous trial) never gets a chance to run; AP/HTPB/Al at
-7 MPa/430 K and 1 MPa/420 K converges repeatedly at the Newton level but the exit guard
-(`CondensedSet.ExitGuardFindsAPositiveCandidate`) finds a stood-down candidate still showing a positive inclusion
-gain after several condensed-set changes settle, which is a different, deeper gap than the two fixed this audit
-(BOOT.md's escalation note has the diagnostic evidence).
+A NaClO4 decomposition and AP/HTPB/Al at 420-430 K were also asked for (the orchestrator's task) and, that day,
+were tried and recorded as not converging by the equilibrium node of that commit, so they were not committed
+(the note this paragraph replaces named the two gaps: an all-gaseous cold start that never converges for the
+salts, and a stood-down candidate the exit guard would not let go of for AP/HTPB/Al). Investigation 6
+(2026-09-28) designed rules A and B for exactly these two gaps (Equilibrium BOOT.md, "Two rules come before
+the remedies above"), and with them in place the reference's own four states converge on the tree too; the
+cases are added below.
+
+NaClO4 and KClO4, Na (or K) : Cl : O = 1 : 1 : 4, fed as three pure-element `Custom` reactants at the salt's
+own mole ratio (there is no thermo.inp record for either salt), at 500 K and 800 K, 1 bar.
+
+AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass fractions and product table as the
+`ap-htpb-al` chamber fixture of `propellants.py` (imported from there, never copied): a direct tp solve, not a
+rocket station.
 """
 from __future__ import annotations
 
 import sys
 
-from cea_cases import describe_reactants, equilibrium_inputs, make_mixtures, solve_equilibrium
+import numpy as np
+
+from cea_cases import Custom, describe_reactants, equilibrium_inputs, make_mixtures, solve_equilibrium
+from common import atomic_weight, read_thermo
+from propellants import PROPELLANTS
 from rp1311 import EXAMPLE5_OMIT, EXAMPLE5_REACTANTS, EXAMPLE5_WEIGHTS
 from writer import Writer, main_of
+
+RECORDS = read_thermo()
 
 BAR_TO_PA = 1.0e5
 MPA_TO_PA = 1.0e6
@@ -42,8 +53,55 @@ def _rp1311_example5(writer: Writer) -> None:
             outputs=outputs, script_path=__file__)
 
 
+# Na (or K) : Cl : O = 1 : 1 : 4, the salt's own mole ratio.
+SALT_RATIO = [1.0, 1.0, 4.0]
+SALTS = [("naclo4", ["NA", "CL", "O"]), ("kclo4", ["K", "CL", "O"])]
+SALT_STATES = [(500.0, BAR_TO_PA), (800.0, BAR_TO_PA)]
+
+
+def _pure_element_reactants(elements: list[str], ratio: list[float]) -> tuple[list[Custom], np.ndarray]:
+    """One pure-element `Custom` reactant per element (zero assigned enthalpy, the element's own standard state),
+    weighted so their mass fractions, once `describe_reactants` normalizes them, reproduce the formula's mole
+    ratio: w_e = ratio_e * atomic_weight(e)."""
+    reacs = [Custom(f"pure-{element}", {element: 1.0}, enthalpy_cal_per_mol=0.0) for element in elements]
+    weights = np.array([r * atomic_weight(RECORDS, e) for e, r in zip(elements, ratio)])
+    return reacs, weights
+
+
+def _salt(writer: Writer, name: str, elements: list[str]) -> None:
+    reacs, weights = _pure_element_reactants(elements, SALT_RATIO)
+    reac, prod = make_mixtures(reacs)
+    descriptions = describe_reactants(reacs, weights)
+    for temperature, pressure_pa in SALT_STATES:
+        outputs = solve_equilibrium(reac, prod, weights, "tp", temperature, pressure_pa, transport=False)
+        writer.case(
+            "tp", f"{name}_T{temperature:g}",
+            inputs=equilibrium_inputs(descriptions, prod.species_names, "tp", temperature, pressure_pa, False),
+            outputs=outputs, script_path=__file__)
+
+
+AP_HTPB_AL = next(p for p in PROPELLANTS if p["name"] == "ap-htpb-al")
+AP_HTPB_AL_STATES = [(430.0, 7.0 * MPA_TO_PA), (420.0, 1.0 * MPA_TO_PA)]
+
+
+def _ap_htpb_al(writer: Writer) -> None:
+    reac, prod = make_mixtures(AP_HTPB_AL["reactants"])
+    weights = np.array(AP_HTPB_AL["massFractions"])
+    temperatures = np.array(AP_HTPB_AL["temperatures"])
+    descriptions = describe_reactants(AP_HTPB_AL["reactants"], weights, temperatures)
+    for temperature, pressure_pa in AP_HTPB_AL_STATES:
+        outputs = solve_equilibrium(reac, prod, weights, "tp", temperature, pressure_pa, transport=False)
+        writer.case(
+            "tp", f"ap-htpb-al_pc{pressure_pa / MPA_TO_PA:g}MPa_T{temperature:g}",
+            inputs=equilibrium_inputs(descriptions, prod.species_names, "tp", temperature, pressure_pa, False),
+            outputs=outputs, script_path=__file__)
+
+
 def generate(writer: Writer) -> None:
     _rp1311_example5(writer)
+    for name, elements in SALTS:
+        _salt(writer, name, elements)
+    _ap_htpb_al(writer)
 
 
 if __name__ == "__main__":

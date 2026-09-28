@@ -59,7 +59,9 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         var span = Span(length);
         if (_transfer == ChunkTransfer.Input && span > 0)
         {
-            Allocated.View.SubView(0, span).CopyFromCPU(ref _host![Start(offset)], span);
+            var start = Start(offset);
+            CheckHostLength(start, span);
+            Allocated.View.SubView(0, span).CopyFromCPU(ref _host![start], span);
         }
     }
 
@@ -69,7 +71,9 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         var span = Span(length);
         if (_transfer is ChunkTransfer.Output or ChunkTransfer.ClearedOutput && span > 0)
         {
-            Allocated.View.SubView(0, span).CopyToCPU(ref _host![Start(offset)], span);
+            var start = Start(offset);
+            CheckHostLength(start, span);
+            Allocated.View.SubView(0, span).CopyToCPU(ref _host![start], span);
         }
     }
 
@@ -79,4 +83,19 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     private long Span(int length) => length * _perCase;
 
     private long Start(int offset) => offset * _perCase;
+
+    /// <summary>
+    /// Refuses a chunk slice the host array is too short for (BOOT.md, the second audit's observation 6), before the
+    /// unsafe <c>ref</c> copy: <c>ArrayView&lt;T&gt;.CopyFromCPU</c> and <c>CopyToCPU</c> take a reference and a
+    /// length with no bounds check of their own, so a host array shorter than the chunk's own declared stride would
+    /// read or write past its end instead of throwing.
+    /// </summary>
+    private void CheckHostLength(long start, long span)
+    {
+        if (start + span > _host!.LongLength)
+        {
+            throw new ArgumentException(
+                $"the host array has {_host.LongLength} elements, but the chunk needs [{start}, {start + span}).");
+        }
+    }
 }

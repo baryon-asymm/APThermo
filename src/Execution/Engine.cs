@@ -1,3 +1,4 @@
+using APThermo.Execution.Chunks;
 using APThermo.Thermo;
 using APThermo.Transport;
 using ILGPU;
@@ -113,6 +114,14 @@ internal sealed class Engine : IDisposable
             return [];
         }
 
+        // Kernels.Probe strides its output by MathProbe.StrideCount with 32-bit Index1D arithmetic (BOOT.md, the second
+        // audit's observation 7): more inputs than this would let index * StrideCount overflow the offset on the device.
+        if ((long)inputs.Length * MathProbe.FunctionCount > int.MaxValue)
+        {
+            throw new ArgumentException(
+                $"{inputs.Length} inputs times {MathProbe.FunctionCount} functions overflows a 32-bit offset.", nameof(inputs));
+        }
+
         var launch = _kernels.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out _);
         using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
         using var outputBuffer = _session.Accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
@@ -134,6 +143,15 @@ internal sealed class Engine : IDisposable
     }
 
     internal Accelerator IlgpuAccelerator => _session.Accelerator;
+
+    /// <summary>The launch budget this engine's accelerator was bound with (2026-09-28, "A launch fits a time budget"):
+    /// visible to the tests node the way <see cref="IlgpuAccelerator"/> already is, not to any consumer.</summary>
+    internal LaunchBudget Budget => _session.Budget;
+
+    /// <summary>Runs <see cref="BatchRun.Execute"/> directly over this engine's session (2026-09-28, the guards audit):
+    /// lets the tests node inject a launch failure and prove the timeout translation without a real batch or kernel.</summary>
+    internal void RunBatchLoop(ChunkPlan plan, Chunks.ChunkBuffers buffers, RunTimer timer, Action<int> launch) =>
+        BatchRun.Execute(_session, plan, buffers, timer, launch);
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 

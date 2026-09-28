@@ -136,9 +136,17 @@ libdevice for the CUDA category.
 
 - The CPU-only part of the node runs in the default test command; the CUDA category
   runs in the full set on the reference machine; the long-running category (the
-  sweep and the benchmark, about 20 s, and since 2026-09-26 the architecture fact,
-  about three minutes, most of it the driver compiling the rocket kernel once per
-  architecture) is excluded from the fast set.
+  sweep and the benchmark, about 20 s, and since 2026-09-26 the architecture fact) is
+  excluded from the fast set.
+
+  ⚠ 2026-09-28: stood "about three minutes, most of it the driver compiling the rocket
+  kernel once per architecture". The second audit's warm-up measurement (finding, "The
+  first audit's fixes", observation 3) found the driver's compute-cache JIT for a fresh
+  engine takes 55–59 s on a cache miss and the rocket kernel itself 13–22 s to compile,
+  and the architecture fact creates several engines and compiles every entry point for
+  eleven architectures: the reference machine measured 8 m 2 s on Windows and 11 m 3 s
+  under WSL, not about three minutes. The floor the fact needs stays unmeasured; this
+  is a corrected duration, not a new bound.
 - The PTX fixtures (2026-09-26) are ILGPU 1.5.3's PTX of `Kernels.Probe`, taken before
   the post-link from a `PTXBackend` for SM_89 and for SM_120 with libnvvm 13.4 on the
   reference machine. They are text, generated once and committed with a header comment
@@ -146,7 +154,17 @@ libdevice for the CUDA category.
   inventory, not expected values: the facts assert only what the root's math list and
   the regime imply (which wrappers are called, whether they are defined). They are
   regenerated when ILGPU is upgraded, which the version assertion already forces to be
-  a deliberate act.
+  a deliberate act, or when `Kernels.Probe` itself changes shape.
+
+  ⚠ 2026-09-28: the second audit found the fixtures (`Ptx/probe.sm_120.ptx`) still
+  showed the pre-2026-09-27 probe (stepping by 10, three fewer outputs, no `Pow`
+  exponent variety, no `KernelMath` calls), while the inventory facts kept passing:
+  they assert only the wrapper-name relationship the math list and the regime imply,
+  never the literal output count, so a stale fixture is not caught by the tests it
+  feeds. The two files are regenerated on the reference machine from the current
+  `Kernels.Probe` (14 outputs, the F1 fix's two extra `KernelMath.Min`/`Max` orders
+  included), same method (a `PTXBackend` per architecture, before the post-link),
+  header dated 2026-09-28.
 - Paths from the repository root; the actual throughput file is the only write, next
   to the approved one, and it is git-ignored.
 - One engine per accelerator is shared by the collection; tests that need a fresh
@@ -572,6 +590,50 @@ libdevice for the CUDA category.
       a record; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
       "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
       0 warnings.
+
+- [x] 2026-09-28 — The second audit's Execution findings F1 and F2 and the guards part's
+      F7, F8, O2 and observations (`Execution`'s and `Execution.Chunks`' own criteria of
+      the same date list the design and the red-once record):
+      `LaunchBudgetTests` (new, 7 facts), `ChunkPlanWiringTests` (new, a theory over 3
+      pipelines), `AcceleratorChoiceTests.BatchConstructorsRefuseACountWhoseArrayOverflowsA32BitLength`,
+      `.AChunkBufferRefusesAHostArrayShorterThanTheChunkNeeds`,
+      `.ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset`,
+      `.TheCpuAcceleratorsBudgetIsUnboundedAndTheReferenceDevicesIsBounded`,
+      `.AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried` and
+      `.AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried` (rewritten to call the
+      new `AcceleratorChoice.Decide(options, cudaForbidden)` seam directly, F7),
+      `.CudaForbiddenRefusesBeforeDiscoveryEverRuns` (new), `PostLinkTests.ALogThatTrimsToNothingLeavesNoTrailingColon`,
+      `CudaWslDevicesTests.TheResolverAlreadySetFailureIsRecognisedByTargetSiteNotByMessage`,
+      `SpeciesFunctionTests.TheComparisonIsNaNAwareAndCatchesAMismatchOnlyOneSideMakesNaN`
+      (O2) are new; `ProbeKernelTests`, `MathProbe`'s `Functions` and the two PTX
+      fixtures move for F1 (12 → 14 outputs, both `Min`/`Max` operand orders); `ArchitectureTests`
+      gives each backend its own `NvvmAPI` (observation 4).
+
+      A genuine WSL race, not part of the design: a full `-c Release` run of this
+      project on real CUDA hardware found 22 facts failing together with "CUDA device 0
+      was requested, but 0 device(s) exist", traced to `LaunchBudgetTests` running
+      outside `EngineFixture.CollectionName` and so able to touch the CUDA driver
+      (`CudaException`'s constructor) on a separate thread from `EngineFixture`'s own
+      lazy CUDA engine creation. Fixed by joining the collection; `Execution`'s own
+      criterion has the fuller account, since the fix could not be shown red-once in the
+      usual sense (the race was observed, not reliably reproducible on demand).
+
+      Evidence, on the reference machine: `dotnet build APThermo.sln` 0 warnings,
+      0 errors; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+      "Category!=LongRunning"`, `Execution.Tests` 159/159, `Protocol.Tests` 32/32;
+      `dotnet
+      test tests/Execution.Tests -c Release` (no filter) 162/162 on Windows, run twice
+      (once before and once after the collection fix — the race never surfaced on
+      Windows), and 162/162 under WSL2 on the collection-fixed commit (a prior run of
+      the commit before it hit the race, 22 failures, all traced to the same cause and
+      resolved by the fix); no `Bits*.approved.txt`, `Throughput*.approved.txt` or
+      `Protocol.Tests/PublicSurface.approved.txt` differs from before this task's first
+      commit; the protocol lint 0 errors, 0 warnings. Six other test nodes
+      (`Equilibrium.Tests`, `Thermo.Tests`, `Performance.Tests`, `Problems.Tests`,
+      `Docs.Tests`, `Cli.Tests`) fail Linux bit or approved-output comparisons under
+      WSL; confirmed pre-existing for `Performance.Tests` by a direct check against two
+      earlier commits (`Execution`'s own criterion has the detail) and reported, not
+      fixed, since every one of those nodes is outside this task's subtree.
 
 ## Taboos
 

@@ -1,0 +1,151 @@
+{
+  "case": {
+    "name": "kclo4_T800",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "pure-K",
+          "custom": true,
+          "formula": {
+            "K": 1.0
+          },
+          "molarMass": 39.0983,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.2821985594977658,
+          "note": null
+        },
+        {
+          "name": "pure-CL",
+          "custom": true,
+          "formula": {
+            "CL": 1.0
+          },
+          "molarMass": 35.453,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.2558879933366487,
+          "note": null
+        },
+        {
+          "name": "pure-O",
+          "custom": true,
+          "formula": {
+            "O": 1.0
+          },
+          "molarMass": 15.9994,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.4619134471655856,
+          "note": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "CL": 0.00721766827452257,
+        "K": 0.00721766827452257,
+        "O": 0.02887067309809028
+      },
+      "temperature": 800.0,
+      "pressure": 100000.0,
+      "transport": false,
+      "products": [
+        "CL",
+        "CL2",
+        "CL2O",
+        "CLO",
+        "CLO2",
+        "K",
+        "K2",
+        "K2CL2",
+        "K2O",
+        "K2O2",
+        "KCL",
+        "KO",
+        "O",
+        "O2",
+        "O3",
+        "K(L)",
+        "K(cr)",
+        "K2O(L)",
+        "K2O(a)",
+        "K2O(b)",
+        "K2O(c)",
+        "K2O2(L)",
+        "K2O2(cr)",
+        "KCL(L)",
+        "KCL(cr)",
+        "KO2(L)",
+        "KO2(a)",
+        "KO2(b)"
+      ],
+      "omit": [],
+      "trace": null
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "generatorSha256": "7e0d3c39830aa5541a7ba2d5060bccb7ed75b2c8189af7baa39964da8b6c61ad",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "retention_threshold.py",
+    "scriptSha256": "95b2a51a0723ff6b8bbc9ea361e917cb99e4edb28f4200ba54bfc7fab35d70f6",
+    "generatedOn": "2026-09-28"
+  },
+  "outputs": {
+    "temperature": 800.0,
+    "pressure": 100000.0,
+    "density": 1.0414689517928337,
+    "enthalpy": -2721925.3154105158,
+    "internalEnergy": -2817943.5402724817,
+    "entropy": 4390.408871911851,
+    "gibbsEnergy": -6234252.412939997,
+    "molarMass": 69.27443211496828,
+    "mixtureMolarMass": 46.18296745511202,
+    "cpFrozen": 914.4403635911156,
+    "cpEquilibrium": 914.473710200852,
+    "cvFrozen": 794.4175825136584,
+    "cvEquilibrium": 794.4489084644829,
+    "gammaS": 1.1510790177590975,
+    "dlnVdlnT": 1.0000085495417805,
+    "dlnVdlnP": -1.0000002635240672,
+    "soundSpeed": 332.45234840663045,
+    "moleFractions": {
+      "CL": 3.234142943266377e-18,
+      "CL2": 1.7893972523433692e-25,
+      "CL2O": 1.2574486931526453e-33,
+      "CLO": 3.3417264287058243e-19,
+      "CLO2": 3.4064844514845017e-23,
+      "K": 2.545997535097965e-13,
+      "K2": 3.845634746981035e-26,
+      "K2CL2": 1.6156265004368557e-08,
+      "K2O": 1.937241976690787e-16,
+      "K2O2": 5.226430836013205e-13,
+      "KCL": 1.59521660946205e-07,
+      "KO": 7.295026311343565e-13,
+      "O": 5.323044292394725e-14,
+      "O2": 0.6666666744862456,
+      "O3": 9.10943864659179e-14,
+      "K(L)": 0.0,
+      "K(cr)": 0.0,
+      "K2O(L)": 0.0,
+      "K2O(a)": 0.0,
+      "K2O(b)": 0.0,
+      "K2O(c)": 0.0,
+      "K2O2(L)": 0.0,
+      "K2O2(cr)": 0.0,
+      "KCL(L)": 0.0,
+      "KCL(cr)": 0.3333331462939798,
+      "KO2(L)": 0.0,
+      "KO2(a)": 3.540197335200734e-09,
+      "KO2(b)": 0.0
+    },
+    "converged": true
+  }
+}

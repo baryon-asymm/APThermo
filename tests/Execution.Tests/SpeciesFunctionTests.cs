@@ -94,13 +94,28 @@ public sealed class SpeciesFunctionTests
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(20)) + $"\nworst {worst:E1}");
     }
 
-    /// <summary>CUDA against the CPU accelerator for the three dimensionless species functions of one species-temperature sample.</summary>
-    private static (List<string> Mismatches, double Worst) CompareFunctions(double relative, string label, (string Name, double Cpu, double Gpu)[] functions)
+    /// <summary>CUDA against the CPU accelerator for the three dimensionless species functions of one species-temperature sample.
+    /// NaN-aware (2026-09-28, the guards audit's O2): a plain <c>deviation &gt; relative</c> is false for a NaN deviation, which
+    /// would let a value that is NaN on one accelerator and not the other pass silently, the way <see cref="GpuCpuTolerances.UlpDistance"/>
+    /// and the probe's own comparison already guard against for their own fields.</summary>
+    internal static (List<string> Mismatches, double Worst) CompareFunctions(double relative, string label, (string Name, double Cpu, double Gpu)[] functions)
     {
         var mismatches = new List<string>();
         var worst = 0.0;
         foreach (var (name, a, b) in functions)
         {
+            if (double.IsNaN(a) && double.IsNaN(b))
+            {
+                continue;
+            }
+
+            if (double.IsNaN(a) || double.IsNaN(b))
+            {
+                mismatches.Add($"{label} {name}: cpu {a:R}, cuda {b:R}");
+                worst = double.PositiveInfinity;
+                continue;
+            }
+
             // Dimensionless functions of order 1 to 100 that cancel to zero at a reference point: the bound is on max(1, |value|).
             var deviation = Math.Abs(a - b) / Math.Max(1.0, Math.Abs(a));
             worst = Math.Max(worst, deviation);
@@ -111,6 +126,29 @@ public sealed class SpeciesFunctionTests
         }
 
         return (mismatches, worst);
+    }
+
+    /// <summary>
+    /// The comparison is NaN-aware (2026-09-28, the guards audit's O2), proven non-degenerate directly against
+    /// <see cref="CompareFunctions"/> with hand-built values, without a device: a value that is NaN on one accelerator
+    /// and an ordinary number on the other is a mismatch, two NaNs on both sides are not, and an ordinary deviation past
+    /// the tolerance is still caught. Before this fix <c>deviation &gt; relative</c> was false for a NaN deviation, so the
+    /// first case here would have passed silently.
+    /// </summary>
+    [Fact]
+    public void TheComparisonIsNaNAwareAndCatchesAMismatchOnlyOneSideMakesNaN()
+    {
+        var (oneSidedNaN, worst1) = CompareFunctions(1e-10, "label", [("Cp/R", double.NaN, 5.0)]);
+        _ = Assert.Single(oneSidedNaN);
+        Assert.Equal(double.PositiveInfinity, worst1);
+
+        var (bothNaN, worst2) = CompareFunctions(1e-10, "label", [("Cp/R", double.NaN, double.NaN)]);
+        Assert.Empty(bothNaN);
+        Assert.Equal(0.0, worst2);
+
+        var (ordinary, worst3) = CompareFunctions(1e-10, "label", [("Cp/R", 1.0, 1.0 + 1e-5)]);
+        _ = Assert.Single(ordinary);
+        Assert.True(worst3 > 1e-10);
     }
 
     /// <summary>A species index outside the table is refused before any kernel runs.</summary>

@@ -14,10 +14,16 @@ namespace APThermo.Equilibrium;
 /// </remarks>
 internal static class DerivativeSystem
 {
-    /// <summary>Solves for (∂ln n/∂ln T)_p and (∂ln n/∂ln p)_T, and for the reaction sum; <c>Solved</c> is false when a system was singular.</summary>
+    /// <summary>
+    /// Solves for (∂ln n/∂ln T)_p and (∂ln n/∂ln p)_T, and for the reaction sum; <c>Solved</c> is false when a system was
+    /// singular. Reads rule A's tie from <paramref name="state"/>, not from a parameter of its own (BOOT.md, 2026-09-28):
+    /// a pair still coupled at the converged composition fixes the tied element's derivative at zero, the same way an
+    /// absent element's derivative is fixed by <see cref="CloseRows"/>.
+    /// </summary>
     public static Derivatives Solve(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                    int condensedCount, int stride)
+                                    in IterationState state, int stride)
     {
+        var condensedCount = state.CondensedCount;
         var pairSecond = PairSecond(table, scratch, condensedCount);
         var derivatives = new Derivatives { Pinned = pairSecond >= 0, Solved = true };
         var derivativeCount = condensedCount;
@@ -30,10 +36,17 @@ internal static class DerivativeSystem
         }
 
         var layout = new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, derivativeCount, stride);
+        var tie = state.Tie;
+        var tied = tie.Active && ElementCoupling.Coupled(table, scratch, result, derivativeCount, tie) ? tie.Element : -1;
         for (var pass = derivatives.Pinned ? 1 : 0; pass < 2; pass++)
         {
             var kind = pass == 0 ? DerivativeKind.Temperature : DerivativeKind.Pressure;
             Assemble(table, scratch, result, layout, kind);
+            if (tied >= 0)
+            {
+                PinTiedRow(scratch, layout, tied);
+            }
+
             if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride))
             {
                 derivatives.Solved = false;
@@ -57,6 +70,19 @@ internal static class DerivativeSystem
         }
 
         return derivatives;
+    }
+
+    /// <summary>A tie that survives to the close gives its element's row a unit derivative row, fixing that multiplier's derivative at zero (BOOT.md, rule A, "Derivatives").</summary>
+    private static void PinTiedRow(in EquilibriumScratch scratch, in SystemLayout layout, int tied)
+    {
+        var stride = layout.Stride;
+        for (var c = 0; c < layout.Unknowns; c++)
+        {
+            scratch.Matrix[tied * stride + c] = 0.0;
+        }
+
+        scratch.Matrix[tied * stride + tied] = 1.0;
+        scratch.RightHandSide[tied] = 0.0;
     }
 
     /// <summary>The slot of the second record of the first pair of one formula in the solution; −1 when there is no pair.</summary>

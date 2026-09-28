@@ -86,12 +86,14 @@ internal sealed class Engine : IDisposable
     public static Engine Create(EngineOptions? options = null);
     public static bool CudaForbidden { get; }          // the environment variable is "1"
     public AcceleratorInfo Accelerator { get; }
+    internal LaunchBudget Budget { get; }               // Execution.Chunks; the session's time budget for a launch (2026-09-28, F2), None off a device with no run-time limit
     public UploadedTables Upload(SpeciesTable species, TransportTable? transport = null);
     public EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch);
     public RocketBatchResult Run(UploadedTables tables, RocketBatch batch);
     public TransportBatchResult Run(UploadedTables tables, TransportBatch batch);
     public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch);
     public double[] ProbeMath(double[] inputs);        // [input * MathProbe.FunctionCount + function]
+    internal void RunBatchLoop(Chunks.ChunkPlan plan, Chunks.ChunkBuffers buffers, RunTimer timer, Action<int> launch);  // the chunk loop every Run above drives; exposed for the tests node's own chunk-plan facts
     public void Dispose();
 }
 
@@ -104,7 +106,7 @@ internal sealed class UploadedTables : IDisposable        // device copies of th
 
 internal static class MathProbe
 {
-    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow(1.37), Pow(1.4), Pow(4.6), Sqrt, Abs, Min, Max, Floor, Ceiling
+    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow(1.37), Pow(1.4), Pow(4.6), Sqrt, Floor, Ceiling, Abs, Min(v,1), Max(v,1), Min(1,v), Max(1,v)
     public static int FunctionCount { get; }
     public static readonly IReadOnlyList<double> PowExponents;   // 1.37, 1.4, 4.6 (2026-09-27, the guards audit's F11)
     public const double PowExponent1 = 1.37;
@@ -114,6 +116,8 @@ internal static class MathProbe
 ```
 
 ⚠ 2026-09-27 (the guards audit's F11): `MathProbe` had one `PowExponent = 1.37` and `Functions` listed a single `Pow` entry, so the probe never exercised any other exponent. `Pow` is now probed at three exponents (1.37, 1.4, 4.6), each its own libdevice call; `PowExponent` is replaced by `PowExponent1`/`PowExponent2`/`PowExponent3` (the kernel-compatible consts `Kernels.Probe` inlines) and the host-readable `PowExponents`, and `Functions` names each exponent. `MathProbe` stays internal; the change is a tree-contract one, not a package-surface one.
+
+⚠ 2026-09-28 (the second hidden-defect audit, Execution finding F1): `Functions` listed one `Min`/`Max` entry each, both compiled from `KernelMath.Min(v, 1.0)`/`Max(v, 1.0)` — the variable-first order only. ILGPU 1.5.3 moves a constant left operand of a floating comparison to the right and inverts its NaN ordering while doing so (root `BOOT.md`, the third ILGPU defect), so the constant-first order compiles to different PTX and, for a NaN `v`, answered differently on CUDA (`KernelMath.Min(1.0, NaN)` was `1.0` on CUDA, `NaN` on the CPU accelerator, before the thermo node's `KernelMath` was made to test both operands for NaN first). `Functions` now probes both orders (`Min(v,1)`/`Max(v,1)` and `Min(1,v)`/`Max(1,v)`), and Floor and Ceiling moved next to the other libdevice-calling entries: they were documented as "the compiler emits directly", which held only for Abs (the post-link's own wrapper inventory names `__nv_floor` and `__nv_ceil` among the seven wrappers it completes for the probe). `StrideCount`/`FunctionCount` rise from 12 to 14.
 
 `Create` with `Auto` binds CUDA when all of the following hold, and the CPU
 accelerator otherwise:
@@ -135,6 +139,27 @@ CUDA post-linked) on its first run per engine and cached; that time is the run's
 when a chunk's device bytes would exceed `ScratchBytes`; the results of a batch do not
 depend on the chunking. An engine is used from one thread at a time; its kernel cache
 is the only synchronised piece.
+
+**Warm-up cost on CUDA** (2026-09-28, the second audit's observation 3): the rocket
+kernel's own compile takes 13 to 22 s on the reference machine; the CUDA driver's own
+JIT of the post-linked PTX runs on top of that, 55 to 59 s on a compute-cache miss and
+well under a second on a hit. The driver's cache is keyed by the PTX text, and ILGPU
+names its generated symbols from process-wide counters, so every CUDA engine after the
+first *in the same process* gets different names and misses the cache regardless of an
+earlier engine's run. Advice for a consumer: one `Solver` per process amortises the
+compile once; a process that creates and disposes several engines in turn pays this
+cost again for each one.
+
+**A launch's time budget on a display GPU** (2026-09-28, the second audit's Execution
+finding F2). A device that reports a kernel run-time limit (Windows WDDM, or under
+WSL2) has its driver kill a launch that runs too long and reset the shared display
+driver; the CPU accelerator and a device without the limit (TCC mode, headless) are
+not affected. `Engine`/`AcceleratorProbe` measure this at bind time and size later
+chunks from it (`Execution.Chunks`' `LaunchBudget`, its own `BOOT.md`), but a single
+case cannot be split across launches: a rocket or equilibrium system of about 16 or
+more elements risks exceeding the default 2 s limit as one case, before any chunking
+choice can help. Such a system belongs on the CPU accelerator, or on a CUDA device
+without the run-time limit.
 
 ⚠ 2026-09-14 (the clean-code review): `Create` with `Auto` swallowed every CUDA
 failure into a discarded exception and returned a CPU engine whose description said
@@ -299,6 +324,7 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
 | a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
 | a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
+| a launch exceeds a display GPU's kernel run-time limit (2026-09-28, the second audit's Execution finding F2) | `AcceleratorUnavailableException` naming the limit, the chunk's case count and the CPU accelerator as remedy, its inner exception the driver's `CudaException` (`CUDA_ERROR_LAUNCH_TIMEOUT`); the context is lost with it, so the engine and its tables must be recreated |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |
 

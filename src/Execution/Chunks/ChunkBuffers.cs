@@ -15,8 +15,9 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
     public long BytesPerCase => _buffers.Sum(buffer => buffer.BytesPerCase);
 
     /// <summary>The largest per-case element count of any buffer declared (BOOT.md, "A chunk's buffers stay within 32-bit
-    /// offsets"; the audit's F4): what <see cref="ChunkPlan.For"/> caps a chunk against, beside <see cref="BytesPerCase"/>,
-    /// so that no buffer's <c>index * perCase</c> kernel offset overflows a 32-bit <c>Index1D</c>.</summary>
+    /// offsets"; the audit's F4): what <see cref="ChunkPlan.For(int, long, long, EngineOptions)"/> caps a chunk against,
+    /// beside <see cref="BytesPerCase"/>, so that no buffer's <c>index * perCase</c> kernel offset overflows a 32-bit
+    /// <c>Index1D</c>.</summary>
     public long MaxElementsPerCase => _buffers.Count == 0 ? 0 : _buffers.Max(buffer => buffer.ElementsPerCase);
 
     /// <summary>A buffer filled from its host array before every launch.</summary>

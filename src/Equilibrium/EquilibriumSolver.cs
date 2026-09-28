@@ -132,6 +132,17 @@ internal static class EquilibriumSolver
             Composition.Refresh(table, scratch, result, ref state);
             if (!CondensedSet.Update(table, problem, scratch, result, ref state))
             {
+                // Rule A's release (BOOT.md, 2026-09-28): once the settled set finds no further change and some species
+                // of the sums tells the tied pair apart, the tie is released, at most once per solve, and the settled
+                // set converges again on the element's own row.
+                if (state.Tie.Active && !state.TieReleased
+                    && !ElementCoupling.Coupled(table, scratch, result, state.CondensedCount, state.Tie))
+                {
+                    state.Tie = default;
+                    state.TieReleased = true;
+                    continue;
+                }
+
                 break;
             }
 
@@ -274,8 +285,7 @@ internal static class EquilibriumSolver
         }
 
         var sums = Composition.Sums(table, scratch, result, state, logPressure, RetentionThreshold(state));
-        var derivatives = DerivativeSystem.Solve(table, scratch, result, state.CondensedCount,
-                                                 ScratchLayout.MaxUnknowns(table.ElementCount));
+        var derivatives = DerivativeSystem.Solve(table, scratch, result, state, ScratchLayout.MaxUnknowns(table.ElementCount));
         if (!derivatives.Solved)
         {
             return CaseStatus.SingularMatrix;
