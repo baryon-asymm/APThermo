@@ -7,8 +7,11 @@ package-surface section (one whose heading carries no `(tree contract)` mark), i
 internal and may change without notice (root `BOOT.md`, Delivery: Public surface). The
 tree-contract section below lists the internal types `Performance`, `Transport` and
 `Execution` use (root `BOOT.md`, Delivery: Tree contracts); the assembly grants
-`InternalsVisibleTo` to exactly those nodes and to `Execution.Tests` and
-`Performance.Tests` (`APThermo.Equilibrium.csproj`).
+`InternalsVisibleTo` to exactly those nodes and to `Execution.Tests`,
+`Performance.Tests` and, since 2026-09-28 (the orchestrator's decision under
+`AGENTS.md` §11, so that its tests node can cross-check the transport set's
+`EquilibriumHeatCapacity` against an independently solved state's `CpEquilibrium`),
+`Transport.Tests` (`APThermo.Equilibrium.csproj`).
 
 ⚠ 2026-09-15 (distribution phase): the review of that day
 (fixed in `4344652`) found no consumer scenario for `EquilibriumProblem`,

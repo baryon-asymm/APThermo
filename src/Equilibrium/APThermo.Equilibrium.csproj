@@ -23,6 +23,9 @@
     <InternalsVisibleTo Include="APThermo.Performance" />
     <InternalsVisibleTo Include="APThermo.Performance.Tests" />
     <InternalsVisibleTo Include="APThermo.Transport" />
+    <!-- The tests node cross-checks the transport set's EquilibriumHeatCapacity against an independently solved
+         state's CpEquilibrium (2026-09-28, the orchestrator's decision under AGENTS.md §11). -->
+    <InternalsVisibleTo Include="APThermo.Transport.Tests" />
     <InternalsVisibleTo Include="APThermo.Execution" />
     <InternalsVisibleTo Include="APThermo.Execution.Tests" />
   </ItemGroup>

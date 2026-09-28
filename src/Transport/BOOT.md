@@ -221,7 +221,7 @@ class per stage) is unaffected.
 | Class | Responsibility | Visibility |
 |---|---|---|
 | `TransportSolver` | the contract: the constants, the five fit lookups (`FitOf`, `FitValue`, `PureViscosity`, `PureConductivity`, `PairViscosity`) and `Evaluate`, which builds the `StationInputs` and forwards to the composition root | internal (2026-09-15, distribution phase), contract unchanged |
-| `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Its efferent coupling, 14 by the dependency check's walk on 2026-09-14, is within the root's limit since that limit was recalibrated to 14 the same day, so it claims no exception (it was named here first as the composition root above the first limit of 10, about 14 after the split) | internal |
+| `StationEvaluation` | the composition root: the order of the stages and the status; holds no formula. Its efferent coupling is 15 since it also calls `ComponentBasis` (2026-09-28), over the root's limit of 14; the `## Shape exceptions` table below carries the measured figure | internal |
 | `TransportInput` | may this station be evaluated, and how much gas it holds: the temperature, table and mole checks, the gaseous mole sum, `InvalidInput` and `NoTransportData` | internal |
 | `TransportComponents` | the active element rows, each row's default species, the component of each row (with the predicates `AtomCount`, `OfCase`, `SameColumn`) | internal |
 | `ComponentBasis` | the components settled before the seeding (2026-09-28): the element rows reduced over the columns of the components and the defaults, in element order, a vanished pivot reverting its row to the default species; writes `Component` and nothing the later stages read besides it | internal |
@@ -317,11 +317,17 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `TransportScratch.TransportScratch` | parameters | 22 | a descriptor whose constructor enumerates the slices of a blittable struct; grouping them into three structs would move the contract for no run-time gain (the decision "The scratch descriptor stays"); every creation names its arguments |
 | `TransportTableView.TransportTableView` | parameters | 10 | the same case as `TransportScratch` above |
 | `TransportTableArrays.TransportTableArrays` | parameters | 9 | the same case as `TransportScratch` above |
+| `StationEvaluation` | efferent coupling | 15 | the composition root: the order of the stages and the status, now including `ComponentBasis` (2026-09-28); holds no formula |
 
-`StationEvaluation`, named in `## Structure` as the composition root the root's Ce rule
-allows above its limit, measures 14 by the dependency check's walk: at, not above, the
-root's limit of 14, so it claims no exception and this node needs no efferent-coupling
-row.
+⚠ 2026-09-28: this table carried no row for `StationEvaluation`, and the paragraph
+below it read "measures 14 by the dependency check's walk: at, not above, the root's
+limit of 14, so it claims no exception and this node needs no efferent-coupling row".
+Adding the call to `ComponentBasis` (the fix of that date) raised the measured figure
+to 15, over the limit; the protocol tests node's `ShapeTests` (fact
+`NoSrcTypeNamesMoreThan14TypesOfTheTree`) failed with exactly that figure and named the
+missing row. `StationEvaluation` was already named as the composition root in
+`## Structure` above, which the root's Ce rule exempts from the numeric limit, so the
+row above records the reason rather than opening a new one.
 
 ## Acceptance criteria
 
@@ -456,30 +462,104 @@ row.
       reverted default was always in the set; with a zero-mole default the fix broke
       conservation by orders of magnitude (the ⚠ of that date under Constraints). The
       criterion below replaces this one's first bullet as the evidence.
-- [ ] The components are settled before the set is seeded, and every component is in
-      the set (the ⚠ of 2026-09-28 under Constraints).
-      - **The audit's cases as facts, each seen red against `5a732f0`:**
-        - the restricted list `[NO2, N2O4, N, O, N2, O2, NO]` at 400 K with N and O at
-          zero moles: every reaction conserves every element, and the equilibrium heat
-          capacity equals the independent value the audit's emulation gave
-          (1 998.469288525117 J/(kg·K) there; the test reads it from `Equilibrium`'s
-          `CpEquilibrium` of the same state, not typed);
-        - H2 + HF (H:F = 2:1 by atoms) over the audit's grid (300 to 3 000 K; 1 kPa,
-          0.1 MPa, 10 MPa), in both element orders: every reaction conserves, and the
-          two orders agree field by field within the tolerance derived below.
-      - **Consistency over sweeps, both element orders.** Over state sweeps of H/F, of
-        N/O from N2O4 and of the four verification propellants' element sets: wherever
-        no species is trace-eliminated and no condensed species is present (the
-        transport figures are per kilogram of the set's gas), the transport's `EquilibriumHeatCapacity`
-        equals `Equilibrium`'s `CpEquilibrium` of the same state within a tolerance the
-        test derives from the coverage the set leaves out (`CoverageFraction`,
-        `CoverageTolerance`), not tuned to pass; the list of states is generated, and
-        the fact fails on an empty list.
-      - **Conservation everywhere** (`EveryReactionOfEveryStationsSetConservesTheElements`)
-        extended to the sweeps above.
-      - **Bits.** The fixtures never revert (the criterion above), so every
-        `Bits*.approved.txt` of the tree stays unchanged; if one moves, the coder stops
-        and reports the case instead of approving it.
+- [x] 2026-09-28 — The components are settled before the set is seeded, and every
+      component is in the set (the ⚠ of 2026-09-28 under Constraints).
+      - **The code.** A new stage `ComponentBasis` runs between
+        `TransportComponents.Select` and `TransportSetSelection.Select` in
+        `StationEvaluation`: it reduces a compact matrix of every active row's default
+        and component columns, in element order, with `ReactionBasis`'s own cleaning
+        threshold, and reverts a vanished pivot to the row's default before anything is
+        seeded, exactly as `equilibrium.f90:2264-2291` does before
+        `equilibrium.f90:5221-5236` seeds the transport set from the settled list.
+        `TransportSetSelection.Seed` was already seeding whatever a component's moles
+        are; `ReactionBasis` no longer reverts, and a zero pivot there now simply
+        leaves its row unreduced (the reference's `tem == 0`).
+      - **The audit's restricted-list case (conservation), seen red against `5a732f0`:**
+        `ReactionConservationTests.TheAuditsRestrictedProductListConservesEveryReactionWhenTheRevertedDefaultCarriesNoMoles`:
+        `[NO2, N2O4, N, O, N2, O2, NO]` at 400 K with N and O at zero moles — the exact
+        scenario of the ⚠ above. Every reaction of the settled set conserves every
+        element; the set carries every product but the atomic nitrogen the N row never
+        needed (`SpeciesCount` 6, one below the product count), and the atomic oxygen
+        the O row reverts to, seeded with zero moles, is immediately trace-eliminated
+        (`TraceEliminations` 1). Seen red against the code before this fix (still
+        seeding before the revert): `SpeciesCount` 5, the reverted default missing from
+        the set entirely, one conservation violation reported.
+      - **The `InternalsVisibleTo` grant.** The remaining three facts need
+        `tests/Transport.Tests` to call `Equilibrium`'s internal solver for an
+        independently solved state to cross-check against. This coder escalated it
+        (`AGENTS.md` §11) rather than editing a neighbour's `.csproj`/`API.md` itself;
+        the orchestrator decided the same day, at the root level that owns both nodes,
+        to grant it under the root `BOOT.md`'s "Tree contracts" rule ("the test … nodes
+        that use it"). `src/Equilibrium/APThermo.Equilibrium.csproj` gains
+        `<InternalsVisibleTo Include="APThermo.Transport.Tests" />`, and
+        `src/Equilibrium/API.md`'s tree-contract sentence names it; this node's own
+        `## Dependencies` links `Equilibrium`'s `API.md`. Only the types
+        `Equilibrium`'s tree contract already declares are used
+        (`EquilibriumProblem`, `EquilibriumScratch`, `EquilibriumResult`,
+        `EquilibriumSolver`, `ScratchLayout`), through the new `EquilibriumHost` host
+        helper (`tests/Transport.Tests/EquilibriumHost.cs`), which mirrors this node's
+        own `TransportHost` pattern.
+      - **The restricted list's heat capacity against `Equilibrium`'s `CpEquilibrium`.**
+        `ReactionConservationTests.TheAuditsRestrictedListMatchesEquilibriumsHeatCapacity`:
+        the audit's own six-species list (`NO2, N2O4, NO, O2, N, O`, no N2, so the
+        equilibrium cannot collapse to N2 + O2), solved by `Equilibrium` itself from
+        pure N2O4's element ratio at 400 K, 0.1 MPa. `Equilibrium`'s own converged state
+        gives atomic N and O zero moles (not hand-picked); feeding that composition to
+        `Transport` reproduces the revert and trace elimination, and
+        `EquilibriumHeatCapacity` (1998.469288525126 J/(kg·K), read fresh from the
+        solve, not typed) matches `Equilibrium`'s own `CpEquilibrium`
+        (1998.469288525117) to 4.5e-18 relative — the audit's own figure and its own
+        "equal to Equilibrium's to 4e-15" finding, reproduced without typing either
+        number into the test. Seen red against `5a732f0` (conservation violations, the
+        reacting conductivity and heat capacity off by two to three orders of
+        magnitude, matching the audit's own numbers).
+      - **H2 + HF over the audit's grid, both element orders.**
+        `EquilibriumConsistencyTests.HydrogenFluorideAgreesBetweenElementOrdersOverTheAuditsGrid`:
+        H:F = 2:1 by atoms over 300 to 3 000 K (11 points, 270 K apart) at 1 kPa,
+        0.1 MPa and 10 MPa, both element orders, each solved by `Equilibrium`. Every
+        converging reaction conserves, and the two orders agree field by field
+        (viscosity, both conductivities, both Prandtl numbers, both heat capacities)
+        within `ConsistencyTolerance` (below). Seen red against `5a732f0`: with H
+        listed first, every converging state at and above 570 K had a conservation
+        violation and reacting figures off by up to three orders of magnitude from the
+        F-first order, reproducing the audit's own "20 of 29 records" finding in kind.
+      - **Consistency over sweeps, both element orders.**
+        `EquilibriumConsistencyTests.TransportsEquilibriumHeatCapacityMatchesEquilibriumOverStateSweeps`:
+        the H2 + HF grid above (both orders), the N2O4/NO2 system's full seven-species
+        list over the same grid, and the chamber state (an hp solve) of one fixture per
+        verification propellant (LOX/LH2, LOX/RP-1, N2O4/UDMH, AP/HTPB/Al) in both
+        element orders — a generated list, asserted non-empty, then filtered to the
+        states with no trace elimination and no condensed species present (also
+        asserted non-empty). On that filtered list, `Transport`'s
+        `EquilibriumHeatCapacity` equals `Equilibrium`'s `CpEquilibrium` within
+        `ConsistencyTolerance`. Seen red against `5a732f0` together with the H2+HF
+        fact above (the same underlying states).
+
+        `ConsistencyTolerance` (in `EquilibriumConsistencyTests`) is
+        `100 · (1 − CoverageFraction + CoverageTolerance)` ≈ 1.0e-4: the transport
+        set's own coverage rule may leave out a fraction of the gaseous moles of about
+        `1 − CoverageFraction + CoverageTolerance` ≈ 1e-6 at the moment it stops adding
+        species, and the decade-stepped selection can overshoot that bound by roughly
+        two more decades of the same slack before the next pass would have caught up —
+        the mechanism a reacting figure's own sensitivity to a minor species (the
+        Butler–Brokaw weighting) can amplify. Derived from the two named constants
+        before the sweep was run, not adjusted afterwards: the observed worst-case
+        relative difference over every comparable state is 4.4e-5, comfortably under
+        the 1.0e-4 the formula gives.
+      - **Conservation everywhere**
+        (`ReactionConservationTests.EveryReactionOfEveryStationsSetConservesTheElements`)
+        stays green over every rocket fixture with transport; no committed fixture's
+        basis has a vanished pivot, so this fact does not exercise the revert (the
+        ⚠ of 2026-09-27 above), but it is unaffected by the change. The new sweeps'
+        own conservation is checked by every fact above through the same
+        `ReactionConservationTests.EvaluateAndCheckConservation` helper.
+      - **Bits.** The fixtures never revert, so every `Bits*.approved.txt` of the tree
+        stays unchanged; confirmed by `git status` over the whole tree after every
+        change of this task, not only this node's own snapshot.
+      - **Evidence.** `tests/Transport.Tests` 167/167 (164 before this criterion's new
+        facts), the full fast suite green (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln
+        --filter "Category!=LongRunning"`), the protocol lint 0 errors/0 warnings, at
+        the commit this criterion's tick names.
 
 ## Taboos
 

@@ -23,6 +23,7 @@ internal static class StationEvaluation
         }
 
         TransportComponents.Select(in inputs);
+        ComponentBasis.Settle(in inputs);
         var total = TransportSetSelection.Select(in inputs, gasMoles, ref result);
         var nm = result.SpeciesCount;
         if (nm == 0 || total <= 0.0)
