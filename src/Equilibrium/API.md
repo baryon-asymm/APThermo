@@ -126,10 +126,20 @@ frozen state: `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`, `DlnVdlnT 
 by this node. A case retains a gaseous species down to `1e-8` of the gas until its
 first convergence, then down to `1e-11` for the rest of the solve, as a change of the
 retained set that needs one more convergence (2026-09-28, `BOOT.md`, the two-stage
-retention threshold): since that switch happens before any `Ok` exit, the reported
-moles are always the `1e-11` composition, and a gaseous species between `1e-11` and
-`1e-8` of the gas is reported at its converged amount rather than zeroed (`BOOT.md`,
-the ⚠ 2026-09-28 correction of this paragraph). A warm start (a previous solution as the
+retention threshold): since that switch happens before any `Ok` exit, the report
+stands for the last `Composition.Refresh` under the second-stage threshold, and a
+gaseous species between `1e-11` and `1e-8` of the gas is reported at its converged
+amount rather than zeroed.
+
+⚠ 2026-09-28: this paragraph stood "a gaseous species below `1e-8` of the gas is
+reported with zero moles", describing a separate zeroing step taken on the final state.
+Implemented, that step zeroed the trace species out of the reported moles only, while
+the sums, derivatives and mixture state already written stood on the finer, unzeroed
+composition: the two disagreed, and `ElementConservationTests` failed on 27 fixtures on
+residuals matching exactly the zeroed species' own mass, although no case's `CaseStatus`
+moved. The report now stands for whatever `Composition.Refresh` last produced, with no
+separate step (`BOOT.md`, the ⚠ 2026-09-28 correction of the retention-threshold
+paragraph). A warm start (a previous solution as the
 estimate) re-seeds every gas with zero moles one e-fold below the trace threshold, and
 does not read the logarithm left in the scratch. A warm start whose convergence fails,
 in any way but `InvalidInput`, retries once from the cold start of RP-1311 section 3.1

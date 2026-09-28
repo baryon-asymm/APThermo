@@ -140,15 +140,14 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   recomputes the retained amounts and counts as a change of the retained set: the loop
   must converge once more under the second stage before it may exit, so every `Ok`
   has been converged under 1e-11. The switch happens once per solve, including a
-  warm start. The report reflects the case's own last `Composition.Refresh`, at
-  whichever stage was active for it: since an `Ok` exit is never reached before the
-  switch (the paragraph above), every reported composition is the second-stage one,
-  and a gaseous species between 1e-11 and 1e-8 of the gas is reported at its converged
-  amount, not zeroed. `Composition` stays the one place the retention rule is applied,
-  and the stage is per-case state (`IterationState.RetentionSecondStage`, not the
-  loop's own bookkeeping struct: the flag must survive across the several `Converge`
-  calls one `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of
-  them). A singular matrix
+  warm start. The report stands for the last `Composition.Refresh` under the
+  second-stage threshold: since an `Ok` exit is never reached before the switch (the
+  paragraph above), every reported composition is the second-stage one, and a gaseous
+  species between 1e-11 and 1e-8 of the gas is reported at its converged amount, not
+  zeroed. `Composition` stays the one place the retention rule is applied, and the
+  stage is per-case state (`IterationState.RetentionSecondStage`, not the loop's own
+  bookkeeping struct: the flag must survive across the several `Converge` calls one
+  `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of them).
 
   ⚠ 2026-09-28: stood "The report is unchanged: a gaseous species below 1e-8 of the gas
   is reported with zero moles, a step applied to the final state only and nowhere in
@@ -171,9 +170,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   value already used for its status and its derivatives, matching the reference (which
   reports at the same threshold it converges to, to the printed digits). Found while
   implementing this paragraph, second hidden-defect audit of 2026-09-28.
-  does not widen the threshold; the reference's widening to 80 (`1994-1995`) was
-  measured by the second audit to add warm-versus-cold disagreements and is not
-  copied. Iteration cap: 50 Newton steps after the last change of the
+
+  A singular matrix does not widen the threshold; the reference's widening to 80
+  (`1994-1995`) was measured by the second audit to add warm-versus-cold disagreements
+  and is not copied. Iteration cap: 50 Newton steps after the last change of the
   condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
   case: three per slot of the condensed set, an inclusion, a forgiveness and a
   stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
@@ -1042,19 +1042,33 @@ the same day.
 - [ ] The second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium, findings
       F1 to F5, and the guards part's O8 and F9) is closed by the rules of that date
       under Constraints.
+
+      **Done, this pass:** the two-stage threshold's fixtures and unit fact (F1,
+      below), the report-stands-for-`Composition.Refresh` correction (F1, `API.md`),
+      the audit's sixteen regression states and the eleven of example 5 named as
+      failing at both commits (F1, below), the targeted singular remedy's
+      dense-solver entry and anti-cycling fact (F5), the mixture window and state
+      guard (F2), the fallback on any failure (F3), frozen validation (F4), the NaN
+      element guard (guards O8), and the bit and approved-output re-approvals across
+      every node the change touches (Bits, below). **Open:** the NaClO4 and
+      AP/HTPB/Al fixtures of F1, under investigation by the orchestrator since
+      2026-09-28 (below); the AP/HTPB/Al convergence claim of F5, blocked by the same
+      gap.
       - **The two-stage threshold (F1).**
         - New tp fixtures from cea 3.3.4 through the fixtures node's generator: RP-1311
           example 5's table at 300 K, 1 bar and 70 bar, and 305 K, 1 MPa. Covered by
           `AssignedTemperatureCasesReproduceTheReference` through its directory
           listing; each red at `5a732f0`; all three `Ok` and green (`tests/Fixtures/cases/tp/rp1311-example5_T300_p1bar.json`,
           `..._T300_p70bar.json`, `..._T305_p10bar.json`, `tests/Fixtures/generate/retention_threshold.py`).
-        - **Escalation (AGENTS.md §11), not closed by this pass.** The orchestrator's
-          task also asked for a NaClO4 decomposition (Na:Cl:O = 1:1:4 from pure
-          elements, since NaClO4 is not a thermo.inp reactant) at 500 K and 800 K,
-          1 bar, and AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K. Both were generated
-          with cea (which converges on every one of the four) and tried against this
-          node; neither is committed, because they expose two gaps this coder's task
-          did not name and is not positioned to redesign inside a single task:
+        - **NaClO4 and AP/HTPB/Al: under investigation by the orchestrator
+          (2026-09-28).** The orchestrator's task also asked for a NaClO4
+          decomposition (Na:Cl:O = 1:1:4 from pure elements, since NaClO4 is not a
+          thermo.inp reactant) at 500 K and 800 K, 1 bar, and AP/HTPB/Al at
+          7 MPa/430 K and 1 MPa/420 K. Both were generated with cea (which converges
+          on every one of the four) and tried against this node; neither is
+          committed, and both stay out of the fixtures while the orchestrator has
+          them investigated separately against the reference (2026-09-28) and
+          decides after that. What this pass found, for that investigation:
           - NaClO4 reduces almost entirely to `NaCL(cr)` + `O2` at both temperatures
             (cea's own mole fractions: 0.667 `O2`, 0.333 `NaCL(cr)`, every gaseous
             trace at 1e-17 or below). `CaseSetup.FromDefaults`'s cold start is
@@ -1097,15 +1111,30 @@ the same day.
           converged second-stage amount, which is why the Bits bullet below expects
           this node's snapshot to move on existing fixtures, not stay at their zeros.
 
-        ⚠ 2026-09-28: this bullet named "the audit's 16 regression states (its F1
-        table)" as evidence, expecting a fact enumerating them. That table is not in
-        this node, is not in the fixtures node, and is not among the documents this
-        coder may read (the audit's own reports are kept out of the tree, AGENTS.md
-        §2/§8's rule against a second source of truth applies to them too); without
-        the sixteen states themselves there is nothing to turn into a fact. This is
-        the same escalation as above: the orchestrator holds the audit's report and
-        can supply the states, or drop this sub-criterion in favor of the fixtures
-        and unit facts that are reproducible from files already in the tree.
+        - **The audit's sixteen regression states.** The orchestrator supplied the
+          states directly (2026-09-28: `Z2Scan2.cs`/`Z2Verify.cs` of the audit's own
+          harness, read at the orchestrator's word that they are data for this node's
+          tests, not a foreign node's code) — four states on example 5's own table
+          (its committed `hp` fixture's table and element moles, solved as tp: 1 bar
+          at 300 and 310 K, 1 MPa at 320 K, 7 MPa at 340 K) and twelve on the
+          AP/HTPB/Al chamber's own table (its committed `tp` fixture's: 1 MPa at 300,
+          305 and 310 K; 7 MPa at 300 to 330 K every 5 K, plus 335 and 350 K), none of
+          them a committed fixture file of its own.
+          `tests/Equilibrium.Tests/RegressionStateTests.cs`,
+          `TheAuditsRegressionStateConvergesAndHoldsTheEquilibriumConditions`, checks
+          every one of the sixteen with this node's own equilibrium conditions, not
+          the reference: element conservation at the invariant tolerance, every
+          retained gas at its own chemical potential (Σ a_ij π_i), and no absent
+          condensed candidate in its effective range with a positive inclusion gain
+          (`PlateauTests`' own rule, run here on states no fixture covers). Confirmed
+          red at `5a732f0`: a temporary probe against a `git worktree add … 5a732f0`
+          checkout, discarded after the reading, found all sixteen `NotConverged`
+          there; all sixteen are `Ok` and clear of every condition after the fix.
+          `TheAuditsElevenExample5StatesThatFailedAtBothCommitsAreOkNow` covers the
+          eleven of example 5's states the audit's own scan (`scan2_old.txt`) named
+          as failing at both commits it compared (1 MPa at 300, 305 and 310 K; 7 MPa
+          across the whole 300–335 K band, every 5 K): every one is `Ok` today: none
+          is left unasserted or merely named.
       - **The targeted singular remedy (F5).** The dense solver's new entry returns the
         failed row, a unit fact on a constructed singular matrix
         (`tests/Equilibrium.Tests/DenseSolverTests.cs`,
