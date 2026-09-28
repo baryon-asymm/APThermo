@@ -4,14 +4,15 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace APThermo.Protocol.Tests;
 
 /// <summary>
-/// The C# syntax trees of a node's own source files: every <c>*.cs</c> file directly under the node's directory and in its
-/// non-node subdirectories, the build directories <see cref="Tree"/> already skips excluded, and a subdirectory that is itself
-/// a node (AGENTS.md §1) excluded too, because that subtree belongs to the descendant, not to this node. There is no separate
-/// "generated files" filter beyond that: the tree's one source generator (the <c>[GeneratedRegex]</c> partial method) writes its
-/// implementation under <c>obj/</c>, already a skipped directory, and no other generated file is committed outside it.
+/// The C# syntax trees of a node's own source files: every path <see cref="CompiledSources"/> attributes to the node's own
+/// effective assembly (the guards audit's F5) that sits under the node's own directory and not under a descendant node's
+/// (AGENTS.md §1 — a subtree that is itself a node belongs to that descendant, not to this one). Read from the compiled
+/// source list rather than a directory walk with name exclusions, so a source the SDK compiles from a directory like
+/// <c>templates</c> is measured like any other; the directory walk stays only for the files no compiler reads at all
+/// (<see cref="DiagnosticsSyntax.BuildFiles"/>, <see cref="DiagnosticsSyntax.AnalyzerConfigFiles"/>).
 /// Parsed at the language version the tree actually builds with (<c>Directory.Build.props</c> sets <c>LangVersion</c> to
-/// <c>latest</c>, which the .NET 10 SDK resolves to C# 14, root <c>BOOT.md</c>, Dependencies), named explicitly rather than as
-/// "latest" so that a future bump of the pinned Roslyn package cannot silently change what this node parses.
+/// <c>latest</c>, which the .NET 10 SDK resolves to C# 14, root <c>BOOT.md</c>, Dependencies), named explicitly rather than
+/// as "latest" so that a future bump of the pinned Roslyn package cannot silently change what this node parses.
 /// </summary>
 internal static class SourceSyntax
 {
@@ -21,36 +22,26 @@ internal static class SourceSyntax
     public static IEnumerable<(string Path, SyntaxTree Tree)> Trees(Node node) =>
         Files(node).Select(path => (path, CSharpSyntaxTree.ParseText(File.ReadAllText(path), ParseOptions, path)));
 
-    /// <summary>Every <c>*.cs</c> file the node owns, ordinally by path.</summary>
+    /// <summary>Every <c>*.cs</c> file the node owns (compiled into its own effective assembly, under its own directory,
+    /// not under a descendant node's), ordinally by path.</summary>
     public static IEnumerable<string> Files(Node node)
     {
+        var assembly = NodeAssemblies.AssemblyOf(node);
+        if (assembly is null)
+        {
+            return [];
+        }
+
+        var directory = EnsureTrailingSeparator(Path.GetFullPath(node.Directory));
         var descendants = Tree.Nodes.Where(candidate => candidate != node && candidate.IsDescendantOf(node))
-            .Select(candidate => Path.GetFullPath(candidate.Directory))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return Walk(node.Directory, descendants).OrderBy(path => path, StringComparer.Ordinal);
+            .Select(candidate => EnsureTrailingSeparator(Path.GetFullPath(candidate.Directory)))
+            .ToList();
+        return CompiledSources.Of(assembly)
+            .Where(path => path.StartsWith(directory, StringComparison.OrdinalIgnoreCase)
+                           && !descendants.Any(descendant => path.StartsWith(descendant, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(path => path, StringComparer.Ordinal);
     }
 
-    private static IEnumerable<string> Walk(string directory, IReadOnlySet<string> descendants)
-    {
-        if (descendants.Contains(Path.GetFullPath(directory)))
-        {
-            yield break;
-        }
-
-        foreach (var file in Directory.GetFiles(directory, "*.cs"))
-        {
-            yield return file;
-        }
-
-        foreach (var child in Directory.GetDirectories(directory))
-        {
-            if (!Tree.Skipped.Contains(Path.GetFileName(child)))
-            {
-                foreach (var file in Walk(child, descendants))
-                {
-                    yield return file;
-                }
-            }
-        }
-    }
+    private static string EnsureTrailingSeparator(string path) =>
+        path.EndsWith(Path.DirectorySeparatorChar) ? path : path + Path.DirectorySeparatorChar;
 }

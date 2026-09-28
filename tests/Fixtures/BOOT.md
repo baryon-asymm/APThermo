@@ -777,16 +777,42 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       hashes prove which scripts produced the fixtures. A hand-edited expected value
       passed every guard, and only review enforced the root's taboo on typed expected
       values.
-      - The CI workflow gains a step on the Linux hosted runner: it installs the pinned
-        `cea` 3.3.4 and `requirements.txt` into a fresh virtual environment and runs
-        `regenerate.py --check` over a sample of every fixture family. The sample is
-        chosen by the script from the committed directory listing, at least one case
-        per family and every case of the `throat` family. The check fails the job on
-        any difference beyond the tolerance of the family's rule.
-      - Red once: a fixture's expected temperature edited by 1 K in a branch, and the CI
-        run of that branch fails at this step, naming the case.
-      - Accepted on a real CI run of the branch that adds the step (the root's rule for
-        workflow changes), not on a local run alone.
+      - The CI workflow gains a step on the Linux hosted runner (`.github/workflows/
+        ci.yml`, "Fixtures are bound to the generator", after the protocol lint, before
+        the build): it installs the pinned `cea` 3.3.4 and `requirements.txt` into a
+        fresh virtual environment and runs `regenerate.py --check --sample`. The sample
+        is chosen by the script (`regenerate.py`'s new `build_sample`) from the
+        committed directory listing, at least one case per family and every case of
+        the `throat` family (`SAMPLE_IN_FULL`). The check fails the job on any
+        difference beyond the tolerance of the family's rule, the same comparison
+        `regenerate.py --check` already made over the whole set.
+      - `regenerate.py` had no case-level sampling mode; it gained one
+        (`generate/writer.py`'s `Writer.only_cases`, `wants_case`, and the stale sweep
+        of `finish()` turned off under it, since a sample deliberately produces only
+        part of each kind and every file it does not touch is not stale for that
+        reason).
+
+        ⚠ 2026-09-28: touching `writer.py` and `regenerate.py` moved every fixture's
+        `generatorSha256` (`generate/BOOT.md`'s rule hashes every `*.py` file of
+        `generate/` together), so this change re-provenances the whole set. Regenerated
+        with the full driver (`regenerate.py`, no filter): 328 files written, each
+        differing from its previous committed content by exactly one line
+        (`git diff --numstat`: `1 1` for every file), the `generatorSha256` line: no
+        `case` or `outputs` field moved. `regenerate.py --check` (the full set) and
+        `regenerate.py --check --sample` both exit 0 afterward.
+      - Red once, run locally with the pinned interpreter (`cea` 3.3.4, `numpy`
+        2.5.3 already on the machine, matching `requirements.txt`): the sampled `hp`
+        case's committed `outputs.temperature` was edited by +1 K
+        (`cases/hp/ap-htpb-al-fuelrich_of0.5_pc7MPa.json`, the case `build_sample` picks
+        for the `hp` family), and `regenerate.py --check --sample` exited 1, naming
+        exactly that file (`"changed   hp\ap-htpb-al-fuelrich_of0.5_pc7MPa.json"`);
+        reverted (regenerated, since a plain `git checkout` would have restored the
+        pre-re-provenance content) and confirmed clean again (`regenerate.py --check`
+        and `--check --sample` both exit 0; `git diff --numstat` unchanged at `1 1` per
+        file).
+      - Not yet accepted: a real CI run of the branch that adds the step (the root's
+        rule for workflow changes) is still due, since this coder may not push. The
+        criterion stays unticked until that run is green.
 
 ## Taboos
 
