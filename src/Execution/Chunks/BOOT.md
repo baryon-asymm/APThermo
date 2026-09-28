@@ -91,6 +91,19 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
     audit of 2026-09-26 by reading the IL; the allocation needed to run it was too
     large to try.
 
+- **A launch fits a time budget** (2026-09-28, the second audit's Execution finding F2;
+  the parent's `BOOT.md` has the rule and the evidence). `LaunchBudget` is internal to
+  this node and holds no ILGPU type. It is given the device's run-time limit at bind
+  time, or none. From that and the previous chunk's measured time per case it answers
+  how many cases the next launch may take. `ChunkPlan.For` takes it as a fourth bound
+  beside the count, the bytes and the offsets. A budget never changes a result: only
+  the chunk boundaries move.
+  - ⚠ A chunk was bounded by count, bytes and offsets only. Nothing bounded its
+    duration against a display GPU's watchdog.
+- **The cap is proven as wiring** (2026-09-28, the guards part's F8). Each pipeline's
+  chosen plan is asserted against `MaxElementsPerCase`, not only `ChunkPlan.For` with
+  explicit numbers.
+
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The split changes no result: `tests/Execution.Tests`' bit-for-bit

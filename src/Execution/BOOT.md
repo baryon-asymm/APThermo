@@ -285,7 +285,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
     through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
     On a count ILGPU's warp layout cannot express exactly, the nearest layout not above
-    the count is used, and the choice is documented where it is made. On the reference
+    the count is used, and the choice is documented where it is made. (⚠ 2026-09-28:
+    "cannot express exactly" is wrong; the audit fixes of that date below give the real
+    reason.) On the reference
     machine the count is 16, the layout is today's, and no throughput record moves.
     Results do not depend on the thread count (Invariants: deterministic batches).
     - ⚠ `CPUDevice.Default` is one multiprocessor of four warps of four threads,
@@ -329,6 +331,86 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     failed under WSL at `89bb619` right after the `Auto` fact, and passed alone. Found
     by the orchestrator's WSL run of 2026-09-27. The native Linux path does not take
     ILGPU's branch, and was not run.
+  - The exception is recognised by where it was thrown, not by its message
+    (2026-09-28): an `InvalidOperationException` whose `TargetSite` is
+    `NativeLibrary.SetDllImportResolver`. An application trimmed with
+    `UseSystemResourceKeys` gets the resource key in place of the English text. The
+    message test would then miss it, and every later engine would fall back to the
+    CPU (the second audit's observation 5, by reading).
+
+- **Audit fixes of 2026-09-28** (the second hidden-defect audit, Execution findings F1
+  and F2 and observations 1 to 8; the guards part's F7, F8 and O2).
+  - **The probe runs `KernelMath` with the constant first (F1).** `Kernels.Probe`
+    gains `KernelMath.Min(1.0, v)` and `KernelMath.Max(1.0, v)`, and `MathProbe`
+    names the two functions. The root records the ILGPU defect this covers (the third
+    ILGPU bullet), and the thermo node's `KernelMath` tests both operands for NaN first.
+    - ⚠ The probe called `Min(v, 1.0)` and `Max(v, 1.0)` only, the order ILGPU does
+      not swap. The tests node's record "0 ULP, NaN included" held for that order.
+      On the reference device `KernelMath.Min(1.0, NaN)` was 1.0 on CUDA and NaN on the
+      CPU (the audit's `E01`: 18 mismatches over 12 outputs and 10 inputs, all at NaN).
+  - **A launch has a time budget (F2).** A GPU that drives a display runs every
+    kernel under the driver's run-time limit, 2 s by Windows' default, also under WSL2,
+    whose GPU access goes through the same driver. One case is one thread's sequential
+    program, and its time grows with the system.
+    - The Chunks node holds an internal `LaunchBudget`, built at bind time from the
+      device's kernel run-time-limit attribute. A device without the limit, and the
+      CPU accelerator, have no budget. A device with it gets a quarter of the 2 s
+      default.
+    - `ChunkPlan` takes the budget as a fourth bound, beside the count, the bytes and
+      the offsets. The first chunk of a run is one wave of the device (its
+      multiprocessors times the threads each holds at once). Each later chunk is sized
+      from the previous chunk's measured time per case.
+    - Results do not depend on the chunking. The audit's `E13` found the same bits at
+      chunk sizes 16 384, 1, 7 and 64, so no result bit moves.
+    - A launch the driver kills for its run time (`CUDA_ERROR_LAUNCH_TIMEOUT`) is
+      translated by `BatchRun` into `AcceleratorUnavailableException`. The message names
+      the run-time limit, the chunk's case count and the CPU accelerator as the remedy.
+      No ILGPU type reaches a consumer, and `API.md`'s errors table gains the row.
+    - `API.md` and the guide state the limit no chunking can lift. One case of a
+      system of about 16 or more elements takes longer than the default limit on the
+      reference GPU, and such systems belong on the CPU accelerator or on a device
+      without the limit (TCC mode, headless).
+    - ⚠ Nothing bounded a launch's duration, and neither this document nor `API.md`
+      named the limit. The audit measured launch times up to 1.15 s, and projected
+      about 2 s for a default chunk at 14 elements and past 2 s for one case from 17.
+      Under `Auto` the kill comes after CUDA was bound, so there is no fallback. It was
+      not provoked, because it resets the display driver the desktop and the release
+      runners share.
+  - **Documentation and small items (observations 1 to 8).**
+    - `MathProbe` and the tests node say that `Floor` and `Ceiling` go through libdevice
+      (`__ilgpu__nv_floor`, `__ilgpu__nv_ceil`): the post-link completes seven wrappers
+      for the probe. Only `Abs` is emitted directly.
+    - The PTX fixtures are regenerated from the current probe. The regeneration rule
+      names a change to `Kernels.Probe` beside an ILGPU upgrade.
+    - `API.md` states the warm-up an engine costs: the rocket kernel's compile, 13 to
+      22 s, and the driver's JIT. The JIT runs again for every engine after the first
+      in a process, 55 to 59 s, because ILGPU's generated names come from process-wide
+      counters and the driver's cache is keyed by the PTX text. The advice: one `Solver`
+      per process. The durations this document and the tests node give for the
+      architecture fact are the measured ones, 8 m on Windows and 11 m under WSL, not
+      "about three minutes".
+    - Batch constructors compute sizes in `long` and refuse a count whose buffers exceed
+      the 32-bit offsets. `ChunkBuffer` checks the host array's length before a copy.
+      `ProbeMath` caps its input count the same way.
+    - An empty libnvvm log leaves no trailing ": " in the post-link's message.
+    - The all-cores layout's reason is corrected. Any warp size from 2 constructs, as
+      `AcceleratorChoice` already records. The layout rounds down to a multiple of 4 to
+      keep the (4, 4, 1) shape at 16 threads, the reference machine's record, and up to
+      3 threads idle is its cost.
+  - **Guards of this node (the guards part's F7, F8, O2).**
+    - The two library-discovery "not found" facts run their assertions in the hosted
+      matrix: the forbidden flag is injected into `AcceleratorChoice`, so the not-found
+      branch runs without CUDA. Until then they returned early in every job.
+    - The 32-bit chunk cap is asserted as wiring: for each of the four pipelines,
+      driven with a huge `ChunkSize` and `ScratchBytes`, the plan it chose satisfies
+      `Size × MaxElementsPerCase ≤ int.MaxValue`. Until then
+      `MaxElementsPerCase => 0` passed every test.
+    - `SpeciesFunctionTests`' comparison is NaN-aware, as the probe's and the sweep's
+      are.
+    - `ArchitectureTests` gives each backend its own `NvvmAPI`. `PTXBackend.Dispose`
+      frees the one it was given, and a shared instance survived only because the
+      fixture's engine kept the same libnvvm loaded (observation 4: a variant with
+      libnvvm 12.9 crashed with an access violation).
 
 ## Structure
 
@@ -1039,6 +1121,37 @@ confirms it.
         members in turn (no WSL needed to reach it this way) and asserts the exception
         names it; the same call with the real names still resolves, proving the fact
         exercises a wrong name, not a broken reflection call.
+- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once, against
+      `5a732f0` or by the mutation named:
+      - **The probe (F1).** `ProbeKernelTests` over the special inputs on CUDA:
+        `KernelMath.Min(1.0, v)` and `Max(1.0, v)` equal the CPU accelerator bit for bit.
+        Red with the thermo node's `KernelMath` of 2026-09-27 at the NaN inputs; green
+        with the NaN-first form. The PTX fixtures are regenerated, and the inventory
+        facts stay green.
+      - **The launch budget (F2).**
+        - Unit facts on `LaunchBudget` and `ChunkPlan`, with injected times per case:
+          the first chunk is one wave, later chunks fit the budget, and a device without
+          the limit has no fourth bound.
+        - The timeout translation: an injected launch-timeout failure through `BatchRun`
+          becomes `AcceleratorUnavailableException` with the documented message.
+        - The bits of a rocket batch are unchanged when the budget splits it into
+          several chunks on CUDA.
+        - On the reference machine the budget reads the device's limit (it has one) and
+          the CPU accelerator's has none.
+        - No kill is provoked.
+      - **The WSL workaround by `TargetSite`.** Green under WSL (the three-engine fact),
+        and a unit fact with a constructed exception whose message is a resource key.
+      - **Small items.** `ProbeMath` and the batch constructors refuse counts beyond the
+        32-bit offsets; `ChunkBuffer` refuses a short host array; the post-link message
+        has no trailing ": ". Each is a unit fact.
+      - **Guards (F7, F8, O2).**
+        - The not-found facts assert in the hosted filter. Red when the refusal's
+          `tried` list is emptied, a mutation that stayed green before.
+        - The wiring fact is red with `MaxElementsPerCase => 0`.
+        - `SpeciesFunctionTests` is red on an injected NaN.
+      - `dotnet test tests/Execution.Tests -c Release` on the reference machine, on
+        Windows and under WSL. The sweep and the throughput tripwire are included, and
+        no `Throughput*.approved.txt` is re-approved unless the configuration changed.
 
 ## Taboos
 
