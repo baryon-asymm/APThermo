@@ -1253,7 +1253,7 @@ same day.
       - `API.md` states the changes: the retention stages, the targeted remedy, the
         window, the guard, the non-finite temperatures under `InvalidInput`, the
         warm-start retry on any failure.
-- [ ] Rules A and B (Constraints, the orchestrator's investigation 6 of 2026-09-28) close
+- [x] 2026-09-28 — Rules A and B (Constraints, the orchestrator's investigation 6 of 2026-09-28) close
       the open items of the criterion above.
       - [x] 2026-09-28 — **Fixtures through the fixtures node's generator**
         (`tests/Fixtures/generate/retention_threshold.py`, driven by `regenerate.py`):
@@ -1321,23 +1321,18 @@ same day.
           |Δx| just above the 1e-6 threshold (baseline: 34), every one of them
           individually a valid equilibrium on both sides — a multiple-local-solution
           artifact near a degenerate composition, not a violation.
-      - [ ] **No bit snapshot moves on an existing fixture.** Verified for all three
-        nodes whose `BitSnapshotTests` walk the fixture tree
+      - [x] 2026-09-28 — **No bit snapshot moves on an existing fixture.** Verified for
+        all three nodes whose `BitSnapshotTests` walk the fixture tree
         (`tests/Equilibrium.Tests`, `tests/Thermo.Tests`, `tests/Problems.Tests`): a
         sorted, CRLF-normalized diff of each node's `Bits.approved.txt` against its
-        freshly generated `Bits.actual.txt` shows six added lines only (the new
-        fixture keys above) and not one existing hash moved, in every one of the
-        three files.
-        `tests/Equilibrium.Tests/Bits.approved.txt` is updated and committed.
-        `tests/Thermo.Tests/Bits.approved.txt` and `tests/Problems.Tests/Bits.approved.txt`
-        are **not**: the coding environment's own permission layer refused the write
-        ("Modify Shared Resources") on both, independent of the tool used to attempt
-        it, and the refusal's own text says only the user can lift it. The six lines
-        each file needs (verified additions, ready to apply) are recorded in this
-        task's report to the orchestrator. Until they are applied and the two facts
-        (`Thermo.Tests.BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits`,
-        `Problems.Tests.BitSnapshotTests.EveryFixtureGivesTheRecordedBits`) are green,
-        this sub-item and the criterion above it stay open.
+        freshly generated `Bits.actual.txt` shows six added lines only (the new fixture
+        keys above), and not one existing hash moved. The coder approved
+        `tests/Equilibrium.Tests/Bits.approved.txt`. The environment's permission layer
+        refused the coder's write to the other two files, which lie outside its subtree.
+        With the owner's word of 2026-09-28, the orchestrator approved them at the merge
+        (`74d0715`) from its own run, after the same additions-only comparison. Both
+        facts are green (`Thermo.Tests` bit facts 239/239, `Problems.Tests`
+        `EveryFixtureGivesTheRecordedBits`).
       - [x] 2026-09-28 — **Shape.** No method over 6 parameters; the declared Ce rows
         are re-measured (the ⚠ notes of this date under the Constraints above).
       - [x] 2026-09-28 — `API.md`'s `SingularMatrix` sentence lists the remedies, with
