@@ -591,6 +591,50 @@ libdevice for the CUDA category.
       "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
       0 warnings.
 
+- [x] 2026-09-28 — The second audit's Execution findings F1 and F2 and the guards part's
+      F7, F8, O2 and observations (`Execution`'s and `Execution.Chunks`' own criteria of
+      the same date list the design and the red-once record):
+      `LaunchBudgetTests` (new, 7 facts), `ChunkPlanWiringTests` (new, a theory over 3
+      pipelines), `AcceleratorChoiceTests.BatchConstructorsRefuseACountWhoseArrayOverflowsA32BitLength`,
+      `.AChunkBufferRefusesAHostArrayShorterThanTheChunkNeeds`,
+      `.ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset`,
+      `.TheCpuAcceleratorsBudgetIsUnboundedAndTheReferenceDevicesIsBounded`,
+      `.AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried` and
+      `.AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried` (rewritten to call the
+      new `AcceleratorChoice.Decide(options, cudaForbidden)` seam directly, F7),
+      `.CudaForbiddenRefusesBeforeDiscoveryEverRuns` (new), `PostLinkTests.ALogThatTrimsToNothingLeavesNoTrailingColon`,
+      `CudaWslDevicesTests.TheResolverAlreadySetFailureIsRecognisedByTargetSiteNotByMessage`,
+      `SpeciesFunctionTests.TheComparisonIsNaNAwareAndCatchesAMismatchOnlyOneSideMakesNaN`
+      (O2) are new; `ProbeKernelTests`, `MathProbe`'s `Functions` and the two PTX
+      fixtures move for F1 (12 → 14 outputs, both `Min`/`Max` operand orders); `ArchitectureTests`
+      gives each backend its own `NvvmAPI` (observation 4).
+
+      A genuine WSL race, not part of the design: a full `-c Release` run of this
+      project on real CUDA hardware found 22 facts failing together with "CUDA device 0
+      was requested, but 0 device(s) exist", traced to `LaunchBudgetTests` running
+      outside `EngineFixture.CollectionName` and so able to touch the CUDA driver
+      (`CudaException`'s constructor) on a separate thread from `EngineFixture`'s own
+      lazy CUDA engine creation. Fixed by joining the collection; `Execution`'s own
+      criterion has the fuller account, since the fix could not be shown red-once in the
+      usual sense (the race was observed, not reliably reproducible on demand).
+
+      Evidence, on the reference machine: `dotnet build APThermo.sln` 0 warnings,
+      0 errors; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+      "Category!=LongRunning"`, `Execution.Tests` 159/159, `Protocol.Tests` 32/32;
+      `dotnet
+      test tests/Execution.Tests -c Release` (no filter) 162/162 on Windows, run twice
+      (once before and once after the collection fix — the race never surfaced on
+      Windows), and 162/162 under WSL2 on the collection-fixed commit (a prior run of
+      the commit before it hit the race, 22 failures, all traced to the same cause and
+      resolved by the fix); no `Bits*.approved.txt`, `Throughput*.approved.txt` or
+      `Protocol.Tests/PublicSurface.approved.txt` differs from before this task's first
+      commit; the protocol lint 0 errors, 0 warnings. Six other test nodes
+      (`Equilibrium.Tests`, `Thermo.Tests`, `Performance.Tests`, `Problems.Tests`,
+      `Docs.Tests`, `Cli.Tests`) fail Linux bit or approved-output comparisons under
+      WSL; confirmed pre-existing for `Performance.Tests` by a direct check against two
+      earlier commits (`Execution`'s own criterion has the detail) and reported, not
+      fixed, since every one of those nodes is outside this task's subtree.
+
 ## Taboos
 
 - Do not loosen the GPU/CPU tolerance for green: a divergence is a finding about

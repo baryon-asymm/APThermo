@@ -1138,37 +1138,122 @@ confirms it.
         members in turn (no WSL needed to reach it this way) and asserts the exception
         names it; the same call with the real names still resolves, proving the fact
         exercises a wrong name, not a broken reflection call.
-- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once, against
-      `5a732f0` or by the mutation named:
-      - **The probe (F1).** `ProbeKernelTests` over the special inputs on CUDA:
-        `KernelMath.Min(1.0, v)` and `Max(1.0, v)` equal the CPU accelerator bit for bit.
-        Red with the thermo node's `KernelMath` of 2026-09-27 at the NaN inputs; green
-        with the NaN-first form. The PTX fixtures are regenerated, and the inventory
-        facts stay green.
-      - **The launch budget (F2).**
-        - Unit facts on `LaunchBudget` and `ChunkPlan`, with injected times per case:
-          the first chunk is one wave, later chunks fit the budget, and a device without
-          the limit has no fourth bound.
-        - The timeout translation: an injected launch-timeout failure through `BatchRun`
-          becomes `AcceleratorUnavailableException` with the documented message.
-        - The bits of a rocket batch are unchanged when the budget splits it into
-          several chunks on CUDA.
-        - On the reference machine the budget reads the device's limit (it has one) and
-          the CPU accelerator's has none.
-        - No kill is provoked.
-      - **The WSL workaround by `TargetSite`.** Green under WSL (the three-engine fact),
-        and a unit fact with a constructed exception whose message is a resource key.
-      - **Small items.** `ProbeMath` and the batch constructors refuse counts beyond the
-        32-bit offsets; `ChunkBuffer` refuses a short host array; the post-link message
-        has no trailing ": ". Each is a unit fact.
-      - **Guards (F7, F8, O2).**
-        - The not-found facts assert in the hosted filter. Red when the refusal's
-          `tried` list is emptied, a mutation that stayed green before.
-        - The wiring fact is red with `MaxElementsPerCase => 0`.
-        - `SpeciesFunctionTests` is red on an injected NaN.
-      - `dotnet test tests/Execution.Tests -c Release` on the reference machine, on
-        Windows and under WSL. The sweep and the throughput tripwire are included, and
-        no `Throughput*.approved.txt` is re-approved unless the configuration changed.
+- [x] 2026-09-28 — The audit fixes of 2026-09-28 (Constraints). Each fact is red once,
+      against `5a732f0` or by the mutation named, then reverted:
+      - **The probe (F1).** `Kernels.Probe` now calls `KernelMath.Min`/`Max` with the
+        constant in both operand orders (`Min(v,1)`/`Max(v,1)` and `Min(1,v)`/`Max(1,v)`,
+        `StrideCount` 12 → 14); `ProbeKernelTests` and `ArchitectureTests` compare every
+        order against the CPU accelerator on CUDA. The two PTX fixtures are regenerated
+        from the current probe on the reference machine and the wrapper-inventory facts
+        (`WrapperInventoryTests`, no GPU) stay green against them (5/5).
+      - **The launch budget (F2).** `LaunchBudgetTests` (7 facts): `LaunchBudget`'s
+        arithmetic and `ChunkPlan.FirstChunkCases`/`NextChunkCases`, with injected times
+        per case (no budget never bounds a chunk; a bounded one scales from the previous
+        chunk's measured rate, never below one case; the first chunk is one wave with a
+        budget and `Size` without one; later chunks stay within `Size` and the
+        remainder); the timeout translation, an injected `CudaException` through
+        `BatchRun.Execute` on the CPU accelerator becoming `AcceleratorUnavailableException`
+        naming the limit, the chunk's case count and the CPU accelerator, red once by
+        mismatching the catch filter; a non-timeout `CudaException` passes through
+        unwrapped. `AcceleratorChoiceTests.TheCpuAcceleratorsBudgetIsUnboundedAndTheReferenceDevicesIsBounded`
+        reads a real bind's `Engine.Budget`: unbounded on the CPU accelerator, bounded on
+        the reference device (its run-time limit is enabled, on Windows and under WSL2).
+        No kill is provoked anywhere: every timeout fact injects a `CudaException`
+        directly into the launch delegate, on the CPU accelerator, never a real device or
+        a real timeout; every real launch of this task stayed under a few seconds.
+      - **The WSL workaround by `TargetSite`.** Green under WSL (`CudaWslDevicesTests.EveryCudaEngineOfTheProcessBindsAndProbes`,
+        three engines in one process); `TheResolverAlreadySetFailureIsRecognisedByTargetSiteNotByMessage`
+        constructs a real second-resolver failure (a fresh on-disk copy of an
+        already-built assembly, loaded into its own load context, since
+        `NativeLibrary.SetDllImportResolver` refuses a dynamic in-memory assembly) and a
+        look-alike exception with the same English text but a different origin; red once
+        by reverting `IsResolverAlreadySet` to a message-text match, which then accepted
+        the look-alike.
+      - **Small items.** `BatchConstructorsRefuseACountWhoseArrayOverflowsA32BitLength`
+        (`EquilibriumBatch`, `RocketBatch`, `TransportBatch`, and a count just inside the
+        bound still allocates); `AChunkBufferRefusesAHostArrayShorterThanTheChunkNeeds`
+        (both directions); `ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset`;
+        `ALogThatTrimsToNothingLeavesNoTrailingColon`, red once by narrowing the
+        post-link's emptiness check from "trims to nothing" to "is null", which then left
+        a trailing ": " with nothing after it.
+      - **Guards (F7, F8, O2).** `AcceleratorChoice.Decide`/`Cuda` gained internal
+        overloads taking an explicit `cudaForbidden` flag; `AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried`,
+        `AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried` and
+        `CudaForbiddenRefusesBeforeDiscoveryEverRuns` call it directly and so run
+        regardless of `APTHERMO_NO_CUDA`; red once by emptying the refusal's `tried` list
+        unconditionally, which the first two facts had asserted a real list from.
+        `ChunkPlanWiringTests.EachPipelinesChosenPlanRespectsItsOwnOffsetCap` (F8) drives
+        three of the four pipelines' own buffer declarations (a new internal
+        `DeclareBuffers` each, `SpeciesFunctionPipeline` excepted: every one of its
+        strides is 1) through `ChunkPlan.For` and compares against an independently
+        computed expected stride, never `buffers.MaxElementsPerCase` read back; red once
+        with `MaxElementsPerCase => _buffers.Count` (still instance data, so the mutation
+        compiles), all three theory rows failing. `SpeciesFunctionTests.CompareFunctions`
+        (O2) is NaN-aware; `TheComparisonIsNaNAwareAndCatchesAMismatchOnlyOneSideMakesNaN`
+        is red once by removing the two NaN branches, which then missed a value NaN on
+        one accelerator and not the other.
+      - `ArchitectureTests` gives each backend its own `NvvmAPI` (observation 4): a
+        shared instance, freed once per backend's `Dispose`, only worked because the
+        fixture's own CUDA engine kept the same libnvvm loaded; not independently
+        reproduced with a different libnvvm (would need a second engine construction
+        path this task did not build), accepted by inspection against ILGPU's
+        `PTXBackend.Dispose` (`PTXBackend.cs:149-158`, cited by the audit).
+
+      A genuine WSL race, found only on a full `-c Release` run of `tests/Execution.Tests`
+      on real CUDA hardware (never on an isolated fact): `LaunchBudgetTests` had no
+      xUnit `[Collection]`, so its two `Cuda`-tagged facts (a real `CudaException`
+      construction, which touches the driver) could run on a separate thread
+      concurrently with `EngineFixture`'s own lazy CUDA engine creation, and the two
+      raced during the process's first real CUDA use: "CUDA device 0 was requested, but
+      0 device(s) exist", 22 facts failing together, on about a third of full-suite runs.
+      Fixed by joining `LaunchBudgetTests` to `EngineFixture.CollectionName`, serializing
+      it against every other CUDA-touching class; not independently red-onced against
+      the race itself, since the race was not reliably reproducible on demand, only
+      observed and then absent over two full re-runs after the fix.
+
+      Evidence, on the reference machine, from a tree with every `bin` and `obj`
+      removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
+        "Category!=LongRunning"`: every project green, `Execution.Tests` 159/159,
+        `Protocol.Tests` 32/32 (with the `## Shape exceptions` table's `Engine` and the
+        four pipelines' Ce re-measured for `LaunchBudget` and the new members);
+      - `dotnet test tests/Execution.Tests -c Release` (no filter), on Windows:
+        162/162, the 100 000-case sweep, the architecture fact and the throughput
+        tripwire included, twice (once before and once after the collection fix, both
+        green — the race was never observed on Windows);
+      - the same command under WSL2 (Ubuntu 24.04, libnvvm 12.9, a throwaway scratch
+        clone of this branch, never `~/apthermo`): 162/162 on the commit with the
+        collection fix (a prior run of the commit before it hit the race above, 22
+        failures, all resolved by the fix); `Throughput.linux.approved.txt` unchanged
+        (27.48×, the 2026-09-19 figure — this task changed no numerical code path the
+        throughput measures);
+      - no `Bits*.approved.txt`, `Throughput*.approved.txt` or
+        `Protocol.Tests/PublicSurface.approved.txt` differs from before this task's
+        first commit, in this node's own subtree;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      ⚠ 2026-09-28: under WSL (`APTHERMO_NO_CUDA=1`, the fast filter), six other test
+      nodes fail: `Equilibrium.Tests` 1/876, `Thermo.Tests` 3/1186, `Performance.Tests`
+      98/1035, `Problems.Tests` 1/1221 (an aggregate fact over the same 98 rocket
+      fixtures), `Docs.Tests` 1/29 and `Cli.Tests` 1/142, every one a
+      `Bits.linux.approved.txt` or approved-output mismatch. `Execution.Tests` itself
+      stayed 159/159 and 162/162 throughout every run of this task. Confirmed
+      pre-existing and outside this subtree for `Performance.Tests`, checked directly,
+      cloned separately in WSL: green (1035/1035) at the root's own `5a732f0` baseline
+      (the second audit's own commit, no code change since), the identical 98 failures
+      and identical hashes already present at `2744915` (the commit immediately before
+      this task's first commit). `Performance`'s only change between the two is a
+      design-only commit (`3d9fb4e`); the regression traces to the Thermo/Equilibrium/
+      Transport code fixes of the same second audit (`8109bfa`, `4b26152`, `88c1522`),
+      merged into this branch's shared base before this task began, whose Linux bits
+      were apparently never re-approved.
+      The other five nodes' failures were not individually re-verified against
+      `2744915` for time, but sit downstream of the same Thermo/Equilibrium chain and
+      none touch anything this task's commits changed. Reported, not fixed:
+      `Thermo`, `Equilibrium`, `Transport`, `Performance`, `Problems`, `Cli` and
+      `Docs.Tests` are outside this task's subtree (`src/Execution`,
+      `src/Execution/Chunks`, `tests/Execution.Tests` only).
 
 ## Taboos
 
