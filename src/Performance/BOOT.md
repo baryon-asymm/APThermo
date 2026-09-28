@@ -25,8 +25,11 @@ restate the equations. Whoever codes this node reads chapter 6.
   ⚠ 2026-09-26: no code of this node compared the entropies. The sentence relied on the
   equilibrium solver's convergence and was never checked; no violation had been
   observed. Found by the hidden-defect audit of 2026-09-26 (its notes).
-- **The throat carries the largest mass flux.** The throat is the point of largest
-  mass flux `ρu` along the chamber isentrope. Where `u²/a²` crosses 1 continuously,
+- **The throat is the first maximum of the mass flux met from the chamber**
+  (2026-09-28). Expanding along the chamber isentrope from the chamber's pressure, the
+  throat is the highest pressure at which `ρu` has a local maximum, that is where the
+  Mach number reaches 1 from below, continuously or by a jump. Where `ρu` has one
+  maximum, this is the point of largest mass flux. Where `u²/a²` crosses 1 continuously,
   it is the sonic point, `|u²/a² − 1| ≤ 4e-5` (the report's tolerance, with the
   equilibrium sound speed in equilibrium flow and the frozen one in frozen flow).
   Where `u²/a²` jumps across 1, the throat is the edge where it jumps. That happens
@@ -35,6 +38,30 @@ restate the equations. Whoever codes this node reads chapter 6.
   `ρu` is continuous there and has its maximum at the edge. The throat's state is
   then the single-phase state on the chamber side of the edge, and its Mach number is
   below 1.
+
+  ⚠ 2026-09-28: stood "**The throat carries the largest mass flux.** The throat is the
+  point of largest mass flux `ρu` along the chamber isentrope". Near a melting plateau
+  `ρu` can have two local maxima: one at the plateau (on the pinned pair, or at its
+  high-pressure edge) and a second, continuous sonic crossing after the plateau's end.
+  - In 652 cases of the second audit's sweeps the search converged to the downstream
+    crossing although the upstream maximum carries more mass flux: c* too high by up to
+    1.47 % (B2O3), 1.31 % (LiF), 0.88 % (lean Al/O/H) and 0.33 % (the AP/HTPB/Al band),
+    `C_F` and every area ratio wrong with it. AP/HTPB/Al at 7 MPa and
+    h = −4.3383 MJ/kg: the tree 1 358.2288 m/s at p/p_c 0.5546, the true first maximum
+    1 356.2237 at 0.6067 by cea 3.3.4's own sp solves. cea's rocket loop makes the same
+    choice (1 358.2296), so the fixtures could not see it.
+  - In 17 cases the first maximum is lower than a later one, and the tree took the
+    first, contradicting only the wording "largest".
+
+  The owner decided on 2026-09-28 for the first maximum. A convergent-divergent nozzle
+  narrows monotonically to its throat, so the subsonic flow's `ρu` must grow all the
+  way there, and the flow chokes at the first maximum; the second can be reached only
+  through a nozzle that narrows again, a second throat (Schnerr and Leidner, "Internal
+  flows with multiple sonic points", 1994). RP-1311 section 6.3.3 defines the throat as
+  the minimum area ratio, "or, equivalently", the sonic point: the two coincide only
+  where `ρu` has one maximum, and (6.18) places the throat at the melting point where
+  the solid just appears, the plateau's first maximum. Found by the second hidden-defect
+  audit of 2026-09-28 (Performance and Transport, finding F1).
 
   ⚠ 2026-09-26: stood "**Sonic throat.** At the throat `|u²/a² − 1| ≤ 4e-5` …". At a
   plateau edge `u²/a²` has no root, and the momentum update oscillated across the edge
@@ -126,11 +153,51 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - At most `MaxThroatBisections` (60) solves.
   - Anything else ends `ThroatNotFound`: no bracket, or a jump without a change of
     the condensed set, or the report's tolerance still unmet at the end of the
-    bisection.
+    bisection. The end of the bisection tests that tolerance on its last trial
+    (2026-09-28): a trial within `4e-5` is the throat, `Ok`.
+  - The plateau edge's state (2026-09-28) is accepted only when its condensed set is
+    the bracket's subsonic end's and its `u²/a² < 1`. Otherwise it is solved again
+    from the chamber's composition a few bracket widths further toward the chamber,
+    up to a bounded number of times, where `ρu` moves by about 1e-10 relative.
 
-  A case whose momentum iterations converge never reaches the bisection, so no
-  converging case changes. The throat's figures are those of the state actually solved:
-  its pressure ratio is `p_c` over that state's pressure (2026-09-26).
+  The first trial (6.15) at `γ_s` = 1 exactly, the equilibrium node's plateau
+  convention for an undissociated gas, is `Math.Pow(1, ∞)` = 1, the chamber itself.
+  Within 1e-6 of 1 the trial is the limit of (6.15), `p_c·e^(−1/2)` (2026-09-28). A
+  trial whose `u²` is not positive lies at or above the chamber's enthalpy: it counts
+  as the subsonic side, and the pressure steps down, instead of ending the search
+  without a bracket. The momentum loop computes `u²/a²` before it tests the trial, so
+  the tolerance is never judged on a previous trial's ratio.
+
+  The first maximum (2026-09-28). The local search above returns a candidate throat and
+  its condensed set. Two stages then prove that no choke lies between the chamber and
+  the candidate:
+  - `PhaseBoundaryLocator`: where the chamber's condensed set and the candidate's
+    differ, it locates each boundary between them along the isentrope by a bounded
+    bisection in `ln p` on the condensed set, to the bracket width above.
+  - `UpstreamChokeCheck`: walking the boundaries from the chamber side, the throat is
+    the first boundary with `u²/a² < 1` above it and `≥ 1` below it (the plateau-edge
+    rule), or the first sonic crossing inside an interval between boundaries, found by
+    the bisection above. With equal sets at the chamber and the candidate, the
+    candidate is the throat, as before.
+
+  `ThroatSearch` composes the local search and the check, and stays the only writer of
+  the throat's figures. `FrozenAtChamber` flow is unaffected: its frozen sound speed is
+  continuous, and the audit's oracle agreed with it in all 5 588 cases. The
+  throat's figures are those of the state actually solved: its pressure ratio is `p_c`
+  over that state's pressure (2026-09-26).
+
+  ⚠ 2026-09-28: stood "A case whose momentum iterations converge never reaches the
+  bisection, so no converging case changes". That was the defect of the ⚠ under the
+  first-maximum invariant: nothing compared the accepted point with the pressures
+  between the chamber and it. Also found by the same audit:
+  - the plateau-edge state landed on the far side of the edge in 17 of 726 edge
+    throats: Mach 1.011 to 1.124 with the pinned pair's `γ_s` (Li2O at 0.3 and 3 MPa;
+    BeO/H2O at 15 MPa), c* right (finding F3);
+  - with the chamber on the LiOH plateau at 7 MPa, 24 of 50 cases ended
+    `ThroatNotFound` and 26 `Ok`, alternating with the enthalpy by the sign of a
+    rounding-level `u²` at the first trial (finding F4);
+  - the bisection's end never tested the report's tolerance, and a `break` kept the
+    previous trial's `u²/a²` (observations O1 and O2, by reading).
 
   ⚠ 2026-09-26: after an exhausted search the throat's pressure ratio and the
   reference the exits start from used the pressure the last update produced, not the
@@ -162,7 +229,18 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   recovered from the report's text, whose typography lost the range boundaries; the
   ranges are this node's reading, and they only change how many iterations a station
   takes, never where it converges.
-- Exit by pressure ratio: one sp solve at `p_e`; the area ratio is an output.
+- Exit by pressure ratio: one sp solve at `p_e`; the area ratio is an output. In
+  `FrozenAtThroat` flow a pressure ratio not above the throat's is `InvalidInput` for
+  that station (2026-09-28): upstream of the freezing point the flow is in equilibrium,
+  and the reference omits such a point ("FOR FROZEN PERFORMANCE, POINT OMITTED BECAUSE
+  ASSIGNED pi/p IS LESS THAN VALUE AT nfz", cea 3.3.4 `rocket.f90:725-732`).
+
+  ⚠ 2026-09-28: such a station was solved with the throat's frozen composition at
+  (s_c, p), where near `p_c` its enthalpy exceeds the chamber's; the negative `u²` was
+  clamped to 0, and the station was `Ok` with Mach 0 and infinite `A/A_t` and `Ivac`
+  (339 stations of the audit's exits sweep), or finite with `Isp` 2 % to 36 % low.
+  Found by the second hidden-defect audit of 2026-09-28 (finding F5). The clamp stays
+  for the other flows, where the audit found every station finite.
 - Each station's sp solve starts from the last converged station's composition and
   temperature as the estimate (a failed station is skipped over), in frozen flow from
   the freezing station's composition.
@@ -204,7 +282,9 @@ decomposition itself (one class per stage) is unaffected.
 | `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | internal (2026-09-15, distribution phase), contract unchanged |
 | `ChamberSolve` | the chamber state at assigned enthalpy and pressure, made frozen where the flow model says so (sections 6.3.1 and 6.5.3); returns `ChamberReference` | internal |
 | `ThroatSearch` | asks `ThroatBracketSearch` for the throat pressure and defines what the accepted station gives the case: the mass flux and `c*`; returns `ThroatReference` | internal |
-| `ThroatBracketSearch` | the sonic throat pressure: the momentum iterations of (6.15)–(6.17), the bracket they track along the way, its bisection where the iterations end short, and the plateau-edge acceptance (2026-09-26, finding F1) | internal |
+| `ThroatBracketSearch` | the sonic throat pressure: the momentum iterations of (6.15)–(6.17), the bracket they track along the way, its bisection where the iterations end short, and the plateau-edge acceptance (2026-09-26, finding F1); since 2026-09-28 a candidate with its condensed set, the first trial's limit at `γ_s` = 1, and the edge state checked for its side | internal |
+| `PhaseBoundaryLocator` | the pressures along the chamber isentrope where the condensed set changes between the chamber and a candidate throat, each by a bounded bisection in `ln p` (2026-09-28) | internal |
+| `UpstreamChokeCheck` | the first maximum of the mass flux from the chamber: over the located boundaries, the first plateau edge or sonic crossing, else the candidate (2026-09-28) | internal |
 | `ExitStations` | the loop over the exits, the dispatch on `ExitSpecification` to `AreaRatioIteration` or `PressureRatioStation`, the estimate chain from station to station, the case status; holds no formula (Size, below) | internal |
 | `AreaRatioIteration` | one exit assigned by area ratio: the initial `ln(p_c/p_e)` of (6.21)–(6.23), the correction of (6.24)–(6.25), an explicit outcome | internal |
 | `PressureRatioStation` | one exit assigned by pressure ratio (6.3.6): the station pressure from the ratio, the solve at that pressure, the velocity, the area ratio and the figures as outputs | internal |
@@ -575,6 +655,54 @@ efferent-coupling row.
       facts included after `ThroatSearch` was split into `ThroatSearch` and
       `ThroatBracketSearch`, `## Structure` below); the protocol lint, 0 errors,
       0 warnings.
+
+      ⚠ 2026-09-28: `ThePlateauEdgeHasTheGreatestMassFluxNearby` compared the throat
+      with `p(1 ± 1e-4)` only, and `TheThroatIsSonic` accepted any sonic point, so a
+      throat at the second maximum passed both (the ⚠ of that date under Invariants).
+- [ ] The second hidden-defect audit of 2026-09-28 (Performance, findings F1, F3, F4,
+      F5 and observations O1, O2; the guards part's O3 and O4) is closed by the rules of
+      that date.
+      - **The first maximum (F1).** A mass-flux oracle in the tests node: `ρu` from sp
+        solves driven through `StationSolve` at pressures between the chamber and the
+        throat, dense enough to see a plateau (the audit used 121 points over
+        p/p_c 0.30 to 0.90, refined by golden section). The fact: the throat's `ρu` is not
+        below the oracle's at any pressure between the chamber and the throat, and no
+        local maximum of the oracle lies above the throat's pressure. Over:
+        - the AP/HTPB/Al band h −4.42 to −4.32 MJ/kg at 1, 3, 7 and 15 MPa;
+        - the lean Al/O/H band (Al 0.08, O2 0.62, H2 0.30 by mass, 7 MPa, around
+          h = 1.9125 MJ/kg);
+        - a B2O3 and a LiF case from the audit's sweeps (its harness,
+          `scratchpad/audit2/harness/pt/performance/`, and outputs, `out/pt/`);
+        - every rocket and throat fixture.
+
+        Red at `5a732f0` on the bands, green after. The two named cases carry their
+        numbers: AP/HTPB/Al at 7 MPa, h = −4.3383 MJ/kg, c* within the fixtures'
+        tolerance of 1 356.2237 m/s at p/p_c 0.6067; lean Al/O/H c* of 2 729.983 at
+        0.585897. The references are the audit's cea sp solves; they become fixtures
+        of the `throat` family through its generator (`throat_scan.py`), not typed
+        numbers. The reverse cases keep their first maximum: AP/HTPB/Al at 7 MPa,
+        h = −4.3733 MJ/kg, c* 1 356.2311 at 0.60666.
+      - **The far side (F3).** The Li2O cases at 0.3 MPa (h 3.294 to 3.375 MJ/kg) and
+        3 MPa (h 2.206 to 2.213) and BeO/H2O at 15 MPa (h −11.069): the edge throat is
+        single-phase and subsonic. Red at `5a732f0`.
+      - **γ_s = 1 (F4).** Li/O/H at 7 MPa with the chamber on the LiOH plateau, the
+        audit's 50 cases (h −8.1125 to −8.1 MJ/kg and beyond, 6.25 kJ/kg steps): all
+        `Ok`, none `ThroatNotFound`. Red at `5a732f0`.
+      - **Frozen at the throat (F5).** Pressure ratios 1 + 1e-12, 1 + 1e-9, 1.0001 and
+        1.01 in `FrozenAtThroat` flow on every rocket fixture: each station at or above
+        the throat's pressure is `InvalidInput`, and no `Ok` station of any flow carries
+        a non-finite figure. Red at `5a732f0`.
+      - **The loop's reading (O1, O2).** A unit fact each on `ThroatBracketSearch`: a
+        bisection ending within the report's tolerance is `Ok`; a `break` never leaves a
+        stale ratio.
+      - **Hand-typed lists (guards O3, O4).** The example-13 sweep asserts its count of
+        `Ok` cases, not only the absence of `ThroatNotFound`. `PlateauEdgeCases` is
+        generated from the `throat` family (the fixtures whose path reaches the
+        plateau edge), not typed.
+      - **Bits.** A throat that moves to the first maximum moves no committed fixture's
+        bits if the audit is right that no fixture has two maxima. The coder counts the
+        fixtures that reach the new stages; a moved bit snapshot is re-approved only with
+        the case named, its oracle shown, and every CEA tolerance test green.
 
 ## Taboos
 
