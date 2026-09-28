@@ -79,7 +79,8 @@ internal readonly struct EquilibriumResult               // views the solver wri
 
 internal static class EquilibriumSolver                  // kernel-compatible
 {
-    public const double TraceThreshold = 18.420681;    // −ln(1e-8): below this mole fraction a gaseous species is reported as zero
+    public const double TraceThreshold = 18.420681;    // −ln(1e-8): the retention threshold's first stage, until the case's first convergence
+    public const double SecondStageTraceThreshold = 25.328436; // −ln(1e-11): the retention threshold's second stage, for the rest of the solve
     public const int MaxNewtonSteps = 50;              // after the last change of the condensed set
     public const int MaxCondensedSetChanges = 3 * ScratchLayout.MaxCondensedInSolution;   // include, forgive and stand down every slot
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem,
@@ -104,6 +105,9 @@ internal static class DenseSolver                        // kernel-compatible; s
     public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride);
         // Gaussian elimination with scaled partial pivoting, in place, on the row-major n×n system held with the given stride;
         // the solution replaces rhs; false when a pivot falls below 1e-13 of its row's largest initial entry
+    public static bool Solve(ArrayView<double> matrix, ArrayView<double> rhs, ArrayView<double> rowScale, int n, int stride, out int failedRow);
+        // as above, and also names the row whose pivot could not be found (−1 when the matrix is not singular);
+        // this node's own targeted singular remedy (2026-09-28); Transport keeps calling the overload above
 }
 ```
 
@@ -119,14 +123,25 @@ RP-1311. The state written for `Ok`: `MolarMass` is `1/n` over the gaseous moles
 carry the equilibrium derivatives of RP-1311 section 2.5. `SolveFrozen` writes the
 frozen state: `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`, `DlnVdlnT = 1`,
 `DlnVdlnP = −1`, `GammaS = Cp/Cv`. `State.Velocity` and `State.Mach` are left at zero
-by this node. A gaseous species whose mole fraction fell below `1e-8` at convergence
-is reported with zero moles, as the reference prints it. A warm start (a previous
-solution as the estimate) re-seeds every gas with zero moles one e-fold below the trace
-threshold, and does not read the logarithm left in the scratch. A warm start whose
-convergence fails - `SingularMatrix`, or `NotConverged` from the step cap - while a
-condensed species seeded from the previous solution holds negative moles retries once
-from the cold start of RP-1311 section 3.1 and reports the combined iteration count; a
-cold start never retries (2026-09-27, `BOOT.md`, the warm-start fallback).
+by this node. A case retains a gaseous species down to `1e-8` of the gas until its
+first convergence, then down to `1e-11` for the rest of the solve, as a change of the
+retained set that needs one more convergence (2026-09-28, `BOOT.md`, the two-stage
+retention threshold): since that switch happens before any `Ok` exit, the reported
+moles are always the `1e-11` composition, and a gaseous species between `1e-11` and
+`1e-8` of the gas is reported at its converged amount rather than zeroed (`BOOT.md`,
+the ⚠ 2026-09-28 correction of this paragraph). A warm start (a previous solution as the
+estimate) re-seeds every gas with zero moles one e-fold below the trace threshold, and
+does not read the logarithm left in the scratch. A warm start whose convergence fails,
+in any way but `InvalidInput`, retries once from the cold start of RP-1311 section 3.1
+and reports the combined iteration count; the cold retry starts hp and sp at 3800 K
+regardless of `problem.Temperature`, since a positive estimate there is part of the
+seed the retry is discarding, not a fresh guess; a cold start never retries (2026-09-27,
+widened 2026-09-28, `BOOT.md`, the warm-start fallback).
+
+⚠ 2026-09-28: the fallback fired only when a seeded condensed species was negative at
+the moment of failure. A warm start also fails with the seed diverging positive, or
+going negative and recovering before any remedy or the step cap sees it; the sign test
+missed both. Every failure now retries (the second hidden-defect audit's finding F3).
 
 ⚠ 2026-09-26: the sentence ended "its logarithm stays in the scratch for the next
 estimate". The logarithm stays, but no estimate reads it (the hidden-defect audit,
@@ -162,15 +177,23 @@ callers cut a case's scratch the same way everywhere.
 An element with zero abundance is allowed: the species containing it are inactive
 for the case and get mole number zero. The solver never throws. `Status` is one of
 `Ok`, `InvalidInput` (every abundance zero, negative abundance, empty table,
-non-positive pressure, non-positive temperature for tp, more elements than
-`TableLimits.MaxElements`; for `SolveFrozen` also a composition without gaseous moles, or
-with any mole number negative or not finite, 2026-09-26),
+non-positive pressure, a tp temperature that is non-positive or not finite, more
+elements than `TableLimits.MaxElements`; for `SolveFrozen` also a composition without
+gaseous moles, any mole number negative or not finite (2026-09-26), or an initial
+temperature estimate that is non-positive or not finite (2026-09-28)),
 `NotConverged` (the report's tests not met within `MaxNewtonSteps` after the last
 change of the condensed set, more than `MaxCondensedSetChanges` changes, the element
 conservation invariant violated at the end, or, since 2026-09-26, a condensed candidate
 left out of an otherwise converged state by more than 1e-9 per mole: `BOOT.md`, the exit
-guard), `SingularMatrix` (after the remedies of
-RP-1311 section 3.6), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`).
+guard), `SingularMatrix` (after the remedies of RP-1311 section 3.6, which target the
+species of the row whose pivot failed since 2026-09-28: `BOOT.md`, the targeted singular
+remedy), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`; since
+2026-09-28 also a converged state, tp included, outside the mixture window
+`[160 K, 22000 K]`, a `SolveFrozen` temperature below 0.8 times the lowest lower bound
+of the fits of the gases present or above `22000 K`, or a converged state whose frozen
+or equilibrium heat capacity, `γs` or sound speed is not finite and positive — the
+state guard, exempting a pinned pair's zero `CpEquilibrium`/`CvEquilibrium` convention:
+`BOOT.md`, the mixture window and the state guard).
 On any status but `Ok`, `Moles` hold the last iterate and `State` is not written; on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written.
 

@@ -58,7 +58,12 @@ internal static class ElementBalance
         return true;
     }
 
-    /// <summary>The node's invariant: every active element's residual within Invariant times max(1, b_i°). An Ok status requires it.</summary>
+    /// <summary>
+    /// The node's invariant: every active element's residual within Invariant times max(1, b_i°). An Ok status requires
+    /// it. A NaN abundance is outside the invariant (2026-09-28, the guards audit's O8): the comparison is written so
+    /// that a NaN residual, which is neither less than nor greater than any threshold, fails it rather than passing it
+    /// by finding no violation.
+    /// </summary>
     public static bool WithinInvariant(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                        in EquilibriumResult result)
     {
@@ -69,7 +74,8 @@ internal static class ElementBalance
                 continue;
             }
 
-            if (Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i)) > Invariant * KernelMath.Max(1.0, problem.ElementMoles[i]))
+            var residual = Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i));
+            if (!(residual <= Invariant * KernelMath.Max(1.0, problem.ElementMoles[i])))
             {
                 return false;
             }

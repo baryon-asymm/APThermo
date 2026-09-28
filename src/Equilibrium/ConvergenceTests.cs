@@ -36,18 +36,20 @@ internal static class ConvergenceTests
     }
 
     /// <summary>
-    /// Whether the step just applied moved a gaseous species across the trace threshold, in either direction. The
-    /// tests above are taken over the gases <c>result.Moles</c> already retains from the step's own linearization
-    /// point, so a crossing means those tests covered a set the final refresh would not report; the step is not a
-    /// converged one whatever its corrections (BOOT.md, the loop's bookkeeping, 2026-09-26). <paramref name="logN"/>
-    /// is the iterate's <c>ln n</c> after the step, <see cref="IterationState.LogN"/>.
+    /// Whether the step just applied moved a gaseous species across the case's own active retention threshold, in
+    /// either direction. The tests above are taken over the gases <c>result.Moles</c> already retains from the step's
+    /// own linearization point, so a crossing means those tests covered a set the final refresh would not report; the
+    /// step is not a converged one whatever its corrections (BOOT.md, the loop's bookkeeping, 2026-09-26).
+    /// <paramref name="logN"/> is the iterate's <c>ln n</c> after the step, <see cref="IterationState.LogN"/>;
+    /// <paramref name="traceThreshold"/> is the case's active stage (BOOT.md, the two-stage retention threshold,
+    /// 2026-09-28), the same one <see cref="Composition.Retain"/> used for this step's sums.
     /// </summary>
-    public static bool RetentionCrossed(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN)
+    public static bool RetentionCrossed(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold)
     {
         for (var j = 0; j < table.GasCount; j++)
         {
             var wasRetained = result.Moles[j] > 0.0;
-            var isRetained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -EquilibriumSolver.TraceThreshold;
+            var isRetained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -traceThreshold;
             if (wasRetained != isRetained)
             {
                 return true;

@@ -27,6 +27,7 @@ static class APThermo.Cli.Program
 
 static class APThermo.Equilibrium.DenseSolver
     static Boolean Solve(ArrayView<Double> matrix, ArrayView<Double> rhs, ArrayView<Double> rowScale, Int32 n, Int32 stride)
+    static Boolean Solve(ArrayView<Double> matrix, ArrayView<Double> rhs, ArrayView<Double> rowScale, Int32 n, Int32 stride, out Int32 failedRow)
 
 readonly struct APThermo.Equilibrium.EquilibriumProblem
     .ctor(ProblemKind kind, Double pressure, Double temperature, Double target, ArrayView<Double> elementMoles)
@@ -61,9 +62,11 @@ readonly struct APThermo.Equilibrium.EquilibriumScratch
     static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
 
 static class APThermo.Equilibrium.EquilibriumSolver
+    const Double SecondStageTraceThreshold = 25.328436
     const Double TraceThreshold = 18.420681
     const Int32 MaxCondensedSetChanges = 60
     const Int32 MaxNewtonSteps = 50
+    static Double RetentionThreshold(in IterationState state)
     static Void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, Boolean useMolesAsEstimate)
     static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
 

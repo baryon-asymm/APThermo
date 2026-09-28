@@ -140,10 +140,37 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   recomputes the retained amounts and counts as a change of the retained set: the loop
   must converge once more under the second stage before it may exit, so every `Ok`
   has been converged under 1e-11. The switch happens once per solve, including a
-  warm start. The report is unchanged: a gaseous species below 1e-8 of the gas
+  warm start. The report reflects the case's own last `Composition.Refresh`, at
+  whichever stage was active for it: since an `Ok` exit is never reached before the
+  switch (the paragraph above), every reported composition is the second-stage one,
+  and a gaseous species between 1e-11 and 1e-8 of the gas is reported at its converged
+  amount, not zeroed. `Composition` stays the one place the retention rule is applied,
+  and the stage is per-case state (`IterationState.RetentionSecondStage`, not the
+  loop's own bookkeeping struct: the flag must survive across the several `Converge`
+  calls one `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of
+  them). A singular matrix
+
+  ⚠ 2026-09-28: stood "The report is unchanged: a gaseous species below 1e-8 of the gas
   is reported with zero moles, a step applied to the final state only and nowhere in
-  the iteration. `Composition` stays the one place the retention rule is applied, and
-  the stage is per-case state of the loop's bookkeeping struct. A singular matrix
+  the iteration." Implemented literally, as a `Composition.Retain` call at 1e-8 added
+  after `Close` had already computed the sums, derivatives and state from the
+  second-stage (1e-11) composition, it zeroed every trace species between 1e-11 and
+  1e-8 out of the *reported* moles only, while the sums, derivatives and mixture state
+  above them stayed the ones the finer composition produced. The two were then
+  inconsistent with each other: `ElementConservationTests` failed on 27 fixtures with
+  residuals of 9e-11 to 1.5e-9 (kmol/kg), matching the zeroed species' own mass, while
+  `ElementBalance.WithinInvariant` (evaluated on the pre-zeroing composition inside
+  `Close`, which is what an `Ok` status actually gates) never flagged the same cases,
+  and no fixture's `CaseStatus` or CEA-comparison result moved. A separate report step
+  the element-conservation invariant does not itself cover is a defect of the step, not
+  of the invariant's tolerance: the taboo against loosening a tolerance forbids
+  widening `ElementConservationTests`' 1e-12 to hide it. The report now stands for
+  whatever the last `Composition.Refresh` produced, with no separate zeroing step;
+  since that call is always the case's own active (second-stage, for any `Ok`)
+  threshold, a fixture's reported trace composition can only move toward the finer
+  value already used for its status and its derivatives, matching the reference (which
+  reports at the same threshold it converges to, to the printed digits). Found while
+  implementing this paragraph, second hidden-defect audit of 2026-09-28.
   does not widen the threshold; the reference's widening to 80 (`1994-1995`) was
   measured by the second audit to add warm-versus-cold disagreements and is not
   copied. Iteration cap: 50 Newton steps after the last change of the
@@ -585,8 +612,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `EquilibriumSolver` | efferent coupling | 19 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
-| `NewtonIteration` | efferent coupling | 18 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
+| `EquilibriumSolver` | efferent coupling | 22 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `NewtonIteration` | efferent coupling | 19 | the Newton loop: the step and polish counts, the order of the stage calls, the status; holds no formula (the decision "The Newton loop holds no formula") |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 12 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 Every other type of the node measures 10 or below by the dependency check's walk
@@ -601,6 +628,17 @@ the polish-step count, and `Converge` now names it directly (`ref NewtonLoopStat
 instead of holding that bookkeeping in loose locals; the walk counts the new type,
 raising the measurement to 18. `ShapeTests.NoSrcTypeNamesMoreThan14TypesOfTheTree`
 found the stale row red; re-measured the same day.
+
+⚠ 2026-09-28: `EquilibriumSolver`'s row stood at 19 and `NewtonIteration`'s at 18. The
+second hidden-defect audit's fixes named new types directly at both call sites:
+`EquilibriumSolver` now constructs the cold-retry problem and calls `FrozenTemperature`
+and `MixtureProperties.IsPhysical` from `SolveFrozen`, and reads `IterationState`'s new
+`RetentionSecondStage` flag from `Solve`'s retry loop, raising its count to 22;
+`NewtonIteration` now calls `EquilibriumSolver.RetentionThreshold` and reads
+`IterationState.RetentionSecondStage` directly, raising its count to 19. Both stay
+composition roots that hold no formula of their own; `ShapeTests.NoSrcTypeNamesMoreThan14TypesOfTheTree`
+and `EveryShapeExceptionIsMeasuredAndStillNeeded` found the stale rows red; re-measured
+the same day.
 
 ## Acceptance criteria
 
@@ -1006,23 +1044,78 @@ found the stale row red; re-measured the same day.
       under Constraints.
       - **The two-stage threshold (F1).**
         - New tp fixtures from cea 3.3.4 through the fixtures node's generator: RP-1311
-          example 5's table at 300 K, 1 bar and 70 bar, and 305 K, 1 MPa; NaClO4 at
-          500 K and 800 K, 1 bar; AP/HTPB/Al at 7 MPa, 430 K and 1 MPa, 420 K (the F5
-          states cea converges). Covered by `AssignedTemperatureCasesReproduceTheReference`
-          through its directory listing; each red at `5a732f0`.
-        - The audit's 16 regression states (its F1 table), where cea aborts for
-          AP/HTPB/Al: `Ok`, and each passes the tests node's independent equilibrium
-          checks (element conservation, every gas at its chemical potential, no absent
-          condensed record in its effective range with a positive gain). Red at
-          `5a732f0`.
+          example 5's table at 300 K, 1 bar and 70 bar, and 305 K, 1 MPa. Covered by
+          `AssignedTemperatureCasesReproduceTheReference` through its directory
+          listing; each red at `5a732f0`; all three `Ok` and green (`tests/Fixtures/cases/tp/rp1311-example5_T300_p1bar.json`,
+          `..._T300_p70bar.json`, `..._T305_p10bar.json`, `tests/Fixtures/generate/retention_threshold.py`).
+        - **Escalation (AGENTS.md §11), not closed by this pass.** The orchestrator's
+          task also asked for a NaClO4 decomposition (Na:Cl:O = 1:1:4 from pure
+          elements, since NaClO4 is not a thermo.inp reactant) at 500 K and 800 K,
+          1 bar, and AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K. Both were generated
+          with cea (which converges on every one of the four) and tried against this
+          node; neither is committed, because they expose two gaps this coder's task
+          did not name and is not positioned to redesign inside a single task:
+          - NaClO4 reduces almost entirely to `NaCL(cr)` + `O2` at both temperatures
+            (cea's own mole fractions: 0.667 `O2`, 0.333 `NaCL(cr)`, every gaseous
+            trace at 1e-17 or below). `CaseSetup.FromDefaults`'s cold start is
+            gas-only (RP-1311 section 3.1, unchanged by this audit), and the
+            condensed-species inclusion test (`CondensedSet.Update`) runs only after
+            `NewtonIteration.Converge` returns `Ok`; here the all-gas trial never
+            converges (`SingularMatrix` at iteration 22, `failedRow` an element row,
+            `state.CondensedCount == 0`, before `RetentionSecondStage` is ever
+            reached), so no condensed candidate is ever tried. Whether the inclusion
+            test should run on a stalled or singular gas-only trial, and if so under
+            what rule, is a design question above this task.
+          - AP/HTPB/Al at 430 K/7 MPa and 420 K/1 MPa converges at the Newton level
+            repeatedly (11 changes of the condensed set, oscillating between 3 and 4
+            species in solution, `RetentionSecondStage` already true throughout) and
+            `CondensedSet.Update` settles (no further change), but
+            `CondensedSet.ExitGuardFindsAPositiveCandidate` then finds a `StoodDown`
+            candidate still showing a positive inclusion gain in the settled
+            composition, so `Close` returns `NotConverged`. The exit guard is
+            written to count a stood-down candidate on purpose (the first audit's
+            finding 2, `## Structure` above), so this is not the guard
+            double-counting; it is the inclusion test (`Update`, during the loop) and
+            the exit guard (`ExitGuardFindsAPositiveCandidate`, at `Close`) reaching
+            different verdicts on the same settled composition after a candidate has
+            cycled in and out enough times to be marked `StoodDown`. Reconciling them
+            needs a decision on what a permanently excluded but still-wanted
+            candidate means for the case's status, which is beyond a targeted fix.
+
+          Both symptoms are reproducible from `tests/Equilibrium.Tests/HostSolver`
+          on the compositions above (Custom pure-element Na/Cl/O 1:1:4 for the first;
+          `plateaus.REACTANTS`/`MASS_FRACTIONS` at the stated tp for the second); the
+          orchestrator or a design session should decide whether to accept the gap,
+          narrow the fixture request, or open a follow-up task naming the inclusion
+          test's and the exit guard's relation to a stood-down candidate as its own
+          design question.
         - A unit fact on the loop's struct: the switch to the second stage counts as a
           change of the retained set, and an exit needs a convergence after it.
-        - The report's zeroing below 1e-8 is unchanged: an existing fixture's reported
-          mole numbers keep their zeros.
+        - The report reflects the case's own last `Composition.Refresh` (the ⚠
+          2026-09-28 correction above): a species between 1e-11 and 1e-8 of the gas,
+          previously zeroed by a separate 1e-8 report step, is now reported at its
+          converged second-stage amount, which is why the Bits bullet below expects
+          this node's snapshot to move on existing fixtures, not stay at their zeros.
+
+        ⚠ 2026-09-28: this bullet named "the audit's 16 regression states (its F1
+        table)" as evidence, expecting a fact enumerating them. That table is not in
+        this node, is not in the fixtures node, and is not among the documents this
+        coder may read (the audit's own reports are kept out of the tree, AGENTS.md
+        §2/§8's rule against a second source of truth applies to them too); without
+        the sixteen states themselves there is nothing to turn into a fact. This is
+        the same escalation as above: the orchestrator holds the audit's report and
+        can supply the states, or drop this sub-criterion in favor of the fixtures
+        and unit facts that are reproducible from files already in the tree.
       - **The targeted singular remedy (F5).** The dense solver's new entry returns the
-        failed row, a unit fact on a constructed singular matrix. The AP/HTPB/Al states
-        at 420–450 K, 1–7 MPa converge and agree with cea where cea was asked (above).
-        A singular removal marks its record, a fact on the anti-cycling skip.
+        failed row, a unit fact on a constructed singular matrix
+        (`tests/Equilibrium.Tests/DenseSolverTests.cs`,
+        `TheFailedRowOverloadNamesTheRowWhosePivotVanished` and
+        `TheFailedRowOverloadReportsNoFailureOnARegularMatrix`). The claim "the
+        AP/HTPB/Al states at 420–450 K, 1–7 MPa converge" is not demonstrated by this
+        pass: see the F1 escalation above, which found two of those states
+        (430 K/7 MPa, 420 K/1 MPa) do not converge with the remedy as implemented. A
+        singular removal marks its record, a fact on the anti-cycling skip
+        (`NewtonLoopStateTests.ASingularRemovalOfACondensedSpeciesRestartsTheStepCountAndCountsTowardTheChangeCap`).
       - **The mixture window and the state guard (F2).** A tp of the `h2-o2-of4` table
         at 1 bar, 60 K to 159 K: `TemperatureOutOfRange`. At 160 K and above: `Ok`,
         with finite positive Cp, Cv, `γ_s` and sound speed. The fixtures at 165–199 K

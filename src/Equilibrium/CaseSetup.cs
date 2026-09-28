@@ -42,7 +42,7 @@ internal static class CaseSetup
             return CaseStatus.InvalidInput;
         }
 
-        if (problem.Kind == ProblemKind.AssignedTemperaturePressure && !(problem.Temperature > 0.0))
+        if (problem.Kind == ProblemKind.AssignedTemperaturePressure && problem.Temperature is not (> 0.0 and < double.PositiveInfinity))
         {
             return CaseStatus.InvalidInput;
         }

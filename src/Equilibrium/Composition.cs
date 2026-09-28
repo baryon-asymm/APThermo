@@ -35,15 +35,18 @@ internal static class Composition
     }
 
     /// <summary>
-    /// The gaseous mole numbers the trace rule of section 3.2 retains: a species below the trace threshold is held at zero
-    /// in the sums and keeps its logarithm for the next step. Returns their sum. The one place the rule is applied.
+    /// The gaseous mole numbers the trace rule of section 3.2 retains at the given threshold: a species below it is held
+    /// at zero in the sums and keeps its logarithm for the next step. Returns their sum. The one place the rule is
+    /// applied; the threshold is the case's own active stage (<see cref="EquilibriumSolver.RetentionThreshold"/>) during
+    /// the iteration, and the report's own first stage when the caller re-applies it to the final state (BOOT.md, the
+    /// two-stage retention threshold, 2026-09-28).
     /// </summary>
-    public static double Retain(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN)
+    public static double Retain(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold)
     {
         var sumGas = 0.0;
         for (var j = 0; j < table.GasCount; j++)
         {
-            var retained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -EquilibriumSolver.TraceThreshold;
+            var retained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -traceThreshold;
             result.Moles[j] = retained ? Math.Exp(scratch.LogMoles[j]) : 0.0;
             sumGas += result.Moles[j];
         }
@@ -51,30 +54,30 @@ internal static class Composition
         return sumGas;
     }
 
-    /// <summary>The final iterate of a convergence: the species functions at the settled temperature and the retained moles.</summary>
+    /// <summary>The final iterate of a convergence: the species functions at the settled temperature and the retained moles, at the case's own active threshold.</summary>
     public static void Refresh(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                ref IterationState state)
     {
         Evaluate(table, scratch, ref state);
-        _ = Retain(table, scratch, result, state.LogN);
+        _ = Retain(table, scratch, result, state.LogN, EquilibriumSolver.RetentionThreshold(state));
     }
 
     /// <summary>
     /// The sums of the current iterate over the whole composition, in ascending species order: what the reduced system and
-    /// the state record are both built from. Retains the gaseous moles first, so that the sums and the reported moles are
-    /// the same numbers.
+    /// the state record are both built from. Retains the gaseous moles first, at <paramref name="traceThreshold"/>, so that
+    /// the sums and the reported moles are the same numbers.
     /// </summary>
     public static MixtureSums Sums(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                   double logN, double logPressure, double temperature)
+                                   in IterationState state, double logPressure, double traceThreshold)
     {
         var gasCount = table.GasCount;
-        var sumGas = Retain(table, scratch, result, logN);
+        var sumGas = Retain(table, scratch, result, state.LogN, traceThreshold);
         var sums = new MixtureSums
         {
-            LogN = logN,
+            LogN = state.LogN,
             LogPressure = logPressure,
-            Temperature = temperature,
-            N = Math.Exp(logN),
+            Temperature = state.Temperature,
+            N = Math.Exp(state.LogN),
             SumGas = sumGas,
         };
         for (var j = 0; j < table.SpeciesCount; j++)
@@ -87,7 +90,7 @@ internal static class Composition
 
             sums.HOverRT += nj * scratch.HOverRT[j];
             sums.SOverR += j < gasCount
-                ? nj * (scratch.SOverR[j] - scratch.LogMoles[j] + logN - logPressure)
+                ? nj * (scratch.SOverR[j] - scratch.LogMoles[j] + state.LogN - logPressure)
                 : nj * scratch.SOverR[j];
             sums.CpOverR += nj * scratch.CpOverR[j];
             if (j >= gasCount)

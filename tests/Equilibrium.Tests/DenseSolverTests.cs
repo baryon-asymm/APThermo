@@ -39,6 +39,39 @@ public sealed class DenseSolverTests
         Assert.False(solved);
     }
 
+    /// <summary>
+    /// The <c>out int failedRow</c> overload names the row whose pivot could not be found, for the targeted singular
+    /// remedy (BOOT.md, 2026-09-28): on this row-2-of-row-1 matrix, elimination pivots row 0 into place unchanged
+    /// (both rows tie at a scaled candidate of 0.5), then reduces row 1 to an all-zero pivot candidate at k = 1,
+    /// so the failed row is 1, not the row Gaussian elimination started from (0).
+    /// </summary>
+    [Fact]
+    public void TheFailedRowOverloadNamesTheRowWhosePivotVanished()
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        using var a = accelerator.Allocate1D(new double[] { 1, 2, 2, 4 });
+        using var b = accelerator.Allocate1D(new double[] { 1, 2 });
+        using var scale = accelerator.Allocate1D<double>(2);
+        var solved = DenseSolver.Solve(a.View, b.View, scale.View, 2, 2, out var failedRow);
+
+        Assert.False(solved);
+        Assert.Equal(1, failedRow);
+    }
+
+    /// <summary>The overload reports no failed row (−1) when the matrix is not singular.</summary>
+    [Fact]
+    public void TheFailedRowOverloadReportsNoFailureOnARegularMatrix()
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        using var a = accelerator.Allocate1D(new double[] { 2, 1, -1, -3, -1, 2, -2, 1, 2 });
+        using var b = accelerator.Allocate1D(new double[] { 8, -11, -3 });
+        using var scale = accelerator.Allocate1D<double>(3);
+        var solved = DenseSolver.Solve(a.View, b.View, scale.View, 3, 3, out var failedRow);
+
+        Assert.True(solved);
+        Assert.Equal(-1, failedRow);
+    }
+
     /// <summary>Honours a stride wider than the system.</summary>
     [Fact]
     public void HonoursAStrideWiderThanTheSystem()
