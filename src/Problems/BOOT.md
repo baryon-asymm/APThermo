@@ -618,12 +618,21 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Solver` | efferent coupling | 22 | the composition root of the front door: owns the engine and the collaborators, turns each public entry point into a system and cases and hands them to a runner; holds no rule |
+| `Solver` | efferent coupling | 24 | the composition root of the front door: owns the engine and the collaborators, turns each public entry point into a system and cases and hands them to a runner; holds no rule |
 | `RocketRunner` | efferent coupling | 26 | the composition root of the rocket pipeline: groups the cases, fills the batch, runs the engine and the transport pass, assembles the stations through `StationFactory`; holds no formula (the decision "The runners are the pipelines' composition roots") |
 | `EquilibriumRunner` | efferent coupling | 24 | the composition root of the equilibrium pipeline, as `RocketRunner` |
 | `RocketResult.RocketResult` | parameters | 9 | a published result record, the contract's shape field for field (the decision "Size"); created once, with named arguments |
 | `Station.Station` | parameters | 8 | a published result record, as `RocketResult` |
 | `EquilibriumResult.EquilibriumResult` | parameters | 8 | a published result record, as `RocketResult` |
+
+⚠ 2026-09-28: `Solver`'s row stood at 22. The audit fixes of 2026-09-28 add
+`ValidatedOptions` (naming `ElementalMixture` in its mass-tolerance check) and
+`ValidateRecordElements` (naming `StateRecordException` and looping the records
+`ChemicalSystemCache.ValidateOwnElements` now validates per record, before the union),
+both composition-root code of `Solver` itself, no formula; the protocol tests node's
+`ShapeTests` measures 24 on the walk. `Solver` remains the composition root the reason
+column already describes; the two new methods hold no rule of their own, only the
+record-vs-batch dispatch finding F3 asked for.
 
 ## Acceptance criteria
 
