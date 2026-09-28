@@ -76,6 +76,22 @@ ELEMENT_MIXTURE_CASES = [
 ]
 ELEMENT_MIXTURE_TEMPERATURE_K = 298.15
 
+# The second hidden-defect audit's finding F3 (2026-09-28): the plateau-edge re-solve can land on the far side of
+# the edge (Mach above 1) when it is not checked against the bracket's own subsonic fingerprint and u^2/a^2 < 1
+# (Performance BOOT.md). Representative points of the audit's own Li2O (li-o-h) and BeO/H2O (be-o-h) systems
+# (scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs, its "li-o-h" and "be-o-h" systems), at the two
+# edges of the 0.3 MPa Li2O band (14 cases in the audit's own sweep, h 3.29375 to 3.375 MJ/kg), both of the 3 MPa
+# Li2O band (2 cases, h 2.20625 to 2.2125 MJ/kg) and the single BeO/H2O point at 15 MPa the audit found Mach 1.011
+# at (scratchpad/audit2/out/pt/throat-sweep-misc.csv and throat-sweep-beMgZr.csv, "fine" rows with mach > 1). The
+# full bands are covered without a fixture per point by the fact's own sweep
+# (Performance.Tests/SecondAuditFixTests.cs, `ThePlateauEdgeIsSinglePhaseAndSubsonicOverTheAuditsLi2OAndBeOBands`).
+# (name, reactants, mass fractions, chamber pressure in Pa, enthalpy in J/kg)
+PLATEAU_EDGE_CASES = [
+    ("li2o-throat_pc0.3MPa_h3.29375MJkg", ["Li(cr)", "O2", "H2"], [0.10, 0.50, 0.40], 0.3 * MPA_TO_PA, 3.29375e6),
+    ("li2o-throat_pc3MPa_h2.2375MJkg", ["Li(cr)", "O2", "H2"], [0.10, 0.50, 0.40], 3.0 * MPA_TO_PA, 2.2375e6),
+    ("beo-h2o-throat_pc15MPa_h-11.06875MJkg", ["Be(a)", "O2", "H2"], [0.10, 0.55, 0.35], 15.0 * MPA_TO_PA, -11.06875e6),
+]
+
 
 def _flux(reac, prod, weights, entropy: float, chamber_pressure_pa: float, chamber_enthalpy: float, ratio: float,
          trace: float | None) -> tuple[float, dict, float]:
@@ -83,6 +99,20 @@ def _flux(reac, prod, weights, entropy: float, chamber_pressure_pa: float, chamb
     state = solve_equilibrium(reac, prod, weights, "sp", entropy, chamber_pressure_pa * ratio, False, trace=trace)
     velocity = math.sqrt(2.0 * (chamber_enthalpy - state["enthalpy"]))
     return state["density"] * velocity, state, velocity
+
+
+def _flux_or_negative_infinity(reac, prod, weights, entropy: float, chamber_pressure_pa: float, chamber_enthalpy: float,
+                               ratio: float, trace: float | None) -> float:
+    """`_flux`'s value, or negative infinity when the sp solve does not converge (the second hidden-defect audit's
+    finding F3, 2026-09-28: a ternary-search trial can land arbitrarily close to a melting plateau's own edge,
+    where even the reference package's equilibrium solver is not guaranteed to converge). A non-convergent trial is
+    worse than any converged one, so the search always moves away from it, never toward it, and the razor-thin
+    non-converging point found at the Li2O plateau edge (`tests/Fixtures/BOOT.md`, the throat family's entry) is
+    stepped past rather than raised."""
+    try:
+        return _flux(reac, prod, weights, entropy, chamber_pressure_pa, chamber_enthalpy, ratio, trace)[0]
+    except RuntimeError:
+        return -math.inf
 
 
 def _first_local_max(fluxes: list[float]) -> int:
@@ -111,13 +141,26 @@ def _scan_throat(reac, prod, weights, chamber_pressure_pa: float, enthalpy: floa
     low, high = float(grid[peak - 1]), float(grid[peak + 1])
     for _ in range(TERNARY_STEPS):
         left, right = low + (high - low) / 3.0, high - (high - low) / 3.0
-        if (_flux(reac, prod, weights, chamber["entropy"], chamber_pressure_pa, chamber["enthalpy"], left, trace)[0]
-                < _flux(reac, prod, weights, chamber["entropy"], chamber_pressure_pa, chamber["enthalpy"], right, trace)[0]):
+        flux_left = _flux_or_negative_infinity(reac, prod, weights, chamber["entropy"], chamber_pressure_pa,
+                                               chamber["enthalpy"], left, trace)
+        flux_right = _flux_or_negative_infinity(reac, prod, weights, chamber["entropy"], chamber_pressure_pa,
+                                                chamber["enthalpy"], right, trace)
+        if flux_left < flux_right:
             low = left
         else:
             high = right
-    mass_flux, throat, velocity = _flux(reac, prod, weights, chamber["entropy"], chamber_pressure_pa,
-                                        chamber["enthalpy"], high, trace)
+
+    # The converged bracket's own edge, `high`, is a deterministic function of the coarse grid and TERNARY_STEPS
+    # (never one of the razor-thin non-convergent ratios the loop above stepped past, which is why it is not
+    # itself guarded); a tiny nudge toward the bracket's midpoint is the one retry needed on the rare chance it
+    # still lands on one (finding F3's evidence-gathering: none of the family's fixtures has needed it).
+    try:
+        mass_flux, throat, velocity = _flux(reac, prod, weights, chamber["entropy"], chamber_pressure_pa,
+                                            chamber["enthalpy"], high, trace)
+    except RuntimeError:
+        high = 0.5 * (low + high)
+        mass_flux, throat, velocity = _flux(reac, prod, weights, chamber["entropy"], chamber_pressure_pa,
+                                            chamber["enthalpy"], high, trace)
     return chamber, throat, velocity, chamber_pressure_pa / mass_flux, high
 
 
@@ -214,10 +257,12 @@ def example13_throats(writer: Writer) -> None:
             outputs=outputs, script_path=__file__, method="cea-package-mass-flux-scan")
 
 
-def element_mixture_throats(writer: Writer) -> None:
-    """The second hidden-defect audit's finding F1 (2026-09-28): plain elemental reactants, at the pressure and
-    enthalpy the audit's own sweep found a second, larger-rho*u maximum downstream of the true one."""
-    for name, reactants, mass_fractions, chamber_pressure_pa, enthalpy in ELEMENT_MIXTURE_CASES:
+def _element_mixture_throats(writer: Writer, cases: list[tuple[str, list[str], list[float], float, float]]) -> None:
+    """Plain elemental reactants at a fixed temperature, each pressure and enthalpy assigned directly (the
+    reference-state enthalpy of plain elements is zero, so there is no propellant h0 to offset from). Shared by
+    `element_mixture_throats` (finding F1) and `plateau_edge_throats` (finding F3): both are the same generation
+    method over a differently-motivated case list."""
+    for name, reactants, mass_fractions, chamber_pressure_pa, enthalpy in cases:
         weights = np.array(mass_fractions)
         temperatures = np.full(len(reactants), ELEMENT_MIXTURE_TEMPERATURE_K)
         reac, prod = make_mixtures(reactants)
@@ -230,10 +275,24 @@ def element_mixture_throats(writer: Writer) -> None:
             outputs=outputs, script_path=__file__, method="cea-package-mass-flux-scan")
 
 
+def element_mixture_throats(writer: Writer) -> None:
+    """The second hidden-defect audit's finding F1 (2026-09-28): plain elemental reactants, at the pressure and
+    enthalpy the audit's own sweep found a second, larger-rho*u maximum downstream of the true one."""
+    _element_mixture_throats(writer, ELEMENT_MIXTURE_CASES)
+
+
+def plateau_edge_throats(writer: Writer) -> None:
+    """The second hidden-defect audit's finding F3 (2026-09-28): representative points of the audit's own Li2O and
+    BeO/H2O melting plateaus, where a re-solve unchecked against the bracket's subsonic fingerprint and u^2/a^2 < 1
+    can land on the far (Mach >= 1) side of the edge."""
+    _element_mixture_throats(writer, PLATEAU_EDGE_CASES)
+
+
 def generate(writer: Writer) -> None:
     ap_htpb_al_throats(writer)
     example13_throats(writer)
     element_mixture_throats(writer)
+    plateau_edge_throats(writer)
 
 
 if __name__ == "__main__":

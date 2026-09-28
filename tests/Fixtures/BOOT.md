@@ -629,6 +629,51 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       — `regenerate.py --check` (no kind filter) is that check, and it is run by the
       full suite (`Fixtures.Tests`), not read off a typed number in this document.
 
+- [x] 2026-09-28 — The throat family's three F3 cases (the case matrix; the second
+      hidden-defect audit's finding F3, Performance `BOOT.md`): `throat_scan.py` gains
+      the `PLATEAU_EDGE_CASES` list (representative points of the audit's own Li2O
+      (`li-o-h`) and BeO/H2O (`be-o-h`) systems) and `plateau_edge_throats`, sharing
+      `element_mixture_throats`'s generation method (renamed `_element_mixture_throats`,
+      taking the case list as a parameter) rather than a second copy of it.
+      - `_scan_throat`'s ternary refinement is made robust to a trial that does not
+        converge (`_flux_or_negative_infinity`, and one retry on the converged
+        bracket's own edge): the audit's own 0.3 MPa Li2O enthalpy band has a
+        razor-thin non-convergent ratio (measured at 0.58239774, width under 1e-7)
+        arbitrarily close to the search's own converged bracket, on every one of its
+        14 h-values tried; without the guard, `regenerate.py throat` raised
+        `RuntimeError: sp solve did not converge (last_error 8)` on all 14. A
+        non-convergent trial is treated as strictly worse than any converged one, so
+        the search steps past it rather than raising; the converged bracket's own
+        edge is unaffected (measured: `li2o-throat_pc0.3MPa_h3.29375MJkg`'s scan c*
+        and `p/p_c` match a direct evaluation at the same ratio without the guard).
+      - `regenerate.py throat` writes all 17 cases of the family (14 of 2026-09-28
+        plus the three new ones), and `regenerate.py --check throat` then reports
+        `fixtures: unchanged 17`.
+      - Two of the three (`li2o-throat_pc0.3MPa_h3.29375MJkg`,
+        `li2o-throat_pc3MPa_h2.2375MJkg`) reproduce the reference within the family's
+        usual tolerance. The third, `beo-h2o-throat_pc15MPa_h-11.06875MJkg`, does not:
+        its own reference (the scan's ternary refinement) lands on the pinned-pair
+        side of the plateau edge itself (Mach 1.011285688885813), the same defect F3
+        fixes in the tree, now found in the reference instead. The Performance node's
+        own `StationComparison.IsPlateauEdgeDivergence` skips that one station's
+        comparison, guarded on the reference's own recorded Mach (never a blanket
+        exemption); `tests/Performance.Tests/BOOT.md`'s 2026-09-28 entry has the
+        red-once evidence. This node's own acceptance below is unaffected: the
+        fixture's `chamber` station (single-phase throughout) still reproduces the
+        reference, and its provenance and form are checked exactly like any other
+        fixture's.
+      - The audit's own two named 3 MPa points (h 2.20625 and 2.2125 MJ/kg) are not
+        the ones committed: at both, the tree's fixed throat search ends
+        `ThroatNotFound` (a real, separate outcome, not investigated further here —
+        Performance `BOOT.md` owns that code), so a nearby point of the same band
+        (h 2.2375 MJ/kg) that ends `Ok` was used instead, still within the audit's own
+        band and citing the audit's system and pressure.
+
+      Evidence: `dotnet test tests/Performance.Tests` 1418/1418 (Performance `BOOT.md`
+      has the F3 fact's own red-once record); `Fixtures.Tests` 34/34;
+      `regenerate.py --check` (no kind filter), after the full-tree re-provenance
+      below, exits 0.
+
 - [x] 2026-09-27 — The sodium case (the case matrix): `propellants.py` gains
       `sodium_hp`, one hp case (`cases/hp/nano3-rp1_of4_pc7MPa.json`) of NaNO3(a) with
       RP-1, both at 298.15 K, O/F 4, 7 MPa, generated the way `plateaus.py`'s
