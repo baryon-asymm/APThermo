@@ -1,0 +1,153 @@
+{
+  "case": {
+    "name": "naclo4_T500",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "pure-NA",
+          "custom": true,
+          "formula": {
+            "NA": 1.0
+          },
+          "molarMass": 22.98977,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.18776299026211699,
+          "note": null
+        },
+        {
+          "name": "pure-CL",
+          "custom": true,
+          "formula": {
+            "CL": 1.0
+          },
+          "molarMass": 35.453,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.2895531923008727,
+          "note": null
+        },
+        {
+          "name": "pure-O",
+          "custom": true,
+          "formula": {
+            "O": 1.0
+          },
+          "molarMass": 15.9994,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.5226838174370103,
+          "note": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "CL": 0.008167240918987748,
+        "NA": 0.00816724091898775,
+        "O": 0.03266896367595099
+      },
+      "temperature": 500.0,
+      "pressure": 100000.0,
+      "transport": false,
+      "products": [
+        "CL",
+        "CL2",
+        "CL2O",
+        "CLO",
+        "CLO2",
+        "Na",
+        "Na2",
+        "Na2CL2",
+        "Na2O",
+        "Na2O2",
+        "Na3CL3",
+        "NaCL",
+        "NaO",
+        "O",
+        "O2",
+        "O3",
+        "Na(L)",
+        "Na(cr)",
+        "Na2O(L)",
+        "Na2O(a)",
+        "Na2O(b)",
+        "Na2O(c)",
+        "Na2O2(L)",
+        "Na2O2(a)",
+        "Na2O2(b)",
+        "NaCL(L)",
+        "NaCL(cr)",
+        "NaO2(L)",
+        "NaO2(cr)"
+      ],
+      "omit": [],
+      "trace": null
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "generatorSha256": "7e0d3c39830aa5541a7ba2d5060bccb7ed75b2c8189af7baa39964da8b6c61ad",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "retention_threshold.py",
+    "scriptSha256": "95b2a51a0723ff6b8bbc9ea361e917cb99e4edb28f4200ba54bfc7fab35d70f6",
+    "generatedOn": "2026-09-28"
+  },
+  "outputs": {
+    "temperature": 500.0,
+    "pressure": 100000.0,
+    "density": 1.4726107732145328,
+    "enthalpy": -3173802.585988909,
+    "internalEnergy": -3241709.192282242,
+    "entropy": 4413.091931195214,
+    "gibbsEnergy": -5380348.551586516,
+    "molarMass": 61.22018499999984,
+    "mixtureMolarMass": 40.813456666666575,
+    "cpFrozen": 945.6554031417031,
+    "cpEquilibrium": 945.6554031417614,
+    "cvFrozen": 809.8421905550372,
+    "cvEquilibrium": 809.8421905550935,
+    "gammaS": 1.167703305867007,
+    "dlnVdlnT": 1.0000000000000073,
+    "dlnVdlnP": -1.0000000000000002,
+    "soundSpeed": 281.59326813497205,
+    "moleFractions": {
+      "CL": 8.482602332705396e-28,
+      "CL2": 5.188440158229369e-35,
+      "CL2O": 0.0,
+      "CLO": 5.536538968357753e-28,
+      "CLO2": 4.57614025848609e-32,
+      "Na": 4.942946925138864e-28,
+      "Na2": 0.0,
+      "Na2CL2": 1.97807291284894e-18,
+      "Na2O": 0.0,
+      "Na2O2": 2.1124574837732977e-31,
+      "Na3CL3": 1.2847700699692987e-23,
+      "NaCL": 9.37083248202777e-17,
+      "NaO": 2.2463631066905456e-29,
+      "O": 7.730856776817386e-24,
+      "O2": 0.6666666666666669,
+      "O3": 2.547867590016591e-19,
+      "Na(L)": 0.0,
+      "Na(cr)": 0.0,
+      "Na2O(L)": 0.0,
+      "Na2O(a)": 0.0,
+      "Na2O(b)": 0.0,
+      "Na2O(c)": 0.0,
+      "Na2O2(L)": 0.0,
+      "Na2O2(a)": 0.0,
+      "Na2O2(b)": 1.0424845066525216e-17,
+      "NaCL(L)": 0.0,
+      "NaCL(cr)": 0.3333333333333331,
+      "NaO2(L)": 0.0,
+      "NaO2(cr)": 0.0
+    },
+    "converged": true
+  }
+}

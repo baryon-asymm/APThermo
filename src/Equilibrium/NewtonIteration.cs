@@ -31,7 +31,7 @@ internal static class NewtonIteration
             Composition.Evaluate(table, scratch, ref state);
             var traceThreshold = EquilibriumSolver.RetentionThreshold(state);
             var sums = Composition.Sums(table, scratch, result, state, logPressure, traceThreshold);
-            var layout = new SystemLayout(problem.Kind, table.ElementCount, state.CondensedCount, stride);
+            var layout = new SystemLayout(problem.Kind, table.ElementCount, state.CondensedCount, stride, state.Tie);
             IterationMatrix.Assemble(table, problem, scratch, result, layout, sums);
             if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride, out var failedRow))
             {

@@ -198,9 +198,11 @@ temperature estimate that is non-positive or not finite (2026-09-28)),
 change of the condensed set, more than `MaxCondensedSetChanges` changes, the element
 conservation invariant violated at the end, or, since 2026-09-26, a condensed candidate
 left out of an otherwise converged state by more than 1e-9 per mole: `BOOT.md`, the exit
-guard), `SingularMatrix` (after the remedies of RP-1311 section 3.6, which target the
-species of the row whose pivot failed since 2026-09-28: `BOOT.md`, the targeted singular
-remedy), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`; since
+guard), `SingularMatrix` (only once none of the remedies resolves the singular system:
+rule B's dependent-set ratio test, rule A's element tie, the two gaseous resets of RP-1311
+section 3.6, then the targeted removal of the species of the row whose pivot failed since
+2026-09-28, `BOOT.md`, "Two rules come before the remedies above" and the targeted
+singular remedy), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`; since
 2026-09-28 also a converged state, tp included, outside the mixture window
 `[160 K, 22000 K]`, a `SolveFrozen` temperature below 0.8 times the lowest lower bound
 of the fits of the gases present or above `22000 K`, or a converged state whose frozen
@@ -209,6 +211,14 @@ state guard, exempting a pinned pair's zero `CpEquilibrium`/`CvEquilibrium` conv
 `BOOT.md`, the mixture window and the state guard).
 On any status but `Ok`, `Moles` hold the last iterate and `State` is not written; on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written.
+
+⚠ 2026-09-28: the `SingularMatrix` clause named only the targeted removal of 2026-09-28,
+as if it followed straight after the two gaseous resets. Rules A and B (BOOT.md, "Two
+rules come before the remedies above", 2026-09-28, the orchestrator's investigation 6)
+run first: a dependent condensed set (rule B) or a duplicated element row (rule A) is
+resolved before any of the report's own remedies are tried, so `SingularMatrix` is now
+reported only once neither rule, nor the resets, nor the targeted removal, finds a way
+forward.
 
 ## Side effects
 

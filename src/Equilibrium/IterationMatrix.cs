@@ -23,6 +23,72 @@ internal static class IterationMatrix
         ElementRows(table, problem, scratch, result, layout);
         CondensedRows(table, scratch, result, layout);
         TargetRow(problem, scratch, layout, sums);
+        if (layout.Tie.Active)
+        {
+            TieRow(table, problem, scratch, result, layout, sums);
+        }
+    }
+
+    /// <summary>
+    /// Rule A's row (BOOT.md, 2026-09-28): the tied element's balance replaced by its own minus the ratio times its
+    /// partner's, summed over the species that tell the two apart — the gaseous ones at their own amounts whether
+    /// retained or not, since the pair is fixed by the trace species the sums themselves drop. The only writer of a
+    /// tie row: <see cref="DerivativeSystem"/> assembles its own separate, tp-shaped system and does not call this.
+    /// </summary>
+    private static void TieRow(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                               in EquilibriumResult result, in SystemLayout layout, in MixtureSums sums)
+    {
+        var speciesCount = table.SpeciesCount;
+        var elementCount = layout.ElementCount;
+        var stride = layout.Stride;
+        var k = layout.Tie.Element;
+        var i0 = layout.Tie.Partner;
+        var r = layout.Tie.Ratio;
+        for (var c = 0; c < layout.Unknowns; c++)
+        {
+            scratch.Matrix[k * stride + c] = 0.0;
+        }
+
+        var rhs = problem.ElementMoles[k] - r * problem.ElementMoles[i0];
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (!SpeciesMarks.InPlay(scratch, j))
+            {
+                continue;
+            }
+
+            var d = table.Stoichiometry[k * speciesCount + j] - r * table.Stoichiometry[i0 * speciesCount + j];
+            if (d == 0.0)
+            {
+                continue;
+            }
+
+            var nj = Math.Exp(scratch.LogMoles[j]);
+            var mu = scratch.GOverRT[j] + scratch.LogMoles[j] - sums.LogN + sums.LogPressure;
+            var dn = d * nj;
+            for (var l = 0; l < elementCount; l++)
+            {
+                scratch.Matrix[k * stride + l] += dn * table.Stoichiometry[l * speciesCount + j];
+            }
+
+            scratch.Matrix[k * stride + layout.NRow] += dn;
+            if (!layout.IsTp)
+            {
+                scratch.Matrix[k * stride + layout.TRow] += dn * scratch.HOverRT[j];
+            }
+
+            rhs += dn * mu - dn;
+        }
+
+        for (var c = 0; c < layout.CondensedCount; c++)
+        {
+            var j = scratch.CondensedInSolution[c];
+            var d = table.Stoichiometry[k * speciesCount + j] - r * table.Stoichiometry[i0 * speciesCount + j];
+            scratch.Matrix[k * stride + elementCount + c] = d;
+            rhs -= d * result.Moles[j];
+        }
+
+        scratch.RightHandSide[k] = rhs;
     }
 
     private static void Clear(in EquilibriumScratch scratch, in SystemLayout layout)

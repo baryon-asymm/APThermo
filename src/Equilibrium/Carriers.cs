@@ -120,6 +120,20 @@ internal static class SpeciesMarks
 }
 
 /// <summary>
+/// Rule A's tie (BOOT.md, "Two rules come before the remedies above", 2026-09-28, "Rule A: an element tie"): the one
+/// other active element a failed element row was found to duplicate, and the ratio a_k/a_i of their rows. Per-case
+/// state, carried in <see cref="IterationState"/> and copied into <see cref="SystemLayout"/> for the one Newton step
+/// that assembles the tie row (<see cref="IterationMatrix"/> is the only writer of it).
+/// </summary>
+internal struct ElementTie
+{
+    public bool Active;
+    public int Element;
+    public int Partner;
+    public double Ratio;
+}
+
+/// <summary>
 /// The shape of the reduced system of one convergence: how many unknowns, where the total-moles and temperature rows sit,
 /// and which problem is being solved. The derivative system of section 2.5 is a tp-shaped layout over the same scratch.
 /// </summary>
@@ -134,11 +148,22 @@ internal readonly struct SystemLayout
         NRow = elementCount + condensedCount;
         TRow = NRow + 1;
         Unknowns = elementCount + condensedCount + 1 + (kind == ProblemKind.AssignedTemperaturePressure ? 0 : 1);
+        Tie = default;
+    }
+
+    /// <summary>As above, with rule A's tie for the Newton step that assembles the tie row.</summary>
+    public SystemLayout(ProblemKind kind, int elementCount, int condensedCount, int stride, ElementTie tie)
+        : this(kind, elementCount, condensedCount, stride)
+    {
+        Tie = tie;
     }
 
     public readonly ProblemKind Kind;
     public readonly int ElementCount;
     public readonly int CondensedCount;
+
+    /// <summary>Rule A's tie for this Newton step, if any; inactive outside the Newton loop (the derivative system reads its own from <see cref="IterationState"/>).</summary>
+    public readonly ElementTie Tie;
 
     /// <summary>Row stride of the scratch matrix: <see cref="ScratchLayout.MaxUnknowns"/> of the case, not the live count.</summary>
     public readonly int Stride;
@@ -252,4 +277,13 @@ internal struct IterationState
     /// <see cref="IterationState"/>.
     /// </summary>
     public bool RetentionSecondStage;
+
+    /// <summary>
+    /// Rule A's tie (BOOT.md, 2026-09-28), once a coupled pair of elements made the matrix singular; inactive until
+    /// then. <see cref="DerivativeSystem"/> reads it from here, not from a parameter of its own.
+    /// </summary>
+    public ElementTie Tie;
+
+    /// <summary>Whether the tie has already been released once in this solve (BOOT.md, rule A, "Release"): at most once per solve.</summary>
+    public bool TieReleased;
 }
