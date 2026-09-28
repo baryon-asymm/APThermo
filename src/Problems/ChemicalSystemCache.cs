@@ -78,13 +78,18 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
             _ = AtomicWeights.Of(database, element);
         }
 
+        // Validated before the cache lookup (2026-09-28, the third audit pass, finding 3): the key below carries
+        // only the elements, Omit and Only, never a call's own abundances, so a system cached for one call's
+        // (harmless, zero-abundance) element must not be handed, unvalidated, to a later call whose own mixture
+        // gives that element a real amount. The candidate list is recomputed on every call, a cache hit included,
+        // the same cost ValidateOwnElements already pays once per record of a batch.
+        var candidates = ValidatedCandidates(elements, omit, only, elementsWithAbundance);
         var key = KeyOf(elements, omit, only);
         if (_systems.TryGetValue(key, out var system))
         {
             return system;
         }
 
-        var candidates = ValidatedCandidates(elements, omit, only, elementsWithAbundance);
         var table = SpeciesTable.Build(database, [.. elements], candidates);
         var transport = database.Transport is null ? null : TransportTable.Build(database.Transport, table);
         system = new ChemicalSystem([.. elements], table, engine.Upload(table, transport));
