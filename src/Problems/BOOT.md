@@ -283,6 +283,68 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     "null when transport was not requested", and the test that pinned the behaviour
     asserted the opposite of the contract (`API.md` is corrected).
 
+- **Audit fixes of 2026-09-28** (the second hidden-defect audit, Data, Problems and Cli,
+  findings F1 to F3 and observations 1 to 7). They refine three rules of 2026-09-26
+  above, whose sentences stay as they were decided, and add five:
+  - **An element without candidates is refused only when it carries moles.** An
+    element with no candidate species is refused only when some mixture of the batch
+    gives it a nonzero abundance. An element at zero in every mixture is masked, as the
+    equilibrium node masks any absent element, and the result is the result without
+    it.
+    - ⚠ The rule of 2026-09-26 looked at the element list, never at the abundances.
+      A state record that lists `"E": 0.0`, as a plasma-capable code writes a neutral
+      mixture, solved at `9c33398` bit for bit like the record without it, and was
+      refused at `5a732f0` (finding F1, a regression of that fix).
+  - **The refusal names its real cause.** When the candidates of an element were
+    removed by an `Only` or `Omit` list, the refusal says so, and names the list. The
+    wording "only ionized or inert records carry it" is kept for the database's own
+    case. Observation 1: `"only": ["H2", "H"]` on LOX/LH2 was refused as "element 'O'
+    has no candidate species: only ionized or inert records carry it".
+  - **An `Only` list names candidates only.** A name in `Only` that is an ionized
+    species or an inert pseudo-element record is refused by name, as the candidate
+    rule above excludes them. Observation 2: `e-`, `H+`, `OH-`, `H3O+` or `InertH` in
+    `only` were solved, against that rule.
+  - **One amount kind per unit of normalization.** The kinds are checked where the
+    kilogram is split. With a ratio, that is per role group, as before. Without a
+    ratio, the whole propellant is one kilogram, so every reactant of every group
+    shares one kind.
+    - ⚠ The rule of 2026-09-26 checked each group alone. Without a ratio, a fuel group
+      in mass fractions beside a named group in moles passed both checks and was pooled:
+      `H2(L)` 0.5 beside 0.5 mol of `CH4(L)` made `CH4(L)` 94.13 % of the mass, the
+      first audit's own figure (finding F2).
+  - **A record is named for its own elements; a batch is named for its options.**
+    `SolveStates` and `SolveRocketStates` check each record's own elements (atomic
+    weight, candidates) before the union of the batch is built. A record that fails is
+    a `StateRecordException` with its index. A condition of the batch, not of a record,
+    is an `ArgumentException` naming the option: transport requested from a database
+    loaded without `trans.inp`, an invalid `StateBatchOptions.MassTolerance`.
+    - ⚠ The rule of 2026-09-26 above says the record's exception covers "an element
+      the database lacks". The code checked the elements on the union, where no index
+      exists, and threw a plain `ArgumentException`. The batch-level conditions went the
+      other way and were blamed on record 0 (`states.jsonl:1: transport properties were
+      requested …`). In a JSON Lines file of 100 000 records the first left no way to
+      find the record (finding F3).
+  - **Estimates are finite when given.** A rocket's `TemperatureEstimate` or an
+    equilibrium problem's `Temperature` of ±∞ is refused, as NaN and negative values
+    are (observation 5: +∞ passed and ended `SingularMatrix` at the chamber).
+  - **Amounts sum to a finite value.** A group whose amounts sum to a non-finite
+    value is refused, naming the group (observation 7: two fuels of 1e308 were
+    refused by the mass check as if the oxidizer alone weighed the kilogram).
+  - **Reactant records resolve by the rules that name them.**
+    - The last record is taken only for a reactant-only name. A product name with
+      several records keeps the union of ranges, and its enthalpy comes from the joined
+      table species.
+    - A name whose records mix fitted and unfitted ones is refused, since no committed
+      name does and the reference's behaviour for it is not established
+      (observation 3).
+    - A reactant's temperature window uses the lowest lower and the highest upper bound
+      of its records, the thermo node's `RecordLow`/`RecordHigh` rule. Observation 6:
+      `Br2(cr)`, written 300 → 265.9 K, had an empty window and could not be used at
+      any temperature; cea 3.3.4 evaluates it at 298.15 K.
+  - **The chemical-system cache key is unambiguous.** It no longer joins names with a
+    comma, which 84 product names contain (observation 4): `omit` lists
+    `["B2H4,db"]` and `["B2H4", "db"]` built the same key.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). `Solver`
@@ -807,6 +869,36 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       correction is a comment-only fix to `Results.cs` and this node's `API.md`; no
       test changes because the code already matched the corrected wording
       (`RocketTests.AFailingStationIsAStatusAndNotAnException` already pinned it).
+
+      ⚠ 2026-09-28: three of these facts tried only one side of their rule. The
+      no-candidate fact gave the element positive moles only, the amount-kind fact
+      mixed kinds inside one group and only with a ratio, and the record-index fact
+      covered the rules of `ProblemValidation` but not the elements of a record. The
+      second audit found a regression and two gaps behind them (the ⚠ notes of
+      2026-09-28 under Constraints).
+- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once against
+      `5a732f0`:
+      - a record with `"E": 0.0` beside the approved AP/Al record solves, and its
+        station fields equal the record's without `E` bit for bit; a record with
+        `"E": 1e-6` is still refused;
+      - `"only": ["H2", "H"]` on LOX/LH2 is refused, naming the `only` list as the
+        cause; `e-`, `H+` or `InertH` in `only` is refused by name;
+      - without a ratio, a fuel in mass fractions beside a named reactant in moles is
+        refused, and so is an oxidizer in moles beside a named reactant in mass
+        fractions; with a ratio, the per-group rule of 2026-09-26 is unchanged;
+      - in a batch of three records, one with `"Xx": 0.0` and one with `"e": 1e-6`,
+        each is a `StateRecordException` with its own index. A transport request
+        against a database without `trans.inp` is an `ArgumentException` naming the
+        option, and so is `StateBatchOptions.MassTolerance` NaN;
+      - a rocket `TemperatureEstimate` of +∞ and an equilibrium `Temperature` of +∞
+        are refused;
+      - two fuels of 1e308 are refused naming the group's non-finite sum;
+      - `Br2(cr)` at 298.15 K resolves, its enthalpy equal to cea 3.3.4's
+        (−68 567.58 J/kg), computed by the fixtures node's generator rather than typed;
+      - two `omit` lists that joined to the same text now give two tables.
+
+      `API.md` states each refusal in its errors table. No bit snapshot moves; the
+      public surface does not change.
 
 ## Taboos
 

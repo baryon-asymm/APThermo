@@ -197,6 +197,43 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   - **Database errors.** They are printed as the Data node gives them, with no second
     prefix.
 
+- **Audit fixes of 2026-09-28** (the second hidden-defect audit, Data, Problems and
+  Cli, findings F4 to F7 and observation 8). Each child node named holds its part.
+  - **Documents: sweeps are bounded.** A range whose step count is not finite, or
+    whose values exceed a declared limit, is refused with its path, and so is a
+    sweep whose Cartesian product exceeds a declared limit. The limits are 1 000 000
+    values per axis and 10 000 000 cases per document. They are named constants,
+    stated in `API.md`. The "ends on a step" test runs only on a finite step count, so
+    its reason is never false.
+    - ⚠ `(int)Math.Round` of a step count beyond `int.MaxValue`, infinity included,
+      saturated to `int.MaxValue`. `count + 1` then wrapped, and the allocation threw an
+      `OverflowException`: exit 3 on `from` 1, `to` 1e308, `step` 1e-300. `to` 3e9,
+      `step` 1 was refused with the false reason "is not an integer". Three axes of
+      2 000 values each would have been materialized as 8 × 10⁹ cases (finding F4).
+  - **Documents: text that is not valid UTF-16 is refused.** A JSON escape that is not
+    valid UTF-16 (a lone surrogate, `"\ud800"`) is refused with the path of the member
+    or value that carries it: exit 2.
+    - ⚠ `JsonDocument` accepts such an escape, and unescaping it threw
+      `InvalidOperationException`, exit 3. It happened in a member name or a string
+      (finding F6, present since the first version). Since 2026-09-26 the duplicate
+      check reaches it at every object's construction.
+  - **Syntax: a blank option value is a bad value.** A value that is empty or white
+    space only is refused: exit 2 naming the option.
+    - ⚠ The fix of 2026-09-26 refused an empty string only. `--output " "` reached
+      `File.WriteAllText` on Windows and exited 3 with `ArgumentException: The path is
+      empty` (finding F5).
+  - **Mass tolerance: the contract says what the code does.**
+    - `API.md` states that `--mass-tolerance` on a document whose propellant is given
+      by reactants is exit 2, in the command description and in the errors table.
+    - The guide's sentence says which commands and documents take the option.
+    - The propellant-mixture refusal carries the document's path like every other
+      form: `<file>: the propellant's mixture (case i): …`.
+    - The `species` listing's `run` section records only the options the command
+      takes (observation 8).
+    - ⚠ The fix of 2026-09-26 changed the code and the changelog but left `API.md`
+      saying a reactant propellant "keeps the default". The guide still said every
+      solving command takes the option (finding F7).
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
@@ -603,6 +640,21 @@ Every other type of the node measures 14 or below by the dependency check's walk
       green on the merged tree (the merge commit's own record has the final count).
       `dotnet build APThermo.sln`: 0 warnings, 0 errors. The protocol lint: 0 errors,
       0 warnings. The public surface is unchanged.
+- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once against
+      `5a732f0`, as a process or through `Program.Run`, asserting the exit code and
+      the path in the message:
+      - the audit's three range documents (`range-inf`, `range-intmax`,
+        `range-overflow`) and `range-3e9`: exit 2 naming `$.sweep.<axis>` and the
+        limit;
+      - a product of three axes above the case limit: exit 2 before any solve;
+      - a lone surrogate in a reactant name, a composition key, an unknown record
+        member and an unknown root member: exit 2 naming the path;
+      - `--output " "` and `--output "  "`: exit 2 naming the option;
+      - `equilibrium <reactant document> --mass-tolerance 0.01`: exit 2, as `API.md`
+        now says; a reactant document's mass refusal starts with the document's path.
+
+      The docs tests node stays green, and its approved outputs move only where the
+      guide's sentence on `--mass-tolerance` changed. The schemas do not change.
 
 ## Taboos
 
