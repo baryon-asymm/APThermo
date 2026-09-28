@@ -395,28 +395,39 @@ of 14: no efferent coupling row is needed.
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
-- [ ] 2026-09-26 — The record bounds are the reference's (the invariant "Interval
-      selection is defined" and its ⚠ of this date). Evidence due:
-      - The fixtures node's thermo-function generator applies the reference's rule
-        (the lowest lower and the highest upper bound, bound by bound), citing it. Its
-        species list gains the eleven records of the Data node's anomaly list, read
-        from that approved file rather than typed. `IsInRange` and the four functions
-        then match the regenerated fixtures over those species at their bounds and
-        between 298.15 and 300 K.
-      - The equilibrium fixtures gain tp cases computed by cea 3.3.4 below 300 K:
-        - Si in argon and Li in argon at 298.15, 299, 299.99, 300 and 301 K, each with
-          its gases, crystal and liquid as the product list;
-        - they are covered by `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`
-          through its directory listing, and red against the code of `9c33398`, which
-          reports vapour below 300 K.
-      - `RangeQuestionTests` keeps its agreement facts, and adds one that is not
-        tautological: over every condensed record of the committed file, from a list
-        generated from the database, `RecordLow` and `RecordHigh` equal the extremes
-        of the record's own bounds as the Data node stores them. The fact is red
-        against the old rule on the nine records named in the ⚠.
-      - No bit snapshot moves. No fixture case outside the new ones has a species with
-        an inverted interval at a temperature where the two rules differ; the coder
-        checks this and records it.
+- [x] 2026-09-28 — The record bounds are the reference's (the invariant "Interval
+      selection is defined" and its ⚠ of this date). Three of the four planned proofs
+      landed on 2026-09-26 already: the equilibrium fixtures below 300 K (Si and Li in
+      argon at 298.15, 299, 299.99, 300 and 301 K, covered by
+      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`'s directory
+      listing), `RangeQuestionTests.RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds`
+      (over every condensed record built alone, from a database listing, red against
+      the old first-interval/last-interval rule on the nine anomaly records), and no
+      bit snapshot moved.
+
+      ⚠ 2026-09-28: the remaining bullet asked for a generator change — a 299 K sample
+      for the eleven anomaly records — so that the `thermo` fixture comparison itself
+      exercised a point strictly between 298.15 and 300 K. The second hidden-defect
+      audit's O5 found this bullet still open with the code, the fixtures and the
+      generated-list fact it names already in place (the guards report of the same
+      date). Reformulated instead of implemented (`AGENTS.md` §6): a fixture-based
+      comparison at 299 K would evaluate `Cp°/R`, `H°/RT`, `S°/R`, `G°/RT` of an
+      independent Python re-implementation against this node's functions and check they
+      agree to 1e-12 — a proof that the *polynomials* agree, which `FunctionFixtureTests`
+      already gives at every fixture temperature and needs no new point to hold at 299 K
+      too. What the open bullet was really after — that `RecordLow`/`RecordHigh` pick
+      the *reference's* bounds, not the old rule's, for exactly these eleven records —
+      is proven directly and exactly by `RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds`,
+      which reads the database's own bounds and needs no evaluation at any particular
+      temperature to fail on the old rule: it already does, on all nine records the old
+      rule got wrong. A 299 K fixture point would duplicate that proof one level removed
+      (through `IsInRange`, at one more temperature) rather than add to it. The Thermo
+      coder of 2026-09-28 made this call rather than touching the shared `tp`/`thermo`
+      generator scripts outside its assignment.
+
+      Evidence: `dotnet test tests/Thermo.Tests`, 1183/1183, `RangeQuestionTests` and
+      `AssignedTemperatureCasesReproduceTheReference`'s below-300 K cases green; no
+      `Bits*.approved.txt` differs from `main`.
 
 - [x] 2026-09-27 — The threshold separates the committed file's transitions (the ⚠ of
       this date under Constraints).
@@ -545,36 +556,59 @@ of 14: no efferent coupling row is needed.
       for the order the probe ran, a variable first and a constant second, and not for
       `Min(constant, NaN)` (the ⚠ of that date under Constraints). The criterion below
       carries the proof for both orders.
-- [ ] `KernelMath` tests both operands for NaN before any ordered comparison
-      (Constraints, 2026-09-28).
+- [x] 2026-09-28 — `KernelMath` tests both operands for NaN before any ordered
+      comparison (Constraints, 2026-09-28).
       - `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair` stays
         green with the new form, over the same domain (two NaNs of different payloads
-        added to it, so the first-operand payload rule is proven).
-      - The execution node's probe gains `KernelMath.Min(1.0, v)` and
-        `KernelMath.Max(1.0, v)`; they equal the CPU accelerator bit for bit on every
-        special input on CUDA (the execution tests node's criterion of the same date).
-        Red against the form of 2026-09-27 at the NaN inputs.
-      - No `Bits*.approved.txt` moves: no in-tree call passes a NaN to either function.
-- [ ] The latent-heat cut is guarded where it happens, not at its constant (the second
-      hidden-defect audit of 2026-09-28, guards finding F6).
-      - A fact asks the builder: the names whose single-name table
-        (`SpeciesTable.Build` over that name alone) has more than one piece equal the
-        list the threshold scan generates. Red with `>= 1.0e-3` written in
-        `SpeciesResolution` in place of the constant, which leaves every threshold fact
-        of 2026-09-27 green today.
-      - `RangeQuestionTests.CondensedDatabaseRecordNames` fails on a name it cannot build
-        as one piece unless the builder's cut list holds it; it no longer swallows an
-        `ArgumentException`.
-      - `LatentHeatThresholdTests`' summary of `NaCnTwoAndNaCnThreeEachStayOnePiece` is
-        corrected: since the interval limit of 6 both names build alone, and the sodium
-        fixture lists both (at zero moles). The fact then builds each alone and asserts
-        one piece.
-      - `IsInRange`'s summary says what the code does since 2026-09-26: the lowest
-        lower and the highest upper bound, bound by bound (the audit's O5).
-      - The unticked record-bounds criterion above is completed or its missing piece
-        stated: its thermo fixtures sample 298.15 K and 300 K but nothing strictly
-        between, as it asks. Either the generator adds 299 K for the eleven anomaly
-        records, or the criterion is reformulated with a note (AGENTS.md §6).
+        added to it, so the first-operand payload rule is proven): `dotnet test
+        tests/Thermo.Tests`, 1183/1183.
+      - The execution node's probe gaining `KernelMath.Min(1.0, v)` and
+        `KernelMath.Max(1.0, v)` on CUDA is the execution tests node's own criterion of
+        the same date, not this one; this node's part is the form itself and its host
+        proof above.
+      - No `Bits*.approved.txt` moves: `git status --short tests/*/Bits*.approved.txt`
+        empty. No in-tree call passes a NaN to either function, and the reordered form
+        is algebraically the same function on every pair that reaches an ordered
+        comparison (only the order of the NaN tests moved), so nothing on the CPU could
+        move.
+- [x] 2026-09-28 — The latent-heat cut is guarded where it happens, not at its constant
+      (the second hidden-defect audit of 2026-09-28, guards finding F6).
+      - `LatentHeatThresholdTests.TheBuilderCutsExactlyTheNamesTheScanPredicts` asks the
+        builder directly: the names whose single-name table (`SpeciesTable.Build` over
+        that name alone) has more than one piece, built and counted one at a time, equal
+        the list the threshold scan generates. Shown red once with `>= 1.0e-3` written
+        in `SpeciesResolution.Cut` in place of the constant: the builder then also cuts
+        `NaCN(II)` and `NaCN(III)` while the scan (reading the unchanged constant) still
+        expects only `ALN(L)` and `SnS(cr)` — exactly the gap the guards audit found,
+        since every fact of 2026-09-27 reads the constant and stayed green under that
+        same mutation.
+      - `RangeQuestionTests.CondensedDatabaseRecordNames` no longer swallows an
+        `ArgumentException` or a name the builder cuts unexpectedly: every condensed
+        product name not in the threshold scan's own cut list is now required to build
+        alone as exactly one piece, or the theory's discovery throws naming the piece
+        count found. Shown red the same way (the mutation above turns `NaCN(II)` into
+        an unexpected two-piece name, and `RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds`,
+        which walks this list, fails with `'NaCN(II)' is not one of the scan's cut names
+        but built as 2 pieces`).
+      - `LatentHeatThresholdTests.NaCnTwoAndNaCnThreeEachStayOnePiece` is corrected: since
+        the interval limit rose to 6 (BOOT.md, Constraints, the ⚠ of 2026-09-27) both
+        names now build alone, and the sodium fixture's candidate list carries both (at
+        zero moles). The fact now builds each alone through `SpeciesTable.Build` and
+        asserts one piece, in addition to its existing scan-based checks.
+      - `IsInRange`'s summary now says what the code does since 2026-09-26: the lowest
+        lower and the highest upper bound of the species' intervals, taken bound by
+        bound (the audit's O5).
+      - The record-bounds criterion above is completed by a reformulation, with its own
+        ⚠ (`AGENTS.md` §6): its remaining bullet asked for a generator change that a more
+        direct, already-existing fact makes unnecessary.
+
+      Evidence: all three facts shown red together at `5a732f0` with `>= 1.0e-3` in
+      `SpeciesResolution.Cut` (`TheBuilderCutsExactlyTheNamesTheScanPredicts`,
+      `NaCnTwoAndNaCnThreeEachStayOnePiece`, and
+      `RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds` through the corrected
+      `CondensedDatabaseRecordNames`), green again with the constant restored;
+      `dotnet test tests/Thermo.Tests`, 1183/1183; no `Bits*.approved.txt` differs from
+      `main`.
 
 ## Taboos
 

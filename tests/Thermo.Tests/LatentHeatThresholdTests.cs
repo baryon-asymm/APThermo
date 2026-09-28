@@ -16,15 +16,16 @@ public sealed class LatentHeatThresholdTests
     private static readonly CpuFixture Cpu = new();
 
     /// <summary>One shared bound of one condensed product name: the kelvin value and |ΔH°/RT| across it.</summary>
-    private readonly record struct SharedBound(string Name, double Bound, double Jump);
+    internal readonly record struct SharedBound(string Name, double Bound, double Jump);
 
     /// <summary>
     /// Every shared bound of the committed file's condensed product records, in the database's own name and file
     /// order: consecutive intervals of the name's records (one record's own intervals, then the next record's,
     /// exactly as <see cref="SpeciesResolution"/> concatenates them), where the earlier interval's upper bound
-    /// touches the later one's lower bound.
+    /// touches the later one's lower bound. Internal so <see cref="RangeQuestionTests"/> reads the same scan instead
+    /// of a second implementation of it (2026-09-28).
     /// </summary>
-    private static List<SharedBound> ScanSharedBounds()
+    internal static List<SharedBound> ScanSharedBounds()
     {
         var database = Cpu.Database;
         var bounds = new List<SharedBound>();
@@ -94,10 +95,10 @@ public sealed class LatentHeatThresholdTests
 
     /// <summary>
     /// NaCN(II) and NaCN(III) each stay one piece at the new threshold (BOOT.md's ⚠ of 2026-09-27): both are scanned
-    /// (each has at least one internal bound), and neither reaches the threshold. Neither can be built alone through
-    /// <see cref="SpeciesTable.Build"/> to check this directly: NaCN(II) alone has 6 intervals, over
-    /// <see cref="TableLimits.MaxIntervalsPerSpecies"/>, regardless of any cut, and no fixture holds either name
-    /// (the design's own scan found none), so the scan above is this fact's only source of truth.
+    /// (each has at least one internal bound) and neither reaches the threshold. Each now also builds alone through
+    /// <see cref="SpeciesTable.Build"/> (BOOT.md's ⚠ of 2026-09-28, the guards audit's finding F6): the interval limit
+    /// rose to 6 the same day, so NaCN(II)'s six intervals no longer refuse it, and the sodium fixture's candidate
+    /// list carries both names at zero moles.
     /// </summary>
     [Fact]
     public void NaCnTwoAndNaCnThreeEachStayOnePiece()
@@ -108,5 +109,64 @@ public sealed class LatentHeatThresholdTests
         var threshold = SpeciesFunctions.LatentHeatThreshold;
         Assert.DoesNotContain(bounds, b => b.Name == "NaCN(II)" && b.Jump >= threshold);
         Assert.DoesNotContain(bounds, b => b.Name == "NaCN(III)" && b.Jump >= threshold);
+
+        var database = Cpu.Database;
+        foreach (var name in new[] { "NaCN(II)", "NaCN(III)" })
+        {
+            var elements = database[name].Formula.Select(pair => pair.Symbol).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            var table = SpeciesTable.Build(database, elements, [name]);
+            _ = Assert.Single(table.IndicesOf(name));
+        }
+    }
+
+    /// <summary>
+    /// The builder's own cut names equal the threshold scan's list (the guards audit's finding F6, 2026-09-28): a
+    /// wrong constant written directly in <see cref="SpeciesResolution"/>'s cut, bypassing
+    /// <see cref="SpeciesFunctions.LatentHeatThreshold"/>, would leave every fact above green while the builder
+    /// itself cut something else. Every condensed product name is built alone and its piece count asked of the
+    /// table, not assumed from the scan. Red with <c>&gt;= 1.0e-3</c> written in <c>SpeciesResolution.Cut</c> in
+    /// place of the constant: NaCN(II) and NaCN(III) then cut too, while the scan (reading the unchanged constant)
+    /// still expects only ALN(L) and SnS(cr).
+    /// </summary>
+    [Fact]
+    public void TheBuilderCutsExactlyTheNamesTheScanPredicts()
+    {
+        var database = Cpu.Database;
+        var threshold = SpeciesFunctions.LatentHeatThreshold;
+        var expected = ScanSharedBounds()
+            .Where(b => b.Jump >= threshold)
+            .Select(b => b.Name)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .ToList();
+
+        var actual = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var record in database.Products)
+        {
+            if (record.Phase != SpeciesPhase.Condensed || !seen.Add(record.Name))
+            {
+                continue;
+            }
+
+            var elements = database[record.Name].Formula.Select(pair => pair.Symbol).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            SpeciesTable table;
+            try
+            {
+                table = SpeciesTable.Build(database, elements, [record.Name]);
+            }
+            catch (ArgumentException)
+            {
+                continue; // an interval-limit or non-joining refusal: not a cut, examined by other facts
+            }
+
+            if (table.IndicesOf(record.Name).Count > 1)
+            {
+                actual.Add(record.Name);
+            }
+        }
+
+        actual.Sort(StringComparer.Ordinal);
+        Assert.Equal(expected, actual);
     }
 }

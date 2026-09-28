@@ -25,48 +25,51 @@ public sealed class RangeQuestionTests
     }
 
     /// <summary>
-    /// Every condensed record name of the committed file that resolves to exactly one table piece, deduplicated,
-    /// from a database listing — not the thermo fixture species, so the expectation below is independent of what
-    /// this node's own tests happen to cover (2026-09-26). Left out: a name with more intervals than
-    /// <see cref="TableLimits.MaxIntervalsPerSpecies"/> (<c>NaCN(II)</c>), same-name records that do not join
-    /// (<see cref="SpeciesTable.Build"/> refuses them), and a name the join-and-cut splits into more than one table
-    /// piece (a real latent heat between two joined records, or <c>ALN(L)</c>); none of these has one record-wide
-    /// bound to compare, and <see cref="PieceOfNamesThePieceTheIntervalRuleChooses"/> covers the cut names.
+    /// Every condensed record name of the committed file that is not one of the threshold scan's cut names,
+    /// deduplicated, from a database listing — not the thermo fixture species, so the expectation below is
+    /// independent of what this node's own tests happen to cover (2026-09-26). A cut name (a real latent heat
+    /// between two joined records, or between a record's own intervals, e.g. <c>ALN(L)</c>) has no one record-wide
+    /// bound to compare and is left to <see cref="PieceOfNamesThePieceTheIntervalRuleChooses"/> instead; every other
+    /// name is now required to build alone as exactly one table piece (2026-09-28, the guards audit's finding F6):
+    /// the method no longer swallows an <see cref="ArgumentException"/> or a name the builder cuts unexpectedly, so
+    /// a stale exclusion (the interval limit that used to leave out <c>NaCN(II)</c>, raised to 6 the same day) fails
+    /// the discovery instead of silently narrowing the theory.
     /// </summary>
     public static TheoryData<string> CondensedDatabaseRecordNames()
     {
         var database = SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"));
+        var threshold = SpeciesFunctions.LatentHeatThreshold;
+        var cutNames = new HashSet<string>(
+            LatentHeatThresholdTests.ScanSharedBounds().Where(b => b.Jump >= threshold).Select(b => b.Name),
+            StringComparer.Ordinal);
+
         var data = new TheoryData<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var record in database.Products)
         {
-            if (record.Phase != SpeciesPhase.Condensed || !seen.Add(record.Name))
+            if (record.Phase != SpeciesPhase.Condensed || !seen.Add(record.Name) || cutNames.Contains(record.Name))
             {
                 continue;
             }
 
-            if (SinglePieceTable(database, record.Name) is not null)
+            var elements = database[record.Name].Formula.Select(pair => pair.Symbol).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            var table = SpeciesTable.Build(database, elements, [record.Name]);
+            if (table.IndicesOf(record.Name).Count != 1)
             {
-                data.Add(record.Name);
+                throw new InvalidOperationException($"'{record.Name}' is not one of the scan's cut names but built as {table.IndicesOf(record.Name).Count} pieces");
             }
+
+            data.Add(record.Name);
         }
 
         return data;
     }
 
-    /// <summary>The one-species table of <paramref name="name"/>, or null when it cannot be built or resolves to more than one piece.</summary>
-    private static SpeciesTable? SinglePieceTable(SpeciesDatabase database, string name)
+    /// <summary>The one-species table of <paramref name="name"/>: used only by facts that already know it is not a cut name.</summary>
+    private static SpeciesTable SinglePieceTable(SpeciesDatabase database, string name)
     {
         var elements = database[name].Formula.Select(pair => pair.Symbol).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        try
-        {
-            var table = SpeciesTable.Build(database, elements, [name]);
-            return table.IndicesOf(name).Count == 1 ? table : null;
-        }
-        catch (ArgumentException)
-        {
-            return null;
-        }
+        return SpeciesTable.Build(database, elements, [name]);
     }
 
     /// <summary>The thermo fixture species the committed file's join-and-cut actually splits into more than one piece.</summary>
@@ -152,7 +155,6 @@ public sealed class RangeQuestionTests
     {
         var database = SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"));
         var table = SinglePieceTable(database, name);
-        Assert.NotNull(table);
         var piece = table.IndicesOf(name)[0];
         var intervals = database.Records(name).SelectMany(record => record.Intervals).ToList();
         var expectedLow = intervals.Min(interval => interval.TLow);
