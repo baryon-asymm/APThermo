@@ -885,29 +885,79 @@ this node needs no other efferent-coupling row.
       own bands most cases ended `ThroatNotFound` (the third pass, the ⚠ under
       Constraints, the plateau edge's state); the 3 MPa fixture lies at h 2.2375, outside
       the band h 2.206 to 2.213 the bullet names. The criterion below reopens it.
-- [ ] The third audit pass of 2026-09-28 (part 2: finding 1 and the observation on the
-      boundary cap) is closed by the rules of that date under Constraints.
+- [x] 2026-09-28 — The third audit pass of 2026-09-28 (part 2: finding 1 and the
+      observation on the boundary cap) is closed by the rules of that date under
+      Constraints.
       - **The plateau edge's reach.** The geometric offsets of the plateau-edge rule
-        and the cap of 8 boundaries with `ThroatNotFound` on exhaustion.
-      - **The bands as facts.** Over the element moles of
-        `li2o-throat_pc0.3MPa_h3.29375MJkg`: 0.3 MPa, h 3.05625 to 3.36875 MJ/kg in
-        12.5 kJ/kg steps (26 cases), and 3 MPa, h 2.15 to 2.2109 MJ/kg as the audit
-        stepped it (12 cases), both shifting: every case `Ok`, no `ThroatNotFound`, each
-        throat single-phase and subsonic when it is a plateau edge, and each passing the
-        first-maximum fact. Red at `c02e14d` (21 and 10 `ThroatNotFound`), green after.
-        The audit's probe is `scratchpad/audit3/b/repo/tests/Performance.Tests/ZzProbeBand.cs`
-        with its outputs `band-old.csv`, `band-new.csv`, `band-geo.csv` (kept out of the
-        tree).
-      - **A fixture inside the 3 MPa band.** One `throat` fixture at h within 2.206 to
-        2.213 MJ/kg through the generator, so the F3 fact covers the band it names.
-      - **No vacuous pass.** `AssertFirstMaximum` fails on a non-`Ok` throat, unless the
-        case is declared to end so, with its status, in the fact's own data; the
-        first-maximum facts and the bands above fail when the set they walk is empty.
-        Shown red once with the old reach restored.
-      - **The cap.** A unit fact: a walk that meets more boundaries than the cap ends
-        `ThroatNotFound`; the Li/O/H bands above stay within it.
-      - **Bits.** A moved snapshot is re-approved only with the case named and a
-        field-by-field measure, as for `rp1311-example13` above.
+        (`ThroatBracketSearch.AcceptPlateauEdge`, `1e-10·4^k` up to an offset of `1e-4`)
+        and the cap of 8 boundaries (`UpstreamChokeCheck.MaxPhaseBoundaries`) with
+        `ThroatNotFound` on exhaustion, never an unverified `Ok`.
+      - **The bands as facts.** `Performance.Tests/ThirdPassFixTests.cs`:
+        `TheLi2OBandAt0Point3MPaNeverEndsThroatNotFound` over the element moles of
+        `li2o-throat_pc0.3MPa_h3.29375MJkg`, h 3.05625 to 3.36875 MJ/kg in 12.5 kJ/kg
+        steps (26 cases), and `TheLi2OBandAt3MPaNeverEndsThroatNotFound` over
+        `li2o-throat_pc3MPa_h2.2375MJkg`, h 2.15 to 2.2015625 MJ/kg at the probe's own
+        step (4.6875 kJ/kg, 12 cases): every case `Ok`, no `ThroatNotFound`, each
+        plateau-edge throat single-phase and subsonic (`Mach < 1`, `GammaS > 1.05`), and
+        each passing `SecondAuditFixTests.AssertFirstMaximum`. Red at `c02e14d` (21 of
+        26, and 10 of 12, `ThroatNotFound`), green after. The audit's probe is
+        `scratchpad/audit3/b/repo/tests/Performance.Tests/ZzProbeBand.cs` with its
+        outputs `band-old.csv`, `band-new.csv`, `band-geo.csv` (kept out of the tree).
+
+        ⚠ 2026-09-28: this bullet named the 3 MPa band's upper bound 2.2109 MJ/kg with
+        12 cases. Read against the audit's own probe output (`band-new.csv`), 2.2109 MJ/kg
+        (2210937.5 J/kg) is the *highest* pressure at which the pre-fix code still failed,
+        not the edge of a contiguous 12-case sweep: two of the twelve points between 2.15
+        and 2.2109 MJ/kg (2182812.5 and 2196875 J/kg) were already `Ok` even before the
+        fix, so a contiguous sweep to 2.2109 MJ/kg holds 14 cases, 12 of them failing. The
+        audit's own report (`scratchpad/audit3/2-throat-execution-guards.md`, "3 MPa
+        h 2.15-2.2109: 12/12 Ok before, 10 ThroatNotFound after") states 12 total and 10
+        failing, which the contiguous span 2.15 to 2.2015625 MJ/kg (12 points at the
+        probe's own 4.6875 kJ/kg step) reproduces exactly; that narrower, contiguous span
+        is what the fact sweeps.
+      - **A fixture inside the 3 MPa band.** `li2o-throat_pc3MPa_h2.20625MJkg`, added to
+        `tests/Fixtures/generate/throat_scan.py`'s new `THIRD_PASS_REACH_CASES` (h
+        2.20625 MJ/kg, inside 2.206 to 2.213 MJ/kg) and generated through
+        `regenerate.py`, never typed: `ThroatFixtureTests.TheThroatCaseReproducesTheReference`
+        covers it by the directory listing, so the F3 fact covers the band it names.
+        `regenerate.py --check` and `--check --sample` both exit 0; every other
+        committed fixture moved in its provenance (`generatorSha256`, `generatedOn`,
+        `scriptSha256`) only, verified field by field.
+      - **No vacuous pass.** `SecondAuditFixTests.AssertFirstMaximum` fails on a non-`Ok`
+        chamber or throat unless the caller's own `declaredStatus` names it (default
+        `Ok`; no committed case is declared otherwise); `ThirdPassFixTests` asserts each
+        band it sweeps and `RocketAndThroatFixtures` are non-empty. Shown red once: with
+        the old, linear eight-step reach restored in `ThroatBracketSearch.AcceptPlateauEdge`,
+        both band facts fail with "throat ended ThroatNotFound, not the declared Ok" on
+        their first case, instead of silently returning; reverted.
+      - **The cap.** `ThirdPassFixTests.AWalkThatMeetsMoreBoundariesThanTheCapEndsThroatNotFound`:
+        a hand-built chain of narrow (inside `ThroatBracketWidth`) boundaries, each echoed
+        back verbatim by `PhaseBoundaryLocator.Locate`'s own first check (no solve, the
+        idiom observations O1/O2 use), every end subsonic and every fingerprint distinct
+        from a sentinel candidate fingerprint, run one more time than the cap: none of
+        `UpstreamChokeCheck.Verify`'s three resolving conditions ever fires, reproducing
+        the walk `Verify` performs for a case with more real boundaries than its cap. No
+        real system on hand needs more than a handful of boundaries to resolve (the
+        richest measured, BeO/H2O at 15 MPa, six; Li2O at 3 MPa, seven, over its whole
+        chamber-to-vacuum isentrope) — below both the old cap of 4 and the new cap of 8 —
+        so the exhaustion branch itself is exercised directly against the walk's own
+        mechanism, as O1/O2 already do for `ThroatBracketSearch`'s bisection, rather than
+        against physics that does not reach it. With the cap temporarily lowered to 4 and
+        the exhaustion return reverted to the unverified `RestoreCandidate`, the full fast
+        suite of this node stayed green (1429/1429): no committed fixture's own boundary
+        count reaches even the *old* cap, matching the same "no real system on hand"
+        finding, and confirming the direct unit fact is the only guard against a
+        regression here, not a fixture-level one.
+      - **Bits.** No `Bits*.approved.txt` of this node moves: `BitSnapshotTests` covers
+        only the `rocket` fixture kind, and the new fixture is of the `throat` kind
+        (`git status --short` after regeneration touches only `tests/Fixtures/cases/`).
+
+      Evidence: `dotnet build APThermo.sln`, 0 warnings, 0 errors; `APTHERMO_NO_CUDA=1
+      dotnet test APThermo.sln --filter "Category!=LongRunning"`, every project green;
+      `dotnet test tests/Performance.Tests`, 1429 of 1429, none skipped (up from 1418 at
+      `0928618`, the new fixture's own facts and the four new `ThirdPassFixTests`); the
+      protocol lint, 0 errors, 0 warnings; no `Bits*.approved.txt` or
+      `PublicSurface.approved.txt` moved.
 
 ## Taboos
 

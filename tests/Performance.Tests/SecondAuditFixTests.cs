@@ -340,10 +340,15 @@ public sealed class SecondAuditFixTests
 
     /// <summary>
     /// The throat's mass flux is not below the oracle's over its 121-point grid, and no local maximum of the
-    /// oracle lies at a pressure closer to the chamber than the throat's own (BOOT.md, finding F1). A case that
-    /// does not end `Ok` at the throat has nothing to check.
+    /// oracle lies at a pressure closer to the chamber than the throat's own (BOOT.md, finding F1). A non-`Ok`
+    /// chamber or throat fails the fact unless <paramref name="declaredStatus"/> names it, since a silent return
+    /// on a non-`Ok` throat lets a real regression (a case that used to end `Ok` and no longer does) pass unnoticed
+    /// (the third audit pass of 2026-09-28, part 2's "no vacuous pass": <see cref="SecondAuditFixTests"/> found
+    /// exactly this at `5a732f0`, where the fact returned without checking on every one of the Li/O/H band's newly
+    /// `ThroatNotFound` cases). No case of the committed fixture set is declared: every rocket and throat fixture,
+    /// and the AP/HTPB/Al and element-mixture bands, converge to an `Ok` throat.
     /// </summary>
-    private static void AssertFirstMaximum(RocketInputs inputs, string label)
+    internal static void AssertFirstMaximum(RocketInputs inputs, string label, CaseStatus declaredStatus = CaseStatus.Ok)
     {
         // One dummy pressure-ratio exit reserves an extra station row for the oracle's probe; its own value is
         // never used, since the probe issues its own StationRequest directly (mirrors ThroatPlateauEdgeTests).
@@ -351,8 +356,17 @@ public sealed class SecondAuditFixTests
         var table = SpeciesTable.Build(CpuFixture.Shared.Database, probeInputs.System.Elements, probeInputs.System.Products);
         using var rocketCase = new RocketCase(CpuFixture.Shared.Accelerator, table, probeInputs);
         var context = rocketCase.Context;
-        if (ChamberSolve.At(in context, out var chamber) != CaseStatus.Ok || ThroatSearch.At(in context, in chamber, out var throat) != CaseStatus.Ok)
+        var chamberStatus = ChamberSolve.At(in context, out var chamber);
+        if (chamberStatus != CaseStatus.Ok)
         {
+            Assert.True(chamberStatus == declaredStatus, $"{label}: chamber ended {chamberStatus}, not the declared {declaredStatus}");
+            return;
+        }
+
+        var throatStatus = ThroatSearch.At(in context, in chamber, out var throat);
+        if (throatStatus != CaseStatus.Ok)
+        {
+            Assert.True(throatStatus == declaredStatus, $"{label}: throat ended {throatStatus}, not the declared {declaredStatus}");
             return;
         }
 
