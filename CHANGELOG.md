@@ -186,8 +186,9 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
 These equilibrium failures are measured, reported by status (never as a wrong `Ok`),
 and planned for 0.2.1:
 - Two trace species can cross the trace threshold alternately on every step, so the
-  solve never completes its final polish: KClO4 at 610 to 680 K and NaClO4 at 490 to
-  500 K end `NotConverged`.
+  solve never completes its final polish and ends `NotConverged`. It strikes
+  decompositions of perchlorates such as KClO4 and NaClO4 at some states between about
+  500 and 1400 K, depending on pressure and composition.
 - When the retained gases tie three elements together (only CO2, H2O and N2 at low
   temperature, where the oxygen row equals a combination of the carbon and hydrogen
   rows), an assigned-temperature state can end `SingularMatrix`.

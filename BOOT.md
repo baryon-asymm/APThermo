@@ -196,7 +196,10 @@ delivery (2026-09-15, `## Delivery` below).
     - no `#pragma warning` and no `#nullable disable`;
     - no `[SuppressMessage]` or `[UnconditionalSuppressMessage]`;
     - no `NoWarn` and no `WarningsNotAsErrors`;
-    - no severity below `warning` in any `.editorconfig` or `.globalconfig`.
+    - no severity below `warning` in any `.editorconfig` or `.globalconfig`;
+    - no rule set: no `CodeAnalysisRuleSet` property and no `*.ruleset` file (2026-09-28,
+      the third audit pass: a rule set setting CA1822 and CA1812 to `None` built with
+      both violations and passed every check).
   - A rule that conflicts with a framework is resolved in code:
     - test methods are PascalCase (CA1707) and carry XML documentation like any public
       member (CS1591);
@@ -651,6 +654,13 @@ There is no external ancestor: the tree root is the repository root, and the loa
       of `Transport`, the loop rules of `Equilibrium`). Every fix is therefore accepted
       only with the audit's own failing cases as facts, and a short third pass over the
       changed code follows before the rehearsal.
+
+      The third pass (2026-09-28, two read-only parts at `c02e14d`, reports kept with
+      the others) found one more regression of a fix: the plateau-edge rule of
+      `Performance` turned Li/O/H bands that were `Ok` into `ThroatNotFound`. Its
+      findings are designed in the nodes they concern (`Performance`, `Equilibrium`,
+      `Execution`, `Problems`, the protocol tests and fixtures nodes, and the rule-set
+      line of the Diagnostics constraint above) and close before the tag like the rest.
 
 ## Taboos
 

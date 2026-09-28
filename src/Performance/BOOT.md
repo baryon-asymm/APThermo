@@ -157,8 +157,26 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     (2026-09-28): a trial within `4e-5` is the throat, `Ok`.
   - The plateau edge's state (2026-09-28) is accepted only when its condensed set is
     the bracket's subsonic end's and its `u²/a² < 1`. Otherwise it is solved again
-    from the chamber's composition a few bracket widths further toward the chamber,
-    up to a bounded number of times, where `ρu` moves by about 1e-10 relative.
+    from the chamber's composition further toward the chamber, at `ln p` offsets
+    growing geometrically from the bracket width (`1e-10·4^k`, the third pass of
+    2026-09-28), until a solve lands on the subsonic side or the offset would exceed
+    `1e-4`. The first such solve is the throat; `ρu` there departs from the edge's by
+    less than the offset, far inside the fixtures' tolerance. No landing within that
+    reach is `ThroatNotFound`.
+
+    ⚠ 2026-09-28, the third pass: stood "a few bracket widths further toward the
+    chamber, up to a bounded number of times, where `ρu` moves by about 1e-10
+    relative" (eight steps of `1e-10`). Solved from the chamber's composition, the
+    equilibrium solve stays on the pinned pair until about `1e-9` to `1e-8` in `ln p`
+    above the edge: the bisection's own trials start from the previous trial's
+    composition and so see the edge elsewhere. Eight steps of `1e-10` never reached
+    the single-phase side, and whole Li/O/H bands that were `Ok` at `5a732f0` became
+    `ThroatNotFound`: at 0.3 MPa, 21 of 26 cases (h 3.05625 to 3.36875 MJ/kg); at
+    3 MPa, 10 of 12 (h 2.15 to 2.2109), among them the F3 bands the criterion below
+    had ticked. The tests stayed green because the first-maximum fact returned without
+    a check on a non-`Ok` throat, and the no-`ThroatNotFound` sweeps covered only
+    AP/HTPB/Al and Li/O/H at 7 MPa. Found by the third audit pass (part 2, finding 1),
+    which measured the geometric step closing all 32 cases with c* unchanged.
 
   The first trial (6.15) at `γ_s` = 1 exactly, the equilibrium node's plateau
   convention for an undissociated gas, is `Math.Pow(1, ∞)` = 1, the chamber itself.
@@ -179,6 +197,13 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     rule), or the first sonic crossing inside an interval between boundaries, found by
     the bisection above. With equal sets at the chamber and the candidate, the
     candidate is the throat, as before.
+  - The walk visits at most `MaxPhaseBoundaries` boundaries (8, the third pass of
+    2026-09-28). A cold scan of Li/O/H at 3 MPa already crosses four
+    ({Li2O(L)} → … → {Li2O(cr)}); a walk that reaches the cap without reaching the
+    candidate's set has proved nothing, and ends `ThroatNotFound`, never `Ok`.
+
+    ⚠ 2026-09-28, the third pass: the cap was 4, unrecorded here, and a walk that
+    reached it accepted the unverified candidate as `Ok` (part 2, observation).
 
   `ThroatSearch` composes the local search and the check, and stays the only writer of
   the throat's figures. `FrozenAtChamber` flow is unaffected: its frozen sound speed is
@@ -854,6 +879,35 @@ this node needs no other efferent-coupling row.
       (a field-by-field comparison with `main`); the bits moved for
       `rp1311-example13` only, in this node's and the front door's snapshots, as
       measured above. Ticked by the orchestrator at the merge.
+
+      ⚠ 2026-09-28, the same evening: the F3 bullet's claim "the edge throat is
+      single-phase and subsonic" held only for the committed fixtures. Over the audit's
+      own bands most cases ended `ThroatNotFound` (the third pass, the ⚠ under
+      Constraints, the plateau edge's state); the 3 MPa fixture lies at h 2.2375, outside
+      the band h 2.206 to 2.213 the bullet names. The criterion below reopens it.
+- [ ] The third audit pass of 2026-09-28 (part 2: finding 1 and the observation on the
+      boundary cap) is closed by the rules of that date under Constraints.
+      - **The plateau edge's reach.** The geometric offsets of the plateau-edge rule
+        and the cap of 8 boundaries with `ThroatNotFound` on exhaustion.
+      - **The bands as facts.** Over the element moles of
+        `li2o-throat_pc0.3MPa_h3.29375MJkg`: 0.3 MPa, h 3.05625 to 3.36875 MJ/kg in
+        12.5 kJ/kg steps (26 cases), and 3 MPa, h 2.15 to 2.2109 MJ/kg as the audit
+        stepped it (12 cases), both shifting: every case `Ok`, no `ThroatNotFound`, each
+        throat single-phase and subsonic when it is a plateau edge, and each passing the
+        first-maximum fact. Red at `c02e14d` (21 and 10 `ThroatNotFound`), green after.
+        The audit's probe is `scratchpad/audit3/b/repo/tests/Performance.Tests/ZzProbeBand.cs`
+        with its outputs `band-old.csv`, `band-new.csv`, `band-geo.csv` (kept out of the
+        tree).
+      - **A fixture inside the 3 MPa band.** One `throat` fixture at h within 2.206 to
+        2.213 MJ/kg through the generator, so the F3 fact covers the band it names.
+      - **No vacuous pass.** `AssertFirstMaximum` fails on a non-`Ok` throat, unless the
+        case is declared to end so, with its status, in the fact's own data; the
+        first-maximum facts and the bands above fail when the set they walk is empty.
+        Shown red once with the old reach restored.
+      - **The cap.** A unit fact: a walk that meets more boundaries than the cap ends
+        `ThroatNotFound`; the Li/O/H bands above stay within it.
+      - **Bits.** A moved snapshot is re-approved only with the case named and a
+        field-by-field measure, as for `rp1311-example13` above.
 
 ## Taboos
 

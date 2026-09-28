@@ -813,6 +813,22 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       - Not yet accepted: a real CI run of the branch that adds the step (the root's
         rule for workflow changes) is still due, since this coder may not push. The
         criterion stays unticked until that run is green.
+- [ ] The sample of the binding step covers every script (the third audit pass of
+      2026-09-28, part 2, finding 4c). The sample of the criterion above takes one case
+      per kind directory, 25 of 335 files: `rp1311.py`, `low_temperature.py`,
+      `condensed_phase_limit.py`, `retention_threshold.py` and `propellants.py`'s
+      rocket, hp and tp outputs were never compared, and a kind whose first file no
+      script produces was skipped silently, since the stale sweep is off under a sample
+      and `finish()` returned 0 with nothing compared.
+      - The sample takes at least one case from every script that writes fixtures, and
+        from every kind each script writes, chosen from the committed listing.
+      - `--check --sample` fails when a script or a kind of the sample compared
+        nothing, and when the whole comparison is empty.
+      - The comparison is exact text, as `regenerate.py --check` makes it; the comment
+        of the CI step says so instead of "beyond the family's own tolerance rule".
+      - Red once: a committed output of a script the old sample skipped, edited, and
+        `--check --sample` exits 1 naming it; green after. The CI evidence is due with
+        the criterion above, after the owner's push.
 
 ## Taboos
 

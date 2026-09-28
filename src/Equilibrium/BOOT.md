@@ -108,11 +108,17 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Initial estimates as in the report: every gaseous species at `0.1 / (active gaseous
   species)` kmol per kg with `n = 0.1` when no estimate is given, `T = 3800 K` for hp
   and sp when no estimate is given; callers may pass a previous solution as the
-  estimate (the nozzle does).
+  estimate (the nozzle does). A temperature estimate that is given for hp or sp and is
+  not finite and positive is `InvalidInput`, as for the frozen solve (the third pass
+  of 2026-09-28: +∞ and 1e-300 K gave `SingularMatrix` after no iteration, part 1,
+  observation O1).
 
   A warm start that fails, with any status other than `InvalidInput`, falls back once
   to the cold start of section 3.1, with the iterations of both attempts counted in the
-  case's total (2026-09-28). A cold start never falls back. The cold start takes no part
+  case's total (2026-09-28). A failure found at the close counts as well: the
+  mixture window, the element invariant, the exit guard, a singular derivative system
+  and the state guard (the third pass of 2026-09-28; the code tested only the Newton
+  loop's status, while this sentence and `API.md` said "any status"). A cold start never falls back. The cold start takes no part
   of the seed: for hp and sp it starts at 3 800 K, not at the previous solution's
   temperature, since that temperature is part of the seed.
 
@@ -394,6 +400,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     - **Release.** Once the condensed-set update finds no further change and some
       species of the sums tells the pair apart, the tie is released, at most once per
       solve, and the settled set converges again on the element's own row.
+      When that convergence fails, the tied iterate the release started from is
+      restored and closed with the tie in force, as a tie that survived to the close
+      (the third pass of 2026-09-28). The iterate is the case's own converged state
+      (the logarithms of the moles, `n`, `T`, the condensed set and its moles, the
+      tie), kept in the case's scratch at the release.
+
+      ⚠ 2026-09-28, the third pass: the release had no way back. On six salt states
+      (KClO4 at 930 K and 0.1 bar, 980 and 990 K at 1 bar, 1080 K at 10 bar, 1070 K at
+      70 bar; NaClO4 at 1050 K and 1 bar) the tie converged and polished with
+      {KCL(cr)} or {NaCL(cr)}. After the release, CL, K or Na and KO crossed the 1e-11
+      threshold on every step until the step cap: `NotConverged`, where 5a732f0 gave
+      `SingularMatrix`. With the release turned off all six end `Ok` with the same
+      composition, and pass the independent checks (element residual ≤ 1e-12, gas
+      chemical potentials ≤ 1e-6, no absent condensed candidate in range with a gain
+      above 1e-9). Found by the third audit pass (part 1, finding F1).
     - **Derivatives.** A tie that survives to the close gives the derivative system a
       unit row that fixes the tied element's multiplier derivative at 0.
 
@@ -1344,6 +1365,14 @@ same day.
       - **The threshold flip.** Two carriers cross the threshold alternately every
         step, so the polish never completes: KClO4 at 610–680 K, NaClO4 at 490–500 K,
         16 salt-scan states `NotConverged`. The matrix is never singular.
+
+        ⚠ 2026-09-28, the third pass (part 1, F1): on the fixtures' own compositions
+        (`naclo4_T500`, `kclo4_T500`) those bands are `Ok` at nine pressures from 1e3 to
+        2e7 Pa, while the flip strikes in the all-gas first stage at 1050 to 1360 K:
+        29 of 968 states over 300 to 1500 K at 1e4, 1e5, 1e6 and 7e6 Pa, failing at
+        `5a732f0` too. The limitation is the mechanism, not a band: `CHANGELOG.md`
+        states it for stoichiometric perchlorates between about 500 and 1400 K,
+        depending on pressure and composition.
       - **The three-element coupling.** With only CO2, H2O and N2 retained, row O
         equals 2·C + ½·H. 77 fuzz tp states on example 1 and example 12 tables at
         300 K and 600 K end `SingularMatrix`, which a pair tie cannot express.
@@ -1351,6 +1380,32 @@ same day.
         (T* = 415.948 K, 157 kJ/kg wide at 7 MPa) ends `SingularMatrix` in the
         derivative system: the pinned-pair convention covers two records of one
         formula only.
+- [ ] The third audit pass of 2026-09-28 (part 1: findings F1 to F3, observation O1)
+      is closed by the rules of that date.
+      - **The way back from a release (F1).** The six salt states named in the ⚠ under
+        rule A's release: each `Ok`, with the audit's independent checks (element
+        residual ≤ 1e-12, gas chemical potentials ≤ 1e-6, no absent condensed candidate
+        in range with a gain above 1e-9). Red at `c02e14d` (`NotConverged`). The states
+        are inputs from the fixtures' own tables, not fixture files, unless the
+        generator can produce them; cea's own verdict on each is recorded beside the
+        fact. No state of the audit's salt sweep (the fixtures' salt and AP/HTPB/Al
+        tables and example 5, 300 to 1500 K in 10 K steps at 1e4, 1e5, 1e6 and 7e6 Pa,
+        cold and warm from each neighbour) goes from `Ok` to a failure; the count of
+        `NotConverged` falls from 36 by at least the six. The audit's probe:
+        `scratchpad/audit3/repo/tests/Equilibrium.Tests/ZAudit3*.cs`, outputs
+        `scratchpad/audit3/*.txt` (kept out of the tree).
+      - **The fallback covers the close (F2).** A warm start whose failure is found at
+        the close is retried cold; a fact with a seed that fails only at the close (the
+        audit found 31 `TemperatureOutOfRange` among 1147 warm starts over the 140
+        tp/hp/sp fixtures) shows the retry taken. Red at `c02e14d`.
+      - **No state on failure (F3).** The state guard decides before `State` is written:
+        a fact that a guarded failure leaves `State` untouched, as `API.md` states. The
+        stale comment of `Composition.cs` (a first-stage re-apply no caller makes) is
+        corrected.
+      - **The hp/sp estimate (O1).** +∞, NaN, 0 and −1 K as a given estimate are
+        `InvalidInput`; `API.md`'s `InvalidInput` clause lists it.
+      - **Bits.** A moved snapshot is re-approved with the cases named and the largest
+        relative change per field; statuses move only on the states named here.
 
 ## Taboos
 

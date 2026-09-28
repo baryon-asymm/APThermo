@@ -1691,6 +1691,17 @@ suppression passed every guard of the hosted suite.
       still-unticked criterion: the CI step is written and its local equivalent
       (`regenerate.py --check --sample` and the full `--check`) both exit 0, but a real
       CI run needs the owner's push.
+- [ ] The third audit pass of 2026-09-28 (part 2, findings 4a and 4b) is closed.
+      - **An integer constant on the left (4a).** The constant-left fact decides that a
+        comparison is floating-point by the operands' converted type, not their own:
+        `0 < v`, `IntZero < v` and `0.0 < v` with a `double v` compile to the same IL
+        (`ldc.r8 0; ldarg.0; clt`), and only the last was reported. Red with each of
+        the three in a numerical node, green after.
+      - **Rule sets (4b).** A `CodeAnalysisRuleSet` property in any build file, and any
+        `*.ruleset` file in the tree, is refused by the Diagnostics facts: a rule set
+        setting CA1822 and CA1812 to `None` in `src/Data`'s project built with both
+        violations, and every fact stayed green. The root's list of forbidden forms
+        names rule sets since the same day. Red with that mutation, green after.
 
 ## Taboos
 

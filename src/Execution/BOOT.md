@@ -1240,6 +1240,34 @@ confirms it.
       under WSL after the merges. This node's own facts were green under WSL
       throughout. Reworded by the orchestrator at the merge: the coder's note
       retold other nodes' state, which AGENTS.md §8 keeps out of a node's document.
+- [ ] The third audit pass of 2026-09-28 (part 2, finding 2 and the observation on
+      `DeclareBuffers`) is closed.
+      - **A lost context stays an `AcceleratorUnavailableException`.** After
+        `CUDA_ERROR_LAUNCH_TIMEOUT` the context is lost: NVIDIA documents the error as
+        sticky, and every later call on the context returns it. ILGPU 1.5.3 frees a
+        CUDA buffer through `CudaException.VerifyDisposed(disposing, cuMemFree(…))`,
+        which throws, with no catch on the way (`DisposeDriver`,
+        `AcceleratorObject.Dispose(bool)`, `Accelerator.DisposeChildObject`). So the
+        pipelines' `using var buffers`, and the engine's and the solver's disposal,
+        would replace the translated exception with a raw `CudaException`. The rule:
+        - the engine records the loss when `BatchRun` translates the timeout; every
+          later run on it throws `AcceleratorUnavailableException` naming the earlier
+          timeout, and the consumer's remedy is a new engine or the CPU accelerator;
+        - disposal on a lost engine (chunk buffers, uploaded tables, the accelerator,
+          the context) releases what it can, and a `CudaException` carrying the sticky
+          error is dropped there, in one named place of this node, and nowhere else; any
+          other exception still propagates;
+        - no ILGPU type reaches a consumer; `API.md`'s errors table and the guide say
+          that an engine that timed out is unusable.
+      - **Evidence.** The timeout cannot be provoked on the reference machine (it resets
+        the display driver). A fact on the CPU accelerator injects the timeout through
+        the same seam as `LaunchBudgetTests` and a disposal that throws a
+        `CudaException` with the sticky error, and shows the consumer receiving
+        `AcceleratorUnavailableException`, the engine refusing a second run, and its
+        disposal not throwing. Red at `c02e14d`.
+      - **One declaration of a pipeline's buffers.** `DeclareBuffers` and `Run` read the
+        same declaration, so the proof of the 32-bit offset cap cannot drift from the
+        pipeline it proves.
 
 ## Taboos
 
