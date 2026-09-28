@@ -260,7 +260,9 @@ public sealed class Solver : IDisposable
     {
         ArgumentNullException.ThrowIfNull(states);
         ThrowIfDisposed();
-        var (mixtures, problems) = StateRecords.ToEquilibriumProblems(states, Validated(states, options));
+        var validated = ValidatedOptions(states, options);
+        var (mixtures, problems) = StateRecords.ToEquilibriumProblems(states, validated);
+        ValidateRecordElements(mixtures);
         return SolveEquilibrium(mixtures, problems, "state record");
     }
 
@@ -280,7 +282,9 @@ public sealed class Solver : IDisposable
     {
         ArgumentNullException.ThrowIfNull(states);
         ThrowIfDisposed();
-        var (mixtures, problems) = StateRecords.ToRocketProblems(states, Validated(states, options));
+        var validated = ValidatedOptions(states, options);
+        var (mixtures, problems) = StateRecords.ToRocketProblems(states, validated);
+        ValidateRecordElements(mixtures);
         return SolveRocket(mixtures, problems, "state record");
     }
 
@@ -297,12 +301,54 @@ public sealed class Solver : IDisposable
         _engine.Dispose();
     }
 
-    /// <summary>The batch's options, defaulted, once the batch itself is confirmed non-empty.</summary>
-    private static StateBatchOptions Validated(IReadOnlyList<StateRecord> states, StateBatchOptions? options)
+    /// <summary>
+    /// The batch's options, defaulted, once the batch itself is confirmed non-empty, and checked against conditions
+    /// that describe the batch, not a record (BOOT.md, the second audit's fix F3): an invalid mass tolerance or a
+    /// transport request the database cannot honour is a plain <see cref="ArgumentException"/> naming the option,
+    /// never a record's index. Without this, both conditions used to surface through <see cref="ProblemValidation"/>
+    /// on the first record of the batch, which fails identically whichever record is checked first.
+    /// </summary>
+    private StateBatchOptions ValidatedOptions(IReadOnlyList<StateRecord> states, StateBatchOptions? options)
     {
-        return states.Count == 0
-            ? throw new ArgumentException("the state batch is empty", nameof(states))
-            : options ?? new StateBatchOptions();
+        if (states.Count == 0)
+        {
+            throw new ArgumentException("the state batch is empty", nameof(states));
+        }
+
+        var validated = options ?? new StateBatchOptions();
+        ValidateMassTolerance(validated.MassTolerance);
+        return validated.Transport && Database.Transport is null
+            ? throw new ArgumentException("transport properties were requested, but the database was loaded without a trans.inp file", nameof(options))
+            : validated;
+    }
+
+    /// <summary>The one statement of the mass-tolerance rule for a state batch, its own parameter named so <c>nameof</c> matches (CA2208).</summary>
+    private static void ValidateMassTolerance(double massTolerance)
+    {
+        if (!ElementalMixture.IsValidMassTolerance(massTolerance))
+        {
+            throw new ArgumentException($"the mass tolerance must be a finite non-negative number, not {massTolerance}", nameof(massTolerance));
+        }
+    }
+
+    /// <summary>
+    /// Every record's own elements (atomic weight, candidates) before the union of the batch is built (BOOT.md,
+    /// the second audit's fix F3): a record that fails is a <see cref="StateRecordException"/> with its own index,
+    /// instead of the plain, index-free <see cref="ArgumentException"/> the union would otherwise throw.
+    /// </summary>
+    private void ValidateRecordElements(List<ElementalMixture> mixtures)
+    {
+        for (var i = 0; i < mixtures.Count; i++)
+        {
+            try
+            {
+                _systems.ValidateOwnElements(mixtures[i]);
+            }
+            catch (ArgumentException inner)
+            {
+                throw new StateRecordException(i, inner.Message);
+            }
+        }
     }
 
     /// <summary>One rocket case per index over the union of the mixtures' elements; <paramref name="noun"/> names a rejected mixture ("mixture", "state record").</summary>

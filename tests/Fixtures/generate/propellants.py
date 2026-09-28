@@ -123,10 +123,38 @@ def sodium_hp(writer: Writer) -> None:
         outputs=outputs, script_path=__file__)
 
 
+BR2_ANOMALY_NAME = "Br2(cr)"
+BR2_ANOMALY_TEMPERATURE = 298.15
+
+
+def br2_reactant_anomaly(writer: Writer) -> None:
+    """Br2(cr) as a reactant at 298.15 K (2026-09-28, the second audit's observation 6): its one interval is
+    written 300 -> 265.9 K, an inverted range that used to leave the reactant unusable at any temperature
+    (Problems BOOT.md, the second audit's fixes). It cannot be recorded as an "hp" or "rocket" case: the package
+    itself does not converge a pure-Br2(cr) equilibrium at any enthalpy near this one ("Mixture temperature
+    outside of allowable bounds", `EqSolver.solve: CEA_NOT_CONVERGED`, checked by hand against the pinned
+    package), because the record is equally out of range for the equilibrium routine's own candidacy test
+    (Thermo BOOT.md, 2026-09-26: "Br2(cr) is in range nowhere, in the reference too"). This is a reactant-level
+    fact instead, the package's own per-kilogram enthalpy of the reactant alone at its temperature
+    (`Mixture.calc_property`, the same call every other fixture's `reactantEnthalpy` comes from), with no
+    equilibrium solve and so a new, lightweight case kind ("reactant") rather than "hp"."""
+    reac, _ = make_mixtures([BR2_ANOMALY_NAME])
+    weights = np.array([1.0])
+    temperatures = np.array([BR2_ANOMALY_TEMPERATURE])
+    enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, temperatures))
+    descriptions = describe_reactants([BR2_ANOMALY_NAME], weights, temperatures)
+    writer.case(
+        "reactant", f"{BR2_ANOMALY_NAME}_{BR2_ANOMALY_TEMPERATURE:g}K",
+        inputs={"reactants": descriptions, "temperature": BR2_ANOMALY_TEMPERATURE},
+        outputs={"enthalpyPerKilogram": enthalpy},
+        script_path=__file__)
+
+
 def generate(writer: Writer) -> None:
     for prop in PROPELLANTS:
         generate_propellant(writer, prop)
     sodium_hp(writer)
+    br2_reactant_anomaly(writer)
 
 
 if __name__ == "__main__":

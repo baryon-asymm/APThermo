@@ -47,12 +47,22 @@ public sealed partial class FixtureLoadingTests
         }
     }
 
-    /// <summary>The kinds present are those of the case matrix.</summary>
+    /// <summary>
+    /// The kinds present are those of the case matrix.
+    /// </summary>
+    /// <remarks>
+    /// 2026-09-28: gains <c>reactant</c> (the second hidden-defect audit's observation 6, Problems BOOT.md): a
+    /// reactant-level fact (<c>Br2(cr)</c>'s own enthalpy at 298.15 K) that cannot be an <c>hp</c>/<c>tp</c>/<c>sp</c>/
+    /// <c>rocket</c> case, since the package does not converge an equilibrium or a rocket solve for that reactant
+    /// alone (generate/BOOT.md records the reason). This is the one hand-typed list AGENTS.md §6 allows for a
+    /// quantifier of "all": it is the machine-generated list's own witness that nothing was added silently, so it
+    /// is corrected by hand whenever a kind is deliberately added, never by a generator run.
+    /// </remarks>
     [Fact]
     public void TheKindsPresentAreThoseOfTheCaseMatrix()
     {
         var present = Directory.GetDirectories(FixtureFiles.Root).Select(Path.GetFileName).OrderBy(k => k, StringComparer.Ordinal);
-        Assert.Equal(["constants", "hp", "rocket", "sp", "thermo", "throat", "tp", "transport"], present);
+        Assert.Equal(["constants", "hp", "reactant", "rocket", "sp", "thermo", "throat", "tp", "transport"], present);
     }
 
     /// <summary>Every fixture is tied to the committed data files.</summary>

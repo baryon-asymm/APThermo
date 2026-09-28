@@ -9,9 +9,17 @@ internal static class MixtureRule
 {
     public static MixtureSpecification Validate(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named, double? ratio)
     {
+        ValidateFiniteMass(oxidizers, "oxidizer");
+        ValidateFiniteMass(fuels, "fuel");
+        ValidateFiniteMass(named, "named");
         ValidateOneAmountKindPerGroup(oxidizers, "oxidizer");
         ValidateOneAmountKindPerGroup(fuels, "fuel");
         ValidateOneAmountKindPerGroup(named, "named");
+        if (ratio is null)
+        {
+            ValidateOneAmountKindOverall(oxidizers, fuels, named);
+        }
+
         return ValidateRatio(oxidizers, fuels, named, ratio);
     }
 
@@ -20,12 +28,38 @@ internal static class MixtureRule
     /// and a mole amount becomes amount x M in g/mol, so summing the two within a group would weigh a fraction as if
     /// it were grams.
     /// </summary>
-    private static void ValidateOneAmountKindPerGroup(IReadOnlyList<ResolvedReactant> group, string groupName)
+    private static void ValidateOneAmountKindPerGroup(IReadOnlyList<ResolvedReactant> group, string groupName) =>
+        ValidateOneAmountKind(group, $"the {groupName} group");
+
+    /// <summary>
+    /// Without a ratio the whole propellant is the unit of normalization, one kilogram over every group (BOOT.md,
+    /// the second audit's fix F2): a fuel group in mass fractions beside a named group in moles both pass the
+    /// per-group check above and are then pooled by <see cref="MassFractionsOf"/>, weighing a fraction as if it
+    /// were grams the same way the per-group rule of 2026-09-26 was written to stop.
+    /// </summary>
+    private static void ValidateOneAmountKindOverall(IReadOnlyList<ResolvedReactant> oxidizers, IReadOnlyList<ResolvedReactant> fuels, IReadOnlyList<ResolvedReactant> named) =>
+        ValidateOneAmountKind([.. oxidizers, .. fuels, .. named], "the propellant, with no ratio to split it by group,");
+
+    private static void ValidateOneAmountKind(IReadOnlyList<ResolvedReactant> reactants, string subject)
     {
-        if (group.Select(r => r.Reactant.AmountKind).Distinct().Count() > 1)
+        if (reactants.Select(r => r.Reactant.AmountKind).Distinct().Count() > 1)
         {
-            var names = string.Join(", ", group.Select(r => $"'{r.Reactant.Name}'"));
-            throw new ArgumentException($"the {groupName} group mixes mass-fraction and mole amounts ({names}); one role group must use one amount kind");
+            var names = string.Join(", ", reactants.Select(r => $"'{r.Reactant.Name}'"));
+            throw new ArgumentException($"{subject} mixes mass-fraction and mole amounts ({names}); one unit of normalization must use one amount kind");
+        }
+    }
+
+    /// <summary>
+    /// A group's amounts sum to a finite mass (BOOT.md, the second audit's observation 7): an overflowing sum (two
+    /// reactants of 1e308) would otherwise reach the ratio split as if the group weighed zero or infinity, refused
+    /// later with a reason that names the wrong subject.
+    /// </summary>
+    private static void ValidateFiniteMass(IReadOnlyList<ResolvedReactant> group, string groupName)
+    {
+        var mass = group.Sum(r => r.Mass);
+        if (!double.IsFinite(mass))
+        {
+            throw new ArgumentException($"the {groupName} group's amounts sum to a non-finite mass ({mass})");
         }
     }
 

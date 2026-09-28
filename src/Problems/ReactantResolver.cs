@@ -52,18 +52,34 @@ internal static class ReactantResolver
         // liquid, the one written last). A name whose every record carries polynomial intervals (a condensed species
         // Thermo joins into one continuous curve, e.g. Fe2O3(cr)) shares one formula and molar mass across its
         // records, so the choice of record does not change them; only the accepted temperature range does, below.
+        //
+        // A name whose records mix fitted and unfitted intervals is refused (the second audit's observation 3):
+        // "records[^1] applies to every multi-record name" would take the range and default temperature from
+        // whether any record has fits, but the enthalpy source from the last record alone, silently ignoring a
+        // given temperature when the two disagree. No committed name does this, and the reference's behaviour for
+        // it is not established.
+        var fittedCount = records.Count(r => r.Intervals.Count > 0);
+        if (fittedCount > 0 && fittedCount < records.Count)
+        {
+            throw new ArgumentException($"reactant '{reactant.Name}': its records mix fitted and unfitted intervals, which this node does not resolve");
+        }
+
         var record = records[^1];
-        var hasFits = records.Any(r => r.Intervals.Count > 0);
+        var hasFits = fittedCount > 0;
         var t = reactant.Temperature ?? (hasFits ? Reactant.DefaultTemperature : record.AssignedTemperature);
         double low, high;
         if (hasFits)
         {
             // The range Thermo's join-and-cut covers: the union of every record's intervals, not one record's own
             // (the audit's finding 6: a first-record-only range rejected Fe2O3(cr) at 1000 K although the joined
-            // table species, which PropellantMixtures actually evaluates, covers 298.15-6000 K).
+            // table species, which PropellantMixtures actually evaluates, covers 298.15-6000 K). Each interval's
+            // own two bounds are taken as an unordered pair before the union (the second audit's observation 6):
+            // Br2(cr)'s one interval is written 300 -> 265.9 K, and reading its columns separately (TLow's minimum,
+            // THigh's maximum) reproduces the same inverted, empty range: cea 3.3.4 evaluates the record at
+            // 298.15 K, so its own lower and upper bound are 265.9 and 300, not 300 and 265.9.
             var intervals = records.SelectMany(r => r.Intervals).ToList();
-            low = intervals.Min(i => i.TLow);
-            high = intervals.Max(i => i.THigh);
+            low = intervals.Min(i => Math.Min(i.TLow, i.THigh));
+            high = intervals.Max(i => Math.Max(i.TLow, i.THigh));
         }
         else
         {
