@@ -131,17 +131,22 @@ def example3(writer: Writer) -> None:
             outputs=outputs, script_path=__file__)
 
 
+EXAMPLE5_BINDER = Custom("CHOS-Binder", {"C": 1.0, "H": 1.86955, "O": 0.031256, "S": 0.008415}, -2999.082,
+                        note="RP-1311 example 5 custom reactant")
+# Hoisted to module level (2026-09-28, the second hidden-defect audit's retention-threshold fixtures) so that
+# retention_threshold.py builds the same table and composition by import, never by copy (the throat family's
+# own precedent for EXAMPLE13_REACTANTS above).
+EXAMPLE5_REACTANTS = ["NH4CLO4(I)", EXAMPLE5_BINDER, "AL(cr)", "MgO(cr)", "H2O(L)"]
+EXAMPLE5_WEIGHTS = np.array([0.7206, 0.1858, 0.09, 0.002, 0.0016])
+
+
 def example5(writer: Writer) -> None:
-    binder = Custom("CHOS-Binder", {"C": 1.0, "H": 1.86955, "O": 0.031256, "S": 0.008415}, -2999.082,
-                    note="RP-1311 example 5 custom reactant")
-    reactants = ["NH4CLO4(I)", binder, "AL(cr)", "MgO(cr)", "H2O(L)"]
-    weights = np.array([0.7206, 0.1858, 0.09, 0.002, 0.0016])
-    reac, prod = make_mixtures(reactants, omit=EXAMPLE5_OMIT)
-    descriptions = describe_reactants(reactants, weights, 298.15)
-    enthalpy = float(reac.calc_property(cea.ENTHALPY, weights, np.full(5, 298.15)))
+    reac, prod = make_mixtures(EXAMPLE5_REACTANTS, omit=EXAMPLE5_OMIT)
+    descriptions = describe_reactants(EXAMPLE5_REACTANTS, EXAMPLE5_WEIGHTS, 298.15)
+    enthalpy = float(reac.calc_property(cea.ENTHALPY, EXAMPLE5_WEIGHTS, np.full(5, 298.15)))
     for p_bar in [34.473652, 17.236826, 8.618413, 3.447365, 0.344737]:
         pressure_pa = p_bar * BAR_TO_PA
-        outputs = solve_equilibrium(reac, prod, weights, "hp", enthalpy, pressure_pa, transport=False)
+        outputs = solve_equilibrium(reac, prod, EXAMPLE5_WEIGHTS, "hp", enthalpy, pressure_pa, transport=False)
         writer.case(
             "hp", f"rp1311-example5_p{p_bar:g}bar",
             inputs=equilibrium_inputs(descriptions, prod.species_names, "hp", enthalpy, pressure_pa, False,
