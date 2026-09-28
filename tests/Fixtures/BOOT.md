@@ -605,6 +605,21 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       it imports (the SI factors in `common.py`, the derived fields and the station
       guard in `cea_cases.py`). A fixture whose `scriptSha256` was replaced by 64 zeros
       left `Fixtures.Tests` 26/26 green.
+- [ ] The outputs are bound to the generator, not only the scripts (the second
+      hidden-defect audit of 2026-09-28, guards part, observation O5). The provenance
+      hashes prove which scripts produced the fixtures. A hand-edited expected value
+      passed every guard, and only review enforced the root's taboo on typed expected
+      values.
+      - The CI workflow gains a step on the Linux hosted runner: it installs the pinned
+        `cea` 3.3.4 and `requirements.txt` into a fresh virtual environment and runs
+        `regenerate.py --check` over a sample of every fixture family. The sample is
+        chosen by the script from the committed directory listing, at least one case
+        per family and every case of the `throat` family. The check fails the job on
+        any difference beyond the tolerance of the family's rule.
+      - Red once: a fixture's expected temperature edited by 1 K in a branch, and the CI
+        run of that branch fails at this step, naming the case.
+      - Accepted on a real CI run of the branch that adds the step (the root's rule for
+        workflow changes), not on a local run alone.
 
 ## Taboos
 

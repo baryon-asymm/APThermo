@@ -440,6 +440,15 @@ Outside the tree: xunit.
       gains exactly the sodium case's key (`git diff --stat`: 1 insertion, 0 deletions;
       `diff` of the file against `Bits.actual.txt` with that one line excluded: no other
       difference); no key of any other fixture moved.
+- [ ] The reacting fields' skip is pinned (the second hidden-defect audit of
+      2026-09-28, guards part, observation O1). `ReferenceComparison` skips the reacting
+      conductivity and heat capacity wherever the tree's own run eliminates a trace
+      species (`TraceEliminations > 0`), and no end-to-end station eliminates one
+      today. A fact asserts that list, generated over every rocket fixture with
+      transport, equals a pinned list (empty today). A future elimination then turns
+      the fact red and is looked at, instead of being skipped silently. The fact is
+      red with an elimination forced at one station, a mutation that left every fact
+      of this node green before.
 
 ## Taboos
 
