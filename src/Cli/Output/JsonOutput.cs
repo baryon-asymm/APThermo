@@ -12,9 +12,13 @@ internal static class JsonOutput
         writer.WriteStartObject();
         RunSection.Write(writer, run);
         writer.WriteStartArray("cases");
+
+        // Only species has no RunLimits (RunInfo.Limits, 2026-09-28); this document has cases, which species never
+        // produces, so the run that reaches this method always carries one.
+        var threshold = run.Limits!.Threshold;
         foreach (var c in cases)
         {
-            WriteCase(writer, c, run.Limits.Threshold);
+            WriteCase(writer, c, threshold);
         }
 
         writer.WriteEndArray();
