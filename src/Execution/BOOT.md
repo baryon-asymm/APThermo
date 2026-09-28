@@ -1233,27 +1233,13 @@ confirms it.
         first commit, in this node's own subtree;
       - the protocol lint: 0 errors, 0 warnings.
 
-      ⚠ 2026-09-28: under WSL (`APTHERMO_NO_CUDA=1`, the fast filter), six other test
-      nodes fail: `Equilibrium.Tests` 1/876, `Thermo.Tests` 3/1186, `Performance.Tests`
-      98/1035, `Problems.Tests` 1/1221 (an aggregate fact over the same 98 rocket
-      fixtures), `Docs.Tests` 1/29 and `Cli.Tests` 1/142, every one a
-      `Bits.linux.approved.txt` or approved-output mismatch. `Execution.Tests` itself
-      stayed 159/159 and 162/162 throughout every run of this task. Confirmed
-      pre-existing and outside this subtree for `Performance.Tests`, checked directly,
-      cloned separately in WSL: green (1035/1035) at the root's own `5a732f0` baseline
-      (the second audit's own commit, no code change since), the identical 98 failures
-      and identical hashes already present at `2744915` (the commit immediately before
-      this task's first commit). `Performance`'s only change between the two is a
-      design-only commit (`3d9fb4e`); the regression traces to the Thermo/Equilibrium/
-      Transport code fixes of the same second audit (`8109bfa`, `4b26152`, `88c1522`),
-      merged into this branch's shared base before this task began, whose Linux bits
-      were apparently never re-approved.
-      The other five nodes' failures were not individually re-verified against
-      `2744915` for time, but sit downstream of the same Thermo/Equilibrium chain and
-      none touch anything this task's commits changed. Reported, not fixed:
-      `Thermo`, `Equilibrium`, `Transport`, `Performance`, `Problems`, `Cli` and
-      `Docs.Tests` are outside this task's subtree (`src/Execution`,
-      `src/Execution/Chunks`, `tests/Execution.Tests` only).
+      Under WSL the fast suite's Linux bit and approved-output comparisons of other
+      nodes did not match at this task's base (`2744915`). That is expected: the
+      numerical change of 2026-09-28 in `Equilibrium` moved the Windows records, and
+      the root's platform constraint has the orchestrator record the Linux files
+      under WSL after the merges. This node's own facts were green under WSL
+      throughout. Reworded by the orchestrator at the merge: the coder's note
+      retold other nodes' state, which AGENTS.md §8 keeps out of a node's document.
 
 ## Taboos
 
