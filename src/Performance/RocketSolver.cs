@@ -34,6 +34,10 @@ internal static class RocketSolver
     /// <summary>The bracket's width in ln p below which the bisection stops (BOOT.md, 2026-09-26).</summary>
     internal const double ThroatBracketWidth = 1.0e-10;
 
+    /// <summary>Within this of 1, the chamber's isentropic exponent takes (6.15) through its limit
+    /// <c>p_c·e^(−1/2)</c> instead of the degenerate <c>Math.Pow(1, ±∞)</c> (BOOT.md, 2026-09-28, finding F4).</summary>
+    internal const double GammaOneTolerance = 1.0e-6;
+
     /// <summary>Isentropic expansion (BOOT.md, Invariants, 2026-09-26): every accepted station downstream of the
     /// chamber keeps the chamber's entropy to this relative tolerance.</summary>
     internal const double EntropyTolerance = 1.0e-9;

@@ -116,7 +116,7 @@ internal readonly struct ThroatQuery(in RocketContext context, in ChamberReferen
 }
 
 /// <summary>
-/// The throat's bracket (BOOT.md, "The throat carries the largest mass flux"): the smallest pressure solved with
+/// The throat's bracket (BOOT.md, "the throat is the first maximum of the mass flux met from the chamber"): the smallest pressure solved with
 /// u²/a² &lt; 1 (the subsonic end, closest to the chamber) and the largest solved with u²/a² &gt; 1 (the supersonic
 /// end), each carrying the temperature and the condensed-species fingerprint of the state solved there. Tracking
 /// keeps whichever end is closer to the sonic point, so the same rule serves the momentum trials and the
@@ -164,4 +164,40 @@ internal struct ThroatBracket
             }
         }
     }
+}
+
+/// <summary>
+/// One end of a bracket <see cref="PhaseBoundaryLocator"/> narrows: a solved point's pressure, its temperature (the
+/// next solve's estimate), its sonic ratio u²/a² (0 where u² was not positive, the same subsonic reading
+/// <see cref="ThroatBracketSearch"/>'s trials use, BOOT.md, 2026-09-28) and the condensed-species fingerprint of the
+/// state solved there.
+/// </summary>
+internal readonly struct PhaseBoundaryEnd(double pressure, double temperature, double sonicRatio, long fingerprint)
+{
+    public readonly double Pressure = pressure;
+    public readonly double Temperature = temperature;
+    public readonly double SonicRatio = sonicRatio;
+    public readonly long Fingerprint = fingerprint;
+}
+
+/// <summary>
+/// What <see cref="PhaseBoundaryLocator.Locate"/> narrows between: the outer end (closer to the chamber, whose
+/// fingerprint the search holds fixed while it narrows) and the inner end (closer to the candidate throat).
+/// </summary>
+internal readonly struct PhaseBoundaryQuery(in PhaseBoundaryEnd outer, in PhaseBoundaryEnd inner)
+{
+    public readonly PhaseBoundaryEnd Outer = outer;
+    public readonly PhaseBoundaryEnd Inner = inner;
+}
+
+/// <summary>
+/// One condensed-set boundary along the chamber isentrope (BOOT.md, 2026-09-28, <c>PhaseBoundaryLocator</c>): the
+/// last point on the outer (chamber) side still carrying the outer fingerprint, and the first point on the inner
+/// (candidate) side that no longer does. <see cref="UpstreamChokeCheck"/> reads both ends' sonic ratios to decide
+/// whether an earlier choke lies above, at, or below this boundary.
+/// </summary>
+internal struct PhaseBoundary
+{
+    public PhaseBoundaryEnd Hi;
+    public PhaseBoundaryEnd Lo;
 }

@@ -98,8 +98,10 @@ internal static class RocketSolver                         // kernel-compatible
 }
 ```
 
-`Stations[0]` is the chamber (velocity 0, Mach 0), `Stations[1]` the throat (Mach 1
-within the sonic tolerance), `Stations[2 + k]` the k-th exit. Every station's
+`Stations[0]` is the chamber (velocity 0, Mach 0), `Stations[1]` the throat: the first
+maximum of the mass flux met from the chamber (`BOOT.md`'s invariant, 2026-09-28), Mach
+1 within the sonic tolerance away from a melting plateau's edge, and below 1 at such an
+edge (`BOOT.md`, finding F1). `Stations[2 + k]` is the k-th exit. Every station's
 `MixtureState` is the equilibrium node's, with `Velocity` and `Mach` filled in; the
 figures follow RP-1311 section 6.2. The throat and the area-ratio iterations continue
 past the report's tolerances to `1e-10` when they can, so that a reported station is at
@@ -132,21 +134,31 @@ The solver never throws. The case status is `Ok` only when every station is `Ok`
 otherwise it is the first failure found, and the stations after a failed exit are
 still computed from the last converged station. Statuses: `InvalidInput` (non-positive
 chamber pressure, empty table, a flow model other than the three named values; a
-pressure ratio not above 1 for that station), `AreaRatioInvalid` (an area ratio not
-above 1, that station; the reference's rule, 2026-09-26), `ThroatNotFound` (neither the
-sonic condition within `MaxThroatIterations` nor the bracket's bisection found the
-throat; `BOOT.md`, the largest mass flux), `NotConverged` (an area ratio not met
-within `MaxAreaRatioIterations`, or an accepted station's entropy off the chamber's by
-more than the relative tolerance `1e-9`, `BOOT.md`'s entropy check), and the statuses
-of `Equilibrium` propagated from a station's solve. A chamber or throat failure ends
+pressure ratio not above 1 for that station; in `FrozenAtThroat` flow, a pressure-ratio
+exit whose pressure is at or above the throat's, 2026-09-28, finding F5), `AreaRatioInvalid`
+(an area ratio not above 1, that station; the reference's rule, 2026-09-26), `ThroatNotFound`
+(neither the sonic condition within `MaxThroatIterations` nor the bracket's bisection found
+the throat; `BOOT.md`, the first maximum of the mass flux met from the chamber), `NotConverged`
+(an area ratio not met within `MaxAreaRatioIterations`, or an accepted station's entropy off
+the chamber's by more than the relative tolerance `1e-9`, `BOOT.md`'s entropy check), and the
+statuses of `Equilibrium` propagated from a station's solve. A chamber or throat failure ends
 the case; the exits keep `InvalidInput`.
 
 At the high-pressure edge of a melting plateau the throat is the edge, and its `Mach`
-figure is below 1 (2026-09-26, `BOOT.md`'s invariant "The throat carries the largest mass
-flux"). An exit at an area ratio of exactly 1 used to be accepted; it is now
-`AreaRatioInvalid`. The throat is always station 1. An area-ratio pass that lands on
-the subsonic side of the sonic point is never accepted for that station: only a last
+figure is below 1 (`BOOT.md`'s invariant, 2026-09-28, "the throat is the first maximum
+of the mass flux met from the chamber"; found first as "the throat carries the largest
+mass flux", 2026-09-26). An exit at an area ratio of exactly 1 used to be accepted; it
+is now `AreaRatioInvalid`. The throat is always station 1. An area-ratio pass that lands
+on the subsonic side of the sonic point is never accepted for that station: only a last
 pass that is supersonic is (2026-09-26, `BOOT.md`, finding F3).
+
+In `FrozenAtThroat` flow, a pressure-ratio exit whose implied pressure (`chamber.Pressure
+/ value`) is not below the throat's pressure is `InvalidInput` (2026-09-28, finding F5):
+the flow upstream of the freezing point is still in equilibrium, and the reference itself
+omits such a point ("FOR FROZEN PERFORMANCE, POINT OMITTED BECAUSE ASSIGNED pi/p IS LESS
+THAN VALUE AT nfz"). Freezing the throat's composition there put the station at an
+enthalpy above the chamber's; this status replaces the `Ok` station with an infinite
+area ratio and vacuum specific impulse that resulted before the fix.
 
 ## Side effects
 

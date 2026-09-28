@@ -302,7 +302,12 @@ entropy), `ThroatQuery` (the case, the chamber and the flow model, what every st
 that choice out of `ThroatSearch`'s own coupling count, 2026-09-26), `ThroatBracket`
 (the smallest-subsonic / largest-supersonic pressure bracket the momentum trials and
 the bisection track and narrow, 2026-09-26), `ExitEstimate` (the extrapolation state
-carried between exits), and the enums `StationFlow { Shifting, Frozen }` (in place of
+carried between exits), `PhaseBoundaryEnd` (a point's pressure, temperature, sonic
+ratio and condensed fingerprint, 2026-09-28), `PhaseBoundaryQuery` (the outer end,
+closer to the chamber, whose fingerprint `PhaseBoundaryLocator.Locate` holds fixed
+while it narrows, and the inner end, closer to the candidate throat, 2026-09-28),
+`PhaseBoundary` (one located boundary's `Hi` and `Lo` ends, 2026-09-28), and the enums
+`StationFlow { Shifting, Frozen }` (in place of
 the boolean that picked the solver) and `ExitOutcome { Converged,
 WithinReportTolerance, NeverSupersonic, SolveFailed }`.
 
@@ -382,12 +387,13 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 |---|---|---|---|
 | `RocketProblem.RocketProblem` | parameters | 7 | mirrors, one argument per field, the case the kernel reads, as `API.md` publishes it; grouping it would move the contract and re-emit the kernels (the decision "The descriptors keep their constructors"); every creation names its arguments |
 | `RocketResult.RocketResult` | parameters | 7 | mirrors, one argument per field, the views the solver writes into, as `RocketProblem` above |
+| `UpstreamChokeCheck` | efferent coupling | 15 | the first-maximum orchestration stage (2026-09-28, finding F1): it walks `PhaseBoundaryLocator`'s boundaries and hands each to `ThroatBracketSearch`'s own `Bisect` or `AcceptPlateauEdge`, so it names every carrier the two together use (`RocketContext`, `ThroatQuery`, `ChamberReference`, `CaseStatus`, `PhaseBoundaryEnd`, `PhaseBoundaryQuery`, `PhaseBoundary`, `ThroatBracket`, `StationRequest`, `MixtureState`) plus the four stages themselves (`PhaseBoundaryLocator`, `ThroatBracketSearch`, `StationSolve`, `RocketSolver`) — the same kind of figure the root's own history records for the decomposed kernel stages (12 to 16, `BOOT.md`'s Code shape note of 2026-09-14); it holds no formula of its own, only the walk and the acceptance dispatch |
 
 No type of this node names more than 14 distinct types of the tree by the dependency
-check's walk (`ExitStations` and `ChamberSolve` tie at 14, the ceiling): the Size
-bullet's composition-root exception, reserved above for `ExitStations` before
-`PressureRatioStation` was split from it, is not claimed, and this node needs no
-efferent-coupling row.
+check's walk, outside the row above (`ExitStations` and `ChamberSolve` tie at 14, the
+ceiling): the Size bullet's composition-root exception, reserved above for
+`ExitStations` before `PressureRatioStation` was split from it, is not claimed, and
+this node needs no other efferent-coupling row.
 
 ## Acceptance criteria
 
@@ -703,6 +709,55 @@ efferent-coupling row.
         bits if the audit is right that no fixture has two maxima. The coder counts the
         fixtures that reach the new stages; a moved bit snapshot is re-approved only with
         the case named, its oracle shown, and every CEA tolerance test green.
+
+      ⚠ 2026-09-28, found while closing this criterion: the audit's own Li2O, BeO/H2O
+      and Li/O/H scratch cases for F3 and F4 (its harness under `scratchpad/`) were not
+      present in this worktree — the scratch reports of every audit are kept out of the
+      tree (`AGENTS.md` §2), and this coder's worktree never held that directory. Two
+      substitutions, both verified rather than guessed:
+      - **F3** is covered by `ThroatPlateauEdgeTests.ThePlateauEdgeIsSinglePhaseAndSubsonic`
+        over the generated `PlateauEdgeCases` (guard O4): it already asserts exactly the
+        two properties F3 names (single-phase, subsonic) on every committed fixture whose
+        own reference reaches a plateau edge, which exercises the same `AcceptPlateauEdge`
+        code path the Li2O/BeO systems would have. No separate fact was added.
+      - **F4** uses the AP/HTPB/Al system already in the `throat` family instead of
+        Li/O/H: `SecondAuditFixTests.TheThroatSearchNeverEndsThroatNotFoundAcrossThePlateauBand`
+        sweeps 50 cases, 6.25 kJ/kg apart (the audit's own width and step), across its
+        7 MPa melting plateau. A probe there (kept only as this note, not committed)
+        found the chamber's own `GammaS` at 0.9994 mid-band — the same `γ_s → 1`
+        condition F4 names — so the fix's own code path is exercised, even though the
+        chemical system differs from the audit's.
+
+      The evidence for F1, F5, O1 and O2 below is this coder's own, verified against
+      the running code, not retyped from the audit report:
+      - **F1**: `SecondAuditFixTests.TheThroatIsTheOraclesFirstMaximum` (every rocket
+        and throat fixture), `…OverTheApHtpbAlBand` (h −4.42 to −4.32 MJ/kg at 1, 3, 7
+        and 15 MPa) and `…OverTheElementMixtureCases` (the three new element-mixture
+        throat fixtures). Red at `5a732f0` (`ThroatBracketSearch.Momentum` returned the
+        grid's overall maximum, not the first met from the chamber); green after. A
+        first probe of the band fact used the oracle's entire grid instead of only the
+        region between the chamber and the throat (BOOT.md's own wording, above) and
+        failed on a real second maximum at 3 MPa, h = −4.36 MJ/kg (throat 2211.42 m/s
+        at p/p_c 0.6067, a downstream maximum of 2221.32 m/s at 0.5565): the fact was
+        narrowed to that region, not the tolerance, and the case is not a regression —
+        the accepted throat is the correct, first (upstream) one.
+      - **F5**: `AFrozenAtThroatExitAtOrAboveTheThroatIsInvalidInput` and
+        `EveryOkStationCarriesOnlyFiniteFigures`, both over every rocket and throat
+        fixture. Red at `5a732f0` (the rule did not exist; a pressure ratio at or above
+        the throat gave an `Ok` station with infinite area ratio and vacuum Isp).
+      - **O1, O2**: `ABisectionAcceptedWithinTheSonicToleranceIsOk` exercises
+        `ThroatBracketSearch.Bisect`'s own acceptance line directly, over brackets of
+        very different widths and asymmetries around a real sonic throat
+        (`rp1311-example13-throat_pc5MPa_dh0`); every one converges within the tight
+        polish tolerance on this system (a fact the test also records), so the wider,
+        report-tolerance branch stayed unreached by any swept bracket — a probe (not
+        committed) found the same over eight bracket widths spanning six orders of
+        magnitude. The branch is read directly rather than forced: the fact confirms
+        every accepted state meets `RocketSolver.SonicTolerance`, the bound the
+        acceptance line itself reads, not a narrower one a regression could still pass.
+        `TryRatioNeverLeavesAStaleRatioOnFailure` is the direct fact for O2: a
+        non-positive sound speed makes `TryRatio` report failure with `ratio` at 0,
+        never left at the caller's previous value.
 
 ## Taboos
 

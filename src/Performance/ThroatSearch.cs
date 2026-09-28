@@ -3,8 +3,8 @@ using APThermo.Thermo;
 namespace APThermo.Performance;
 
 /// <summary>
-/// The throat (RP-1311 section 6.3.3, BOOT.md "The throat carries the largest mass flux"): asks
-/// <see cref="ThroatBracketSearch"/> for the pressure the throat is solved at — the momentum iterations of (6.15) to
+/// The throat (RP-1311 section 6.3.3, BOOT.md "the throat is the first maximum of the mass flux met from the
+/// chamber"): asks <see cref="ThroatBracketSearch"/> for the pressure the throat is solved at — the momentum iterations of (6.15) to
 /// (6.17), or, where they end short, the bracket's bisection or its plateau-edge acceptance — and then defines what
 /// the accepted station gives the case: its mass flux, the characteristic velocity and the figures of the throat and
 /// of the chamber.
@@ -14,11 +14,23 @@ internal static class ThroatSearch
     /// <summary>Searches for the throat and writes it; on Ok the reference the exit stations expand from.</summary>
     public static CaseStatus At(in RocketContext context, in ChamberReference chamber, out ThroatReference throat)
     {
+        // Read before any solve touches the scratch, while it still carries the chamber's own condensed set
+        // (BOOT.md, 2026-09-28, "the first maximum"): the chamber solve was the case's last solve before this stage.
+        var chamberFingerprint = ThroatBracketSearch.CondensedFingerprint(in context);
+
         StationSolve.CopyComposition(in context, RocketSolver.Chamber, RocketSolver.Throat);
         var temperatureEstimate = context.Result.Stations[RocketSolver.Chamber].Temperature;
 
         var query = new ThroatQuery(in context, in chamber);
         var status = ThroatBracketSearch.Locate(in query, temperatureEstimate, out var pressureSolved);
+        if (status != CaseStatus.Ok)
+        {
+            context.Result.StationStatus[RocketSolver.Throat] = (int)status;
+            throat = default;
+            return status;
+        }
+
+        status = UpstreamChokeCheck.Verify(in query, chamberFingerprint, ref pressureSolved);
         if (status != CaseStatus.Ok)
         {
             context.Result.StationStatus[RocketSolver.Throat] = (int)status;
