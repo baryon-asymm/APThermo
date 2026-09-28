@@ -12,13 +12,28 @@ namespace APThermo.Execution.Chunks;
 
 internal readonly record struct Chunk(int Offset, int Length);
 
+internal sealed class LaunchBudget
+{
+    public static readonly TimeSpan DefaultRunTimeLimit;   // 2 s: the default Windows WDDM/WSL2 kernel run-time limit
+
+    public static readonly LaunchBudget None;
+    public static LaunchBudget FromRunTimeLimit(TimeSpan runTimeLimit);
+
+    public bool IsBounded { get; }
+    public int NextChunkCases(int previousCases, TimeSpan previousDuration);
+}
+
 internal readonly struct ChunkPlan
 {
     public int Count { get; }
     public int Size { get; }
+    public LaunchBudget Budget { get; }
 
     public static ChunkPlan For(int count, long bytesPerCase, long maxElementsPerCase, EngineOptions options);
+    public static ChunkPlan For(int count, long bytesPerCase, long maxElementsPerCase, EngineOptions options, LaunchBudget budget);
     public IEnumerable<Chunk> Chunks();
+    public int FirstChunkCases(int wave);
+    public int NextChunkCases(int previousCases, TimeSpan previousDuration, int coveredSoFar);
 }
 ```
 
@@ -30,7 +45,26 @@ program is declared), the largest per-case element count of any declared buffer
 validated by the parent's `Engine.Create` before a plan is ever built. The size is also
 capped so that `chunk × maxElementsPerCase` never exceeds `int.MaxValue`, since the
 kernels slice a buffer with 32-bit `Index1D` arithmetic. `Chunks()` enumerates the
-batch's chunks in order, `Offset + Length` never exceeding `Count`.
+batch's chunks in order, `Offset + Length` never exceeding `Count`, ignoring `Budget`
+(unchanged since 2026-09-15; no caller of `Chunks()` needs a time-bounded chunk today).
+
+**`LaunchBudget` and the two step methods** (2026-09-28, the second audit's Execution
+finding F2). The four-argument `For` overload defaults to `LaunchBudget.None`
+(unbounded, the pre-existing behaviour); the parent's `AcceleratorChoice` passes the
+five-argument overload with the session's own budget, built at bind time from the
+device's run-time-limit attribute — `None` for the CPU accelerator or a device
+without the limit, `FromRunTimeLimit(LaunchBudget.DefaultRunTimeLimit)` otherwise.
+`LaunchBudget` holds no ILGPU type: it is one nullable `TimeSpan` and arithmetic on
+`TimeSpan.Ticks`. `FirstChunkCases(wave)` returns `Size` when the plan is unbounded,
+or a chunk clamped to one device wave (`Accelerator.MaxNumThreads`, the caller's own
+measure of "one launch that surely fits") otherwise, so the very first chunk — with no
+measured duration yet to scale from — starts small on a bounded device. `NextChunkCases`
+on the plan scales the previous chunk's case count by `LaunchBudget.NextChunkCases`
+(the previous chunk's measured time per case against a quarter of the run-time limit,
+so three retries stay inside it even if the estimate is off), clamped to `Size` and to
+what remains of the batch, and never below one case. `BatchRun` (the parent node's own
+file) drives this loop; `Chunks()` is unaffected and stays the choice for a caller with
+no timing loop of its own.
 
 ## Chunk buffers ✅
 
