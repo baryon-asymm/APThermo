@@ -39,9 +39,15 @@ def dumps(document: dict) -> str:
 
 
 class Writer:
-    def __init__(self, check: bool = False, only: list[str] | None = None) -> None:
+    def __init__(self, check: bool = False, only: list[str] | None = None,
+                 only_cases: set[tuple[str, str]] | None = None) -> None:
+        """`only_cases`, when given, is a set of `(kind, safe_name(name))` pairs (regenerate.py's `--sample`, tests/
+        Fixtures/BOOT.md's CI step): every other case of a wanted kind is skipped, and the stale sweep of `finish()`
+        is turned off, since a sample deliberately produces only part of each kind and every file it does not touch
+        is not stale."""
         self.check = check
         self.only = set(only) if only else None
+        self.only_cases = only_cases
         self.results: list[tuple[str, str]] = []
         self.produced: set[str] = set()
         self._provenance: dict[str, dict] = {}
@@ -72,10 +78,13 @@ class Writer:
     def wants(self, kind: str) -> bool:
         return self.only is None or kind in self.only
 
+    def wants_case(self, kind: str, name: str) -> bool:
+        return self.only_cases is None or (kind, safe_name(name)) in self.only_cases
+
     def case(self, kind: str, name: str, inputs: dict, outputs: dict, script_path: str,
              method: str = "cea-package") -> str:
         """Writes (or, in check mode, compares) one fixture; returns unchanged, changed, missing or written."""
-        if not self.wants(kind):
+        if not self.wants(kind) or not self.wants_case(kind, name):
             return "skipped"
         document = {
             "case": {"name": name, "kind": kind, "inputs": inputs},
@@ -103,7 +112,9 @@ class Writer:
         """Reports stale files, prints a summary and returns the process exit code."""
         stale = []
         produced_kinds = {os.path.basename(os.path.dirname(p)) for p in self.produced}
-        for kind in sorted(os.listdir(CASES)) if os.path.isdir(CASES) else []:
+        # A sample deliberately produces only part of each kind (`only_cases`); every file it does not touch is
+        # untouched by choice, not stale, so the sweep below does not run at all under `--sample`.
+        for kind in (sorted(os.listdir(CASES)) if os.path.isdir(CASES) and self.only_cases is None else []):
             kind_dir = os.path.join(CASES, kind)
             # Only the kinds this run produced are swept: a single script must not remove the others' files.
             if not os.path.isdir(kind_dir) or not self.wants(kind) or os.path.normcase(kind) not in produced_kinds:
