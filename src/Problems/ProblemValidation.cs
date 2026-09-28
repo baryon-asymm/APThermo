@@ -27,9 +27,9 @@ internal static class ProblemValidation
             throw Refuse(noun, "rocket", index, $"the chamber pressure must be positive and finite, not {problem.ChamberPressure}");
         }
 
-        if (problem.TemperatureEstimate < 0.0 || double.IsNaN(problem.TemperatureEstimate))
+        if (problem.TemperatureEstimate < 0.0 || !double.IsFinite(problem.TemperatureEstimate))
         {
-            throw Refuse(noun, "rocket", index, "the temperature estimate must not be negative");
+            throw Refuse(noun, "rocket", index, "the temperature estimate must be finite and not negative");
         }
 
         foreach (var value in problem.PressureRatios.Concat(problem.AreaRatios))
@@ -54,9 +54,9 @@ internal static class ProblemValidation
             throw Refuse(noun, "equilibrium", index, $"the pressure must be positive and finite, not {problem.Pressure}");
         }
 
-        if (problem.Temperature < 0.0 || double.IsNaN(problem.Temperature))
+        if (problem.Temperature < 0.0 || !double.IsFinite(problem.Temperature))
         {
-            throw Refuse(noun, "equilibrium", index, "the temperature must not be negative");
+            throw Refuse(noun, "equilibrium", index, "the temperature must be finite and not negative");
         }
 
         if (problem.Transport && database.Transport is null)

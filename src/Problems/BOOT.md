@@ -618,12 +618,21 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Solver` | efferent coupling | 22 | the composition root of the front door: owns the engine and the collaborators, turns each public entry point into a system and cases and hands them to a runner; holds no rule |
+| `Solver` | efferent coupling | 24 | the composition root of the front door: owns the engine and the collaborators, turns each public entry point into a system and cases and hands them to a runner; holds no rule |
 | `RocketRunner` | efferent coupling | 26 | the composition root of the rocket pipeline: groups the cases, fills the batch, runs the engine and the transport pass, assembles the stations through `StationFactory`; holds no formula (the decision "The runners are the pipelines' composition roots") |
 | `EquilibriumRunner` | efferent coupling | 24 | the composition root of the equilibrium pipeline, as `RocketRunner` |
 | `RocketResult.RocketResult` | parameters | 9 | a published result record, the contract's shape field for field (the decision "Size"); created once, with named arguments |
 | `Station.Station` | parameters | 8 | a published result record, as `RocketResult` |
 | `EquilibriumResult.EquilibriumResult` | parameters | 8 | a published result record, as `RocketResult` |
+
+⚠ 2026-09-28: `Solver`'s row stood at 22. The audit fixes of 2026-09-28 add
+`ValidatedOptions` (naming `ElementalMixture` in its mass-tolerance check) and
+`ValidateRecordElements` (naming `StateRecordException` and looping the records
+`ChemicalSystemCache.ValidateOwnElements` now validates per record, before the union),
+both composition-root code of `Solver` itself, no formula; the protocol tests node's
+`ShapeTests` measures 24 on the walk. `Solver` remains the composition root the reason
+column already describes; the two new methods hold no rule of their own, only the
+record-vs-batch dispatch finding F3 asked for.
 
 ## Acceptance criteria
 
@@ -876,29 +885,46 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       covered the rules of `ProblemValidation` but not the elements of a record. The
       second audit found a regression and two gaps behind them (the ⚠ notes of
       2026-09-28 under Constraints).
-- [ ] The audit fixes of 2026-09-28 (Constraints). Each fact is red once against
-      `5a732f0`:
-      - a record with `"E": 0.0` beside the approved AP/Al record solves, and its
-        station fields equal the record's without `E` bit for bit; a record with
-        `"E": 1e-6` is still refused;
-      - `"only": ["H2", "H"]` on LOX/LH2 is refused, naming the `only` list as the
-        cause; `e-`, `H+` or `InertH` in `only` is refused by name;
-      - without a ratio, a fuel in mass fractions beside a named reactant in moles is
+- [x] 2026-09-28 — The audit fixes of 2026-09-28 (Constraints). Each fact is red once
+      against `5a732f0` (`git checkout 5a732f0 -- src/Problems`, the new fact run and
+      seen red, then `git checkout HEAD -- src/Problems` to restore), then green,
+      in `tests/Problems.Tests/SecondAuditFixTests.cs`:
+      - `AnElementAtZeroAbundanceEverywhereIsMaskedNotRefused`: a record with
+        `"E": 0.0` beside the approved AP/Al record solves, and its station fields
+        equal the record's without `E` bit for bit; a record with `"e": 1e-6` is
+        still refused;
+      - `AnOnlyListNamesItsOwnCauseAndExcludesIonsAndInertRecords`:
+        `"only": ["H2", "H"]` on LOX/LH2 is refused, naming the `only` list as the
+        cause; `e-`, `H+` and `InertH` in `only` are each refused by name;
+      - `OneAmountKindPerUnitOfNormalizationAppliesAcrossGroupsOnlyWithoutARatio`:
+        without a ratio, a fuel in mass fractions beside a named reactant in moles is
         refused, and so is an oxidizer in moles beside a named reactant in mass
         fractions; with a ratio, the per-group rule of 2026-09-26 is unchanged;
-      - in a batch of three records, one with `"Xx": 0.0` and one with `"e": 1e-6`,
-        each is a `StateRecordException` with its own index. A transport request
-        against a database without `trans.inp` is an `ArgumentException` naming the
-        option, and so is `StateBatchOptions.MassTolerance` NaN;
-      - a rocket `TemperatureEstimate` of +∞ and an equilibrium `Temperature` of +∞
-        are refused;
-      - two fuels of 1e308 are refused naming the group's non-finite sum;
-      - `Br2(cr)` at 298.15 K resolves, its enthalpy equal to cea 3.3.4's
-        (−68 567.58 J/kg), computed by the fixtures node's generator rather than typed;
-      - two `omit` lists that joined to the same text now give two tables.
+      - `ARecordIsNamedForItsOwnElementsABatchForItsOptions`: in a batch of three
+        records, one with an unknown element and one with `"e": 1e-6`, each is a
+        `StateRecordException` with its own index. A transport request against a
+        database without `trans.inp` is an `ArgumentException` naming the option
+        (not a `StateRecordException`), and so is `StateBatchOptions.MassTolerance`
+        NaN;
+      - `EstimatesMustBeFinite`: a rocket `TemperatureEstimate` of +∞ and an
+        equilibrium `Temperature` of +∞ are refused;
+      - `AmountsMustSumToAFiniteValue`: two fuels of 1e308 are refused naming the
+        fuel group's non-finite sum;
+      - `Br2ResolvesAt298Point15KAgainstTheGeneratedReference`: `Br2(cr)` at
+        298.15 K resolves, its enthalpy equal to cea 3.3.4's own
+        (−68 567.575148 J/kg, `tests/Fixtures/cases/reactant/Br2_cr__298.15K.json`,
+        generated by `propellants.py`'s `br2_reactant_anomaly`, never typed);
+      - `TwoOmitListsThatJoinToTheSameTextGiveTwoTables`: two `omit` lists that used
+        to join to the same key now give two tables, each excluding only the species
+        it named.
 
-      `API.md` states each refusal in its errors table. No bit snapshot moves; the
-      public surface does not change.
+      `API.md`'s errors table states every refusal above. No `Bits*.approved.txt` or
+      `PublicSurface.approved.txt` moved (`git status --short`, unchanged from `main`).
+
+      Evidence: `dotnet test tests/Problems.Tests/APThermo.Problems.Tests.csproj`:
+      1206 of 1206, none skipped (1197 baseline, plus the 8 facts above and the
+      reacting-fields pinning fact of `tests/Problems.Tests/BOOT.md`, 2026-09-28). The
+      protocol lint: 0 errors, 0 warnings.
 
 ## Taboos
 

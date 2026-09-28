@@ -212,7 +212,9 @@ public sealed class ExitCodeTests
     /// A reactant propellant's mass refusal names "the propellant's mixture (case i)", as the front door's own
     /// propellant path does (2026-09-26, the audit's finding 7): the mixtures this command builds per sweep
     /// combination lose the <c>Propellant</c> reference before <c>Solve</c>, and used to be named "mixture i" with
-    /// the tolerance in force misreported as the (inapplicable) option's own value.
+    /// the tolerance in force misreported as the (inapplicable) option's own value. The message starts with the
+    /// document's own path, like every other refusal of this command (2026-09-28, the second audit's finding F7: it
+    /// used to lack one).
     /// </summary>
     [Fact]
     public void AReactantPropellantsMassRefusalNamesThePropellantsMixture()
@@ -227,7 +229,7 @@ public sealed class ExitCodeTests
         File.WriteAllText(path, document);
         var run = CliFixture.Invoke(CliFixture.Shared.Solving("equilibrium", path));
         Assert.Equal(2, run.Code);
-        Assert.Contains("the propellant's mixture (case 0): the composition weighs ", run.Error, StringComparison.Ordinal);
+        Assert.Contains($"{path}: the propellant's mixture (case 0): the composition weighs ", run.Error, StringComparison.Ordinal);
         Assert.Empty(run.Output);
     }
 

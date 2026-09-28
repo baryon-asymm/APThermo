@@ -15,7 +15,9 @@ internal static class SpeciesCommand
             .Where(s => options.Find is null || s.Name.Contains(options.Find, StringComparison.OrdinalIgnoreCase))
             .Select(s => SpeciesRow.From(s, database))
             .ToList();
-        var run = new RunInfo("species", [], info, null, new Timings(databaseSeconds, 0.0), new RunLimits(options.Threshold, options.MassTolerance));
+        // species takes neither --threshold nor --mass-tolerance (CommandTable.Commands); the run section records no
+        // limits, rather than the two options' unused defaults (2026-09-28, the second audit's observation 8).
+        var run = new RunInfo("species", [], info, null, new Timings(databaseSeconds, 0.0), Limits: null);
         var text = options.Format == OutputFormat.Csv ? SpeciesListing.Csv(rows) : SpeciesListing.Json(run, rows);
         DocumentWriter.Deliver(text, options.Output, output);
         return ExitCode.Ok;

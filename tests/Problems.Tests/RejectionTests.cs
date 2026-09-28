@@ -244,8 +244,11 @@ public sealed partial class RejectionTests
         Assert.Equal(1, none.Index);
         var negative = Assert.Throws<StateRecordException>(() => SolverFixture.Shared.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["H"] = -1.0 }, Temperature: 3000.0)]));
         Assert.Contains("'H'", negative.Message, StringComparison.Ordinal);
-        var unknown = Assert.Throws<ArgumentException>(() => SolverFixture.Shared.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["XX"] = 1.0 }, Temperature: 3000.0)]));
+        // An unknown element is refused as the record's own StateRecordException since the second audit's fix F3:
+        // SolveStates checks each record's own elements before the union is built (Problems BOOT.md).
+        var unknown = Assert.Throws<StateRecordException>(() => SolverFixture.Shared.Solver.SolveStates([new StateRecord(1.0e6, new Dictionary<string, double> { ["XX"] = 1.0 }, Temperature: 3000.0)]));
         Assert.Contains("XX", unknown.Message, StringComparison.Ordinal);
+        Assert.Equal(0, unknown.Index);
         _ = Assert.Throws<ArgumentException>(() => SolverFixture.Shared.Solver.SolveStates([]));
 
         // A rule ProblemValidation applies (here, a non-positive pressure) is a StateRecordException naming the

@@ -42,36 +42,43 @@ internal static class SpeciesSelection
     }
 
     /// <summary>
-    /// Every element must appear in the formula of at least one candidate; an element that survives only in ionized or
-    /// inert records (<c>E</c>, <c>IH</c>, <c>IO</c> of the committed file) has none, and the mixture is unsupported
-    /// (BOOT.md, the audit fixes of 2026-09-26: it used to enter the table as a row with no species and fail later as
-    /// a numerical <c>singularMatrix</c>).
+    /// Every element that carries a nonzero abundance somewhere must appear in the formula of at least one candidate;
+    /// an element that survives only in ionized or inert records (<c>E</c>, <c>IH</c>, <c>IO</c> of the committed
+    /// file) has none, and the mixture is unsupported (BOOT.md, the audit fixes of 2026-09-26: it used to enter the
+    /// table as a row with no species and fail later as a numerical <c>singularMatrix</c>).
     /// </summary>
-    public static void ValidateElementsHaveCandidates(SpeciesDatabase database, IReadOnlyList<string> elements, IReadOnlyList<string> candidates)
+    /// <remarks>
+    /// An element with no candidates is refused only when <paramref name="elementsWithAbundance"/> names it (the
+    /// second audit's fix: an element at zero everywhere is masked, as the equilibrium node masks any absent
+    /// element, not refused). When an <paramref name="omit"/> or <paramref name="only"/> list removed the species
+    /// that would otherwise have carried the element, the refusal names the list instead of the database (the
+    /// second audit's observation 1).
+    /// </remarks>
+    public static void ValidateElementsHaveCandidates(SpeciesDatabase database, IReadOnlyList<string> elements, IReadOnlyList<string> candidates,
+        IReadOnlyList<string> omit, IReadOnlyList<string>? only, IReadOnlyCollection<string> elementsWithAbundance)
     {
-        var present = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var name in candidates)
-        {
-            if (database.TryGet(name, out var species))
-            {
-                foreach (var pair in species.Formula)
-                {
-                    _ = present.Add(Spelling(pair.Symbol));
-                }
-            }
-        }
-
+        var present = PresentElements(database, candidates);
+        var isRestricted = only is not null || omit.Count > 0;
+        var unrestricted = isRestricted ? PresentElements(database, Candidates(database, elements, [], null)) : null;
         foreach (var element in elements)
         {
             var spelling = Spelling(element);
-            if (!present.Contains(spelling))
+            if (present.Contains(spelling) || !elementsWithAbundance.Contains(spelling))
             {
-                throw new ArgumentException($"element '{spelling}' has no candidate species: only ionized or inert records carry it");
+                continue;
             }
+
+            if (unrestricted is not null && unrestricted.Contains(spelling))
+            {
+                var listName = only is not null ? "Only" : "Omit";
+                throw new ArgumentException($"element '{spelling}' has no candidate species: the {listName} list excludes every species that would carry it");
+            }
+
+            throw new ArgumentException($"element '{spelling}' has no candidate species: only ionized or inert records carry it");
         }
     }
 
-    /// <summary>Every name of an Only list must be a product species whose elements lie within the mixture's.</summary>
+    /// <summary>Every name of an Only list must be a product species whose elements lie within the mixture's, and neither ionized nor inert (never a candidate).</summary>
     public static void ValidateOnly(SpeciesDatabase database, IReadOnlyList<string> elements, IReadOnlyList<string> only)
     {
         if (only.Count == 0)
@@ -87,11 +94,33 @@ internal static class SpeciesSelection
                 throw new ArgumentException($"species '{name}' of the Only list is not a product species of the database");
             }
 
+            if (species.IsInert || IsIonized(species))
+            {
+                throw new ArgumentException($"species '{name}' of the Only list is ionized or an inert pseudo-element record, never a candidate");
+            }
+
             if (!Fits(species, present))
             {
                 throw new ArgumentException($"species '{name}' of the Only list contains an element the mixture does not have");
             }
         }
+    }
+
+    private static HashSet<string> PresentElements(SpeciesDatabase database, IReadOnlyList<string> candidates)
+    {
+        var present = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in candidates)
+        {
+            if (database.TryGet(name, out var species))
+            {
+                foreach (var pair in species.Formula)
+                {
+                    _ = present.Add(Spelling(pair.Symbol));
+                }
+            }
+        }
+
+        return present;
     }
 
     private static bool Fits(Species species, HashSet<string> present) => species.Formula.All(pair => present.Contains(Spelling(pair.Symbol)));

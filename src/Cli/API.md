@@ -54,11 +54,14 @@ without one. `--accelerator` overrides the document's `engine.accelerator`; the 
 non-negative number, relative to one kilogram; default the library's
 `ElementalMixture.DefaultMassTolerance`, 1e-2) is the mass tolerance declared for
 every mixture the command builds from element moles, `propellant.elementMoles` and
-state records; a propellant given by reactants keeps the default, since its mixture is
-the library's own. It is a run parameter like `--threshold`, not a field of the
-documents: a tolerance describes the caller's records, not the physics. Both are
-recorded in the output document's `run` section, and every case reports the mass of
-its element moles.
+state records; it does not apply to a propellant given by reactants, whose mixture is
+always held to the library's own default, and giving it there is exit 2 (the second
+hidden-defect audit of 2026-09-28, finding F7: this sentence used to say such a
+propellant "keeps the default", which reads as accepted and silently ignored). It is a
+run parameter like `--threshold`, not a field of the documents: a tolerance describes
+the caller's records, not the physics. Both are recorded in the output document's `run`
+section for every command that takes them; `species`, which takes neither, records
+neither (2026-09-28, observation 8).
 
 `states` takes state records, the exchange shape of the `Problems` node, as a JSON
 array, a single object, JSON Lines (one record per line) or several such files, and
@@ -256,7 +259,10 @@ Fields:
   step; `oxidizerToFuel` (a propellant with `mixture.oxidizerToFuel` only) and
   `chamberPressure` for a rocket problem, `oxidizerToFuel`, `pressure` and, for tp,
   `temperature` for an equilibrium problem. The product of the lists is one batch,
-  ratio-major, then pressure, then temperature.
+  ratio-major, then pressure, then temperature. A list or a range may not expand to
+  more than 1,000,000 values (`SweepValues.MaxAxisValues`), and the batch's product may
+  not exceed 10,000,000 cases (`SweepDocumentReader.MaxCases`); both are refused before
+  any solve (the second hidden-defect audit of 2026-09-28, finding F4).
 - `engine.accelerator`: `auto`, `cpu` or `cuda`; the command line's `--accelerator`
   wins.
 
@@ -385,11 +391,11 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 |---|---|
 | no command, an unknown command or option, a wrong argument count, an option that does not apply, a bad option value | message on standard error, exit code 2, no document |
 | `schema` without a name, or with a name that is not embedded | the embedded names on standard error, exit code 2, no document |
-| malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step | message with the JSON path on standard error, exit code 2, no document |
+| malformed JSON, unknown field, missing required field, wrong type, an empty `only`, a range that does not end on a step, a sweep axis or a Cartesian product above its limit, a lone UTF-16 surrogate in a member name or a string value | message with the JSON path on standard error, exit code 2, no document (2026-09-28, the second audit's findings F4 and F6, for the sweep and the surrogate cases) |
 | a document whose problem type does not match the command | message naming the right command, exit code 2 |
 | unknown reactant, temperature out of range, an element without a record, a rocket case without enthalpy, transport without `trans.inp` | the library's message, exit code 2 |
-| a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the tolerance in force (`--mass-tolerance`, default 1 %: a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document; `within 3 %` under `--mass-tolerance 0.03`), exit code 2, no document |
-| `--mass-tolerance` with a value that is not a finite non-negative number, or on a listing command | `the mass tolerance must be a finite non-negative number, not 'X'`, or the option named as not applying; exit code 2 |
+| a state record or a `propellant.elementMoles` whose composition does not weigh one kilogram with the database's atomic weights within the tolerance in force (`--mass-tolerance`, default 1 %: a doubled record, mol/g, kmol/kg) | the record's source and the library's reason, `records.json: record 0: the composition weighs 2000.03 g with the database's atomic weights; element moles are per kilogram of mixture, so it must weigh 1000 g within 1 %` (`records.jsonl:2:` for JSON Lines, `problem.json: $.propellant.elementMoles:` for a document, `problem.json: the propellant's mixture (case 0):` for a reactant propellant's own mixture, its path leading the message like every other form since 2026-09-28, finding F7; `within 3 %` under `--mass-tolerance 0.03`), exit code 2, no document |
+| `--mass-tolerance` with a value that is not a finite non-negative number, on a listing command, or against a document whose propellant is given by reactants | `the mass tolerance must be a finite non-negative number, not 'X'`, or the option named as not applying (2026-09-28, finding F7: this row used to name only the listing commands); exit code 2 |
 | input file or database directory not found | message with the path, exit code 2 |
 | `--output` names a path whose directory does not exist | `PATH: directory not found`, exit code 2 |
 | accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3; for an accelerator, every path tried |

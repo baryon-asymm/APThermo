@@ -84,9 +84,10 @@ internal sealed class StrictObject
     {
         foreach (var property in _element.EnumerateObject())
         {
-            if (!_seen.Contains(property.Name))
+            var name = NameOf(property, Path);
+            if (!_seen.Contains(name))
             {
-                throw new InputException($"unknown field '{property.Name}' at {Path}");
+                throw new InputException($"unknown field '{name}' at {Path}");
             }
         }
     }
@@ -102,8 +103,22 @@ internal sealed class StrictObject
         return double.IsFinite(number) ? number : throw new InputException($"the number at {path} is out of range");
     }
 
-    public static string AsString(JsonElement value, string path) =>
-        value.ValueKind == JsonValueKind.String ? value.GetString()! : throw new InputException($"expected a string at {path}, not {Describe(value)}");
+    public static string AsString(JsonElement value, string path)
+    {
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            throw new InputException($"expected a string at {path}, not {Describe(value)}");
+        }
+
+        try
+        {
+            return value.GetString()!;
+        }
+        catch (InvalidOperationException inner)
+        {
+            throw new InputException($"the string at {path} is not valid UTF-16 text", inner);
+        }
+    }
 
     public static IReadOnlyList<double> AsNumberList(JsonElement value, string path) =>
         value.ValueKind != JsonValueKind.Array
@@ -120,9 +135,10 @@ internal sealed class StrictObject
         var map = new Dictionary<string, double>(StringComparer.Ordinal);
         foreach (var property in value.EnumerateObject())
         {
-            if (!map.TryAdd(property.Name, AsNumber(property.Value, $"{path}.{property.Name}")))
+            var name = NameOf(property, path);
+            if (!map.TryAdd(name, AsNumber(property.Value, $"{path}.{name}")))
             {
-                throw new InputException($"the key '{property.Name}' at {path} is given twice");
+                throw new InputException($"the key '{name}' at {path} is given twice");
             }
         }
 
@@ -145,16 +161,37 @@ internal sealed class StrictObject
     /// A member given twice is refused instead of letting the last value win silently (2026-09-26, the audit's
     /// finding 2): <see cref="JsonElement.EnumerateObject"/> yields every member in file order, duplicates included,
     /// while <see cref="JsonElement.TryGetProperty(string, out JsonElement)"/> would quietly resolve to the last one.
+    /// Every object is constructed through this check first, so it is also the earliest point a lone UTF-16 surrogate
+    /// in a member name is read (<see cref="NameOf"/>, the second hidden-defect audit of 2026-09-28, finding F6).
     /// </summary>
     private void CheckNoDuplicateFields()
     {
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (var property in _element.EnumerateObject())
         {
-            if (!names.Add(property.Name))
+            var name = NameOf(property, Path);
+            if (!names.Add(name))
             {
-                throw new InputException($"the field '{property.Name}' at {Path} is given twice");
+                throw new InputException($"the field '{name}' at {Path} is given twice");
             }
+        }
+    }
+
+    /// <summary>
+    /// A member name, refused as an <see cref="InputException"/> naming <paramref name="context"/> (the object or
+    /// map it belongs to) when it is not valid UTF-16 text (a lone surrogate, the second hidden-defect audit of
+    /// 2026-09-28, finding F6): unescaping such a name throws <see cref="InvalidOperationException"/>, which no
+    /// reader used to catch, so it reached the caller as an unhandled exit 3.
+    /// </summary>
+    private static string NameOf(JsonProperty property, string context)
+    {
+        try
+        {
+            return property.Name;
+        }
+        catch (InvalidOperationException inner)
+        {
+            throw new InputException($"a member name at {context} is not valid UTF-16 text", inner);
         }
     }
 

@@ -104,11 +104,15 @@ Every command that writes a document (every solving command, `species`, `devices
 `schema`) takes `--output PATH`; `species` and the solving commands also take
 `--format json|csv`. Every solving command takes `--database DIR` (a directory with
 `thermo.inp` and, optionally, `trans.inp`; without it the tool uses the database
-embedded in `APThermo`, see [The database](data.md)), `--threshold X` (the
-mole-fraction print cutoff, default `5e-6`) and `--mass-tolerance X` (the relative
-mass tolerance declared for every mixture the command builds from element moles,
-default `1e-2`; see [Troubleshooting](troubleshooting.md)). The full option list, with
-every command's exact synopsis, is
+embedded in `APThermo`, see [The database](data.md)) and `--threshold X` (the
+mole-fraction print cutoff, default `5e-6`). `--mass-tolerance X` (the relative mass
+tolerance declared for every mixture the command builds from element moles, default
+`1e-2`; see [Troubleshooting](troubleshooting.md)) applies to a document whose
+propellant is given by element moles or to a `states` record's own composition, never
+to a propellant given by reactants: its mixture is always held to the library's own
+default, and giving `--mass-tolerance` against such a document is exit 2. `species`
+takes neither `--threshold` nor `--mass-tolerance`, and its `run` section records
+neither. The full option list, with every command's exact synopsis, is
 [the command line's `API.md`](../../src/Cli/API.md#command-line-); it is not repeated
 here as a runnable form because most of its options are placeholders you fill in, not
 literal text to paste.

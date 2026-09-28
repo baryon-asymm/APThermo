@@ -39,8 +39,12 @@ internal static class RunSection
         writer.WriteNumber("database", run.Timings.Database);
         writer.WriteNumber("solve", run.Timings.Solve);
         writer.WriteEndObject();
-        writer.WriteNumber("threshold", run.Limits.Threshold);
-        writer.WriteNumber("massTolerance", run.Limits.MassTolerance);
+        if (run.Limits is { } limits)
+        {
+            writer.WriteNumber("threshold", limits.Threshold);
+            writer.WriteNumber("massTolerance", limits.MassTolerance);
+        }
+
         writer.WriteEndObject();
     }
 

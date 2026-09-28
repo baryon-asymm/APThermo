@@ -63,8 +63,9 @@ internal static class ProblemCommand
             // tolerance; naming it "the propellant's mixture (case i)" matches the front door's own propellant path
             // (MixtureMass.Subject) instead of the batch-over-mixtures wording this command's own Solve call would
             // otherwise carry, since building the mixtures per combination already drops the Propellant reference
-            // (2026-09-26, Problems BOOT.md, the audit fixes: "Mass tolerance").
-            throw new InputException($"the propellant's mixture (case {e.Index}): {e.Reason}");
+            // (2026-09-26, Problems BOOT.md, the audit fixes: "Mass tolerance"). The document's own path leads the
+            // message like every other form (2026-09-28, the second audit's finding F7: it used to lack one).
+            throw new InputException($"{path}: the propellant's mixture (case {e.Index}): {e.Reason}");
         }
         catch (Exception e) when (e is ArgumentException or KeyNotFoundException)
         {

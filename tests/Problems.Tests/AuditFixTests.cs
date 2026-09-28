@@ -62,11 +62,14 @@ public sealed class AuditFixTests
         Assert.Contains("'IH'", e.Message, StringComparison.Ordinal);
         Assert.Contains("no candidate species", e.Message, StringComparison.Ordinal);
 
+        // A candidate-less element with a positive abundance is the record's own StateRecordException since the
+        // second audit's fix F3: SolveStates checks each record's own elements before the union is built.
         var composition = new Dictionary<string, double>(RejectionTests.OneKilogram, StringComparer.Ordinal) { ["e"] = 1.0e-6 };
-        var withElectron = Assert.Throws<ArgumentException>(
+        var withElectron = Assert.Throws<StateRecordException>(
             () => SolverFixture.Shared.Solver.SolveStates([new StateRecord(RejectionTests.RecordPressure, composition, Temperature: 3000.0)]));
         Assert.Contains("'E'", withElectron.Message, StringComparison.Ordinal);
         Assert.Contains("no candidate species", withElectron.Message, StringComparison.Ordinal);
+        Assert.Equal(0, withElectron.Index);
     }
 
     /// <summary>
