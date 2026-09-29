@@ -37,9 +37,10 @@ internal static class Composition
     /// <summary>
     /// The gaseous mole numbers the trace rule of section 3.2 retains at the given threshold: a species below it is held
     /// at zero in the sums and keeps its logarithm for the next step. Returns their sum. The one place the rule is
-    /// applied; the threshold is the case's own active stage (<see cref="EquilibriumSolver.RetentionThreshold"/>) during
-    /// the iteration, and the report's own first stage when the caller re-applies it to the final state (BOOT.md, the
-    /// two-stage retention threshold, 2026-09-28).
+    /// applied, always at the case's own active stage (<see cref="EquilibriumSolver.RetentionThreshold"/>): the only
+    /// callers are <see cref="Refresh"/> and <see cref="Sums"/>, both at that stage, and there is no separate
+    /// first-stage re-apply on the final state (BOOT.md, the two-stage retention threshold, 2026-09-28; corrected
+    /// the third pass, finding F3: no caller ever re-applied a first-stage threshold).
     /// </summary>
     public static double Retain(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold)
     {

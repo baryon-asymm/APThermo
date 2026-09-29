@@ -235,6 +235,48 @@ public sealed class WarmStartTests
         }
     }
 
+    /// <summary>
+    /// The third audit pass's finding F2 (BOOT.md, the warm-start fallback, 2026-09-28): a warm start whose Newton
+    /// loop itself converges, but whose composition sits below the mixture window's 160 K floor, is retried from the
+    /// cold start of section 3.1 rather than reported straight away — the window check runs at <c>Close</c>, after
+    /// <c>RunToConvergence</c> already returned <c>Ok</c>, so only a fallback that also covers the close catches it.
+    /// At 150 K no state exists for this table either way (`h2-o2-of4`'s ice fit starts at 200 K, and the window's
+    /// own floor is the reference's own gas-data minimum), so the retried cold solve fails too, exactly as the
+    /// audit's own probe found for 31 of its 1147 warm starts ("in every one of these 32 the fresh cold solve also
+    /// failed"): the fact below does not assert `Ok`, it shows the retry taken by the iteration count, which a
+    /// same-status but un-retried warm solve could not reach.
+    /// </summary>
+    [Fact]
+    public void AFailureFoundAtTheCloseRetriesFromTheColdStart()
+    {
+        const string name = "h2-o2-of4_T165";
+        var c = HostSolver.Load("tp", name);
+        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var elementMoles = HostSolver.ElementMolesOf(c);
+        var pressure = HostSolver.PressureOf(c);
+        var accelerator = CpuFixture.Shared.Accelerator;
+
+        var seed = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, 165.0, 0.0, elementMoles);
+        var seedSolution = HostSolver.Solve(accelerator, seed);
+        Assert.Equal(CaseStatus.Ok, seedSolution.Status);
+
+        // 150 K: below the mixture window's 160 K floor (BOOT.md), so Close reports TemperatureOutOfRange although
+        // the Newton loop itself converges at once from a seed this close to it.
+        var belowTheWindow = seed with { Temperature = 150.0 };
+        var warm = HostSolver.Solve(accelerator, belowTheWindow, seedSolution.Moles);
+        var freshCold = HostSolver.Solve(accelerator, belowTheWindow);
+
+        Assert.Equal(CaseStatus.TemperatureOutOfRange, warm.Status);
+        Assert.Equal(CaseStatus.TemperatureOutOfRange, freshCold.Status);
+
+        // A warm start seeded this close to the answer converges in a handful of steps; a fallback that covers the
+        // close retries the full cold start on top of it, so the reported total reaches at least the cold solve's
+        // own count. Without the retry the reported total would be the warm attempt's own handful of steps, well
+        // under the fresh cold solve's count.
+        Assert.True(warm.Iterations >= freshCold.Iterations,
+                    $"{name}: warm iterations {warm.Iterations} do not reach the fresh cold solve's {freshCold.Iterations}, so the close's own failure was not retried");
+    }
+
     /// <summary>Two paths of this tree agree within <see cref="Tolerances.SelfConsistency"/>, plus an absolute floor for a field that passes through zero.</summary>
     private static void AssertClose(string name, string field, double cold, double warm, double absoluteFloor)
     {

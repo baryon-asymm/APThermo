@@ -42,7 +42,13 @@ internal static class CaseSetup
             return CaseStatus.InvalidInput;
         }
 
-        if (problem.Kind == ProblemKind.AssignedTemperaturePressure && problem.Temperature is not (> 0.0 and < double.PositiveInfinity))
+        // A tp temperature is always assigned; an hp or sp one is an estimate, and 0 is its own sentinel for "none
+        // given" (Descriptors.cs, InitialTemperature below), which the warm-start fallback's cold retry relies on
+        // (ColdRetryProblem). A *given* (nonzero) hp or sp estimate that is not finite and positive is InvalidInput
+        // all the same (the third pass of 2026-09-28, observation O1): +∞, NaN and a negative value all used to
+        // reach the Newton loop unchecked (SingularMatrix or NotConverged instead of a clean refusal).
+        var badEstimate = problem.Temperature is not (> 0.0 and < double.PositiveInfinity);
+        if (badEstimate && (problem.Kind == ProblemKind.AssignedTemperaturePressure || problem.Temperature != 0.0))
         {
             return CaseStatus.InvalidInput;
         }

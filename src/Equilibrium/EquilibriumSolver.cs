@@ -82,7 +82,15 @@ internal static class EquilibriumSolver
 
             var logPressure = CaseSetup.LogPressure(current);
             var status = RunToConvergence(table, current, scratch, result, logPressure, ref state);
+            if (status == CaseStatus.Ok)
+            {
+                status = Close(table, current, scratch, result, logPressure, state);
+            }
 
+            // The fallback also covers a failure found at the close, not only the Newton loop's own status (BOOT.md,
+            // the warm-start fallback, the third pass of 2026-09-28, finding F2): the window, the element invariant,
+            // the exit guard, a singular derivative system and the state guard all retry once, exactly as a failed
+            // Newton loop does.
             if (canFallBack && FallsBackToColdStart(status))
             {
                 canFallBack = false;
@@ -93,11 +101,6 @@ internal static class EquilibriumSolver
             }
 
             state.Iterations += priorIterations;
-            if (status == CaseStatus.Ok)
-            {
-                status = Close(table, current, scratch, result, logPressure, state);
-            }
-
             result.Iterations[0] = state.Iterations;
             result.Status[0] = (int)status;
             return;
@@ -120,9 +123,34 @@ internal static class EquilibriumSolver
                                                in EquilibriumResult result, double logPressure, ref IterationState state)
     {
         CaseStatus status;
+        var awaitingRelease = false;
+        var releasedTie = default(ElementTie);
+        var releasedLogN = 0.0;
+        var releasedTemperature = 0.0;
+        var releasedCondensedCount = 0;
         while (true)
         {
             status = NewtonIteration.Converge(table, problem, scratch, result, logPressure, ref state);
+
+            // Rule A's way back (BOOT.md, "Release", the third pass of 2026-09-28, finding F1): when the one
+            // convergence the release allowed on the element's own row fails, the tied iterate the release started
+            // from is restored and the case is closed with the tie in force, as a tie that survived to the close.
+            if (awaitingRelease)
+            {
+                awaitingRelease = false;
+                if (status != CaseStatus.Ok)
+                {
+                    state.LogN = releasedLogN;
+                    state.Temperature = releasedTemperature;
+                    state.CondensedCount = releasedCondensedCount;
+                    state.Tie = releasedTie;
+                    TieSnapshot.Restore(table, scratch, result, releasedCondensedCount);
+                    Composition.Refresh(table, scratch, result, ref state);
+                    status = CaseStatus.Ok;
+                    break;
+                }
+            }
+
             if (status != CaseStatus.Ok)
             {
                 break;
@@ -138,8 +166,14 @@ internal static class EquilibriumSolver
                 if (state.Tie.Active && !state.TieReleased
                     && !ElementCoupling.Coupled(table, scratch, result, state.CondensedCount, state.Tie))
                 {
+                    releasedTie = state.Tie;
+                    releasedLogN = state.LogN;
+                    releasedTemperature = state.Temperature;
+                    releasedCondensedCount = state.CondensedCount;
+                    TieSnapshot.Save(table, scratch, result, state.CondensedCount);
                     state.Tie = default;
                     state.TieReleased = true;
+                    awaitingRelease = true;
                     continue;
                 }
 
@@ -237,8 +271,8 @@ internal static class EquilibriumSolver
             result.Multipliers[i] = 0.0;
         }
 
-        MixtureProperties.WriteFrozen(problem, result, Composition.FrozenSums(table, scratch, result, state, logPressure));
-        Exit(result, state, MixtureProperties.IsPhysical(result.State[0], pinned: false) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange);
+        var physical = MixtureProperties.WriteFrozen(problem, result, Composition.FrozenSums(table, scratch, result, state, logPressure));
+        Exit(result, state, physical ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange);
     }
 
     /// <summary>Writes the case's iteration count and final status, the last thing every exit of <see cref="SolveFrozen"/> does.</summary>
@@ -286,12 +320,8 @@ internal static class EquilibriumSolver
 
         var sums = Composition.Sums(table, scratch, result, state, logPressure, RetentionThreshold(state));
         var derivatives = DerivativeSystem.Solve(table, scratch, result, state, ScratchLayout.MaxUnknowns(table.ElementCount));
-        if (!derivatives.Solved)
-        {
-            return CaseStatus.SingularMatrix;
-        }
-
-        MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives);
-        return MixtureProperties.IsPhysical(result.State[0], derivatives.Pinned) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange;
+        return !derivatives.Solved
+            ? CaseStatus.SingularMatrix
+            : MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange;
     }
 }
