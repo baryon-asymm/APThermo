@@ -93,9 +93,10 @@ public sealed class DiagnosticsTests
 
     /// <summary>No <c>.csproj</c>, <c>.props</c> or <c>.targets</c> file of the tree sets <c>NoWarn</c> or
     /// <c>WarningsNotAsErrors</c>, except that the root <c>Directory.Build.targets</c> resets <c>NoWarn</c> to empty; none but
-    /// the root <c>Directory.Build.props</c> sets a property this constraint reserves to it; no build file anywhere brings in
-    /// a <c>GlobalAnalyzerConfigFiles</c>, <c>EditorConfigFiles</c> or <c>Analyzer</c> item; and no <c>Directory.Build.rsp</c>
-    /// exists anywhere in the tree (the guards audit's F4).</summary>
+    /// the root <c>Directory.Build.props</c> sets a property this constraint reserves to it; no build file anywhere sets a
+    /// <c>CodeAnalysisRuleSet</c> property or brings in a <c>GlobalAnalyzerConfigFiles</c>, <c>EditorConfigFiles</c> or
+    /// <c>Analyzer</c> item; and no <c>Directory.Build.rsp</c> or <c>*.ruleset</c> file exists anywhere in the tree (the
+    /// guards audit's F4; the third audit pass's finding 4b adds the rule-set forms, 2026-09-28).</summary>
     [Fact]
     public void NoBuildFileSuppressesOrOverridesADiagnostic()
     {
@@ -103,6 +104,7 @@ public sealed class DiagnosticsTests
         Assert.True(files.Count > 0, "no MSBuild project, properties or targets file was found in the tree; this fact has nothing to check");
         var problems = files.SelectMany(BuildFileProblems).ToList();
         problems.AddRange(DiagnosticsSyntax.ResponseFiles().Select(path => $"{Tree.Relative(path)}: a Directory.Build.rsp exists"));
+        problems.AddRange(DiagnosticsSyntax.RuleSetFiles().Select(path => $"{Tree.Relative(path)}: a *.ruleset file exists"));
         Assert.True(problems.Count == 0, string.Join("\n", problems));
     }
 
@@ -121,6 +123,10 @@ public sealed class DiagnosticsTests
             else if (name == "WarningsNotAsErrors")
             {
                 yield return $"{Tree.Relative(path)}: sets WarningsNotAsErrors";
+            }
+            else if (name == "CodeAnalysisRuleSet")
+            {
+                yield return $"{Tree.Relative(path)}: sets CodeAnalysisRuleSet to '{element.Value}'";
             }
             else if (BannedItemNames.Contains(name, StringComparer.Ordinal))
             {
