@@ -53,9 +53,11 @@ jobs:
       # The fixtures' provenance hashes bind an output to the scripts that produced it, never to the reference
       # package's own answer (tests/Fixtures/BOOT.md, "The outputs are bound to the generator"): a hand-edited
       # expected value passes every other guard. This step regenerates a sample with the pinned `cea` package in a
-      # fresh virtual environment and fails the job on any difference beyond the family's own tolerance rule.
-      # Linux only: the reference package is proven against this tree only on the platforms the root BOOT.md's
-      # platform constraint names, and one hosted platform is enough to bind the outputs to the generator.
+      # fresh virtual environment and fails the job on any difference from the committed text, exact and not a
+      # tolerance (the same comparison `regenerate.py --check` makes over the whole set), and on any (script, kind)
+      # pair the sample intended to cover comparing nothing at all (tests/Fixtures/BOOT.md, the third audit pass's
+      # finding 4c). Linux only: the reference package is proven against this tree only on the platforms the root
+      # BOOT.md's platform constraint names, and one hosted platform is enough to bind the outputs to the generator.
       - name: Fixtures are bound to the generator
         if: matrix.os == 'ubuntu-latest'
         shell: bash

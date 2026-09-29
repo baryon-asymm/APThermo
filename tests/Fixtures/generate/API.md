@@ -7,7 +7,7 @@ Everything not listed here is internal and may change.
 ## Command line ✅
 
 ```console
-$ .venv/Scripts/python regenerate.py [--check] [kind ...]
+$ .venv/Scripts/python regenerate.py [--check] [--sample] [kind ...]
 $ .venv/Scripts/python <family>.py [--check] [kind ...]    # constants, thermo_functions, transport_fits, rp1311, propellants
 ```
 
@@ -15,6 +15,15 @@ Without `--check`: changed and missing fixtures are written, stale files of the
 produced kinds are removed, and the exit code is 0. With `--check`: nothing is
 written, every difference is printed (`changed`, `missing`, `stale`) and the exit code
 is 1 when there is any. Kinds given as arguments restrict what is produced and swept.
+
+`--sample` (`regenerate.py` only, the parent's "The outputs are bound to the
+generator" and "The sample of the binding step covers every script"): restricts the
+run to one case per (script, kind) pair the committed fixtures record, plus every case
+of the `throat` kind, all read from the committed files' own `generator.script`
+fields. The stale sweep is off under a sample, since a sample deliberately produces
+only part of each kind. With `--check --sample`, the exit code is also 1 when a
+(script, kind) pair the sample intended to cover compared nothing at all, or when the
+sample itself is empty, printed as `sample coverage: ...` lines.
 
 ## Modules ✅
 

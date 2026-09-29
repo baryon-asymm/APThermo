@@ -814,21 +814,52 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
         rule for workflow changes) is still due, since this coder may not push. The
         criterion stays unticked until that run is green.
 - [ ] The sample of the binding step covers every script (the third audit pass of
-      2026-09-28, part 2, finding 4c). The sample of the criterion above takes one case
+      2026-09-28, part 2, finding 4c). The sample of the criterion above took one case
       per kind directory, 25 of 335 files: `rp1311.py`, `low_temperature.py`,
       `condensed_phase_limit.py`, `retention_threshold.py` and `propellants.py`'s
       rocket, hp and tp outputs were never compared, and a kind whose first file no
       script produces was skipped silently, since the stale sweep is off under a sample
       and `finish()` returned 0 with nothing compared.
-      - The sample takes at least one case from every script that writes fixtures, and
-        from every kind each script writes, chosen from the committed listing.
-      - `--check --sample` fails when a script or a kind of the sample compared
-        nothing, and when the whole comparison is empty.
-      - The comparison is exact text, as `regenerate.py --check` makes it; the comment
-        of the CI step says so instead of "beyond the family's own tolerance rule".
-      - Red once: a committed output of a script the old sample skipped, edited, and
-        `--check --sample` exits 1 naming it; green after. The CI evidence is due with
-        the criterion above, after the owner's push.
+      - `build_sample` (`regenerate.py`) now reads each committed file's own
+        `generator.script` field, the same provenance field `Writer.case` writes, and
+        picks one case per (script, kind) pair instead of one per kind directory, plus
+        every case of `SAMPLE_IN_FULL` (`throat`) as before: 36 of 336 files, over 19
+        (script, kind) pairs (18 with a name, `throat`'s own 18 cases counted as one).
+      - `main()` verifies that coverage after generation
+        (`check_sample_coverage`): `--check --sample` fails when a (script, kind) pair
+        the sample intended to cover produced no comparison at all — the script no
+        longer writes the exact case name the sample picked from the committed
+        listing, a real gap the old, silent empty comparison passed — and when the
+        whole sample is empty.
+      - The comparison is exact text, as `regenerate.py --check` already makes it; the
+        CI step's comment (`.github/workflows/ci.yml`, "Fixtures are bound to the
+        generator") now says so instead of "beyond the family's own tolerance rule".
+      - Touching `regenerate.py` re-provenances every fixture (`generate/BOOT.md`'s
+        rule hashes every `*.py` file of `generate/` together). Regenerated with the
+        full driver (`py -3 regenerate.py`, no filter; the pinned `cea` 3.3.4 and
+        `numpy` 2.5.3 already on the machine, matching `requirements.txt`): 336 files
+        written, each differing from its previous committed content only in
+        `generatorSha256` and `generatedOn` (`git diff` over `tests/Fixtures/cases`:
+        every changed line is one of those two keys; no `case`, `outputs` or
+        `scriptSha256` line added, removed or changed, confirmed by grepping every
+        changed line for a different key and finding none). `regenerate.py --check`
+        (336 unchanged) and `regenerate.py --check --sample` (36 unchanged) both exit 0
+        afterward.
+      - Red once, run locally with the same interpreter: the sampled `hp` case that
+        `propellants.py` now covers on its own
+        (`cases/hp/ap-htpb-al_pc7MPa_shiftingEquilibrium_chamber.json`, a file the old
+        sample never touched) had its `outputs.temperature` edited by +1 K;
+        `regenerate.py --check --sample` exited 1, naming exactly that file
+        (`"changed   hp\ap-htpb-al_pc7MPa_shiftingEquilibrium_chamber.json"`, fixtures:
+        changed 1, unchanged 35); restored by regenerating that kind
+        (`py -3 regenerate.py hp`, since a plain `git checkout` would have restored the
+        pre-re-provenance content) and confirmed clean again (`regenerate.py --check`
+        and `--check --sample` both exit 0 again; the file's `git diff` matches every
+        other file's pattern, `generatorSha256` and `generatedOn` only).
+      - Not yet accepted: a real CI run of the branch that changes `ci.yml`'s comment
+        (the root's rule for workflow changes) is still due, since this coder may not
+        push. This criterion and the one above it ("The outputs are bound to the
+        generator") both stay unticked until that run is green.
 
 ## Taboos
 
