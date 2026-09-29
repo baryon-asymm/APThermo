@@ -40,6 +40,12 @@ internal static class DiagnosticsSyntax
     public static IEnumerable<string> ResponseFiles() =>
         Walk(Tree.Root, "Directory.Build.rsp").OrderBy(path => path, StringComparer.Ordinal);
 
+    /// <summary>Every <c>*.ruleset</c> file of the tree (the third audit pass's finding 4b, root BOOT.md, Diagnostics
+    /// constraint, 2026-09-28): mere existence is the violation the Diagnostics level refuses, wherever it sits, because
+    /// a rule set can lower or silence an analyzer diagnostic no other check here reads.</summary>
+    public static IEnumerable<string> RuleSetFiles() =>
+        Walk(Tree.Root, "*.ruleset").OrderBy(path => path, StringComparer.Ordinal);
+
     private static IEnumerable<string> Walk(string directory, params string[] patterns)
     {
         foreach (var pattern in patterns)

@@ -59,8 +59,14 @@ internal static class ConstantLeftComparisons
         return constant.HasValue;
     }
 
+    /// <summary>Whether the operand's type once the comparison's own implicit conversion is applied is <c>double</c> or
+    /// <c>float</c>: <see cref="TypeInfo.ConvertedType"/>, not <see cref="TypeInfo.Type"/>. An integer constant compared
+    /// against a floating-point operand (<c>0 &lt; v</c>, or a <c>const int</c> in the same place) keeps its own
+    /// <c>int</c> type in <c>Type</c>, while the compiler converts it to the operand's floating-point type before the
+    /// comparison runs (<c>ldc.r8 0; ldarg.0; clt</c>, the third audit pass's finding 4a) exactly as a literal already
+    /// written in that type would; <c>ConvertedType</c> is what the emitted comparison actually operates on.</summary>
     private static bool IsFloatingPoint(ExpressionSyntax expression, SemanticModel model) =>
-        model.GetTypeInfo(expression).Type?.SpecialType is SpecialType.System_Double or SpecialType.System_Single;
+        model.GetTypeInfo(expression).ConvertedType?.SpecialType is SpecialType.System_Double or SpecialType.System_Single;
 
     private static CSharpCompilation Compile(Node node, IReadOnlyList<string> files)
     {

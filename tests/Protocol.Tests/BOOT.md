@@ -19,7 +19,7 @@ dependencies against the real ones.
 | Root invariants | double precision only and no mutable static field in the numerical nodes; only the allow-listed `System.Math`/`System.Double` members called, and no constant left of an ordered floating-point comparison; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL, and the semantic model of a compilation over each numerical node's sources (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
 | Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
-| Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic (Roslyn's own generated-code markers and every MSBuild severity channel included), the root build files set the maximum, every compiled source lives in a node directory, and no kernel-reached method throws, allocates or boxes | the tree's `.cs`, project, props, targets, `.editorconfig`, `.globalconfig` and `Directory.Build.rsp` files, and the call graph from the execution node's `Kernels` (`DiagnosticsTests`) | ✅ (2026-09-25; extended 2026-09-28) |
+| Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic (Roslyn's own generated-code markers and every MSBuild severity channel, rule sets included), the root build files set the maximum, every compiled source lives in a node directory, and no kernel-reached method throws, allocates or boxes | the tree's `.cs`, project, props, targets, `.editorconfig`, `.globalconfig`, `Directory.Build.rsp` and `*.ruleset` files, and the call graph from the execution node's `Kernels` (`DiagnosticsTests`) | ✅ (2026-09-25; extended 2026-09-28 and 2026-09-29) |
 
 ⚠ 2026-09-13: the sketch had five levels. The root `BOOT.md` claimed three of its
 invariants "checked by reflection" while no node held such a check; they are of the
@@ -194,10 +194,10 @@ which is the proof that nothing leaked.
 | `NamedConstruction` | the named-construction rule read from syntax: the candidate types a node's `## Shape exceptions` table declares on their own constructor, and every creation, anywhere in the tree, resolving to one of them |
 | `ShapeTests` | the ten facts of the Shape level: five over-limit rules matched against declared rows, stable type, stable dependencies, mechanics, named construction, and the reverse row-bookkeeping fact |
 | `TreeContractTests` | the four facts of the Tree contract level (2026-09-15, distribution phase; "## Tree contract" below): a library node's public surface, a declared type's section against its visibility, a friend crossing against the target's tree contract, and a `src` assembly's `InternalsVisibleTo` grants against their recognised friends |
-| `DiagnosticsSyntax` | the whole-tree file walk the Diagnostics level reads (2026-09-25; "## Diagnostics check" below): every C# source file (`CompiledSources.All` plus `.github`'s own, 2026-09-28), every MSBuild project/properties/targets file, every `Directory.Build.rsp` and every analyzer-configuration file from the tree root down, never scoped to a single node the way `SourceSyntax` is, because a suppression can hide in any file of the tree |
-| `DiagnosticsTests` | the facts of the Diagnostics level (2026-09-25; extended 2026-09-28, the guards audit's F1, F3, F4 and F5, and O6): no source file suppresses a diagnostic (directive trivia or a `[SuppressMessage]`/`[UnconditionalSuppressMessage]` attribute), no build file suppresses, overrides or brings in an analyzer-configuration item, no analyzer-configuration file lowers a severity, the root `Directory.Build.props`/`.targets` set the maximum, no source file carries a generated-code marker Roslyn itself would honour, every compiled source lives in a node directory, and no method reached from a kernel entry point (`KernelReachability`) throws, allocates or boxes |
+| `DiagnosticsSyntax` | the whole-tree file walk the Diagnostics level reads (2026-09-25; "## Diagnostics check" below): every C# source file (`CompiledSources.All` plus `.github`'s own, 2026-09-28), every MSBuild project/properties/targets file, every `Directory.Build.rsp`, every `*.ruleset` file (2026-09-29, the third audit pass's finding 4b) and every analyzer-configuration file from the tree root down, never scoped to a single node the way `SourceSyntax` is, because a suppression can hide in any file of the tree |
+| `DiagnosticsTests` | the facts of the Diagnostics level (2026-09-25; extended 2026-09-28, the guards audit's F1, F3, F4 and F5, and O6; extended 2026-09-29, the third audit pass's finding 4b): no source file suppresses a diagnostic (directive trivia or a `[SuppressMessage]`/`[UnconditionalSuppressMessage]` attribute), no build file suppresses, overrides or brings in an analyzer-configuration item, sets a `CodeAnalysisRuleSet` property or is a `*.ruleset` file, no analyzer-configuration file lowers a severity, the root `Directory.Build.props`/`.targets` set the maximum, no source file carries a generated-code marker Roslyn itself would honour, every compiled source lives in a node directory, and no method reached from a kernel entry point (`KernelReachability`) throws, allocates or boxes |
 | `KernelReachability` | the call graph reached from the execution node's internal `Kernels` type, walked through the tree's own assemblies only (2026-09-28, the guards audit's O6): its entry points, and the `throw`/`newarr`/reference-`newobj`/`box` problems in every method reached |
-| `ConstantLeftComparisons` | the root's third ILGPU defect (2026-09-28): every ordered floating-point comparison of a numerical node's own sources whose left operand is a literal or a `const`, read from the semantic model of a compilation built over that node's own files |
+| `ConstantLeftComparisons` | the root's third ILGPU defect (2026-09-28; the converted-type fix of 2026-09-29, the third audit pass's finding 4a): every ordered floating-point comparison of a numerical node's own sources whose left operand is a literal or a `const`, read from the semantic model of a compilation built over that node's own files, deciding "floating-point" by each operand's `ConvertedType` (the type the comparison actually runs on after an implicit numeric conversion), not its own unconverted `Type`, so an integer constant implicitly converted to `double` is caught the same as a `double` literal |
 | `MemberAccessibility` | the declared accessibility of a member or a nested type, one reading shared by the Surface and Tree contract snapshots (2026-09-28, the guards audit's O7): `IsPublic` for the public-surface floor, `IsPublicOrInternal` for the wider tree-contract one, and the leading keyword (`Prefix`) a snapshot line below public carries |
 | the `*Tests` classes | one fact per method: a helper yields the problems of one node or assembly, and the fact is one loop and one assertion |
 
@@ -801,8 +801,12 @@ The facts of `DiagnosticsTests`, each failing on an empty set:
    `Directory.Build.props` sets `TreatWarningsAsErrors`, `WarningLevel`, `Features`,
    `AnalysisLevel`, any `AnalysisMode*` or `AnalysisLevel*`,
    `EnforceCodeStyleInBuild`, `GenerateDocumentationFile`, `Nullable`,
-   `RunAnalyzers`, `RunAnalyzersDuringBuild` or `EnableNETAnalyzers`. Read as XML
-   elements, so a comment does not count.
+   `RunAnalyzers`, `RunAnalyzersDuringBuild` or `EnableNETAnalyzers`. No build file
+   anywhere, root included, sets `CodeAnalysisRuleSet` (2026-09-29, the third audit
+   pass's finding 4b: the root's Diagnostics constraint bans a rule set unconditionally,
+   not only reserves it to the root), and no `*.ruleset` file exists anywhere in the
+   tree, alongside `Directory.Build.rsp`. Read as XML elements, so a comment does not
+   count.
 4. `NoAnalyzerConfigurationLowersASeverity`: every `.editorconfig` and `.globalconfig`
    of the tree gives every key ending in `.severity` the value `warning` or `error`,
    and every option value has no `:severity` suffix below warning. The root
@@ -823,7 +827,12 @@ Each fact is shown red once by a mutation applied alone and restored:
 - `WarningLevel` 10 in the root props (5);
 - (2026-09-26, the walk's scope) a scratch `.nuget-packages/pkg/build/pkg.props` that
   sets `WarningsNotAsErrors` leaves fact 3 green, and a scratch
-  `.github/scratch/Scratch.csproj` that sets `NoWarn` turns it red.
+  `.github/scratch/Scratch.csproj` that sets `NoWarn` turns it red;
+- (2026-09-29, the third audit pass's finding 4b) a `CodeAnalysisRuleSet` property
+  added to `src/Data`'s own project, pointing at a scratch `src/Data/ZzAudit4b.ruleset`
+  that sets `CA1822` and `CA1812` to `None`: the build succeeds with the rule set in
+  place (the defect the finding names), and fact 3 names both the property and the
+  file in one run; reverted, fact 3 green again.
 
 **Audit fixes of 2026-09-28** (the second hidden-defect audit, guards part, findings
 F1, F3, F4 and F5, and observations O4, O6 and O7). Each closes a way a defect or a
@@ -1691,17 +1700,51 @@ suppression passed every guard of the hosted suite.
       still-unticked criterion: the CI step is written and its local equivalent
       (`regenerate.py --check --sample` and the full `--check`) both exit 0, but a real
       CI run needs the owner's push.
-- [ ] The third audit pass of 2026-09-28 (part 2, findings 4a and 4b) is closed.
-      - **An integer constant on the left (4a).** The constant-left fact decides that a
-        comparison is floating-point by the operands' converted type, not their own:
-        `0 < v`, `IntZero < v` and `0.0 < v` with a `double v` compile to the same IL
-        (`ldc.r8 0; ldarg.0; clt`), and only the last was reported. Red with each of
-        the three in a numerical node, green after.
+- [x] 2026-09-29 — The third audit pass of 2026-09-28 (part 2, findings 4a and 4b) is closed.
+      - **An integer constant on the left (4a).** The constant-left fact decided that a
+        comparison is floating-point by each operand's own, unconverted `Type`, so an
+        integer constant on the left of a comparison against a `double` kept its own
+        `int` type and was not reported, although `0 < v`, `IntZero < v` (a `const int`)
+        and `0.0 < v`, with a `double v`, all compile to the same IL (`ldc.r8 0;
+        ldarg.0; clt`) and are exactly the ILGPU defect the fact exists to catch. Fixed
+        by reading `ConvertedType` instead of `Type` (`ConstantLeftComparisons.cs`,
+        `IsFloatingPoint`): the type the comparison actually runs on after the
+        compiler's own implicit numeric conversion, which is `double` for all three.
       - **Rule sets (4b).** A `CodeAnalysisRuleSet` property in any build file, and any
-        `*.ruleset` file in the tree, is refused by the Diagnostics facts: a rule set
-        setting CA1822 and CA1812 to `None` in `src/Data`'s project built with both
-        violations, and every fact stayed green. The root's list of forbidden forms
-        names rule sets since the same day. Red with that mutation, green after.
+        `*.ruleset` file anywhere in the tree, is now refused by
+        `NoBuildFileSuppressesOrOverridesADiagnostic`
+        (`DiagnosticsTests.cs`/`DiagnosticsSyntax.cs`, a new `RuleSetFiles` walk): a
+        rule set setting CA1822 and CA1812 to `None` had built `src/Data` with both
+        violations present while every Diagnostics fact stayed green, because nothing
+        read `CodeAnalysisRuleSet` or looked for a `*.ruleset` file. The root's list of
+        forbidden suppression forms (Constraints, Diagnostics) names rule sets since
+        2026-09-28; nothing in this node checked for them until now.
+
+      Each fix shown red once by the audit's own mutation, applied alone in a numerical
+      node or in `src/Data`'s project and reverted before the next, `dotnet build
+      APThermo.sln` clean before and after every mutation:
+      - a temporary `src/Thermo/ZzAudit4a.cs` with `0 < v`, `IntZero < v` and
+        `0.0 < v` (a `const int IntZero` and three one-line methods, to build cleanly
+        under `IDE0078`) turned
+        `NumericalNodeSourcesPutNoConstantLeftOfAnOrderedFloatingComparison` red,
+        naming all three by file and line in one run; deleted, the fact green again;
+      - a temporary `CodeAnalysisRuleSet` property added to `src/Data`'s own
+        `APThermo.Data.csproj`, pointing at a temporary `src/Data/ZzAudit4b.ruleset`
+        setting `CA1822`/`CA1812` to `None`: the build still succeeded with the rule set
+        in place (the defect the finding names), and
+        `NoBuildFileSuppressesOrOverridesADiagnostic` named both the property and the
+        file in one run; both reverted, the fact green again.
+
+      Evidence, on branch `worktree-agent-a0dc7d99e73ab845d`, base commit `0008a45`,
+      every mutation applied alone and reverted before the next, `src/Thermo` and
+      `src/Data` confirmed clean by `git status --short` after every revert:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `dotnet test tests/Protocol.Tests`: 35/35;
+      - the protocol lint: 0 errors, 0 warnings.
+
+      No `Bits*.approved.txt` or `PublicSurface.approved.txt` moves: both facts read
+      source text and build-file XML, not the assemblies' shapes, and no numerical
+      node's own comparison was rewritten.
 
 ## Taboos
 
