@@ -173,7 +173,16 @@ public sealed class AcceleratorChoiceTests
         }
     }
 
-    /// <summary>No cuda driver is loaded in a process that forbids cuda.</summary>
+    /// <summary>
+    /// The production CPU path (BOOT.md, "The CPU path needs no NVIDIA software") does not load the CUDA driver: a
+    /// diff of the process's loaded modules taken immediately before and after <see cref="Engine.Create"/>, not the
+    /// module list on its own, because <see cref="LaunchBudgetTests"/> deliberately constructs a real
+    /// <see cref="ILGPU.Runtime.Cuda.CudaException"/> under this same forbidding to inject a launch-timeout failure on
+    /// the CPU accelerator, exactly as this fact's own class doc explains for the other Cuda-tagged facts here; that
+    /// construction touches the driver the same way a real CUDA engine would, so it may already have loaded nvcuda in
+    /// this shared test process by the time this fact runs. The invariant this fact guards is about <c>Engine.Create</c>
+    /// itself, not about every other test's own test doubles.
+    /// </summary>
     [Fact]
     public void NoCudaDriverIsLoadedInAProcessThatForbidsCuda()
     {
@@ -182,12 +191,18 @@ public sealed class AcceleratorChoiceTests
             return;   // the CUDA engine of this process may legitimately have loaded the driver
         }
 
+        var before = LoadedCudaModuleNames();
         using var auto = Engine.Create();
         Assert.Equal(AcceleratorKind.Cpu, auto.Accelerator.Kind);
-        var modules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(m => m.ModuleName).ToList();
-        Assert.DoesNotContain(modules, name => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(modules, name => name.Contains("nvvm", StringComparison.OrdinalIgnoreCase));
+        var after = LoadedCudaModuleNames();
+        Assert.Empty(after.Except(before, StringComparer.OrdinalIgnoreCase));
     }
+
+    /// <summary>The process's currently loaded module names that mention the CUDA driver or the NVVM compiler library.</summary>
+    private static List<string> LoadedCudaModuleNames() =>
+        [.. Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(m => m.ModuleName)
+            .Where(name => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("nvvm", StringComparison.OrdinalIgnoreCase))];
 
     /// <summary>The ilgpu assertion fails loudly for another version.</summary>
     [Fact]

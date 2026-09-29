@@ -8,11 +8,13 @@ namespace APThermo.Execution.Tests;
 /// arithmetic of <see cref="LaunchBudget"/> and <see cref="ChunkPlan.FirstChunkCases"/>/<see cref="ChunkPlan.NextChunkCases"/>,
 /// and the timeout translation of <see cref="BatchRun"/>, all driven with injected times and an injected failure, no GPU needed.
 /// Joins <see cref="EngineFixture.CollectionName"/>, not for the shared fixture (every fact here builds its own engine or
-/// none at all) but so its two <c>Cuda</c>-tagged facts never run concurrently with <see cref="EngineFixture.Shared"/>'s own
-/// CUDA engine creation on another thread: constructing a real <see cref="CudaException(CudaError)"/> touches the driver
+/// none at all) but so its four facts that construct a real <see cref="CudaException(CudaError)"/> — the two <c>Cuda</c>-tagged
+/// ones and the two below that inject a launch timeout on the CPU accelerator — never run concurrently with
+/// <see cref="EngineFixture.Shared"/>'s own CUDA engine creation on another thread: that constructor touches the driver
 /// (<c>cuGetErrorString</c>) the same way <see cref="EngineFixture"/>'s lazy CUDA engine does, and a genuine CUDA run under
 /// WSL found the two racing — <c>CUDA device 0 was requested, but 0 device(s) exist</c> on roughly a third of runs of the
-/// full suite, never on a run of either fact alone.
+/// full suite, never on a run of either fact alone. The collection serializes this without gating the CPU-only facts on
+/// CUDA's own availability, which they do not need.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed class LaunchBudgetTests
@@ -145,17 +147,13 @@ public sealed class LaunchBudgetTests
     /// itself checks) refuses with <see cref="AcceleratorUnavailableException"/> naming the earlier timeout, instead of
     /// touching the dead context again. The timeout cannot be provoked for real on the reference machine — it resets the
     /// display driver — so this and the disposal below inject their failures directly, on the CPU accelerator, exactly
-    /// as the timeout fact above does.
+    /// as the timeout fact above does. Unlike that fact, this one builds and runs a CPU accelerator only — no CUDA
+    /// context, no driver call beyond the injected <see cref="CudaException"/>'s own construction — so it carries no
+    /// <c>Cuda</c> trait and runs under <c>APTHERMO_NO_CUDA=1</c> like any other fact of this node.
     /// </summary>
     [Fact]
-    [Trait("Category", "Cuda")]
     public void ATimedOutEngineRefusesANewCall()
     {
-        if (Engine.CudaForbidden)
-        {
-            return;
-        }
-
         using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
         var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10 };
         var plan = ChunkPlan.For(25, 8, 1, options);
@@ -175,17 +173,12 @@ public sealed class LaunchBudgetTests
     /// from an ordinary dispose (BOOT.md, the same section). <see cref="Engine.DisposeAfterLoss"/> is the exact seam
     /// <see cref="UploadedTables"/>' own disposal reads; a disposable that always throws the sticky error stands in for
     /// ILGPU's own device-buffer cleanup on a context the timeout already killed, which this task cannot provoke for
-    /// real on the reference machine.
+    /// real on the reference machine. Like <see cref="ATimedOutEngineRefusesANewCall"/>, this builds a CPU accelerator
+    /// only, so it carries no <c>Cuda</c> trait and runs under <c>APTHERMO_NO_CUDA=1</c>.
     /// </summary>
     [Fact]
-    [Trait("Category", "Cuda")]
     public void ATimedOutEnginesDisposalDropsTheStickyFailure()
     {
-        if (Engine.CudaForbidden)
-        {
-            return;
-        }
-
         using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
         var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10 };
         var plan = ChunkPlan.For(25, 8, 1, options);

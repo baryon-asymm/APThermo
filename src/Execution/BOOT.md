@@ -1299,16 +1299,57 @@ confirms it.
         `ATimedOutEnginesDisposalDropsTheStickyFailure` hands `Engine.DisposeAfterLoss`
         an injected `IDisposable` (`StickyDisposable`) whose first `Dispose` always
         throws `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` and asserts no exception
-        escapes (`Record.Exception` is null).
+        escapes (`Record.Exception` is null). Both build a CPU accelerator only and
+        never touch a real CUDA context, so neither carries the `Cuda` trait or the
+        `Engine.CudaForbidden` gate: they run for real under `APTHERMO_NO_CUDA=1`, on
+        every hosted CI runner included, the way this section's own claim asks.
 
-        Built and passing on the reference machine's CPU accelerator under
-        `APTHERMO_NO_CUDA=1` (both facts return at once there, `Engine.CudaForbidden`
-        true, the same way every other `Category=Cuda` fact of this node does):
-        `dotnet test tests/Execution.Tests --filter "Category!=LongRunning"` 161 of 161
-        (159 before this task's two new facts). The `Category=Cuda` run itself — where
-        the two facts actually inject their failures and a red-once mutation could be
-        shown — is the orchestrator's to run on the reference machine, per this task's
-        own instruction not to run CUDA tests from this worktree; not run here.
+        ⚠ 2026-09-29: this evidence first read that both facts carried `[Trait("Category",
+        "Cuda")]` and returned at once under `Engine.CudaForbidden`, "the same way every
+        other `Category=Cuda` fact of this node does" — so under `APTHERMO_NO_CUDA=1`,
+        the fast suite and every hosted runner, neither fact executed a single assertion,
+        and the section's own claim ("the consumer receives `AcceleratorUnavailableException`,
+        the engine refuses a second run, its disposal does not throw") was never actually
+        proven by a run recorded here. Found on review. The gate is removed from both
+        (the class's own `[Collection(EngineFixture.CollectionName)]` still serializes
+        them against `EngineFixture.Shared`'s own CUDA engine creation, which is the
+        reason the collection exists, not the CUDA-availability gate).
+
+        Removing the gate uncovered a second, real drift: constructing the injected
+        `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` in either fact loads the CUDA driver
+        (`nvcuda`) into the shared test process — the same driver call the class's own
+        header comment already documented for the two pre-existing `Cuda`-tagged facts
+        — which then failed `AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda`,
+        a fact that read the *whole process's* loaded modules rather than what
+        `Engine.Create` itself loads. That fact's invariant ("the production CPU path
+        needs no NVIDIA software") was never false — no production code path builds a
+        `CudaException` by hand — only its check was order-sensitive on every other
+        test in the same process. It now takes a before/after diff of the process's
+        `nvcuda`/`nvvm` modules around `Engine.Create` alone, so a sibling fact's own
+        test double no longer trips it; shown red once by inserting a stray
+        `CudaException` construction between the "before" and "after" snapshots
+        (`Assert.Empty` failed naming `nvcuda.DLL`/`nvcuda64.dll`), reverted, green
+        again.
+
+        Both facts shown red once on the reference machine, reverted, green again:
+        `ATimedOutEngineRefusesANewCall` with `BatchRun.Launch`'s `session.MarkLost(timeout)`
+        call removed (`Assert.Throws<AcceleratorUnavailableException>` failed, "No
+        exception was thrown", since `ProbeMath` never sees a lost session);
+        `ATimedOutEnginesDisposalDropsTheStickyFailure` with `AcceleratorSession.DropsAfterLoss`
+        changed to never match its sticky error (`Assert.Null(disposal)` failed, the
+        original `CudaException` propagating through `Engine.DisposeAfterLoss`
+        unchanged).
+
+        Built and passing for real on the reference machine's CPU accelerator under
+        `APTHERMO_NO_CUDA=1`: `dotnet test tests/Execution.Tests --filter
+        "Category!=LongRunning"` 161 of 161 (159 before this task's two new facts).
+        `dotnet test tests/Protocol.Tests --filter "Category!=LongRunning"` 35 of 35
+        (`ShapeTests`, `TreeContractSnapshotTests` and `LintTests` unmoved by this
+        fix). The protocol lint: 0 errors, 0 warnings. The `Category=Cuda` run itself
+        — the two pre-existing, still-gated facts that need a real CUDA driver to
+        construct their own injected exception at all — is the orchestrator's to run
+        on the reference machine, per this task's own instruction not to run CUDA
+        tests from this worktree; not run here.
       - **One declaration of a pipeline's buffers.** `DeclareBuffers` and `Run` read the
         same private `Declare` method (`EquilibriumPipeline`, `RocketPipeline`,
         `TransportPipeline`), so the proof of the 32-bit offset cap cannot drift from
