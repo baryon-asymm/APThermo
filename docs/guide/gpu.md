@@ -127,6 +127,7 @@ $ apthermo devices
 | `Auto` requested and the same failures occur | silent fallback to the CPU accelerator; `AcceleratorInfo.CudaSkippedBecause` names the reason |
 | the installed ILGPU version, or a reflected member it exposes, does not match what the tree expects | `InvalidOperationException` naming the ILGPU version, at `Solver.Create` or `AcceleratorProbe.Describe` |
 | a kernel's compiled program calls a libdevice wrapper this tree has no fragment for, or libnvvm/the driver refuses the linked module | `InvalidOperationException` naming the wrapper or carrying the compiler's log, on that program's first run |
+| a launch on CUDA exceeds the device's kernel run-time limit (a display GPU's driver kills a kernel that runs too long, 2 s by default) | `AcceleratorUnavailableException` naming the limit and the CPU accelerator as the remedy; the solver is unusable from there on — every later solve throws naming the earlier timeout, and disposing it never throws |
 
 ## See also
 

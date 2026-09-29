@@ -15,33 +15,21 @@ internal static class EquilibriumPipeline
         var table = tables.Species;
         batch.Validate(table.ElementCount);
         var speciesCount = table.SpeciesCount;
-        var elementCount = table.ElementCount;
-        var count = batch.Count;
         var timer = new RunTimer();
         var launcher = kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, EquilibriumBatchViews>>(nameof(Kernels.Equilibrium), out var warmUp);
         timer.AddWarmUp(warmUp);
 
-        var states = new MixtureState[count];
-        var moles = new double[(long)count * speciesCount];
-        var status = new int[count];
-        var iterations = new int[count];
-        var kinds = batch.Kind.Select(kind => (int)kind).ToArray();
-
+        // BatchRun.Execute disposes buffers itself on the way out (2026-09-29, the third audit pass's finding 2): the
+        // one place of this node that drops a lost session's own sticky exception. This using declaration's own
+        // dispose, at the end of a successful run, finds every buffer already disposed and does nothing (ILGPU's own
+        // dispose is idempotent) — kept only because a diagnostic (CA2000) needs a literal dispose beside the
+        // allocation below, in the same method, to accept that this object does not escape undisposed.
         using var buffers = new ChunkBuffers(session.Accelerator);
-        var kindBuffer = buffers.Input(kinds, 1);
-        var pressureBuffer = buffers.Input(batch.Pressure, 1);
-        var temperatureBuffer = buffers.Input(batch.Temperature, 1);
-        var targetBuffer = buffers.Input(batch.Target, 1);
-        var elementBuffer = buffers.Input(batch.ElementMoles, elementCount);
-        var scratchDoubles = buffers.Scratch<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        var scratchInts = buffers.Scratch<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        var molesBuffer = buffers.ClearedOutput(moles, speciesCount);
-        var multiplierBuffer = buffers.Scratch<double>(elementCount);
-        var stateBuffer = buffers.ClearedOutput(states, 1);
-        var statusBuffer = buffers.Output(status, 1);
-        var iterationBuffer = buffers.Output(iterations, 1);
+        var (kindBuffer, pressureBuffer, temperatureBuffer, targetBuffer, elementBuffer, scratchDoubles, scratchInts,
+             molesBuffer, multiplierBuffer, stateBuffer, statusBuffer, iterationBuffer,
+             moles, states, status, iterations) = Declare(buffers, batch, speciesCount);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
+        var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
         buffers.Allocate(plan.Size);
         var views = new EquilibriumBatchViews(
             kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
@@ -57,26 +45,55 @@ internal static class EquilibriumPipeline
     }
 
     /// <summary>
-    /// The same buffer declarations <see cref="Run"/> makes for a table of the given shape, with empty host arrays and no
-    /// device allocation (2026-09-28, the guards audit's F8): lets a test read the real <see cref="ChunkBuffers.MaxElementsPerCase"/>
-    /// this program declares — and so prove the 32-bit offset cap is actually wired from it into <see cref="ChunkPlan.For(int, long, long, EngineOptions, LaunchBudget)"/> —
+    /// The one declaration of this program's chunk buffers (2026-09-29, the third audit pass's observation on
+    /// <see cref="DeclareBuffers"/>): <see cref="Run"/> and <see cref="DeclareBuffers"/> both call this and nothing
+    /// else, so the shape a real run declares cannot drift from the shape <see cref="DeclareBuffers"/> hands the tests
+    /// node. Also builds the host output arrays <see cref="Run"/> assembles its result from, sized from
+    /// <paramref name="batch"/>'s own count — a single-case placeholder batch when called from
+    /// <see cref="DeclareBuffers"/>, so nothing beyond the shape below is realistic there.
+    /// </summary>
+    private static (
+        ChunkBuffer<int> Kind, ChunkBuffer<double> Pressure, ChunkBuffer<double> Temperature, ChunkBuffer<double> Target,
+        ChunkBuffer<double> ElementMoles, ChunkBuffer<double> ScratchDoubles, ChunkBuffer<int> ScratchInts,
+        ChunkBuffer<double> Moles, ChunkBuffer<double> Multipliers, ChunkBuffer<MixtureState> States,
+        ChunkBuffer<int> Status, ChunkBuffer<int> Iterations,
+        double[] MolesHost, MixtureState[] StatesHost, int[] StatusHost, int[] IterationsHost)
+        Declare(ChunkBuffers buffers, EquilibriumBatch batch, int speciesCount)
+    {
+        var elementCount = batch.ElementCount;
+        var count = batch.Count;
+        var kinds = batch.Kind.Select(kind => (int)kind).ToArray();
+        var kind = buffers.Input(kinds, 1);
+        var pressure = buffers.Input(batch.Pressure, 1);
+        var temperature = buffers.Input(batch.Temperature, 1);
+        var target = buffers.Input(batch.Target, 1);
+        var elementMoles = buffers.Input(batch.ElementMoles, elementCount);
+        var scratchDoubles = buffers.Scratch<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        var scratchInts = buffers.Scratch<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        var molesHost = new double[(long)count * speciesCount];
+        var moles = buffers.ClearedOutput(molesHost, speciesCount);
+        var multipliers = buffers.Scratch<double>(elementCount);
+        var statesHost = new MixtureState[count];
+        var states = buffers.ClearedOutput(statesHost, 1);
+        var statusHost = new int[count];
+        var status = buffers.Output(statusHost, 1);
+        var iterationsHost = new int[count];
+        var iterations = buffers.Output(iterationsHost, 1);
+        return (kind, pressure, temperature, target, elementMoles, scratchDoubles, scratchInts,
+                moles, multipliers, states, status, iterations, molesHost, statesHost, statusHost, iterationsHost);
+    }
+
+    /// <summary>
+    /// The same buffer declarations <see cref="Run"/> makes for a table of the given shape, with a single-case
+    /// placeholder batch and no device allocation (2026-09-28, the guards audit's F8; 2026-09-29, the third audit
+    /// pass): lets a test read the real <see cref="ChunkBuffers.MaxElementsPerCase"/> this program declares — and so
+    /// prove the 32-bit offset cap is actually wired from it into <see cref="ChunkPlan.For(int, long, long, EngineOptions, LaunchBudget)"/> —
     /// without running a batch large enough to make that cap bind for real.
     /// </summary>
     internal static ChunkBuffers DeclareBuffers(Accelerator accelerator, int speciesCount, int elementCount)
     {
         var buffers = new ChunkBuffers(accelerator);
-        _ = buffers.Input(Array.Empty<int>(), 1);
-        _ = buffers.Input(Array.Empty<double>(), 1);
-        _ = buffers.Input(Array.Empty<double>(), 1);
-        _ = buffers.Input(Array.Empty<double>(), 1);
-        _ = buffers.Input(Array.Empty<double>(), elementCount);
-        _ = buffers.Scratch<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
-        _ = buffers.Scratch<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        _ = buffers.ClearedOutput(Array.Empty<double>(), speciesCount);
-        _ = buffers.Scratch<double>(elementCount);
-        _ = buffers.ClearedOutput(Array.Empty<MixtureState>(), 1);
-        _ = buffers.Output(Array.Empty<int>(), 1);
-        _ = buffers.Output(Array.Empty<int>(), 1);
+        _ = Declare(buffers, new EquilibriumBatch(1, elementCount), speciesCount);
         return buffers;
     }
 }

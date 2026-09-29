@@ -99,6 +99,7 @@ sealed class APThermo.Execution.Engine : IDisposable
     Void Dispose()
     internal Accelerator IlgpuAccelerator { get; }
     internal LaunchBudget Budget { get; }
+    internal Void DisposeAfterLoss(IDisposable disposable)
     internal Void RunBatchLoop(ChunkPlan plan, ChunkBuffers buffers, RunTimer timer, Action<Int32> launch)
     static Boolean CudaForbidden { get; }
     static Engine Create(EngineOptions? options = null)

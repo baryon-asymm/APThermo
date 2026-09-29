@@ -3,6 +3,7 @@ using APThermo.Thermo;
 using APThermo.Transport;
 using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Runtime.Cuda;
 
 namespace APThermo.Execution;
 
@@ -58,6 +59,7 @@ internal sealed class Engine : IDisposable
     {
         ArgumentNullException.ThrowIfNull(species);
         ThrowIfDisposed();
+        _session.ThrowIfLost();
         if (transport is not null && !ReferenceEquals(transport.Species, species))
         {
             throw new ArgumentException("the transport table was built for another species table", nameof(transport));
@@ -109,6 +111,7 @@ internal sealed class Engine : IDisposable
     {
         ArgumentNullException.ThrowIfNull(inputs);
         ThrowIfDisposed();
+        _session.ThrowIfLost();
         if (inputs.Length == 0)
         {
             return [];
@@ -153,6 +156,21 @@ internal sealed class Engine : IDisposable
     internal void RunBatchLoop(ChunkPlan plan, Chunks.ChunkBuffers buffers, RunTimer timer, Action<int> launch) =>
         BatchRun.Execute(_session, plan, buffers, timer, launch);
 
+    /// <summary>Disposes a table buffer <see cref="UploadedTables"/> owns, reading this engine's own session for the
+    /// one decision behind every drop (<see cref="AcceleratorSession.DropsAfterLoss"/>; BOOT.md, the third audit
+    /// pass's finding 2): a lost session's own sticky <see cref="CudaException"/> is dropped, any other exception
+    /// propagates.</summary>
+    internal void DisposeAfterLoss(IDisposable disposable)
+    {
+        try
+        {
+            disposable.Dispose();
+        }
+        catch (CudaException failure) when (_session.DropsAfterLoss(failure))
+        {
+        }
+    }
+
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     /// <summary>What every run checks before its pipeline starts: the arguments, the engine and the ownership of the tables.</summary>
@@ -161,6 +179,7 @@ internal sealed class Engine : IDisposable
         ArgumentNullException.ThrowIfNull(tables);
         ArgumentNullException.ThrowIfNull(batch);
         ThrowIfDisposed();
+        _session.ThrowIfLost();
         tables.ThrowIfNotOwned(this);
     }
 }
@@ -206,7 +225,11 @@ internal sealed class UploadedTables : IDisposable
         }
 
         _disposed = true;
-        TransportBuffers?.Dispose();
-        SpeciesBuffers.Dispose();
+        if (TransportBuffers is { } transport)
+        {
+            _engine.DisposeAfterLoss(transport);
+        }
+
+        _engine.DisposeAfterLoss(SpeciesBuffers);
     }
 }

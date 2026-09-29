@@ -136,4 +136,87 @@ public sealed class LaunchBudgetTests
         _ = Assert.Throws<CudaException>(() => cpu.RunBatchLoop(
             plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_OUT_OF_MEMORY)));
     }
+
+    /// <summary>
+    /// The third audit pass's finding 2 (BOOT.md, "A lost context stays an AcceleratorUnavailableException"): once a
+    /// launch timeout has left an engine's session lost, through the same seam as
+    /// <see cref="ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy"/>, a later call
+    /// (<see cref="Engine.ProbeMath"/> stands in for every public entry point <c>Guard</c>/<c>Upload</c>/<c>ProbeMath</c>
+    /// itself checks) refuses with <see cref="AcceleratorUnavailableException"/> naming the earlier timeout, instead of
+    /// touching the dead context again. The timeout cannot be provoked for real on the reference machine — it resets the
+    /// display driver — so this and the disposal below inject their failures directly, on the CPU accelerator, exactly
+    /// as the timeout fact above does.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void ATimedOutEngineRefusesANewCall()
+    {
+        if (Engine.CudaForbidden)
+        {
+            return;
+        }
+
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10 };
+        var plan = ChunkPlan.For(25, 8, 1, options);
+        using var buffers = new Chunks.ChunkBuffers(cpu.IlgpuAccelerator);
+        var timer = new RunTimer();
+        _ = Assert.Throws<AcceleratorUnavailableException>(() => cpu.RunBatchLoop(
+            plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT)));
+
+        var refusal = Assert.Throws<AcceleratorUnavailableException>(() => cpu.ProbeMath([1.0]));
+        Assert.Contains("earlier launch timeout", refusal.Message, StringComparison.Ordinal);
+        _ = Assert.IsType<AcceleratorUnavailableException>(refusal.InnerException);
+    }
+
+    /// <summary>
+    /// The other half of the same finding: disposal on a lost engine drops a <see cref="CudaException"/> carrying the
+    /// sticky launch-timeout error instead of letting it replace whatever is already propagating, or surface at all
+    /// from an ordinary dispose (BOOT.md, the same section). <see cref="Engine.DisposeAfterLoss"/> is the exact seam
+    /// <see cref="UploadedTables"/>' own disposal reads; a disposable that always throws the sticky error stands in for
+    /// ILGPU's own device-buffer cleanup on a context the timeout already killed, which this task cannot provoke for
+    /// real on the reference machine.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void ATimedOutEnginesDisposalDropsTheStickyFailure()
+    {
+        if (Engine.CudaForbidden)
+        {
+            return;
+        }
+
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10 };
+        var plan = ChunkPlan.For(25, 8, 1, options);
+        using var buffers = new Chunks.ChunkBuffers(cpu.IlgpuAccelerator);
+        var timer = new RunTimer();
+        _ = Assert.Throws<AcceleratorUnavailableException>(() => cpu.RunBatchLoop(
+            plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT)));
+
+        using var stillSticky = new StickyDisposable(new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT));
+        var disposal = Record.Exception(() => cpu.DisposeAfterLoss(stillSticky));
+        Assert.Null(disposal);
+    }
+
+    /// <summary>A disposable whose first <see cref="Dispose"/> always throws the given failure, standing in for
+    /// ILGPU's own device-buffer cleanup on a context a launch timeout already left sticky; idempotent like ILGPU's
+    /// own dispose (BOOT.md, the pipelines' shared <c>using</c> declaration), so this test's own closing <c>using</c>
+    /// finds it already disposed and does nothing, once <see cref="Engine.DisposeAfterLoss"/> has dropped the first
+    /// throw.</summary>
+    private sealed class StickyDisposable(CudaException failure) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            throw failure;
+        }
+    }
 }
