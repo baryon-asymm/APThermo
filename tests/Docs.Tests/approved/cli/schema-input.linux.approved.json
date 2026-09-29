@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "apthermo problem document (src/Cli/API.md, Input document)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["propellant", "problem"],
+  "properties": {
+    "propellant": { "oneOf": [{ "$ref": "#/$defs/reactantPropellant" }, { "$ref": "#/$defs/elementalPropellant" }] },
+    "problem": { "oneOf": [{ "$ref": "#/$defs/rocketProblem" }, { "$ref": "#/$defs/equilibriumProblem" }] },
+    "sweep": { "$ref": "#/$defs/sweep" },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accelerator"],
+      "properties": { "accelerator": { "enum": ["auto", "cpu", "cuda"] } }
+    }
+  },
+  "$defs": {
+    "numberList": { "type": "array", "items": { "type": "number" } },
+    "stringList": { "type": "array", "items": { "type": "string" } },
+    "numberMap": { "type": "object", "additionalProperties": { "type": "number" } },
+    "values": {
+      "oneOf": [
+        { "type": "array", "minItems": 1, "items": { "type": "number" } },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "to", "step"],
+          "properties": {
+            "from": { "type": "number" },
+            "to": { "type": "number" },
+            "step": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        }
+      ]
+    },
+    "reactant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role", "amount"],
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "enum": ["oxidizer", "fuel", "named"] },
+        "amount": { "type": "number", "minimum": 0 },
+        "amountKind": { "enum": ["mass-fraction", "moles"] },
+        "temperature": { "type": "number", "exclusiveMinimum": 0 },
+        "formula": { "$ref": "#/$defs/numberMap" },
+        "enthalpy": { "type": "number" },
+        "molarMass": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "reactantPropellant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reactants"],
+      "properties": {
+        "reactants": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/reactant" } },
+        "mixture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["oxidizerToFuel"],
+          "properties": { "oxidizerToFuel": { "type": "number", "exclusiveMinimum": 0 } }
+        },
+        "omit": { "$ref": "#/$defs/stringList" },
+        "only": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "elementalPropellant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["elementMoles"],
+      "properties": {
+        "elementMoles": { "$ref": "#/$defs/numberMap" },
+        "enthalpy": { "type": "number" },
+        "omit": { "$ref": "#/$defs/stringList" },
+        "only": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "rocketProblem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "chamberPressure"],
+      "properties": {
+        "type": { "const": "rocket" },
+        "chamberPressure": { "type": "number", "exclusiveMinimum": 0 },
+        "flow": { "enum": ["shifting-equilibrium", "frozen-at-chamber", "frozen-at-throat"] },
+        "areaRatios": { "$ref": "#/$defs/numberList" },
+        "pressureRatios": { "$ref": "#/$defs/numberList" },
+        "transport": { "type": "boolean" },
+        "temperatureEstimate": { "type": "number", "minimum": 0 }
+      }
+    },
+    "equilibriumProblem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "pressure"],
+      "properties": {
+        "type": { "const": "equilibrium" },
+        "kind": { "enum": ["tp", "hp", "sp"] },
+        "pressure": { "type": "number", "exclusiveMinimum": 0 },
+        "temperature": { "type": "number", "exclusiveMinimum": 0 },
+        "enthalpy": { "type": "number" },
+        "entropy": { "type": "number" },
+        "transport": { "type": "boolean" }
+      }
+    },
+    "sweep": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "oxidizerToFuel": { "$ref": "#/$defs/values" },
+        "chamberPressure": { "$ref": "#/$defs/values" },
+        "pressure": { "$ref": "#/$defs/values" },
+        "temperature": { "$ref": "#/$defs/values" }
+      }
+    }
+  }
+}

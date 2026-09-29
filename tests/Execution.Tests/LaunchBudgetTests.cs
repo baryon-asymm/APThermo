@@ -8,11 +8,13 @@ namespace APThermo.Execution.Tests;
 /// arithmetic of <see cref="LaunchBudget"/> and <see cref="ChunkPlan.FirstChunkCases"/>/<see cref="ChunkPlan.NextChunkCases"/>,
 /// and the timeout translation of <see cref="BatchRun"/>, all driven with injected times and an injected failure, no GPU needed.
 /// Joins <see cref="EngineFixture.CollectionName"/>, not for the shared fixture (every fact here builds its own engine or
-/// none at all) but so its two <c>Cuda</c>-tagged facts never run concurrently with <see cref="EngineFixture.Shared"/>'s own
+/// none at all) but so its four <c>Cuda</c>-tagged facts never run concurrently with <see cref="EngineFixture.Shared"/>'s own
 /// CUDA engine creation on another thread: constructing a real <see cref="CudaException(CudaError)"/> touches the driver
 /// (<c>cuGetErrorString</c>) the same way <see cref="EngineFixture"/>'s lazy CUDA engine does, and a genuine CUDA run under
 /// WSL found the two racing — <c>CUDA device 0 was requested, but 0 device(s) exist</c> on roughly a third of runs of the
-/// full suite, never on a run of either fact alone.
+/// full suite, never on a run of either fact alone. Two further facts below prove the third audit pass's finding 2
+/// (the loss decision itself, and the refusal it drives) without any <c>CudaException</c>, so they carry no <c>Cuda</c>
+/// trait and run under <c>APTHERMO_NO_CUDA=1</c> like any other fact of this node (2026-09-29, review).
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed class LaunchBudgetTests
@@ -135,5 +137,127 @@ public sealed class LaunchBudgetTests
         var timer = new RunTimer();
         _ = Assert.Throws<CudaException>(() => cpu.RunBatchLoop(
             plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_OUT_OF_MEMORY)));
+    }
+
+    /// <summary>
+    /// The third audit pass's finding 2 (BOOT.md, "A lost context stays an AcceleratorUnavailableException"): once a
+    /// launch timeout has left an engine's session lost, through the same seam as
+    /// <see cref="ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy"/>, a later call
+    /// (<see cref="Engine.ProbeMath"/> stands in for every public entry point <c>Guard</c>/<c>Upload</c>/<c>ProbeMath</c>
+    /// itself checks) refuses with <see cref="AcceleratorUnavailableException"/> naming the earlier timeout, instead of
+    /// touching the dead context again. The timeout cannot be provoked for real on the reference machine — it resets the
+    /// display driver — so this and the disposal below inject their failures directly, on the CPU accelerator, exactly
+    /// as the timeout fact above does.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void ATimedOutEngineRefusesANewCall()
+    {
+        if (Engine.CudaForbidden)
+        {
+            return;
+        }
+
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10 };
+        var plan = ChunkPlan.For(25, 8, 1, options);
+        using var buffers = new Chunks.ChunkBuffers(cpu.IlgpuAccelerator);
+        var timer = new RunTimer();
+        _ = Assert.Throws<AcceleratorUnavailableException>(() => cpu.RunBatchLoop(
+            plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT)));
+
+        var refusal = Assert.Throws<AcceleratorUnavailableException>(() => cpu.ProbeMath([1.0]));
+        Assert.Contains("earlier launch timeout", refusal.Message, StringComparison.Ordinal);
+        _ = Assert.IsType<AcceleratorUnavailableException>(refusal.InnerException);
+    }
+
+    /// <summary>
+    /// The other half of the same finding: disposal on a lost engine drops a <see cref="CudaException"/> carrying the
+    /// sticky launch-timeout error instead of letting it replace whatever is already propagating, or surface at all
+    /// from an ordinary dispose (BOOT.md, the same section). <see cref="Engine.DisposeAfterLoss"/> is the exact seam
+    /// <see cref="UploadedTables"/>' own disposal reads; a disposable that always throws the sticky error stands in for
+    /// ILGPU's own device-buffer cleanup on a context the timeout already killed, which this task cannot provoke for
+    /// real on the reference machine.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void ATimedOutEnginesDisposalDropsTheStickyFailure()
+    {
+        if (Engine.CudaForbidden)
+        {
+            return;
+        }
+
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 10 };
+        var plan = ChunkPlan.For(25, 8, 1, options);
+        using var buffers = new Chunks.ChunkBuffers(cpu.IlgpuAccelerator);
+        var timer = new RunTimer();
+        _ = Assert.Throws<AcceleratorUnavailableException>(() => cpu.RunBatchLoop(
+            plan, buffers, timer, _ => throw new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT)));
+
+        using var stillSticky = new StickyDisposable(new CudaException(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT));
+        var disposal = Record.Exception(() => cpu.DisposeAfterLoss(stillSticky));
+        Assert.Null(disposal);
+    }
+
+    /// <summary>
+    /// The third audit pass's finding 2, decided without any ILGPU CUDA object (2026-09-29, review): a real
+    /// <see cref="CudaException"/> loads the CUDA driver into the process even on the CPU accelerator, which
+    /// <c>AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda</c> catches, so
+    /// <see cref="AcceleratorSession.DropsAfterLoss(CudaError)"/>'s decision itself is proven here on the bare
+    /// <see cref="CudaError"/> value: never lost, the sticky error; lost, the sticky error; lost, the wrong error.
+    /// Carries no <c>Cuda</c> trait and runs under <c>APTHERMO_NO_CUDA=1</c>. The exception-typed half
+    /// (<see cref="AcceleratorSession.DropsAfterLoss(CudaException)"/>) and the disposal that needs a real one stay
+    /// the <c>Cuda</c>-tagged fact above.
+    /// </summary>
+    [Fact]
+    public void DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession()
+    {
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        Assert.False(cpu.DropsAfterLoss(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT));
+        cpu.MarkLost(new AcceleratorUnavailableException("injected for this fact"));
+        Assert.True(cpu.DropsAfterLoss(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT));
+        Assert.False(cpu.DropsAfterLoss(CudaError.CUDA_ERROR_OUT_OF_MEMORY));
+    }
+
+    /// <summary>
+    /// The other half of the same finding, injected the same way: once <see cref="Engine.MarkLost"/> has recorded a
+    /// timeout, a later call (<see cref="Engine.ProbeMath"/> stands in for every public entry point
+    /// <c>Guard</c>/<c>Upload</c>/<c>ProbeMath</c> itself checks) refuses with <see cref="AcceleratorUnavailableException"/>
+    /// naming the earlier timeout, instead of touching the dead context again. Carries no <c>Cuda</c> trait for the
+    /// same reason as the fact above; <see cref="ATimedOutEngineRefusesANewCall"/> proves the same refusal after the
+    /// real translation, on the reference machine.
+    /// </summary>
+    [Fact]
+    public void AnEngineMarkedLostRefusesANewCall()
+    {
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        var timeout = new AcceleratorUnavailableException("the launch of 10 case(s) exceeded the device's kernel run-time limit");
+        cpu.MarkLost(timeout);
+        var refusal = Assert.Throws<AcceleratorUnavailableException>(() => cpu.ProbeMath([1.0]));
+        Assert.Contains("earlier launch timeout", refusal.Message, StringComparison.Ordinal);
+        Assert.Same(timeout, refusal.InnerException);
+    }
+
+    /// <summary>A disposable whose first <see cref="Dispose"/> always throws the given failure, standing in for
+    /// ILGPU's own device-buffer cleanup on a context a launch timeout already left sticky; idempotent like ILGPU's
+    /// own dispose (BOOT.md, the pipelines' shared <c>using</c> declaration), so this test's own closing <c>using</c>
+    /// finds it already disposed and does nothing, once <see cref="Engine.DisposeAfterLoss"/> has dropped the first
+    /// throw.</summary>
+    private sealed class StickyDisposable(CudaException failure) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            throw failure;
+        }
     }
 }

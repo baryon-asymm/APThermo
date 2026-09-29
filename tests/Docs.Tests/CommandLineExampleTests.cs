@@ -36,9 +36,30 @@ namespace APThermo.Docs.Tests;
 ///
 /// The two JSON-document facts — a shown document matching its `samples/cli/` file, and every JSON fence carrying
 /// that marker (MA1) — live in `CliDocumentTests.cs`, next to each other since both read a `cli-document` marker.
+///
+/// A runnable example's approved JSON document follows the root's platform rule (2026-09-29, `BOOT.md`, "The
+/// command-line examples' approved documents follow the root's platform rule"): `approved/cli/&lt;key&gt;.approved.json`
+/// is the Windows record, `&lt;key&gt;.linux.approved.json` the Linux one, picked by the running platform exactly as
+/// the harness picks a bit snapshot (<see cref="ApprovedPathOf"/>). <see cref="EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis"/>
+/// compares the delivered document against it field by field (<see cref="JsonFieldComparison.Mismatch"/>: the same
+/// members in the same order, every string and boolean equal, every number within
+/// <see cref="JsonFieldComparison.RelativeNumberTolerance"/>) and runs on every runner, the hosted ones included;
+/// <see cref="EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly"/>
+/// re-runs the same invocations and compares the bytes exactly, carrying <c>Category=BitSnapshot</c> so it runs only
+/// on the reference machine (locally and on the self-hosted release runners), where the platform's own record is
+/// known to be exact. `--help`'s plain-text record is not split per platform (its bytes have never been observed to
+/// differ) and stays exactly compared in both facts.
 /// </summary>
 public sealed partial class CommandLineExampleTests
 {
+    /// <summary>Which comparison <see cref="RunAndApprove"/> performs against a runnable example's approved JSON
+    /// document: every runner's mandatory field-by-field tolerance, or the reference machine's exact byte comparison.</summary>
+    private enum ComparisonMode
+    {
+        Field,
+        Exact,
+    }
+
     private static readonly HashSet<string> RunnableVerbs = new(StringComparer.Ordinal) { "rocket", "equilibrium", "states" };
     private static readonly HashSet<string> DeclaredOnlyVerbs = new(StringComparer.Ordinal) { "devices", "--version" };
     private static readonly Regex InlineSpan = MyRegex();
@@ -61,9 +82,31 @@ public sealed partial class CommandLineExampleTests
     /// <summary>Every declared verb whose synopsis is not one of the three runnable ones: `species`, `devices`, `schema`, `--help`, `--version` today, read from the same source as <see cref="Synopsis"/> rather than typed in twice.</summary>
     private static readonly HashSet<string> SynopsisVerbs = new(Synopsis.Keys.Except(RunnableVerbs), StringComparer.Ordinal);
 
-    /// <summary>Every command line invocation is a checked example or a declared synopsis.</summary>
+    /// <summary>
+    /// Every command line invocation is a checked example or a declared synopsis; a runnable example's delivered
+    /// document is checked field by field against its platform's approved file (<see cref="ComparisonMode.Field"/>),
+    /// the mandatory floor every runner proves, hosted CI included.
+    /// </summary>
     [Fact]
     public void EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis()
+    {
+        var runnableKeys = RunInvocations(ComparisonMode.Field);
+        CheckApprovedFilesMatch(runnableKeys);
+    }
+
+    /// <summary>
+    /// The same runnable examples' delivered documents equal their platform's approved file exactly
+    /// (<see cref="ComparisonMode.Exact"/>; BOOT.md, "The command-line examples' approved documents follow the root's
+    /// platform rule"). Tagged so it runs on the reference machine, locally and on the self-hosted release runners,
+    /// and not on the hosted CI runners, where the field-by-field fact above holds correctness instead.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "BitSnapshot")]
+    public void EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly() => RunInvocations(ComparisonMode.Exact);
+
+    /// <summary>Finds every invocation of the guide and classifies each in <paramref name="mode"/>, returning the
+    /// runnable keys the caller may still want to check the approved directory against.</summary>
+    private static List<ApprovedKey> RunInvocations(ComparisonMode mode)
     {
         var pages = GuideDocuments.SnippetSources();
         var invocations = FenceInvocationsOf(pages).Concat(InlineInvocationsOf(pages)).ToList();
@@ -72,10 +115,10 @@ public sealed partial class CommandLineExampleTests
         var runnableKeys = new List<ApprovedKey>();
         foreach (var (file, line, command, isFence) in invocations)
         {
-            Classify($"{file}:{line + 1}", command, runnableKeys, isFence);
+            Classify($"{file}:{line + 1}", command, runnableKeys, isFence, mode);
         }
 
-        CheckApprovedFilesMatch(runnableKeys);
+        return runnableKeys;
     }
 
     /// <summary>
@@ -193,7 +236,7 @@ public sealed partial class CommandLineExampleTests
     /// a bare verb there is checked as a full invocation instead of silently skipped (minor 2 of the fourth
     /// documentation review).
     /// </summary>
-    private static void Classify(string where, string command, List<ApprovedKey> runnableKeys, bool isFence)
+    private static void Classify(string where, string command, List<ApprovedKey> runnableKeys, bool isFence, ComparisonMode mode)
     {
         var tokens = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         Assert.True(tokens.Length >= 2 && tokens[0] == "apthermo", $"{where}: '{command}' names no command after 'apthermo'");
@@ -213,7 +256,7 @@ public sealed partial class CommandLineExampleTests
             var input = InputDocumentsOf(tokens[1..])[0];
             var key = RunnableKeyOf(baseKey!, tokens[2..], input);
             runnableKeys.Add(new ApprovedKey(key, "json"));
-            CheckExample(where, tokens[1..], key);
+            CheckExample(where, tokens[1..], key, mode);
             return;
         }
 
@@ -241,7 +284,7 @@ public sealed partial class CommandLineExampleTests
         }
 
         var syntheticKey = KeyOf(tokens[1..]);
-        RunAndApprove(where, tokens[1..], syntheticKey, cutRun: verb != "schema");
+        RunAndApprove(where, tokens[1..], syntheticKey, cutRun: verb != "schema", mode);
         runnableKeys.Add(new ApprovedKey(syntheticKey, "json"));
     }
 
@@ -366,15 +409,16 @@ public sealed partial class CommandLineExampleTests
     [GeneratedRegex(@"[^A-Za-z0-9.]+")]
     private static partial Regex NonKeyCharacters();
 
-    private static void CheckExample(string where, IReadOnlyList<string> argsAfterApthermo, string key)
+    private static void CheckExample(string where, IReadOnlyList<string> argsAfterApthermo, string key, ComparisonMode mode)
     {
         var input = InputDocumentsOf(argsAfterApthermo)[0];
         var args = argsAfterApthermo.Select(a => a == input ? Path.GetFullPath(Path.Combine(GuideDocuments.Root, input)) : a).ToArray();
-        RunAndApprove(where, args, key, cutRun: true);
+        RunAndApprove(where, args, key, cutRun: true, mode);
     }
 
-    /// <summary>Runs `apthermo &lt;args&gt;` in-process and compares its delivered document, `run` cut when requested, with the approved file keyed by <paramref name="key"/>.</summary>
-    private static void RunAndApprove(string where, IReadOnlyList<string> args, string key, bool cutRun)
+    /// <summary>Runs `apthermo &lt;args&gt;` in-process and compares its delivered document, `run` cut when requested,
+    /// with the platform's approved file keyed by <paramref name="key"/>, in <paramref name="mode"/>.</summary>
+    private static void RunAndApprove(string where, IReadOnlyList<string> args, string key, bool cutRun, ComparisonMode mode)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -399,11 +443,30 @@ public sealed partial class CommandLineExampleTests
         }
 
         var approved = GuideDocuments.Lf(File.ReadAllText(approvedPath));
-        if (!approved.Equals(actual, StringComparison.Ordinal))
+        var problem = mode == ComparisonMode.Exact
+            ? ExactMismatch(approved, actual)
+            : FieldMismatchOf(approved, actual);
+        if (problem is not null)
         {
             File.WriteAllText(actualPath, actual, new UTF8Encoding(false));
-            Assert.Fail($"{where}: the delivered document differs from its approved file: approved {approvedPath}, actual {actualPath}");
+            Assert.Fail($"{where}: the delivered document differs from its approved file ({problem}): approved {approvedPath}, actual {actualPath}");
         }
+    }
+
+    /// <summary>The reference machine's exact comparison (<c>Category=BitSnapshot</c>): the two texts differ at all.</summary>
+    private static string? ExactMismatch(string approved, string actual) =>
+        approved.Equals(actual, StringComparison.Ordinal) ? null : "bytes differ";
+
+    /// <summary>
+    /// Every runner's mandatory floor: the two approved documents parse and agree field by field
+    /// (<see cref="JsonFieldComparison.Mismatch"/>). Parsed independently of <see cref="ExactMismatch"/> so the two
+    /// facts never share a document instance.
+    /// </summary>
+    private static string? FieldMismatchOf(string approved, string actual)
+    {
+        using var approvedDocument = JsonDocument.Parse(approved);
+        using var actualDocument = JsonDocument.Parse(actual);
+        return JsonFieldComparison.Mismatch(approvedDocument.RootElement, actualDocument.RootElement, "$");
     }
 
     /// <summary>
@@ -435,15 +498,18 @@ public sealed partial class CommandLineExampleTests
         }
     }
 
-    /// <summary>No runnable example without an approved file, and no approved file without one (D1).</summary>
+    /// <summary>No runnable example without an approved file, and no approved file without one (D1), read for the
+    /// running platform: a JSON approved file of the other platform's naming (<see cref="SplitApprovedFileName"/>)
+    /// is not this platform's concern and is skipped rather than counted as orphaned.</summary>
     private static void CheckApprovedFilesMatch(IReadOnlyList<ApprovedKey> runnableKeys)
     {
         var directory = Path.GetDirectoryName(ApprovedPathOf("x", "json"))!;
         var approvedKeys = Directory.Exists(directory)
             ? Directory.EnumerateFiles(directory, "*.approved.*")
-                .Select(p => Path.GetFileName(p))
-                .Where(n => n.EndsWith(".approved.json", StringComparison.Ordinal) || n.EndsWith(".approved.txt", StringComparison.Ordinal))
-                .Select(SplitApprovedFileName)
+                .Select(Path.GetFileName)
+                .Select(name => SplitApprovedFileName(name!))
+                .Where(key => key is not null)
+                .Select(key => key!.Value)
                 .ToList()
             : [];
 
@@ -453,14 +519,43 @@ public sealed partial class CommandLineExampleTests
         Assert.True(orphaned.Count == 0, $"approved/cli file(s) with no matching runnable example: {string.Join(", ", orphaned.Select(Describe))}");
     }
 
-    private static ApprovedKey SplitApprovedFileName(string fileName) =>
-        fileName.EndsWith(".approved.json", StringComparison.Ordinal)
-            ? new ApprovedKey(fileName[..^".approved.json".Length], "json")
-            : new ApprovedKey(fileName[..^".approved.txt".Length], "txt");
+    /// <summary>
+    /// The key and extension of one approved file's name, or null when it is the other platform's record
+    /// (<c>&lt;key&gt;.linux.approved.json</c> read on Windows, or <c>&lt;key&gt;.approved.json</c> read on Linux):
+    /// the root's platform rule keeps exactly one JSON record per platform, and this node's directory listing must
+    /// see only the one it runs against, the same way <see cref="ApprovedPathOf"/> picks it to read. A `.txt` record
+    /// is not split (root `BOOT.md`, Delivery: Documentation) and is read on both platforms.
+    /// </summary>
+    private static ApprovedKey? SplitApprovedFileName(string fileName)
+    {
+        const string linuxJson = ".linux.approved.json";
+        const string json = ".approved.json";
+        const string text = ".approved.txt";
+
+        return fileName.EndsWith(linuxJson, StringComparison.Ordinal)
+            ? OperatingSystem.IsLinux() ? new ApprovedKey(fileName[..^linuxJson.Length], "json") : null
+            : fileName.EndsWith(json, StringComparison.Ordinal)
+                ? OperatingSystem.IsLinux() ? null : new ApprovedKey(fileName[..^json.Length], "json")
+                : fileName.EndsWith(text, StringComparison.Ordinal)
+                    ? new ApprovedKey(fileName[..^text.Length], "txt")
+                    : null;
+    }
 
     private static string Describe(ApprovedKey key) => key.Extension == "json" ? key.Key : $"{key.Key} ({key.Extension})";
 
-    private static string ApprovedPathOf(string key, string extension) => RepositoryPaths.Resolve("tests", "Docs.Tests", "approved", "cli", key + ".approved." + extension);
+    /// <summary>
+    /// The approved path for <paramref name="key"/>: a `.txt` record is not split per platform (unchanged); a JSON
+    /// record follows the root's platform rule the same way the harness picks a bit snapshot
+    /// (<see cref="APThermo.Harness.ApprovedSnapshot.ApprovedPathFor"/>) — `&lt;key&gt;.approved.json` everywhere but
+    /// Linux, `&lt;key&gt;.linux.approved.json` there.
+    /// </summary>
+    private static string ApprovedPathOf(string key, string extension)
+    {
+        var fileName = extension == "json" && OperatingSystem.IsLinux()
+            ? $"{key}.linux.approved.json"
+            : $"{key}.approved.{extension}";
+        return RepositoryPaths.Resolve("tests", "Docs.Tests", "approved", "cli", fileName);
+    }
 
     private static string? OptionValue(IReadOnlyList<string> args, string name)
     {

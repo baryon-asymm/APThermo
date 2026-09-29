@@ -449,8 +449,8 @@ four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
 | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
 | `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
-| `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope | internal |
-| `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache, and since 2026-09-28 `LaunchBudget`, threaded from `session.Budget` into `ChunkPlan.For`, F2). Three of the four also gained an internal `DeclareBuffers` test-support method for the F8 wiring fact, naming no new type. By the dependency check's walk on 2026-09-28 (2026-09-14 in parentheses): `RocketPipeline` 25 (23), `TransportPipeline` 23 (22), `EquilibriumPipeline` 22 (21), `SpeciesFunctionPipeline` 18 (17) | internal |
+| `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope; since 2026-09-29 also owns disposing the chunk buffers it was given, in its own `finally`, through the private `DisposeChunkBuffers` — the one place of this node whose `catch` drops a lost session's own sticky `CudaException` (the third audit pass's finding 2; `AcceleratorSession.DropsAfterLoss` holds the decision, `Engine.DisposeAfterLoss` and `AcceleratorSession.Dispose` read the same decision for the pieces CA2000 does not force into this node's own method) | internal |
+| `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache, and since 2026-09-28 `LaunchBudget`, threaded from `session.Budget` into `ChunkPlan.For`, F2). Three of the four also gained an internal `DeclareBuffers` test-support method for the F8 wiring fact, naming no new type; since 2026-09-29 (the third audit pass's observation) `DeclareBuffers` and `Run` both call one private `Declare` method instead of restating the buffer declarations, so the two cannot drift; `Run`'s own `using var buffers` disposes nothing for real once `BatchRun.Execute` has already run (ILGPU's own dispose is idempotent), and exists only because CA2000 needs a literal dispose beside the allocation. By the dependency check's walk on 2026-09-28 (2026-09-14 in parentheses): `RocketPipeline` 25 (23), `TransportPipeline` 23 (22), `EquilibriumPipeline` 22 (21), `SpeciesFunctionPipeline` 18 (17); unchanged by the 2026-09-29 refactor (`Declare` and `DisposeChunkBuffers` name no type these pipelines did not already name) | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 26 by the dependency check's walk on 2026-09-27, 25 on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
 | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
 | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
@@ -572,7 +572,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Engine` | efferent coupling | 30 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Engine` | efferent coupling | 31 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `MarkLost` and `DropsAfterLoss(CudaError)` (2026-09-29, review: test-only seams that let the tests node drive the third audit pass's finding 2 without a driver-touching `CudaException`), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
 | `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
 | `RocketPipeline` | efferent coupling | 25 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
 | `TransportPipeline` | efferent coupling | 23 | the same case as `RocketPipeline` above |
@@ -1240,8 +1240,8 @@ confirms it.
       under WSL after the merges. This node's own facts were green under WSL
       throughout. Reworded by the orchestrator at the merge: the coder's note
       retold other nodes' state, which AGENTS.md §8 keeps out of a node's document.
-- [ ] The third audit pass of 2026-09-28 (part 2, finding 2 and the observation on
-      `DeclareBuffers`) is closed.
+- [x] 2026-09-29 — The third audit pass of 2026-09-28 (part 2, finding 2 and the
+      observation on `DeclareBuffers`) is closed.
       - **A lost context stays an `AcceleratorUnavailableException`.** After
         `CUDA_ERROR_LAUNCH_TIMEOUT` the context is lost: NVIDIA documents the error as
         sticky, and every later call on the context returns it. ILGPU 1.5.3 frees a
@@ -1249,25 +1249,155 @@ confirms it.
         which throws, with no catch on the way (`DisposeDriver`,
         `AcceleratorObject.Dispose(bool)`, `Accelerator.DisposeChildObject`). So the
         pipelines' `using var buffers`, and the engine's and the solver's disposal,
-        would replace the translated exception with a raw `CudaException`. The rule:
-        - the engine records the loss when `BatchRun` translates the timeout; every
-          later run on it throws `AcceleratorUnavailableException` naming the earlier
-          timeout, and the consumer's remedy is a new engine or the CPU accelerator;
-        - disposal on a lost engine (chunk buffers, uploaded tables, the accelerator,
-          the context) releases what it can, and a `CudaException` carrying the sticky
-          error is dropped there, in one named place of this node, and nowhere else; any
-          other exception still propagates;
-        - no ILGPU type reaches a consumer; `API.md`'s errors table and the guide say
-          that an engine that timed out is unusable.
+        would replace the translated exception with a raw `CudaException`. The rule,
+        implemented as `AcceleratorSession.MarkLost`/`ThrowIfLost`/`DropsAfterLoss`
+        (`AcceleratorSession.cs`):
+        - `BatchRun.Launch` calls `session.MarkLost(timeout)` in the same catch that
+          builds the translated `AcceleratorUnavailableException`, before throwing it;
+        - `Engine.Guard` (every `Run` overload), `Upload` and `ProbeMath` call
+          `_session.ThrowIfLost()` first: a later call on a lost session throws a new
+          `AcceleratorUnavailableException` naming the earlier timeout (its message
+          quoted) as its own message, with the earlier exception as its inner one — the
+          consumer's remedy is a new engine or the CPU accelerator;
+        - `AcceleratorSession.DropsAfterLoss(CudaError)` is the one decision behind
+          every drop: true only when this session is marked lost and the error is
+          `CUDA_ERROR_LAUNCH_TIMEOUT`, decided on the bare enum value so the decision
+          itself needs no driver-touching `CudaException` to test (2026-09-29, the
+          second review below); `DropsAfterLoss(CudaException)` is a thin extraction of
+          `CudaException.Error` onto it, and is what every real catch filter reads.
+          `AcceleratorSession.Dispose` reads it in three literal
+          `try { … } catch (CudaException failure) when (DropsAfterLoss(failure))`
+          blocks, one per disposed piece (`Nvvm`, the accelerator, the context), each
+          proceeding to the next regardless (releases what it can); `Engine.DisposeAfterLoss`
+          reads the same decision for `UploadedTables`' own buffers; `BatchRun`'s new
+          `DisposeChunkBuffers` reads it for a pipeline's chunk buffers. Any other
+          exception, or a session never marked lost, is unaffected;
+        - no ILGPU type reaches a consumer; `API.md`'s errors table and the guide's GPU
+          page (`docs/guide/gpu.md`) say that an engine that timed out is unusable.
+
+        ⚠ 2026-09-29: the sketch said the drop happens "in one named place of this
+        node, and nowhere else". The decision does (`DropsAfterLoss`, above), but the
+        `catch` itself could not be that one place: CA2000 (this node's Diagnostics
+        constraint) refuses a `new ChunkBuffers(session.Accelerator)` whose disposal is
+        routed through a called method rather than a literal `Dispose()` call in the
+        same method — confirmed by trying exactly that first and reading CA2000's own
+        refusal. `BatchRun.Execute` therefore owns disposing the buffers it was given,
+        in its own `finally`, through the new private `DisposeChunkBuffers` (the pass
+        every pipeline's `Run` actually depends on for the drop); each pipeline's
+        `using var buffers` still exists only to satisfy CA2000 at its own allocation
+        site, and its own dispose call, reached after `BatchRun.Execute` already
+        disposed the same buffers, finds every device buffer already disposed and does
+        nothing (ILGPU's own dispose is idempotent, confirmed by reading
+        `DisposeBase.DisposeDriver`'s `Interlocked.CompareExchange` guard). `Engine.DisposeAfterLoss`
+        and `AcceleratorSession.Dispose`'s own three `catch` blocks read the same
+        decision for the pieces CA2000 does not flag (an existing field's disposal, not
+        a freshly allocated local).
       - **Evidence.** The timeout cannot be provoked on the reference machine (it resets
-        the display driver). A fact on the CPU accelerator injects the timeout through
-        the same seam as `LaunchBudgetTests` and a disposal that throws a
-        `CudaException` with the sticky error, and shows the consumer receiving
-        `AcceleratorUnavailableException`, the engine refusing a second run, and its
-        disposal not throwing. Red at `c02e14d`.
+        the display driver), so every fact below injects its failure through a seam
+        that needs no real device. Split across two kinds of fact, decided by whether
+        the fact needs an actual `CudaException` (which loads the CUDA driver, `nvcuda`,
+        into the process to build even on the CPU accelerator — see the second ⚠ below):
+        - **`Cuda`-tagged, `Engine.CudaForbidden`-gated, on the reference machine only**
+          (with `ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy`
+          above): `ATimedOutEngineRefusesANewCall` runs the real translation
+          (`Engine.RunBatchLoop` with a launch delegate that throws
+          `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)`) and then calls `cpu.ProbeMath`,
+          asserting `AcceleratorUnavailableException` naming "earlier launch timeout";
+          `ATimedOutEnginesDisposalDropsTheStickyFailure` hands `Engine.DisposeAfterLoss`
+          an injected `IDisposable` (`StickyDisposable`) whose first `Dispose` always
+          throws `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` and asserts no exception
+          escapes. Both prove the real, driver-touching path end to end; the
+          orchestrator runs them on the reference machine after the merge.
+        - **No `Cuda` trait, no gate, run under `APTHERMO_NO_CUDA=1` on every runner
+          hosted CI included**: `AnEngineMarkedLostRefusesANewCall` calls the new
+          `Engine.MarkLost` with an injected `AcceleratorUnavailableException` — never a
+          `CudaException` — then asserts `cpu.ProbeMath` refuses the same way, naming the
+          same timeout as its inner exception;
+          `DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession` proves
+          `AcceleratorSession.DropsAfterLoss(CudaError)`'s decision on the bare enum value
+          alone (never lost, the sticky error → false; lost, the sticky error → true;
+          lost, the wrong error → false), through the new `Engine.DropsAfterLoss(CudaError)`.
+
+        ⚠ 2026-09-29 (first correction, this task): this evidence first read that
+        `ATimedOutEngineRefusesANewCall` and `ATimedOutEnginesDisposalDropsTheStickyFailure`
+        carried `[Trait("Category","Cuda")]` and returned at once under
+        `Engine.CudaForbidden` — so under `APTHERMO_NO_CUDA=1`, the fast suite and every
+        hosted runner, neither fact executed a single assertion, and the section's own
+        claim was never actually proven by a run recorded here. Found on review. The
+        fix removed the gate from both facts directly.
+
+        ⚠ 2026-09-29 (second correction, this task): that fix was itself wrong on two
+        counts, found on a second review. First, removing the gate made both facts
+        construct a real `CudaException`, which loads `nvcuda` into the shared test
+        process even on the CPU accelerator; to keep the fast suite green, the first fix
+        narrowed `AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda`
+        from a whole-process check to a before/after diff around `Engine.Create` alone —
+        weakening a check written to guard the root's "CPU path needs no NVIDIA
+        software" invariant process-wide, to make a test pass, exactly the taboo this
+        root forbids. Second, an un-gated fact that constructs a `CudaException` is
+        itself a hosted-CI risk: a runner with no NVIDIA driver at all may fail to build
+        one, not merely fail to use one. The reviewer's fix (adopted here): restore
+        `AcceleratorChoiceTests.cs` exactly as committed on `main`
+        (`git checkout main -- tests/Execution.Tests/AcceleratorChoiceTests.cs`), keep
+        `ATimedOutEngineRefusesANewCall` and `ATimedOutEnginesDisposalDropsTheStickyFailure`
+        `Cuda`-tagged and gated exactly as first written, and add the decision itself
+        (`AcceleratorSession.DropsAfterLoss(CudaError)`, a thin `DropsAfterLoss(CudaException)`
+        extraction onto it) plus two new, un-gated CPU facts
+        (`AnEngineMarkedLostRefusesANewCall`,
+        `DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession`) that drive
+        `Engine.MarkLost`/`ProbeMath`/`DropsAfterLoss(CudaError)` directly, without any
+        `CudaException`. `LaunchBudgetTests`' own class doc now says four `Cuda`-tagged
+        facts, not two, since the count was already stale before this task touched it.
+
+        Both new CPU facts shown red once on the reference machine, reverted, green
+        again: `AnEngineMarkedLostRefusesANewCall` with `AcceleratorSession.ThrowIfLost`'s
+        `if` condition changed to `_lostBy is { } timeout && false` (`Assert.Throws`
+        failed, "No exception was thrown");
+        `DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession` with
+        `AcceleratorSession.DropsAfterLoss(CudaError)` changed to match
+        `CUDA_ERROR_OUT_OF_MEMORY` instead of the sticky timeout (`Assert.True` failed,
+        expected true, actual false). The two `Cuda`-tagged facts and
+        `NoCudaDriverIsLoadedInAProcessThatForbidsCuda` are unchanged from `main` and
+        need no fresh red-once record here.
+
+        Built and passing on the reference machine's CPU accelerator, in one process,
+        the restored check and the two new facts together: `dotnet test
+        tests/Execution.Tests --filter "Category!=LongRunning"` 163 of 163 under
+        `APTHERMO_NO_CUDA=1` (159 before this task, 161 after the first, wrong fix, 163
+        after the second). `dotnet test tests/Protocol.Tests --filter
+        "Category!=LongRunning"` 35 of 35 (`TreeContractSnapshotTests` re-approved for
+        `Engine.MarkLost`/`DropsAfterLoss(CudaError)`, both added to `API.md`;
+        `ShapeTests` re-measured `Engine`'s efferent coupling at 31, one over its
+        previous row, and the row above is updated with the reason). The protocol lint:
+        0 errors, 0 warnings. The `Category=Cuda` run itself — the two facts that need a
+        real CUDA driver to construct their own injected exception at all — is the
+        orchestrator's to run on the reference machine, per this task's own instruction
+        not to run CUDA tests from this worktree; not run here.
       - **One declaration of a pipeline's buffers.** `DeclareBuffers` and `Run` read the
-        same declaration, so the proof of the 32-bit offset cap cannot drift from the
-        pipeline it proves.
+        same private `Declare` method (`EquilibriumPipeline`, `RocketPipeline`,
+        `TransportPipeline`), so the proof of the 32-bit offset cap cannot drift from
+        the pipeline it proves. `Declare` takes the real batch for `Run` and a
+        single-case (`EquilibriumBatch`/`TransportBatch`) or single-exit-array
+        (`RocketBatch`) placeholder batch for `DeclareBuffers`, declares every buffer
+        exactly once on the `ChunkBuffers` it is given, and returns the buffer handles
+        together with the host output arrays `Run` assembles its result from; the
+        `SpeciesFunctionPipeline` has no `DeclareBuffers` and is unchanged (every one of
+        its strides is 1, `## Structure`).
+
+      Evidence, on the reference machine (Windows), from a tree with every `bin` and
+      `obj` removed:
+      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
+      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`:
+        5429 of 5429, none skipped, `Execution.Tests` 161 of 161 among them (see
+        above);
+      - `git status --short -- '**/Bits*.approved.txt' '**/Throughput*.approved.txt'
+        '**/PublicSurface.approved.txt'` empty: no snapshot moved (no public or
+        internal-tree-contract shape changed; every new member is `internal`);
+      - the protocol lint: 0 errors, 0 warnings.
+
+      This CPU-side evidence is complete; the `Category=Cuda` run and the red-once
+      mutation on real hardware stay the orchestrator's, per this task's own
+      instruction not to run CUDA tests from this worktree.
 
 ## Taboos
 

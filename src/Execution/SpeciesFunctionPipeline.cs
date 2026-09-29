@@ -22,6 +22,11 @@ internal static class SpeciesFunctionPipeline
         var sOverR = new double[count];
         var inRange = new int[count];
 
+        // BatchRun.Execute disposes buffers itself on the way out (2026-09-29, the third audit pass's finding 2): the
+        // one place of this node that drops a lost session's own sticky exception. This using declaration's own
+        // dispose, at the end of a successful run, finds every buffer already disposed and does nothing (ILGPU's own
+        // dispose is idempotent) — kept only because a diagnostic (CA2000) needs a literal dispose beside the
+        // allocation below, in the same method, to accept that this object does not escape undisposed.
         using var buffers = new ChunkBuffers(session.Accelerator);
         var speciesBuffer = buffers.Input(batch.Species, 1);
         var temperatureBuffer = buffers.Input(batch.Temperature, 1);

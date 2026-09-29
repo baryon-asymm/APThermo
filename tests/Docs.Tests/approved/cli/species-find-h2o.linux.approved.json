@@ -1,0 +1,153 @@
+{
+  "species": [
+    {
+      "name": "CH2OH",
+      "section": "products",
+      "phase": "gas",
+      "formula": {
+        "C": 1,
+        "H": 3,
+        "O": 1
+      },
+      "molarMass": 31.03392,
+      "formationEnthalpy": -17800,
+      "temperatureRange": [
+        300,
+        6000
+      ],
+      "transportData": false
+    },
+    {
+      "name": "CH2OH+",
+      "section": "products",
+      "phase": "gas",
+      "formula": {
+        "C": 1,
+        "H": 3,
+        "O": 1,
+        "E": -1
+      },
+      "molarMass": 31.0333714,
+      "formationEnthalpy": 716400,
+      "temperatureRange": [
+        298.15,
+        6000
+      ],
+      "transportData": false
+    },
+    {
+      "name": "H2O",
+      "section": "products",
+      "phase": "gas",
+      "formula": {
+        "H": 2,
+        "O": 1
+      },
+      "molarMass": 18.01528,
+      "formationEnthalpy": -241826,
+      "temperatureRange": [
+        200,
+        6000
+      ],
+      "transportData": true
+    },
+    {
+      "name": "H2O+",
+      "section": "products",
+      "phase": "gas",
+      "formula": {
+        "H": 2,
+        "O": 1,
+        "E": -1
+      },
+      "molarMass": 18.0147314,
+      "formationEnthalpy": 981601.766,
+      "temperatureRange": [
+        298.15,
+        20000
+      ],
+      "transportData": false
+    },
+    {
+      "name": "H2O2",
+      "section": "products",
+      "phase": "gas",
+      "formula": {
+        "H": 2,
+        "O": 2
+      },
+      "molarMass": 34.01468,
+      "formationEnthalpy": -135880,
+      "temperatureRange": [
+        300,
+        6000
+      ],
+      "transportData": false
+    },
+    {
+      "name": "NH2OH",
+      "section": "products",
+      "phase": "gas",
+      "formula": {
+        "N": 1,
+        "H": 3,
+        "O": 1
+      },
+      "molarMass": 33.02992,
+      "formationEnthalpy": -50000,
+      "temperatureRange": [
+        300,
+        6000
+      ],
+      "transportData": false
+    },
+    {
+      "name": "H2O(cr)",
+      "section": "products",
+      "phase": "condensed",
+      "formula": {
+        "H": 2,
+        "O": 1
+      },
+      "molarMass": 18.01528,
+      "formationEnthalpy": -299108,
+      "temperatureRange": [
+        200,
+        273.15
+      ],
+      "transportData": false
+    },
+    {
+      "name": "H2O(L)",
+      "section": "products",
+      "phase": "condensed",
+      "formula": {
+        "H": 2,
+        "O": 1
+      },
+      "molarMass": 18.01528,
+      "formationEnthalpy": -285830,
+      "temperatureRange": [
+        273.15,
+        600
+      ],
+      "transportData": false
+    },
+    {
+      "name": "H2O2(L)",
+      "section": "reactants",
+      "phase": "condensed",
+      "formula": {
+        "H": 2,
+        "O": 2
+      },
+      "molarMass": 34.01468,
+      "formationEnthalpy": -187780,
+      "temperatureRange": [
+        272.74,
+        6000
+      ],
+      "transportData": false
+    }
+  ]
+}

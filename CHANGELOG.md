@@ -122,6 +122,11 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
     kills anyway is an `AcceleratorUnavailableException` that names the limit. One
     case of about 16 or more elements can exceed the limit alone; such systems belong
     on the CPU accelerator or on a GPU without the limit.
+  - After such a timeout the engine's context is unusable (NVIDIA documents the error
+    as sticky): a further run, upload or math probe on it now refuses immediately,
+    naming the earlier timeout, instead of touching the dead context again; disposing
+    the timed-out engine or its uploaded tables no longer risks replacing the
+    reported failure with a raw, undocumented exception from ILGPU's own cleanup.
 - Equilibrium and condensed phases:
   - A condensed species' temperature range now spans all its intervals, as NASA CEA
     reads it; nine condensed records between 298.15 K and 300 K were excluded before.

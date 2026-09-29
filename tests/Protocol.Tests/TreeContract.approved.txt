@@ -98,7 +98,10 @@ sealed class APThermo.Execution.Engine : IDisposable
     UploadedTables Upload(SpeciesTable species, TransportTable? transport = null)
     Void Dispose()
     internal Accelerator IlgpuAccelerator { get; }
+    internal Boolean DropsAfterLoss(CudaError error)
     internal LaunchBudget Budget { get; }
+    internal Void DisposeAfterLoss(IDisposable disposable)
+    internal Void MarkLost(AcceleratorUnavailableException timeout)
     internal Void RunBatchLoop(ChunkPlan plan, ChunkBuffers buffers, RunTimer timer, Action<Int32> launch)
     static Boolean CudaForbidden { get; }
     static Engine Create(EngineOptions? options = null)

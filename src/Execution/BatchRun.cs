@@ -13,7 +13,8 @@ internal static class BatchRun
     /// The launch takes the number of cases of the chunk. A launch the driver kills for running past a display GPU's
     /// run-time limit (<see cref="CudaError.CUDA_ERROR_LAUNCH_TIMEOUT"/>) becomes <see cref="AcceleratorUnavailableException"/>
     /// naming the limit, the chunk's own case count and the CPU accelerator as the remedy; no ILGPU or CUDA type reaches
-    /// the caller.
+    /// the caller. The session records the loss (BOOT.md, the third audit pass's finding 2): its context is sticky from
+    /// here on, so every later call on this session, directly or through its engine, refuses instead of touching it again.
     /// </summary>
     public static void Execute(AcceleratorSession session, ChunkPlan plan, ChunkBuffers buffers, RunTimer timer, Action<int> launch)
     {
@@ -22,28 +23,57 @@ internal static class BatchRun
         ArgumentNullException.ThrowIfNull(timer);
         ArgumentNullException.ThrowIfNull(launch);
 
-        var offset = 0;
-        var length = plan.FirstChunkCases(session.Accelerator.MaxNumThreads);
-        while (offset < plan.Count)
+        try
         {
-            length = Math.Min(length, plan.Count - offset);
-            using (timer.Uploading())
+            var offset = 0;
+            var length = plan.FirstChunkCases(session.Accelerator.MaxNumThreads);
+            while (offset < plan.Count)
             {
-                buffers.UploadChunk(offset, length);
-            }
+                length = Math.Min(length, plan.Count - offset);
+                using (timer.Uploading())
+                {
+                    buffers.UploadChunk(offset, length);
+                }
 
-            var elapsed = Launch(launch, length, session, timer);
+                var elapsed = Launch(launch, length, session, timer);
 
-            using (timer.Downloading())
-            {
-                buffers.DownloadChunk(offset, length);
-            }
+                using (timer.Downloading())
+                {
+                    buffers.DownloadChunk(offset, length);
+                }
 
-            offset += length;
-            if (offset < plan.Count)
-            {
-                length = plan.NextChunkCases(length, elapsed, offset);
+                offset += length;
+                if (offset < plan.Count)
+                {
+                    length = plan.NextChunkCases(length, elapsed, offset);
+                }
             }
+        }
+        finally
+        {
+            DisposeChunkBuffers(session, buffers);
+        }
+    }
+
+    /// <summary>
+    /// Disposes the chunk buffers this loop was given, in the one place of this node that drops a
+    /// <see cref="CudaException"/> carrying a lost session's own sticky error (BOOT.md, the third audit pass's finding
+    /// 2): ILGPU's own cleanup of a device buffer on a context a launch timeout already killed rethrows that same
+    /// error, which would otherwise replace whatever is already propagating (the translated
+    /// <see cref="AcceleratorUnavailableException"/>, or nothing at all on an ordinary run). Every other pipeline
+    /// disposal this node performs on a possibly lost session — the uploaded tables, and the accelerator and context
+    /// below them — reads the same <see cref="AcceleratorSession.DropsAfterLoss(CudaException)"/> decision through its own literal
+    /// <c>Dispose()</c> call, since a diagnostic (CA2000) refuses a disposal routed through a shared method instead of
+    /// a call visible in the disposing method itself; nowhere in this node drops any other exception.
+    /// </summary>
+    private static void DisposeChunkBuffers(AcceleratorSession session, ChunkBuffers buffers)
+    {
+        try
+        {
+            buffers.Dispose();
+        }
+        catch (CudaException failure) when (session.DropsAfterLoss(failure))
+        {
         }
     }
 
@@ -59,7 +89,9 @@ internal static class BatchRun
         }
         catch (CudaException failure) when (failure.Error == nameof(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT))
         {
-            throw TimeoutFailure(length, failure);
+            var timeout = TimeoutFailure(length, failure);
+            session.MarkLost(timeout);
+            throw timeout;
         }
 
         var elapsed = Stopwatch.GetElapsedTime(start);

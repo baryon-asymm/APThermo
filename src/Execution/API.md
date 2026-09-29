@@ -94,6 +94,9 @@ internal sealed class Engine : IDisposable
     public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch);
     public double[] ProbeMath(double[] inputs);        // [input * MathProbe.FunctionCount + function]
     internal void RunBatchLoop(Chunks.ChunkPlan plan, Chunks.ChunkBuffers buffers, RunTimer timer, Action<int> launch);  // the chunk loop every Run above drives; exposed for the tests node's own chunk-plan facts
+    internal void MarkLost(AcceleratorUnavailableException timeout);  // marks this engine's session lost by an injected timeout (2026-09-29, review); exposed so the tests node can drive ThrowIfLost's refusal without a driver-touching CudaException
+    internal bool DropsAfterLoss(CudaError error);      // ILGPU.Runtime.Cuda; the bare-CudaError half of AcceleratorSession.DropsAfterLoss (2026-09-29, review); exposed for the same reason as MarkLost above
+    internal void DisposeAfterLoss(IDisposable disposable);  // disposes an UploadedTables buffer, dropping this engine's session's own sticky CudaException (2026-09-29, the third audit pass's finding 2); exposed for the tests node's own lost-session facts
     public void Dispose();
 }
 
@@ -325,6 +328,7 @@ station and a fixed chunk of 16 384 would take 700 MB.
 | a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
 | a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
 | a launch exceeds a display GPU's kernel run-time limit (2026-09-28, the second audit's Execution finding F2) | `AcceleratorUnavailableException` naming the limit, the chunk's case count and the CPU accelerator as remedy, its inner exception the driver's `CudaException` (`CUDA_ERROR_LAUNCH_TIMEOUT`); the context is lost with it, so the engine and its tables must be recreated |
+| `Upload`, a `Run` overload or `ProbeMath` is called after a launch of the same engine has already timed out (2026-09-29, the third audit pass, finding 2) | `AcceleratorUnavailableException` naming the earlier timeout, its inner exception that earlier `AcceleratorUnavailableException`; no CUDA call is made. Disposing a timed-out engine or its `UploadedTables` never throws: ILGPU's own cleanup of the lost context raises the same sticky `CudaException`, which is dropped rather than replacing whatever is already propagating |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |
 

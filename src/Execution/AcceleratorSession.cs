@@ -14,6 +14,7 @@ internal sealed class AcceleratorSession : IDisposable
 {
     private Accelerator? _accelerator;
     private bool _disposed;
+    private AcceleratorUnavailableException? _lostBy;
 
     private AcceleratorSession(Context context)
     {
@@ -73,6 +74,43 @@ internal sealed class AcceleratorSession : IDisposable
     /// <summary>The context the accelerator was created on.</summary>
     public Context Context { get; }
 
+    /// <summary>
+    /// Records that a launch timeout left this session's CUDA context sticky (BOOT.md, the third audit pass's finding
+    /// 2): every later CUDA call on it returns the same error, so a fresh run must not be attempted and the engine's own
+    /// cleanup must not let that error replace whatever is already propagating. Only the first timeout is kept.
+    /// </summary>
+    internal void MarkLost(AcceleratorUnavailableException timeout) => _lostBy ??= timeout;
+
+    /// <summary>Refuses a call on a session an earlier launch timeout left unusable, naming that timeout.</summary>
+    internal void ThrowIfLost()
+    {
+        if (_lostBy is { } timeout)
+        {
+            throw new AcceleratorUnavailableException(
+                $"this engine's CUDA context was lost by an earlier launch timeout ({timeout.Message}); " +
+                "create a new engine, or use the CPU accelerator.", [], timeout);
+        }
+    }
+
+    /// <summary>
+    /// The one decision behind every drop this node performs on disposal (BOOT.md, the third audit pass's finding 2):
+    /// whether this session, already marked lost by <see cref="MarkLost"/>, is dropping its own sticky launch-timeout
+    /// error. Decided on the bare <see cref="CudaError"/> value, which needs no CUDA driver call to construct or
+    /// compare, unlike a real <see cref="CudaException"/> — a genuine CUDA run under WSL found that constructing one
+    /// at all loads the driver even on the CPU accelerator, which the tests node's own
+    /// <c>AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda</c> catches (2026-09-29, review). A
+    /// session that was never marked lost, or any error but that one sticky one, answers false.
+    /// </summary>
+    internal bool DropsAfterLoss(CudaError error) =>
+        _lostBy is not null && error == CudaError.CUDA_ERROR_LAUNCH_TIMEOUT;
+
+    /// <summary>
+    /// The exception-typed half every real catch filter in this node reads — this session's own <see cref="Dispose"/>
+    /// below, a pipeline's chunk buffers (<see cref="BatchRun"/>) and the uploaded tables (<c>Engine</c>) — a thin
+    /// extraction of <see cref="CudaException.Error"/> onto the decision above.
+    /// </summary>
+    internal bool DropsAfterLoss(CudaException failure) => DropsAfterLoss(Enum.Parse<CudaError>(failure.Error));
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -82,8 +120,28 @@ internal sealed class AcceleratorSession : IDisposable
         }
 
         _disposed = true;
-        Nvvm?.Dispose();
-        _accelerator?.Dispose();
-        Context.Dispose();
+        try
+        {
+            Nvvm?.Dispose();
+        }
+        catch (CudaException failure) when (DropsAfterLoss(failure))
+        {
+        }
+
+        try
+        {
+            _accelerator?.Dispose();
+        }
+        catch (CudaException failure) when (DropsAfterLoss(failure))
+        {
+        }
+
+        try
+        {
+            Context.Dispose();
+        }
+        catch (CudaException failure) when (DropsAfterLoss(failure))
+        {
+        }
     }
 }
