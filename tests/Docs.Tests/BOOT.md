@@ -486,6 +486,25 @@ closed in `3c0d271`).
       committed. `dotnet test tests/Docs.Tests`, 29 of 29 passed on the corrected
       `README.md` afterward — the same count as before, since the fix widens an
       existing fact rather than adding one.
+- [ ] The command-line examples' approved documents follow the root's platform rule
+      (2026-09-29, the owner's decision, root `BOOT.md`, Delivery: Documentation).
+      - `approved/cli/<key>.approved.json` holds the Windows record and
+        `<key>.linux.approved.json` the Linux one, picked by the running platform as
+        the harness picks bit snapshots; a `.txt` record (`--help`) follows the same
+        rule only if its bytes differ between the platforms.
+      - The exact comparison carries `Category=BitSnapshot`, so it runs on the
+        reference machine (locally and on the self-hosted release runners) and not on
+        the hosted CI runners.
+      - Every runner, the hosted ones included, compares the same delivered document
+        with the platform's approved file field by field: the same members in the same
+        order, every string and boolean equal, every number within 1e-9 relative (1e-9
+        is four orders above the measured platform difference, about 1e-13, and five
+        below the fixtures' tolerance rows). The comparison is one named function of
+        this node, not a per-test tolerance.
+      - Red once each: a byte of the Linux record changed (the exact fact red under
+        WSL); a number of a record moved by 1e-8 relative (the field fact red on
+        Windows); both green after. Evidence under WSL and on Windows. The Linux files
+        are recorded by the orchestrator under WSL.
 
 ## Taboos
 

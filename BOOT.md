@@ -875,7 +875,19 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     - every C# block equals its snippet;
     - every sample prints its approved output;
     - every `apthermo` invocation of the guide produces its approved output, with the
-      run section cut as the command line's tests cut it;
+      run section cut as the command line's tests cut it. The approved output is a
+      record of the reference machine like the bit snapshots (2026-09-29): a Windows
+      and a Linux file, compared exactly under `Category=BitSnapshot`; on every runner,
+      the hosted ones included, the same document is compared field by field, its
+      numbers within 1e-9 relative;
+
+      ⚠ 2026-09-29: stood without the platform rule, one approved file compared exactly
+      everywhere. It matched Linux and the hosted runners by chance: after the
+      equilibrium change of 2026-09-28 the README's rocket example differs under WSL in
+      its last digits (c* 2304.5776171446328 against 2304.577617144234, about 1e-13
+      relative). The owner chose exact records per platform on the reference machine
+      and a field tolerance everywhere, over exact records only (no check on hosted
+      runners) or a tolerance only;
     - every relative link of `README.md`, `llms.txt`, `docs/` and the package READMEs
       resolves;
     - every document under `samples/cli/` validates against its schema;
