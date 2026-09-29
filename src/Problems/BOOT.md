@@ -925,14 +925,31 @@ record-vs-batch dispatch finding F3 asked for.
       1206 of 1206, none skipped (1197 baseline, plus the 8 facts above and the
       reacting-fields pinning fact of `tests/Problems.Tests/BOOT.md`, 2026-09-28). The
       protocol lint: 0 errors, 0 warnings.
-- [ ] The third audit pass of 2026-09-28 (part 2, finding 3) is closed: the refusal of an
-      element with no candidate species does not depend on what the solver solved
-      before. `ChemicalSystemCache.Get` looks the key up (elements, `Omit`, `Only`)
-      before it validates, while the validation also reads which elements are
-      abundant. Every call validates its own mixtures before the lookup. A fact: a
-      fresh `Solver` refuses a mixture with `"E": 1e-6`; the same `Solver`, after
-      solving the same elements with `"E": 0.0`, refuses it with the same message. Red
-      at `c02e14d` (accepted, `SingularMatrix`).
+- [x] 2026-09-28 — The third audit pass of 2026-09-28 (part 2, finding 3) is closed: the
+      refusal of an element with no candidate species does not depend on what the
+      solver solved before. `ChemicalSystemCache.Get(IReadOnlyList<string>, …)` now
+      calls `ValidatedCandidates` (which reads the call's own `elementsWithAbundance`)
+      before the cache's `_systems.TryGetValue` lookup, not after, so every call
+      validates its own mixture's abundances whether or not the underlying
+      `ChemicalSystem` is already cached under the same (elements, `Omit`, `Only`) key.
+      `Union` and the single-mixture `Solve` overloads (which, unlike `SolveStates`/
+      `SolveRocketStates`, never called `ValidateOwnElements`) go through the same
+      `Get`, so the fix covers every caller from one place.
+
+      Fact: `Problems.Tests/ThirdPassFixTests.TheNoCandidateRefusalDoesNotDependOnTheCachesHistory`
+      — a fresh `Solver` refuses a mixture with `"E": 1.0e-6` (control); the same
+      `Solver`, having first solved the same elements with `"E": 0.0` (masked, not
+      refused, `SecondAuditFixTests`'s finding F1), still refuses the positive-`E`
+      mixture with the same message. Red at `c02e14d`: the second call was not refused
+      at all (`Assert.Throws` failed, "No exception was thrown"; the audit's own probe,
+      `scratchpad/audit3/b/cache.txt`, records the pre-fix status as `SingularMatrix`);
+      green after moving the validation before the lookup.
+
+      Evidence: `dotnet build APThermo.sln`, 0 warnings, 0 errors; `dotnet test
+      tests/Problems.Tests`, 1252 of 1252, none skipped; `APTHERMO_NO_CUDA=1 dotnet test
+      APThermo.sln --filter "Category!=LongRunning"`, every project green; the protocol
+      lint, 0 errors, 0 warnings; no `Bits*.approved.txt` or `PublicSurface.approved.txt`
+      moved.
 
 ## Taboos
 

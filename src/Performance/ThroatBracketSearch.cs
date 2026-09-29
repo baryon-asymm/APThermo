@@ -23,9 +23,21 @@ internal static class ThroatBracketSearch
                 : CaseStatus.Ok;
     }
 
-    /// <summary>How many bracket widths (<see cref="RocketSolver.ThroatBracketWidth"/>) the plateau-edge acceptance
-    /// steps back toward the chamber when a re-solve lands on the far side of the edge (BOOT.md, 2026-09-28, finding F3).</summary>
-    private const int MaxEdgeRetries = 8;
+    /// <summary>The plateau-edge re-solve's outer reach in ln p (BOOT.md, 2026-09-28, the third pass): a retry at
+    /// an offset beyond this, from <see cref="RocketSolver.ThroatBracketWidth"/>, is never tried.</summary>
+    private const double MaxEdgeOffset = 1.0e-4;
+
+    /// <summary>The geometric growth of the plateau-edge re-solve's offset (BOOT.md, 2026-09-28, the third pass):
+    /// each retry's offset in ln p is this many times the previous one's, the first retry starting at
+    /// <see cref="RocketSolver.ThroatBracketWidth"/> itself. Eight linear steps of the bracket width never reached
+    /// the single-phase side of the Li/O/H bands this replaces (the third pass's own measurement, BOOT.md); this
+    /// growth reaches an order of magnitude past it within a handful of retries.</summary>
+    private const double EdgeOffsetGrowth = 4.0;
+
+    /// <summary>A fixed bound on the number of geometric retries, well above what <see cref="MaxEdgeOffset"/> ever
+    /// lets run: kernel code needs a fixed iteration cap, and the offset check inside the loop is what actually
+    /// stops the search once it would exceed <see cref="MaxEdgeOffset"/>.</summary>
+    private const int MaxEdgeAttempts = 16;
 
     /// <summary>The momentum iterations of (6.15) to (6.17); tracks the bracket of BOOT.md along the way. The
     /// pressure of the state actually solved is kept apart from the next candidate, so a natural exhaustion of the
@@ -151,16 +163,19 @@ internal static class ThroatBracketSearch
     /// left in the throat's row, which may sit on the pinned-pair side of the edge (found while writing this
     /// criterion's evidence: an unseeded re-solve here converged to the pinned pair even at a genuinely single-phase
     /// pressure). The re-solved state is accepted only when it lands back on the bracket's own subsonic side (BOOT.md,
-    /// 2026-09-28, finding F3); otherwise the search steps a few bracket widths further toward the chamber, up to
-    /// <see cref="MaxEdgeRetries"/> times, where ρu moves by about the bracket width, relative.
+    /// 2026-09-28, finding F3); otherwise the search steps further toward the chamber, at ln p offsets growing
+    /// geometrically from <see cref="RocketSolver.ThroatBracketWidth"/> (BOOT.md, 2026-09-28, the third pass), until
+    /// a solve lands on the subsonic side or the next offset would exceed <see cref="MaxEdgeOffset"/>. No landing
+    /// within that reach is <see cref="CaseStatus.ThroatNotFound"/>.
     /// </summary>
     internal static CaseStatus AcceptPlateauEdge(in ThroatQuery query, in ThroatBracket bracket, ref double pressureSolved)
     {
         var context = query.Context;
         var chamber = query.Chamber;
-        for (var attempt = 0; attempt <= MaxEdgeRetries; attempt++)
+        var offset = 0.0;
+        for (var attempt = 0; attempt < MaxEdgeAttempts; attempt++)
         {
-            var pressure = bracket.SubsonicPressure * Math.Exp(attempt * RocketSolver.ThroatBracketWidth);
+            var pressure = bracket.SubsonicPressure * Math.Exp(offset);
             StationSolve.CopyComposition(in context, RocketSolver.Chamber, RocketSolver.Throat);
             var request = new StationRequest(RocketSolver.Throat, pressure, bracket.SubsonicTemperature, chamber.Entropy, query.Flow);
             if (!StationSolve.At(in context, in request))
@@ -174,6 +189,14 @@ internal static class ThroatBracketSearch
                 pressureSolved = pressure;
                 return CaseStatus.Ok;
             }
+
+            var nextOffset = attempt == 0 ? RocketSolver.ThroatBracketWidth : offset * EdgeOffsetGrowth;
+            if (nextOffset > MaxEdgeOffset)
+            {
+                break;
+            }
+
+            offset = nextOffset;
         }
 
         return CaseStatus.ThroatNotFound;

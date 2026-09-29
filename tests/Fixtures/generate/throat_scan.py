@@ -92,6 +92,19 @@ PLATEAU_EDGE_CASES = [
     ("beo-h2o-throat_pc15MPa_h-11.06875MJkg", ["Be(a)", "O2", "H2"], [0.10, 0.55, 0.35], 15.0 * MPA_TO_PA, -11.06875e6),
 ]
 
+# The third audit pass of 2026-09-28 (part 2, finding 1): the plateau-edge acceptance's eight linear steps of the
+# bracket width (finding F3's own fix, above) never reached the single-phase side of the 3 MPa Li2O band's own
+# edge, turning 10 of the band's 12 cases into `ThroatNotFound` (Performance BOOT.md, the Constraints section's
+# throat bullet). One fixture inside that band, at h 2.20625 MJ/kg (one of the audit's own two representative
+# points cited in the `PLATEAU_EDGE_CASES` comment above), so the fixture-level throat-family test
+# (`Performance.Tests/ThroatFixtureTests`) covers the same band the wider sweep facts
+# (`Performance.Tests/ThirdPassFixTests.TheLi2OBandAt0Point3MPaNeverEndsThroatNotFound` and
+# `.TheLi2OBandAt3MPaNeverEndsThroatNotFound`) walk.
+# (name, reactants, mass fractions, chamber pressure in Pa, enthalpy in J/kg)
+THIRD_PASS_REACH_CASES = [
+    ("li2o-throat_pc3MPa_h2.20625MJkg", ["Li(cr)", "O2", "H2"], [0.10, 0.50, 0.40], 3.0 * MPA_TO_PA, 2.20625e6),
+]
+
 
 def _flux(reac, prod, weights, entropy: float, chamber_pressure_pa: float, chamber_enthalpy: float, ratio: float,
          trace: float | None) -> tuple[float, dict, float]:
@@ -288,11 +301,19 @@ def plateau_edge_throats(writer: Writer) -> None:
     _element_mixture_throats(writer, PLATEAU_EDGE_CASES)
 
 
+def third_pass_reach_throats(writer: Writer) -> None:
+    """The third audit pass of 2026-09-28 (part 2, finding 1): one fixture inside the 3 MPa Li2O band whose plateau
+    edge the geometric-offset fix (Performance BOOT.md) reaches, where the eight linear steps of the bracket width
+    it replaces did not."""
+    _element_mixture_throats(writer, THIRD_PASS_REACH_CASES)
+
+
 def generate(writer: Writer) -> None:
     ap_htpb_al_throats(writer)
     example13_throats(writer)
     element_mixture_throats(writer)
     plateau_edge_throats(writer)
+    third_pass_reach_throats(writer)
 
 
 if __name__ == "__main__":

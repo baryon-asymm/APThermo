@@ -13,10 +13,14 @@ namespace APThermo.Performance;
 internal static class UpstreamChokeCheck
 {
     /// <summary>
-    /// Boundaries walked before giving up and accepting the candidate: two suffice for one melting plateau (its
-    /// onset and its end), and this leaves headroom without an unbounded search.
+    /// Boundaries walked before giving up (BOOT.md, 2026-09-28, the third pass): two suffice for one melting
+    /// plateau (its onset and its end), and this leaves headroom without an unbounded search. A walk that meets
+    /// more boundaries than this without reaching the candidate's own fingerprint has proved nothing about the
+    /// segment beyond the last one it looked at, so it ends <see cref="CaseStatus.ThroatNotFound"/>, never an
+    /// unverified <see cref="CaseStatus.Ok"/> (the third pass's own observation: a cold scan of Li/O/H at 3 MPa
+    /// already crosses four boundaries).
     /// </summary>
-    private const int MaxPhaseBoundaries = 4;
+    internal const int MaxPhaseBoundaries = 8;
 
     /// <summary>
     /// Verifies the candidate at <paramref name="pressureSolved"/>; on return the value is unchanged when the
@@ -74,7 +78,10 @@ internal static class UpstreamChokeCheck
             outer = boundary.Lo;
         }
 
-        return RestoreCandidate(in query, candidatePressure, candidateTemperature, ref pressureSolved);
+        // The cap is exhausted without reaching the candidate's own fingerprint or an earlier choke: nothing above
+        // the last boundary looked at has been proved choke-free, so the candidate is never accepted unverified
+        // (BOOT.md, 2026-09-28, the third pass's observation).
+        return CaseStatus.ThroatNotFound;
     }
 
     /// <summary>
