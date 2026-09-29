@@ -94,6 +94,8 @@ internal sealed class Engine : IDisposable
     public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch);
     public double[] ProbeMath(double[] inputs);        // [input * MathProbe.FunctionCount + function]
     internal void RunBatchLoop(Chunks.ChunkPlan plan, Chunks.ChunkBuffers buffers, RunTimer timer, Action<int> launch);  // the chunk loop every Run above drives; exposed for the tests node's own chunk-plan facts
+    internal void MarkLost(AcceleratorUnavailableException timeout);  // marks this engine's session lost by an injected timeout (2026-09-29, review); exposed so the tests node can drive ThrowIfLost's refusal without a driver-touching CudaException
+    internal bool DropsAfterLoss(CudaError error);      // ILGPU.Runtime.Cuda; the bare-CudaError half of AcceleratorSession.DropsAfterLoss (2026-09-29, review); exposed for the same reason as MarkLost above
     internal void DisposeAfterLoss(IDisposable disposable);  // disposes an UploadedTables buffer, dropping this engine's session's own sticky CudaException (2026-09-29, the third audit pass's finding 2); exposed for the tests node's own lost-session facts
     public void Dispose();
 }

@@ -94,14 +94,22 @@ internal sealed class AcceleratorSession : IDisposable
 
     /// <summary>
     /// The one decision behind every drop this node performs on disposal (BOOT.md, the third audit pass's finding 2):
-    /// whether a just-caught <see cref="CudaException"/> is this session's own sticky error from the launch timeout
-    /// already recorded by <see cref="MarkLost"/>. Every disposal that might run on a lost session — this session's own
-    /// <see cref="Dispose"/> below, a pipeline's chunk buffers (<see cref="BatchRun"/>) and the uploaded tables
-    /// (<c>Engine</c>) — reads this method in its catch filter; a session that was never marked lost, or any exception
-    /// but that one sticky error, answers false, and the disposal's exception propagates as it always did.
+    /// whether this session, already marked lost by <see cref="MarkLost"/>, is dropping its own sticky launch-timeout
+    /// error. Decided on the bare <see cref="CudaError"/> value, which needs no CUDA driver call to construct or
+    /// compare, unlike a real <see cref="CudaException"/> — a genuine CUDA run under WSL found that constructing one
+    /// at all loads the driver even on the CPU accelerator, which the tests node's own
+    /// <c>AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda</c> catches (2026-09-29, review). A
+    /// session that was never marked lost, or any error but that one sticky one, answers false.
     /// </summary>
-    internal bool DropsAfterLoss(CudaException failure) =>
-        _lostBy is not null && failure.Error == nameof(CudaError.CUDA_ERROR_LAUNCH_TIMEOUT);
+    internal bool DropsAfterLoss(CudaError error) =>
+        _lostBy is not null && error == CudaError.CUDA_ERROR_LAUNCH_TIMEOUT;
+
+    /// <summary>
+    /// The exception-typed half every real catch filter in this node reads — this session's own <see cref="Dispose"/>
+    /// below, a pipeline's chunk buffers (<see cref="BatchRun"/>) and the uploaded tables (<c>Engine</c>) — a thin
+    /// extraction of <see cref="CudaException.Error"/> onto the decision above.
+    /// </summary>
+    internal bool DropsAfterLoss(CudaException failure) => DropsAfterLoss(Enum.Parse<CudaError>(failure.Error));
 
     /// <inheritdoc />
     public void Dispose()

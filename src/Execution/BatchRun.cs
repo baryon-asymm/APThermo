@@ -62,7 +62,7 @@ internal static class BatchRun
     /// error, which would otherwise replace whatever is already propagating (the translated
     /// <see cref="AcceleratorUnavailableException"/>, or nothing at all on an ordinary run). Every other pipeline
     /// disposal this node performs on a possibly lost session — the uploaded tables, and the accelerator and context
-    /// below them — reads the same <see cref="AcceleratorSession.DropsAfterLoss"/> decision through its own literal
+    /// below them — reads the same <see cref="AcceleratorSession.DropsAfterLoss(CudaException)"/> decision through its own literal
     /// <c>Dispose()</c> call, since a diagnostic (CA2000) refuses a disposal routed through a shared method instead of
     /// a call visible in the disposing method itself; nowhere in this node drops any other exception.
     /// </summary>

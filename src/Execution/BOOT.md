@@ -572,7 +572,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Engine` | efferent coupling | 30 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
+| `Engine` | efferent coupling | 31 | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2), `MarkLost` and `DropsAfterLoss(CudaError)` (2026-09-29, review: test-only seams that let the tests node drive the third audit pass's finding 2 without a driver-touching `CudaException`), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session |
 | `Kernels` | efferent coupling | 26 | the registry of entry points: each slices the views of its case and calls the numerical node; no formula |
 | `RocketPipeline` | efferent coupling | 25 | the composition root of its program's run: declares its host arrays, device buffers and views struct, assembles its result; no formula |
 | `TransportPipeline` | efferent coupling | 23 | the same case as `RocketPipeline` above |
@@ -1259,10 +1259,14 @@ confirms it.
           `AcceleratorUnavailableException` naming the earlier timeout (its message
           quoted) as its own message, with the earlier exception as its inner one — the
           consumer's remedy is a new engine or the CPU accelerator;
-        - `AcceleratorSession.DropsAfterLoss(CudaException)` is the one decision behind
-          every drop: true only when this session is marked lost and the caught
-          error is `CUDA_ERROR_LAUNCH_TIMEOUT`. `AcceleratorSession.Dispose` reads it in
-          three literal `try { … } catch (CudaException failure) when (DropsAfterLoss(failure))`
+        - `AcceleratorSession.DropsAfterLoss(CudaError)` is the one decision behind
+          every drop: true only when this session is marked lost and the error is
+          `CUDA_ERROR_LAUNCH_TIMEOUT`, decided on the bare enum value so the decision
+          itself needs no driver-touching `CudaException` to test (2026-09-29, the
+          second review below); `DropsAfterLoss(CudaException)` is a thin extraction of
+          `CudaException.Error` onto it, and is what every real catch filter reads.
+          `AcceleratorSession.Dispose` reads it in three literal
+          `try { … } catch (CudaException failure) when (DropsAfterLoss(failure))`
           blocks, one per disposed piece (`Nvvm`, the accelerator, the context), each
           proceeding to the next regardless (releases what it can); `Engine.DisposeAfterLoss`
           reads the same decision for `UploadedTables`' own buffers; `BatchRun`'s new
@@ -1289,67 +1293,86 @@ confirms it.
         decision for the pieces CA2000 does not flag (an existing field's disposal, not
         a freshly allocated local).
       - **Evidence.** The timeout cannot be provoked on the reference machine (it resets
-        the display driver). Two facts beside `LaunchBudgetTests`' own timeout-translation
-        fact, through the same seam (`Engine.RunBatchLoop` on the CPU accelerator, a
-        launch delegate that throws `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` directly,
-        no real device or timeout):
-        `ATimedOutEngineRefusesANewCall` calls `cpu.ProbeMath` after the injected
-        timeout and asserts `AcceleratorUnavailableException` naming "earlier launch
-        timeout", its inner exception the original timeout;
-        `ATimedOutEnginesDisposalDropsTheStickyFailure` hands `Engine.DisposeAfterLoss`
-        an injected `IDisposable` (`StickyDisposable`) whose first `Dispose` always
-        throws `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` and asserts no exception
-        escapes (`Record.Exception` is null). Both build a CPU accelerator only and
-        never touch a real CUDA context, so neither carries the `Cuda` trait or the
-        `Engine.CudaForbidden` gate: they run for real under `APTHERMO_NO_CUDA=1`, on
-        every hosted CI runner included, the way this section's own claim asks.
+        the display driver), so every fact below injects its failure through a seam
+        that needs no real device. Split across two kinds of fact, decided by whether
+        the fact needs an actual `CudaException` (which loads the CUDA driver, `nvcuda`,
+        into the process to build even on the CPU accelerator — see the second ⚠ below):
+        - **`Cuda`-tagged, `Engine.CudaForbidden`-gated, on the reference machine only**
+          (with `ALaunchTimeoutBecomesAnAcceleratorUnavailableExceptionNamingTheLimitAndTheRemedy`
+          above): `ATimedOutEngineRefusesANewCall` runs the real translation
+          (`Engine.RunBatchLoop` with a launch delegate that throws
+          `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)`) and then calls `cpu.ProbeMath`,
+          asserting `AcceleratorUnavailableException` naming "earlier launch timeout";
+          `ATimedOutEnginesDisposalDropsTheStickyFailure` hands `Engine.DisposeAfterLoss`
+          an injected `IDisposable` (`StickyDisposable`) whose first `Dispose` always
+          throws `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` and asserts no exception
+          escapes. Both prove the real, driver-touching path end to end; the
+          orchestrator runs them on the reference machine after the merge.
+        - **No `Cuda` trait, no gate, run under `APTHERMO_NO_CUDA=1` on every runner
+          hosted CI included**: `AnEngineMarkedLostRefusesANewCall` calls the new
+          `Engine.MarkLost` with an injected `AcceleratorUnavailableException` — never a
+          `CudaException` — then asserts `cpu.ProbeMath` refuses the same way, naming the
+          same timeout as its inner exception;
+          `DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession` proves
+          `AcceleratorSession.DropsAfterLoss(CudaError)`'s decision on the bare enum value
+          alone (never lost, the sticky error → false; lost, the sticky error → true;
+          lost, the wrong error → false), through the new `Engine.DropsAfterLoss(CudaError)`.
 
-        ⚠ 2026-09-29: this evidence first read that both facts carried `[Trait("Category",
-        "Cuda")]` and returned at once under `Engine.CudaForbidden`, "the same way every
-        other `Category=Cuda` fact of this node does" — so under `APTHERMO_NO_CUDA=1`,
-        the fast suite and every hosted runner, neither fact executed a single assertion,
-        and the section's own claim ("the consumer receives `AcceleratorUnavailableException`,
-        the engine refuses a second run, its disposal does not throw") was never actually
-        proven by a run recorded here. Found on review. The gate is removed from both
-        (the class's own `[Collection(EngineFixture.CollectionName)]` still serializes
-        them against `EngineFixture.Shared`'s own CUDA engine creation, which is the
-        reason the collection exists, not the CUDA-availability gate).
+        ⚠ 2026-09-29 (first correction, this task): this evidence first read that
+        `ATimedOutEngineRefusesANewCall` and `ATimedOutEnginesDisposalDropsTheStickyFailure`
+        carried `[Trait("Category","Cuda")]` and returned at once under
+        `Engine.CudaForbidden` — so under `APTHERMO_NO_CUDA=1`, the fast suite and every
+        hosted runner, neither fact executed a single assertion, and the section's own
+        claim was never actually proven by a run recorded here. Found on review. The
+        fix removed the gate from both facts directly.
 
-        Removing the gate uncovered a second, real drift: constructing the injected
-        `CudaException(CUDA_ERROR_LAUNCH_TIMEOUT)` in either fact loads the CUDA driver
-        (`nvcuda`) into the shared test process — the same driver call the class's own
-        header comment already documented for the two pre-existing `Cuda`-tagged facts
-        — which then failed `AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda`,
-        a fact that read the *whole process's* loaded modules rather than what
-        `Engine.Create` itself loads. That fact's invariant ("the production CPU path
-        needs no NVIDIA software") was never false — no production code path builds a
-        `CudaException` by hand — only its check was order-sensitive on every other
-        test in the same process. It now takes a before/after diff of the process's
-        `nvcuda`/`nvvm` modules around `Engine.Create` alone, so a sibling fact's own
-        test double no longer trips it; shown red once by inserting a stray
-        `CudaException` construction between the "before" and "after" snapshots
-        (`Assert.Empty` failed naming `nvcuda.DLL`/`nvcuda64.dll`), reverted, green
-        again.
+        ⚠ 2026-09-29 (second correction, this task): that fix was itself wrong on two
+        counts, found on a second review. First, removing the gate made both facts
+        construct a real `CudaException`, which loads `nvcuda` into the shared test
+        process even on the CPU accelerator; to keep the fast suite green, the first fix
+        narrowed `AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda`
+        from a whole-process check to a before/after diff around `Engine.Create` alone —
+        weakening a check written to guard the root's "CPU path needs no NVIDIA
+        software" invariant process-wide, to make a test pass, exactly the taboo this
+        root forbids. Second, an un-gated fact that constructs a `CudaException` is
+        itself a hosted-CI risk: a runner with no NVIDIA driver at all may fail to build
+        one, not merely fail to use one. The reviewer's fix (adopted here): restore
+        `AcceleratorChoiceTests.cs` exactly as committed on `main`
+        (`git checkout main -- tests/Execution.Tests/AcceleratorChoiceTests.cs`), keep
+        `ATimedOutEngineRefusesANewCall` and `ATimedOutEnginesDisposalDropsTheStickyFailure`
+        `Cuda`-tagged and gated exactly as first written, and add the decision itself
+        (`AcceleratorSession.DropsAfterLoss(CudaError)`, a thin `DropsAfterLoss(CudaException)`
+        extraction onto it) plus two new, un-gated CPU facts
+        (`AnEngineMarkedLostRefusesANewCall`,
+        `DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession`) that drive
+        `Engine.MarkLost`/`ProbeMath`/`DropsAfterLoss(CudaError)` directly, without any
+        `CudaException`. `LaunchBudgetTests`' own class doc now says four `Cuda`-tagged
+        facts, not two, since the count was already stale before this task touched it.
 
-        Both facts shown red once on the reference machine, reverted, green again:
-        `ATimedOutEngineRefusesANewCall` with `BatchRun.Launch`'s `session.MarkLost(timeout)`
-        call removed (`Assert.Throws<AcceleratorUnavailableException>` failed, "No
-        exception was thrown", since `ProbeMath` never sees a lost session);
-        `ATimedOutEnginesDisposalDropsTheStickyFailure` with `AcceleratorSession.DropsAfterLoss`
-        changed to never match its sticky error (`Assert.Null(disposal)` failed, the
-        original `CudaException` propagating through `Engine.DisposeAfterLoss`
-        unchanged).
+        Both new CPU facts shown red once on the reference machine, reverted, green
+        again: `AnEngineMarkedLostRefusesANewCall` with `AcceleratorSession.ThrowIfLost`'s
+        `if` condition changed to `_lostBy is { } timeout && false` (`Assert.Throws`
+        failed, "No exception was thrown");
+        `DropsAfterLossMatchesOnlyTheStickyLaunchTimeoutOfALostSession` with
+        `AcceleratorSession.DropsAfterLoss(CudaError)` changed to match
+        `CUDA_ERROR_OUT_OF_MEMORY` instead of the sticky timeout (`Assert.True` failed,
+        expected true, actual false). The two `Cuda`-tagged facts and
+        `NoCudaDriverIsLoadedInAProcessThatForbidsCuda` are unchanged from `main` and
+        need no fresh red-once record here.
 
-        Built and passing for real on the reference machine's CPU accelerator under
-        `APTHERMO_NO_CUDA=1`: `dotnet test tests/Execution.Tests --filter
-        "Category!=LongRunning"` 161 of 161 (159 before this task's two new facts).
-        `dotnet test tests/Protocol.Tests --filter "Category!=LongRunning"` 35 of 35
-        (`ShapeTests`, `TreeContractSnapshotTests` and `LintTests` unmoved by this
-        fix). The protocol lint: 0 errors, 0 warnings. The `Category=Cuda` run itself
-        — the two pre-existing, still-gated facts that need a real CUDA driver to
-        construct their own injected exception at all — is the orchestrator's to run
-        on the reference machine, per this task's own instruction not to run CUDA
-        tests from this worktree; not run here.
+        Built and passing on the reference machine's CPU accelerator, in one process,
+        the restored check and the two new facts together: `dotnet test
+        tests/Execution.Tests --filter "Category!=LongRunning"` 163 of 163 under
+        `APTHERMO_NO_CUDA=1` (159 before this task, 161 after the first, wrong fix, 163
+        after the second). `dotnet test tests/Protocol.Tests --filter
+        "Category!=LongRunning"` 35 of 35 (`TreeContractSnapshotTests` re-approved for
+        `Engine.MarkLost`/`DropsAfterLoss(CudaError)`, both added to `API.md`;
+        `ShapeTests` re-measured `Engine`'s efferent coupling at 31, one over its
+        previous row, and the row above is updated with the reason). The protocol lint:
+        0 errors, 0 warnings. The `Category=Cuda` run itself — the two facts that need a
+        real CUDA driver to construct their own injected exception at all — is the
+        orchestrator's to run on the reference machine, per this task's own instruction
+        not to run CUDA tests from this worktree; not run here.
       - **One declaration of a pipeline's buffers.** `DeclareBuffers` and `Run` read the
         same private `Declare` method (`EquilibriumPipeline`, `RocketPipeline`,
         `TransportPipeline`), so the proof of the 32-bit offset cap cannot drift from

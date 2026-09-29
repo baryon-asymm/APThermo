@@ -156,10 +156,19 @@ internal sealed class Engine : IDisposable
     internal void RunBatchLoop(ChunkPlan plan, Chunks.ChunkBuffers buffers, RunTimer timer, Action<int> launch) =>
         BatchRun.Execute(_session, plan, buffers, timer, launch);
 
+    /// <summary>Marks this session lost by an injected timeout, the same decision a real translated launch timeout
+    /// records through <see cref="RunBatchLoop"/> (2026-09-29, review): lets the tests node prove <c>ThrowIfLost</c>'s
+    /// refusal directly, without constructing a driver-touching <see cref="CudaException"/> to get there.</summary>
+    internal void MarkLost(AcceleratorUnavailableException timeout) => _session.MarkLost(timeout);
+
+    /// <summary>The bare-<see cref="CudaError"/> half of <see cref="AcceleratorSession.DropsAfterLoss(CudaError)"/>,
+    /// exposed so the tests node can prove the decision itself without constructing a <see cref="CudaException"/>.</summary>
+    internal bool DropsAfterLoss(CudaError error) => _session.DropsAfterLoss(error);
+
     /// <summary>Disposes a table buffer <see cref="UploadedTables"/> owns, reading this engine's own session for the
-    /// one decision behind every drop (<see cref="AcceleratorSession.DropsAfterLoss"/>; BOOT.md, the third audit
-    /// pass's finding 2): a lost session's own sticky <see cref="CudaException"/> is dropped, any other exception
-    /// propagates.</summary>
+    /// one decision behind every drop (<see cref="AcceleratorSession.DropsAfterLoss(CudaException)"/>; BOOT.md, the
+    /// third audit pass's finding 2): a lost session's own sticky <see cref="CudaException"/> is dropped, any other
+    /// exception propagates.</summary>
     internal void DisposeAfterLoss(IDisposable disposable)
     {
         try
