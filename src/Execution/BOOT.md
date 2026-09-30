@@ -443,10 +443,10 @@ four kernel-parameter views structs (`Kernels.cs`'s own ⚠ below).
 
 | Type | Responsibility | Visibility |
 |---|---|---|
-| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2: the session's time budget and the chunk loop, exposed for the tests node's own chunk-plan facts), `Dispose`; no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 30 by the dependency check's walk on 2026-09-28, 25 on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
+| `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2: the session's time budget and the chunk loop, exposed for the tests node's own chunk-plan facts), `Launchers` (2026-09-30: the kernel cache, exposed for the tests node's facts on release at dispose), `Dispose` (which empties the kernel cache before it disposes the session); no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 30 by the dependency check's walk on 2026-09-28, 25 on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
 | `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
 | `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
-| `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time | internal |
+| `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time; `Count` and `Clear` (2026-09-30): `Clear` drops every launcher and clears the ILGPU context's caches, which is how a disposed engine releases the compiled programs it kept | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
 | `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope; since 2026-09-29 also owns disposing the chunk buffers it was given, in its own `finally`, through the private `DisposeChunkBuffers` — the one place of this node whose `catch` drops a lost session's own sticky `CudaException` (the third audit pass's finding 2; `AcceleratorSession.DropsAfterLoss` holds the decision, `Engine.DisposeAfterLoss` and `AcceleratorSession.Dispose` read the same decision for the pieces CA2000 does not force into this node's own method) | internal |
@@ -1398,38 +1398,130 @@ confirms it.
       This CPU-side evidence is complete; the `Category=Cuda` run and the red-once
       mutation on real hardware stay the orchestrator's, per this task's own
       instruction not to run CUDA tests from this worktree.
-- [ ] The rocket kernel's compile is bounded and released (2026-09-30, the root's
-      criterion of that date).
-      - **Release at dispose.** `Engine.Dispose` empties the kernel cache (`KernelCache`
-        gains a `Clear`, called before the session is disposed), so a disposed engine that
-        stays reachable (a field, a static fixture) holds no compiled kernel: the
-        measured 3 GB of ILGPU IR of a live rocket kernel stay with the engine only while
-        it is in use. A fact: after `Dispose` the cache is empty, and a `WeakReference` to
-        a launcher taken before it is dead after a collection while the engine object is
-        still referenced. Red without the `Clear`. Whether `Context.ClearCache` after each
-        kernel load also pays (it took the kept IR of a live solver from 3 GB to 3 MB
-        before the attribute, and did not lower the compile's peak) is measured after the
-        attribute, with the later kernel loads' time, and kept only when it gains and
-        changes no bit; the decision and the figures are recorded here.
-      - **The guard.** A fact compiles the rocket kernel on a fresh CPU accelerator engine
-        and asserts the compile's cost stays inside a bound. Measure first, in a fresh
-        process, over five runs each: with the attribute (0.43 GB, 2.6 s in the
-        investigation) and with it removed (11.2 GB, 49.7 s). The metric is a
-        deterministic one if ILGPU offers it (the IR size of the compiled program), else
-        managed plus native private memory or the managed heap after the compile; the
-        bound at least 3 times above the measured green figure and at most half the red
-        one, so machine load cannot flip it. Red with the attribute removed, green with
-        it, stable over five runs; it fails on an empty measurement. Not `LongRunning`
-        if under 30 s.
-      - **No test allocates what it measures.** `AcceleratorChoiceTests`'s check of the
-        32-bit bound (`new EquilibriumBatch(100_000, 20_000).ElementMoles.Length`, a 16 GB
-        array made only to read its length) asks the batch's own bound instead: the check
-        is one internal method the constructors call, and the fact calls it with the
-        product just inside the bound and just over it. The constructor facts that throw
-        stay. Red with the bound off by one.
-      - **Records.** `API.md` and this node's `## Structure` name `KernelCache.Clear`; no
-        public surface moves; the tree-contract snapshot moves by what it lists.
-        The CUDA proof is the orchestrator's, after the merge.
+- [x] 2026-09-30 — The rocket kernel's compile is bounded and released (2026-09-30, the root's
+      criterion of that date). The CUDA proof is the root's, after the merge.
+      - **Release at dispose.** `Engine.Dispose` calls `KernelCache.Clear` before it disposes
+        the session. `Clear` drops every launcher and clears the ILGPU context's caches
+        (`Context.ClearCache(ClearCacheMode.Everything)`, which the library documents as
+        touching no accelerator cache), so a disposed engine that stays reachable (a field,
+        a static fixture) holds no compiled kernel. Two facts, `RocketCompileTests`:
+        - `ADisposedEngineHoldsNoLauncher`: after `Dispose` the cache is empty, and a
+          `WeakReference` to a launcher taken before it is dead after a collection while the
+          engine object is still referenced. Red without the `Clear` call in `Dispose`, and
+          red on the weak reference alone with the count assertion removed (both seen).
+        - `ADisposedEngineKeepsNoCompiledProgram`: the managed heap after `Dispose` and a
+          full collection is under a quarter of what the engine kept while in use, measured
+          against the heap before the run; it fails on an empty measurement (under 32 MiB
+          kept). Seen red without the context call: 150 709 016 bytes kept live and
+          150 683 800 after `Dispose`. Green: 150 714 944 and 385 120. In the red state of
+          the inlining (the attribute removed): 4 157 812 152 bytes kept live and 228 048
+          after `Dispose`.
+
+        ⚠ 2026-09-30: the design stood "`KernelCache` gains a `Clear`, called before the
+        session is disposed" as the whole release, and expected the measured 3 GB of ILGPU IR
+        to go with the launchers. Measured, it does not: dropping the launchers frees none of
+        it (143 MiB kept by one rocket kernel with the attribute on, 143 MiB still kept after
+        `Dispose` with the engine referenced, with and without the launcher dictionary
+        cleared). The IR sits in the context's caches, which the disposed session keeps
+        reachable; `Context.ClearCache(Everything)` before the dispose took it from 143 MiB
+        to 0. The launcher fact alone would have passed a release that released nothing, so
+        `Clear` also clears the context and the second fact watches the heap. Found while
+        measuring the criterion's own claim, before ticking it.
+
+        **Decision on `Context.ClearCache` after each kernel load: not adopted.** Debug,
+        the attribute on, three fresh processes each, one engine loading the rocket, transport,
+        equilibrium and species-function kernels in turn, with (a) no call and (b) the call
+        after every run. Later loads' warm-up in seconds, transport / equilibrium: (a)
+        0.39 / 0.50, 0.31 / 0.41, 0.38 / 0.40; (b) 0.31 / 1.23, 0.27 / 1.02, 0.26 / 1.08.
+        Peak commit of the process in MB: (a) 663, 726, 661; (b) 765, 754, 739. The call
+        drops the kept 143 MiB of a live engine, but the equilibrium kernel's load is 2.5
+        times slower after it, the peak is not lower, and a live engine's 143 MiB is not the
+        cost that took the suite down. The call runs at `Dispose` only. The result bits of
+        the cleared sequence were not compared, since it is not adopted.
+      - **The guard.** `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound`:
+        the first rocket run, one case, of a fresh CPU accelerator engine allocates under
+        2 GiB on the calling thread (`GC.GetAllocatedBytesForCurrentThread`). It fails when
+        the run reports no warm-up (nothing was compiled) and below 32 MiB (an empty
+        measurement). Not `LongRunning`: 3.4 s green, about 2 s of it the compile.
+        `TheStationSolveIsNotInlined` beside it reads `NoInlining` from `StationSolve.At`.
+
+        **The metric.** ILGPU offers no public size of the compiled program
+        (`Context.IRContext` is internal in 1.5.3). Read by reflection, the IR's block count
+        is deterministic (Debug 36 321 with the attribute, 232 041 without; Release 35 573
+        and 228 085), but the two are 6.4 times apart, so the bound the criterion asks for
+        (at least 3 times above green, at most half of red) would sit in a window of 6.5 %,
+        and reading it needs a reflection over ILGPU's internals; rejected. The bytes
+        allocated on the calling thread are as stable (within 1 % over five
+        processes) and about 24 to 26 times apart. Seconds are the other candidate and not used:
+        a loaded machine moves them.
+
+        **Five fresh-process runs each**, bytes allocated on the calling thread / the run's
+        warm-up in seconds / peak private memory of the process tree in GiB (`dotnet test`,
+        its host included), run 1 to 5:
+        - Debug, attribute on: 338 600 984 / 1.99 / 0.64; 338 600 280 / 1.99 / 0.65;
+          338 614 424 / 2.05 / 0.63; 338 566 440 / 2.11 / 0.63; 338 599 544 / 2.05 / 0.63.
+        - Debug, attribute removed: 8 663 162 104 / 44.88 / 13.64; 8 663 407 664 / 45.71 /
+          13.78; 8 663 191 440 / 46.43 / 13.73; 8 663 194 792 / 46.08 / 13.71;
+          8 663 231 224 / 48.74 / 13.62.
+        - Release, attribute on: 304 713 600 / 1.82 / 0.59; 303 625 648 / 1.81 / 0.56;
+          301 729 608 / 1.98 / 0.63; 304 710 888 / 1.96 / 0.60; 304 710 008 / 1.96 / 0.56.
+        - Release, attribute removed: 7 210 688 104 / 40.00 / 12.01; 7 200 512 896 / 39.26 /
+          12.21; 7 210 360 992 / 38.29 / 12.14; 7 210 335 176 / 37.77 / 12.27;
+          7 186 564 984 / 38.22 / 12.25.
+
+        Kept managed heap after the compile, one process each (GC forced): Debug 143 MiB with
+        the attribute, 3 965 MiB without; Release 111 and 2 992 MiB. The first measurement
+        pass (Debug, the full kernel sequence's rocket step) agrees: 2.10 to 2.45 s and
+        625 to 637 MB peak commit with the attribute over six runs, 49.7 to 59.1 s and
+        14 236 to 14 359 MB without over five.
+
+        The bound is 2 GiB, 6.3 times the largest green figure (324 MiB) and 0.30 of the
+        smallest red one (6 853 MiB). Red with the attribute removed in all 10 runs, green
+        with it in all 10, and the guard fails on an empty measurement (its floor).
+      - **No test allocates what it measures.** `BatchLength.Of` is the one method the three
+        batch constructors call for the 32-bit bound (since 2026-09-28, observation 6; the
+        design's "one internal method" already existed). `AcceleratorChoiceTests`'s
+        16 GB array made to read a length is gone; `TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`
+        calls `BatchLength.Of` at `int.MaxValue` and just under it (three products) and just
+        over it (three), and the constructor facts that throw stay. Red with the bound off
+        by one (`>=` in place of `>`, seen). The constructor's own success at the limit is no
+        longer exercised, only the arithmetic it calls.
+
+        ⚠ 2026-09-30: the criterion named that one allocation. Measuring the project's peak
+        found a second of the same kind: `ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset`
+        built a `double[153 391 690]` (1.2 GB) to make `Engine.ProbeMath` refuse it, which put
+        the test host of the whole project at 1.81 to 2.11 GiB, on both sides of the tests
+        node's 2 GB bound. `MathProbe.OutputLength(int inputCount)` now holds the bound
+        `ProbeMath` called inline (the same message, the same `ArgumentException`, its parameter
+        name now `inputCount`), and `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`
+        asks it of the count just inside and just over the limit (red with the bound moved 14
+        counts either way, seen). What the old fact proved and the new one does not: that
+        `ProbeMath` itself refuses. The refusal needs an input array of the size it refuses,
+        so it cannot be proved without the allocation. The tests node's criterion names the
+        trade for the owner. The host's peak after the change: 0.81 to 0.93 GiB.
+      - **Records.** `API.md` names `KernelCache`, `BatchLength` and `MathProbe.OutputLength`
+        and `Engine.Launchers` in its tree-contract section, and the tree-contract
+        snapshot (`tests/Protocol.Tests/TreeContract.approved.txt`, replaced in the same
+        commit) moves by exactly those. No package surface moves:
+        `PublicSurface.approved.txt` is unchanged.
+
+      Evidence at `ee3c598` and the documentation commit that follows it, on this machine (60 GB, shared), Windows: `dotnet build
+      APThermo.sln` 0 warnings, 0 errors; the protocol lint 0 errors, 0 warnings;
+      `APTHERMO_NO_CUDA=1 dotnet test tests/<project> --no-build --filter
+      "Category!=LongRunning"`, one project at a time, Debug, process tree sampled every
+      250 ms (the largest single process is the test host; `Execution.Tests` and `Cli.Tests` also start child processes):
+
+      | Project | Tests | Wall time | Peak private, process tree (GiB) | Largest process (GiB) |
+      |---|---|---|---|---|
+      | `Performance.Tests` | 1429 | 34.6 s | 0.75 | 0.65 |
+      | `Problems.Tests` | 1252 | 13.2 s | 0.95 | 0.84 |
+      | `Execution.Tests` | 168 | 16.4 s | 1.52 | 0.85 |
+      | `Cli.Tests` | 142 | 118.7 s | 1.05 | 0.91 |
+      | `Docs.Tests` | 30 | 41.9 s | 1.61 | 1.55 |
+
+      No `Bits*.approved.txt`, `Throughput*.approved.txt` or `PublicSurface.approved.txt`
+      moved (`git status` after every run). Nothing ran on CUDA: the CUDA proof is the
+      root's, after the merge, where a call the attribute leaves in the PTX would show.
 
 ## Taboos
 

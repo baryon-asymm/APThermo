@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using APThermo.Equilibrium;
 using APThermo.Thermo;
 
@@ -10,6 +11,7 @@ namespace APThermo.Performance;
 internal static class StationSolve
 {
     /// <summary>The equilibrium (sp) or frozen solve of one station at its pressure, from the composition already in its row; true when Ok.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool At(in RocketContext context, in StationRequest request)
     {
         var equilibriumProblem = new EquilibriumProblem(ProblemKind.AssignedEntropyPressure, request.Pressure, request.TemperatureEstimate,

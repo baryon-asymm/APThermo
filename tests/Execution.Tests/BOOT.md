@@ -13,6 +13,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | the post-link's wrapper inventory over ILGPU 1.5.3's own PTX of the probe kernel, one fixture with the wrappers defined (SM_89) and one without (SM_120): the called set from `call` sites only, the defined set from `.func` headers, the missing set, with LF and CRLF line ends (2026-09-26) | the text fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, whose provenance is under Constraints | ✅ (2026-09-26) |
 | L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ✅ (2026-09-26) |
 | L0 | the library is checked before the device: a bad libnvvm names both paths and never leaks device memory (`BadLibraryTests`); the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`); a NUL-padded log is trimmed of it (`PostLinkTests`); a half-given library path pair is refused (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`) (2026-09-26) | `Execution`'s `BOOT.md` and `API.md`, the audit's F2, F3 and F4 | ✅ (2026-09-26) |
+| L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, `StationSolve.At` is not inlined, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
@@ -634,10 +635,53 @@ libdevice for the CUDA category.
       WSL; confirmed pre-existing for `Performance.Tests` by a direct check against two
       earlier commits (`Execution`'s own criterion has the detail) and reported, not
       fixed, since every one of those nodes is outside this task's subtree.
-- [ ] The compile guard and the bound check of 2026-09-30 are proved (the execution node's
+- [x] 2026-09-30 — The compile guard and the bound check of 2026-09-30 are proved (the execution node's
       criterion of that date owns their design): each fact red once with what it guards
       undone, one process's run of the whole project below 2 GB of private memory at its
       peak on the reference machine, recorded here with the figure.
+
+      Evidence: the facts are `RocketCompileTests` (`TheRocketKernelCompilesWithinItsAllocationBound`,
+      `TheStationSolveIsNotInlined`, `ADisposedEngineHoldsNoLauncher`,
+      `ADisposedEngineKeepsNoCompiledProgram`) and, in `AcceleratorChoiceTests`,
+      `TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength` and
+      `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`. Each was seen red with what
+      it guards undone, applied alone:
+      - the attribute removed from `StationSolve.At`: the guard and the attribute fact both
+        fail, ten of ten runs of the guard (five Debug, five Release);
+      - `Launchers.Clear()` removed from `Engine.Dispose`: `ADisposedEngineHoldsNoLauncher`
+        fails on the count, and with the count assertion removed on the weak reference;
+      - `Context.ClearCache` removed from `KernelCache.Clear`: `ADisposedEngineKeepsNoCompiledProgram`
+        fails (the launcher fact stays green, which is why the second fact exists);
+      - the bound of `BatchLength.Of` turned from `>` into `>=`: the bound fact fails;
+      - the bound of `MathProbe.OutputLength` moved 14 counts down and 14 up, each alone: its
+        fact fails both times (`>` against `>=` is not observable there: no count multiplies
+        to exactly `int.MaxValue`, which is prime).
+
+      ⚠ 2026-09-30: the criterion named one allocation to remove, the 16 GB array of
+      `BatchConstructorsRefuseACountWhoseArrayOverflowsA32BitLength`. Measuring the project's
+      peak found a second: `ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset` built
+      a `double[153 391 690]` (1.2 GB) to make `Engine.ProbeMath` refuse it, and the test host
+      of `AcceleratorChoiceTests` alone peaked at 1.37 GiB. With it in place the whole
+      project's test host peaked at 1.81 to 2.11 GiB over the runs made, on both sides of the
+      criterion's bound, so a run could not be called below it. The fact is replaced by one on
+      `MathProbe.OutputLength`, the bound `ProbeMath` now calls, asked of the count just inside
+      and just over the limit. What the old fact proved and the new one does not: that
+      `ProbeMath` itself refuses (the refusal needs an input array of the size it refuses).
+      `ProbeMath` reaches the bound through one call, and the positive path is exercised by
+      `ProbeKernelTests`; a wiring that skipped the call would pass the new fact. Named here so
+      the owner can decide whether that trade stands.
+
+      The figures of the guard and the per-run table are in the execution node's criterion.
+      The peak private memory of one process's run of the whole project, `APTHERMO_NO_CUDA=1`,
+      `Category!=LongRunning`, on this machine (60 GB, shared; the orchestrator confirms
+      whether it is the reference machine), the largest process being the test host, the
+      peak read from the process's own peak commit, sampled every 50 ms: Debug over five
+      runs 0.92, 0.88, 0.91, 0.89 and 0.93 GiB; Release over three runs 0.84, 0.81 and
+      0.81 GiB. Below 2 GiB with a wide margin. The process tree, the children of
+      `AllCoresLayoutTests` included, peaked at 1.60 to 1.65 GiB in Debug and 1.48 to 1.50 GiB
+      in Release. Before the inlining bound the same project exceeded 27 GB in one process
+      tree (the root's Compile size constraint); with the bound and before the second
+      allocation was removed, the test host peaked at 1.81 to 2.11 GiB.
 
 ## Taboos
 

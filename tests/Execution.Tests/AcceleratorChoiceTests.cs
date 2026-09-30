@@ -252,9 +252,24 @@ public sealed class AcceleratorChoiceTests
 
         var transport = Assert.Throws<ArgumentOutOfRangeException>(() => new TransportBatch(100_000, 30_000));
         Assert.Contains("overflows a 32-bit array length", transport.Message, StringComparison.Ordinal);
+    }
 
-        // A count just inside the bound still allocates: the check is on the product, not on either factor alone.
-        Assert.Equal(2_000_000_000, new EquilibriumBatch(100_000, 20_000).ElementMoles.Length);
+    /// <summary>
+    /// The bound the batch constructors call, <see cref="BatchLength.Of"/> (2026-09-30, "No test allocates what it measures"),
+    /// is inclusive of <see cref="int.MaxValue"/> and refuses the next product, whichever factor carries the size: the check is on
+    /// the product, not on either factor alone. Nothing is allocated. Red with the bound off by one either way.
+    /// </summary>
+    [Fact]
+    public void TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength()
+    {
+        Assert.Equal(int.MaxValue, BatchLength.Of(1, int.MaxValue));
+        Assert.Equal(int.MaxValue - 1, BatchLength.Of(2, 1_073_741_823));
+        Assert.Equal(int.MaxValue - 1, BatchLength.Of(1_073_741_823, 2));
+
+        var justOver = Assert.Throws<ArgumentOutOfRangeException>(() => BatchLength.Of(2, 1_073_741_824));
+        Assert.Contains("overflows a 32-bit array length", justOver.Message, StringComparison.Ordinal);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => BatchLength.Of(1_073_741_824, 2));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => BatchLength.Of(1, int.MaxValue + 1L));
     }
 
     /// <summary>
@@ -281,16 +296,21 @@ public sealed class AcceleratorChoiceTests
     }
 
     /// <summary>
-    /// <see cref="Engine.ProbeMath"/> refuses an input count whose output would overflow a 32-bit offset (BOOT.md,
-    /// the second audit's observation 7): <c>Kernels.Probe</c> strides its output by
-    /// <see cref="MathProbe.FunctionCount"/> with 32-bit <c>Index1D</c> arithmetic.
+    /// The probe's output length, <see cref="MathProbe.OutputLength"/>, which <see cref="Engine.ProbeMath"/> calls (BOOT.md, the
+    /// second audit's observation 7; 2026-09-30, "No test allocates what it measures"): <c>Kernels.Probe</c> strides its
+    /// output by <see cref="MathProbe.FunctionCount"/> with 32-bit <c>Index1D</c> arithmetic, so the last count whose output
+    /// fits is accepted and the next one refused. Asked of the count, without the 1.2 GB input array the engine's own
+    /// refusal needs. Red with the bound off by one either way.
     /// </summary>
     [Fact]
-    public void ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset()
+    public void TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset()
     {
-        // int.MaxValue / MathProbe.FunctionCount (14) + 1 inputs: index * FunctionCount then overflows.
-        var tooMany = int.MaxValue / MathProbe.FunctionCount + 1;
-        var failure = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.ProbeMath(new double[tooMany]));
+        var last = int.MaxValue / MathProbe.FunctionCount;
+        Assert.Equal(last * MathProbe.FunctionCount, MathProbe.OutputLength(last));
+        Assert.Equal(0, MathProbe.OutputLength(0));
+
+        // One input more: index * FunctionCount then overflows.
+        var failure = Assert.Throws<ArgumentException>(() => MathProbe.OutputLength(last + 1));
         Assert.Contains("overflows a 32-bit offset", failure.Message, StringComparison.Ordinal);
     }
 

@@ -11,14 +11,13 @@ namespace APThermo.Execution;
 internal sealed class Engine : IDisposable
 {
     private readonly AcceleratorSession _session;
-    private readonly KernelCache _kernels;
     private readonly EngineOptions _options;
     private bool _disposed;
 
     private Engine(AcceleratorSession session, EngineOptions options)
     {
         _session = session;
-        _kernels = new KernelCache(session);
+        Launchers = new KernelCache(session);
         _options = options;
     }
 
@@ -82,28 +81,28 @@ internal sealed class Engine : IDisposable
     public EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch)
     {
         Guard(tables, batch);
-        return EquilibriumPipeline.Run(_session, _kernels, _options, tables, batch);
+        return EquilibriumPipeline.Run(_session, Launchers, _options, tables, batch);
     }
 
     /// <summary>Solves every case of the batch: chamber, throat and the exits.</summary>
     public RocketBatchResult Run(UploadedTables tables, RocketBatch batch)
     {
         Guard(tables, batch);
-        return RocketPipeline.Run(_session, _kernels, _options, tables, batch);
+        return RocketPipeline.Run(_session, Launchers, _options, tables, batch);
     }
 
     /// <summary>Evaluates the transport properties of every station of the batch.</summary>
     public TransportBatchResult Run(UploadedTables tables, TransportBatch batch)
     {
         Guard(tables, batch);
-        return TransportPipeline.Run(_session, _kernels, _options, tables, batch);
+        return TransportPipeline.Run(_session, Launchers, _options, tables, batch);
     }
 
     /// <summary>Evaluates Cp/R, H/RT and S/R of table species at temperatures, one entry per thread.</summary>
     public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch)
     {
         Guard(tables, batch);
-        return SpeciesFunctionPipeline.Run(_session, _kernels, _options, tables, batch);
+        return SpeciesFunctionPipeline.Run(_session, Launchers, _options, tables, batch);
     }
 
     /// <summary>Runs the probe of the root's math list: <c>[input * MathProbe.FunctionCount + function]</c>.</summary>
@@ -118,16 +117,11 @@ internal sealed class Engine : IDisposable
         }
 
         // Kernels.Probe strides its output by MathProbe.StrideCount with 32-bit Index1D arithmetic (BOOT.md, the second
-        // audit's observation 7): more inputs than this would let index * StrideCount overflow the offset on the device.
-        if ((long)inputs.Length * MathProbe.FunctionCount > int.MaxValue)
-        {
-            throw new ArgumentException(
-                $"{inputs.Length} inputs times {MathProbe.FunctionCount} functions overflows a 32-bit offset.", nameof(inputs));
-        }
-
-        var launch = _kernels.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out _);
+        // audit's observation 7): MathProbe.OutputLength refuses a count whose offsets would overflow.
+        var outputLength = MathProbe.OutputLength(inputs.Length);
+        var launch = Launchers.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out _);
         using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
-        using var outputBuffer = _session.Accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
+        using var outputBuffer = _session.Accelerator.Allocate1D<double>(outputLength);
         launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
         _session.Accelerator.Synchronize();
         return outputBuffer.GetAsArray1D();
@@ -142,10 +136,15 @@ internal sealed class Engine : IDisposable
         }
 
         _disposed = true;
+        Launchers.Clear();
         _session.Dispose();
     }
 
     internal Accelerator IlgpuAccelerator => _session.Accelerator;
+
+    /// <summary>The typed launchers this engine compiled (2026-09-30, "Release at dispose"): visible to the tests node the way
+    /// <see cref="IlgpuAccelerator"/> already is, so a fact can watch a launcher die at <see cref="Dispose"/>, not to any consumer.</summary>
+    internal KernelCache Launchers { get; }
 
     /// <summary>The launch budget this engine's accelerator was bound with (2026-09-28, "A launch fits a time budget"):
     /// visible to the tests node the way <see cref="IlgpuAccelerator"/> already is, not to any consumer.</summary>
