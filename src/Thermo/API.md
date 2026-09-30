@@ -238,8 +238,8 @@ reference admits it. The signatures are unchanged; `BOOT.md` has the measurement
 ```csharp
 internal static class KernelMath
 {
-    public static double Min(double val1, double val2);   // equals System.Math.Min(val1, val2) bit for bit, on both accelerators
-    public static double Max(double val1, double val2);   // equals System.Math.Max(val1, val2) bit for bit, on both accelerators
+    public static double Min(double val1, double val2);   // equals System.Math.Min(val1, val2) bit for bit on every non-NaN result, a NaN whenever System.Math gives one, the first NaN operand exactly for a NaN operand; on both accelerators
+    public static double Max(double val1, double val2);   // equals System.Math.Max(val1, val2) bit for bit on every non-NaN result, a NaN whenever System.Math gives one, the first NaN operand exactly for a NaN operand; on both accelerators
 }
 ```
 
@@ -258,6 +258,13 @@ the first operand and let an ordered comparison decide a NaN second operand, fol
 the right and inverts its NaN ordering while doing so, so once inlining made an operand
 a compile-time constant, `Min(1.0, NaN)` read 1.0 on CUDA against NaN on the CPU. The
 signatures and every returned value are unchanged.
+
+⚠ 2026-09-30: the signature comments said "equals `System.Math.Min`/`Max` bit for bit",
+NaN payloads included. `System.Math` gives no payload guarantee for two NaNs of different
+payloads in optimized code (RyuJIT's intrinsic expansion returns the other operand than
+the managed body does, measured in Release). The contract is the comments above: bits
+equal on every non-NaN result, a NaN whenever `System.Math` gives one, and the first NaN
+operand exactly (`BOOT.md`, "`KernelMath`").
 
 ## Errors
 

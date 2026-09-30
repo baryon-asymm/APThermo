@@ -3,14 +3,16 @@ using APThermo.Harness;
 namespace APThermo.Thermo.Tests;
 
 /// <summary>
-/// <see cref="KernelMath.Min"/> and <see cref="KernelMath.Max"/> equal <see cref="Math.Min(double, double)"/> and
-/// <see cref="Math.Max(double, double)"/> bit for bit, over every ordered pair of a domain that holds the values the
-/// two functions treat specially (BOOT.md, "`KernelMath`"): ±0, ±∞, two NaNs of different payloads, the subnormal
-/// bounds, and, since the domain is squared, every value paired with itself (the "equal values" case, +0/−0
-/// included). The two NaN payloads prove the first-operand-payload rule for two NaNs (2026-09-28: the reordered form
-/// tests <c>val1</c> for NaN before <c>val2</c>, and a pair of two different NaNs is the only case that can tell
-/// which operand's bits the result carries). A fixed random sample adds ordinary finite values of mixed sign and
-/// magnitude. The execution tests node's <c>ProbeKernelTests</c> proves the same equality on CUDA.
+/// <see cref="KernelMath.Min"/> and <see cref="KernelMath.Max"/> against <see cref="Math.Min(double, double)"/> and
+/// <see cref="Math.Max(double, double)"/>, over every ordered pair of a domain that holds the values the two functions
+/// treat specially (BOOT.md, "`KernelMath`"): ±0, ±∞, two NaNs of different payloads, the subnormal bounds, and, since
+/// the domain is squared, every value paired with itself (the "equal values" case, +0/−0 included). A fixed sample
+/// adds ordinary finite values of mixed sign and magnitude. Two facts, split on 2026-09-30 because
+/// <see cref="System.Math"/> gives no payload guarantee for two NaNs of different payloads (RyuJIT's optimized
+/// expansion of <see cref="Math.Min(double, double)"/> and <see cref="Math.Max(double, double)"/> returns the other
+/// one than the managed body does): the equality of every non-NaN result and of NaN-ness with
+/// <see cref="System.Math"/>, and the payload rule of <see cref="KernelMath"/> itself, asserted against its documented
+/// formula. The execution tests node's <c>ProbeKernelTests</c> proves the same equality on CUDA.
 /// </summary>
 public sealed class KernelMathTests
 {
@@ -49,10 +51,14 @@ public sealed class KernelMathTests
         return [.. SpecialValues, .. ordinary, .. Sample()];
     }
 
-    /// <summary><see cref="KernelMath.Min"/> and <see cref="KernelMath.Max"/> equal <see cref="Math.Min(double, double)"/> and
-    /// <see cref="Math.Max(double, double)"/> bit for bit, over every ordered pair of <see cref="Values"/>.</summary>
+    /// <summary>
+    /// Every ordered pair of <see cref="Values"/>, both functions: whenever <see cref="System.Math"/> returns a number,
+    /// <see cref="KernelMath"/> returns the same bits (±0 included), and whenever <see cref="System.Math"/> returns a
+    /// NaN, <see cref="KernelMath"/> returns a NaN (its payload is not compared here, see
+    /// <see cref="TwoNaNsGiveTheFirstNaNOperandExactly"/>).
+    /// </summary>
     [Fact]
-    public void MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair()
+    public void MinAndMaxEqualSystemMathOnEveryNonNaNResultAndInNaNNessOverEveryOrderedPair()
     {
         var values = Values();
         Assert.NotEmpty(values);
@@ -62,33 +68,59 @@ public sealed class KernelMathTests
         {
             foreach (var b in values)
             {
-                CompareMin(a, b, mismatches);
-                CompareMax(a, b, mismatches);
+                CompareWithSystemMath("Min", a, b, Math.Min(a, b), KernelMath.Min(a, b), mismatches);
+                CompareWithSystemMath("Max", a, b, Math.Max(a, b), KernelMath.Max(a, b), mismatches);
                 compared += 2;
             }
         }
 
-        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(20)));
+        Assert.True(mismatches.Count == 0, string.Join(Environment.NewLine, mismatches.Take(20)));
         Assert.Equal(values.Length * values.Length * 2, compared);
     }
 
-    private static void CompareMin(double a, double b, List<string> mismatches)
+    /// <summary>
+    /// Every ordered pair of <see cref="Values"/> that holds a NaN, both functions: the result is the first NaN
+    /// operand, exactly its bits, the documented formula <c>IsNaN(a) ? a : b</c> (BOOT.md, "<c>KernelMath</c>"), which
+    /// is the rule both accelerators share. The domain must hold NaNs of at least two different payloads, or the fact
+    /// could not tell the first operand from the second.
+    /// </summary>
+    [Fact]
+    public void TwoNaNsGiveTheFirstNaNOperandExactly()
     {
-        var expected = Math.Min(a, b);
-        var actual = KernelMath.Min(a, b);
-        if (!Bits.Same(expected, actual))
+        var values = Values();
+        var payloads = values.Where(double.IsNaN).Select(BitConverter.DoubleToInt64Bits).Distinct().Count();
+        Assert.True(payloads >= 2, $"the domain holds {payloads} distinct NaN bit patterns, at least 2 are needed");
+        var compared = 0;
+        var mismatches = new List<string>();
+        foreach (var a in values)
         {
-            mismatches.Add($"Min({a:R}, {b:R}): Math.Min {expected:R}, KernelMath.Min {actual:R}");
+            foreach (var b in values.Where(b => double.IsNaN(a) || double.IsNaN(b)))
+            {
+                var expected = double.IsNaN(a) ? a : b;
+                CheckPayload("Min", a, b, expected, KernelMath.Min(a, b), mismatches);
+                CheckPayload("Max", a, b, expected, KernelMath.Max(a, b), mismatches);
+                compared += 2;
+            }
+        }
+
+        Assert.True(mismatches.Count == 0, string.Join(Environment.NewLine, mismatches.Take(20)));
+        Assert.True(compared > 0, "the domain holds no pair with a NaN operand");
+    }
+
+    private static void CompareWithSystemMath(string name, double a, double b, double system, double actual, List<string> mismatches)
+    {
+        var agrees = double.IsNaN(system) ? double.IsNaN(actual) : Bits.Same(system, actual);
+        if (!agrees)
+        {
+            mismatches.Add($"{name}({a:R}, {b:R}): Math.{name} {system:R}, KernelMath.{name} {actual:R}");
         }
     }
 
-    private static void CompareMax(double a, double b, List<string> mismatches)
+    private static void CheckPayload(string name, double a, double b, double expected, double actual, List<string> mismatches)
     {
-        var expected = Math.Max(a, b);
-        var actual = KernelMath.Max(a, b);
         if (!Bits.Same(expected, actual))
         {
-            mismatches.Add($"Max({a:R}, {b:R}): Math.Max {expected:R}, KernelMath.Max {actual:R}");
+            mismatches.Add($"{name}({BitConverter.DoubleToInt64Bits(a):X16}, {BitConverter.DoubleToInt64Bits(b):X16}): expected bits {BitConverter.DoubleToInt64Bits(expected):X16}, KernelMath.{name} bits {BitConverter.DoubleToInt64Bits(actual):X16}");
         }
     }
 }
