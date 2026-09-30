@@ -974,8 +974,9 @@ this node needs no other efferent-coupling row.
       orchestrator's, on the reference machine, after the merge.
 
       Evidence: the attribute is in `2548e82`. The fact is
-      `Execution.Tests.RocketCompileTests.TheStationSolveIsNotInlined`, seen red with the
-      attribute removed, together with the compile guard beside it, whose figures the
+      `Performance.Tests.CompileSizeTests.TheStationSolveIsNotInlined` (moved 2026-09-30
+      from the execution tests node to the owner of the method, which names the type
+      directly), seen red with the attribute removed, together with the compile guard beside it, whose figures the
       execution node's criterion of this date records (the compile allocates 8.66 GB
       without the attribute and 0.34 GB with it). `dotnet build APThermo.sln`, 0 warnings,
       0 errors; `APTHERMO_NO_CUDA=1 dotnet test tests/Performance.Tests`, 1429 of 1429;

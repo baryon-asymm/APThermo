@@ -1,6 +1,4 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using APThermo.Performance;
 using APThermo.Thermo;
 using ILGPU;
 using ILGPU.Runtime;
@@ -62,24 +60,6 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
         Assert.True(allocated > CompileAllocationFloor, $"the compile allocated {allocated} bytes on the calling thread, below the floor of a real compile ({CompileAllocationFloor})");
         Assert.True(allocated <= CompileAllocationBound,
                     $"the rocket kernel's compile allocated {allocated} bytes on the calling thread, over the bound of {CompileAllocationBound}: a stage that holds a whole solve is inlined at too many call sites (root BOOT.md, Compile size)");
-    }
-
-    /// <summary>
-    /// <c>StationSolve.At</c> is the one method through which the rocket program reaches the equilibrium solves, from seven
-    /// call sites, and carries <see cref="MethodImplAttributes.NoInlining"/> so ILGPU compiles one copy of the solve instead of
-    /// seven (root BOOT.md, Compile size; the performance node's Constraints). Read from the compiled method. Red with the
-    /// attribute removed. The type is found by name in the assembly of <see cref="RocketSolver"/>: it is not in the tree
-    /// contract of the performance node, which this node may not extend.
-    /// </summary>
-    [Fact]
-    public void TheStationSolveIsNotInlined()
-    {
-        var type = typeof(RocketSolver).Assembly.GetType("APThermo.Performance.StationSolve", throwOnError: true)!;
-        var method = type.GetMethod("At", BindingFlags.Public | BindingFlags.Static);
-
-        Assert.NotNull(method);
-        Assert.True(method.GetMethodImplementationFlags().HasFlag(MethodImplAttributes.NoInlining),
-                    "StationSolve.At is inlined by ILGPU at each of its call sites: a full copy of the solve at each");
     }
 
     /// <summary>
