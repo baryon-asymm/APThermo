@@ -972,12 +972,33 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
             edited: exit 1; `generator.generatedOn` edited: exit 0 (the writer's own date
             rule keeps a date-only difference from being rewritten, so that one file was
             restored with the mutator, not by regenerating).
-        - Known exposure for the CI run: a string is compared exactly, and
-          `outputs.packageRocketThroat.guardError` of a case whose package rocket throat
-          is not usable holds full-precision numbers in its text
-          (`beo-h2o-throat_pc15MPa_h-11.06875MJkg` is one), so a last-bit difference on a
-          hosted CPU would show there and no row could cover it. If it does, that is a
-          design decision, not a wider row.
+        - Strings that quote numbers (review of 2026-09-30, closing the exposure this
+          bullet first recorded): `outputs.packageRocketThroat.guardError` of a case whose
+          package rocket throat is not usable holds the package's full-precision numbers
+          in its text (12 of the `throat` fixtures, `beo-h2o-throat_pc15MPa_h-11.06875MJkg`
+          one of them), so an exact string comparison would fail all of them on a
+          last-bit difference of a hosted CPU. A string with a number token is now its
+          skeleton (the text with every token replaced) plus its tokens: the skeletons
+          must be equal, so the words and the count of tokens are, and each pair of tokens
+          is within the tolerance of the string's field class (the `throat` row under
+          `outputs.packageRocketThroat` and the throat station, else `regeneration`).
+          The tokens are matched by one regex, `NUMBER_TOKEN` in
+          `document_comparison.py`. One narrowing of the design: a token with no decimal
+          point is compared as text, since the digit runs of a hash, a version or a
+          species name are not measurements, and a relative tolerance on a long digit run
+          would let a changed hash through. A string with no number token is exact.
+          Evidence, on the `guardError` of `beo-h2o-throat_pc15MPa_h-11.06875MJkg`, each
+          applied alone and reverted by `regenerate.py --sample` (file byte-identical):
+          its first decimal token by 1e-6 relative: exit 0; by 1e-3: exit 1 naming
+          `outputs.packageRocketThroat.guardError` and the token; the word `away` changed
+          to `far`: exit 1; a token added: exit 1; a token dropped: exit 1. The full
+          regeneration was run again after this change (the generator directory's hash
+          moved): 336 files, 0 differing beyond `generatorSha256` and `generatedOn`,
+          `--check` `unchanged 336`, `--check --sample` `unchanged 36`. Remaining honest
+          risks for the CI run: a hosted CPU that lands the mass-flux search on a different
+          plateau state, as the Linux run did for `beo-h2o` (a difference of the words or of
+          the numbers beyond 5e-5, which no row covers by design), and any number above the
+          rows that the hosted CPU moves more than 1e-9.
       - **Records.** `tests/Fixtures/generate/API.md` names the two comparison modes;
         the comment of the CI step says what it compares and where; the ⚠ above is the
         record of the platform property, and the root's platform constraint is the

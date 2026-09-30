@@ -25,12 +25,22 @@ platform and compares with a tolerance", 2026-09-30):
   the files.
 - **Document, field by field, with a tolerance**, `--check --sample`
   (`document_comparison.py`): the same keys in the same order, the same list lengths,
-  every string, boolean and null equal, every number within the relative tolerance of
+  every boolean and null equal, every string equal (see below for a string that holds
+  decimal numbers), every number within the relative tolerance of
   the `regeneration` row of the parent's `tolerances.json` (1e-9), the numbers a
   `throat` document's mass-flux search derives (every number of its throat station, the
   `characteristicVelocity` of each station and `outputs.packageRocketThroat`) within the
   `throat` row (5e-5), and of the provenance block the keys `generatedOn`,
-  `thermoLibSha256` and `transLibSha256` left out, every other key equal. A difference
+  `thermoLibSha256` and `transLibSha256` left out, every other key equal. A string that
+  holds decimal numbers (the `guardError` text of `outputs.packageRocketThroat`, which
+  quotes the package's own last-bit values) is its skeleton plus its tokens: the text with
+  every number token replaced by a placeholder must be equal, which fixes the count of
+  tokens, and each pair of tokens must agree within the tolerance of the string's field
+  (the `throat` row under `outputs.packageRocketThroat` and the throat station, else the
+  `regeneration` row). A token is a decimal number with optional sign, fraction and
+  exponent, matched by the one regex `NUMBER_TOKEN`; only a token with a decimal point is
+  a measurement, and a token without one (a digit run of a name, a hash, a version) is
+  compared as text. A string with no number token is compared exactly. A difference
   is printed under its `changed` line as the dotted path of the field, both values and
   the tolerance it broke. Meant for a hosted runner of the platform that wrote the files,
   whose CPU may round the last bits of the C runtime's `exp`, `log` and `pow` otherwise.
@@ -60,6 +70,7 @@ def dumps(document: dict) -> str: ...                            # the canonical
 class DocumentComparison:
     def __init__(self) -> None: ...
     def differences(self, expected: dict, actual: dict) -> list[str]: ...   # committed against regenerated; empty when they agree
+NUMBER_TOKEN: re.Pattern                                        # a decimal number with optional sign, fraction and exponent
 def main_of(generate) -> int: ...                                # the standalone entry point of a family script
 
 # constants.py, thermo_functions.py, transport_fits.py, rp1311.py, propellants.py
