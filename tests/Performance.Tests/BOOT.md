@@ -10,6 +10,7 @@ The definition of what "`Performance` is ready" means.
 | L1 | rocket cases of the fixtures node (LOX/LH2 example 8, MMH/NTO example 12 equilibrium and frozen, the four reference propellants): stations, `c*`, `C_F`, `Isp`, `Ivac`, area and pressure ratios, compositions | the fixtures node's reference outputs and its tolerance table | ✅ |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
 | L0 | an exit station that never leaves the subsonic side is `NotConverged` and its neighbours `Ok`, driven through the `AreaRatioIteration` stage from an estimate deep on the subsonic side (2026-09-14) | the `API.md` of `Performance` | ✅ (2026-09-14) |
+| L0 | `StationSolve.At` carries `NoInlining`, so ILGPU compiles one copy of the equilibrium solve for the rocket program's seven call sites (2026-09-30, `CompileSizeTests.TheStationSolveIsNotInlined`; the compile's allocation bound is the execution tests node's) | the compiled method's implementation flags | ✅ (2026-09-30) |
 | Bits | the host solve of every rocket fixture gives the recorded bits: one line per fixture in `Bits.approved.txt`, the fixture's path and the SHA-256 of the raw bits of the stations' states, moles, multipliers, figures, station statuses, iteration counts and the case status, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ (2026-09-14) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 

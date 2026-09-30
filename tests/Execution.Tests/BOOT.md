@@ -13,7 +13,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | the post-link's wrapper inventory over ILGPU 1.5.3's own PTX of the probe kernel, one fixture with the wrappers defined (SM_89) and one without (SM_120): the called set from `call` sites only, the defined set from `.func` headers, the missing set, with LF and CRLF line ends (2026-09-26) | the text fixtures `Ptx/probe.sm_89.ptx` and `Ptx/probe.sm_120.ptx`, whose provenance is under Constraints | ✅ (2026-09-26) |
 | L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ✅ (2026-09-26) |
 | L0 | the library is checked before the device: a bad libnvvm names both paths and never leaks device memory (`BadLibraryTests`); the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`); a NUL-padded log is trimmed of it (`PostLinkTests`); a half-given library path pair is refused (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`) (2026-09-26) | `Execution`'s `BOOT.md` and `API.md`, the audit's F2, F3 and F4 | ✅ (2026-09-26) |
-| L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, `StationSolve.At` is not inlined, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
+| L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
 | L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
@@ -641,13 +641,16 @@ libdevice for the CUDA category.
       peak on the reference machine, recorded here with the figure.
 
       Evidence: the facts are `RocketCompileTests` (`TheRocketKernelCompilesWithinItsAllocationBound`,
-      `TheStationSolveIsNotInlined`, `ADisposedEngineHoldsNoLauncher`,
+      `ADisposedEngineHoldsNoLauncher`,
       `ADisposedEngineKeepsNoCompiledProgram`) and, in `AcceleratorChoiceTests`,
       `TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength` and
       `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`. Each was seen red with what
       it guards undone, applied alone:
-      - the attribute removed from `StationSolve.At`: the guard and the attribute fact both
-        fail, ten of ten runs of the guard (five Debug, five Release);
+      - the attribute removed from `StationSolve.At`: the guard fails, ten of ten runs (five
+        Debug, five Release), and so does the attribute fact, which lives in the performance
+        tests node (`CompileSizeTests.TheStationSolveIsNotInlined`, moved there 2026-09-30
+        because `StationSolve` is internal to `Performance` and only its own tests node may
+        name it);
       - `Launchers.Clear()` removed from `Engine.Dispose`: `ADisposedEngineHoldsNoLauncher`
         fails on the count, and with the count assertion removed on the weak reference;
       - `Context.ClearCache` removed from `KernelCache.Clear`: `ADisposedEngineKeepsNoCompiledProgram`
