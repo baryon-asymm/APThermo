@@ -252,9 +252,24 @@ public sealed class AcceleratorChoiceTests
 
         var transport = Assert.Throws<ArgumentOutOfRangeException>(() => new TransportBatch(100_000, 30_000));
         Assert.Contains("overflows a 32-bit array length", transport.Message, StringComparison.Ordinal);
+    }
 
-        // A count just inside the bound still allocates: the check is on the product, not on either factor alone.
-        Assert.Equal(2_000_000_000, new EquilibriumBatch(100_000, 20_000).ElementMoles.Length);
+    /// <summary>
+    /// The bound the batch constructors call, <see cref="BatchLength.Of"/> (2026-09-30, "No test allocates what it measures"),
+    /// is inclusive of <see cref="int.MaxValue"/> and refuses the next product, whichever factor carries the size: the check is on
+    /// the product, not on either factor alone. Nothing is allocated. Red with the bound off by one either way.
+    /// </summary>
+    [Fact]
+    public void TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength()
+    {
+        Assert.Equal(int.MaxValue, BatchLength.Of(1, int.MaxValue));
+        Assert.Equal(int.MaxValue - 1, BatchLength.Of(2, 1_073_741_823));
+        Assert.Equal(int.MaxValue - 1, BatchLength.Of(1_073_741_823, 2));
+
+        var justOver = Assert.Throws<ArgumentOutOfRangeException>(() => BatchLength.Of(2, 1_073_741_824));
+        Assert.Contains("overflows a 32-bit array length", justOver.Message, StringComparison.Ordinal);
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => BatchLength.Of(1_073_741_824, 2));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => BatchLength.Of(1, int.MaxValue + 1L));
     }
 
     /// <summary>
