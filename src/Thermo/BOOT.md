@@ -120,9 +120,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   other record exceeds 5.
 - **`KernelMath`** (2026-09-27, the root's math constraint): `Min(double, double)` and
   `Max(double, double)` for every numerical node. They return what `System.Math.Min`
-  and `System.Math.Max` return for every pair of doubles, NaN and signed zeros included,
-  since that is the CPU accelerator's result. They are written with comparisons and
-  selections only: NaN if either operand is NaN, −0 below +0. Both operands are
+  and `System.Math.Max` return for every pair whose `System.Math` result is not a NaN,
+  signed zeros included, and a NaN whenever `System.Math` returns one; the payload of a
+  NaN result is the rule below, not `System.Math`'s. They are written with comparisons
+  and selections only: NaN if either operand is NaN, −0 below +0. Both operands are
   tested for NaN before any ordered comparison (2026-09-28):
 
   ```text
@@ -130,11 +131,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   Max(a, b) = IsNaN(a) ? a : IsNaN(b) ? b : a != b ? (b < a ? a : b) : (IsNegative(b) ? a : b)
   ```
 
-  This returns what .NET 10's managed `Math.Min` and `Math.Max` return for every pair,
-  and for two NaNs the first operand exactly (2026-09-30: `System.Math` itself gives no
-  payload guarantee in optimized code, criterion below), and no ordered comparison inside
-  them ever sees a NaN, whichever
-  side ILGPU moves a constant to (the root's third ILGPU defect). The names
+  A pair with a NaN operand gives the first NaN operand, exactly its bits: this is
+  `KernelMath`'s own rule, the one both accelerators share, and no ordered comparison
+  inside them ever sees a NaN, whichever side ILGPU moves a constant to (the root's third
+  ILGPU defect).
+
+  ⚠ 2026-09-30: stood "This returns what .NET 10's managed `Math.Min` and `Math.Max`
+  return for every pair, and for two NaNs the first operand exactly" (and, before it,
+  "returns what `System.Math.Min` and `System.Math.Max` return for every pair of doubles,
+  NaN … included"). That holds for the managed bodies a Debug build runs. RyuJIT expands
+  both as hardware intrinsics in optimized code, and for two NaNs of different payloads
+  the expansion returns the other one: `System.Math` gives no payload guarantee. Found
+  by the second hosted Windows Release run after the second audit, reproduced on the
+  reference machine in Release; the criterion of 2026-09-30 below carries the evidence. The names
   `double.IsNaN` and `double.IsNegative` are allowed inside `KernelMath`, and nowhere
   else in the numerical nodes, if ILGPU compiles them without libdevice.
 
@@ -611,7 +620,7 @@ of 14: no efferent coupling row is needed.
       `CondensedDatabaseRecordNames`), green again with the constant restored;
       `dotnet test tests/Thermo.Tests`, 1183/1183; no `Bits*.approved.txt` differs from
       `main`.
-- [ ] The `KernelMath` host fact does not take `System.Math`'s NaN payload for an oracle
+- [x] 2026-09-30 — The `KernelMath` host fact does not take `System.Math`'s NaN payload for an oracle
       (2026-09-30, the second CI run after the second audit, `windows-latest`, Release).
       - ⚠ 2026-09-30: `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
         (the criteria of 2026-09-27 and 2026-09-28 above) compares `KernelMath` with
@@ -641,6 +650,35 @@ of 14: no efferent coupling row is needed.
         `System.Math`. Each shown red once (the NaN branch removed; the payload rule
         reversed to return the second NaN), green in Release and Debug and with
         `DOTNET_EnableHWIntrinsic=0`; both fail on an empty domain.
+
+      Evidence: `KernelMathTests.cs` now holds two facts over the unchanged domain (104²
+      ordered pairs, both functions):
+      - `MinAndMaxEqualSystemMathOnEveryNonNaNResultAndInNaNNessOverEveryOrderedPair`:
+        where `System.Math` returns a number `KernelMath` returns the same bits (`Bits.Same`,
+        ±0 included), where it returns a NaN `KernelMath` returns a NaN;
+      - `TwoNaNsGiveTheFirstNaNOperandExactly`: every pair with a NaN operand gives
+        `IsNaN(a) ? a : b` bit for bit; the fact also requires at least two distinct NaN bit
+        patterns in the domain, and a non-empty set of NaN pairs.
+
+      Reproduced first: `APTHERMO_NO_CUDA=1 dotnet test tests/Thermo.Tests --configuration
+      Release --filter "FullyQualifiedName~KernelMathTests"` red ("Min(NaN, NaN): Math.Min
+      NaN, KernelMath.Min NaN") at `0c46d93`. Shown red once each, `src/Thermo/KernelMath.cs`
+      mutated, reverted with `git checkout`, Release:
+      - the NaN branch of `KernelMath.Min` removed: both facts red (the first on every pair
+        with one NaN operand and a number, the second on the first-NaN rule);
+      - the payload rule reversed (`IsNaN(val2)` tested before `IsNaN(val1)` in `Min`): only
+        the payload fact red, the equality fact green, as designed.
+
+      Both facts fail on an empty domain (`Values()[..0]`: the equality fact on
+      `Assert.NotEmpty`, the payload fact on its distinct-NaN-pattern requirement). Green:
+      `KernelMathTests` 2/2 in Release, in Debug, and with `DOTNET_EnableHWIntrinsic=0` in
+      both configurations; `APTHERMO_NO_CUDA=1 dotnet test tests/Thermo.Tests` 1193/1193 in
+      Debug and 1193/1193 in Release. No `Bits*.approved.txt` differs from `main`.
+
+      The older criteria of 2026-09-27 and 2026-09-28 above name the single fact
+      `MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`; it is replaced by the two
+      facts above, over the same domain, and their evidence dates stay: it was true of the
+      managed bodies a Debug build ran, which is the ⚠ of this criterion.
 
 ## Taboos
 
