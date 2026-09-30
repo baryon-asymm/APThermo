@@ -16,6 +16,35 @@ produced kinds are removed, and the exit code is 0. With `--check`: nothing is
 written, every difference is printed (`changed`, `missing`, `stale`) and the exit code
 is 1 when there is any. Kinds given as arguments restrict what is produced and swept.
 
+Two comparison modes (the parent's "The binding step runs on the fixtures' own
+platform and compares with a tolerance", 2026-09-30):
+
+- **Exact text**, plain `--check` (and the comparison that decides what a run without
+  `--check` rewrites): a regenerated document equals the committed file byte for byte
+  but for the `generatedOn` date. Meant for the reference machine, whose platform wrote
+  the files.
+- **Document, field by field, with a tolerance**, `--check --sample`
+  (`document_comparison.py`): the same keys in the same order, the same list lengths,
+  every boolean and null equal, every string equal (see below for a string that holds
+  decimal numbers), every number within the relative tolerance of
+  the `regeneration` row of the parent's `tolerances.json` (1e-9), the numbers a
+  `throat` document's mass-flux search derives (every number of its throat station, the
+  `characteristicVelocity` of each station and `outputs.packageRocketThroat`) within the
+  `throat` row (5e-5), and of the provenance block the keys `generatedOn`,
+  `thermoLibSha256` and `transLibSha256` left out, every other key equal. A string that
+  holds decimal numbers (the `guardError` text of `outputs.packageRocketThroat`, which
+  quotes the package's own last-bit values) is its skeleton plus its tokens: the text with
+  every number token replaced by a placeholder must be equal, which fixes the count of
+  tokens, and each pair of tokens must agree within the tolerance of the string's field
+  (the `throat` row under `outputs.packageRocketThroat` and the throat station, else the
+  `regeneration` row). A token is a decimal number with optional sign, fraction and
+  exponent, matched by the one regex `NUMBER_TOKEN`; only a token with a decimal point is
+  a measurement, and a token without one (a digit run of a name, a hash, a version) is
+  compared as text. A string with no number token is compared exactly. A difference
+  is printed under its `changed` line as the dotted path of the field, both values and
+  the tolerance it broke. Meant for a hosted runner of the platform that wrote the files,
+  whose CPU may round the last bits of the C runtime's `exp`, `log` and `pow` otherwise.
+
 `--sample` (`regenerate.py` only, the parent's "The outputs are bound to the
 generator" and "The sample of the binding step covers every script"): restricts the
 run to one case per (script, kind) pair the committed fixtures record, plus every case
@@ -30,11 +59,18 @@ sample itself is empty, printed as `sample coverage: ...` lines.
 ```python
 # writer.py
 class Writer:
-    def __init__(self, check: bool = False, only: list[str] | None = None) -> None: ...
+    def __init__(self, check: bool = False, only: list[str] | None = None,
+                 only_cases: set[tuple[str, str]] | None = None, tolerant: bool = False) -> None: ...
     def case(self, kind: str, name: str, inputs: dict, outputs: dict, script_path: str,
              method: str = "cea-package") -> str: ...           # "unchanged" | "changed" | "missing" | "written" | "skipped"
     def finish(self) -> int: ...                                 # prints the summary, sweeps stale files, returns the exit code
 def dumps(document: dict) -> str: ...                            # the canonical JSON text of a document
+
+# document_comparison.py — the comparison of `--check --sample`; reads tolerances.json
+class DocumentComparison:
+    def __init__(self) -> None: ...
+    def differences(self, expected: dict, actual: dict) -> list[str]: ...   # committed against regenerated; empty when they agree
+NUMBER_TOKEN: re.Pattern                                        # a decimal number with optional sign, fraction and exponent
 def main_of(generate) -> int: ...                                # the standalone entry point of a family script
 
 # constants.py, thermo_functions.py, transport_fits.py, rp1311.py, propellants.py

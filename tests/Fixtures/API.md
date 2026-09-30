@@ -87,7 +87,8 @@ and used by the test nodes.
 $ python -m venv tests/Fixtures/generate/.venv
 $ tests/Fixtures/generate/.venv/Scripts/pip install -r tests/Fixtures/generate/requirements.txt
 $ tests/Fixtures/generate/.venv/Scripts/python tests/Fixtures/generate/regenerate.py            # writes changed fixtures, removes stale ones
-$ tests/Fixtures/generate/.venv/Scripts/python tests/Fixtures/generate/regenerate.py --check    # compares only; exit 1 on any difference
+$ tests/Fixtures/generate/.venv/Scripts/python tests/Fixtures/generate/regenerate.py --check    # compares only, as exact text; exit 1 on any difference
+$ tests/Fixtures/generate/.venv/Scripts/python tests/Fixtures/generate/regenerate.py --check --sample   # a sample, as documents, field by field with a tolerance (generate/API.md)
 $ tests/Fixtures/generate/.venv/Scripts/python tests/Fixtures/generate/regenerate.py thermo tp  # only these kinds
 ```
 

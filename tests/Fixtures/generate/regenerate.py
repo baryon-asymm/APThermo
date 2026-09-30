@@ -13,8 +13,11 @@ sp and tp; `plateaus.py`'s rocket, hp and tp) contributes one case per kind it w
 case per kind directory, so a script whose cases never sort first in a shared kind directory
 is still sampled. Meant for --check on CI, where regenerating and comparing every fixture is
 too slow for every push; it binds the outputs to the generator without paying that cost.
-Combine with a `kind` filter to sample only those kinds. The comparison itself is exact text,
-the same one --check makes over the whole set (`Writer.case`, `dumps`), not a tolerance.
+Combine with a `kind` filter to sample only those kinds. Plain --check compares exact text; --check --sample
+compares each regenerated case with the committed file as a document, field by field, with the tolerances of
+`tolerances.json` (document_comparison.py; tests/Fixtures/BOOT.md, "The binding step runs on the fixtures' own
+platform and compares with a tolerance"), so that a machine other than the one that wrote the files, the same
+platform on another CPU, still binds the outputs to the generator.
 
 After generation, --sample fails (exit 1) when the run compared nothing at all, or when a
 (script, kind) pair the sample intended to cover produced no comparison: a script that no
@@ -113,7 +116,7 @@ def main() -> int:
     sample = "--sample" in args
     only = [a for a in args if not a.startswith("--")]
     only_cases, required = build_sample(set(only) if only else None) if sample else (None, None)
-    writer = Writer(check=check, only=only or None, only_cases=only_cases)
+    writer = Writer(check=check, only=only or None, only_cases=only_cases, tolerant=sample)
     for script in SCRIPTS:
         script.generate(writer)
     exit_code = writer.finish()

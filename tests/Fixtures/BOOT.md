@@ -35,6 +35,16 @@ node generates the outputs itself, from committed scripts, and records how.
   a reference value is the table's too (`ToleranceTable.MoleFractionField`), so that
   the print threshold is written once, in the table (the review's F-AR-03 found it
   typed with its selection line in three test nodes).
+
+  ⚠ 2026-09-30: the sentence stood as "holds two entries that are no comparison with the
+  reference". It holds two more since the binding step compares as documents
+  (`generate/document_comparison.py`): `regeneration`, the relative tolerance of the
+  generator's own output regenerated on another machine of the platform that wrote the
+  committed files (1e-9), and `throat`, the wider one for the numbers the throat family's
+  mass-flux search derives (5e-5). Neither is a comparison with the reference nor between
+  two paths of the tree; each carries its derivation like every other entry, and the
+  generator reads both from this table, so no tolerance is decided in the script. The
+  two of 2026-09-14 are shared by test nodes; these two are read by the generator.
 - **The case matrix is explicit** (Constraints) and file names encode the case; a test
   enumerates a directory, it never lists cases by hand.
 - **Units in fixtures are SI**, converted once in the generator from the package's
@@ -113,7 +123,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Procedure: `python -m venv tests/Fixtures/generate/.venv`, install
   `requirements.txt` into it, then `python tests/Fixtures/generate/regenerate.py`
   (writes changed fixtures, removes stale ones) or `regenerate.py --check` (compares
-  only, exit code 1 on any difference). Each script also runs standalone and sweeps
+  only, as exact text, exit code 1 on any difference). `regenerate.py --check --sample`
+  compares a sample as documents, field by field, with a tolerance (the last criterion
+  below, `generate/API.md`). Each script also runs standalone and sweeps
   only the kinds it produces.
 
   ⚠ 2026-09-27: "sweeps only the kinds it produces" reads as if a standalone run were
@@ -779,13 +791,15 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       values.
       - The CI workflow gains a step on the Linux hosted runner (`.github/workflows/
         ci.yml`, "Fixtures are bound to the generator", after the protocol lint, before
-        the build): it installs the pinned `cea` 3.3.4 and `requirements.txt` into a
+        the build; ⚠ 2026-09-30: it moved to `windows-latest`, see the last criterion): it installs the pinned `cea` 3.3.4 and `requirements.txt` into a
         fresh virtual environment and runs `regenerate.py --check --sample`. The sample
         is chosen by the script (`regenerate.py`'s new `build_sample`) from the
         committed directory listing, at least one case per family and every case of
         the `throat` family (`SAMPLE_IN_FULL`). The check fails the job on any
         difference beyond the tolerance of the family's rule, the same comparison
-        `regenerate.py --check` already made over the whole set.
+        `regenerate.py --check` already made over the whole set (⚠ 2026-09-30: it was
+        exact text, not "the tolerance of the family's rule", and it is now a document
+        comparison with the tolerances of `tolerances.json`, see the last criterion).
       - `regenerate.py` had no case-level sampling mode; it gained one
         (`generate/writer.py`'s `Writer.only_cases`, `wants_case`, and the stale sweep
         of `finish()` turned off under it, since a sample deliberately produces only
@@ -834,6 +848,10 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       - The comparison is exact text, as `regenerate.py --check` already makes it; the
         CI step's comment (`.github/workflows/ci.yml`, "Fixtures are bound to the
         generator") now says so instead of "beyond the family's own tolerance rule".
+        ⚠ 2026-09-30: exact text no longer holds for `--check --sample`: the first CI
+        run, on Linux, could not reproduce the Windows files as text, and the sample is now
+        compared as documents with a tolerance (the last criterion); plain `--check` is
+        still exact text.
       - Touching `regenerate.py` re-provenances every fixture (`generate/BOOT.md`'s
         rule hashes every `*.py` file of `generate/` together). Regenerated with the
         full driver (`py -3 regenerate.py`, no filter; the pinned `cea` 3.3.4 and
@@ -907,6 +925,80 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
         green, and the two above with it. If the hosted Windows CPU moves a search-derived
         number past its row, the row is recorded here with the measured figure, and never
         widened past the family's own tolerance-table value.
+
+        Local evidence, 2026-09-30, on the reference machine (Windows, `cea` 3.3.4,
+        `numpy` 2.5.3), at `f382cd1`; still owed: the CI run.
+        - The generator's comparison is `generate/document_comparison.py`
+          (`DocumentComparison`), which `writer.py`'s `Writer(tolerant=True)` uses under
+          `--check --sample` only. It reads its two tolerances from `tolerances.json`
+          (the `regeneration` row, 1e-9 relative, and the `throat` row, below), both added
+          by this change: the `throat` row the design named did not exist in the table.
+        - The `throat` row is 5e-5 relative. It applies to the numbers the search derives:
+          every number of the throat station of a `throat` document, the
+          `characteristicVelocity` of each of its stations (the throat's c*, which the
+          chamber station repeats) and the numbers of `outputs.packageRocketThroat`; every
+          other number of the family, the chamber's included, takes 1e-9. The figure is
+          2.3 times the largest Linux spread (2.2e-5, above, excluding the `beo-h2o`
+          case) and half of the 1e-4 the table gives the same fields against the
+          reference; its derivation is in the row.
+        - `regenerate.py` (the full driver, `py -3`, no filter) rewrote all 336 fixtures,
+          every one changed only in `generatorSha256` and `generatedOn` (a field-by-field
+          comparison of each file against its content at `e85a2de`, those two keys removed
+          from both sides: 336 files, 0 differing; the line diff is 2 lines per file).
+          `regenerate.py --check` then reports `unchanged 336` and `--check --sample`
+          `unchanged 36`, both exit 0.
+        - Each mutation applied alone to a committed file and reverted by regenerating
+          (`regenerate.py --sample`, which rewrites only the sampled files; the file is
+          then byte-identical to the committed one), on
+          `cases/hp/ap-htpb-al_pc7MPa_shiftingEquilibrium_chamber.json` (one of the
+          sample's) and, for the family's rule, `cases/throat/lif-throat_pc7MPa.json`:
+          - `outputs.temperature` by 1e-8 relative: exit 1, `changed
+            hp\ap-htpb-al_pc7MPa_shiftingEquilibrium_chamber.json` and
+            `outputs.temperature: committed 3388.64832247193, regenerated
+            3388.6482885854475, relative difference 1e-08 above 1e-09`;
+          - the same by 1e-10 relative: `--check --sample` exit 0, `unchanged 36`, while
+            plain `--check` names the file `changed` (exact text);
+          - the string `generator.version` edited: exit 1 naming `generator.version`;
+          - the key `outputs.entropy` renamed: exit 1, `outputs: keys differ, only
+            committed ['entropyX'], only regenerated ['entropy']`;
+          - the input `case.inputs.pressure` edited: exit 1 naming `case.inputs.pressure`;
+          - the throat station's temperature (`outputs.stations[1].temperature`) by 1e-4:
+            exit 1 naming that path against 5e-05; by 3e-5: exit 0; the chamber's
+            `characteristicVelocity` and a throat mole fraction by 3e-5: exit 0; the
+            chamber's `temperature` by 1e-8: exit 1 against 1e-9 (the wider rule does not
+            reach the chamber's other numbers); `outputs.packageRocketThroat.cStar` by 1e-4:
+            exit 1;
+          - provenance: `generator.thermoLibSha256` edited: exit 0; `generator.dataThermoSha256`
+            edited: exit 1; `generator.generatedOn` edited: exit 0 (the writer's own date
+            rule keeps a date-only difference from being rewritten, so that one file was
+            restored with the mutator, not by regenerating).
+        - Strings that quote numbers (review of 2026-09-30, closing the exposure this
+          bullet first recorded): `outputs.packageRocketThroat.guardError` of a case whose
+          package rocket throat is not usable holds the package's full-precision numbers
+          in its text (12 of the `throat` fixtures, `beo-h2o-throat_pc15MPa_h-11.06875MJkg`
+          one of them), so an exact string comparison would fail all of them on a
+          last-bit difference of a hosted CPU. A string with a number token is now its
+          skeleton (the text with every token replaced) plus its tokens: the skeletons
+          must be equal, so the words and the count of tokens are, and each pair of tokens
+          is within the tolerance of the string's field class (the `throat` row under
+          `outputs.packageRocketThroat` and the throat station, else `regeneration`).
+          The tokens are matched by one regex, `NUMBER_TOKEN` in
+          `document_comparison.py`. One narrowing of the design: a token with no decimal
+          point is compared as text, since the digit runs of a hash, a version or a
+          species name are not measurements, and a relative tolerance on a long digit run
+          would let a changed hash through. A string with no number token is exact.
+          Evidence, on the `guardError` of `beo-h2o-throat_pc15MPa_h-11.06875MJkg`, each
+          applied alone and reverted by `regenerate.py --sample` (file byte-identical):
+          its first decimal token by 1e-6 relative: exit 0; by 1e-3: exit 1 naming
+          `outputs.packageRocketThroat.guardError` and the token; the word `away` changed
+          to `far`: exit 1; a token added: exit 1; a token dropped: exit 1. The full
+          regeneration was run again after this change (the generator directory's hash
+          moved): 336 files, 0 differing beyond `generatorSha256` and `generatedOn`,
+          `--check` `unchanged 336`, `--check --sample` `unchanged 36`. Remaining honest
+          risks for the CI run: a hosted CPU that lands the mass-flux search on a different
+          plateau state, as the Linux run did for `beo-h2o` (a difference of the words or of
+          the numbers beyond 5e-5, which no row covers by design), and any number above the
+          rows that the hosted CPU moves more than 1e-9.
       - **Records.** `tests/Fixtures/generate/API.md` names the two comparison modes;
         the comment of the CI step says what it compares and where; the ⚠ above is the
         record of the platform property, and the root's platform constraint is the
