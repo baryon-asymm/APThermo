@@ -966,12 +966,30 @@ this node needs no other efferent-coupling row.
       `0928618`, the new fixture's own facts and the four new `ThirdPassFixTests`); the
       protocol lint, 0 errors, 0 warnings; no `Bits*.approved.txt` or
       `PublicSurface.approved.txt` moved.
-- [ ] The rocket kernel's compile is bounded (2026-09-30, the root's criterion of that
+- [x] 2026-09-30 — The rocket kernel's compile is bounded (2026-09-30, the root's criterion of that
       date). `StationSolve.At` carries the attribute; a fact reads it from the compiled
       method (`MethodImplAttributes.NoInlining`), red without it. Every bit snapshot of
       the tree and every CEA tolerance test green with no `Bits*.approved.txt` moved on
       Windows; the compile's figures are the execution node's. The CUDA proof is the
       orchestrator's, on the reference machine, after the merge.
+
+      Evidence: the attribute is in `2548e82`. The fact is
+      `Execution.Tests.RocketCompileTests.TheStationSolveIsNotInlined`, seen red with the
+      attribute removed, together with the compile guard beside it, whose figures the
+      execution node's criterion of this date records (the compile allocates 8.66 GB
+      without the attribute and 0.34 GB with it). `dotnet build APThermo.sln`, 0 warnings,
+      0 errors; `APTHERMO_NO_CUDA=1 dotnet test tests/Performance.Tests`, 1429 of 1429;
+      the fast suite of every other test project green and no `Bits*.approved.txt`
+      moved (the execution node's criterion has the counts); the protocol lint, 0 errors,
+      0 warnings. The result bits do not move: the attribute changes what ILGPU compiles,
+      not what a call computes. The CUDA path, where the attribute leaves a call in the
+      PTX, is proved after the merge (root criterion).
+
+      The fact is in `tests/Execution.Tests`, not in `tests/Performance.Tests`, on the
+      task's own scope: the type is not in this node's tree contract, so it is found by
+      name in the assembly of `RocketSolver`. Proposal (AGENTS.md §11): move it to
+      `tests/Performance.Tests`, the mirror node, which may name the type directly; the
+      decision is the owner's.
 
 ## Taboos
 
