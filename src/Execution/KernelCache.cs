@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using ILGPU;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
@@ -8,7 +9,7 @@ using ILGPU.Runtime.Cuda;
 namespace APThermo.Execution;
 
 /// <summary>
-/// The typed launchers of the entry points, compiled — and on CUDA post-linked — on first use and kept for the session's lifetime,
+/// The typed launchers of the entry points, compiled — and on CUDA post-linked — on first use and kept until <see cref="Clear"/> (the engine's dispose),
 /// one entry per entry-point name. The only synchronised piece of an engine (API.md: an engine is used from one thread at a time).
 /// </summary>
 internal sealed class KernelCache(AcceleratorSession session)
@@ -29,15 +30,19 @@ internal sealed class KernelCache(AcceleratorSession session)
     }
 
     /// <summary>
-    /// Drops every launcher (2026-09-30, "Release at dispose"): the engine calls it before it disposes its session, so a
-    /// disposed engine that stays reachable — a field, a static fixture — holds no compiled kernel. A later
-    /// <see cref="Get{TDelegate}"/> compiles again; the engine never asks after its own disposal.
+    /// Releases everything this cache and its context hold of the compiled kernels (2026-09-30, "Release at dispose"): every
+    /// launcher, and the ILGPU context's caches of the intermediate representation the compile built, which are what stays
+    /// reachable through the disposed session (143 MiB after one rocket kernel, 3.9 GB before the inlining bound; dropping
+    /// the launchers alone frees none of it). The engine calls it before it disposes its session, so a disposed engine that
+    /// stays reachable — a field, a static fixture — holds no compiled kernel. A later <see cref="Get{TDelegate}"/> compiles
+    /// again; the engine never asks after its own disposal. The context call touches no accelerator cache.
     /// </summary>
     public void Clear()
     {
         lock (_gate)
         {
             _launchers.Clear();
+            session.Context.ClearCache(ClearCacheMode.Everything);
         }
     }
 

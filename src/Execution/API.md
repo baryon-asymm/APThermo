@@ -106,7 +106,7 @@ internal sealed class KernelCache                     // typed launchers of the 
     public KernelCache(AcceleratorSession session);
     public int Count { get; }                          // how many launchers it holds; zero after Clear (2026-09-30)
     public TDelegate Get<TDelegate>(string name, out TimeSpan warmUp) where TDelegate : Delegate;   // warmUp is the compile time, zero when cached
-    public void Clear();                               // drops every launcher (2026-09-30); Engine.Dispose calls it
+    public void Clear();                               // drops every launcher and the ILGPU context's IR caches (2026-09-30); Engine.Dispose calls it
     internal static Kernel Load(AcceleratorSession session, string name);   // compiles (and on CUDA post-links) and loads the named entry point: the one load path of this node, the bind-time probe included
 }
 
@@ -334,7 +334,7 @@ station and a fixed chunk of 16 384 would take 700 MB.
 ⚠ 2026-09-30 (the memory investigation of 2026-09-29): a disposed `Engine` kept every kernel
 it had compiled for as long as the engine object stayed reachable, and the rocket kernel's
 compiled program had grown to 3 GB of ILGPU IR (`BOOT.md`, the criterion of that date). `Dispose`
-now empties the kernel cache before it disposes the session; `KernelCache.Count`, `Clear` and
+now empties the kernel cache and the ILGPU context's caches before it disposes the session (dropping the launchers alone frees none of the 143 MiB the rocket kernel's IR keeps, 3.9 GB before the inlining bound: the context's caches hold it); `KernelCache.Count`, `Clear` and
 `Engine.Launchers` are new, all tree contract, and no package surface moves. `BatchLength` is not
 new: it stood under the batch constructors since 2026-09-28 and is named here since a fact of the
 tests node now calls it, in place of allocating a 16 GB array to read a length.
