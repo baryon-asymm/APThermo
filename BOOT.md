@@ -320,6 +320,23 @@ delivery (2026-09-15, `## Delivery` below).
   - their probe outputs are the same bits.
 
   The execution node's `BOOT.md` records the design.
+- Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default
+  (`InliningMode.Default`), so each call site of a method that holds a whole solve is a
+  full copy of it in the compiled program. A stage that holds or reaches a whole solve
+  (`Equilibrium`'s `Solve` and `SolveFrozen`, through `StationSolve` in `Performance`) is
+  reached through one method marked `[MethodImpl(MethodImplOptions.NoInlining)]`, or has
+  one call site. The rocket kernel's compile on the CPU accelerator stays inside the
+  bounds of the execution node's guard (its `BOOT.md`).
+
+  ⚠ 2026-09-30: nothing bounded it, and the rocket kernel grew from 3 to 7 call sites of
+  `StationSolve.At` in the audit fixes of 2026-09-27 and 2026-09-28. Measured by the
+  memory investigation of 2026-09-29 on the CPU accelerator, one `Solver`'s first rocket
+  call: 5.7 s and 1.16 GB committed at 0.1.0 (3 sites), 49.7 s and 11.2 GB at `d270bf1`
+  (7 sites), 2.6 s and 0.43 GB with the attribute on `StationSolve.At`. The test suite
+  followed: 25 GB and 35 minutes for `Cli.Tests`, over 27 GB for `Docs.Tests` and
+  `Execution.Tests`, against 3 GB and 4 minutes at 0.1.0, and a WSL instance died of
+  the machine's memory. No result bit moves. The owner decided on 2026-09-30 to fix it
+  before 0.2.0.
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
   during a solve.
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
@@ -661,6 +678,15 @@ There is no external ancestor: the tree root is the repository root, and the loa
       findings are designed in the nodes they concern (`Performance`, `Equilibrium`,
       `Execution`, `Problems`, the protocol tests and fixtures nodes, and the rule-set
       line of the Diagnostics constraint above) and close before the tag like the rest.
+
+- [ ] The rocket kernel's compile is bounded (2026-09-30, the memory investigation of
+      2026-09-29): the attribute of the Compile size constraint, a guard in the execution
+      tests node, the engine releasing its kernels at `Dispose`, and no test allocating
+      what it only measures. Evidence per the execution node's criterion of that date;
+      the CUDA path is proved on the reference machine before the tag: GPU equals CPU
+      (the 100 000-case sweep, every architecture) and the throughput ratio not below
+      its approved floor. If the call the attribute leaves in the PTX breaks either, the
+      fallback is one call site, a new design session.
 
 ## Taboos
 

@@ -634,6 +634,10 @@ libdevice for the CUDA category.
       WSL; confirmed pre-existing for `Performance.Tests` by a direct check against two
       earlier commits (`Execution`'s own criterion has the detail) and reported, not
       fixed, since every one of those nodes is outside this task's subtree.
+- [ ] The compile guard and the bound check of 2026-09-30 are proved (the execution node's
+      criterion of that date owns their design): each fact red once with what it guards
+      undone, one process's run of the whole project below 2 GB of private memory at its
+      peak on the reference machine, recorded here with the figure.
 
 ## Taboos
 

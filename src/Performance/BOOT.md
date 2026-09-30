@@ -281,6 +281,14 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Not in version 1: finite-area chamber, subsonic exit stations, freezing at an
   arbitrary station, the report's stop of a frozen expansion 50 K below the range of
   a condensed species present at the chamber (section 6.5.1).
+- Compile size (2026-09-30, the root's Compile size constraint): `StationSolve.At` is
+  marked `[MethodImpl(MethodImplOptions.NoInlining)]`. It is the one method through
+  which the rocket program reaches `Equilibrium`'s solves, from seven call sites
+  (`AreaRatioIteration`, `PhaseBoundaryLocator`, `PressureRatioStation`,
+  `ThroatBracketSearch` three times, `UpstreamChokeCheck`), and ILGPU inlines a full copy
+  of the solve at each. A new stage that calls it adds a call, never a copy; a stage that
+  would reach `Equilibrium` another way is a root decision. Its arguments are `in`
+  structs and views as before, so the result bits do not move.
 
 ## Structure
 
@@ -958,6 +966,12 @@ this node needs no other efferent-coupling row.
       `0928618`, the new fixture's own facts and the four new `ThirdPassFixTests`); the
       protocol lint, 0 errors, 0 warnings; no `Bits*.approved.txt` or
       `PublicSurface.approved.txt` moved.
+- [ ] The rocket kernel's compile is bounded (2026-09-30, the root's criterion of that
+      date). `StationSolve.At` carries the attribute; a fact reads it from the compiled
+      method (`MethodImplAttributes.NoInlining`), red without it. Every bit snapshot of
+      the tree and every CEA tolerance test green with no `Bits*.approved.txt` moved on
+      Windows; the compile's figures are the execution node's. The CUDA proof is the
+      orchestrator's, on the reference machine, after the merge.
 
 ## Taboos
 

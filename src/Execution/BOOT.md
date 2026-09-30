@@ -1398,6 +1398,38 @@ confirms it.
       This CPU-side evidence is complete; the `Category=Cuda` run and the red-once
       mutation on real hardware stay the orchestrator's, per this task's own
       instruction not to run CUDA tests from this worktree.
+- [ ] The rocket kernel's compile is bounded and released (2026-09-30, the root's
+      criterion of that date).
+      - **Release at dispose.** `Engine.Dispose` empties the kernel cache (`KernelCache`
+        gains a `Clear`, called before the session is disposed), so a disposed engine that
+        stays reachable (a field, a static fixture) holds no compiled kernel: the
+        measured 3 GB of ILGPU IR of a live rocket kernel stay with the engine only while
+        it is in use. A fact: after `Dispose` the cache is empty, and a `WeakReference` to
+        a launcher taken before it is dead after a collection while the engine object is
+        still referenced. Red without the `Clear`. Whether `Context.ClearCache` after each
+        kernel load also pays (it took the kept IR of a live solver from 3 GB to 3 MB
+        before the attribute, and did not lower the compile's peak) is measured after the
+        attribute, with the later kernel loads' time, and kept only when it gains and
+        changes no bit; the decision and the figures are recorded here.
+      - **The guard.** A fact compiles the rocket kernel on a fresh CPU accelerator engine
+        and asserts the compile's cost stays inside a bound. Measure first, in a fresh
+        process, over five runs each: with the attribute (0.43 GB, 2.6 s in the
+        investigation) and with it removed (11.2 GB, 49.7 s). The metric is a
+        deterministic one if ILGPU offers it (the IR size of the compiled program), else
+        managed plus native private memory or the managed heap after the compile; the
+        bound at least 3 times above the measured green figure and at most half the red
+        one, so machine load cannot flip it. Red with the attribute removed, green with
+        it, stable over five runs; it fails on an empty measurement. Not `LongRunning`
+        if under 30 s.
+      - **No test allocates what it measures.** `AcceleratorChoiceTests`'s check of the
+        32-bit bound (`new EquilibriumBatch(100_000, 20_000).ElementMoles.Length`, a 16 GB
+        array made only to read its length) asks the batch's own bound instead: the check
+        is one internal method the constructors call, and the fact calls it with the
+        product just inside the bound and just over it. The constructor facts that throw
+        stay. Red with the bound off by one.
+      - **Records.** `API.md` and this node's `## Structure` name `KernelCache.Clear`; no
+        public surface moves; the tree-contract snapshot moves by what it lists.
+        The CUDA proof is the orchestrator's, after the merge.
 
 ## Taboos
 
