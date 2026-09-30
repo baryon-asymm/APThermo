@@ -18,6 +18,7 @@ import numpy as np
 import cea
 
 from common import CASES, THERMO_INP, TRANS_INP, generator_sha256, safe_name, sha256_of, sha256_of_normalized
+from document_comparison import DocumentComparison
 
 _DATE = re.compile(r'"generatedOn": "\d{4}-\d{2}-\d{2}"')
 
@@ -40,12 +41,18 @@ def dumps(document: dict) -> str:
 
 class Writer:
     def __init__(self, check: bool = False, only: list[str] | None = None,
-                 only_cases: set[tuple[str, str]] | None = None) -> None:
+                 only_cases: set[tuple[str, str]] | None = None, tolerant: bool = False) -> None:
         """`only_cases`, when given, is a set of `(kind, safe_name(name))` pairs (regenerate.py's `--sample`, tests/
         Fixtures/BOOT.md's CI step): every other case of a wanted kind is skipped, and the stale sweep of `finish()`
         is turned off, since a sample deliberately produces only part of each kind and every file it does not touch
-        is not stale."""
+        is not stale.
+
+        `tolerant` (with `check`; regenerate.py's `--check --sample`, tests/Fixtures/BOOT.md's "The binding step
+        runs on the fixtures' own platform and compares with a tolerance") compares a regenerated case with the
+        committed file as a document, field by field (document_comparison.py), instead of as text."""
         self.check = check
+        self.comparison = DocumentComparison() if tolerant and check else None
+        self.differences: dict[str, list[str]] = {}
         self.only = set(only) if only else None
         self.only_cases = only_cases
         self.results: list[tuple[str, str]] = []
@@ -97,7 +104,7 @@ class Writer:
         if os.path.exists(path):
             with open(path, encoding="utf-8", newline="") as f:
                 old_text = f.read()
-            outcome = "unchanged" if _DATE.sub("", old_text) == _DATE.sub("", new_text) else "changed"
+            outcome = self._compare(os.path.relpath(path, CASES), old_text, new_text)
         else:
             outcome = "missing"
         if outcome != "unchanged" and not self.check:
@@ -107,6 +114,16 @@ class Writer:
             outcome = "written"
         self.results.append((os.path.relpath(path, CASES), outcome))
         return outcome
+
+    def _compare(self, relative_path: str, old_text: str, new_text: str) -> str:
+        """`unchanged` or `changed`: exact text but for the date, or, under `tolerant`, document against document,
+        with the differences of a changed case kept under its path for `finish()` to print."""
+        if self.comparison is None:
+            return "unchanged" if _DATE.sub("", old_text) == _DATE.sub("", new_text) else "changed"
+        found = self.comparison.differences(json.loads(old_text), json.loads(new_text))
+        if found:
+            self.differences[relative_path] = found
+        return "changed" if found else "unchanged"
 
     def finish(self) -> int:
         """Reports stale files, prints a summary and returns the process exit code."""
@@ -129,6 +146,8 @@ class Writer:
         for path, outcome in self.results:
             if outcome != "unchanged":
                 print(f"{outcome:9s} {path}")
+                for line in self.differences.get(path, []):
+                    print(f"            {line}")
         for path in stale:
             if self.check:
                 print(f"stale     {os.path.relpath(path, CASES)}")
