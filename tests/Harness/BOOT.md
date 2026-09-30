@@ -371,6 +371,31 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       `Bits.Differences` never call it on a public-field struct or on a type with no
       numeric member today, so none of their `Bits.approved.txt` moves); the protocol
       lint 0 errors, 0 warnings.
+- [ ] `JsonFieldComparison` lives here, once (2026-09-30, the second CI run of the branch of
+      2026-09-29, `ubuntu-latest`). The step "Install the packed tool and run an approved
+      example" of `ci.yml` compared the packed tool's rocket output with
+      `tests/Docs.Tests/approved/cli/rocket.approved.json` byte for byte, a Windows
+      record, and after the equilibrium change of 2026-09-28 the output on Linux differs
+      in its last digits (about 1e-13 relative): the step failed on the hosted Linux runner.
+      The docs tests node already holds every runner to a field-by-field comparison with
+      1e-9 (its criterion of 2026-09-29); the workflow's scratch program has no access to
+      that class, which is internal to the docs tests node.
+      - The class moves here, public, unchanged in behaviour: `Mismatch(JsonElement
+        approved, JsonElement actual, string path)`, null when equal, else the first
+        difference by its JSON path, and the constant `RelativeNumberTolerance` 1e-9.
+        `API.md` lists it. The docs tests node uses this one and deletes its own.
+      - The workflow's scratch program (`.ci/run-cut`) calls it after `RunPropertyCut`
+        and exits 1 with the mismatch on stderr, replacing the `diff` of that step; on
+        every hosted runner the approved file is the Windows record
+        (`rocket.approved.json`), and the exact comparison stays with the reference
+        machine's `Category=BitSnapshot` facts (root `BOOT.md`, Delivery).
+      - Evidence: the docs tests node's own field-fact red-once records hold for the moved
+        class unchanged (a number moved by 1e-8 fails, by 1e-10 passes; run in `Docs.Tests`);
+        the step's new comparison shown red on a scratch copy with one number moved by
+        1e-8 and green with the Linux output of the same example (recorded under WSL2:
+        `tests/Docs.Tests/approved/cli/rocket.linux.approved.json`); the CI run of the
+        change is the owner's push, so the criterion stays unticked until it is green on
+        both hosted runners.
 
 ## Taboos
 

@@ -974,7 +974,14 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     the bit snapshots with the CUDA tests.
     Then the samples run against the fresh `APThermo` package from a local feed, the
     tool installed from that feed runs an approved example, and the docs tests run (the
-    ⚠ of 2026-09-17 under Documentation).
+    ⚠ of 2026-09-17 under Documentation). The example's output is compared with the
+    approved record field by field, numbers within 1e-9 relative, the Documentation rule
+    of 2026-09-29 (a hosted runner's CPU is not the reference machine's).
+
+    ⚠ 2026-09-30: the step compared byte for byte. The first run on the hosted Linux
+    runner after the equilibrium change of 2026-09-28 failed on the last digits
+    (about 1e-13 relative), the same platform difference that moved the bit snapshots.
+    The comparison lives in the harness, once (`tests/Harness/BOOT.md`).
   - There is no nightly run (2026-09-17).
 
   ⚠ 2026-09-17: stood "A nightly run adds the long-running tests on the CPU
