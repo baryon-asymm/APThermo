@@ -47,6 +47,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
   `transport_fits.py`, `rp1311.py`, `propellants.py`, `plateaus.py`, `throat_scan.py`
   since 2026-09-27), the case builders over the
   package in `cea_cases.py`, shared helpers in `common.py`, the writer in `writer.py`,
+  the document comparison of the sampled check in `document_comparison.py` (2026-09-30),
   the driver `regenerate.py`. Every family module exposes `generate(writer)` and runs
   standalone.
 - Unit conversion happens only here, through the named factors of `common.py`: bar to
@@ -99,10 +100,24 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
       are the enthalpy and entropy in J/kg divided by R (probe before the scripts were
       written; the `derivedFrom.temperature` field lets a test node re-check every case).
 
+- [x] 2026-09-30 — `regenerate.py --check --sample` compares as documents with a
+      tolerance and plain `--check` stays exact text (the parent's last criterion, which
+      holds the evidence: the mutations, each applied alone and seen to fail or pass as
+      designed, and the full regeneration whose 336 files moved only in `generatorSha256`
+      and `generatedOn`). The CI run on `windows-latest` is still owed there; this
+      criterion states the local half only.
+
+      ⚠ 2026-09-30: the Invariants above still say "byte-identical fixtures", which holds
+      for plain `--check`; the sampled check on another machine of the platform accepts
+      the differences the parent's rows allow, since the same scripts, package and data
+      files give bit-identical output only on the machine that wrote the files.
+
 ## Taboos
 
 - No hand-edited fixture, no fixture value typed into a script.
 - No import of the tree's code and no call into it: the generator must not depend on
   what it verifies.
-- No tolerance decided here: the parent's `tolerances.json` is the only table.
+- No tolerance decided here: the parent's `tolerances.json` is the only table
+  (`document_comparison.py` reads its `regeneration` and `throat` rows and holds no
+  figure of its own).
 - No network access at generation time: the package and the data are local.

@@ -53,18 +53,24 @@ jobs:
       # The fixtures' provenance hashes bind an output to the scripts that produced it, never to the reference
       # package's own answer (tests/Fixtures/BOOT.md, "The outputs are bound to the generator"): a hand-edited
       # expected value passes every other guard. This step regenerates a sample with the pinned `cea` package in a
-      # fresh virtual environment and fails the job on any difference from the committed text, exact and not a
-      # tolerance (the same comparison `regenerate.py --check` makes over the whole set), and on any (script, kind)
-      # pair the sample intended to cover comparing nothing at all (tests/Fixtures/BOOT.md, the third audit pass's
-      # finding 4c). Linux only: the reference package is proven against this tree only on the platforms the root
-      # BOOT.md's platform constraint names, and one hosted platform is enough to bind the outputs to the generator.
+      # fresh virtual environment and compares each regenerated case with the committed file as a document, field
+      # by field, not as text (`regenerate.py --check --sample`, tests/Fixtures/BOOT.md, "The binding step runs on
+      # the fixtures' own platform and compares with a tolerance"): the same keys in the same order, strings,
+      # booleans and null equal, numbers within 1e-9 relative, the `throat` kind's search-derived numbers within the
+      # `throat` row of tests/Fixtures/tolerances.json, the provenance keys generatedOn, thermoLibSha256 and
+      # transLibSha256 left out. It fails the job on any difference, and on any (script, kind) pair the sample
+      # intended to cover comparing nothing at all (tests/Fixtures/BOOT.md, the third audit pass's finding 4c).
+      # Windows only: the committed fixtures are the Windows package's, `cea` builds its data libraries per platform
+      # and on Linux aborts on the near-singular salt states and moves the throat family by up to 2.2e-5, so the
+      # step runs on the fixtures' own platform (a hosted CPU may differ from the reference machine's, which the
+      # tolerance absorbs; plain `regenerate.py --check` compares exact text on the reference machine).
       - name: Fixtures are bound to the generator
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          python3 -m venv .venv-fixtures
-          .venv-fixtures/bin/pip install --disable-pip-version-check -r tests/Fixtures/generate/requirements.txt
-          .venv-fixtures/bin/python tests/Fixtures/generate/regenerate.py --check --sample
+          python -m venv .venv-fixtures
+          .venv-fixtures/Scripts/python -m pip install --disable-pip-version-check -r tests/Fixtures/generate/requirements.txt
+          .venv-fixtures/Scripts/python tests/Fixtures/generate/regenerate.py --check --sample
 
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
