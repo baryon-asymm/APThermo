@@ -1164,7 +1164,7 @@ same day.
       `dotnet test tests/Execution.Tests -c Release` 126/126 on CUDA; the protocol
       lint 0 errors/0 warnings; no `Bits*.approved.txt` differs from `main` outside
       the fifteen new tp lines and eleven new thermo lines named above.
-- [ ] The second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium, findings
+- [x] 2026-09-30 — The second hidden-defect audit of 2026-09-28 (Thermo and Equilibrium, findings
       F1 to F5, and the guards part's O8 and F9) is closed by the rules of that date
       under Constraints.
 
@@ -1175,10 +1175,21 @@ same day.
       dense-solver entry and anti-cycling fact (F5), the mixture window and state
       guard (F2), the fallback on any failure (F3), frozen validation (F4), the NaN
       element guard (guards O8), and the bit and approved-output re-approvals across
-      every node the change touches (Bits, below). **Open:** the NaClO4 and
-      AP/HTPB/Al fixtures of F1, under investigation by the orchestrator since
-      2026-09-28 (below); the AP/HTPB/Al convergence claim of F5, blocked by the same
-      gap.
+      every node the change touches (Bits, below). The NaClO4 and AP/HTPB/Al fixtures
+      of F1, and the AP/HTPB/Al convergence claim of F5, were open on 2026-09-28 and are
+      closed by the criterion of rules A and B below, with the third pass's criterion
+      after it.
+
+      ⚠ 2026-09-30: the criterion stood unticked with an "Open" list after the rules
+      A and B criterion below closed that list, so nothing showed the audit closed.
+      Evidence at `9284418` and after, on the reference machine: `dotnet build
+      APThermo.sln` 0 warnings, 0 errors; the fast suite green on Windows and under
+      WSL2 (5 436 facts under WSL2, Equilibrium 944 of 944); the protocol lint 0 and 0;
+      `dotnet test tests/Execution.Tests -c Release` on CUDA 171 of 171 on Windows and
+      170 of 170 under WSL2, the 100 000-case sweep and every architecture included;
+      the release job's filter (`Category=Cuda|Category=BitSnapshot`) green on Windows
+      in Release. Known and outside the criterion, by the owner's decision of
+      2026-09-28: the three classes at the end of this section, for 0.2.1.
       - **The two-stage threshold (F1).**
         - New tp fixtures from cea 3.3.4 through the fixtures node's generator: RP-1311
           example 5's table at 300 K, 1 bar and 70 bar, and 305 K, 1 MPa. Covered by

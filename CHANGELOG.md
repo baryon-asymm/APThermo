@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-09-27
+## [0.2.0] - 2026-09-30
 
 This release breaks the binary surface of 0.1.0: code built against 0.1.0 must be
 recompiled. It fixes the findings of two hidden-defect audits of the whole library, the
@@ -116,6 +116,10 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
     of 0 instead of NaN, on the GPU only. Both accelerators now behave as .NET does.
   - Very large `ScratchBytes` and `ChunkSize` settings could overflow a kernel's
     32-bit offsets; a chunk is now capped below that.
+  - An engine releases its compiled kernels and the compiler's caches when it is
+    disposed, so a disposed `Solver` that stays referenced no longer holds about
+    150 MB, and a `Solver`'s first rocket calculation on the CPU compiles in about
+    2 s and 0.4 GB instead of 6 s and 1.2 GB.
   - On a GPU that drives a display, the driver kills a launch that runs longer than
     its limit (2 s by default on Windows and under WSL2). Chunks are now sized to a
     quarter of that limit from the measured time per case, and a launch the driver

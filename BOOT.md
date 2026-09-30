@@ -657,7 +657,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
       Every architecture is compiled for and then run on the RTX 5070 Ti; no GPU older
       than Blackwell has run it. A one-time run on rented hardware (a T4 or an L4) is
       planned by the owner and will be recorded here.
-- [ ] The second hidden-defect audit (2026-09-28, five read-only parts at `5a732f0`,
+- [x] 2026-09-30 — The second hidden-defect audit (2026-09-28, five read-only parts at `5a732f0`,
       reports kept out of the tree with the first audit's) is closed before 0.2.0 is
       tagged: every finding of every part is fixed or answered by an owner's decision,
       recorded in the node it concerns. The owner decided on 2026-09-28:
@@ -679,7 +679,17 @@ There is no external ancestor: the tree root is the repository root, and the loa
       `Execution`, `Problems`, the protocol tests and fixtures nodes, and the rule-set
       line of the Diagnostics constraint above) and close before the tag like the rest.
 
-- [ ] The rocket kernel's compile is bounded (2026-09-30, the memory investigation of
+      Evidence, on the reference machine, at `9284418` and after: every node's criteria of
+      the audit and of the third pass ticked in the node they concern, except two of the
+      fixtures node that wait for a run on GitHub (its `## Acceptance criteria`: the
+      outputs bound to the generator, and the sample that covers every script). The
+      whole solution builds with 0 warnings and 0 errors, the protocol lint gives 0 and
+      0, the fast suite is green on Windows and under WSL2 with each platform's records
+      recorded, and the CUDA path is green on both (the criterion below). Three
+      classes of equilibrium failure are known and left to 0.2.1 by the owner's decision
+      (`CHANGELOG.md`, Known limitations).
+
+- [x] 2026-09-30 — The rocket kernel's compile is bounded (2026-09-30, the memory investigation of
       2026-09-29): the attribute of the Compile size constraint, a guard in the execution
       tests node, the engine releasing its kernels at `Dispose`, and no test allocating
       what it only measures. Evidence per the execution node's criterion of that date;
@@ -687,6 +697,21 @@ There is no external ancestor: the tree root is the repository root, and the loa
       (the 100 000-case sweep, every architecture) and the throughput ratio not below
       its approved floor. If the call the attribute leaves in the PTX breaks either, the
       fallback is one call site, a new design session.
+
+      Evidence at `9284418`, the reference machine, Release: the guard, the release of
+      the kernels at dispose and the bound check are in the execution node; the attribute
+      is in the performance node. `dotnet test tests/Execution.Tests -c Release` on CUDA:
+      171 of 171 on Windows in 2 minutes 36 seconds (37 minutes before, mostly compile),
+      170 of 170 under WSL2 in 2 minutes 48 seconds, the 100 000-case sweep and every
+      architecture included, so GPU equals CPU with the call left in the PTX. The
+      throughput tripwire held: the ratio 24.24 against the record's 23.58 on Windows
+      and 38.01 against 27.48 under WSL2, the floor being 5. The attribute's cost was
+      measured by three runs of the tripwire before (`00dac9b`) and after: the CUDA
+      kernel 0.150 s before and 0.157 to 0.172 s after, about 10 % slower, the CPU
+      within the noise (4.65 to 4.88 s before, 4.77 to 5.01 s after). No throughput
+      record is re-approved: the run-to-run spread is larger than the effect. The
+      release job's filter is green on Windows in Release. The per-project peaks of the
+      fast suite went from 14 to over 27 GB to 0.75 to 1.6 GB, the whole solution 4.8 GB.
 
 ## Taboos
 
