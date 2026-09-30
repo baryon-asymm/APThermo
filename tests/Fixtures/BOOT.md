@@ -784,7 +784,7 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       it imports (the SI factors in `common.py`, the derived fields and the station
       guard in `cea_cases.py`). A fixture whose `scriptSha256` was replaced by 64 zeros
       left `Fixtures.Tests` 26/26 green.
-- [ ] The outputs are bound to the generator, not only the scripts (the second
+- [x] 2026-09-30 — The outputs are bound to the generator, not only the scripts (the second
       hidden-defect audit of 2026-09-28, guards part, observation O5). The provenance
       hashes prove which scripts produced the fixtures. A hand-edited expected value
       passed every guard, and only review enforced the root's taboo on typed expected
@@ -824,10 +824,9 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
         pre-re-provenance content) and confirmed clean again (`regenerate.py --check`
         and `--check --sample` both exit 0; `git diff --numstat` unchanged at `1 1` per
         file).
-      - Not yet accepted: a real CI run of the branch that adds the step (the root's
-        rule for workflow changes) is still due, since this coder may not push. The
-        criterion stays unticked until that run is green.
-- [ ] The sample of the binding step covers every script (the third audit pass of
+      - Accepted 2026-09-30 on the CI run named under the last criterion of this group: the
+        step "Fixtures are bound to the generator" ran on `windows-latest` and passed.
+- [x] 2026-09-30 — The sample of the binding step covers every script (the third audit pass of
       2026-09-28, part 2, finding 4c). The sample of the criterion above took one case
       per kind directory, 25 of 335 files: `rp1311.py`, `low_temperature.py`,
       `condensed_phase_limit.py`, `retention_threshold.py` and `propellants.py`'s
@@ -874,11 +873,9 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
         pre-re-provenance content) and confirmed clean again (`regenerate.py --check`
         and `--check --sample` both exit 0 again; the file's `git diff` matches every
         other file's pattern, `generatorSha256` and `generatedOn` only).
-      - Not yet accepted: a real CI run of the branch that changes `ci.yml`'s comment
-        (the root's rule for workflow changes) is still due, since this coder may not
-        push. This criterion and the one above it ("The outputs are bound to the
-        generator") both stay unticked until that run is green.
-- [ ] The binding step runs on the fixtures' own platform and compares with a tolerance
+      - Accepted 2026-09-30 on the same CI run: the sample of 36 files over 19 (script, kind)
+        pairs compared at least one case per pair, the coverage check held.
+- [x] 2026-09-30 — The binding step runs on the fixtures' own platform and compares with a tolerance
       (2026-09-30, the first CI run of the binding step, on `ubuntu-latest`; the owner
       decided the same day). The two criteria above stood on an untested premise: that
       `regenerate.py` reproduces the committed files, exact text, on a hosted runner. It
@@ -920,14 +917,18 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       - **Evidence.** Locally: `--check` and `--check --sample` exit 0; a hand edit of one
         output number by 1e-8 relative fails the sample naming the file and the path of
         the field, by 1e-10 passes (the tolerance stated, not hidden); an edit of a
-        string, of a key and of an input each fails. Then the CI run of `windows-latest`,
-        which the coder cannot start: this criterion stays unticked until the run is
-        green, and the two above with it. If the hosted Windows CPU moves a search-derived
+        string, of a key and of an input each fails. Then the CI run of `windows-latest`
+        (below, green). If the hosted Windows CPU moves a search-derived
         number past its row, the row is recorded here with the measured figure, and never
         widened past the family's own tolerance-table value.
 
         Local evidence, 2026-09-30, on the reference machine (Windows, `cea` 3.3.4,
-        `numpy` 2.5.3), at `f382cd1`; still owed: the CI run.
+        `numpy` 2.5.3), at `f382cd1`.
+
+        CI evidence, 2026-09-30: run 36734450932 of `71e389c`, the step on `windows-latest`
+        passed against the committed Windows files with the tolerances of
+        `tolerances.json` unchanged (no row widened), and was skipped on `ubuntu-latest`
+        as designed; the whole job is green on both.
         - The generator's comparison is `generate/document_comparison.py`
           (`DocumentComparison`), which `writer.py`'s `Writer(tolerant=True)` uses under
           `--check --sample` only. It reads its two tolerances from `tolerances.json`

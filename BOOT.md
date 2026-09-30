@@ -680,10 +680,10 @@ There is no external ancestor: the tree root is the repository root, and the loa
       line of the Diagnostics constraint above) and close before the tag like the rest.
 
       Evidence, on the reference machine, at `9284418` and after: every node's criteria of
-      the audit and of the third pass ticked in the node they concern, except two of the
-      fixtures node that wait for a run on GitHub (its `## Acceptance criteria`: the
-      outputs bound to the generator, and the sample that covers every script). The
-      whole solution builds with 0 warnings and 0 errors, the protocol lint gives 0 and
+      the audit and of the third pass ticked in the node they concern, the three that waited
+      for a run on GitHub (the fixtures node's binding step, its sample and its platform, and
+      the harness's field comparison) on CI run 36734450932 of `71e389c` (2026-09-30), green
+      on `windows-latest` and `ubuntu-latest`. The whole solution builds with 0 warnings and 0 errors, the protocol lint gives 0 and
       0, the fast suite is green on Windows and under WSL2 with each platform's records
       recorded, and the CUDA path is green on both (the criterion below). Three
       classes of equilibrium failure are known and left to 0.2.1 by the owner's decision

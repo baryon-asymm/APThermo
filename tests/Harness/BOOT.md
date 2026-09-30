@@ -380,7 +380,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       `Bits.Differences` never call it on a public-field struct or on a type with no
       numeric member today, so none of their `Bits.approved.txt` moves); the protocol
       lint 0 errors, 0 warnings.
-- [ ] `JsonFieldComparison` lives here, once (2026-09-30, the second CI run of the branch of
+- [x] 2026-09-30 — `JsonFieldComparison` lives here, once (2026-09-30, the second CI run of the branch of
       2026-09-29, `ubuntu-latest`). The step "Install the packed tool and run an approved
       example" of `ci.yml` compared the packed tool's rocket output with
       `tests/Docs.Tests/approved/cli/rocket.approved.json` byte for byte, a Windows
@@ -403,8 +403,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
         the step's new comparison shown red on a scratch copy with one number moved by
         1e-8 and green with the Linux output of the same example (recorded under WSL2:
         `tests/Docs.Tests/approved/cli/rocket.linux.approved.json`); the CI run of the
-        change is the owner's push, so the criterion stays unticked until it is green on
-        both hosted runners.
+        change, green on both hosted runners (below).
 
       Done and measured on 2026-09-30 at `4297244`, everything but the CI run:
       - the class is here, public (`JsonFieldComparison.cs`), listed in `API.md` and in
@@ -430,7 +429,9 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
         document, taken from `308c04b`) exited 1 with 16 hunks of last-digit differences,
         the CI failure. `git status` of the clone showed only the untracked scratch
         files; the clone is removed.
-      What is left is the owner's: the push and a green CI run on both hosted runners.
+      CI evidence, 2026-09-30: run 36734450932 of `71e389c`, green on `windows-latest` and
+      `ubuntu-latest`; the step "Install the packed tool and run an approved example"
+      passed on both, the Linux one being the step that failed byte for byte before.
 
 ## Taboos
 
