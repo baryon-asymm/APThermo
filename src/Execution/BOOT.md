@@ -1443,7 +1443,8 @@ confirms it.
         2 GiB on the calling thread (`GC.GetAllocatedBytesForCurrentThread`). It fails when
         the run reports no warm-up (nothing was compiled) and below 32 MiB (an empty
         measurement). Not `LongRunning`: 3.4 s green, about 2 s of it the compile.
-        `TheStationSolveIsNotInlined` beside it reads `NoInlining` from `StationSolve.At`.
+        The fact that `StationSolve.At` carries `NoInlining` is the performance tests node's
+        (`CompileSizeTests.TheStationSolveIsNotInlined`), moved there on 2026-09-30.
 
         **The metric.** ILGPU offers no public size of the compiled program
         (`Context.IRContext` is internal in 1.5.3). Read by reflection, the IR's block count
