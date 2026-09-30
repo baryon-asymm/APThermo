@@ -6,7 +6,8 @@ The scaffolding the test nodes share: one CPU accelerator with the committed dat
 and the tolerance table, bit-for-bit comparison, bit hashes and the approval of their
 snapshot files, the grouping of fixture cases into families for batch tests, and
 (2026-09-16) the JSON-document helpers `JsonSchema` and `RunPropertyCut`, moved here
-from `Cli.Tests` where their second consumer, the docs tests node, belongs. It holds no
+from `Cli.Tests` where their second consumer, the docs tests node, belongs, and
+(2026-09-30) `JsonFieldComparison`, the field-by-field comparison of two documents. It holds no
 formula and names no type of the nodes its consumers test, so it can move no result.
 
 It exists because the same scaffolding stood copied in four to six test nodes: the CPU
@@ -26,6 +27,14 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   the tree.
 - **No formula and no tolerance.** A comparison within a tolerance belongs to the
   consumer that derives it or to the fixtures node's table; this node compares bits.
+
+  ⚠ 2026-09-30: "this node compares bits" stopped being true when `JsonFieldComparison`
+  moved here: it compares documents field by field, numbers within 1e-9 relative. That
+  figure is not a tolerance derived here; it is the rule the root's Documentation bullet
+  of 2026-09-29 sets for the command-line examples (four orders above the measured
+  platform difference, five below the fixtures' rows), held in one place because two
+  consumers, the docs tests node and the workflow step that runs the packed tool, apply
+  it. The bit comparison of `Bits` and `BitHash` is unchanged.
 - **Bits are raw bits.** Two doubles are the same when `BitConverter.DoubleToInt64Bits`
   agrees, so that signed zeros and NaN payloads are told apart; a bit hash is the
   SHA-256 of the little-endian bytes of the values in the order they were added, a

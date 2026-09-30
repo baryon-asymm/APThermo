@@ -313,6 +313,10 @@ sealed class (record) APThermo.Harness.FixtureFamilyKey : IEquatable<FixtureFami
     Int32 Count { get; init; }
     String Key { get; init; }
 
+static class APThermo.Harness.JsonFieldComparison
+    const Double RelativeNumberTolerance = 1E-09
+    static String? Mismatch(JsonElement approved, JsonElement actual, String path)
+
 sealed class APThermo.Harness.JsonSchema
     IReadOnlyList<String> Validate(JsonElement instance)
     static JsonSchema Parse(String text)

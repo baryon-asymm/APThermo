@@ -2,7 +2,8 @@
 
 Namespace `APThermo.Harness`. The scaffolding the test nodes
 share: a CPU host, bit comparison, bit hashes with their approval files, fixture
-families, and the JSON-document helpers (schema validation, the `run`-property cut).
+families, and the JSON-document helpers (schema validation, the `run`-property cut, the
+field-by-field comparison).
 Everything not listed here is internal and may change.
 
 ## Host ✅
@@ -79,6 +80,18 @@ public sealed class JsonSchema        // the part of JSON Schema the tree's sche
 public static class RunPropertyCut
 {
     public static byte[] Bytes(byte[] document, string example);      // the object's bytes with its top-level `run` property cut out; throws naming the example when there is no such property, more than one, or the document is not shaped as this method expects
+}
+```
+
+The field-by-field comparison of two documents (2026-09-30), moved here from the docs
+tests node so that the workflow step running the packed tool's example holds the same
+rule as the docs tests, once.
+
+```csharp
+public static class JsonFieldComparison
+{
+    public const double RelativeNumberTolerance = 1e-9;                          // four orders above the measured platform difference (about 1e-13), five below the fixtures' tolerance rows
+    public static string? Mismatch(JsonElement approved, JsonElement actual, string path);   // null when the same members in the same order, every string and boolean equal, every number within RelativeNumberTolerance relative to the larger magnitude (exactly equal at zero); else the first difference found depth-first, named by its JSON path from `path` ("$" for the whole document); throws ArgumentOutOfRangeException for a JsonValueKind that does not exist
 }
 ```
 
