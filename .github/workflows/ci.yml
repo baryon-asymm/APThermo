@@ -140,8 +140,11 @@ jobs:
           dotnet tool install APThermo.Cli --tool-path .tool --add-source artifacts/packages --version "${{ steps.version.outputs.version }}"
 
           # The scratch program inherits the root's Directory.Build.props, so it builds under the Diagnostics
-          # constraint (root BOOT.md): it references the Harness library instead of compiling RunPropertyCut.cs into
-          # itself, because a public type inside an executable is CA1515; TargetFramework and Nullable come from the root.
+          # constraint (root BOOT.md): it references the Harness library instead of compiling RunPropertyCut.cs and
+          # JsonFieldComparison.cs into itself, because a public type inside an executable is CA1515; TargetFramework
+          # and Nullable come from the root. It cuts the `run` property, compares the rest field by field with the
+          # approved document (args: delivered document, example name, approved document) and exits 1 naming the first
+          # difference on stderr.
           mkdir -p .ci/run-cut
           cat > .ci/run-cut/RunCut.csproj <<'EOF'
           <Project Sdk="Microsoft.NET.Sdk">
@@ -154,18 +157,28 @@ jobs:
           </Project>
           EOF
           cat > .ci/run-cut/Program.cs <<'EOF'
+          using System.Text.Json;
           using APThermo.Harness;
 
-          var bytes = File.ReadAllBytes(args[0]);
-          var cut = RunPropertyCut.Bytes(bytes, args[1]);
-          using var stdout = Console.OpenStandardOutput();
-          stdout.Write(cut, 0, cut.Length);
+          var cut = RunPropertyCut.Bytes(File.ReadAllBytes(args[0]), args[1]);
+          using var actual = JsonDocument.Parse(cut);
+          using var approved = JsonDocument.Parse(File.ReadAllBytes(args[2]));
+          var mismatch = JsonFieldComparison.Mismatch(approved.RootElement, actual.RootElement, "$");
+          if (mismatch is not null)
+          {
+              Console.Error.WriteLine(mismatch);
+              return 1;
+          }
+
+          return 0;
           EOF
 
           PATH="$PWD/.tool:$PATH" apthermo rocket samples/cli/problems/rocket.json --accelerator cpu > actual-rocket.json
-          dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket > actual-rocket.cut.json
 
-          diff <(tr -d '\r' < actual-rocket.cut.json) <(tr -d '\r' < tests/Docs.Tests/approved/cli/rocket.approved.json)
+          # Field by field, numbers within 1e-9 relative (root BOOT.md, Delivery: Continuous integration), against the
+          # Windows record on every runner: a hosted runner's CPU is not the reference machine's, and the exact byte
+          # comparison stays with the Category=BitSnapshot facts of the docs tests node.
+          dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket "$PWD/tests/Docs.Tests/approved/cli/rocket.approved.json"
 
       - name: Upload packages
         if: matrix.os == 'ubuntu-latest'

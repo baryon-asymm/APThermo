@@ -1,16 +1,15 @@
 using System.Text.Json;
 
-namespace APThermo.Docs.Tests;
+namespace APThermo.Harness;
 
 /// <summary>
-/// The field-by-field comparison every runner holds a command-line example's delivered document to (BOOT.md, "The
-/// command-line examples' approved documents follow the root's platform rule"): the same members in the same order,
-/// every string and boolean equal, every number within <see cref="RelativeNumberTolerance"/> relative. This is the
-/// one named function of the node that runs on every runner, the hosted ones included, where
-/// <see cref="CommandLineExampleTests.EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly"/>'s exact
-/// byte comparison does not.
+/// The field-by-field comparison of two JSON documents that every runner holds a command-line example's delivered
+/// document to, the hosted ones included, where an exact byte comparison belongs to the reference machine: the same
+/// members in the same order, every string and boolean equal, every number within
+/// <see cref="RelativeNumberTolerance"/> relative. The docs tests node and the workflow step that runs the packed
+/// tool's example both call it, so the rule exists once (the harness node's `BOOT.md`).
 /// </summary>
-internal static class JsonFieldComparison
+public static class JsonFieldComparison
 {
     /// <summary>Four orders of magnitude above the measured platform difference (about 1e-13, root `BOOT.md`'s
     /// Documentation ⚠ of 2026-09-29) and five below the fixtures' own tolerance rows.</summary>

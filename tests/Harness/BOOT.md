@@ -6,7 +6,8 @@ The scaffolding the test nodes share: one CPU accelerator with the committed dat
 and the tolerance table, bit-for-bit comparison, bit hashes and the approval of their
 snapshot files, the grouping of fixture cases into families for batch tests, and
 (2026-09-16) the JSON-document helpers `JsonSchema` and `RunPropertyCut`, moved here
-from `Cli.Tests` where their second consumer, the docs tests node, belongs. It holds no
+from `Cli.Tests` where their second consumer, the docs tests node, belongs, and
+(2026-09-30) `JsonFieldComparison`, the field-by-field comparison of two documents. It holds no
 formula and names no type of the nodes its consumers test, so it can move no result.
 
 It exists because the same scaffolding stood copied in four to six test nodes: the CPU
@@ -26,6 +27,14 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   the tree.
 - **No formula and no tolerance.** A comparison within a tolerance belongs to the
   consumer that derives it or to the fixtures node's table; this node compares bits.
+
+  ⚠ 2026-09-30: "this node compares bits" stopped being true when `JsonFieldComparison`
+  moved here: it compares documents field by field, numbers within 1e-9 relative. That
+  figure is not a tolerance derived here; it is the rule the root's Documentation bullet
+  of 2026-09-29 sets for the command-line examples (four orders above the measured
+  platform difference, five below the fixtures' rows), held in one place because two
+  consumers, the docs tests node and the workflow step that runs the packed tool, apply
+  it. The bit comparison of `Bits` and `BitHash` is unchanged.
 - **Bits are raw bits.** Two doubles are the same when `BitConverter.DoubleToInt64Bits`
   agrees, so that signed zeros and NaN payloads are told apart; a bit hash is the
   SHA-256 of the little-endian bytes of the values in the order they were added, a
@@ -396,6 +405,32 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
         `tests/Docs.Tests/approved/cli/rocket.linux.approved.json`); the CI run of the
         change is the owner's push, so the criterion stays unticked until it is green on
         both hosted runners.
+
+      Done and measured on 2026-09-30 at `4297244`, everything but the CI run:
+      - the class is here, public (`JsonFieldComparison.cs`), listed in `API.md` and in
+        `tests/Protocol.Tests/PublicSurface.approved.txt`; the docs tests node calls it and
+        its own copy is deleted (its `BOOT.md` carries the ⚠);
+      - `tests/Docs.Tests` 30 of 30, `tests/Protocol.Tests` 36 of 36, `tests/Fixtures.Tests`
+        34 of 34, the build 0 warnings and 0 errors, the protocol lint 0 and 0;
+      - red once through the moved class, in `EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis`:
+        `tp-states.approved.json`'s first `inputs.temperature` moved from `3000.0` to
+        `3000.00003` (1e-8 relative) failed naming `$.cases[0].inputs.temperature`, and
+        moved to `3000.0000003` (1e-10) passed; both reverted, the file clean;
+      - the step's own text, extracted from `ci.yml` and run: on Windows the packed
+        `APThermo.Cli` 0.2.0 (both packages packed to a scratch feed, the tool installed to
+        a scratch tool path) ran `apthermo rocket samples/cli/problems/rocket.json
+        --accelerator cpu`, the scratch program built under the Diagnostics constraint and
+        exited 0; with the delivered characteristic velocity moved to `2304.5776401`
+        (9.96e-9 relative) it exited 1 printing
+        `$.cases[0].stations[0].performance.characteristicVelocity: 2304.5776171446328
+        approved, 2304.5776401 delivered, 9.961e-009 relative`;
+      - under WSL2 (Ubuntu 24.04) in a fresh `git clone` of the branch in the home
+        directory, the same flow: the field comparison of the Linux output with
+        `rocket.approved.json` exited 0, and the old step (byte-for-byte `diff` of the cut
+        document, taken from `308c04b`) exited 1 with 16 hunks of last-digit differences,
+        the CI failure. `git status` of the clone showed only the untracked scratch
+        files; the clone is removed.
+      What is left is the owner's: the push and a green CI run on both hosted runners.
 
 ## Taboos
 
