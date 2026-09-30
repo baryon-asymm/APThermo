@@ -130,8 +130,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   Max(a, b) = IsNaN(a) ? a : IsNaN(b) ? b : a != b ? (b < a ? a : b) : (IsNegative(b) ? a : b)
   ```
 
-  This returns what .NET 10 returns for every pair, two NaNs included (the first
-  operand's payload), and no ordered comparison inside them ever sees a NaN, whichever
+  This returns what .NET 10's managed `Math.Min` and `Math.Max` return for every pair,
+  and for two NaNs the first operand exactly (2026-09-30: `System.Math` itself gives no
+  payload guarantee in optimized code, criterion below), and no ordered comparison inside
+  them ever sees a NaN, whichever
   side ILGPU moves a constant to (the root's third ILGPU defect). The names
   `double.IsNaN` and `double.IsNegative` are allowed inside `KernelMath`, and nowhere
   else in the numerical nodes, if ILGPU compiles them without libdevice.
@@ -609,6 +611,36 @@ of 14: no efferent coupling row is needed.
       `CondensedDatabaseRecordNames`), green again with the constant restored;
       `dotnet test tests/Thermo.Tests`, 1183/1183; no `Bits*.approved.txt` differs from
       `main`.
+- [ ] The `KernelMath` host fact does not take `System.Math`'s NaN payload for an oracle
+      (2026-09-30, the second CI run after the second audit, `windows-latest`, Release).
+      - ⚠ 2026-09-30: `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
+        (the criteria of 2026-09-27 and 2026-09-28 above) compares `KernelMath` with
+        `Math.Min` and `Math.Max` bit for bit, two NaNs of different payloads included, and
+        this node's text says `KernelMath` "returns what .NET 10 returns for every pair,
+        two NaNs included (the first operand's payload)". That holds for the managed body of
+        `Math.Min` and `Math.Max`, which is what a Debug build runs. In optimized code RyuJIT
+        expands both as hardware intrinsics, and for two NaNs of different payloads the
+        expansion returns the other one. Measured on the reference machine (Ryzen 7 7800X3D,
+        .NET SDK 10.0.112), the same fact: red in Release ("Min(NaN, NaN): Math.Min NaN,
+        KernelMath.Min NaN", both NaN, bits different), also with `DOTNET_TieredCompilation=0`,
+        `DOTNET_EnableAVX512F=0` and `DOTNET_EnableAVX10v1=0`; green in Debug and with
+        `DOTNET_EnableHWIntrinsic=0`. One hosted Windows run passed it and the next failed
+        it: the payload is not specified, and a hosted runner's CPU and JIT decide it.
+        The fast suite of a Release build never ran on this machine before 2026-09-30,
+        the reason no local run showed it.
+      - **The claim.** `KernelMath.Min` and `Max` equal `Math.Min` and `Math.Max` on every
+        pair whose `System.Math` result is not a NaN, bit for bit (±0 included), and return
+        a NaN whenever `System.Math` does. For two NaNs, `KernelMath`'s own rule holds, and
+        it is the one both accelerators share (the execution node's probe compares the two
+        bit for bit): a pair with a NaN operand gives the first NaN operand, exactly its
+        bits. The text above "returns what .NET 10 returns … two NaNs included" is
+        corrected to say so.
+      - **The fact.** Split in two, over the same domain: the equality of every non-NaN
+        result and of NaN-ness against `System.Math`, and the payload rule asserted against
+        the documented formula (`IsNaN(a) ? a : b` when a NaN is present), not against
+        `System.Math`. Each shown red once (the NaN branch removed; the payload rule
+        reversed to return the second NaN), green in Release and Debug and with
+        `DOTNET_EnableHWIntrinsic=0`; both fail on an empty domain.
 
 ## Taboos
 
