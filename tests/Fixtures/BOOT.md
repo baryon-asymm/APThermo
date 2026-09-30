@@ -860,6 +860,57 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
         (the root's rule for workflow changes) is still due, since this coder may not
         push. This criterion and the one above it ("The outputs are bound to the
         generator") both stay unticked until that run is green.
+- [ ] The binding step runs on the fixtures' own platform and compares with a tolerance
+      (2026-09-30, the first CI run of the binding step, on `ubuntu-latest`; the owner
+      decided the same day). The two criteria above stood on an untested premise: that
+      `regenerate.py` reproduces the committed files, exact text, on a hosted runner. It
+      does on the reference machine (`--check`, 0 files changed) and it cannot on Linux.
+
+      ⚠ 2026-09-30, what the Linux run measured (WSL2 Ubuntu 24.04, `cea` 3.3.4 and
+      `numpy` 2.5.3 from `requirements.txt`, Python 3.12 there and 3.14 on the runner,
+      the same result and the same abort on both): the reference is platform-dependent.
+      - `cea` aborts (`CEA_FORTRAN_ABORT`, "Re-insertion of NaCL(cr) likely to cause
+        singular matrix", or "did not converge") on `naclo4_T500`, `naclo4_T800` and
+        `kclo4_T500`, the near-singular salt states, which converge on Windows. Every
+        `kind` invocation of `regenerate.py` runs every script, so one abort stops the
+        step.
+      - Of the 333 fixture files, 253 differ in numbers from the Windows files at 1e-15
+        relative or more, 142 at 1e-12, 9 at 1e-10, 8 at 1e-8, 5 at 1e-6: the `throat`
+        family (up to 2.2e-5 in c* and the throat figures its search finds) and
+        `rp1311-example5_T300_p70bar` (1.1e-8). One case, `beo-h2o-throat_pc15MPa_h-11.06875MJkg`,
+        differs by 0.855 and in its `guardError`, because its plateau makes the search land
+        elsewhere.
+      - The provenance keys `thermoLibSha256` and `transLibSha256` hash a binary the
+        package builds per platform: they differ on Linux by construction.
+      The committed fixtures are the Windows package's, as the root's platform constraint
+      says of every reference record.
+
+      - **Where.** The step runs on `windows-latest` only (`if: matrix.os ==
+        'windows-latest'`), in a fresh virtual environment with the pinned packages, after
+        the protocol lint and before the build. On Linux nothing regenerates.
+      - **How.** `regenerate.py --check --sample` compares a regenerated case with the
+        committed file as a document, not as text: the same keys in the same order, every
+        string, boolean and null equal, every number within 1e-9 relative, the throat
+        family's search-derived numbers within the `throat` row of `tolerances.json` (the
+        coder reads the row; the Linux figures above, at most 2.2e-5 excluding the
+        `beo-h2o` case, are the evidence for any figure it must pick), and the provenance
+        keys `generatedOn`, `thermoLibSha256` and `transLibSha256` left out, every other
+        provenance key equal. Without `--sample` the whole set is still compared as exact
+        text, on the reference machine.
+      - **Kept.** Every (script, kind) pair of the sample compares at least one case; an
+        empty comparison fails; the sample takes every case of the `throat` family.
+      - **Evidence.** Locally: `--check` and `--check --sample` exit 0; a hand edit of one
+        output number by 1e-8 relative fails the sample naming the file and the path of
+        the field, by 1e-10 passes (the tolerance stated, not hidden); an edit of a
+        string, of a key and of an input each fails. Then the CI run of `windows-latest`,
+        which the coder cannot start: this criterion stays unticked until the run is
+        green, and the two above with it. If the hosted Windows CPU moves a search-derived
+        number past its row, the row is recorded here with the measured figure, and never
+        widened past the family's own tolerance-table value.
+      - **Records.** `tests/Fixtures/generate/API.md` names the two comparison modes;
+        the comment of the CI step says what it compares and where; the ⚠ above is the
+        record of the platform property, and the root's platform constraint is the
+        owner's to extend if it should name the fixtures (a proposal, AGENTS.md §11).
 
 ## Taboos
 
