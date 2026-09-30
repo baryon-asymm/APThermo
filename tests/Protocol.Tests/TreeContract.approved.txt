@@ -88,6 +88,9 @@ static class APThermo.Equilibrium.ScratchLayout
 
 == src/Execution
 
+static class APThermo.Execution.BatchLength
+    static Int32 Of(Int32 count, Int64 perCase)
+
 sealed class APThermo.Execution.Engine : IDisposable
     AcceleratorInfo Accelerator { get; }
     Double[] ProbeMath(Double[] inputs)
@@ -99,6 +102,7 @@ sealed class APThermo.Execution.Engine : IDisposable
     Void Dispose()
     internal Accelerator IlgpuAccelerator { get; }
     internal Boolean DropsAfterLoss(CudaError error)
+    internal KernelCache Launchers { get; }
     internal LaunchBudget Budget { get; }
     internal Void DisposeAfterLoss(IDisposable disposable)
     internal Void MarkLost(AcceleratorUnavailableException timeout)
@@ -127,6 +131,13 @@ sealed class APThermo.Execution.EquilibriumBatchResult
     MixtureState[] State { get; }
     RunTimings Timings { get; }
     internal .ctor(Int32 speciesCount, MixtureState[] state, Double[] moles, CaseStatus[] status, Int32[] iterations, RunTimings timings, AcceleratorInfo accelerator)
+
+sealed class APThermo.Execution.KernelCache
+    .ctor(AcceleratorSession session)
+    Int32 Count { get; }
+    TDelegate Get<TDelegate>(String name, out TimeSpan warmUp)
+    Void Clear()
+    internal static Kernel Load(AcceleratorSession session, String name)
 
 static class APThermo.Execution.MathProbe
     const Double PowExponent1 = 1.37

@@ -87,6 +87,7 @@ internal sealed class Engine : IDisposable
     public static bool CudaForbidden { get; }          // the environment variable is "1"
     public AcceleratorInfo Accelerator { get; }
     internal LaunchBudget Budget { get; }               // Execution.Chunks; the session's time budget for a launch (2026-09-28, F2), None off a device with no run-time limit
+    internal KernelCache Launchers { get; }             // the typed launchers this engine compiled (2026-09-30); exposed so the tests node can watch them die at Dispose
     public UploadedTables Upload(SpeciesTable species, TransportTable? transport = null);
     public EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch);
     public RocketBatchResult Run(UploadedTables tables, RocketBatch batch);
@@ -97,7 +98,16 @@ internal sealed class Engine : IDisposable
     internal void MarkLost(AcceleratorUnavailableException timeout);  // marks this engine's session lost by an injected timeout (2026-09-29, review); exposed so the tests node can drive ThrowIfLost's refusal without a driver-touching CudaException
     internal bool DropsAfterLoss(CudaError error);      // ILGPU.Runtime.Cuda; the bare-CudaError half of AcceleratorSession.DropsAfterLoss (2026-09-29, review); exposed for the same reason as MarkLost above
     internal void DisposeAfterLoss(IDisposable disposable);  // disposes an UploadedTables buffer, dropping this engine's session's own sticky CudaException (2026-09-29, the third audit pass's finding 2); exposed for the tests node's own lost-session facts
-    public void Dispose();
+    public void Dispose();                             // empties Launchers before it disposes the session (2026-09-30), so a disposed engine that stays reachable holds no compiled kernel
+}
+
+internal sealed class KernelCache                     // typed launchers of the entry points, compiled (and on CUDA post-linked) on first use, one per entry-point name; the engine's only synchronised piece
+{
+    public KernelCache(AcceleratorSession session);
+    public int Count { get; }                          // how many launchers it holds; zero after Clear (2026-09-30)
+    public TDelegate Get<TDelegate>(string name, out TimeSpan warmUp) where TDelegate : Delegate;   // warmUp is the compile time, zero when cached
+    public void Clear();                               // drops every launcher (2026-09-30); Engine.Dispose calls it
+    internal static Kernel Load(AcceleratorSession session, string name);   // compiles (and on CUDA post-links) and loads the named entry point: the one load path of this node, the bind-time probe included
 }
 
 internal sealed class UploadedTables : IDisposable        // device copies of the tables; reusable across batches of the engine that made them
@@ -179,6 +189,11 @@ fire.
 
 ```csharp
 internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
+
+internal static class BatchLength                          // the one bound the batch constructors call (2026-09-30): a flat per-case host array must fit a 32-bit length
+{
+    public static int Of(int count, long perCase);         // count * perCase; ArgumentOutOfRangeException above int.MaxValue, before any allocation
+}
 
 internal sealed class EquilibriumBatch                     // structure of arrays, one entry per case; element order of the table
 {
@@ -315,6 +330,14 @@ make the flat layouts self-describing. `LibDeviceDiscovery` and `ScratchBytes` w
 added to the options: the first so that a test can prove the "paths tried" message
 on a machine with a toolkit, the second because the transport scratch is 40 KB per
 station and a fixed chunk of 16 384 would take 700 MB.
+
+⚠ 2026-09-30 (the memory investigation of 2026-09-29): a disposed `Engine` kept every kernel
+it had compiled for as long as the engine object stayed reachable, and the rocket kernel's
+compiled program had grown to 3 GB of ILGPU IR (`BOOT.md`, the criterion of that date). `Dispose`
+now empties the kernel cache before it disposes the session; `KernelCache.Count`, `Clear` and
+`Engine.Launchers` are new, all tree contract, and no package surface moves. `BatchLength` is not
+new: it stood under the batch constructors since 2026-09-28 and is named here since a fact of the
+tests node now calls it, in place of allocating a 16 GB array to read a length.
 
 ## Errors
 

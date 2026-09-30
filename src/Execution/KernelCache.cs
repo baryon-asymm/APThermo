@@ -16,6 +16,31 @@ internal sealed class KernelCache(AcceleratorSession session)
     private readonly Dictionary<string, Delegate> _launchers = new(StringComparer.Ordinal);
     private readonly Lock _gate = new();
 
+    /// <summary>How many launchers the cache holds: zero for a new cache and after <see cref="Clear"/>.</summary>
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _launchers.Count;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Drops every launcher (2026-09-30, "Release at dispose"): the engine calls it before it disposes its session, so a
+    /// disposed engine that stays reachable — a field, a static fixture — holds no compiled kernel. A later
+    /// <see cref="Get{TDelegate}"/> compiles again; the engine never asks after its own disposal.
+    /// </summary>
+    public void Clear()
+    {
+        lock (_gate)
+        {
+            _launchers.Clear();
+        }
+    }
+
     /// <summary>The launcher of the named entry point; <paramref name="warmUp"/> is the compilation time, zero when it was cached.</summary>
     public TDelegate Get<TDelegate>(string name, out TimeSpan warmUp) where TDelegate : Delegate
     {
