@@ -296,16 +296,21 @@ public sealed class AcceleratorChoiceTests
     }
 
     /// <summary>
-    /// <see cref="Engine.ProbeMath"/> refuses an input count whose output would overflow a 32-bit offset (BOOT.md,
-    /// the second audit's observation 7): <c>Kernels.Probe</c> strides its output by
-    /// <see cref="MathProbe.FunctionCount"/> with 32-bit <c>Index1D</c> arithmetic.
+    /// The probe's output length, <see cref="MathProbe.OutputLength"/>, which <see cref="Engine.ProbeMath"/> calls (BOOT.md, the
+    /// second audit's observation 7; 2026-09-30, "No test allocates what it measures"): <c>Kernels.Probe</c> strides its
+    /// output by <see cref="MathProbe.FunctionCount"/> with 32-bit <c>Index1D</c> arithmetic, so the last count whose output
+    /// fits is accepted and the next one refused. Asked of the count, without the 1.2 GB input array the engine's own
+    /// refusal needs. Red with the bound off by one either way.
     /// </summary>
     [Fact]
-    public void ProbeMathRefusesAnInputCountWhoseOutputOverflowsA32BitOffset()
+    public void TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset()
     {
-        // int.MaxValue / MathProbe.FunctionCount (14) + 1 inputs: index * FunctionCount then overflows.
-        var tooMany = int.MaxValue / MathProbe.FunctionCount + 1;
-        var failure = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.ProbeMath(new double[tooMany]));
+        var last = int.MaxValue / MathProbe.FunctionCount;
+        Assert.Equal(last * MathProbe.FunctionCount, MathProbe.OutputLength(last));
+        Assert.Equal(0, MathProbe.OutputLength(0));
+
+        // One input more: index * FunctionCount then overflows.
+        var failure = Assert.Throws<ArgumentException>(() => MathProbe.OutputLength(last + 1));
         Assert.Contains("overflows a 32-bit offset", failure.Message, StringComparison.Ordinal);
     }
 

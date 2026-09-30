@@ -33,6 +33,21 @@ internal static class MathProbe
     internal const int StrideCount = 14;
 
     /// <summary>
+    /// The length of the probe's output for <paramref name="inputCount"/> inputs, refusing a count whose output
+    /// <see cref="Kernels.Probe"/> could not address (2026-09-30, "No test allocates what it measures"): the kernel strides its
+    /// output by <see cref="StrideCount"/> with 32-bit <c>Index1D</c> arithmetic, so more inputs than this would let
+    /// <c>index * StrideCount</c> overflow the offset on the device (the second audit's observation 7). The check lives here,
+    /// on the count, so a fact can prove the bound without allocating an input array of the size it refuses.
+    /// </summary>
+    public static int OutputLength(int inputCount)
+    {
+        var length = (long)inputCount * FunctionCount;
+        return length > int.MaxValue
+            ? throw new ArgumentException($"{inputCount} inputs times {FunctionCount} functions overflows a 32-bit offset.", nameof(inputCount))
+            : (int)length;
+    }
+
+    /// <summary>
     /// How many of the leading entries of <see cref="Functions"/> go through a libdevice call on CUDA: Exp, Log, Log10, the
     /// three Pow exponents, Sqrt, Floor and Ceiling (2026-09-28: Floor and Ceiling were documented as "the compiler emits
     /// directly", which held only for Abs; the post-link's own wrapper inventory names <c>__nv_floor</c> and <c>__nv_ceil</c>

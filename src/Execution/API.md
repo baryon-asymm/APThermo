@@ -125,6 +125,7 @@ internal static class MathProbe
     public const double PowExponent1 = 1.37;
     public const double PowExponent2 = 1.4;
     public const double PowExponent3 = 4.6;
+    public static int OutputLength(int inputCount);        // inputCount * FunctionCount; ArgumentException above int.MaxValue (2026-09-30), the bound ProbeMath calls
 }
 ```
 
@@ -337,7 +338,9 @@ compiled program had grown to 3 GB of ILGPU IR (`BOOT.md`, the criterion of that
 now empties the kernel cache and the ILGPU context's caches before it disposes the session (dropping the launchers alone frees none of the 143 MiB the rocket kernel's IR keeps, 3.9 GB before the inlining bound: the context's caches hold it); `KernelCache.Count`, `Clear` and
 `Engine.Launchers` are new, all tree contract, and no package surface moves. `BatchLength` is not
 new: it stood under the batch constructors since 2026-09-28 and is named here since a fact of the
-tests node now calls it, in place of allocating a 16 GB array to read a length.
+tests node now calls it, in place of allocating a 16 GB array to read a length. `MathProbe.OutputLength`
+is the same bound for `ProbeMath`, whose inline check a fact could reach only through a 1.2 GB input
+array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now, where it named `inputs`.
 
 ## Errors
 

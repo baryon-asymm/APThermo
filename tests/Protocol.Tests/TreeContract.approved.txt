@@ -146,6 +146,7 @@ static class APThermo.Execution.MathProbe
     internal const Int32 LibdeviceFunctionCount = 9
     internal const Int32 StrideCount = 14
     static Int32 FunctionCount { get; }
+    static Int32 OutputLength(Int32 inputCount)
     static readonly IReadOnlyList<Double> PowExponents
     static readonly IReadOnlyList<String> Functions
 

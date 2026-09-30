@@ -117,16 +117,11 @@ internal sealed class Engine : IDisposable
         }
 
         // Kernels.Probe strides its output by MathProbe.StrideCount with 32-bit Index1D arithmetic (BOOT.md, the second
-        // audit's observation 7): more inputs than this would let index * StrideCount overflow the offset on the device.
-        if ((long)inputs.Length * MathProbe.FunctionCount > int.MaxValue)
-        {
-            throw new ArgumentException(
-                $"{inputs.Length} inputs times {MathProbe.FunctionCount} functions overflows a 32-bit offset.", nameof(inputs));
-        }
-
+        // audit's observation 7): MathProbe.OutputLength refuses a count whose offsets would overflow.
+        var outputLength = MathProbe.OutputLength(inputs.Length);
         var launch = Launchers.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out _);
         using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
-        using var outputBuffer = _session.Accelerator.Allocate1D<double>((long)inputs.Length * MathProbe.FunctionCount);
+        using var outputBuffer = _session.Accelerator.Allocate1D<double>(outputLength);
         launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
         _session.Accelerator.Synchronize();
         return outputBuffer.GetAsArray1D();
