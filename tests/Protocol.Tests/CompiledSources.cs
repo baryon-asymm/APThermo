@@ -43,7 +43,7 @@ internal static class CompiledSources
             }
 
             var full = Path.GetFullPath(name);
-            if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase) && !IsBuildOutput(full))
+            if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase) && !IsBuildOutput(full) && !IsPackageOwned(full, root))
             {
                 paths.Add(full);
             }
@@ -57,6 +57,32 @@ internal static class CompiledSources
     /// document names is read, the guards audit's F5 in full; only these two, already outside the repository, are not.</summary>
     private static bool IsBuildOutput(string path) =>
         path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Any(segment => segment is "bin" or "obj");
+
+    /// <summary>
+    /// Whether a compiled source belongs to a restored NuGet package rather than to the tree: an ancestor directory of it,
+    /// below the tree root, holds a <c>*.nupkg.metadata</c> file, the sentinel NuGet writes into every package folder of the
+    /// global packages folder, wherever that folder is. CI keeps the cache inside the workspace (<c>NUGET_PACKAGES</c>), so a
+    /// package's own source, such as the test SDK's <c>Program.cs</c>, is then compiled from a path under the root. No other
+    /// path is skipped: a source in <c>templates</c>, <c>artifacts</c> or a dot-directory of the tree is still read (the
+    /// guards audit's F5).
+    /// </summary>
+    /// <param name="path">The full path of a compiled source, under <paramref name="root"/>.</param>
+    /// <param name="root">The tree root with a trailing separator; the upward search stops below it.</param>
+    internal static bool IsPackageOwned(string path, string root)
+    {
+        var directory = Path.GetDirectoryName(path);
+        while (directory is not null && EnsureTrailingSeparator(directory).Length > root.Length)
+        {
+            if (Directory.EnumerateFiles(directory, "*.nupkg.metadata").Any())
+            {
+                return true;
+            }
+
+            directory = Path.GetDirectoryName(directory);
+        }
+
+        return false;
+    }
 
     private static string EnsureTrailingSeparator(string path) =>
         path.EndsWith(Path.DirectorySeparatorChar) ? path : path + Path.DirectorySeparatorChar;

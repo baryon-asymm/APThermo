@@ -187,7 +187,7 @@ which is the proof that nothing leaked.
 | `NodeDocuments` | what a node's own `BOOT.md` declares: the links of `## Dependencies` and the rows of `## Shape exceptions` |
 | `ApiDeclarations` | the grammar of an `API.md`: its ✅ C# blocks and their declarations, the one meaning of "named in the `API.md`" for `DeclarationTests` and `CoverageTests`; the tree-contract mark of a section heading (2026-09-15, distribution phase), the one meaning of "package surface" and "tree contract" for `TreeContractTests` |
 | `SourceSyntax` | the C# syntax trees of a node's own source files, from `CompiledSources` filtered to the node's own directory and not a descendant's (2026-09-28, the guards audit's F5) |
-| `CompiledSources` | every C# path an assembly of the tree was actually compiled from, read from its own portable PDB document table (2026-09-28, the guards audit's F5), `bin`/`obj` and anything outside the tree root dropped |
+| `CompiledSources` | every C# path an assembly of the tree was actually compiled from, read from its own portable PDB document table (2026-09-28, the guards audit's F5), `bin`/`obj`, anything outside the tree root and the sources of a restored NuGet package (an ancestor directory holding `*.nupkg.metadata`, 2026-09-30, `IsPackageOwned`) dropped |
 | `ShapeMeasures` | the size, nesting and parameter measurements of the shape check, over the syntax trees |
 | `CouplingMeasures` | the coupling measurements of the shape check, over the same IL walk `DependencyTests` uses: efferent and afferent coupling per type, and Ce/Ca of each `src` node that holds a project over the declared dependency graph, a project-less child's own declared dependencies folded into its nearest project ancestor's (`NodeAssemblies.ProjectNodeOf`, root `BOOT.md`, Constraints, 2026-09-15 child-nodes phase) |
 | `ShapeMechanics` | the mechanics rule read from syntax: no `partial`/`#region`/banned-suffix type name |
@@ -196,6 +196,7 @@ which is the proof that nothing leaked.
 | `TreeContractTests` | the four facts of the Tree contract level (2026-09-15, distribution phase; "## Tree contract" below): a library node's public surface, a declared type's section against its visibility, a friend crossing against the target's tree contract, and a `src` assembly's `InternalsVisibleTo` grants against their recognised friends |
 | `DiagnosticsSyntax` | the whole-tree file walk the Diagnostics level reads (2026-09-25; "## Diagnostics check" below): every C# source file (`CompiledSources.All` plus `.github`'s own, 2026-09-28), every MSBuild project/properties/targets file, every `Directory.Build.rsp`, every `*.ruleset` file (2026-09-29, the third audit pass's finding 4b) and every analyzer-configuration file from the tree root down, never scoped to a single node the way `SourceSyntax` is, because a suppression can hide in any file of the tree |
 | `DiagnosticsTests` | the facts of the Diagnostics level (2026-09-25; extended 2026-09-28, the guards audit's F1, F3, F4 and F5, and O6; extended 2026-09-29, the third audit pass's finding 4b): no source file suppresses a diagnostic (directive trivia or a `[SuppressMessage]`/`[UnconditionalSuppressMessage]` attribute), no build file suppresses, overrides or brings in an analyzer-configuration item, sets a `CodeAnalysisRuleSet` property or is a `*.ruleset` file, no analyzer-configuration file lowers a severity, the root `Directory.Build.props`/`.targets` set the maximum, no source file carries a generated-code marker Roslyn itself would honour, every compiled source lives in a node directory, and no method reached from a kernel entry point (`KernelReachability`) throws, allocates or boxes |
+| `CompiledSourcesTests` | the one fact of the package rule of `CompiledSources` (2026-09-30): a source below a folder holding a `*.nupkg.metadata` file is a package's, and no source in `templates`, `artifacts`, a dot-directory or below a sentinel at the root is |
 | `KernelReachability` | the call graph reached from the execution node's internal `Kernels` type, walked through the tree's own assemblies only (2026-09-28, the guards audit's O6): its entry points, and the `throw`/`newarr`/reference-`newobj`/`box` problems in every method reached |
 | `ConstantLeftComparisons` | the root's third ILGPU defect (2026-09-28; the converted-type fix of 2026-09-29, the third audit pass's finding 4a): every ordered floating-point comparison of a numerical node's own sources whose left operand is a literal or a `const`, read from the semantic model of a compilation built over that node's own files, deciding "floating-point" by each operand's `ConvertedType` (the type the comparison actually runs on after an implicit numeric conversion), not its own unconverted `Type`, so an integer constant implicitly converted to `double` is caught the same as a `double` literal |
 | `MemberAccessibility` | the declared accessibility of a member or a nested type, one reading shared by the Surface and Tree contract snapshots (2026-09-28, the guards audit's O7): `IsPublic` for the public-surface floor, `IsPublicOrInternal` for the wider tree-contract one, and the leading keyword (`Prefix`) a snapshot line below public carries |
@@ -883,6 +884,10 @@ suppression passed every guard of the hosted suite.
   configurations).
   - A compiled source in a directory without `BOOT.md` and `API.md` fails the tree
     invariant, as a code directory must be a node (AGENTS.md §1).
+  - ⚠ 2026-09-30: "every C# file each assembly was compiled from" is every one but a
+    restored NuGet package's: CI's in-workspace package cache put the test SDK's own
+    `Program.cs` under the root, and `CompiledSources` now drops a source whose ancestor
+    directory holds a `*.nupkg.metadata` file (the acceptance criterion of that date).
   - `TypeShape` exempts a member as compiler-generated only when its name is
     compiler-mangled, as it already does for types.
   - ⚠ `Tree.Skipped` hid `templates`, `artifacts`, `TestResults`, `node_modules`,
@@ -1745,7 +1750,7 @@ suppression passed every guard of the hosted suite.
       No `Bits*.approved.txt` or `PublicSurface.approved.txt` moves: both facts read
       source text and build-file XML, not the assemblies' shapes, and no numerical
       node's own comparison was rewritten.
-- [ ] The compiled-source walk skips the sources of restored NuGet packages (2026-09-30, the
+- [x] 2026-09-30 — The compiled-source walk skips the sources of restored NuGet packages (2026-09-30, the
       first CI run after the second audit, on `windows-latest`). `CompiledSources` reads
       every `.cs` a compiler read from a path under the tree's root, `bin` and `obj`
       excepted. CI keeps the NuGet cache inside the workspace (`NUGET_PACKAGES` is
@@ -1763,15 +1768,37 @@ suppression passed every guard of the hosted suite.
         (the tree invariant, the generated-code markers, the syntax facts) skips it, and no
         other path is skipped: a source in a dot-directory, `templates` or `artifacts` of
         the tree is still read, the guards audit's F5 in full.
-      - **Evidence.** Reproduced first, locally and under WSL2, with the cache inside the
-        tree: `NUGET_PACKAGES=<repository>/.nuget-packages dotnet restore` then `dotnet test
-        tests/Protocol.Tests` (the directory is git-ignored; delete it afterwards). Red
-        before the fix with the two failures above, green after, the same run repeated on
-        both platforms. A fact on the rule itself: a scratch directory holding a `.cs` file
-        and a `*.nupkg.metadata` file is package-owned, the same file without the sentinel
-        is not, and the tree's own `templates/` directory case of F5 still reads red.
-        `Protocol.Tests` and `Tree`'s other walks stay unchanged; the fast suite and the
-        lint green.
+      - **Evidence.** Reproduced first, on Windows and under WSL2 (Ubuntu 24.04), at
+        `e2a27f6` with the cache inside the tree: `NUGET_PACKAGES=<repository>/.nuget-packages
+        dotnet restore APThermo.sln`, then `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests`:
+        33 of 35, the two failures the criterion names, on
+        `.nuget-packages/microsoft.net.test.sdk/17.14.1/build/net8.0`. Fixed in
+        `CompiledSources.IsPackageOwned`, called by `Of`. The same run at the fix: 36 of 36 on
+        both platforms, the new fact included. Without the in-tree cache (the user profile's
+        cache) 36 of 36 on Windows.
+        - The fact on the rule itself, `CompiledSourcesTests.OnlyASourceBelowAPackageFolderIsThePackages`,
+          on a scratch directory of the system's temporary directory: a source below a folder
+          holding `.nupkg.metadata` is the package's; the same kind of source without the
+          sentinel, and a source in `templates`, in `artifacts` and in a dot-directory, are
+          not; a sentinel at the scratch root claims nothing. Mutation applied alone and
+          reverted: the sentinel test replaced by a test that the directory exists makes it
+          red ("a plain node source was read as a package's").
+        - The F5 case still red: a scratch `src/Thermo/templates/Mutation.cs` holding
+          `// <auto-generated />` turns `EveryCompiledSourceLivesInANodeDirectory` ("`src/Thermo/templates`:
+          holds a compiled C# source but no BOOT.md and API.md") and
+          `NoSourceFileCarriesAGeneratedCodeMarker` red with the fix in place; removed,
+          never committed.
+        - `PublicSurface.approved.txt`, `TreeContract.approved.txt` and every `API.md` unchanged
+          (`CompiledSources` and `CompiledSourcesTests` are internal or a test class).
+        `Tree`'s other walks are unchanged. The build 0 warnings and 0 errors, the protocol lint
+        0 and 0.
+
+        ⚠ 2026-09-30: the design of this criterion said the in-tree cache directory
+        `.nuget-packages` "is git-ignored". It is not: `.gitignore` names neither it nor
+        `NUGET_PACKAGES`, and after a restore with the variable set `git status` lists it as
+        untracked (CI never commits, so nothing there noticed). It has to be deleted by hand
+        after such a run; adding it to `.gitignore` is the root's file, raised to the owner, not
+        edited from here (AGENTS.md §11).
 
 ## Taboos
 
