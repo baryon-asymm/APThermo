@@ -175,7 +175,7 @@ jobs:
 
           PATH="$PWD/.tool:$PATH" apthermo rocket samples/cli/problems/rocket.json --accelerator cpu > actual-rocket.json
 
-          # Field by field, numbers within 1e-9 relative (root BOOT.md, Delivery: Continuous integration), against the
+          # Field by field, numbers within 1e-9 relative (.github/BOOT.md, Continuous integration), against the
           # Windows record on every runner: a hosted runner's CPU is not the reference machine's, and the exact byte
           # comparison stays with the Category=BitSnapshot facts of the docs tests node.
           dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket "$PWD/tests/Docs.Tests/approved/cli/rocket.approved.json"

@@ -1,4 +1,4 @@
-// A CI diagnostic, not a tree node (IsaProbe.csproj). Prints the ISA facts .NET itself sees on the runner it executes
+// A CI diagnostic, a leaf node of the tree (BOOT.md and API.md beside it). Prints the ISA facts .NET itself sees on the runner it executes
 // on, so a hosted-runner bit-snapshot failure (the bits-diagnostics task) can be read back against the vector
 // instruction sets .NET actually selected for that run, alongside the CPU model and core count the workflow's
 // "Runner diagnostics" step prints without needing the SDK.

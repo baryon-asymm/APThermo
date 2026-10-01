@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The release gate (root BOOT.md, ## Delivery, Release; CI/CD and build audit, F11):
+# The release gate (.github/BOOT.md, Release; CI/CD and build audit, F11):
 # - a tag `v<version>` must equal the packed version (skipped when no ref is given, e.g. workflow_dispatch);
 # - CHANGELOG.md must carry a non-empty `## [<version>]` section, extracted into a notes file for the
 #   GitHub release (F15).

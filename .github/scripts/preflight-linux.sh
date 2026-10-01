@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Preflight for the release workflow's Linux (WSL2) GPU job (root BOOT.md, "Self-hosted runners"): asserts what the
+# Preflight for the release workflow's Linux (WSL2) GPU job (.github/BOOT.md, "Self-hosted runners"): asserts what the
 # runner must provide before any build step runs, and names every missing item instead of letting a later step fail
 # on an unhelpful error (the 2026-09-19 post-mortem, "Rehearsal before the tag"). Working directory is the
 # repository root (the job's default), so global.json resolves as a relative path.

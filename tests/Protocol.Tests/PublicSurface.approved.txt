@@ -574,3 +574,5 @@ struct APThermo.Transport.TransportFigures : IEquatable<TransportFigures>
     Int32 TraceEliminations { get; set; }
     static Boolean op_Equality(TransportFigures left, TransportFigures right)
     static Boolean op_Inequality(TransportFigures left, TransportFigures right)
+
+== IsaProbe
