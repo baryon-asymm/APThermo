@@ -44,8 +44,7 @@ why they are a node of their own.
   record made heavy, not light: made light it meets the `ALN(L)` gap. The propellant
   path is held to the same check: a reactant record whose molar mass contradicts its
   formula is refused (the committed `ADN`, 630.0 kg/kmol against its formula's 124.06).
-  ⚠ 2026-09-13: was no check of the mass (a record of another simulation, C, H, O, N,
-  Cl, Al, 1000.015 g, solved with every mole doubled), now refused beyond the tolerance
+  ⚠ 2026-09-13: was no check of the mass, now refused beyond the tolerance
   → HISTORY.md#invariants-mass-tolerance
 - **Candidate species are chosen by one rule**: every gaseous product species of the
   database whose elements are all among the mixture's elements, then every condensed
@@ -274,28 +273,24 @@ records. Every type below is internal except where marked; one type per file, na
 after the type; the public records keep their theme files.
 → HISTORY.md#structure-intro-condensed
 
-⚠ 2026-09-15: was `MixtureSpecification` and `Propellant.Mixture` public and the three
-results positionally constructible, now internal and nominal with an internal
-constructor → HISTORY.md#structure-api-review
+⚠ 2026-09-15: was `MixtureSpecification`, `Propellant.Mixture` public, now internal
+→ HISTORY.md#structure-api-review
 
 | Type | Responsibility | Visibility |
 |---|---|---|
 | `Solver` | the composition root: owns the engine and the collaborators below, turns each public entry point into (system, cases) and hands them to a runner; holds no rule. The declared exception to the coupling limit, its figure under `## Shape exceptions`; the reason is what it names, not a superlative: the two runners are declared composition roots as well (the decision "The runners are the pipelines' composition roots") → HISTORY.md#structure-solver-row | public |
 | `ChemicalSystem` | one element set with its table and its uploaded copy; disposable; no transport table kept (F-PR-12) | internal |
 | `ChemicalSystemCache` | an element list, or a list of mixtures, plus `Omit`/`Only` → a `ChemicalSystem`, built once per key (the union over mixtures, the agreement of their lists) and disposed with the solver | internal |
-| `MixtureMass` | Σ n_i A_i with the database's atomic weights, the refusal beyond the mixture's declared tolerance, and the subject a refusal names (`Subject`), stated once for both runners | internal static |
-| `UnitFactors` | `MolesPerKilomole` and `GramsPerKilogram`, the node's two unit constants with their origin | internal static |
-| `AtomicWeights` | a missing atomic weight as an `ArgumentException` naming the element, for the element check of a chemical system and the mass of a mixture (F-PR-07); a custom reactant's resolution translates the same miss naming the reactant too (`ReactantResolver`) | internal static |
 | `PropellantMixtures` | the propellant → `ElementalMixture` map: mass fractions, b_i, h_0, the reactant-enthalpy cache and its species-function batch; the piece of a cut record at a temperature is asked of the table (`SpeciesTable.PieceOf`, the Thermo node's; F-AR-01) | internal |
 | `ProblemValidation` | every "before any kernel runs" rule of a rocket and of an equilibrium problem; the subject of a refusal is a field of the case, not a defaulted parameter | internal static |
 | `StateRecords` | state records → mixtures and problems, and the rules of the shape: exactly one target; exits need an enthalpy; a flow only with exits; `SolveStates` takes no record with exits and `SolveRocketStates` none without; every refusal of a record (these rules, a negative abundance, an empty or duplicated symbol) is a `StateRecordException` with the record's index and a subject-free reason; the mass check keeps `MixtureMassException` | internal static |
 | `RocketRunner` | the composition root of the rocket pipeline: rocket cases grouped by exit layout and by the transport flag, the batch filled by field copy, the two engine runs, the stations assembled through `StationFactory`; the transport pass runs only over the cases that asked (F-PR-08); holds no formula. The declared exception to the coupling limit (the decision "The runners are the pipelines' composition roots", its figure under `## Shape exceptions`) | internal |
 | `EquilibriumRunner` | the same for equilibrium cases, with the same declared exception | internal |
 | `StationFactory` | one station from one slice of the engine's flat result, and the species-name list with the cut pieces summed under the record's name; the station names from `RocketLayout.FixedStations` (F-PR-11); the transport status and figures a station reports (`TransportOf`), stated once for both runners | internal static |
-| `StationSlice` | one station of the engine's flat result, the input of the one construction site of `Station`, the flat offset computed once | internal readonly record struct |
-| `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
-| `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
-| `PropellantBuilder.Build` | the guard clause, resolving and splitting reactants by role, the mixture rule, the element order (`ElementOrder.OfFirstAppearance`, shared with `ChemicalSystemCache.Union`) and the `Only` validation, then the constructor: a sequence of calls, no loop of its own, nesting 1 | public, unchanged |
+
+`MixtureMass`, `UnitFactors`, `AtomicWeights`, `StationSlice`, `ReactantResolver`,
+`MixtureRule` and `PropellantBuilder.Build`: the summaries of their declarations
+→ HISTORY.md#structure-table-rows
 
 ⚠ 2026-09-15: was the `Solver` row ending in the runners' Ce 27 and 25, now a
 cross-reference to the decision → HISTORY.md#structure-solver-row-stale
@@ -339,13 +334,8 @@ carries the contracts. → HISTORY.md#structure-decisions-intro
   contract's shape field for field, and the node constructs each in one place with
   named arguments.
 
-  ⚠ 2026-09-15: was `SolveGroup` at nine parameters in both runners (`SolveContext` of
-  2026-09-14), `ResolvedReactant` at eight, now one `AdmittedCase` record struct per
-  case built once in `Solve`; a `SolveGroup` takes `system`, its own
-  `IReadOnlyList<AdmittedCase>`, `wantsTransport`, `speciesNames` (and `kinds`, in
-  `RocketRunner` only) and returns its group's results, which `Solve` places back at
-  their indices; `HasFits` and `AssignedEnthalpy` are computed from `Record` and
-  `Reactant.Definition`, not stored → HISTORY.md#structure-solvegroup-shape
+  ⚠ 2026-09-15: was `SolveGroup` at nine parameters, now one `AdmittedCase` per case
+  → HISTORY.md#structure-solvegroup-shape
 
 - **The runners are the pipelines' composition roots** (added 2026-09-14 by the design
   session). `RocketRunner` and `EquilibriumRunner` name both sides of the engine's
@@ -362,12 +352,10 @@ carries the contracts. → HISTORY.md#structure-decisions-intro
   alone reads enough of the batch result to stay near the limit, for two more types
   and no rule made clearer. → HISTORY.md#structure-runners-condensed
 
-  ⚠ 2026-09-15: was the scratch walk's 27 and 25 explained by `SolveContext`'s result
-  arrays, now gone with it; the measured 26 and 24 stand
+  ⚠ 2026-09-15: was the Ce 27 and 25 explained by `SolveContext`, now gone, 26 and 24 stand
   → HISTORY.md#structure-runners-coupling-note
 
-⚠ 2026-09-15: was `AtomicWeights` the one translation of a missing atomic weight, now
-two, `ReactantResolver.Custom` naming the reactant too
+⚠ 2026-09-15: was `AtomicWeights` the one translation of a missing weight, now two
 → HISTORY.md#structure-atomic-weights-two
 
 - **The element order of first appearance is stated once** (2026-09-15, the clean-code

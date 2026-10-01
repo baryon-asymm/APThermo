@@ -8,6 +8,54 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="structure-table-rows"></a>
+
+## 2026-10-01 — from "## Structure" — condensed wording
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15, rules of the owner's decision of 2026-10-01). Pointer paragraphs shortened to one wording each, and seven rows of the type table replaced by a pointer to the summaries of the declarations. The text as it stood:
+
+>   ⚠ 2026-09-13: was no check of the mass (a record of another simulation, C, H, O, N,
+>   Cl, Al, 1000.015 g, solved with every mole doubled), now refused beyond the tolerance
+>   → HISTORY.md#invariants-mass-tolerance
+>
+> ⚠ 2026-09-15: was `MixtureSpecification` and `Propellant.Mixture` public and the three
+> results positionally constructible, now internal and nominal with an internal
+> constructor → HISTORY.md#structure-api-review
+>
+>   ⚠ 2026-09-15: was `SolveGroup` at nine parameters in both runners (`SolveContext` of
+>   2026-09-14), `ResolvedReactant` at eight, now one `AdmittedCase` record struct per
+>   case built once in `Solve`; a `SolveGroup` takes `system`, its own
+>   `IReadOnlyList<AdmittedCase>`, `wantsTransport`, `speciesNames` (and `kinds`, in
+>   `RocketRunner` only) and returns its group's results, which `Solve` places back at
+>   their indices; `HasFits` and `AssignedEnthalpy` are computed from `Record` and
+>   `Reactant.Definition`, not stored → HISTORY.md#structure-solvegroup-shape
+>
+>   ⚠ 2026-09-15: was the scratch walk's 27 and 25 explained by `SolveContext`'s result
+>   arrays, now gone with it; the measured 26 and 24 stand
+>   → HISTORY.md#structure-runners-coupling-note
+>
+> ⚠ 2026-09-15: was `AtomicWeights` the one translation of a missing atomic weight, now
+> two, `ReactantResolver.Custom` naming the reactant too
+> → HISTORY.md#structure-atomic-weights-two
+>
+> | `MixtureMass` | Σ n_i A_i with the database's atomic weights, the refusal beyond the mixture's declared tolerance, and the subject a refusal names (`Subject`), stated once for both runners | internal static |
+>
+> | `UnitFactors` | `MolesPerKilomole` and `GramsPerKilogram`, the node's two unit constants with their origin | internal static |
+>
+> | `AtomicWeights` | a missing atomic weight as an `ArgumentException` naming the element, for the element check of a chemical system and the mass of a mixture (F-PR-07); a custom reactant's resolution translates the same miss naming the reactant too (`ReactantResolver`) | internal static |
+>
+> | `StationSlice` | one station of the engine's flat result, the input of the one construction site of `Station`, the flat offset computed once | internal readonly record struct |
+>
+> | `ReactantResolver` | one `Reactant` → one resolved reactant: the database and custom paths as two named methods, the temperature default and the margin, the formula spelling, the molar mass, the amount → mass conversion | internal static |
+>
+> | `MixtureRule` | the role composition and the ratio guard (its one owner, F-PR-07), the `MixtureSpecification`, and the kilogram split (`MassFractions`, moved off `Propellant`, which stays a definition record) | internal static |
+>
+> | `PropellantBuilder.Build` | the guard clause, resolving and splitting reactants by role, the mixture rule, the element order (`ElementOrder.OfFirstAppearance`, shared with `ChemicalSystemCache.Union`) and the `Only` validation, then the constructor: a sequence of calls, no loop of its own, nesting 1 | public, unchanged |
+>
+> ⚠ 2026-09-15: was the `Solver` row ending
+
+---
+
 <a id="criterion-third-pass-0928"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria", "the third audit pass" — condensed wording, with the pre-fix status and the evidence figures
