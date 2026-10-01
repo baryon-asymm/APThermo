@@ -9,6 +9,19 @@ used to stand.
 
 ---
 
+<a id="audit-f1-neighbour-claim-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — the probe's constant-first order: the claim about the thermo node's own test
+
+Moved because the last clause is a claim about the thermo node's `KernelMath` tests (AGENTS.md §8; CONDENSE.md, rule 4): its own `BOOT.md` holds it. The bullet is kept; the pointer that follows it is unchanged. The text as it stood:
+
+>   - **The probe runs `KernelMath` with the constant first (F1).** `Kernels.Probe`
+>     gains `KernelMath.Min(1.0, v)` and `KernelMath.Max(1.0, v)`, and `MathProbe`
+>     names the two functions. The root records the ILGPU defect this covers (the third
+>     ILGPU bullet), and the thermo node's `KernelMath` tests both operands for NaN first.
+
+---
+
 <a id="structure-intro-guarantee-2026-10-01"></a>
 
 ## 2026-10-01 — from "## Structure" — the Structure introduction: the no-move guarantee of the split

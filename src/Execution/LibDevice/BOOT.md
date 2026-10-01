@@ -173,10 +173,17 @@ The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these f
 hold unchanged: the post-link's architecture fact, the checked results, the discovery
 facts and the WSL facts of `tests/Execution.Tests` (its `BOOT.md`).
 
-- [ ] The split changes no behaviour: no code line moves but the namespace and the
-      `using` lines, the solution builds with 0 warnings and 0 errors, and the fast
-      suite and the execution tests on CUDA are green with no `Bits*.approved.txt`,
-      `Throughput*.approved.txt` or `PublicSurface.approved.txt` changed.
+- [x] 2026-10-01 — The split changes no behaviour on the CPU path: no code line moves but
+      the namespace and the `using` lines (`git diff -M` of the three files), `dotnet
+      build APThermo.sln` gives 0 warnings and 0 errors, `APTHERMO_NO_CUDA=1 dotnet test
+      APThermo.sln --no-build --filter "Category!=LongRunning"` is green in every project
+      (`Execution.Tests` 170 of 170, the discovery, post-link and WSL facts included) but
+      `Protocol.Tests.LintTests`, red only for nodes over their §15 limit outside this
+      subtree, and no `Bits*.approved.txt`, `Throughput*.approved.txt`,
+      `PublicSurface.approved.txt` or `TreeContract.approved.txt` changed.
+- [ ] The execution tests on CUDA are green on the reference machine, the 100 000-case
+      sweep and the throughput tripwire included (run by the orchestrator, not yet
+      recorded here).
 
 ## Taboos
 

@@ -119,9 +119,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - **Host-side errors are exceptions** (missing libdevice, ILGPU version mismatch,
   inconsistent batches, a refused PTX, out-of-memory); per-case failures are statuses
   in the output arrays.
-- Reference figures of 2026-09-12 (the probe within 4 ULP of the CPU accelerator; the
-  100 000-case sweep 56 to 65 times faster on CUDA; expectations, not requirements) →
-  HISTORY.md#reference-figures-2026-09-12
+- Reference figures of 2026-09-12 (probe within 4 ULP of the CPU; sweep 56 to 65 times
+  faster on CUDA; expectations) → HISTORY.md#reference-figures-2026-09-12
 
 - **The audit's findings F2 and F3 and its observations** (the hidden-defect audit of
   2026-09-26; decided that day, F3 by the owner):
@@ -159,8 +158,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   and F2 and observations 1 to 8; the guards part's F7, F8 and O2).
   - **The probe runs `KernelMath` with the constant first (F1).** `Kernels.Probe`
     gains `KernelMath.Min(1.0, v)` and `KernelMath.Max(1.0, v)`, and `MathProbe`
-    names the two functions. The root records the ILGPU defect this covers (the third
-    ILGPU bullet), and the thermo node's `KernelMath` tests both operands for NaN first.
+    names the two functions; the root's third ILGPU bullet records the defect covered.
     - ⚠ 2026-09-28: was the probe calling `Min(v, 1.0)` and `Max(v, 1.0)` only, now both
       operand orders → HISTORY.md#probe-constant-first-order-2026-09-28
   - **A launch has a time budget (F2).** A GPU that drives a display runs every
