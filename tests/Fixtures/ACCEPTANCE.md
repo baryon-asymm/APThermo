@@ -120,7 +120,8 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
       - Touching `throat_scan.py` re-provenanced the other 312 fixtures too (the full
         driver, 322 changed files), only `generator.*` keys moving; `Fixtures.Tests`
         34/34, `EveryFixturesGeneratorSha256MatchesTheCommittedGenerator` included.
-      - The four cases' own figures: `HISTORY.md#throat-measurements`.
+      - The four cases' own figures: the "Measured 2026-09-28" bullet of the `throat`
+        family in `generate/BOOT.md`.
       → HISTORY.md#crit-throat-f1-cases
 
       ⚠ 2026-09-28: the "ten cases" and "327/328 fixtures" above are the state of
