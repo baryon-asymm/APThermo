@@ -91,8 +91,7 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
 ## Acceptance criteria
 
 - [x] Every check is proven non-degenerate: exactly one breakage is applied to a
-      conformant tree and the check turns red — 61 tests, one skipped for a reason
-      listed below
+      conformant tree and the check turns red — 61 tests, none skipped
       (2026-10-01, `test_protocol_lint.py`, run as
       `python -X utf8 tools/protocol-lint/test_protocol_lint.py`; 27 tests on
       2026-09-12, before the checks of `AGENTS.md` 3.1).
@@ -166,11 +165,19 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
 - [ ] The self-test is not run automatically by anything except a manual
       `python -X utf8 tools/protocol-lint/test_protocol_lint.py`: in a project it has to
       be wired into the project's own test set.
-- [ ] `ShippedTemplatesTest.test_every_boot_template_carries_the_six_sections` is
-      skipped on this tree: it looks for the templates in `tools/templates`, and they
-      live in `docs/protocol/templates/`, outside this node. A skipped check is not
-      allowed to stay (`AGENTS.md` §13); the decision on where the templates are read
-      from belongs to the owner of the kit, and the test is left as it was.
+- [x] The document templates of the tree satisfy the checker: every `BOOT.md` under
+      `docs/protocol/templates/` carries the six canonical sections, and the test fails,
+      not skips, when that directory holds no BOOT template, since an empty walk proves
+      nothing (2026-10-01,
+      `ShippedTemplatesTest.test_every_boot_template_carries_the_six_sections`, which
+      locates the directory from the repository root). Seen red twice in a scratch copy:
+      with `## Taboos` renamed in the node template, and with the three templates
+      removed.
+
+      ⚠ 2026-10-01: the test looked for the templates in `tools/templates`, a directory
+      this tree does not have, and was skipped (`unittest.skipUnless`) for as long as it
+      existed, which `AGENTS.md` §13 forbids for a check. Found when the checks of 3.1 were
+      taken over; the owner decided that the test reads `docs/protocol/templates/`.
 - [ ] The checks that need reflection are not implemented here and cannot be: that is
       a separate node for the project's stack (`AGENTS.md`, §13).
 

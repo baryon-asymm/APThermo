@@ -575,16 +575,17 @@ Written inline: `[Neighbour](../Neighbour/API.md)`.
 
 
 class ShippedTemplatesTest(unittest.TestCase):
-    """The templates next to this checker have to satisfy the checker."""
+    """The document templates of this tree have to satisfy the checker."""
 
-    TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
+    TEMPLATES = Path(__file__).resolve().parents[2] / "docs" / "protocol" / "templates"
 
-    @unittest.skipUnless(TEMPLATES.is_dir(), "templates are not shipped beside the checks")
     def test_every_boot_template_carries_the_six_sections(self) -> None:
-        for template in sorted(self.TEMPLATES.rglob("BOOT.md")):
+        templates = sorted(self.TEMPLATES.rglob("BOOT.md"))
+        self.assertTrue(templates, "no BOOT template under {}: an empty walk proves nothing".format(self.TEMPLATES))
+        for template in templates:
             headings = lint.second_level_headings(lint.mask_code(lint.read(template)))
             for section in lint.CANONICAL_SECTIONS:
-                self.assertIn(section, headings, "{} has no '## {}'".format(template.name, section))
+                self.assertIn(section, headings, "{} has no '## {}'".format(template, section))
 
 
 if __name__ == "__main__":
