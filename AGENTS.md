@@ -19,6 +19,9 @@
 > protocol is arranged this way is in the `CONCEPT.md` of the kit this file is taken
 > from; here there are only rules. This copy is the English rendering of the kit's
 > original; article numbers and headings are unchanged.
+>
+> Version 3.1 (2026-09-27) was lived through on the CompositePropellantMicrostructure
+> tree; its additions are listed in Appendix C.
 
 ---
 
@@ -71,6 +74,8 @@ Three clarifications:
 | `AGENTS.md` | tree root only | the agent's protocol (this document) | on a revision of the methodology |
 | `BOOT.md` | every node | the level's context + a spec sufficient for autonomous implementation | when the node's intent changes |
 | `API.md` | every node | the level's public contract (outward interfaces only) | when the node's interface changes |
+| `HISTORY.md` | any node, when its `BOOT.md` overflows (§15) | append-only store of what is no longer the current truth: the full text of ⚠ corrections, superseded measurements, run tables | when a document overflows its limit |
+| `ACCEPTANCE.md` | a node with children, when its `BOOT.md` points to it (§15) | the node's acceptance criteria: current truth, read only in its own node | when a criterion is added, ticked, re-verified or reformulated |
 | `PublicSurface.approved.txt` | tests node, optional | snapshot of the assembly's public surface; a tripwire, not a contract (§13) | together with `API.md`, in the same commit |
 | loader (`CLAUDE.md` and the like) | repository root, optional | plugs in `AGENTS.md` and the root `BOOT.md`, holds the build and check commands | when the commands change |
 
@@ -194,6 +199,11 @@ divergence from the code.
 - a criterion that cannot be met is not deleted but reformulated, with a note on why
   the original wording was wrong: the history of a criterion is part of the context.
 
+A node with children may keep these criteria in `ACCEPTANCE.md` beside its `BOOT.md`
+(§15); its `## Acceptance criteria` then consists of the one line
+`→ [ACCEPTANCE.md](ACCEPTANCE.md)`, and every rule of this article applies to that file
+as it would to the section.
+
 ## 7. Status marks in API.md
 
 Every declaration in `API.md` is marked with a status, usually in the section heading:
@@ -271,7 +281,9 @@ In any node, before doing anything, the agent:
 
 1. reads the root `AGENTS.md` — the **protocol** (this file);
 2. reads the upward chain of `BOOT.md` from the current node to the root and the
-   external ancestor, if there is one — **context and frame**;
+   external ancestor, if there is one — **context and frame** — and the current node's
+   own `ACCEPTANCE.md`, if its `BOOT.md` points to one; an ancestor's `ACCEPTANCE.md` is
+   that ancestor's evidence, not frame, and is not read;
 3. reads the `API.md` of the neighbours listed in the `## Dependencies` of the current
    node — **contracts**;
 4. determines the mode (design / coding) and acts within its bounds;
@@ -330,8 +342,11 @@ The protocol distinguishes what the machine can hold and what no tooling can.
 | every relative link between documents resolves to a file | — | error |
 | `## Dependencies` has no link to a descendant or to itself | §6 | warning |
 | an `API.md` with code blocks carries a status mark | §7 | warning |
-| a ticked acceptance criterion carries a date | §6 | warning |
+| a ticked acceptance criterion carries a date, in `BOOT.md` or `ACCEPTANCE.md` | §6 | warning |
+| `BOOT.md` and `ACCEPTANCE.md` within their line limits, unless the node declares the deviation | §15 | error |
 | names declared under ✅ occur in the node's code (textual approximation) | §7 | warning |
+| `ACCEPTANCE.md` stands only in a node with children, and only where `## Acceptance criteria` is the one pointer line | §6, §15 | error |
+| every `HISTORY.md#<anchor>` cited outside a `HISTORY.md`, in a document or in code, in backticks or not, resolves in the named node or, bare, in the citing node or an ancestor | §15 | error |
 
 **Require reflection and are written for the specific stack** (the reference
 implementation for .NET is in the kit, `reference/dotnet/`):
@@ -356,7 +371,8 @@ Mistakes already paid for; whoever writes the checks should know them in advance
   `__file__`), not from the binary: with a centralized build directory, climbing from
   the binary finds no tree at all;
 - **links inside code blocks and in backticks are not resolved**: otherwise the
-  examples of this file turn into broken links;
+  examples of this file turn into broken links, except a citation of a `HISTORY.md`
+  anchor (§15), whose examples write a placeholder, `HISTORY.md#<anchor>`;
 - **dependencies are read from method bodies too**: a static call names the type in
   no signature, and a node reaching a neighbour only that way passes the check
   undeclared.
@@ -394,6 +410,78 @@ This protocol and architectural approaches (for example, clean architecture) are
 The tree of nodes may coincide with the architectural boundaries or be cut
 differently, but it **does not dictate** the architectural decisions themselves.
 
+## 15. The size of a document
+
+Reading is the protocol's own cost. A line of a parent's `BOOT.md` is read once by
+every session in every node beneath it; a line of a leaf's is read only there. The
+limit follows that arithmetic.
+
+**A `BOOT.md` holds at most 250 non-blank lines in a node with children, 400 in a
+leaf, and 400 at the root once its acceptance criteria live in `ACCEPTANCE.md`, a file
+itself held to 400; whatever is no longer the current truth — the full text of ⚠
+corrections, superseded measurements, sweeps and run tables — moves, oldest first, to
+the node's append-only `HISTORY.md`, leaving a dated one-line pointer in place, and the
+linter reports the limit as an error unless the node declares the deviation (§12).**
+
+The details of that sentence:
+
+- **Counted** are non-blank lines of the file as it is written; a table row is a line.
+  The linter neither reflows nor excuses prose.
+- **`HISTORY.md`** lives in the node's own directory, is append-only, runs newest
+  first, and every entry carries the date, the section of `BOOT.md` it came from, and
+  the original text in full. The start procedure (§10) does **not** read it; it is read
+  by following a pointer.
+- **What never moves:** the current truth of the six sections, the invariants, the
+  taboos, the acceptance criteria with their dates and places (in `BOOT.md` or
+  `ACCEPTANCE.md`), and the one-line pointer left where each correction stood. A
+  measurement that decided something leaves the
+  decision and the one figure that decided it; the table it came from moves.
+- **A ⚠ correction** moves when the node is over its limit, oldest first, until it is
+  inside again. A correction is by definition not the current truth but the provenance
+  of it, so the cost of reading applies to it as it does to a run table. What protects
+  a neighbour still acting on the old wording is not the note's full text but the
+  **discoverability** of the change, and that is the pointer's job: the line left in its
+  place names both wordings — `⚠ YYYY-MM-DD: was X, now Y → HISTORY.md#<anchor>` — not
+  merely "corrected". A pointer is never deleted, and its anchor must resolve. So must
+  every other citation of a `HISTORY.md` anchor outside a `HISTORY.md`, in a document
+  or in code, in backticks or not: the reader follows it the same way.
+
+  ⚠ 2026-09-20: this paragraph first forbade moving a note younger than fourteen days,
+  "because the neighbours may still be acting on what it corrects". Measured on the
+  first tree it was applied to: every note was younger than fourteen days, so two of the
+  four nodes over the limit were held over by this clause alone — the rule was fighting
+  itself, and the check it produced could not be met by any amount of work. The clause
+  is replaced by the requirement on the pointer above, which gives a reader more than
+  the note's presence did: the old wording and the new one on one line.
+- **Frame and evidence.** A descendant inherits an ancestor's frame — purpose,
+  invariants, dependencies, constraints, taboos (§3) — and never acts on its readiness
+  evidence, yet reads the whole `BOOT.md` on the way to itself. A node with children
+  may therefore keep the body of its `## Acceptance criteria` in `ACCEPTANCE.md` (§6),
+  read only in its own node (§10); the file is current truth, not history, and what
+  leaves it for `HISTORY.md` leaves by this article's rule, with the same pointers. The
+  root's limit is the leaf's only on that condition: every session reads it whole,
+  through the loader as well as through §10, and it cannot hand its frame to a child,
+  being the one common ancestor of what that frame binds (§3); it can hand over its
+  evidence, the part that grows with every re-verification.
+- **A node whose specification is a transcription** of an external source already
+  declares a deviation of §6 (it cannot be self-sufficient without that source). That
+  line must name, in the same line, the sections the source replaces —
+  `⚠ Declared deviation, §6: … replaced by: ## Line map, ## Defects of the original` —
+  and the linter excludes those sections' lines from the count, after checking that
+  each named section exists. There is no list of such nodes anywhere: the node declares
+  itself, in the place where it will be looked for (§12). Those lines are not backlog
+  and cannot shrink while the §6 deviation stands, so a §15 deviation on top of them
+  would be permanently declared and would guard nothing (§13).
+- **A node that cannot meet the limit** declares the deviation (§12) with a line
+  beginning `⚠ Declared deviation, §15:`, its reason and what lifts it; the linter then
+  reports that node as a warning and names it, so the exemption stays visible. A node
+  that grows while under such a deviation is a node the rule is wrong for, and that is
+  the measurement which decides whether these numbers stay.
+
+Why an error and not a warning: a warning about length is the first warning anyone
+learns to ignore, and §13 forbids a check that is permanently red. Either the document
+is inside the limit, or the node says out loud why it is not.
+
 ---
 
 ## Appendix A. Open questions
@@ -403,10 +491,9 @@ Not part of the hard protocol, but requiring a decision at the project level:
 - **Contract versioning** — how to record changes of `API.md` so that dependent nodes
   do not break. The surface snapshot (§13) makes a change visible but does not say who
   suffered from it.
-- **The cost of context at depth** — parent `BOOT.md` files should be kept as short
-  context headers (goals, invariants, taboos) with the details pushed down, so that
-  upward reading stays cheap. There is a rule (§8) but no measure: how much edit
-  history a document can carry before it stops being readable, nobody has measured.
+- ~~**The cost of context at depth**~~ — resolved by §15 on 2026-09-20: the measure is
+  250 non-blank lines for a node with children and 400 for a leaf, and the overflow goes
+  to the node's append-only `HISTORY.md`, oldest first, leaving a dated pointer.
 - **Reflection checks outside .NET** — the four checks of §13 require reading the
   assembly. For Python/TypeScript/Go they must be written anew; the
   language-independent linter covers only the file half.
@@ -428,3 +515,13 @@ Everything listed was lived through on the second tree and only then written dow
 - §12 — a deviation is declared by the node whose article is violated;
 - §13 — a linter instead of a skill, the extended list of checks, six already
   paid-for mistakes in the reflection checks, the ban on a perpetually red check.
+
+## Appendix C. What version 3.1 added
+
+- §2, §6, §10, §15 — `ACCEPTANCE.md` and the root's limit: after every movable
+  correction had moved, the root still held 495 non-blank lines and was back at 520
+  within a day, eleven of the twenty-five new lines evidence; 134 of its lines were
+  evidence no descendant acts on, read by every session through the loader.
+- §13, §15 — anchors in backticks: an anchor cited in ten files, among them a ticked
+  criterion's evidence place, was defined nowhere, and the linter passed because it
+  resolved anchors outside backticks only.
