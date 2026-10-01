@@ -8,7 +8,7 @@ matters, only this check - complains. Two tests do the opposite and guard agains
 false alarms: a grouping directory is not a node, and a link inside a code block is
 not a link.
 
-    python -m unittest discover -s checks
+    python -X utf8 tools/protocol-lint/test_protocol_lint.py
 """
 
 from __future__ import annotations
@@ -292,6 +292,268 @@ Written inline: `[Neighbour](../Neighbour/API.md)`.
             encoding="utf-8",
         )
         self.assertNoFinding("no date")
+
+    # ------------------------------------------------------------- 15: the size
+
+    def filler(self, count: int) -> str:
+        return "\n".join(
+            "Filler line {} of prose that pads this document out for the size check.".format(i)
+            for i in range(count)
+        )
+
+    def test_the_size_check_runs_by_default(self) -> None:
+        """719 lines, `b` a leaf: over the 400-line limit, and there is no --size flag
+        left to gate it - the check runs unconditionally."""
+        self.write("b/BOOT.md", BOOT.format(name="b", dependencies="None") + "\n" + self.filler(410))
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "400-line limit")
+
+    def test_a_leaf_boot_over_its_limit_is_an_error(self) -> None:
+        self.write("b/BOOT.md", BOOT.format(name="b", dependencies="None") + "\n" + self.filler(410))
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "400-line limit")
+
+    def test_a_leaf_boot_within_its_limit_is_clean(self) -> None:
+        self.assertEqual([], [f for f in self.findings() if f.article == "15"])
+
+    def test_a_parent_boot_uses_the_tighter_limit(self) -> None:
+        """root has children (a, b): 260 filler lines clear 250 but not 400."""
+        self.write("BOOT.md", BOOT.format(name="root", dependencies="None.") + "\n" + self.filler(260))
+        self.assertFinding("ERROR", "15", "BOOT.md", "250-line limit")
+
+    def test_a_leaf_boot_is_not_held_to_the_parent_limit(self) -> None:
+        """b is a leaf: 260 filler lines (over 250, under 400) must not fire there."""
+        self.write("b/BOOT.md", BOOT.format(name="b", dependencies="None") + "\n" + self.filler(260))
+        self.assertEqual([], [f for f in self.findings() if f.article == "15"])
+
+    def test_a_declared_deviation_downgrades_the_finding_to_a_warning(self) -> None:
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ Declared deviation, §15: over limit until the migration lands, lifts 2026-10-01.\n\n"
+            + self.filler(410),
+        )
+        findings = self.findings()
+        self.assertFinding("WARN", "15", "b/BOOT.md", "declared deviation", findings=findings)
+        self.assertEqual([], [f for f in findings if f.level == "ERROR" and f.article == "15"])
+
+    def test_exit_codes_reflect_the_size_check(self) -> None:
+        self.write("b/BOOT.md", BOOT.format(name="b", dependencies="None") + "\n" + self.filler(410))
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(1, lint.main([str(self.root)]))
+
+    # ------------------------------------------------- 15: the §6 section exemption
+
+    def test_a_named_section_is_excluded_from_the_count(self) -> None:
+        """`b` is a leaf: 410 filler lines alone would be over the 400-line limit, but
+        they sit entirely inside a section a §6 deviation names as replaced."""
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ Declared deviation, §6: the specification is an external source, "
+              "replaced by: ## Transcription.\n\n## Transcription\n\n"
+            + self.filler(410),
+        )
+        self.assertEqual([], [f for f in self.findings() if f.article == "15"])
+
+    def test_a_named_section_that_does_not_exist_is_an_error(self) -> None:
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ Declared deviation, §6: the specification is an external source, "
+              "replaced by: ## Nonexistent.\n",
+        )
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "Nonexistent")
+
+    def test_a_section_exemption_does_not_hide_a_genuine_overflow(self) -> None:
+        """The excluded section's own lines do not count, but the rest of the document
+        still does: 410 filler lines outside the named section still overflow."""
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ Declared deviation, §6: the specification is an external source, "
+              "replaced by: ## Transcription.\n\n## Transcription\n\nA short section.\n\n"
+              "## Extra\n\n"
+            + self.filler(410),
+        )
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "400-line limit")
+
+    # ---------------------------------------------------- 15: the HISTORY.md pointer
+
+    def test_a_pointer_to_a_missing_anchor_is_an_error(self) -> None:
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ 2026-09-12: was the old wording, now this one → HISTORY.md#ghost-anchor\n",
+        )
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "ghost-anchor")
+
+    def test_a_pointer_that_resolves_is_not_flagged(self) -> None:
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ 2026-09-12: was the old wording, now this one → HISTORY.md#real-anchor\n",
+        )
+        self.write(
+            "b/HISTORY.md",
+            '# HISTORY.md - b\n\n<a id="real-anchor"></a>\n\n## 2026-09-12 - moved\n\n> The old wording.\n',
+        )
+        self.assertNoFinding("real-anchor")
+
+    def test_a_pointer_with_no_history_file_at_all_is_an_error(self) -> None:
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None")
+            + "\n⚠ 2026-09-12: was the old wording, now this one → HISTORY.md#real-anchor\n",
+        )
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "real-anchor")
+
+    # --------------------------------------------------- 3.1: ACCEPTANCE.md, the file
+
+    def root_boot_with_pointer(self, extra: str = "") -> str:
+        return BOOT.format(name="root", dependencies="None.").replace(
+            "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).",
+            "→ [ACCEPTANCE.md](ACCEPTANCE.md)",
+        ) + extra
+
+    ACCEPTANCE = (
+        "# ACCEPTANCE.md - root\n\n"
+        "## Acceptance criteria\n\n"
+        "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).\n"
+    )
+
+    def test_a_pointer_with_no_acceptance_file_is_an_error(self) -> None:
+        self.write("BOOT.md", self.root_boot_with_pointer())
+        self.assertFinding("ERROR", "6", "BOOT.md", "does not exist")
+
+    def test_a_pointer_that_resolves_to_a_real_file_is_clean(self) -> None:
+        self.write("BOOT.md", self.root_boot_with_pointer())
+        self.write("ACCEPTANCE.md", self.ACCEPTANCE)
+        self.assertEqual([], self.findings())
+
+    def test_an_orphan_acceptance_file_is_an_error(self) -> None:
+        """`ACCEPTANCE.md` exists, but BOOT.md's own section was never turned into
+        the one-line pointer: the file is either stale or was never wired in."""
+        self.write("ACCEPTANCE.md", self.ACCEPTANCE)
+        self.assertFinding("ERROR", "6", "ACCEPTANCE.md", "does not point to it")
+
+    def test_acceptance_md_in_a_leaf_is_an_error(self) -> None:
+        self.write("b/BOOT.md", BOOT.format(name="b", dependencies="None").replace(
+            "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).",
+            "→ [ACCEPTANCE.md](ACCEPTANCE.md)",
+        ))
+        self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n## Acceptance criteria\n\n"
+                                       "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).\n")
+        self.assertFinding("ERROR", "15", "b/ACCEPTANCE.md", "leaf")
+
+    def test_an_undated_tick_in_acceptance_md_is_a_warning(self) -> None:
+        self.write("BOOT.md", self.root_boot_with_pointer())
+        self.write(
+            "ACCEPTANCE.md",
+            "# ACCEPTANCE.md - root\n\n## Acceptance criteria\n\n"
+            "- [x] It does the thing (`ItDoesTheThing`).\n",
+        )
+        self.assertFinding("WARN", "6", "ACCEPTANCE.md", "no date")
+
+    def test_a_root_boot_over_400_lines_with_the_pointer_is_an_error(self) -> None:
+        """With its criteria in ACCEPTANCE.md the root is measured against the leaf's
+        400 lines, not the 250 a node with children otherwise gets - but it is still
+        measured."""
+        self.write("BOOT.md", self.root_boot_with_pointer("\n" + self.filler(420)))
+        self.write("ACCEPTANCE.md", self.ACCEPTANCE)
+        self.assertFinding("ERROR", "15", "BOOT.md", "400-line limit")
+
+    def test_a_root_boot_at_exactly_400_lines_with_the_pointer_is_clean(self) -> None:
+        base = self.root_boot_with_pointer()
+        base_count = sum(1 for line in base.split("\n") if line.strip())
+        self.write("BOOT.md", base + "\n" + self.filler(400 - base_count))
+        self.write("ACCEPTANCE.md", self.ACCEPTANCE)
+        self.assertEqual([], [f for f in self.findings() if f.article == "15" and f.where.startswith("BOOT.md")])
+
+    # ---------------------------------------------- 3.1/15: citations everywhere
+
+    def test_a_backticked_dangling_citation_in_api_md_is_an_error(self) -> None:
+        """The old pointer check read only a BOOT.md's own bare citations, and only
+        outside backticks; this one is inside an API.md and inside backticks."""
+        self.write("a/API.md", API_WITH_TICK + "\nSee `HISTORY.md#ghost` for the reasoning.\n")
+        self.assertFinding("ERROR", "15", "a/API.md", "ghost")
+
+    def test_a_backticked_placeholder_citation_is_not_flagged(self) -> None:
+        """The kit's own example syntax, `HISTORY.md#<anchor>`, is not a citation: an
+        anchor never starts with '<', so it never matches in the first place."""
+        self.write("a/API.md", API_WITH_TICK + "\nWritten as `HISTORY.md#<anchor>` in an example.\n")
+        self.assertNoFinding("<anchor>")
+
+    def test_a_citation_inside_a_history_md_itself_is_not_checked(self) -> None:
+        self.write("b/HISTORY.md", "# HISTORY.md - b\n\nSee HISTORY.md#nowhere for older context.\n")
+        self.assertNoFinding("nowhere")
+
+    def test_a_bare_citation_of_a_neighbours_anchor_is_an_error(self) -> None:
+        """The mistake the check exists to catch: a bare citation happens to name an
+        anchor that exists, but in a neighbour's HISTORY.md, not this node's own or an
+        ancestor's."""
+        self.write("b/HISTORY.md", '# HISTORY.md - b\n\n<a id="neighbour-only"></a>\n\n## Old\n\n> Text.\n')
+        self.write("a/API.md", API_WITH_TICK + "\nSee HISTORY.md#neighbour-only for the reasoning.\n")
+        self.assertFinding("ERROR", "15", "a/API.md", "neighbour-only")
+
+    def test_a_bare_citation_resolves_via_an_ancestor(self) -> None:
+        self.write("HISTORY.md", '# HISTORY.md - root\n\n<a id="shared-with-children"></a>\n\n## Old\n\n> Text.\n')
+        self.write("a/API.md", API_WITH_TICK + "\nSee HISTORY.md#shared-with-children for the reasoning.\n")
+        self.assertNoFinding("shared-with-children")
+
+    def test_a_qualified_citation_of_a_neighbour_resolves(self) -> None:
+        self.write("b/HISTORY.md", '# HISTORY.md - b\n\n<a id="shared-anchor"></a>\n\n## Old\n\n> Text.\n')
+        self.write("a/API.md", API_WITH_TICK + "\nSee `b/HISTORY.md#shared-anchor` for the reasoning.\n")
+        self.assertNoFinding("shared-anchor")
+
+    def test_a_relative_qualified_citation_resolves(self) -> None:
+        self.write("b/HISTORY.md", '# HISTORY.md - b\n\n<a id="relative-anchor"></a>\n\n## Old\n\n> Text.\n')
+        self.write("a/API.md", API_WITH_TICK + "\nSee `../b/HISTORY.md#relative-anchor` for the reasoning.\n")
+        self.assertNoFinding("relative-anchor")
+
+    def test_history_citations_are_checked_in_code_under_src_and_tests(self) -> None:
+        self.write("tests/Demo/BOOT.md", BOOT.format(name="Demo", dependencies="None"))
+        self.write("tests/Demo/API.md", "# API.md - Demo\n\nNothing yet.\n")
+        self.write("tests/Demo/Demo.cs", "// see HISTORY.md#missing-in-code\n")
+        self.assertFinding("ERROR", "15", "tests/Demo/Demo.cs", "missing-in-code")
+
+    def test_history_citations_outside_src_and_tests_are_not_checked_in_code(self) -> None:
+        self.write("a/extra.py", "# see HISTORY.md#not-checked-here\n")
+        self.assertNoFinding("not-checked-here")
+
+    def test_acceptance_md_over_400_lines_is_an_error(self) -> None:
+        self.write("BOOT.md", self.root_boot_with_pointer())
+        self.write("ACCEPTANCE.md", self.ACCEPTANCE + "\n" + self.filler(410))
+        self.assertFinding("ERROR", "15", "ACCEPTANCE.md", "400-line limit")
+
+    def test_a_node_below_the_root_keeps_the_parent_limit_with_the_pointer(self) -> None:
+        """Only the root's limit rises with the pointer: `a` has a child, points to its
+        own ACCEPTANCE.md and still gets 250 lines, not 400."""
+        self.write("a/c/BOOT.md", BOOT.format(name="c", dependencies="None"))
+        self.write("a/c/API.md", "# API.md - c\n\nNothing yet.\n")
+        self.write(
+            "a/BOOT.md",
+            BOOT.format(name="a", dependencies="- [b](../b/API.md) - the other half.").replace(
+                "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).",
+                "→ [ACCEPTANCE.md](ACCEPTANCE.md)",
+            ) + "\n" + self.filler(260),
+        )
+        self.write("a/ACCEPTANCE.md", self.ACCEPTANCE)
+        self.assertFinding("ERROR", "15", "a/BOOT.md", "250-line limit")
+
+    def test_a_citation_inside_a_fenced_block_is_not_checked(self) -> None:
+        self.write("a/API.md", API_WITH_TICK + "\n```text\nHISTORY.md#only-in-an-example\n```\n")
+        self.assertNoFinding("only-in-an-example")
+
+    def test_an_extra_excluded_directory_is_not_a_node(self) -> None:
+        """`--exclude` names directories to skip beyond the built-in ones: without it
+        the directory below is a node missing its pair, with it nothing is found."""
+        self.write("templates/sample.py", "VALUE = 5\n")
+        self.assertFinding("ERROR", "1", "templates")
+        self.assertEqual([], self.findings(extra_excluded=["templates"]))
+
+    def test_a_qualified_citation_of_an_anchor_the_named_node_lacks_is_an_error(self) -> None:
+        self.write("b/HISTORY.md", '# HISTORY.md - b\n\n<a id="present"></a>\n\n## Old\n\n> Text.\n')
+        self.write("a/API.md", API_WITH_TICK + "\nSee `b/HISTORY.md#absent` for the reasoning.\n")
+        self.assertFinding("ERROR", "15", "a/API.md", "absent")
 
     # --------------------------------------------------------------- the driver
 
