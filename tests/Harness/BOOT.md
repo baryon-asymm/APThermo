@@ -28,13 +28,8 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 - **No formula and no tolerance.** A comparison within a tolerance belongs to the
   consumer that derives it or to the fixtures node's table; this node compares bits.
 
-  ⚠ 2026-09-30: "this node compares bits" stopped being true when `JsonFieldComparison`
-  moved here: it compares documents field by field, numbers within 1e-9 relative. That
-  figure is not a tolerance derived here; it is the rule the root's Documentation bullet
-  of 2026-09-29 sets for the command-line examples (four orders above the measured
-  platform difference, five below the fixtures' rows), held in one place because two
-  consumers, the docs tests node and the workflow step that runs the packed tool, apply
-  it. The bit comparison of `Bits` and `BitHash` is unchanged.
+  ⚠ 2026-09-30: was "this node compares bits", now also documents field by field, 1e-9
+  relative, in `JsonFieldComparison` → HISTORY.md#compares-bits
 - **Bits are raw bits.** Two doubles are the same when `BitConverter.DoubleToInt64Bits`
   agrees, so that signed zeros and NaN payloads are told apart; a bit hash is the
   SHA-256 of the little-endian bytes of the values in the order they were added, a
@@ -50,13 +45,8 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   wording the problem and deciding whether to write anything of its own is the
   consumer's, as the acceptance criteria below record for each one.
 
-  ⚠ 2026-09-15: this bullet read "a key missing from the approved file, a differing
-  line and an approved key that no run produced are each a problem naming the key and
-  how to approve; on a problem the actual lines are written". True of `Problem`, not of
-  `StaleKeys`: that method only returns bare keys (`ApprovedSnapshot.cs`), and wording
-  them into a problem and writing an actual file is left to the caller, which is why two
-  consumers word it themselves and, until 2026-09-15, four never called it at all.
-  Found by the repair review of 2026-09-15 reading the code against the claim.
+  ⚠ 2026-09-15: was `StaleKeys` a problem that writes an actual file, now bare keys the
+  consumer words → HISTORY.md#stale-keys
 - **`*.actual.txt` is CRLF; the repository is LF.** `Problem`'s write
   (`ApprovedSnapshot.cs`, the `File.WriteAllLines` call in the dirty-write branch)
   joins lines with `Environment.NewLine`, CRLF on the Windows platform this tree
@@ -65,12 +55,8 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   the approved one normalizes the line endings first; the Cli.Tests re-approval of
   2026-09-15 did so.
 
-  ⚠ 2026-09-17: "the Windows platform this tree targets" was true when this bullet was
-  written (2026-09-14), narrower than the root's platform constraint since the
-  2026-09-15 distribution-phase decision added Linux x64. On Linux `Environment.NewLine`
-  is `"\n"`, so an actual file this node writes there is LF like the repository, not
-  CRLF; the normalize-before-approving step only bites on Windows. Found while adding
-  the per-platform bit snapshots below.
+  ⚠ 2026-09-17: was CRLF "on the Windows platform this tree targets", now CRLF on
+  Windows only, LF on Linux → HISTORY.md#crlf-linux
 - **A field dump is a caller's opt-in** (2026-09-18, the bits-diagnostics task).
   `BitHash` keeps, alongside the hash it computes, the text of every value added, in
   order: a double round-trip (`"R"`, invariant culture, so a dump reads the same on
@@ -100,18 +86,8 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   Windows bits still keeps both files, byte for byte identical, so the rule has no
   exception (`Thermo.Tests`, whose table holds no accelerator solve).
 
-  ⚠ 2026-09-19: the root BOOT.md's platform constraint (⚠ 2026-09-18, the declared
-  deviation from "every test runs on both platforms") holds that the bits are a
-  record of the reference machine, not of the platform alone, and are compared
-  exactly only there: in local runs and on the release's self-hosted jobs
-  (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
-  `Category=Cuda|Category=BitSnapshot`), never on the hosted CI runners (`ci.yml`;
-  `release.yml`'s `matrix` job; filter `Category!=LongRunning&Category!=BitSnapshot`).
-  Each Bits-level consumer's own fact carries `[Trait("Category", "BitSnapshot")]`
-  (`Cli.Tests`, `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`,
-  `Thermo.Tests`, `Transport.Tests`); this node adds no trait and no CI knowledge of
-  its own — `ApprovedSnapshot` still only picks the file, never who runs the test
-  that reads it.
+  ⚠ 2026-09-19: was bits compared exactly everywhere, now on the reference machine only
+  (consumers carry `BitSnapshot`) → HISTORY.md#bits-reference-machine
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.
@@ -130,21 +106,8 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
   projects only; it references no test framework, so its public surface enters the
   protocol tests node's snapshot like any library's.
 
-  ⚠ 2026-09-25: `FixtureFamilies.Of` returned `TheoryData<string, int, IReadOnlyList<CeaCase>>`, so
-  fixing the Diagnostics constraint's xUnit1042 in this node meant a `PackageReference` to `xunit`
-  for the return type alone, and the fix then failed xUnit1045: a `CeaCase` collection is not a
-  type xUnit knows how to serialize for Test Explorer's row enumeration, only the fields of
-  `TheoryData<>` itself. Adding `xunit` here was rejected on review: the protocol tests node's
-  `SurfaceTests` tells a library assembly from a test one by whether it references any assembly
-  named `xunit*` (`NodeAssemblies.IsTestAssembly`), not by this node's own `IsTestProject false`,
-  so it would have read as a test assembly and dropped its whole public surface out of
-  `PublicSurface.approved.txt` — weakening the surface check is not this node's decision. `Of` is
-  instead `Keys` (the key and case count of every family, both types xUnit already serializes)
-  plus `CasesOf` (the family's cases, read back inside the test body, the pattern
-  `HostSolver.CaseNames`/`Load` already uses for a single case); each caller (`Equilibrium.Tests`,
-  `Performance.Tests`, `Transport.Tests`, all of which reference xunit already) builds its own
-  `TheoryData<string, int>` from `Keys` in a static member of its test class. This node names no
-  test framework, as the sentence above states.
+  ⚠ 2026-09-25: was `FixtureFamilies.Of` returning `TheoryData`, now `Keys`+`CasesOf`
+  (no `xunit` reference here) → HISTORY.md#families-keys
 - Every type is a stable type in the root's sense once the test nodes use it: small,
   and named in `API.md`.
 - Paths from the repository root through `RepositoryPaths` of the fixtures node.
@@ -154,10 +117,7 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 - **`Bits.Differences<T>` reads fields and properties** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F10). It
   compares every public `double` and `int` field and property of `T`. It throws when `T`
   has none, so that a comparison can never be empty by accident.
-  - ⚠ It read properties only, while its contract says fields. On a struct of public
-    fields it compared nothing: a tuple `(1e6, 3000)` against `(2e6, NaN)` returned no
-    difference. The tree's descriptor structs are public-field structs, and no caller
-    passes one today.
+  - ⚠ 2026-09-26: was properties only, now fields too → HISTORY.md#differences-fields
 
 ## Acceptance criteria
 
