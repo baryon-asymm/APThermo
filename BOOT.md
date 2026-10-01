@@ -197,10 +197,9 @@ delivery (2026-09-15, `## Delivery` below).
   it and ILGPU defines the wrappers itself. The execution node checks every kernel and
   completes the wrappers ILGPU dropped; nothing else in the tree may know about the
   mechanism.
-  - A second defect of the version (2026-09-27): under WSL, ILGPU installs a `DllImport`
-    resolver on every CUDA context it creates, which .NET allows once per process, so
-    the second CUDA engine of a process failed to bind. The execution node registers
-    the devices of every later context itself (its `BOOT.md` records the rule).
+  - A second defect (2026-09-27): under WSL the second CUDA engine of a process failed
+    to bind; the execution node registers the devices itself
+    ([BOOT.md](src/Execution/BOOT.md)). → HISTORY.md#retold-by-nodes
   - A third (2026-09-28): ILGPU moves a constant left operand of a floating-point
     comparison to the right and inverts its NaN ordering while doing so, so `1.0 < v`
     compiles to `setp.gtu.f64` and is true for a NaN `v` on CUDA and false on the CPU.
@@ -403,18 +402,9 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
 - **Documentation.** Two layers, each with one source of truth: the contracts are the
   nodes' `API.md` and the XML comments; the guide (`README.md`, `docs/guide/`, the
   package READMEs under `docs/nuget/`) is task-oriented and restates no signature.
-  - Every C# block of the guide equals a snippet of the samples node `samples/Samples`,
-    a console project in the solution with one class per consumer scenario; each class
-    checks the statuses it reads and prints its figures. A snippet is delimited by
-    `// snippet-start: <name>` and `// snippet-end` comments, holds statements a
-    consumer can paste and may be quoted on several pages; the `using` lines a scenario
-    needs are a snippet of their own. `#region` stays forbidden by the code-shape
-    constraint.
-  - The samples reference the library projects by default. With
-    `-p:APThermoPackageVersion=<version>` they restore the `APThermo` package from a
-    feed instead, so one source serves both the build and the check of the packed
-    package. They use the package surface only, as the command line does.
-    → HISTORY.md#delivery-documentation-condensed
+  - Every C# block of the guide equals a snippet of the samples node, which also builds
+    against the packed `APThermo` package from a feed
+    ([samples/Samples/BOOT.md](samples/Samples/BOOT.md)). → HISTORY.md#retold-by-nodes
 
   ⚠ 2026-09-17: was an unreviewed rewrite, now every block checked → HISTORY.md#restored
   - Every `apthermo` invocation shown in the guide takes its input documents from
@@ -424,18 +414,14 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     line must still parse as a valid invocation.
 
     ⚠ 2026-09-17: was every invocation approved, now two synopses → HISTORY.md#synopses
-  - The docs tests node `tests/Docs.Tests` proves each of the following, each check
-    failing when the set it walks is empty and each shown red once: every C# block
-    equals its snippet; every sample prints its approved output; every `apthermo`
-    invocation of the guide produces its approved output, with the run section cut as
-    the command line's tests cut it; every relative link of `README.md`, `llms.txt`,
-    `docs/` and the package READMEs resolves; every document under `samples/cli/`
-    validates against its schema; every guide page has the shared shape. The approved
-    output of an invocation is a record of the reference machine like the bit snapshots
-    (2026-09-29): a Windows and a Linux file, compared exactly under
+  - The docs tests node `tests/Docs.Tests` proves the guide against the samples, the
+    approved outputs, the schemas and the links, each check failing when the set it
+    walks is empty and each shown red once ([BOOT.md](tests/Docs.Tests/BOOT.md)). The
+    approved output of an invocation is a record of the reference machine like the bit
+    snapshots (2026-09-29): a Windows and a Linux file, compared exactly under
     `Category=BitSnapshot`; on every runner, the hosted ones included, the same document
     is compared field by field, its numbers within 1e-9 relative.
-    → HISTORY.md#delivery-docs-proofs-condensed
+    → HISTORY.md#retold-by-nodes
 
       ⚠ 2026-09-29: was one approved file, now per-platform, 1e-9 → HISTORY.md#docs-plat
   - The JSON Schemas of the command line's documents: [src/Cli/BOOT.md](src/Cli/BOOT.md).

@@ -8,6 +8,59 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="retold-by-nodes"></a>
+
+## 2026-10-01 — from "## Constraints" and "## Delivery" — three retellings of what a node holds
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15): each text below retold what
+a child node's own `BOOT.md` already holds, and is replaced by a link to it. The first two
+stood condensed once before (the entries `delivery-documentation-condensed` and
+`delivery-docs-proofs-condensed`); the text as it stood.
+
+What `samples/Samples/BOOT.md` holds of the first (its Purpose and Invariants: one class
+per scenario checking statuses, the snippet markers, regions quoted by several pages, the
+`using` lines as a region of their own, the two build modes, the package surface only).
+The `#region` ban of the last sentence is the code-shape constraint's, for every type:
+
+>   - Every C# block of the guide equals a snippet of the samples node `samples/Samples`,
+>     a console project in the solution with one class per consumer scenario; each class
+>     checks the statuses it reads and prints its figures. A snippet is delimited by
+>     `// snippet-start: <name>` and `// snippet-end` comments, holds statements a
+>     consumer can paste and may be quoted on several pages; the `using` lines a scenario
+>     needs are a snippet of their own. `#region` stays forbidden by the code-shape
+>     constraint.
+>   - The samples reference the library projects by default. With
+>     `-p:APThermoPackageVersion=<version>` they restore the `APThermo` package from a
+>     feed instead, so one source serves both the build and the check of the packed
+>     package. They use the package surface only, as the command line does.
+>     → HISTORY.md#delivery-documentation-condensed
+
+What `tests/Docs.Tests/BOOT.md` holds of the second (its levels L0 to L7 and its
+invariant that each level fails on an empty population and was shown red once):
+
+>   - The docs tests node `tests/Docs.Tests` proves each of the following, each check
+>     failing when the set it walks is empty and each shown red once: every C# block
+>     equals its snippet; every sample prints its approved output; every `apthermo`
+>     invocation of the guide produces its approved output, with the run section cut as
+>     the command line's tests cut it; every relative link of `README.md`, `llms.txt`,
+>     `docs/` and the package READMEs resolves; every document under `samples/cli/`
+>     validates against its schema; every guide page has the shared shape. The approved
+>     output of an invocation is a record of the reference machine like the bit snapshots
+>     (2026-09-29): a Windows and a Linux file, compared exactly under
+>     `Category=BitSnapshot`; on every runner, the hosted ones included, the same document
+>     is compared field by field, its numbers within 1e-9 relative.
+>     → HISTORY.md#delivery-docs-proofs-condensed
+
+What `src/Execution/BOOT.md` holds of the third (its WSL section, the registration of the
+devices of every later context):
+
+>   - A second defect of the version (2026-09-27): under WSL, ILGPU installs a `DllImport`
+>     resolver on every CUDA context it creates, which .NET allows once per process, so
+>     the second CUDA engine of a process failed to bind. The execution node registers
+>     the devices of every later context itself (its `BOOT.md` records the rule).
+
+---
+
 <a id="pointers-shortened"></a>
 
 ## 2026-10-01 — from every section — the pointers and anchors shortened
