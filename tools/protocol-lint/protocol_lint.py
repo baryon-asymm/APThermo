@@ -122,9 +122,9 @@ DEVIATION_PREFIX = "⚠ Declared deviation, §15:"
 SIX_DEVIATION_MARK = "⚠ Declared deviation, §6:"
 REPLACED_BY = re.compile(r"replaced by:\s*(.+?)\.?\s*$")
 
-# AGENTS.md 3.1 (§2, §6, §15): a node with children may hand its acceptance criteria
-# to a file of their own, read only in its own node, and the root's own limit rises to
-# the leaf's once it does.
+# AGENTS.md 3.2 (§2, §6, §15): any node may hand its acceptance criteria to a file of
+# their own, read only in its own node, and the root's own limit rises to the leaf's
+# once it does.
 ACCEPTANCE_NAME = "ACCEPTANCE.md"
 ACCEPTANCE_LIMIT = 400
 ROOT_LIMIT_WITH_ACCEPTANCE = 400
@@ -595,10 +595,7 @@ def check_boot_size(
 
     message = "{} non-blank lines, over the {}-line limit for {}".format(non_blank, limit, kind)
 
-    deviation = next(
-        (line.strip() for line in text.split("\n") if line.strip().startswith(DEVIATION_PREFIX)),
-        None,
-    )
+    deviation = declared_deviation(text)
     if deviation is not None:
         return [warn(
             "15", tree.relative(boot),
@@ -624,11 +621,10 @@ def acceptance_pointer_only(lines: Optional[List[Tuple[int, str]]]) -> bool:
 def check_acceptance_file(
     tree: Tree, node: Path, boot: Path, has_pointer: bool, acceptance_exists: bool,
 ) -> List[Finding]:
-    """AGENTS.md 3.1 (§6, §15): `ACCEPTANCE.md` stands only in a node with children,
-    and only where the BOOT.md it stands beside points to it with the one line the
-    article prescribes - not the other way around (an orphan file), and not in a leaf
-    (a leaf has nowhere the frame/evidence split of §15's "Frame and evidence" bullet
-    applies: nothing above it depends on its criteria being cheap to skip)."""
+    """AGENTS.md 3.2 (§6, §15): `ACCEPTANCE.md` stands in any node, leaf or not, and
+    only where the BOOT.md it stands beside points to it with the one line the article
+    prescribes - the pointer without the file, and the file without the pointer (an
+    orphan), are the two errors."""
     findings: List[Finding] = []
     if has_pointer and not acceptance_exists:
         findings.append(error(
@@ -639,29 +635,41 @@ def check_acceptance_file(
         findings.append(error(
             "6", tree.relative(node / ACCEPTANCE_NAME),
             "exists, but {}'s '## Acceptance criteria' does not point to it "
-            "(AGENTS.md 3.1) - an orphan file, or a stale one".format(BOOT_NAME),
-        ))
-    if acceptance_exists and not tree.has_descendant_nodes(node):
-        findings.append(error(
-            "15", tree.relative(node / ACCEPTANCE_NAME),
-            "stands in a leaf; only a node with children may move its acceptance "
-            "criteria out of BOOT.md (AGENTS.md 3.1)",
+            "(AGENTS.md 3.2) - an orphan file, or a stale one".format(BOOT_NAME),
         ))
     return findings
 
 
-def check_acceptance_size(tree: Tree, acceptance: Path, text: str) -> List[Finding]:
-    """AGENTS.md 3.1 (§15): `ACCEPTANCE.md` is current truth, not history, and is held
-    to the same 400 lines a leaf's BOOT.md is - there is no deviation for it, since
-    unlike a BOOT.md it holds nothing but the dated, evidenced criteria §15 already
-    forbids moving."""
+def declared_deviation(text: str) -> Optional[str]:
+    """The first line of `text` that starts with `DEVIATION_PREFIX`, stripped, if any."""
+    return next(
+        (line.strip() for line in text.split("\n") if line.strip().startswith(DEVIATION_PREFIX)),
+        None,
+    )
+
+
+def check_acceptance_size(
+    tree: Tree, acceptance: Path, text: str, boot_text: str,
+) -> List[Finding]:
+    """AGENTS.md 3.2 (§15): `ACCEPTANCE.md` is current truth, not history, and is held
+    to 400 lines. The deviation §15 names for a `BOOT.md` is granted to it as well: a
+    line starting with `DEVIATION_PREFIX` in the node's own BOOT.md (`boot_text`)
+    turns the error into a warning that quotes it."""
     non_blank = sum(1 for line in text.split("\n") if line.strip())
     if non_blank <= ACCEPTANCE_LIMIT:
         return []
+    message = "{} non-blank lines, over the {}-line limit for {}".format(
+        non_blank, ACCEPTANCE_LIMIT, ACCEPTANCE_NAME)
+    deviation = declared_deviation(boot_text)
+    if deviation is not None:
+        return [warn(
+            "15", tree.relative(acceptance),
+            "{} - declared deviation: {}".format(message, deviation),
+        )]
     return [error(
         "15", tree.relative(acceptance),
-        "{} non-blank lines, over the {}-line limit for {}".format(
-            non_blank, ACCEPTANCE_LIMIT, ACCEPTANCE_NAME),
+        "{}; move what is no longer current truth to HISTORY.md, or declare the "
+        "deviation in the node's BOOT.md (AGENTS.md §12)".format(message),
     )]
 
 
@@ -748,9 +756,15 @@ def check_status_marks(tree: Tree, api: Path, text: str, masked: List[str]) -> L
     )]
 
 
-def check_acceptance_dates(tree: Tree, boot: Path, masked: List[str]) -> List[Finding]:
-    """AGENTS.md 6: a tick carries the day its evidence was obtained."""
-    lines = section_lines(masked, "Acceptance criteria")
+def check_acceptance_dates(
+    tree: Tree, boot: Path, masked: List[str], whole_file: bool = False,
+) -> List[Finding]:
+    """AGENTS.md 6: a tick carries the day its evidence was obtained.
+
+    A BOOT.md is read in its `## Acceptance criteria` section; an ACCEPTANCE.md
+    (`whole_file`, AGENTS.md 3.2) holds criteria throughout, so the whole file is read
+    whether or not it carries the section heading."""
+    lines = list(enumerate(masked)) if whole_file else section_lines(masked, "Acceptance criteria")
     if not lines:
         return []
 
@@ -875,8 +889,9 @@ def lint(
         if acceptance_exists:
             acceptance_text = tree.text(acceptance)
             acceptance_masked = mask_code(acceptance_text)
-            findings += check_acceptance_dates(tree, acceptance, acceptance_masked)
-            findings += check_acceptance_size(tree, acceptance, acceptance_text)
+            findings += check_acceptance_dates(tree, acceptance, acceptance_masked, whole_file=True)
+            boot_text = tree.text(boot) if boot.is_file() else ""
+            findings += check_acceptance_size(tree, acceptance, acceptance_text, boot_text)
 
         api = node / API_NAME
         if api.is_file():

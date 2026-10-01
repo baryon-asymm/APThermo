@@ -10,7 +10,7 @@ project's tests node.
 
 The node is placed in the tree as an ordinary node (for example `tools/protocol-lint/`)
 and is run before and after work in any node. Since 2026-10-01 its checks are those of
-`AGENTS.md` 3.1, §13's table, adopted word for word by the owner's decision.
+`AGENTS.md` 3.2, §13's table, adopted word for word by the owner's decision.
 
 ## Invariants
 
@@ -44,13 +44,23 @@ and is run before and after work in any node. Since 2026-10-01 its checks are th
   not gated behind anything, and it is checked wherever it is written: in a `BOOT.md`, an
   `API.md` or an `ACCEPTANCE.md`, in a comment of the code under `src/` and `tests/`, in
   backticks or out of them.
-- **`ACCEPTANCE.md` is current truth, not history** (`AGENTS.md` 3.1). A node with
-  children may hold its `## Acceptance criteria` body there instead of in `BOOT.md`,
+- **`ACCEPTANCE.md` is current truth, not history** (`AGENTS.md` 3.2). Any node, leaf
+  or not, may hold its `## Acceptance criteria` body there instead of in `BOOT.md`,
   leaving the one line `→ [ACCEPTANCE.md](ACCEPTANCE.md)` behind; this node checks
-  that the file exists exactly when the pointer does, that it is never a leaf's, and
-  that its dates and its own 400-line limit hold, the same way `BOOT.md`'s do. The
-  root's own `BOOT.md` limit rises from 250 to 400 once it uses this, since it is then
-  measured for frame alone, not for evidence too (`AGENTS.md` §15).
+  that the file exists exactly when the pointer does, and that its dates (read over the
+  whole file, with or without a section heading) and its own 400-line limit hold, the
+  same way `BOOT.md`'s do, the limit with the node's `⚠ Declared deviation, §15:` line
+  taken on trust as for a `BOOT.md`. The pointer exempts no node's `BOOT.md` from its
+  limit except the root's, which rises from 250 to 400, since it is then measured for
+  frame alone, not for evidence too (`AGENTS.md` §15).
+
+  ⚠ 2026-10-01: was "only a node with children may hold it, never a leaf's; its limit
+  has no deviation, and the dates are read in its `## Acceptance criteria` section
+  only", now any node, a deviation available, the whole file read for dates
+  (`AGENTS.md` 3.2, Appendix D). On one tree eight leaves stood at 396–400 lines while
+  their criteria grew; on the other, splitting the criteria out brought five of seven
+  leaves inside their limit; and an undated tick in a file without the section heading
+  had passed unseen.
 
 ## Dependencies
 
@@ -83,7 +93,7 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
   directory `.github` held a C# project with no pair of documents and the linter could
   not see it, which the root `BOOT.md` had to declare as a deviation of `AGENTS.md` §1
   (the guards audit of 2026-09-26); with `.github` read, the deviation lifts.
-- The checks are those of the `AGENTS.md` it is run against (3.1 since 2026-10-01).
+- The checks are those of the `AGENTS.md` it is run against (3.2 since 2026-10-01).
   A later revision of the protocol changes this node in the same step, and the two
   are never allowed to disagree about a limit or a canonical line.
 
@@ -98,10 +108,10 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
 ## Acceptance criteria
 
 - [x] Every check is proven non-degenerate: exactly one breakage is applied to a
-      conformant tree and the check turns red — 63 tests, none skipped
+      conformant tree and the check turns red — 68 tests, none skipped
       (2026-10-01, `test_protocol_lint.py`, run as
       `python -X utf8 tools/protocol-lint/test_protocol_lint.py`; 27 tests on
-      2026-09-12, before the checks of `AGENTS.md` 3.1).
+      2026-09-12, before the checks of `AGENTS.md` 3.1, and 63 before 3.2).
 - [x] Two guard tests against false positives: a grouping directory is not counted as
       a node, a link inside a code block is not resolved
       (2026-09-12, `test_a_grouping_directory_is_not_a_node`,
@@ -129,22 +139,41 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
       existence check turns red `test_a_named_section_that_does_not_exist_is_an_error`,
       and `test_a_section_exemption_does_not_hide_a_genuine_overflow` holds that the
       exemption narrows an overflow and does not hide one (2026-10-01).
-- [x] `ACCEPTANCE.md` (AGENTS.md 3.1, §6, §15) is seen red once per mutation
-      (2026-10-01, `test_protocol_lint.py`):
+- [x] `ACCEPTANCE.md` (AGENTS.md 3.2, §6, §15), in any node, is seen red once per
+      mutation (2026-10-01, `test_protocol_lint.py`):
       - the pointer-without-file check removed turns red
         `test_a_pointer_with_no_acceptance_file_is_an_error`;
       - the orphan check removed turns red `test_an_orphan_acceptance_file_is_an_error`;
-      - the leaf check removed turns red `test_acceptance_md_in_a_leaf_is_an_error`;
       - the date check of the file removed turns red
         `test_an_undated_tick_in_acceptance_md_is_a_warning`;
-      - the size check of the file removed, or its limit raised, turns red
-        `test_acceptance_md_over_400_lines_is_an_error`;
+      - the date check reading only the section turns red
+        `test_an_undated_tick_in_a_headingless_acceptance_md_is_a_warning`;
+      - the size check of the file removed turns red
+        `test_acceptance_md_over_400_lines_is_an_error`,
+        `test_acceptance_md_in_a_leaf_over_400_lines_is_an_error` and
+        `test_a_declared_deviation_downgrades_an_acceptance_overflow_to_a_warning`;
+      - the deviation of the file removed turns red
+        `test_a_declared_deviation_downgrades_an_acceptance_overflow_to_a_warning`;
+      - the pointer exempting a `BOOT.md` below the root from its limit turns red
+        `test_a_leaf_with_the_pointer_keeps_the_leaf_limit` and
+        `test_a_node_below_the_root_keeps_the_parent_limit_with_the_pointer`;
       - the root's raised limit set back to 250 turns red
         `test_a_root_boot_over_400_lines_with_the_pointer_is_an_error` and
         `test_a_root_boot_at_exactly_400_lines_with_the_pointer_is_clean`, and the raise
         applied to every parent turns red
         `test_a_node_below_the_root_keeps_the_parent_limit_with_the_pointer`;
-      - `test_a_pointer_that_resolves_to_a_real_file_is_clean` guards the false positive.
+      - on the module as it stood before 3.2 (the leaf error, no deviation for the file,
+        dates read in the section only) `test_acceptance_md_in_a_leaf_is_clean`,
+        `test_a_leaf_moving_its_criteria_out_comes_inside_its_limit`,
+        `test_a_declared_deviation_downgrades_an_acceptance_overflow_to_a_warning` and
+        `test_an_undated_tick_in_a_headingless_acceptance_md_is_a_warning` are red, and
+        of the 63 tests that stood only the one it replaced, the leaf error, is red;
+      - `test_a_pointer_that_resolves_to_a_real_file_is_clean` and
+        `test_acceptance_md_in_a_leaf_is_clean` guard the false positive.
+
+      ⚠ 2026-10-01: stood "only in a node with children", with a leaf an `ERROR`
+      (`test_acceptance_md_in_a_leaf_is_an_error`), no deviation for the file's size
+      and dates read in the section only: now any node, per `AGENTS.md` 3.2.
 - [x] The `HISTORY.md` citation check is seen red once per mutation
       (2026-10-01, `test_protocol_lint.py`):
       - the check removed for documents turns red

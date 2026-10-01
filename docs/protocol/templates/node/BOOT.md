@@ -48,6 +48,14 @@ Inherited from the parent ([BOOT.md](../BOOT.md)). In addition:
      the name of the test/fixture/measurement. An unattainable criterion is reworded
      with an explanation, not deleted. -->
 
+<!-- Any node may keep the criteria in an `ACCEPTANCE.md` beside this file (AGENTS.md
+     §6, §15), a leaf too: when they push the node toward its line limit, move the
+     whole body there and leave in this section only the one line
+     `→ [ACCEPTANCE.md](ACCEPTANCE.md)`. The file is read only in its own node, holds
+     criteria, evidence and their history and never a rule (a rule stays in BOOT.md),
+     and is held to 400 lines itself. -->
+
+
 ## Taboos
 
 - <What is forbidden in this node, and why, in one sentence. A taboo without a reason
