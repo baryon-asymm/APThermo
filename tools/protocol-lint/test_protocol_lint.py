@@ -179,6 +179,23 @@ class ProtocolLintTest(unittest.TestCase):
         self.write(".venv/lib/site.py", "VALUE = 4\n")
         self.assertEqual([], self.findings())
 
+    def test_dot_github_is_read_as_part_of_the_tree(self) -> None:
+        """Committed configuration is a node when it holds code: its own and its children's
+        pairs are required, and its documents are checked like any other."""
+        self.write(".github/diagnostics/Probe/probe.py", "VALUE = 6\n")
+        self.write(".github/BOOT.md", "# BOOT.md - github\n\n## Purpose\n\nCI.\n")
+        self.write(".github/API.md", "# API.md - github\n\nNothing.\n")
+        findings = self.findings()
+        self.assertFinding("ERROR", "1", ".github/diagnostics/Probe/BOOT.md", findings=findings)
+        self.assertFinding("ERROR", "1", ".github/diagnostics/Probe/API.md", findings=findings)
+        self.assertFinding("ERROR", "6", ".github/BOOT.md", "Invariants", findings=findings)
+
+    def test_every_other_dot_directory_stays_skipped(self) -> None:
+        self.write(".claude/worktrees/x/module.py", "VALUE = 7\n")
+        self.write(".git/hooks/hook.py", "VALUE = 8\n")
+        self.write(".venv-fixtures/lib/site.py", "VALUE = 9\n")
+        self.assertEqual([], self.findings())
+
     # ---------------------------------------------------------- 2: the protocol
 
     def test_agents_below_the_root_is_an_error(self) -> None:

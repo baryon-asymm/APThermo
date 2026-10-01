@@ -8,6 +8,206 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="retold-by-nodes"></a>
+
+## 2026-10-01 — from "## Constraints" and "## Delivery" — three retellings of what a node holds
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15): each text below retold what
+a child node's own `BOOT.md` already holds, and is replaced by a link to it. The first two
+stood condensed once before (the entries `delivery-documentation-condensed` and
+`delivery-docs-proofs-condensed`); the text as it stood.
+
+What `samples/Samples/BOOT.md` holds of the first (its Purpose and Invariants: one class
+per scenario checking statuses, the snippet markers, regions quoted by several pages, the
+`using` lines as a region of their own, the two build modes, the package surface only).
+The `#region` ban of the last sentence is the code-shape constraint's, for every type:
+
+>   - Every C# block of the guide equals a snippet of the samples node `samples/Samples`,
+>     a console project in the solution with one class per consumer scenario; each class
+>     checks the statuses it reads and prints its figures. A snippet is delimited by
+>     `// snippet-start: <name>` and `// snippet-end` comments, holds statements a
+>     consumer can paste and may be quoted on several pages; the `using` lines a scenario
+>     needs are a snippet of their own. `#region` stays forbidden by the code-shape
+>     constraint.
+>   - The samples reference the library projects by default. With
+>     `-p:APThermoPackageVersion=<version>` they restore the `APThermo` package from a
+>     feed instead, so one source serves both the build and the check of the packed
+>     package. They use the package surface only, as the command line does.
+>     → HISTORY.md#delivery-documentation-condensed
+
+What `tests/Docs.Tests/BOOT.md` holds of the second (its levels L0 to L7 and its
+invariant that each level fails on an empty population and was shown red once):
+
+>   - The docs tests node `tests/Docs.Tests` proves each of the following, each check
+>     failing when the set it walks is empty and each shown red once: every C# block
+>     equals its snippet; every sample prints its approved output; every `apthermo`
+>     invocation of the guide produces its approved output, with the run section cut as
+>     the command line's tests cut it; every relative link of `README.md`, `llms.txt`,
+>     `docs/` and the package READMEs resolves; every document under `samples/cli/`
+>     validates against its schema; every guide page has the shared shape. The approved
+>     output of an invocation is a record of the reference machine like the bit snapshots
+>     (2026-09-29): a Windows and a Linux file, compared exactly under
+>     `Category=BitSnapshot`; on every runner, the hosted ones included, the same document
+>     is compared field by field, its numbers within 1e-9 relative.
+>     → HISTORY.md#delivery-docs-proofs-condensed
+
+What `src/Execution/BOOT.md` holds of the third (its WSL section, the registration of the
+devices of every later context):
+
+>   - A second defect of the version (2026-09-27): under WSL, ILGPU installs a `DllImport`
+>     resolver on every CUDA context it creates, which .NET allows once per process, so
+>     the second CUDA engine of a process failed to bind. The execution node registers
+>     the devices of every later context itself (its `BOOT.md` records the rule).
+
+---
+
+<a id="pointers-shortened"></a>
+
+## 2026-10-01 — from every section — the pointers and anchors shortened
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15): each pointer below took two
+lines and now takes one (two of them keep two), with a shorter anchor of its entry in this
+file. The pointers as they stood, in the order of the file; the anchors renamed, old to new:
+
+- `gpu-equals-cpu-second-tier` to `gpu-tier`
+- `platform-throughput-record` to `plat-tput`
+- `platform-first-linux-run` to `plat-linux`
+- `platform-windows-only` to `plat-os`
+- `assembly-per-node` to `asm-node`
+- `namespaces-samples` to `ns-dirs`
+- `namespaces-rename` to `ns-rename`
+- `math-allow-list` to `math-allow`
+- `math-min-max` to `math-nan`
+- `ilgpu-defect-by-target` to `ilgpu-sm`
+- `compile-size-measurement` to `compile`
+- `code-shape-ce-limit` to `ce-limit`
+- `code-shape-lines-of-code` to `loc`
+- `code-shape-src-scope` to `src-scope`
+- `code-shape-src-both-sides` to `src-ca`
+- `code-shape-dependency-graph` to `dep-graph`
+- `code-shape-instability` to `instab`
+- `problems-problemkind` to `kind`
+- `cli-dependencies` to `cli-dep`
+- `cli-accelerator-probe` to `probe`
+- `docs-tests-schemas` to `schemas`
+- `documentation-restored` to `restored`
+- `declared-synopses` to `synopses`
+- `docs-platform-rule` to `docs-plat`
+
+>   ⚠ 2026-09-12: was 1e-10 on mole fractions at every station, now a second tier, 1e-9,
+>   where the Newton step counts differ → HISTORY.md#gpu-equals-cpu-second-tier
+>
+>   ⚠ 2026-09-17: was the bit snapshots "the one platform-specific record", now the
+>   throughput figures too → HISTORY.md#platform-throughput-record
+>
+>   ⚠ 2026-09-17: was the Linux bit question open, now answered: Linux differs by up to
+>   4.2e-12 relative, records per platform → HISTORY.md#platform-first-linux-run
+>
+>   ⚠ 2026-09-15: was "Windows 11 x64 is the only supported platform", now Windows and
+>   Linux x64, CUDA included → HISTORY.md#platform-windows-only
+>
+>   ⚠ 2026-09-15: was "One assembly per node directory", now per node that holds a project
+>   (children join their ancestor's) → HISTORY.md#assembly-per-node
+>
+>   ⚠ 2026-09-16: was `src/` and `tests/` the transparent directories, now `samples/` too
+>   → HISTORY.md#namespaces-samples
+>
+>   ⚠ 2026-09-15: was the root namespace `AerospacePropellantThermodynamics`, now
+>   `APThermo` → HISTORY.md#namespaces-rename
+>
+>   ⚠ 2026-09-28: was a check on `Math.Min` and `Math.Max` only, now an allow-list of
+>   every `System.Math` and `System.Double` call → HISTORY.md#math-allow-list
+>
+>   ⚠ 2026-09-27: was `Min` and `Max` in the math list, now `KernelMath.Min` and
+>   `KernelMath.Max` (NaN differs on CUDA) → HISTORY.md#math-min-max
+>
+>   ⚠ 2026-09-26: was the defect tied to libnvvm 12.9 and 13.3, now to the target,
+>   `compute_100` and newer → HISTORY.md#ilgpu-defect-by-target
+>
+>   ⚠ 2026-09-30: was no bound on the compile (7 sites: 49.7 s, 11.2 GB), now the
+>   attribute rule (2.6 s, 0.43 GB) → HISTORY.md#compile-size-measurement
+>
+>   ⚠ 2026-09-14: was a Ce limit of 10 (a textual count), now 14 (the check's walk) →
+>   HISTORY.md#code-shape-ce-limit
+>
+>   ⚠ 2026-09-14, evening: was physical lines counted, now lines of code, 400 and 60
+>   unchanged → HISTORY.md#code-shape-lines-of-code
+>
+>   ⚠ 2026-09-15: was the coupling sentences for "every type of the tree", now the `src`
+>   types → HISTORY.md#code-shape-src-scope
+>
+>   ⚠ 2026-09-15: was "named by 10 or more types of the tree", now types of the `src`
+>   nodes → HISTORY.md#code-shape-src-both-sides
+>
+>   ⚠ 2026-09-15: was "over their project graph", now the graph of the `## Dependencies`
+>   sections → HISTORY.md#code-shape-dependency-graph
+>
+>   ⚠ 2026-09-15: was the instability of every `src` node, now of those that hold a
+>   project → HISTORY.md#code-shape-instability
+>
+>   ⚠ 2026-09-12: was `Problems` without a link to `Equilibrium`, now with it
+>   (`ProblemKind`) → HISTORY.md#problems-problemkind
+>
+>   ⚠ 2026-09-13: was `Cli` without links to `Execution` and the result structs, now with
+>   them → HISTORY.md#cli-dependencies
+>
+>   ⚠ 2026-09-15: was `Cli` creating an engine for `devices`, now
+>   `AcceleratorProbe.Describe` → HISTORY.md#cli-accelerator-probe
+>
+>   ⚠ 2026-09-16: was the docs tests node holding "the schemas", now only approved outputs
+>   and tests → HISTORY.md#docs-tests-schemas
+>
+>   ⚠ 2026-09-17: was an unreviewed rewrite (marked blocks only, no package feed), now
+>   every block checked, feed restored → HISTORY.md#documentation-restored
+>
+>     ⚠ 2026-09-17: was every invocation approved, now `devices` and `--version` declared
+>     synopses → HISTORY.md#declared-synopses
+>
+>       ⚠ 2026-09-29: was one approved file compared exactly everywhere, now per-platform
+>       records plus a 1e-9 field tolerance → HISTORY.md#docs-platform-rule
+
+---
+
+<a id="test-nodes-retelling"></a>
+
+## 2026-10-01 — from "## Decomposition" — what two test nodes already say about themselves
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the paragraph as it stood
+before two retellings of a child's own invariants were replaced by a link:
+`tests/Harness/BOOT.md` holds "Nothing above `Data` and `Fixtures`" and
+`tests/Benchmarks/BOOT.md` holds "Figures are recorded, never asserted".
+
+> Test nodes mirror the source nodes as `tests/<Node>.Tests`. `tests/Protocol.Tests` holds
+> the reflection checks of AGENTS.md §13; `tests/Fixtures` the reference outputs
+> generated with NASA's `cea` package, with their provenance, the generator scripts and
+> the tolerance table; `tests/Harness` the scaffolding the test nodes share, naming
+> nothing above `Data` and `Fixtures`; `tests/Benchmarks` the BenchmarkDotNet
+> measurements, run by hand outside `dotnet test`, its figures recorded and never
+> asserted (a library, run through its child node `tests/Benchmarks/Runner`);
+> `samples/Samples` each consumer scenario as a running program over the package surface,
+> the source of the guide's code; `tests/Docs.Tests` the approved outputs of the samples
+> and command-line examples and the proof of the guide against them (`## Delivery`,
+> Documentation). → HISTORY.md#decomposition-condensed
+
+---
+
+<a id="cli-schemas-retelling"></a>
+
+## 2026-10-01 — from "## Delivery", "Documentation" — the schemas of the command line
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the bullet as it stood
+before it was replaced by a link to `src/Cli/BOOT.md`, which holds the rule (its invariant
+"The JSON schema is the contract": the schemas live in `Schemas/`, embedded in the
+assembly, printed by `apthermo schema`, compared with the structs by a test), while
+`tests/Docs.Tests/BOOT.md` holds "No copy of what is checked elsewhere":
+
+>   - The JSON Schemas of the command line's documents belong to the command line
+>     (2026-09-15). They move from its tests node to `src/Cli/Schemas/`, are embedded in
+>     the tool (`apthermo schema <name>` prints one), and are validated there by the
+>     command line's tests. No copy of them lives under `docs/`.
+
+---
+
 <a id="platform-deviation-condensed"></a>
 
 ## 2026-10-01 — from "## Constraints" — condensed wording
@@ -351,57 +551,7 @@ before its wording was condensed:
 
 ---
 
-<a id="delivery-ci-condensed"></a>
-
-## 2026-10-01 — from "## Delivery, "Continuous integration"" — condensed wording
-
-Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it stood
-before its wording was condensed:
-
-> - **Continuous integration.** GitHub Actions under `.github/workflows`, which holds
->   configuration and is not a node.
->
->   ⚠ 2026-09-26, declared deviation from AGENTS.md §1 (a directory with a build
->   manifest is a node): `.github/diagnostics/IsaProbe` is a C# console project with no
->   `BOOT.md` or `API.md`. It prints the instruction sets .NET sees on a runner, for the
->   runner-diagnostics step of both workflows (`2bab62d`, the hosted-runner bit
->   investigation of 2026-09-18). It is configuration's tool, not the product's.
->   - What replaces the pair: its header comment states its purpose.
->   - What still binds it: the Diagnostics constraint, since `Directory.Build.props`
->     covers it and `DiagnosticsTests` reads `.github`.
->   - What lifts the deviation: removing the step and the project once the runner
->     diagnostics are retired.
->
->   Found by the guards audit of 2026-09-26: the linter's dot-directory exclusion left
->   it outside the tree with nothing saying so.
->   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
->     the build, the fast suite with `APTHERMO_NO_CUDA=1` and without the bit snapshots
->     (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint), and
->     packing both packages. The release's self-hosted jobs on the reference machine run
->     the bit snapshots with the CUDA tests.
->     Then the samples run against the fresh `APThermo` package from a local feed, the
->     tool installed from that feed runs an approved example, and the docs tests run (the
->     ⚠ of 2026-09-17 under Documentation). The example's output is compared with the
->     approved record field by field, numbers within 1e-9 relative, the Documentation rule
->     of 2026-09-29 (a hosted runner's CPU is not the reference machine's).
-
----
-
-<a id="ci-field-comparison"></a>
-
-## 2026-10-01 — from "## Delivery", "Continuous integration" — the packed tool's example is compared field by field
-
-Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it stood
-(a correction of 2026-09-30):
-
-> ⚠ 2026-09-30: the step compared byte for byte. The first run on the hosted Linux
-> runner after the equilibrium change of 2026-09-28 failed on the last digits
-> (about 1e-13 relative), the same platform difference that moved the bit snapshots.
-> The comparison lives in the harness, once (`tests/Harness/BOOT.md`).
-
----
-
-<a id="compile-size-measurement"></a>
+<a id="compile"></a>
 
 ## 2026-10-01 — from "## Constraints", "Compile size" — the measurement behind the compile size rule
 
@@ -420,7 +570,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="docs-platform-rule"></a>
+<a id="docs-plat"></a>
 
 ## 2026-10-01 — from "## Delivery", "Documentation" — the approved command-line output is a record of the reference machine
 
@@ -437,7 +587,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="math-allow-list"></a>
+<a id="math-allow"></a>
 
 ## 2026-10-01 — from "## Constraints", "Math in numerical nodes" — the check matched only Min and Max
 
@@ -453,7 +603,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="math-min-max"></a>
+<a id="math-nan"></a>
 
 ## 2026-10-01 — from "## Constraints", "Math in numerical nodes" — Min and Max leave the math list
 
@@ -474,7 +624,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="ilgpu-defect-by-target"></a>
+<a id="ilgpu-sm"></a>
 
 ## 2026-10-01 — from "## Constraints", "ILGPU 1.5.3" — the libdevice defect depends on the architecture, not on the libnvvm version
 
@@ -500,43 +650,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="rehearsal-first-release"></a>
-
-## 2026-10-01 — from "## Delivery", "Rehearsal before the tag" — the first release took four tag pushes
-
-Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it stood
-(a correction of 2026-09-19):
-
-> ⚠ 2026-09-19: the first release took four tag pushes (`6924aae`, `f603fd4`,
-> `fa4d626`, each moved), each failing on a path that had never run before it: a
-> context GitHub rejects in a job-level `env`, a script committed without the
-> executable bit, a bit snapshot on a hosted CPU, and a `pwsh` shell absent from both
-> self-hosted runners. The dispatch trigger that could have rehearsed all of them
-> existed since `c3f5b6b` and was never used; the workflows were verified by reading
-> and by a linter, which check syntax, not the host. A post-mortem (Fable 5.1, from the
-> runners' own `_diag` logs) found the common cause and set this rule. The tag
-> `v0.1.0` is moved one last time, after a green rehearsal, since nothing was ever
-> published under it.
-
----
-
-<a id="no-nightly-run"></a>
-
-## 2026-10-01 — from "## Delivery", "Continuous integration" — the nightly run is dropped
-
-Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it stood
-(a correction of 2026-09-17):
-
-> ⚠ 2026-09-17: stood "A nightly run adds the long-running tests on the CPU
-> accelerator". Every long-running test of the tree is a CUDA test. Under
-> `APTHERMO_NO_CUDA=1` it only checks the refusal and returns, so a nightly run on
-> hosted runners added nothing (the CI audit of 2026-09-17, G1). The long-running CUDA
-> tests run at every release on the self-hosted runners. The user decided to drop the
-> nightly run rather than add a CPU-only long test.
-
----
-
-<a id="declared-synopses"></a>
+<a id="synopses"></a>
 
 ## 2026-10-01 — from "## Delivery", "Documentation" — the declared synopses of the command line
 
@@ -551,7 +665,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="documentation-restored"></a>
+<a id="restored"></a>
 
 ## 2026-10-01 — from "## Delivery", "Documentation" — the unreviewed rewrite of the Documentation bullet, restored
 
@@ -576,7 +690,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="platform-first-linux-run"></a>
+<a id="plat-linux"></a>
 
 ## 2026-10-01 — from "## Constraints", "Platform" — the first Linux run answers the open question
 
@@ -600,7 +714,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="platform-throughput-record"></a>
+<a id="plat-tput"></a>
 
 ## 2026-10-01 — from "## Constraints", "Platform" — the bit snapshots were not the one platform-specific record
 
@@ -614,7 +728,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="docs-tests-schemas"></a>
+<a id="schemas"></a>
 
 ## 2026-10-01 — from "## Decomposition", "test nodes" — the docs tests node does not hold the schemas
 
@@ -630,7 +744,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="namespaces-samples"></a>
+<a id="ns-dirs"></a>
 
 ## 2026-10-01 — from "## Constraints", "Namespaces" — the grouping directory samples is transparent
 
@@ -646,7 +760,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="cli-accelerator-probe"></a>
+<a id="probe"></a>
 
 ## 2026-10-01 — from "## Decomposition", "src/Cli" — Cli calls AcceleratorProbe in place of an engine of its own
 
@@ -664,7 +778,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-instability"></a>
+<a id="instab"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the instability is measured on the nodes that hold a project
 
@@ -684,7 +798,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-dependency-graph"></a>
+<a id="dep-graph"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the instability is read from the Dependencies sections
 
@@ -702,7 +816,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-src-both-sides"></a>
+<a id="src-ca"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the counting side of the stable type is scoped too
 
@@ -720,7 +834,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-src-scope"></a>
+<a id="src-scope"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the coupling and stable-type sentences are scoped to the src nodes
 
@@ -738,25 +852,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="data-embedded"></a>
-
-## 2026-10-01 — from "## Constraints", "Data" — the NASA files are embedded in the data assembly
-
-Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it stood
-(a correction of 2026-09-15):
-
-> ⚠ 2026-09-15 (distribution phase): stood "they are read at run time from that
-> directory or from a path given by the caller". A NuGet package and a .NET tool have
-> no `data/` directory beside them, so every consumer would have to find NASA files
-> before the first call. Embedding the committed files keeps the data-from-files
-> invariant, because the bytes are the committed ones with their hash recorded. The
-> caller's path stays for other databases. The command line's search for `data/`
-> beside the executable and in the current directory goes with it; its `API.md`
-> records the change.
-
----
-
-<a id="namespaces-rename"></a>
+<a id="ns-rename"></a>
 
 ## 2026-10-01 — from "## Constraints", "Namespaces" — the rename to APThermo
 
@@ -776,7 +872,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="assembly-per-node"></a>
+<a id="asm-node"></a>
 
 ## 2026-10-01 — from "## Constraints", "Language and build" — one assembly per node directory
 
@@ -794,7 +890,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="platform-windows-only"></a>
+<a id="plat-os"></a>
 
 ## 2026-10-01 — from "## Constraints", "Platform" — Windows was the only supported platform of version 1
 
@@ -813,7 +909,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-lines-of-code"></a>
+<a id="loc"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the size limits count lines of code
 
@@ -830,7 +926,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-ce-limit"></a>
+<a id="ce-limit"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the limit on Ce, 10 recalibrated to 14
 
@@ -847,7 +943,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="cli-dependencies"></a>
+<a id="cli-dep"></a>
 
 ## 2026-10-01 — from "## Decomposition", "src/Cli" — Cli uses Execution and reads the result structs
 
@@ -864,7 +960,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="problems-problemkind"></a>
+<a id="kind"></a>
 
 ## 2026-10-01 — from "## Decomposition", "src/Problems" — Problems names the ProblemKind of Equilibrium
 
@@ -877,7 +973,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="gpu-equals-cpu-second-tier"></a>
+<a id="gpu-tier"></a>
 
 ## 2026-10-01 — from "## Invariants", "GPU equals CPU" — the second tolerance tier of GPU equals CPU
 

@@ -67,6 +67,11 @@ DEFAULT_MANIFEST_NAMES: Set[str] = {
 }
 DEFAULT_MANIFEST_SUFFIXES: Tuple[str, ...] = (".csproj", ".fsproj", ".vbproj", ".vcxproj")
 
+# A directory whose name starts with a dot is a tool's cache or state and is skipped, with
+# one exception: these are committed configuration, and the tree reads them as part of
+# itself, nodes included.
+DOT_DIRECTORIES_READ: Set[str] = {".github"}
+
 DEFAULT_EXCLUDED_DIRS: Set[str] = {
     "artifacts", "bin", "build", "coverage", "dist", "env", "node_modules", "obj",
     "out", "packages", "target", "TestResults", "vendor", "venv", "__pycache__",
@@ -319,6 +324,8 @@ class Tree:
         self._scan()
 
     def _excluded(self, name: str) -> bool:
+        if name in DOT_DIRECTORIES_READ:
+            return name in self.excluded_dirs
         return name.startswith(".") or name in self.excluded_dirs or name.endswith(".egg-info")
 
     def _scan(self) -> None:

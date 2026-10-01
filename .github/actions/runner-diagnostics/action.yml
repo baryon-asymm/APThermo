@@ -14,7 +14,7 @@ runs:
   using: composite
   steps:
     # PowerShell 7 (pwsh) exists only on hosted images; a self-hosted runner has none, so this step and the three
-    # below name their shell explicitly and split by OS (the 2026-09-19 post-mortem, root BOOT.md's "Rehearsal
+    # below name their shell explicitly and split by OS (the 2026-09-19 post-mortem, .github/BOOT.md's "Rehearsal
     # before the tag"). Windows PowerShell 5.1 has no $IsWindows, hence the split rather than a single script
     # branching on it.
     - name: CPU model and logical core count (Windows)

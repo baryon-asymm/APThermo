@@ -1,11 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Not a tree node: .github holds CI configuration only, and the protocol linter and Protocol.Tests both skip
-    dot-prefixed directories (root BOOT.md's "Continuous integration"; tools/protocol-lint/protocol_lint.py's
-    `_excluded`; tests/Protocol.Tests/Tree.cs's `Skipped`, which never even lists .github since Tree.Walk only turns
-    a directory into a node when it already holds BOOT.md and API.md). It never enters APThermo.sln and no node
-    depends on it; run directly with "dotnet run", its project argument pointed at this directory.
+    A tree node (BOOT.md and API.md beside this file); the directory is read by the protocol linter as part of the
+    tree, `.github` being the one dot directory it reads (tools/protocol-lint/protocol_lint.py's
+    `DOT_DIRECTORIES_READ`). It never enters APThermo.sln and no node depends on it; run directly with
+    "dotnet run", its project argument pointed at this directory.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

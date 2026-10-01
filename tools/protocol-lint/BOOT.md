@@ -75,7 +75,14 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
 - The `--exclude` option and the built-in exclusion of dot directories and build
   directories apply to every check alike, the new ones included; the tree's own command
   (`CLAUDE.md`) passes `--exclude templates` so that the document templates are not read
-  as nodes.
+  as nodes. One dot directory is read as part of the tree, `.github` (2026-10-01): it holds
+  committed configuration and the tool projects of that configuration, which are nodes
+  like any directory with a manifest (`AGENTS.md` §1); every other dot directory stays out.
+
+  ⚠ 2026-10-01: stood "the built-in exclusion of dot directories", all of them. The
+  directory `.github` held a C# project with no pair of documents and the linter could
+  not see it, which the root `BOOT.md` had to declare as a deviation of `AGENTS.md` §1
+  (the guards audit of 2026-09-26); with `.github` read, the deviation lifts.
 - The checks are those of the `AGENTS.md` it is run against (3.1 since 2026-10-01).
   A later revision of the protocol changes this node in the same step, and the two
   are never allowed to disagree about a limit or a canonical line.
@@ -91,7 +98,7 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
 ## Acceptance criteria
 
 - [x] Every check is proven non-degenerate: exactly one breakage is applied to a
-      conformant tree and the check turns red — 61 tests, none skipped
+      conformant tree and the check turns red — 63 tests, none skipped
       (2026-10-01, `test_protocol_lint.py`, run as
       `python -X utf8 tools/protocol-lint/test_protocol_lint.py`; 27 tests on
       2026-09-12, before the checks of `AGENTS.md` 3.1).
@@ -162,6 +169,10 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
         `test_a_relative_qualified_citation_resolves` hold the other direction.
 - [x] `--exclude` keeps working as before (2026-10-01,
       `test_an_extra_excluded_directory_is_not_a_node`; ignoring the option turns it red).
+- [x] `.github` is read as part of the tree and every other dot directory stays skipped
+      (2026-10-01): with the exception emptied `test_dot_github_is_read_as_part_of_the_tree`
+      turns red, with the dot rule removed `test_every_other_dot_directory_stays_skipped`
+      and `test_excluded_directories_are_not_nodes` turn red.
 - [ ] The self-test is not run automatically by anything except a manual
       `python -X utf8 tools/protocol-lint/test_protocol_lint.py`: in a project it has to
       be wired into the project's own test set.
