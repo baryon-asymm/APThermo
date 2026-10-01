@@ -686,13 +686,37 @@ libdevice for the CUDA category.
       tree (the root's Compile size constraint); with the bound and before the second
       allocation was removed, the test host peaked at 1.81 to 2.11 GiB.
 
-- [ ] The transfers of the `Chunks` child node are proved (2026-10-01): the compacting
+- [x] 2026-10-01 — The transfers of the `Chunks` child node are proved (2026-10-01): the compacting
       collection fact and the guard fact of `src/Execution/Chunks/BOOT.md`'s criterion of
       that date live here, in `ChunkTransferTests`, on the CPU accelerator, and run in the
       fast suite under `APTHERMO_NO_CUDA=1`. The collection fact holds ILGPU's private
       `Accelerator.syncRoot` from a helper thread for at most the duration of one forced
       collection, with a timeout on every wait so that a broken construction fails in
       seconds rather than hanging the run.
+
+      Evidence: `ChunkTransferTests` (3 facts: `AChunkDownloadSurvivesACompactingCollectionInsideItsTransfer`,
+      `ADownloadThatLeftItsSliceUnwrittenIsRefused`, `OnlyASliceOfSentinelBytesHoldsOnlyTheSentinel`),
+      green in Debug and in Release, 22 runs in a row, and in the fast suites of both
+      configurations (Debug 170 of 170 here, the node's full count). Red once, 2026-10-01:
+      with the `ref` overload restored in `DownloadChunk` and the guard removed, the host array
+      holds `[0, 0, 0, 0]` and the guard fact fails too; with the `ref` overload restored and
+      the guard kept, the downloading thread throws "left its host slice unwritten"; with only
+      the check after the copy removed, the guard fact's first assertion fails.
+
+      The construction differs from the design's sketch in three points, none of which
+      weakens it:
+      - The download runs on a thread of its own, and the test thread holds `syncRoot` until
+        that thread's `ThreadState` shows it blocked on the lock (a timeout of 20 s), instead of
+        a helper thread holding the lock for a fixed time while the test thread downloads. The
+        collection is therefore forced exactly when the copy has taken its address and waits
+        for the lock, and the fact asserts that the thread did block there.
+      - The unpinned sibling array is allocated below the host array. With the host pinned
+        (the fixed code) a compacting collection cannot slide an array that lies above it
+        down past it: the first version of the fact, with the sibling above the host, saw the
+        sibling stay in place at every attempt on the fixed code and failed for that reason.
+        An attempt in which the collection moved nothing is repeated, up to five times.
+      - The first download of the element type runs before the attempts, so that the
+        downloading thread does not compile the transfer while the lock is held.
 
 ## Taboos
 

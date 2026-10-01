@@ -16,7 +16,7 @@ dependencies against the real ones.
 | Coverage | every type a library assembly exports is named in the `API.md` of its node; every type of every assembly lives in the namespace of its node | the documents; the project names (`CoverageTests`) | ✅ |
 | Declarations | every type and member under ✅ in any `API.md` exists | the assemblies (`DeclarationTests`) | ✅ |
 | Dependencies | `## Dependencies` of every node with an assembly equals the nodes whose types its code uses, in signatures and method bodies; ancestors allowed, descendants never | the assemblies' IL (`DependencyTests`) | ✅ |
-| Root invariants | double precision only and no mutable static field in the numerical nodes; only the allow-listed `System.Math`/`System.Double` members called, and no constant left of an ordered floating-point comparison; no CUDA type outside the execution node and its tests | the assemblies' shapes and IL, and the semantic model of a compilation over each numerical node's sources (`InvariantTests`) | ✅ |
+| Root invariants | double precision only and no mutable static field in the numerical nodes; only the allow-listed `System.Math`/`System.Double` members called, and no constant left of an ordered floating-point comparison; no CUDA type outside the execution node and its tests; no call from a `src` method to an ILGPU transfer with a raw by-reference parameter (a `ref T` into host memory, 2026-10-01) | the assemblies' shapes and IL, and the semantic model of a compilation over each numerical node's sources (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
 | Tree contract | a library node's public types are named in its `API.md`'s package surface, not only its tree contract; a declared type's own section (package surface or tree contract) matches its reflected visibility; a type crossing an assembly boundary through a friend grant is found in the friend's own tree-contract section; every `InternalsVisibleTo` of a `src` assembly names a recognised friend | the assemblies' reflected visibility and IL, the nodes' `API.md` and `BOOT.md` (`TreeContractTests`) | ✅ (2026-09-15, distribution phase) |
 | Diagnostics | the root's Diagnostics constraint: no source, build or analyzer-configuration file suppresses a diagnostic (Roslyn's own generated-code markers and every MSBuild severity channel, rule sets included), the root build files set the maximum, every compiled source lives in a node directory, and no kernel-reached method throws, allocates or boxes | the tree's `.cs`, project, props, targets, `.editorconfig`, `.globalconfig`, `Directory.Build.rsp` and `*.ruleset` files, and the call graph from the execution node's `Kernels` (`DiagnosticsTests`) | ✅ (2026-09-25; extended 2026-09-28 and 2026-09-29) |
@@ -1800,7 +1800,7 @@ suppression passed every guard of the hosted suite.
         after such a run; adding it to `.gitignore` is the root's file, raised to the owner, not
         edited from here (AGENTS.md §11).
 
-- [ ] No `src` method passes host memory to ILGPU by reference (2026-10-01, the root's
+- [x] 2026-10-01 — No `src` method passes host memory to ILGPU by reference (2026-10-01, the root's
       fourth ILGPU hazard; `src/Execution/Chunks/BOOT.md`, "Host memory crosses into
       ILGPU pinned"). A fact in `InvariantTests`, over the IL of every assembly of the
       `src` nodes (not only the numerical ones: the transfers live in the execution
@@ -1814,6 +1814,22 @@ suppression passed every guard of the hosted suite.
         dependency check already reads (`IlBody`), including the closed generic calls
         of `ChunkBuffer<T>`.
       - The root-invariants row of the table at the top of this document names it.
+
+      Evidence: `InvariantTests.NoSrcMethodPassesHostMemoryToAnIlgpuTransferByReference`, green
+      at the fix (37 of 37 in this project, Debug and Release). Red once, 2026-10-01, with the
+      unfixed `ChunkBuffer.cs` of `1756692` checked out (the check was written after `05e2d39`;
+      `ChunkBuffer.cs` is unchanged between the two): it names
+      `ChunkBuffer<T>.UploadChunk calls ArrayViewExtensions.CopyFromCPU(ArrayView1D`2, T&, Int64)` and
+      `ChunkBuffer<T>.DownloadChunk calls ArrayViewExtensions.CopyToCPU(ArrayView1D`2, T&, Int64)`; and
+      red on the empty walk, with the ILGPU assembly test made to match nothing.
+
+      ⚠ 2026-10-01: the design said the fact refuses a parameter "that is a by-reference
+      type". ILGPU 1.5.3's pinning overloads, `CopyToCPU(TView, in Span<T>)` and
+      `CopyFromCPU(TView, in ReadOnlySpan<T>)`, take their span `in`, a by-reference parameter
+      too (read by reflection over the assembly: `IsIn`, `IsReadOnlyAttribute`), so the
+      wording as written would refuse the fix. The fact refuses a by-reference parameter whose
+      element type is not `Span<T>` or `ReadOnlySpan<T>`: the `ref T cpuData` of the unsafe
+      overloads and of their `…UnsafeAsync` forms. Found while writing the fact.
 
 ## Taboos
 

@@ -304,6 +304,40 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
         tree: 4000 solves of `nto-udmh_of2.6_pc2MPa_shiftingEquilibrium` under
         `DOTNET_GCgen0size=0x10000` on 4 cores, 0 lost downloads and 0 refusals.
 
+      Evidence so far (2026-10-01, the coder's part; the box stays unticked until the CUDA
+      run and the stress above are in):
+      - `ChunkBuffer<T>` calls ILGPU's span overloads on `Allocated.View.BaseView.SubView(0,
+        span)`; no `ref` transfer is left in `src`
+        (`Protocol.Tests.InvariantTests.NoSrcMethodPassesHostMemoryToAnIlgpuTransferByReference`).
+      - The facts are `Execution.Tests.ChunkTransferTests` (its `BOOT.md`, criterion of this
+        date). Red once: the `ref` overload restored with the guard removed, the host holds
+        `[0, 0, 0, 0]`; the `ref` overload restored with the guard kept, the downloading
+        thread's `InvalidOperationException` ("left its host slice unwritten"); the check
+        after the copy removed, the guard fact's first assertion fails.
+      - The element type of every `Output` and `ClearedOutput` declaration of the four
+        pipelines, listed from the sources of `EquilibriumPipeline`, `RocketPipeline`,
+        `TransportPipeline` and `SpeciesFunctionPipeline`:
+
+        | Type | Declared as | The all-ones slice cannot be written because |
+        |---|---|---|
+        | `int` | `status`, `iterations`, `stationStatus` (`Output`); the species-function `inRange` flag (`Output`, 0 or 1) | no status (`CaseStatus` 0 to 7), no iteration count and no flag is -1 |
+        | `double` | `moles` (`ClearedOutput`), the species-function `cpOverR`, `hOverRT`, `sOverR` (`Output`) | an element would have to be the NaN with every bit set, and no kernel writes it (x86 arithmetic gives `0xFFF8…`, PTX `0x7FFFFFFF…`, a payload only propagates from an input) |
+        | `MixtureState` | `states` (`ClearedOutput`), `stations` (`ClearedOutput`) | a struct of `double` properties and nothing else (19 at this date): the `double` argument holds for each field |
+        | `PerformanceFigures` | `figures` (`ClearedOutput`) | doubles only, same argument |
+        | `TransportFigures` | `figures` (`Output`) | `double` properties and a few `int` counts: one `double` field that no kernel writes as the all-ones NaN is enough, same argument |
+
+        No `byte`, `bool` or other type the argument does not cover occurs, so the rule
+        needed no weakening.
+      - The by-reference rule of the protocol tests node is narrower than its first wording:
+        ILGPU's pinning span overloads take their span `in`, a by-reference parameter too,
+        so the fact refuses a by-reference parameter that is not a span (that node's `BOOT.md`).
+      - Debug and Release, `APTHERMO_NO_CUDA=1`: the solution builds with 0 warnings and 0
+        errors, the fast suite is 5442 of 5442 in Debug (bit snapshots included, no
+        `Bits*.approved.txt` changed) and 5099 of 5099 in Release without the bit snapshots;
+        `ChunkTransferTests` passed 22 of 22 runs in a row; the protocol lint gives 0 and 0.
+        Not run here: the execution tests on CUDA, the throughput tripwire, the WSL2 run
+        and the stress.
+
 ## Taboos
 
 - No `ref` into a managed array passed to an ILGPU transfer: the array can move under
