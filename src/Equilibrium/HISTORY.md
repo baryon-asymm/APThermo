@@ -8,6 +8,216 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="warm-evidence"></a>
+
+## 2026-10-01 — from "## Constraints" — condensed wording
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15, rules 2, 4 and 5 of the owner's decision of 2026-10-01): the inventory of the scratch (`ScratchLayout` holds it) and the evidence of the third pass of 2026-09-28 behind two sentences (the observation O1 figures, and the code testing only the Newton loop's status). The text as it stood:
+
+> - Kernel-compatible C#: the per-case solve is a static method over views; the
+>   per-case scratch (the four species functions, the logarithms and corrections of the
+>   gaseous mole numbers, the iteration matrix, its right-hand side and row scales, the
+>   species and element masks, the condensed set) is passed in as views sliced from
+>   batch-sized buffers by the caller (`EquilibriumScratch.Slice`, `ScratchLayout`).
+>
+>   estimate (the nozzle does). A temperature estimate that is given for hp or sp and is
+>   not finite and positive is `InvalidInput`, as for the frozen solve (the third pass
+>   of 2026-09-28: +∞ and 1e-300 K gave `SingularMatrix` after no iteration, part 1,
+>   observation O1).
+>
+>   A warm start that fails, with any status other than `InvalidInput`, falls back once
+>   to the cold start of section 3.1, with the iterations of both attempts counted in the
+>   case's total (2026-09-28). A failure found at the close counts as well: the
+>   mixture window, the element invariant, the exit guard, a singular derivative system
+>   and the state guard (the third pass of 2026-09-28; the code tested only the Newton
+>   loop's status, while this sentence and `API.md` said "any status"). A cold start never falls back. The cold start takes no part
+>   of the seed: for hp and sp it starts at 3 800 K, not at the previous solution's
+>   temperature, since that temperature is part of the seed.
+
+---
+
+<a id="structure-decisions-2026-10-01"></a>
+
+## 2026-10-01 — from "## Structure" — condensed wording
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15, rules 4 and 5 of the owner's decision of 2026-10-01). The decisions below keep their lead-ins and their rules; what the code's declarations hold (the values of the species mark, where the small pieces landed) is not restated. The text as it stood:
+
+> - **The species mark.** `SpeciesActive` keeps its slot and gains named values,
+>   `SpeciesMark { Absent = 0, Active = 1, ForgivenOnce = 2, StoodDown = 3 }`: a
+>   stood-down record is `StoodDown`, no longer `Absent`, so the honesty guard reads
+>   the mark instead of re-deriving element presence, and "in play" is one predicate
+>   (`Active` or `ForgivenOnce`) instead of three spellings. The scratch layout is
+>   unchanged; `API.md` records the domain.
+>
+> - **The flag arguments.** `isTp` and `isHp` come from `SystemLayout.Kind`; the
+>   derivative flag becomes `DerivativeKind`; the element-balance flag becomes the two
+>   named tests. `useMolesAsEstimate` stays on the public entry point: it is the
+>   contract, and `EstimateSource` is its internal translation.
+>
+> - **The Newton loop holds no formula.** `NewtonIteration` keeps `Converge`: the step and
+> polish counts, the order of the calls, the status. What it computes lives in three
+> stages named after the sections of RP-1311 chapter 3 they implement: `DampedStep` (the
+> multipliers and the gaseous corrections of (2.18), the control factor of (3.1)–(3.3),
+> its application (3.4) with the temperature window), `ConvergenceTests` ((3.5) on the
+> undamped corrections, (3.6) on Δln T with the element balance, and the polish test, as
+> one verdict the loop reads) and `SingularRemedies` (section 3.6). Each named constant
+> moves with the stage that uses it; the polish-step cap stays with the loop. The loop's
+> coupling is the width of the data it carries and of the stages it calls, which no split
+> removes, so `NewtonIteration` is this node's second composition root, its measured
+> figure in its row. Every expression keeps its form and its order of evaluation, so the
+> bit snapshot may not move. → HISTORY.md#s-newton
+>
+> - **The mark accessors moved to `SpeciesMarks`.** `CaseSetup` is "what a case needs
+> before its first Newton step", but its mark accessors were used by every stage of the
+> iteration and `CondensedSet` wrote through them (`StandDown`). `Of`, `Set` and `InPlay`
+> (the renamed `Mark`, `Mark` and `InPlay`) now sit in `Carriers.cs` beside `SpeciesMark`;
+> `CaseSetup` keeps the input validation, the initial marks and the two reductions of the
+> input. → HISTORY.md#s-marks
+>
+> - **The `ref` carrier holds.** `IterationState` is passed by `ref` through every stage
+> and the kernel compiler takes it (`KernelEqualityTests` of this node and of
+> `Performance.Tests`). → HISTORY.md#s-settled
+>
+> - **The composition root fits.** `Solve` and `SolveFrozen` are plain sequences of stage
+> calls under the root's 60 lines, so no exception is claimed for them.
+> → HISTORY.md#s-settled
+>
+> - **The carriers are filled by name, not by position.** `MixtureSums` and `Derivatives`
+> are structs whose fields are written at the one place that computes them and read
+> through `in` afterwards, not readonly structs with a nine- and a five-parameter
+> constructor: a carrier whose purpose is to remove the parameter hazard may not
+> reintroduce it in its own constructor. `SystemLayout` stays readonly: its arguments are
+> the shape of the system and it derives the rest. → HISTORY.md#s-settled
+>
+> - **Where the small pieces landed** (the last term of (2.59), `InSolution`,
+> `LogPressure`, `InitialTemperature`, the frozen sums): the table above and the code hold
+> it. → HISTORY.md#s-settled
+>
+> - **One behaviour changed, deliberately and invisibly.** `DerivativeSystem` restores the
+> caller's condensed order before returning on every path, the singular one included;
+> nothing in the tree reads that order afterwards (`Solve` rebuilds the set from
+> `result.Moles` at every entry), so no result moves. → HISTORY.md#s-settled
+
+---
+
+<a id="structure-table-rows"></a>
+
+## 2026-10-01 — from "## Structure" — condensed wording
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15, rule 4 of the owner's decision of 2026-10-01: no inventory the code holds). The responsibility column of the type table, except the two composition roots, and the carriers paragraph are replaced by pointers to the summaries of the declarations. The text as it stood:
+
+> | `CaseSetup` | input validation, the element mask, the initial species marks, the active-gas count, the initial estimates (the defaults or a previous solution) | internal |
+>
+> | `Composition` | the four species functions at the case temperature; the retained gaseous moles (the trace rule, one place); the mixture sums the system and the state need (`MixtureSums`) | internal |
+>
+> | `IterationMatrix` | the reduced Newton system of RP-1311 tables 2.1 and 2.2, one method per row family (the gaseous contributions, the total-moles row, the element rows, the condensed rows, the temperature row), accumulated in the present order | internal |
+>
+> | `DampedStep` | the multipliers and the gaseous corrections of (2.18), the control factor of (3.1)–(3.3), the application (3.4), the temperature update and its range check | internal |
+>
+> | `ConvergenceTests` | the tests (3.5) and (3.6) with the element balance, and the polish test, as one verdict | internal |
+>
+> | `SingularRemedies` | the remedies of section 3.6: the reset of vanished gaseous species, then the removal of the last condensed record | internal |
+>
+> | `CondensedSet` | membership of the condensed records between convergences: removal of a negative record, the range rule with pinned pairs, switching and stand-down, the inclusion test with the anti-cycling skip, the honesty guard of an `Ok` exit; `InclusionGain` is the one source of the section 3.4 gain, used by the test and by the guard | internal |
+>
+> | `PhaseGeometry` | where two records of one formula meet: the record bounds as `Thermo` answers them, adjacency, the crossing `T*`, the effective range, the partner in the solution | internal |
+>
+> | `SpeciesMarks` | the mark accessors (`Of`, `Set`, `InPlay`), used by every stage that reads or writes a species' mark, `CondensedSet` and `CaseSetup` included | internal |
+>
+> | `ElementBalance` | the abundance `Σ a_ij n_j` of an element in the composition (one place, used by the matrix's residual `b_i° − Σ a_ij n_j` and by both tests) and its two tolerance tests, as two named methods | internal |
+>
+> | `DerivativeSystem` | the derivative system of section 2.5 at the converged composition, the two right-hand sides (`DerivativeKind`: temperature, pressure), the pinned-pair representative, the reaction sum of (2.59); returns `Derivatives` | internal |
+>
+> | `MixtureProperties` | the state record: the assignments common to both paths written once, then the frozen closure or the equilibrium or pinned closure | internal |
+>
+> | `FrozenTemperature` | Newton on the temperature at a fixed composition, to the frozen test, with its own step cap | internal |
+>
+> | `DenseSolver` | contract unchanged; `Solve` split into scaling, elimination and back substitution | internal (2026-09-15, distribution phase), contract unchanged |
+>
+> | `TieSnapshot` | rule A's way back (the third pass of 2026-09-28, finding F1): saves and restores the gaseous logarithms, the condensed set with its mole numbers, and the Lagrange multipliers of the tied converged iterate a release starts from | internal |
+>
+> ⚠ 2026-09-15: was six types public, now internal with grants → HISTORY.md#visibility
+>
+> Carriers (`Carriers.cs`): `IterationState`, the per-case state carried between the
+> stages (temperature, `ln n`, the condensed count, the temperature the functions were
+> evaluated at, the step and set-change counts, the switched-out and removed-for-range
+> memories), passed by `ref`, or returned by value should the kernel compiler refuse a
+> `ref` struct, which the kernel-equality test decides; `SystemLayout` (the unknown
+> count, the stride, the rows of the total-moles and temperature equations, the
+> problem kind); `MixtureSums`; `Derivatives`; the enums `EstimateSource`,
+> `DerivativeKind`, `SpeciesMark` and `ConvergenceVerdict` (added 2026-09-14 with the
+> Newton-loop split below, the verdict `ConvergenceTests` returns and `NewtonIteration`
+> reads); `SpeciesMarks` beside `SpeciesMark` (added 2026-09-15, the repair review's
+> R-Equilibrium-6, below).
+
+---
+
+<a id="pointers-one-line-2026-10-01"></a>
+
+## 2026-10-01 — from "the ⚠ pointer paragraphs of all sections" — condensed wording
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15, and the owner's rule of 2026-10-01 that a pointer takes one line). Each pointer paragraph below kept both wordings, shorter, and its anchor. The text as it stood:
+
+> ⚠ 2026-09-15: was "section 2.6" for every derivative of the matrix solutions, now
+> sections 2.5 and 2.6 → HISTORY.md#sec-2-5
+>
+>   ⚠ 2026-09-12: was a zero abundance `InvalidInput`, now an absent element is a mask
+>   → HISTORY.md#absent-element
+>
+>   ⚠ 2026-09-28: was one retention threshold for the whole solve, now two stages, 1e-8
+>   then 1e-11 → HISTORY.md#two-stage
+>
+>   ⚠ 2026-09-14: was at most 10 changes of the condensed set, now the constant
+>   `MaxCondensedSetChanges` → HISTORY.md#set-changes
+>
+>   ⚠ 2026-09-12: was equation (3.1) read symmetrically, now only growing species enter
+>   the maximum → HISTORY.md#lambda-growing
+>
+>   ⚠ 2026-09-26: was no rule for a record at the gas data floor, now the open-below rule
+>   → HISTORY.md#open-below-missing
+>
+>   ⚠ 2026-09-28: was ice held at any temperature below its range, now bounded by the
+>   mixture window → HISTORY.md#ice-window
+>
+>   ⚠ 2026-09-28: was removing the last condensed species, now the species the failed row
+>   picks → HISTORY.md#singular-removal
+>
+>   ⚠ 2026-09-28: was the targeted removal alone, now rules B and A before it
+>   → HISTORY.md#rules-ab
+>
+>   ⚠ 2026-09-13: was the range rule keeping both records within 50 K and removing after
+>   convergence, now pinned pairs at `T*`, the switch memory and anti-cycling
+>   → HISTORY.md#range-rule
+>
+>   ⚠ 2026-09-28: was only the mole numbers of a frozen case validated, now the
+>   temperature too → HISTORY.md#frozen-temperature
+>
+>   ⚠ 2026-09-26: was only the gaseous mole numbers of a frozen case checked, now the
+>   condensed ones too → HISTORY.md#frozen-moles
+>
+> ⚠ 2026-09-15: was six types public, now internal, with `InternalsVisibleTo` grants
+> → HISTORY.md#visibility
+>
+> ⚠ 2026-09-14: was `NewtonIteration.Converge` named the largest method at 56 lines, now
+> the Newton-loop split left it at 55 → HISTORY.md#s-largest
+>
+> ⚠ 2026-09-28: was the `EquilibriumScratch` row at 12 parameters, now 16 (rule A's tie
+> snapshot) → HISTORY.md#ce-scratch16
+>
+> ⚠ 2026-09-28: was the rest "10 or below", now 11 (`DerivativeSystem`, rules A and B)
+> → HISTORY.md#ce-rules-ab
+>
+> ⚠ 2026-09-28: was `DerivativeSystem` at 12, now 11 (no `ElementCoupling.Coupled` call)
+> → HISTORY.md#ce-third-pass
+>
+> ⚠ 2026-09-26: was `NewtonIteration` at 17, now 18 (`NewtonLoopState`)
+> → HISTORY.md#ce-newton-18
+>
+> ⚠ 2026-09-28: was the roots at 22 and 19, now 24 and 20, the rows above
+> → HISTORY.md#ce-roots
+
+---
+
 <a id="crit-second-audit"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — the second audit (condensed wording)
