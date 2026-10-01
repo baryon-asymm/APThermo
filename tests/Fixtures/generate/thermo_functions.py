@@ -15,7 +15,7 @@ nearest interval's polynomial is used and the point is flagged out of range. A r
 is the lowest lower and the highest upper bound over its intervals, bound by bound (the
 reference's `minval(T_fit(:, 1))`/`maxval(T_fit(:, 2))`, cea 3.3.4 equilibrium.f90 1692-1693 and
 1913-1915), not the first and last interval's own bounds: eleven condensed records of the
-committed file begin with an interval that runs backwards (Thermo BOOT.md, 2026-09-26).
+committed file begin with an interval that runs backwards (src/Thermo/HISTORY.md#record-bounds, 2026-09-26).
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from writer import Writer, main_of
 
 # The Data node's approved anomaly list: condensed records whose first interval is not ascending
 # (tests/Data.Tests/records/interval-anomalies.approved.txt). Read from that file, not typed, so the two lists
-# cannot drift apart (Thermo BOOT.md, 2026-09-26).
+# cannot drift apart (src/Thermo/HISTORY.md#record-bounds, 2026-09-26).
 ANOMALY_LIST_PATH = os.path.join(ROOT, "tests", "Data.Tests", "records", "interval-anomalies.approved.txt")
 
 

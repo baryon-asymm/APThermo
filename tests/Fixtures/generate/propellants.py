@@ -2,7 +2,7 @@
 and equilibrium cases derived from the stations of one central case per propellant; plus the sodium case,
 one hp case of a fifth propellant pair added for its six-interval product (see below).
 
-HTPB is not a thermo.inp record; the definition used here is provisional (see the Fixtures BOOT.md):
+HTPB is not a thermo.inp record; the definition used here is provisional (see tests/Fixtures/ACCEPTANCE.md, the HTPB criterion):
 C 7.3165 H 10.3416 O 0.0674, assigned enthalpy -250 cal/mol at 298.15 K, molar mass from the
 atomic weights of the file.
 """
@@ -134,7 +134,7 @@ def br2_reactant_anomaly(writer: Writer) -> None:
     itself does not converge a pure-Br2(cr) equilibrium at any enthalpy near this one ("Mixture temperature
     outside of allowable bounds", `EqSolver.solve: CEA_NOT_CONVERGED`, checked by hand against the pinned
     package), because the record is equally out of range for the equilibrium routine's own candidacy test
-    (Thermo BOOT.md, 2026-09-26: "Br2(cr) is in range nowhere, in the reference too"). This is a reactant-level
+    (src/Thermo/HISTORY.md#record-bounds, 2026-09-26: "Br2(cr) is in range nowhere, in the reference"). This is a reactant-level
     fact instead, the package's own per-kilogram enthalpy of the reactant alone at its temperature
     (`Mixture.calc_property`, the same call every other fixture's `reactantEnthalpy` comes from), with no
     equilibrium solve and so a new, lightweight case kind ("reactant") rather than "hp"."""

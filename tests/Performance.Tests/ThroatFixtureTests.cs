@@ -3,8 +3,9 @@ using APThermo.Thermo;
 namespace APThermo.Performance.Tests;
 
 /// <summary>
-/// L1: every fixture of the throat family reproduces the reference (Fixtures BOOT.md, the throat family; Performance
-/// BOOT.md, "The throat carries the largest mass flux"). The fixture carries the chamber and the throat only, so the
+/// L1: every fixture of the throat family reproduces the reference (`tests/Fixtures/generate/BOOT.md`, the `throat`
+/// entry of the case matrix; Performance BOOT.md, Invariants, "The throat is the first maximum of the mass flux met from the
+/// chamber"). The fixture carries the chamber and the throat only, so the
 /// same station-by-station comparison the rocket kind uses applies unchanged.
 /// </summary>
 [Collection(CpuFixture.CollectionName)]

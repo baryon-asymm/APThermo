@@ -1,7 +1,7 @@
 namespace APThermo.Cli.Syntax;
 
 /// <summary>
-/// Hand-written parsing of the command line (BOOT.md: no dependency for it): scan, look up the command, check its
+/// Hand-written parsing of the command line (`src/Cli/BOOT.md`, `## Dependencies`: parsing is hand-written to avoid a dependency): scan, look up the command, check its
 /// arity, fold the options into <see cref="CommandOptions"/>, then check that every option given applies to the
 /// command and that the command supports the requested format.
 /// </summary>

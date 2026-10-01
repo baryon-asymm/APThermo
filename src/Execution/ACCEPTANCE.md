@@ -171,7 +171,8 @@
       records it moved (`CHANGELOG.md`) →
       HISTORY.md#architecture-nothing-else-moves-2026-09-26
 
-- [x] 2026-09-26 — The audit's F2, F3 and observations (Constraints), every fact but
+- [x] 2026-09-26 — The audit's F2, F3 and observations (Constraints; the observations of the post-link
+      stand in `LibDevice/BOOT.md`), every fact but
       one (noted below) shown red once against the code before the change:
       - **The bad library.** `AcceleratorChoice.Cuda` now loads libnvvm and asks its IR
         version, then reads the bitcode, through one new internal `LoadNvvm`, before
@@ -217,8 +218,9 @@
       and 141 of 141 in Release) →
       HISTORY.md#audit-f2-f3-observations-and-evidence-2026-09-26
 
-- [x] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints).
-      Implemented as `CudaWslDevices.Register` (`src/Execution/CudaWslDevices.cs`):
+- [x] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints;
+      the rule now stands in `LibDevice/BOOT.md`).
+      Implemented as `CudaWslDevices.Register` (`src/Execution/LibDevice/CudaWslDevices.cs`):
       tries `builder.Cuda()` first, every time (no static state records that a resolver
       was ever set); when that call throws `InvalidOperationException` ("A resolver is
       already set for the assembly"), registers the devices itself through ILGPU's

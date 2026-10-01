@@ -19,7 +19,7 @@ public sealed class ThroatPlateauEdgeTests
 
     /// <summary>A throat fixture's own reference is at the plateau edge when its throat station's Mach is below
     /// this: the momentum-only (sonic) fixtures converge to 1 within rounding, the plateau-edge ones stay well
-    /// under it (Fixtures BOOT.md, the throat family).</summary>
+    /// under it (`tests/Fixtures/generate/BOOT.md`, the `throat` entry of the case matrix).</summary>
     private const double PlateauEdgeMachThreshold = 0.999;
 
     /// <summary>The plateau-edge throat fixtures, generated from the throat family by the reference's own throat

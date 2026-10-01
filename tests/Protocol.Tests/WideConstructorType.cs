@@ -9,8 +9,10 @@ namespace APThermo.Protocol.Tests;
 /// and undotted; <see cref="NestingPath"/> is the dotted path of enclosing types the row's `Where` names between the namespace
 /// and the simple name itself (empty for a top-level type, `Outer` for `Outer.Inner.Inner`) — what a qualified creation's
 /// qualifier must resolve to, together with the namespace, to reach a nested candidate (`tests/Protocol.Tests/BOOT.md`,
-/// "Shape check", named construction: "a qualified name resolves when its qualifier is N", N here the namespace plus this
-/// path). Two different nodes may declare a row for the same simple name (`RocketBatchViews` in `Execution` and in
+/// "Shape check", named construction: "a qualified name resolves when its qualifier names N followed by the row's nesting
+/// path", N being the namespace; the correction of 2026-09-15 that added the path is at
+/// `tests/Protocol.Tests/HISTORY.md#shape-qualified-names`). Two different nodes may declare a row for the same simple
+/// name (`RocketBatchViews` in `Execution` and in
 /// `Performance.Tests`): each is its own, distinct <see cref="WideConstructorType"/>. `NamedConstruction`'s own vocabulary for
 /// the "named construction" rule (`tests/Protocol.Tests/BOOT.md`, "Shape check").
 /// </summary>

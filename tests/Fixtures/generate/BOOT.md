@@ -26,8 +26,8 @@ environment, while the parent holds data files and a .NET loader.
   enthalpy), element moles per kilogram, the product species list the package used,
   the problem values in SI, and for derived cases the station they come from.
 - **No fixture value is typed into a script.** Values come from the package or from
-  evaluating the files; what is typed is the case matrix (inputs), as the parent's
-  Constraints define it.
+  evaluating the files; what is typed is the case matrix (inputs), as this node's
+  Constraints define it (the last bullet of that section).
 - **A case that does not converge stops the run.** Nothing is written for it; a
   fixture never carries an unconverged result.
 
@@ -58,9 +58,9 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
   records them in J/mol (thermochemical calorie, 4.184 J).
 - Frozen rocket cases are generated without transport: the package's frozen expansion
   with transport on fails for product sets of about a hundred species (recorded in the
-  parent's case matrix).
+  case matrix below).
 - `throat_scan.py` (2026-09-27) builds the throat family by the method and the guard
-  the parent's case matrix states. It reuses the reactant lists and compositions of
+  the case matrix below states. It reuses the reactant lists and compositions of
   `plateaus.py` and `rp1311.py` by import, never by copy. The scan solves only through
   `cea_cases.solve_equilibrium`, and the guard's rocket solves only through
   `cea_cases.solve_rocket`.
@@ -96,8 +96,7 @@ The standalone sweep of a family script (moved here from the parent's Procedure 
 
 The case matrix (moved here from the parent's Constraints on 2026-10-01: only the
 generator's scripts are bound by it; the parent's [BOOT.md](../BOOT.md) lists the
-families; where this node's text above says "the parent's case matrix" it means this
-bullet):
+families):
 
 - Case matrix of version 1:
   - RP-1311 examples 1 (tp), 3 (hp, two fuels), 5 (hp, solid with a custom binder and
@@ -262,6 +261,7 @@ bullet):
       cases do (the reference-state cases carry the flag `true` too: the assigned
       enthalpy equals the offset since `h₀ = 0` there). Frozen flow is not generated:
       a frozen throat has no plateau.
+  - `thermo`: `Cp°/R`, `H°/RT`, `S°/R`, `G°/RT` for the species listed in
     `thermo_functions.py` (gaseous and condensed records, one with four intervals), at
     those of 200, 298.15, 500, 1000, 1000.0001, 2000, 3000, 5000, 6000 K that lie in the
     record's range, the record's first bound, midpoint and last bound (so that a narrow
@@ -288,10 +288,10 @@ bullet):
       `stale` (run by hand on the reference machine; the run printed 261 fixtures).
 
       ⚠ 2026-09-27: "the seven kinds" is now eight — `throat_scan.py` added the `throat`
-      kind (the parent's case matrix). `regenerate.py --check` exits 0 on the current
+      kind (the case matrix in this node's Constraints). `regenerate.py --check` exits 0 on the current
       tree, 327 fixtures, none stale or missing.
 
-      ⚠ 2026-09-27, the sodium case (the parent's case matrix): `propellants.py` gains
+      ⚠ 2026-09-27, the sodium case (the case matrix in this node's Constraints): `propellants.py` gains
       `sodium_hp`, one hp file. `regenerate.py --check` exits 0 on the current tree, 328
       fixtures, none stale or missing.
 - [x] 2026-09-12 — Every family script runs standalone and sweeps only the kinds it

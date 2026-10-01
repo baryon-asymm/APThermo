@@ -6,7 +6,7 @@ namespace APThermo.Cli.Syntax;
 
 /// <summary>
 /// The two tables of the command line: every command and every option, with the usage text generated from them
-/// (BOOT.md, `## Structure`, F-AR-04) and the numeric defaults read from <see cref="CommandOptions.DefaultThreshold"/>
+/// (`src/Cli/BOOT.md`, `## Children`, F-AR-04) and the numeric defaults read from <see cref="CommandOptions.DefaultThreshold"/>
 /// and <see cref="ElementalMixture.DefaultMassTolerance"/> rather than typed a second time.
 /// </summary>
 internal static class CommandTable

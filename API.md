@@ -116,3 +116,24 @@ above read files only until the NASA files were embedded the same day.
 - [Benchmarks](./tests/Benchmarks/API.md) — the speed benchmarks (BenchmarkDotNet), run by hand; figures recorded, never asserted.
 - [Docs.Tests](./tests/Docs.Tests/API.md) — the documentation tests: the guide's snippets against the samples, the approved outputs of the samples and of the command-line examples, the links, the schemas, the guide pages' shape.
 - [Protocol.Tests](./tests/Protocol.Tests/API.md) — the documents against the code (AGENTS.md §13) and the root invariants that need reflection.
+
+## Child nodes and tooling ✅
+
+Child nodes compile into their parent's assembly or belong to its test node, and each
+holds a pair of documents of its own:
+
+- `Execution`: [Chunks](./src/Execution/Chunks/API.md) (the chunk plan and the device
+  buffers of a batch run) and [LibDevice](./src/Execution/LibDevice/API.md) (the libdevice
+  discovery and the post-link).
+- `Cli`: [Cases](./src/Cli/Cases/API.md), [Documents](./src/Cli/Documents/API.md),
+  [Listings](./src/Cli/Listings/API.md), [Output](./src/Cli/Output/API.md) and
+  [Syntax](./src/Cli/Syntax/API.md), all internal to the tool.
+- `Benchmarks`: [Runner](./tests/Benchmarks/Runner/API.md), the executable that runs the
+  benchmarks.
+- `Fixtures`: [generate](./tests/Fixtures/generate/API.md), the Python generator of the
+  reference outputs.
+
+Tooling that is part of the tree but not of the product:
+[protocol-lint](./tools/protocol-lint/API.md) (the language-independent checks of
+AGENTS.md §13) and [.github](./.github/API.md) (the workflows, actions and scripts, with
+its child [diagnostics/IsaProbe](./.github/diagnostics/IsaProbe/API.md)).

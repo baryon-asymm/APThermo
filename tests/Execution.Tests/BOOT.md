@@ -303,7 +303,7 @@ libdevice for the CUDA category.
       where the red-once messages are recorded →
       HISTORY.md#audit-f2-f3-evidence-2026-09-26
 
-- [x] 2026-09-27 — The probe's input domain (Constraints).
+- [x] 2026-09-27 — The probe's input domain (the execution node's `BOOT.md`, Constraints).
       - `TheCpuAcceleratorReproducesDotnetMathExactly` is green over the whole domain
         (8192 decade values plus the 17 special inputs, 12 functions each); shown red
         once by perturbing `Abs`'s expected value by `+ 1.0` — "Abs(1E-13): host
@@ -351,7 +351,7 @@ libdevice for the CUDA category.
       `EngineFixture.CollectionName`) and the evidence runs (162 of 162 on Windows and
       under WSL2) → HISTORY.md#second-audit-race-and-evidence-2026-09-28
 - [x] 2026-09-30 — The compile guard and the bound check of 2026-09-30 are proved (the execution node's
-      criterion of that date owns their design): each fact red once with what it guards
+      `ACCEPTANCE.md`, criterion of that date, owns their design): each fact red once with what it guards
       undone, one process's run of the whole project below 2 GB of private memory at its
       peak on the reference machine, recorded here with the figure.
 
@@ -370,7 +370,7 @@ libdevice for the CUDA category.
       `MathProbe.OutputLength`); the owner may decide whether the trade stands →
       HISTORY.md#probe-allocation-replaced-2026-09-30
 
-      The figures of the guard and the per-run table are in the execution node's criterion.
+      The figures of the guard and the per-run table are in the execution node's `ACCEPTANCE.md`, criterion of that date.
       The peak private memory of one process's run of the whole project, `APTHERMO_NO_CUDA=1`,
       `Category!=LongRunning`, on this machine (60 GB, shared; the orchestrator confirms
       whether it is the reference machine), the largest process being the test host, the
@@ -383,7 +383,7 @@ libdevice for the CUDA category.
       allocation was removed, the test host peaked at 1.81 to 2.11 GiB.
 
 - [x] 2026-10-01 — The transfers of the `Chunks` child node are proved (2026-10-01): the compacting
-      collection fact and the guard fact of `src/Execution/Chunks/BOOT.md`'s criterion of
+      collection fact and the guard fact of `src/Execution/ACCEPTANCE.md`'s criterion of
       that date live here, in `ChunkTransferTests`, on the CPU accelerator, and run in the
       fast suite under `APTHERMO_NO_CUDA=1`. The collection fact holds ILGPU's private
       `Accelerator.syncRoot` from a helper thread for at most the duration of one forced

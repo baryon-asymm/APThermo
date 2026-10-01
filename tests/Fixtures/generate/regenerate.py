@@ -5,7 +5,7 @@ files are removed; unchanged fixtures are left byte for byte. With --check nothi
 and the exit code is 1 when any fixture would change, is missing or is stale.
 
 --sample restricts every kind to a sample chosen from the committed directory listing
-(tests/Fixtures/BOOT.md, "The outputs are bound to the generator" and "The sample of the
+(tests/Fixtures/ACCEPTANCE.md, "The outputs are bound to the generator" and "The sample of the
 binding step covers every script"): at least one case of every (script, kind) pair the
 committed fixtures record, read from each file's own `generator.script` field, plus every
 case of the `throat` kind. A script that writes several kinds (`propellants.py`'s rocket, hp,
@@ -15,14 +15,14 @@ is still sampled. Meant for --check on CI, where regenerating and comparing ever
 too slow for every push; it binds the outputs to the generator without paying that cost.
 Combine with a `kind` filter to sample only those kinds. Plain --check compares exact text; --check --sample
 compares each regenerated case with the committed file as a document, field by field, with the tolerances of
-`tolerances.json` (document_comparison.py; tests/Fixtures/BOOT.md, "The binding step runs on the fixtures' own
+`tolerances.json` (document_comparison.py; tests/Fixtures/ACCEPTANCE.md, "The binding step runs on the fixtures' own
 platform and compares with a tolerance"), so that a machine other than the one that wrote the files, the same
 platform on another CPU, still binds the outputs to the generator.
 
 After generation, --sample fails (exit 1) when the run compared nothing at all, or when a
 (script, kind) pair the sample intended to cover produced no comparison: a script that no
 longer writes the exact case name the sample picked from the committed listing is a real
-gap, not something a silent, empty comparison should pass (tests/Fixtures/BOOT.md, the third
+gap, not something a silent, empty comparison should pass (tests/Fixtures/ACCEPTANCE.md, the third
 audit pass's finding 4c).
 
 Run it with the interpreter of the generator's environment (requirements.txt).
@@ -49,7 +49,7 @@ from writer import Writer
 SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants, plateaus, low_temperature,
           condensed_phase_limit, throat_scan, retention_threshold]
 
-#: The one kind sampled in full (tests/Fixtures/BOOT.md, "The outputs are bound to the generator"): the throat
+#: The one kind sampled in full (tests/Fixtures/ACCEPTANCE.md, "The outputs are bound to the generator"): the throat
 #: family's mass-flux search is the fixture kind the second hidden-defect audit's own performance node work turned
 #: on, so every one of its cases is checked, not just a sample of them.
 SAMPLE_IN_FULL = "throat"
@@ -60,7 +60,7 @@ def build_sample(only: set[str] | None) -> tuple[set[tuple[str, str]], dict[tupl
     `SAMPLE_IN_FULL`), read from the committed directory listing rather than typed by hand, restricted to `only`
     when it is given. The script of a case is read from its own committed `generator.script` field, the same
     provenance field `Writer.case` writes, so a kind two or more scripts write (`hp`, `rocket`, `sp`, `tp`) samples
-    each of those scripts once, not once for the kind as a whole (tests/Fixtures/BOOT.md, the third audit pass's
+    each of those scripts once, not once for the kind as a whole (tests/Fixtures/ACCEPTANCE.md, the third audit pass's
     finding 4c). A kind whose directory is empty or missing contributes nothing (it has no committed case to
     sample). Returns the sample itself, for `Writer(only_cases=...)`, and the (script, kind) -> case name mapping
     the sample was built from, so the caller can verify every one of them was actually compared."""

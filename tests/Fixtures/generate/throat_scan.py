@@ -1,6 +1,6 @@
 """The throat family (2026-09-27): the chamber and the throat of a shifting-equilibrium rocket, with the throat
 found as the first local maximum of the mass flux rho*u met from the chamber, over the package's own sp solves
-along the chamber isentrope, never taken from the package's own rocket solver (Fixtures BOOT.md, the case
+along the chamber isentrope, never taken from the package's own rocket solver (BOOT.md, the case
 matrix). It exists because the package's rocket solver reports a wrong throat at the high-pressure edge of a
 melting plateau, and (the second hidden-defect audit's finding F1, 2026-09-28) can also converge to a second,
 larger-rho*u maximum further downstream of the true, first one near such a plateau (Performance BOOT.md, "the
@@ -31,12 +31,12 @@ import cea
 MPA_TO_PA = 1.0e6
 
 # The chamber isentrope is scanned on 101 pressure ratios p/p_c from 0.45 to 0.70, refined by a 50-step ternary
-# search on rho*u (Fixtures BOOT.md, the throat family's method).
+# search on rho*u (BOOT.md, the case matrix's throat entry, the method).
 GRID_LOW, GRID_HIGH, GRID_POINTS = 0.45, 0.70, 101
 TERNARY_STEPS = 50
 
 # The guard: where the package's own rocket throat is sonic within this Mach tolerance, the scan's c* must equal
-# it within this relative tolerance (Fixtures BOOT.md, the throat family's guard).
+# it within this relative tolerance (BOOT.md, the case matrix's throat entry, the guard).
 GUARD_MACH_TOLERANCE = 1.0e-4
 GUARD_CSTAR_RTOL = 1.0e-5
 
@@ -120,7 +120,7 @@ def _flux_or_negative_infinity(reac, prod, weights, entropy: float, chamber_pres
     finding F3, 2026-09-28: a ternary-search trial can land arbitrarily close to a melting plateau's own edge,
     where even the reference package's equilibrium solver is not guaranteed to converge). A non-convergent trial is
     worse than any converged one, so the search always moves away from it, never toward it, and the razor-thin
-    non-converging point found at the Li2O plateau edge (`tests/Fixtures/BOOT.md`, the throat family's entry) is
+    non-converging point found at the Li2O plateau edge (`tests/Fixtures/generate/BOOT.md`, the case matrix's throat entry) is
     stepped past rather than raised."""
     try:
         return _flux(reac, prod, weights, entropy, chamber_pressure_pa, chamber_enthalpy, ratio, trace)[0]

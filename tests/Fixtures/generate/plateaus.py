@@ -5,7 +5,7 @@ direct single-exit rocket cases across the plateau at 7 MPa, the fuel-rich hp ch
 exercises the include/remove cycle, hp cases stepping through the latent-heat band at 700 kPa,
 and a tp case at the transition bound itself. The rocket cases are single-exit, each solved
 from the chamber, because the package's sequential multi-station path is exactly what the
-station guard rejects near a plateau (BOOT.md).
+station guard rejects near a plateau (tests/Fixtures/BOOT.md).
 """
 from __future__ import annotations
 

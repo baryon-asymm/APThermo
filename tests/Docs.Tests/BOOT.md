@@ -192,7 +192,7 @@ closed in `3c0d271`).
         `LinkTests.NoDocumentCarriesTheOWNERREPOPlaceholder` red, reverted. The
         two real placeholder links (`docs/nuget/APThermo.md:76`,
         `docs/nuget/APThermo.Cli.md:53` as the second audit found them) are removed
-        until the repository exists publicly; the root `BOOT.md`'s "The packages"
+        until the repository exists publicly; the root `ACCEPTANCE.md`'s "The packages"
         acceptance criterion now carries that condition ("until it exists they carry no
         guide link", `ce114ea`) and is where the restoration is tracked (ma8, this
         task: the report a coding task writes is not part of the tree and is not a
@@ -315,7 +315,7 @@ closed in `3c0d271`).
         passed, confirming no other approval of the help text needed a change.
 - [x] 2026-09-17 (repository-links task) — L4 gained the self-repository link check:
       the package READMEs of `docs/nuget/` now point their guide references at
-      `https://github.com/baryon-asymm/APThermo/blob/main/…` (the root `BOOT.md`'s
+      `https://github.com/baryon-asymm/APThermo/blob/main/…` (the root `ACCEPTANCE.md`'s
       "The packages" acceptance criterion, restored: "before the first release the
       package READMEs link the guide on the public repository", now that the
       repository exists), and `LinkTests.CheckDocument` was extended to resolve such
@@ -371,8 +371,8 @@ closed in `3c0d271`).
         recording. They make the file that `ApprovedPathOf` requires on Linux exist
         and let the Linux exact fact run at all, but they do not yet carry a real
         Linux byte pattern — on Linux today they would pass only because the platform
-        difference (about 1e-13 relative, the root `BOOT.md`'s Documentation ⚠ of
-        2026-09-29) happens to round away in most of these six records' printed
+        difference (about 1e-13 relative, the Documentation ⚠ of 2026-09-29, now at
+        root `HISTORY.md#docs-plat`) happens to round away in most of these six records' printed
         digits, not because the file was recorded there. This is lifted only by a run
         under WSL on the reference machine that re-records each file for real, which
         this task leaves to the orchestrator, together with the "red once" evidence

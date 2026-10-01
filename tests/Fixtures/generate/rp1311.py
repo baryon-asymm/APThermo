@@ -206,7 +206,7 @@ def example13(writer: Writer) -> None:
     """The beryllium rocket: N2H4/Be 80/20 fuel with H2O2 at O/F 33/67, 3000 psia, exits p_c/p 3, 10, 30, 300.
 
     The throat and the first exit sit on the BeO(b)/BeO(L) melting plateau at 2851 K, which the package only
-    converges with `insert` seeding the liquid; without it the case loses 0.61 % of Ivac (Fixtures BOOT.md,
+    converges with `insert` seeding the liquid; without it the case loses 0.61 % of Ivac (tests/Fixtures/BOOT.md,
     the station guard). The trace threshold keeps the beryllium condensed pair printed at every station."""
     reactants = EXAMPLE13_REACTANTS
     temperatures = EXAMPLE13_TEMPERATURES

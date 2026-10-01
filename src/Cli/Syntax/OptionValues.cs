@@ -21,7 +21,7 @@ internal static class OptionValues
 
     /// <summary>
     /// The predicate is the front door's (<see cref="ElementalMixture.IsValidMassTolerance"/>), so the option and the
-    /// library cannot disagree on a valid tolerance (BOOT.md, F-AR-04).
+    /// library cannot disagree on a valid tolerance (`src/Cli/BOOT.md`, `## Children`, F-AR-04).
     /// </summary>
     public static double ParseMassTolerance(string value) =>
         !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !ElementalMixture.IsValidMassTolerance(number)
