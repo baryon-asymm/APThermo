@@ -9,6 +9,316 @@ used to stand.
 
 ---
 
+<a id="structure-intro-guarantee-2026-10-01"></a>
+
+## 2026-10-01 — from "## Structure" — the Structure introduction: the no-move guarantee of the split
+
+Moved because the last sentence is the guarantee of the 2026-09-14 split, a measurement of that step rather than a rule (CONDENSE.md, rule 2). The text as it stood:
+
+> Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The engine
+> is a composition root over internal types, one class per file in this directory and
+> namespace. The kernel entry points and the calls into the numerical nodes are untouched
+> by the split, so the emitted PTX, the post-link and the kernel time cannot move.
+
+---
+
+<a id="audit-observations-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — the audit's observations, as one paragraph
+
+Moved because `BOOT.md` is over the §15 line limit for its kind of node; the rule stays in `BOOT.md` in shorter wording or at the pointer (CONDENSE.md, 2026-10-01). The text as it stood:
+
+>   - **Observations.**
+>     - A driver or libnvvm log is trimmed of NUL padding as well as white space (the
+>       trial load's message carried 45 NULs).
+>     - `Engine.Upload` disposes the buffers it already uploaded when a later upload
+>       fails.
+>     - A half-given explicit path pair (`LibNvvmPath` without `LibDevicePath`, or the
+>       reverse) is an `ArgumentException` at `Create` naming the missing option. It was
+>       tried as `("", path)` and then replaced by discovery without a word.
+
+---
+
+<a id="batch-layout-chunking-moved-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — batch layout: the chunking moves to Chunks
+
+Moved because the chunk bound and the chunk buffers bind only the `Chunks` child node; the four lines and the pointer that follows them went down verbatim into its `BOOT.md` (CONDENSE.md, rule 3). The text as it stood:
+
+> - **Batch layout**: structure of arrays for inputs and outputs; the case index is the
+>   thread index; per-case scratch is a slice of a batch-sized buffer laid out by the
+>   numerical nodes' `ScratchLayout` and `TransportLayout`; batches are processed in
+>   chunks of at most `ChunkSize` cases (default 16 384), and fewer when a chunk's
+>   scratch would exceed `ScratchBytes` (default 256 MB), so that memory stays bounded;
+>   the device buffers of a chunk are allocated once per run and reused; results are
+>   copied back per chunk.
+>
+>   ⚠ 2026-09-12: was a chunk bounded by the case count only, now also by `ScratchBytes`,
+>   the rocket chunk's moles included → HISTORY.md#batch-layout-scratch-bound-2026-09-12
+
+---
+
+<a id="inv-no-result-ignored-2026-10-01"></a>
+
+## 2026-10-01 — from "## Invariants" — invariant: no libnvvm or driver result is ignored
+
+Moved because `BOOT.md` is over the §15 line limit for its kind of node; the rule stays in `BOOT.md` in shorter wording or at the pointer (CONDENSE.md, 2026-10-01). The text as it stood:
+
+> - **No libnvvm or driver result is ignored** (2026-09-26). The post-link checks the
+>   result of every call it makes into libnvvm (`GetIRVersion`, `CreateProgram`,
+>   `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`,
+>   `GetCompiledResult`, `DestroyProgram`) and into the CUDA driver (`LoadModule`,
+>   `DestroyModule`). A result other than success is an `InvalidOperationException`
+>   that names the post-link, the target `compute_XX`, which library failed (libnvvm or
+>   the CUDA driver) and its call, and the result code, carrying the compiler's or the
+>   driver's log where one exists (`API.md`, Errors).
+>   - The log of a failed compilation is read after the failure. If reading the log
+>     fails too, the compilation's exception still propagates and says the log could
+>     not be read, naming that result.
+>   - Releasing a program or a module (`DestroyProgram`, `DestroyModule`) is checked only
+>     when the path before it succeeded. When an earlier call has already failed, the
+>     earlier exception propagates unchanged and the release is best-effort, so that a
+>     cleanup failure never hides the cause.
+>   - One internal method turns a result into the exception, so the message has one
+>     shape. It is unit-tested on the CPU with every non-success value of `NvvmResult`
+>     and a failing `CudaError`. The success path is proven by the CUDA tests of this
+>     node, which must stay green with no bit or throughput record moving.
+
+---
+
+<a id="inv-cuda-bound-2026-10-01"></a>
+
+## 2026-10-01 — from "## Invariants" — invariant: CUDA is bound only when a kernel runs on it
+
+Moved because `BOOT.md` is over the §15 line limit for its kind of node; the rule stays in `BOOT.md` in shorter wording or at the pointer (CONDENSE.md, 2026-10-01). The text as it stood:
+
+> - **CUDA is bound only when a kernel runs on it** (2026-09-26). The choice accepts a
+>   CUDA session only after the math probe kernel, which calls every wrapper of the math
+>   list, has been compiled, post-linked and loaded on its device. `Engine.Create` and
+>   `AcceleratorProbe.Describe` therefore never report a CUDA device on which no kernel
+>   can load.
+
+---
+
+<a id="inv-post-link-2026-10-01"></a>
+
+## 2026-10-01 — from "## Invariants" — invariant: every CUDA kernel goes through the post-link
+
+Moved because `BOOT.md` is over the §15 line limit for its kind of node; the rule stays in `BOOT.md` in shorter wording or at the pointer (CONDENSE.md, 2026-10-01). The text as it stood:
+
+> - **Every CUDA kernel goes through the post-link, which completes it.** ILGPU 1.5.3
+>   defines the libdevice wrappers itself for the targets `compute_75` to `compute_90`
+>   and silently drops them for `compute_100` and newer (the root's ILGPU constraint).
+>   The post-link reads which wrappers the kernel calls and which it already defines. It
+>   compiles and inserts only the missing ones, and inserts nothing when none is missing.
+>   Every kernel that calls a wrapper is loaded once as a trial on either path. A kernel
+>   that still calls an undefined wrapper is refused at load, and the error names the
+>   wrapper. Either path yields the same program: the kernels ILGPU completes equal the
+>   kernels the post-link completes, as PTX text, up to ILGPU's generated names and the
+>   `.target` line (the architecture fact, Acceptance criteria).
+
+---
+
+<a id="structure-size-retelling-2026-10-01"></a>
+
+## 2026-10-01 — from "## Structure" — the size bullet restating the root's code-shape constraint
+
+Moved because it restates the root's code-shape constraint, which binds this node unchanged (CONDENSE.md, rule 4); the views structs it set aside are the rows of `## Shape exceptions`. The text as it stood:
+
+> - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more than
+>   6 parameters (the views structs aside).
+
+---
+
+<a id="structure-rows-condensed-2026-10-01"></a>
+
+## 2026-10-01 — from "## Structure" — the rows of Engine, KernelCache, MathProbe, the four pipelines and Kernels, merged
+
+Moved because the rows are merged into two (`API.md` holds the members of `Engine`, `KernelCache` and `MathProbe`, and `## Shape exceptions` holds the coupling figures and the reasons) and their measurements and dated notes leave the current wording (CONDENSE.md, rules 2, 4 and 5). The rows as they stood:
+
+> | `Engine` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline: allocates, launches and reads back the probe over the session's accelerator), `Budget` and `RunBatchLoop` (2026-09-28, F2: the session's time budget and the chunk loop, exposed for the tests node's own chunk-plan facts), `Launchers` (2026-09-30: the kernel cache, exposed for the tests node's facts on release at dispose), `Dispose` (which empties the kernel cache before it disposes the session); no loop, no arithmetic, no ILGPU call except through the session. Named here as the composition root the root's Ce rule allows above its limit: four typed `Run` overloads name twelve types by themselves (Ce 30 by the dependency check's walk on 2026-09-28, 25 on 2026-09-15) | internal (2026-09-15, distribution phase; F1, `API.md`'s ⚠), contract as `API.md`'s tree-contract section says |
+> | `KernelCache` | typed kernel launchers, compiled and post-linked on first use, one per entry-point name; reports the warm-up time; `Count` and `Clear` (2026-09-30): `Clear` drops every launcher and clears the ILGPU context's caches, which is how a disposed engine releases the compiled programs it kept | internal |
+> | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
+>
+> | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache, and since 2026-09-28 `LaunchBudget`, threaded from `session.Budget` into `ChunkPlan.For`, F2). Three of the four also gained an internal `DeclareBuffers` test-support method for the F8 wiring fact, naming no new type; since 2026-09-29 (the third audit pass's observation) `DeclareBuffers` and `Run` both call one private `Declare` method instead of restating the buffer declarations, so the two cannot drift; `Run`'s own `using var buffers` disposes nothing for real once `BatchRun.Execute` has already run (ILGPU's own dispose is idempotent), and exists only because CA2000 needs a literal dispose beside the allocation. By the dependency check's walk on 2026-09-28 (2026-09-14 in parentheses): `RocketPipeline` 25 (23), `TransportPipeline` 23 (22), `EquilibriumPipeline` 22 (21), `SpeciesFunctionPipeline` 18 (17); unchanged by the 2026-09-29 refactor (`Declare` and `DisposeChunkBuffers` name no type these pipelines did not already name) | internal |
+> | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 26 by the dependency check's walk on 2026-09-27, 25 on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
+
+---
+
+<a id="audit-f2-budget-condensed-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — the launch time budget: its mechanics move to Chunks, the limit's statement is API.md's
+
+Moved because the mechanics bind only the `Chunks` child node and went down verbatim into its `BOOT.md` (CONDENSE.md, rule 3), and the statement of the limit that no chunking can lift is `API.md`'s (rule 4). The text as it stood:
+
+>   - **A launch has a time budget (F2).** A GPU that drives a display runs every
+>     kernel under the driver's run-time limit, 2 s by Windows' default, also under WSL2,
+>     whose GPU access goes through the same driver. One case is one thread's sequential
+>     program, and its time grows with the system.
+>     - The Chunks node holds an internal `LaunchBudget`, built at bind time from the
+>       device's kernel run-time-limit attribute. A device without the limit, and the
+>       CPU accelerator, have no budget. A device with it gets a quarter of the 2 s
+>       default.
+>     - `ChunkPlan` takes the budget as a fourth bound, beside the count, the bytes and
+>       the offsets. The first chunk of a run is one wave of the device (its
+>       multiprocessors times the threads each holds at once). Each later chunk is sized
+>       from the previous chunk's measured time per case.
+>     - Results do not depend on the chunking. The audit's `E13` found the same bits at
+>       chunk sizes 16 384, 1, 7 and 64, so no result bit moves.
+>     - A launch the driver kills for its run time (`CUDA_ERROR_LAUNCH_TIMEOUT`) is
+>       translated by `BatchRun` into `AcceleratorUnavailableException`. The message names
+>       the run-time limit, the chunk's case count and the CPU accelerator as the remedy.
+>       No ILGPU type reaches a consumer, and `API.md`'s errors table gains the row.
+>     - `API.md` and the guide state the limit no chunking can lift. One case of a
+>       system of about 16 or more elements takes longer than the default limit on the
+>       reference GPU, and such systems belong on the CPU accelerator or on a device
+>       without the limit (TCC mode, headless).
+
+---
+
+<a id="kernels-transport-batch-retelling-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — the Kernels bullet: how the transport batch is built is API.md's
+
+Moved because how the transport batch is built from a finished result is the batch type's contract in `API.md`, Batches (CONDENSE.md, rule 4); the bullet keeps the entry points and the pointer of 2026-09-12 follows it unchanged in meaning. The text as it stood:
+
+> - **Kernels**: one entry point per program (`Equilibrium`, `Rocket`, `Transport`,
+>   and `Functions` for the species functions of `Thermo` at given temperatures) and
+>   the `Probe` of the root's math list; each entry point does nothing but slice the
+>   views for its case and call the numerical node. The transport kernel takes a plain
+>   batch of stations (a temperature and a composition each); the batch is built from a
+>   finished rocket or equilibrium result by factories of the batch type, not by the
+>   engine, which does not know where a composition came from.
+>
+>   ⚠ 2026-09-12: was no species-function batch, now the `Functions` entry point for the
+>   front door's reactant enthalpies →
+>   HISTORY.md#kernels-species-function-batch-2026-09-12
+
+---
+
+<a id="choice-probe-cost-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — the accelerator choice: the probe's cost and the sub-bullets as one sentence
+
+Moved because `BOOT.md` is over the §15 line limit for its kind of node; the rule stays in `BOOT.md` in shorter wording or at the pointer (CONDENSE.md, 2026-10-01). The text as it stood:
+
+> - **Accelerator choice** (`AcceleratorKind.Auto`): CUDA if `APTHERMO_NO_CUDA` is not
+>   `1`, libnvvm and libdevice are found, the device at the requested index exists, the
+>   context and accelerator can be created, and the math probe kernel post-links and
+>   loads on the device (2026-09-26, the invariant "CUDA is bound only when a kernel runs
+>   on it"); otherwise the CPU accelerator with all cores. `AcceleratorKind.Cuda` fails
+>   instead of falling back and names what was missing, with every path tried.
+>   `AcceleratorKind.Cpu` never looks for CUDA.
+>
+>   When the probe fails:
+>   - with `Auto`, its failure is the fallback reason in `CudaSkippedBecause`, with the
+>     post-link's message;
+>   - with `Cuda`, it is an `AcceleratorUnavailableException` carrying the post-link's
+>     exception as its inner exception;
+>   - in both cases the session is disposed before the choice returns.
+>
+>   The probe kernel loaded for the check is released at once. It costs 0.05 to 0.2 s per
+>   CUDA engine on the reference machine (measured 2026-09-26).
+
+---
+
+<a id="pointer-wordings-condensed-2026-10-01"></a>
+
+## 2026-10-01 — from "## Constraints" — the pointer paragraphs, at their earlier and longer wordings
+
+Moved because the pointer paragraphs of `BOOT.md` are cut to two lines each (CONDENSE.md, rule 1); each keeps its date, its old and new wording and its anchor. Each paragraph as it stood is quoted below, headed by its section in parentheses:
+
+> (from "## Invariants")
+>   ⚠ 2026-09-15: was a second sentence naming ILGPU only through this node's own types
+>   and `ArrayView`, now dropped (the package surface names no ILGPU type) →
+>   HISTORY.md#no-cuda-type-ilgpu-naming-2026-09-15
+>
+> (from "## Invariants")
+>   ⚠ 2026-09-26: was "ILGPU 1.5.3's own libdevice wrapper generation is never relied on",
+>   now the post-link completes the wrappers ILGPU dropped and inserts none it already
+>   defined → HISTORY.md#post-link-completes-not-replaces-2026-09-26
+>
+> (from "## Invariants")
+>   ⚠ 2026-09-26: was a CUDA session accepted once its context existed, now only after the
+>   math probe kernel has loaded on the device →
+>   HISTORY.md#cuda-bound-only-when-a-kernel-runs-2026-09-26
+>
+> (from "## Constraints")
+> - Reference figures of 2026-09-12 (the probe within 4 ULP of the CPU accelerator over 26
+>   decades; the 100 000-case rocket sweep in 0.15 to 0.17 s on CUDA against 9.5 s on the
+>   CPU accelerator, 56 to 65 times; bounds on expectation, not requirements) →
+>   HISTORY.md#reference-figures-2026-09-12
+>
+> (from "## Constraints")
+>     - ⚠ 2026-09-26: was the CUDA context created before libnvvm was loaded (a bad
+>       library threw a raw `BadImageFormatException` and leaked about 190 MiB per
+>       attempt), now the library first →
+>       HISTORY.md#bad-library-leaked-the-context-2026-09-26
+>
+> (from "## Constraints")
+>     ⚠ 2026-09-28: was the layout rounded for "a count ILGPU's warp layout cannot express
+>     exactly", now rounded to keep the (4, 4, 1) shape of every record →
+>     HISTORY.md#all-cores-layout-reason-2026-09-28
+>
+> (from "## Constraints")
+>     - ⚠ 2026-09-26: was "all cores" true on the 16-thread reference machine only
+>       (`CPUDevice.Default`), now the device sized from `Environment.ProcessorCount` →
+>       HISTORY.md#all-cores-cpudevice-default-2026-09-26
+>
+> (from "## Structure")
+> ⚠ 2026-09-15: was `Engine` and `MathProbe` the node's public composition types, now
+> internal, `AcceleratorProbe` replacing them on the package surface →
+> HISTORY.md#engine-and-mathprobe-internal-2026-09-15
+>
+> (from "## Structure")
+> ⚠ 2026-09-14: was `FunctionCount` the constant the kernel strides by, now it stays a
+> public property and an internal const `StrideCount` strides →
+> HISTORY.md#probe-stride-count-2026-09-14
+>
+> (from "## Structure")
+> ⚠ 2026-10-01: was `LibDevice/` failed (three types) and stayed two files of this
+> node, now a child: about 90 lines of rules bind only its files →
+> HISTORY.md#libdevice-child-node-2026-10-01
+>
+> (from "## Structure")
+>   ⚠ 2026-09-15: was `CudaSkippedBecause` "null when CUDA was not tried or was bound",
+>   now null when CUDA was bound or the options asked for the CPU →
+>   HISTORY.md#fallback-says-why-2026-09-15
+>
+> (from "## Structure")
+> - Decisions of the review of 2026-09-14: the missing-definition guard names the wrapper,
+>   and the chunk bound counts every buffer →
+>   HISTORY.md#review-decisions-guard-and-chunk-bound-2026-09-14
+>
+> (from "## Structure")
+>   ⚠ 2026-09-15: was the views structs "kernel parameter descriptors ILGPU requires to be
+>   public", now internal with `InternalsVisibleTo("ILGPURuntime")` →
+>   HISTORY.md#views-structs-need-not-be-public-2026-09-15
+>
+> (from "## Structure")
+>   ⚠ 2026-09-14: was four views structs declared as the parameter-count exception, now
+>   two (the other two take six parameters) and the result constructors declared too →
+>   HISTORY.md#views-structs-exception-claim-2026-09-14
+>
+> (from "## Taboos")
+>   ⚠ 2026-09-26: was "No reliance on `Context.Builder.LibDevice()` to produce wrappers:
+>   it does not", now it does for `compute_75` to `compute_90` and the taboo is on kernels
+>   whose wrappers go unchecked → HISTORY.md#taboo-libdevice-reliance-2026-09-26
+
+>>
+> (from "pointers of the second pass")
+>   - The documentation and small items (observations 1 to 8) and the guards of this node
+>     (F7, F8, O2) of the second audit, 2026-09-28 →
+>     HISTORY.md#audit-fixes-small-items-and-guards-2026-09-28
+>
+> (from "pointers of the second pass")
+> Decision of 2026-09-15 (the child-nodes phase, root `BOOT.md`, 0aa7e60): a cluster earns
+> a child directory when the rest of the node reaches it through a contract narrower than
+> its code, it has a reason of its own to change and it holds about five types or more.
+> `Chunks/` passed (six internal types, its row above) →
+> HISTORY.md#child-nodes-decision-2026-09-15
+---
+
 <a id="libdevice-child-node-2026-10-01"></a>
 
 ## 2026-10-01 — from "## Structure" — LibDevice becomes a child node: the Structure rows of its files and the decision's last lines

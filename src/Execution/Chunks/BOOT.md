@@ -100,6 +100,27 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
   the chunk boundaries move.
   - ⚠ A chunk was bounded by count, bytes and offsets only. Nothing bounded its
     duration against a display GPU's watchdog.
+  - The mechanics, moved here from the parent's `BOOT.md` ([Execution](../BOOT.md),
+    the second audit's F2; CONDENSE.md, rule 3, 2026-10-01):
+      - The Chunks node holds an internal `LaunchBudget`, built at bind time from the
+        device's kernel run-time-limit attribute. A device without the limit, and the
+        CPU accelerator, have no budget. A device with it gets a quarter of the 2 s
+        default.
+      - `ChunkPlan` takes the budget as a fourth bound, beside the count, the bytes and
+        the offsets. The first chunk of a run is one wave of the device (its
+        multiprocessors times the threads each holds at once). Each later chunk is sized
+        from the previous chunk's measured time per case.
+      - Results do not depend on the chunking. The audit's `E13` found the same bits at
+        chunk sizes 16 384, 1, 7 and 64, so no result bit moves.
+- **Batches are processed in chunks** (moved here from the parent's `BOOT.md`,
+  [Execution](../BOOT.md), batch layout, 2026-10-01):
+  chunks of at most `ChunkSize` cases (default 16 384), and fewer when a chunk's
+  scratch would exceed `ScratchBytes` (default 256 MB), so that memory stays bounded;
+  the device buffers of a chunk are allocated once per run and reused; results are
+  copied back per chunk.
+
+  ⚠ 2026-09-12: was a chunk bounded by the case count only, now also by `ScratchBytes`,
+  the rocket chunk's moles included → HISTORY.md#batch-layout-scratch-bound-2026-09-12
 - **The cap is proven as wiring** (2026-09-28, the guards part's F8). Each pipeline's
   chosen plan is asserted against `MaxElementsPerCase`, not only `ChunkPlan.For` with
   explicit numbers.
