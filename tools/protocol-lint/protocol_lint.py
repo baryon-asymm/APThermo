@@ -6,9 +6,12 @@ documents: that every node carries its pair of documents, that AGENTS.md sits on
 at the root, that every BOOT.md has the six canonical sections, that dependencies
 are declared in the canonical form, that every relative link resolves, that an
 API.md carrying code carries a status mark, that a checked acceptance criterion
-carries a date, and - textually, as a cheap stand-in for the reflection check -
-that what a document declares under a tick is at least mentioned by the node's
-source.
+carries a date, that - textually, as a cheap stand-in for the reflection check -
+what a document declares under a tick is at least mentioned by the node's source,
+that every BOOT.md is within its AGENTS.md 15 line limit or declares the deviation
+(a node whose own specification replaces some of the six sections with a
+transcription is measured without those sections' lines), and that every
+"-> HISTORY.md#anchor" pointer resolves to an anchor that actually exists.
 
 What it cannot check, and no tooling can: whether a document says the right thing
 about the code it correctly names.
@@ -35,6 +38,7 @@ from urllib.parse import unquote
 BOOT_NAME = "BOOT.md"
 API_NAME = "API.md"
 AGENTS_NAME = "AGENTS.md"
+HISTORY_NAME = "HISTORY.md"
 
 # Canonical and compared letter by letter: the body of a document is written in
 # whatever language the project speaks, the headings are not translated.
@@ -102,6 +106,35 @@ SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
 
 TICK = "✅"       # done: the block under it is compared with the code
 HOURGLASS = "⏳"  # planned: the block under it is a sketch
+
+# AGENTS.md 15: the size of a document.
+PARENT_LINE_LIMIT = 250    # a node with descendant nodes
+LEAF_LINE_LIMIT = 400      # a node with none
+DEVIATION_PREFIX = "⚠ Declared deviation, §15:"
+
+# AGENTS.md 15: a node whose §6 deviation names the sections a transcription
+# replaces is measured without those sections' lines.
+SIX_DEVIATION_MARK = "⚠ Declared deviation, §6:"
+REPLACED_BY = re.compile(r"replaced by:\s*(.+?)\.?\s*$")
+
+# AGENTS.md 3.1 (§2, §6, §15): a node with children may hand its acceptance criteria
+# to a file of their own, read only in its own node, and the root's own limit rises to
+# the leaf's once it does.
+ACCEPTANCE_NAME = "ACCEPTANCE.md"
+ACCEPTANCE_LIMIT = 400
+ROOT_LIMIT_WITH_ACCEPTANCE = 400
+ACCEPTANCE_POINTER = re.compile(r"^→\s*\[ACCEPTANCE\.md\]\(ACCEPTANCE\.md\)\s*$")
+
+# AGENTS.md 15: every HISTORY.md#anchor cited anywhere outside a HISTORY.md, whether
+# bare (the citing node's own file, or an ancestor's) or qualified by a node's path
+# (that node's own file). An anchor never starts with '<', so the one placeholder
+# syntax the kit itself writes, `HISTORY.md#<anchor>`, never matches this pattern -
+# there is no separate rule for it (AGENTS.md 13).
+CITATION = re.compile(r"(?P<prefix>[\w.\-/]*?)HISTORY\.md#(?P<anchor>[A-Za-z0-9][A-Za-z0-9_\-]*)")
+
+# AGENTS.md 15: a pointer left by a moved correction or table, and the anchor it
+# must resolve to inside the node's own HISTORY.md.
+HISTORY_ANCHOR = re.compile(r'<a\s+id="([^"]+)"')
 
 
 @dataclass(frozen=True)
@@ -241,6 +274,28 @@ def second_level_headings(masked: List[str]) -> List[str]:
     return [m.group(2) for m in (HEADING.match(line) for line in masked) if m and len(m.group(1)) == 2]
 
 
+def section_ranges(masked: List[str]) -> Dict[str, Tuple[int, int]]:
+    """Level-2 heading name -> (start, end) line indices, 0-based, end exclusive.
+
+    `start` is the heading line itself; `end` is the index of the next heading at
+    level 1 or 2, or the end of the document. Used only to slice out the sections a
+    §6 deviation names as replaced by a transcription (AGENTS.md 15).
+    """
+    ranges: Dict[str, Tuple[int, int]] = {}
+    name: Optional[str] = None
+    start = 0
+    for index, line in enumerate(masked):
+        heading = HEADING.match(line)
+        if heading and len(heading.group(1)) <= 2:
+            if name is not None:
+                ranges[name] = (start, index)
+            name = heading.group(2) if len(heading.group(1)) == 2 else None
+            start = index
+    if name is not None:
+        ranges[name] = (start, len(masked))
+    return ranges
+
+
 # ---------------------------------------------------------------------- the tree
 
 
@@ -306,6 +361,43 @@ class Tree:
             if directory == node or node in directory.parents:
                 found.extend(sources)
         return found
+
+    def has_descendant_nodes(self, node: Path) -> bool:
+        """Whether some other node of the tree sits under this one (AGENTS.md 1: a
+        child node is any descendant, recursively, not only a direct child)."""
+        return any(other != node and node in other.parents for other in self.nodes)
+
+    def all_sources(self) -> List[Path]:
+        """Every source file the tree scanned, in every node."""
+        return [path for sources in self._sources.values() for path in sources]
+
+    def owning_node(self, path: Path) -> Path:
+        """The node whose directory is the closest ancestor of `path` (or `path`
+        itself, for a node's own BOOT.md/API.md); the root when none is closer."""
+        directory = path.parent
+        candidates = [node for node in self.nodes if node == directory or node in directory.parents]
+        return max(candidates, key=lambda node: len(str(node))) if candidates else self.root
+
+    def ancestor_nodes(self, node: Path) -> List[Path]:
+        """`node` and every node above it up to the root, nearest first - the chain a
+        bare HISTORY.md#anchor citation is allowed to resolve against (AGENTS.md 15)."""
+        node_set = set(self.nodes)
+        chain: List[Path] = []
+        directory = node
+        while True:
+            if directory in node_set:
+                chain.append(directory)
+            if directory == self.root:
+                break
+            directory = directory.parent
+        return chain
+
+    def history_anchors(self, node: Path) -> Optional[Set[str]]:
+        """The anchors `node`'s own HISTORY.md defines, or None if it has none."""
+        history = node / HISTORY_NAME
+        if not history.is_file():
+            return None
+        return set(HISTORY_ANCHOR.findall(self.text(history)))
 
 
 # ------------------------------------------------------------------------ checks
@@ -421,6 +513,221 @@ def check_links(tree: Tree, document: Path, masked: List[str]) -> List[Finding]:
     return findings
 
 
+def check_section_exemption(tree: Tree, boot: Path, text: str, masked: List[str]) -> Tuple[int, List[Finding]]:
+    """AGENTS.md 15: a §6 deviation that replaces sections with a transcription is
+    not paying to read those sections twice.
+
+    A line carrying `SIX_DEVIATION_MARK` and a `replaced by:` clause names, on that
+    same line, the level-2 sections the external source replaces. Each named section
+    that actually exists in the document (checked here, not trusted) has its
+    non-blank lines excluded from the AGENTS.md 15 count; a named section that does
+    not exist is an error, and none of its (nonexistent) lines are excluded.
+    """
+    lines = text.split("\n")
+    findings: List[Finding] = []
+    excluded = 0
+    ranges: Optional[Dict[str, Tuple[int, int]]] = None
+
+    for number, line in enumerate(lines):
+        if SIX_DEVIATION_MARK not in line:
+            continue
+        match = REPLACED_BY.search(line)
+        if not match:
+            continue
+
+        if ranges is None:
+            ranges = section_ranges(masked)
+
+        for token in match.group(1).split(","):
+            name = re.sub(r"^#{1,6}\s*", "", token.strip().strip("`\"'").strip()).strip()
+            if not name:
+                continue
+            bounds = ranges.get(name)
+            if bounds is None:
+                findings.append(error(
+                    "15", "{}:{}".format(tree.relative(boot), number + 1),
+                    "names '## {}' as replaced by the transcription, and no such section "
+                    "exists in this document".format(name),
+                ))
+                continue
+            start, end = bounds
+            excluded += sum(1 for excluded_line in lines[start:end] if excluded_line.strip())
+
+    return excluded, findings
+
+
+def check_boot_size(
+    tree: Tree, node: Path, boot: Path, text: str, excluded: int = 0, root_pointer: bool = False,
+) -> List[Finding]:
+    """AGENTS.md 15: a BOOT.md this big has stopped being a cheap read.
+
+    Counted are non-blank lines of the file as written, code blocks and table rows
+    included: the limit is arithmetic on how often the document is read, not a
+    judgement about its prose. A node with a descendant node (AGENTS.md 1: "child
+    nodes" are every descendant, recursively) is read on the way to every one of them
+    and gets the tighter, 250-line budget; a leaf gets 400. `excluded` is the number
+    of non-blank lines a declared §6 deviation's transcription sections account for
+    (`check_section_exemption`) and is subtracted before comparing against the limit.
+    `root_pointer` is AGENTS.md 3.1's own exemption: the root, and only the root, once
+    its own `## Acceptance criteria` is the one line pointing to `ACCEPTANCE.md`, is
+    measured against the leaf's 400 lines instead of the parent's 250 - it is the one
+    common ancestor the frame binds, but it can still hand over its evidence. A node
+    that declares the deviation - a line starting with `DEVIATION_PREFIX` in its own
+    BOOT.md - is reported as a warning instead of an error, and named as declared.
+    """
+    non_blank = sum(1 for line in text.split("\n") if line.strip()) - excluded
+    is_root = node == tree.root
+    if is_root and root_pointer:
+        limit = ROOT_LIMIT_WITH_ACCEPTANCE
+        kind = "the root, its acceptance criteria in ACCEPTANCE.md"
+    else:
+        limit = PARENT_LINE_LIMIT if tree.has_descendant_nodes(node) else LEAF_LINE_LIMIT
+        kind = "a node with children" if limit == PARENT_LINE_LIMIT else "a leaf node"
+    if non_blank <= limit:
+        return []
+
+    message = "{} non-blank lines, over the {}-line limit for {}".format(non_blank, limit, kind)
+
+    deviation = next(
+        (line.strip() for line in text.split("\n") if line.strip().startswith(DEVIATION_PREFIX)),
+        None,
+    )
+    if deviation is not None:
+        return [warn(
+            "15", tree.relative(boot),
+            "{} - declared deviation: {}".format(message, deviation),
+        )]
+    return [error(
+        "15", tree.relative(boot),
+        "{}; move what is no longer current truth to HISTORY.md, oldest superseded "
+        "material first, or declare the deviation (AGENTS.md §12)".format(message),
+    )]
+
+
+def acceptance_pointer_only(lines: Optional[List[Tuple[int, str]]]) -> bool:
+    """Whether a `## Acceptance criteria` section (as `section_lines` returns it) holds
+    nothing but the one line AGENTS.md 3.1 (§6) prescribes for a node that keeps its
+    criteria in `ACCEPTANCE.md`."""
+    if not lines:
+        return False
+    non_blank = [line for _, line in lines if line.strip()]
+    return len(non_blank) == 1 and bool(ACCEPTANCE_POINTER.match(non_blank[0].strip()))
+
+
+def check_acceptance_file(
+    tree: Tree, node: Path, boot: Path, has_pointer: bool, acceptance_exists: bool,
+) -> List[Finding]:
+    """AGENTS.md 3.1 (§6, §15): `ACCEPTANCE.md` stands only in a node with children,
+    and only where the BOOT.md it stands beside points to it with the one line the
+    article prescribes - not the other way around (an orphan file), and not in a leaf
+    (a leaf has nowhere the frame/evidence split of §15's "Frame and evidence" bullet
+    applies: nothing above it depends on its criteria being cheap to skip)."""
+    findings: List[Finding] = []
+    if has_pointer and not acceptance_exists:
+        findings.append(error(
+            "6", tree.relative(boot),
+            "'## Acceptance criteria' points to {}, which does not exist".format(ACCEPTANCE_NAME),
+        ))
+    if acceptance_exists and not has_pointer:
+        findings.append(error(
+            "6", tree.relative(node / ACCEPTANCE_NAME),
+            "exists, but {}'s '## Acceptance criteria' does not point to it "
+            "(AGENTS.md 3.1) - an orphan file, or a stale one".format(BOOT_NAME),
+        ))
+    if acceptance_exists and not tree.has_descendant_nodes(node):
+        findings.append(error(
+            "15", tree.relative(node / ACCEPTANCE_NAME),
+            "stands in a leaf; only a node with children may move its acceptance "
+            "criteria out of BOOT.md (AGENTS.md 3.1)",
+        ))
+    return findings
+
+
+def check_acceptance_size(tree: Tree, acceptance: Path, text: str) -> List[Finding]:
+    """AGENTS.md 3.1 (§15): `ACCEPTANCE.md` is current truth, not history, and is held
+    to the same 400 lines a leaf's BOOT.md is - there is no deviation for it, since
+    unlike a BOOT.md it holds nothing but the dated, evidenced criteria §15 already
+    forbids moving."""
+    non_blank = sum(1 for line in text.split("\n") if line.strip())
+    if non_blank <= ACCEPTANCE_LIMIT:
+        return []
+    return [error(
+        "15", tree.relative(acceptance),
+        "{} non-blank lines, over the {}-line limit for {}".format(
+            non_blank, ACCEPTANCE_LIMIT, ACCEPTANCE_NAME),
+    )]
+
+
+def mask_fences(text: str) -> List[str]:
+    """The document's lines with fenced blocks - and only fenced blocks - blanked out.
+
+    Unlike `mask_code`, an inline backtick span is left as written. AGENTS.md 15's
+    citation check (`check_history_citations`) reads a citation inside backticks as a
+    real reference, not an example the way AGENTS.md's own illustrative links are: the
+    kit's own placeholder syntax for an example, `HISTORY.md#<anchor>`, already fails
+    to match `CITATION` on its own (an anchor never starts with '<'), so no further
+    exemption is needed for it, backticked or not.
+    """
+    masked: List[str] = []
+    fence: Optional[str] = None
+    for line in text.split("\n"):
+        opening = FENCE.match(line)
+        if fence is None:
+            if opening:
+                fence = opening.group(1)
+                masked.append("")
+                continue
+            masked.append(line)
+            continue
+        if opening and opening.group(1)[0] == fence[0] and len(opening.group(1)) >= len(fence):
+            fence = None
+        masked.append("")
+    return masked
+
+
+def check_history_citations(tree: Tree, path: Path, lines: List[str]) -> List[Finding]:
+    """AGENTS.md 15: every `HISTORY.md#anchor` citation resolves, wherever it is
+    written and however it is written - the gap `protocol_lint` itself had (AGENTS.md
+    3.1, Appendix C): the old check read only a BOOT.md's own bare pointers, and only
+    outside backticks, so a citation inside backticks, in an API.md, in a test's
+    source, or naming a neighbour's node by path, could dangle and never turn red.
+
+    A **qualified** citation names a node's path before `HISTORY.md#anchor`, either
+    from the tree root (`tests/Harness/HISTORY.md#anchor`) or, with a leading `../`,
+    relative to the citing file's own directory; it must resolve in that named node's
+    own HISTORY.md. A **bare** citation (`HISTORY.md#anchor`, no path) must resolve in
+    the citing file's own node or one of that node's ancestors (AGENTS.md 15's "Frame
+    and evidence": an ancestor's HISTORY.md is inherited on the way up, a neighbour's
+    is not) - never in a neighbour or a descendant, which is exactly the mistake this
+    check exists to catch (a bare citation of another node's anchor is silently wrong
+    until someone deletes the anchor it happened to still find).
+    """
+    owner = tree.owning_node(path)
+    findings: List[Finding] = []
+    for number, line in enumerate(lines):
+        for match in CITATION.finditer(line):
+            prefix, anchor = match.group("prefix"), match.group("anchor")
+            if prefix == "":
+                chain = tree.ancestor_nodes(owner)
+                if any(anchor in (tree.history_anchors(candidate) or ()) for candidate in chain):
+                    continue
+                where = tree.relative(owner / HISTORY_NAME)
+            else:
+                if ".." in prefix.split("/") or prefix.startswith("./"):
+                    target = (path.parent / prefix).resolve()
+                else:
+                    target = (tree.root / prefix.rstrip("/")).resolve()
+                anchors = tree.history_anchors(target)
+                if anchors is not None and anchor in anchors:
+                    continue
+                where = "{}/{}".format(tree.relative(target), HISTORY_NAME)
+            findings.append(error(
+                "15", "{}:{}".format(tree.relative(path), number + 1),
+                "cites HISTORY.md#{}, which no anchor in {} defines".format(anchor, where),
+            ))
+    return findings
+
+
 def check_status_marks(tree: Tree, api: Path, text: str, masked: List[str]) -> List[Finding]:
     """AGENTS.md 7: a contract with code in it says whether the code exists."""
     if not fenced_blocks(text):
@@ -523,7 +830,14 @@ def lint(
     extra_excluded: Sequence[str] = (),
     heuristics: bool = True,
 ) -> List[Finding]:
-    """Every complaint about the tree at root, ordered by place."""
+    """Every complaint about the tree at root, ordered by place.
+
+    The AGENTS.md 15 line-count check and the HISTORY.md citation check both run
+    unconditionally: a project adopts the protocol's size limit by bringing its nodes
+    inside it or by declaring the deviation, not by a flag that lets the checker
+    itself stay silent about a known backlog (`tools/protocol-lint/BOOT.md`,
+    "Constraints").
+    """
     tree = Tree(
         root=root.resolve(),
         source_extensions=DEFAULT_SOURCE_EXTENSIONS | {e.lower() for e in extra_extensions},
@@ -536,11 +850,26 @@ def lint(
 
     for node in tree.nodes:
         boot = node / BOOT_NAME
+        has_pointer = False
         if boot.is_file():
-            masked = mask_code(tree.text(boot))
+            text = tree.text(boot)
+            masked = mask_code(text)
             findings += check_sections(tree, boot, masked)
             findings += check_dependencies(tree, node, boot, masked)
             findings += check_acceptance_dates(tree, boot, masked)
+            has_pointer = acceptance_pointer_only(section_lines(masked, "Acceptance criteria"))
+            excluded, exemption_findings = check_section_exemption(tree, boot, text, masked)
+            findings += exemption_findings
+            findings += check_boot_size(tree, node, boot, text, excluded, has_pointer)
+
+        acceptance = node / ACCEPTANCE_NAME
+        acceptance_exists = acceptance.is_file()
+        findings += check_acceptance_file(tree, node, boot, has_pointer, acceptance_exists)
+        if acceptance_exists:
+            acceptance_text = tree.text(acceptance)
+            acceptance_masked = mask_code(acceptance_text)
+            findings += check_acceptance_dates(tree, acceptance, acceptance_masked)
+            findings += check_acceptance_size(tree, acceptance, acceptance_text)
 
         api = node / API_NAME
         if api.is_file():
@@ -550,7 +879,15 @@ def lint(
                 findings += check_implemented_declarations(tree, node, api, text)
 
     for document in tree.markdown:
-        findings += check_links(tree, document, mask_code(tree.text(document)))
+        text = tree.text(document)
+        findings += check_links(tree, document, mask_code(text))
+        if document.name != HISTORY_NAME:
+            findings += check_history_citations(tree, document, mask_fences(text))
+
+    for source in tree.all_sources():
+        relative = tree.relative(source)
+        if relative.startswith("src/") or relative.startswith("tests/"):
+            findings += check_history_citations(tree, source, tree.text(source).split("\n"))
 
     return sorted(findings, key=lambda finding: (finding.where, finding.article, finding.level, finding.message))
 
