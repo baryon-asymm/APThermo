@@ -57,18 +57,8 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
   Every batch test compares both.
 
-  ⚠ 2026-09-12: those numbers hold at stations where both accelerators stop after
-  the same number of Newton steps. The equilibrium solver polishes until its
-  corrections fall below 1e-11, the rounding floor of its linear solves, and a
-  last-ULP difference between libdevice and .NET flips that threshold decision now
-  and then (91 of the 400 000 stations of the 100 000-case sweep): one accelerator
-  then takes one polish step more, and the two differ by up to 1.4e-11 on
-  temperature and 3.3e-10 on the mole fraction of a minor species. The original
-  wording assumed the converged iterate were unique to 1e-10, which the stopping
-  rule does not guarantee. The tolerance table of the execution tests node states
-  the second tier (1e-9 on mole fractions at such stations, derived from the polish
-  threshold) and bounds the share of such stations, so that a systematic divergence
-  cannot hide behind it.
+  ⚠ 2026-09-12: was 1e-10 on mole fractions at every station, now a second tier, 1e-9,
+  where the Newton step counts differ → HISTORY.md#gpu-equals-cpu-second-tier
 - **SI units in every public type**: K, Pa, J/kg, J/(kg·K), kg/kmol, kg/m³, m/s,
   Pa·s, W/(m·K). Specific impulse is the effective exhaust velocity in m/s; the
   conversion to seconds with g0 = 9.80665 m/s² happens only in the command-line front end.
@@ -128,49 +118,22 @@ delivery (2026-09-15, `## Delivery` below).
   math path (the CPU dispatch pinned in the execution node) or hosted runners of a
   fixed CPU model.
 
-  ⚠ 2026-09-17: the first wording of that sentence, written the same day, called the bit
-  snapshots "the one platform-specific record". The Linux run then also failed the
-  throughput tripwire (the ratio under WSL2 is lower and varies between runs, 44× and
-  52× measured), and the execution tests node gave it a Linux file too.
+  ⚠ 2026-09-17: was the bit snapshots "the one platform-specific record", now the
+  throughput figures too → HISTORY.md#platform-throughput-record
 
-  ⚠ 2026-09-17, the first Linux run (WSL2 Ubuntu 24.04, .NET SDK 10.0.112, at
-  `f67b1a9`) answered the open question below: the CPU accelerator does not reproduce
-  the Windows bits. Every tolerance test against the CEA references, the docs tests and
-  the execution tests on CUDA (the 100 000-case sweep included) passed; the bit
-  snapshots of `Equilibrium`, `Performance`, `Transport`, `Problems` and `Cli` did not.
-  A field-by-field dump of the equilibrium and rocket snapshot sets (58 208 fields per
-  platform) found 12 150 fields differing by at most 4.2e-12 relative (temperature
-  2.7e-13), with no difference in any iteration count, status or active condensed
-  species; `Math.Exp`, `Math.Pow` and `Math.Log` differ by exactly 1 ULP on 0.5 %,
-  0.09 % and 0.015 % of sampled arguments. The difference is the C runtimes' last-bit
-  rounding carried through the Newton steps, far inside the tolerance tiers of the
-  GPU-equals-CPU invariant. The user chose per-platform snapshots over a tolerance
-  comparison on Linux or no snapshot on Linux, so that an unintended change stays
-  visible to the bit on both platforms.
+  ⚠ 2026-09-17: was the Linux bit question open, now answered: Linux differs by up to
+  4.2e-12 relative, records per platform → HISTORY.md#platform-first-linux-run
 
-  ⚠ 2026-09-15 (distribution phase): stood "Windows 11 x64 is the only supported
-  platform of version 1. Nothing but the CUDA library discovery paths may be
-  Windows-specific." The user decided to ship the library as a NuGet package and the
-  command line as a .NET tool for Windows and Linux, with full support on Linux,
-  CUDA included. On Linux the GPU path is verified under WSL2 on the reference
-  machine. One question stays open until it is measured: whether the CPU accelerator
-  reproduces the Windows bit snapshots on Linux. `System.Math` calls the platform's C
-  runtime, which may round the last ULP differently. The first Linux run of the suite
-  decides it, and that decision is recorded here.
+  ⚠ 2026-09-15: was "Windows 11 x64 is the only supported platform", now Windows and
+  Linux x64, CUDA included → HISTORY.md#platform-windows-only
 - Language and build: C#, .NET 10, nullable reference types enabled, warnings are
   errors. One assembly per node directory that holds a project, named after its namespace; a
   child node without a project of its own (2026-09-15) compiles into the assembly of its
   nearest ancestor that has one, under its own namespace. One solution
   file at the repository root.
 
-  ⚠ 2026-09-15: stood "One assembly per node directory". A node is a directory
-  (AGENTS.md §1). A cluster of a large node with a contract narrower than its code and
-  a reason of its own to change earns its own pair of documents, but an assembly of its
-  own would widen the public surface and the project graph for types that are internal
-  today. A child node therefore compiles into its nearest ancestor's project, and the
-  protocol tests node attributes a type to the deepest node whose namespace it carries,
-  as AGENTS.md §1 already defines membership by the directory of a file. Decided with
-  the user on 2026-09-14 for the phase after the clean-code pass.
+  ⚠ 2026-09-15: was "One assembly per node directory", now per node that holds a project
+  (children join their ancestor's) → HISTORY.md#assembly-per-node
 - Diagnostics (2026-09-24): the compiler and every analyzer run at their maximum, every
   diagnostic is an error, and nothing in the tree is exempt, the test, sample and
   benchmark nodes included.
@@ -225,23 +188,11 @@ delivery (2026-09-15, `## Delivery` below).
   and the solution (`APThermo.sln`) carry the same names. The product's name in prose stays
   Aerospace Propellant Thermodynamics, and APThermo is its short name and the name of its packages.
 
-  ⚠ 2026-09-16: stood "the grouping directories `src/` and `tests/` are transparent". The
-  distribution phase added a third grouping directory, `samples/`, for the consumer-scenario
-  node; its assembly and root namespace are `APThermo.Samples` (its `BOOT.md`), not
-  `APThermo.samples.Samples`. The protocol tests node's namespace attribution
-  (`tests/Protocol.Tests/Node.cs`) now treats `samples/` as transparent with the other two, so
-  those types resolve to their own node instead of the root.
+  ⚠ 2026-09-16: was `src/` and `tests/` the transparent directories, now `samples/` too
+  → HISTORY.md#namespaces-samples
 
-  ⚠ 2026-09-15 (distribution phase): the root namespace, the projects, the assemblies
-  and the solution were `AerospacePropellantThermodynamics`. The user named the
-  packages APThermo (NuGet ID `APThermo`, the tool `APThermo.Cli` with the command
-  `apthermo`) and asked that everything be renamed before the first release, 0.1.0.
-  With no users yet the rename costs nothing, while after publication it would break
-  every consumer; a package ID that differs from the namespaces its users write would
-  also be a lasting inconsistency. The rename changes names only: bit snapshots,
-  benchmark result hashes and the surface snapshot (up to the name) are unchanged.
-  Historical records keep the old name, namely the benchmark results under
-  `tests/Benchmarks/results/` and the `bench/before-clean-code` branch.
+  ⚠ 2026-09-15: was the root namespace `AerospacePropellantThermodynamics`, now
+  `APThermo` → HISTORY.md#namespaces-rename
 - Kernel-compatible C# in numerical nodes: static methods, blittable structs,
   `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
@@ -260,24 +211,11 @@ delivery (2026-09-15, `## Delivery` below).
   `double.IsNegative` allowed inside `KernelMath` only. Adding a function is a root
   decision, because the execution node must provide its libdevice wrapper.
 
-  ⚠ 2026-09-28: the check of 2026-09-27 matched the declaring type `System.Math` and
-  the names `Min` and `Max`. `double.Max` in place of `KernelMath.Max` at the
-  convergence test and the station velocity, and `Math.Tanh`, `Math.Cbrt` and
-  `Math.Clamp` in the thermo node, built and passed the whole hosted suite; the
-  offline PTX of `double.Max` is `max.f64`. Nothing checked the rest of this list.
-  Found by the second hidden-defect audit of 2026-09-28 (guards, finding F1).
+  ⚠ 2026-09-28: was a check on `Math.Min` and `Math.Max` only, now an allow-list of
+  every `System.Math` and `System.Double` call → HISTORY.md#math-allow-list
 
-  ⚠ 2026-09-27: `Min` and `Max` stood in the list. ILGPU compiles `Math.Min` and
-  `Math.Max` to PTX `min.f64` and `max.f64`, which return the other operand when one is
-  NaN, while .NET returns NaN. The guards audit's probe inputs (F11) measured it on the
-  reference device: `Min(NaN, 1)` and `Max(NaN, 1)` are NaN on the CPU accelerator and
-  1 on CUDA, the only divergence over the whole probed domain. The numerical nodes call
-  them in the convergence tests, the damped step, the row scaling of the linear solve
-  and the station velocity. There a NaN fails a case on the CPU and passes on the GPU:
-  a false `Ok`, or a velocity of 0 in place of NaN. The owner chose functions of the
-  tree's own, written once in comparisons and selections, so that both accelerators run
-  the same instructions and propagate NaN as .NET does. Documenting the divergence, or
-  proving that no NaN reaches any call, were the alternatives.
+  ⚠ 2026-09-27: was `Min` and `Max` in the math list, now `KernelMath.Min` and
+  `KernelMath.Max` (NaN differs on CUDA) → HISTORY.md#math-min-max
 - ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
   `compute_100` and newer (Blackwell): it emits the NVVM version metadata before the
   target lines, libnvvm rejects that module for those targets, and ILGPU silently drops
@@ -313,22 +251,8 @@ delivery (2026-09-15, `## Delivery` below).
   refused. The execution node's `Chunks` child holds both (its `BOOT.md`); the protocol
   tests node checks that no `src` method calls a by-reference transfer.
 
-  ⚠ 2026-09-26: stood "defective with libnvvm 12.9 and 13.3 … The execution node links
-  the libdevice wrappers itself". The defect depends on the target architecture, not on
-  the libnvvm version. It was measured only on the reference machine's SM_120, where
-  ILGPU always drops the wrappers. On every older GPU ILGPU defined them itself, the
-  post-link then inserted a second copy, and every CUDA run of 0.1.0 threw on SM_75 to
-  SM_90 (the hidden-defect audit of 2026-09-26, `Execution` finding F1). Measured the
-  same day with libnvvm 12.9, 13.3 and 13.4 by compiling for every architecture on the
-  reference device:
-  - ILGPU's order compiles for `compute_75` to `compute_90` with all three, and
-    `compute_60`/`compute_70` with 12.9 only;
-  - it fails for `compute_100` and newer with all three;
-  - the kernels ILGPU completes itself equal, as PTX text, the kernels the post-link
-    completes, up to ILGPU's generated names and the `.target` line;
-  - their probe outputs are the same bits.
-
-  The execution node's `BOOT.md` records the design.
+  ⚠ 2026-09-26: was the defect tied to libnvvm 12.9 and 13.3, now to the target,
+  `compute_100` and newer → HISTORY.md#ilgpu-defect-by-target
 - Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default
   (`InliningMode.Default`), so each call site of a method that holds a whole solve is a
   full copy of it in the compiled program. A stage that holds or reaches a whole solve
@@ -337,15 +261,8 @@ delivery (2026-09-15, `## Delivery` below).
   one call site. The rocket kernel's compile on the CPU accelerator stays inside the
   bounds of the execution node's guard (its `BOOT.md`).
 
-  ⚠ 2026-09-30: nothing bounded it, and the rocket kernel grew from 3 to 7 call sites of
-  `StationSolve.At` in the audit fixes of 2026-09-27 and 2026-09-28. Measured by the
-  memory investigation of 2026-09-29 on the CPU accelerator, one `Solver`'s first rocket
-  call: 5.7 s and 1.16 GB committed at 0.1.0 (3 sites), 49.7 s and 11.2 GB at `d270bf1`
-  (7 sites), 2.6 s and 0.43 GB with the attribute on `StationSolve.At`. The test suite
-  followed: 25 GB and 35 minutes for `Cli.Tests`, over 27 GB for `Docs.Tests` and
-  `Execution.Tests`, against 3 GB and 4 minutes at 0.1.0, and a WSL instance died of
-  the machine's memory. No result bit moves. The owner decided on 2026-09-30 to fix it
-  before 0.2.0.
+  ⚠ 2026-09-30: was no bound on the compile (7 sites: 49.7 s, 11.2 GB), now the
+  attribute rule (2.6 s, 0.43 GB) → HISTORY.md#compile-size-measurement
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
   during a solve.
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
@@ -357,14 +274,8 @@ delivery (2026-09-15, `## Delivery` below).
   test proves by SHA-256 that the embedded bytes equal the files. At run time a database
   is read from the embedded copy or from a path given by the caller.
 
-  ⚠ 2026-09-15 (distribution phase): stood "they are read at run time from that
-  directory or from a path given by the caller". A NuGet package and a .NET tool have
-  no `data/` directory beside them, so every consumer would have to find NASA files
-  before the first call. Embedding the committed files keeps the data-from-files
-  invariant, because the bytes are the committed ones with their hash recorded. The
-  caller's path stays for other databases. The command line's search for `data/`
-  beside the executable and in the current directory goes with it; its `API.md`
-  records the change.
+  ⚠ 2026-09-15: was data "read at run time from that directory", now embedded in the
+  data assembly → HISTORY.md#data-embedded
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
@@ -401,335 +312,30 @@ delivery (2026-09-15, `## Delivery` below).
   nodes' included. Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md`
   records why the numbers are what they are.
 
-  ⚠ 2026-09-14: the limit on Ce first read 10. It was calibrated on a textual count of
-  the names in the source at `8e36a27`, while the rule is defined by the dependency
-  check's walk, which also counts the types of the fields a body reads and of the
-  members it calls; on that walk the kernel stages of the decomposed `Performance`,
-  which carry their data explicitly as the no-hidden-state invariant requires, measured
-  12 to 16. The limit is recalibrated on the walk; the protocol tests node's `BOOT.md`
-  records the measurement and the source of the figure.
+  ⚠ 2026-09-14: was a Ce limit of 10 (a textual count), now 14 (the check's walk) →
+  HISTORY.md#code-shape-ce-limit
 
-  ⚠ 2026-09-14, evening: the size limits first counted physical lines, the blank and
-  comment lines inside a span included, so the documentation comments of a type's
-  members counted toward the type's 400 and an explanatory comment toward a method's
-  60. A limit that charges for documentation invites deleting it, and the user asked
-  that comments not count. The limits now count the lines that hold code; the figures
-  stay 400 and 60, which can only lower a measurement, so no type or method that met
-  them stops meeting them. The protocol tests node's `BOOT.md` defines the count.
+  ⚠ 2026-09-14, evening: was physical lines counted, now lines of code, 400 and 60
+  unchanged → HISTORY.md#code-shape-lines-of-code
 
-  ⚠ 2026-09-15: the coupling and stable-type sentences read "A type names at most 14"
-  and "A type named by 10 or more", as if they held for every type of the tree. The
-  limits were calibrated on the types of the `src` nodes, and the protocol tests node's
-  shape check, designed with them on 2026-09-14, applies them to those types only, for
-  the reason its `BOOT.md` gives. The wording was found wider than the check at the
-  review of `ShapeTests`. It now states the scope the check holds, and the acceptance
-  criterion below follows it. A stable type's 100 lines are lines of code, counted as
-  the size limits count them.
+  ⚠ 2026-09-15: was the coupling sentences for "every type of the tree", now the `src`
+  types → HISTORY.md#code-shape-src-scope
 
-  ⚠ 2026-09-15 (protocol tests node repair phase, R-Protocol.Tests-9): the previous
-  correction above scoped the *named* type of the stable-type sentence to the `src`
-  nodes ("a type of the `src` nodes") but left the counting side, "named by 10 or more
-  types of the tree", unscoped, so a type used ten times only by test-node code, never
-  by another `src` type, still read as stable. The protocol tests node's `ShapeTests`
-  measures the naming side the same way the check measures the named side: this
-  sentence now reads "types of the `src` nodes" on both sides, and the protocol tests
-  node's `BOOT.md` records the re-measurement.
+  ⚠ 2026-09-15: was "named by 10 or more types of the tree", now types of the `src`
+  nodes → HISTORY.md#code-shape-src-both-sides
 
-  ⚠ 2026-09-15 (protocol tests node repair phase, R-Protocol.Tests-4): "over their
-  project graph" read as if the instability were computed from the nodes' `.csproj`
-  `ProjectReference` items. `CouplingMeasures.NodeCoupling` reads the nodes' own
-  `## Dependencies` sections instead, which the Dependencies level already holds equal
-  to the nodes whose types a node's code actually uses; no `.csproj` is opened by the
-  check. The two graphs coincide on this tree, so no instability figure or
-  dependency-direction verdict moves; the sentence now names the graph the check
-  actually reads, matching the protocol tests node's own Shape-check table.
+  ⚠ 2026-09-15: was "over their project graph", now the graph of the `## Dependencies`
+  sections → HISTORY.md#code-shape-dependency-graph
 
-  ⚠ 2026-09-15 (child-nodes phase): the stable-dependencies sentence read "the
-  instability of the `src` nodes", which from the child-nodes decision above on counted
-  every child node as a component of its own. Splitting `src/Cli` into five children,
-  four of which use `Execution` in their own code, took `Execution`'s afferent count from
-  2 to 6 and its instability from 0.667 to 0.400, below `Transport`'s 0.500. That turned
-  `ShapeTests.NoSrcDependencyPointsToALessStableNode` red although no dependency
-  between the assemblies changed. Stability is a property of what is built and released
-  together, and a child node compiles into its ancestor's assembly (the language-and-build
-  constraint above). It is not a component, so the sentence now measures the nodes that
-  hold a project. The type-level figures (Ce, Ca, the stable type) do not change.
+  ⚠ 2026-09-15: was the instability of every `src` node, now of those that hold a
+  project → HISTORY.md#code-shape-instability
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
-      throat and exit states and the performance figures, in equilibrium and in frozen
-      flow, agree with the NASA CEA reference outputs within the tolerance table of the
-      fixtures node. The list of reference files is produced by a directory listing,
-      and every file in it is covered:
-      `Problems.Tests.RocketTests.TheRocketCaseReproducesTheReferenceEndToEnd`
-      over every file of `tests/Fixtures/cases/rocket` (89 that day: the four
-      propellants with and without transport, and the RP-1311 rocket examples) and
-      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`,
-      `AssignedEnthalpyCasesReproduceTheReference`,
-      `AssignedEntropyCasesReproduceTheReference` over every tp, hp and sp file
-      (106). 2026-09-13: 98 rocket and 115 equilibrium files after the
-      melting-plateau cases (example 13 and the plateau band), the same tests green.
-      The documented defects of the reference (the fixtures node's BOOT.md: the
-      reacting conductivity where a trace component is eliminated, the
-      frozen-station cv, the singular derivative matrix of a bound-exact tp) are
-      skipped by the rules recorded there, and each skip is guarded: the defect must
-      be visible on the reference's own output.
-- [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
-      accelerator within the tolerance table; the list of compared fields is produced
-      by reflection over the result type
-      (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`
-      in the execution tests node, long-running; the table's second tier for mole
-      fractions is described under the GPU-equals-CPU invariant above). Re-verified
-      2026-09-15 on the decomposed code at `62cd99e`, same test, green on the
-      reference machine.
-- [x] 2026-09-12 — On the reference machine the CUDA path is at least 5× faster than
-      the CPU accelerator path with all cores on the 100 000-state batch; the measured
-      figure is recorded in the benchmark's approved file
-      (`tests/Execution.Tests/Throughput.approved.txt`: 56.28×, CUDA 0.170 s against
-      9.544 s; `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`).
-      Re-verified 2026-09-15 on the decomposed code at `62cd99e`, same test,
-      `Throughput.approved.txt` unchanged. Re-measured 2026-09-19 in Release, the
-      configuration the release runs, as the median of three runs of the release job's
-      filter: 23.58× on Windows (CUDA 0.151 s against 3.557 s) and 27.48× under WSL2
-      (0.204 s against 5.593 s), recorded in `Throughput.approved.txt` and
-      `Throughput.linux.approved.txt` with their configuration (merged as `a316ecb`).
-
-      ⚠ 2026-09-19: the figures above of 2026-09-12 (56.28×) and the Linux 52.01× were
-      Debug measurements, a fact no record stated. The CPU accelerator runs the kernels
-      from the assemblies' IL, so the host build configuration changes its speed about
-      2.8× (9.5 s in Debug, 3.4 s in Release), while the CUDA kernel does not depend on
-      it. The release rehearsal of 2026-09-19 compared a Release run with the Debug
-      record and failed at 29.48×. Found by a Fable 5.1 analysis that ruled out the
-      toolkit, the driver, the clocks and the code. The 5× target holds by a wide
-      margin in both configurations; the tripwire now records and asserts its
-      configuration, and its floors are unchanged.
-- [x] 2026-09-12 — The full test suite passes in a process where CUDA is forbidden
-      (environment variable `APTHERMO_NO_CUDA=1`, honoured by the execution node):
-      `dotnet test AerospacePropellantThermodynamics.sln` with the variable set, 1742
-      tests green after the protocol tests node (1733 after the Cli node, 1654 after
-      the Problems node, 850 after the Execution node; 1749 on 2026-09-13 after the
-      front door's mass check and 1951 after its declared tolerance and mass report,
-      the `Problems` BOOT.md; 2143 on 2026-09-14 after the melting-plateau rule, the
-      `Equilibrium` BOOT.md; 3037 on 2026-09-15 after the clean-code pass, at
-      `62cd99e`), none skipped, the CUDA-category tests verifying the refusal instead.
-- [x] 2026-09-12 — The tree passes `protocol_lint` without errors (the lint command
-      of `CLAUDE.md`, run after every node and by `Protocol.Tests.LintTests` in
-      every test run, last after the protocol tests node: 0 errors,
-      0 warnings).
-- [x] 2026-09-13 — The reflection checks are written for this stack and each was
-      shown red once (AGENTS.md §13): the protocol tests node
-      (`tests/Protocol.Tests`: `SurfaceTests`, `CoverageTests`, `DeclarationTests`,
-      `DependencyTests`, with `LintTests` running the linter and `InvariantTests`
-      holding the three root invariants above), ten mutations applied alone and seen
-      red, listed in that node's `BOOT.md`; the surface snapshot is
-      `tests/Protocol.Tests/PublicSurface.approved.txt`. The first run over the tree
-      found one undocumented public type (`Execution`'s `SpeciesFunctionBatchViews`,
-      fixed in its `API.md`).
-- [x] 2026-09-15 — The tree meets the code-shape constraint above: no type over 400
-      lines of code, no method over 60, no control flow nested deeper than 3, no
-      method with more than 6 parameters, no `src` type with Ce over 14 outside the
-      registries and composition roots the nodes declare, every stable `src` type in
-      shape, no dependency against instability; measured by the protocol tests node's
-      `ShapeTests`, all ten facts green at `62cd99e`, over a machine-generated list of
-      every type and method of every assembly, the declared exceptions read from the
-      nodes' `BOOT.md`. The review of 2026-09-14 (nine read-only reviews over the tree
-      at `8e36a27`, one per node group and one across the boundaries, counting
-      physical lines) found 5 types over 400 lines (`EquilibriumSolver` 1289,
-      `TransportSolver` 794, `Problems.Solver` 663, `Engine` 509,
-      `Protocol.Tests.Tree` 428), 31 methods over 60 lines (the longest
-      `TransportSolver.Evaluate` 640 and `EquilibriumSolver.Solve` 512) and 10 types
-      with Ce over 10 by its textual count; the decompositions are designed in the
-      nodes' `BOOT.md` files under `## Structure` and each is accepted only with its
-      node's bit-for-bit or field-by-field guard green.
-
-- [x] 2026-09-17 — Linux x64 (2026-09-15): the fast suite is green on the CPU accelerator, and
-      the execution tests node is green on CUDA, its long-running sweep included, under
-      WSL2 on the reference machine. The outcome for the bit snapshots is recorded under
-      the platform constraint above.
-
-      Evidence: WSL2 Ubuntu 24.04, .NET SDK 10.0.112, CUDA 12.9 libnvvm, at `0c3b455`
-      (merged as `3bc4039`): `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
-      "Category!=LongRunning"` 3098/3098 against the `Bits.linux.approved.txt` files, and
-      `dotnet test tests/Execution.Tests` 55/55 on CUDA, the 100 000-case sweep included,
-      with the throughput ratio 52.01× recorded in `Throughput.linux.approved.txt` (the
-      execution tests node's `BOOT.md` explains the per-platform file). The first run at
-      `f67b1a9` failed only the bit snapshots and two platform assumptions of the tests,
-      the discovery test's `.dll` suffix and the Windows throughput figure.
-- [x] 2026-09-18 — The packages (2026-09-15): packed by the CI from a commit, `APThermo` restores
-      from a local feed into every sample, and each sample reproduces its approved
-      output on Windows and on Linux. `APThermo.Cli` installs from the same feed as a
-      .NET tool and runs an approved example without `--database`. Every source
-      document of every packed assembly resolves through SourceLink to the commit's
-      file on the public repository. Before the first release the package READMEs link
-      the guide on the public repository; until it exists they carry no guide link.
-
-      Evidence: CI run 35274736153 of `24cd966`, green on `windows-latest` and
-      `ubuntu-latest`, whose steps pack both packages, restore `APThermo` from the
-      job-local feed into all twelve samples and diff each output with its approved
-      file, and install the tool from that feed and run its approved example. The
-      symbols: `sourcelink test` passed on all 16 PDBs of `APThermo.snupkg` and
-      `APThermo.Cli.snupkg` packed from `8d0b7a1`, and the sampled
-      `raw.githubusercontent.com/baryon-asymm/APThermo/<commit>/…` URLs answered 200
-      (`SCRATCH/sourcelink-proof.txt`, kept out of the tree with the audit reports).
-      The package READMEs link the guide since `20cc262`.
-
-      ⚠ 2026-09-18: the criterion said "a debugger steps from a sample into the
-      library's source through SourceLink, and the step is recorded". A step in an IDE
-      is a human action that no run can repeat, so the record would age into a claim
-      nobody re-checks. The wording now names what a debugger actually needs and what
-      a machine can re-prove: every document of every packed PDB resolves to the
-      commit's file. The owner may still step through it by hand; nothing in the tree
-      depends on that.
-
-      ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
-      package restore into the samples (the ⚠ of that date under `## Delivery`,
-      Documentation).
-- [x] 2026-09-17 — The documentation (2026-09-15), proven by the docs tests node, with every check
-      shown red once and failing on an empty set:
-      - every C# block of the guide equals its snippet (`SnippetTests`, and
-        `FenceTagTests` for the fences' tags);
-      - every `apthermo` invocation shown is run and its output approved, except the
-        declared synopses whose output depends on the machine or the release
-        (`CommandLineExampleTests.EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis`);
-      - every sample prints its approved output
-        (`SampleOutputTests.TheScenarioPrintsItsApprovedOutput`, `ScenarioTableTests`);
-      - every link resolves (`LinkTests`);
-      - every shown or sample document validates against its schema
-        (`SchemaValidationTests`, `CliDocumentTests`);
-      - every guide page has the shared shape (`GuideShapeTests`).
-
-      Evidence: `tests/Docs.Tests` 28/28 green at `587f05d` on Windows (27/27 at
-      `f67b1a9` under WSL2), the red-once and empty-set records in that node's
-      `BOOT.md`, and four read-only documentation reviews on 2026-09-17, the last at
-      `48fecae` with no blocker and no major; its minors were closed at `587f05d`.
-
-      Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
-      "Every code block … equals its sample region" predated the snippet markers and
-      named only four of the six proofs.
-- [x] 2026-09-25 — Diagnostics (2026-09-24): the tree builds at the maximum of the Diagnostics
-      constraint with 0 warnings and 0 errors, and nothing suppresses a diagnostic.
-      - `DiagnosticsTests` is green, each of its facts shown red once and failing on an
-        empty set.
-      - The bit snapshots are unchanged, and the fast suite and the protocol lint are
-        green.
-      - The execution tests node is green on CUDA on the reference machine, its
-        long-running sweep included, because the result structs changed shape.
-      - The public surface snapshot moves only by the structs' properties and equality,
-        the standard exception constructors (the four library exceptions and the
-        fixtures node's `FixtureFormatException`), the harness's
-        `FixtureFamilies.Of` split into `Keys` and `CasesOf` with its `FixtureFamilyKey`,
-        and the benchmarks node's public `BenchmarkEnvironment` with the new, empty
-        `APThermo.Benchmarks.Runner` section.
-
-      Evidence at `b8cde93`, on the reference machine (Windows), from a tree with every
-      `bin` and `obj` removed:
-      - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
-      - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
-        "Category!=LongRunning"`: 3108 of 3108, none skipped, `DiagnosticsTests`
-        included (its red-once records are in the protocol tests node's `BOOT.md`);
-      - `dotnet test tests/Execution.Tests -c Release`: 56 of 56 on CUDA, the
-        100 000-case sweep and the throughput tripwire included;
-      - no `Bits*.approved.txt` or `Throughput*.approved.txt` differs from `main`
-        (`0899500`);
-      - the protocol lint: 0 errors, 0 warnings.
-
-      Linux, and a second Windows machine: CI run 36229326350 of `a94a108` (2026-09-26)
-      is green on `windows-latest` and `ubuntu-latest`, fast suite without the bit
-      snapshots, packing, samples against the package and the packed tool's example
-      included. The two runs before it failed on two gaps this phase opened outside
-      the tree's own build:
-      - `DiagnosticsTests` read the NuGet cache CI keeps inside the workspace, fixed in
-        the protocol tests node (the ⚠ of 2026-09-26 there);
-      - the workflow's scratch program compiled a public Harness type into an
-        executable (CA1515), fixed in `.github/workflows/ci.yml`.
-
-      ⚠ 2026-09-25: the surface sentence named only the structs and the four library
-      exceptions. Fixing the test nodes and the benchmarks node moved three more entries
-      for the same constraint (CA1032, xUnit1042/1045, and CA1515 with the owner's
-      split of the benchmarks node). Found by the coder of the last step, who raised it
-      rather than editing the root.
-- [x] 2026-09-26 — Every GPU architecture (2026-09-26): the CUDA path runs on every architecture
-      ILGPU 1.5.3 declares from compute capability 7.5 up, and an engine that binds
-      CUDA has loaded a kernel carrying every wrapper of the math list. The list of
-      architectures comes from ILGPU by reflection. The evidence is the execution
-      node's criterion of the same date. Until it is ticked, 0.1.0 throws on every CUDA
-      run of every GPU older than Blackwell, and `CHANGELOG.md` says so under 0.2.0.
-
-      Evidence: merged as `f973870`, on the reference machine. The architecture fact
-      covers the 11 architectures SM_75 … SM_121 and the 5 entry points; both paths of
-      the post-link occur; the PTX is equal and the probe bits are identical. The
-      bind-time facts are green, and `tests/Execution.Tests` in Release is 134 of 134.
-      Every architecture is compiled for and then run on the RTX 5070 Ti; no GPU older
-      than Blackwell has run it. A one-time run on rented hardware (a T4 or an L4) is
-      planned by the owner and will be recorded here.
-- [x] 2026-09-30 — The second hidden-defect audit (2026-09-28, five read-only parts at `5a732f0`,
-      reports kept out of the tree with the first audit's) is closed before 0.2.0 is
-      tagged: every finding of every part is fixed or answered by an owner's decision,
-      recorded in the node it concerns. The owner decided on 2026-09-28:
-      - everything is fixed before the tag, minor findings and guard gaps included;
-      - the throat is the first maximum of the mass flux met from the chamber (the
-        performance node's `BOOT.md`);
-      - below 200 K the equilibrium node follows the reference's mixture window;
-      - the retention threshold has the reference's two stages.
-
-      Two findings were regressions of the first audit's own fixes (the reaction basis
-      of `Transport`, the loop rules of `Equilibrium`). Every fix is therefore accepted
-      only with the audit's own failing cases as facts, and a short third pass over the
-      changed code follows before the rehearsal.
-
-      The third pass (2026-09-28, two read-only parts at `c02e14d`, reports kept with
-      the others) found one more regression of a fix: the plateau-edge rule of
-      `Performance` turned Li/O/H bands that were `Ok` into `ThroatNotFound`. Its
-      findings are designed in the nodes they concern (`Performance`, `Equilibrium`,
-      `Execution`, `Problems`, the protocol tests and fixtures nodes, and the rule-set
-      line of the Diagnostics constraint above) and close before the tag like the rest.
-
-      Evidence, on the reference machine, at `9284418` and after: every node's criteria of
-      the audit and of the third pass ticked in the node they concern, the three that waited
-      for a run on GitHub (the fixtures node's binding step, its sample and its platform, and
-      the harness's field comparison) on CI run 36734450932 of `71e389c` (2026-09-30), green
-      on `windows-latest` and `ubuntu-latest`. The whole solution builds with 0 warnings and 0 errors, the protocol lint gives 0 and
-      0, the fast suite is green on Windows and under WSL2 with each platform's records
-      recorded, and the CUDA path is green on both (the criterion below). Three
-      classes of equilibrium failure are known and left to 0.2.1 by the owner's decision
-      (`CHANGELOG.md`, Known limitations).
-
-- [x] 2026-09-30 — The rocket kernel's compile is bounded (2026-09-30, the memory investigation of
-      2026-09-29): the attribute of the Compile size constraint, a guard in the execution
-      tests node, the engine releasing its kernels at `Dispose`, and no test allocating
-      what it only measures. Evidence per the execution node's criterion of that date;
-      the CUDA path is proved on the reference machine before the tag: GPU equals CPU
-      (the 100 000-case sweep, every architecture) and the throughput ratio not below
-      its approved floor. If the call the attribute leaves in the PTX breaks either, the
-      fallback is one call site, a new design session.
-
-      Evidence at `9284418`, the reference machine, Release: the guard, the release of
-      the kernels at dispose and the bound check are in the execution node; the attribute
-      is in the performance node. `dotnet test tests/Execution.Tests -c Release` on CUDA:
-      171 of 171 on Windows in 2 minutes 36 seconds (37 minutes before, mostly compile),
-      170 of 170 under WSL2 in 2 minutes 48 seconds, the 100 000-case sweep and every
-      architecture included, so GPU equals CPU with the call left in the PTX. The
-      throughput tripwire held: the ratio 24.24 against the record's 23.58 on Windows
-      and 38.01 against 27.48 under WSL2, the floor being 5. The attribute's cost was
-      measured by three runs of the tripwire before (`00dac9b`) and after: the CUDA
-      kernel 0.150 s before and 0.157 to 0.172 s after, about 10 % slower, the CPU
-      within the noise (4.65 to 4.88 s before, 4.77 to 5.01 s after). No throughput
-      record is re-approved: the run-to-run spread is larger than the effect. The
-      release job's filter is green on Windows in Release. The per-project peaks of the
-      fast suite went from 14 to over 27 GB to 0.75 to 1.6 GB, the whole solution 4.8 GB.
-
-- [x] 2026-10-01 — Host transfers are pinned (2026-10-01, the fourth hazard under the ILGPU
-      constraint): the `Chunks` node's criterion of the same date is ticked, its stress
-      among its evidence, before `v0.2.0` is tagged again. Ticked there at `93f29c9` and
-      after: CUDA on Windows and under WSL2, and 12 000 solves of the stress with no lost
-      download. The tag `v0.2.0` of
-      `05e2d39` is moved once, to the commit of this fix, after a green rehearsal, as
-      `v0.1.0` was: its release run failed before any package was published (the
-      owner's decision of 2026-10-01).
+→ [ACCEPTANCE.md](ACCEPTANCE.md)
 
 ## Taboos
 
@@ -783,28 +389,16 @@ batches on the GPU.
   `Performance`. Propellant conventions are knowledge about CEA and rockets, not
   about solving.
 
-  ⚠ 2026-09-12: it also names `Equilibrium`'s `ProblemKind` in its equilibrium
-  problem type, the kind the execution node's batch takes; the dependency list below
-  carries the link, which the first version of this list lacked.
+  ⚠ 2026-09-12: was `Problems` without a link to `Equilibrium`, now with it
+  (`ProblemKind`) → HISTORY.md#problems-problemkind
 - `src/Cli` is a thin adapter: JSON in, JSON or table out. Kept apart so the library
   never depends on console or serialization concerns.
 
-  ⚠ 2026-09-13: it also uses `Execution` (engine options, the accelerator description,
-  the unavailable exception, the CUDA flag, and engine creation of its own for the
-  `devices` listing, as its `API.md` records under Side effects; the last two added
-  here on 2026-09-14 by the architecture review) and reads the result structs of `Thermo`, `Performance`
-  and `Transport` and the problem kind of `Equilibrium`, field by field into the
-  documents; the dependency list below carries those links, which its first version
-  lacked.
+  ⚠ 2026-09-13: was `Cli` without links to `Execution` and the result structs, now with
+  them → HISTORY.md#cli-dependencies
 
-  ⚠ 2026-09-15 (distribution phase): "engine creation of its own for the `devices`
-  listing" stood after the public surface review (its finding F1, fixed in `9036c6a`)
-  made `Execution`'s `Engine` internal: `Cli` receives no grant (`## Delivery` below,
-  "Tree contracts") and now calls the new public `AcceleratorProbe.Describe` instead,
-  which binds and releases an engine of its own inside `Execution`. `Cli` still uses
-  `Execution` for `EngineOptions`, `AcceleratorInfo`, `AcceleratorUnavailableException`
-  and `AcceleratorProbe` itself, all on the package surface; `src/Cli/API.md` records
-  the change under Side effects.
+  ⚠ 2026-09-15: was `Cli` creating an engine for `devices`, now
+  `AcceleratorProbe.Describe` → HISTORY.md#cli-accelerator-probe
 
 Dependencies point downward only: `Cli` → {`Problems`, `Data`, `Execution`, `Thermo`,
 `Equilibrium`, `Performance`, `Transport`}; `Problems` → {`Data`,
@@ -831,12 +425,8 @@ running program over the package surface, the source of the guide's code, and
 command-line examples and proves the guide against them (`## Delivery`,
 Documentation). The node list with links is in `API.md`.
 
-  ⚠ 2026-09-16: stood "holds the guide to the samples, the approved outputs and the
-  schemas". Read literally it placed a copy of the schemas in the docs tests node,
-  while the Documentation rule below gives them to the command line
-  (`src/Cli/Schemas/`, no copy under `docs/`), and the guide itself lives at the root
-  and under `docs/`, not in a test node. The node holds the approved outputs and the
-  tests; it reads the schemas through `apthermo schema`.
+  ⚠ 2026-09-16: was the docs tests node holding "the schemas", now only approved outputs
+  and tests → HISTORY.md#docs-tests-schemas
 
 ## Delivery
 
@@ -913,32 +503,16 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     feed instead, so one source serves both the build and the check of the packed
     package. They use the package surface only, as the command line does.
 
-  ⚠ 2026-09-17: on 2026-09-16 a local model, working without review, rewrote this
-  bullet, the continuous-integration bullet and the packages criterion with no
-  correction note. After the rewrite:
-  - only *marked* C# blocks were checked;
-  - a single marker ran to the end of the file;
-  - the package-feed mode was dropped as "a post-0.1.0 concern".
-
-  The audit of 2026-09-17 found three consequences:
-  - two C# blocks went unchecked, the README's and the package README's;
-  - every guide block carried the samples' class boilerplate;
-  - nothing ever restored the `APThermo` package.
-
-  The decisions of 2026-09-15 are restored, with two refinements from the audit: a
-  snippet may be quoted on several pages, and the `using` lines are a snippet of their
-  own.
+  ⚠ 2026-09-17: was an unreviewed rewrite (marked blocks only, no package feed), now
+  every block checked, feed restored → HISTORY.md#documentation-restored
   - Every `apthermo` invocation shown in the guide takes its input documents from
     `samples/cli/`, and its shown output is approved. The exceptions are the declared
     synopses whose output depends on the machine (`apthermo devices`) or on the release
     (`apthermo --version`). The docs tests node lists them, and the rest of each such
     line must still parse as a valid invocation.
 
-    ⚠ 2026-09-17: stood without the exceptions. The final documentation review found
-    `apthermo devices`, `--help` and `--version` exempted only by the docs tests node,
-    a deviation the root did not declare (AGENTS.md §12). `devices` prints what the
-    machine has, and `--version` changes with every release, so neither has one
-    approved output; `--help` does, and is run.
+    ⚠ 2026-09-17: was every invocation approved, now `devices` and `--version` declared
+    synopses → HISTORY.md#declared-synopses
   - The docs tests node `tests/Docs.Tests` proves each of the following. Each check
     fails when the set it walks is empty, and each was shown red once:
     - every C# block equals its snippet;
@@ -950,13 +524,8 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
       the hosted ones included, the same document is compared field by field, its
       numbers within 1e-9 relative;
 
-      ⚠ 2026-09-29: stood without the platform rule, one approved file compared exactly
-      everywhere. It matched Linux and the hosted runners by chance: after the
-      equilibrium change of 2026-09-28 the README's rocket example differs under WSL in
-      its last digits (c* 2304.5776171446328 against 2304.577617144234, about 1e-13
-      relative). The owner chose exact records per platform on the reference machine
-      and a field tolerance everywhere, over exact records only (no check on hosted
-      runners) or a tolerance only;
+      ⚠ 2026-09-29: was one approved file compared exactly everywhere, now per-platform
+      records plus a 1e-9 field tolerance → HISTORY.md#docs-platform-rule
     - every relative link of `README.md`, `llms.txt`, `docs/` and the package READMEs
       resolves;
     - every document under `samples/cli/` validates against its schema;
@@ -996,18 +565,12 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     approved record field by field, numbers within 1e-9 relative, the Documentation rule
     of 2026-09-29 (a hosted runner's CPU is not the reference machine's).
 
-    ⚠ 2026-09-30: the step compared byte for byte. The first run on the hosted Linux
-    runner after the equilibrium change of 2026-09-28 failed on the last digits
-    (about 1e-13 relative), the same platform difference that moved the bit snapshots.
-    The comparison lives in the harness, once (`tests/Harness/BOOT.md`).
+    ⚠ 2026-09-30: was the example compared byte for byte, now field by field within 1e-9
+    relative → HISTORY.md#ci-field-comparison
   - There is no nightly run (2026-09-17).
 
-  ⚠ 2026-09-17: stood "A nightly run adds the long-running tests on the CPU
-  accelerator". Every long-running test of the tree is a CUDA test. Under
-  `APTHERMO_NO_CUDA=1` it only checks the refusal and returns, so a nightly run on
-  hosted runners added nothing (the CI audit of 2026-09-17, G1). The long-running CUDA
-  tests run at every release on the self-hosted runners. The user decided to drop the
-  nightly run rather than add a CPU-only long test.
+  ⚠ 2026-09-17: was a nightly run of the long-running tests, now none (they are CUDA
+  tests, run at each release) → HISTORY.md#no-nightly-run
 - **Release**, on a tag `v*`, in order:
   1. the hosted matrix;
   2. the CUDA tests, the long-running ones included, and the bit snapshots, on two
@@ -1024,16 +587,8 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   message names that run. A tag is not moved once pushed; a failure after the tag is
   fixed on a new commit, rehearsed, and released under the next patch version.
 
-  ⚠ 2026-09-19: the first release took four tag pushes (`6924aae`, `f603fd4`,
-  `fa4d626`, each moved), each failing on a path that had never run before it: a
-  context GitHub rejects in a job-level `env`, a script committed without the
-  executable bit, a bit snapshot on a hosted CPU, and a `pwsh` shell absent from both
-  self-hosted runners. The dispatch trigger that could have rehearsed all of them
-  existed since `c3f5b6b` and was never used; the workflows were verified by reading
-  and by a linter, which check syntax, not the host. A post-mortem (Fable 5.1, from the
-  runners' own `_diag` logs) found the common cause and set this rule. The tag
-  `v0.1.0` is moved one last time, after a green rehearsal, since nothing was ever
-  published under it.
+  ⚠ 2026-09-19: was a workflow verified by reading (four moved tags), now a green
+  dispatch rehearsal before any tag → HISTORY.md#rehearsal-first-release
 - **Self-hosted runners** never run a pull request's code. GPU jobs trigger only on tags
   and on manual dispatch, and the runners run under an account without administrator
   rights, started for a release rather than kept as services.
