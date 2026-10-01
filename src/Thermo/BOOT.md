@@ -40,39 +40,16 @@ can be uploaded to an accelerator and evaluated without allocation.
   interval's polynomial is used and `IsInRange` reports `false`. `IsInRange` is exact
   against the record's own bounds; for gaseous species it is advisory. The record's
   bounds are the lowest lower bound and the highest upper bound over its intervals,
-  taken bound by bound (2026-09-26). This is the reference's rule
-  (`minval(T_fit(:, 1))` and `maxval(T_fit(:, 2))`, cea 3.3.4 `equilibrium.f90`
-  1692–1693 and 1913–1915). Interval selection itself is unchanged. It is the
-  reference's selection too: for `Si(cr)` cea 3.3.4 evaluates the inverted first piece
-  at 298.15 K and the second interval at 299 K and 300 K, as `IntervalOf` does.
-  Measured 2026-09-26 through the package's `calc_property`. It agrees to 5.7e-6
-  relative in H°/RT, which is the package's older gas constant 8.31451.
+  taken bound by bound (2026-09-26), the reference's rule (`minval(T_fit(:, 1))` and
+  `maxval(T_fit(:, 2))`, cea 3.3.4). Interval selection itself is unchanged and is the
+  reference's too, as `IntervalOf` does (`Si(cr)` at 299 K, measured on the package;
+  H°/RT agrees to 5.7e-6, its older gas constant). → HISTORY.md#record-bounds-measured
 
-  ⚠ 2026-09-26: `RecordLow` was "the first interval's lower bound" and `RecordHigh` "the
-  last interval's upper bound", which assumes a record's intervals ascend. Eleven
-  condensed records of the committed file begin with an inverted interval (the Data
-  node's anomaly list).
-  - Nine run 300 → 298.15 before a regular interval from 298.15 K (`Ca(a)`, `CrN(cr)`,
-    `FeCL3(cr)`, `FeOCL(cr)`, `Fe3O4(cr)`, `Li(cr)`, `NH4F(cr)`, `Si(cr)`,
-    `Ti3O5(a)`). The old rule refused them between 298.15 and 300 K, where their data
-    hold and the reference admits them.
-  - A tp of Si in argon at 299 K returned `Ok` with Si3 vapour (253 kJ/kg) where cea
-    3.3.4 has `Si(cr)` (0 kJ/kg). The two agree to the last printed digit from 300 K on.
-  - For `Br2(cr)` (one interval, 300 → 265.9) and `U3O8(II)` (300 → 300, then
-    300 → 483) the two rules agree: `Br2(cr)` is in range nowhere, in the reference
-    too.
+  ⚠ 2026-09-26: was the record's bounds = first interval's low, last one's high, now
+  the lowest low and highest high of its intervals → HISTORY.md#record-bounds
 
-  Found by the hidden-defect audit of 2026-09-26 (Thermo and Equilibrium, finding 1),
-  confirmed against cea 3.3.4 the same day. The tests missed it for two reasons: the
-  fixture generator used the same first-bound rule, and no fixture species had an
-  inverted interval.
-
-  ⚠ 2026-09-13: stood "for condensed species `IsInRange` is the candidacy test other
-  nodes rely on". The melting-plateau analysis of this date moved the equilibrium
-  node's condensed candidacy to effective bounds — the crossing of adjacent records'
-  Gibbs curves, which that node derives from this table's bounds and fits, because
-  the committed fits cross up to 2.7e-3 K away from the printed bound and a pinned
-  two-phase pair is exempt from any range test. `IsInRange` itself is unchanged.
+  ⚠ 2026-09-13: was `IsInRange` the condensed species' candidacy test, now the
+  equilibrium node's effective bounds decide it → HISTORY.md#isinrange-candidacy
 - **One condensed species per contiguous fit.** The builder joins and cuts condensed
   product records so that every condensed table species is one contiguous,
   thermodynamically continuous piece: records sharing one name (the file splits some
@@ -110,14 +87,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   at least the largest interval count of a product record of the committed file after
   the join, which a test computes from the file (2026-09-27).
 
-  ⚠ 2026-09-27: stood "at most 5 intervals per species". `NaCN(II)` has six intervals
-  in one record, the only such product record of the committed file, so every table
-  whose elements include Na, C and N was refused. `apthermo equilibrium` on NaNO3(a) and
-  RP-1 at O/F 4, 7 MPa, hp, printed "species 'NaCN(II)' has 6 intervals, more than the
-  limit of 5" at `1dfc44e`, and the front door let the builder's `ArgumentException`
-  through. Found by the Thermo coder of 2026-09-27 while testing the latent-heat
-  threshold; the orchestrator's scan with the generator's reader confirmed that no
-  other record exceeds 5.
+  ⚠ 2026-09-27: was at most 5 intervals per species, now 6 (`NaCN(II)` has six, so
+  tables with Na, C and N were refused) → HISTORY.md#interval-limit-six
 - **`KernelMath`** (2026-09-27, the root's math constraint): `Min(double, double)` and
   `Max(double, double)` for every numerical node. They return what `System.Math.Min`
   and `System.Math.Max` return for every pair whose `System.Math` result is not a NaN,
@@ -134,46 +105,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   A pair with a NaN operand gives the first NaN operand, exactly its bits: this is
   `KernelMath`'s own rule, the one both accelerators share, and no ordered comparison
   inside them ever sees a NaN, whichever side ILGPU moves a constant to (the root's third
-  ILGPU defect).
+  ILGPU defect). The names `double.IsNaN` and `double.IsNegative` are allowed inside
+  `KernelMath`, and nowhere else in the numerical nodes, if ILGPU compiles them without
+  libdevice.
+  ⚠ 2026-09-30: was KernelMath returns what `Math.Min`/`Max` return for every pair,
+  now the NaN payload is its own rule → HISTORY.md#kernelmath-payload
 
-  ⚠ 2026-09-30: stood "This returns what .NET 10's managed `Math.Min` and `Math.Max`
-  return for every pair, and for two NaNs the first operand exactly" (and, before it,
-  "returns what `System.Math.Min` and `System.Math.Max` return for every pair of doubles,
-  NaN … included"). That holds for the managed bodies a Debug build runs. RyuJIT expands
-  both as hardware intrinsics in optimized code, and for two NaNs of different payloads
-  the expansion returns the other one: `System.Math` gives no payload guarantee. Found
-  by the second hosted Windows Release run after the second audit, reproduced on the
-  reference machine in Release; the criterion of 2026-09-30 below carries the evidence. The names
-  `double.IsNaN` and `double.IsNegative` are allowed inside `KernelMath`, and nowhere
-  else in the numerical nodes, if ILGPU compiles them without libdevice.
-
-  ⚠ 2026-09-28: stood "following the logic of .NET's own implementation … So both
-  accelerators run the same instructions". .NET's form tests only the first operand
-  for NaN and lets the ordered comparison `val1 < val2` decide a NaN second operand.
-  ILGPU 1.5.3 moves a constant left operand of a float comparison to the right and
-  inverts its NaN ordering while doing so (`IR/Construction/Compare.cs:67-85` and
-  `UpdateFlags` in `IR/Values/Compare.cs:128-140`: the toggle that is right for an
-  inversion is applied to a swap), so once inlining makes `val1` a constant,
-  `1.0 < v` compiles to `setp.gtu.f64` and `Min(1.0, NaN)` is 1.0 on CUDA and NaN on
-  the CPU. Run on the reference device: 18 mismatches over 12 outputs and 10 inputs,
-  all at the three NaN inputs. `Max` was safe in either order. The one production call
-  of that shape, `DampedStep`'s `Min(lambda, …)` with `lambda` = 1.0, cannot receive a
-  NaN (`largest > 0.0` guards it), so no result moved. The probe called only
-  `Min(v, 1.0)` and `Max(v, 1.0)`, variable first, and the host facts run where nothing
-  is swapped. Found by the second hidden-defect audit of 2026-09-28, independently by
-  its Execution part (finding F1, on the device and in ILGPU's source) and its guards
-  part (finding F2, by an offline PTX compile).
+  ⚠ 2026-09-28: was NaN tested on the first operand only, as .NET does, now both
+  operands before any ordered comparison → HISTORY.md#kernelmath-nan-first
 - The join-and-cut threshold is `SpeciesFunctions.LatentHeatThreshold` = 5e-3 on
   `|ΔH°/RT|` at a shared bound (2026-09-27). It is the one constant separating a real
   latent heat from fit noise, and it lives here because the equilibrium node's pair
-  rule tests the same quantity against the same constant. The committed file, scanned
-  2026-09-27 over every shared bound of the condensed product records, inside a record
-  and between two records of one formula:
-  - the largest fit noise is 2.2e-3, `NaCN(II)` → `NaCN(III)` at 288.5 K, a lambda
-    transition, which has no latent heat; inside a record the largest is 1.34e-3,
-    `NaCN(III)` at 293.15 K;
-  - the smallest real transition is 1.34e-2, `BeO(a)` → `BeO(b)` at 2373 K;
-  - nothing lies between the two, and 5e-3 sits at their geometric middle.
+  rule tests the same quantity against the same constant. The committed file's scan
+  puts the largest fit noise at 2.2e-3 (`NaCN(II)` → `NaCN(III)` at 288.5 K, a lambda
+  transition) and the smallest real transition at 1.34e-2 (`BeO(a)` → `BeO(b)` at
+  2373 K); 5e-3 sits at their geometric middle. → HISTORY.md#latent-heat-scan
 
   On the committed file the cut fires twice:
   - `ALN(L)`, whose two intervals differ by 68 kJ/mol at 2700 K;
@@ -185,17 +131,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`), whose upper records were unreachable before (the
   database index returns the first record per name).
 
-  ⚠ 2026-09-27: stood "= 1e-3 … the smallest real transition of the committed file is
-  BeO a/b at 1.34e-2, the largest interval-split artifact 3.9e-4 (`Cr(cr)`) … On the
-  committed file the cut fires exactly once — `ALN(L)` … the only such jump among the
-  203 multi-interval condensed product records". The scan of 2026-09-13 missed `NaCN`
-  and did not count the bound a join creates. With 1e-3 the cut also fired at
-  `NaCN(II)` 287.7 K and `NaCN(III)` 293.15 K, splitting each into pieces with a
-  phantom latent heat of about 3 J/mol, and the pair rule pinned `NaCN(II)`/`NaCN(III)`
-  at 288.5 K as a melting plateau. The reference treats each record as one species.
-  The `SnS(cr)` cut is real and stays. Found by the Equilibrium coder of 2026-09-26,
-  whose many-phase fixture split `SnS(cr)` and `NaCN(III)`; the orchestrator's scan
-  confirmed it with the generator's own reader.
+  ⚠ 2026-09-27: was threshold 1e-3, the cut firing once (`ALN(L)`), now 5e-3 and
+  twice (`NaCN` no longer split) → HISTORY.md#latent-heat-threshold
 - A cut piece is named `NAME[TLow-THigh]` over the piece's range in kelvin
   (`ALN(L)[1800-2700]`, `ALN(L)[2700-6000]`; square brackets occur in no database
   name); the pieces stand adjacent, ascending, in the place of their record in the
@@ -210,12 +147,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   species functions on the host goes through the CPU accelerator's buffers, whose views
   host code may index.
 
-  ⚠ 2026-09-12: stood "on the host, the same layout is exposed as arrays so that tests
-  and the builder need no accelerator", with a `HostView` over the arrays in `API.md`.
-  ILGPU 1.5.3 converts a managed array into a view only inside kernels
-  (`ArrayViewExtensions.AsArrayView`: "supported in kernels only"); outside a kernel a
-  view needs a memory buffer of an accelerator. The builder still needs none; the
-  tests create the CPU accelerator to evaluate. Found when the view was implemented.
+  ⚠ 2026-09-12: was a `HostView` over the host arrays, now views only over accelerator
+  buffers (ILGPU 1.5.3 views arrays in kernels only) → HISTORY.md#hostview
 
 ## Structure
 
@@ -234,33 +167,20 @@ table is built into are bit for bit those of `8e36a27`: the tests node's bit sna
 | `TablePiece` | one table species in the making: the name, the record that provided its first interval, its intervals (today's private entry record, promoted so that the stages can pass it) | internal |
 | `SpeciesFunctions` | code unchanged, reading the layout through `TableLayout`; gains `RecordLow` and `RecordHigh` (below) | internal (2026-09-15, distribution phase) |
 
-⚠ 2026-09-15 (distribution phase): the Visibility column read "public" for `SpeciesTable`
-and `SpeciesFunctions`. The API review of that day (fixed in `e284939`) found
-no consumer scenario for either: every use is a neighbour numerical node composing the
-kernel layer, or this node's own tests. Both, with `PhysicalConstants`,
-`SpeciesTableArrays`, `SpeciesTableBuffers`, `SpeciesTableView` and `TableLimits`, became
-`internal`, with `InternalsVisibleTo` grants to the nodes that use them
-(`APThermo.Thermo.csproj`; `API.md`'s tree-contract sections list them). `MixtureState`
-and `CaseStatus` stay public: a consumer reads them from the result records of `Problems`.
+⚠ 2026-09-15: was Visibility public for `SpeciesTable` and `SpeciesFunctions`, now
+internal, with other types (`API.md` lists them) → HISTORY.md#visibility-internal
 
 Decisions taken with the reviews of 2026-09-14:
 
-- **The table answers the range questions.** Two neighbours re-derived this node's
-  interval layout: the front door found the piece of a cut record covering a
-  temperature, and the equilibrium solver read a record's first lower and last upper
-  bound from the arrays (the architecture review's F-AR-01). The contract gains
+- **The table answers the range questions.** The contract carries
   `SpeciesTable.PieceOf(string species, double temperature)` (host side, the piece by
   the same rule as `IntervalOf`) and `SpeciesFunctions.RecordLow(in view, int)` and
-  `RecordHigh(in view, int)` (kernel-compatible, the bounds `IsInRange` compares);
-  they evaluate the identical expressions, so nothing moves. The neighbours switch to
-  them in their own tasks. Recorded in `API.md` with its ⚠; the snapshot moves in the
-  same commit.
-- **The duplicate-name records come from `Data`.** The builder no longer rebuilds a
-  name → records index over the whole product list on every call: `Data` publishes
-  the records of a name in file order (`SpeciesDatabase.Records`, its own decision of
-  the same day), and the sentence under Constraints about the database index
-  returning the first record per name now points at the neighbour's contract
-  instead of restating it.
+  `RecordHigh(in view, int)` (the bounds `IsInRange` compares), so that no neighbour
+  re-derives the layout (F-AR-01); `API.md` records them.
+  → HISTORY.md#decision-range-questions
+- **The duplicate-name records come from `Data`.** The builder takes the records of a
+  name, in file order, from `SpeciesDatabase.Records` of `Data` and rebuilds no index.
+  → HISTORY.md#decision-duplicate-records
 - **The constructors of the view and the arrays are the declared exception** to the
   parameter rule: `SpeciesTableView` (11 parameters) and `SpeciesTableArrays` (8) are
   the layout itself, the aggregation mechanism the root names for kernels; eight of
@@ -268,37 +188,20 @@ Decisions taken with the reviews of 2026-09-14:
   structs would change the contract of four kernel nodes for no numerical gain. Every
   creation of the two names its arguments, as the root requires of a mirrored shape
   (added 2026-09-14: a scan of the construction sites found them positional).
-- **The join compares the formation enthalpy too**, if the committed file lets it:
-  the same-name product groups are scanned first; where none disagrees, a disagreeing
-  pair is refused like a differing formula or molar mass; where one does, the rule is
-  recorded here instead and the first record's value stands (the review's F-TD-09).
-
-  Confirmed 2026-09-14 by a scan of `data/thermo.inp` (2 030 product records; the
-  scan's own count matches `ThermoLoadTests.EveryRecordOfTheFileIsParsed`):
-  ten names repeat in the PRODUCTS section — `Co(b)`, `Cr(cr)`, `Cr2O3(I)`, `Fe(a)`,
-  `Fe2O3(cr)`, `Fe3O4(cr)`, `K2S(cr)`, `Na2S(cr)`, `Ni(cr)`, `SnS(cr)`, the same ten
-  the concatenation list above already named — and none disagrees in
-  `FormationEnthalpy`. The join therefore refuses a disagreeing pair exactly as it
-  refuses a differing formula or molar mass (`SpeciesResolution.Joins`); the tests
-  node exercises the refusal on a synthetic pair, since no real one disagrees
+- **The join compares the formation enthalpy too.** A same-name pair that disagrees in
+  `FormationEnthalpy` is refused by name like a differing formula or molar mass
+  (`SpeciesResolution.Joins`): the scan of `data/thermo.inp` (2 030 product records,
+  ten repeated names) found none that disagrees, so the tests node exercises the
+  refusal on a synthetic pair
   (`JoinAndCutTests.RecordsDisagreeingInFormationEnthalpyAreRefusedByName`).
-- **`MixtureMolarMass`'s summary in the code** says what `API.md` has said since
-  2026-09-12: one kilogram over the moles of all species, condensed included (the
-  review's F-TD-04: the rename of that day changed the field and the document and
-  left the comment).
-- **`SpeciesTableBuffers` stays here**; the "out of scope" line of `API.md` that
-  contradicted it goes (the review's F-TD-11).
-- **`CondensedAssembly` is renamed `SpeciesResolution`, `Touches` renamed `Joins`**
-  (2026-09-15, the clean-code repair's R-Thermo-1). The type's own summary and its
-  Structure row above described it as only "the join … and the cut", but the code has
-  always resolved every requested name through it, gaseous or condensed: the gas
-  branch, the reactant-record fallback for a name no product carries, and the
-  stoichiometry check that refuses a foreign element sit beside the join-and-cut,
-  named by neither. The name now matches the scope instead of the scope being cut
-  back to the name: Ce and every bit are unchanged (`SpeciesResolution` measures Ce 8,
-  as `CondensedAssembly` did), only the identifiers and the two descriptions move.
-  `SpeciesTable.cs`'s two references and `Thermo.Tests`' one doc-comment mention
-  renamed with it.
+  → HISTORY.md#decision-join-enthalpy
+- **`MixtureMolarMass`** is one kilogram over the moles of all species, condensed
+  included, in the code's summary as in `API.md` (F-TD-04). `SpeciesTableBuffers` stays
+  here (F-TD-11). → HISTORY.md#decision-review-fixes
+- **`SpeciesResolution`** (formerly `CondensedAssembly`; `Joins`, formerly `Touches`,
+  2026-09-15) resolves every requested name, gaseous or condensed, not only the join
+  and the cut: the name follows the scope. Ce (8) and every bit are unchanged.
+  → HISTORY.md#decision-species-resolution
 - **Size.** No method over 60 lines, no control flow nested deeper than 3, no more
   than 6 parameters (the two constructors aside).
 
@@ -331,13 +234,8 @@ of 14: no efferent coupling row is needed.
       2e-3 for `CO2` (worst 1.2e-3, Cp° at 3000 K), 2.5e-2 for `H2O` (worst 1.9e-2, Cp°
       at 3000 K): `JanafTests.FitsReproduceTheJANAFRowsWithinTheRecordedTolerance`.
 
-      ⚠ 2026-09-12: stood "within the fit accuracy stated by the NASA report: 0.1 %".
-      That figure is the fit's accuracy against its own source data, and the sources of
-      these four records are Gurvich et al. (`H2`, `N2`, `CO2`) and Woolley 1987 (`H2O`),
-      not JANAF; the compilations differ from JANAF by up to 0.12 % (`CO2` at 3000 K)
-      and 1.9 % (`H2O` at 3000 K, where Woolley's partition function supersedes the 1985
-      table). The JANAF comparison is a plausibility check of formulas and units; the
-      correctness check is the 1e-12 comparison above. Found when the test first ran.
+      ⚠ 2026-09-12: was the tolerance 0.1 % (the fit's own accuracy), now per species
+      with the reason (sources are not JANAF) → HISTORY.md#crit-janaf-tolerance
 - [x] 2026-09-12 — A bound shared by two intervals belongs to the lower one (1000 K,
       6000 K and every joint of `H2O`, `CO2`, `AL2O3(a)`, `W(cr)`), and below the first
       bound or above the last `IsInRange` is `false` while the value is the nearest
@@ -369,15 +267,12 @@ of 14: no efferent coupling row is needed.
       the four reference propellants' tables builds and compares as before (the
       Equilibrium, Performance and Problems fixture suites of the same day).
 - [x] 2026-09-14 — The decomposition of `## Structure`: every type of the node within
-      the root's code-shape constraint (measured by hand pending the protocol tests
-      node's `ShapeTests`, root `BOOT.md`; the largest new file, `SpeciesTable.cs`,
-      179 lines; the two constructors declared above the only exceptions), the public
-      surface grown only by `PieceOf`, `RecordLow` and `RecordHigh` (with `Records` of
-      the `Data` node, the snapshot moves by exactly four lines over the whole task),
-      `PublicSurface.approved.txt` moved in the same commit, and every table bit for
-      bit as at `8e36a27`: the tests node's bit snapshot over every fixture case's
-      table unchanged (`dotnet test tests/Thermo.Tests`, 378 tests), `KernelEqualityTests`
-      and the fixture tests green, the fast suite green.
+      the root's code-shape constraint (`ShapeTests`; the two constructors declared
+      above the only exceptions), the public surface grown only by `PieceOf`,
+      `RecordLow` and `RecordHigh`, `PublicSurface.approved.txt` moved in the same
+      commit, and every table bit for bit as at `8e36a27`: the tests node's bit snapshot
+      unchanged (`dotnet test tests/Thermo.Tests`, 378 tests), `KernelEqualityTests` and
+      the fixture tests green. → HISTORY.md#crit-decomposition
 - [x] 2026-09-14 — `PieceOf`, `RecordLow` and `RecordHigh` agree with `IntervalOf` and
       `IsInRange` over every fixture species: `RangeQuestionTests`
       (`PieceOfNamesThePieceTheIntervalRuleChooses` over `ALN(L)`, the one cut
@@ -388,297 +283,126 @@ of 14: no efferent coupling row is needed.
       species. The join refuses a same-name pair that disagrees in formation enthalpy,
       the rule the scan above decided: `JoinAndCutTests.RecordsDisagreeingInFormationEnthalpyAreRefusedByName`.
 - [x] 2026-09-14 — Every creation of `SpeciesTableView` and `SpeciesTableArrays` in the
-      tree names its arguments (the decision on the constructors of the view and the
-      arrays), the protocol tests node's named-construction fact green once it exists;
-      the tests node's bit snapshot unchanged. A scan of every `new T(…)` and
-      `T x = new(…)` of the two names in `src/` and `tests/` (a script outside the tree)
-      finds four sites, in `SpeciesTableView`, `TableLayout`, `Equilibrium.Tests`'
-      `InvalidInputTests` and `Transport.Tests`' `StatusTests`, every argument named;
-      the builds of `Thermo`, `Equilibrium.Tests` and `Transport.Tests` after the change
-      carry the IL of the builds before it, method by method, so no argument binds to
-      another parameter; `Thermo.Tests` (378), `Equilibrium.Tests` (463) and
-      `Transport.Tests` (157) green; `tests/Thermo.Tests/Bits.approved.txt` unchanged
-      (blob `8bd5068e` before and after). The fact,
-      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, is designed
-      and not yet written; it takes over as the evidence when it is.
+      tree names its arguments (the decision on the constructors): a scan of every
+      `new T(…)` and `T x = new(…)` in `src/` and `tests/` found four sites, every
+      argument named, the IL of the builds before and after identical, `Thermo.Tests`
+      (378), `Equilibrium.Tests` (463) and `Transport.Tests` (157) green and
+      `tests/Thermo.Tests/Bits.approved.txt` unchanged. The fact
+      `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`, designed that day,
+      takes over as the evidence. → HISTORY.md#crit-named-arguments
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
 - [x] 2026-09-28 — The record bounds are the reference's (the invariant "Interval
-      selection is defined" and its ⚠ of this date). Three of the four planned proofs
-      landed on 2026-09-26 already: the equilibrium fixtures below 300 K (Si and Li in
-      argon at 298.15, 299, 299.99, 300 and 301 K, covered by
-      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`'s directory
-      listing), `RangeQuestionTests.RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds`
-      (over every condensed record built alone, from a database listing, red against
-      the old first-interval/last-interval rule on the nine anomaly records), and no
-      bit snapshot moved.
+      selection is defined"): the equilibrium fixtures below 300 K (Si and Li in argon
+      at 298.15 to 301 K, covered by
+      `EquilibriumTests.AssignedTemperatureCasesReproduceTheReference`) and
+      `RangeQuestionTests.RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds` (every
+      condensed record built alone, red against the old first/last rule on the nine
+      anomaly records). Evidence: `dotnet test tests/Thermo.Tests`, 1183/1183; no
+      `Bits*.approved.txt` differs from `main`. → HISTORY.md#crit-record-bounds
 
-      ⚠ 2026-09-28: the remaining bullet asked for a generator change — a 299 K sample
-      for the eleven anomaly records — so that the `thermo` fixture comparison itself
-      exercised a point strictly between 298.15 and 300 K. The second hidden-defect
-      audit's O5 found this bullet still open with the code, the fixtures and the
-      generated-list fact it names already in place (the guards report of the same
-      date). Reformulated instead of implemented (`AGENTS.md` §6): a fixture-based
-      comparison at 299 K would evaluate `Cp°/R`, `H°/RT`, `S°/R`, `G°/RT` of an
-      independent Python re-implementation against this node's functions and check they
-      agree to 1e-12 — a proof that the *polynomials* agree, which `FunctionFixtureTests`
-      already gives at every fixture temperature and needs no new point to hold at 299 K
-      too. What the open bullet was really after — that `RecordLow`/`RecordHigh` pick
-      the *reference's* bounds, not the old rule's, for exactly these eleven records —
-      is proven directly and exactly by `RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds`,
-      which reads the database's own bounds and needs no evaluation at any particular
-      temperature to fail on the old rule: it already does, on all nine records the old
-      rule got wrong. A 299 K fixture point would duplicate that proof one level removed
-      (through `IsInRange`, at one more temperature) rather than add to it. The Thermo
-      coder of 2026-09-28 made this call rather than touching the shared `tp`/`thermo`
-      generator scripts outside its assignment.
-
-      Evidence: `dotnet test tests/Thermo.Tests`, 1183/1183, `RangeQuestionTests` and
-      `AssignedTemperatureCasesReproduceTheReference`'s below-300 K cases green; no
-      `Bits*.approved.txt` differs from `main`.
+      ⚠ 2026-09-28: was a fourth proof, a 299 K fixture sample from a generator change,
+      now dropped as duplicating the direct fact above → HISTORY.md#crit-record-bounds
 
 - [x] 2026-09-27 — The threshold separates the committed file's transitions (the ⚠ of
       this date under Constraints).
       - `LatentHeatThresholdTests.NoSharedBoundFallsWithinAFactorTwoOfTheThreshold`
-        scans every shared bound of the condensed product records (inside a record
-        after the join, and between two records of one formula that concatenate),
-        computing `|ΔH°/RT|` at each with `SpeciesFunctions.HOverRT(TemperatureInterval,
-        double)`, the node's own function; it fails on an empty scan and asserts none
-        falls within a factor 2 of `LatentHeatThreshold` on either side. Shown red at
-        1e-3: `NaCN(II)` at 287.7 K (1.233e-3) and `NaCN(III)` at 290.4 K (8.470e-4) and
-        293.15 K (1.336e-3) all land inside the old threshold's factor-2 band
-        (`[0.5e-3, 2e-3]`); at 5e-3 the same scan is green (band `[2.5e-3, 1e-2]`).
+        scans every shared bound of the condensed product records with
+        `SpeciesFunctions.HOverRT(TemperatureInterval, double)`, fails on an empty scan,
+        and was red at 1e-3 (`NaCN(II)` at 287.7 K, `NaCN(III)` at 290.4 and 293.15 K).
       - `LatentHeatThresholdTests.TheCutFiresOnlyOnAlnAndSnS` generates the list of
-        names whose scanned bounds reach the threshold and asserts it equals exactly
-        `["ALN(L)", "SnS(cr)"]`; at 1e-3 the generated list also held `NaCN(II)` and
-        `NaCN(III)`.
-      - `LatentHeatThresholdTests.NaCnTwoAndNaCnThreeEachStayOnePiece` confirms both
-        names are scanned (each has at least one internal bound) and that neither
-        reaches the threshold, so each stays one piece; neither can be built alone
-        through `SpeciesTable.Build` to check this the way `RangeQuestionTests` checks
-        other cut names, since `NaCN(II)` alone has 6 intervals, over
-        `TableLimits.MaxIntervalsPerSpecies`, independent of any threshold (confirmed
-        by a scratch probe: `SpeciesTable.Build` throws "has 6 intervals, more than the
-        limit of 5" regardless of `LatentHeatThreshold`), and no fixture holds either
-        name.
-      - Bits: no `Bits.approved.txt` or `Bits.linux.approved.txt` of any node moved
-        (`git status` on all six files before and after, unchanged); the full
-        `Thermo.Tests`, `Equilibrium.Tests`, `Performance.Tests` and `Problems.Tests`
-        suites stay green (1177, 697, 700, 1186 respectively), confirming the
-        Equilibrium pair rule (`CondensedSet.Pinnable`, the same constant) moves
-        nothing either, since no committed fixture holds `NaCN`.
+        names whose bounds reach the threshold and asserts `["ALN(L)", "SnS(cr)"]`.
+      - `LatentHeatThresholdTests.NaCnTwoAndNaCnThreeEachStayOnePiece`: both names are
+        scanned and neither reaches the threshold.
+      - No `Bits*.approved.txt` of any node moved; `Thermo.Tests`, `Equilibrium.Tests`,
+        `Performance.Tests` and `Problems.Tests` green.
+      Evidence: `dotnet test tests/Thermo.Tests`, 1177/1177; the three facts red once
+      against `9c33398` (threshold 1e-3), green after the raise to 5e-3.
+      → HISTORY.md#crit-latent-threshold
 
-      Evidence: `dotnet test tests/Thermo.Tests`, 1177/1177 (three new facts); the
-      three facts shown red once against the code of `9c33398` (threshold 1e-3) and
-      green after `LatentHeatThreshold` was raised to 5e-3.
-
-      ⚠ 2026-09-28: the third bullet's two reasons stopped holding the same day. The
-      interval limit became 6, so `NaCN(II)` builds alone, and the sodium fixture lists
-      both names. All three facts read the constant, so writing `>= 1.0e-3` in the
-      builder in place of it left them green (the guards audit of 2026-09-28, finding
-      F6). The criterion "The latent-heat cut is guarded where it happens" below closes
-      this.
+      ⚠ 2026-09-28: was the third bullet's reasons (limit 5, no fixture) held, now
+      the limit is 6 → HISTORY.md#crit-latent-threshold-reasons
 
 - [x] 2026-09-27 — The interval limit holds the committed file (Constraints). Evidence:
-      - `IntervalLimitTests.NoProductNameExceedsTheIntervalLimitAfterTheJoin` (`tests/Thermo.Tests`)
-        computes, from `Cpu.Database.Products`, the interval count of every product name
-        joined the way `SpeciesResolution` joins it (one name's records concatenated,
-        products only), asserts the largest is at most `TableLimits.MaxIntervalsPerSpecies`,
-        fails on an empty scan, and was shown red at the limit of 5 (`NaCN(II) has 6
-        intervals after the join, more than the limit of 5`); green at 6.
-        `IntervalLimitTests.NaCnTwoIsTheOnlyRecordAtTheLimit` confirms `NaCN(II)` is the
-        only name the scan finds at the limit, from the generated list. `dotnet test
-        tests/Thermo.Tests`, 1180/1180 (`Category!=LongRunning`; three new facts).
-      - NaNO3(a) with RP-1 builds a table and solves hp `Ok`: the fixtures node's new
-        case (`cases/hp/nano3-rp1_of4_pc7MPa.json`, `propellants.py`'s `sodium_hp`,
-        `regenerate.py --check` exits 0 over 328 fixtures) is covered automatically by
-        `Equilibrium.Tests.AssignedEnthalpyCasesReproduceTheReference`'s directory
-        listing, green (`dotnet test tests/Equilibrium.Tests`, 702/702), which builds
-        the table (`NaCN(II)` among the candidate species), solves hp and compares
-        every field with the fixture within the tolerance table.
-      - The front-door leg (`Problems.Tests`) is green too, once the fixtures node's
-        `role` field replaced the front-door's own guess: `PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
-        `PropellantTests.ARatioSplitReproducesTheReferenceMassFractionsWithinItsSinglePrecision`,
-        `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference` and
-        `BitSnapshotTests.EveryFixtureGivesTheRecordedBits` all pass on the new case
-        (`dotnet test tests/Problems.Tests --filter "Category!=LongRunning"`, 1191/1191;
-        the fix and its own evidence are recorded in the fixtures node's and
-        `Problems.Tests`' own `BOOT.md`, not repeated here per `AGENTS.md` §8's rule
-        against retelling a foreign node's claim).
-      - No bit snapshot moves apart from the new fixture's key in the three nodes that
-        enumerate hp fixtures: `tests/Equilibrium.Tests/Bits.approved.txt`,
-        `tests/Problems.Tests/Bits.approved.txt` and `tests/Thermo.Tests/Bits.approved.txt`
-        each gained exactly one line (`hp/nano3-rp1_of4_pc7MPa.json`, `git diff --stat`
-        on each: 1 insertion, 0 deletions). The Linux keys are recorded by the
-        orchestrator under WSL.
+      - `IntervalLimitTests.NoProductNameExceedsTheIntervalLimitAfterTheJoin` computes
+        the joined interval count of every product name, asserts the largest is at most
+        `TableLimits.MaxIntervalsPerSpecies`, fails on an empty scan, and was red at the
+        limit of 5; `IntervalLimitTests.NaCnTwoIsTheOnlyRecordAtTheLimit` names the only
+        name at it; `dotnet test tests/Thermo.Tests`, 1180/1180.
+      - NaNO3(a) with RP-1 builds a table and solves hp `Ok`: the fixtures node's case
+        `cases/hp/nano3-rp1_of4_pc7MPa.json` through
+        `Equilibrium.Tests.AssignedEnthalpyCasesReproduceTheReference`, 702/702.
+      - The front-door leg is green (`Problems.Tests`, 1191/1191:
+        `PropellantTests.CandidateSpeciesEqualTheReferenceProductList`,
+        `EquilibriumTests.AssignedEnthalpyCasesReproduceTheReference`,
+        `BitSnapshotTests.EveryFixtureGivesTheRecordedBits`); that node's `BOOT.md`
+        holds it.
+      - Only the new fixture's key moved, one line in each of the `Bits.approved.txt` of
+        `Thermo.Tests`, `Equilibrium.Tests` and `Problems.Tests`.
+      → HISTORY.md#crit-interval-limit
 
-        Corrected 2026-09-27 by the coder the same day: this item first said the thermo
-        tests node's snapshot was unchanged, but its `BitSnapshotTests` enumerate every
-        fixture case, hp included, and its new key was missing.
-
-      ⚠ 2026-09-27: this criterion first stood partial, blocked on `Problems.Tests`'
-      `FixtureCases.Oxidizers`, a hand-typed set of oxidizer reactant names that did
-      not carry `NaNO3(a)`, found while adding the sodium case above and escalated to
-      the orchestrator rather than patched by name (`AGENTS.md` §11: the fix touched a
-      neighbour test node of neither `Thermo` nor `Fixtures`). The orchestrator's design
-      gave every ratio case's reactant a recorded `role` in the fixture document itself,
-      written by the generator from the oxidizer and fuel vectors it already builds,
-      removing the guess rather than growing its name list (the fixtures node's `BOOT.md`
-      and `Problems.Tests`' `BOOT.md` carry the design and the evidence).
+      ⚠ 2026-09-27: was partial, blocked on a hand-typed oxidizer set, now closed by
+      the fixtures' `role` field → HISTORY.md#crit-interval-limit-partial
 - [x] 2026-09-27 — `KernelMath` (Constraints).
-      - `Thermo.Tests.KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
-        compares `KernelMath.Min` and `Max` with `System.Math.Min`/`Max` bit for bit,
-        via the harness's `Bits.Same`, over every ordered pair of a domain holding ±0,
-        ±∞, NaN, the smallest and largest subnormal, the smallest normal, eight
-        ordinary values and a fixed 32-value sample spanning 30 decades on both signs
-        (104² = 10 816 ordered pairs, both functions, fails on an empty domain). Shown
-        red once: with the NaN branch of `KernelMath.Min` removed, the fact failed on
-        every pair with one NaN operand — "Min(NaN, 2.2250738585072014E-308):
-        Math.Min NaN, KernelMath.Min 2.2250738585072014E-308" among them — reverted,
-        green again.
-      - The execution node's probe runs `KernelMath.Min`/`Max` in place of
-        `Math.Min`/`Max` (`Kernels.Probe`) and they equal the CPU accelerator on every
-        input, NaN included: the execution tests node's criterion of the same date,
-        `ProbeKernelTests.TheSpecialInputsAreRecordedAgainstCuda`, 0 ULP on every one
-        of the 17 special inputs × 12 functions, `Min` and `Max` included.
-      - The cost, measured on the reference machine (RTX 5070 Ti), the median of three
-        `dotnet test tests/Execution.Tests -c Release --filter
-        "FullyQualifiedName~ThroughputIsRecordedAndNotBelowTheApprovedRatio"` runs
-        before the call-site change (`Math.Min`/`Max`, at `b3b9d5b`) and three after
-        (`KernelMath.Min`/`Max`): CUDA 0.192 s → 0.189 s (1.6 % faster, not slower),
-        CUDA kernel alone 0.118 s → 0.120 s, CPU accelerator 5.257 s → 4.409 s (the
-        machine's other load varied between runs, `nvidia-smi` showing a second
-        worktree's CUDA tests running concurrently during the noisiest sample,
-        12.561 s). No `Throughput.approved.txt` or `Throughput.linux.approved.txt`
-        was re-approved; the CUDA time did not regress, so nothing went to the owner.
+      - `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
+        (`Thermo.Tests`) compared `KernelMath.Min` and `Max` with `System.Math` bit for
+        bit over every ordered pair of a domain of 104 values (±0, ±∞, NaN, the
+        subnormal bounds, 30 decades on both signs), failed on an empty domain and was
+        red once with the NaN branch of `Min` removed.
+      - The execution node's probe equals the CPU accelerator on every input, NaN
+        included: `ProbeKernelTests.TheSpecialInputsAreRecordedAgainstCuda`, 0 ULP.
+      - The cost: CUDA 0.192 s → 0.189 s on the throughput tripwire, nothing
+        re-approved.
+      Evidence: `dotnet test tests/Thermo.Tests`, 1178/1178; `dotnet test
+      tests/Execution.Tests -c Release`, 144/144 on CUDA; the fast suite, 4547/4547; the
+      protocol lint 0 and 0; no `Bits*.approved.txt` differs from `main`.
+      → HISTORY.md#crit-kernelmath
 
-      Evidence: `dotnet test tests/Thermo.Tests`, 1178/1178 (the new fact);
-      `dotnet test tests/Execution.Tests -c Release` (no filter), 144/144 on CUDA —
-      the 100 000-case sweep, the architecture fact over SM_75…SM_121, and the two
-      probe facts included; `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter
-      "Category!=LongRunning"`, 4547/4547, none skipped; the protocol lint 0 errors,
-      0 warnings; no `Bits*.approved.txt` differs from `main` (`git status --short`
-      names only the files this task touched, `Throughput*.approved.txt` excluded).
-
-      ⚠ 2026-09-28: "they equal the CPU accelerator on every input, NaN included" held
-      for the order the probe ran, a variable first and a constant second, and not for
-      `Min(constant, NaN)` (the ⚠ of that date under Constraints). The criterion below
-      carries the proof for both orders.
+      ⚠ 2026-09-28: was the probe equal on every input, now only variable first;
+      `Min(constant, NaN)` is proved below → HISTORY.md#crit-kernelmath-order
 - [x] 2026-09-28 — `KernelMath` tests both operands for NaN before any ordered
-      comparison (Constraints, 2026-09-28).
-      - `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair` stays
-        green with the new form, over the same domain (two NaNs of different payloads
-        added to it, so the first-operand payload rule is proven): `dotnet test
-        tests/Thermo.Tests`, 1183/1183.
-      - The execution node's probe gaining `KernelMath.Min(1.0, v)` and
-        `KernelMath.Max(1.0, v)` on CUDA is the execution tests node's own criterion of
-        the same date, not this one; this node's part is the form itself and its host
-        proof above.
-      - No `Bits*.approved.txt` moves: `git status --short tests/*/Bits*.approved.txt`
-        empty. No in-tree call passes a NaN to either function, and the reordered form
-        is algebraically the same function on every pair that reaches an ordered
-        comparison (only the order of the NaN tests moved), so nothing on the CPU could
-        move.
+      comparison (Constraints, 2026-09-28):
+      `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair` stays
+      green over the same domain with two NaNs of different payloads added (`dotnet
+      test tests/Thermo.Tests`, 1183/1183); the probe with `KernelMath.Min(1.0, v)` on
+      CUDA is the execution tests node's own criterion; no `Bits*.approved.txt` moves.
+      → HISTORY.md#crit-kernelmath-nan-first
 - [x] 2026-09-28 — The latent-heat cut is guarded where it happens, not at its constant
       (the second hidden-defect audit of 2026-09-28, guards finding F6).
-      - `LatentHeatThresholdTests.TheBuilderCutsExactlyTheNamesTheScanPredicts` asks the
-        builder directly: the names whose single-name table (`SpeciesTable.Build` over
-        that name alone) has more than one piece, built and counted one at a time, equal
-        the list the threshold scan generates. Shown red once with `>= 1.0e-3` written
-        in `SpeciesResolution.Cut` in place of the constant: the builder then also cuts
-        `NaCN(II)` and `NaCN(III)` while the scan (reading the unchanged constant) still
-        expects only `ALN(L)` and `SnS(cr)` — exactly the gap the guards audit found,
-        since every fact of 2026-09-27 reads the constant and stayed green under that
-        same mutation.
-      - `RangeQuestionTests.CondensedDatabaseRecordNames` no longer swallows an
-        `ArgumentException` or a name the builder cuts unexpectedly: every condensed
-        product name not in the threshold scan's own cut list is now required to build
-        alone as exactly one piece, or the theory's discovery throws naming the piece
-        count found. Shown red the same way (the mutation above turns `NaCN(II)` into
-        an unexpected two-piece name, and `RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds`,
-        which walks this list, fails with `'NaCN(II)' is not one of the scan's cut names
-        but built as 2 pieces`).
-      - `LatentHeatThresholdTests.NaCnTwoAndNaCnThreeEachStayOnePiece` is corrected: since
-        the interval limit rose to 6 (BOOT.md, Constraints, the ⚠ of 2026-09-27) both
-        names now build alone, and the sodium fixture's candidate list carries both (at
-        zero moles). The fact now builds each alone through `SpeciesTable.Build` and
-        asserts one piece, in addition to its existing scan-based checks.
-      - `IsInRange`'s summary now says what the code does since 2026-09-26: the lowest
-        lower and the highest upper bound of the species' intervals, taken bound by
-        bound (the audit's O5).
-      - The record-bounds criterion above is completed by a reformulation, with its own
-        ⚠ (`AGENTS.md` §6): its remaining bullet asked for a generator change that a more
-        direct, already-existing fact makes unnecessary.
-
-      Evidence: all three facts shown red together at `5a732f0` with `>= 1.0e-3` in
-      `SpeciesResolution.Cut` (`TheBuilderCutsExactlyTheNamesTheScanPredicts`,
-      `NaCnTwoAndNaCnThreeEachStayOnePiece`, and
-      `RecordLowAndRecordHighEqualTheDatabaseRecordsOwnBounds` through the corrected
-      `CondensedDatabaseRecordNames`), green again with the constant restored;
-      `dotnet test tests/Thermo.Tests`, 1183/1183; no `Bits*.approved.txt` differs from
-      `main`.
-- [x] 2026-09-30 — The `KernelMath` host fact does not take `System.Math`'s NaN payload for an oracle
-      (2026-09-30, the second CI run after the second audit, `windows-latest`, Release).
-      - ⚠ 2026-09-30: `KernelMathTests.MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`
-        (the criteria of 2026-09-27 and 2026-09-28 above) compares `KernelMath` with
-        `Math.Min` and `Math.Max` bit for bit, two NaNs of different payloads included, and
-        this node's text says `KernelMath` "returns what .NET 10 returns for every pair,
-        two NaNs included (the first operand's payload)". That holds for the managed body of
-        `Math.Min` and `Math.Max`, which is what a Debug build runs. In optimized code RyuJIT
-        expands both as hardware intrinsics, and for two NaNs of different payloads the
-        expansion returns the other one. Measured on the reference machine (Ryzen 7 7800X3D,
-        .NET SDK 10.0.112), the same fact: red in Release ("Min(NaN, NaN): Math.Min NaN,
-        KernelMath.Min NaN", both NaN, bits different), also with `DOTNET_TieredCompilation=0`,
-        `DOTNET_EnableAVX512F=0` and `DOTNET_EnableAVX10v1=0`; green in Debug and with
-        `DOTNET_EnableHWIntrinsic=0`. One hosted Windows run passed it and the next failed
-        it: the payload is not specified, and a hosted runner's CPU and JIT decide it.
-        The fast suite of a Release build never ran on this machine before 2026-09-30,
-        the reason no local run showed it.
-      - **The claim.** `KernelMath.Min` and `Max` equal `Math.Min` and `Math.Max` on every
-        pair whose `System.Math` result is not a NaN, bit for bit (±0 included), and return
-        a NaN whenever `System.Math` does. For two NaNs, `KernelMath`'s own rule holds, and
-        it is the one both accelerators share (the execution node's probe compares the two
-        bit for bit): a pair with a NaN operand gives the first NaN operand, exactly its
-        bits. The text above "returns what .NET 10 returns … two NaNs included" is
-        corrected to say so.
-      - **The fact.** Split in two, over the same domain: the equality of every non-NaN
-        result and of NaN-ness against `System.Math`, and the payload rule asserted against
-        the documented formula (`IsNaN(a) ? a : b` when a NaN is present), not against
-        `System.Math`. Each shown red once (the NaN branch removed; the payload rule
-        reversed to return the second NaN), green in Release and Debug and with
-        `DOTNET_EnableHWIntrinsic=0`; both fail on an empty domain.
-
-      Evidence: `KernelMathTests.cs` now holds two facts over the unchanged domain (104²
-      ordered pairs, both functions):
-      - `MinAndMaxEqualSystemMathOnEveryNonNaNResultAndInNaNNessOverEveryOrderedPair`:
-        where `System.Math` returns a number `KernelMath` returns the same bits (`Bits.Same`,
-        ±0 included), where it returns a NaN `KernelMath` returns a NaN;
-      - `TwoNaNsGiveTheFirstNaNOperandExactly`: every pair with a NaN operand gives
-        `IsNaN(a) ? a : b` bit for bit; the fact also requires at least two distinct NaN bit
-        patterns in the domain, and a non-empty set of NaN pairs.
-
-      Reproduced first: `APTHERMO_NO_CUDA=1 dotnet test tests/Thermo.Tests --configuration
-      Release --filter "FullyQualifiedName~KernelMathTests"` red ("Min(NaN, NaN): Math.Min
-      NaN, KernelMath.Min NaN") at `0c46d93`. Shown red once each, `src/Thermo/KernelMath.cs`
-      mutated, reverted with `git checkout`, Release:
-      - the NaN branch of `KernelMath.Min` removed: both facts red (the first on every pair
-        with one NaN operand and a number, the second on the first-NaN rule);
-      - the payload rule reversed (`IsNaN(val2)` tested before `IsNaN(val1)` in `Min`): only
-        the payload fact red, the equality fact green, as designed.
-
-      Both facts fail on an empty domain (`Values()[..0]`: the equality fact on
-      `Assert.NotEmpty`, the payload fact on its distinct-NaN-pattern requirement). Green:
-      `KernelMathTests` 2/2 in Release, in Debug, and with `DOTNET_EnableHWIntrinsic=0` in
-      both configurations; `APTHERMO_NO_CUDA=1 dotnet test tests/Thermo.Tests` 1193/1193 in
-      Debug and 1193/1193 in Release. No `Bits*.approved.txt` differs from `main`.
-
-      The older criteria of 2026-09-27 and 2026-09-28 above name the single fact
-      `MinAndMaxEqualSystemMathBitForBitOverEveryOrderedPair`; it is replaced by the two
-      facts above, over the same domain, and their evidence dates stay: it was true of the
-      managed bodies a Debug build ran, which is the ⚠ of this criterion.
+      - `LatentHeatThresholdTests.TheBuilderCutsExactlyTheNamesTheScanPredicts` builds
+        each name alone through `SpeciesTable.Build` and equals the scan's list; red
+        once with `>= 1.0e-3` written in `SpeciesResolution.Cut`.
+      - `RangeQuestionTests.CondensedDatabaseRecordNames` swallows no exception and no
+        unexpected cut: every condensed name outside the scan's list builds alone as one
+        piece.
+      - `LatentHeatThresholdTests.NaCnTwoAndNaCnThreeEachStayOnePiece` builds each alone
+        and asserts one piece (the limit rose to 6).
+      Evidence: the three facts red together at `5a732f0` with the mutation, green with
+      the constant restored; `dotnet test tests/Thermo.Tests`, 1183/1183; no
+      `Bits*.approved.txt` differs from `main`. → HISTORY.md#crit-latent-cut-guarded
+- [x] 2026-09-30 — The `KernelMath` host fact does not take `System.Math`'s NaN payload
+      for an oracle (2026-09-30, the second CI run after the second audit,
+      `windows-latest`, Release).
+      - ⚠ 2026-09-30: was the fact `System.Math`-equal with NaN payloads, now the
+        payload is `KernelMath`'s own rule → HISTORY.md#crit-kernelmath-payload
+      - The claim: `KernelMath.Min` and `Max` equal `Math.Min` and `Math.Max` bit for
+        bit on every pair whose `System.Math` result is not a NaN (±0 included) and
+        return a NaN whenever it does; for two NaNs the first NaN operand, exactly its
+        bits.
+      - The fact, split over the same domain (104² ordered pairs):
+        `KernelMathTests.MinAndMaxEqualSystemMathOnEveryNonNaNResultAndInNaNNessOverEveryOrderedPair`
+        and `KernelMathTests.TwoNaNsGiveTheFirstNaNOperandExactly` (against
+        `IsNaN(a) ? a : b`, two distinct NaN bit patterns required); each red once by
+        mutating `KernelMath.cs`, both fail on an empty domain.
+      Evidence: green in Release, in Debug and with `DOTNET_EnableHWIntrinsic=0`;
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Thermo.Tests`, 1193/1193 in Debug and in
+      Release; red first in Release at `0c46d93`; no `Bits*.approved.txt` differs from
+      `main`. The single fact named by the criteria of 2026-09-27 and 2026-09-28 is
+      replaced by these two, their evidence dates stay.
+      → HISTORY.md#crit-kernelmath-payload
 
 ## Taboos
 
