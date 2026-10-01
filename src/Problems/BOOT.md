@@ -191,6 +191,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     records carry it (`E`, `IH`, `IO` in the committed file). An element with no
     monatomic record to take its atomic weight from (`IC` of `InertRP-1`) is refused
     with a message that says exactly that, not "has no record in the database".
+    The refusal does not depend on what the solver solved before: every call validates
+    its own mixture's candidates before the chemical-system cache's lookup (2026-09-28,
+    the third audit pass; stated in the criterion of that date until 2026-10-01).
     - ⚠ 2026-09-26: was a row without species solved as `SingularMatrix`, now refused
       → HISTORY.md#audit-0926-no-candidates
   - **One amount kind per role group.** A group mixing mass-fraction and mole amounts
