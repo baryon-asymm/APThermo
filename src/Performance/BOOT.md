@@ -137,12 +137,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
   `ThroatSearch` composes the local search and the check, and stays the only writer of
   the throat's figures. `FrozenAtChamber` flow is unaffected: its frozen sound speed is
-  continuous, and the audit's oracle agreed with it in all 5 588 cases. The
-  throat's figures are those of the state actually solved: its pressure ratio is `p_c`
-  over that state's pressure (2026-09-26).
+  continuous. The throat's figures are those of the state actually solved: its pressure
+  ratio is `p_c` over that state's pressure (2026-09-26). → HISTORY.md#throat-search
 
-  ⚠ 2026-09-28: was "converging cases never reach the bisection, so none changes", now
-  every candidate meets the first-maximum stages → HISTORY.md#converging-cases
+  ⚠ 2026-09-28: was "converging cases never reach the bisection", now every candidate
+  meets the first-maximum stages → HISTORY.md#converging-cases
 
   ⚠ 2026-09-26: was the pressure the last update produced, now the pressure the
   reported state was solved at → HISTORY.md#exhausted-search-pressure
@@ -226,9 +225,8 @@ constructor picks the flow from the problem, keeping that choice out of
 NeverSupersonic, SolveFailed }`. → HISTORY.md#carriers-wording
 
 ⚠ 2026-09-14: was `ExitOutcome` with four values, `ExitEstimate` without a temperature,
-now `ExitOutcome` has a fifth, `NotMet` (twenty corrections, the last above the
-report's tolerance: `NotConverged`), `ExitEstimate` a `Temperature`
-→ HISTORY.md#carriers-found-in-coding
+now a fifth value `NotMet` (twenty corrections, the last above the report's tolerance,
+`NotConverged`) and `ExitEstimate.Temperature` → HISTORY.md#carriers-found-in-coding
 
 Decisions taken with the review of 2026-09-14:
 
@@ -334,8 +332,7 @@ needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
       `c038877`; `KernelEqualityTests`); the fast suite, 2632 tests, green.
       ⚠ 2026-09-14: was "9 of 9 green, `ShapeTests` included", now nine reflection
       checks → HISTORY.md#crit-decomposition
-      ⚠ 2026-09-15: was `At` at 53 physical lines, now within 60 code lines (`9a8ee68`)
-      → HISTORY.md#crit-decomposition
+      ⚠ 2026-09-15: was `At` at 53 lines, now within 60 → HISTORY.md#crit-decomposition
 - [x] 2026-09-14 — An exit station that never leaves the subsonic side of the sonic
       point is `NotConverged` and its neighbours are `Ok`:
       `Performance.Tests.SubsonicStationTests.AStationThatNeverLeavesTheSubsonicSideIsNotConverged`
@@ -362,9 +359,10 @@ needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
 - [x] 2026-09-27 — Audit findings F1, F2, F3, F5, F6 and the entropy check, coded at
-      `e1318c2` on the fixtures `efe7d7e`, `8c1c1cb`, each fact seen red once: the six
-      plateau-edge cases `Ok` (`ThroatFixtureTests.TheThroatCaseReproducesTheReference`,
-      10/10) with the three properties of `ThroatPlateauEdgeTests.cs` and
+      `e1318c2` on the fixtures `efe7d7e`, `8c1c1cb`, each fact seen red once: the
+      plateau-edge throat, six audit cases `Ok`
+      (`ThroatFixtureTests.TheThroatCaseReproducesTheReference`, 10/10) with the three
+      properties of `ThroatPlateauEdgeTests.cs` and
       `TheExample13SweepNeverEndsThroatNotFound`; `AnAreaRatioOfExactlyOneIsInvalid`,
       `AnAreaRatioJustAboveOneIsOkAndSupersonic`,
       `EveryAcceptedAreaRatioExitIsSupersonic`,
@@ -396,11 +394,14 @@ needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
       `1e-4`), `UpstreamChokeCheck.MaxPhaseBoundaries` (8) with `ThroatNotFound` on
       exhaustion
       (`ThirdPassFixTests.AWalkThatMeetsMoreBoundariesThanTheCapEndsThroatNotFound`);
-      `ThirdPassFixTests.TheLi2OBandAt0Point3MPaNeverEndsThroatNotFound` (26 cases) and
-      `…At3MPa…` (h 2.15 to 2.2015625 MJ/kg, 12 cases): every case `Ok`, single-phase,
-      subsonic, passing `SecondAuditFixTests.AssertFirstMaximum`, red at `c02e14d`
-      (21 of 26, 10 of 12); the fixture `li2o-throat_pc3MPa_h2.20625MJkg`; no
-      `Bits*.approved.txt` moves; build 0/0, `Performance.Tests` 1429 of 1429.
+      `ThirdPassFixTests.TheLi2OBandAt0Point3MPaNeverEndsThroatNotFound` (h 3.05625 to
+      3.36875 MJ/kg, 26 cases) and `…At3MPa…` (h 2.15 to 2.2015625 MJ/kg, 12 cases):
+      every case `Ok`, single-phase, subsonic, passing
+      `SecondAuditFixTests.AssertFirstMaximum`, red at `c02e14d` (21 of 26, 10 of 12);
+      no vacuous pass: `AssertFirstMaximum` fails on a non-`Ok` chamber or throat
+      unless declared, each band is asserted non-empty; the fixture
+      `li2o-throat_pc3MPa_h2.20625MJkg`; no `Bits*.approved.txt` moves; build 0/0,
+      `Performance.Tests` 1429 of 1429.
       ⚠ 2026-09-28: was "the 3 MPa band's upper bound 2.2109 MJ/kg", now 2.2015625
       → HISTORY.md#crit-third-pass
 - [x] 2026-09-30 — The rocket kernel's compile is bounded (the root's criterion of that

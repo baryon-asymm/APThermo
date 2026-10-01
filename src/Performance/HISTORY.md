@@ -384,6 +384,21 @@ place it stood (original date 2026-09-28). The text as it stood:
 
 ---
 
+<a id="throat-search"></a>
+
+## 2026-10-01 — from "## Constraints" — the paragraph on `ThroatSearch`, wording before the condensation
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); shorter wording stays at
+the pointer (original date 2026-09-28). The text as it stood:
+
+>   `ThroatSearch` composes the local search and the check, and stays the only writer of
+>   the throat's figures. `FrozenAtChamber` flow is unaffected: its frozen sound speed is
+>   continuous, and the audit's oracle agreed with it in all 5 588 cases. The
+>   throat's figures are those of the state actually solved: its pressure ratio is `p_c`
+>   over that state's pressure (2026-09-26).
+
+---
+
 <a id="boundary-cap"></a>
 
 ## 2026-10-01 — from "## Constraints" — correction (third pass): the boundary cap
