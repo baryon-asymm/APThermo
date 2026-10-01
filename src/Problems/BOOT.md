@@ -574,7 +574,6 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
         per kilogram equal to the database record's own field;
       - a failed station with transport requested has a null `TransportStatus`, which
         `RocketTests.AFailingStationIsAStatusAndNotAnException` already pinned.
-
       `dotnet test tests/Problems.Tests`: 1117 of 1117, none skipped; the public surface
       and every bit snapshot unmoved. → HISTORY.md#criterion-audit-0926
 
@@ -598,7 +597,6 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       - `Br2ResolvesAt298Point15KAgainstTheGeneratedReference`: enthalpy equal to cea
         3.3.4's (`tests/Fixtures/cases/reactant/Br2_cr__298.15K.json`, never typed);
       - `TwoOmitListsThatJoinToTheSameTextGiveTwoTables`.
-
       `API.md`'s errors table states every refusal above. `dotnet test
       tests/Problems.Tests/APThermo.Problems.Tests.csproj`: 1206 of 1206, none skipped;
       no `Bits*.approved.txt` or `PublicSurface.approved.txt` moved.
