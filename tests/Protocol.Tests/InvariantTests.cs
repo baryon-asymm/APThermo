@@ -117,6 +117,54 @@ public sealed class InvariantTests
             "double.IsNaN/IsNegative nowhere outside KernelMath.\n" + string.Join("\n", problems));
     }
 
+    /// <summary>
+    /// No method of any <c>src</c> assembly calls an ILGPU transfer (a method named <c>CopyToCPU…</c> or <c>CopyFromCPU…</c>,
+    /// the <c>…UnsafeAsync</c> forms included) with a raw by-reference parameter, a <c>ref T</c> into host memory (root
+    /// BOOT.md, the fourth hazard of the ILGPU constraint, 2026-10-01; <c>src/Execution/Chunks/BOOT.md</c>, "Host memory
+    /// crosses into ILGPU pinned"): ILGPU 1.5.3 turns such a reference into a raw pointer without pinning it, and a
+    /// compacting collection moves the array under the copy. The span overloads take their span <c>in</c>, which is a
+    /// by-reference parameter too, and pin it; they are the sanctioned form, so a by-reference span is not refused. The
+    /// walk covers every <c>src</c> assembly, not only the numerical ones, since the transfers live in the execution node,
+    /// and it fails on an empty walk: with no call to any ILGPU transfer found it would prove nothing.
+    /// </summary>
+    [Fact]
+    public void NoSrcMethodPassesHostMemoryToAnIlgpuTransferByReference()
+    {
+        var assemblies = NodeAssemblies.Assemblies
+            .Where(pair => pair.Key.RelativePath.StartsWith("src/", StringComparison.Ordinal))
+            .Select(pair => pair.Value)
+            .ToList();
+        Assert.NotEmpty(assemblies);
+        var calls = assemblies.SelectMany(IlgpuTransferCalls).ToList();
+        Assert.True(calls.Count > 0, "no call to an ILGPU transfer (CopyToCPU*, CopyFromCPU*) was found in any src assembly: the walk proves nothing.");
+        var problems = calls
+            .Where(call => call.Callee.GetParameters().Any(IsRawReference))
+            .Select(call => $"{call.Caller.FullName}.{call.Method.Name} calls {call.Callee.DeclaringType!.Name}.{call.Callee.Name}({string.Join(", ", call.Callee.GetParameters().Select(parameter => parameter.ParameterType.Name))})")
+            .ToList();
+        Assert.True(problems.Count == 0,
+            "root BOOT.md, the fourth hazard of the ILGPU constraint: host memory crosses into ILGPU only through an overload that pins it " +
+            "(the Span or array overloads), never as a ref into a managed array.\n" + string.Join("\n", problems));
+    }
+
+    /// <summary>Every call a method of the assembly makes to a method of an ILGPU assembly named <c>CopyToCPU…</c> or <c>CopyFromCPU…</c>.</summary>
+    private static IEnumerable<(Type Caller, MethodBase Method, MethodBase Callee)> IlgpuTransferCalls(Assembly assembly) =>
+        assembly.GetTypes().SelectMany(type => TypeShape.MethodsOf(type).SelectMany(method => IlBody.Instructions(method)
+            .Select(instruction => instruction.Operand)
+            .OfType<MethodBase>()
+            .Where(callee => callee.DeclaringType is { } declaring && IsIlgpuTransfer(declaring, callee))
+            .Select(callee => (type, method, callee))));
+
+    private static bool IsIlgpuTransfer(Type declaring, MethodBase callee) =>
+        declaring.Assembly.GetName().Name!.StartsWith("ILGPU", StringComparison.Ordinal)
+        && (callee.Name.StartsWith("CopyToCPU", StringComparison.Ordinal) || callee.Name.StartsWith("CopyFromCPU", StringComparison.Ordinal));
+
+    /// <summary>A by-reference parameter that is not a span: the <c>in Span&lt;T&gt;</c> and <c>in ReadOnlySpan&lt;T&gt;</c> of the pinning overloads are by-reference too.</summary>
+    private static bool IsRawReference(ParameterInfo parameter) =>
+        parameter.ParameterType.IsByRef && !IsSpan(parameter.ParameterType.GetElementType()!);
+
+    private static bool IsSpan(Type type) =>
+        type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(Span<>) || type.GetGenericTypeDefinition() == typeof(ReadOnlySpan<>));
+
     /// <summary>The numerical nodes and every descendant of the four the root <c>BOOT.md</c> names (the guards audit's
     /// O4): generated from the tree's own node list rather than typed by hand, so a future child node of one of the
     /// four is found automatically instead of silently escaping every fact that reads this method.</summary>
