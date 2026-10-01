@@ -57,8 +57,7 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
   Every batch test compares both.
 
-  ⚠ 2026-09-12: was 1e-10 on mole fractions at every station, now a second tier, 1e-9,
-  where the Newton step counts differ → HISTORY.md#gpu-equals-cpu-second-tier
+  ⚠ 2026-09-12: was 1e-10 on mole fractions, now second tier 1e-9 → HISTORY.md#gpu-tier
 - **SI units in every public type**: K, Pa, J/kg, J/(kg·K), kg/kmol, kg/m³, m/s,
   Pa·s, W/(m·K). Specific impulse is the effective exhaust velocity in m/s; the
   conversion to seconds with g0 = 9.80665 m/s² happens only in the command-line front end.
@@ -115,22 +114,18 @@ delivery (2026-09-15, `## Delivery` below).
   deviation: a bit-stable math path (the CPU dispatch pinned in the execution node) or
   hosted runners of a fixed CPU model. → HISTORY.md#platform-deviation-condensed
 
-  ⚠ 2026-09-17: was the bit snapshots "the one platform-specific record", now the
-  throughput figures too → HISTORY.md#platform-throughput-record
+  ⚠ 2026-09-17: was bits alone per platform, now throughput too → HISTORY.md#plat-tput
 
-  ⚠ 2026-09-17: was the Linux bit question open, now answered: Linux differs by up to
-  4.2e-12 relative, records per platform → HISTORY.md#platform-first-linux-run
+  ⚠ 2026-09-17: was Linux bits open, now 4.2e-12 apart → HISTORY.md#plat-linux
 
-  ⚠ 2026-09-15: was "Windows 11 x64 is the only supported platform", now Windows and
-  Linux x64, CUDA included → HISTORY.md#platform-windows-only
+  ⚠ 2026-09-15: was Windows 11 x64 only, now Windows and Linux x64 → HISTORY.md#plat-os
 - Language and build: C#, .NET 10, nullable reference types enabled, warnings are
   errors. One assembly per node directory that holds a project, named after its namespace; a
   child node without a project of its own (2026-09-15) compiles into the assembly of its
   nearest ancestor that has one, under its own namespace. One solution
   file at the repository root.
 
-  ⚠ 2026-09-15: was "One assembly per node directory", now per node that holds a project
-  (children join their ancestor's) → HISTORY.md#assembly-per-node
+  ⚠ 2026-09-15: was one assembly per node, now per project node → HISTORY.md#asm-node
 - Diagnostics (2026-09-24): the compiler and every analyzer run at their maximum, every
   diagnostic is an error, and nothing in the tree is exempt, the test, sample and
   benchmark nodes included.
@@ -172,11 +167,10 @@ delivery (2026-09-15, `## Delivery` below).
   and the solution (`APThermo.sln`) carry the same names. The product's name in prose stays
   Aerospace Propellant Thermodynamics, and APThermo is its short name and the name of its packages.
 
-  ⚠ 2026-09-16: was `src/` and `tests/` the transparent directories, now `samples/` too
-  → HISTORY.md#namespaces-samples
+  ⚠ 2026-09-16: was `src`, `tests` transparent, now `samples` too → HISTORY.md#ns-dirs
 
   ⚠ 2026-09-15: was the root namespace `AerospacePropellantThermodynamics`, now
-  `APThermo` → HISTORY.md#namespaces-rename
+  `APThermo` → HISTORY.md#ns-rename
 - Kernel-compatible C# in numerical nodes: static methods, blittable structs,
   `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
@@ -194,11 +188,9 @@ delivery (2026-09-15, `## Delivery` below).
   function is a root decision, because the execution node must provide its libdevice
   wrapper. → HISTORY.md#math-list-condensed
 
-  ⚠ 2026-09-28: was a check on `Math.Min` and `Math.Max` only, now an allow-list of
-  every `System.Math` and `System.Double` call → HISTORY.md#math-allow-list
+  ⚠ 2026-09-28: was a Min/Max-only check, now an allow-list → HISTORY.md#math-allow
 
-  ⚠ 2026-09-27: was `Min` and `Max` in the math list, now `KernelMath.Min` and
-  `KernelMath.Max` (NaN differs on CUDA) → HISTORY.md#math-min-max
+  ⚠ 2026-09-27: was `Min`/`Max` listed, now `KernelMath` (NaN) → HISTORY.md#math-nan
 - ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
   `compute_100` and newer (Blackwell): libnvvm rejects the module ILGPU emits, and
   ILGPU silently drops the wrappers. For `compute_75` to `compute_90` libnvvm accepts
@@ -228,8 +220,7 @@ delivery (2026-09-15, `## Delivery` below).
     `BOOT.md`); the protocol tests node checks that no `src` method calls a
     by-reference transfer. → HISTORY.md#ilgpu-hazards-condensed
 
-  ⚠ 2026-09-26: was the defect tied to libnvvm 12.9 and 13.3, now to the target,
-  `compute_100` and newer → HISTORY.md#ilgpu-defect-by-target
+  ⚠ 2026-09-26: was the defect tied to libnvvm, now to the target → HISTORY.md#ilgpu-sm
 - Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default
   (`InliningMode.Default`), so each call site of a method that holds a whole solve is a
   full copy of it in the compiled program. A stage that holds or reaches a whole solve
@@ -238,8 +229,7 @@ delivery (2026-09-15, `## Delivery` below).
   one call site. The rocket kernel's compile on the CPU accelerator stays inside the
   bounds of the execution node's guard (its `BOOT.md`).
 
-  ⚠ 2026-09-30: was no bound on the compile (7 sites: 49.7 s, 11.2 GB), now the
-  attribute rule (2.6 s, 0.43 GB) → HISTORY.md#compile-size-measurement
+  ⚠ 2026-09-30: was no compile bound (11.2 GB), now one (0.43 GB) → HISTORY.md#compile
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
   during a solve.
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
@@ -282,23 +272,17 @@ delivery (2026-09-15, `## Delivery` below).
   nodes' included. Checked by the protocol tests node (`ShapeTests`), whose `BOOT.md`
   records why the numbers are what they are.
 
-  ⚠ 2026-09-14: was a Ce limit of 10 (a textual count), now 14 (the check's walk) →
-  HISTORY.md#code-shape-ce-limit
+  ⚠ 2026-09-14: was Ce limit 10 (text count), now 14 (the walk) → HISTORY.md#ce-limit
 
-  ⚠ 2026-09-14, evening: was physical lines counted, now lines of code, 400 and 60
-  unchanged → HISTORY.md#code-shape-lines-of-code
+  ⚠ 2026-09-14, evening: was physical lines, now lines of code → HISTORY.md#loc
 
-  ⚠ 2026-09-15: was the coupling sentences for "every type of the tree", now the `src`
-  types → HISTORY.md#code-shape-src-scope
+  ⚠ 2026-09-15: was coupling for every type, now `src` types → HISTORY.md#src-scope
 
-  ⚠ 2026-09-15: was "named by 10 or more types of the tree", now types of the `src`
-  nodes → HISTORY.md#code-shape-src-both-sides
+  ⚠ 2026-09-15: was Ca over all types, now over `src` types → HISTORY.md#src-ca
 
-  ⚠ 2026-09-15: was "over their project graph", now the graph of the `## Dependencies`
-  sections → HISTORY.md#code-shape-dependency-graph
+  ⚠ 2026-09-15: was "project graph", now `## Dependencies` graph → HISTORY.md#dep-graph
 
-  ⚠ 2026-09-15: was the instability of every `src` node, now of those that hold a
-  project → HISTORY.md#code-shape-instability
+  ⚠ 2026-09-15: was every `src` node, now nodes holding a project → HISTORY.md#instab
 
 There is no external ancestor: the tree root is the repository root, and the loader
 (`CLAUDE.md`) carries no claims about the system (AGENTS.md §2).
@@ -351,14 +335,11 @@ with links in [API.md](API.md), and the arrows between them are the nodes'
   never depends on console or serialization concerns.
 → HISTORY.md#decomposition-condensed
 
-  ⚠ 2026-09-12: was `Problems` without a link to `Equilibrium`, now with it
-  (`ProblemKind`) → HISTORY.md#problems-problemkind
+  ⚠ 2026-09-12: was `Problems` without `Equilibrium`, now with it → HISTORY.md#kind
 
-  ⚠ 2026-09-13: was `Cli` without links to `Execution` and the result structs, now with
-  them → HISTORY.md#cli-dependencies
+  ⚠ 2026-09-13: was `Cli` without `Execution` and results, now with → HISTORY.md#cli-dep
 
-  ⚠ 2026-09-15: was `Cli` creating an engine for `devices`, now
-  `AcceleratorProbe.Describe` → HISTORY.md#cli-accelerator-probe
+  ⚠ 2026-09-15: was `Cli` creating an engine, now `AcceleratorProbe` → HISTORY.md#probe
 
 Test nodes mirror the source nodes as `tests/<Node>.Tests`. `tests/Protocol.Tests` holds
 the reflection checks of AGENTS.md §13; `tests/Fixtures` the reference outputs
@@ -372,8 +353,7 @@ and command-line examples and the proof of the guide against them (`## Delivery`
 Documentation). What `Harness` may name and how `Benchmarks` treats its figures are
 those nodes' own invariants. → HISTORY.md#test-nodes-retelling
 
-  ⚠ 2026-09-16: was the docs tests node holding "the schemas", now only approved outputs
-  and tests → HISTORY.md#docs-tests-schemas
+  ⚠ 2026-09-16: was "the schemas" in docs tests, now outputs only → HISTORY.md#schemas
 
 ## Delivery
 
@@ -436,16 +416,14 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     package. They use the package surface only, as the command line does.
     → HISTORY.md#delivery-documentation-condensed
 
-  ⚠ 2026-09-17: was an unreviewed rewrite (marked blocks only, no package feed), now
-  every block checked, feed restored → HISTORY.md#documentation-restored
+  ⚠ 2026-09-17: was an unreviewed rewrite, now every block checked → HISTORY.md#restored
   - Every `apthermo` invocation shown in the guide takes its input documents from
     `samples/cli/`, and its shown output is approved. The exceptions are the declared
     synopses whose output depends on the machine (`apthermo devices`) or on the release
     (`apthermo --version`). The docs tests node lists them, and the rest of each such
     line must still parse as a valid invocation.
 
-    ⚠ 2026-09-17: was every invocation approved, now `devices` and `--version` declared
-    synopses → HISTORY.md#declared-synopses
+    ⚠ 2026-09-17: was every invocation approved, now two synopses → HISTORY.md#synopses
   - The docs tests node `tests/Docs.Tests` proves each of the following, each check
     failing when the set it walks is empty and each shown red once: every C# block
     equals its snippet; every sample prints its approved output; every `apthermo`
@@ -459,8 +437,7 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
     is compared field by field, its numbers within 1e-9 relative.
     → HISTORY.md#delivery-docs-proofs-condensed
 
-      ⚠ 2026-09-29: was one approved file compared exactly everywhere, now per-platform
-      records plus a 1e-9 field tolerance → HISTORY.md#docs-platform-rule
+      ⚠ 2026-09-29: was one approved file, now per-platform, 1e-9 → HISTORY.md#docs-plat
   - The JSON Schemas of the command line's documents: [src/Cli/BOOT.md](src/Cli/BOOT.md).
   - `llms.txt` at the root is the entry for agents: a summary, and links to the guide
     pages, the schemas, the samples and the nodes' `API.md`.
@@ -472,6 +449,5 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
 - **Self-hosted runners**: [.github/BOOT.md](.github/BOOT.md).
 - **Evidence for workflow changes**: [.github/BOOT.md](.github/BOOT.md).
 
-  ⚠ 2026-10-01: was `.github/diagnostics/IsaProbe` a declared deviation, now a node
-  → .github/HISTORY.md#isaprobe-deviation
+  ⚠ 2026-10-01: was IsaProbe a deviation, now a node → .github/HISTORY.md#isaprobe
 - Nothing is pushed to GitHub or nuget.org without the owner's word.

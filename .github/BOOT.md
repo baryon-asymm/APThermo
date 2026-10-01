@@ -60,8 +60,7 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
 - **Continuous integration.** GitHub Actions under `.github/workflows`.
 
-  ⚠ 2026-10-01: was `.github` "not a node", with a declared deviation for IsaProbe, now
-  a node with its children → HISTORY.md#isaprobe-deviation
+  ⚠ 2026-10-01: was `.github` not a node, now it and IsaProbe are → HISTORY.md#isaprobe
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
     the build, the fast suite with `APTHERMO_NO_CUDA=1` and without the bit snapshots
     (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint), and

@@ -8,6 +8,113 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="pointers-shortened"></a>
+
+## 2026-10-01 — from every section — the pointers and anchors shortened
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15): each pointer below took two
+lines and now takes one (two of them keep two), with a shorter anchor of its entry in this
+file. The pointers as they stood, in the order of the file; the anchors renamed, old to new:
+
+- `gpu-equals-cpu-second-tier` to `gpu-tier`
+- `platform-throughput-record` to `plat-tput`
+- `platform-first-linux-run` to `plat-linux`
+- `platform-windows-only` to `plat-os`
+- `assembly-per-node` to `asm-node`
+- `namespaces-samples` to `ns-dirs`
+- `namespaces-rename` to `ns-rename`
+- `math-allow-list` to `math-allow`
+- `math-min-max` to `math-nan`
+- `ilgpu-defect-by-target` to `ilgpu-sm`
+- `compile-size-measurement` to `compile`
+- `code-shape-ce-limit` to `ce-limit`
+- `code-shape-lines-of-code` to `loc`
+- `code-shape-src-scope` to `src-scope`
+- `code-shape-src-both-sides` to `src-ca`
+- `code-shape-dependency-graph` to `dep-graph`
+- `code-shape-instability` to `instab`
+- `problems-problemkind` to `kind`
+- `cli-dependencies` to `cli-dep`
+- `cli-accelerator-probe` to `probe`
+- `docs-tests-schemas` to `schemas`
+- `documentation-restored` to `restored`
+- `declared-synopses` to `synopses`
+- `docs-platform-rule` to `docs-plat`
+
+>   ⚠ 2026-09-12: was 1e-10 on mole fractions at every station, now a second tier, 1e-9,
+>   where the Newton step counts differ → HISTORY.md#gpu-equals-cpu-second-tier
+>
+>   ⚠ 2026-09-17: was the bit snapshots "the one platform-specific record", now the
+>   throughput figures too → HISTORY.md#platform-throughput-record
+>
+>   ⚠ 2026-09-17: was the Linux bit question open, now answered: Linux differs by up to
+>   4.2e-12 relative, records per platform → HISTORY.md#platform-first-linux-run
+>
+>   ⚠ 2026-09-15: was "Windows 11 x64 is the only supported platform", now Windows and
+>   Linux x64, CUDA included → HISTORY.md#platform-windows-only
+>
+>   ⚠ 2026-09-15: was "One assembly per node directory", now per node that holds a project
+>   (children join their ancestor's) → HISTORY.md#assembly-per-node
+>
+>   ⚠ 2026-09-16: was `src/` and `tests/` the transparent directories, now `samples/` too
+>   → HISTORY.md#namespaces-samples
+>
+>   ⚠ 2026-09-15: was the root namespace `AerospacePropellantThermodynamics`, now
+>   `APThermo` → HISTORY.md#namespaces-rename
+>
+>   ⚠ 2026-09-28: was a check on `Math.Min` and `Math.Max` only, now an allow-list of
+>   every `System.Math` and `System.Double` call → HISTORY.md#math-allow-list
+>
+>   ⚠ 2026-09-27: was `Min` and `Max` in the math list, now `KernelMath.Min` and
+>   `KernelMath.Max` (NaN differs on CUDA) → HISTORY.md#math-min-max
+>
+>   ⚠ 2026-09-26: was the defect tied to libnvvm 12.9 and 13.3, now to the target,
+>   `compute_100` and newer → HISTORY.md#ilgpu-defect-by-target
+>
+>   ⚠ 2026-09-30: was no bound on the compile (7 sites: 49.7 s, 11.2 GB), now the
+>   attribute rule (2.6 s, 0.43 GB) → HISTORY.md#compile-size-measurement
+>
+>   ⚠ 2026-09-14: was a Ce limit of 10 (a textual count), now 14 (the check's walk) →
+>   HISTORY.md#code-shape-ce-limit
+>
+>   ⚠ 2026-09-14, evening: was physical lines counted, now lines of code, 400 and 60
+>   unchanged → HISTORY.md#code-shape-lines-of-code
+>
+>   ⚠ 2026-09-15: was the coupling sentences for "every type of the tree", now the `src`
+>   types → HISTORY.md#code-shape-src-scope
+>
+>   ⚠ 2026-09-15: was "named by 10 or more types of the tree", now types of the `src`
+>   nodes → HISTORY.md#code-shape-src-both-sides
+>
+>   ⚠ 2026-09-15: was "over their project graph", now the graph of the `## Dependencies`
+>   sections → HISTORY.md#code-shape-dependency-graph
+>
+>   ⚠ 2026-09-15: was the instability of every `src` node, now of those that hold a
+>   project → HISTORY.md#code-shape-instability
+>
+>   ⚠ 2026-09-12: was `Problems` without a link to `Equilibrium`, now with it
+>   (`ProblemKind`) → HISTORY.md#problems-problemkind
+>
+>   ⚠ 2026-09-13: was `Cli` without links to `Execution` and the result structs, now with
+>   them → HISTORY.md#cli-dependencies
+>
+>   ⚠ 2026-09-15: was `Cli` creating an engine for `devices`, now
+>   `AcceleratorProbe.Describe` → HISTORY.md#cli-accelerator-probe
+>
+>   ⚠ 2026-09-16: was the docs tests node holding "the schemas", now only approved outputs
+>   and tests → HISTORY.md#docs-tests-schemas
+>
+>   ⚠ 2026-09-17: was an unreviewed rewrite (marked blocks only, no package feed), now
+>   every block checked, feed restored → HISTORY.md#documentation-restored
+>
+>     ⚠ 2026-09-17: was every invocation approved, now `devices` and `--version` declared
+>     synopses → HISTORY.md#declared-synopses
+>
+>       ⚠ 2026-09-29: was one approved file compared exactly everywhere, now per-platform
+>       records plus a 1e-9 field tolerance → HISTORY.md#docs-platform-rule
+
+---
+
 <a id="test-nodes-retelling"></a>
 
 ## 2026-10-01 — from "## Decomposition" — what two test nodes already say about themselves
@@ -391,7 +498,7 @@ before its wording was condensed:
 
 ---
 
-<a id="compile-size-measurement"></a>
+<a id="compile"></a>
 
 ## 2026-10-01 — from "## Constraints", "Compile size" — the measurement behind the compile size rule
 
@@ -410,7 +517,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="docs-platform-rule"></a>
+<a id="docs-plat"></a>
 
 ## 2026-10-01 — from "## Delivery", "Documentation" — the approved command-line output is a record of the reference machine
 
@@ -427,7 +534,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="math-allow-list"></a>
+<a id="math-allow"></a>
 
 ## 2026-10-01 — from "## Constraints", "Math in numerical nodes" — the check matched only Min and Max
 
@@ -443,7 +550,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="math-min-max"></a>
+<a id="math-nan"></a>
 
 ## 2026-10-01 — from "## Constraints", "Math in numerical nodes" — Min and Max leave the math list
 
@@ -464,7 +571,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="ilgpu-defect-by-target"></a>
+<a id="ilgpu-sm"></a>
 
 ## 2026-10-01 — from "## Constraints", "ILGPU 1.5.3" — the libdevice defect depends on the architecture, not on the libnvvm version
 
@@ -490,7 +597,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="declared-synopses"></a>
+<a id="synopses"></a>
 
 ## 2026-10-01 — from "## Delivery", "Documentation" — the declared synopses of the command line
 
@@ -505,7 +612,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="documentation-restored"></a>
+<a id="restored"></a>
 
 ## 2026-10-01 — from "## Delivery", "Documentation" — the unreviewed rewrite of the Documentation bullet, restored
 
@@ -530,7 +637,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="platform-first-linux-run"></a>
+<a id="plat-linux"></a>
 
 ## 2026-10-01 — from "## Constraints", "Platform" — the first Linux run answers the open question
 
@@ -554,7 +661,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="platform-throughput-record"></a>
+<a id="plat-tput"></a>
 
 ## 2026-10-01 — from "## Constraints", "Platform" — the bit snapshots were not the one platform-specific record
 
@@ -568,7 +675,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="docs-tests-schemas"></a>
+<a id="schemas"></a>
 
 ## 2026-10-01 — from "## Decomposition", "test nodes" — the docs tests node does not hold the schemas
 
@@ -584,7 +691,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="namespaces-samples"></a>
+<a id="ns-dirs"></a>
 
 ## 2026-10-01 — from "## Constraints", "Namespaces" — the grouping directory samples is transparent
 
@@ -600,7 +707,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="cli-accelerator-probe"></a>
+<a id="probe"></a>
 
 ## 2026-10-01 — from "## Decomposition", "src/Cli" — Cli calls AcceleratorProbe in place of an engine of its own
 
@@ -618,7 +725,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-instability"></a>
+<a id="instab"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the instability is measured on the nodes that hold a project
 
@@ -638,7 +745,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-dependency-graph"></a>
+<a id="dep-graph"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the instability is read from the Dependencies sections
 
@@ -656,7 +763,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-src-both-sides"></a>
+<a id="src-ca"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the counting side of the stable type is scoped too
 
@@ -674,7 +781,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-src-scope"></a>
+<a id="src-scope"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the coupling and stable-type sentences are scoped to the src nodes
 
@@ -692,7 +799,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="namespaces-rename"></a>
+<a id="ns-rename"></a>
 
 ## 2026-10-01 — from "## Constraints", "Namespaces" — the rename to APThermo
 
@@ -712,7 +819,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="assembly-per-node"></a>
+<a id="asm-node"></a>
 
 ## 2026-10-01 — from "## Constraints", "Language and build" — one assembly per node directory
 
@@ -730,7 +837,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="platform-windows-only"></a>
+<a id="plat-os"></a>
 
 ## 2026-10-01 — from "## Constraints", "Platform" — Windows was the only supported platform of version 1
 
@@ -749,7 +856,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-lines-of-code"></a>
+<a id="loc"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the size limits count lines of code
 
@@ -766,7 +873,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="code-shape-ce-limit"></a>
+<a id="ce-limit"></a>
 
 ## 2026-10-01 — from "## Constraints", "Code shape" — the limit on Ce, 10 recalibrated to 14
 
@@ -783,7 +890,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="cli-dependencies"></a>
+<a id="cli-dep"></a>
 
 ## 2026-10-01 — from "## Decomposition", "src/Cli" — Cli uses Execution and reads the result structs
 
@@ -800,7 +907,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="problems-problemkind"></a>
+<a id="kind"></a>
 
 ## 2026-10-01 — from "## Decomposition", "src/Problems" — Problems names the ProblemKind of Equilibrium
 
@@ -813,7 +920,7 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 
 ---
 
-<a id="gpu-equals-cpu-second-tier"></a>
+<a id="gpu-tier"></a>
 
 ## 2026-10-01 — from "## Invariants", "GPU equals CPU" — the second tolerance tier of GPU equals CPU
 

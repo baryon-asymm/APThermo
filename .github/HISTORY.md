@@ -11,7 +11,7 @@ with the bullets of the root `## Delivery` they belong to.
 
 ---
 
-<a id="isaprobe-deviation"></a>
+<a id="isaprobe"></a>
 
 ## 2026-10-01 — from "## Delivery", "Continuous integration" — the declared deviation for IsaProbe is lifted
 
