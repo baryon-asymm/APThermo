@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -10,6 +11,8 @@ namespace APThermo.Execution.Chunks;
 /// </summary>
 internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
 {
+    private const byte Sentinel = 0xFF;
+
     private readonly T[]? _host;
     private readonly long _perCase;
     private readonly ChunkTransfer _transfer;
@@ -61,7 +64,9 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         {
             var start = Start(offset);
             CheckHostLength(start, span);
-            Allocated.View.SubView(0, span).CopyFromCPU(ref _host![start], span);
+
+            // The span overload pins the slice for the whole transfer; the ref overload does not (BOOT.md, "Host memory crosses into ILGPU pinned").
+            Allocated.View.BaseView.SubView(0, span).CopyFromCPU(new ReadOnlySpan<T>(_host!, (int)start, (int)span));
         }
     }
 
@@ -73,9 +78,24 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         {
             var start = Start(offset);
             CheckHostLength(start, span);
-            Allocated.View.SubView(0, span).CopyToCPU(ref _host![start], span);
+            var slice = new Span<T>(_host!, (int)start, (int)span);
+
+            // A copy that ran overwrites every byte of the slice with the device's; a slice left as the sentinel was never written (BOOT.md, "A download that wrote nothing is refused").
+            MemoryMarshal.AsBytes(slice).Fill(Sentinel);
+            Allocated.View.BaseView.SubView(0, span).CopyToCPU(slice);
+            if (HoldsOnlySentinel(slice))
+            {
+                throw new InvalidOperationException(
+                    $"a download from the accelerator left its host slice unwritten: {typeof(T).Name}, offset {start}, length {span}.");
+            }
         }
     }
+
+    /// <summary>
+    /// True when every byte of the slice is the sentinel a download fills it with, so the copy wrote nothing; false for an empty slice.
+    /// </summary>
+    internal static bool HoldsOnlySentinel(ReadOnlySpan<T> slice) =>
+        !slice.IsEmpty && MemoryMarshal.AsBytes(slice).IndexOfAnyExcept(Sentinel) < 0;
 
     /// <inheritdoc />
     public void Dispose() => _buffer?.Dispose();
@@ -85,10 +105,10 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     private long Start(int offset) => offset * _perCase;
 
     /// <summary>
-    /// Refuses a chunk slice the host array is too short for (BOOT.md, the second audit's observation 6), before the
-    /// unsafe <c>ref</c> copy: <c>ArrayView&lt;T&gt;.CopyFromCPU</c> and <c>CopyToCPU</c> take a reference and a
-    /// length with no bounds check of their own, so a host array shorter than the chunk's own declared stride would
-    /// read or write past its end instead of throwing.
+    /// Refuses a chunk slice the host array is too short for (BOOT.md, the second audit's observation 6) and names the
+    /// chunk. The span constructors of the copies refuse such a slice too, with an exception that names no chunk. The
+    /// <c>ref</c> overloads this check once guarded were unsafe for their address as well as for their bounds, and no
+    /// <c>ref</c> into the host array reaches ILGPU any longer (BOOT.md, "Host memory crosses into ILGPU pinned").
     /// </summary>
     private void CheckHostLength(long start, long span)
     {

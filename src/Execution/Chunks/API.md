@@ -129,7 +129,7 @@ kernel's views struct. `IChunkBuffer` and `ChunkTransfer` exist so `ChunkBuffers
 hold buffers of different element types in one list and move them uniformly; no code
 outside this node names either.
 
-## Unwritten downloads ⏳
+## Unwritten downloads ✅
 
 ```csharp
 namespace APThermo.Execution.Chunks;
