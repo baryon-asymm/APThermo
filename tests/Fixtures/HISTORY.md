@@ -10,7 +10,7 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 <a id="shape-intro-wording"></a>
 
-## 2026-10-01 — from "## Shape exceptions" — condensed wording of the the shape exception's introduction: the criterion it cites moved to ACCEPTANCE.md
+## 2026-10-01 — from "## Shape exceptions" — condensed wording: the shape exception's introduction: the criterion it cites moved to ACCEPTANCE.md
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-10-01. The new wording stays at the pointer,
@@ -25,7 +25,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="procedure-wording"></a>
 
-## 2026-10-01 — from "## Constraints" — condensed wording of the the procedure: the criterion it cites moved to ACCEPTANCE.md
+## 2026-10-01 — from "## Constraints" — condensed wording: the procedure: the criterion it cites moved to ACCEPTANCE.md
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-10-01. The new wording stays at the pointer,
@@ -43,7 +43,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="provenance-invariant-wording"></a>
 
-## 2026-10-01 — from "## Invariants" — condensed wording of the the provenance invariant: the throat family is no longer 'below'
+## 2026-10-01 — from "## Invariants" — condensed wording: the provenance invariant: the throat family is no longer 'below'
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-10-01. The new wording stays at the pointer,
@@ -63,7 +63,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-binding-step"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the binding step on the fixtures' own platform (full text: Linux measurements, mutations)
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the binding step on the fixtures' own platform (full text: Linux measurements, mutations)
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-30. The new wording stays at the pointer,
@@ -203,7 +203,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-sample-every-script"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the sample covers every script (full evidence)
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the sample covers every script (full evidence)
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-30. The new wording stays at the pointer,
@@ -263,7 +263,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-outputs-bound"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the outputs are bound to the generator (full evidence)
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the outputs are bound to the generator (full evidence)
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-30. The new wording stays at the pointer,
@@ -316,7 +316,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="tolerance-table-entries"></a>
 
-## 2026-10-01 — from "## Invariants" — condensed wording of the the tolerance table's entries that are no comparison with the reference
+## 2026-10-01 — from "## Invariants" — condensed wording: the tolerance table's entries that are no comparison with the reference
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-30. The new wording stays at the pointer,
@@ -348,7 +348,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-throat-f3-cases"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the throat family's three F3 cases
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the throat family's three F3 cases
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-28. The new wording stays at the pointer,
@@ -421,7 +421,7 @@ What stays at the pointer is the current rule. The text as it stood:
 
 <a id="crit-throat-f1-cases"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the throat family's four F1 cases
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the throat family's four F1 cases
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-28. The new wording stays at the pointer,
@@ -509,7 +509,7 @@ What stays at the pointer is the current rule. The text as it stood:
 
 <a id="crit-generator-sha256"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the provenance ties every fixture to the committed generator
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the provenance ties every fixture to the committed generator
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-27. The new wording stays at the pointer,
@@ -564,7 +564,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-reactant-role"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the role of every reactant (evidence and the correction)
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the role of every reactant (evidence and the correction)
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-27. The new wording stays at the pointer,
@@ -610,7 +610,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-sodium-case"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the sodium case
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the sodium case
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-27. The new wording stays at the pointer,
@@ -639,7 +639,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-throat-family"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the throat family (full evidence and the two corrections)
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the throat family (full evidence and the two corrections)
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-27. The new wording stays at the pointer,
@@ -753,7 +753,7 @@ What stays at the pointer is the current rule. The text as it stood:
 
 <a id="singular-tp-defect"></a>
 
-## 2026-10-01 — from "## Constraints" — condensed wording of the caveat: the singular derivative matrix of a tp assigned at a record bound
+## 2026-10-01 — from "## Constraints" — condensed wording: caveat: the singular derivative matrix of a tp assigned at a record bound
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-13. The new wording stays at the pointer,
@@ -776,7 +776,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="multi-station-guard"></a>
 
-## 2026-10-01 — from "## Invariants" — condensed wording of the the multi-station guard of rocket references: the three defects measured
+## 2026-10-01 — from "## Invariants" — condensed wording: the multi-station guard of rocket references: the three defects measured
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-13. The new wording stays at the pointer,
@@ -804,7 +804,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="crit-tolerances-calibrated"></a>
 
-## 2026-10-01 — from "## Acceptance criteria" — condensed wording of the criterion: the tolerances calibrated, per kind
+## 2026-10-01 — from "## Acceptance criteria" — condensed wording: criterion: the tolerances calibrated, per kind
 
 Rewritten shorter because `ACCEPTANCE.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-12. The new wording stays at the pointer,
@@ -846,7 +846,7 @@ What stays at the pointer is the current rule. The text as it stood:
 
 <a id="tolerance-table-copy"></a>
 
-## 2026-10-01 — from "## Constraints" — condensed wording of the the typed copy of the tolerance table's rows
+## 2026-10-01 — from "## Constraints" — condensed wording: the typed copy of the tolerance table's rows
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-12. The new wording stays at the pointer,
@@ -870,7 +870,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="reference-transport-caveats"></a>
 
-## 2026-10-01 — from "## Constraints" — condensed wording of the caveats found by the Transport node: estimated species and the trace-elimination defect
+## 2026-10-01 — from "## Constraints" — condensed wording: caveats found by the Transport node: estimated species and the trace-elimination defect
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-12. The new wording stays at the pointer,
@@ -899,7 +899,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="reference-field-caveats"></a>
 
-## 2026-10-01 — from "## Constraints" — condensed wording of the caveats of the reference's fields (molar masses, frozen cv, gas-phase cp_fr)
+## 2026-10-01 — from "## Constraints" — condensed wording: caveats of the reference's fields (molar masses, frozen cv, gas-phase cp_fr)
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-12. The new wording stays at the pointer,
@@ -934,7 +934,7 @@ with every condition, name and number. The text as it stood:
 
 <a id="of-ratio-single-precision"></a>
 
-## 2026-10-01 — from "## Constraints" — condensed wording of the caveat: the package splits the kilogram in single precision
+## 2026-10-01 — from "## Constraints" — condensed wording: caveat: the package splits the kilogram in single precision
 
 Rewritten shorter because `BOOT.md` was over its limit (`AGENTS.md`, §15; the condensing
 rules of 2026-10-01, rule 5); the original date is 2026-09-12. The new wording stays at the pointer,
