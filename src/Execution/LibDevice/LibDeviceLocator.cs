@@ -1,4 +1,4 @@
-namespace APThermo.Execution;
+namespace APThermo.Execution.LibDevice;
 
 /// <summary>The host platform for libdevice discovery. Any value but <see cref="Windows"/> and <see cref="Linux"/> does no discovery.</summary>
 internal enum LocatorPlatform

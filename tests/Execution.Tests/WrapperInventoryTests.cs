@@ -1,3 +1,4 @@
+using APThermo.Execution.LibDevice;
 using APThermo.Fixtures;
 
 namespace APThermo.Execution.Tests;
