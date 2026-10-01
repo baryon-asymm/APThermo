@@ -24,8 +24,8 @@ protocol_lint: 2 errors, 1 warnings
 | `--list-nodes` | print the nodes found and exit |
 
 Exit code: `0` — no errors, `1` — there are errors (with `--strict`, warnings too),
-`2` — invocation error. Directories starting with a dot and the usual build
-directories are always skipped.
+`2` — invocation error. Directories starting with a dot, except `.github`, and the usual
+build directories are always skipped; `.github` is read as part of the tree.
 
 The `AGENTS.md` §15 line-limit check and the `HISTORY.md` citation check run on every
 invocation, unconditionally: there is no flag to silence either (`BOOT.md`,
