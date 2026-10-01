@@ -32,29 +32,13 @@ The definition of what "`Performance` is ready" means.
   snapshot that names no current fixture fails a test of its own instead of staying
   silent (`EveryApprovedLineNamesARocketFixture`, 2026-09-15).
 
-  ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
-  now keeps a Windows and a Linux record, since the CPU accelerator's `System.Math`
-  calls the platform's C runtime and the two do not round the last bit alike;
-  `ApprovedPath` resolves through `Harness.ApprovedSnapshot.ApprovedPathFor`
-  (`tests/Harness/API.md`), which picks `Bits.approved.txt` or `Bits.linux.approved.txt`
-  for the running platform, so this node's own code names no platform. The first Linux
-  run (2026-09-17, WSL2 Ubuntu 24.04, `f67b1a9` plus this task's harness change) did not
-  reproduce the Windows bits, within the tolerance the root BOOT.md records for the
-  difference; `Bits.linux.approved.txt` was approved from that run.
+  ⚠ 2026-09-17: was one snapshot file, now a Windows and a Linux record, picked by
+  `Harness.ApprovedSnapshot.ApprovedPathFor` → HISTORY.md#bits-per-platform
 
-  ⚠ 2026-09-19: the root BOOT.md's platform constraint (⚠ 2026-09-18, the declared
-  deviation from "every test runs on both platforms") holds that the bits are a
-  record of the reference machine, not of the platform alone: hosted CI runners land
-  on CPUs whose C runtime rounds the last bit differently from the reference
-  machine's. `EveryRocketFixtureGivesTheRecordedBits` and
-  `EveryApprovedLineNamesARocketFixture` now carry
-  `[Trait("Category", "BitSnapshot")]`, so both run in every local run (`CLAUDE.md`'s
-  fast set) and in the release's self-hosted jobs
-  (`.github/workflows/release.yml`'s `cuda-windows` and `cuda-linux`, filter
-  `Category=Cuda|Category=BitSnapshot`), and are filtered out of the hosted fast
-  suite (`ci.yml`; `release.yml`'s `matrix` job; filter
-  `Category!=LongRunning&Category!=BitSnapshot`), where the L0/L1 rows' comparison
-  against the CEA reference holds correctness instead.
+  ⚠ 2026-09-19: was bits as a record of the platform, now of the reference machine:
+  `EveryRocketFixtureGivesTheRecordedBits` and `EveryApprovedLineNamesARocketFixture`
+  carry `[Trait("Category", "BitSnapshot")]`, filtered out of the hosted fast suite
+  → HISTORY.md#bits-reference-machine
 - The node owns the tolerances of comparisons that are not with the reference: the
   invariants' tolerances and the self-consistency and identity tolerances are named
   constants of the node with their origin in a comment, never literals in an
@@ -97,15 +81,9 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 - The batch struct of the kernel test is public; a batch is a family of fixtures
   sharing a table and an exit layout.
 
-  ⚠ 2026-09-15 (distribution phase): this bullet gave the reason "because ILGPU
-  compiles kernels only over public parameter types". Wrong: ILGPU 1.5.3 needs only
-  `[assembly: InternalsVisibleTo("ILGPURuntime")]` on the declaring assembly to load an
-  internal kernel parameter type, method or view element; public is only one way to
-  satisfy it (the API review of 2026-09-15, section 3, fixed here in `24156be`,
-  proved it on the CPU accelerator and on CUDA — Execution's own four views structs
-  are internal now, with that grant). The claim entered with `f2e5de7`/`53ec9fb` on
-  2026-09-12. The struct stays public here; nothing in this node's own scope required
-  the change.
+  ⚠ 2026-09-15 (distribution phase): was "ILGPU compiles kernels only over public
+  parameter types", now `InternalsVisibleTo("ILGPURuntime")` suffices; the struct stays
+  public → HISTORY.md#kernel-struct-public
 
 - **No NaN-blind predicate** (2026-09-26, the guards audit of 2026-09-26 (`Audit 5`, the hidden-defect audit's fifth part), F5 and F6):
   - Every tolerance predicate of this node is written so that NaN fails it
@@ -156,21 +134,10 @@ position today (the criterion below).
       case red); the frozen-at-chamber fixtures run as shifting flow (every
       frozen-at-chamber fixture red); the kernel given a different chamber temperature
       estimate (every batch's `KernelEqualityTests` test red); area ratios below 1
-      accepted by the solver (that fixture case red). (Re-dated from 2026-09-12: the
-      hand-typed counts are gone, F-TK-03; the sonic/area-ratio mutation below moved
-      to its own paragraph.)
-
-      ⚠ 2026-09-14: this criterion stood "the solver's sonic and area-ratio tolerances
-      loosened to `1e-2` and `4e-2` (88 of 89 fixture cases and 89 of 89 invariant
-      cases red)". Re-run today before any other change, it turns nothing red: every
-      fixture's throat and exit search now reaches `RocketSolver.TightTolerance`
-      (`1e-10`) within `MaxThroatIterations`/`MaxAreaRatioIterations` before the loop
-      ever consults the report-tolerance fallback — a refinement that postdates the
-      2026-09-12 run and that this session's decomposition carried over unchanged (the
-      Bits level below is the proof it moved no formula). `SonicTolerance` and
-      `AreaRatioTolerance` are therefore dead code for every fixture of the current
-      tree; the criterion below mutates `TightTolerance` instead, the constant that
-      actually gates convergence, and records what it found.
+      accepted by the solver (that fixture case red). Re-dated from 2026-09-12.
+      ⚠ 2026-09-14: was the solver's sonic and area-ratio tolerances loosened to `1e-2`
+      and `4e-2` (88 of 89 cases red), now `RocketSolver.TightTolerance` loosened, the
+      report-tolerance fallback being dead code → HISTORY.md#crit-mutations
 - [x] 2026-09-14 — Bits level green:
       `BitSnapshotTests.EveryRocketFixtureGivesTheRecordedBits` over the
       enumerated rocket directory against `Bits.approved.txt`, recorded before any
@@ -233,14 +200,8 @@ position today (the criterion below).
       list. Every mutation restored afterwards; the Bits level did not move (no
       `src/Performance` file changed for this criterion).
 
-      ⚠ 2026-09-15: "each under fifteen lines" was not true: `FrozenComposition` held
-      18 lines that were not blank, `AssignedExit` 17, `EnergyEquation` 15 — at or,
-      for two of the three, above the claimed bound. Found by the repair review
-      (R-Performance.Tests-6); the bullet now states a bound every method meets,
-      under twenty lines of code, re-measured on the merged tree by the protocol
-      tests node's own tool (`ShapeMeasures.MethodLines`, run through a temporary,
-      uncommitted test): `SonicThroat` 6, `ConstantEntropy` 14, `EnergyEquation` 15,
-      `AssignedExit` 17, `FrozenComposition` 18 lines of code, all under the bound.
+      ⚠ 2026-09-15: was "each under fifteen lines", now under twenty lines of code (the
+      longest, `FrozenComposition`, 18) → HISTORY.md#crit-invariants-one-type
 - [x] 2026-09-15 — The creation of this node's `RocketBatchViews` in
       `KernelEqualityTests` names its arguments, in the order of the parameters (the
       root's condition on a declared wide constructor, the row of
@@ -275,33 +236,11 @@ position today (the criterion below).
       Verified: 699/699 tests green, `Bits.approved.txt` hash unchanged
       (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`), protocol lint 0/0.
 
-      ⚠ 2026-09-15: the forwarding properties did not hold. Two defects, found by the
-      repair review. First (R-Performance.Tests-2), `ChemicalSystem` mixed a batch's
-      shared axis with a case's own: `Elements` and `Products` are what `BatchKey`
-      groups cases by by construction, but `ElementMoles` is one case's own starting
-      composition and varies case to case inside a shared batch, exactly like
-      `ReactantEnthalpy`, which already sat outside `ChemicalSystem`. `BatchKey` itself
-      never read `ElementMoles` — a sign it was never part of the system a batch
-      shares. `ChemicalSystem` narrowed to `Elements`, `Products` (2 parameters), and
-      a new `Mixture` record holds `ElementMoles` and `ReactantEnthalpy` (2
-      parameters) as the case's own starting state; `RocketInputs` keeps `System`,
-      `Mixture`, `ChamberPressure`, `Flow`, `Exits`, still 5 parameters. Second
-      (R-Performance.Tests-3), keeping the flat names as forwarding properties was
-      the shortcut the decomposition should not have taken: it let the ~25 read call
-      sites stay unchanged only by hiding, behind a compatibility shim, which record
-      each field actually lives on. The forwarding properties on `RocketInputs`
-      (`Elements`, `ElementMoles`, `Products`, `ExitValues`, `ExitKinds`) and on
-      `RocketSolution` (`Stations`, `Moles`, `Multipliers`, `Figures`,
-      `StationStatus`, `Iterations`) are removed; every read call site in
-      `RocketCase.cs`, `RocketHost.cs` itself (`StationCount`, `TotalMoles`,
-      `MoleFraction`), `KernelEqualityTests.cs`, `StationComparison.cs`,
-      `SubsonicStationTests.cs`, `RocketInvariants.cs`, `RocketFixtureTests.cs`,
-      `InvariantTests.cs` and `BitSnapshotTests.cs` now names the sub-record it reads
-      (`.Outcome.`, `.System.`, `.Mixture.`, `.Exits.`) directly. No behaviour
-      changed: the same fields, on the same two records, under new names one level
-      down. Verified: 700/700 tests green (699 plus R-Performance.Tests-1's stale-key
-      fact), `Bits.approved.txt` hash unchanged
-      (`5aa32f2bbf679cdd0f47749b0780059ba89faa62`).
+      ⚠ 2026-09-15: was `ChemicalSystem` holding `ElementMoles` (now `Mixture` with
+      `ReactantEnthalpy`; `ChemicalSystem` is `Elements`, `Products`) and the flat
+      names kept as forwarding properties (now removed: every read site names
+      `.Outcome.`, `.System.`, `.Mixture.` or `.Exits.`); 700/700 tests green
+      → HISTORY.md#crit-rocket-inputs
 
 - [x] 2026-09-15 — `RocketBatchBuffers` (`KernelEqualityTests.cs`) is built by its own
       constructor, `(Accelerator, SpeciesTable, IReadOnlyList<RocketInputs>)`, 3
@@ -409,23 +348,9 @@ position today (the criterion below).
       last bits without moving the accepted pressure or any physical figure outside
       tolerance.
 
-      ⚠ 2026-09-28, measured field by field (the coordinator's second review, which
-      asked for a number, not only the mechanism): a throwaway diagnostic (`ZzDiag.cs`,
-      deleted before this commit) printed the throat station's pressure, temperature,
-      c*, mass flux, `GammaS`, Mach and every non-zero mole fraction, once with
-      `ThroatSearch.At`'s `UpstreamChokeCheck.Verify` call skipped (the pre-`627f815`
-      path standing unchanged) and once with the tree's current code, both against the
-      real `rp1311-example13` mixture (not the synthetic chamber of F4's own fact).
-      Pressure (12694259.494254986), temperature (2851.0000144702376) and `GammaS`
-      (0.9978925188362665) are bit-identical between the two runs. Every other field
-      differs only at the rounding floor: the largest relative change of any field,
-      over pressure, temperature, c*, mass flux, `GammaS`, Mach and 38 non-zero mole
-      fractions (41 fields in all), is 4.378e-13, on the condensed `BeO(b)` mole
-      fraction (old 0.020208206802093842, new 0.02020820680210269); c*, mass flux and
-      Mach each move by about 3.4e-14 relative. Both figures are nine to eleven orders
-      below the fixture tolerance table's own rows and far below a ~1e-9 relative floor
-      a genuine (non-rounding) divergence would have to clear: "a re-solve's rounding"
-      is what the measurement shows, not only what the mechanism's description implies.
+      ⚠ 2026-09-28, measured field by field: pressure, temperature and `GammaS` are
+      bit-identical, the largest relative change of 41 fields is 4.378e-13 (the
+      condensed `BeO(b)` mole fraction) → HISTORY.md#crit-example13-measured
 
       Old throat (before `627f815`, no `UpstreamChokeCheck` in the tree): p/p_c
       1.629424878440996⁻¹ = 0.613715559…, c* matching this node's own pre-`627f815`
