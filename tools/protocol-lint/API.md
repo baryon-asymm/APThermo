@@ -42,15 +42,23 @@ is confirmed to exist as a real `##` heading in the same document; naming a sect
 that does not exist is an `ERROR` on its own, independent of whether the document is
 over its limit.
 
-`ACCEPTANCE.md` (`AGENTS.md` 3.1) is checked where it stands:
+`ACCEPTANCE.md` (`AGENTS.md` 3.2) is checked where it stands, in any node, a leaf
+included:
 
 - it must stand beside a `BOOT.md` whose `## Acceptance criteria` is the one line
   `→ [ACCEPTANCE.md](ACCEPTANCE.md)`, and that pointer must resolve to a file: a
   pointer without a file and a file without a pointer are each an `ERROR`;
-- it may stand only in a node with children: in a leaf it is an `ERROR`;
-- a ticked criterion in it carries a date, a `WARN` like the one in a `BOOT.md`;
-- it is held to 400 non-blank lines, an `ERROR` over it, with no deviation available;
-- a root `BOOT.md` with the pointer is measured against 400 lines instead of 250.
+- a ticked criterion in it carries a date, a `WARN` like the one in a `BOOT.md`; the
+  whole file is read, with or without a `## Acceptance criteria` heading;
+- it is held to 400 non-blank lines: an `ERROR` over it, or, when the node's own
+  `BOOT.md` carries a line starting `⚠ Declared deviation, §15:`, a `WARN` quoting that
+  line;
+- a root `BOOT.md` with the pointer is measured against 400 lines instead of 250; the
+  pointer changes no other node's limit.
+
+  ⚠ 2026-10-01: stood "it may stand only in a node with children: in a leaf it is an
+  `ERROR`" and "with no deviation available", and the dates were read in the section
+  only; now as above (`AGENTS.md` 3.2).
 
 Independent of the size check, every `HISTORY.md#<anchor>` citation is resolved,
 wherever it is written: a `BOOT.md`, an `API.md`, `ACCEPTANCE.md` or any other document

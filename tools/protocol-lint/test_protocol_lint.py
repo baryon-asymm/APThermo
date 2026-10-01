@@ -452,14 +452,67 @@ Written inline: `[Neighbour](../Neighbour/API.md)`.
         self.write("ACCEPTANCE.md", self.ACCEPTANCE)
         self.assertFinding("ERROR", "6", "ACCEPTANCE.md", "does not point to it")
 
-    def test_acceptance_md_in_a_leaf_is_an_error(self) -> None:
-        self.write("b/BOOT.md", BOOT.format(name="b", dependencies="None").replace(
+    def leaf_boot_with_pointer(self, extra: str = "") -> str:
+        """The leaf `b`'s BOOT.md with its criteria handed to ACCEPTANCE.md."""
+        return BOOT.format(name="b", dependencies="None").replace(
             "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).",
             "→ [ACCEPTANCE.md](ACCEPTANCE.md)",
-        ))
+        ) + extra
+
+    def criteria(self, count: int) -> str:
+        return "\n".join(
+            "- [x] Criterion {} holds (2026-09-12, `Criterion{}Test`).".format(i, i)
+            for i in range(count)
+        )
+
+    def test_acceptance_md_in_a_leaf_is_clean(self) -> None:
+        """AGENTS.md 3.2: any node may keep the file, a leaf too."""
+        self.write("b/BOOT.md", self.leaf_boot_with_pointer())
         self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n## Acceptance criteria\n\n"
                                        "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).\n")
-        self.assertFinding("ERROR", "15", "b/ACCEPTANCE.md", "leaf")
+        self.assertEqual([], self.findings())
+
+    def test_a_leaf_moving_its_criteria_out_comes_inside_its_limit(self) -> None:
+        """300 lines of rules and 200 of criteria: over the leaf's 400 inline, inside it
+        once the criteria stand in ACCEPTANCE.md."""
+        rules = "\n" + self.filler(300)
+        self.write(
+            "b/BOOT.md",
+            BOOT.format(name="b", dependencies="None").replace(
+                "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).", self.criteria(200),
+            ) + rules,
+        )
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "400-line limit")
+
+        self.write("b/BOOT.md", self.leaf_boot_with_pointer(rules))
+        self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n## Acceptance criteria\n\n"
+                                       + self.criteria(200) + "\n")
+        self.assertEqual([], self.findings())
+
+    def test_a_declared_deviation_downgrades_an_acceptance_overflow_to_a_warning(self) -> None:
+        deviation = "⚠ Declared deviation, §15: the criteria are one table nobody may cut."
+        self.write("b/BOOT.md", self.leaf_boot_with_pointer("\n" + deviation + "\n"))
+        self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n" + self.filler(410) + "\n")
+        findings = self.findings()
+        self.assertFinding("WARN", "15", "b/ACCEPTANCE.md", "declared deviation", findings)
+        self.assertFinding("WARN", "15", "b/ACCEPTANCE.md", "nobody may cut", findings)
+        self.assertEqual([], [f for f in findings if f.level == "ERROR"])
+
+    def test_a_leaf_with_the_pointer_keeps_the_leaf_limit(self) -> None:
+        """The pointer exempts only the root: a leaf is measured against 400 lines with
+        it as without it, and not against 250."""
+        self.write("b/BOOT.md", self.leaf_boot_with_pointer("\n" + self.filler(300)))
+        self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n## Acceptance criteria\n\n"
+                                       "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).\n")
+        self.assertEqual([], self.findings())
+
+        self.write("b/BOOT.md", self.leaf_boot_with_pointer("\n" + self.filler(420)))
+        self.assertFinding("ERROR", "15", "b/BOOT.md", "400-line limit")
+
+    def test_acceptance_md_in_a_leaf_over_400_lines_is_an_error(self) -> None:
+        self.write("b/BOOT.md", self.leaf_boot_with_pointer())
+        self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n" + self.filler(410) + "\n")
+        self.assertFinding("ERROR", "15", "b/ACCEPTANCE.md", "400-line limit")
 
     def test_an_undated_tick_in_acceptance_md_is_a_warning(self) -> None:
         self.write("BOOT.md", self.root_boot_with_pointer())
@@ -467,6 +520,16 @@ Written inline: `[Neighbour](../Neighbour/API.md)`.
             "ACCEPTANCE.md",
             "# ACCEPTANCE.md - root\n\n## Acceptance criteria\n\n"
             "- [x] It does the thing (`ItDoesTheThing`).\n",
+        )
+        self.assertFinding("WARN", "6", "ACCEPTANCE.md", "no date")
+
+    def test_an_undated_tick_in_a_headingless_acceptance_md_is_a_warning(self) -> None:
+        """The file holds criteria throughout, so its ticks are read whether or not it
+        carries the section heading."""
+        self.write("BOOT.md", self.root_boot_with_pointer())
+        self.write(
+            "ACCEPTANCE.md",
+            "# ACCEPTANCE.md - root\n\n- [x] It does the thing (`ItDoesTheThing`).\n",
         )
         self.assertFinding("WARN", "6", "ACCEPTANCE.md", "no date")
 
