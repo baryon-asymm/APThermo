@@ -93,7 +93,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `Problems` BOOT.md). The package's own equilibrium and rocket solvers do not converge a
   pure-`Br2(cr)` problem near its own reactant enthalpy ("Mixture temperature outside of
   allowable bounds", checked by hand against the pinned package), consistent with the
-  record being out of range for the candidacy test too (Thermo BOOT.md, 2026-09-26: "Br2(cr)
+  record being out of range for the candidacy test too (`src/Thermo/HISTORY.md#record-bounds`: "Br2(cr)
   is in range nowhere, in the reference too"). A `reactant` case carries no equilibrium
   solve: `inputs.reactants` (the reactant description, as every other kind's `inputs` does)
   and `inputs.temperature`, `outputs.enthalpyPerKilogram` from the package's own
@@ -607,7 +607,7 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       here rather than left to be found in the diff.
 
 - [x] 2026-09-28 — The throat family's four F1 cases (the case matrix; the second
-      hidden-defect audit's finding F1, Performance `BOOT.md`): `throat_scan.py` gains
+      hidden-defect audit's finding F1, `src/Performance/HISTORY.md#throat-first-maximum`): `throat_scan.py` gains
       `_first_local_max` (the first local maximum met scanning from the chamber side,
       in place of the grid's overall maximum), the `ELEMENT_MIXTURE_CASES` list and
       `element_mixture_throats`, and the guard's second accepted branch (the ⚠ of
@@ -642,7 +642,7 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
       full suite (`Fixtures.Tests`), not read off a typed number in this document.
 
 - [x] 2026-09-28 — The throat family's three F3 cases (the case matrix; the second
-      hidden-defect audit's finding F3, Performance `BOOT.md`): `throat_scan.py` gains
+      hidden-defect audit's finding F3, `src/Performance/HISTORY.md#crit-second-audit`): `throat_scan.py` gains
       the `PLATEAU_EDGE_CASES` list (representative points of the audit's own Li2O
       (`li-o-h`) and BeO/H2O (`be-o-h`) systems) and `plateau_edge_throats`, sharing
       `element_mixture_throats`'s generation method (renamed `_element_mixture_throats`,
@@ -681,7 +681,7 @@ measurement, still one call site (`CeaFixtures.ReadProvenance`), still fully nam
         (h 2.2375 MJ/kg) that ends `Ok` was used instead, still within the audit's own
         band and citing the audit's system and pressure.
 
-      Evidence: `dotnet test tests/Performance.Tests` 1418/1418 (Performance `BOOT.md`
+      Evidence: `dotnet test tests/Performance.Tests` 1418/1418 (`src/Performance/HISTORY.md#crit-second-audit`
       has the F3 fact's own red-once record); `Fixtures.Tests` 34/34;
       `regenerate.py --check` (no kind filter), after the full-tree re-provenance
       below, exits 0.
