@@ -304,6 +304,15 @@ delivery (2026-09-15, `## Delivery` below).
   constant in either position. Found by the second hidden-defect audit of 2026-09-28,
   on the reference device and in ILGPU's source.
 
+  A fourth hazard of the same version (2026-10-01): its transfer overloads that take a
+  `ref T` into host memory do not pin it, and a garbage collection between the pointer
+  and the copy moves the array under the copy. A lost download handed a consumer an `Ok`
+  case with zero figures (`CaseStatus.Ok` is 0), against the failures-are-values
+  invariant, from the first commit to 0.2.0's first tag. The rule: host memory crosses
+  into ILGPU only through an overload that pins it, and a download that wrote nothing is
+  refused. The execution node's `Chunks` child holds both (its `BOOT.md`); the protocol
+  tests node checks that no `src` method calls a by-reference transfer.
+
   ⚠ 2026-09-26: stood "defective with libnvvm 12.9 and 13.3 … The execution node links
   the libdevice wrappers itself". The defect depends on the target architecture, not on
   the libnvvm version. It was measured only on the reference machine's SM_120, where
@@ -712,6 +721,13 @@ There is no external ancestor: the tree root is the repository root, and the loa
       record is re-approved: the run-to-run spread is larger than the effect. The
       release job's filter is green on Windows in Release. The per-project peaks of the
       fast suite went from 14 to over 27 GB to 0.75 to 1.6 GB, the whole solution 4.8 GB.
+
+- [ ] Host transfers are pinned (2026-10-01, the fourth hazard under the ILGPU
+      constraint): the `Chunks` node's criterion of the same date is ticked, its stress
+      among its evidence, before `v0.2.0` is tagged again. The tag `v0.2.0` of
+      `05e2d39` is moved once, to the commit of this fix, after a green rehearsal, as
+      `v0.1.0` was: its release run failed before any package was published (the
+      owner's decision of 2026-10-01).
 
 ## Taboos
 

@@ -1800,6 +1800,21 @@ suppression passed every guard of the hosted suite.
         after such a run; adding it to `.gitignore` is the root's file, raised to the owner, not
         edited from here (AGENTS.md §11).
 
+- [ ] No `src` method passes host memory to ILGPU by reference (2026-10-01, the root's
+      fourth ILGPU hazard; `src/Execution/Chunks/BOOT.md`, "Host memory crosses into
+      ILGPU pinned"). A fact in `InvariantTests`, over the IL of every assembly of the
+      `src` nodes (not only the numerical ones: the transfers live in the execution
+      node), refuses every call to a method declared in an ILGPU assembly whose name is
+      `CopyToCPU`, `CopyFromCPU` or starts with either, and one of whose parameters is a
+      by-reference type. The message names the calling type and method and the callee's
+      signature. It fails on an empty walk (no call to any ILGPU transfer found at all:
+      the walk would then prove nothing), like the other IL facts of this node.
+      - Red at `05e2d39`, on `ChunkBuffer<T>.UploadChunk` and `.DownloadChunk`; green
+        once the `Chunks` node's fix is in. The walk reads the method bodies the
+        dependency check already reads (`IlBody`), including the closed generic calls
+        of `ChunkBuffer<T>`.
+      - The root-invariants row of the table at the top of this document names it.
+
 ## Taboos
 
 - Do not make a check pass by editing the documents when the check is wrong: fix the check.

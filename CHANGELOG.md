@@ -101,6 +101,14 @@ most important being that 0.1.0 could not run on CUDA on any GPU older than Blac
   `StateRecordException` and `MixtureMassException`.
 
 ### Fixed
+- A transfer between the host and the accelerator could be lost to a .NET garbage
+  collection that moved the host array during the copy, on the CPU accelerator and on
+  CUDA alike, since 0.1.0. A lost download returned a case with status `Ok` and its
+  figures zero, most often the transport figures; a lost upload made the kernel read
+  stale memory. Rare in practice (it needs a collection inside the copy), and more
+  likely on a busy machine with few cores. Every transfer now pins the host memory,
+  and a download that wrote nothing throws `InvalidOperationException` instead of
+  returning zeros.
 - GPU (CUDA):
   - 0.1.0 threw on every CUDA run on GPUs of compute capability 7.5 to 9.0 (Turing to
     Hopper). ILGPU 1.5.3 completes the libdevice functions itself on those

@@ -686,6 +686,14 @@ libdevice for the CUDA category.
       tree (the root's Compile size constraint); with the bound and before the second
       allocation was removed, the test host peaked at 1.81 to 2.11 GiB.
 
+- [ ] The transfers of the `Chunks` child node are proved (2026-10-01): the compacting
+      collection fact and the guard fact of `src/Execution/Chunks/BOOT.md`'s criterion of
+      that date live here, in `ChunkTransferTests`, on the CPU accelerator, and run in the
+      fast suite under `APTHERMO_NO_CUDA=1`. The collection fact holds ILGPU's private
+      `Accelerator.syncRoot` from a helper thread for at most the duration of one forced
+      collection, with a timeout on every wait so that a broken construction fails in
+      seconds rather than hanging the run.
+
 ## Taboos
 
 - Do not loosen the GPU/CPU tolerance for green: a divergence is a finding about

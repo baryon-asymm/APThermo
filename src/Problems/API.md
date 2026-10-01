@@ -441,7 +441,7 @@ the same commit as the renames above:
 | transport requested for a state batch on a database loaded without `trans.inp`, or a `StateBatchOptions.MassTolerance` that is negative or not finite (2026-09-28, finding F3: a condition of the batch, not of any one record) | `ArgumentException` naming the option, from `SolveStates` and `SolveRocketStates`, never attributed to a record, before any kernel runs |
 | a mixture whose element moles weigh more or less than one kilogram with the database's atomic weights by more than the mixture's `MassTolerance` (a doubled record, mol/g, kmol/kg, a reactant record whose molar mass contradicts its formula) | `MixtureMassException` (an `ArgumentException`) naming the mixture (`mixture i`, `state record i`, the propellant's mixture), the mass in grams and the tolerance in force, from `Solve`, `SolveStates` and `SolveRocketStates`, before any kernel runs |
 | a mass tolerance that is negative or not finite | `ArgumentException` naming `massTolerance`, from `Create` |
-| accelerator unavailable or ILGPU mismatch | the `Execution` exceptions, unchanged |
+| accelerator unavailable, ILGPU mismatch, or a download from the accelerator left unwritten (2026-10-01) | the `Execution` exceptions, unchanged |
 | per-case numerical failure | `Status` on the result and on the station; no exception |
 | a disposed solver | `ObjectDisposedException`, from every public method; `Database` and `Accelerator` stay readable |
 

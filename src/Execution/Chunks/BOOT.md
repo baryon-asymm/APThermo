@@ -104,6 +104,67 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
   chosen plan is asserted against `MaxElementsPerCase`, not only `ChunkPlan.For` with
   explicit numbers.
 
+- **Host memory crosses into ILGPU pinned** (2026-10-01, the release run of `v0.2.0`,
+  run 36823164901). Every transfer between a host array and a device buffer goes
+  through an ILGPU overload that pins the host memory for the transfer: the
+  `Span<T>`/`ReadOnlySpan<T>` overloads of `CopyToCPU` and `CopyFromCPU` (on
+  `Allocated.View.BaseView.SubView(0, span)`, the contiguous view the overload without
+  a stream takes) or the `T[]` overload. A `ref` into a managed array never reaches an
+  ILGPU transfer: not `CopyToCPU(ref T, long)`, not `CopyFromCPU(ref T, long)`, not
+  their `*UnsafeAsync` forms.
+  - Why: ILGPU 1.5.3's `ref T` overloads turn the reference into a raw pointer
+    (`CPU/CPUMemoryBuffer.cs:491`, `Unsafe.AsPointer`) and then allocate and lock
+    (`:527`, `AcceleratorObject.cs:54`, `:191-192`) before the copy runs. A compacting
+    garbage collection in that window moves the array, and the copy reads or writes its
+    old address. ILGPU's span and array overloads pin first
+    (`ArrayViewExtensions.cs:1258`, `:1289`, `fixed`); its `ref` overloads leave the pin
+    to the caller. A lost download leaves the host slice as it was, zero-initialised,
+    and `CaseStatus.Ok` is 0: the consumer receives an `Ok` case with zero figures. A
+    lost upload makes the kernel read the array's old location. The path is the same on
+    CUDA, where ILGPU takes the pointer before it branches on the accelerator type.
+  - The `int` casts the span overloads need are safe: `BatchLength.Of` (the parent's)
+    caps every host array at `int.MaxValue` elements.
+  - ⚠ 2026-10-01: the fix of the second audit's observation 6 (2026-09-28) called the
+    `ref` copy unsafe for its bounds only and added the length check before it
+    (`CheckHostLength`, its comment in `ChunkBuffer.cs`). The copy was unsafe for its
+    address as well, since the first commit of the parent node (`53ec9fb`,
+    2026-09-12), so 0.1.0 carries the defect. Found by the release run of `v0.2.0` on a
+    hosted `ubuntu-latest` runner: one rocket case of `Problems.Tests` came back `Ok`
+    with every transport figure 0 on all four stations, while the two runs of the same
+    commit before it were green. The investigation of 2026-10-01 reproduced it: a
+    probe that holds the accelerator's lock across a forced compacting collection loses
+    a 4-element download deterministically, and 4000 solves of that case under
+    `DOTNET_GCgen0size=0x10000` on 4 cores lost 7 to 9 downloads per run, 0 with the
+    span overloads (the reports are kept out of the tree with the audits').
+  - The length check stays: the span constructor refuses a slice past the array's end
+    with its own `ArgumentOutOfRangeException`, but `CheckHostLength` names the chunk.
+
+- **A download that wrote nothing is refused** (2026-10-01, the owner's decision for
+  0.2.0: the fix and a guard). Before `DownloadChunk` copies an `Output` or
+  `ClearedOutput` buffer, it fills the chunk's host slice with the sentinel, every byte
+  `0xFF`. After the copy it refuses a slice whose every element still holds the
+  sentinel: `InvalidOperationException` naming the element type, the chunk's offset and
+  length and the words "a download from the accelerator left its host slice
+  unwritten".
+  - It catches any lost download, whatever the cause, and leaves no `Ok` with zero
+    figures behind. A copy that ran writes the device's bytes over the whole slice. The
+    device side holds what the kernel wrote, or zeros for a `ClearedOutput` slot no case
+    wrote, so it is never the sentinel everywhere:
+    - an `int` or `CaseStatus` slice of all `-1`: no status is `-1`;
+    - a `double` slice in which every value is the NaN with every bit set: no kernel
+      produces that NaN. The NaN of x86 arithmetic is `0xFFF8000000000000` and PTX's
+      canonical NaN `0x7FFFFFFF…`, and a payload only propagates from an input that
+      carries it.
+    The coder lists the element type of every `Output` and `ClearedOutput` declaration
+    of the four pipelines and confirms the argument for each. A type the argument does
+    not cover (a `byte` or `bool` slice a kernel may fill with `0xFF`) is reported to
+    the owner of this design, not guarded by a weaker rule.
+  - A lost upload is not detectable here; the pinned transfer above is its only guard.
+  - The cost is one fill and one scan of the host slice per download, against a solve
+    per case; the throughput tripwire of the tests node shows it.
+  - No result changes: the sentinel is always overwritten by a copy that ran, so every
+    bit snapshot holds unchanged.
+
 ## Acceptance criteria
 
 - [x] 2026-09-15 — The split changes no result: `tests/Execution.Tests`' bit-for-bit
@@ -213,8 +274,40 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       Verified on the reference machine alongside the criterion above (same build and
       protocol-test evidence).
 
+- [ ] Host transfers are pinned, and an unwritten download is refused (2026-10-01, the two
+      constraints above).
+      - `ChunkBuffer<T>`'s `UploadChunk` and `DownloadChunk` call ILGPU's span overloads;
+        no `ref` transfer is left in `src`.
+      - A fact in `tests/Execution.Tests`, "a chunk download survives a compacting
+        collection inside its transfer": a `ChunkBuffers` with one `Output<int>` buffer,
+        the device filled with a pattern; a helper thread holds ILGPU's
+        `Accelerator.syncRoot` (a private field, reached by reflection; ILGPU's version
+        is asserted by the parent's `LibDevicePostLink.AssertIlgpu`) while the main
+        thread enters `DownloadChunk`, runs `GC.Collect(0, GCCollectionMode.Forced,
+        blocking: true, compacting: true)` and releases it; the fact asserts that the
+        pattern arrived in the host array, and that the collection compacted: a second,
+        unpinned array of the same age, allocated beside the host array, has another
+        address after the collection than before it, so the fact cannot pass on a
+        collection that moved nothing. Red once with the `ref` overload restored and the guard removed
+        (the host holds zeros), and with the `ref` overload restored and the guard kept
+        (the guard's `InvalidOperationException`).
+      - A fact on the guard alone: a slice that holds the sentinel everywhere is
+        refused naming the type, the offset and the length; a slice with one element
+        written passes; an empty slice is not refused (nothing to download). Red once
+        with the check removed.
+      - The protocol tests node's check that no `src` method calls an ILGPU transfer
+        with a by-reference parameter (its `BOOT.md`), red at `05e2d39` on the two sites.
+      - Every bit snapshot unchanged, the throughput tripwire within its floor, the
+        fast suite green on Windows and under WSL2, the execution tests node green on
+        CUDA on the reference machine.
+      - The stress of the investigation, run by the orchestrator in WSL2 on the merged
+        tree: 4000 solves of `nto-udmh_of2.6_pc2MPa_shiftingEquilibrium` under
+        `DOTNET_GCgen0size=0x10000` on 4 cores, 0 lost downloads and 0 refusals.
+
 ## Taboos
 
+- No `ref` into a managed array passed to an ILGPU transfer: the array can move under
+  the copy (the constraint above, 2026-10-01).
 - No public type: a cluster that needs one stays at the parent's own level instead
   (root `BOOT.md`, 2026-09-15).
 - No CUDA type (`ILGPU.Runtime.Cuda`): inherited from the root, unchanged by the split.

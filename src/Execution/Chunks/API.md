@@ -129,12 +129,30 @@ kernel's views struct. `IChunkBuffer` and `ChunkTransfer` exist so `ChunkBuffers
 hold buffers of different element types in one list and move them uniformly; no code
 outside this node names either.
 
+## Unwritten downloads ⏳
+
+```csharp
+namespace APThermo.Execution.Chunks;
+
+internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
+{
+    // 2026-10-01: true when every element of the slice still holds the sentinel (every byte 0xFF);
+    // false for an empty slice. DownloadChunk fills the slice with the sentinel, copies, and throws
+    // when this is true (BOOT.md, "A download that wrote nothing is refused").
+    internal static bool HoldsOnlySentinel(ReadOnlySpan<T> slice);
+}
+```
+
 ## Side effects
 
 `ChunkBuffer<T>.Allocate` allocates one device buffer through the given `Accelerator`
 and, for a `Constant` buffer, uploads its host array immediately. `UploadChunk` and
 `DownloadChunk` copy between a chunk's slice of the host array and the device buffer,
-or clear the device buffer (`ClearedOutput`, before the launch). `Dispose` frees the
+or clear the device buffer (`ClearedOutput`, before the launch). Every copy pins the
+host array for its duration (2026-10-01). `DownloadChunk` first fills the chunk's host
+slice with the sentinel and throws `InvalidOperationException` when the copy left the
+whole slice holding it ("a download from the accelerator left its host slice
+unwritten", naming the element type, the chunk's offset and length). `Dispose` frees the
 device buffer; disposing a `ChunkBuffers` disposes every buffer it declared. Reading
 `.View` or any transfer method before `Allocate` throws
 `InvalidOperationException`; nothing here retries or degrades an accelerator failure,
