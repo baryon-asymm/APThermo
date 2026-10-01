@@ -369,6 +369,7 @@ carries the contracts. → HISTORY.md#structure-decisions-intro
 ⚠ 2026-09-15: was `AtomicWeights` the one translation of a missing atomic weight, now
 two, `ReactantResolver.Custom` naming the reactant too
 → HISTORY.md#structure-atomic-weights-two
+
 - **The element order of first appearance is stated once** (2026-09-15, the clean-code
   repair's R-Problems-4):
   `ElementOrder.OfFirstAppearance(IEnumerable<IEnumerable<string>>)` holds the rule,
