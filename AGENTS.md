@@ -22,6 +22,9 @@
 >
 > Version 3.1 (2026-09-27) was lived through on the CompositePropellantMicrostructure
 > tree; its additions are listed in Appendix C.
+>
+> Version 3.2 (2026-10-01) was measured on the AerospacePropellantThermodynamics and
+> CompositePropellantMicrostructure trees; its additions are listed in Appendix D.
 
 ---
 
@@ -75,7 +78,7 @@ Three clarifications:
 | `BOOT.md` | every node | the level's context + a spec sufficient for autonomous implementation | when the node's intent changes |
 | `API.md` | every node | the level's public contract (outward interfaces only) | when the node's interface changes |
 | `HISTORY.md` | any node, when its `BOOT.md` overflows (§15) | append-only store of what is no longer the current truth: the full text of ⚠ corrections, superseded measurements, run tables | when a document overflows its limit |
-| `ACCEPTANCE.md` | a node with children, when its `BOOT.md` points to it (§15) | the node's acceptance criteria: current truth, read only in its own node | when a criterion is added, ticked, re-verified or reformulated |
+| `ACCEPTANCE.md` | any node, when its `BOOT.md` points to it (§15) | the node's acceptance criteria: current truth, read only in its own node | when a criterion is added, ticked, re-verified or reformulated |
 | `PublicSurface.approved.txt` | tests node, optional | snapshot of the assembly's public surface; a tripwire, not a contract (§13) | together with `API.md`, in the same commit |
 | loader (`CLAUDE.md` and the like) | repository root, optional | plugs in `AGENTS.md` and the root `BOOT.md`, holds the build and check commands | when the commands change |
 
@@ -199,10 +202,11 @@ divergence from the code.
 - a criterion that cannot be met is not deleted but reformulated, with a note on why
   the original wording was wrong: the history of a criterion is part of the context.
 
-A node with children may keep these criteria in `ACCEPTANCE.md` beside its `BOOT.md`
+A node may keep these criteria in `ACCEPTANCE.md` beside its `BOOT.md`
 (§15); its `## Acceptance criteria` then consists of the one line
 `→ [ACCEPTANCE.md](ACCEPTANCE.md)`, and every rule of this article applies to that file
-as it would to the section.
+as it would to the section. The file holds criteria, their evidence and their history,
+never a rule: a rule stays in `BOOT.md` even where a criterion checks it.
 
 ## 7. Status marks in API.md
 
@@ -345,7 +349,7 @@ The protocol distinguishes what the machine can hold and what no tooling can.
 | a ticked acceptance criterion carries a date, in `BOOT.md` or `ACCEPTANCE.md` | §6 | warning |
 | `BOOT.md` and `ACCEPTANCE.md` within their line limits, unless the node declares the deviation | §15 | error |
 | names declared under ✅ occur in the node's code (textual approximation) | §7 | warning |
-| `ACCEPTANCE.md` stands only in a node with children, and only where `## Acceptance criteria` is the one pointer line | §6, §15 | error |
+| `ACCEPTANCE.md` stands exactly where `## Acceptance criteria` is the one pointer line | §6, §15 | error |
 | every `HISTORY.md#<anchor>` cited outside a `HISTORY.md`, in a document or in code, in backticks or not, resolves in the named node or, bare, in the citing node or an ancestor | §15 | error |
 
 **Require reflection and are written for the specific stack** (the reference
@@ -418,7 +422,7 @@ limit follows that arithmetic.
 
 **A `BOOT.md` holds at most 250 non-blank lines in a node with children, 400 in a
 leaf, and 400 at the root once its acceptance criteria live in `ACCEPTANCE.md`, a file
-itself held to 400; whatever is no longer the current truth — the full text of ⚠
+any node may keep, itself held to 400; whatever is no longer the current truth — the full text of ⚠
 corrections, superseded measurements, sweeps and run tables — moves, oldest first, to
 the node's append-only `HISTORY.md`, leaving a dated one-line pointer in place, and the
 linter reports the limit as an error unless the node declares the deviation (§12).**
@@ -462,7 +466,13 @@ The details of that sentence:
   root's limit is the leaf's only on that condition: every session reads it whole,
   through the loader as well as through §10, and it cannot hand its frame to a child,
   being the one common ancestor of what that frame binds (§3); it can hand over its
-  evidence, the part that grows with every re-verification.
+  evidence, the part that grows with every re-verification. A leaf may keep the file
+  too, for the growth alone. It saves no reading there: §10 reads both files at the
+  start, so a session in a leaf may read 800 lines of its own node, as one in the root
+  may. But under one count every new line of evidence displaces a line of rule; split,
+  the leaf's 400 measures its rules, and a leaf whose rules alone exceed it is split or
+  declares the deviation. The split replaces no move: what is no longer current truth
+  leaves either file for `HISTORY.md` by this article's rule.
 - **A node whose specification is a transcription** of an external source already
   declares a deviation of §6 (it cannot be self-sufficient without that source). That
   line must name, in the same line, the sections the source replaces —
@@ -525,3 +535,14 @@ Everything listed was lived through on the second tree and only then written dow
 - §13, §15 — anchors in backticks: an anchor cited in ten files, among them a ticked
   criterion's evidence place, was defined nowhere, and the linter passed because it
   resolved anchors outside backticks only.
+
+## Appendix D. What version 3.2 added
+
+- §2, §6, §13, §15 — `ACCEPTANCE.md` in any node (2026-10-01). On one tree eight of
+  twenty-six leaves stood at 396–400 lines while their criteria grew, one by 54 lines in
+  two days; on the other, of seven leaves over 400, splitting brought five inside and
+  left two over on their rules alone. Rejected: a separate count of a leaf's section
+  without the file, a second mechanism for one rule.
+- §13 — the linter reads dates in the whole `ACCEPTANCE.md` and grants its limit the
+  deviation the table always named: an undated tick in a file without the section
+  heading had passed unseen.
