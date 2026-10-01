@@ -53,6 +53,15 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
   undocumented order, so the document's key and column order cannot depend on a
   runtime detail (the parent's `BOOT.md`, F-CL-06).
 - No JSON parsing and no document-shape validation: this node only writes.
+- **Audit fixes of 2026-09-26** (the hidden-defect audit of that day; moved here from the
+  [parent's](../BOOT.md) constraints, AGENTS.md §11):
+  - **Output.** CSV column names are unique. The input columns carry the prefix
+    `inputs.`, the JSON member they come from (`inputs.pressure` beside the state's
+    `pressure`).
+    - ⚠ For `equilibrium` and `states`, `pressure`, `temperature`, `enthalpy` and
+      `entropy` appeared twice. pandas read the second as `pressure.1`, Python's
+      `csv.DictReader` kept the last, and on a rocket record's exit row the two
+      readers returned the chamber and the exit pressure under one name.
 
 ## Acceptance criteria
 

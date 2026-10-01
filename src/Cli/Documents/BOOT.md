@@ -60,6 +60,31 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
   the field's own optional/required rule.
 - `StrictObject` is a class, not a struct or a static helper, because it carries the
   set of fields already read across the calls a reader makes to it before `Finish`.
+- **Audit fixes of 2026-09-26** (the hidden-defect audit of that day; moved here from the
+  [parent's](../BOOT.md) constraints, AGENTS.md §11):
+  - **Documents.** A JSON member given twice is refused with its path.
+    - ⚠ The last value won. `"chamberPressure": 7.0e6, "chamberPressure": 7.0e5`
+      solved the 0.7 MPa case with exit 0.
+- **Audit fixes of 2026-09-28** (the second hidden-defect audit; moved here from the
+  [parent's](../BOOT.md) constraints, AGENTS.md §11):
+  - **Documents: sweeps are bounded.** A range whose step count is not finite, or
+    whose values exceed a declared limit, is refused with its path, and so is a
+    sweep whose Cartesian product exceeds a declared limit. The limits are 1 000 000
+    values per axis and 10 000 000 cases per document. They are named constants,
+    stated in `API.md`. The "ends on a step" test runs only on a finite step count, so
+    its reason is never false.
+    - ⚠ `(int)Math.Round` of a step count beyond `int.MaxValue`, infinity included,
+      saturated to `int.MaxValue`. `count + 1` then wrapped, and the allocation threw an
+      `OverflowException`: exit 3 on `from` 1, `to` 1e308, `step` 1e-300. `to` 3e9,
+      `step` 1 was refused with the false reason "is not an integer". Three axes of
+      2 000 values each would have been materialized as 8 × 10⁹ cases (finding F4).
+  - **Documents: text that is not valid UTF-16 is refused.** A JSON escape that is not
+    valid UTF-16 (a lone surrogate, `"\ud800"`) is refused with the path of the member
+    or value that carries it: exit 2.
+    - ⚠ `JsonDocument` accepts such an escape, and unescaping it threw
+      `InvalidOperationException`, exit 3. It happened in a member name or a string
+      (finding F6, present since the first version). Since 2026-09-26 the duplicate
+      check reaches it at every object's construction.
 
 ## Acceptance criteria
 
