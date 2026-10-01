@@ -59,8 +59,8 @@ own `BOOT.md`.
 
 Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 
-- Hand-written parsing, no argument-parsing package (the parent's `BOOT.md`, `##
-  Structure`, `CommandLine`'s row: "no dependency for it").
+- Hand-written parsing, no argument-parsing package (the parent's `BOOT.md`, `## Dependencies`,
+  "parsing is hand-written to avoid a dependency").
 - `CommandOptions` is declared with init properties and a default per field, never a
   positional constructor, so a construction site at the tables (`CommandTable.Options`)
   names every field it changes with `with`.

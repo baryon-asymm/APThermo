@@ -132,8 +132,8 @@ frame; this file holds the criteria that prove it, read only in the root node.
       depends on that.
 
       ⚠ 2026-09-17: restored after an unreviewed rewrite of 2026-09-16 that dropped the
-      package restore into the samples (the ⚠ of that date under `## Delivery`,
-      Documentation).
+      package restore into the samples (the ⚠ of that date, now at
+      [HISTORY.md#restored](HISTORY.md#restored)).
 - [x] 2026-09-17 — The documentation (2026-09-15), proven by the docs tests node, with every check
       shown red once and failing on an empty set:
       - every C# block of the guide equals its snippet (`SnippetTests`, and
@@ -153,7 +153,8 @@ frame; this file holds the criteria that prove it, read only in the root node.
       `BOOT.md`, and four read-only documentation reviews on 2026-09-17, the last at
       `48fecae` with no blocker and no major; its minors were closed at `587f05d`.
 
-      Corrected 2026-09-17: the list follows the Documentation bullet of `## Delivery`.
+      Corrected 2026-09-17: the list follows the check table of
+      `tests/Docs.Tests/BOOT.md`, where the Documentation bullet of `## Delivery` points.
       "Every code block … equals its sample region" predated the snippet markers and
       named only four of the six proofs.
 - [x] 2026-09-25 — Diagnostics (2026-09-24): the tree builds at the maximum of the Diagnostics
@@ -176,7 +177,8 @@ frame; this file holds the criteria that prove it, read only in the root node.
       - `dotnet build APThermo.sln`: 0 warnings, 0 errors;
       - `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter
         "Category!=LongRunning"`: 3108 of 3108, none skipped, `DiagnosticsTests`
-        included (its red-once records are in the protocol tests node's `BOOT.md`);
+        included (its red-once records are in
+        [tests/Protocol.Tests/HISTORY.md#diagnostics-red-once](tests/Protocol.Tests/HISTORY.md#diagnostics-red-once));
       - `dotnet test tests/Execution.Tests -c Release`: 56 of 56 on CUDA, the
         100 000-case sweep and the throughput tripwire included;
       - no `Bits*.approved.txt` or `Throughput*.approved.txt` differs from `main`

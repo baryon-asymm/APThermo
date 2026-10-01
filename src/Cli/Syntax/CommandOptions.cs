@@ -6,7 +6,7 @@ namespace APThermo.Cli.Syntax;
 /// <summary>The options of one invocation, after parsing; every command checks that the options given apply to it.</summary>
 internal sealed record CommandOptions
 {
-    /// <summary>The reference's print threshold on mole fractions (Fixtures BOOT.md).</summary>
+    /// <summary>The reference's print threshold on mole fractions (`tests/Fixtures/tolerances.json`, the `moleFraction` entry).</summary>
     public const double DefaultThreshold = 5e-6;
 
     public string? Output { get; init; }

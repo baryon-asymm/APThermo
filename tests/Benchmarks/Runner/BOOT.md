@@ -45,7 +45,7 @@ Inherited from the root and from the parent ([BOOT.md](../BOOT.md)). In addition
       lists the same ten benchmarks as the parent's former entry point (the ten
       `[Benchmark]` methods of `APThermo.Benchmarks`'s six classes), and the dry run of
       the parent's criterion (`--filter '*SingleCase*' --job Dry`) completes with exit
-      code 0 and no exception, detailed in the parent node's `BOOT.md`.
+      code 0 and no exception, detailed in the parent node's `ACCEPTANCE.md`.
 
 ## Taboos
 

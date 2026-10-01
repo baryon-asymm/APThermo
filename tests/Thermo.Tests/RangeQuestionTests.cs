@@ -130,7 +130,7 @@ public sealed class RangeQuestionTests
             if (low > high)
             {
                 // A record whose only interval is inverted with nothing to continue it (Br2(cr), 2026-09-26): its
-                // bounds cross and the range is empty everywhere, in the reference too (Thermo BOOT.md).
+                // bounds cross and the range is empty everywhere, in the reference too (`src/Thermo/HISTORY.md#record-bounds`).
                 Assert.False(SpeciesFunctions.IsInRange(view, piece, low));
                 Assert.False(SpeciesFunctions.IsInRange(view, piece, high));
                 continue;
@@ -147,7 +147,7 @@ public sealed class RangeQuestionTests
     /// RecordLow and RecordHigh equal the extremes of the record's own bounds as the Data node stores them
     /// (2026-09-26): not tautological like the fact above, since the expectation is built from
     /// <see cref="SpeciesDatabase.Records"/> directly, never through this node's own functions. Red against the
-    /// old first-interval/last-interval rule on the nine records of Thermo BOOT.md's finding 1.
+    /// old first-interval/last-interval rule on the nine records of the finding in `src/Thermo/HISTORY.md#record-bounds`.
     /// </summary>
     [Theory]
     [MemberData(nameof(CondensedDatabaseRecordNames))]

@@ -14,7 +14,7 @@ namespace APThermo.Execution.LibDevice;
 /// silently drops them for <c>compute_100</c> and newer (root <c>BOOT.md</c>, the ILGPU constraint); <see cref="Link"/> reads
 /// which wrappers a kernel calls and which it already defines, compiles only the missing ones from ILGPU's own fragments, and
 /// trial-loads the result on either path, so that a refusal carries the driver's log. No libnvvm or driver result of that
-/// sequence is ignored (BOOT.md, "No libnvvm or driver result is ignored"): every call into libnvvm or the CUDA driver is
+/// sequence is ignored (the parent's `BOOT.md`, Invariants: "No libnvvm or driver result is ignored"): every call into libnvvm or the CUDA driver is
 /// checked through the <c>ThrowIfFailed</c> overloads, the one place that turns a non-success result into an exception.
 /// </summary>
 internal static partial class LibDevicePostLink
@@ -236,7 +236,7 @@ internal static partial class LibDevicePostLink
     }
 
     /// <summary>
-    /// The compile log is read only after a failed compile (BOOT.md: "read it only after a failed CompileProgram"). If reading
+    /// The compile log is read only after a failed compile (the parent's `BOOT.md`, Invariants: "No libnvvm or driver result is ignored", the log of a failed compilation). If reading
     /// it fails too, the compile failure still propagates, saying the log could not be read and naming that result.
     /// </summary>
     private static void ThrowCompileFailure(NvvmAPI nvvm, IntPtr program, NvvmResult result, string arch)
@@ -247,8 +247,8 @@ internal static partial class LibDevicePostLink
     }
 
     /// <summary>
-    /// <see cref="NvvmAPI.DestroyProgram"/> is checked only when the path before it succeeded (BOOT.md: "checked only when the
-    /// path before them succeeded"). When an earlier call already failed, its exception is propagating through this
+    /// <see cref="NvvmAPI.DestroyProgram"/> is checked only when the path before it succeeded (the parent's `BOOT.md`, Invariants:
+    /// "checked only when the path before them succeeded"). When an earlier call already failed, its exception is propagating through this
     /// <c>finally</c>; the release is still attempted but its own result is not checked, since throwing for it here would
     /// replace the exception already in flight with the release's instead of letting the primary one through.
     /// </summary>

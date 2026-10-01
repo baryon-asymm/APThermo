@@ -315,8 +315,8 @@ existing L1 facts above are still taken from the fixtures, not solved here.
       `TheAuditsRestrictedListMatchesEquilibriumsHeatCapacity`,
       `EquilibriumConsistencyTests.HydrogenFluorideAgreesBetweenElementOrdersOverTheAuditsGrid`,
       `TransportsEquilibriumHeatCapacityMatchesEquilibriumOverStateSweeps`; the full
-      evidence, the exact figures and the red-once records are in `src/Transport/BOOT.md`'s
-      components-settled criterion, dated the same day. `EquilibriumHost.cs` runs
+      evidence, the exact figures and the red-once records are in `src/Transport/HISTORY.md#crit-components-settled`
+      (the criterion itself stands in `src/Transport/BOOT.md`), dated the same day. `EquilibriumHost.cs` runs
       `Equilibrium`'s solver on the host, through the `InternalsVisibleTo` grant of that
       date, mirroring this node's own `TransportHost` pattern; `Conservation` and
       `EvaluateAndCheckConservation` (`ReactionConservationTests`) moved from `private`

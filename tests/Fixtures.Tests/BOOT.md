@@ -72,13 +72,13 @@ Outside the tree: xunit.
       tests/Fixtures.Tests`: 26 of 26 green; `protocol_lint` 0 errors, 0 warnings.
 
 - [x] 2026-09-27 — The provenance ties every fixture to the committed generator (the
-      guards audit's F7, `Fixtures/BOOT.md`'s acceptance criterion of the same date):
+      guards audit's F7, `tests/Fixtures/ACCEPTANCE.md`'s criterion of the same date):
       `EveryFixturesScriptSha256MatchesItsCommittedScript`,
       `EveryFixturesGeneratorSha256MatchesTheCommittedGenerator` and
       `AllFixturesCarryOneThermoLibSha256AndOneTransLibSha256` (`FixtureLoadingTests.cs`),
       each shown red once against a mutation (a fixture copy with `scriptSha256`
       replaced by 64 zeros; a comment added to `common.py`, left unregenerated),
-      reverted before this tick, the evidence recorded in `Fixtures/BOOT.md`.
+      reverted before this tick, the evidence recorded in `tests/Fixtures/ACCEPTANCE.md`.
       `dotnet test tests/Fixtures.Tests`: 33/33.
 
 ## Taboos

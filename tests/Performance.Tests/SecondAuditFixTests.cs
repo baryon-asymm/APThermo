@@ -10,7 +10,7 @@ namespace APThermo.Performance.Tests;
 /// F3 is proven against representative points of the audit's own Li2O (`li-o-h`) and BeO/H2O (`be-o-h`)
 /// melting-plateau systems (`scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs`, read at the
 /// coordinator's direction), generated into the `throat` fixture family's `PLATEAU_EDGE_CASES`
-/// (`tests/Fixtures/generate/throat_scan.py`; Fixtures BOOT.md records the generation). Two of the three
+/// (`tests/Fixtures/generate/throat_scan.py`; `tests/Fixtures/ACCEPTANCE.md` records the generation). Two of the three
 /// (`li2o-throat_pc0.3MPa_h3.29375MJkg`, `li2o-throat_pc3MPa_h2.2375MJkg`) also fall under
 /// <see cref="ThroatPlateauEdgeTests.PlateauEdgeCases"/> by the reference's own throat Mach and so are already
 /// checked by <see cref="ThroatPlateauEdgeTests.ThePlateauEdgeIsSinglePhaseAndSubsonic"/>; the fixed-name fact
@@ -49,7 +49,7 @@ public sealed class SecondAuditFixTests
     /// Finding F1: the throat's mass flux is not below the mass-flux oracle's at any pressure between the chamber
     /// and the throat, and no local maximum the oracle finds lies at a pressure closer to the chamber than the
     /// throat's own. Checked over every rocket and throat fixture, plus the two element-mixture bands the throat
-    /// family's four F1 cases were drawn from (Fixtures BOOT.md, the throat family's 2026-09-28 entry).
+    /// family's four F1 cases were drawn from (`tests/Fixtures/generate/BOOT.md`, the `throat` entry of the case matrix, the finding F1 cases).
     /// </summary>
     [Theory]
     [MemberData(nameof(RocketAndThroatFixtures))]

@@ -64,7 +64,7 @@ public sealed class FunctionFixtureTests
             if (name == "Br2(cr)")
             {
                 // Its only interval is inverted with nothing to continue it, so RecordLow exceeds RecordHigh and the
-                // range is empty everywhere, in the reference too (Thermo BOOT.md, RangeQuestionTests's twin fact).
+                // range is empty everywhere, in the reference too (`src/Thermo/HISTORY.md#record-bounds`, RangeQuestionTests's twin fact).
                 Assert.DoesNotContain(true, flags);
                 continue;
             }
