@@ -274,7 +274,7 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       Verified on the reference machine alongside the criterion above (same build and
       protocol-test evidence).
 
-- [ ] Host transfers are pinned, and an unwritten download is refused (2026-10-01, the two
+- [x] 2026-10-01 — Host transfers are pinned, and an unwritten download is refused (2026-10-01, the two
       constraints above).
       - `ChunkBuffer<T>`'s `UploadChunk` and `DownloadChunk` call ILGPU's span overloads;
         no `ref` transfer is left in `src`.
@@ -337,6 +337,27 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
         `ChunkTransferTests` passed 22 of 22 runs in a row; the protocol lint gives 0 and 0.
         Not run here: the execution tests on CUDA, the throughput tripwire, the WSL2 run
         and the stress.
+
+      Evidence of the orchestrator, 2026-10-01, merged as `93f29c9`, on the reference machine:
+      - Windows, Release: the release job's filter (`Category=Cuda|Category=BitSnapshot`)
+        green in every project, no approved record moved; `tests/Execution.Tests` on CUDA
+        172 of 173, the 100 000-case sweep and every architecture included. The one red
+        fact was the throughput tripwire at 11.35×, with the CUDA kernel at 0.331 s against
+        about 0.15 s: another project's test process held the GPU at 100 %. Once it ended,
+        three runs of the tripwire gave 22.69×, 19.96× and 19.39× against the floor of
+        18.86× (80 % of 23.58×). The commit before the fix (`1756692`), measured the same
+        way right after, gave 20.08×, 12.55× and 19.70×: the guard's cost is inside the
+        run-to-run spread, and no throughput record is re-approved.
+      - WSL2, Release: the release job's filter green, the Linux bit snapshots included;
+        `tests/Execution.Tests` on CUDA 172 of 173, the tripwire red at 19.09× while the
+        other project held the GPU, and three runs on the free GPU 31.65×, 29.26× and
+        30.79× against the floor of 21.98× (80 % of 27.48×).
+      - The stress, WSL2 on 4 cores (`taskset -c 0-3`), `DOTNET_GCgen0size=0x10000`,
+        `APTHERMO_NO_CUDA=1`, the investigation's harness over the public `Solver`: three
+        runs of 4000 solves of `nto-udmh_of2.6_pc2MPa_shiftingEquilibrium`, about 3 000
+        gen0 collections each, 0 stations `Ok` with zero transport, 0 other differences
+        from the first solve and 0 refusals (a refusal would have ended the run). The same
+        harness lost 7 to 9 downloads per run before the fix.
 
 ## Taboos
 

@@ -722,9 +722,11 @@ There is no external ancestor: the tree root is the repository root, and the loa
       release job's filter is green on Windows in Release. The per-project peaks of the
       fast suite went from 14 to over 27 GB to 0.75 to 1.6 GB, the whole solution 4.8 GB.
 
-- [ ] Host transfers are pinned (2026-10-01, the fourth hazard under the ILGPU
+- [x] 2026-10-01 — Host transfers are pinned (2026-10-01, the fourth hazard under the ILGPU
       constraint): the `Chunks` node's criterion of the same date is ticked, its stress
-      among its evidence, before `v0.2.0` is tagged again. The tag `v0.2.0` of
+      among its evidence, before `v0.2.0` is tagged again. Ticked there at `93f29c9` and
+      after: CUDA on Windows and under WSL2, and 12 000 solves of the stress with no lost
+      download. The tag `v0.2.0` of
       `05e2d39` is moved once, to the commit of this fix, after a green rehearsal, as
       `v0.1.0` was: its release run failed before any package was published (the
       owner's decision of 2026-10-01).
