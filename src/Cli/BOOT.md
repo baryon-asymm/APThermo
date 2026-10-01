@@ -20,20 +20,10 @@ depends on console, serialization or file-layout concerns.
   refuses naming every embedded name. A test compares the schemas' field lists with the
   structs.
 
-  ⚠ 2026-09-16: stood "The schema files of the tests node hold the same lists, and a
-  test compares them with the structs." The distribution phase decided at the root
-  (`## Delivery`, Documentation) that the schemas belong to the command line: they move
-  from `tests/Cli.Tests/schemas/` to this node's `Schemas/` directory, are embedded in
-  the assembly and served by the new `schema` command, so that a consumer of the packed
-  tool reads the contract from the tool itself and no second copy can drift.
+  ⚠ 2026-09-16: was tests-node schemas, now `Schemas/` here → HISTORY.md#schemas-moved
 
-  ⚠ 2026-09-17 (the audit's C6): stood "the tests nodes read the schemas through that
-  command", true of neither test node that reads the schemas at the point this was
-  written. `tests/Cli.Tests` reads them directly through `SchemaResources`, the type
-  under test, so its checks never called `apthermo schema` at all; only
-  `tests/Docs.Tests` reads them through the command, in-process
-  (`Program.Run(["schema", name], …)`), as the mirrored test node has no other way to
-  reach this node's contract. Found by the CLI audit's finding C6, fixed in `68f540a`.
+  ⚠ 2026-09-17: was "the tests nodes read the schemas through the command", now only
+  `tests/Docs.Tests` does → HISTORY.md#schemas-readers
 - **Units in documents are SI** unless a field name carries the unit explicitly
   (`specificImpulseSeconds`, `vacuumSpecificImpulseSeconds`); the conversion to
   seconds uses g0 = 9.80665 m/s² and happens only here.
@@ -50,12 +40,7 @@ depends on console, serialization or file-layout concerns.
   (`Problems` BOOT.md, invariants) and named here by the record's file and position,
   or by the JSON path of `propellant.elementMoles`.
 
-  ⚠ 2026-09-13: the strictness covered the names of fields, not the values of a
-  composition: a state record with every element mole doubled, or given in mol/g,
-  ran through `states` and produced a document with exit code 0, which is exactly
-  the silent unit mistake this invariant promised to catch. The check belongs to the
-  front door, where a mixture meets the database's atomic weights; this node only
-  names the record.
+  ⚠ 2026-09-13: was names-only strictness, now a mass check → HISTORY.md#strict-values
 - **No hidden state**: no configuration files, no registry, no environment variable
   except the ones `Execution` reads.
 
@@ -71,56 +56,32 @@ depends on console, serialization or file-layout concerns.
 Outside the tree: the .NET base class library (`System.Text.Json`); command-line
 parsing is hand-written to avoid a dependency (revisited if the surface grows).
 
-⚠ 2026-09-12: the sketch listed `Problems` and `Data`. The solver is created with the
-execution node's options and reports its accelerator, and the result records carry
-the numerical nodes' structs, which this node reads field by field; the reflection
-dependency check reads types in method bodies, so the links are declared. The root's
-decomposition carries the same.
+⚠ 2026-09-12: was a Problems and Data list, now six links → HISTORY.md#deps-sketch
 
-⚠ 2026-09-15: this list carried `Transport` (`TransportFigures`) and read
-`Performance` as `FlowModel, PerformanceFigures`. The clean-code decomposition moved
-`StationFields` and every direct reader of `TransportFigures` and
-`PerformanceFigures` into the child node `Output` (its own `BOOT.md` declares
-`Transport` and `Performance` now); this node's own remaining code reaches
-`Performance` only through `DocumentWords`' flow words. Found by the protocol tests
-node's `DependencyTests` after the move (`src/Cli/BOOT.md declares src/Transport, but
-no type of src/Cli refers to it`); the child-node attribution
-(root `BOOT.md`, Constraints, 2026-09-15) means a dependency used only by a child is
-declared there, not repeated at the parent's own level, unless the parent's own code
-also uses it.
+⚠ 2026-09-15: was Transport listed here, now in `Output` → HISTORY.md#deps-transport
 
 ## Constraints
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
-- Commands: `rocket <input.json>`, `equilibrium <input.json>`, `states <records>...`,
-  `species [--find TEXT]`, `devices`, `schema [name]` (2026-09-16: prints the JSON
-  Schema embedded in the assembly, by name, to standard output or the `--output` file;
-  2026-09-17, the audit's C3/C4/C5: a missing or unknown name is exit code 2 naming
-  every embedded name, read from the assembly manifest, not from a typed list);
-  options `--output PATH`, `--format json|csv`,
-  `--accelerator auto|cpu|cuda`, `--database DIR` (directory with `thermo.inp` and
-  `trans.inp`; without it, the database embedded in `APThermo`,
-  `Data.SpeciesDatabase.LoadBundled()`), `--threshold X` (mole fractions below X are
-  omitted from the composition tables; default 5e-6, the reference's print threshold),
-  `--transport` (states), `--find TEXT` (species), `--help`, `--version` (prints
-  `Program.Version` and exits; applies to no command and may be given alone). Every
-  option applies to the commands `API.md` lists it with; an option that does not
-  apply is an error. 2026-09-13: `--mass-tolerance X` on the solving commands, the
-  mass tolerance declared for every mixture built from element moles (default the
-  library's, 1e-2; a propellant by reactants keeps the default); a run option, not a
-  document field, because it describes the caller's records and not the physics.
+- Commands and options are those of `API.md`, "Command line"; every option applies to
+  the commands listed there with it, and an option that does not apply is an error.
+  - `schema [name]` prints the embedded JSON Schema to standard output or `--output`; a
+    missing or unknown name is exit code 2 naming every embedded name, read from the
+    assembly manifest, not from a typed list.
+  - `--database DIR` holds `thermo.inp` and `trans.inp`; without it the database is the
+    one embedded in `APThermo`, `Data.SpeciesDatabase.LoadBundled()`.
+  - `--threshold X`: mole fractions below X are omitted from the composition tables;
+    default 5e-6, the reference's print threshold.
+  - `--version` prints `Program.Version` and exits; applies to no command, may be given
+    alone.
+  - `--mass-tolerance X` on the solving commands: the mass tolerance declared for every
+    mixture built from element moles (default the library's, 1e-2; a propellant by
+    reactants keeps the default); a run option, not a document field, because it
+    describes the caller's records and not the physics.
+  → HISTORY.md#commands-condensed
 
-  ⚠ 2026-09-15 (distribution phase): `--database`'s default stood "`data/` next to
-  the executable, then `data/` under the current directory, then the current
-  directory" (`DatabaseFiles.Resolve`, since removed). A NuGet package and a .NET
-  tool have no `data/` directory beside them (root `BOOT.md`, `## Delivery`, `Data`),
-  so every consumer without `--database` would first have to find NASA files
-  themselves. The search is gone; `DatabaseFiles.Load` now reads
-  `SpeciesDatabase.LoadBundled()` when no directory is given, and `run.database`
-  reports the path-like markers `"embedded:thermo.inp"`/`"embedded:trans.inp"`
-  (`API.md`, Output document) instead of a file path, with the same provenance
-  hashes a caller who pointed `--database` at the committed `data/` would get.
+  ⚠ 2026-09-15: was a `data/` search, now embedded → HISTORY.md#database-default
 - The assembly is named after its namespace, as the root requires; `apthermo` is the
   tool command name of the package (`dotnet pack` produces a tool package whose
   command is `apthermo`), and a direct run is `dotnet APThermo.Cli.dll`.
@@ -128,8 +89,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   performance figures (the library reports them at every station); compositions are
   not in CSV.
 
-  ⚠ 2026-09-12: stood "with the performance figures of the station's exit"; the
-  performance node reports the figures per station.
+  ⚠ 2026-09-12: was exit figures in CSV, now per station → HISTORY.md#csv-figures
 - Sweeps in the input document expand to one batch (Cartesian product, ratio-major,
   then pressure, then temperature) through the front door's batch over mixtures, so
   the command line is the natural way to use the GPU. A rocket problem sweeps the
@@ -148,161 +108,58 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   (2026-09-14, decided at the root on the architecture review's F-AR-02; until then
   this node decided the first three rules a second time).
 
-  ⚠ 2026-09-12: stood "one batch": a rocket case and an equilibrium case are
-  different programs of the execution node, so a mixed file is two batches, still one
-  call each.
+  ⚠ 2026-09-12: was "one batch", now two for a mixed file → HISTORY.md#states-batches
 - Timings and the accelerator description are always in the output document's
   `run` section, with the command, the input files, the database files and their
   hashes, the threshold and (2026-09-13) the mass tolerance in force, while every
   case's `mixture` section carries the mass of its element moles (`MixtureMass` of
   the library), so that a raised tolerance never hides the figure.
 
-  ⚠ 2026-09-12: the sketch's timings were the engine's (`warmUp`, `upload`, `kernel`,
-  `download`), which the front door does not expose; the tool reports its own phases
-  (`database` load, `solve`).
+  ⚠ 2026-09-12: was engine timings, now the tool's phases → HISTORY.md#timings-phases
 
-- **Audit fixes of 2026-09-26** (the hidden-defect audit of that day, Data, Problems and
-  Cli, findings 1, 2, 3, 7, 8 and 9, and its note on the database error). Each child
-  node named holds its part:
-  - **Output.** CSV column names are unique. The input columns carry the prefix
-    `inputs.`, the JSON member they come from (`inputs.pressure` beside the state's
-    `pressure`).
-    - ⚠ For `equilibrium` and `states`, `pressure`, `temperature`, `enthalpy` and
-      `entropy` appeared twice. pandas read the second as `pressure.1`, Python's
-      `csv.DictReader` kept the last, and on a rocket record's exit row the two
-      readers returned the chamber and the exit pressure under one name.
-  - **Documents.** A JSON member given twice is refused with its path.
-    - ⚠ The last value won. `"chamberPressure": 7.0e6, "chamberPressure": 7.0e5`
-      solved the 0.7 MPa case with exit 0.
-  - **Syntax.** An option given with an empty value (`--output=`, `--database=`) is a
-    bad option value: exit 2 naming the option.
-    - ⚠ `--output=` exited 3 with an unhandled `ArgumentException`, and `--database=`
-      read `thermo.inp` from the working directory.
+- **Audit fixes of 2026-09-26 and 2026-09-28** (the hidden-defect audits of those days,
+  Data, Problems and Cli). The parts of [Output](Output/BOOT.md),
+  [Documents](Documents/BOOT.md) and [Syntax](Syntax/BOOT.md) live in those nodes. Here:
+  → HISTORY.md#audit-header-2026-09-26 and #audit-header-2026-09-28
   - **States.** A refusal from the front door names the record's source (file and
     record, or JSON Lines line). This node maps the front door's `StateRecordException.Index`
     within each group back to the record it came from.
-    - ⚠ Only the shape and mass refusals were mapped. A zero pressure on line 3 was
-      reported as `equilibrium problem 1`, which reads as line 2.
+    ⚠ 2026-09-26: was only shape/mass refusals mapped, now all → HISTORY.md#audit-states
   - **Mass tolerance.** `--mass-tolerance` applies to documents that carry element
-    moles (`states`, `propellant.elementMoles`). With a reactant propellant it is an
-    option that does not apply: exit 2. There the front door's propellant path holds
-    its mixtures to `DefaultMassTolerance`, and `run.massTolerance` records that
-    value. A reactant document's refusal names `the propellant's mixture (case i)`,
-    as the front door's propellant path does.
-    - ⚠ `run.massTolerance` echoed the option while the check in force was 1e-2. The
-      refusal said `mixture i` and cited 1 % under `--mass-tolerance 0.9`.
+    moles (`states`, `propellant.elementMoles`); with a reactant propellant it is an
+    option that does not apply: exit 2, as `API.md` says in the command description and
+    in the errors table and as the guide's sentence names. The front door's propellant
+    path holds its mixtures to `DefaultMassTolerance`, `run.massTolerance` records that
+    value, and a refusal carries the document's path like every other form:
+    `<file>: the propellant's mixture (case i): …`. The `species` listing's `run`
+    section records only the options the command takes (observation 8).
+    → HISTORY.md#audit-mass-tolerance-2026-09-26 and #audit-mass-tolerance-2026-09-28
   - **Transport.** A station's `transport` object is present when transport was
     requested and the station converged; the `API.md` wording follows the front door's
     corrected contract.
   - **Database errors.** They are printed as the Data node gives them, with no second
     prefix.
 
-- **Audit fixes of 2026-09-28** (the second hidden-defect audit, Data, Problems and
-  Cli, findings F4 to F7 and observation 8). Each child node named holds its part.
-  - **Documents: sweeps are bounded.** A range whose step count is not finite, or
-    whose values exceed a declared limit, is refused with its path, and so is a
-    sweep whose Cartesian product exceeds a declared limit. The limits are 1 000 000
-    values per axis and 10 000 000 cases per document. They are named constants,
-    stated in `API.md`. The "ends on a step" test runs only on a finite step count, so
-    its reason is never false.
-    - ⚠ `(int)Math.Round` of a step count beyond `int.MaxValue`, infinity included,
-      saturated to `int.MaxValue`. `count + 1` then wrapped, and the allocation threw an
-      `OverflowException`: exit 3 on `from` 1, `to` 1e308, `step` 1e-300. `to` 3e9,
-      `step` 1 was refused with the false reason "is not an integer". Three axes of
-      2 000 values each would have been materialized as 8 × 10⁹ cases (finding F4).
-  - **Documents: text that is not valid UTF-16 is refused.** A JSON escape that is not
-    valid UTF-16 (a lone surrogate, `"\ud800"`) is refused with the path of the member
-    or value that carries it: exit 2.
-    - ⚠ `JsonDocument` accepts such an escape, and unescaping it threw
-      `InvalidOperationException`, exit 3. It happened in a member name or a string
-      (finding F6, present since the first version). Since 2026-09-26 the duplicate
-      check reaches it at every object's construction.
-  - **Syntax: a blank option value is a bad value.** A value that is empty or white
-    space only is refused: exit 2 naming the option.
-    - ⚠ The fix of 2026-09-26 refused an empty string only. `--output " "` reached
-      `File.WriteAllText` on Windows and exited 3 with `ArgumentException: The path is
-      empty` (finding F5).
-  - **Mass tolerance: the contract says what the code does.**
-    - `API.md` states that `--mass-tolerance` on a document whose propellant is given
-      by reactants is exit 2, in the command description and in the errors table.
-    - The guide's sentence says which commands and documents take the option.
-    - The propellant-mixture refusal carries the document's path like every other
-      form: `<file>: the propellant's mixture (case i): …`.
-    - The `species` listing's `run` section records only the options the command
-      takes (observation 8).
-    - ⚠ The fix of 2026-09-26 changed the code and the changelog but left `API.md`
-      saying a reactant propellant "keeps the default". The guide still said every
-      solving command takes the option (finding F7).
-
 ## Structure
 
-Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
-had grown four commands, two formats and two input shapes in five files without a
-split: `InputDocuments` at 399 lines with an efferent coupling of 18, `Solving` a hub
-of 27, `CommandLine.Parse` at 117 lines, and the station written once per format (the
-review's F-CL-02 to F-CL-10; the review's measures at `8e36a27`: physical lines and a
-textual count of names; 351 and 101 lines of code by the current rule). One node, one
-directory: the split is into types, not into sub-nodes, which the root's
-one-assembly-per-node rule would turn into several assemblies for one adapter.
-Everything is internal except `Program` and `ExitCode`; one type per file, named after
-the type.
+Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint): the node is
+split along its commands, its two formats and its two input shapes into types, one per
+file and named after the type; everything is internal except `Program` and `ExitCode`.
+→ HISTORY.md#structure-children
 
-⚠ 2026-09-15: "the split is into types, not into sub-nodes" no longer holds whole.
-The root's own-assembly-per-node rule was the reason for it, and the root `BOOT.md`
-(Constraints, 2026-09-14 for the decision, dated 2026-09-15 in its own text) now lets a
-child node compile into its nearest ancestor's assembly instead of forcing one of its
-own, precisely so a large node like this one could be cut into sub-nodes without
-widening its public surface. Five clusters of this node passed the child-node test (the
-root `BOOT.md`, `## Decomposition`, the "child nodes phase"): `Syntax/`,
-`Documents/`, `Cases/`, `Output/` and `Listings/`, each with its own `BOOT.md` and
-`API.md` and the namespace of its path
-(`APThermo.Cli.Syntax` and so on), compiled into this
-node's own assembly. `Program`, `CommandRegistry`, `Failures`, `SolverSession`, the
-three command types (`ProblemCommand`, `StatesCommand`, `SpeciesCommand`) and the
-shared vocabulary and run-bookkeeping types with no single owning cluster
-(`DocumentWords`, `Names`, `InputException`, `InputFile`, `DatabaseFiles`,
-`DatabaseInfo`, `RunInfo`, `RunLimits`, `Timings`) stayed at this node's own level.
-`DocumentWords` was weighed for `Syntax/` and for `Documents/` (both read it,
-`CommandTable` for `--accelerator`, the readers for `flow`, `role`, `amountKind` and
-`kind`) and, on inspection, also for `Cases/` (`CaseInputs`'s echo of `kind`) and for
-`Output/` (`RunSection`'s echo of the accelerator): four clusters, no dominant owner,
-so moving it into any one would turn the other three into its dependents for one
-lookup table. It stays here, at this node's own level: every child already names this
-node as its ancestor (`[Cli](../API.md)` in its own `## Dependencies`), so reading
-`DocumentWords` from any of them costs no new edge. `Names` and the run-bookkeeping
-records (`RunInfo` and what it carries) were kept for the same reason, one level less
-sharply split: `Names` reaches `Output/` and `Listings/`, `RunInfo` is `SolverSession`'s
-own return value read by `Output/`, `Listings/` and the command types alike, and moving
-either would still leave at least two of the three as its dependents. `OutputFormat`
-and `CaseOutput`/`Combination` moved instead of staying, because each has a genuine
-majority owner (`Syntax/` and `Cases/` respectively) that the rest of the node
-reaches only through a field already carried by a wider record (`CommandOptions.Format`,
-the case's own shape); their own `BOOT.md` records the reasoning. `Syntax/` is not
-named `CommandLine/`: its own `BOOT.md` records why (a namespace and a same-named type
-inside it force a doubled qualification on every caller in the `Cli` tree).
+⚠ 2026-09-15: was "the split is into types, not into sub-nodes", now five child
+nodes in this assembly (`## Children`) → HISTORY.md#structure-children
 
-The move itself was mechanical: `git mv` and a namespace edit per moved file, no logic
-touched, one commit per child (`## Structure` of each child names its own moved
-types). No `## Shape exceptions` row moved, because the three rows below all name a
-composition root that stayed at this node's own level.
+`DocumentWords`, `Names` and the run-bookkeeping types (`RunInfo`, `RunLimits`,
+`Timings`) stayed at this level: each is read by two or more children with no dominant
+owner, and a move would turn the others into its dependents for one lookup table.
+`OutputFormat` and `CaseOutput`/`Combination` moved, each having one majority owner.
+`Syntax/` is not named `CommandLine/` (a namespace and a same-named type force a
+doubled qualification on every caller). No `## Shape exceptions` row moved: the three
+rows name composition roots that stayed here. → HISTORY.md#structure-children
 
-⚠ 2026-09-15: four rows of the table below had drifted from the code they describe.
-`StateRecordReader`'s row said the record files' shape was decided "by the first
-non-blank character"; the code decides it by attempting to parse the first JSON value
-and checking what follows it (`JsonText.TryParseWhole`), not by inspecting characters.
-`DocumentWriter`'s row said only "delivery to the output file or the standard output,
-and the non-finite-number rule", omitting that it also renders a case document in the
-requested format and decides its exit code, and that the JSON writer the listings
-(`species`, `devices`) render through is this type's too. `Sweeps`' row named three of
-the sweep's four axes ("ratio-major, then pressure, then temperature"), silently
-dropping chamber pressure, which the code already crossed. `CaseInputs`' row claimed
-the whole `inputs` echo was "written once" in this type, while the code wrote only the
-swept ratio and left `RocketCases` to add `chamberPressure` and `EquilibriumCases` to
-add `kind`, `pressure` and the target (`AddTarget`). Found by the repair review of
-2026-09-15 reading the code against the table; its R-Cli-7 and R-Cli-3 also moved the
-code of the last two to match the row each already claimed (`Sweeps.Expand` is one
-query over the four axes; `CaseInputs.Rocket` and `CaseInputs.Equilibrium` own the
-whole echo, `AddTarget` moved in from `EquilibriumCases`).
+⚠ 2026-09-15: was four table rows drifted from the code, now they follow it
+→ HISTORY.md#structure-rows-drift
 
 Types that stayed at this node's own level:
 
@@ -325,13 +182,10 @@ Types that stayed at this node's own level:
 
 ## Children
 
-Five clusters of `## Structure` above passed the child-node test (the root `BOOT.md`,
-`## Decomposition`; the warning above records why each was cut where it was, and why
-`DocumentWords`, `Names` and the run-bookkeeping types were not moved). Each child's
-own `BOOT.md` names the types it holds and why; the `AGENTS.md` §1 access rules apply
-between this node and each of them exactly as between neighbours: reading a child's
-code from a sibling child, or from this node past its `API.md`, is not this document's
-business to forbid twice.
+Five clusters of `## Structure` passed the child-node test (the root `BOOT.md`,
+`## Decomposition`). Each child's own `BOOT.md` names the types it holds and why; the
+`AGENTS.md` §1 access rules apply between this node and each child as between
+neighbours. → HISTORY.md#children-intro
 
 | Child | Namespace | Holds |
 |---|---|---|
@@ -366,24 +220,15 @@ Decisions taken with the review of 2026-09-14:
   reason an `auto` run fell back to the CPU accelerator (the `Execution` API,
   2026-09-14), `null` when CUDA was bound or never tried, so that a document says why
   it ran on the CPU. A contract change, planned in `API.md`.
-- **No other byte of any output document changes.** The decomposition is proved by the
-  tests node's snapshot of the example outputs, recorded before any code moved; the
-  `run` sections of the `species` and `devices` listings stay as they are (the review's
-  open question 5 is answered by leaving the documents alone).
-
-  ⚠ 2026-09-15: for a JSON document's formatting — indentation, line breaks, the final
-  newline, string escaping — this claim was not held from 2026-09-14, when the
-  decomposition landed, to 2026-09-15: the tests node's snapshot hashed a compact
-  re-serialization of the document, which left that formatting unguarded (the repair
-  review's R-Cli.Tests-2). It holds now: the snapshot hashes the bytes the command line
-  delivers, with `run` cut out by span (`tests/Cli.Tests/BOOT.md`, the Bits level and
-  the criterion of 2026-09-15).
-- **Records take at most six positional parameters**: `StateDocument` becomes the front
-  door's `StateRecord` with its `RecordSource`; a reactant document carries its custom
-  part as a `CustomReactantDefinition`; `RunInfo` takes `Timings` and `RunLimits`;
-  `CaseOutput` is declared with init properties (F-CL-09).
-- **Names**: `CommandRegistry` and `CommandTable` instead of two `Commands`, and verbs
-  for the case builders (F-CL-14).
+- **No other byte of any output document changes** (the decomposition of 2026-09-14):
+  held by the tests node's snapshot of the example outputs, which hashes the bytes the
+  command line delivers with `run` cut out by span (`tests/Cli.Tests/BOOT.md`, the Bits
+  level); the `run` sections of `species` and `devices` stay as they are.
+  ⚠ 2026-09-15: was a hash of a compact re-serialization, now the delivered bytes
+  → HISTORY.md#no-other-byte
+- **Records and names** (F-CL-09, F-CL-14): records take at most six positional
+  parameters (init properties where more); the types are `CommandRegistry` and
+  `CommandTable`, with verbs for the case builders. → HISTORY.md#records-and-names
 - **The commands are composition roots.** `ProblemCommand`, `StatesCommand` and
   `SpeciesCommand` turn one command into calls of their collaborators: the input read,
   the cases solved through the front door or the database listed, the run written. They
@@ -393,43 +238,20 @@ Decisions taken with the review of 2026-09-14:
   rendering or a mapper is not one: above the limit it is split along the document's
   sections or the output's parts, never by moving a responsibility to where the count
   fits.
-- **Size.** No type over 400 lines, no method over 60, no nesting deeper than 3, no
-  more than 6 parameters, no type with an efferent coupling over 14; a composition root
-  or a registry that holds no formula and cannot stay under the coupling limit is
-  declared in `## Shape exceptions` with its measured figure and its reason, and any
-  other type is split.
-
-  ⚠ 2026-09-14: this bullet stood "over 10" after the root's own limit was recalibrated
-  to 14 the same day (the root `BOOT.md`, Constraints): the root's number moved and this
-  copy of it did not. It also let any type that could not stay under the coupling limit
-  be declared, where the root allows the exception only to a registry or a composition
-  root that holds no formula. The protocol tests node's measurement over the tree with
-  this decomposition merged found `ProblemDocumentReader` at 21 and `SpeciesListing` at
-  17; both were split instead (`PropellantDocumentReader`, `ProblemPartReader` and
-  `SweepDocumentReader` out of the first; `SpeciesCommand` and `SpeciesListing`).
+- **Size.** The root's code-shape constraint applies. A composition root or a registry
+  that holds no formula and cannot stay under the coupling limit is declared in
+  `## Shape exceptions` with its measured figure and its reason; any other type is split.
+  ⚠ 2026-09-14: was a copy of the limits, now the root's → HISTORY.md#size-bullet
 
 **Packing (2026-09-15, distribution phase, root `BOOT.md`, `## Delivery`, Packages).**
 This node's project packs as `APThermo.Cli`, a .NET tool (`PackAsTool=true`,
-`ToolCommandName=apthermo`, both already set before this phase): `IsPackable=true`
-already stood, `PackageId=APThermo.Cli` is new, and the version and the shared
-package metadata come from the root's `Directory.Build.targets`, as for `Problems`.
-
-Unlike `Problems`, none of this node's seven `ProjectReference`s need
-`PrivateAssets` or a merge target: `PackAsTool` packs the *published* output
-(`tools/net10.0/any/`), which already carries every referenced assembly (including
-`APThermo.Problems.dll` and, through it, the six it merges) and `ILGPU.dll` as plain
-files, not as nuspec dependencies — a tool has no consumer to declare dependencies
-to. Proved once, read-only: the packed nuspec's `<dependencies>` is absent
-entirely, and `tools/net10.0/any/` holds `APThermo.Cli.dll` plus the seven library
-assemblies and `ILGPU.dll`, nineteen files including the `.deps.json`,
-`.runtimeconfig.json` and `DotnetToolSettings.xml` the SDK's tool packaging adds.
-
-`<Version>1.0.0</Version>`, hardcoded before this phase, is removed: the version is
-now the one place, `Directory.Build.props`' `VersionPrefix` (0.1.0), like every other
-project; `Program.Version` (already reading the assembly's informational version, `##
-Structure` above) needed no change; `ProcessTests` and `CommandLineTests` compare
-against it rather than a typed string, so the version's value never had to be pinned
-in a test.
+`ToolCommandName=apthermo`, `PackageId=APThermo.Cli`); the version and the shared package
+metadata come from the root's `Directory.Build.props` and `Directory.Build.targets`, as
+for `Problems`. None of its `ProjectReference`s needs `PrivateAssets` or a merge target:
+`PackAsTool` packs the published output, which carries every referenced assembly and
+`ILGPU.dll` as plain files, so the nuspec holds no `<dependencies>`. `Program.Version`
+reads the assembly's informational version, and the tests compare against it, never
+against a typed string. → HISTORY.md#packing-proof
 
 ## Shape exceptions
 
@@ -447,264 +269,7 @@ Every other type of the node measures 14 or below by the dependency check's walk
 
 ## Acceptance criteria
 
-- [x] 2026-09-13 — Every example document in `API.md` and every document of the
-      tests node's `documents/` directory runs end to end against the committed data
-      files and produces a document that validates against the output schema (schema
-      files kept next to the tests): `Cli.Tests.InputDocumentTests.EveryExampleOfTheApiDocumentIsReadOrValidatesAndItsRecordsSolve`
-      (2026-09-13: the record examples of `API.md` are solved too, since the earlier
-      example weighed 706 g),
-      `OutputDocumentTests.EveryExampleDocumentRunsAndItsResultValidatesAgainstTheOutputSchema`
-      (over the directory listing), `TheStatesResultValidatesAndEchoesEveryRecordInOrder`,
-      `TheSpeciesListingValidatesAndFindsNamesCaseInsensitively`, `TheDevicesListingValidates`.
-- [x] 2026-09-13 — The example rocket document for LOX/LH2 gives the same numbers as
-      the library call in the front door tests: the CLI test builds the library call
-      from the fixture the document encodes and compares the output document field by
-      field over a reflection-generated list, exactly
-      (`LibraryEqualityTests.TheRocketExampleEqualsTheLibraryFieldByField`,
-      `TheEquilibriumExamplesEqualTheLibraryFieldByField`).
-- [x] 2026-09-13 — Exit codes 0, 1, 2, 3 are each produced by a test, in-process and
-      as a process: a good document, a document with a failing case, a malformed
-      document, `--accelerator cuda` with `APTHERMO_NO_CUDA=1`
-      (`ExitCodeTests`, `InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`,
-      `ProcessTests`: the four facts).
-- [x] 2026-09-13 — CSV output has one row per case and station and the documented
-      columns, checked against the approved file `documents/rocket-lox-lh2.approved.csv`
-      of the tests node (`CsvTests`: the header exactly, every number as a number).
-- [x] 2026-09-13 — A record that weighs one kilogram (the record of another
-      simulation, `documents/states-ap-al-record.json`) is exit code 0; the same
-      record doubled, in mol/g, a record in kmol/kg and a document with a doubled
-      `propellant.elementMoles` are exit code 2 with the documented message naming
-      the record and the mass, and no document
-      (`InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`
-      over `documents/invalid/states-two-kilograms.json`, `states-mol-per-gram.json`,
-      `states-kmol-per-kg.json`, `elemental-two-kilograms.json`); a doubled record
-      behind a good one in a JSON Lines file is named by file and line, not by its
-      position in the batch
-      (`ExitCodeTests.ARecordThatWeighsOneKilogramIsExit0AndOneThatDoesNotIsNamedByItsLine`).
-- [x] 2026-09-13 — `--mass-tolerance` is parsed like `--threshold`: a negative or
-      infinite value and the option on a listing command are exit code 2, the usage
-      names it, `=` works and the default is the library's
-      (`CommandLineTests.InvalidCommandLinesAreExit2NamingTheOffender`,
-      `TheUsageNamesEveryCommandAndOption`, `OptionsMayBeGivenWithAnEqualsSign`);
-      it is echoed as `run.massTolerance` and every case of every solving command
-      carries `mixture.mass`, the schema files of the tests node listing both
-      (`OutputDocumentTests.TheMassToleranceIsEchoedAndEveryCaseReportsTheMassOfItsMixture`,
-      `EveryExampleDocumentRunsAndItsResultValidatesAgainstTheOutputSchema`),
-      and the mass is the library's exactly (`LibraryEqualityTests`); the record of
-      another simulation made 2 % heavy is exit code 2 without the option and exit
-      code 0 with `--mass-tolerance 0.03`, made 5 % heavy exit code 2 naming `3 %`
-      (`ExitCodeTests.TheMassToleranceOptionIsTheToleranceTheRunDeclares`;
-      heavy, not light: the front door's BOOT.md records why).
-- [x] 2026-09-14 — The decomposition of `## Structure`: every type within the root's
-      code-shape constraint except the rows of `## Shape exceptions`, measured by the
-      protocol tests node's measurements (`ShapeMeasures`, `CouplingMeasures`) over the
-      tree with this decomposition merged, 66 types and 134 methods of the node: no type
-      over 400 lines, no method over 60, no nesting deeper than 3, no method over 6
-      parameters; the tests node's snapshot of the example outputs unchanged from before
-      any code moved (`tests/Cli.Tests/Bits.approved.txt`, empty diff against the
-      version recorded by `f795f3c`, before the decomposition); every L0, L1, L2 and
-      process fact green (`dotnet test tests/Cli.Tests`: 91 passed, 0 failed); the
-      public surface unchanged (`Program`, `ExitCode` the only public types of the
-      assembly; `Protocol.Tests.SurfaceTests` green against
-      `PublicSurface.approved.txt`).
-- [x] 2026-09-14 — The documents follow the front door's contract: the `states`
-      example gives the library's numbers field by field through `SolveStates` and
-      `SolveRocketStates` (`LibraryEqualityTests.TheStatesExampleEqualsTheLibraryFieldByField`,
-      a records file with and without exits); an invalid record is exit code 2 naming
-      its file and position with the front door's reason (the pinned fragments of
-      `InputDocumentTests`, `states-two-targets.json` and `states-rocket-without-enthalpy.json`);
-      the exception → exit code rule maps an input refusal to 2 and an accelerator
-      failure or any other exception to 3
-      (`ExitCodeTests.AnExceptionMapsToItsDocumentedExitCode`); an `auto` run
-      with CUDA forbidden writes the reason in `run.accelerator.cudaSkippedBecause` and
-      the `devices` listing names the variable too, both schema files listing the field
-      (`OutputDocumentTests.AnAutoRunThatFellBackSaysWhy`, a separate process
-      with `APTHERMO_NO_CUDA=1`). Each fact seen red once and reverted: the fallback
-      reason not written, an unexpected exception mapped to 2.
-- [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
-      repaired code at `62cd99e`: its tests green in the full suite
-      (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
-      CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
-      and the long-running sweep and throughput tests).
-- [x] 2026-09-15 — `apthermo --version` prints `Program.Version` and exits 0, in
-      process and as a separate process
-      (`CommandLineTests.VersionPrintsTheToolVersionAndExits0`,
-      `ProcessTests.TheExecutablePrintsItsVersionWithExit0`). Without
-      `--database`, a run's `run.database.thermoPath`/`.transPath` are the embedded
-      markers `"embedded:thermo.inp"`/`"embedded:trans.inp"` with 64-character SHA-256
-      hashes, in process and from an empty working directory as a separate process
-      (`CommandLineTests.WithoutDatabaseTheRunUsesTheEmbeddedDatabase`,
-      `ProcessTests.TheExecutableUsesTheEmbeddedDatabaseFromAnEmptyWorkingDirectory`).
-      Both facts seen red once (AGENTS.md §13): making `DatabaseFiles.Load` call
-      `LoadFromDirectory` on the current directory instead of `LoadEmbedded` when no
-      `--database` is given turned the embedded-database fact red, exit code 2, `no
-      thermo.inp in the database directory '…'`; disabling the `--version` branch of
-      `Program.Run` turned the version fact red, exit code 2, `no command given`
-      (`--version` alone then falls through to the ordinary "no command" refusal).
-      Reverted, nothing of either mutation committed. `Bits.approved.txt` unchanged: the
-      JSON hash of every example is taken with its top-level `run` property cut out
-      first (`RunPropertyCut`, above), and the CSV form never carries `run` at all
-      (`Output.CsvOutput`), so the database path this criterion moves from a directory
-      to the embedded markers reaches neither hash. Proved directly too: the packing
-      proof of `Problems`' BOOT.md ran an approved CSV example
-      (`documents/rocket-lox-lh2.approved.csv`) from an empty directory without
-      `--database`, through the packed tool, and found it byte-for-byte unchanged.
-- [x] 2026-09-17 — The schema files of `Schemas/` are embedded in the assembly and
-      served by `apthermo schema [name]` byte for byte to standard output, or to
-      `--output`, with exit code 0; a missing or an unknown name is exit code 2 naming
-      every embedded name, read from the assembly manifest rather than typed; no copy of
-      a schema lives outside this node. `tests/Cli.Tests` reads them directly through
-      `SchemaResources`, the type under test; `tests/Docs.Tests` reads them through the
-      command, the only test node that has no other way to reach this node's contract
-      (`tests/Cli.Tests/SchemaCommandTests`, the facts and their mutations recorded in
-      that node's `BOOT.md`, criterion of 2026-09-17;
-      `tests/Docs.Tests/SchemaValidationTests`). Found and fixed from
-      the CLI audit's findings C1 through C5, in `68f540a`.
-- [x] 2026-09-24 — The exception → exit code rule holds under the root's Diagnostics
-      constraint without a `catch (Exception)` in `Program.Run` (API.md, the ⚠ of
-      2026-09-24): `Program.Run` catches only `InputException` (2),
-      `AcceleratorUnavailableException`, `IOException` and `UnauthorizedAccessException`
-      (3); every other exception leaves it, proved directly
-      (`ExitCodeTests.AnExceptionOutsideTheFourDocumentedTypesLeavesRunInProcess`, a
-      `TextWriter` that throws from inside `Run`'s try block) and the mapping itself
-      unit-tested (`ExitCodeTests.AnExceptionMapsToItsDocumentedExitCode`,
-      `AnUnnamedExceptionIsExit3ThroughTheUnhandledExceptionRule`). The process-level
-      half — `Program.Main` installing an `AppDomain.CurrentDomain.UnhandledException`
-      handler that reports the same `Type: message` line and calls
-      `Environment.Exit(3)` — is proved once by a scratch console program outside the
-      tree, the same shape as `Program.Main`'s handler, throwing after installing it:
-      exit code 3, `InvalidOperationException: a defect of this node` on standard
-      error, `dotnet run -c Release` on 2026-09-24.
-
-- [x] 2026-09-26 — The audit fixes of that date (Constraints). Evidence due, each fact
-      red once against the code of `9c33398`:
-      - every CSV header this node writes, over every command, format and approved
-        example, has unique names;
-      - a document with a repeated member is refused (exit 2, with its path), in a
-        problem document and in a state record;
-      - `--output=` and `--database=` are exit 2 naming the option;
-      - the audit's `misname.jsonl` refusal names line 3;
-      - `--mass-tolerance` with a reactant document is exit 2;
-      - `run.massTolerance` of a reactant document is 0.01;
-      - a malformed database line is reported with one prefix.
-
-      Every approved CSV output (the tests node's, the docs tests node's, the bit
-      snapshots) is re-approved for the new header in the same commit, and nothing
-      else in them moves. The schemas are unchanged: the JSON documents did not change
-      shape.
-
-      Ticked 2026-09-27, each fact shown red once against the pre-fix code:
-      - `CsvTests.TheStatesCsvHeaderNamesAreUniqueEvenWhenAnInputCollidesWithAStationField`:
-        every CSV header column name is unique even when an input collides with a
-        station field name; red before `CsvOutput.HeaderOf`'s `inputs.` prefix (48
-        distinct names expected, 45 actual, the collision);
-      - `InputDocumentTests.AnInvalidDocumentIsExit2WithTheDocumentedMessageAndNoOutput`
-        over `duplicate-field.json` and `states-duplicate-field.json`: a document
-        with a repeated member is exit 2 naming the field and its path, red before
-        `StrictObject`'s duplicate check (exit 0, the last value silently used);
-      - `ProcessTests.AnEmptyOutputValueIsExit2AsARealProcess`,
-        `ProcessTests.AnEmptyDatabaseValueIsExit2EvenWhenTheWorkingDirectoryHoldsAThermoInpFile`
-        and two `CommandLineTests.InvalidCommandLinesAreExit2NamingTheOffender`
-        rows (`--output=`, `--database=`): both empty-valued options are exit 2
-        naming the option, red before `OptionValues.ParsePath` (exit 3 unhandled,
-        or the working directory's `thermo.inp` silently read);
-      - `ExitCodeTests.ARuleProblemValidationAppliesIsNamedByTheRecordsFileAndLineNotABatchLocalIndex`
-        (the audit's own `misname.jsonl` reproduction: three lines, the third
-        offending): the refusal names line 3, red before the front door's
-        `noun`/`StateRecordException` change (it named line 2, the batch-local
-        index misread as the line);
-      - `ExitCodeTests.MassToleranceDoesNotApplyToAReactantPropellant` and
-        `ExitCodeTests.AReactantPropellantsMassRefusalNamesThePropellantsMixture`:
-        `--mass-tolerance` with a reactant document is exit 2, and a reactant
-        propellant's own mass refusal names `the propellant's mixture (case i)`
-        rather than `mixture i`; both red before `ProblemCommand`'s
-        `CheckMassToleranceApplies` and its `MixtureMassException` catch (exit 0
-        with the option silently ignored, and the front door's own wording);
-      - `ExitCodeTests.AMalformedDatabaseLineIsReportedWithOnePrefix`: a malformed
-        database line is reported with exactly one `file:line:` prefix, red before
-        `DatabaseFiles.ReadDatabase` dropped the redundant one (`thermo.inp:5758:
-        thermo.inp:5758: …` doubled).
-
-      Every approved CSV output this node's own tests carry is re-approved for the
-      new header in the same commit as the fix, and the bit snapshot moves on no
-      other line (`Cli.Tests/Bits.approved.txt`'s diff: the JSON-hash half of every
-      line is unchanged, the CSV-hash half of every line that has a CSV form moved,
-      `species` — which has none — unchanged; `Bits.linux.approved.txt` is re-approved
-      by the owner under WSL, outside this coder's evidence). The docs tests node
-      carries no approved CSV output (`tests/Docs.Tests` stayed 29/29 unchanged
-      through this fix), so it needed no re-approval. The schemas are unchanged: the
-      JSON documents did not change shape.
-
-      `dotnet test tests/Cli.Tests`: 129/129, none skipped.
-      `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`:
-      green on the merged tree (the merge commit's own record has the final count).
-      `dotnet build APThermo.sln`: 0 warnings, 0 errors. The protocol lint: 0 errors,
-      0 warnings. The public surface is unchanged.
-- [x] 2026-09-28 — The audit fixes of 2026-09-28 (Constraints). Each fact is red once
-      against `5a732f0`, as a process or through `Program.Run`, asserting the exit
-      code and the path in the message
-      (`tests/Cli.Tests/SecondAuditFixTests.cs`):
-      - the audit's three range documents (`range-inf`: `{"from": 1.0, "to": 1e308,
-        "step": 1e-300}`, `range-intmax`: `{"from": 1.0, "to": 2147483648.0, "step":
-        1.0}`, `range-overflow`: `{"from": -1e308, "to": 1e308, "step": 1e300}`) and
-        `range-3e9` (`{"from": 0.0, "to": 3e9, "step": 1.0}`): exit 2 naming
-        `$.sweep.pressure` and the limit, `range-3e9` by the true reason, not the old
-        false "not an integer" one
-        (`ARangeWithANonFiniteStepCountIsRefusedNamingThePathAndTheLimit`,
-        `ARangeOfTwoToTheThirtyOneStepsIsRefusedNamingThePathAndTheLimit`,
-        `ARangeSpanningTheWholeDoubleRangeIsRefusedNamingThePathAndTheLimit`,
-        `ARangeOfThreeBillionStepsIsRefusedByTheAxisLimitNotAFalseStepReason`);
-      - a product of three axes above the case limit (300 x 300 x 300 = 27 000 000):
-        exit 2 naming `$.sweep` and the limit, before any solve
-        (`ASweepWhoseCartesianProductExceedsTheCaseLimitIsRefusedBeforeAnySolve`);
-      - a lone surrogate in a reactant name, a composition key, an unknown record
-        member and an unknown root member: exit 2 naming the path
-        (`ALoneSurrogateInAReactantNameIsExit2NamingThePath`,
-        `ALoneSurrogateInACompositionKeyIsExit2NamingThePath`,
-        `ALoneSurrogateInAnUnknownRecordMemberIsExit2NamingThePath`,
-        `ALoneSurrogateInAnUnknownRootMemberIsExit2NamingThePath`);
-      - `--output " "` and `--output "  "`: exit 2 naming the option
-        (`AWhitespaceOnlyOutputValueIsExit2NamingTheOption`);
-      - `equilibrium <reactant document> --mass-tolerance 0.01`: exit 2, as `API.md`
-        now says; a reactant document's mass refusal starts with the document's path
-        (`MassToleranceAgainstAReactantDocumentIsExit2AsApiNowSays`,
-        `ExitCodeTests.AReactantPropellantsMassRefusalNamesThePropellantsMixture`);
-      - the `species` listing's `run` section records neither `threshold` nor
-        `massTolerance` (`TheSpeciesListingsRunSectionRecordsNoThresholdOrMassTolerance`,
-        observation 8).
-
-      Red-once: `src/Cli` checked out to `5a732f0`
-      (`git checkout 5a732f0 -- src/Cli`), the file's constant references pinned to
-      their literal values for the run (the constants do not exist at that commit),
-      12 of the 13 facts failed for the documented mechanism (an unhandled
-      `OverflowException` on the two step-count facts, an unhandled
-      `OutOfMemoryException` on the case-count fact against the old, unbounded
-      allocation, an unhandled `ArgumentException` on the blank-output facts, an
-      unhandled `InvalidOperationException` on the four surrogate facts, and the old
-      false "not an integer" reason on the three-billion-step fact); the thirteenth
-      (the reactant document's `--mass-tolerance` exit code, whose refusal already
-      existed at `5a732f0`, only its message's path prefix being new) passed, as
-      expected, since it pins existing behaviour, not this day's fix. `src/Cli`
-      restored (`git checkout HEAD -- src/Cli` after committing the fix), all 13
-      green.
-
-      `API.md` states every refusal and both limits (`SweepValues.MaxAxisValues`,
-      `SweepDocumentReader.MaxCases`) in its errors table and the `sweep` field list;
-      the guide's `--mass-tolerance` sentence names the documents and commands the
-      option applies to and says a reactant propellant's document is exit 2.
-      `CHANGELOG.md`'s 0.2.0 entry names every user-visible change above.
-
-      Evidence: `dotnet test tests/Cli.Tests/APThermo.Cli.Tests.csproj` is 142 of 142
-      (129 baseline, plus these 13 facts); `dotnet test
-      tests/Docs.Tests/APThermo.Docs.Tests.csproj` is 29 of 29, unchanged, no approved
-      output moved (the guide's `--mass-tolerance` sentence is prose, not a checked
-      invocation). No `Bits*.approved.txt` or `PublicSurface.approved.txt` moved
-      (`git status --short`): the `run` section is cut out before the bit hash is
-      taken (`Harness.RunPropertyCut`), so removing `species`'s `threshold` and
-      `massTolerance` moves no snapshot. The schemas are unchanged save
-      `species.schema.json`, whose `run` no longer requires or declares `threshold`
-      and `massTolerance`. `dotnet build APThermo.sln`: 0 warnings, 0 errors. The
-      protocol lint: 0 errors, 0 warnings.
+→ [ACCEPTANCE.md](ACCEPTANCE.md)
 
 ## Taboos
 

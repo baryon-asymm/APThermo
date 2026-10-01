@@ -67,6 +67,19 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 - Depends on [Problems](../../Problems/API.md) for `ElementalMixture`
   (`DefaultMassTolerance`, `IsValidMassTolerance`) and on
   [Execution](../../Execution/API.md) for `AcceleratorKind`.
+- **Audit fixes of 2026-09-26** (the hidden-defect audit of that day; moved here from the
+  [parent's](../BOOT.md) constraints, AGENTS.md §11):
+  - **Syntax.** An option given with an empty value (`--output=`, `--database=`) is a
+    bad option value: exit 2 naming the option.
+    - ⚠ `--output=` exited 3 with an unhandled `ArgumentException`, and `--database=`
+      read `thermo.inp` from the working directory.
+- **Audit fixes of 2026-09-28** (the second hidden-defect audit; moved here from the
+  [parent's](../BOOT.md) constraints, AGENTS.md §11):
+  - **Syntax: a blank option value is a bad value.** A value that is empty or white
+    space only is refused: exit 2 naming the option.
+    - ⚠ The fix of 2026-09-26 refused an empty string only. `--output " "` reached
+      `File.WriteAllText` on Windows and exited 3 with `ArgumentException: The path is
+      empty` (finding F5).
 
 ## Acceptance criteria
 
