@@ -1,3 +1,5 @@
+using APThermo.Execution.LibDevice;
+
 namespace APThermo.Execution.Tests;
 
 /// <summary>

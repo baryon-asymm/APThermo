@@ -9,6 +9,22 @@ used to stand.
 
 ---
 
+<a id="libdevice-child-node-2026-10-01"></a>
+
+## 2026-10-01 — from "## Structure" — LibDevice becomes a child node: the Structure rows of its files and the decision's last lines
+
+Moved because the node `src/Execution/LibDevice` now exists (the owner's decision of 2026-10-01) and the two rows and the decision's last lines are replaced by one row and a pointer. The text as it stood:
+
+> | `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
+> | `CudaWslDevices` | the WSL workaround (2026-09-27, Constraints, "Every CUDA context of a process binds under WSL"): tries `builder.Cuda()` first, every call, and only on the resolver-already-set exception registers the devices itself by reflecting ILGPU's own internal `CudaDevice.GetDevices` | internal |
+>
+> `Chunks/` passed (six internal types, its row above); `LibDevice/` failed (three types)
+> and `ExpectedIlgpuVersion` stays on `LibDevicePostLink`: `LibDeviceLocator` and
+> `LibDevicePostLink` stay two files of this node →
+> HISTORY.md#child-nodes-decision-2026-09-15
+
+---
+
 <a id="compile-bound-evidence-table-2026-09-30"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — criterion: the compile bound, the evidence run and the per-project peaks

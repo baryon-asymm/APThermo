@@ -113,81 +113,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
   The probe kernel loaded for the check is released at once. It costs 0.05 to 0.2 s per
   CUDA engine on the reference machine (measured 2026-09-26).
-- **libdevice discovery order**: an explicit path pair in the options is tried first,
-  on every platform. Unless `LibDeviceDiscovery` is off, the platform is then chosen
-  with `OperatingSystem.IsWindows()` / `IsLinux()`; any other OS does no discovery (the
-  explicit pair is still tried, and the CPU accelerator is used when it is absent
-  too).
-
-  On **Windows**: the roots are the `CUDA_PATH` directory, then
-  `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v*` from the newest version down;
-  in each root both `nvvm\bin\nvvm64_40_0.dll` (12.x layout) and
-  `nvvm\bin\x64\nvvm64_40_0.dll` (13.x layout) are tried, with
-  `nvvm\libdevice\libdevice.10.bc`.
-
-  On **Linux**: the roots are `CUDA_PATH`, then `CUDA_HOME`, then `/usr/local/cuda`,
-  then `/usr/local/cuda-*` from the newest version down; in each root
-  `nvvm/lib64/libnvvm.so` is tried, with `nvvm/libdevice/libdevice.10.bc`.
-
-  On both platforms a root already tried (`CUDA_PATH` repeated among the versioned
-  roots, or equal to `CUDA_HOME` on Linux) is skipped, and a root whose library exists
-  but whose bitcode does not is passed over rather than accepted.
-
-  The context is created with `LibDevice(dllPath, bitcodePath)` so that ILGPU emits
-  the intrinsic calls.
-
-  ⚠ 2026-09-15: was the Windows roots and `nvvm64_40_0.dll` only, now a platform branch
-  with the Linux roots and `libnvvm.so` →
-  HISTORY.md#libdevice-discovery-linux-2026-09-15
-- **The post-link**, the one place in the tree that knows ILGPU internals. Its stages,
-  in order:
-  1. Compile the entry point with the CUDA accelerator's backend.
-  2. Take the wrapper inventory of the kernel PTX (2026-09-26):
-     - the wrappers *called* are the `__ilgpu__nv_*` names at `call` instructions
-       only, never parameter names or `ld.param` operands;
-     - the wrappers *defined* are the names of the kernel's own `.func` headers.
-
-     Both sets drop the `__ilgpu` prefix, as the fragment keys do.
-  3. The *missing* wrappers are those called and not defined.
-     - When no wrapper is called, the kernel is returned untouched, without a trial
-       load (as before).
-     - When none is missing, nothing is compiled or inserted: ILGPU defined them all.
-  4. Otherwise build an NVVM module from ILGPU's own fragments of the missing wrappers
-     only. The fragments are the private static `fragments` dictionary of
-     `ILGPU.Backends.PTX.PTXLibDeviceNvvm`, read by reflection. The header goes in the
-     order libnvvm accepts: `target triple`, `target datalayout`, then
-     `!nvvmir.version`.
-  5. Compile that module with ILGPU's `NvvmAPI` for the `compute_XX` of the kernel's
-     `.target sm_XX` line.
-  6. Strip `.version`, `.target` and `.address_size` from the result.
-  7. Insert it right after the kernel's `.address_size` line.
-  8. Check that every missing wrapper now has a definition in the inserted text.
-  9. Bind the accelerator's context to the calling thread and load the PTX once through
-     the CUDA driver API as a trial, so that a refusal carries the driver's log. This
-     happens on both paths of stage 3.
-  10. When anything was inserted, set the private backing field of
-      `PTXCompiledKernel.PTXAssembly` by reflection.
-  11. Load with `LoadAutoGroupedKernel`.
-
-  The reason the completion needs no branch for a kernel with some wrappers defined and
-  some missing (ILGPU defines all of a kernel's fragments or none) →
-  HISTORY.md#post-link-mixed-definitions-rationale-2026-09-26
-
-  `Link` reports what it did as a value (the wrappers ILGPU defined, the wrappers it
-  compiled), so that the tests can see which path a kernel took. It stays internal.
-
-  The CPU accelerator loads the same method through `LoadAutoGroupedKernel(MethodInfo)`
-  without any of this. The ILGPU assembly version and the presence and types of every
-  reflected member are asserted once per process, at the first `Engine.Create`, and a
-  mismatch is an error that names the ILGPU version.
-
-  ⚠ 2026-09-26: was "collect the distinct `__ilgpu__nv_*` names" and compile and insert
-  unconditionally, now the inventory of wrappers called against defined and only the
-  missing ones inserted → HISTORY.md#post-link-wrapper-inventory-2026-09-26
-
-  ⚠ 2026-09-12: was the wrappers compiled for a fixed `compute_80` with no trial load,
-  now the target read from the kernel's PTX and a trial load on the bound thread →
-  HISTORY.md#post-link-target-and-trial-load-2026-09-12
+- **libdevice discovery order**: the explicit pair, then the platform's toolkit roots
+  → [LibDevice/BOOT.md](LibDevice/BOOT.md)
+- **The post-link**, the one place in the tree that knows ILGPU internals, and its
+  stages → [LibDevice/BOOT.md](LibDevice/BOOT.md)
 - **Batch layout**: structure of arrays for inputs and outputs; the case index is the
   thread index; per-case scratch is a slice of a batch-sized buffer laid out by the
   numerical nodes' `ScratchLayout` and `TransportLayout`; batches are processed in
@@ -248,40 +177,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       (`CPUDevice.Default`), now the device sized from `Environment.ProcessorCount` →
       HISTORY.md#all-cores-cpudevice-default-2026-09-26
   - **Observations.**
-    - A driver or libnvvm log is trimmed of NUL padding as well as white space (the
-      trial load's message carried 45 NULs).
+    - The trimming of a driver or libnvvm log → [LibDevice/BOOT.md](LibDevice/BOOT.md)
     - `Engine.Upload` disposes the buffers it already uploaded when a later upload
       fails.
     - A half-given explicit path pair (`LibNvvmPath` without `LibDevicePath`, or the
       reverse) is an `ArgumentException` at `Create` naming the missing option. It was
       tried as `("", path)` and then replaced by discovery without a word.
 
-- **Every CUDA context of a process binds under WSL** (2026-09-27). ILGPU 1.5.3's
-  `builder.Cuda()` calls `NativeLibrary.SetDllImportResolver` on its own assembly
-  whenever the process runs under WSL (`CudaContextExtensions.CudaInternal`, source tag
-  `v1.5.3`), to load `libcuda` from the WSL driver directory. .NET allows one resolver
-  per assembly, so the second CUDA context of a process throws
-  `InvalidOperationException` ("A resolver is already set for the assembly") before any
-  device is registered.
-  - Rule: the context build calls `builder.Cuda()` as today. When that call throws
-    this exception under WSL, the resolver ILGPU needs is already in place, and the
-    build registers the CUDA devices itself through ILGPU's internal
-    `CudaDevice.GetDevices(configure, predicate, builder.DeviceRegistry)`, the call
-    `CudaInternal` makes after the resolver. The internal members are reached by
-    reflection, which the pinned version makes stable. A missing member is an
-    `AcceleratorUnavailableException` naming it, so that a changed ILGPU fails loudly
-    at the first bind.
-  - No static state: the build tries the public call first every time, so nothing
-    records that a resolver was set. Outside WSL the public call never throws this
-    exception, and the path is never taken.
-  - ⚠ 2026-09-27: was one CUDA context per process under WSL, now the second and later
-    contexts bind too → HISTORY.md#wsl-second-cuda-context-fails-2026-09-27
-  - The exception is recognised by where it was thrown, not by its message
-    (2026-09-28): an `InvalidOperationException` whose `TargetSite` is
-    `NativeLibrary.SetDllImportResolver`. An application trimmed with
-    `UseSystemResourceKeys` gets the resource key in place of the English text. The
-    message test would then miss it, and every later engine would fall back to the
-    CPU (the second audit's observation 5, by reading).
+- **Every CUDA context of a process binds under WSL** (2026-09-27): the workaround
+  and its rule → [LibDevice/BOOT.md](LibDevice/BOOT.md)
 
 - **Audit fixes of 2026-09-28** (the second hidden-defect audit, Execution findings F1
   and F2 and observations 1 to 8; the guards part's F7, F8 and O2).
@@ -342,8 +246,7 @@ HISTORY.md#engine-and-mathprobe-internal-2026-09-15
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline` | one per program: declare its host arrays, device buffers and views struct, assemble its result; no formula. Named here as the composition roots of their programs' runs, which the root's Ce rule allows above its limit: each names its program's batch, result and views types and the tables' buffers and views besides the run's machinery (the session, the plan, the chunk buffers, the loop, the timer, the kernel cache, and since 2026-09-28 `LaunchBudget`, threaded from `session.Budget` into `ChunkPlan.For`, F2). Three of the four also gained an internal `DeclareBuffers` test-support method for the F8 wiring fact, naming no new type; since 2026-09-29 (the third audit pass's observation) `DeclareBuffers` and `Run` both call one private `Declare` method instead of restating the buffer declarations, so the two cannot drift; `Run`'s own `using var buffers` disposes nothing for real once `BatchRun.Execute` has already run (ILGPU's own dispose is idempotent), and exists only because CA2000 needs a literal dispose beside the allocation. By the dependency check's walk on 2026-09-28 (2026-09-14 in parentheses): `RocketPipeline` 25 (23), `TransportPipeline` 23 (22), `EquilibriumPipeline` 22 (21), `SpeciesFunctionPipeline` 18 (17); unchanged by the 2026-09-29 refactor (`Declare` and `DisposeChunkBuffers` name no type these pipelines did not already name) | internal |
 | `Kernels` | the registry of entry points: each slices the views of its case and calls the numerical node; no formula. Named here as the registry the root's Ce rule allows above its limit (Ce 26 by the dependency check's walk on 2026-09-27, 25 on 2026-09-14, 22 by the review's textual count the same day: one views struct, one layout class and one solver per program, which no split removes) | internal |
 | `MathProbe` | the probe of the root's math list, in a file of its own; `StrideCount` is the internal constant the kernel strides by, tied to `FunctionCount` by a test, and the function list is asserted to have that length | internal (2026-09-15, distribution phase), contract unchanged |
-| `LibDevicePostLink` | the post-link as the sequence of its stages, each a method or a small internal type: the wrapper inventory of the kernel PTX (called at `call` sites, defined by `.func` headers; 2026-09-26), the NVVM module from the fragments of the missing wrappers, the compilation, the insertion after the header, the definition check as a set comparison over the wrapper text, the trial load; `Link` returns what it did | internal |
-| `CudaWslDevices` | the WSL workaround (2026-09-27, Constraints, "Every CUDA context of a process binds under WSL"): tries `builder.Cuda()` first, every call, and only on the resolver-already-set exception registers the devices itself by reflecting ILGPU's own internal `CudaDevice.GetDevices` | internal |
+| `LibDevice/` (child node, `APThermo.Execution.LibDevice`) | libdevice discovery (`LibDeviceLocator`), the post-link (`LibDevicePostLink`, whose `Link` returns what it did) and the WSL workaround (`CudaWslDevices`); its own `BOOT.md`/`API.md` hold the contract | internal |
 
 ⚠ 2026-09-14: was `FunctionCount` the constant the kernel strides by, now it stays a
 public property and an internal const `StrideCount` strides →
@@ -352,10 +255,12 @@ HISTORY.md#probe-stride-count-2026-09-14
 Decision of 2026-09-15 (the child-nodes phase, root `BOOT.md`, 0aa7e60): a cluster earns
 a child directory when the rest of the node reaches it through a contract narrower than
 its code, it has a reason of its own to change and it holds about five types or more.
-`Chunks/` passed (six internal types, its row above); `LibDevice/` failed (three types)
-and `ExpectedIlgpuVersion` stays on `LibDevicePostLink`: `LibDeviceLocator` and
-`LibDevicePostLink` stay two files of this node →
+`Chunks/` passed (six internal types, its row above) →
 HISTORY.md#child-nodes-decision-2026-09-15
+
+⚠ 2026-10-01: was `LibDevice/` failed (three types) and stayed two files of this
+node, now a child: about 90 lines of rules bind only its files →
+HISTORY.md#libdevice-child-node-2026-10-01
 
 Decisions taken with the review of 2026-09-14:
 

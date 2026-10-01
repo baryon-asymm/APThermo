@@ -6,7 +6,7 @@ using ILGPU;
 using ILGPU.Backends.PTX;
 using ILGPU.Runtime.Cuda;
 
-namespace APThermo.Execution;
+namespace APThermo.Execution.LibDevice;
 
 /// <summary>
 /// Completes, rather than replaces, ILGPU's own libdevice wrappers in a compiled CUDA kernel: the one place in the tree that

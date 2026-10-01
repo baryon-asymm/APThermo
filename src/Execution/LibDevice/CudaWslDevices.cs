@@ -5,7 +5,7 @@ using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 
-namespace APThermo.Execution;
+namespace APThermo.Execution.LibDevice;
 
 /// <summary>
 /// Works around ILGPU 1.5.3's WSL defect (BOOT.md, "Every CUDA context of a process binds under WSL", 2026-09-27):
