@@ -181,9 +181,10 @@ facts and the WSL facts of `tests/Execution.Tests` (its `BOOT.md`).
       `Protocol.Tests.LintTests`, red only for nodes over their §15 limit outside this
       subtree, and no `Bits*.approved.txt`, `Throughput*.approved.txt`,
       `PublicSurface.approved.txt` or `TreeContract.approved.txt` changed.
-- [ ] The execution tests on CUDA are green on the reference machine, the 100 000-case
-      sweep and the throughput tripwire included (run by the orchestrator, not yet
-      recorded here).
+- [x] 2026-10-01 — The execution tests on CUDA are green on the reference machine, the
+      100 000-case sweep and the throughput tripwire included: `dotnet test
+      tests/Execution.Tests -c Release`, 173 of 173 on Windows after the split was merged
+      into `protocol-3.1`.
 
 ## Taboos
 
