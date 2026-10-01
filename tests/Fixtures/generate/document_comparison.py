@@ -1,6 +1,6 @@
 """Field-by-field comparison of a regenerated fixture document with the committed one.
 
-The comparison of `regenerate.py --check --sample` (tests/Fixtures/BOOT.md, "The binding step runs on the fixtures'
+The comparison of `regenerate.py --check --sample` (tests/Fixtures/ACCEPTANCE.md, "The binding step runs on the fixtures'
 own platform and compares with a tolerance"). Two documents agree when they have the same keys in the same order
 and the same list lengths, every boolean and null is equal, every string is equal or, when it holds decimal numbers,
 is the same words with the same numbers each within the tolerance of its field, every number is within the relative

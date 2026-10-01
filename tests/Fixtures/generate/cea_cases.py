@@ -55,7 +55,7 @@ class Custom:
 
 def _roles(count: int, oxidizer, fuel) -> list[str | None]:
     """One role per reactant, read from the oxidizer and fuel vectors a ratio case passes to `of_ratio_to_weights`
-    (never from a name list, Fixtures BOOT.md's role criterion): `"oxidizer"` where the oxidizer vector is positive,
+    (never from a name list, tests/Fixtures/ACCEPTANCE.md's role criterion): `"oxidizer"` where the oxidizer vector is positive,
     `"fuel"` where the fuel vector is positive, `None` for a case given no such vectors (no oxidizer-to-fuel ratio)."""
     if oxidizer is None and fuel is None:
         return [None] * count
@@ -110,7 +110,7 @@ def _derivatives(cp_eq: float, cv_eq: float, gamma_s: float, molar_mass: float, 
     if not frozen and cp_eq == 0.0 and cv_eq == 0.0 and gamma_s > 0.0:
         # A pinned two-phase state: the package reports zero equilibrium heat capacities and a real gamma_s,
         # and the derivations below degenerate. The fixture writes the plateau convention of the case matrix
-        # (BOOT.md, melting-plateau cases) directly: dlnVdlnT = 0, dlnVdlnP = -1/gamma_s.
+        # (BOOT.md, the case matrix's melting-plateau cases) directly: dlnVdlnT = 0, dlnVdlnP = -1/gamma_s.
         return 0.0, -1.0 / gamma_s
     if frozen or cv_eq <= 0.0 or gamma_s <= 0.0:
         return 1.0, -1.0
@@ -206,7 +206,7 @@ def solve_rocket(reac, prod, weights, temperatures, chamber_pressure_pa: float, 
     `insert` seeds condensed species the package's own inclusion test misses (RP-1311 example 13). `enthalpy`
     overrides the reactants' own enthalpy (`reac.calc_property`) with an assigned value, as the throat family's
     guard does when it re-runs the package's rocket solver at an enthalpy stepped away from the reactants'
-    (BOOT.md, the throat family). Every solution passes the station guard of BOOT.md before it is returned."""
+    (BOOT.md, the throat family). Every solution passes the station guard of tests/Fixtures/BOOT.md before it is returned."""
     options = {"transport": transport}
     if insert is not None:
         options["insert"] = list(insert)
@@ -238,7 +238,7 @@ def _pinned_pair(fractions: dict[str, float], species: str) -> bool:
 
 
 def guard_stations(solution: cea.RocketSolution, reac, prod, weights, flow: str) -> None:
-    """The multi-station guard of BOOT.md, over every shifting station of a rocket solution.
+    """The multi-station guard of tests/Fixtures/BOOT.md, over every shifting station of a rocket solution.
 
     The package's sequential stations can keep a condensed species outside its range or drift off the
     chamber isentrope past a melting plateau (found 2026-09-13); a reference that does either must not

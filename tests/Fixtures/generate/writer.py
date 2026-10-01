@@ -43,11 +43,11 @@ class Writer:
     def __init__(self, check: bool = False, only: list[str] | None = None,
                  only_cases: set[tuple[str, str]] | None = None, tolerant: bool = False) -> None:
         """`only_cases`, when given, is a set of `(kind, safe_name(name))` pairs (regenerate.py's `--sample`, tests/
-        Fixtures/BOOT.md's CI step): every other case of a wanted kind is skipped, and the stale sweep of `finish()`
+        Fixtures/ACCEPTANCE.md's CI step): every other case of a wanted kind is skipped, and the stale sweep of `finish()`
         is turned off, since a sample deliberately produces only part of each kind and every file it does not touch
         is not stale.
 
-        `tolerant` (with `check`; regenerate.py's `--check --sample`, tests/Fixtures/BOOT.md's "The binding step
+        `tolerant` (with `check`; regenerate.py's `--check --sample`, tests/Fixtures/ACCEPTANCE.md's "The binding step
         runs on the fixtures' own platform and compares with a tolerance") compares a regenerated case with the
         committed file as a document, field by field (document_comparison.py), instead of as text."""
         self.check = check
