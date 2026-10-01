@@ -62,6 +62,15 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   scan of the committed file (`ThermoLoadTests.EveryRecordOfTheFileIsParsed`)
   counts 2 030 product and 81 reactant records.
 
+- Data: the NASA files are committed verbatim under `data/` with a `NOTICE`
+  (Apache-2.0) and the upstream commit hash. The data node embeds those same files in
+  its assembly (2026-09-15): they are linked from `data/`, never copied in the tree, and a
+  test proves by SHA-256 that the embedded bytes equal the files. At run time a database
+  is read from the embedded copy or from a path given by the caller.
+
+  ⚠ 2026-09-15: was data "read at run time from that directory", now embedded in the
+  data assembly → HISTORY.md#data-embedded
+
 ### Format facts of `thermo.inp` (NASA Glenn, McBride, Zehe and Gordon 2002)
 
 - Lines starting with `!` before the `thermo` line are comments. The `thermo` line is

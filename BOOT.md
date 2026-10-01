@@ -245,14 +245,7 @@ delivery (2026-09-15, `## Delivery` below).
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
   than the CPU accelerator path using all cores. There is no single-case latency target
   in version 1.
-- Data: the NASA files are committed verbatim under `data/` with a `NOTICE`
-  (Apache-2.0) and the upstream commit hash. The data node embeds those same files in
-  its assembly (2026-09-15): they are linked from `data/`, never copied in the tree, and a
-  test proves by SHA-256 that the embedded bytes equal the files. At run time a database
-  is read from the embedded copy or from a path given by the caller.
-
-  ⚠ 2026-09-15: was data "read at run time from that directory", now embedded in the
-  data assembly → HISTORY.md#data-embedded
+- Data: [src/Data/BOOT.md](src/Data/BOOT.md), `## Constraints`.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
@@ -370,14 +363,14 @@ with links in [API.md](API.md), and the arrows between them are the nodes'
 Test nodes mirror the source nodes as `tests/<Node>.Tests`. `tests/Protocol.Tests` holds
 the reflection checks of AGENTS.md §13; `tests/Fixtures` the reference outputs
 generated with NASA's `cea` package, with their provenance, the generator scripts and
-the tolerance table; `tests/Harness` the scaffolding the test nodes share, naming
-nothing above `Data` and `Fixtures`; `tests/Benchmarks` the BenchmarkDotNet
-measurements, run by hand outside `dotnet test`, its figures recorded and never
-asserted (a library, run through its child node `tests/Benchmarks/Runner`);
+the tolerance table; `tests/Harness` the scaffolding the test nodes share;
+`tests/Benchmarks` the BenchmarkDotNet measurements, run by hand outside `dotnet test`
+(a library, run through its child node `tests/Benchmarks/Runner`);
 `samples/Samples` each consumer scenario as a running program over the package surface,
 the source of the guide's code; `tests/Docs.Tests` the approved outputs of the samples
 and command-line examples and the proof of the guide against them (`## Delivery`,
-Documentation). → HISTORY.md#decomposition-condensed
+Documentation). What `Harness` may name and how `Benchmarks` treats its figures are
+those nodes' own invariants. → HISTORY.md#test-nodes-retelling
 
   ⚠ 2026-09-16: was the docs tests node holding "the schemas", now only approved outputs
   and tests → HISTORY.md#docs-tests-schemas
@@ -468,10 +461,7 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
 
       ⚠ 2026-09-29: was one approved file compared exactly everywhere, now per-platform
       records plus a 1e-9 field tolerance → HISTORY.md#docs-platform-rule
-  - The JSON Schemas of the command line's documents belong to the command line
-    (2026-09-15). They move from its tests node to `src/Cli/Schemas/`, are embedded in
-    the tool (`apthermo schema <name>` prints one), and are validated there by the
-    command line's tests. No copy of them lives under `docs/`.
+  - The JSON Schemas of the command line's documents: [src/Cli/BOOT.md](src/Cli/BOOT.md).
   - `llms.txt` at the root is the entry for agents: a summary, and links to the guide
     pages, the schemas, the samples and the nodes' `API.md`.
   - Guide pages share one shape (purpose, when to use, steps, errors, see also), so a

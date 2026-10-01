@@ -145,7 +145,7 @@ jobs:
 
   cuda-linux:
     name: CUDA (Linux GPU)
-    # Shares one CPU and one GPU with cuda-windows, and the throughput tripwire (tests/Execution.Tests/BOOT.md's performance target)
+    # Shares one CPU and one GPU with cuda-windows, and the throughput tripwire (root BOOT.md's performance target)
     # measures both, so the two never run at once (the 2026-09-19 post-mortem, "Rehearsal before the tag").
     needs: [matrix, cuda-windows]
     runs-on: ['self-hosted', 'linux', 'gpu']

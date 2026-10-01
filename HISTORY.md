@@ -8,6 +8,46 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="test-nodes-retelling"></a>
+
+## 2026-10-01 — from "## Decomposition" — what two test nodes already say about themselves
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the paragraph as it stood
+before two retellings of a child's own invariants were replaced by a link:
+`tests/Harness/BOOT.md` holds "Nothing above `Data` and `Fixtures`" and
+`tests/Benchmarks/BOOT.md` holds "Figures are recorded, never asserted".
+
+> Test nodes mirror the source nodes as `tests/<Node>.Tests`. `tests/Protocol.Tests` holds
+> the reflection checks of AGENTS.md §13; `tests/Fixtures` the reference outputs
+> generated with NASA's `cea` package, with their provenance, the generator scripts and
+> the tolerance table; `tests/Harness` the scaffolding the test nodes share, naming
+> nothing above `Data` and `Fixtures`; `tests/Benchmarks` the BenchmarkDotNet
+> measurements, run by hand outside `dotnet test`, its figures recorded and never
+> asserted (a library, run through its child node `tests/Benchmarks/Runner`);
+> `samples/Samples` each consumer scenario as a running program over the package surface,
+> the source of the guide's code; `tests/Docs.Tests` the approved outputs of the samples
+> and command-line examples and the proof of the guide against them (`## Delivery`,
+> Documentation). → HISTORY.md#decomposition-condensed
+
+---
+
+<a id="cli-schemas-retelling"></a>
+
+## 2026-10-01 — from "## Delivery", "Documentation" — the schemas of the command line
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the bullet as it stood
+before it was replaced by a link to `src/Cli/BOOT.md`, which holds the rule (its invariant
+"The JSON schema is the contract": the schemas live in `Schemas/`, embedded in the
+assembly, printed by `apthermo schema`, compared with the structs by a test), while
+`tests/Docs.Tests/BOOT.md` holds "No copy of what is checked elsewhere":
+
+>   - The JSON Schemas of the command line's documents belong to the command line
+>     (2026-09-15). They move from its tests node to `src/Cli/Schemas/`, are embedded in
+>     the tool (`apthermo schema <name>` prints one), and are validated there by the
+>     command line's tests. No copy of them lives under `docs/`.
+
+---
+
 <a id="platform-deviation-condensed"></a>
 
 ## 2026-10-01 — from "## Constraints" — condensed wording
@@ -649,24 +689,6 @@ Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it s
 > review of `ShapeTests`. It now states the scope the check holds, and the acceptance
 > criterion below follows it. A stable type's 100 lines are lines of code, counted as
 > the size limits count them.
-
----
-
-<a id="data-embedded"></a>
-
-## 2026-10-01 — from "## Constraints", "Data" — the NASA files are embedded in the data assembly
-
-Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the text as it stood
-(a correction of 2026-09-15):
-
-> ⚠ 2026-09-15 (distribution phase): stood "they are read at run time from that
-> directory or from a path given by the caller". A NuGet package and a .NET tool have
-> no `data/` directory beside them, so every consumer would have to find NASA files
-> before the first call. Embedding the committed files keeps the data-from-files
-> invariant, because the bytes are the committed ones with their hash recorded. The
-> caller's path stays for other databases. The command line's search for `data/`
-> beside the executable and in the current directory goes with it; its `API.md`
-> records the change.
 
 ---
 
