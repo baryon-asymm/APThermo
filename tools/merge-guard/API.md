@@ -52,9 +52,14 @@ the current directory, which it never changes.
 3. **Approved records** (`--approve`): every changed file whose name contains `.approved.`, listed with its
    line counts; one outside the patterns fails. A pattern matching no file of the tree
    fails as an empty walk.
-4. **Documents** (`--doc-nodes`, skipped without it, the append-only rule with it): the
-   moved-text rules of `BOOT.md`, `## Constraints`, plus the append-only rule over every
-   `HISTORY.md`.
+4. **History**, always: no non-blank line is removed from any `HISTORY.md` of the tree,
+   printed as its own line `ok    history: N HISTORY.md touched, append-only`. Then
+   **documents** (`--doc-nodes`, skipped without it): the moved-text rules of `BOOT.md`,
+   `## Constraints`.
+
+   ⚠ 2026-10-02: was the append-only rule inside the documents check, skipped without
+   `--doc-nodes`; now it runs on every branch, since a branch that rewrites history is
+   no less wrong for moving no text (the orchestrator's decision on the coder's report).
 5. **Overlap** (`--overlap`): files changed on both sides since the merge base.
 6. **Trial merge**: a detached worktree at the target's head in the system temp
    directory, `git merge --no-ff --no-commit <branch>`.

@@ -82,7 +82,8 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
   named node's `BOOT.md` or `ACCEPTANCE.md` is defined in the `HISTORY.md` of that node
   or of an ancestor. New against `history_guard.py`: **`HISTORY.md` is append-only** —
   a non-blank line removed from any `HISTORY.md` of the tree is a failure, named node
-  or not. The base is always the merge base, never the head of the target branch (a
+  or not, and this rule runs on every branch, with `--doc-nodes` or without (2026-10-02,
+  `API.md`, check 4). The base is always the merge base, never the head of the target branch (a
   two-dot diff against a moving head reported other nodes as out of scope).
 
   ⚠ 2026-10-02: was "from another named node's `BOOT.md`", now any named node's, the
