@@ -47,11 +47,11 @@ Outside the tree: <test framework and version>.
 - [ ] Every check is proven non-degenerate: what it guards was broken and the red was
       seen (AGENTS.md §13).
 
-<!-- A tests node's criteria grow with every verified change, so it is the node that
-     most often needs `ACCEPTANCE.md` (AGENTS.md §6, §15): when they push this file
-     toward its line limit, move the whole body to an `ACCEPTANCE.md` beside it and
-     leave in this section only the one line `→ [ACCEPTANCE.md](ACCEPTANCE.md)`. The
-     rules above (levels, taboos) stay here; the dated ticks and their evidence go. -->
+<!-- A tests node's criteria grow with every verified change, so it is often the first
+     to need a sibling ACCEPTANCE.md (AGENTS.md 3.2, §6, §15): move the body there,
+     verbatim, and leave in this section only the one line
+     → [ACCEPTANCE.md](ACCEPTANCE.md). The levels table and the taboos stay here; only
+     the dated ticks and their evidence move, never a rule. -->
 
 ## Taboos
 

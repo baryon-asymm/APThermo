@@ -32,6 +32,12 @@ the loader (`CLAUDE.md`) carries no subject-matter claims (AGENTS.md §2).>
 
 ## Acceptance criteria
 
+<!-- Once this section grows past the root's line budget (AGENTS.md 15), move its
+     body, verbatim, to a sibling ACCEPTANCE.md and leave the one-line pointer below in
+     its place; the root is then measured against the leaf's 400 lines instead of the
+     parent's 250, since the frame stays here but the evidence does not (AGENTS.md 3.1,
+     §6, §15): → [ACCEPTANCE.md](ACCEPTANCE.md) -->
+
 - [ ] <How to tell the system is ready: what checks it and against what.>
 - [ ] The tree passes `protocol_lint` without errors.
 - [ ] The reflection checks are written for this stack and each is proven

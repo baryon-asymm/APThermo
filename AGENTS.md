@@ -422,10 +422,11 @@ limit follows that arithmetic.
 
 **A `BOOT.md` holds at most 250 non-blank lines in a node with children, 400 in a
 leaf, and 400 at the root once its acceptance criteria live in `ACCEPTANCE.md`, a file
-any node may keep, itself held to 400; whatever is no longer the current truth — the full text of ⚠
-corrections, superseded measurements, sweeps and run tables — moves, oldest first, to
-the node's append-only `HISTORY.md`, leaving a dated one-line pointer in place, and the
-linter reports the limit as an error unless the node declares the deviation (§12).**
+any node may keep, itself held to 400; whatever is no longer the current truth — the
+full text of ⚠ corrections, superseded measurements, sweeps and run tables — moves,
+oldest first, to the node's append-only `HISTORY.md`, leaving a dated one-line pointer
+in place, and the linter reports the limit as an error unless the node declares the
+deviation (§12).**
 
 The details of that sentence:
 

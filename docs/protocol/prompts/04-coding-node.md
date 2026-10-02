@@ -11,11 +11,13 @@ Coding on the node `<path to the node>`. Work autonomously: ask no questions, ma
 decisions yourself within the bounds set by the documents, and write everything you
 had to decide beyond those bounds into the report.
 
-**Start** (`AGENTS.md`, §10): the protocol; the upward chain of `BOOT.md` to the root;
-the `API.md` of the neighbours from this node's `## Dependencies`; the linter. **Do
-not read the neighbours' code** (§3): their contract is their `API.md`. If the contract
-is insufficient, that is a defect of their document: stop and escalate (§11), do not
-peek into the implementation.
+**Start** (`AGENTS.md`, §10): the protocol; the upward chain of `BOOT.md` to the root,
+plus this node's own `ACCEPTANCE.md` if its `BOOT.md` points to one (an ancestor's
+`ACCEPTANCE.md` is not read - it is that ancestor's evidence, not frame); the `API.md`
+of the neighbours from this node's `## Dependencies`; the linter. **Do not read the
+neighbours' code** (§3): their contract is their `API.md`. If the contract is
+insufficient, that is a defect of their document: stop and escalate (§11), do not peek
+into the implementation.
 
 A red linter **before** the start of the work means the tree has already diverged
 from the code. Then do not work: find out why, and report.
