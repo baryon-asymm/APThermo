@@ -150,8 +150,13 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
         condition turned `test_a_colon_switch_is_a_switch_and_an_absolute_path_is_still_a_path`
         and `test_changing_into_the_worktree_and_ordinary_commands_are_allowed` red under WSL
         Ubuntu 24.04; green on Windows and Linux with the fix (50 tests, 3 skipped on Linux)
-- [ ] Enabled by the owner and seen working once on a real coder: a refused read of a
-      neighbour's source in the coder's transcript, with the reason.
+- [x] 2026-10-02 — Enabled by the owner and seen working once on a real coder: a refused read of a
+      neighbour's source in the coder's transcript, with the reason. The owner registered the
+      hook in `.claude/settings.local.json` the same day, no restart needed; a probe coder
+      (scope `tools/coder-scope`) got "scope not yet published" on its first two calls and
+      passed on retry, was refused `Read src/Data/Species.cs` and `cat
+      src/Thermo/SpeciesTable.cs` (read set, §3) and `Write src/Data/probe.tmp` (write set),
+      and was allowed its own node, `src/Data/API.md`, `AGENTS.md` and a write in its node.
 
 ## Taboos
 
