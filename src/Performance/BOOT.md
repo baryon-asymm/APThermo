@@ -194,9 +194,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   a condensed species present at the chamber (section 6.5.1).
 - Compile size (2026-09-30, the root's Compile size constraint): `StationSolve.At` is
   marked `[MethodImpl(MethodImplOptions.NoInlining)]`. It is the one method through
-  which the rocket program reaches `Equilibrium`'s solves, from seven call sites
+  which the rocket program reaches `Equilibrium`'s solves, from eight call sites
   (`AreaRatioIteration`, `PhaseBoundaryLocator`, `PressureRatioStation`,
-  `ThroatBracketSearch` three times, `UpstreamChokeCheck`), and ILGPU inlines a full copy
+  `ThroatBracketSearch` four times, `UpstreamChokeCheck`; the fourth is the throat
+  tail's and the bisection fallback's `Trial`, 2026-10-02), and ILGPU inlines a full copy
   of the solve at each. A new stage that calls it adds a call, never a copy; a stage that
   would reach `Equilibrium` another way is a root decision. Its arguments are `in`
   structs and views as before, so the result bits do not move.

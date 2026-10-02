@@ -25,8 +25,11 @@ internal static class RocketSolver
     /// <summary>Iterations continue past the report's tolerances until the correction is this small, so that the reported station is at rounding level.</summary>
     internal const double TightTolerance = 1.0e-10;
 
-    /// <summary>The throat's own tight stop on |u²/a² − 1|, in the momentum loop and in the bisection's sonic test (BOOT.md, 2026-10-02, the owner's decision); the area-ratio iteration keeps <see cref="TightTolerance"/>.</summary>
-    internal const double ThroatTightTolerance = 1.0e-11;
+    /// <summary>The throat's decision: the first trial with |u²/a² − 1| within this decides, in the momentum loop and in the bisection of a bracket whose ends hold one condensed set (BOOT.md, 2026-10-02, the owner's decision); <see cref="ThroatTailSteps"/> momentum steps follow it. The area-ratio iteration keeps <see cref="TightTolerance"/>.</summary>
+    internal const double ThroatDecisionTolerance = 1.0e-8;
+
+    /// <summary>The momentum steps taken after the throat's decision, whatever their ratio; the last is the throat. They may run past <see cref="MaxThroatIterations"/> (BOOT.md, 2026-10-02).</summary>
+    internal const int ThroatTailSteps = 2;
 
     public const int MaxThroatIterations = 20;
     public const int MaxAreaRatioIterations = 20;
