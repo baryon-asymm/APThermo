@@ -140,8 +140,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     package's transport set (at most 40 gaseous species, chosen as the Transport
     `BOOT.md` describes) per kilogram of that gas, and `cv_fr` is that value minus
     n R with n the gaseous moles of the whole mixture; with condensed species they
-    are gas-phase values (AP/HTPB/Al chamber: 2038.5 with transport, 1904.5
-    kJ/(kg·K)·10⁻³ without), while cp_eq, γ_s, M and MW do not change. Hence the
+    are gas-phase values (AP/HTPB/Al chamber: 2053.8 with transport, 1914.7
+    kJ/(kg·K)·10⁻³ without; ⚠ 2026-10-02: was 2038.5 and 1904.5, the figures of the
+    provisional HTPB, now those of the cited one → ACCEPTANCE.md, the HTPB criterion), while cp_eq, γ_s, M and MW do not change. Hence the
     derived equilibrium cases are generated without transport, the performance tests
     compare `cpFrozen` and `cvFrozen` as gas-phase values, and the Transport tests
     compare the field with the set's heat capacity at every station with transport

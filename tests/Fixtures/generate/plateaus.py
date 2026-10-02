@@ -27,8 +27,10 @@ TEMPERATURES = np.array([298.15, 298.15, 298.15])
 MASS_FRACTIONS = np.array([0.68, 0.14, 0.18])
 
 CHAMBER_PRESSURE_PA = 7.0 * MPA_TO_PA
-# Pressure ratios covering the AL2O3(a)/AL2O3(L) plateau of this propellant at 7 MPa and both its edges.
-PRESSURE_RATIOS = [21.6, 23.0, 25.0, 27.0, 30.0, 33.0, 36.0, 37.4]
+# Pressure ratios covering the AL2O3(a)/AL2O3(L) plateau of this propellant at 7 MPa and both its edges: 21.6 and 23
+# are single-phase liquid, 25 to 40 sit on the pinned pair, 42 and 45 are pure AL2O3(a) (the plateau's lower edge was
+# measured at p_c/p between 40.2 and 40.3, tests/Fixtures/generate/BOOT.md, the case matrix).
+PRESSURE_RATIOS = [21.6, 23.0, 25.0, 27.0, 30.0, 33.0, 36.0, 37.4, 42.0, 45.0]
 
 BAND_PRESSURE_PA = 0.7 * MPA_TO_PA
 BAND_FRACTIONS = [0.1, 0.3, 0.5, 0.7, 0.9]

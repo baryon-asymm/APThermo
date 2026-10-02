@@ -43,7 +43,7 @@ namespace APThermo.Performance.Tests;
 public sealed class SecondAuditFixTests
 {
     /// <summary>The AP/HTPB/Al throat fixture every enthalpy-offset case below starts from (its element system and mass).</summary>
-    private const string ApHtpbAlBaseFixture = "ap-htpb-al-throat_pc7MPa_dh-2.25MJkg";
+    private const string ApHtpbAlBaseFixture = "ap-htpb-al-throat_pc7MPa_dh-2.3MJkg";
 
     /// <summary>
     /// Finding F1: the throat's mass flux is not below the mass-flux oracle's at any pressure between the chamber

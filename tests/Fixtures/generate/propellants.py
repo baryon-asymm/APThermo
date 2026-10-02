@@ -2,9 +2,11 @@
 and equilibrium cases derived from the stations of one central case per propellant; plus the sodium case,
 one hp case of a fifth propellant pair added for its six-interval product (see below).
 
-HTPB is not a thermo.inp record; the definition used here is provisional (see tests/Fixtures/ACCEPTANCE.md, the HTPB criterion):
-C 7.3165 H 10.3416 O 0.0674, assigned enthalpy -250 cal/mol at 298.15 K, molar mass from the
-atomic weights of the file.
+HTPB is not a thermo.inp record; its definition is the owner's decision of 2026-10-02 (tests/Fixtures/ACCEPTANCE.md, the
+HTPB criterion): J. C. Thomas and E. L. Petersen, "HTPB Heat of Formation: Literature Survey, Group Additive
+Estimations, and Theoretical Effects", AIAA Journal, 2021, doi:10.2514/1.J060972, IPDI-cured R-45M:
+C 213.8 H 323.0 O 4.6 N 2.3, enthalpy of formation +342 kJ/mol of that formula unit at 298.15 K, molar mass from the
+atomic weights of the file (about 2999 g/mol).
 """
 from __future__ import annotations
 
@@ -14,15 +16,21 @@ import numpy as np
 
 import cea
 
-from cea_cases import (FLOW_FROZEN_CHAMBER, FLOW_FROZEN_THROAT, FLOW_SHIFTING, Custom, derive_equilibrium_cases,
-                       describe_reactants, equilibrium_inputs, make_mixtures, rocket_inputs, rocket_outputs,
-                       solve_equilibrium, solve_rocket)
+from cea_cases import (CAL_TO_J, FLOW_FROZEN_CHAMBER, FLOW_FROZEN_THROAT, FLOW_SHIFTING, Custom,
+                       derive_equilibrium_cases, describe_reactants, equilibrium_inputs, make_mixtures, rocket_inputs,
+                       rocket_outputs, solve_equilibrium, solve_rocket)
+from common import KJ_TO_J
 from writer import Writer, main_of
 
 MPA_TO_PA = 1.0e6
 
-HTPB = Custom("HTPB", {"C": 7.3165, "H": 10.3416, "O": 0.0674}, -250.0,
-              note="provisional definition, to be confirmed against a cited source (Fixtures BOOT.md)")
+HTPB_FORMATION_ENTHALPY_J_PER_MOL = 342.0 * KJ_TO_J   # +342 kJ per mole of the formula unit below
+
+HTPB = Custom("HTPB", {"C": 213.8, "H": 323.0, "O": 4.6, "N": 2.3}, HTPB_FORMATION_ENTHALPY_J_PER_MOL / CAL_TO_J,
+              note="Thomas and Petersen, AIAA Journal 2021, doi:10.2514/1.J060972: IPDI-cured HTPB R-45M, "
+                   "C 213.8 H 323.0 O 4.6 N 2.3, enthalpy of formation +342 kJ/mol of that formula unit "
+                   "(+114 kJ/kg) at 298.15 K; HTPB heats of formation vary widely in the literature "
+                   "(owner's decision 2026-10-02)")
 
 PROPELLANTS = [
     {

@@ -114,7 +114,14 @@ families):
     on for shifting cases.
   - AP/HTPB/Al (`NH4CLO4(I)` 68 %, HTPB 14 %, `AL(cr)` 18 % by mass, all at
     298.15 K): 5 and 7 MPa; area ratios 8 and 12; shifting; transport on; condensed
-    products expected (`AL2O3(L)` in the chamber).
+    products expected (`AL2O3(L)` in the chamber). HTPB is not a `thermo.inp` record:
+    its definition is that of Thomas and Petersen (AIAA Journal, 2021,
+    doi:10.2514/1.J060972, IPDI-cured R-45M: C 213.8 H 323.0 O 4.6 N 2.3, +342 kJ/mol of
+    that unit at 298.15 K), the owner's decision of 2026-10-02, given to the package as
+    342000 / 4.184 cal/mol.
+
+    ⚠ 2026-10-02: was the unsourced provisional definition (C 7.3165 H 10.3416 O 0.0674,
+    −250 cal/mol), now the cited one → [ACCEPTANCE.md](../ACCEPTANCE.md)
   - Melting-plateau cases, added by the design session of 2026-09-13 (the
     condensed-phase rules of the equilibrium node):
     - RP-1311 example 13 (N2H4/Be 80/20 at O/F 0.4925…, 20.68 MPa; exits `p_c/p` 3,
@@ -123,9 +130,18 @@ families):
       plateau at 2851 K, which the package only converges with the insert.
     - Direct plateau stations of AP/HTPB/Al at 7 MPa: single-exit rocket cases
       (chamber plus one exit each) at pressure ratios covering the AL2O3(a)/(L)
-      plateau and both its edges (`p_c/p` 21.6 … 37.4), so the pinned pair, its
+      plateau and both its edges (`p_c/p` 21.6 … 45), so the pinned pair, its
       crossing temperature, the plateau `γ_s` and sound speed have fixtures;
       single-exit because of the guard above.
+
+      ⚠ 2026-10-02: was ratios 21.6 … 37.4, "both its edges", chosen for the provisional
+      HTPB; now 21.6 … 45. With the cited HTPB (chamber +25 K) the ratios 21.6 to 37.4
+      cover only the liquid side and the pair, and the pure `AL2O3(a)` edge was found,
+      by a package sweep, at `p_c/p` between 40.2 (`AL2O3(L)` 3.3e-4 in the stations'
+      `moleFractions` field) and 40.3 (0). Measured: `p_c/p` 21.6 and 23 single-phase liquid (T 2358.9, 2338.0 K);
+      25 to 37.4 on the pair at 2327 K; 42 and 45 pure `AL2O3(a)` (2313.1, 2290.3 K), so
+      42 and 45 were added, the existing eight kept. The liquid edge lies between 23
+      and 25, the solid edge between 40.2 and 40.3.
     - The fuel-rich chamber, AP/HTPB/Al at O/F 0.50 and 7 MPa, hp: the
       include/remove cycle case (`AL4C3(cr)`), which the package converges.
     - hp across the plateau: AP/HTPB/Al at 700 kPa, assigned enthalpies stepping
@@ -191,15 +207,17 @@ families):
     node's `BOOT.md` states the defect, and RP-1311 sections 6.3.3 and 6.3.4 define
     the throat this family computes.
     - Cases, the enthalpy assigned relative to the reactants' own `h₀` unless stated:
-      - AP/HTPB/Al of the plateau cases above at 7 MPa, `h₀` − 2.20, − 2.225,
-        − 2.25, − 2.275 and − 2.30 MJ/kg;
-      - the same at 1, 3 and 15 MPa, `h₀` − 2.25 MJ/kg;
+      - AP/HTPB/Al of the plateau cases above at 7 MPa, `h₀` − 2.375, − 2.35,
+        − 2.325, − 2.30 and − 2.275 MJ/kg: the throat at the plateau's high-pressure
+        edge, where the package's rocket throat is wrong, at − 2.35 and − 2.325, with
+        agreeing brackets at − 2.375 (below) and − 2.30 and − 2.275 (above);
+      - the same at 1, 3 and 15 MPa, `h₀` − 2.325 MJ/kg (an edge case at all three);
       - RP-1311 example 13's propellant at 5 MPa, `h₀` and `h₀` + 250 kJ/kg, with
         its trace threshold;
       - the second hidden-defect audit's finding F1 (2026-09-28): AP/HTPB/Al at
-        7 MPa, `h₀` − 2.625 MJ/kg, where the true (first, upstream) maximum sits on
-        the pinned `AL2O3(a)`/`AL2O3(L)` pair itself, with a second, larger-`ρu`
-        maximum further downstream that the tree used to return; a lean Al/O/H
+        7 MPa, `h₀` − 2.70 MJ/kg, where the true (first, upstream) maximum sits on
+        the pinned `AL2O3(a)`/`AL2O3(L)` pair itself, with a second maximum further
+        downstream that the package's rocket solver converges to; a lean Al/O/H
         mixture (mass fractions 0.08/0.62/0.30) at 7 MPa and 1.9125 MJ/kg (reference
         state, not an offset); a B/O/H mixture forming `B2O3` (0.10/0.55/0.35) at
         0.3 MPa and −7.775 MJ/kg; a Li/F/H mixture forming `LiF` (0.08/0.62/0.30) at
@@ -208,6 +226,17 @@ families):
         (`scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs`) and its
         sweep's own reproducing points
         (`scratchpad/audit2/out/pt/throat-sweep-misc.csv`).
+      ⚠ 2026-10-02: was the offsets `h₀` − 2.20 … − 2.30 MJ/kg (edge at − 2.25, − 2.275),
+      the 1, 3 and 15 MPa cases at − 2.25 and the F1 case at − 2.625, all tuned to the
+      provisional HTPB; now the offsets above, re-chosen by sweeping the generator's own
+      scan on the 0.025 grid (7 MPa, package sonic and agreeing to 0.0012 m/s except where
+      stated): the scan's throat is at the plateau edge (2327 K, `AL2O3(L)` only, Mach
+      0.950 at − 2.35, 0.983 at − 2.325) with no usable package throat; − 2.375 is on the
+      pair (`AL2O3(a)` 0.0006) and agrees; − 2.30 (2332.3 K) and − 2.275 (2344.2 K) are
+      single-phase and agree; at 1, 3 and 15 MPa − 2.325 is again an edge case (Mach 0.960,
+      0.975, 0.987). The old − 2.25 now sits at 2356 K, off the plateau, and the old
+      − 2.625 agrees with the package. The F1 geometry holds at − 2.70 only (− 2.725 and
+      − 2.675 agree) → HISTORY.md#throat-measured-provisional-htpb
     - Method, per case:
       1. The chamber is the package's hp at the assigned enthalpy and `p_c`.
       2. `ρu` is evaluated on 101 pressure ratios `p/p_c` evenly from 0.45 to 0.70,
@@ -241,21 +270,28 @@ families):
       higher than the package's, the disagreement is exactly this known divergence,
       not a defect of the method; the package's throat is still recorded under
       `outputs.packageRocketThroat` for the record.
-    - Measured 2026-09-26/27 with the scratch versions of this method:
-      - AP/HTPB/Al at 7 MPa, `h₀` − 2.20, − 2.225, − 2.30 MJ/kg: 1336.537, 1333.066
-        and 1333.226 m/s, equal to the package's printed c* to 0.001 m/s;
-      - `h₀` − 2.25 and − 2.275: 1330.444 and 1330.435 m/s, where the package prints
-        1411.722 and 1359.032;
+    - Measured 2026-10-02 (the generator's own run, the cited HTPB), c* of the scan
+      against the package's sonic throat, at 7 MPa: `h₀` − 2.375: 1332.0421 against
+      1332.0430; − 2.30: 1333.7538 against 1333.7549; − 2.275: 1337.2077 against
+      1337.2089 m/s. At the edge the package prints no usable throat: − 2.35 scan
+      1329.8918 m/s, − 2.325: 1330.6623 m/s; at − 2.325 and 1, 3, 15 MPa: 1331.4597,
+      1330.7936, 1330.5912 m/s. The earlier measurements of the AP/HTPB/Al cases under
+      the provisional HTPB, 2026-09-26/27 and 2026-09-28 → HISTORY.md#throat-measured-provisional-htpb
+    - Measured 2026-09-26/27 with the scratch versions of this method (example 13):
       - example 13 at 5 MPa, `h₀`: 1957.753 m/s on the BeO plateau, the package
         1957.755, both at Mach 1;
       - `h₀` + 250 kJ/kg: 1941.006 m/s at `p/p_c` 0.612894, where `u²/a²` is 0.880
         on the chamber side and 1.014 on the plateau. The package prints 1949.759 at
         Mach 0.9335, solved at `p/p_c` 0.613466.
-    - Measured 2026-09-28 for the four F1 cases (the generator's own run):
-      `h₀` − 2.625 MJ/kg gives 1356.2237 m/s at `p/p_c` 0.606665, upstream of and no
-      less than the package's own sonic, downstream throat of 1358.2296 m/s at
-      `p/p_c` 0.554635; the lean Al/O/H, B2O3 and LiF mixtures reproduce the audit's
-      own sweep figures within its own tolerance, each accepted by the same branch.
+    - Measured 2026-10-02 for the AP/HTPB/Al F1 case (the generator's own run):
+      `h₀` − 2.70 MJ/kg gives 1355.8329 m/s at `p/p_c` 0.606672, upstream of and no
+      more than the package's own sonic, downstream throat of 1359.9465 m/s at
+      `p/p_c` 0.554421, accepted by the guard's second branch. The mass flux along the
+      chamber isentrope has two local maxima there, 5162.9 at 0.607 (the first met from
+      the chamber, the scan's) and 5147.3 at 0.555 (downstream, the package's); at
+      − 2.625 there is one. Measured 2026-09-28 for the other three F1 cases: the lean
+      Al/O/H, B2O3 and LiF mixtures reproduce the audit's own sweep figures within its
+      own tolerance, each accepted by the same branch.
     - The document is that of the rocket kind, with `stations` holding the chamber
       and the throat only, and `inputs` marking `enthalpyAssigned` as the hp band
       cases do (the reference-state cases carry the flag `true` too: the assigned
