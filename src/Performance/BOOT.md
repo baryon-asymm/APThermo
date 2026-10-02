@@ -424,13 +424,16 @@ needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
       the compile's figures are the execution node's (8.66 GB without, 0.34 GB with).
       Evidence: `2548e82`, `Performance.Tests` 1429 of 1429, lint 0/0; the CUDA proof is
       the root's. → HISTORY.md#crit-compile-size
-- [ ] The throat's stop is a decision at `1e-8` and two momentum steps (the owner's
-      decision of 2026-10-02, `## Constraints`), in the momentum loop and in the
-      single-set bisection: a fact reads the decision threshold and the tail and is red
-      for `1e-11` and no tail; every CEA tolerance test green; the moved rocket cases
-      re-approved on both platforms; on the reference machine the AP/HTPB/Al families
-      and the 100 000-case sweep match on CUDA with the different-step share within
-      its guard. ⚠ 2026-10-02: was ticked for `1e-11` alone → HISTORY.md#crit-throat-1e-11
+- [x] 2026-10-02 — The throat's stop is a decision at `1e-8` and two momentum steps (the
+      owner's decision, `## Constraints`), in the momentum loop and the single-set
+      bisection: `ThroatToleranceTests.TheThroatDecidesAtOneEMinusEightAndTakesTwoMomentumSteps`,
+      red for `1e-11` and for no tail; every CEA tolerance test green; 84 rocket fixtures
+      re-approved in Performance and Problems, 9 rocket documents in Cli and the `rocket`
+      example's output, Windows (`1828239`) and Linux (`15975ff`, keys equal); on the
+      reference machine in Release every `Cuda`/`BitSnapshot` fact green, the AP/HTPB/Al
+      families included, and the 100 000-case sweep with 35 of 400 000 stations at
+      different Newton counts (696 at `1e-11`, guard 400). Merged `701d941`.
+      ⚠ 2026-10-02: was ticked for `1e-11` alone → HISTORY.md#crit-throat-1e-11
 ## Taboos
 
 - No second equilibrium solver or mixture-property formula here: call `Equilibrium`.
