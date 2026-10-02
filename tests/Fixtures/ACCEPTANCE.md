@@ -16,12 +16,25 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
       fixture missing a field of its kind fails the loader with the file name and the
       field: `Fixtures.Tests` (`FixtureLoadingTests`, `ToleranceTableTests`,
       `MalformedFixtureTests`).
-- [ ] The HTPB definition is decided and cited. Proposal: formula
-      C 7.3165 H 10.3416 O 0.0674, enthalpy −250 cal/mol (−1046.0 J/mol) at 298.15 K,
-      the definition used by common CEA front ends; to be confirmed against a cited
-      source. Used provisionally by `propellants.py`, with the note recorded in the
-      fixture inputs (`reactants[].note`), so the AP/HTPB/Al fixtures change when the
-      definition does.
+- [x] 2026-10-02 — The HTPB definition is decided and cited, by the owner's decision of
+      that day: the definition of J. C. Thomas and E. L. Petersen, "HTPB Heat of
+      Formation: Literature Survey, Group Additive Estimations, and Theoretical Effects",
+      AIAA Journal, 2021, doi:10.2514/1.J060972, for IPDI-cured HTPB R-45M: formula
+      C 213.8 H 323.0 O 4.6 N 2.3, enthalpy of formation +342 kJ/mol of that formula unit
+      (+114 kJ/kg) at 298.15 K, molar mass about 2999 g/mol (342 / 2.999 = 114 checks the
+      two figures against each other). The owner read the values in the paper's
+      abstract. Evidence: the `HTPB` constant of `generate/propellants.py`, whose note
+      is recorded in the inputs of every fixture that carries the reactant
+      (`reactants[].note`), so the AP/HTPB/Al fixtures change when the definition does.
+      The paper also states that the heats of formation of HTPB in the literature vary
+      widely and change equilibrium results by up to 5 %; the guide
+      (`docs/guide/rocket.md`) says so.
+
+      ⚠ 2026-10-02: was the provisional definition "formula C 7.3165 H 10.3416 O 0.0674,
+      enthalpy −250 cal/mol (−1046.0 J/mol) at 298.15 K, the definition used by common
+      CEA front ends; to be confirmed against a cited source", used provisionally by
+      `propellants.py`; now Thomas & Petersen 2021 above, because the provisional one
+      carried no source. The AP/HTPB/Al fixtures were regenerated with it the same day.
 - [x] 2026-09-12 — `data/thermo.inp` and `data/trans.inp` are committed verbatim from
       the nasa/cea tag `v3.3.4` (commit `4c5c612efa2002a94e3a5a1f33b1674d55c65340`), the
       release that produced the 3.3.4 wheel; the tag, the commit and the SHA-256 of both

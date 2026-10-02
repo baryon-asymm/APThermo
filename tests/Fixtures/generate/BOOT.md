@@ -114,7 +114,14 @@ families):
     on for shifting cases.
   - AP/HTPB/Al (`NH4CLO4(I)` 68 %, HTPB 14 %, `AL(cr)` 18 % by mass, all at
     298.15 K): 5 and 7 MPa; area ratios 8 and 12; shifting; transport on; condensed
-    products expected (`AL2O3(L)` in the chamber).
+    products expected (`AL2O3(L)` in the chamber). HTPB is not a `thermo.inp` record:
+    its definition is that of Thomas and Petersen (AIAA Journal, 2021,
+    doi:10.2514/1.J060972, IPDI-cured R-45M: C 213.8 H 323.0 O 4.6 N 2.3, +342 kJ/mol of
+    that unit at 298.15 K), the owner's decision of 2026-10-02, given to the package as
+    342000 / 4.184 cal/mol.
+
+    ⚠ 2026-10-02: was the unsourced provisional definition (C 7.3165 H 10.3416 O 0.0674,
+    −250 cal/mol), now the cited one → [ACCEPTANCE.md](../ACCEPTANCE.md)
   - Melting-plateau cases, added by the design session of 2026-09-13 (the
     condensed-phase rules of the equilibrium node):
     - RP-1311 example 13 (N2H4/Be 80/20 at O/F 0.4925…, 20.68 MPa; exits `p_c/p` 3,
