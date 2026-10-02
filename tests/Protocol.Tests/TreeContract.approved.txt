@@ -270,10 +270,11 @@ static class APThermo.Performance.RocketSolver
     internal const Double ExtrapolationAreaRatio = 2
     internal const Double GammaOneTolerance = 1E-06
     internal const Double ThroatBracketWidth = 1E-10
-    internal const Double ThroatTightTolerance = 1E-11
+    internal const Double ThroatDecisionTolerance = 1E-08
     internal const Double TightTolerance = 1E-10
     internal const Int32 Chamber = 0
     internal const Int32 Throat = 1
+    internal const Int32 ThroatTailSteps = 2
     static Void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
 
 == src/Problems

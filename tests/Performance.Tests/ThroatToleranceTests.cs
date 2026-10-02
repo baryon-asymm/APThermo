@@ -1,24 +1,25 @@
 namespace APThermo.Performance.Tests;
 
 /// <summary>
-/// L0: the throat's tight stop tolerance is its own constant and is tighter than the area-ratio iteration's (BOOT.md,
-/// Constraints, the owner's decision of 2026-10-02).
+/// L0: the throat's stop is a decision followed by a fixed tail (BOOT.md, Constraints, the owner's decision of
+/// 2026-10-02), and the area-ratio iteration keeps its own tight tolerance.
 /// </summary>
 public sealed class ThroatToleranceTests
 {
     /// <summary>
-    /// The throat's tight tolerance is at least a decade below the area-ratio iteration's, which keeps
-    /// <c>RocketSolver.TightTolerance</c>. Both are internal to the performance node and reached through its
-    /// <c>InternalsVisibleTo</c> grant. Red when the throat's tolerance is set back to the area-ratio iteration's.
+    /// The decision threshold is the owner's 1e-8, far from the noise of u²/a² that a threshold of 1e-11 sat in, and
+    /// the tail is two momentum steps. Both are internal to the performance node and reached through its
+    /// <c>InternalsVisibleTo</c> grant. Red for a threshold of 1e-11 and for no tail.
     /// </summary>
     [Fact]
-    public void TheThroatStopsAtLeastADecadeTighterThanTheAreaRatioIteration()
+    public void TheThroatDecidesAtOneEMinusEightAndTakesTwoMomentumSteps()
     {
-        var throat = RocketSolver.ThroatTightTolerance;
-        var areaRatio = RocketSolver.TightTolerance;
+        var decision = RocketSolver.ThroatDecisionTolerance;
+        var tail = RocketSolver.ThroatTailSteps;
 
-        Assert.True(throat > 0.0, $"throat tolerance {throat:R} is not positive");
-        Assert.True(throat <= areaRatio / 10.0,
-                    $"throat tolerance {throat:R} is not a decade below the area-ratio iteration's {areaRatio:R}");
+        Assert.True(decision >= 1.0e-8, $"throat decision threshold {decision:R} is below 1e-8, near the noise of u²/a²");
+        Assert.True(decision > RocketSolver.TightTolerance,
+                    $"throat decision threshold {decision:R} is not looser than the area-ratio iteration's {RocketSolver.TightTolerance:R}");
+        Assert.Equal(2, tail);
     }
 }

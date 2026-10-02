@@ -90,7 +90,8 @@ internal static class RocketSolver                         // kernel-compatible
 {
     public const double SonicTolerance = 4.0e-5;         // equation (6.16), on |u² − a²|/u²
     public const double AreaRatioTolerance = 4.0e-5;     // equation (6.25), on the last correction of ln(p_c/p_e)
-    internal const double ThroatTightTolerance = 1.0e-11; // the throat's own tight stop on |u²/a² − 1| (2026-10-02, owner)
+    internal const double ThroatDecisionTolerance = 1.0e-8; // the throat decides on |u²/a² − 1| within this (2026-10-02, owner)
+    internal const int ThroatTailSteps = 2;              // momentum steps after the decision, the last is the throat (2026-10-02, owner)
     public const int MaxThroatIterations = 20;
     public const int MaxAreaRatioIterations = 20;
     public const int MaxThroatBisections = 60;           // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
@@ -105,10 +106,10 @@ maximum of the mass flux met from the chamber (`BOOT.md`'s invariant, 2026-09-28
 edge (`BOOT.md`, finding F1). `Stations[2 + k]` is the k-th exit. Every station's
 `MixtureState` is the equilibrium node's, with `Velocity` and `Mach` filled in; the
 figures follow RP-1311 section 6.2. The throat and the area-ratio iterations continue
-past the report's tolerances, the throat to `1e-11` and the area-ratio iterations to
-`1e-10`, when they can, so that a reported station is at rounding level; a case whose
-last correction lies above its tight tolerance but within the report's tolerance is
-still `Ok`. In frozen flow the stations downstream of the freezing
+past the report's tolerances so that a reported station is at rounding level: the
+throat by a decision at `1e-8` and two more momentum steps (`BOOT.md`, 2026-10-02), the
+area-ratio iterations to `1e-10`, when they can; a case whose last correction lies above
+its tight tolerance but within the report's tolerance is still `Ok`. In frozen flow the stations downstream of the freezing
 station carry its composition bit for bit and the frozen state of the equilibrium
 node. In `FrozenAtChamber` flow the chamber's `GammaS`, `SoundSpeed`, `DlnVdlnT` and
 `DlnVdlnP` are the frozen ones (`Cp/Cv`, 1, −1), as the reference reports them; its

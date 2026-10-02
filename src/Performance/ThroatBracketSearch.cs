@@ -78,21 +78,86 @@ internal static class ThroatBracketSearch
             // (BOOT.md, 2026-09-28, observation O2).
             sonicRatio = ratio;
             bracket.Track(pressureSolved, state.Temperature, ratio, CondensedFingerprint(in context));
-            if (Math.Abs(ratio - 1.0) <= RocketSolver.ThroatTightTolerance)
+            if (Math.Abs(ratio - 1.0) <= RocketSolver.ThroatDecisionTolerance)
             {
+                // The decision: the fixed tail of momentum steps follows it, whatever their ratio, and may run past
+                // the iteration cap (BOOT.md, 2026-10-02, the owner's decision).
                 converged = true;
-                break;
+                var tailStatus = Tail(in query, ref bracket, pressureSolved, ratio, out var pressureTail, out _);
+                pressureSolved = pressureTail;
+                return tailStatus;
             }
 
-            // Equation (6.17): the momentum relation from the current estimate to the sonic point. The division is
-            // grouped before the multiplication, as the original `pressureThroat *= a / b` compiled it, so a
-            // converging case's bits are unchanged (BOOT.md, Structure: every expression keeps its present order).
-            // A non-positive u² (ratio 0, BOOT.md finding F4) steps the pressure down by the same formula, instead
-            // of ending the search without a bracket.
-            pressureCandidate = pressureSolved * ((1.0 + state.GammaS * ratio) / (1.0 + state.GammaS));
+            pressureCandidate = NextPressure(pressureSolved, in state, ratio);
             temperatureEstimate = state.Temperature;
         }
 
+        return CaseStatus.Ok;
+    }
+
+    /// <summary>
+    /// Equation (6.17): the momentum relation from a solved trial to the sonic point. The division is grouped before
+    /// the multiplication, as the original `pressureThroat *= a / b` compiled it, so a converging case's bits are
+    /// unchanged (BOOT.md, Structure: every expression keeps its present order). A non-positive u² (ratio 0, BOOT.md
+    /// finding F4) steps the pressure down by the same formula, instead of ending the search without a bracket.
+    /// </summary>
+    private static double NextPressure(double pressure, in MixtureState state, double ratio) =>
+        pressure * ((1.0 + state.GammaS * ratio) / (1.0 + state.GammaS));
+
+    /// <summary>
+    /// The fixed tail after the throat's decision (BOOT.md, 2026-10-02, the owner's decision): exactly
+    /// <see cref="RocketSolver.ThroatTailSteps"/> momentum steps (6.17) from the decided trial, whatever their ratio,
+    /// the last being the throat. The count is the constant's, never the 20-iteration cap's, so the tail is bounded
+    /// on its own. Every solved trial is tracked in the bracket. <paramref name="setKept"/> is false when a step
+    /// left the condensed set the decided trial held; a failed solve ends the tail with its status.
+    /// </summary>
+    private static CaseStatus Tail(in ThroatQuery query, ref ThroatBracket bracket, double pressureDecided, double ratioDecided,
+                                   out double pressureEnd, out bool setKept)
+    {
+        var context = query.Context;
+        var decidedFingerprint = CondensedFingerprint(in context);
+        var state = context.Result.Stations[RocketSolver.Throat];
+        var pressure = pressureDecided;
+        var ratio = ratioDecided;
+        pressureEnd = pressureDecided;
+        setKept = true;
+        for (var step = 0; step < RocketSolver.ThroatTailSteps; step++)
+        {
+            var candidate = NextPressure(pressure, in state, ratio);
+            var request = new StationRequest(RocketSolver.Throat, candidate, state.Temperature, query.Chamber.Entropy, query.Flow);
+            var status = Trial(in query, ref bracket, in request, out state, out ratio);
+            if (status != CaseStatus.Ok)
+            {
+                return status;
+            }
+
+            pressure = candidate;
+            pressureEnd = candidate;
+            setKept = setKept && CondensedFingerprint(in context) == decidedFingerprint;
+        }
+
+        return CaseStatus.Ok;
+    }
+
+    /// <summary>One solved trial of the tail or of the bisection's fallback: the station, its u²/a² (an unusable
+    /// sound speed is <see cref="CaseStatus.ThroatNotFound"/>, as in the bisection), and its place in the bracket.</summary>
+    private static CaseStatus Trial(in ThroatQuery query, ref ThroatBracket bracket, in StationRequest request, out MixtureState state, out double ratio)
+    {
+        var context = query.Context;
+        state = default;
+        ratio = 0.0;
+        if (!StationSolve.At(in context, in request))
+        {
+            return (CaseStatus)context.Result.StationStatus[RocketSolver.Throat];
+        }
+
+        state = context.Result.Stations[RocketSolver.Throat];
+        if (!TryRatio(query.Chamber.Enthalpy, in state, out ratio))
+        {
+            return CaseStatus.ThroatNotFound;
+        }
+
+        bracket.Track(request.Pressure, state.Temperature, ratio, CondensedFingerprint(in context));
         return CaseStatus.Ok;
     }
 
@@ -145,16 +210,37 @@ internal static class ThroatBracketSearch
                 return CaseStatus.ThroatNotFound;
             }
 
-            bracket.Track(midPressure, state.Temperature, ratio, CondensedFingerprint(in context));
+            var fingerprint = CondensedFingerprint(in context);
+            var oneSet = bracket.SubsonicFingerprint == bracket.SupersonicFingerprint && fingerprint == bracket.SubsonicFingerprint;
+            bracket.Track(midPressure, state.Temperature, ratio, fingerprint);
             lastRatio = ratio;
             pressureSolved = midPressure;
-            if (Math.Abs(ratio - 1.0) <= RocketSolver.ThroatTightTolerance)
+            if (oneSet && Math.Abs(ratio - 1.0) <= RocketSolver.ThroatDecisionTolerance)
             {
-                return CaseStatus.Ok;
+                return DecideBisected(in query, ref bracket, in request, ratio, out pressureSolved);
             }
         }
 
         return Math.Abs(lastRatio - 1.0) <= RocketSolver.SonicTolerance ? CaseStatus.Ok : CaseStatus.ThroatNotFound;
+    }
+
+    /// <summary>
+    /// The bisection's decision, taken where both ends of the bracket held one condensed set (BOOT.md, 2026-10-02, the
+    /// owner's decision): the same tail of momentum steps from the midpoint's state. A step that changes the
+    /// condensed set, or whose solve fails, leaves the midpoint where the decision was made as the throat, solved
+    /// again so the buffers hold it.
+    /// </summary>
+    private static CaseStatus DecideBisected(in ThroatQuery query, ref ThroatBracket bracket, in StationRequest decided, double ratio, out double pressureSolved)
+    {
+        var status = Tail(in query, ref bracket, decided.Pressure, ratio, out var pressureTail, out var setKept);
+        if (status == CaseStatus.Ok && setKept)
+        {
+            pressureSolved = pressureTail;
+            return CaseStatus.Ok;
+        }
+
+        pressureSolved = decided.Pressure;
+        return Trial(in query, ref bracket, in decided, out _, out _);
     }
 
     /// <summary>
