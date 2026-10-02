@@ -8,6 +8,28 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="throat-1e-11"></a>
+
+## 2026-10-02 — from "## Constraints", the Throat bullet — the owner's decision of the throat's tight tolerance (full measurement)
+
+Moved because `BOOT.md` was over its limit (`AGENTS.md`, §15); the decision and its deciding figure stay at the pointer. The text as it stood:
+
+>   ⚠ 2026-10-02, the owner's decision: was `1e-10`, now `1e-11` on the throat only.
+>   At the stop one more momentum step moves `ln p` by `γ/(1+γ)·|u²/a² − 1|`, up to
+>   5.3e-11 at 1e-10. When the two accelerators land on either side of the threshold
+>   (the AP/HTPB/Al 7 MPa throat of the cited HTPB stopped 1.6e-13 under it on the CPU,
+>   and CUDA took one more step), trace species with `d ln x/d ln p` above
+>   `(1+γ)/γ` ≈ 1.88 along the isentrope move by more than the GPU/CPU tier of 1e-10
+>   (`AL2O3` 2.75: 1.5e-10 measured; `HO2` of LOX/LH2 3.23). At 1e-11 a flipped
+>   step moves them by at most 1.7e-11 for a sensitivity up to about 18. Measured on
+>   the CPU over the 100 000-case LOX/LH2 sweep: every throat converges within the 20
+>   iterations (largest final 9.999e-12), +2.3 % Newton iterations, +5.5 % station
+>   solves, host time unchanged; 1e-12 was rejected, the noise of `u²/a²` between two
+>   solves of one state reaching 1.1e-12. The same flip at an area-ratio exit moves
+>   `ln p` by up to 1e-10 and is not yet measured.
+
+---
+
 <a id="crit-compile-size"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — criterion: the rocket kernel's compile is bounded (full wording and proposal)
