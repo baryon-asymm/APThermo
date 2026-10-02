@@ -122,7 +122,7 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
       ancestor's `ACCEPTANCE.md`, of `.claude/scopes/` refused; a write inside and outside
       the `write` patterns; a `Bash` `cat` of a foreign source and a `git -C` outside the
       worktree refused; a missing scope file refused with the retry reason. Evidence:
-      `test_coder_scope.py`, 50 tests through the real command-line interface
+      `test_coder_scope.py`, 50 tests (53 since the pathless fix) through the real command-line interface
       (`ReadTests`, `WriteTests`, `SearchTests`, `ShellTests`, `FailClosedTests`).
 - [x] 2026-10-02: Each rule shown red once by a mutation of the script, recorded with the
       test that turned red. Evidence: 32 mutations of `coder_scope.py`, each reverted; the
@@ -168,11 +168,17 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
       passed on retry, was refused `Read src/Data/Species.cs` and `cat
       src/Thermo/SpeciesTable.cs` (read set, §3) and `Write src/Data/probe.tmp` (write set),
       and was allowed its own node, `src/Data/API.md`, `AGENTS.md` and a write in its node.
-- [ ] The pathless tools pass whatever else is wrong: a self-test feeds `SubagentHandback`,
+- [x] 2026-10-02 — The pathless tools pass whatever else is wrong: a self-test feeds `SubagentHandback`,
       `SendMessage`, `TodoWrite` and `ToolSearch` with a `cwd` outside the worktrees, with no
       scope file and with an unreadable one, each allowed, while a `Read` in the same three
       states stays refused; the `cwd` refusal's reason tells the coder to hand back its
       report. Shown red once by moving the pathless check back after the `cwd` check.
+      Evidence: `test_pathless_tools_are_allowed_when_the_worktree_or_scope_is_gone`,
+      `test_a_path_tool_is_still_refused_when_the_worktree_or_scope_is_gone`,
+      `test_cwd_refusal_tells_the_coder_to_hand_back_its_report` (53 tests); the check
+      moved after the `cwd` check turned the first red in the outside-`cwd` state (4
+      failures), moved after the scope load red in all three states (12 failures); merged
+      through `merge_guard.py` as 12072d3, fast suite 5450 passed.
 
 ## Taboos
 
