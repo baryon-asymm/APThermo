@@ -111,7 +111,7 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
       ancestor's `ACCEPTANCE.md`, of `.claude/scopes/` refused; a write inside and outside
       the `write` patterns; a `Bash` `cat` of a foreign source and a `git -C` outside the
       worktree refused; a missing scope file refused with the retry reason. Evidence:
-      `test_coder_scope.py`, 49 tests through the real command-line interface
+      `test_coder_scope.py`, 50 tests through the real command-line interface
       (`ReadTests`, `WriteTests`, `SearchTests`, `ShellTests`, `FailClosedTests`).
 - [x] 2026-10-02: Each rule shown red once by a mutation of the script, recorded with the
       test that turned red. Evidence: 32 mutations of `coder_scope.py`, each reverted; the
@@ -146,6 +146,10 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
         `test_git_revision_path_is_judged_by_its_path`; empty command
         `test_empty_command_is_refused`
       - exit 2 on unreadable input `test_invalid_input_exits_with_two`
+      - `/x:` switch on every platform (2026-10-02, CI run 37001153109): the old Windows-only
+        condition turned `test_a_colon_switch_is_a_switch_and_an_absolute_path_is_still_a_path`
+        and `test_changing_into_the_worktree_and_ordinary_commands_are_allowed` red under WSL
+        Ubuntu 24.04; green on Windows and Linux with the fix (50 tests, 3 skipped on Linux)
 - [ ] Enabled by the owner and seen working once on a real coder: a refused read of a
       neighbour's source in the coder's transcript, with the reason.
 

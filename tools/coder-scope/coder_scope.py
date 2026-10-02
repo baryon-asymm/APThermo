@@ -379,7 +379,7 @@ def path_candidate(text, cwd):
         text = text.split("=", 1)[1] if "=" in text else ""
     if not text or re.match(r"[A-Za-z][A-Za-z0-9+.-]*://", text) or re.search(r"[<>|\"]", text):
         return None
-    if IS_WINDOWS and re.fullmatch(r"/[A-Za-z]+([:=].*)?", text):
+    if re.fullmatch(r"/[A-Za-z]+:.*", text) or (IS_WINDOWS and re.fullmatch(r"/[A-Za-z]+(=.*)?", text)):
         return None
     revision = re.fullmatch(r"([^/\\:]{2,}):(.+)", text)
     text = revision.group(2) if revision else text
