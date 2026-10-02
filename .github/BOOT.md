@@ -105,10 +105,13 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
       them: 0 errors for both (`python -X utf8 tools/protocol-lint/protocol_lint.py .
       --exclude templates`, `Protocol.Tests.LintTests`; the lint's own fact
       `test_dot_github_is_read_as_part_of_the_tree` is the reason it sees them).
-- [ ] The comment-only edits of 2026-10-01 to the workflows, actions and scripts, which
+- [x] 2026-10-02 — The comment-only edits of 2026-10-01 to the workflows, actions and scripts, which
       cite the nodes the moved rules now live in, run once on GitHub: a CI run for
       `ci.yml`, a dispatch run for `release.yml` (Invariants, "Evidence for workflow
-      changes"). Until then no run of those files is dated after the edit.
+      changes"). Until then no run of those files is dated after the edit. Evidence: CI run
+      36962876677 on `main` at `3cd11a6`, green; release dispatch 36963991777 on `main` at
+      `3cd11a6`, green through Pack (both CUDA jobs on the self-hosted runners), Publish
+      and Release skipped as a dispatch does.
 
 ## Taboos
 
