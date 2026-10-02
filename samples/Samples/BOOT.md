@@ -105,7 +105,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       the region names match the scenario list, and each region lies inside its
       scenario's own `Run` method: `dotnet test tests/Docs.Tests --filter FullyQualifiedName~SnippetTests`,
       4 of 4 passed (`tests/Docs.Tests`, L1).
-- [ ] The package-feed build mode restores `APThermo` from a local feed and every
+- [x] 2026-10-02 — The package-feed build mode restores `APThermo` from a local feed and every
       scenario reproduces its approved output against it (root `BOOT.md`, Delivery:
       Documentation and the packages acceptance criterion). This waits on the first CI
       run: no GitHub remote exists yet, so `.github/workflows/ci.yml`'s "Samples run
@@ -115,6 +115,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
       code by `tests/Docs.Tests`' `ScenarioTableTests` — and diffs each output with
       `tests/Docs.Tests/approved/samples/`) has never executed. Until then this
       criterion carries no evidence in the tree, only the script.
+      Evidence (2026-10-02): CI run 36950752356 on `fa58146`, the step "Samples run against
+      the packaged library" green on `windows-latest` and `ubuntu-latest` (job ids
+      110662930147 and 110662930379); the sentences above about the step never having run
+      describe the state of 2026-09-17.
 
       ⚠ 2026-09-17 (ma1, third docs audit, this task): previously ticked 2026-09-17,
       citing that CI step and "one recorded local run the same day" (a `dotnet pack`
