@@ -3,7 +3,7 @@
 The node exposes one command line, run from the main checkout. Everything else is
 internal and may change.
 
-## Command line ⏳
+## Command line ✅
 
 ```console
 $ python -X utf8 tools/merge-guard/merge_guard.py <branch> --scope <regex> [--scope <regex> ...]
@@ -35,19 +35,26 @@ merge-guard: green (log: <temp>/merge-guard-20261002-0612.log)
 | `--commands` | replace the command table with the one in a JSON file (the self-test's stubs) |
 
 Exit code: `0` — every check green (and the merge made, with `--merge`); `1` — a check
-failed, printed as one line `GUARD: <what>`; `2` — invocation error.
+failed, printed as one line `GUARD: <what>`, which may be preceded by detail lines
+indented by six spaces (the paths, the lines, the conflicting files); `2` — invocation
+error (a missing `--scope`, a pattern that does not compile, a missing message or
+commands file, a malformed or empty commands file, `--checks-only` together with
+`--merge` or `--cuda`). The branch comes first; `--scope`, `--approve`, `--overlap` and
+`--doc-nodes` take one or more values after the flag and may be repeated. The guard runs in
+the current directory, which it never changes.
 
-## The checks, in order ⏳
+## The checks, in order ✅
 
 1. **Preconditions**: the current branch is not `main`; the main checkout has no
-   tracked change; the branch exists and has at least one commit over the merge base;
+   tracked change and no merge in progress; the branch exists and has at least one commit over the merge base;
    the coder's worktree, if `git worktree list` shows one for the branch, has no change.
 2. **Scope** (`--scope`): every path changed between the merge base and the branch.
 3. **Approved records** (`--approve`): every changed file whose name contains `.approved.`, listed with its
    line counts; one outside the patterns fails. A pattern matching no file of the tree
    fails as an empty walk.
-4. **Documents** (`--doc-nodes`, skipped without it): the moved-text rules of
-   `BOOT.md`, `## Constraints`, plus the append-only rule over every `HISTORY.md`.
+4. **Documents** (`--doc-nodes`, skipped without it, the append-only rule with it): the
+   moved-text rules of `BOOT.md`, `## Constraints`, plus the append-only rule over every
+   `HISTORY.md`.
 5. **Overlap** (`--overlap`): files changed on both sides since the merge base.
 6. **Trial merge**: a detached worktree at the target's head in the system temp
    directory, `git merge --no-ff --no-commit <branch>`.
@@ -56,7 +63,7 @@ failed, printed as one line `GUARD: <what>`; `2` — invocation error.
    tree compared with the trial's, then `git commit -F <message-file>`; on a different
    tree, `git merge --abort` and a failure.
 
-## The command table ⏳
+## The command table ✅
 
 | Name | Command (run in the trial worktree) | Green when |
 |---|---|---|

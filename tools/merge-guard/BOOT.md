@@ -29,8 +29,13 @@ whether a condensed rule kept its meaning is not something a script can tell.
   network service.
 - **The coder's worktree is read, never written**, and the main checkout is never left
   in a merge state: every failure after a merge started aborts it (`git merge
-  --abort`). No `reset --hard`, no `--force`, no deletion of a branch or of a
-  worktree it did not create.
+  --abort`). No `reset --hard`, no `--force` except on the removal of its own trial
+  worktree, no deletion of a branch or of a worktree it did not create.
+
+  ⚠ 2026-10-02: was "no `--force`" without exception, now one: `git worktree remove
+  --force` of the trial worktree only. The trial merge and the build leave that
+  worktree dirty and git refuses to remove a dirty worktree otherwise; nothing but the
+  guard's own worktree is ever named in that call.
 - **What was tested is what is merged.** The final merge is made with `--no-commit`,
   its tree (`git write-tree`) is compared with the tree of the trial merge, and it is
   committed only when the two are equal; otherwise it is aborted.
@@ -73,25 +78,34 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
   `BOOT.md`, `HISTORY.md` or `ACCEPTANCE.md` gained; a line added to an existing
   `BOOT.md` stands in a paragraph carrying a pointer (`HISTORY.md#`,
   `→ [ACCEPTANCE.md](ACCEPTANCE.md)`, a link to a `/BOOT.md`), is a heading, or came
-  verbatim from another named node's `BOOT.md`; every bare `HISTORY.md#<anchor>` in a
+  verbatim from a named node's `BOOT.md`; every bare `HISTORY.md#<anchor>` in a
   named node's `BOOT.md` or `ACCEPTANCE.md` is defined in the `HISTORY.md` of that node
   or of an ancestor. New against `history_guard.py`: **`HISTORY.md` is append-only** —
-  a line removed from any `HISTORY.md` of the tree is a failure, named node or not.
-  The base is always the merge base, never the head of the target branch (a two-dot
-  diff against a moving head reported other nodes as out of scope).
+  a non-blank line removed from any `HISTORY.md` of the tree is a failure, named node
+  or not. The base is always the merge base, never the head of the target branch (a
+  two-dot diff against a moving head reported other nodes as out of scope).
+
+  ⚠ 2026-10-02: was "from another named node's `BOOT.md`", now any named node's, the
+  node's own included, as `history_guard.py` always did: a line moved within one file
+  is the same text, not a stray one. Two further facts of the port: a defined anchor is
+  an `<a id="…">` or a heading's slug (the linter, run in the trial, accepts the first
+  only and has the last word), and the diff is read by hunks, because a removed line
+  that itself begins with two dashes prints as `---…` and `history_guard.py` skipped it
+  as a file header, losing the line unseen.
 - **Overlap.** A file changed both on the target since the merge base and on the
   branch must match an `--overlap` pattern.
 - **Trial.** The branch is merged with `--no-ff --no-commit` into a detached worktree
   at the target's head; a conflict is a failure that names the files. The linter runs
   with `--strict`; the build must report 0 warnings and 0 errors; each test command
-  must exit 0. The guard prints one summary line per command (the `Passed!`/`Failed!`
+  must exit 0; a marker a table entry asks for (`0 Warning(s)`) does not count when a
+  digit precedes it, so `10 Warning(s)` is not a clean build. The guard prints one summary line per command (the `Passed!`/`Failed!`
   lines of `dotnet test`, the linter's last line, the build's counts) and writes the
   full output to a log file whose path it prints.
 - **GPU.** `--cuda` takes a lock before its first CUDA command: a file `gpu.lock` in the
   system temp directory holding a JSON object `{"owner": …, "until": ISO-8601}`. A lock
   of another owner whose `until` is in the future fails the run as `GPU busy: <owner>
   until <time>`; an expired lock is replaced. The guard removes its own lock on every
-  exit path. The lock is the machine-readable half of the GPU agreement between the
+  exit path; a lock file it cannot read fails the run and is left alone. The lock is the machine-readable half of the GPU agreement between the
   sessions of this machine; the messages between them stay.
 - **Target.** The guard refuses to merge into `main` (the owner merges `main`), and
   refuses when the main checkout has tracked changes or the coder's worktree (found
@@ -102,26 +116,58 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
 
 ## Acceptance criteria
 
-- [ ] The self-test `python -X utf8 tools/merge-guard/test_merge_guard.py` passes and
+- [x] The self-test `python -X utf8 tools/merge-guard/test_merge_guard.py` passes and
       builds its repositories in the system temp directory, never in this tree; its
-      command table is replaced by stub commands (`--commands`), so it runs in seconds
-      and needs no .NET SDK.
-- [ ] Every check of `API.md` is shown red by a named self-test, and a green branch is
+      command table is replaced by stub commands (`--commands`), so it needs no .NET
+      SDK and runs in under a minute (2026-10-02, `test_merge_guard.py`: 61 tests, none
+      skipped, 46 s on the reference machine; every guard run is a subprocess whose
+      `TMP` is a private directory).
+
+      ⚠ 2026-10-02: was "so it runs in seconds", now under a minute: 61 tests each
+      start the guard and 20 to 30 git processes on Windows, and 46 s is what that costs.
+- [x] Every check of `API.md` is shown red by a named self-test, and a green branch is
       shown merged with the merged tree equal to the trial tree: scope, approved record,
       lost document line, stray document line, unresolved anchor, removed `HISTORY.md`
       line, overlap, conflict, failing command, GPU lock of another owner, dirty main
-      checkout, dirty coder worktree, merge into `main`, empty walk.
-- [ ] Every exit path removes the trial worktree and the guard's own GPU lock, and
+      checkout, dirty coder worktree, merge into `main`, empty walk (2026-10-02,
+      `test_merge_guard.py`, one test per name: `test_a_path_outside_the_scope_fails_and_is_named`,
+      `test_a_changed_approved_record_outside_approve_fails_and_is_listed`,
+      `test_a_changed_approved_json_outside_approve_fails`, `test_a_lost_line_fails`,
+      `test_a_stray_line_fails`, `test_an_unresolved_anchor_fails`,
+      `test_a_removed_line_of_a_named_nodes_history_fails`,
+      `test_a_removed_line_of_an_unnamed_nodes_history_fails`,
+      `test_a_file_changed_on_both_sides_fails_without_an_overlap_pattern`,
+      `test_a_conflict_fails_names_the_files_and_leaves_nothing_behind`,
+      `test_a_failing_command_stops_the_run_and_leaves_nothing_behind`,
+      `test_a_live_lock_of_another_owner_fails_the_run`,
+      `test_a_dirty_main_checkout_is_refused`, `test_a_dirty_coder_worktree_is_refused`,
+      `test_merging_into_main_is_refused`, and the empty walks
+      `test_a_branch_with_no_commit_over_the_merge_base_is_an_empty_walk`,
+      `test_a_branch_whose_commits_change_no_path_is_an_empty_walk`,
+      `test_an_approve_pattern_that_matches_no_record_is_an_empty_walk`,
+      `test_a_named_node_without_boot_is_an_empty_walk`,
+      `test_a_table_that_runs_nothing_is_an_empty_walk`; the green merge:
+      `test_a_green_branch_is_merged_with_the_tree_equal_to_the_trial_tree`). Each check
+      was also seen red by a mutation applied to a scratch copy of the module and not
+      committed (2026-10-02, 36 mutations, each turning at least one test red).
+- [x] Every exit path removes the trial worktree and the guard's own GPU lock, and
       leaves the main checkout without a merge in progress: shown by self-tests that fail
-      at the conflict, at a failing command and at the tree comparison.
+      at the conflict, at a failing command and at the tree comparison (2026-10-02,
+      `test_a_conflict_fails_names_the_files_and_leaves_nothing_behind`,
+      `test_a_failing_command_stops_the_run_and_leaves_nothing_behind`,
+      `test_the_lock_is_removed_after_a_failing_cuda_command`,
+      `test_a_target_that_moved_after_the_trial_aborts_the_merge`, each ending in
+      `assert_left_clean`: no trial directory or worktree, no `gpu.lock`, no merge in
+      progress).
 - [ ] One real use on this tree: a coder's branch accepted through the guard, its
       output kept with the run's date in the orchestrator's report.
 
 ## Taboos
 
 - No push, fetch, tag or network call.
-- No write to the coder's worktree, no `reset --hard`, no `--force`, no deletion of
-  anything the guard did not create.
+- No write to the coder's worktree, no `reset --hard`, no `--force` (but for the
+  removal of the guard's own trial worktree, Invariants), no deletion of anything the
+  guard did not create.
 - No default scope and no "allow everything" pattern in the command table: the scope is
   the orchestrator's statement about one task.
 - No third-party package.

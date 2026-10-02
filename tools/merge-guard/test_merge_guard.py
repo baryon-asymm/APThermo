@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import merge_guard as guard  # noqa: E402
 
 GUARD_SCRIPT = str(Path(__file__).resolve().parent / "merge_guard.py")
+DOCUMENT_SCOPE = r"^(node|other)/|^(BOOT|HISTORY)\.md$"
 MERGE_MESSAGE = "feat(app): merge the coder's branch\n\nCo-Authored-By: Test <test@example.com>\n"
 
 BOOT_TEXT = """# BOOT.md - node
@@ -405,7 +406,7 @@ class DocumentTests(GuardCase):
     def documents(self, *extra: str, nodes: Optional[List[str]] = None) -> Run:
         """Static checks with the document check over `nodes` (default: node), scope everything."""
         selected = nodes if nodes is not None else ["node"]
-        return self.run_guard("coder", "--scope", ".", "--checks-only", "--doc-nodes", *selected, *extra)
+        return self.run_guard("coder", "--scope", DOCUMENT_SCOPE, "--checks-only", "--doc-nodes", *selected, *extra)
 
     def condensed(self) -> Dict[str, str]:
         """node/BOOT.md and node/HISTORY.md after the rows moved out, as a condensation does."""
@@ -493,13 +494,13 @@ class DocumentTests(GuardCase):
 
     def test_a_named_node_without_boot_is_an_empty_walk(self) -> None:
         """A documents check over a node that has no BOOT.md is a failure."""
-        self.coder_commit({"app/new.txt": "x\n"})
+        self.coder_commit({"node/extra.txt": "x\n"})
         self.assert_red(self.documents(nodes=["nowhere"]), "has no BOOT.md")
 
     def test_documents_are_skipped_without_doc_nodes(self) -> None:
         """Without --doc-nodes the check does not run, a lost line included."""
         self.coder_commit({"node/BOOT.md": self.edit("node/BOOT.md", "- row alpha\n", "")})
-        run = self.run_guard("coder", "--scope", ".", "--checks-only")
+        run = self.run_guard("coder", "--scope", DOCUMENT_SCOPE, "--checks-only")
         self.assertEqual(0, run.code, run.out)
         self.assertIn("documents: skipped", run.out)
 
