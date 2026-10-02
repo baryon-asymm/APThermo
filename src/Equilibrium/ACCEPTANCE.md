@@ -94,11 +94,12 @@
       decomposition; the bit snapshot proves the reading moved no number.
       → HISTORY.md#crit-once-each
 - [x] 2026-09-14 — The node decodes none of `Thermo`'s interval layout (F-AR-01): no
-      `IntervalStart`, `IntervalCount` or `IntervalBounds` in `src/Equilibrium/*.cs`
-      (grep empty), the record bounds asked of `SpeciesFunctions.RecordLow` and
+      `IntervalStart`, `IntervalCount` or `IntervalBounds` in `src/Equilibrium/**/*.cs`
+      (grep empty, re-run 2026-10-02 over the child nodes too), the record bounds asked of `SpeciesFunctions.RecordLow` and
       `RecordHigh`; `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` unmoved. Red
       once: `RecordHigh` returning the lower bound turned 29 fixture cases red.
       → HISTORY.md#crit-interval
+      ⚠ 2026-10-02: was `src/Equilibrium/*.cs`, now `src/Equilibrium/**/*.cs` → HISTORY.md#crit-greps-split-2026-10-02
 - [x] 2026-09-14 — The Newton loop holds no formula (`## Structure`): `NewtonIteration`,
       `DampedStep`, `ConvergenceTests` and `SingularRemedies` as the table says, each
       within the root's code shape, `NewtonIteration` named the second composition root;
@@ -113,9 +114,10 @@
       the rest of it": `PhaseGeometry.Adjacent` and `PhaseGeometry.PhaseAt` test
       `!SpeciesMarks.InPlay(scratch, k)`, not the raw `scratch.SpeciesActive[k] == 0`
       (R-Equilibrium-1); no `SpeciesActive[` remains outside `SpeciesMarks.Of` and
-      `.Set`. Red before the fix, green after:
+      `.Set`, grep re-run 2026-10-02 over `src/Equilibrium/**/*.cs`, the child nodes included. Red before the fix, green after:
       `PlateauTests.AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner`;
       `Bits.approved.txt` unchanged. → HISTORY.md#crit-stood-down
+      ⚠ 2026-10-02: was the grep over the node's directory, now over its children too → HISTORY.md#crit-greps-split-2026-10-02
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
@@ -277,3 +279,18 @@
       confirm.
       ⚠ 2026-09-28: was an hp/sp estimate of 0 refused, now a given nonzero estimate
       refused, 0 the sentinel → HISTORY.md#crit-third-pass
+- [ ] 2026-10-02 — The split of this node into the child nodes `Newton`, `Condensed` and `StateRecord`
+      (the arbiter's verdict D of 2026-10-01, `## Structure`) changes no behaviour:
+      - [x] 2026-10-02 — on the CPU path: `git diff -M` shows the moved files differing only in the
+        namespace, the `using` lines and the doc-comment references (`Carriers.cs` lost
+        `ConvergenceVerdict` and `NewtonLoopState`, which `Newton/NewtonLoopState.cs` holds verbatim),
+        `dotnet build APThermo.sln` gives 0 warnings and 0 errors, the protocol lint `--strict` gives 0
+        and 0, `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter "Category!=LongRunning"`
+        is green, 5442 of 5442 and none skipped, the bit snapshots (`Equilibrium.Tests`'
+        `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` among them), `Protocol.Tests` (37,
+        `DependencyTests`, `SurfaceTests`, `TreeContractTests`, `LintTests`) and `Equilibrium.Tests` (944)
+        included, and no `Bits*.approved.txt`, `Throughput*.approved.txt`,
+        `PublicSurface.approved.txt` or `TreeContract.approved.txt` changed;
+      - [ ] on CUDA, on the reference machine: `dotnet test APThermo.sln -c Release --filter
+        "Category=Cuda|Category=BitSnapshot"` and `dotnet test tests/Execution.Tests -c Release`, since the
+        kernels compile the moved methods.

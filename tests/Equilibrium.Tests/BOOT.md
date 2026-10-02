@@ -83,6 +83,9 @@ The definition of what "`Equilibrium` is ready" means.
 ## Dependencies
 
 - [Equilibrium](../../src/Equilibrium/API.md) — what is being checked.
+- [Newton](../../src/Equilibrium/Newton/API.md), [Condensed](../../src/Equilibrium/Condensed/API.md) and
+  [StateRecord](../../src/Equilibrium/StateRecord/API.md) — the child nodes of `Equilibrium`, whose stage
+  types its unit facts drive (`NewtonLoopState`, `SingularRemedies`, `PhaseGeometry`, `MixtureProperties`).
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.

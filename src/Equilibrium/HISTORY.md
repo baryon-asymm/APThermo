@@ -8,6 +8,209 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="exit-guard-scope-2026-10-02"></a>
+
+## 2026-10-02 — from "## Constraints" — the exit guard's scope
+
+The text stood "every condensed record in play". In play is `Active` or `ForgivenOnce` (`SpeciesMarks.InPlay`), but `CondensedSet.ExitGuardFindsAPositiveCandidate` skips only `Absent`, so a stood-down record is checked too, which is what the widening of 2026-09-26 meant (its summary says so). Found by the arbiter of the split on 2026-10-01, reading the code against the sentence. The original wording follows.
+
+>   Exit guard (2026-09-26): an `Ok` exit is re-checked over every condensed record in
+>   play that is not in the solution, lies in its effective range at the final state,
+>   and has no record of its formula in the solution. If one of them would gain more
+
+---
+
+<a id="ds-tree-contract-2026-10-02"></a>
+
+## 2026-10-02 — from "## Constraints" — the dense solver's visibility
+
+The text stood "internal to this node (visible to its tests node only)". It was wrong: `Transport` calls `DenseSolver.Solve` under the tree contract (`API.md`, "Solver (tree contract)", whose ⚠ of 2026-09-12 and 2026-09-15 give the history), as the arbiter of the split found on 2026-10-01. The original wording follows.
+
+>   The dense solve is Gaussian elimination with scaled partial pivoting, internal to
+>   this node (visible to its tests node only).
+
+---
+
+<a id="slice-params-2026-10-02"></a>
+
+## 2026-10-02 — from "## Structure" — the scratch descriptor's parameter count and its construction site
+
+The text stood "(12 parameters)" and "in `Slice`, positional". Both were wrong when the arbiter of the split read it on 2026-10-01: the constructor takes 16 parameters (the `parameters` row of `## Shape exceptions` and `API.md` say so, since the third audit pass of 2026-09-28 added the tie snapshot's four slices), and `Slice` names every argument (`Descriptors.cs`, `ShapeTests.EveryWideConstructorIsCalledWithNamedArguments`). The parameter count now stays in the row that the machine checks. The original wording follows.
+
+>   `EquilibriumScratch` (12 parameters) lists the slices of the batch-sized scratch
+>   buffers `API.md` publishes, one argument per slice; grouping them would move the
+>   contract and re-emit the kernels. It is this node's declared exception to the
+>   parameter rule, on the root's condition that every creation names its arguments; a
+>   scan of the construction sites found the one site, in `Slice`, positional.
+
+---
+
+<a id="cea-refs-2026-10-02"></a>
+
+## 2026-10-02 — from "## Constraints" — the reference's source lines of the window and the frozen stop
+
+Moved because `BOOT.md` was over its limit after the split (`AGENTS.md`, §15, rule 2 of the owner's decision of 2026-10-01): the source line references of the reference's code are provenance, not rule. The two paragraphs below are the original wording; the current text keeps every number and condition.
+
+>   The mixture's temperature window (2026-09-28): an `Ok` of any kind, tp included, is
+>   valid only when the final temperature lies in [160 K, 22 000 K], the reference's
+>   `T_min` and `T_max` of the solver (cea 3.3.4 `equilibrium.f90:78-80`, checked after
+>   convergence at 2682-2685, where the state is then not converged). Outside it the
+>   status is `TemperatureOutOfRange`. The iterate window of hp and sp, [100 K,
+>   20 000 K], is unchanged. The window bounds the open-below rule: ice is a candidate
+>   below 200 K, and a state holding it is valid down to 160 K.
+>
+>   present, the reference's stop of a frozen expansion (cea 3.3.4 `rocket.f90:331-341`,
+>   0.8 × 200 K = 160 K with the committed data). Below it, or above the mixture window's
+>   22 000 K, the status is `TemperatureOutOfRange`, and the state guard of the
+>   equilibrium path applies to a frozen `Ok` too.
+
+---
+
+<a id="s-settled-2026-10-02"></a>
+
+## 2026-10-02 — from "## Structure" — the ref carrier and the composition root, condensed wording
+
+Moved because `BOOT.md` was over its limit after the split (`AGENTS.md`, §15, rules 4 and 5 of the owner's decision of 2026-10-01): the bullet was rewritten shorter, keeping the facts and the test names. The original wording follows.
+
+> - **The `ref` carrier holds, and the composition root fits.** `IterationState` passes by
+> `ref` through every stage and the kernel compiler takes it (`KernelEqualityTests` of
+> this node and of `Performance.Tests`); `Solve` and `SolveFrozen` are plain sequences of
+> stage calls under the root's 60 lines, so no exception is claimed for them.
+> → HISTORY.md#s-settled
+
+---
+
+<a id="ce-rest-2026-10-02"></a>
+
+## 2026-10-02 — from "## Shape exceptions" — the figures of the types that are no exception
+
+Moved because `BOOT.md` was over its limit after the split (`AGENTS.md`, §15, rule 4 of the owner's decision of 2026-10-01): the per-type figures retell what `ShapeTests` measures. The paragraph below stood after the split of the same date; the types named in it are now in two nodes (`DerivativeSystem` in `StateRecord`, `ConvergenceTests` and `SingularRemedies` in `Newton`, `CondensedSet` in `Condensed`).
+
+> Every other type of the node measures 11 or below by the dependency check's walk, well
+> below the root's limit of 14: `DerivativeSystem` the highest of the rest at 11,
+> `CaseSetup`, `CondensedSet`, `ConvergenceTests` and `SingularRemedies` at 10.
+> → HISTORY.md#ce-rest
+
+---
+
+<a id="retention-condensed-2026-10-02"></a>
+
+## 2026-10-02 — from "## Constraints" — retention paragraph, condensed wording
+
+Moved because `BOOT.md` was over its limit after the split (`AGENTS.md`, §15, rules 2 and 5 of the owner's decision of 2026-10-01): the paragraph was rewritten shorter, keeping every condition, number and name, and the source line references of the reference's code (`equilibrium.f90:60-64`, `1293-1304`) were dropped from the current text. The original wording, as it stood after the split of the same date, follows.
+
+> - The retention threshold
+>   has two stages, as the reference's `tsize`/`xsize` (2026-09-28; cea 3.3.4
+>   `equilibrium.f90:60-64`, switched at 1293-1304): `ln(n_j/n) = −18.420681`
+>   (`n_j/n = 1e-8`, the report's) until the first convergence of the case, then
+>   `ln(n_j/n) = −25.328436` (`1e-11`) for the rest of the solve. Below the threshold a
+>   gaseous species is held at zero in the sums and keeps its logarithm. The switch
+>   recomputes the retained amounts and counts as a change of the retained set: the loop
+>   must converge once more under the second stage before it may exit, so every `Ok`
+>   has been converged under 1e-11. The switch happens once per solve, including a
+>   warm start. The report stands for the last `Composition.Refresh` under the
+>   second-stage threshold: since an `Ok` exit is never reached before the switch (the
+>   paragraph above), every reported composition is the second-stage one, and a gaseous
+>   species between 1e-11 and 1e-8 of the gas is reported at its converged amount, not
+>   zeroed. `Composition` stays the one place the retention rule is applied, and the
+>   stage is per-case state (`IterationState.RetentionSecondStage`, not the loop's own
+>   bookkeeping struct: the flag must survive across the several `Converge` calls one
+>   `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of them).
+>   → HISTORY.md#constraints-newton-split-2026-10-02
+
+---
+<a id="crit-greps-split-2026-10-02"></a>
+
+## 2026-10-02 — from "ACCEPTANCE.md" — the two grep criteria before the child nodes
+
+Moved because the node was split into the child nodes `Newton`, `Condensed` and `StateRecord` (`AGENTS.md`, §15; the arbiter's verdict D of 2026-10-01): `src/Equilibrium/*.cs` no longer reaches the files of the children, so both greps were re-run over `src/Equilibrium/**/*.cs` and the wording of the two criteria changed to say so. The original lines of both criteria follow.
+
+> - [x] 2026-09-14 — The node decodes none of `Thermo`'s interval layout (F-AR-01): no
+>       `IntervalStart`, `IntervalCount` or `IntervalBounds` in `src/Equilibrium/*.cs`
+>       (grep empty), the record bounds asked of `SpeciesFunctions.RecordLow` and
+>       `RecordHigh`; `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` unmoved. Red
+>       once: `RecordHigh` returning the lower bound turned 29 fixture cases red.
+>       → HISTORY.md#crit-interval
+>
+> - [x] 2026-09-15 — A record stood down by the anti-cycling rule stays out of play "for
+>       the rest of it": `PhaseGeometry.Adjacent` and `PhaseGeometry.PhaseAt` test
+>       `!SpeciesMarks.InPlay(scratch, k)`, not the raw `scratch.SpeciesActive[k] == 0`
+>       (R-Equilibrium-1); no `SpeciesActive[` remains outside `SpeciesMarks.Of` and
+>       `.Set`. Red before the fix, green after:
+>       `PlateauTests.AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner`;
+>       `Bits.approved.txt` unchanged. → HISTORY.md#crit-stood-down
+
+---
+<a id="structure-split-2026-10-02"></a>
+
+## 2026-10-02 — from "## Structure" — the stage list before the split into child nodes
+
+Moved because the node was split into the child nodes `Newton`, `Condensed` and `StateRecord` (`AGENTS.md`, §15; the arbiter's verdict D of 2026-10-01): the three paragraphs below named every stage class of the node as standing in this directory and namespace, and were rewritten to name the classes that stay.
+
+> Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
+> is one public facade over internal stage classes, all static and kernel-compatible,
+> all in this directory and namespace, one class per file, sharing the existing view,
+> scratch and result structs. Every floating-point expression keeps its present form
+> and its present order of evaluation: the decomposition moves code, it does not
+> rewrite formulas, and the bit snapshot of the tests node (the acceptance criteria
+> below) is the proof.
+>
+> The other stage classes (`CaseSetup`, `Composition`, `IterationMatrix`, `DampedStep`,
+> `ConvergenceTests`, `SingularRemedies`, `CondensedSet`, `PhaseGeometry`, `SpeciesMarks`,
+> `ElementBalance`, `DerivativeSystem`, `MixtureProperties`, `FrozenTemperature`,
+> `DenseSolver`, `TieSnapshot`) are internal, each described by the summary of its
+> declaration → HISTORY.md#structure-table-rows
+>
+> The carriers of `Carriers.cs` (`IterationState` passed by `ref`, `SystemLayout`,
+> `MixtureSums`, `Derivatives`, the enums `EstimateSource`, `DerivativeKind`, `SpeciesMark`,
+> `ConvergenceVerdict`, and `SpeciesMarks`) are described by the summaries of their
+> declarations → HISTORY.md#structure-table-rows
+
+---
+
+<a id="constraints-newton-split-2026-10-02"></a>
+
+## 2026-10-02 — from "## Constraints" — the convergence-tests bullet before the split
+
+Moved because the node was split into the child nodes `Newton`, `Condensed` and `StateRecord` (`AGENTS.md`, §15; the arbiter's verdict D of 2026-10-01): lines 105 to 138 of the document mixed rules of the Newton loop (the tests, the singular matrix's threshold, the polish) with the retention threshold and the change cap, which stay in the parent, and three of their lines straddled the boundary. The unchanged lines went to the child or stayed; the text below is the original of the whole range.
+
+> - Convergence tests and control factor as RP-1311 chapter 3: the `λ` damping of
+>   equations (3.1)–(3.3) with the two branches for species above and below the trace
+>   threshold, the tests (3.5) and (3.6) on `Δln n_j`, `Δln n`, `Δln T`, the
+>   condensed-species mole numbers and the element residuals. The retention threshold
+>   has two stages, as the reference's `tsize`/`xsize` (2026-09-28; cea 3.3.4
+>   `equilibrium.f90:60-64`, switched at 1293-1304): `ln(n_j/n) = −18.420681`
+>   (`n_j/n = 1e-8`, the report's) until the first convergence of the case, then
+>   `ln(n_j/n) = −25.328436` (`1e-11`) for the rest of the solve. Below the threshold a
+>   gaseous species is held at zero in the sums and keeps its logarithm. The switch
+>   recomputes the retained amounts and counts as a change of the retained set: the loop
+>   must converge once more under the second stage before it may exit, so every `Ok`
+>   has been converged under 1e-11. The switch happens once per solve, including a
+>   warm start. The report stands for the last `Composition.Refresh` under the
+>   second-stage threshold: since an `Ok` exit is never reached before the switch (the
+>   paragraph above), every reported composition is the second-stage one, and a gaseous
+>   species between 1e-11 and 1e-8 of the gas is reported at its converged amount, not
+>   zeroed. `Composition` stays the one place the retention rule is applied, and the
+>   stage is per-case state (`IterationState.RetentionSecondStage`, not the loop's own
+>   bookkeeping struct: the flag must survive across the several `Converge` calls one
+>   `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of them).
+>
+>   ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the
+>   report stands for the last `Composition.Refresh` → HISTORY.md#report-zeroing
+>
+>   A singular matrix does not widen the threshold; the reference's widening to 80
+>   (`1994-1995`) was measured by the second audit to add warm-versus-cold disagreements
+>   and is not copied. Iteration cap: 50 Newton steps after the last change of the
+>   condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
+>   case: three per slot of the condensed set, an inclusion, a forgiveness and a
+>   stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
+>   the constant is the number, this document only names it). After the
+>   report's tests pass, up to six further steps polish the iterate until the largest
+>   correction is below `1e-11`, so that the reported state is at rounding level and the
+>   tolerance table measures the reference's convergence, not this node's.
+
+---
+
 <a id="warm-evidence"></a>
 
 ## 2026-10-01 — from "## Constraints" — condensed wording

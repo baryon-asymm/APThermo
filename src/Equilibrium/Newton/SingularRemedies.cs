@@ -1,7 +1,8 @@
+using APThermo.Equilibrium.Condensed;
 using APThermo.Thermo;
 using ILGPU;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.Newton;
 
 /// <summary>
 /// Two rules come before the remedies of RP-1311 section 3.6 (BOOT.md, "Two rules come before the remedies above",

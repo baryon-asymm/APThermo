@@ -1,6 +1,6 @@
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.Newton;
 
 /// <summary>
 /// One damped Newton step onto the iterate (RP-1311 chapter 3): the multipliers and the gaseous corrections of equation
@@ -23,7 +23,7 @@ internal static class DampedStep
     /// of equations (3.1)–(3.3) that damps them all. Only growth is limited, as in the reference's code: a species on its
     /// way out may shrink by any factor in one step (BOOT.md). Writes the multipliers into <c>result.Multipliers</c> and the
     /// undamped gaseous corrections into <c>scratch.Corrections</c>; <see cref="Apply"/>, <see cref="ConvergenceTests"/> and,
-    /// after convergence, <see cref="CondensedSet.InclusionGain"/> read them.
+    /// after convergence, <see cref="Condensed.CondensedSet.InclusionGain"/> read them.
     /// </summary>
     public static double ControlFactor(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                        in SystemLayout layout, in MixtureSums sums)

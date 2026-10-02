@@ -1,6 +1,6 @@
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.Newton;
 
 /// <summary>
 /// The damped Newton–Raphson iteration of RP-1311 chapter 3 on the reduced system, run until the report's tests pass and a

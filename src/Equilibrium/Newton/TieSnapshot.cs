@@ -1,6 +1,6 @@
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.Newton;
 
 /// <summary>
 /// Rule A's way back (BOOT.md, "Release", the third pass of 2026-09-28, finding F1): the tied converged iterate a

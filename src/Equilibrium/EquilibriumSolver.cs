@@ -1,3 +1,6 @@
+using APThermo.Equilibrium.Condensed;
+using APThermo.Equilibrium.Newton;
+using APThermo.Equilibrium.StateRecord;
 using APThermo.Thermo;
 
 namespace APThermo.Equilibrium;
