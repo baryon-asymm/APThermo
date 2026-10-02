@@ -214,11 +214,13 @@ internal static partial class ApiDeclarations
         return match.Success ? new Declaration(match.Groups[1].Value, IsType: false, IsEnumMember: false) : null;
     }
 
-    /// <summary>A method, constructor or operator declaration; skips over its parameter list when it spans further lines.</summary>
+    /// <summary>A method, constructor or operator declaration: the first name before a parenthesis that is not a modifier (a
+    /// modifier before a tuple return type, <c>internal static (long Low, long High) Band(...)</c>, is passed over and the
+    /// method's own name found after the tuple); skips over its parameter list when it spans further lines.</summary>
     private static Declaration? MethodDeclaration(string[] lines, ref int index, string line)
     {
-        var match = MethodRegex().Match(line);
-        if (!match.Success || IsKeyword(match.Groups[1].Value))
+        var match = MethodRegex().Matches(line).FirstOrDefault(candidate => !IsModifier(candidate.Groups[1].Value));
+        if (match is null || IsKeyword(match.Groups[1].Value))
         {
             return null;
         }
@@ -319,6 +321,10 @@ internal static partial class ApiDeclarations
     private static bool IsKeyword(string word) =>
         word is "if" or "for" or "foreach" or "while" or "switch" or "return" or "new" or "get" or "set" or "init" or "throw"
             or "using" or "nameof" or "typeof" or "default" or "sizeof" or "var" or "operator" or "where" or "else" or "do" or "in";
+
+    private static bool IsModifier(string word) =>
+        word is "public" or "internal" or "private" or "protected" or "static" or "readonly" or "sealed" or "override" or "virtual"
+            or "abstract" or "async" or "extern" or "unsafe" or "partial" or "ref" or "required" or "const" or "volatile";
 
     internal readonly record struct Declaration(string Name, bool IsType, bool IsEnumMember);
 
