@@ -162,8 +162,13 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
       `test_a_target_that_moved_after_the_trial_aborts_the_merge`, each ending in
       `assert_left_clean`: no trial directory or worktree, no `gpu.lock`, no merge in
       progress).
-- [ ] One real use on this tree: a coder's branch accepted through the guard, its
-      output kept with the run's date in the orchestrator's report.
+- [x] 2026-10-02 — One real use on this tree: a coder's branch accepted through the guard, its
+      output kept with the run's date in the orchestrator's report. The node's own branch
+      (`worktree-agent-ae1b904feea232840`, 4 commits over `9c72058`) was merged into
+      `phase-guards` by `merge_guard.py <branch> --scope "^tools/merge-guard/" --merge <msg>`:
+      every static check, the trial merge, `lint` 0/0, `build` 0 warnings 0 errors, the fast
+      suite 11 assemblies 5442 passed 0 failed, then `merged: 3361e7e, tree equal to the
+      trial tree`.
 
 ## Taboos
 
