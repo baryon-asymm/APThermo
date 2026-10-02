@@ -16,9 +16,10 @@ internal sealed class CustomPropellant
         // snippet-start: CustomPropellant
         var database = SpeciesDatabase.LoadBundled();
 
+        // IPDI-cured HTPB R-45M after Thomas and Petersen, AIAA Journal 2021, doi:10.2514/1.J060972.
         var binder = new CustomReactantDefinition(
-            Formula: [new ElementCount("C", 7.3165), new ElementCount("H", 10.3416), new ElementCount("O", 0.0674)],
-            Enthalpy: -1046.0,        // J/mol at Temperature
+            Formula: [new ElementCount("C", 213.8), new ElementCount("H", 323.0), new ElementCount("O", 4.6), new ElementCount("N", 2.3)],
+            Enthalpy: 342000.0,       // J/mol of that formula unit at Temperature (+114 kJ/kg)
             Temperature: 298.15);     // K
 
         var propellant = Propellant.From(database)

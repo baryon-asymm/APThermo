@@ -133,6 +133,13 @@ families):
       plateau and both its edges (`p_c/p` 21.6 … 37.4), so the pinned pair, its
       crossing temperature, the plateau `γ_s` and sound speed have fixtures;
       single-exit because of the guard above.
+
+      ⚠ 2026-10-02: "both its edges" held for the provisional HTPB. With the cited one
+      (+25 K in the chamber) `p_c/p` 21.6 and 23 are single-phase liquid (the plateau's
+      upper-temperature edge), 25 to 36 sit on the pinned pair at 2327 K, and 37.4 is
+      still on it (`AL2O3(a)` 0.0745, `AL2O3(L)` 0.0123 kg per kg): the pure `AL2O3(a)`
+      edge has no fixture until the ratios are extended, a design decision not taken
+      by the regeneration that moved them.
     - The fuel-rich chamber, AP/HTPB/Al at O/F 0.50 and 7 MPa, hp: the
       include/remove cycle case (`AL4C3(cr)`), which the package converges.
     - hp across the plateau: AP/HTPB/Al at 700 kPa, assigned enthalpies stepping
@@ -215,6 +222,13 @@ families):
         (`scratchpad/audit2/harness/pt/performance/ZzAuditThroatSweep.cs`) and its
         sweep's own reproducing points
         (`scratchpad/audit2/out/pt/throat-sweep-misc.csv`).
+      ⚠ 2026-10-02: the offsets `h₀` − 2.20 to − 2.30 MJ/kg were tuned to the provisional
+      HTPB's `h₀`. With the cited one the 7 MPa throat of `h₀` − 2.25 MJ/kg sits at
+      2356 K with only `AL2O3(L)` (the chamber at 2562 K), off the plateau, and the
+      `h₀` − 2.625 MJ/kg case now has its throat on the pinned pair (2327 K, `AL2O3(a)`
+      0.0593, `AL2O3(L)` 0.0276). The fixtures are the regenerated ones; the figures of
+      the "Measured" bullets below belong to the provisional definition. Re-tuning the
+      offsets to the plateau is a design decision.
     - Method, per case:
       1. The chamber is the package's hp at the assigned enthalpy and `p_c`.
       2. `ρu` is evaluated on 101 pressure ratios `p/p_c` evenly from 0.45 to 0.70,

@@ -34,7 +34,13 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
       enthalpy −250 cal/mol (−1046.0 J/mol) at 298.15 K, the definition used by common
       CEA front ends; to be confirmed against a cited source", used provisionally by
       `propellants.py`; now Thomas & Petersen 2021 above, because the provisional one
-      carried no source. The AP/HTPB/Al fixtures were regenerated with it the same day.
+      carried no source. The AP/HTPB/Al fixtures were regenerated with it the same day:
+      the content of 40 fixtures moved, exactly the 40 whose inputs name HTPB, and the
+      other 296 moved in their provenance block only (`generatorSha256`, and
+      `scriptSha256` for those `propellants.py` wrote), since the generator's own hash
+      moved with the script; `regenerate.py --check` then reports every fixture
+      unchanged. Consequences for the case matrix are in
+      [generate/BOOT.md](generate/BOOT.md), the ⚠ notes of 2026-10-02.
 - [x] 2026-09-12 — `data/thermo.inp` and `data/trans.inp` are committed verbatim from
       the nasa/cea tag `v3.3.4` (commit `4c5c612efa2002a94e3a5a1f33b1674d55c65340`), the
       release that produced the 3.3.4 wheel; the tag, the commit and the SHA-256 of both
