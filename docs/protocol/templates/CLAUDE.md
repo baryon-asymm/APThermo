@@ -19,7 +19,8 @@ mode (design or coding), the linter before and after the work.
 
 ## Commands
 
-- Protocol lint: `python tools/protocol-lint/protocol_lint.py .`
+- Protocol lint: `python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates`
+  (`--exclude templates` keeps the kit's document templates from being read as nodes)
 - Build: `<command>`
 - Tests, fast set: `<command>`
 - Tests, full set: `<command>`
