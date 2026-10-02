@@ -440,6 +440,32 @@ class FailClosedTests(HookCase):
         for tool in ("TodoWrite", "ToolSearch", "SendMessage", "SubagentHandback"):
             self.assertAllowed(tool, {"message": "x"})
 
+    def pathless_states(self):
+        """Return (label, cwd) of the three states in which no scope can be applied."""
+        missing = self.make_worktree("agent-gone")
+        broken = self.make_worktree("agent-broken")
+        self.publish("agent-broken", "{not json")
+        return (("cwd outside the worktrees", self.root), ("no scope file", missing),
+                ("unreadable scope file", broken))
+
+    def test_pathless_tools_are_allowed_when_the_worktree_or_scope_is_gone(self):
+        """The hand-back must pass before the cwd check and before the scope file is read."""
+        for label, cwd in self.pathless_states():
+            for tool in ("SubagentHandback", "SendMessage", "TodoWrite", "ToolSearch"):
+                with self.subTest(state=label, tool=tool):
+                    self.assertAllowed(tool, {"message": "report"}, cwd=cwd)
+
+    def test_a_path_tool_is_still_refused_when_the_worktree_or_scope_is_gone(self):
+        """Allowing the pathless tools before the checks opens nothing else."""
+        for label, cwd in self.pathless_states():
+            with self.subTest(state=label):
+                self.assertRefused("Read", {"file_path": os.path.join(cwd, "AGENTS.md")}, cwd=cwd)
+
+    def test_cwd_refusal_tells_the_coder_to_hand_back_its_report(self):
+        """A coder outside its worktree is told to stop and hand back, not to retry."""
+        self.assertRefused("Read", {"file_path": os.path.join(self.root, "x")},
+                           "worktree is gone", "stop and hand back your report", cwd=self.root)
+
     def test_tool_without_a_path_is_refused(self):
         """A Read whose input names no path cannot be judged."""
         self.assertRefused("Read", {}, "names no path")
