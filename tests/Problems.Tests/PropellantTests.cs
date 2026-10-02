@@ -6,7 +6,7 @@ namespace APThermo.Problems.Tests;
 [Collection("solver")]
 public sealed class PropellantTests
 {
-    /// <summary>The BOOT criterion: the same sums as the reference in double precision, differing by rounding only.</summary>
+    /// <summary>The criterion of 2026-09-12 in `src/Problems/ACCEPTANCE.md` (element moles and reactant enthalpy): the same sums as the reference in double precision, differing by rounding only.</summary>
     public const double MixtureTolerance = 1e-10;
 
     /// <summary>Mass fractions are normalized by one division on both sides.</summary>

@@ -5,7 +5,7 @@ using APThermo.Thermo;
 namespace APThermo.Problems.Tests;
 
 /// <summary>
-/// The third audit pass of 2026-09-28 (part 2, finding 3; `BOOT.md`'s own unticked criterion). The refusal of an
+/// The third audit pass of 2026-09-28 (part 2, finding 3; the ticked criterion of that date in `src/Problems/ACCEPTANCE.md`, the rule in `src/Problems/BOOT.md`). The refusal of an
 /// element with no candidate species must not depend on what the solver solved before it.
 /// </summary>
 [Collection(SolverFixture.CollectionName)]

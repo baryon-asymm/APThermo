@@ -57,7 +57,7 @@ public sealed class WarmStartTests
     /// RP-1311 example 5's own table, solved cold at ten times its committed fixture's pressure (300 K, 10 bar) —
     /// its "10-bar solution" (the orchestrator's investigation 6) — then warm-started at half that pressure (5 bar,
     /// 300 K), where N and Cl are tied through <c>NH4CL(II)</c> alone at the warm estimate's own composition
-    /// (rule A, BOOT.md, 2026-09-28): the tie's row is taken and released during the warm solve, without changing
+    /// (rule A, `src/Equilibrium/Newton/BOOT.md`, 2026-09-28): the tie's row is taken and released during the warm solve, without changing
     /// its outcome here, since the report's own resets already carry this particular case; the investigation named
     /// it as one where the row is exercised, not one where the case fails without rule A (unlike the fixtures of the
     /// criterion below, which do). Reproduced from the investigation's own harness
