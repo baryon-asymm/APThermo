@@ -1,6 +1,6 @@
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.StateRecord;
 
 /// <summary>
 /// The state record of one converged case: the assignments both paths share written once here, then the equilibrium (or

@@ -8,6 +8,98 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="crit-greps-split-2026-10-02"></a>
+
+## 2026-10-02 — from "ACCEPTANCE.md" — the two grep criteria before the child nodes
+
+Moved because the node was split into the child nodes `Newton`, `Condensed` and `StateRecord` (`AGENTS.md`, §15; the arbiter's verdict D of 2026-10-01): `src/Equilibrium/*.cs` no longer reaches the files of the children, so both greps were re-run over `src/Equilibrium/**/*.cs` and the wording of the two criteria changed to say so. The original lines of both criteria follow.
+
+> - [x] 2026-09-14 — The node decodes none of `Thermo`'s interval layout (F-AR-01): no
+>       `IntervalStart`, `IntervalCount` or `IntervalBounds` in `src/Equilibrium/*.cs`
+>       (grep empty), the record bounds asked of `SpeciesFunctions.RecordLow` and
+>       `RecordHigh`; `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` unmoved. Red
+>       once: `RecordHigh` returning the lower bound turned 29 fixture cases red.
+>       → HISTORY.md#crit-interval
+>
+> - [x] 2026-09-15 — A record stood down by the anti-cycling rule stays out of play "for
+>       the rest of it": `PhaseGeometry.Adjacent` and `PhaseGeometry.PhaseAt` test
+>       `!SpeciesMarks.InPlay(scratch, k)`, not the raw `scratch.SpeciesActive[k] == 0`
+>       (R-Equilibrium-1); no `SpeciesActive[` remains outside `SpeciesMarks.Of` and
+>       `.Set`. Red before the fix, green after:
+>       `PlateauTests.AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner`;
+>       `Bits.approved.txt` unchanged. → HISTORY.md#crit-stood-down
+
+---
+<a id="structure-split-2026-10-02"></a>
+
+## 2026-10-02 — from "## Structure" — the stage list before the split into child nodes
+
+Moved because the node was split into the child nodes `Newton`, `Condensed` and `StateRecord` (`AGENTS.md`, §15; the arbiter's verdict D of 2026-10-01): the three paragraphs below named every stage class of the node as standing in this directory and namespace, and were rewritten to name the classes that stay.
+
+> Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The node
+> is one public facade over internal stage classes, all static and kernel-compatible,
+> all in this directory and namespace, one class per file, sharing the existing view,
+> scratch and result structs. Every floating-point expression keeps its present form
+> and its present order of evaluation: the decomposition moves code, it does not
+> rewrite formulas, and the bit snapshot of the tests node (the acceptance criteria
+> below) is the proof.
+>
+> The other stage classes (`CaseSetup`, `Composition`, `IterationMatrix`, `DampedStep`,
+> `ConvergenceTests`, `SingularRemedies`, `CondensedSet`, `PhaseGeometry`, `SpeciesMarks`,
+> `ElementBalance`, `DerivativeSystem`, `MixtureProperties`, `FrozenTemperature`,
+> `DenseSolver`, `TieSnapshot`) are internal, each described by the summary of its
+> declaration → HISTORY.md#structure-table-rows
+>
+> The carriers of `Carriers.cs` (`IterationState` passed by `ref`, `SystemLayout`,
+> `MixtureSums`, `Derivatives`, the enums `EstimateSource`, `DerivativeKind`, `SpeciesMark`,
+> `ConvergenceVerdict`, and `SpeciesMarks`) are described by the summaries of their
+> declarations → HISTORY.md#structure-table-rows
+
+---
+
+<a id="constraints-newton-split-2026-10-02"></a>
+
+## 2026-10-02 — from "## Constraints" — the convergence-tests bullet before the split
+
+Moved because the node was split into the child nodes `Newton`, `Condensed` and `StateRecord` (`AGENTS.md`, §15; the arbiter's verdict D of 2026-10-01): lines 105 to 138 of the document mixed rules of the Newton loop (the tests, the singular matrix's threshold, the polish) with the retention threshold and the change cap, which stay in the parent, and three of their lines straddled the boundary. The unchanged lines went to the child or stayed; the text below is the original of the whole range.
+
+> - Convergence tests and control factor as RP-1311 chapter 3: the `λ` damping of
+>   equations (3.1)–(3.3) with the two branches for species above and below the trace
+>   threshold, the tests (3.5) and (3.6) on `Δln n_j`, `Δln n`, `Δln T`, the
+>   condensed-species mole numbers and the element residuals. The retention threshold
+>   has two stages, as the reference's `tsize`/`xsize` (2026-09-28; cea 3.3.4
+>   `equilibrium.f90:60-64`, switched at 1293-1304): `ln(n_j/n) = −18.420681`
+>   (`n_j/n = 1e-8`, the report's) until the first convergence of the case, then
+>   `ln(n_j/n) = −25.328436` (`1e-11`) for the rest of the solve. Below the threshold a
+>   gaseous species is held at zero in the sums and keeps its logarithm. The switch
+>   recomputes the retained amounts and counts as a change of the retained set: the loop
+>   must converge once more under the second stage before it may exit, so every `Ok`
+>   has been converged under 1e-11. The switch happens once per solve, including a
+>   warm start. The report stands for the last `Composition.Refresh` under the
+>   second-stage threshold: since an `Ok` exit is never reached before the switch (the
+>   paragraph above), every reported composition is the second-stage one, and a gaseous
+>   species between 1e-11 and 1e-8 of the gas is reported at its converged amount, not
+>   zeroed. `Composition` stays the one place the retention rule is applied, and the
+>   stage is per-case state (`IterationState.RetentionSecondStage`, not the loop's own
+>   bookkeeping struct: the flag must survive across the several `Converge` calls one
+>   `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of them).
+>
+>   ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the
+>   report stands for the last `Composition.Refresh` → HISTORY.md#report-zeroing
+>
+>   A singular matrix does not widen the threshold; the reference's widening to 80
+>   (`1994-1995`) was measured by the second audit to add warm-versus-cold disagreements
+>   and is not copied. Iteration cap: 50 Newton steps after the last change of the
+>   condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
+>   case: three per slot of the condensed set, an inclusion, a forgiveness and a
+>   stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
+>   the constant is the number, this document only names it). After the
+>   report's tests pass, up to six further steps polish the iterate until the largest
+>   correction is below `1e-11`, so that the reported state is at rounding level and the
+>   tolerance table measures the reference's convergence, not this node's.
+
+---
+
 <a id="warm-evidence"></a>
 
 ## 2026-10-01 — from "## Constraints" — condensed wording

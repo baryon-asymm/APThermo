@@ -1,6 +1,6 @@
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.Newton;
 
 /// <summary>
 /// Rule B (BOOT.md, "Two rules come before the remedies above", 2026-09-28): a condensed set whose last species is a

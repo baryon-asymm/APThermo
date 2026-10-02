@@ -1,6 +1,6 @@
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.Newton;
 
 /// <summary>
 /// The reduced Newton system of RP-1311 tables 2.1 and 2.2, with the gaseous corrections of equation (2.18) substituted:
@@ -33,7 +33,7 @@ internal static class IterationMatrix
     /// Rule A's row (BOOT.md, 2026-09-28): the tied element's balance replaced by its own minus the ratio times its
     /// partner's, summed over the species that tell the two apart — the gaseous ones at their own amounts whether
     /// retained or not, since the pair is fixed by the trace species the sums themselves drop. The only writer of a
-    /// tie row: <see cref="DerivativeSystem"/> assembles its own separate, tp-shaped system and does not call this.
+    /// tie row: <see cref="StateRecord.DerivativeSystem"/> assembles its own separate, tp-shaped system and does not call this.
     /// </summary>
     private static void TieRow(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                in EquilibriumResult result, in SystemLayout layout, in MixtureSums sums)

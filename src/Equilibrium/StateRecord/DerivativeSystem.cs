@@ -1,6 +1,7 @@
+using APThermo.Equilibrium.Condensed;
 using APThermo.Thermo;
 
-namespace APThermo.Equilibrium;
+namespace APThermo.Equilibrium.StateRecord;
 
 /// <summary>
 /// The equilibrium derivatives of RP-1311 section 2.5 at the converged composition: the tp-shaped matrix solved with the two
@@ -19,7 +20,7 @@ internal static class DerivativeSystem
     /// singular. Reads rule A's tie from <paramref name="state"/>, not from a parameter of its own (BOOT.md, 2026-09-28):
     /// a tie active at the converged composition fixes the tied element's derivative at zero, the same way an absent
     /// element's derivative is fixed by <see cref="CloseRows"/>. Trusts <see cref="IterationState.Tie"/>'s own
-    /// <c>Active</c> flag rather than re-deriving it with <see cref="ElementCoupling.Coupled"/> (the third pass of
+    /// <c>Active</c> flag rather than re-deriving it with <see cref="Newton.ElementCoupling.Coupled"/> (the third pass of
     /// 2026-09-28, finding F1): the caller's release-and-restore keeps a tie active exactly at the composition where
     /// the coupling test found the pair told apart — that is why the release was tried — so a recheck here would
     /// undo the "closed with the tie in force" restore for no gain, while agreeing with the caller in every other case
