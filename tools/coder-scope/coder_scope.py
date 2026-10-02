@@ -175,8 +175,6 @@ class Scope:
 
     def judge_tool(self, tool, args, cwd):
         """Judge one tool call of the coder; raise Refusal when it must not run."""
-        if tool in PATHLESS_TOOLS:
-            return
         if tool == "Read":
             self.check_read_path(path_argument(tool, args, "file_path", cwd))
         elif tool in ("Write", "Edit"):
@@ -399,8 +397,10 @@ def locate_worktree(repo, cwd):
     real_cwd = resolve(cwd, repo)
     rel = relative_to(base, real_cwd)
     if not rel:
-        raise Refusal("coder-scope: working directory outside %s: %s. A coder runs in a "
-                      "worktree under .claude/worktrees/." % (base, cwd))
+        raise Refusal("coder-scope: working directory outside %s: %s. Your worktree is gone "
+                      "or is not your own: stop and hand back your report "
+                      "(SubagentHandback); a coder runs in a worktree under "
+                      ".claude/worktrees/." % (base, cwd))
     name = rel.split("/")[0]
     return name, os.path.join(base, name)
 
@@ -428,6 +428,8 @@ def decide(hook, repo, coder_types):
     agent = hook.get("agent_type")
     if not agent or agent not in coder_types:
         return None
+    if hook.get("tool_name") in PATHLESS_TOOLS:
+        return None  # no path to judge: allowed even when the worktree or scope is gone
     try:
         cwd = hook.get("cwd")
         if not isinstance(cwd, str) or not cwd:
