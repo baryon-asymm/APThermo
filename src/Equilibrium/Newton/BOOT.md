@@ -210,7 +210,8 @@ rules A and B criterion.
 - [x] 2026-10-02 — On the CPU path the split moved this node's files with no change but the
   namespace, `using` lines and doc references, and moved no bit: the criterion of the same date in
   [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
-- [ ] On CUDA, on the reference machine: the second part of the same criterion.
+- [x] 2026-10-02 — On CUDA, on the reference machine: the second part of the same criterion
+      (`../ACCEPTANCE.md`), green on `6dc2370`.
 
 ## Taboos
 

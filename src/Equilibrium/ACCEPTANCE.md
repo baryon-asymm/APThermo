@@ -279,7 +279,7 @@
       confirm.
       ⚠ 2026-09-28: was an hp/sp estimate of 0 refused, now a given nonzero estimate
       refused, 0 the sentinel → HISTORY.md#crit-third-pass
-- [ ] 2026-10-02 — The split of this node into the child nodes `Newton`, `Condensed` and `StateRecord`
+- [x] 2026-10-02 — The split of this node into the child nodes `Newton`, `Condensed` and `StateRecord`
       (the arbiter's verdict D of 2026-10-01, `## Structure`) changes no behaviour:
       - [x] 2026-10-02 — on the CPU path: `git diff -M` shows the moved files differing only in the
         namespace, the `using` lines and the doc-comment references (`Carriers.cs` lost
@@ -291,6 +291,8 @@
         `DependencyTests`, `SurfaceTests`, `TreeContractTests`, `LintTests`) and `Equilibrium.Tests` (944)
         included, and no `Bits*.approved.txt`, `Throughput*.approved.txt`,
         `PublicSurface.approved.txt` or `TreeContract.approved.txt` changed;
-      - [ ] on CUDA, on the reference machine: `dotnet test APThermo.sln -c Release --filter
+      - [x] 2026-10-02 — on CUDA, on the reference machine: `dotnet test APThermo.sln -c Release --filter
         "Category=Cuda|Category=BitSnapshot"` and `dotnet test tests/Execution.Tests -c Release`, since the
-        kernels compile the moved methods.
+        kernels compile the moved methods: Release, `Category=Cuda|Category=BitSnapshot` 367/367 (Thermo 239, Performance 99, Execution 24, one bit
+        snapshot each in Transport, Equilibrium, Problems, Docs and Cli) and `tests/Execution.Tests` 173/173
+        green on `6dc2370`, no approved file moved.
