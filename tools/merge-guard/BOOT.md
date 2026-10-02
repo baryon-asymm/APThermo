@@ -60,10 +60,11 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
   `--scope` patterns (Python regular expressions, matched with `re.search` against the
   repository-relative path with forward slashes). There is no default scope: a call
   without `--scope` is an invocation error.
-- **Approved records.** A file whose name ends in `.approved.txt` (the bit snapshots of
+- **Approved records.** A file whose name contains `.approved.` (the bit snapshots of
   both platforms, the throughput figures, `PublicSurface.approved.txt`,
-  `TreeContract.approved.txt`, the docs tests' approved outputs) may change only when it
-  matches an `--approve` pattern; every changed approved record is listed with its added
+  `TreeContract.approved.txt`, and the approved outputs, which are also `.approved.json`,
+  `.approved.csv` and the like: `tests/Docs.Tests/approved/`, `tests/Cli.Tests/documents/`)
+  may change only when it matches an `--approve` pattern; every changed approved record is listed with its added
   and removed line counts, approved or not, so the reviewer sees the move.
 - **Documents.** With `--doc-nodes`, the moved-text check of the 3.2 migration runs
   over the named nodes (the rules of `history_guard.py`, kept): every non-blank line

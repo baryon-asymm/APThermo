@@ -26,7 +26,7 @@ merge-guard: green (log: <temp>/merge-guard-20261002-0612.log)
 |---|---|
 | `<branch>` | the coder's branch, merged into the current branch of the main checkout |
 | `--scope` | a pattern every path the branch changed must match; at least one is required |
-| `--approve` | a pattern of approved records (`*.approved.txt`) the branch may change |
+| `--approve` | a pattern of approved records (a name containing `.approved.`) the branch may change |
 | `--overlap` | a pattern of files allowed to have changed on both sides since the merge base |
 | `--doc-nodes` | the nodes whose documents the moved-text check reads (`.` for the root) |
 | `--checks-only` | run the static checks (preconditions to overlap) and stop: no trial, no merge |
@@ -43,7 +43,7 @@ failed, printed as one line `GUARD: <what>`; `2` — invocation error.
    tracked change; the branch exists and has at least one commit over the merge base;
    the coder's worktree, if `git worktree list` shows one for the branch, has no change.
 2. **Scope** (`--scope`): every path changed between the merge base and the branch.
-3. **Approved records** (`--approve`): every changed `*.approved.txt`, listed with its
+3. **Approved records** (`--approve`): every changed file whose name contains `.approved.`, listed with its
    line counts; one outside the patterns fails. A pattern matching no file of the tree
    fails as an empty walk.
 4. **Documents** (`--doc-nodes`, skipped without it): the moved-text rules of
