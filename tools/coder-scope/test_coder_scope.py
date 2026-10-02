@@ -327,6 +327,13 @@ class ShellTests(HookCase):
                         "grep -rn \"</param>\" src/Alpha | head -5"):
             self.assertAllowed("Bash", {"command": command})
 
+    def test_a_colon_switch_is_a_switch_and_an_absolute_path_is_still_a_path(self):
+        """`/t:Restore` is an MSBuild switch on every platform; `/etc/passwd` is judged as a path."""
+        self.assertAllowed("Bash", {"command": "dotnet msbuild /t:Restore /v:q APThermo.sln"})
+        self.assertRefused("Bash", {"command": "cat /etc/passwd"}, "outside the worktree")
+        self.assertRefused("Bash", {"command": "dotnet msbuild /t:Restore /etc/passwd"},
+                           "outside the worktree")
+
     def test_shell_redirection_is_judged_as_a_write(self):
         """A redirect target outside the write patterns is refused, inside is allowed."""
         self.assertAllowed("Bash", {"command": "echo hi > src/Alpha/out.txt"})
