@@ -90,6 +90,13 @@ only in this node.
       of the tree holds such a line today, so the false failure is latent (reported
       2026-10-02 by the boot-api-protocol skill's reference builder, which fixed its copy).
       `ApiDeclarationsTests.ATupleReturningDeclarationIsReadByItsMemberName` parses it, named and unnamed tuples, and names `Band`; red 3 of 3 on the old parser.
+      2026-10-02: the same declaration split across lines, the tuple closing on the line of the name
+      with the parameters on the next (`internal static (long Low,` / `long High) Band(` /
+      `double p = 0.5);`), was read as `Band` plus a field `p` (the tuple's `)` cancelled the name's
+      `(`); `ApiDeclarationsTests.ADeclarationSplitAcrossLinesIsReadByItsMemberName` was red on the
+      parser as it stood (`["Band", "p", "Next"]`) and is green after the parameters are collected from
+      the name's own parenthesis; no existing declaration of any `API.md` changed its reading
+      (`DeclarationTests` green).
 - [x] 2026-10-02 — Every `tools/*/test_*.py` of the tree runs green inside the fast set, one
       case per script found by the walk (`ToolSelfTestTests.EverySelfTestExitsZero`: the
       three of 2026-10-02, the linter's, the merge guard's and the coder-scope hook's, named
