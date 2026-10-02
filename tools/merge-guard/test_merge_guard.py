@@ -92,9 +92,14 @@ def make_writable(function, path, _excinfo):  # type: ignore[no-untyped-def]
     function(path)
 
 
+def extended(path: str) -> str:
+    """The path in the form Windows accepts beyond 260 characters; unchanged elsewhere."""
+    return "\\\\?\\" + os.path.abspath(path) if os.name == "nt" else path
+
+
 def remove_tree(path: str) -> None:
-    """Remove a scratch directory, read-only files included."""
-    shutil.rmtree(path, onerror=make_writable)
+    """Remove a scratch directory, read-only files and very long paths included."""
+    shutil.rmtree(extended(path), onerror=make_writable)
 
 
 def read_text(path: str) -> str:
@@ -111,7 +116,7 @@ def read_json(path: str) -> Dict[str, str]:
 
 def git(repo: str, *args: str, check: bool = True) -> str:
     """Run git in a scratch repository, with an identity and no signing or line-ending magic."""
-    result = subprocess.run(["git", "-C", repo] + list(args), capture_output=True, text=True, encoding="utf-8")
+    result = subprocess.run(["git", "-C", repo, "-c", "core.longpaths=true"] + list(args), capture_output=True, text=True, encoding="utf-8")
     if check and result.returncode != 0:
         raise AssertionError("git {} failed: {}".format(" ".join(args), result.stderr))
     return result.stdout.strip()
@@ -120,8 +125,8 @@ def git(repo: str, *args: str, check: bool = True) -> str:
 def write(repo: str, files: Dict[str, str]) -> None:
     """Write files under `repo`, LF line endings."""
     for name, text in files.items():
-        path = Path(repo) / name
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path = extended(str(Path(repo) / name))
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
 
@@ -610,6 +615,14 @@ class TrialTests(GuardCase):
         assert cwd is not None
         self.assertNotEqual(os.path.realpath(self.repo), os.path.realpath(cwd.group(1).strip()))
         self.assertFalse(os.path.exists(os.path.join(self.repo, "app", "coder.txt")))
+
+    def test_a_path_beyond_the_windows_limit_is_checked_out_in_the_trial(self) -> None:
+        """The trial's git calls run with core.longpaths: a deep file is no checkout failure."""
+        deep = "/".join(["app"] + ["d" * 40] * 6 + ["file.txt"])
+        self.coder_commit({deep: "deep\n"})
+        run = self.run_green()
+        self.assertEqual(0, run.code, run.out)
+        self.assert_left_clean()
 
     def test_without_merge_the_run_stops_after_the_trial(self) -> None:
         """A green trial changes nothing in the main checkout."""

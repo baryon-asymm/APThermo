@@ -30,6 +30,7 @@ from typing import Dict, List, Optional, Pattern, Sequence, Set, Tuple
 
 PROTECTED_TARGET = "main"
 APPROVED_MARKER = ".approved."
+LONG_PATHS = ("-c", "core.longpaths=true")
 LOCK_NAME = "gpu.lock"
 LOCK_HOURS = 2
 DETAIL_LIMIT = 40
@@ -435,7 +436,12 @@ def make_writable(function, path: str, _excinfo) -> None:  # type: ignore[no-unt
 
 
 class TrialWorktree:
-    """The guard's own detached worktree in the system temp directory."""
+    """The guard's own detached worktree in the system temp directory.
+
+    Every git call that writes the tree runs with `core.longpaths`: on Windows this tree's
+    benchmark results alone reach 140 characters below the worktree root, and a temp path
+    under a long user profile took a scratch checkout past the 260-character limit.
+    """
 
     def __init__(self, repo: str) -> None:
         self.repo = repo
@@ -446,11 +452,11 @@ class TrialWorktree:
         """Add the detached worktree at the target's head."""
         self.parent = tempfile.mkdtemp(prefix="merge-guard-trial-")
         self.path = os.path.join(self.parent, "trial")
-        git(self.repo, "worktree", "add", "--detach", self.path, target_head)
+        git(self.repo, *LONG_PATHS, "worktree", "add", "--detach", self.path, target_head)
 
     def merge(self, branch: str) -> str:
         """`merge --no-ff --no-commit` of the branch; the tree it produced, or a conflict failure."""
-        result = git(self.path, "merge", "--no-ff", "--no-commit", "refs/heads/" + branch, check=False)
+        result = git(self.path, *LONG_PATHS, "merge", "--no-ff", "--no-commit", "refs/heads/" + branch, check=False)
         if result.returncode != 0:
             conflicts = git_names(self.path, "diff", "--name-only", "-z", "--diff-filter=U")
             what = "trial merge: conflict in {} files".format(len(conflicts)) if conflicts else \
@@ -465,7 +471,7 @@ class TrialWorktree:
         if os.path.isdir(self.path):
             # --force is for this worktree only, the one the guard created (BOOT.md, Invariants):
             # the trial merge leaves it dirty and git refuses to remove a dirty worktree otherwise.
-            git(self.repo, "worktree", "remove", "--force", self.path, check=False)
+            git(self.repo, *LONG_PATHS, "worktree", "remove", "--force", self.path, check=False)
         if os.path.isdir(self.path):
             shutil.rmtree(self.path, onerror=make_writable)
         git(self.repo, "worktree", "prune", check=False)
