@@ -261,7 +261,7 @@ creation names its arguments; it passes them by position today (the criterion be
       (`65788e23f4390305763c80ab1f66b2054ff1907a`); the public surface does not move,
       `HostSolution` and `EquilibriumCase` both internal.
 - [x] 2026-09-15 — L2: `PlateauTests.AStoodDownRecordIsNeitherAdjacentToNorFoundBesideItsInPlayPartner`
-      proves the node's own defect fix (`src/Equilibrium/BOOT.md`, the acceptance
+      proves the node's own defect fix (`src/Equilibrium/ACCEPTANCE.md`, the
       criterion of the same date): seen red on the code before the fix
       (`PhaseGeometry.Adjacent` returned the stood-down piece's table index, 231,
       instead of −1) and green after it, with no bit of `Bits.approved.txt` moved.
