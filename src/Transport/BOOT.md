@@ -298,10 +298,12 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
       ⚠ 2026-09-15: was `TransportScratch.Slice` at 53 lines, now `ShapeTests` holds
       the size by machine (the figure was physical) → HISTORY.md#crit-slice-size
-- [ ] The execution tests node's CUDA sweep green once after the decomposition (the
+- [x] 2026-10-02 — The execution tests node's CUDA sweep green once after the decomposition (the
       long-running `CudaTests`, which this node's session does not run: the criterion
       above was split on 2026-09-14 so that what is proven and what is still owed are
-      not one tick).
+      not one tick): `dotnet test tests/Execution.Tests -c Release` on the reference machine,
+      173/173 with the three `LongRunning` facts, the sweep
+      `TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic` among them, on `6dc2370`.
 - [x] 2026-09-14 — `SingularMatrix` writes the frozen figures and reacting figures
       equal to them, as `API.md` promises:
       `Transport.Tests.StatusTests.AReactionSystemThatCannotBeSolvedKeepsTheFrozenFigures`
