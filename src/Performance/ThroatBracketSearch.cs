@@ -78,7 +78,7 @@ internal static class ThroatBracketSearch
             // (BOOT.md, 2026-09-28, observation O2).
             sonicRatio = ratio;
             bracket.Track(pressureSolved, state.Temperature, ratio, CondensedFingerprint(in context));
-            if (Math.Abs(ratio - 1.0) <= RocketSolver.TightTolerance)
+            if (Math.Abs(ratio - 1.0) <= RocketSolver.ThroatTightTolerance)
             {
                 converged = true;
                 break;
@@ -148,7 +148,7 @@ internal static class ThroatBracketSearch
             bracket.Track(midPressure, state.Temperature, ratio, CondensedFingerprint(in context));
             lastRatio = ratio;
             pressureSolved = midPressure;
-            if (Math.Abs(ratio - 1.0) <= RocketSolver.TightTolerance)
+            if (Math.Abs(ratio - 1.0) <= RocketSolver.ThroatTightTolerance)
             {
                 return CaseStatus.Ok;
             }
