@@ -278,3 +278,18 @@ frame; this file holds the criteria that prove it, read only in the root node.
       `05e2d39` is moved once, to the commit of this fix, after a green rehearsal, as
       `v0.1.0` was: its release run failed before any package was published (the
       owner's decision of 2026-10-01).
+
+- [ ] The elementary functions are one program too (the owner's future task of 2026-10-02,
+      not scheduled): `Exp`, `Log`, `Log10` and `Pow` of the numerical nodes are the tree's
+      own kernel-compatible C#, correctly rounded (in the manner of CORE-MATH or CRlibm),
+      and the CPU accelerator and CUDA run the same code instead of the C runtime and
+      libdevice, with floating-point contraction into FMA held equal on both sides. Why:
+      the two implementations differ by up to 3 ULP (the execution tests' probe kernel), so
+      a stop test near the noise flips between accelerators (the throat of the cited HTPB,
+      2026-10-02, `src/Performance/BOOT.md`), and the C runtime's FMA3 dispatch makes the
+      bit records a property of the machine (the declared deviation under `## Constraints`,
+      Platform, which this lifts). Done when the GPU/CPU comparison of the execution tests
+      is exact on every fixture and the sweep, the bit records equal on Windows and Linux
+      and on the hosted runners, every CEA tolerance test green, and the throughput not
+      below the root's 5×. A root decision: it replaces the math list of `## Constraints`
+      and the execution node's libdevice wrappers.
