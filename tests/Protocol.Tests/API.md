@@ -8,7 +8,7 @@ consider guaranteed about the agreement between its documents and its code.
 | Claim | Confirmed by | State |
 |---|---|---|
 | the tree passes the language-independent linter without errors or warnings | Lint level (`LintTests`) | ✅ |
-| every Python tool node's self-test passes (`tools/*/test_*.py`) | Tool self-tests level (`ToolSelfTestTests`) | ⏳ |
+| every Python tool node's self-test passes (`tools/*/test_*.py`) | Tool self-tests level (`ToolSelfTestTests`) | ✅ 2026-10-02 |
 | no public surface of a library assembly changes without the snapshot moving in the same commit | Surface level (`SurfaceTests`, `PublicSurface.approved.txt`) | ✅ |
 | every type a library assembly exports is named in its node's `API.md`, and every type of every assembly lives in its node's namespace | Coverage level (`CoverageTests`) | ✅ |
 | every declaration under ✅ exists, the type and the member | Declarations level (`DeclarationTests`) | ✅ |
@@ -49,6 +49,8 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
 - The linter invoked as `python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates --strict`
   from the tree root, with Python found on the path; absence of Python is a failure,
   not a skip.
+- Every `tools/*/test_*.py`, found by the walk, run as `python -X utf8 <script>` from the tree
+  root, five minutes each; a non-zero exit, a timeout and an empty walk are failures.
 - The C# syntax trees of the source files of every node whose code lives in one of the
   tree's assemblies — a node with its own project, or a project-less child node
   compiled into its nearest ancestor's (2026-09-14; child nodes, 2026-09-15) — read
