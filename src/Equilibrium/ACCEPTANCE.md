@@ -281,12 +281,16 @@
       refused, 0 the sentinel → HISTORY.md#crit-third-pass
 - [ ] 2026-10-02 — The split of this node into the child nodes `Newton`, `Condensed` and `StateRecord`
       (the arbiter's verdict D of 2026-10-01, `## Structure`) changes no behaviour:
-      - [ ] on the CPU path: `git diff -M` shows the moved files differing only in the namespace, the
-        `using` lines and the doc-comment references, `dotnet build APThermo.sln` gives 0 warnings and 0
-        errors, the protocol lint `--strict` gives 0 and 0, `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln
-        --no-build --filter "Category!=LongRunning"` is green with the bit snapshots included, and no
-        `Bits*.approved.txt`, `Throughput*.approved.txt`, `PublicSurface.approved.txt` or
-        `TreeContract.approved.txt` changed;
+      - [x] 2026-10-02 — on the CPU path: `git diff -M` shows the moved files differing only in the
+        namespace, the `using` lines and the doc-comment references (`Carriers.cs` lost
+        `ConvergenceVerdict` and `NewtonLoopState`, which `Newton/NewtonLoopState.cs` holds verbatim),
+        `dotnet build APThermo.sln` gives 0 warnings and 0 errors, the protocol lint `--strict` gives 0
+        and 0, `APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --no-build --filter "Category!=LongRunning"`
+        is green, 5442 of 5442 and none skipped, the bit snapshots (`Equilibrium.Tests`'
+        `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` among them), `Protocol.Tests` (37,
+        `DependencyTests`, `SurfaceTests`, `TreeContractTests`, `LintTests`) and `Equilibrium.Tests` (944)
+        included, and no `Bits*.approved.txt`, `Throughput*.approved.txt`,
+        `PublicSurface.approved.txt` or `TreeContract.approved.txt` changed;
       - [ ] on CUDA, on the reference machine: `dotnet test APThermo.sln -c Release --filter
         "Category=Cuda|Category=BitSnapshot"` and `dotnet test tests/Execution.Tests -c Release`, since the
         kernels compile the moved methods.

@@ -207,8 +207,10 @@ The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these f
 the bit snapshot, `KernelEqualityTests`, `NewtonLoopStateTests`, `SingularRemedyRulesTests` and the
 rules A and B criterion.
 
-- [ ] The split moved this node's files with no change but the namespace, `using` lines and doc
-  references, and moved no bit: the criterion of the same name in [ACCEPTANCE.md](../ACCEPTANCE.md).
+- [x] 2026-10-02 — On the CPU path the split moved this node's files with no change but the
+  namespace, `using` lines and doc references, and moved no bit: the criterion of the same date in
+  [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
+- [ ] On CUDA, on the reference machine: the second part of the same criterion.
 
 ## Taboos
 

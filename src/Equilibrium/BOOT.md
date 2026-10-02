@@ -73,11 +73,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   phase rule at an assigned or a pinned temperature and pressure, a state holds at most
   one condensed phase per element: fewer beside a gas phase, and one more only on a
   pinned plateau, where the temperature row goes.
-  The dense solve is Gaussian elimination with scaled partial pivoting, internal to
-  this node (visible to its tests node only).
+  The dense solve is Gaussian elimination with scaled partial pivoting, a tree-contract
+  type of this node (`API.md`) that `Transport` calls too.
 
   ⚠ 2026-09-26: was at most 8 condensed species in the solution (30 × 30), now at most
   20 (42 × 42) → HISTORY.md#condensed-limit
+  ⚠ 2026-10-02: was `DenseSolver` visible to its tests node only, now `Transport`'s too → HISTORY.md#ds-tree-contract-2026-10-02
 
 - The Newton loop: the reduced equations (RP-1311 tables 2.1 and 2.2, the sp row, `p°`), the damping
   and the convergence tests of chapter 3, the polish, the loop's bookkeeping, the singular-matrix
@@ -103,24 +104,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   ⚠ 2026-09-28: was a warm-start fallback only for a negative seeded condensed species,
   now a fallback on any failure → HISTORY.md#warm-fallback
 
-- The retention threshold
-  has two stages, as the reference's `tsize`/`xsize` (2026-09-28; cea 3.3.4
-  `equilibrium.f90:60-64`, switched at 1293-1304): `ln(n_j/n) = −18.420681`
-  (`n_j/n = 1e-8`, the report's) until the first convergence of the case, then
-  `ln(n_j/n) = −25.328436` (`1e-11`) for the rest of the solve. Below the threshold a
-  gaseous species is held at zero in the sums and keeps its logarithm. The switch
-  recomputes the retained amounts and counts as a change of the retained set: the loop
-  must converge once more under the second stage before it may exit, so every `Ok`
-  has been converged under 1e-11. The switch happens once per solve, including a
-  warm start. The report stands for the last `Composition.Refresh` under the
-  second-stage threshold: since an `Ok` exit is never reached before the switch (the
-  paragraph above), every reported composition is the second-stage one, and a gaseous
-  species between 1e-11 and 1e-8 of the gas is reported at its converged amount, not
-  zeroed. `Composition` stays the one place the retention rule is applied, and the
-  stage is per-case state (`IterationState.RetentionSecondStage`, not the loop's own
-  bookkeeping struct: the flag must survive across the several `Converge` calls one
-  `Solve` attempt can make, and `NewtonLoopState` is rebuilt fresh at each of them).
-  → HISTORY.md#constraints-newton-split-2026-10-02
+- The retention threshold has two stages, as the reference's `tsize`/`xsize` (2026-09-28):
+  `ln(n_j/n) = −18.420681` (`n_j/n = 1e-8`, the report's) until the first convergence of
+  the case, then `ln(n_j/n) = −25.328436` (`1e-11`) for the rest of the solve. Below the
+  threshold a gaseous species is held at zero in the sums and keeps its logarithm. The
+  switch recomputes the retained amounts and counts as a change of the retained set: the
+  loop must converge once more under the second stage before it may exit, so every `Ok`
+  has been converged under 1e-11. It happens once per solve, a warm start included. The
+  report stands for the last `Composition.Refresh`, the second-stage one, since no `Ok`
+  exit precedes the switch: a gaseous species between 1e-11 and 1e-8 of the gas is reported
+  at its converged amount, not zeroed. `Composition` stays the one place the retention rule
+  is applied, and the stage is per-case state (`IterationState.RetentionSecondStage`, not
+  `NewtonLoopState`: the flag must survive the several `Converge` calls of one `Solve`
+  attempt, and `NewtonLoopState` is rebuilt at each of them). → HISTORY.md#retention-condensed-2026-10-02
 
   ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the
   report stands for the last `Composition.Refresh` → HISTORY.md#report-zeroing
@@ -139,11 +135,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
   The mixture's temperature window (2026-09-28): an `Ok` of any kind, tp included, is
   valid only when the final temperature lies in [160 K, 22 000 K], the reference's
-  `T_min` and `T_max` of the solver (cea 3.3.4 `equilibrium.f90:78-80`, checked after
-  convergence at 2682-2685, where the state is then not converged). Outside it the
-  status is `TemperatureOutOfRange`. The iterate window of hp and sp, [100 K,
-  20 000 K], is unchanged. The window bounds the open-below rule: ice is a candidate
-  below 200 K, and a state holding it is valid down to 160 K.
+  `T_min` and `T_max` of the solver, checked after convergence. Outside it the status is
+  `TemperatureOutOfRange`. The iterate window of hp and sp, [100 K, 20 000 K], is
+  unchanged. The window bounds the open-below rule: ice is a candidate below 200 K, and a
+  state holding it is valid down to 160 K. → HISTORY.md#cea-refs-2026-10-02
 
   ⚠ 2026-09-28: was ice at any temperature, now the window → HISTORY.md#ice-window
 
@@ -156,10 +151,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   hp and sp the estimate, which is replaced as in `Solve` when it is not
   (2026-09-28); otherwise the case is `InvalidInput`. An `Ok` frozen state has a
   temperature not below 0.8 times the lowest lower bound of the fits of the gases
-  present, the reference's stop of a frozen expansion (cea 3.3.4 `rocket.f90:331-341`,
-  0.8 × 200 K = 160 K with the committed data). Below it, or above the mixture window's
-  22 000 K, the status is `TemperatureOutOfRange`, and the state guard of the
-  equilibrium path applies to a frozen `Ok` too.
+  present, the reference's stop of a frozen expansion (160 K with the committed data). Below
+  it, or above the mixture window's 22 000 K, the status is `TemperatureOutOfRange`, and the
+  state guard of the equilibrium path applies too. → HISTORY.md#cea-refs-2026-10-02
   ⚠ 2026-09-28: was moles only, now temperature too → HISTORY.md#frozen-temperature
   ⚠ 2026-09-26: was gaseous moles only, now condensed too → HISTORY.md#frozen-moles
 - Outputs: mole numbers per species (kmol per kg of mixture), the mixture state
@@ -224,11 +218,12 @@ Decisions taken with the review of 2026-09-14:
   interval layout (`IntervalStart`, `IntervalCount`, `IntervalBounds`).
 
 - **The scratch descriptor keeps its constructor** (added 2026-09-14).
-  `EquilibriumScratch` (12 parameters) lists the slices of the batch-sized scratch
-  buffers `API.md` publishes, one argument per slice; grouping them would move the
-  contract and re-emit the kernels. It is this node's declared exception to the
-  parameter rule, on the root's condition that every creation names its arguments; a
-  scan of the construction sites found the one site, in `Slice`, positional.
+  `EquilibriumScratch` (the row below gives its parameter count) lists the slices of the
+  batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them
+  would move the contract and re-emit the kernels. It is this node's declared exception to
+  the parameter rule, on the root's condition that every creation names its arguments; a
+  scan of the construction sites found the one site, in `Slice`, and it names every argument.
+  ⚠ 2026-10-02: was 12 parameters and a positional site, now 16 and named → HISTORY.md#slice-params-2026-10-02
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
@@ -240,11 +235,8 @@ marks and the two reductions of the input. → HISTORY.md#s-marks
 
 What the implementation settled, 2026-09-14, in the coding session that followed:
 
-- **The `ref` carrier holds, and the composition root fits.** `IterationState` passes by
-`ref` through every stage and the kernel compiler takes it (`KernelEqualityTests` of
-this node and of `Performance.Tests`); `Solve` and `SolveFrozen` are plain sequences of
-stage calls under the root's 60 lines, so no exception is claimed for them.
-→ HISTORY.md#s-settled
+- **The `ref` carrier holds** (`KernelEqualityTests`, here and in `Performance.Tests`), and `Solve`
+  and `SolveFrozen` fit under 60 lines as plain stage sequences → HISTORY.md#s-settled-2026-10-02
 
 - **The carriers are filled by name, not by position.** `MixtureSums` and `Derivatives`
 are structs written at the one place that computes them and read through `in`, not
@@ -268,9 +260,7 @@ The rows of the child nodes' types stand in their own `## Shape exceptions`
 ⚠ 2026-09-28: was `EquilibriumScratch` 12 parameters, now 16 → HISTORY.md#ce-scratch16
 
 Every other type of the node measures 11 or below by the dependency check's walk, well
-below the root's limit of 14: `DerivativeSystem` the highest of the rest at 11,
-`CaseSetup`, `CondensedSet`, `ConvergenceTests` and `SingularRemedies` at 10.
-→ HISTORY.md#ce-rest
+below the root's limit of 14 → HISTORY.md#ce-rest-2026-10-02
 
 ⚠ 2026-09-28: was the rest "10 or below", now 11 → HISTORY.md#ce-rules-ab
 ⚠ 2026-09-28: was `EquilibriumSolver` at 19 and `NewtonIteration` at 18, now 22 and 19

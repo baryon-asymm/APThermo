@@ -112,8 +112,10 @@ No type of this node is a declared exception to the root's code-shape constraint
 The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these files hold unchanged:
 the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snapshot.
 
-- [ ] The split moved this node's files with no change but the namespace, `using` lines and doc
-  references, and moved no bit: the criterion of the same name in [ACCEPTANCE.md](../ACCEPTANCE.md).
+- [x] 2026-10-02 — On the CPU path the split moved this node's files with no change but the
+  namespace, `using` lines and doc references, and moved no bit: the criterion of the same date in
+  [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
+- [ ] On CUDA, on the reference machine: the second part of the same criterion.
 
 ## Taboos
 

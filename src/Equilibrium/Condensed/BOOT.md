@@ -120,13 +120,16 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   temperature to the record with the lower Gibbs energy. The memories (switched out,
   removed for range once, stood down) are per-case state — the stand-down mark
   lives in the species mask — and the scratch layout is unchanged.
-  Exit guard (2026-09-26): an `Ok` exit is re-checked over every condensed record in
-  play that is not in the solution, lies in its effective range at the final state,
-  and has no record of its formula in the solution. If one of them would gain more
+  Exit guard (2026-09-26): an `Ok` exit is re-checked over every condensed record whose
+  elements are present (every mark but `Absent`, the stood-down ones included) that is
+  not in the solution, lies in its effective range at the final state, and has no record
+  of its formula in the solution. If one of them would gain more
   than 1e-9 per mole, the rounding of the converged multipliers, the status becomes
   `NotConverged`. The guard is the stood-down guard of rule 2 widened; it reports
   whatever the rules above failed to include, a full set among it, instead of
   returning a false equilibrium.
+
+  ⚠ 2026-10-02: was "every condensed record in play", now every mark but `Absent` → HISTORY.md#exit-guard-scope-2026-10-02
 
   ⚠ 2026-09-13: was both records within 50 K, now pinned pairs → HISTORY.md#range-rule
 
@@ -155,8 +158,10 @@ arrays. The bounds are table reads, so the bit snapshot may not move.
 The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these files hold unchanged:
 the condensed-species facts, the anti-cycling rule, the plateau facts and the exit guard.
 
-- [ ] The split moved this node's files with no change but the namespace, `using` lines and doc
-  references, and moved no bit: the criterion of the same name in [ACCEPTANCE.md](../ACCEPTANCE.md).
+- [x] 2026-10-02 — On the CPU path the split moved this node's files with no change but the
+  namespace, `using` lines and doc references, and moved no bit: the criterion of the same date in
+  [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
+- [ ] On CUDA, on the reference machine: the second part of the same criterion.
 
 ## Taboos
 
