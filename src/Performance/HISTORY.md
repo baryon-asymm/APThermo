@@ -8,6 +8,26 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="stations-35"></a>
+
+## 2026-10-03 — correction of `#throat-stop-rule` and of the Throat bullet's pointer — whose the remaining 34 to 40 stations are
+
+The entry `#throat-stop-rule` below says the stations still counted under the new rule
+"are the area-ratio exits' own `1e-10` flips", and the Throat bullet's pointer said
+"34 to 40, the area-ratio exits'". Wrong. Measured on the CPU over the same sweep with
+noise of 1e-13 on ln(A/A_t) and on `u²/a²`: of 38 to 44 such stations only 2 to 5 are
+area-ratio flips; the rest are flips of the equilibrium solver's polish. Every
+area-ratio flip seen (379 of 379 over 16 noise runs from 1e-13 to 3e-12) changes the
+Newton count, because the area-ratio iteration converges quadratically
+(`|c_n|/c_{n−1}²` ≈ 1e-3 to 2.5e-3): a correction near the 1e-10 stop is preceded by
+one of 2e-4 or more, and a solve started that far away takes one more Newton step
+(40 000 of 40 000 sweep stations, 185 of 185 fixture stations). So such a flip meets the
+1e-9 tier, worst 6.24e-10 (0.62 of it), and never the 1e-10 tier. Found by the
+orchestrator's investigation of 2026-10-03 (scratchpad `area-probe-100k.txt`,
+`area-script-20k.txt`); no rule of this node changes.
+
+---
+
 <a id="throat-stop-rule"></a>
 
 ## 2026-10-02 — from "## Constraints", the Throat bullet — the stop rule replaced (1e-11 to a decision at 1e-8 and two steps)

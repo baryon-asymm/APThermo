@@ -87,10 +87,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   accelerators rarely, and a flipped decision costs under 1e-12 in `ln p` after the
   tail. The area-ratio iteration keeps `RocketSolver.TightTolerance` (1e-10).
 
-  ⚠ 2026-10-02, the owner's decisions: was `1e-10`, then `1e-11` (flips at the noise:
-  696 of 400 000 sweep stations with different Newton counts, the guard's limit 400),
-  now `1e-8` and two steps (34 to 40, the area-ratio exits'; +5.4 % station solves)
-  → HISTORY.md#throat-stop-rule
+  ⚠ 2026-10-02, the owner's decisions: was `1e-10`, then `1e-11` (696 of 400 000 sweep
+  stations at different Newton counts, the guard's limit 400), now `1e-8` and two steps
+  (34 to 40, not the throat's; +5.4 % station solves) → HISTORY.md#throat-stop-rule;
+  ⚠ 2026-10-03: was "the area-ratio exits'", now mostly the polish's → HISTORY.md#stations-35
 
   The bracket (2026-09-26). The search keeps the smallest pressure solved with
   `u²/a² < 1` and the largest solved with `u²/a² > 1`. When the 20 momentum
