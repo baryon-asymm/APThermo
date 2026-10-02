@@ -139,5 +139,6 @@ holds a pair of documents of its own:
 
 Tooling that is part of the tree but not of the product:
 [protocol-lint](./tools/protocol-lint/API.md) (the language-independent checks of
-AGENTS.md §13) and [.github](./.github/API.md) (the workflows, actions and scripts, with
+AGENTS.md §13), [merge-guard](./tools/merge-guard/API.md) (the orchestrator's acceptance
+gate for a coder's branch) and [.github](./.github/API.md) (the workflows, actions and scripts, with
 its child [diagnostics/IsaProbe](./.github/diagnostics/IsaProbe/API.md)).
