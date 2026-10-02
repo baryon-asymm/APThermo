@@ -95,7 +95,10 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
 - **Overlap.** A file changed both on the target since the merge base and on the
   branch must match an `--overlap` pattern.
 - **Trial.** The branch is merged with `--no-ff --no-commit` into a detached worktree
-  at the target's head; a conflict is a failure that names the files. The linter runs
+  at the target's head, its git writes under `core.longpaths` (a scratch checkout of this
+  tree beneath a long Windows path failed on the benchmark results,
+  `test_a_path_beyond_the_windows_limit_is_checked_out_in_the_trial`); a conflict is a
+  failure that names the files. The linter runs
   with `--strict`; the build must report 0 warnings and 0 errors; each test command
   must exit 0; a marker a table entry asks for (`0 Warning(s)`) does not count when a
   digit precedes it, so `10 Warning(s)` is not a clean build. The guard prints one summary line per command (the `Passed!`/`Failed!`
@@ -119,12 +122,12 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
 - [x] The self-test `python -X utf8 tools/merge-guard/test_merge_guard.py` passes and
       builds its repositories in the system temp directory, never in this tree; its
       command table is replaced by stub commands (`--commands`), so it needs no .NET
-      SDK and runs in under a minute (2026-10-02, `test_merge_guard.py`: 61 tests, none
-      skipped, 46 s on the reference machine; every guard run is a subprocess whose
+      SDK and runs in under a minute (2026-10-02, `test_merge_guard.py`: 62 tests, none
+      skipped, 44 s on the reference machine; every guard run is a subprocess whose
       `TMP` is a private directory).
 
-      ⚠ 2026-10-02: was "so it runs in seconds", now under a minute: 61 tests each
-      start the guard and 20 to 30 git processes on Windows, and 46 s is what that costs.
+      ⚠ 2026-10-02: was "so it runs in seconds", now under a minute: 62 tests each
+      start the guard and 20 to 30 git processes on Windows, and 44 s is what that costs.
 - [x] Every check of `API.md` is shown red by a named self-test, and a green branch is
       shown merged with the merged tree equal to the trial tree: scope, approved record,
       lost document line, stray document line, unresolved anchor, removed `HISTORY.md`
@@ -149,7 +152,7 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
       `test_a_table_that_runs_nothing_is_an_empty_walk`; the green merge:
       `test_a_green_branch_is_merged_with_the_tree_equal_to_the_trial_tree`). Each check
       was also seen red by a mutation applied to a scratch copy of the module and not
-      committed (2026-10-02, 36 mutations, each turning at least one test red).
+      committed (2026-10-02, 37 mutations, each turning at least one test red).
 - [x] Every exit path removes the trial worktree and the guard's own GPU lock, and
       leaves the main checkout without a merge in progress: shown by self-tests that fail
       at the conflict, at a failing command and at the tree comparison (2026-10-02,
