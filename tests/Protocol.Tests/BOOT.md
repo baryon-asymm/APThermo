@@ -428,11 +428,11 @@ package's → HISTORY.md#diagnostics-audit-f5
 
   ⚠ 2026-10-01: was "a by-reference parameter", now one whose element type is not
   `Span<T>` or `ReadOnlySpan<T>` → HISTORY.md#crit-ilgpu-byref-wording
-- [ ] A declaration under ✅ whose return type is a tuple (`internal static (long Low,
+- [x] 2026-10-02: a declaration under ✅ whose return type is a tuple (`internal static (long Low,
       long High) Band(...)`) is read as a member named `Band`, not `static`: no `API.md`
       of the tree holds such a line today, so the false failure is latent (reported
       2026-10-02 by the boot-api-protocol skill's reference builder, which fixed its copy).
-      A fact of `ApiDeclarations` parses that line and names `Band`.
+      `ApiDeclarationsTests.ATupleReturningDeclarationIsReadByItsMemberName` parses it, named and unnamed tuples, and names `Band`; red 3 of 3 on the old parser.
 
 ## Taboos
 
