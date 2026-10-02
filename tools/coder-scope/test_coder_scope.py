@@ -226,8 +226,11 @@ class ReadTests(HookCase):
     @unittest.skipUnless(os.name == "nt", "case-insensitive comparison is the Windows rule")
     def test_paths_compare_case_insensitively_on_windows(self):
         """A different case of a granted path is the same path; of a foreign one too."""
-        self.assertAllowed("Read", {"file_path": self.wpath("SRC/ALPHA/Alpha.cs")})
-        self.assertRefused("Read", {"file_path": self.wpath("SRC/BETA/Beta.cs")}, "read set")
+        self.assertAllowed("Read", {"file_path": self.wpath("SRC/ALPHA/NotYetThere.cs")})
+        self.assertAllowed("Write", {"file_path": self.wpath("SRC/ALPHA/NotYetThere.cs")})
+        self.assertRefused("Read", {"file_path": self.wpath("SRC/BETA/NotYetThere.cs")}, "read set")
+        shouting = self.wt.upper()
+        self.assertAllowed("Read", {"file_path": shouting + "/src/Alpha/Alpha.cs"}, cwd=shouting)
 
 
 class WriteTests(HookCase):
@@ -337,6 +340,11 @@ class ShellTests(HookCase):
         self.assertRefused("Bash", {"command": body.replace("src/Alpha/x.md", "src/Beta/x.md")},
                            "write set")
 
+    def test_powershell_here_string_body_is_not_read_as_paths(self):
+        """The text of a PowerShell here-string is data."""
+        command = "Set-Content src/Alpha/x.md @'" + chr(10) + "don't read src/Beta/Beta.cs" + chr(10) + "'@"
+        self.assertAllowed("PowerShell", {"command": command})
+
     def test_powershell_backslash_paths(self):
         """PowerShell: backslash paths are judged like slash paths."""
         self.assertRefused("PowerShell", {"command": "Get-Content src\\Beta\\Beta.cs"}, "read set")
@@ -429,6 +437,19 @@ class FailClosedTests(HookCase):
         """A Read whose input names no path cannot be judged."""
         self.assertRefused("Read", {}, "names no path")
         self.assertRefused("Write", {"file_path": ""}, "names no path")
+
+    @unittest.skipUnless(os.name == "nt", "case-insensitive comparison is the Windows rule")
+    def test_scope_written_in_another_case_still_matches_on_windows(self):
+        """Nodes and write patterns spelled in capitals judge the same files."""
+        cwd = self.make_worktree("agent-case")
+        write_file(os.path.join(cwd, "src", "Alpha", "Alpha.cs"), "class Alpha {}\n")
+        self.publish("agent-case", dict(self.scope, nodes=["SRC/ALPHA"], write=["SRC/ALPHA/.*"]))
+        self.assertAllowed("Read", {"file_path": os.path.join(cwd, "src", "Alpha", "Alpha.cs")}, cwd=cwd)
+        self.assertAllowed("Write", {"file_path": os.path.join(cwd, "src", "Alpha", "New.cs")}, cwd=cwd)
+
+    def test_unexpected_failure_is_a_refusal_not_an_allowance(self):
+        """A tool input the hook did not foresee must not slip through as allowed."""
+        self.assertRefused("Grep", {"pattern": "x", "path": 5}, "internal error")
 
     def test_invalid_input_exits_with_two(self):
         """Unreadable standard input is an invocation error, exit 2, the reason on stderr."""

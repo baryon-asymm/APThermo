@@ -3,7 +3,7 @@
 The node exposes a hook command, a scope file format and the registration the owner adds
 to the settings. Everything else is internal and may change.
 
-## The hook command ⏳
+## The hook command ✅
 
 ```console
 $ python -X utf8 <repo>/tools/coder-scope/coder_scope.py [--repo <repo>] [--coder-types sonnet-coder]
@@ -21,7 +21,7 @@ nothing printed. A refused call: exit 0 and, on standard output,
 separated) defaults to `sonnet-coder`. An invocation error (unreadable input) exits 2, which
 Claude Code treats as a refusal with the error text.
 
-## The scope file ⏳
+## The scope file ✅
 
 `<repo>/.claude/scopes/<worktree-name>.json`, written by the orchestrator after launching
 the coder (the worktree name is `agent-<id>` for a harness worktree):
@@ -42,7 +42,12 @@ the coder (the worktree name is `agent-<id>` for a harness worktree):
 | `read` | extra readable paths, absolute or repository-relative, exact files or directories |
 | `task` | free text, quoted in refusals |
 
-## The registration (the owner's step) ⏳
+The hook refuses every coder call, naming the file, when the scope file is not JSON, lacks
+one of the three lists, holds a `write` pattern that is not a regular expression or that
+matches `AGENTS.md`, `BOOT.md` or `.claude/settings.local.json` (a wildcard pattern), or
+names as a node the repository root or a path that leaves it.
+
+## The registration (the owner's step) ✅
 
 In `.claude/settings.local.json` of the main checkout (or the user settings), with the
 absolute path of this checkout:
