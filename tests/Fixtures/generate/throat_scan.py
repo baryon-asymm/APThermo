@@ -42,18 +42,22 @@ GUARD_CSTAR_RTOL = 1.0e-5
 
 # (name, chamber pressure in Pa, enthalpy offset from the reactants' own h0 in J/kg) for the AP/HTPB/Al cases.
 AP_HTPB_AL_CASES = [
-    ("ap-htpb-al-throat_pc7MPa_dh-2.2MJkg", 7.0 * MPA_TO_PA, -2.20e6),
-    ("ap-htpb-al-throat_pc7MPa_dh-2.225MJkg", 7.0 * MPA_TO_PA, -2.225e6),
-    ("ap-htpb-al-throat_pc7MPa_dh-2.25MJkg", 7.0 * MPA_TO_PA, -2.25e6),
-    ("ap-htpb-al-throat_pc7MPa_dh-2.275MJkg", 7.0 * MPA_TO_PA, -2.275e6),
+    # The offsets were re-chosen 2026-10-02 for the cited HTPB (tests/Fixtures/generate/BOOT.md, the throat entry): the
+    # plateau's high-pressure edge, where the package's own rocket throat is wrong, is at -2.35 and -2.325 MJ/kg, with
+    # agreeing brackets at -2.375 (below) and -2.30 and -2.275 (above).
+    ("ap-htpb-al-throat_pc7MPa_dh-2.375MJkg", 7.0 * MPA_TO_PA, -2.375e6),
+    ("ap-htpb-al-throat_pc7MPa_dh-2.35MJkg", 7.0 * MPA_TO_PA, -2.35e6),
+    ("ap-htpb-al-throat_pc7MPa_dh-2.325MJkg", 7.0 * MPA_TO_PA, -2.325e6),
     ("ap-htpb-al-throat_pc7MPa_dh-2.3MJkg", 7.0 * MPA_TO_PA, -2.30e6),
-    ("ap-htpb-al-throat_pc1MPa_dh-2.25MJkg", 1.0 * MPA_TO_PA, -2.25e6),
-    ("ap-htpb-al-throat_pc3MPa_dh-2.25MJkg", 3.0 * MPA_TO_PA, -2.25e6),
-    ("ap-htpb-al-throat_pc15MPa_dh-2.25MJkg", 15.0 * MPA_TO_PA, -2.25e6),
+    ("ap-htpb-al-throat_pc7MPa_dh-2.275MJkg", 7.0 * MPA_TO_PA, -2.275e6),
+    ("ap-htpb-al-throat_pc1MPa_dh-2.325MJkg", 1.0 * MPA_TO_PA, -2.325e6),
+    ("ap-htpb-al-throat_pc3MPa_dh-2.325MJkg", 3.0 * MPA_TO_PA, -2.325e6),
+    ("ap-htpb-al-throat_pc15MPa_dh-2.325MJkg", 15.0 * MPA_TO_PA, -2.325e6),
     # The second hidden-defect audit's finding F1 (2026-09-28): the true (first, upstream) maximum sits on the
-    # pinned AL2O3(a)/AL2O3(L) pair itself, with a second, larger-rho*u maximum further downstream that the tree
-    # used to return (Performance BOOT.md, "the throat is the first maximum of the mass flux met from the chamber").
-    ("ap-htpb-al-throat_pc7MPa_dh-2.625MJkg", 7.0 * MPA_TO_PA, -2.625e6),
+    # pinned AL2O3(a)/AL2O3(L) pair itself, with a second maximum further downstream that the package's rocket solver
+    # converges to (Performance BOOT.md, "the throat is the first maximum of the mass flux met from the chamber").
+    # Re-chosen 2026-10-02 from -2.625 to -2.70 MJ/kg, the one offset of the 0.025 grid where the cited HTPB shows it.
+    ("ap-htpb-al-throat_pc7MPa_dh-2.7MJkg", 7.0 * MPA_TO_PA, -2.70e6),
 ]
 
 EXAMPLE13_CHAMBER_PRESSURE_PA = 5.0 * MPA_TO_PA
