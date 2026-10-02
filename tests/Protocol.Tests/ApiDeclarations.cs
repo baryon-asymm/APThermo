@@ -216,18 +216,39 @@ internal static partial class ApiDeclarations
 
     /// <summary>A method, constructor or operator declaration: the first name before a parenthesis that is not a modifier (a
     /// modifier before a tuple return type, <c>internal static (long Low, long High) Band(...)</c>, is passed over and the
-    /// method's own name found after the tuple); skips over its parameter list when it spans further lines.</summary>
+    /// method's own name found after the tuple). A tuple left open at the end of the line is read on across lines until the name
+    /// is found, and the parameter list is then skipped from the name's own parenthesis, so a tuple's closing one never cancels
+    /// it: <c>(long Low,</c> / <c>long High) Band(</c> / <c>double p = 0.5);</c> declares <c>Band</c> alone.</summary>
     private static Declaration? MethodDeclaration(string[] lines, ref int index, string line)
     {
-        var match = MethodRegex().Matches(line).FirstOrDefault(candidate => !IsModifier(candidate.Groups[1].Value));
+        var last = index;
+        var text = line;
+        var match = MemberNameIn(text);
+        while (match is null && Depth(text) > 0 && last + 1 < lines.Length)
+        {
+            last++;
+            text += " " + StripComment(lines[last]);
+            match = MemberNameIn(text);
+        }
+
         if (match is null || IsKeyword(match.Groups[1].Value))
         {
             return null;
         }
 
-        SkipOpenList(lines, ref index, line);
+        var depth = Depth(text[match.Index..]);
+        while (depth > 0 && last + 1 < lines.Length)
+        {
+            last++;
+            depth += Depth(StripComment(lines[last]));
+        }
+
+        index = last;
         return new Declaration(match.Groups[1].Value, IsType: false, IsEnumMember: false);
     }
+
+    private static Match? MemberNameIn(string text) =>
+        MethodRegex().Matches(text).FirstOrDefault(candidate => !IsModifier(candidate.Groups[1].Value));
 
     private static List<Declaration>? FieldDeclarations(string line)
     {
@@ -286,8 +307,6 @@ internal static partial class ApiDeclarations
         return names;
     }
 
-    private static void SkipOpenList(string[] lines, ref int index, string first) => Collect(lines, ref index, first);
-
     /// <summary>The line and its continuation lines until the parentheses balance.</summary>
     private static string Collect(string[] lines, ref int index, string first)
     {
@@ -302,9 +321,9 @@ internal static partial class ApiDeclarations
         }
 
         return text;
-
-        static int Depth(string line) => line.Count(c => c == '(') - line.Count(c => c == ')');
     }
+
+    private static int Depth(string text) => text.Count(c => c == '(') - text.Count(c => c == ')');
 
     private static string StripComment(string line)
     {

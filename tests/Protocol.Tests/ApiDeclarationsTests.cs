@@ -18,4 +18,17 @@ public sealed class ApiDeclarationsTests
 
         Assert.Equal(["Band"], names);
     }
+
+    /// <summary>A declaration split across lines so that a tuple return type closes on the line of the member name, with the
+    /// parameters on the next line, is read as the member and its parameters are not read as fields: the tuple's closing
+    /// parenthesis must not cancel the opening one of the parameter list.</summary>
+    [Fact]
+    public void ADeclarationSplitAcrossLinesIsReadByItsMemberName()
+    {
+        const string block = "    internal static (long Low,\n        long High) Band(\n        double p = 0.5);\n    int Next(int count);";
+
+        var names = ApiDeclarations.Declarations(block).Select(declaration => declaration.Name).ToList();
+
+        Assert.Equal(["Band", "Next"], names);
+    }
 }
