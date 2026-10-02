@@ -88,7 +88,18 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
 - **Write set**: the scope file's `write` patterns, Python regular expressions matched
   with `re.fullmatch` against the repository-relative path; there is no default.
 - **Tools without paths** (`TodoWrite`, `ToolSearch`, `SendMessage`, and `SubagentHandback`,
-  the agent's own hand-back) are allowed; a tool not known to the hook is refused for a coder.
+  the agent's own hand-back) are allowed **before anything else is judged**: before the
+  `cwd` check and before the scope file is read, so a coder whose worktree is gone, or
+  whose scope is unpublished or unreadable, can still hand back its report. A tool not
+  known to the hook is refused for a coder. A refusal for a `cwd` outside the worktrees
+  tells the coder to stop and hand back its report: the worktree it was given no longer
+  exists or was never its own.
+
+  ⚠ 2026-10-02: was the pathless tools allowed after the `cwd` and scope checks, now
+  before them. Found on a real coder: resumed after its worktree had been removed (it had
+  made no change), its `cwd` was the main checkout, every call was refused, the
+  `SubagentHandback` included, and it ended without a report. A coder whose worktree is
+  gone is relaunched by the orchestrator, never resumed.
 - **A missing script.** The registration names the script in the main checkout; while the
   main checkout is on a branch without this node the hook command fails, Claude Code treats
   that as a non-blocking error, and coders run unguarded. The orchestrator keeps this node
@@ -157,6 +168,11 @@ hooks reference documents them (code.claude.com/docs/en/hooks), read 2026-10-02.
       passed on retry, was refused `Read src/Data/Species.cs` and `cat
       src/Thermo/SpeciesTable.cs` (read set, §3) and `Write src/Data/probe.tmp` (write set),
       and was allowed its own node, `src/Data/API.md`, `AGENTS.md` and a write in its node.
+- [ ] The pathless tools pass whatever else is wrong: a self-test feeds `SubagentHandback`,
+      `SendMessage`, `TodoWrite` and `ToolSearch` with a `cwd` outside the worktrees, with no
+      scope file and with an unreadable one, each allowed, while a `Read` in the same three
+      states stays refused; the `cwd` refusal's reason tells the coder to hand back its
+      report. Shown red once by moving the pathless check back after the `cwd` check.
 
 ## Taboos
 
