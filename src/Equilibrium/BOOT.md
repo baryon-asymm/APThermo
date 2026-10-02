@@ -78,7 +78,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
   ⚠ 2026-09-26: was at most 8 condensed species in the solution (30 × 30), now at most
   20 (42 × 42) → HISTORY.md#condensed-limit
-  ⚠ 2026-10-02: was `DenseSolver` visible to its tests node only, now `Transport`'s too → HISTORY.md#ds-tree-contract-2026-10-02
+  ⚠ 2026-10-02: was `DenseSolver` visible to its tests node only, now `Transport`'s too
+  → HISTORY.md#ds-tree-contract-2026-10-02
 
 - The Newton loop: the reduced equations (RP-1311 tables 2.1 and 2.2, the sp row, `p°`), the damping
   and the convergence tests of chapter 3, the polish, the loop's bookkeeping, the singular-matrix
@@ -116,7 +117,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   at its converged amount, not zeroed. `Composition` stays the one place the retention rule
   is applied, and the stage is per-case state (`IterationState.RetentionSecondStage`, not
   `NewtonLoopState`: the flag must survive the several `Converge` calls of one `Solve`
-  attempt, and `NewtonLoopState` is rebuilt at each of them). → HISTORY.md#retention-condensed-2026-10-02
+  attempt, and `NewtonLoopState` is rebuilt at each of them).
+  → HISTORY.md#retention-condensed-2026-10-02
 
   ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the
   report stands for the last `Composition.Refresh` → HISTORY.md#report-zeroing
@@ -172,7 +174,8 @@ scratch and result structs. Every floating-point expression keeps its present fo
 and its present order of evaluation: the decomposition moves code, it does not
 rewrite formulas, and the bit snapshot of the tests node (the acceptance criteria
 below) is the proof.
-⚠ 2026-10-02: was all stages in this directory and namespace, now child nodes → HISTORY.md#structure-split-2026-10-02
+⚠ 2026-10-02: was all stages in this directory and namespace, now child nodes
+→ HISTORY.md#structure-split-2026-10-02
 
 | Class | Responsibility | Visibility |
 |---|---|---|
@@ -223,7 +226,8 @@ Decisions taken with the review of 2026-09-14:
   would move the contract and re-emit the kernels. It is this node's declared exception to
   the parameter rule, on the root's condition that every creation names its arguments; a
   scan of the construction sites found the one site, in `Slice`, and it names every argument.
-  ⚠ 2026-10-02: was 12 parameters and a positional site, now 16 and named → HISTORY.md#slice-params-2026-10-02
+  ⚠ 2026-10-02: was 12 parameters and a positional site, now 16 and named
+  → HISTORY.md#slice-params-2026-10-02
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
@@ -236,7 +240,8 @@ marks and the two reductions of the input. → HISTORY.md#s-marks
 What the implementation settled, 2026-09-14, in the coding session that followed:
 
 - **The `ref` carrier holds** (`KernelEqualityTests`, here and in `Performance.Tests`), and `Solve`
-  and `SolveFrozen` fit under 60 lines as plain stage sequences → HISTORY.md#s-settled-2026-10-02
+  and `SolveFrozen` fit under 60 lines as plain stage sequences
+  → HISTORY.md#s-settled-2026-10-02
 
 - **The carriers are filled by name, not by position.** `MixtureSums` and `Derivatives`
 are structs written at the one place that computes them and read through `in`, not

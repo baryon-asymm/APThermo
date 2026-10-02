@@ -128,6 +128,10 @@ holds a pair of documents of its own:
 - `Cli`: [Cases](./src/Cli/Cases/API.md), [Documents](./src/Cli/Documents/API.md),
   [Listings](./src/Cli/Listings/API.md), [Output](./src/Cli/Output/API.md) and
   [Syntax](./src/Cli/Syntax/API.md), all internal to the tool.
+- `Equilibrium`: [Newton](./src/Equilibrium/Newton/API.md) (converges one condensed set),
+  [Condensed](./src/Equilibrium/Condensed/API.md) (changes the condensed set, the exit
+  guard) and [StateRecord](./src/Equilibrium/StateRecord/API.md) (the mixture state of a
+  converged or frozen composition), all internal.
 - `Benchmarks`: [Runner](./tests/Benchmarks/Runner/API.md), the executable that runs the
   benchmarks.
 - `Fixtures`: [generate](./tests/Fixtures/generate/API.md), the Python generator of the

@@ -129,7 +129,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   whatever the rules above failed to include, a full set among it, instead of
   returning a false equilibrium.
 
-  ⚠ 2026-10-02: was "every condensed record in play", now every mark but `Absent` → HISTORY.md#exit-guard-scope-2026-10-02
+  ⚠ 2026-10-02: was "every condensed record in play", now every mark but `Absent`
+  → HISTORY.md#exit-guard-scope-2026-10-02
 
   ⚠ 2026-09-13: was both records within 50 K, now pinned pairs → HISTORY.md#range-rule
 

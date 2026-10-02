@@ -130,7 +130,7 @@ double array and two more `MaxCondensedInSolution`-sized double arrays, plus a s
 converged iterate (the gaseous logarithms, the condensed set with its mole numbers,
 and the Lagrange multipliers) in these snapshot slices, so that a re-convergence
 which fails on the element's own row can be undone rather than reported as the
-release's own failure (BOOT.md, "Release"). `n`, `T`, the condensed count and the tie
+release's own failure ([Newton/BOOT.md](Newton/BOOT.md), "Release"). `n`, `T`, the condensed count and the tie
 itself travel as the caller's own locals across the one Newton call the release
 makes and need no scratch of their own. `DoublesPerCase` and `IntsPerCase` are
 functions, not stored constants, so a caller that sizes its buffers by calling them,
@@ -179,10 +179,10 @@ missed both. Every failure now retries (the second hidden-defect audit's finding
 
 ⚠ 2026-09-26: the sentence ended "its logarithm stays in the scratch for the next
 estimate". The logarithm stays, but no estimate reads it (the hidden-defect audit,
-finding 3; `BOOT.md`, the loop's bookkeeping).
+finding 3; [Newton/BOOT.md](Newton/BOOT.md), the loop's bookkeeping).
 
 At a pinned two-phase state — two records of one formula in the solution at their
-transition, hp and sp problems only (`BOOT.md`, the condensed-species rule) —
+transition, hp and sp problems only ([Condensed/BOOT.md](Condensed/BOOT.md), the condensed-species rule) —
 `CpEquilibrium`, `CvEquilibrium` and `DlnVdlnT` are written as zero, the reference's
 convention for derivatives that do not exist on a plateau (decided 2026-09-13), while
 `DlnVdlnP`, `GammaS = −1/DlnVdlnP` and `SoundSpeed` carry the real plateau values and
@@ -225,14 +225,14 @@ left out of an otherwise converged state by more than 1e-9 per mole: `BOOT.md`, 
 guard), `SingularMatrix` (only once none of the remedies resolves the singular system:
 rule B's dependent-set ratio test, rule A's element tie, the two gaseous resets of RP-1311
 section 3.6, then the targeted removal of the species of the row whose pivot failed since
-2026-09-28, `BOOT.md`, "Two rules come before the remedies above" and the targeted
+2026-09-28, [Newton/BOOT.md](Newton/BOOT.md), "Two rules come before the remedies above" and the targeted
 singular remedy), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`; since
 2026-09-28 also a converged state, tp included, outside the mixture window
 `[160 K, 22000 K]`, a `SolveFrozen` temperature below 0.8 times the lowest lower bound
 of the fits of the gases present or above `22000 K`, or a converged state whose frozen
 or equilibrium heat capacity, `γs` or sound speed is not finite and positive — the
 state guard, exempting a pinned pair's zero `CpEquilibrium`/`CvEquilibrium` convention:
-`BOOT.md`, the mixture window and the state guard).
+`BOOT.md`, the mixture window, and [StateRecord/BOOT.md](StateRecord/BOOT.md), the state guard).
 On any status but `Ok`, `Moles` hold the last iterate and `State` is not written; on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written.
 
