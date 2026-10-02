@@ -123,7 +123,9 @@ delivery (2026-09-15, `## Delivery` below).
   errors. One assembly per node directory that holds a project, named after its namespace; a
   child node without a project of its own (2026-09-15) compiles into the assembly of its
   nearest ancestor that has one, under its own namespace. One solution
-  file at the repository root.
+  file at the repository root. Such a child may use internal types of that ancestor which
+  the ancestor's `API.md` does not declare; it names them in its `## Dependencies` prose
+  ("parent internals"), and they do not enter the tree contract (2026-10-02, owner).
 
   ⚠ 2026-09-15: was one assembly per node, now per project node → HISTORY.md#asm-node
 - Diagnostics (2026-09-24): the compiler and every analyzer run at their maximum, every
@@ -234,6 +236,9 @@ delivery (2026-09-15, `## Delivery` below).
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
   than the CPU accelerator path using all cores. There is no single-case latency target
   in version 1.
+- Test time budget (2026-10-02, owner): the fast set (`Category!=LongRunning`) runs within
+  5 minutes on the reference machine (158 s measured that day); moving the Cli and Docs
+  tests in-process waits until the budget is broken.
 - Data: [src/Data/BOOT.md](src/Data/BOOT.md), `## Constraints`.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA
