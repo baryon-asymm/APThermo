@@ -8,6 +8,7 @@ consider guaranteed about the agreement between its documents and its code.
 | Claim | Confirmed by | State |
 |---|---|---|
 | the tree passes the language-independent linter without errors or warnings | Lint level (`LintTests`) | ✅ |
+| every Python tool node's self-test passes (`tools/*/test_*.py`) | Tool self-tests level (`ToolSelfTestTests`) | ⏳ |
 | no public surface of a library assembly changes without the snapshot moving in the same commit | Surface level (`SurfaceTests`, `PublicSurface.approved.txt`) | ✅ |
 | every type a library assembly exports is named in its node's `API.md`, and every type of every assembly lives in its node's namespace | Coverage level (`CoverageTests`) | ✅ |
 | every declaration under ✅ exists, the type and the member | Declarations level (`DeclarationTests`) | ✅ |

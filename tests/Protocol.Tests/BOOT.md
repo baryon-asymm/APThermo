@@ -12,6 +12,7 @@ dependencies against the real ones.
 | Level | What it checks | Against what (source of truth) | State |
 |---|---|---|---|
 | Lint | the file half of the protocol, in strict mode (a warning fails too) | `tools/protocol-lint` run as a process (`LintTests`) | ✅ |
+| Tool self-tests | every Python tool node's own self-test (`tools/*/test_*.py`: the linter's, the merge guard's, the coder-scope hook's), each run as a process and green; the list found by the walk, an empty walk a failure (2026-10-02: a self-test nothing runs goes stale unseen) | the tools' self-tests run as processes (`ToolSelfTestTests`) | ⏳ |
 | Surface | the public surface of every library assembly of the tree equals `PublicSurface.approved.txt` | the approved snapshot (`SurfaceTests`) | ✅ |
 | Coverage | every type a library assembly exports is named in the `API.md` of its node; every type of every assembly lives in the namespace of its node | the documents; the project names (`CoverageTests`) | ✅ |
 | Declarations | every type and member under ✅ in any `API.md` exists | the assemblies (`DeclarationTests`) | ✅ |
@@ -433,6 +434,9 @@ package's → HISTORY.md#diagnostics-audit-f5
       of the tree holds such a line today, so the false failure is latent (reported
       2026-10-02 by the boot-api-protocol skill's reference builder, which fixed its copy).
       `ApiDeclarationsTests.ATupleReturningDeclarationIsReadByItsMemberName` parses it, named and unnamed tuples, and names `Band`; red 3 of 3 on the old parser.
+- [ ] Every `tools/*/test_*.py` of the tree runs green inside the fast set, one fact case
+      per script found by the walk (the three of 2026-10-02 named in its output), an empty
+      walk failing; each shown red once by a failing scratch copy of one self-test.
 
 ## Taboos
 
