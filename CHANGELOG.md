@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- The rocket throat is found by a decision at `|u²/a² − 1| ≤ 1e-8` followed by exactly two
+  more momentum steps, instead of iterating to `1e-10`. Throat and exit figures move at
+  the twelfth significant digit; the CUDA and CPU accelerators now stop on the same step
+  far more often, so their results agree as the GPU/CPU tolerance table requires.
+- The guide's custom-propellant example defines HTPB as in Thomas and Petersen, AIAA
+  Journal 2021 (doi:10.2514/1.J060972): C 213.8 H 323.0 O 4.6 N 2.3, +342 kJ/mol. The
+  earlier definition had no source. The guide notes that published HTPB heats of
+  formation vary widely and change equilibrium results by up to 5 %.
+
 ## [0.2.0] - 2026-09-30
 
 This release breaks the binary surface of 0.1.0: code built against 0.1.0 must be
