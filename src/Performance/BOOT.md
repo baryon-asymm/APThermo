@@ -78,21 +78,27 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   ⚠ 2026-09-26: was solved as FrozenAtThroat, now InvalidInput → HISTORY.md#flow-model
 - Throat: initial pressure ratio from the chamber `γ_s` as in the report (6.15);
   the momentum update of (6.17) on the throat pressure; at most 20 iterations. The
-  report stops at `|u² − a²|/u² ≤ 4e-5` (6.16); this node goes on to `1e-11` when it
-  can, so that the reported throat is at rounding level, and accepts the report's
-  tolerance as `Ok` otherwise. The throat's tight tolerance is its own constant,
-  `RocketSolver.ThroatTightTolerance`; the area-ratio iteration keeps
-  `RocketSolver.TightTolerance` (1e-10).
+  report stops at `|u² − a²|/u² ≤ 4e-5` (6.16); this node goes on, so that the
+  reported throat is at rounding level, and accepts the report's tolerance as `Ok`
+  otherwise. Going on is a decision and a fixed tail (the owner's decision of
+  2026-10-02): the first trial with `|u²/a² − 1| ≤ 1e-8` decides, then exactly two more
+  momentum steps are taken whatever their ratio, and the second is the throat. The two
+  steps may run past the 20 iterations. A decision far from the noise flips between
+  accelerators rarely, and a flipped decision costs under 1e-12 in `ln p` after the
+  tail. The area-ratio iteration keeps `RocketSolver.TightTolerance` (1e-10).
 
-  ⚠ 2026-10-02, the owner's decision: was `1e-10`, now `1e-11` on the throat only; one
-  more momentum step at the stop moves `ln p` by up to 5.3e-11 at `1e-10` and 5.3e-12
-  at `1e-11` → HISTORY.md#throat-1e-11
+  ⚠ 2026-10-02, the owner's decisions: was `1e-10`, then `1e-11` (flips at the noise:
+  696 of 400 000 sweep stations with different Newton counts, the guard's limit 400),
+  now `1e-8` and two steps (34 to 40, the area-ratio exits'; +5.4 % station solves)
+  → HISTORY.md#throat-stop-rule
 
   The bracket (2026-09-26). The search keeps the smallest pressure solved with
   `u²/a² < 1` and the largest solved with `u²/a² > 1`. When the 20 momentum
   iterations end without either tolerance and such a bracket exists, the search
   halves the bracket in `ln p`:
-  - It stops when a solve meets the tight tolerance: that is the sonic throat.
+  - When both ends hold one condensed set, it stops at the first solve within `1e-8`
+    and takes the same two momentum steps; a step that changes the condensed set or
+    fails falls back to the midpoint. That is the sonic throat.
   - Otherwise it stops when the bracket is narrower than `1e-10` in `ln p`. If the
     condensed sets at its two ends differ, the throat is the plateau edge: the state at
     the high-pressure end.
@@ -417,24 +423,13 @@ needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
       the compile's figures are the execution node's (8.66 GB without, 0.34 GB with).
       Evidence: `2548e82`, `Performance.Tests` 1429 of 1429, lint 0/0; the CUDA proof is
       the root's. → HISTORY.md#crit-compile-size
-- [x] 2026-10-02 — The throat stops at `1e-11` (the owner's decision of 2026-10-02,
-      `## Constraints`): `RocketSolver.ThroatTightTolerance`, used by both tight tests of
-      `ThroatBracketSearch`; the area-ratio iteration keeps `TightTolerance` (1e-10).
-      `Performance.Tests.ThroatToleranceTests.TheThroatStopsAtLeastADecadeTighterThanTheAreaRatioIteration`
-      reads both and was red with the throat's constant set back to `1e-10` ("throat
-      tolerance 1E-10 is not a decade below the area-ratio iteration's 1E-10"). Every CEA
-      tolerance test green on the CPU accelerator, the fast set run without CUDA:
-      `Performance.Tests` 1457 of 1457. Re-approved on Windows, from the `.actual` files, nothing
-      but rocket fixtures and rocket documents moved (every one has a throat station):
-      `tests/Performance.Tests/Bits.approved.txt` 56 of 100 lines,
-      `tests/Problems.Tests/Bits.approved.txt` 45 of 240, `tests/Cli.Tests/Bits.approved.txt`
-      2 of 18 (`API.md input example 0`, `rocket-sweep.json`); no equilibrium, thermo or
-      transport snapshot moved. Open: the Linux bits and the CUDA proof
-      (`CudaTests.ARocketFamilyOnCudaMatchesTheCpuAccelerator` for every family, the
-      AP/HTPB/Al ones included): the orchestrator's; the tree-contract snapshot of the
-      protocol tests node holds `ThroatTightTolerance` and is that node's to re-approve (escalated).
-      Evidence: the commit `fix(performance): the throat stops at 1e-11`.
-
+- [ ] The throat's stop is a decision at `1e-8` and two momentum steps (the owner's
+      decision of 2026-10-02, `## Constraints`), in the momentum loop and in the
+      single-set bisection: a fact reads the decision threshold and the tail and is red
+      for `1e-11` and no tail; every CEA tolerance test green; the moved rocket cases
+      re-approved on both platforms; on the reference machine the AP/HTPB/Al families
+      and the 100 000-case sweep match on CUDA with the different-step share within
+      its guard. ⚠ 2026-10-02: was ticked for `1e-11` alone → HISTORY.md#crit-throat-1e-11
 ## Taboos
 
 - No second equilibrium solver or mixture-property formula here: call `Equilibrium`.

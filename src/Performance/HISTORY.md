@@ -8,6 +8,79 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="throat-stop-rule"></a>
+
+## 2026-10-02 — from "## Constraints", the Throat bullet — the stop rule replaced (1e-11 to a decision at 1e-8 and two steps)
+
+The text as it stood:
+
+  report stops at `|u² − a²|/u² ≤ 4e-5` (6.16); this node goes on to `1e-11` when it
+  can, so that the reported throat is at rounding level, and accepts the report's
+  tolerance as `Ok` otherwise. The throat's tight tolerance is its own constant,
+  `RocketSolver.ThroatTightTolerance`; the area-ratio iteration keeps
+  `RocketSolver.TightTolerance` (1e-10).
+
+  ⚠ 2026-10-02, the owner's decision: was `1e-10`, now `1e-11` on the throat only; one
+  more momentum step at the stop moves `ln p` by up to 5.3e-11 at `1e-10` and 5.3e-12
+  at `1e-11` → HISTORY.md#throat-1e-11
+
+Why it changed. At `1e-11` every AP/HTPB/Al family matched on CUDA, but in the
+100 000-case LOX/LH2 sweep the stations whose last solve took different Newton counts on
+the two accelerators rose from 34 to 696 of 400 000, over the guard's 400: the decision
+sits near the noise of `u²/a²` (1e-13 to 1e-12 between two solves of one state), and 79 %
+of the 598 throats within 1.6e-13 of the threshold change the count when they flip.
+Measured on the CPU with the throat trial pressures perturbed by ±1e-13 … ±1e-12 (which
+reproduces 718–736 against the 696 seen on CUDA, and 41–43 against 34 at `1e-10`):
+
+| Rule | Candidates within 1.6e-13 | Counted stations, noise runs | Worst flip, `ln p` | Station solves vs `1e-11` |
+|---|---|---|---|---|
+| `1e-11` | 598 | 718–2892 | 5.9e-12 | — |
+| `1e-10` | 17 | 33–43 | 5.9e-11 | −5.3 % |
+| `1e-8`, 2 steps | 3 | 34–40 | 9.8e-13 | +5.4 % |
+| `1e-8`, 3 steps | 3 | 33–38 | 7.7e-13 | +14.5 % |
+| `1e-9`, 2 steps | 8 | 34–39 | 1.0e-12 | +10.7 % |
+| `1e-9`, 3 steps | 8 | 30–42 | 7.6e-13 | +19.8 % |
+
+No flip changed the throat's Newton count under any of the new rules; the stations
+still counted are the area-ratio exits' own `1e-10` flips. Host time of the sweep 2.11 s
+against 2.02 s at `1e-11`; every case and fixture `Ok`, the last step 5–6 in the sweep
+and 7–9 in the fixtures. Of 118 rocket and throat fixtures 12 reach the bisection: 10
+plateau edges, where no trial comes within 1.4e-2 and every variant gives identical bits,
+and two smooth cases reached through `UpstreamChokeCheck.AcceptEarlierCrossing`
+(AP/HTPB/Al 7 MPa `h₀` − 2.7 MJ/kg, and LiF 7 MPa, which never met `1e-11` and ended on
+the bracket width at `|r − 1|` 1.5e-10). One throat fixture,
+`ap-htpb-al-throat_pc7MPa_dh-2.375MJkg` on the `AL2O3(a)` plateau, moves its
+`AL2O3(a)` fraction by `d ln x/d ln p` of 200 to 300 under any rule: sensitivity, not a
+flip; throat fixtures are not in the CUDA family comparison. Measurements of the
+orchestrator's investigation, scratchpad `probe-sweep.txt`, `probe-sweep-noise.txt`,
+`probe-fixtures.txt`.
+
+---
+
+<a id="crit-throat-1e-11"></a>
+
+## 2026-10-02 — from "## Acceptance criteria" — the criterion ticked for `1e-11`, superseded the same day
+
+- [x] 2026-10-02 — The throat stops at `1e-11` (the owner's decision of 2026-10-02,
+      `## Constraints`): `RocketSolver.ThroatTightTolerance`, used by both tight tests of
+      `ThroatBracketSearch`; the area-ratio iteration keeps `TightTolerance` (1e-10).
+      `Performance.Tests.ThroatToleranceTests.TheThroatStopsAtLeastADecadeTighterThanTheAreaRatioIteration`
+      reads both and was red with the throat's constant set back to `1e-10` ("throat
+      tolerance 1E-10 is not a decade below the area-ratio iteration's 1E-10"). Every CEA
+      tolerance test green on the CPU accelerator, the fast set run without CUDA:
+      `Performance.Tests` 1457 of 1457. Re-approved on Windows, from the `.actual` files, nothing
+      but rocket fixtures and rocket documents moved (every one has a throat station):
+      `tests/Performance.Tests/Bits.approved.txt` 56 of 100 lines,
+      `tests/Problems.Tests/Bits.approved.txt` 45 of 240, `tests/Cli.Tests/Bits.approved.txt`
+      2 of 18 (`API.md input example 0`, `rocket-sweep.json`); no equilibrium, thermo or
+      transport snapshot moved. Open: the Linux bits and the CUDA proof
+      (`CudaTests.ARocketFamilyOnCudaMatchesTheCpuAccelerator` for every family, the
+      AP/HTPB/Al ones included): the orchestrator's; the tree-contract snapshot of the
+      protocol tests node holds `ThroatTightTolerance` and is that node's to re-approve (escalated).
+      Evidence: the commit `fix(performance): the throat stops at 1e-11`.
+
+---
+
 <a id="throat-1e-11"></a>
 
 ## 2026-10-02 — from "## Constraints", the Throat bullet — the owner's decision of the throat's tight tolerance (full measurement)
