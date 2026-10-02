@@ -12,7 +12,8 @@ $ python -X utf8 tools/merge-guard/merge_guard.py <branch> --scope <regex> [--sc
 ok    preconditions: target protocol-3.1, merge base 34c0be8, 2 coder commits
 ok    scope: 29 paths, all inside the scope
 ok    approved records: none changed
-ok    documents: 4 nodes, 260 lines moved, 0 lost, 0 stray, 0 unresolved, HISTORY.md append-only
+ok    history: 2 HISTORY.md touched, append-only
+ok    documents: 4 nodes, 260 lines moved, 0 lost, 0 stray, 0 unresolved
 ok    overlap: none
 ok    trial merge: no conflict (worktree removed on exit)
 ok    lint: protocol_lint: 0 errors, 0 warnings

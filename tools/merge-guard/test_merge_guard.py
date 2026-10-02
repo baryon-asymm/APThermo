@@ -405,8 +405,37 @@ class ApprovedRecordTests(GuardCase):
         self.assertIn("approved records: none changed", run.out)
 
 
+class HistoryTests(GuardCase):
+    """Check 4, history: runs on every branch, with `--doc-nodes` or without."""
+
+    def test_a_removed_line_of_a_history_fails_without_doc_nodes(self) -> None:
+        """The append-only rule does not depend on --doc-nodes."""
+        self.coder_commit({"node/HISTORY.md": self.edit("node/HISTORY.md", "old entry text\n", "")})
+        run = self.run_guard("coder", "--scope", DOCUMENT_SCOPE, "--checks-only")
+        self.assert_red(run, "history: 1 HISTORY.md lines removed")
+        self.assertIn("node/HISTORY.md: removed line: old entry text", run.out)
+        self.assertNotIn("documents:", run.out)
+
+    def test_an_appended_history_is_green_and_counted_without_doc_nodes(self) -> None:
+        """A HISTORY.md that only gained lines is touched and append-only."""
+        self.coder_commit({"node/HISTORY.md": SEED_FILES["node/HISTORY.md"] + "\nnew entry text\n"})
+        run = self.run_guard("coder", "--scope", DOCUMENT_SCOPE, "--checks-only")
+        self.assertEqual(0, run.code, run.out)
+        self.assertIn("ok    history: 1 HISTORY.md touched, append-only", run.out)
+        self.assertIn("documents: skipped", run.out)
+
+    def test_a_branch_that_touches_no_history_prints_zero(self) -> None:
+        """N may be 0, and the line is always printed, after the approved records."""
+        self.coder_commit({"app/new.txt": "x\n"})
+        run = self.run_guard("coder", "--scope", "^app/", "--checks-only")
+        self.assertEqual(0, run.code, run.out)
+        self.assertIn("ok    history: 0 HISTORY.md touched, append-only", run.out)
+        self.assertLess(run.out.index("approved records:"), run.out.index("history:"))
+        self.assertLess(run.out.index("history:"), run.out.index("documents: skipped"))
+
+
 class DocumentTests(GuardCase):
-    """Check 4."""
+    """Check 4, documents."""
 
     def documents(self, *extra: str, nodes: Optional[List[str]] = None) -> Run:
         """Static checks with the document check over `nodes` (default: node), scope everything."""
@@ -425,7 +454,8 @@ class DocumentTests(GuardCase):
         self.coder_commit(self.condensed())
         run = self.documents()
         self.assertEqual(0, run.code, run.out)
-        self.assertIn("documents: 1 nodes, 2 lines moved, 0 lost, 0 stray, 0 unresolved, HISTORY.md append-only", run.out)
+        self.assertIn("ok    history: 1 HISTORY.md touched, append-only", run.out)
+        self.assertIn("documents: 1 nodes, 2 lines moved, 0 lost, 0 stray, 0 unresolved", run.out)
 
     def test_a_lost_line_fails(self) -> None:
         """A line removed from BOOT.md that reappears nowhere is lost."""

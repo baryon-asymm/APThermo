@@ -363,19 +363,20 @@ def node_findings(ctx: Context, prefix: str, gained: Set[str], moved_down: Set[s
     return NodeFindings(len([line for line in removed if line.strip()]), lost, stray, unresolved)
 
 
-def check_history_append_only(ctx: Context) -> List[str]:
-    """A line removed from any HISTORY.md of the tree, named node or not, is a failure."""
+def check_history(ctx: Context) -> str:
+    """Check 4, history: no non-blank line is removed from any HISTORY.md of the tree, on every branch."""
+    touched = [path for path in ctx.changed if path.split("/")[-1] == "HISTORY.md"]
     problems: List[str] = []
-    for path in ctx.changed:
-        if path.split("/")[-1] != "HISTORY.md":
-            continue
+    for path in touched:
         removed, _ = diff_lines(ctx, path)
         problems += ["{}: removed line: {}".format(path, line.strip()[:120]) for line in removed if line.strip()]
-    return problems
+    if problems:
+        raise GuardFailure("history: {} HISTORY.md lines removed".format(len(problems)), capped(problems))
+    return "history: {} HISTORY.md touched, append-only".format(len(touched))
 
 
 def check_documents(ctx: Context) -> str:
-    """Check 4: the moved-text rules over the named nodes, plus HISTORY.md append-only."""
+    """Check 4, documents: the moved-text rules over the named nodes."""
     if not ctx.options.doc_nodes:
         return "documents: skipped (no --doc-nodes)"
     prefixes: List[str] = []
@@ -394,10 +395,10 @@ def check_documents(ctx: Context) -> str:
             if name == "BOOT.md":
                 moved_down |= {normalize_line(line) for line in removed if line.strip()}
     results = [node_findings(ctx, prefix, gained, moved_down) for prefix in prefixes]
-    return summarize_documents(prefixes, results, check_history_append_only(ctx))
+    return summarize_documents(prefixes, results)
 
 
-def summarize_documents(prefixes: Sequence[str], results: Sequence[NodeFindings], rewritten: Sequence[str]) -> str:
+def summarize_documents(prefixes: Sequence[str], results: Sequence[NodeFindings]) -> str:
     """Raise the one failure the node findings add up to, or return the green line."""
     details: List[str] = []
     for prefix, found in zip(prefixes, results):
@@ -405,13 +406,12 @@ def summarize_documents(prefixes: Sequence[str], results: Sequence[NodeFindings]
         details += ["{}: lost line: {}".format(name, line.strip()[:120]) for line in found.lost]
         details += ["{}: line added outside a pointer paragraph: {}".format(name, line.strip()[:120]) for line in found.stray]
         details += ["{}: unresolved anchor HISTORY.md#{}".format(name, anchor) for anchor in found.unresolved]
-    details += list(rewritten)
     counts = [sum(len(f.lost) for f in results), sum(len(f.stray) for f in results),
-              sum(len(f.unresolved) for f in results), len(rewritten)]
+              sum(len(f.unresolved) for f in results)]
     if details:
-        raise GuardFailure("documents: {} lost, {} stray, {} unresolved, {} HISTORY.md lines removed".format(*counts),
+        raise GuardFailure("documents: {} lost, {} stray, {} unresolved".format(*counts),
                            capped(details))
-    return "documents: {} nodes, {} lines moved, 0 lost, 0 stray, 0 unresolved, HISTORY.md append-only".format(
+    return "documents: {} nodes, {} lines moved, 0 lost, 0 stray, 0 unresolved".format(
         len(prefixes), sum(f.removed for f in results))
 
 
@@ -708,7 +708,7 @@ def run_guard(options: Options, repo: str) -> int:
     try:
         ctx, line = check_preconditions(repo, options)
         Reporter.ok(line)
-        for check in (check_scope, check_approved_records, check_documents, check_overlap):
+        for check in (check_scope, check_approved_records, check_history, check_documents, check_overlap):
             Reporter.ok(check(ctx))
         if options.checks_only:
             print("merge-guard: green (static checks only)", flush=True)
