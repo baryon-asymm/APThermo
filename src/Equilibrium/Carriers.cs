@@ -237,4 +237,12 @@ internal struct IterationState
 
     /// <summary>Whether the tie has already been released once in this solve (BOOT.md, rule A, "Release"): at most once per solve.</summary>
     public bool TieReleased;
+
+    /// <summary>
+    /// Whether the temperature is assigned (a tp problem), set by <see cref="CaseSetup.Begin"/> (BOOT.md of the Newton child
+    /// node, rule B, 2026-10-03). Rule B's gas column binds an assigned temperature only: with the temperature a variable, a
+    /// set that is a linear combination of its own condensed species and the gas phase is a gas-participating plateau, whose
+    /// singular direction is rule A's element tie, not a removal.
+    /// </summary>
+    public bool AssignedTemperature;
 }

@@ -8,6 +8,29 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="release-invariant-2026-10-03"></a>
+
+## 2026-10-03 — from the Newton node's "## Constraints" — the release's way back on a failed status only
+
+Step 3 of the 0.2.2 coding (`Newton/BOOT.md`, rule A, "Release"): the restore of the tied iterate was taken only when the release's one convergence failed by status. A release that passes the report's tests but leaves an element's balance beyond the invariant has failed at the one thing it is for; since the case would end `NotConverged` or `TemperatureOutOfRange` at the close anyway, the restore is now taken on `ElementBalance.WithinInvariant`, the close's own predicate, over the moles the close would judge (after the `Composition.Refresh` of the final iterate). Measured on the magnesite plateau (`MagnesiteLeverSeedTests`): hp states at fractions up to one half, seeded on the plateau at 1e4 and 1e6 Pa, ended `TemperatureOutOfRange` after 67 to 70 iterations without it and `Ok` after 47 to 49 with it. The wording stood:
+
+>       When that convergence fails, the tied iterate the release started from is
+>       restored and closed with the tie in force, as a tie that survived to the close
+>       (the third pass of 2026-09-28).
+
+---
+
+<a id="rule-b-tp-2026-10-03"></a>
+
+## 2026-10-03 — from the Newton node's "## Constraints" — rule B in hp and sp
+
+Step 3 of the 0.2.2 coding (`Newton/BOOT.md`, rule B): the sentence "in practice this is a tp rule" was a claim about the matrix, not a test, and the gas column of rule B did fire in hp and sp (8 times in `GasPlateauSystemsTests`) and removed MgCO3 from the true univariant state of the MgCO3/MgO plateau under CO2. The gas column now binds an assigned temperature only (`IterationState.AssignedTemperature`); the condensed-only half still binds hp and sp, which a measurement decided (limiting the whole rule to tp failed four of the six states of `RuleBCondensedHalfTests` and two gas-plateau families of `Execution.Tests`). The wording stood:
+
+>     the set, and it is not marked for the anti-cycling skip. In hp and sp the
+>     temperature column keeps such a set non-singular, so in practice this is a tp rule.
+
+---
+
 <a id="scratch-14-2026-10-03"></a>
 
 ## 2026-10-03 — from "## Structure" and "## Shape exceptions" — the scratch descriptor's 16 parameters

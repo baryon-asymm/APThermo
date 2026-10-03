@@ -267,7 +267,7 @@ The rows of the child nodes' types stand in their own `## Shape exceptions`
 ⚠ 2026-10-03: was 16, now 14 → HISTORY.md#scratch-14-2026-10-03
 
 Every other type of the node and its children measures 14 or below by the dependency check's
-walk, the root's limit; at 14 stands `Newton.ConvergenceTests` and at 12 `ConvergenceSequence`
+walk, the root's limit; at 14 stands `Newton.ConvergenceTests` and at 13 `ConvergenceSequence`
 (2026-10-03) → HISTORY.md#ce-rest-2026-10-02
 
 ⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14 → HISTORY.md#ce-convergence-tests-2026-10-03

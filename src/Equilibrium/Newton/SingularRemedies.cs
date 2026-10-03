@@ -33,10 +33,14 @@ internal static class SingularRemedies
     {
         // Rule B (BOOT.md, 2026-09-28): a dependent condensed set is resolved by the ratio test before any other
         // remedy. A change of the set, and not marked for the anti-cycling skip: the species that stays is the one
-        // just included, not one that cycled out.
+        // just included, not one that cycled out. The gas column of the test binds an assigned temperature only
+        // (BOOT.md, rule B, 2026-10-03): with the temperature an unknown, the singular direction of a set that is a
+        // combination of its condensed species and the gas is rule A's element tie, not a removal.
         if (state.CondensedCount >= 2)
         {
-            var leaving = CondensedDependency.LeavingPosition(table, scratch, result, state.CondensedCount);
+            var leaving = state.AssignedTemperature
+                ? CondensedDependency.LeavingPosition(table, scratch, result, state.CondensedCount)
+                : CondensedDependency.LeavingPositionWithoutGas(table, scratch, result, state.CondensedCount);
             if (leaving >= 0)
             {
                 state.CondensedCount = CondensedSet.Remove(scratch, result, state.CondensedCount, leaving);

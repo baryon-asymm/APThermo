@@ -18,27 +18,32 @@ internal static class ConvergenceSequence
     {
         CaseStatus status;
         var awaitingRelease = false;
-        var releasedTie = default(ElementTie);
-        var releasedLogN = 0.0;
-        var releasedTemperature = 0.0;
-        var releasedCondensedCount = 0;
+        var released = default(IterationState);
         while (true)
         {
             status = NewtonIteration.Converge(table, problem, scratch, result, logPressure, ref state);
 
             // Rule A's way back (BOOT.md, "Release", the third pass of 2026-09-28, finding F1): when the one
             // convergence the release allowed on the element's own row fails, the tied iterate the release started
-            // from is restored and the case is closed with the tie in force, as a tie that survived to the close.
+            // from is restored and the case is closed with the tie in force, as a tie that survived to the close. A
+            // release that converges by the report's tests but leaves an element's balance beyond the node's invariant
+            // (2026-10-03, `ElementBalance.WithinInvariant`, the close's own predicate over the moles the close would
+            // judge) has failed at the one thing it is for, and is undone the same way.
             if (awaitingRelease)
             {
                 awaitingRelease = false;
-                if (status != CaseStatus.Ok)
+                if (status == CaseStatus.Ok)
                 {
-                    state.LogN = releasedLogN;
-                    state.Temperature = releasedTemperature;
-                    state.CondensedCount = releasedCondensedCount;
-                    state.Tie = releasedTie;
-                    TieSnapshot.Restore(table, scratch, result, releasedCondensedCount);
+                    Composition.Refresh(table, scratch, result, ref state);
+                }
+
+                if (status != CaseStatus.Ok || !ElementBalance.WithinInvariant(table, problem, scratch, result))
+                {
+                    state.LogN = released.LogN;
+                    state.Temperature = released.Temperature;
+                    state.CondensedCount = released.CondensedCount;
+                    state.Tie = released.Tie;
+                    TieSnapshot.Restore(table, scratch, result, released.CondensedCount);
                     Composition.Refresh(table, scratch, result, ref state);
                     status = CaseStatus.Ok;
                     break;
@@ -60,10 +65,7 @@ internal static class ConvergenceSequence
                 if (state.Tie.Active && !state.TieReleased
                     && !ElementCoupling.Coupled(table, scratch, result, state.CondensedCount, state.Tie))
                 {
-                    releasedTie = state.Tie;
-                    releasedLogN = state.LogN;
-                    releasedTemperature = state.Temperature;
-                    releasedCondensedCount = state.CondensedCount;
+                    released = state;
                     TieSnapshot.Save(table, scratch, result, state.CondensedCount);
                     state.Tie = default;
                     state.TieReleased = true;

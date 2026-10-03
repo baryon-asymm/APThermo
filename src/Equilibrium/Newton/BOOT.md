@@ -16,7 +16,7 @@ condensed set:
   (`ElementCoupling` and `TieSnapshot`), the resets and the targeted removal.
 - `NewtonIteration` runs the loop and holds no formula.
 
-`EquilibriumSolver` reaches the node through `NewtonIteration.Converge`, and the tests and the
+`ConvergenceSequence` (the parent's) reaches the node through `NewtonIteration.Converge`, and the tests and the
 condensed-set stage through the types listed in `API.md`. The cluster has a reason of its own to
 change: the iteration of RP-1311 chapter 3 and the remedies of its section 3.6, which the
 condensed-species rule and the state record do not share.
@@ -154,8 +154,23 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
     the element vectors must be at most 1e-9 per element. The species that the
     favourable reaction uses up first leaves: the smallest `n_p/c_p` over the positive
     coefficients `c_p` of the combination, the simplex ratio test. This is a change of
-    the set, and it is not marked for the anti-cycling skip. In hp and sp the
-    temperature column keeps such a set non-singular, so in practice this is a tp rule.
+    the set, and it is not marked for the anti-cycling skip.
+    The gas column binds an assigned temperature only (`IterationState.AssignedTemperature`, set by
+    `CaseSetup.Begin`, 2026-10-03): in hp and sp the combination's column carries the reaction's enthalpy
+    or entropy in the temperature column and row, so it is no null vector, and a singular hp or sp
+    matrix is rule A's row tie. On the MgCO3/MgO plateau under CO2 (Mg:C:O = 1:2:5) the gas column took
+    MgCO3 out of a true univariant state (O = Mg + 2C over MgCO3, MgO and CO2); limited to tp, rule A
+    ties and the state converges at the plateau temperature. The condensed-only half still binds hp and
+    sp: limiting the whole rule to tp failed four of the six cold sp states of `RuleBCondensedHalfTests`
+    and two gas-plateau families of the execution node's batch facts (calcite at 1e7 Pa, 1599.29 K;
+    calcium hydroxide at 1e5 Pa, 739.39 K), where three condensed species are in the solution at the
+    plateau temperature and the first is the one taken out. Counted with a probe on the CPU accelerator
+    (it broke the kernel compile of the rocket tests, so not every test ran it): over the old rule
+    `GasPlateauSystemsTests` fired the gas column 8 times and the condensed-only half 4 times in hp and
+    sp; with the gas column limited, the rest of `Equilibrium.Tests` fires neither in hp or sp, and the
+    two families fire the condensed-only half. The bracket's probes are tp and keep the whole rule.
+
+    ⚠ 2026-10-03: was a tp rule "in practice", now the gas column tp by its test → HISTORY.md#rule-b-tp-2026-10-03
 
     ⚠ 2026-10-03, the alkali-rich perchlorates (the orchestrator's investigation B4 for
     0.2.1): at K:Cl:O = 1:0.9:4 the set reached K2O2(cr), KCL(cr) and an all-O2 gas, and
@@ -206,14 +221,19 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
     - **Release.** Once the condensed-set update finds no further change and some
       species of the sums breaks the combination, the tie is released, at most once per
       solve, and the settled set converges again on the element's own row.
-      When that convergence fails, the tied iterate the release started from is
+      When that convergence fails (its status is not `Ok`, or, since 2026-10-03, it
+      passes the report's tests but breaks the parent's element invariant,
+      `ElementBalance.WithinInvariant`, the close's own predicate over the moles the close
+      would judge), the tied iterate the release started from is
       restored and closed with the tie in force, as a tie that survived to the close
       (the third pass of 2026-09-28). The iterate is the case's own converged state
       (the logarithms of the moles, `n`, `T`, the condensed set and its moles, the
-      tie), kept in the case's scratch at the release.
+      tie), kept in the case's scratch at the release. The restore is in the parent's
+      `ConvergenceSequence`.
 
       ⚠ 2026-09-28: was a release with no way back, now the tied iterate restored when
       the release fails → HISTORY.md#release-way-back
+      ⚠ 2026-10-03: was a failed status only, now the invariant too → HISTORY.md#release-invariant-2026-10-03
     - **Derivatives.** The unit row a surviving tie gives the derivative system is the state
       record's: [StateRecord](../StateRecord/BOOT.md).
 
@@ -328,6 +348,22 @@ rules A and B criterion.
       `ANamedEquilibriumFamilyOnCudaMatchesTheCpuAccelerator` over the five 0.2.1 families,
       green with the balance-remnant correction of `tests/Execution.Tests` (merge `377998d`);
       without it the `three-element-example1` family failed on x(H2), 3.8e-9 at equal steps.
+
+- [x] 2026-10-03 — Rule B's gas column binds tp only (`## Constraints`, rule B). Evidence
+      (`MagnesiteLeverSeedTests.AStateSeededOnTheMagnesitePlateauEndsOkWithBothCondensedPhases`,
+      18 states at 1e4, 1e5 and 1e6 Pa, hp and sp, three fractions): seeded on the plateau by the
+      lever rule, each ends `Ok` at the plateau temperature with MgCO3 and MgO, clear of
+      `EquilibriumConditions`; 12 of the 18 fail with the column in force in hp and sp. The
+      condensed-only half stays, by measurement: `RuleBCondensedHalfTests` (six cold sp states of
+      calcite at 1e7 Pa and calcium hydroxide at 1e5 Pa) green, four of six red with the whole rule
+      limited to tp, and the two gas-plateau families of `Execution.Tests` likewise.
+      `GasPhaseDependencyTests` unchanged and green; no bit line of any `Bits.approved.txt` moved
+      (the fast set, 5852 tests, on the Windows reference machine).
+- [x] 2026-10-03 — The release's way back on a broken invariant (`## Constraints`, "Release"):
+      `MagnesiteLeverSeedTests.AnHpStateAtHalfTheTransitionNeedsTheReleasesWayBackOnABrokenInvariant`
+      (hp at one half of the transition, seeded on the plateau, 1e4 and 1e6 Pa) `Ok`; red with the
+      restore taken on a failed status only (two of two, and five hp states of the grid above); no
+      bit moved. Not measured here: CUDA, and the Linux records (`Bits.linux.approved.txt`).
 
 ## Taboos
 
