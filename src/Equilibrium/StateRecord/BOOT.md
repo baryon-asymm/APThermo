@@ -32,6 +32,8 @@ The invariants of the parent ([BOOT.md](../BOOT.md)) hold here unchanged.
 
 - [Equilibrium](../API.md) — the descriptors of its inputs, scratch and outputs, `IterationState`,
   `SystemLayout`, `MixtureSums`, `Derivatives`, `DerivativeKind` and `DenseSolver`.
+- [Condensed](../Condensed/API.md) — `PhaseGeometry.SameFormula`, to find the partner of a pinned
+  record; dropped together with the code when the pinned set (`## Constraints`) lands.
 - [Thermo](../../Thermo/API.md) — the species table view, `MixtureState` and
   `PhysicalConstants`.
 
@@ -90,7 +92,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   and the reference comparisons stay unchanged).
 
   ⚠ 2026-10-03: was a pinned **pair** found by `PhaseGeometry.SameFormula`, now a pinned
-  **set** found by linear dependence, and this node no longer depends on `Condensed` (the
+  **set** found by linear dependence, so this node stops depending on `Condensed` (the
   orchestrator's investigation B3 for 0.2.1). Inside the Al(OH)3/Al2O3/H2O(L) band the
   three condensed vectors are dependent, the constant-temperature derivative system was
   singular, and every hp and sp state there failed (114 of 114 seeded, 474 in a scan; the
