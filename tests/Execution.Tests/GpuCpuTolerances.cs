@@ -24,6 +24,7 @@ internal static class GpuCpuTolerances
     {
         ["temperature"] = (1e-10, "The Newton iteration is polished until its corrections are below 1e-11, the rounding floor of the linear solves; a few ULP in exp and log move the converged iterate by 1e-12, and one polish step more on one accelerator by 1e-11 (measured 3.4e-13 and 1.4e-11 in the sweep)."),
         ["moleFraction"] = (1e-10, "As temperature, for mole fractions not below 1e-8 at stations where both accelerators stopped after the same number of Newton steps (measured 9e-12); below 1e-8 the logarithms of trace species are not converged to the same digits."),
+        ["condensedMoleFraction"] = (1e-9, "A condensed species' mole fraction not below the floor, whatever the Newton counts: an amount on a phase plateau is ill-conditioned, d ln x / d ln p of 59 to 290 measured at the throat fixtures' plateau stations (LiOH(L), AL2O3(a)) against 2 to 6 for gases, and the accelerators' throat pressures differ by up to 8.4e-13 in ln p, so 290 x 8.4e-13 = 2.4e-10; the solve's own floor for such an amount is about 1e-10 (1.31e-10 under injected noise on the CPU). Measured on CUDA on 2026-10-03: LiOH(L) 9.5e-11, AL2O3(a) 4.0e-11, every other condensed value at most 1.1e-12; 1e-9 is the polish-threshold tier's value, a decade above the worst."),
         ["state"] = (1e-9, "Every other field of MixtureState: sums of species functions and solutions of the derivative systems over the same converged composition; the sums accumulate the ULP differences of the functions."),
         ["figures"] = (1e-9, "Performance figures: velocities from enthalpy differences and the throat and area-ratio iterations, which stop at 1e-10 on both accelerators."),
         ["transport"] = (1e-9, "Transport figures: sums of exp fits and the reaction systems, over the composition given to both accelerators alike."),
@@ -43,14 +44,17 @@ internal static class GpuCpuTolerances
     }
 
     /// <summary>
-    /// The mole-fraction tolerance of a station, by whether both accelerators stopped after the same number of Newton steps. The
-    /// different-step tier is not an entry of this node's own table either (F-TF-05, BOOT.md): it is the fixtures node's
-    /// <c>polishThresholdRelative</c>, for the same reason as the floor.
+    /// The mole-fraction tolerance of a species at a station: the condensed tier for a condensed species whatever the Newton counts,
+    /// otherwise by whether both accelerators stopped after the same number of Newton steps. The different-step tier is not an entry
+    /// of this node's own table either (F-TF-05, BOOT.md): it is the fixtures node's <c>polishThresholdRelative</c>, for the same
+    /// reason as the floor.
     /// </summary>
-    public static double MoleFractionRelative(ToleranceTable tolerances, bool sameSteps)
+    public static double MoleFractionRelative(ToleranceTable tolerances, bool sameSteps, bool condensed)
     {
         ArgumentNullException.ThrowIfNull(tolerances);
-        return sameSteps ? Entries["moleFraction"].Relative : tolerances.For("polishThresholdRelative").Relative;
+        return condensed ? Entries["condensedMoleFraction"].Relative
+            : sameSteps ? Entries["moleFraction"].Relative
+            : tolerances.For("polishThresholdRelative").Relative;
     }
 
     /// <summary>The tolerance of a field of one of the result structs.</summary>

@@ -55,7 +55,11 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
         return mismatches;
     }
 
-    /// <summary>Mole fractions of one case or station, relative to the total moles, within the tier of the mole-fraction tolerance above the floor.</summary>
+    /// <summary>
+    /// Mole fractions of one case or station, relative to the total moles, within the tier of the mole-fraction tolerance above the
+    /// floor; a species at or after <see cref="SpeciesTable.GasCount"/> is condensed (the table lists gaseous species first) and is
+    /// held to the condensed tier whatever the Newton counts.
+    /// </summary>
     public IEnumerable<string> Moles(double[] cpuMoles, double[] gpuMoles, long index, SpeciesTable table, bool sameSteps, string label)
     {
         var speciesCount = table.SpeciesCount;
@@ -68,7 +72,6 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
             gpuTotal += gpuMoles[offset + j];
         }
 
-        var relative = GpuCpuTolerances.MoleFractionRelative(tolerances, sameSteps);
         var floor = GpuCpuTolerances.MoleFractionFloor(tolerances);
         for (var j = 0; j < speciesCount; j++)
         {
@@ -79,7 +82,9 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
                 continue;
             }
 
-            Record(sameSteps ? "moleFraction" : "moleFractionAfterDifferentSteps", Math.Abs(x - y) / Math.Max(x, y));
+            var condensed = j >= table.GasCount;
+            var relative = GpuCpuTolerances.MoleFractionRelative(tolerances, sameSteps, condensed);
+            Record(condensed ? "condensedMoleFraction" : sameSteps ? "moleFraction" : "moleFractionAfterDifferentSteps", Math.Abs(x - y) / Math.Max(x, y));
             if (!GpuCpuTolerances.Matches(relative, x, y))
             {
                 yield return $"{label} x({table.Species[j]}): cpu {x:R}, cuda {y:R}";
