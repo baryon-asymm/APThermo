@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- A state on a plateau where the gas takes part (boiling water, CaCO3 and CaO under CO2,
+  NH4Cl, Ca(OH)2, MgCO3), whose plateau temperature moves with the pressure, no longer
+  ends `TemperatureOutOfRange` or `NotConverged` after its composition has converged. An
+  isentrope through such a region (a nozzle expanding nearly pure water vapour into its
+  two-phase region) now solves at every station. On such a plateau `CpEquilibrium`,
+  `CvEquilibrium` and `DlnVdlnT` are 0 as on the other plateaus, `GammaS` and `SoundSpeed`
+  follow the isentrope along the moving plateau, `DlnVdlnP` carries the isentropic
+  derivative, and `GammaS` may fall below 1. A known limitation of 0.2.1.
+- Beside such a plateau, where the composition is only nearly univariant, `GammaS` was
+  wrong by up to 0.17 % with an `Ok` status. It now comes from the isentrope as well.
+
 ## [0.2.1] - 2026-10-03
 
 ### Fixed

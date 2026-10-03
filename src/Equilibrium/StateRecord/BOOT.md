@@ -230,8 +230,8 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       CUDA proofs with this code. A seeded case starts from the tp seed's moles, and a batch
       carries a temperature estimate only (`src/Execution/API.md`), so no batch expresses it.
 
-- [ ] The gas-participating plateau and the near-univariant sliver (2026-10-03,
-      `## Constraints`): facts, each red on the current rule, over CaCO3/CaO under CO2
+- [x] 2026-10-03 — The gas-participating plateau and the near-univariant sliver
+      (`## Constraints`): facts, each red on the current rule, over CaCO3/CaO under CO2
       (Ca:C:O = 1:1:3 and 1:2:5, 1e4 to 1e7 Pa, seeded hp and sp inside the plateau) `Ok`,
       clear of the equilibrium conditions, with `γ_s` and `a` against the isentropic finite
       difference and the closed form; an sp march through the two-phase region of nearly
@@ -240,6 +240,14 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       across the singular boundary; the shape limits held (the isentropic assembly its own
       class); no existing bit moved; CUDA equal on the reference machine for a family of
       such states that a batch can express; Linux green.
+      Evidence: `7c741f2`, `ca04760`, merged `2ebebad` with `--cuda` (fast suite 5836, CUDA
+      proofs 398, the four `GasPlateauFamilies` among them); 91 of the 99 new facts red with
+      the fallback disabled and 12 with the sliver switch disabled; the CaCO3 grid within
+      2.9e-10 of the isentropic difference, the closed form within 4.8e-6 at 1e4 and 1e5 Pa
+      (it neglects the condensed volume above), the other systems within 1.1e-10, the water
+      march 40 of 40 `Ok`, the sliver within 3.1e-9; the facts seed hp and sp at fractions
+      0.7 and 0.9, the lower fractions being the seed-side failure of the parent's open
+      item; `DerivativeSystem` Ce 14; WSL fast suite green on `57ce721`.
 
 ## Taboos
 
