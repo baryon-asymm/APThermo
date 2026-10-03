@@ -103,6 +103,51 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   does not follow it there. Not covered: a univariant equilibrium where the gas takes
   part (CaCO3/CaO under pure CO2), where the plateau temperature depends on the pressure.
 
+  ⚠ 2026-10-03: was "not covered", now the gas-participating plateau below (the
+  orchestrator's investigation for 0.2.2). There the condensed vectors are independent, so
+  the pinned set does not fire, the constant-temperature system is singular, the converged
+  state was discarded and the fallback reported `TemperatureOutOfRange` or `NotConverged`
+  (0 `Ok` of 96 seeded and cold hp/sp states; every station of an isentrope through the
+  two-phase region of nearly pure H2O, NH4Cl, CaCO3 failed). Beside it, at near-univariant
+  compositions, an `Ok` carried `γ_s` up to 1.7e-3 wrong (20 of 272 states over the 1e-4
+  tier), from cancellation in `Cv = Cp + n (∂ln V/∂ln T)² / (∂ln V/∂ln p)` at `Cp/Cv` of
+  1e10 to 1e13.
+- **The gas-participating plateau** (2026-10-03, for 0.2.2). When the constant-temperature
+  system is singular and the pinned set did not fire, the same Gram–Schmidt runs with the
+  gas composition `g_i = Σ_j a_ij n_j` (gaseous j) as the first column, as Newton's rule B
+  does; a condensed vector in that span makes the state a gas-participating plateau. Along
+  it `T*(p)` moves with `p`, so `(∂ln V/∂ln T)_p` and `(∂ln V/∂ln p)_T` do not exist and the
+  isentrope is not an isotherm. The state then carries `Cp_eq = Cv_eq = (∂ln V/∂ln T)_p = 0`
+  (the pinned convention, `Pinned` set, exempt from the state guard), and `γ_s`, `a²` and
+  `DlnVdlnP` from the **isentropic system**: the sp-shaped linear system at the converged
+  composition in `dπ_i`, `dn_c`, `d ln n`, `d ln T` with `d ln p = 1` (element rows,
+  condensed rows, the `n` row and the entropy row of RP-1311's sp iteration, a surviving
+  tie's unit row as today), non-singular on the plateau because the `T` column and the `s`
+  row break the null direction; `(∂ln V/∂ln p)_s = d ln n + d ln T − 1`,
+  `γ_s = −1/(∂ln V/∂ln p)_s`, `a² = n R T γ_s`, and `DlnVdlnP` carries `(∂ln V/∂ln p)_s`,
+  which keeps the pinned identity `γ_s = −1/DlnVdlnP` and equals the isothermal value on a
+  condensed-only plateau, whose isentrope is an isotherm. `γ_s` may fall below 1 (0.886
+  measured for Ca(OH)2 at 1 MPa), as for wet steam.
+- **The near-univariant sliver** (2026-10-03, for 0.2.2). After a non-singular solve with
+  `|Cp/Cv| > 1e6` (both per R), the isentropic system is solved as well: `γ_s` comes from
+  it, `Cv = −Cp/(γ_s DlnVdlnP)`, and `Cp`, `(∂ln V/∂ln T)_p`, `(∂ln V/∂ln p)_T` stay from
+  the constant-temperature route. The threshold is a design margin, not a fit: the
+  constant-temperature `γ_s` is within 4e-7 below `Cp/Cv` = 1e8 and the isentropic route is
+  within the finite-difference noise at every ratio measured, so the switch costs nothing
+  where it fires early.
+
+  Measured with the prototype (the orchestrator's scratchpad, `probe/prototype-final.diff`,
+  2026-10-03): 254 of 294 exact CaCO3 plateau states `Ok` (the other 40 are the hp
+  convergence failure below), `γ_s` within 4.6e-8 and `a` within 2e-8 of the isentropic
+  finite difference; water, NH4CL(III), Ca(OH)2 and MgCO3 within 5.3e-6; the sliver 272 of
+  272 within 4.1e-7 (1.7e-3 before); `γ_s` continuous across the singular boundary; no bit
+  moved. Cross-check, pure participating gas, condensed volume neglected: with
+  `L = Δh_r/(ν_g R T)` and `c = Cp_frozen/(nR)`, `γ_s = 1/(1 − 2/L + c/L²)`, within 7e-7
+  at 1e4 Pa. cea 3.3.4 is no reference here: seeded on the plateau it reports `cp_eq` of
+  1e15 to 1e28 and `γ_s` from 1e-10 to 1. Left, and declared: an hp or sp state seeded on
+  the one-condensed side drives `T` below the 100 K window before the second condensed
+  species can enter (`TemperatureOutOfRange`; cea fails the same way).
+
 ## Structure
 
 The classes of this node, all internal, static and kernel-compatible: `DerivativeSystem` and
@@ -159,6 +204,17 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       ⚠ 2026-10-03: was "CUDA equal on the reference machine" for the seeded cases, now the
       CUDA proofs with this code. A seeded case starts from the tp seed's moles, and a batch
       carries a temperature estimate only (`src/Execution/API.md`), so no batch expresses it.
+
+- [ ] The gas-participating plateau and the near-univariant sliver (2026-10-03,
+      `## Constraints`): facts, each red on the current rule, over CaCO3/CaO under CO2
+      (Ca:C:O = 1:1:3 and 1:2:5, 1e4 to 1e7 Pa, seeded hp and sp inside the plateau) `Ok`,
+      clear of the equilibrium conditions, with `γ_s` and `a` against the isentropic finite
+      difference and the closed form; an sp march through the two-phase region of nearly
+      pure H2O with every station `Ok`; NH4CL(III), Ca(OH)2 and MgCO3 one state each; the
+      sliver's `γ_s` against its finite difference at `Cp/Cv` above 1e10; continuity of `γ_s`
+      across the singular boundary; the shape limits held (the isentropic assembly its own
+      class); no existing bit moved; CUDA equal on the reference machine for a family of
+      such states that a batch can express; Linux green.
 
 ## Taboos
 
