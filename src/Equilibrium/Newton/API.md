@@ -78,7 +78,9 @@ internal static class ElementCoupling
 {
     public static ElementTie Find(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int element);
         // the tie of `element` as a linear combination of the other active rows over the species of the sums; its coefficients are
-        // left in scratch.TieElements.Coefficients (one per element, zero for `element`); inactive when no combination holds
+        // left in scratch.TieElements.Coefficients (one per element, zero for `element`); inactive when no combination holds.
+        // When the normal equations are singular (other active rows dependent among themselves) the column whose pivot failed
+        // is pinned (coefficient 0) and they are solved once more, at most once per call
     public static bool Coupled(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, in ElementTie tie);
         // whether every species of the sums still satisfies the combination of the live coefficients, to 1e-10 relative
     public static bool HeldByCondensed(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, in ElementTie tie);

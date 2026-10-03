@@ -19,20 +19,23 @@ internal static class ElementCoupling
     /// The tie of <paramref name="element"/> with a combination of the other active rows: the coefficients solve the
     /// normal equations of those rows over the species of the sums (<c>G c = g</c>, <c>G_il = Σ_j a_ij a_lj</c>,
     /// <c>g_i = Σ_j a_ij a_kj</c>) with <see cref="DenseSolver"/> in the matrix scratch, which is free during a remedy,
-    /// and every species must then satisfy <c>a_kj = Σ c_i a_ij</c> to <see cref="CombinationTolerance"/>.
-    /// <see cref="ElementTie.Active"/> is false when no combination holds; the coefficients are then not meaningful.
+    /// and every species must then satisfy <c>a_kj = Σ c_i a_ij</c> to <see cref="CombinationTolerance"/>. When <c>G</c>
+    /// itself is singular, because other active rows are dependent among themselves, the column whose pivot failed is
+    /// pinned (<c>c</c> = 0 there, a unit row and column) and <c>G</c> is solved again, once: that row lies in the span of
+    /// the earlier ones, so every combination that exists survives. <see cref="ElementTie.Active"/> is false when no
+    /// combination holds; the coefficients are then not meaningful.
     /// </summary>
     public static ElementTie Find(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int element)
     {
         var elementCount = table.ElementCount;
-        ClearNormalEquations(scratch, elementCount);
-        if (!AccumulateNormalEquations(table, scratch, result, condensedCount, element))
+        if (!AssembleNormalEquations(table, scratch, result, condensedCount, element, pinned: -1))
         {
             return default;
         }
 
-        PinUnusedRows(scratch, element, elementCount);
-        if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, elementCount, elementCount))
+        if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, elementCount, elementCount, out var failedColumn)
+            && (!AssembleNormalEquations(table, scratch, result, condensedCount, element, failedColumn)
+                || !DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, elementCount, elementCount)))
         {
             return default;
         }
@@ -140,6 +143,29 @@ internal static class ElementCoupling
         return false;
     }
 
+    /// <summary>
+    /// Builds <c>G</c> and <c>g</c> in the matrix scratch, unit rows for the elements that cannot take a coefficient and for
+    /// <paramref name="pinned"/> (−1 for none); false when no species of the sums carries the tied element.
+    /// </summary>
+    private static bool AssembleNormalEquations(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                                int condensedCount, int element, int pinned)
+    {
+        var elementCount = table.ElementCount;
+        ClearNormalEquations(scratch, elementCount);
+        if (!AccumulateNormalEquations(table, scratch, result, condensedCount, element))
+        {
+            return false;
+        }
+
+        PinUnusedRows(scratch, element, elementCount);
+        if (pinned >= 0)
+        {
+            Pin(scratch, pinned, elementCount);
+        }
+
+        return true;
+    }
+
     private static void ClearNormalEquations(in EquilibriumScratch scratch, int elementCount)
     {
         for (var i = 0; i < elementCount; i++)
@@ -204,19 +230,23 @@ internal static class ElementCoupling
     {
         for (var i = 0; i < elementCount; i++)
         {
-            if (i != element && scratch.ElementActive[i] != 0 && scratch.Matrix[i * elementCount + i] != 0.0)
+            if (i == element || scratch.ElementActive[i] == 0 || scratch.Matrix[i * elementCount + i] == 0.0)
             {
-                continue;
+                Pin(scratch, i, elementCount);
             }
-
-            for (var l = 0; l < elementCount; l++)
-            {
-                scratch.Matrix[i * elementCount + l] = 0.0;
-                scratch.Matrix[l * elementCount + i] = 0.0;
-            }
-
-            scratch.Matrix[i * elementCount + i] = 1.0;
-            scratch.RightHandSide[i] = 0.0;
         }
+    }
+
+    /// <summary>A unit row and column for element <paramref name="element"/> and a zero right-hand side: its coefficient is zero.</summary>
+    private static void Pin(in EquilibriumScratch scratch, int element, int elementCount)
+    {
+        for (var l = 0; l < elementCount; l++)
+        {
+            scratch.Matrix[element * elementCount + l] = 0.0;
+            scratch.Matrix[l * elementCount + element] = 0.0;
+        }
+
+        scratch.Matrix[element * elementCount + element] = 1.0;
+        scratch.RightHandSide[element] = 0.0;
     }
 }

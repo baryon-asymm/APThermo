@@ -8,8 +8,9 @@ namespace APThermo.Equilibrium.Tests;
 /// L0: rule A's queries (<see cref="ElementCoupling"/>) and rule B's ratio test (<see cref="CondensedDependency"/>),
 /// unit-tested directly on real species of the database (BOOT.md, "Two rules come before the remedies above",
 /// 2026-09-28, the orchestrator's investigation 6). Rule A ties an element whose row, over every active carrier — the
-/// retained gases and the condensed species of the solution — equals a linear combination of the other rows (here a pair
-/// in one fixed ratio, the case of one coefficient; the three-element combination is
+/// retained gases and the condensed species of the solution — equals a linear combination of the other active rows;
+/// the facts below run on the table of N, Cl and H with every element active, as the solver's mask leaves it, so the
+/// combination ranges over two other rows (the three-element combination of an RP-1311 table is
 /// <see cref="ThreeElementTieTests"/>'s); rule B resolves a condensed set whose last-added species is a linear
 /// combination of the others already in solution.
 /// </summary>
@@ -21,72 +22,89 @@ public sealed class SingularRemedyRulesTests
     private const int Cl = 1;
     private const int H = 2;
 
+    /// <summary>The coefficients are fractions of the formulas' integers; only the rounding of a 2x2 elimination separates them.</summary>
+    private const double CoefficientTolerance = 1.0e-12;
+
     private static readonly string[] TieElements = ["N", "CL", "H"];
     private static readonly string[] TieSpecies = ["N2", "CL2", "HCL", "NH4CL(II)"];
 
     /// <summary>
-    /// N and Cl carried only by <c>NH4CL(II)</c>, in the solution alone, with every gaseous carrier at zero moles
-    /// (the state of a warm start's very first Newton step, before any gas has picked up a nonzero amount): every
-    /// species with a nonzero amount in the sums carries the two elements in one ratio, 1 (NH4CL(II)'s own N:Cl), which
-    /// is the one coefficient of the combination.
+    /// <c>NH4CL(II)</c> alone in the solution, every gaseous carrier at zero moles (the state of a warm start's very first
+    /// Newton step, before any gas has picked up a nonzero amount), N, Cl and H all active. The only species of the sums
+    /// is NH4CL(II), so N = Cl is the tie: <c>c_Cl</c> = 1, <c>c_H</c> = 0. The normal equations of the other rows are
+    /// <c>G</c> = [[1, 4], [4, 16]] over {Cl, H}, singular because both rows are the one species' formula: the tie is
+    /// found only through the pinned retry, which fixes at zero the coefficient of the column whose pivot failed (H) and
+    /// solves again. Shown red once: with the retry removed from <see cref="ElementCoupling.Find"/> this fact fails on
+    /// <c>tie.Active</c>, the first solve alone returning no tie.
     /// </summary>
     [Fact]
-    public void ACoupledPairIsFoundWithItsCoefficient()
+    public void ANitrogenChlorineTieOfNh4ClAloneIsFoundThroughThePinnedRetry()
     {
         var (table, view, scratch, result) = BuildTieTable();
-        var condensed = table.IndexOf("NH4CL(II)");
-        scratch.ElementActive[N] = 1;
-        scratch.ElementActive[Cl] = 1;
-        result.Moles[condensed] = 0.01;   // in the solution; every gas stays at zero
+        result.Moles[table.IndexOf("NH4CL(II)")] = 0.01;   // in the solution; every gas stays at zero
 
         var tie = ElementCoupling.Find(view, scratch, result, condensedCount: 1, N);
 
         Assert.True(tie.Active);
         Assert.Equal(N, tie.Element);
-        Assert.Equal(1.0, scratch.TieElements.Coefficients[Cl], 1e-15);
-        Assert.Equal(0.0, scratch.TieElements.Coefficients[N]);
-        Assert.Equal(0.0, scratch.TieElements.Coefficients[H]);
+        AssertCoefficients(scratch, view.ElementCount, (Cl, 1.0));
         Assert.True(ElementCoupling.Coupled(view, scratch, result, condensedCount: 1, tie));
     }
 
     /// <summary>
-    /// The same set, with <c>HCL</c> now carrying a nonzero mole: it holds Cl but not N, so N and Cl no longer agree
-    /// on one ratio and neither <see cref="ElementCoupling.Find"/> nor <see cref="ElementCoupling.Coupled"/> reports
-    /// a tie. Shown red once (the guard this fact exists to prove non-degenerate): with <c>HCL</c>'s mole left at
-    /// zero, as in the coupled fact above, this fact's own assertions fail (<c>tie.Active</c> is true), confirming
-    /// the fact is not vacuously true of every input.
+    /// <c>NH4CL(II)</c> with <c>HCL</c> having moles: N is no longer Cl alone, but N = (H − Cl)/3 holds on both species
+    /// (NH4CL(II): 1 = −1/3 + 4/3; HCL: 0 = −1/3 + 1/3), so the tie combines two rows, <c>c_Cl</c> = −1/3 and
+    /// <c>c_H</c> = 1/3. <c>G</c> is [[2, 5], [5, 17]] here, not singular, and the first solve finds it.
     /// </summary>
     [Fact]
-    public void AnUncoupledPairIsNotFound()
+    public void Nh4ClWithHclTiesNitrogenToAThirdOfHydrogenMinusChlorine()
     {
         var (table, view, scratch, result) = BuildTieTable();
-        var condensed = table.IndexOf("NH4CL(II)");
-        scratch.ElementActive[N] = 1;
-        scratch.ElementActive[Cl] = 1;
-        result.Moles[condensed] = 0.01;
-        result.Moles[table.IndexOf("HCL")] = 0.002;   // Cl without N: breaks the tie
+        result.Moles[table.IndexOf("NH4CL(II)")] = 0.01;
+        result.Moles[table.IndexOf("HCL")] = 0.002;
+
+        var tie = ElementCoupling.Find(view, scratch, result, condensedCount: 1, N);
+
+        Assert.True(tie.Active);
+        Assert.Equal(N, tie.Element);
+        AssertCoefficients(scratch, view.ElementCount, (Cl, -1.0 / 3.0), (H, 1.0 / 3.0));
+        Assert.True(ElementCoupling.Coupled(view, scratch, result, condensedCount: 1, tie));
+    }
+
+    /// <summary>
+    /// <c>NH4CL(II)</c>, <c>HCL</c> and <c>N2</c>, all with moles: N2 carries nitrogen and neither Cl nor H, so no
+    /// combination of the Cl and H rows reproduces the N row on it and <see cref="ElementCoupling.Find"/> reports no
+    /// tie. The previous fact's coefficients, put in by hand, fail <see cref="ElementCoupling.Coupled"/> on N2 as well.
+    /// </summary>
+    [Fact]
+    public void Nh4ClHclAndN2WithMolesGiveNoTie()
+    {
+        var (table, view, scratch, result) = BuildTieTable();
+        result.Moles[table.IndexOf("NH4CL(II)")] = 0.01;
+        result.Moles[table.IndexOf("HCL")] = 0.002;
+        result.Moles[table.IndexOf("N2")] = 0.004;
 
         var tie = ElementCoupling.Find(view, scratch, result, condensedCount: 1, N);
 
         Assert.False(tie.Active);
         var candidate = new ElementTie { Element = N };
-        SetCoefficients(scratch, view.ElementCount, Cl, 1.0);
+        SetCoefficients(scratch, view.ElementCount, (Cl, -1.0 / 3.0), (H, 1.0 / 3.0));
         Assert.False(ElementCoupling.Coupled(view, scratch, result, condensedCount: 1, candidate));
     }
 
     /// <summary>
     /// <see cref="ElementCoupling.HeldByCondensed"/> is true while <c>NH4CL(II)</c> is in the solution, and false once
-    /// the solution holds no condensed species carrying both elements (rule A's "at once" trigger, BOOT.md: the tie
-    /// is taken immediately, without waiting for the two resets, exactly when a condensed species of the solution
-    /// holds both).
+    /// the solution holds no condensed species carrying the tied element and an element of the combination (rule A's
+    /// "at once" trigger, BOOT.md: the tie is taken immediately, without waiting for the two resets, exactly when a
+    /// condensed species of the solution holds both).
     /// </summary>
     [Fact]
-    public void APairHeldByACondensedSpeciesIsDetected()
+    public void ATieHeldByACondensedSpeciesIsDetected()
     {
         var (table, view, scratch, _) = BuildTieTable();
         var condensed = table.IndexOf("NH4CL(II)");
         var tie = new ElementTie { Element = N };
-        SetCoefficients(scratch, view.ElementCount, Cl, 1.0);
+        SetCoefficients(scratch, view.ElementCount, (Cl, 1.0));
 
         scratch.CondensedInSolution[0] = condensed;
         Assert.True(ElementCoupling.HeldByCondensed(view, scratch, condensedCount: 1, tie));
@@ -94,12 +112,28 @@ public sealed class SingularRemedyRulesTests
         Assert.False(ElementCoupling.HeldByCondensed(view, scratch, condensedCount: 0, tie));
     }
 
-    /// <summary>The coefficients of a combination of one element: zero everywhere else, as <see cref="ElementCoupling.Find"/> leaves a tie of one coefficient.</summary>
-    private static void SetCoefficients(in EquilibriumScratch scratch, int elementCount, int element, double coefficient)
+    /// <summary>The coefficients of a combination, zero for every element not named, as <see cref="ElementCoupling.Find"/> leaves them.</summary>
+    private static void SetCoefficients(in EquilibriumScratch scratch, int elementCount, params (int Element, double Coefficient)[] coefficients)
     {
         for (var i = 0; i < elementCount; i++)
         {
-            scratch.TieElements.Coefficients[i] = i == element ? coefficient : 0.0;
+            scratch.TieElements.Coefficients[i] = 0.0;
+        }
+
+        foreach (var (element, coefficient) in coefficients)
+        {
+            scratch.TieElements.Coefficients[element] = coefficient;
+        }
+    }
+
+    /// <summary>Asserts the live coefficients equal the named ones within <see cref="CoefficientTolerance"/> and are zero for every other element.</summary>
+    private static void AssertCoefficients(in EquilibriumScratch scratch, int elementCount, params (int Element, double Coefficient)[] expected)
+    {
+        for (var i = 0; i < elementCount; i++)
+        {
+            var want = expected.Where(e => e.Element == i).Select(e => e.Coefficient).SingleOrDefault();
+            var got = scratch.TieElements.Coefficients[i];
+            Assert.True(Math.Abs(got - want) <= CoefficientTolerance, $"element {i}: coefficient {got:R}, expected {want:R}");
         }
     }
 
@@ -114,6 +148,11 @@ public sealed class SingularRemedyRulesTests
         doubles.MemSetToZero();   // accelerator memory is not zeroed on allocation (HostSolver.Run does the same): the element masks and coefficients are read
         ints.MemSetToZero();
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        for (var i = 0; i < view.ElementCount; i++)
+        {
+            scratch.ElementActive[i] = 1;   // every element of the table, as the solver's mask leaves it
+        }
+
         var molesBuffer = accelerator.Allocate1D<double>(view.SpeciesCount);
         molesBuffer.MemSetToZero();
         var multipliers = accelerator.Allocate1D<double>(view.ElementCount);

@@ -29,6 +29,27 @@ public sealed class ThreeElementTieTests
     /// </summary>
     private const double GasChemicalPotentialResidual = 1.0e-9;
 
+    /// <summary>
+    /// K: the half-width of the central difference of the enthalpy that <c>Cp_eq</c> is compared with. Measured on the
+    /// grid (the 168 states, the four whose condensed set changes inside the step left out): the largest relative
+    /// deviation is 8.2e-7 at 0.001 K (the rounding of the enthalpy, which the difference divides by 2δ), 4.7e-8 at
+    /// 0.01 K, 4.9e-6 at 0.1 K, 4.9e-4 at 1 K and of order one at 10 K (the curvature of <c>Cp_eq</c> near the onset of
+    /// the liquid, which the wider steps cross), so 0.01 K sits at the minimum.
+    /// </summary>
+    private const double TemperatureStep = 0.01;
+
+    /// <summary>
+    /// The relative deviation of <c>Cp_eq</c> from the central difference that the grid may show: 1e-6, twenty times the
+    /// largest deviation measured at <see cref="TemperatureStep"/>, 4.7e-8.
+    /// </summary>
+    private const double HeatCapacityTolerance = 1.0e-6;
+
+    /// <summary>
+    /// The relative deviation of the temperature an hp or sp solve may show against the tp state whose enthalpy or entropy
+    /// it was given: 1e-9, two hundred times the largest measured on the grid, 5.2e-12.
+    /// </summary>
+    private const double TemperatureReproduction = 1.0e-9;
+
     /// <summary>The pressure factors of the audit's fuzz grid, applied to each table's own fixture pressure.</summary>
     private static readonly double[] PressureFactors = [1.0, 1.0e-3, 1.0e-2, 0.1, 10.0, 100.0];
 
@@ -103,34 +124,149 @@ public sealed class ThreeElementTieTests
     }
 
     /// <summary>
-    /// Every state of the grid ends <c>Ok</c> and clears every independent equilibrium condition: the 14 tp tables of
-    /// RP-1311 examples 1 and 12 at their own pressure times each factor, at 300 K and at 600 K. On <c>main</c> 77 of the
-    /// 168 end <c>SingularMatrix</c>. The count of the states walked is the product of the lists, so the fact fails on an
-    /// empty set rather than passing over it.
+    /// Every state of the grid ends <c>Ok</c>, clears every independent equilibrium condition, and its <c>Cp_eq</c> equals
+    /// a central difference of the solver's own enthalpy at <c>T ± δ</c> (<see cref="TemperatureStep"/>) to
+    /// <see cref="HeatCapacityTolerance"/>: the 14 tp tables of RP-1311 examples 1 and 12 at their own pressure times each
+    /// factor, at 300 K and at 600 K. On <c>main</c> 77 of the 168 end <c>SingularMatrix</c>; a tie that survives to the
+    /// close, which the release exists to prevent, leaves <c>Cp_eq</c> short of the difference (shown red once, with the
+    /// release's condition always false). A state whose condensed set differs between <c>T − δ</c>, <c>T</c> and
+    /// <c>T + δ</c> is not compared: the enthalpy then jumps by a latent heat, and the slope of one side is not the
+    /// derivative at the other. Those are the states at 600 K that hold <c>H2O(L)</c>, the upper bound of its record, and
+    /// the fact allows at most a tenth of the grid to be left out so that it cannot pass over the whole set. The count of
+    /// the states walked is the product of the lists, so the fact fails on an empty set as well.
     /// </summary>
     [Fact]
     public void EveryStateOfTheExample1And12GridConvergesAndHoldsTheEquilibriumConditions()
     {
-        var names = HostSolver.CaseNames("tp")
-            .Where(n => n.StartsWith("rp1311-example1_", StringComparison.Ordinal) || n.StartsWith("rp1311-example12_", StringComparison.Ordinal))
-            .ToList();
-        Assert.NotEmpty(names);
-
+        var names = GridNames();
         var walked = 0;
+        var straddling = 0;
         var failures = new List<string>();
         foreach (var (name, problem) in names.SelectMany(GridProblems))
         {
             walked++;
             var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
             var violations = solution.Status == CaseStatus.Ok ? EquilibriumConditions.Violations(solution, GasChemicalPotentialResidual) : [];
-            if (solution.Status != CaseStatus.Ok || violations.Count > 0)
+            var deviation = solution.Status == CaseStatus.Ok ? HeatCapacityDeviation(solution) : null;
+            straddling += deviation is null && solution.Status == CaseStatus.Ok ? 1 : 0;
+            if (solution.Status != CaseStatus.Ok || violations.Count > 0 || deviation > HeatCapacityTolerance)
             {
-                failures.Add($"{name} p={problem.Pressure:R} T={problem.Temperature:R}: {solution.Status} {string.Join("; ", violations)}");
+                failures.Add($"{name} p={problem.Pressure:R} T={problem.Temperature:R}: {solution.Status} {string.Join("; ", violations)} Cp_eq deviation {deviation:E2}");
             }
         }
 
         Assert.Equal(names.Count * PressureFactors.Length * Temperatures.Length, walked);
+        Assert.True(straddling * 10 < walked, $"{straddling} of {walked} states left out of the heat-capacity comparison");
         Assert.True(failures.Count == 0, $"{failures.Count} of {walked} states: {string.Join(" | ", failures)}");
+    }
+
+    /// <summary>
+    /// The enthalpy or the entropy of every tp state of the grid, solved back at the same pressure, gives the tp
+    /// temperature to <see cref="TemperatureReproduction"/>. A state is left out only when the tp state holds a condensed
+    /// species and the hp or sp solve lands on the supercooled vapour branch: its temperature is below the lower bound of
+    /// that species' record, or the descent leaves the window (<c>TemperatureOutOfRange</c>). Example 12's table has
+    /// <c>H2O(L)</c> from 273.15 K and no <c>H2O(cr)</c>, so below that bound the vapour alone has no enthalpy of the
+    /// liquid's value and the descent from the hot start never meets the liquid branch; the same holds for the entropy.
+    /// Measured: 155 of the 168 hp solves and 158 of the sp solves reproduce the tp temperature (to 1.1e-12 and 5.2e-12);
+    /// the 13 and 10 left out are example 12's states with liquid at 300 K (ten of them in both), and for hp three liquid states at 600 K. The fact
+    /// allows a fifth of the grid to be left out so that it cannot pass over the whole set.
+    /// </summary>
+    [Theory]
+    [InlineData("hp")]
+    [InlineData("sp")]
+    public void TheEnthalpyOrEntropyOfEveryTpStateOfTheGridGivesBackItsTemperature(string kind)
+    {
+        var names = GridNames();
+        var walked = 0;
+        var left = 0;
+        var failures = new List<string>();
+        foreach (var (name, problem) in names.SelectMany(GridProblems))
+        {
+            walked++;
+            var tp = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
+            var back = HostSolver.Solve(CpuFixture.Shared.Accelerator, Counterpart(tp, kind));
+            var deviation = back.Status == CaseStatus.Ok ? Math.Abs(back.State.Temperature - problem.Temperature) / problem.Temperature : double.PositiveInfinity;
+            if (tp.Status == CaseStatus.Ok && LandsOnTheSupercooledVapour(tp, back))
+            {
+                left++;
+            }
+            else if (tp.Status != CaseStatus.Ok || deviation > TemperatureReproduction)
+            {
+                failures.Add($"{name} p={problem.Pressure:R} T={problem.Temperature:R}: tp {tp.Status}, {kind} {back.Status}, T {back.State.Temperature:R}");
+            }
+        }
+
+        Assert.Equal(names.Count * PressureFactors.Length * Temperatures.Length, walked);
+        Assert.True(left * 5 < walked, $"{left} of {walked} states left out of the {kind} comparison");
+        Assert.True(failures.Count == 0, $"{failures.Count} of {walked} states: {string.Join(" | ", failures)}");
+    }
+
+    /// <summary>The fixture names of the grid: the tp tables of RP-1311 examples 1 and 12.</summary>
+    private static List<string> GridNames()
+    {
+        var names = HostSolver.CaseNames("tp")
+            .Where(n => n.StartsWith("rp1311-example1_", StringComparison.Ordinal) || n.StartsWith("rp1311-example12_", StringComparison.Ordinal))
+            .ToList();
+        Assert.NotEmpty(names);
+        return names;
+    }
+
+    /// <summary>
+    /// <c>|Cp_eq − (h(T + δ) − h(T − δ)) / 2δ| / Cp_eq</c> over the solver's own tp solves at the neighbouring temperatures;
+    /// positive infinity when a neighbour does not end <c>Ok</c>, and null when the held condensed set differs among the
+    /// three states, where no slope is comparable.
+    /// </summary>
+    private static double? HeatCapacityDeviation(HostSolution centre)
+    {
+        var problem = centre.Case;
+        var up = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem with { Temperature = problem.Temperature + TemperatureStep });
+        var down = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem with { Temperature = problem.Temperature - TemperatureStep });
+        if (up.Status != CaseStatus.Ok || down.Status != CaseStatus.Ok)
+        {
+            return double.PositiveInfinity;
+        }
+
+        if (HeldCondensed(up) != HeldCondensed(centre) || HeldCondensed(down) != HeldCondensed(centre))
+        {
+            return null;
+        }
+
+        var slope = (up.State.Enthalpy - down.State.Enthalpy) / (2.0 * TemperatureStep);
+        return Math.Abs(slope - centre.State.CpEquilibrium) / centre.State.CpEquilibrium;
+    }
+
+    /// <summary>One character per condensed species of the table: 1 when the solution holds it.</summary>
+    private static string HeldCondensed(HostSolution solution) =>
+        string.Concat(Enumerable.Range(solution.Case.Table.GasCount, solution.Case.Table.CondensedCount).Select(j => solution.Moles[j] > 0.0 ? '1' : '0'));
+
+    /// <summary>The problem of the given kind (hp or sp) whose target is the enthalpy or the entropy of <paramref name="tp"/>, at its pressure and element moles.</summary>
+    private static EquilibriumCase Counterpart(HostSolution tp, string kind) =>
+        kind == "hp"
+            ? tp.Case with { Kind = ProblemKind.AssignedEnthalpyPressure, Temperature = 0.0, Target = tp.State.Enthalpy }
+            : tp.Case with { Kind = ProblemKind.AssignedEntropyPressure, Temperature = 0.0, Target = tp.State.Entropy };
+
+    /// <summary>
+    /// True when <paramref name="tp"/> holds a condensed species and <paramref name="back"/>, its hp or sp counterpart, is
+    /// the vapour alone below the lowest lower bound of the records of the species held, or left the window.
+    /// </summary>
+    private static bool LandsOnTheSupercooledVapour(HostSolution tp, HostSolution back)
+    {
+        var held = HeldCondensed(tp);
+        if (!held.Contains('1', StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (back.Status == CaseStatus.TemperatureOutOfRange)
+        {
+            return true;
+        }
+
+        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, tp.Case.Table);
+        var lowest = Enumerable.Range(0, held.Length)
+            .Where(c => held[c] == '1')
+            .Min(c => SpeciesFunctions.RecordLow(buffers.View, tp.Case.Table.GasCount + c));
+        return back.Status == CaseStatus.Ok && back.State.Temperature < lowest;
     }
 
     /// <summary>The tp problems of one table of the grid: the fixture's own table and element moles at each pressure factor and temperature.</summary>
