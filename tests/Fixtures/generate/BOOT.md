@@ -198,6 +198,23 @@ families):
     - AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass
       fractions and product table as the `ap-htpb-al` chamber fixture (imported from
       `propellants.py`, not copied): a direct tp solve, not a rocket station.
+  - The threshold flip (2026-10-03, `generate/retention_threshold.py`; the orchestrator's
+    investigation B2 for 0.2.1, Equilibrium `BOOT.md`, "The Newton loop" and the Newton
+    node's loop bookkeeping): three tp cases that the reference converges and the tree
+    ended `NotConverged` on before the verdict, switch and hold rules, on the salts of the
+    family above at their own 1 : 1 : 4 mole ratio: KClO4 at 1150 K, 1 bar and at 1200 K,
+    10 bar, and NaClO4 at 1120 K, 1 bar. The 10 bar case carries its pressure in its name,
+    `kclo4_T1200_p10bar`: `_salt_case_name` writes `{name}_T{T}` at 1 bar, as the first
+    four fixtures of the family were named, and `{name}_T{T}_p{bar}bar` at any other
+    pressure.
+  - Rule B's gas column (2026-10-03, `generate/retention_threshold.py`; the orchestrator's
+    investigation B4 for 0.2.1, Newton `BOOT.md`, rule B): four tp cases that the reference
+    converges and the tree ended `NotConverged` on before the gas phase counted as a column of
+    the combination: KClO4 with a tenth of its chlorine missing, K : Cl : O = 1 : 0.9 : 4
+    (the same three pure-element `Custom` reactants, at that ratio), at 300 K and 1 kPa,
+    500 K and 1 bar, 1000 K and 1 kPa and 1060 K and 1 kPa, named `kclo4-lean_T{T}` at 1 bar
+    and `kclo4-lean_T{T}_p{bar}bar` at 1 kPa (`p0.01bar`). The reference reaches `KCL(cr)`
+    with a potassium superoxide (`KO2(a)`, `KO2(b)` or `KO2(L)`) beside an all-`O2` gas.
   - The reaction plateau (2026-10-03, `generate/seeded.py`, kind `seeded`; the StateRecord
     node's pinned set): hp and sp on the table, reactants and element moles of the tp fixture
     `ap-htpb-al_pc7MPa_T430` (imported, not copied), each seeded by tp at 430 K in one

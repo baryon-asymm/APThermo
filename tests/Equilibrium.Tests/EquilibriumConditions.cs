@@ -6,7 +6,7 @@ namespace APThermo.Equilibrium.Tests;
 /// The independent equilibrium checks this node's tests run over a state that no fixture reference covers (a
 /// regression grid, a scan, a probe state): element conservation at the node's own invariant, every retained gas at
 /// its own chemical potential (RP-1311's stationarity condition, (2.15)), and no absent condensed candidate in its
-/// effective range with a positive inclusion gain. One place, shared by <see cref="RegressionStateTests"/> and
+/// effective range with a positive inclusion gain, a species of an absent element being no candidate (the mask). One place, shared by <see cref="RegressionStateTests"/> and
 /// <see cref="TiedReleaseTests"/>, so the same check is not written twice with two different tolerances by accident.
 /// </summary>
 internal static class EquilibriumConditions
@@ -96,6 +96,25 @@ internal static class EquilibriumConditions
         return violations;
     }
 
+    /// <summary>
+    /// Whether species <paramref name="j"/> contains an element whose abundance in the case is zero: the node masks such a
+    /// species out of the solve (Equilibrium BOOT.md, an absent element is a mask, not an error), so it is no candidate to
+    /// include and its inclusion gain, computed with a multiplier the dropped equation never fixed, says nothing.
+    /// </summary>
+    private static bool CarriesAbsentElement(HostSolution solution, int j)
+    {
+        var table = solution.Case.Table;
+        for (var i = 0; i < table.ElementCount; i++)
+        {
+            if (solution.Case.ElementMoles[i] == 0.0 && table.Arrays.Stoichiometry[i * table.SpeciesCount + j] != 0.0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Every absent condensed candidate, interior to its effective range, still showing a positive inclusion gain above <see cref="Tolerances.ResidualInclusionGain"/>.</summary>
     private static List<string> CondensedInclusionGainViolations(HostSolution solution, SpeciesTableView view)
     {
@@ -106,7 +125,7 @@ internal static class EquilibriumConditions
         var temperature = solution.State.Temperature;
         for (var j = table.GasCount; j < speciesCount; j++)
         {
-            if (solution.Moles[j] > 0.0)
+            if (solution.Moles[j] > 0.0 || CarriesAbsentElement(solution, j))
             {
                 continue;
             }

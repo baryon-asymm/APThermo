@@ -268,8 +268,10 @@ The rows of the child nodes' types stand in their own `## Shape exceptions`
 ⚠ 2026-09-28: was `EquilibriumScratch` 12 parameters, now 16 → HISTORY.md#ce-scratch16
 
 Every other type of the node measures 11 or below by the dependency check's walk, well
-below the root's limit of 14 → HISTORY.md#ce-rest-2026-10-02
+below the root's limit of 14, except `Newton.ConvergenceTests` at 14 → HISTORY.md#ce-rest-2026-10-02
 
+⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14, on the root's limit, since it
+names the types `RetentionVerdict` and `Crossing` read; no other type moved
 ⚠ 2026-09-28: was the rest "10 or below", now 11 → HISTORY.md#ce-rules-ab
 ⚠ 2026-09-28: was `EquilibriumSolver` at 19 and `NewtonIteration` at 18, now 22 and 19
 → HISTORY.md#ce-roots-22

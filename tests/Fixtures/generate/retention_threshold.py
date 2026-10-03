@@ -19,6 +19,16 @@ own mole ratio (there is no thermo.inp record for either salt), at 500 K and 800
 AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass fractions and product table as the
 `ap-htpb-al` chamber fixture of `propellants.py` (imported from there, never copied): a direct tp solve, not a
 rocket station.
+
+The threshold flip (2026-10-03, the orchestrator's investigation B2 for 0.2.1, Newton BOOT.md): the same salts at
+the states where the trace carriers of the direction pi_K - pi_Cl (K and KO against CL) sat within one e-fold of
+the first stage's threshold and the tree swapped them every step until the cap: KClO4 at 1150 K, 1 bar and at
+1200 K, 10 bar, NaClO4 at 1120 K, 1 bar. A fixture whose pressure is not 1 bar carries it in its name; the
+names of the 1 bar fixtures above are unchanged.
+
+Rule B's gas column (2026-10-03, the investigation B4 for 0.2.1, Newton BOOT.md): KClO4 with a tenth of its
+chlorine missing, K : Cl : O = 1 : 0.9 : 4, where the set reaches K2O2(cr), KCL(cr) and an all-O2 gas and KO2 is
+a combination of K2O2 and the gas phase: 300 K and 1 kPa, 500 K and 1 bar, 1000 K and 1 kPa, 1060 K and 1 kPa.
 """
 from __future__ import annotations
 
@@ -58,6 +68,14 @@ SALT_RATIO = [1.0, 1.0, 4.0]
 SALTS = [("naclo4", ["NA", "CL", "O"]), ("kclo4", ["K", "CL", "O"])]
 SALT_STATES = [(500.0, BAR_TO_PA), (800.0, BAR_TO_PA)]
 
+# The threshold flip: (salt, temperature K, pressure Pa), at the salt's own mole ratio.
+FLIP_STATES = [("kclo4", 1150.0, BAR_TO_PA), ("naclo4", 1120.0, BAR_TO_PA), ("kclo4", 1200.0, 10.0 * BAR_TO_PA)]
+
+# Rule B's gas column: KClO4 with a tenth of its chlorine missing, K : Cl : O = 1 : 0.9 : 4.
+LEAN_NAME = "kclo4-lean"
+LEAN_RATIO = [1.0, 0.9, 4.0]
+LEAN_STATES = [(300.0, 1.0e3), (500.0, BAR_TO_PA), (1000.0, 1.0e3), (1060.0, 1.0e3)]
+
 
 def _pure_element_reactants(elements: list[str], ratio: list[float]) -> tuple[list[Custom], np.ndarray]:
     """One pure-element `Custom` reactant per element (zero assigned enthalpy, the element's own standard state),
@@ -68,14 +86,22 @@ def _pure_element_reactants(elements: list[str], ratio: list[float]) -> tuple[li
     return reacs, weights
 
 
-def _salt(writer: Writer, name: str, elements: list[str]) -> None:
-    reacs, weights = _pure_element_reactants(elements, SALT_RATIO)
+def _salt_case_name(name: str, temperature: float, pressure_pa: float) -> str:
+    """`{name}_T{T}` at 1 bar, as the first fixtures of the family were named; any other pressure is in the name."""
+    if pressure_pa == BAR_TO_PA:
+        return f"{name}_T{temperature:g}"
+    return f"{name}_T{temperature:g}_p{pressure_pa / BAR_TO_PA:g}bar"
+
+
+def _salt(writer: Writer, name: str, elements: list[str], ratio: list[float],
+          states: list[tuple[float, float]]) -> None:
+    reacs, weights = _pure_element_reactants(elements, ratio)
     reac, prod = make_mixtures(reacs)
     descriptions = describe_reactants(reacs, weights)
-    for temperature, pressure_pa in SALT_STATES:
+    for temperature, pressure_pa in states:
         outputs = solve_equilibrium(reac, prod, weights, "tp", temperature, pressure_pa, transport=False)
         writer.case(
-            "tp", f"{name}_T{temperature:g}",
+            "tp", _salt_case_name(name, temperature, pressure_pa),
             inputs=equilibrium_inputs(descriptions, prod.species_names, "tp", temperature, pressure_pa, False),
             outputs=outputs, script_path=__file__)
 
@@ -100,7 +126,9 @@ def _ap_htpb_al(writer: Writer) -> None:
 def generate(writer: Writer) -> None:
     _rp1311_example5(writer)
     for name, elements in SALTS:
-        _salt(writer, name, elements)
+        flips = [(t, p) for salt, t, p in FLIP_STATES if salt == name]
+        _salt(writer, name, elements, SALT_RATIO, SALT_STATES + flips)
+    _salt(writer, LEAN_NAME, dict(SALTS)["kclo4"], LEAN_RATIO, LEAN_STATES)
     _ap_htpb_al(writer)
 
 

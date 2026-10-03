@@ -10,7 +10,7 @@ condensed set:
 - `IterationMatrix` assembles the reduced system of one step and `DampedStep` applies the damped
   step (equations (2.18), (3.1)–(3.4)).
 - `ConvergenceTests` judges the step: the tests (3.5) and (3.6), the element balance, the polish
-  test, and whether a gas crossed the retention threshold.
+  test, and the retention verdict: whether a gas crossed the retention threshold, the flip, the hold.
 - `NewtonLoopState` keeps the loop's bookkeeping between steps.
 - `SingularRemedies` recovers from a singular system: rule B (`CondensedDependency`), rule A
   (`ElementCoupling` and `TieSnapshot`), the resets and the targeted removal.

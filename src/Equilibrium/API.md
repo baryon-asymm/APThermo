@@ -169,7 +169,10 @@ retained set that needs one more convergence (2026-09-28, `BOOT.md`, the two-sta
 retention threshold): since that switch happens before any `Ok` exit, the report
 stands for the last `Composition.Refresh` under the second-stage threshold, and a
 gaseous species between `1e-11` and `1e-8` of the gas is reported at its converged
-amount rather than zeroed.
+amount rather than zeroed. Once the loop holds the retained set (the Newton node's flip
+rule of 2026-10-03, [Newton/BOOT.md](Newton/BOOT.md)), a gas once retained stays retained
+whatever its amount, so a species below `1e-11` of the gas may be reported too, at its
+converged amount.
 
 ⚠ 2026-09-28: this paragraph stood "a gaseous species below `1e-8` of the gas is
 reported with zero moles", describing a separate zeroing step taken on the final state.

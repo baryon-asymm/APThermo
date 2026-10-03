@@ -52,11 +52,7 @@ internal static class NewtonIteration
             }
 
             var verdict = ConvergenceTests.Evaluate(table, problem, scratch, result, layout, sums);
-            if (verdict != ConvergenceVerdict.NotConverged && ConvergenceTests.RetentionCrossed(table, scratch, result, state.LogN, traceThreshold))
-            {
-                verdict = ConvergenceVerdict.NotConverged;
-            }
-
+            verdict = ConvergenceTests.RetentionVerdict(table, scratch, result, verdict, ref loop, ref state);
             loop.RecordVerdict(verdict);
             if (verdict == ConvergenceVerdict.NotConverged)
             {
@@ -81,6 +77,7 @@ internal static class NewtonIteration
             {
                 state.RetentionSecondStage = true;
                 loop.RecordSetChange();
+                loop.RestartPolish();
                 continue;
             }
 

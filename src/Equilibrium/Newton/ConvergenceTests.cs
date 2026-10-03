@@ -36,27 +36,55 @@ internal static class ConvergenceTests
     }
 
     /// <summary>
-    /// Whether the step just applied moved a gaseous species across the case's own active retention threshold, in
-    /// either direction. The tests above are taken over the gases <c>result.Moles</c> already retains from the step's
-    /// own linearization point, so a crossing means those tests covered a set the final refresh would not report; the
-    /// step is not a converged one whatever its corrections (BOOT.md, the loop's bookkeeping, 2026-09-26).
-    /// <paramref name="logN"/> is the iterate's <c>ln n</c> after the step, <see cref="IterationState.LogN"/>;
-    /// <paramref name="traceThreshold"/> is the case's active stage (BOOT.md, the two-stage retention threshold,
-    /// 2026-09-28), the same one <see cref="Composition.Retain"/> used for this step's sums.
+    /// The verdict after the retention rule (BOOT.md, the loop's bookkeeping and the threshold flip, 2026-10-03). The
+    /// tests above are taken over the gases <c>result.Moles</c> already retains from the step's own linearization point,
+    /// so a passed verdict of a step that carried a gas across the threshold covered a set the final refresh would not
+    /// report, and a crossing refuses it, but under the second stage only: the first stage's convergence only triggers
+    /// the switch, as the reference's <c>tsize</c> does. A step that passed the report's tests and was refused because
+    /// one gas entered the retained set while another left it is a flip, and the second flip in a row sets
+    /// <see cref="IterationState.RetainedSetHeld"/> for the rest of the attempt.
     /// </summary>
-    public static bool RetentionCrossed(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold)
+    public static ConvergenceVerdict RetentionVerdict(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                                      ConvergenceVerdict verdict, ref NewtonLoopState loop, ref IterationState state)
     {
+        var crossing = verdict != ConvergenceVerdict.NotConverged && state.RetentionSecondStage
+            ? Crossing(table, scratch, result, state.LogN, EquilibriumSolver.RetentionThreshold(state), state.RetainedSetHeld)
+            : RetentionCrossing.None;
+        if (loop.RecordFlip(crossing == RetentionCrossing.Both))
+        {
+            state.RetainedSetHeld = true;
+        }
+
+        return crossing == RetentionCrossing.None ? verdict : ConvergenceVerdict.NotConverged;
+    }
+
+    /// <summary>
+    /// Which way the step just applied moved gaseous species across the retention rule of
+    /// <see cref="Composition.IsRetained"/>: none, some entered, some left, or both at once. <paramref name="logN"/> is
+    /// the iterate's <c>ln n</c> after the step, <see cref="IterationState.LogN"/>; <paramref name="traceThreshold"/> is
+    /// the case's active stage (BOOT.md, the two-stage retention threshold, 2026-09-28), the same one
+    /// <see cref="Composition.Retain"/> used for this step's sums; <paramref name="held"/> is
+    /// <see cref="IterationState.RetainedSetHeld"/>.
+    /// </summary>
+    public static RetentionCrossing Crossing(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN,
+                                             double traceThreshold, bool held)
+    {
+        var crossing = RetentionCrossing.None;
         for (var j = 0; j < table.GasCount; j++)
         {
             var wasRetained = result.Moles[j] > 0.0;
-            var isRetained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -traceThreshold;
-            if (wasRetained != isRetained)
+            var isRetained = Composition.IsRetained(scratch, result, j, logN, traceThreshold, held);
+            if (isRetained && !wasRetained)
             {
-                return true;
+                crossing |= RetentionCrossing.Entered;
+            }
+            else if (wasRetained && !isRetained)
+            {
+                crossing |= RetentionCrossing.Left;
             }
         }
 
-        return false;
+        return crossing;
     }
 
     /// <summary>Equation (3.5) on the undamped corrections: the largest mole-number correction as a share of the whole mixture.</summary>

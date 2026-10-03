@@ -215,6 +215,15 @@ internal struct IterationState
     public bool RetentionSecondStage;
 
     /// <summary>
+    /// Whether the retained set is held (BOOT.md, the threshold flip, 2026-10-03): set at most once per attempt, when two
+    /// consecutive second-stage steps passed the report's tests and were refused only because one gas entered the retained
+    /// set while another left it. From then on a gas once retained stays retained whatever its amount
+    /// (<see cref="Composition.IsRetained"/>), so the carriers of a direction of the multipliers that the retained
+    /// species leave free are summed together rather than one side at a time. Never cleared within an attempt.
+    /// </summary>
+    public bool RetainedSetHeld;
+
+    /// <summary>
     /// Rule A's tie (BOOT.md of the Newton child node), once a tied element row made the matrix singular; inactive until
     /// then. <see cref="StateRecord.DerivativeSystem"/> reads it from here, not from a parameter of its own.
     /// </summary>
