@@ -68,11 +68,17 @@ internal sealed record RocketFamily(string Name, SpeciesTable Table, TransportTa
 /// <summary>Fixtures to families and batches: nothing here runs a solver, on the host or the accelerator.</summary>
 internal static class FixtureBatches
 {
-    /// <summary>Every rocket fixture, grouped into families; the largest family first.</summary>
-    public static IReadOnlyList<RocketFamily> RocketFamilies(SpeciesDatabase database)
+    /// <summary>The fixture kind of the rocket fixtures: what <see cref="RocketFamilies"/> reads by default.</summary>
+    public const string RocketKind = "rocket";
+
+    /// <summary>The fixture kind of the throat fixtures: rocket problems without exit stations, whose chambers and throats lie on phase plateaus.</summary>
+    public const string ThroatKind = "throat";
+
+    /// <summary>Every fixture of one rocket-shaped kind (<see cref="RocketKind"/> or <see cref="ThroatKind"/>), grouped into families; the largest family first.</summary>
+    public static IReadOnlyList<RocketFamily> RocketFamilies(SpeciesDatabase database, string kind = RocketKind)
     {
         var groups = new Dictionary<string, (List<string> Names, List<RocketInputs> Inputs)>(StringComparer.Ordinal);
-        foreach (var path in FixtureFiles.Enumerate("rocket"))
+        foreach (var path in FixtureFiles.Enumerate(kind))
         {
             var c = CeaFixtures.Load(path);
             var inputs = RocketInputs.Of(c);
@@ -94,11 +100,11 @@ internal static class FixtureBatches
             })];
     }
 
-    /// <summary>The family names as theory data.</summary>
-    public static TheoryData<string> FamilyNames(SpeciesDatabase database)
+    /// <summary>The family names of one kind as theory data.</summary>
+    public static TheoryData<string> FamilyNames(SpeciesDatabase database, string kind = RocketKind)
     {
         var data = new TheoryData<string>();
-        foreach (var family in RocketFamilies(database))
+        foreach (var family in RocketFamilies(database, kind))
         {
             data.Add(family.Name);
         }
@@ -106,7 +112,7 @@ internal static class FixtureBatches
         return data;
     }
 
-    public static RocketFamily Family(SpeciesDatabase database, string name) => RocketFamilies(database).Single(f => f.Name == name);
+    public static RocketFamily Family(SpeciesDatabase database, string name, string kind = RocketKind) => RocketFamilies(database, kind).Single(f => f.Name == name);
 
     /// <summary>
     /// A parametric sweep between two fixtures of one family: element moles and reactant enthalpy interpolated linearly (a mixture of the

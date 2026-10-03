@@ -10,12 +10,23 @@ public sealed class BatchTests
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
     public static TheoryData<string> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
 
+    /// <summary>The throat family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
+    public static TheoryData<string> ThroatFamilies() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase, FixtureBatches.ThroatKind);
+
     /// <summary>A rocket family equals the host solver bit for bit.</summary>
     [Theory]
     [MemberData(nameof(Families))]
-    public void ARocketFamilyEqualsTheHostSolverBitForBit(string name)
+    public void ARocketFamilyEqualsTheHostSolverBitForBit(string name) =>
+        AssertFamilyEqualsTheHostSolver(FixtureBatches.Family(EngineFixture.Shared.Database, name));
+
+    /// <summary>A throat family equals the host solver bit for bit: chambers and throats on phase plateaus, no exit stations.</summary>
+    [Theory]
+    [MemberData(nameof(ThroatFamilies))]
+    public void AThroatFamilyEqualsTheHostSolverBitForBit(string name) =>
+        AssertFamilyEqualsTheHostSolver(FixtureBatches.Family(EngineFixture.Shared.Database, name, FixtureBatches.ThroatKind));
+
+    private static void AssertFamilyEqualsTheHostSolver(RocketFamily family)
     {
-        var family = FixtureBatches.Family(EngineFixture.Shared.Database, name);
         var batch = family.Batch();
         using var tables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);

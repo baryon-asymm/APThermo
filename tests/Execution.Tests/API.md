@@ -9,8 +9,8 @@ GPU/CPU tolerance table and the approved throughput figures.
 | Claim | Confirmed by | State |
 |---|---|---|
 | every function of the root's math list is linked on CUDA and matches the CPU accelerator within 4 ULP, and the CPU accelerator reproduces `System.Math` bit for bit | L1 probe kernel | ✅ |
-| CUDA batches equal CPU-accelerator batches within the tolerance table, for all fields enumerated by reflection over `MixtureState`, `PerformanceFigures` and `TransportFigures`, on 100 000 cases and on every fixture family | L2 | ✅ |
-| batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the species-function batch included | L2 | ✅ |
+| CUDA batches equal CPU-accelerator batches within the tolerance table, for all fields enumerated by reflection over `MixtureState`, `PerformanceFigures` and `TransportFigures`, on 100 000 cases and on every rocket and throat fixture family (the throat families since 2026-10-03; a condensed species at its own tier) | L2 | ✅ |
+| batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families and the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |
 | CUDA is at least 5× faster than the CPU accelerator with all cores on the reference machine, and the measured figure is recorded | Benchmark, `Throughput.approved.txt` | ✅ |
 | CUDA can be forbidden and the node then never touches the CUDA driver; an explicit CUDA request that cannot be met names every path tried | L0 | ✅ |
@@ -19,11 +19,12 @@ GPU/CPU tolerance table and the approved throughput figures.
 ## What the tests rely on
 
 - The fixtures node's reference propellant inputs for building the batches: every
-  rocket fixture grouped into families by element list, product list and exit layout,
-  and the tp, hp and sp fixtures of one propellant as an equilibrium batch.
+  rocket fixture, and every throat fixture (no exit stations), grouped into families by
+  element list, product list and exit layout, and the tp, hp and sp fixtures of one propellant as an equilibrium batch.
 - `GpuCpuTolerances.cs` in this node: the GPU/CPU table with derivations, the ULP
   bound of the probe and the bound on the share of stations at which the accelerators
-  stop after different numbers of Newton steps; the mole-fraction floor and the
+  stop after different numbers of Newton steps; the condensed-species mole-fraction tier
+  (relative 1e-9 whatever the Newton counts, 2026-10-03); the mole-fraction floor and the
   different-step relative tier are read from the fixtures node's tolerance table
   (`moleFractionFloor`, `polishThresholdRelative`), which this node's own table no
   longer duplicates (2026-09-14, F-TF-05).

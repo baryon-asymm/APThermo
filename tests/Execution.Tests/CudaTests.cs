@@ -11,6 +11,9 @@ public sealed class CudaTests
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
     public static TheoryData<string> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
 
+    /// <summary>The throat family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
+    public static TheoryData<string> ThroatFamilies() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase, FixtureBatches.ThroatKind);
+
     /// <summary>A rocket family on cuda matches the cpu accelerator.</summary>
     [Theory]
     [MemberData(nameof(Families))]
@@ -18,12 +21,27 @@ public sealed class CudaTests
     public void ARocketFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
         var cuda = EngineFixture.Shared.RequireCuda();
-        if (cuda is null)
+        if (cuda is not null)
         {
-            return;
+            AssertFamilyMatches(cuda, FixtureBatches.Family(EngineFixture.Shared.Database, name));
         }
+    }
 
-        var family = FixtureBatches.Family(EngineFixture.Shared.Database, name);
+    /// <summary>A throat family on cuda matches the cpu accelerator: chambers and throats on phase plateaus, no exit stations.</summary>
+    [Theory]
+    [MemberData(nameof(ThroatFamilies))]
+    [Trait("Category", "Cuda")]
+    public void AThroatFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is not null)
+        {
+            AssertFamilyMatches(cuda, FixtureBatches.Family(EngineFixture.Shared.Database, name, FixtureBatches.ThroatKind));
+        }
+    }
+
+    private static void AssertFamilyMatches(Engine cuda, RocketFamily family)
+    {
         var batch = family.Batch();
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(family.Table, family.Transport);
         using var cudaTables = cuda.Upload(family.Table, family.Transport);
