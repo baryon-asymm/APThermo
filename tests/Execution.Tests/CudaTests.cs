@@ -52,7 +52,7 @@ public sealed class CudaTests
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
         var gpu = cuda.Run(cudaTables, batch);
         var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
-        var mismatches = comparison.Rocket(cpu, gpu, family);
+        var mismatches = comparison.Rocket(cpu, gpu, family, batch);
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
         AssertDifferentStepShare(comparison.DifferentSteps, cpu.Stations.Length);
 
@@ -110,6 +110,8 @@ public sealed class CudaTests
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
         var gpu = cuda.Run(cudaTables, batch);
         var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
+        var balance = new ElementBalance(table, batch.ElementMoles);
+        var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
         var mismatches = new List<string>();
         for (var k = 0; k < batch.Count; k++)
         {
@@ -124,7 +126,11 @@ public sealed class CudaTests
             comparison.CountSteps(sameSteps);
 
             mismatches.AddRange(GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], cases[k].Name, comparison.Record));
-            mismatches.AddRange(comparison.Moles(cpu.Moles, gpu.Moles, k, table, sameSteps, cases[k].Name));
+            var cpuResiduals = balance.Residuals(k, cpu.Moles, k);
+            var gpuResiduals = balance.Residuals(k, gpu.Moles, k);
+            mismatches.AddRange(comparison.Balance(balance, cpuResiduals, gpuResiduals, cases[k].Name));
+            mismatches.AddRange(comparison.Moles(new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps, cases[k].Name), table,
+                                                 sensitivities.Correction(k, cpuResiduals), sensitivities.Correction(k, gpuResiduals)));
         }
 
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
@@ -149,7 +155,7 @@ public sealed class CudaTests
         Assert.Equal(SweepRun.LongRunningCases, sweep.Batch.Count);
         var family = FixtureBatches.Family(EngineFixture.Shared.Database, SweepRun.FamilyName);
         var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
-        var mismatches = comparison.Rocket(sweep.Cpu, sweep.Cuda, family);
+        var mismatches = comparison.Rocket(sweep.Cpu, sweep.Cuda, family, sweep.Batch);
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches:\n" + string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
         AssertDifferentStepShare(comparison.DifferentSteps, sweep.Cpu.Stations.Length);
         Assert.True(comparison.DifferentSteps > 0, "no station of the sweep stopped after different numbers of Newton steps; the second tier of the mole-fraction tolerance was not exercised");

@@ -176,6 +176,19 @@ internal static class FixtureBatches
     public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) NamedEquilibriumFamily(SpeciesDatabase database, string name) =>
         EquilibriumFamily(database, NamedEquilibriumFamilies[name]);
 
+    /// <summary>An independent copy of an equilibrium batch, whose element moles the caller may then change.</summary>
+    public static EquilibriumBatch CopyOf(EquilibriumBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        var copy = new EquilibriumBatch(batch.Count, batch.ElementCount);
+        Array.Copy(batch.Kind, copy.Kind, batch.Count);
+        Array.Copy(batch.Pressure, copy.Pressure, batch.Count);
+        Array.Copy(batch.Temperature, copy.Temperature, batch.Count);
+        Array.Copy(batch.Target, copy.Target, batch.Count);
+        Array.Copy(batch.ElementMoles, copy.ElementMoles, batch.ElementMoles.Length);
+        return copy;
+    }
+
     /// <summary>The equilibrium fixtures (tp, hp, sp) sharing one table whose names start with a prefix, as one batch with the table, in file order.</summary>
     public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumFamily(SpeciesDatabase database, string namePrefix) =>
         EquilibriumFamily(database, [namePrefix]);

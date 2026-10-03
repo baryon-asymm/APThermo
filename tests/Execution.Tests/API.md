@@ -10,6 +10,7 @@ GPU/CPU tolerance table and the approved throughput figures.
 |---|---|---|
 | every function of the root's math list is linked on CUDA and matches the CPU accelerator within 4 ULP, and the CPU accelerator reproduces `System.Math` bit for bit | L1 probe kernel | ✅ |
 | CUDA batches equal CPU-accelerator batches within the tolerance table, for all fields enumerated by reflection over `MixtureState`, `PerformanceFigures` and `TransportFigures`, on 100 000 cases, on every rocket and throat fixture family (the throat families since 2026-10-03; a condensed species at its own tier) and on the equilibrium families of the 0.2.1 fixtures (the three-element, threshold-flip and gas-column salt fixtures, one family per table, 2026-10-03) | L2 | ✅ |
+| every compared station of every family (rocket, throat, equilibrium) closes the element balance to a relative residual of at most 1e-13 on both accelerators, and the equilibrium families' mole fractions are compared as `ln x − Σ D ρ`, the balance remnants of both accelerators removed, at the unchanged tiers (2026-10-03; the CPU facts of `BalanceRemnantTests` are green, the CUDA run is the orchestrator's) | L2 | ⏳ until the CUDA run |
 | batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families, the 0.2.1 equilibrium families and the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |
 | CUDA is at least 5× faster than the CPU accelerator with all cores on the reference machine, and the measured figure is recorded | Benchmark, `Throughput.approved.txt` | ✅ |
@@ -28,6 +29,9 @@ GPU/CPU tolerance table and the approved throughput figures.
   different-step relative tier are read from the fixtures node's tolerance table
   (`moleFractionFloor`, `polishThresholdRelative`), which this node's own table no
   longer duplicates (2026-09-14, F-TF-05).
+- `GpuCpuTolerances.cs` also holds the balance-residual bound (`balanceResidual`, 1e-13), the guard's bound for the
+  correction (`sensitivityDisagreement`) and the step of the central differences
+  (`SensitivityStep`, 1e-8), each with its derivation (2026-10-03).
 - `Throughput.approved.txt` in this node: build configuration, device name, ILGPU
   version, CPU accelerator and threads, cases, stations, species, CUDA time, CPU time,
   ratio, CUDA kernel time, date. The fact refuses to compare a run against a file

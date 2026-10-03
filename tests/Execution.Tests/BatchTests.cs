@@ -36,6 +36,7 @@ public sealed class BatchTests
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         var differences = new List<string>();
         var stationCount = result.StationCount;
+        var balance = new ElementBalance(family.Table, batch.ElementMoles);
         for (var k = 0; k < batch.Count; k++)
         {
             var host = HostSolves.Rocket(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
@@ -57,6 +58,7 @@ public sealed class BatchTests
                 }
 
                 differences.AddRange(StationMoleDifferences(host.Moles, result.Moles, s, index, family.Table, label));
+                differences.AddRange(balance.Exceeding(balance.Residuals(k, result.Moles, index), "the CPU accelerator", $"{label} station {s}"));
             }
         }
 
@@ -154,6 +156,7 @@ public sealed class BatchTests
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         Assert.Equal(cases.Count, result.Count);
+        var balance = new ElementBalance(table, batch.ElementMoles);
         for (var k = 0; k < batch.Count; k++)
         {
             var host = HostSolves.Equilibrium(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
@@ -166,6 +169,7 @@ public sealed class BatchTests
                 Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
             }
 
+            Assert.Empty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", cases[k].Name));
             var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
             Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{cases[k].Name}: temperature {result.State[k].Temperature} vs {reference}");
         }
