@@ -11,6 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   CO2, H2O and N2 at low temperature, where the oxygen row equals a combination of the
   carbon and hydrogen rows) no longer ends `SingularMatrix`: the element tie now takes
   any linear combination of element rows, not only a pair. A known limitation of 0.2.0.
+- Alkali perchlorate states where two trace species swapped places across the retention
+  threshold at every step (KClO4 near 610–680 K, NaClO4 near 490–500 K) no longer end
+  `NotConverged`: the retention verdict binds only the second threshold stage, the switch
+  to it restarts the polish, and two consecutive swaps hold the retained set. A known
+  limitation of 0.2.0.
+- A state whose condensed species are linearly dependent only together with the gas
+  phase (KO2 entering beside K2O2(cr) and an all-O2 gas, KO2 being half of each, at
+  K:Cl:O = 1:0.9:4) no longer cycles to
+  `NotConverged`: the dependency test counts the gas phase as one more column.
 
 ### Changed
 - The rocket throat is found by a decision at `|u²/a² − 1| ≤ 1e-8` followed by exactly two

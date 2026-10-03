@@ -237,7 +237,9 @@
         ⚠.
       Open and known, outside this criterion; the owner decided on 2026-09-28 that they
       do not block 0.2.0 (`CHANGELOG.md`), designed and fixed for 0.2.1:
-      - **The threshold flip.** Two carriers cross the threshold alternately every
+      - **The threshold flip.** ⚠ 2026-10-03: fixed for 0.2.1, now the verdict, the switch
+        and the hold, with rule B's gas column beside them ([Newton/BOOT.md](Newton/BOOT.md),
+        their criteria). As it stood: Two carriers cross the threshold alternately every
         step, so the polish never completes: KClO4 at 610–680 K, NaClO4 at 490–500 K,
         16 salt-scan states `NotConverged`. The matrix is never singular.
         ⚠ 2026-09-28: was the threshold flip a band of two perchlorate compositions, now
