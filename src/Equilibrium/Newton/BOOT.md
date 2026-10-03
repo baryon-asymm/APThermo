@@ -291,7 +291,7 @@ rules A and B criterion.
         records on Windows (`87f8711`) and Linux (`904222d`, WSL, 5559 green);
       - the guard with `--cuda` on the reference machine: fast suite 5559, CUDA proofs 382,
         `Execution.Tests` in Release 187, the rocket kernel's compile inside its bound.
-- [ ] The threshold flip is closed (2026-10-03, `## Constraints`, the verdict, the switch and
+- [x] 2026-10-03 — The threshold flip is closed (`## Constraints`, the verdict, the switch and
       the hold): unit facts on `NewtonLoopState`'s flip count (a non-flip resets it, two
       flips report the hold) and on `Composition`'s retention of a held gas below the
       threshold; the H/O sp sentinel fact green with the polish restart; the L2 fact on the
@@ -299,13 +299,17 @@ rules A and B criterion.
       equilibrium conditions, `NotConverged` with the hold disabled; the salt fixtures
       `kclo4_T1150` (1 bar), `naclo4_T1120` (1 bar) and KClO4 at 1200 K and 10 bar, red
       on the old rule; no existing bit moved; CUDA equal on the reference machine.
-- [ ] Rule B's gas column (2026-10-03): a unit fact on the ratio test (K2O2(cr) leaves
+- [x] 2026-10-03 — Rule B's gas column: a unit fact on the ratio test (K2O2(cr) leaves
       when only O2 is retained) and three solve facts, red on the old rule; a negative
       fact (two condensed phases beside the gas give no combination); the KClO4 1:0.9:4
       fixtures at 300 K and 1e3 Pa, 500 K and 1 bar, 1000 K and 1e3 Pa, 1060 K and 1e3 Pa,
       red on the old rule; no existing bit moved; CUDA equal on the reference machine.
+      Evidence: `ThresholdFlipTests` and the salt fixtures (`a6c19dd`), `GasPhaseDependencyTests`
+      and the `kclo4-lean` fixtures (`a89fbf5`), merged `819b2a0`; Linux bits `76e1ff9`; CUDA
+      families `threshold-flip-kclo4`, `threshold-flip-naclo4` and `gas-column-kclo4-lean`
+      green on the reference machine (merge `377998d`); WSL fast suite green on `377998d`.
 
-- [ ] The review of the linear-combination tie (2026-10-03) is closed:
+- [x] 2026-10-03 — The review of the linear-combination tie is closed:
       - the pair facts of `SingularRemedyRulesTests` run with every element of their table
         active: NH4CL(II) alone ties N = Cl (through the pinned retry, red without it);
         NH4CL(II) with HCL ties N = (H − Cl)/3 (`c_Cl` = −1/3, `c_H` = 1/3); NH4CL(II), HCL
@@ -316,6 +320,14 @@ rules A and B criterion.
       - CUDA families over the `three-element_rp1311-example1_` and `…example12_` fixtures and
         over the salt fixtures of the threshold flip and of rule B's gas column, beside
         `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`, green on the reference machine.
+      Evidence: `SingularRemedyRulesTests` and `ThreeElementTieTests` (`2a5b1fe`, merged
+      `745d8b4`; red with the retry disabled and with the release disabled, 67 of 168 states
+      off): `δ` = 0.01 K and `Cp_eq` within 1e-6, 4 of 168 states left out where the held
+      condensed set changes within ±δ; hp 155 and sp 158 of 168 reproduce the tp temperature
+      within 1e-9, the rest on example 12's supercooled-vapour branch. CUDA:
+      `ANamedEquilibriumFamilyOnCudaMatchesTheCpuAccelerator` over the five 0.2.1 families,
+      green with the balance-remnant correction of `tests/Execution.Tests` (merge `377998d`);
+      without it the `three-element-example1` family failed on x(H2), 3.8e-9 at equal steps.
 
 ## Taboos
 

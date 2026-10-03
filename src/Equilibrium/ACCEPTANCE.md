@@ -250,7 +250,7 @@
         With only CO2, H2O and N2 retained, row O
         equals 2·C + ½·H. 77 fuzz tp states on example 1 and example 12 tables at
         300 K and 600 K end `SingularMatrix`, which a pair tie cannot express.
-      - **The reaction plateau.** ⚠ 2026-10-03: designed for 0.2.1, now the StateRecord
+      - **The reaction plateau.** ⚠ 2026-10-03: fixed for 0.2.1, now the StateRecord
         node's pinned set ([StateRecord/BOOT.md](StateRecord/BOOT.md)). Found beside it and
         not fixed: a cold hp near 400 K on that table fails (and so does the reference), and a
         warm hp seeded from above T* fails 25 K or more below it. As it stood:

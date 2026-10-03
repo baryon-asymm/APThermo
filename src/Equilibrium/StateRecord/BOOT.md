@@ -142,7 +142,7 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
   [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
 - [x] 2026-10-02 — On CUDA, on the reference machine: the second part of the same criterion
       (`../ACCEPTANCE.md`), green on `6dc2370`.
-- [ ] The pinned set (2026-10-03, `## Constraints`): unit facts, each red on the pair rule —
+- [x] 2026-10-03 — The pinned set (`## Constraints`): unit facts, each red on the pair rule —
       seeded hp and sp inside the Al(OH)3/Al2O3/H2O(L) band at 1, 7 and 20 MPa end `Ok`, clear
       of the equilibrium conditions, at `T* = 415.948162 K` with five condensed species; on the
       plateau `Cp_eq = Cv_eq = (∂ln V/∂ln T)_p = 0` and `γ_s = −1/(∂ln V/∂ln p)_T`; `γ_s`
@@ -150,10 +150,15 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       isothermal difference; a `DerivativeSystem` fact on three dependent species `Solved`
       and pinned; the seeded fixtures of the fixtures node green; no existing bit moved;
       CUDA equal on the reference machine.
-      Evidence so far, CPU accelerator, 2026-10-03, not yet a tick (CUDA and Linux are open):
-      `ReactionPlateauTests` and `PinnedSetTests` of `tests/Equilibrium.Tests`, red on the pair
-      rule and green on this one, the fixtures of the `seeded` kind, and no line of
-      `Bits.approved.txt` moved.
+      Evidence: `ReactionPlateauTests` and `PinnedSetTests` of `tests/Equilibrium.Tests`
+      (`678fe4e`, `53ab7c7`, merged `229fb5d`), 25 of 39 red on the pair rule and green on this
+      one; the 30 fixtures of the `seeded` kind; no line of `Bits.approved.txt` moved; the WSL
+      fast suite green on `377998d`. CUDA: every CUDA proof green with this derivative system
+      (merge-guard on `229fb5d` and `377998d`).
+
+      ⚠ 2026-10-03: was "CUDA equal on the reference machine" for the seeded cases, now the
+      CUDA proofs with this code. A seeded case starts from the tp seed's moles, and a batch
+      carries a temperature estimate only (`src/Execution/API.md`), so no batch expresses it.
 
 ## Taboos
 

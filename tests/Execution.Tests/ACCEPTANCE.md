@@ -278,10 +278,16 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
 
       ⚠ 2026-10-03: L2's "every fixture family" did not hold: the comparison read only
       `cases/rocket`, and the throat family (plateau edges, bisection) never ran on CUDA.
-- [ ] The balance-remnant correction (2026-10-03, `## Invariants`): the corrected
+- [x] 2026-10-03 — The balance-remnant correction (`## Invariants`): the corrected
       comparison and the residual assertion in `GpuCpuComparison`, with the guard's bound
       measured and recorded; a fact that the corrected and uncorrected quantities agree
       where `κ` is small; shown red once with the correction removed (the
       `three-element-example1` family on CUDA) and once with a residual injected above
       1e-13 (CPU); every CUDA family green on the reference machine, the five 0.2.1
       equilibrium families included.
+      Evidence: `0c55da9`, merged `377998d` with `--cuda`: CUDA proofs 394 green, the five
+      0.2.1 families and the sweep included; the guard's bound 2e-2, between the worst smooth
+      row (2.1e-3) and the smallest kink (0.12); `BalanceRemnantTests` (CPU, the injected
+      residual of 1e-12 reported); red without the correction on CUDA: the merge-guard run
+      of `de16866` (the families alone), `three-element-example1` x(H2) 3.8e-9 at equal
+      steps; WSL fast suite green on `377998d`.
