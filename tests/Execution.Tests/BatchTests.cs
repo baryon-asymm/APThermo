@@ -17,6 +17,9 @@ public sealed class BatchTests
     /// <summary>The names of the 0.2.1 equilibrium families as theory data, delegating to <see cref="FixtureBatches.NamedEquilibriumFamilyNames"/>.</summary>
     public static TheoryData<string> NamedEquilibriumFamilies() => FixtureBatches.NamedEquilibriumFamilyNames();
 
+    /// <summary>The names of the 0.2.2 gas-plateau families as theory data, delegating to <see cref="GasPlateauFamilies.Names"/>.</summary>
+    public static TheoryData<string> GasPlateauFamilyNames() => GasPlateauFamilies.Names();
+
     /// <summary>A rocket family equals the host solver bit for bit.</summary>
     [Theory]
     [MemberData(nameof(Families))]
@@ -150,12 +153,43 @@ public sealed class BatchTests
     public void ANamedEquilibriumFamilyEqualsTheHostSolverBitForBit(string name) =>
         AssertEquilibriumFamilyEqualsTheHostSolver(FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
 
+    /// <summary>
+    /// A gas-participating plateau family (the 0.2.2 families, <see cref="GasPlateauFamilies"/>) equals the host solver bit for bit, and
+    /// its states are on the plateau: every case ends <c>Ok</c> at the plateau temperature carrying the pinned convention's zero
+    /// <c>CpEquilibrium</c>, which only the isentropic system reaches.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(GasPlateauFamilyNames))]
+    public void AGasPlateauFamilyEqualsTheHostSolverBitForBit(string name)
+    {
+        var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name);
+
+        var result = AssertEquilibriumBatchEqualsTheHostSolver(family.Batch, family.Table, family.Labels);
+
+        for (var k = 0; k < family.Labels.Count; k++)
+        {
+            Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", family.PlateauTemperature, result.State[k].Temperature),
+                        $"{family.Labels[k]}: temperature {result.State[k].Temperature} vs the plateau's {family.PlateauTemperature}");
+            Assert.Equal(0.0, result.State[k].CpEquilibrium);
+        }
+    }
+
     private static void AssertEquilibriumFamilyEqualsTheHostSolver((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
     {
         var (batch, table, cases) = family;
+        var result = AssertEquilibriumBatchEqualsTheHostSolver(batch, table, [.. cases.Select(c => c.Name)]);
+        for (var k = 0; k < batch.Count; k++)
+        {
+            var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
+            Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{cases[k].Name}: temperature {result.State[k].Temperature} vs {reference}");
+        }
+    }
+
+    private static EquilibriumBatchResult AssertEquilibriumBatchEqualsTheHostSolver(EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels)
+    {
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
-        Assert.Equal(cases.Count, result.Count);
+        Assert.Equal(labels.Count, result.Count);
         var balance = new ElementBalance(table, batch.ElementMoles);
         for (var k = 0; k < batch.Count; k++)
         {
@@ -163,20 +197,19 @@ public sealed class BatchTests
             Assert.Equal(CaseStatus.Ok, host.Status);
             Assert.Equal(host.Status, result.Status[k]);
             Assert.Equal(host.Iterations, result.Iterations[k]);
-            Assert.Empty(Bits.Differences(host.State, result.State[k], cases[k].Name));
+            Assert.Empty(Bits.Differences(host.State, result.State[k], labels[k]));
             for (var j = 0; j < table.SpeciesCount; j++)
             {
-                Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
+                Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{labels[k]}: moles of {table.Species[j]}");
             }
 
-            Assert.Empty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", cases[k].Name));
-            var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
-            Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{cases[k].Name}: temperature {result.State[k].Temperature} vs {reference}");
+            Assert.Empty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", labels[k]));
         }
 
         var transport = TransportBatch.FromEquilibrium(result);
         Assert.Equal(result.Count, transport.Count);
         Assert.Same(result.Moles, transport.Moles);
+        return result;
     }
 
     private static void AssertSameRocketBits(RocketBatchResult expected, RocketBatchResult actual)

@@ -18,6 +18,9 @@ public sealed class CudaTests
     /// <summary>The names of the 0.2.1 equilibrium families as theory data, delegating to <see cref="FixtureBatches.NamedEquilibriumFamilyNames"/>.</summary>
     public static TheoryData<string> NamedEquilibriumFamilies() => FixtureBatches.NamedEquilibriumFamilyNames();
 
+    /// <summary>The names of the 0.2.2 gas-plateau families as theory data, delegating to <see cref="GasPlateauFamilies.Names"/>.</summary>
+    public static TheoryData<string> GasPlateauFamilyNames() => GasPlateauFamilies.Names();
+
     /// <summary>A rocket family on cuda matches the cpu accelerator.</summary>
     [Theory]
     [MemberData(nameof(Families))]
@@ -102,9 +105,31 @@ public sealed class CudaTests
         AssertEquilibriumFamilyMatches(cuda, FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
     }
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
+    /// <summary>
+    /// A gas-participating plateau family (the 0.2.2 families, <see cref="GasPlateauFamilies"/>) on cuda matches the cpu accelerator: states
+    /// on the plateaus of boiling water, ammonium chloride, calcium hydroxide and calcium carbonate, whose <c>γ_s</c> comes from the
+    /// isentropic system, inputs computed by the tree itself.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(GasPlateauFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void AGasPlateauFamilyOnCudaMatchesTheCpuAccelerator(string name)
     {
-        var (batch, table, cases) = family;
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels);
+    }
+
+    private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)]);
+
+    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels)
+    {
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
@@ -118,18 +143,18 @@ public sealed class CudaTests
             Assert.Equal(CaseStatus.Ok, cpu.Status[k]);
             if (cpu.Status[k] != gpu.Status[k])
             {
-                mismatches.Add($"{cases[k].Name}: status cpu {cpu.Status[k]}, cuda {gpu.Status[k]}");
+                mismatches.Add($"{labels[k]}: status cpu {cpu.Status[k]}, cuda {gpu.Status[k]}");
                 continue;
             }
 
             var sameSteps = cpu.Iterations[k] == gpu.Iterations[k];
             comparison.CountSteps(sameSteps);
 
-            mismatches.AddRange(GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], cases[k].Name, comparison.Record));
+            mismatches.AddRange(GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], labels[k], comparison.Record));
             var cpuResiduals = balance.Residuals(k, cpu.Moles, k);
             var gpuResiduals = balance.Residuals(k, gpu.Moles, k);
-            mismatches.AddRange(comparison.Balance(balance, cpuResiduals, gpuResiduals, cases[k].Name));
-            mismatches.AddRange(comparison.Moles(new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps, cases[k].Name), table,
+            mismatches.AddRange(comparison.Balance(balance, cpuResiduals, gpuResiduals, labels[k]));
+            mismatches.AddRange(comparison.Moles(new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps, labels[k]), table,
                                                  sensitivities.Correction(k, cpuResiduals), sensitivities.Correction(k, gpuResiduals)));
         }
 
