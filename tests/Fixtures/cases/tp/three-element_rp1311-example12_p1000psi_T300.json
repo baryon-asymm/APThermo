@@ -1,0 +1,182 @@
+{
+  "case": {
+    "name": "three-element_rp1311-example12_p1000psi_T300",
+    "kind": "tp",
+    "inputs": {
+      "reactants": [
+        {
+          "name": "pure-C",
+          "custom": true,
+          "formula": {
+            "C": 1.0
+          },
+          "molarMass": 12.0107,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.07448445774847166,
+          "note": null
+        },
+        {
+          "name": "pure-H",
+          "custom": true,
+          "formula": {
+            "H": 1.0
+          },
+          "molarMass": 1.00794,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.0375044906673189,
+          "note": null
+        },
+        {
+          "name": "pure-N",
+          "custom": true,
+          "formula": {
+            "N": 1.0
+          },
+          "molarMass": 14.0067,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.39119467714450734,
+          "note": null
+        },
+        {
+          "name": "pure-O",
+          "custom": true,
+          "formula": {
+            "O": 1.0
+          },
+          "molarMass": 15.9994,
+          "enthalpy": 0.0,
+          "temperature": 298.15,
+          "massFraction": 0.496816374439702,
+          "note": null
+        }
+      ],
+      "oxidizerToFuelRatio": null,
+      "elementMoles": {
+        "C": 0.006201508467322609,
+        "H": 0.037209050803935655,
+        "N": 0.02792911086440827,
+        "O": 0.03105218785952611
+      },
+      "temperature": 300.0,
+      "pressure": 6894757.293168573,
+      "transport": false,
+      "products": [
+        "CO",
+        "CO2",
+        "H",
+        "HNO",
+        "HNO2",
+        "HO2",
+        "H2",
+        "H2O",
+        "H2O2",
+        "N",
+        "NO",
+        "NO2",
+        "N2",
+        "N2O",
+        "O",
+        "OH",
+        "O2",
+        "HCO",
+        "NH",
+        "CH4",
+        "NH2",
+        "NH3",
+        "H2O(L)",
+        "C(gr)"
+      ],
+      "omit": [],
+      "trace": null,
+      "only": [
+        "CO",
+        "CO2",
+        "H",
+        "HNO",
+        "HNO2",
+        "HO2",
+        "H2",
+        "H2O",
+        "H2O2",
+        "N",
+        "NO",
+        "NO2",
+        "N2",
+        "N2O",
+        "O",
+        "OH",
+        "O2",
+        "HCO",
+        "NH",
+        "CH4",
+        "NH2",
+        "NH3",
+        "H2O(L)",
+        "C(gr)"
+      ]
+    }
+  },
+  "generator": {
+    "package": "cea",
+    "version": "3.3.4",
+    "libraryVersion": "3.3.4",
+    "generatorSha256": "1ecc05bdd70a04914eee01e79c85acf6eb43b0009ff55f11e4e077fbeecdbb70",
+    "thermoLibSha256": "8e5df1cca92d4a48663d1ee5a1372e6508c59cddc2247ceeca32f041a03ec52a",
+    "transLibSha256": "c203d9330746405e1b57008cd697354745ab991694b4ca11ed556b18cb834111",
+    "dataThermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "dataTransSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "cea-package",
+    "script": "three_element.py",
+    "scriptSha256": "2df2b8eff163015196b3f33a980ea93dd43acf6e76eeffea7f41f55676c978c1",
+    "generatedOn": "2026-10-03"
+  },
+  "outputs": {
+    "temperature": 300.0,
+    "pressure": 6894757.293168573,
+    "density": 136.8474840973297,
+    "enthalpy": -7753860.296512094,
+    "internalEnergy": -7804243.080957476,
+    "entropy": 4715.913126496256,
+    "gibbsEnergy": -9168634.23446097,
+    "molarMass": 49.508041833298066,
+    "mixtureMolarMass": 25.777904952842245,
+    "cpFrozen": 2039.7079799556407,
+    "cpEquilibrium": 2066.4151961773664,
+    "cvFrozen": 1871.7653651377013,
+    "cvEquilibrium": 1895.5134206001878,
+    "gammaS": 1.0896024887421019,
+    "dlnVdlnT": 1.0090301666880959,
+    "dlnVdlnP": -1.0005127714424475,
+    "soundSpeed": 234.30153077059663,
+    "moleFractions": {
+      "CO": 0.0,
+      "CO2": 0.15986189583397697,
+      "H": 0.0,
+      "HNO": 0.0,
+      "HNO2": 1.1434471191820366e-15,
+      "HO2": 1.4694194048006573e-28,
+      "H2": 0.0,
+      "H2O": 0.00026685359695041944,
+      "H2O2": 2.81834403005863e-26,
+      "N": 0.0,
+      "NO": 8.18146252600576e-18,
+      "NO2": 2.956667954868108e-12,
+      "N2": 0.35997698263800787,
+      "N2O": 8.229715218459016e-20,
+      "O": 0.0,
+      "OH": 2.0732435771150243e-29,
+      "O2": 0.0005754340231182491,
+      "HCO": 0.0,
+      "NH": 0.0,
+      "CH4": 0.0,
+      "NH2": 0.0,
+      "NH3": 0.0,
+      "H2O(L)": 0.4793188339049886,
+      "C(gr)": 0.0
+    },
+    "converged": true
+  }
+}

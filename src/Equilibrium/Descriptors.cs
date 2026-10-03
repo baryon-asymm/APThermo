@@ -51,13 +51,15 @@ internal static class ScratchLayout
 
     /// <summary>
     /// Doubles per case: seven per species (the seventh being rule A's tie snapshot of the gaseous logarithms, BOOT.md,
-    /// the third pass of 2026-09-28, finding F1), the matrix, the right-hand side, the row scales, and two more
-    /// <see cref="MaxCondensedInSolution"/>-sized slices for the tie snapshot's condensed moles and multipliers.
+    /// the third pass of 2026-09-28, finding F1), the matrix, the right-hand side, the row scales, one
+    /// <see cref="MaxCondensedInSolution"/>-sized slice for the tie snapshot's condensed moles, and three slices of
+    /// the element count for rule A's multipliers snapshot, live coefficients and coefficients snapshot
+    /// (<see cref="TieElementSlices"/>).
     /// </summary>
     public static int DoublesPerCase(int speciesCount, int elementCount)
     {
         var unknowns = MaxUnknowns(elementCount);
-        return 7 * speciesCount + 2 * MaxCondensedInSolution + unknowns * unknowns + 2 * unknowns;
+        return 7 * speciesCount + MaxCondensedInSolution + 3 * elementCount + unknowns * unknowns + 2 * unknowns;
     }
 
     /// <summary>
@@ -67,11 +69,24 @@ internal static class ScratchLayout
     public static int IntsPerCase(int speciesCount, int elementCount) => speciesCount + elementCount + 2 * MaxCondensedInSolution;
 }
 
+/// <summary>
+/// Rule A's slices of the element count (BOOT.md of the Newton child node, "The tie is per-case state"): the release
+/// snapshot of the Lagrange multipliers, the live coefficients <c>c_i</c> of the tied element's combination, and the
+/// snapshot of those coefficients the release takes. Grouped so that <see cref="EquilibriumScratch"/>'s constructor
+/// keeps its parameter count.
+/// </summary>
+internal readonly struct TieElementSlices(ArrayView<double> multipliers, ArrayView<double> coefficients, ArrayView<double> coefficientSnapshot)
+{
+    public readonly ArrayView<double> Multipliers = multipliers;                   // [element], the release snapshot of the Lagrange multipliers
+    public readonly ArrayView<double> Coefficients = coefficients;                 // [element], c_i of the live tie; zero for the tied element itself
+    public readonly ArrayView<double> CoefficientSnapshot = coefficientSnapshot;   // [element], the release's snapshot of Coefficients
+}
+
 /// <summary>Per-case scratch views. <see cref="Slice"/> cuts them from one double and one int view of the sizes in <see cref="ScratchLayout"/>.</summary>
 internal readonly struct EquilibriumScratch(
     ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
     ArrayView<double> logMoles, ArrayView<double> corrections,
-    ArrayView<double> tieLogMoles, ArrayView<double> tieCondensedMoles, ArrayView<double> tieMultipliers,
+    ArrayView<double> tieLogMoles, ArrayView<double> tieCondensedMoles, TieElementSlices tieElements,
     ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
     ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution, ArrayView<int> tieCondensedSet)
 {
@@ -83,7 +98,7 @@ internal readonly struct EquilibriumScratch(
     public readonly ArrayView<double> Corrections = corrections;     // [species], Δln n_j of gaseous species
     public readonly ArrayView<double> TieLogMoles = tieLogMoles;             // [species], rule A's release snapshot of LogMoles (2026-09-28)
     public readonly ArrayView<double> TieCondensedMoles = tieCondensedMoles; // [MaxCondensedInSolution], the snapshot's condensed moles
-    public readonly ArrayView<double> TieMultipliers = tieMultipliers;      // [MaxCondensedInSolution], the snapshot's Lagrange multipliers ([0, elementCount))
+    public readonly TieElementSlices TieElements = tieElements;             // rule A's three slices of the element count
     public readonly ArrayView<double> Matrix = matrix;               // [MaxUnknowns * MaxUnknowns], row-major
     public readonly ArrayView<double> RightHandSide = rightHandSide; // [MaxUnknowns]; holds the solution after a solve
     public readonly ArrayView<double> RowScale = rowScale;           // [MaxUnknowns]
@@ -113,8 +128,12 @@ internal readonly struct EquilibriumScratch(
         offset += speciesCount;
         var tieCondensedMoles = doubles.SubView(offset, ScratchLayout.MaxCondensedInSolution);
         offset += ScratchLayout.MaxCondensedInSolution;
-        var tieMultipliers = doubles.SubView(offset, ScratchLayout.MaxCondensedInSolution);
-        offset += ScratchLayout.MaxCondensedInSolution;
+        var tieMultipliers = doubles.SubView(offset, elementCount);
+        offset += elementCount;
+        var tieCoefficients = doubles.SubView(offset, elementCount);
+        offset += elementCount;
+        var tieCoefficientSnapshot = doubles.SubView(offset, elementCount);
+        offset += elementCount;
         var matrix = doubles.SubView(offset, unknowns * unknowns);
         offset += unknowns * unknowns;
         var rightHandSide = doubles.SubView(offset, unknowns);
@@ -127,7 +146,8 @@ internal readonly struct EquilibriumScratch(
         var tieCondensedSet = ints.SubView(speciesCount + elementCount + ScratchLayout.MaxCondensedInSolution, ScratchLayout.MaxCondensedInSolution);
         return new EquilibriumScratch(
             hOverRT: hOverRT, sOverR: sOverR, cpOverR: cpOverR, gOverRT: gOverRT, logMoles: logMoles, corrections: corrections,
-            tieLogMoles: tieLogMoles, tieCondensedMoles: tieCondensedMoles, tieMultipliers: tieMultipliers,
+            tieLogMoles: tieLogMoles, tieCondensedMoles: tieCondensedMoles,
+            tieElements: new TieElementSlices(multipliers: tieMultipliers, coefficients: tieCoefficients, coefficientSnapshot: tieCoefficientSnapshot),
             matrix: matrix, rightHandSide: rightHandSide, rowScale: rowScale,
             speciesActive: speciesActive, elementActive: elementActive, condensedInSolution: condensed, tieCondensedSet: tieCondensedSet);
     }

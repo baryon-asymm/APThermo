@@ -7,9 +7,11 @@ namespace APThermo.Equilibrium.Tests;
 /// <summary>
 /// L0: rule A's queries (<see cref="ElementCoupling"/>) and rule B's ratio test (<see cref="CondensedDependency"/>),
 /// unit-tested directly on real species of the database (BOOT.md, "Two rules come before the remedies above",
-/// 2026-09-28, the orchestrator's investigation 6). Rule A ties two elements whose active carriers — the retained
-/// gases and the condensed species of the solution — all carry them in one fixed ratio; rule B resolves a condensed
-/// set whose last-added species is a linear combination of the others already in solution.
+/// 2026-09-28, the orchestrator's investigation 6). Rule A ties an element whose row, over every active carrier — the
+/// retained gases and the condensed species of the solution — equals a linear combination of the other rows (here a pair
+/// in one fixed ratio, the case of one coefficient; the three-element combination is
+/// <see cref="ThreeElementTieTests"/>'s); rule B resolves a condensed set whose last-added species is a linear
+/// combination of the others already in solution.
 /// </summary>
 [Collection(CpuFixture.CollectionName)]
 public sealed class SingularRemedyRulesTests
@@ -17,6 +19,7 @@ public sealed class SingularRemedyRulesTests
     // The row order SpeciesTable.Build keeps (as given): N at 0, Cl at 1, H at 2.
     private const int N = 0;
     private const int Cl = 1;
+    private const int H = 2;
 
     private static readonly string[] TieElements = ["N", "CL", "H"];
     private static readonly string[] TieSpecies = ["N2", "CL2", "HCL", "NH4CL(II)"];
@@ -24,10 +27,11 @@ public sealed class SingularRemedyRulesTests
     /// <summary>
     /// N and Cl carried only by <c>NH4CL(II)</c>, in the solution alone, with every gaseous carrier at zero moles
     /// (the state of a warm start's very first Newton step, before any gas has picked up a nonzero amount): every
-    /// species with a nonzero amount in the sums carries the two elements in one ratio, 1 (NH4CL(II)'s own N:Cl).
+    /// species with a nonzero amount in the sums carries the two elements in one ratio, 1 (NH4CL(II)'s own N:Cl), which
+    /// is the one coefficient of the combination.
     /// </summary>
     [Fact]
-    public void ACoupledPairIsFoundWithItsRatio()
+    public void ACoupledPairIsFoundWithItsCoefficient()
     {
         var (table, view, scratch, result) = BuildTieTable();
         var condensed = table.IndexOf("NH4CL(II)");
@@ -38,8 +42,10 @@ public sealed class SingularRemedyRulesTests
         var tie = ElementCoupling.Find(view, scratch, result, condensedCount: 1, N);
 
         Assert.True(tie.Active);
-        Assert.Equal(Cl, tie.Partner);
-        Assert.Equal(1.0, tie.Ratio, 1e-15);
+        Assert.Equal(N, tie.Element);
+        Assert.Equal(1.0, scratch.TieElements.Coefficients[Cl], 1e-15);
+        Assert.Equal(0.0, scratch.TieElements.Coefficients[N]);
+        Assert.Equal(0.0, scratch.TieElements.Coefficients[H]);
         Assert.True(ElementCoupling.Coupled(view, scratch, result, condensedCount: 1, tie));
     }
 
@@ -63,7 +69,8 @@ public sealed class SingularRemedyRulesTests
         var tie = ElementCoupling.Find(view, scratch, result, condensedCount: 1, N);
 
         Assert.False(tie.Active);
-        var candidate = new ElementTie { Element = N, Partner = Cl };
+        var candidate = new ElementTie { Element = N };
+        SetCoefficients(scratch, view.ElementCount, Cl, 1.0);
         Assert.False(ElementCoupling.Coupled(view, scratch, result, condensedCount: 1, candidate));
     }
 
@@ -78,12 +85,22 @@ public sealed class SingularRemedyRulesTests
     {
         var (table, view, scratch, _) = BuildTieTable();
         var condensed = table.IndexOf("NH4CL(II)");
-        var tie = new ElementTie { Element = N, Partner = Cl };
+        var tie = new ElementTie { Element = N };
+        SetCoefficients(scratch, view.ElementCount, Cl, 1.0);
 
         scratch.CondensedInSolution[0] = condensed;
         Assert.True(ElementCoupling.HeldByCondensed(view, scratch, condensedCount: 1, tie));
 
         Assert.False(ElementCoupling.HeldByCondensed(view, scratch, condensedCount: 0, tie));
+    }
+
+    /// <summary>The coefficients of a combination of one element: zero everywhere else, as <see cref="ElementCoupling.Find"/> leaves a tie of one coefficient.</summary>
+    private static void SetCoefficients(in EquilibriumScratch scratch, int elementCount, int element, double coefficient)
+    {
+        for (var i = 0; i < elementCount; i++)
+        {
+            scratch.TieElements.Coefficients[i] = i == element ? coefficient : 0.0;
+        }
     }
 
     private static (SpeciesTable Table, SpeciesTableView View, EquilibriumScratch Scratch, EquilibriumResult Result) BuildTieTable()
@@ -94,9 +111,11 @@ public sealed class SingularRemedyRulesTests
         var view = buffers.View;
         var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(view.SpeciesCount, view.ElementCount));
         var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(view.SpeciesCount, view.ElementCount));
+        doubles.MemSetToZero();   // accelerator memory is not zeroed on allocation (HostSolver.Run does the same): the element masks and coefficients are read
+        ints.MemSetToZero();
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
         var molesBuffer = accelerator.Allocate1D<double>(view.SpeciesCount);
-        molesBuffer.MemSetToZero();   // accelerator memory is not zeroed on allocation (HostSolver.Run does the same)
+        molesBuffer.MemSetToZero();
         var multipliers = accelerator.Allocate1D<double>(view.ElementCount);
         var state = accelerator.Allocate1D<MixtureState>(1);
         var status = accelerator.Allocate1D<int>(1);

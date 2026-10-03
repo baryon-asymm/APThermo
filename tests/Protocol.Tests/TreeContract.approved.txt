@@ -47,7 +47,7 @@ readonly struct APThermo.Equilibrium.EquilibriumResult
     readonly ArrayView<MixtureState> State
 
 readonly struct APThermo.Equilibrium.EquilibriumScratch
-    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, ArrayView<Double> tieLogMoles, ArrayView<Double> tieCondensedMoles, ArrayView<Double> tieMultipliers, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution, ArrayView<Int32> tieCondensedSet)
+    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, ArrayView<Double> tieLogMoles, ArrayView<Double> tieCondensedMoles, TieElementSlices tieElements, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution, ArrayView<Int32> tieCondensedSet)
     readonly ArrayView<Double> Corrections
     readonly ArrayView<Double> CpOverR
     readonly ArrayView<Double> GOverRT
@@ -59,11 +59,11 @@ readonly struct APThermo.Equilibrium.EquilibriumScratch
     readonly ArrayView<Double> SOverR
     readonly ArrayView<Double> TieCondensedMoles
     readonly ArrayView<Double> TieLogMoles
-    readonly ArrayView<Double> TieMultipliers
     readonly ArrayView<Int32> CondensedInSolution
     readonly ArrayView<Int32> ElementActive
     readonly ArrayView<Int32> SpeciesActive
     readonly ArrayView<Int32> TieCondensedSet
+    readonly TieElementSlices TieElements
     static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
 
 static class APThermo.Equilibrium.EquilibriumSolver
@@ -85,6 +85,12 @@ static class APThermo.Equilibrium.ScratchLayout
     static Int32 DoublesPerCase(Int32 speciesCount, Int32 elementCount)
     static Int32 IntsPerCase(Int32 speciesCount, Int32 elementCount)
     static Int32 MaxUnknowns(Int32 elementCount)
+
+readonly struct APThermo.Equilibrium.TieElementSlices
+    .ctor(ArrayView<Double> multipliers, ArrayView<Double> coefficients, ArrayView<Double> coefficientSnapshot)
+    readonly ArrayView<Double> CoefficientSnapshot
+    readonly ArrayView<Double> Coefficients
+    readonly ArrayView<Double> Multipliers
 
 == src/Execution
 

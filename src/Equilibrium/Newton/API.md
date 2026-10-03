@@ -5,7 +5,7 @@ Namespace `APThermo.Equilibrium.Newton`. Every type is `internal`: the audience 
 (`Condensed`, `StateRecord`), and its tests node, not a neighbour or a caller outside the tree.
 Everything not listed here is internal to this node itself and may change without notice even to
 the parent. The types of the parent that the signatures name (`IterationState`, `SystemLayout`,
-`MixtureSums`, `ElementTie`, `EquilibriumScratch`, `EquilibriumResult`, `EquilibriumProblem`) are
+`MixtureSums`, `ElementTie` (active and element), `EquilibriumScratch` (its `TieElements`), `EquilibriumResult`, `EquilibriumProblem`) are
 described in [the parent's API.md](../API.md) or by the summaries of their declarations.
 
 ## The loop ✅
@@ -62,8 +62,16 @@ internal static class SingularRemedies
 internal static class ElementCoupling
 {
     public static ElementTie Find(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int element);
+        // the tie of `element` as a linear combination of the other active rows over the species of the sums; its coefficients are
+        // left in scratch.TieElements.Coefficients (one per element, zero for `element`); inactive when no combination holds
     public static bool Coupled(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, in ElementTie tie);
+        // whether every species of the sums still satisfies the combination of the live coefficients, to 1e-10 relative
     public static bool HeldByCondensed(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, in ElementTie tie);
+        // whether a condensed species of the solution carries the tied element and an element of the combination
+    public static double Weight(in SpeciesTableView table, in EquilibriumScratch scratch, int element, int species);
+        // a_kj - Σ c_i a_ij: the species' weight in the tie row
+    public static double Abundance(in EquilibriumProblem problem, in EquilibriumScratch scratch, int elementCount, int element);
+        // b_k - Σ c_i b_i: what the tie row balances
 }
 
 internal static class CondensedDependency
@@ -76,7 +84,7 @@ internal static class TieSnapshot
 {
     public static void Save(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount);
     public static void Restore(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount);
-        // rule A's release: the tied converged iterate, kept in the case's scratch and put back when the release fails
+        // rule A's release: the tied converged iterate, with the combination's coefficients, kept in the case's scratch and put back when the release fails
 }
 ```
 

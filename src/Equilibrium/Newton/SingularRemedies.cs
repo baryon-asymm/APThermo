@@ -7,8 +7,8 @@ namespace APThermo.Equilibrium.Newton;
 /// <summary>
 /// Two rules come before the remedies of RP-1311 section 3.6 (BOOT.md, "Two rules come before the remedies above",
 /// 2026-09-28): rule B resolves a condensed set whose last species is a linear combination of the others
-/// (<see cref="CondensedDependency"/>), and rule A ties an element row found to duplicate another's
-/// (<see cref="ElementCoupling"/>) instead of answering it with a removal. Only once both find nothing do the
+/// (<see cref="CondensedDependency"/>), and rule A ties an element row found to equal a linear combination of the other
+/// rows (<see cref="ElementCoupling"/>) instead of answering it with a removal. Only once both find nothing do the
 /// report's own remedies run: reset the gaseous species that vanished, twice; then remove one condensed species
 /// chosen by the row whose pivot failed (2026-09-28, cea 3.3.4 <c>equilibrium.f90:2001-2059</c>), as
 /// <see cref="TargetedPosition"/> picks it, rather than always the last species of the solution. Kernel-compatible.
@@ -47,9 +47,9 @@ internal static class SingularRemedies
             }
         }
 
-        // Rule A (BOOT.md, 2026-09-28): an element row that duplicates another's is tied, not answered by a removal —
-        // at once when a condensed species of the solution holds the pair, otherwise only after the two resets below,
-        // which still handle transient couplings.
+        // Rule A (BOOT.md of this node): an element row that equals a linear combination of the other rows is tied, not
+        // answered by a removal — at once when a condensed species of the solution holds the tied element and an element
+        // of the combination, otherwise only after the two resets below, which still handle transient couplings.
         if (!state.Tie.Active && failedRow >= 0 && failedRow < table.ElementCount
             && (state.CondensedCount > 0 || loop.SingularResets >= MaxSingularResets))
         {

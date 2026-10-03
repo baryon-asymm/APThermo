@@ -99,6 +99,25 @@ public sealed class WarmStartTests
         }
     }
 
+    /// <summary>
+    /// The three-element tie's own state, pinned by name (Newton BOOT.md, "Rule A: an element tie", 2026-10-03): the
+    /// example 1 table at 300 K, where only Ar, CO2, H2O and N2 are retained and row O equals 2·C + ½·H, warm-started at
+    /// half its pressure from its own solution. Both solves are required to end `Ok` before the shared comparison runs,
+    /// so none of its skip branches is reachable here, and the warm solve equals its cold solve.
+    /// </summary>
+    [Fact]
+    public void AWarmStartFromTheThreeElementExample1SolutionAtHalfPressureEqualsItsColdSolve()
+    {
+        const string name = "three-element_rp1311-example1_r1.0_p1atm_T300";
+        var c = HostSolver.Load("tp", name);
+        var cold = HostSolver.Of(CpuFixture.Shared, c);
+        var accelerator = CpuFixture.Shared.Accelerator;
+        Assert.Equal(CaseStatus.Ok, HostSolver.Solve(accelerator, cold).Status);
+        Assert.Equal(CaseStatus.Ok, HostSolver.Solve(accelerator, cold with { Pressure = cold.Pressure / 2.0 }).Status);
+
+        AssertWarmStartAgreesWithFreshCold(name, problem => problem with { Pressure = problem.Pressure / 2.0 });
+    }
+
     /// <summary>A warm solve at half pressure agrees with a cold solve at that pressure.</summary>
     [Theory]
     [MemberData(nameof(TpCases))]

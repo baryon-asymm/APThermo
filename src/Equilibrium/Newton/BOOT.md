@@ -175,8 +175,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 
   The tie is per-case state: `ElementTie` in `IterationState` (active, element, released)
   and the coefficients `c` in the case's scratch, live and in the release snapshot, two
-  slices of the element count each, grouped so that `EquilibriumScratch`'s constructor
-  does not grow. `ElementCoupling` holds the read-only queries,
+  slices of the element count each, grouped, with the multipliers snapshot, in `TieElementSlices`
+  so that `EquilibriumScratch`'s constructor does not grow. `ElementCoupling` holds the read-only queries,
   `CondensedDependency` rule B's tests, and `IterationMatrix` stays the only writer of
   Newton rows. `SingularRemedies.Recover` tries rule B, then rule A, then the resets,
   then the targeted removal.

@@ -41,13 +41,14 @@ import propellants
 import retention_threshold
 import rp1311
 import thermo_functions
+import three_element
 import throat_scan
 import transport_fits
 from common import CASES, safe_name
 from writer import Writer
 
 SCRIPTS = [constants, thermo_functions, transport_fits, rp1311, propellants, plateaus, low_temperature,
-          condensed_phase_limit, throat_scan, retention_threshold]
+          condensed_phase_limit, throat_scan, retention_threshold, three_element]
 
 #: The one kind sampled in full (tests/Fixtures/ACCEPTANCE.md, "The outputs are bound to the generator"): the throat
 #: family's mass-flux search is the fixture kind the second hidden-defect audit's own performance node work turned
