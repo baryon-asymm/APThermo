@@ -1,5 +1,5 @@
-using APThermo.Equilibrium.Condensed;
 using APThermo.Thermo;
+using ILGPU;
 
 namespace APThermo.Equilibrium.StateRecord;
 
@@ -9,9 +9,10 @@ namespace APThermo.Equilibrium.StateRecord;
 /// Kernel-compatible; it reuses the iteration's matrix, right-hand side and row scales.
 /// </summary>
 /// <remarks>
-/// At a pinned pair — two records of one formula in the solution at their transition — the constant-pressure derivatives do
-/// not exist (section 3.5; Gordon 1970). The system is then assembled once, at constant temperature, with one record of the
-/// pair left out as the representative of both, and the state carries the reference's plateau convention (BOOT.md, API.md).
+/// At a pinned set — condensed species of the solution whose element vectors are linearly dependent: two records of one
+/// formula at their transition, or different species at a reaction plateau — the constant-pressure derivatives do not
+/// exist (section 3.5; Gordon 1970). The system is then assembled once, at constant temperature, with one species of the set
+/// left out as the representative, and the state carries the reference's plateau convention (BOOT.md, API.md).
 /// </remarks>
 internal static class DerivativeSystem
 {
@@ -22,22 +23,23 @@ internal static class DerivativeSystem
     /// element's derivative is fixed by <see cref="CloseRows"/>. Trusts <see cref="IterationState.Tie"/>'s own
     /// <c>Active</c> flag rather than re-deriving it with <see cref="Newton.ElementCoupling.Coupled"/> (the third pass of
     /// 2026-09-28, finding F1): the caller's release-and-restore keeps a tie active exactly at the composition where
-    /// the coupling test found the pair told apart — that is why the release was tried — so a recheck here would
-    /// undo the "closed with the tie in force" restore for no gain, while agreeing with the caller in every other case
-    /// (the tie is only ever set or cleared right before a settlement this method's own composition also sees).
+    /// the coupling test found the tied combination of elements no longer held — that is why the release was tried — so a
+    /// recheck here would undo the "closed with the tie in force" restore for no gain, while agreeing with the caller in
+    /// every other case (the tie is only ever set or cleared right before a settlement this method's own composition also
+    /// sees).
     /// </summary>
     public static Derivatives Solve(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                     in IterationState state, int stride)
     {
         var condensedCount = state.CondensedCount;
-        var pairSecond = PairSecond(table, scratch, condensedCount);
-        var derivatives = new Derivatives { Pinned = pairSecond >= 0, Solved = true };
+        var representative = DependentSlot(table, scratch, condensedCount, stride);
+        var derivatives = new Derivatives { Pinned = representative >= 0, Solved = true };
         var derivativeCount = condensedCount;
         if (derivatives.Pinned)
         {
             // The representative goes into the last slot, so that the rows and the pivoting keep the order they have
-            // without a pair; the caller's order is restored before the return.
-            Swap(scratch, pairSecond, condensedCount - 1);
+            // without a pinned set; the caller's order is restored before the return.
+            Swap(scratch, representative, condensedCount - 1);
             derivativeCount = condensedCount - 1;
         }
 
@@ -72,7 +74,7 @@ internal static class DerivativeSystem
 
         if (derivatives.Pinned)
         {
-            Swap(scratch, pairSecond, condensedCount - 1);
+            Swap(scratch, representative, condensedCount - 1);
         }
 
         return derivatives;
@@ -91,21 +93,81 @@ internal static class DerivativeSystem
         scratch.RightHandSide[tied] = 0.0;
     }
 
-    /// <summary>The slot of the second record of the first pair of one formula in the solution; −1 when there is no pair.</summary>
-    private static int PairSecond(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount)
+    /// <summary>Relative residual at or below which a condensed species' element vector lies in the span of the slots before it.</summary>
+    private const double DependenceTolerance = 1e-9;
+
+    /// <summary>
+    /// The first slot of the condensed set whose element vector is a linear combination of the vectors of the slots before
+    /// it (modified Gram–Schmidt over the element rows, in solution order); −1 when the set is independent. A pinned pair
+    /// (two records of one formula) is the simplest case, a reaction plateau among different condensed species
+    /// (2 Al(OH)3 = Al2O3 + 3 H2O(L)) the general one. The orthonormal basis is kept in the first rows of
+    /// <c>scratch.Matrix</c>, a workspace <see cref="Assemble"/> clears before it assembles anything.
+    /// </summary>
+    private static int DependentSlot(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, int stride)
     {
+        var elementCount = table.ElementCount;
         for (var c = 0; c < condensedCount; c++)
         {
-            for (var d = c + 1; d < condensedCount; d++)
+            var norm = LoadElementVector(table, scratch, scratch.CondensedInSolution[c], c * stride);
+            for (var k = 0; k < c; k++)
             {
-                if (PhaseGeometry.SameFormula(table, scratch.CondensedInSolution[c], scratch.CondensedInSolution[d]))
-                {
-                    return d;
-                }
+                RemoveComponent(scratch.Matrix, k * stride, c * stride, elementCount);
+            }
+
+            var residual = SquaredNorm(scratch.Matrix, c * stride, elementCount);
+            if (residual <= DependenceTolerance * DependenceTolerance * norm)
+            {
+                return c;
+            }
+
+            var scale = 1.0 / Math.Sqrt(residual);
+            for (var i = 0; i < elementCount; i++)
+            {
+                scratch.Matrix[c * stride + i] *= scale;
             }
         }
 
         return -1;
+    }
+
+    /// <summary>Writes the element vector of species <paramref name="j"/> at <paramref name="row"/> of the matrix; returns its squared norm.</summary>
+    private static double LoadElementVector(in SpeciesTableView table, in EquilibriumScratch scratch, int j, int row)
+    {
+        var norm = 0.0;
+        for (var i = 0; i < table.ElementCount; i++)
+        {
+            var a = table.Stoichiometry[i * table.SpeciesCount + j];
+            scratch.Matrix[row + i] = a;
+            norm += a * a;
+        }
+
+        return norm;
+    }
+
+    /// <summary>Subtracts from the vector at <paramref name="row"/> its projection on the unit vector at <paramref name="basis"/>.</summary>
+    private static void RemoveComponent(ArrayView<double> matrix, int basis, int row, int length)
+    {
+        var dot = 0.0;
+        for (var i = 0; i < length; i++)
+        {
+            dot += matrix[basis + i] * matrix[row + i];
+        }
+
+        for (var i = 0; i < length; i++)
+        {
+            matrix[row + i] -= dot * matrix[basis + i];
+        }
+    }
+
+    private static double SquaredNorm(ArrayView<double> matrix, int row, int length)
+    {
+        var sum = 0.0;
+        for (var i = 0; i < length; i++)
+        {
+            sum += matrix[row + i] * matrix[row + i];
+        }
+
+        return sum;
     }
 
     private static void Swap(in EquilibriumScratch scratch, int first, int second) =>

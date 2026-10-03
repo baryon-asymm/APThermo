@@ -200,12 +200,21 @@ missed both. Every failure now retries (the second hidden-defect audit's finding
 estimate". The logarithm stays, but no estimate reads it (the hidden-defect audit,
 finding 3; [Newton/BOOT.md](Newton/BOOT.md), the loop's bookkeeping).
 
-At a pinned two-phase state — two records of one formula in the solution at their
-transition, hp and sp problems only ([Condensed/BOOT.md](Condensed/BOOT.md), the condensed-species rule) —
-`CpEquilibrium`, `CvEquilibrium` and `DlnVdlnT` are written as zero, the reference's
+At a pinned state — condensed species in the solution whose element vectors are linearly
+dependent: two records of one formula at their transition, or different species on a reaction
+plateau (Al(OH)3, Al2O3 and H2O(L)), hp and sp problems only
+([Condensed/BOOT.md](Condensed/BOOT.md), the condensed-species rule; [StateRecord/BOOT.md](StateRecord/BOOT.md),
+the pinned set) — `CpEquilibrium`, `CvEquilibrium` and `DlnVdlnT` are written as zero, the reference's
 convention for derivatives that do not exist on a plateau (decided 2026-09-13), while
 `DlnVdlnP`, `GammaS = −1/DlnVdlnP` and `SoundSpeed` carry the real plateau values and
-both records' mole numbers are reported.
+the mole numbers of every species of the set are reported.
+
+⚠ 2026-10-03: was a pinned **pair** (two records of one formula), now a pinned **set** found by
+linear dependence. Consumers now see `CpEquilibrium = 0` on a reaction plateau too, where the
+state was a failure before (an hp or sp state inside the Al(OH)3/Al2O3/H2O(L) band ended
+`TemperatureOutOfRange`); the plateau reference of the Fixtures node's `seeded` kind carries the
+reference's frozen second-order values there, which a comparison skips
+([StateRecord/BOOT.md](StateRecord/BOOT.md), the ⚠ of that date).
 
 ⚠ 2026-09-14: `SpeciesActive` was documented as "1 when every element of the species
 is present", a two-valued mask, while the plateau rules of 2026-09-13 had made it
@@ -250,7 +259,7 @@ singular remedy), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`
 `[160 K, 22000 K]`, a `SolveFrozen` temperature below 0.8 times the lowest lower bound
 of the fits of the gases present or above `22000 K`, or a converged state whose frozen
 or equilibrium heat capacity, `γs` or sound speed is not finite and positive — the
-state guard, exempting a pinned pair's zero `CpEquilibrium`/`CvEquilibrium` convention:
+state guard, exempting a pinned set's zero `CpEquilibrium`/`CvEquilibrium` convention:
 `BOOT.md`, the mixture window, and [StateRecord/BOOT.md](StateRecord/BOOT.md), the state guard).
 On any status but `Ok`, `Moles` hold the last iterate and `State` is not written; on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written.

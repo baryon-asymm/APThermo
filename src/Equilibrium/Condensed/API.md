@@ -1,8 +1,8 @@
 # API.md — Equilibrium.Condensed
 
 Namespace `APThermo.Equilibrium.Condensed`. Every type is `internal`: the audience is
-`src/Equilibrium`'s own files (`EquilibriumSolver`), the sibling child nodes (`Newton`,
-`StateRecord`) and its tests node, not a neighbour or a caller outside the tree. Everything not
+`src/Equilibrium`'s own files (`EquilibriumSolver`), the sibling child node `Newton` and its tests
+node (the `StateRecord` child stopped using this node on 2026-10-03, `StateRecord/BOOT.md`), not a neighbour or a caller outside the tree. Everything not
 listed here is internal to this node itself and may change without notice even to the parent. The
 parent's types that the signatures name (`IterationState`, `EquilibriumScratch`,
 `EquilibriumResult`, `EquilibriumProblem`) are described in [the parent's API.md](../API.md).
