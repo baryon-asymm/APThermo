@@ -32,7 +32,24 @@ internal static class Program
     /// ⚠ of 2026-09-24); every other exception leaves this method, so an in-process caller such as a test receives
     /// it directly, and a real process reports it through <see cref="Main"/>'s unhandled-exception handler instead.
     /// </summary>
-    public static int Run(string[] args, TextWriter output, TextWriter error)
+    public static int Run(string[] args, TextWriter output, TextWriter error) =>
+        Execute(args, output, error, (directory, accelerator) => SolverSession.Open(directory, accelerator, null));
+
+    /// <summary>
+    /// As <see cref="Run"/>, with the solvers taken from <paramref name="solvers"/> instead of created for this
+    /// invocation: a solver the cache holds is reused, one it lacks is created and kept. The invocation holds the
+    /// cache's gate for its whole length, so concurrent callers of one cache run one after the other.
+    /// </summary>
+    public static int RunCached(string[] args, TextWriter output, TextWriter error, SolverCache solvers)
+    {
+        ArgumentNullException.ThrowIfNull(solvers);
+        using (solvers.Gate.EnterScope())
+        {
+            return Execute(args, output, error, (directory, accelerator) => SolverSession.Open(directory, accelerator, solvers));
+        }
+    }
+
+    private static int Execute(string[] args, TextWriter output, TextWriter error, Func<string?, AcceleratorKind, SolverSession> open)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
@@ -52,7 +69,7 @@ internal static class Program
                 return (int)ExitCode.Ok;
             }
 
-            return (int)CommandRegistry.Execute(invocation, output);
+            return (int)CommandRegistry.Execute(invocation, output, open);
         }
         catch (InputException e)
         {

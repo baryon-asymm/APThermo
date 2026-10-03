@@ -17,12 +17,12 @@ namespace APThermo.Cli;
 /// </summary>
 internal static class StatesCommand
 {
-    public static ExitCode Execute(Invocation invocation, TextWriter output)
+    public static ExitCode Execute(Invocation invocation, TextWriter output, Func<string?, AcceleratorKind, SolverSession> open)
     {
         var files = invocation.Arguments.Select(path => (path, InputFile.ReadAllText(path))).ToList();
         var records = StateRecordReader.Read(files);
         var options = invocation.Options;
-        using var session = SolverSession.Open(options.Database, options.Accelerator ?? AcceleratorKind.Auto);
+        using var session = open(options.Database, options.Accelerator ?? AcceleratorKind.Auto);
         var cases = new CaseOutput[records.Count];
         var batch = new StateBatchOptions(options.Transport, MassTolerance: options.MassTolerance);
         SolveEquilibrium(session.Solver, [.. records.Where(r => !r.Record.HasExits)], batch, cases);

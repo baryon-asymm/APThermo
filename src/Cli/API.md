@@ -4,12 +4,18 @@ Namespace `APThermo.Cli`, tool command `apthermo`. The node
 exposes a command line and the JSON document shapes it reads and writes. Everything
 not listed here, in a package-surface section (one whose heading carries no
 `(tree contract)` mark), is internal and may change without notice (root `BOOT.md`,
-Delivery: Public surface). This node's own entry point (`Program`, `ExitCode`) is its
-only tree contract, read by this node's own tests and by `tests/Docs.Tests` (its
-`schema` validation calls `Program.Run` in-process, having no other way to reach this
-node's contract): `Cli` itself receives no grant from any neighbour and uses their
-package surfaces only (root `BOOT.md`, Delivery: Tree contracts, "the command line is
-a consumer like any other").
+Delivery: Public surface). This node's own entry point (`Program`, `SolverCache`,
+`ExitCode`) is its only tree contract, read by this node's own tests and by
+`tests/Docs.Tests` (its `schema` validation calls `Program.Run` in-process, and its
+command-line examples `Program.RunCached` on a `SolverCache`, having no other way to
+reach this node's contract): `Cli` itself receives no grant from any neighbour and uses
+their package surfaces only (root `BOOT.md`, Delivery: Tree contracts, "the command line
+is a consumer like any other").
+
+⚠ 2026-10-03: this paragraph named `Program` and `ExitCode` as the tree contract and
+`Program.Run` as the one call of `tests/Docs.Tests`; now `SolverCache` is part of it and
+the docs tests call `Program.RunCached` too (the test pyramid, "Entry point (tree
+contract)" below).
 
 ⚠ 2026-09-17 (the audit's C6): this paragraph and the ⚠ under "Entry point (tree
 contract)" below stood "read by no other assembly but its own tests" and "the only
@@ -133,9 +139,31 @@ internal static class Program
     public const string ToolName = "apthermo";
     public static string Version { get; }                                   // the assembly's informational version
     public static int Main(string[] args);
-    public static int Run(string[] args, TextWriter output, TextWriter error);   // in-process: documents to output or the --output file, messages to error
+    public static int Run(string[] args, TextWriter output, TextWriter error);   // in-process: documents to output or the --output file, messages to error; a fresh solver per invocation, as the process has
+    public static int RunCached(string[] args, TextWriter output, TextWriter error, SolverCache solvers);   // as Run, the solvers taken from the cache; holds the cache's gate for the whole invocation
+}
+
+internal sealed class SolverCache : IDisposable   // warm solvers kept across in-process invocations: one per database content and requested accelerator
+{
+    public SolverCache();
+    public int Count { get; }                     // the number of solvers this cache has created
+    internal Lock Gate { get; }                   // held by RunCached for the length of one invocation: an engine is used from one thread at a time
+    internal Solver SolverFor(SpeciesDatabase database, AcceleratorKind accelerator);   // the solver of this database content and accelerator, created on the first request
+    public void Dispose();                        // disposes every solver the cache created
 }
 ```
+
+The cache key is the database's own content (`Provenance.ThermoSha256` and `TransSha256`) and the
+requested `AcceleratorKind`, so a database directory of another content, or an `auto` request next to a `cpu`
+one, gets its own solver. The database itself is still loaded per invocation, so `run.database` and its timing stay
+true. A cached solver outlives the invocation that created it and is disposed with the cache; `Run` creates and
+disposes one per invocation. The cache is an explicit parameter, never a static: the node's "no hidden state" holds.
+
+⚠ 2026-10-03 (the test pyramid, root `BOOT.md`, Test time budgets): `Run` was the only in-process entry. Every
+in-process invocation paid a fresh engine, whose kernels compile on the CPU accelerator at the first run, 1 to 2 s
+each, and the command line's tests and the docs tests spent most of their time there. `RunCached` and
+`SolverCache` are new; `Run` is unchanged. The handlers receive a `Func<string?, AcceleratorKind, SolverSession>`
+that `Run` and `RunCached` build, never the cache type.
 
 ⚠ 2026-09-15 (distribution phase): `ExitCode` and `Program` were the assembly's only
 two public types (`Protocol.Tests.SurfaceTests`, the acceptance criteria of `BOOT.md`).

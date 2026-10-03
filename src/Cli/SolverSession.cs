@@ -13,8 +13,11 @@ internal sealed class SolverSession : IDisposable
 {
     private readonly Stopwatch _solveWatch;
 
-    private SolverSession(Solver solver, DatabaseInfo info, double databaseSeconds, Stopwatch solveWatch)
+    private readonly bool _owned;
+
+    private SolverSession(Solver solver, DatabaseInfo info, double databaseSeconds, Stopwatch solveWatch, bool owned)
     {
+        _owned = owned;
         Solver = solver;
         DatabaseInfo = info;
         DatabaseSeconds = databaseSeconds;
@@ -27,12 +30,16 @@ internal sealed class SolverSession : IDisposable
 
     public double DatabaseSeconds { get; }
 
-    public static SolverSession Open(string? databaseDirectory, AcceleratorKind accelerator)
+    /// <summary>
+    /// Opens the database and a solver for it: a fresh solver the session owns and disposes, or, given a
+    /// <paramref name="cache"/>, the cache's solver, which stays alive after the session.
+    /// </summary>
+    public static SolverSession Open(string? databaseDirectory, AcceleratorKind accelerator, SolverCache? cache)
     {
         var (database, info, databaseSeconds) = DatabaseFiles.Load(databaseDirectory);
         var watch = Stopwatch.StartNew();
-        var solver = Solver.Create(database, new EngineOptions { Accelerator = accelerator });
-        return new SolverSession(solver, info, databaseSeconds, watch);
+        var solver = cache is null ? Solver.Create(database, new EngineOptions { Accelerator = accelerator }) : cache.SolverFor(database, accelerator);
+        return new SolverSession(solver, info, databaseSeconds, watch, cache is null);
     }
 
     public RunInfo Stop(string command, IReadOnlyList<string> inputs, RunLimits limits)
@@ -41,5 +48,11 @@ internal sealed class SolverSession : IDisposable
         return new RunInfo(command, inputs, DatabaseInfo, Solver.Accelerator, new Timings(DatabaseSeconds, _solveWatch.Elapsed.TotalSeconds), limits);
     }
 
-    public void Dispose() => Solver.Dispose();
+    public void Dispose()
+    {
+        if (_owned)
+        {
+            Solver.Dispose();
+        }
+    }
 }
