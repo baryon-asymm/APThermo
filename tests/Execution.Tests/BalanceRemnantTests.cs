@@ -194,7 +194,7 @@ public sealed class BalanceRemnantTests
     /// The family on the CPU accelerator, and again over a batch whose element moles moved by <see cref="PerturbationUlps"/> ULP in
     /// alternating directions: the second run is the exact solution of a slightly different balance, as another accelerator's is.
     /// </summary>
-    private static TwoCpuRuns TwoRuns((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
+    internal static TwoCpuRuns TwoRuns((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
     {
         var (batch, table, _) = family;
         var moved = FixtureBatches.CopyOf(batch);
@@ -214,5 +214,5 @@ public sealed class BalanceRemnantTests
     }
 
     /// <summary>Two CPU results of one family, the second over moved element moles, with the balance and the sensitivities of the first batch.</summary>
-    private sealed record TwoCpuRuns(EquilibriumBatchResult Cpu, EquilibriumBatchResult Other, ElementBalance Balance, BalanceSensitivities Sensitivities);
+    internal sealed record TwoCpuRuns(EquilibriumBatchResult Cpu, EquilibriumBatchResult Other, ElementBalance Balance, BalanceSensitivities Sensitivities);
 }
