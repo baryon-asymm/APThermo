@@ -198,6 +198,12 @@ families):
     - AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass
       fractions and product table as the `ap-htpb-al` chamber fixture (imported from
       `propellants.py`, not copied): a direct tp solve, not a rocket station.
+  - The reaction plateau (2026-10-03, `generate/seeded.py`, kind `seeded`; the StateRecord
+    node's pinned set): hp and sp on the table, reactants and element moles of the tp fixture
+    `ap-htpb-al_pc7MPa_T430` (imported, not copied), each seeded by tp at 430 K in one
+    `EqSolution`, at the band fractions 0.1, 0.5 and 0.9 and the edges −0.05 and 1.05, at
+    1, 7 and 20 MPa. The band is the enthalpy (or entropy) between tp 415.9 K and 416.0 K
+    of the same seed, measured by the script, not typed; at 0.1 MPa there is no plateau.
   - The three-element tie (2026-10-03, `generate/three_element.py`; the generalized rule A
     of the Newton node): tp cases on the element moles and product lists of RP-1311
     examples 1 (r = 1.0) and 12, where only CO2, H2O and N2 (and Ar) are retained and row

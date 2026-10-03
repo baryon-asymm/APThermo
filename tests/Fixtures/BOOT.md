@@ -71,9 +71,19 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Layout: `generate/` holds the Python scripts and `requirements.txt`; `cases/<kind>/`
   holds one JSON file per case (`kind` is `tp`, `hp`, `sp`, `rocket`, `throat`,
-  `transport`, `thermo`, `constants`, `reactant`; `throat` since 2026-09-27, `reactant` since
-  2026-09-28); `tolerances.json` is the tolerance table; the C# loader is
-  the node's assembly `APThermo.Fixtures`.
+  `transport`, `thermo`, `constants`, `reactant`, `seeded`; `throat` since 2026-09-27,
+  `reactant` since 2026-09-28, `seeded` since 2026-10-03); `tolerances.json` is the
+  tolerance table; the C# loader is the node's assembly `APThermo.Fixtures`.
+
+  The `seeded` kind holds hp and sp equilibrium cases that neither the reference nor the
+  tree converges from a cold start, only from a converged neighbour: its inputs carry
+  `"seed": {"kind": "tp", "temperature": …}` on the same reactants, and the generator
+  solves the seed and then the case in one `EqSolution` of the package. Its first use is
+  the Al(OH)3/Al2O3/H2O(L) reaction plateau (the StateRecord node's pinned set). There the
+  reference recognises no plateau and reports frozen second-order fields: a consumer
+  compares the first-order fields and the mole fractions and skips the six second-order
+  fields on the reference's singular signature (`cpEquilibrium == cpFrozen` exactly, with
+  a condensed species present), as the singular tp case already does.
 
   ⚠ 2026-09-28: the `reactant` kind was added for a reactant-level fact (`Br2(cr)`),
   not an equilibrium solve → HISTORY.md#reactant-kind

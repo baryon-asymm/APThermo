@@ -248,7 +248,11 @@
         With only CO2, H2O and N2 retained, row O
         equals 2·C + ½·H. 77 fuzz tp states on example 1 and example 12 tables at
         300 K and 600 K end `SingularMatrix`, which a pair tie cannot express.
-      - **The reaction plateau.** hp inside the Al(OH)3/Al2O3/H2O(L) reaction plateau
+      - **The reaction plateau.** ⚠ 2026-10-03: designed for 0.2.1, now the StateRecord
+        node's pinned set ([StateRecord/BOOT.md](StateRecord/BOOT.md)). Found beside it and
+        not fixed: a cold hp near 400 K on that table fails (and so does the reference), and a
+        warm hp seeded from above T* fails 25 K or more below it. As it stood:
+        hp inside the Al(OH)3/Al2O3/H2O(L) reaction plateau
         (T* = 415.948 K, 157 kJ/kg wide at 7 MPa) ends `SingularMatrix` in the
         derivative system: the pinned-pair convention covers two records of one
         formula only.
