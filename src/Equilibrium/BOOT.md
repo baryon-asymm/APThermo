@@ -76,10 +76,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   The dense solve is Gaussian elimination with scaled partial pivoting, a tree-contract
   type of this node (`API.md`) that `Transport` calls too.
 
-  ⚠ 2026-09-26: was at most 8 condensed species in the solution (30 × 30), now at most
-  20 (42 × 42) → HISTORY.md#condensed-limit
-  ⚠ 2026-10-02: was `DenseSolver` visible to its tests node only, now `Transport`'s too
-  → HISTORY.md#ds-tree-contract-2026-10-02
+  ⚠ 2026-09-26: was at most 8 condensed species in the solution (30 × 30), now at most 20 (42 × 42) → HISTORY.md#condensed-limit
+  ⚠ 2026-10-02: was `DenseSolver` visible to its tests node only, now `Transport`'s too → HISTORY.md#ds-tree-contract-2026-10-02
 
 - The Newton loop: the reduced equations (RP-1311 tables 2.1 and 2.2, the sp row, `p°`), the damping
   and the convergence tests of chapter 3, the polish, the loop's bookkeeping, the singular-matrix
@@ -123,8 +121,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   minimized set, and the threshold still governs every species never retained.
   → HISTORY.md#retention-condensed-2026-10-02
 
-  ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the
-  report stands for the last `Composition.Refresh` → HISTORY.md#report-zeroing
+  ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the report stands for the last `Composition.Refresh` → HISTORY.md#report-zeroing
 
   Iteration cap: 50 Newton steps after the last change of the
   condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
@@ -177,8 +174,7 @@ scratch and result structs. Every floating-point expression keeps its present fo
 and its present order of evaluation: the decomposition moves code, it does not
 rewrite formulas, and the bit snapshot of the tests node (the acceptance criteria
 below) is the proof.
-⚠ 2026-10-02: was all stages in this directory and namespace, now child nodes
-→ HISTORY.md#structure-split-2026-10-02
+⚠ 2026-10-02: was all stages in this directory and namespace, now child nodes → HISTORY.md#structure-split-2026-10-02
 
 | Class | Responsibility | Visibility |
 |---|---|---|
@@ -187,12 +183,13 @@ below) is the proof.
 | `Condensed` (child node) | changes the condensed set between two convergences and holds the exit guard ([Condensed/BOOT.md](Condensed/BOOT.md)) | internal, no project of its own |
 | `StateRecord` (child node) | turns a converged or frozen composition into the `MixtureState` (RP-1311 sections 2.5 and 2.6, the plateau convention, the state guard) ([StateRecord/BOOT.md](StateRecord/BOOT.md)) | internal, no project of its own |
 
-The other stage classes of this directory (`CaseSetup`, `Composition`, `SpeciesMarks`,
-`ElementBalance`, `FrozenTemperature`, `DenseSolver`) are internal, each described by the
+The other stage classes of this directory (`CaseSetup`, `ConvergenceSequence`, `Composition`,
+`SpeciesMarks`, `ElementBalance`, `FrozenTemperature`, `DenseSolver`) are internal, each described by the
 summary of its declaration; the classes of the child nodes are listed in their `BOOT.md`.
-The data flow: `Solve`, `CaseSetup`, then a loop of `Newton.Converge`, `Composition.Refresh`
-and `Condensed.Update` (with the tie's release), then the close: window, element invariant,
-exit guard, `Composition.Sums`, `DerivativeSystem`, `MixtureProperties`.
+The data flow: `Solve`, `CaseSetup`, then `ConvergenceSequence` (a loop of `Newton.Converge`,
+`Composition.Refresh` and `Condensed.Update`, with the tie's release and its way back), then the
+close: window, element invariant, exit guard, `Composition.Sums`, `DerivativeSystem`,
+`MixtureProperties`.
 → HISTORY.md#structure-table-rows
 
 ⚠ 2026-09-15: was six types public, now internal with grants → HISTORY.md#visibility
@@ -259,7 +256,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `EquilibriumSolver` | efferent coupling | 21 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 16 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 The rows of the child nodes' types stand in their own `## Shape exceptions`
@@ -267,14 +264,14 @@ The rows of the child nodes' types stand in their own `## Shape exceptions`
 
 ⚠ 2026-09-28: was `EquilibriumScratch` 12 parameters, now 16 → HISTORY.md#ce-scratch16
 
-Every other type of the node measures 11 or below by the dependency check's walk, well
-below the root's limit of 14, except `Newton.ConvergenceTests` at 14 → HISTORY.md#ce-rest-2026-10-02
+Every other type of the node and its children measures 14 or below by the dependency check's
+walk, the root's limit; at 14 stands `Newton.ConvergenceTests` and at 12 `ConvergenceSequence`
+(2026-10-03) → HISTORY.md#ce-rest-2026-10-02
 
-⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14, on the root's limit, since it
-names the types `RetentionVerdict` and `Crossing` read; no other type moved
+⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14 → HISTORY.md#ce-convergence-tests-2026-10-03
+⚠ 2026-10-03: was `EquilibriumSolver` 24, now 21: `ConvergenceSequence` took four names → HISTORY.md#ce-solver-2026-10-03
 ⚠ 2026-09-28: was the rest "10 or below", now 11 → HISTORY.md#ce-rules-ab
-⚠ 2026-09-28: was `EquilibriumSolver` at 19 and `NewtonIteration` at 18, now 22 and 19
-→ HISTORY.md#ce-roots-22
+⚠ 2026-09-28: was `EquilibriumSolver` at 19 and `NewtonIteration` at 18, now 22 and 19 → HISTORY.md#ce-roots-22
 ⚠ 2026-09-28: was the roots at 22 and 19, now 24 and 20 → HISTORY.md#ce-roots
 
 ## Acceptance criteria

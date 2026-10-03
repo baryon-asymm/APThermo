@@ -8,6 +8,27 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="ce-convergence-tests-2026-10-03"></a>
+
+## 2026-10-03 — from "## Shape exceptions" — the type at 14
+
+Moved to make room in `BOOT.md` (`AGENTS.md`, §15) when `ConvergenceSequence` joined the sentence above it. The paragraph below stood after the review of the convergence-tests bullet; the figure it states is still true, and the current text names the type in the sentence about every other type.
+
+> ⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14, on the root's limit, since it
+> names the types `RetentionVerdict` and `Crossing` read; no other type moved
+
+---
+
+<a id="ce-solver-2026-10-03"></a>
+
+## 2026-10-03 — from "## Shape exceptions" — the composition root's row at 24
+
+`ConvergenceSequence` took `RunToConvergence` out of `EquilibriumSolver` (step 1 of the 0.2.2 coding, moved without change), and with it the names `NewtonIteration`, `ElementTie`, `TieSnapshot` and `ElementCoupling`; the dependency check's walk then measured 21 for `EquilibriumSolver`, and the row follows the measurement. The row stood:
+
+> | `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+
+---
+
 <a id="exit-guard-scope-2026-10-02"></a>
 
 ## 2026-10-02 — from "## Constraints" — the exit guard's scope
