@@ -291,7 +291,13 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       residual of 1e-12 reported); red without the correction on CUDA: the merge-guard run
       of `de16866` (the families alone), `three-element-example1` x(H2) 3.8e-9 at equal
       steps; WSL fast suite green on `377998d`.
-- [ ] The appear-or-vanish rule of the balance-remnant correction is proven non-degenerate
-      (2026-10-03, AGENTS.md §13: no fixture family triggered it, 0 of 23 cases): a fact over
+- [x] 2026-10-03 — The appear-or-vanish rule of the balance-remnant correction is proven
+      non-degenerate (AGENTS.md §13: no fixture family triggered it, 0 of 23 cases): a fact over
       a case whose condensed set differs between `b(1 − h)`, `b` and `b(1 + h)`, which the
       rule leaves uncorrected, red once with the rule disabled.
+      Evidence: `PhaseOnsetTests.ACaseAtAPhaseOnsetGetsNoCorrectionAndTheComparisonStillPasses`
+      (`4e57a6e`, merged `55b0584`): the example12 tp case at 300 K bisected on its carbon
+      to within 1e-9 of the onset of C(gr), the three solves `Ok` with different condensed
+      sets; red with the rule disabled (no station left without a derivative). At this
+      onset the disagreement bound drops the gas rows too, so the fact proves the rule's
+      own output, not that the rule alone prevents a wrong correction.
