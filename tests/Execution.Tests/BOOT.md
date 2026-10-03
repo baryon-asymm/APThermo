@@ -88,6 +88,9 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   the other accelerator, H2 3.3e-9 against 8.7e-15); the two agree to `κ` times the
   residuals where `κ` is small; the guard keeps the remnant and drops a kink; a residual of
   1e-12 injected into a result is reported, in the equilibrium and in the rocket comparison.
+  The appear-or-vanish rule at a phase onset (`PhaseOnsetTests`): a tp case of the example12 table built at the
+  boundary where C(gr) appears, found by bisection on the carbon moles through the CPU accelerator, has no derivative and
+  no corrected species, and its comparison passes uncorrected.
   Rejected: a tier scaled by κ (it loosens); dropping the family (the only CUDA coverage
   of rule A's tie); comparing the multipliers (`π_H` carries the same conditioning). The
   probes: the orchestrator's scratchpad, `probe/` (2026-10-03).
