@@ -48,7 +48,11 @@ namespace APThermo.Docs.Tests;
 /// re-runs the same invocations and compares the bytes exactly, carrying <c>Category=BitSnapshot</c> so it runs only
 /// on the reference machine (locally and on the self-hosted release runners), where the platform's own record is
 /// known to be exact. `--help`'s plain-text record is not split per platform (its bytes have never been observed to
-/// differ) and stays exactly compared in both facts.
+/// differ) and stays exactly compared in both facts. The two facts above run each invocation in-process on warm
+/// solvers (<see cref="CliInvocation.InProcess"/>); two more, <see cref="EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField"/>
+/// and <see cref="EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentExactly"/>, run the same invocations
+/// as fresh processes (<see cref="CliInvocation.AsProcess"/>), <c>Category=EndToEnd</c>, the exact one also
+/// <c>Category=BitSnapshot</c>.
 /// </summary>
 public sealed partial class CommandLineExampleTests
 {

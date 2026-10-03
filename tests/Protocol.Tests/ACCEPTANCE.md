@@ -108,3 +108,20 @@ only in this node.
       turned `TheWalkFindsTheSelfTests` red (`Collection was empty`). Cases of the class run
       one after another, so the self-tests' temp directories never meet (no collection
       attribute was needed); the merge guard's takes about 70 s, the slowest case of the node.
+
+  ⚠ 2026-10-03: was inside the fast set, now `Category=EndToEnd`: each case starts a Python
+  process, which the End-to-end level counts as a process start (root `BOOT.md`, Test time budgets)
+- [x] 2026-10-03 — The End-to-end level (root `BOOT.md`, Test time budgets; `BOOT.md`, the level of that
+      name): `EndToEndTests.EveryFactThatStartsAProcessCarriesEndToEnd` walks the static call graph of
+      every test method of the `tests` nodes' assemblies (`ProcessStarts`) and fails on a process-starting
+      method without `[Trait("Category", "EndToEnd")]`, and when it finds no test method or none that starts a
+      process. Red once, the trait removed from `OutputDocumentTests.AnAutoRunThatFellBackSaysWhy`: the check
+      named it and that fact only (apart from the open item below). Two findings of the first run, both
+      closed: the in-process facts of `Docs.Tests` were named, because one method chose between the in-process
+      and the process run by a flag, so the graph reached the process from both (the run is now a delegate the
+      fact passes, and the in-process facts reach no process); the Python linter and tool self-tests started a
+      process, never listed by the design brief, and now carry `Category=EndToEnd` (the ⚠ in the BOOT).
+      Open item, escalated (AGENTS.md §11), not closed in this node: the check is red on
+      `tests/Execution.Tests` — `AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`
+      starts a process and carries no `Category=EndToEnd`. Proposal: that node adds the trait to the fact; nothing
+      else changes, and the check is green once it does (it names no other fact).

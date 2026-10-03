@@ -9,10 +9,10 @@ The definition of what "`Cli` is ready" means.
 | L0 | option parsing, the usage text, exit codes; input document reading and its messages with the JSON path; the example documents against the input and states schemas; a composition that does not weigh one kilogram refused naming the record | the command line's embedded schemas; the documented messages and exit codes (`CommandLineTests`, `InputDocumentTests`, `ExitCodeTests`) | ✅ |
 | L1 | every example document of `documents/` and of the `Cli` API runs end to end on the CPU accelerator and validates against the output schema; sweeps, states files, thresholds, transport, the listings; the CSV layout against the approved file | the command line's embedded schemas; the approved CSV; the documented orders (`OutputDocumentTests`, `CsvTests`) | ✅ |
 | L2 | the LOX/LH2 rocket document, the LOX/RP-1 hp document and the elemental tp document give the library's numbers field by field | the `Problems` result of the same case, built from the fixture the document encodes, over reflection-enumerated fields (`LibraryEqualityTests`) | ✅ |
-| Process | one run per exit code as a separate process: real exit codes and standard streams | the documented exit codes (`ProcessTests`) | ✅ |
+| End-to-end | every fact that starts a process carries `Category=EndToEnd` (the end-to-end set, root `BOOT.md`, Test time budgets): one run per exit code as a separate process, real exit codes and standard streams, and an `auto` run that fell back to the CPU under `APTHERMO_NO_CUDA` | the documented exit codes (`ProcessTests`, `OutputDocumentTests.AnAutoRunThatFellBackSaysWhy`) | ✅ (2026-10-03) |
 | L0 | the exception → exit code rule; the usage's defaults are the library's constants; every command of the table has a handler; `cudaSkippedBecause` in `run.accelerator` and in the devices listing; the invalid state records refused with the front door's reasons behind their source | the `Cli` `API.md` of 2026-09-14 (`ExitCodeTests`, `CommandLineTests`, `OutputDocumentTests`, `InputDocumentTests`) | ✅ (2026-09-14) |
 | L2 | the states example gives the library's numbers field by field: the records without exits through `SolveStates`, the records with exits through `SolveRocketStates`, the library call built from the fixtures the records encode | the `Problems` results (`LibraryEqualityTests`) | ✅ (2026-09-14) |
-| Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the SHA-256 of the bytes the command line delivers for the JSON document with the top-level `run` property cut out (`RunPropertyCut`, the span found with a `Utf8JsonReader`, never by searching the text), and the SHA-256 of the CSV text as written, one of each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved and re-approved 2026-09-15 for the hash definition alone (the criterion below) | ✅ (2026-09-15) |
+| Bits | the output of every example that runs (the problem and states documents of `documents/`, the problem and record examples of the `Cli` API, the `species` listing): the SHA-256 of the bytes the command line delivers for the JSON document with the top-level `run` property cut out (`RunPropertyCut`, the span found with a `Utf8JsonReader`, never by searching the text), and the SHA-256 of the CSV text as written, one of each per example in `Bits.approved.txt`; `run` is left out because it carries the machine, the paths, the version and the timings; the same lines are proven a second time through the real process (2026-10-03, `EveryExampleGivesTheRecordedOutputThroughTheProcess`, end-to-end set, four examples at a time): the raw bytes of standard output, JSON and CSV, hashed as the in-process text is | the approved snapshot, recorded before any code of the decomposition of 2026-09-14 moved and re-approved 2026-09-15 for the hash definition alone (the criterion below) | ✅ (2026-09-15) |
 | L0 | `apthermo schema`: every embedded schema is delivered byte for byte to standard output and to `--output`; the embedded names (`SchemaResources.Names`) equal a directory listing of `src/Cli/Schemas/`; a missing or an unknown name is exit code 2, no document, every embedded name in the message | a directory listing of `src/Cli/Schemas/`, never a typed list (`SchemaCommandTests`) | ✅ (2026-09-17) |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
@@ -22,8 +22,16 @@ The definition of what "`Cli` is ready" means.
   fixtures so that they encode real cases; `documents/invalid/` for the rejected
   ones), not strings in code; the examples of the `Cli` API are read from `API.md`
   itself, so they cannot drift from what the reader accepts.
-- The CLI is exercised in-process through its entry point and, once per exit code,
-  as a separate process, so that exit codes and standard streams are real.
+- The CLI is exercised in-process through its entry point, on the warm solvers of one
+  `SolverCache` shared by the node's facts (`Program.RunCached`), and as a separate process
+  by the end-to-end set: once per exit code, and for the bits of every example, so that exit
+  codes, standard streams and the shipped cold path are real.
+
+  ⚠ 2026-10-03: was "in-process through its entry point and, once per exit code, as a
+  separate process", every in-process invocation creating its own engine, which compiled
+  its kernels again (155 s of the node's run); now warm solvers in process, and the process
+  also holds the bits. `ExitCodeTests`' exception facts keep `Program.Run`, and
+  `LibraryEqualityTests` its fresh library `Solver`, a warm-command against cold-library tripwire.
 - The schemas are checked by the Harness `JsonSchema` validator that knows exactly the
   keywords the schemas use and refuses any other, so a schema cannot ask for more
   than is checked; the schema's field lists are compared with the library's structs
@@ -115,19 +123,22 @@ The definition of what "`Cli` is ready" means.
 - [Performance](../../src/Performance/API.md) — `PerformanceFigures`.
 - [Transport](../../src/Transport/API.md) — `TransportFigures`.
 - [Equilibrium](../../src/Equilibrium/API.md) — `ProblemKind`.
-- [Harness](../Harness/API.md) — the bit-snapshot mechanics (`BitHash`, `ApprovedSnapshot`) and (2026-09-16) the JSON-document helpers (`JsonSchema`, `RunPropertyCut`).
+- [Harness](../Harness/API.md) — the bit-snapshot mechanics (`BitHash`, `ApprovedSnapshot`) and (2026-09-16) the JSON-document helpers (`JsonSchema`, `RunPropertyCut`) and (2026-10-03) the process runner (`DotnetProcess`).
 
 Outside the tree: xunit; the `dotnet` host for the process-level runs.
 
 ## Constraints
 
-- Part of the default test command; the CPU accelerator only.
+- Part of the default test command; the CPU accelerator only. The facts that start a
+  process are the end-to-end set, `Category=EndToEnd`, and the rest is this node's share
+  of the fast set, `Category!=LongRunning&Category!=EndToEnd` (the budgets are the root's).
 - Output documents are written into a temporary directory of the fixture, removed
   after the run; nothing else is written into the working directory but the
   `Bits.actual.txt` of a failed snapshot comparison, next to the approved file and
   git-ignored (2026-09-14).
-- The process-level tests run the command line's assembly copied next to this test
-  assembly (with its runtime configuration), else the `Cli` node's own build output.
+- The process-level tests run the command line's assembly through `Harness.DotnetProcess`
+  (2026-10-03, moved from this node's fixture): the one copied next to this test assembly with
+  its runtime configuration, else the `Cli` node's own build output.
 
 ## Acceptance criteria
 
@@ -287,6 +298,31 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
       and the unknown-name branches of `SchemaCommand` each written to `output.WriteLine` and an
       ordinary return instead of `throw new InputException(...)` turned their own fact red,
       `Assert.Empty()` finding the message on standard output instead of standard error.
+
+- [x] 2026-10-03 — The test pyramid (root `BOOT.md`, Test time budgets): the node's
+      in-process facts run on warm solvers and its process facts are the end-to-end set.
+      - Warm solvers: `SolverCacheTests` (one solver for invocations on one database
+        content, a database of another content gets its own, a warm invocation gives the
+        bytes of a fresh one with `run` cut, disposing releases the solvers). Red once:
+        the cache key replaced by a constant, `ADifferentDatabaseContentGetsItsOwnSolver`
+        red (expected 2, actual 1), reverted. The accelerator half of the key has no fact
+        here: a second accelerator is an `auto` run that binds CUDA where a device exists,
+        and this node is CPU only.
+      - Tagging: the eight facts of `ProcessTests` and `AnAutoRunThatFellBackSaysWhy` carry
+        `Category=EndToEnd`; `Protocol.Tests.EndToEndTests` holds it for every process fact.
+        Red once: the trait removed from `AnAutoRunThatFellBackSaysWhy`, the check named it.
+      - Process bits: `EveryExampleGivesTheRecordedOutputThroughTheProcess` is green against
+        the Windows `Bits.approved.txt`, unmoved (`git status`: no `Bits*.approved.txt`
+        touched), so the warm in-process output, the cold process output and the record are
+        the same bytes on this platform. Red once, a process-only change: `Program.Main`
+        writing one byte to standard output before running turned that fact and the two
+        process facts of `Docs.Tests` red while the in-process bit fact stayed green; the
+        runner's `Output` and `Error` swapped turned all ten end-to-end facts red; both
+        reverted.
+      - Evidence, Windows, `APTHERMO_NO_CUDA=1`, a machine other agents also used: this node's
+        137 facts of the fast set in 46 s inside the whole solution's fast run, against 155 s
+        before (the orchestrator's measurement, `HISTORY.md#test-budgets` of the root); its
+        10 end-to-end facts in 46 s.
 
 ## Taboos
 

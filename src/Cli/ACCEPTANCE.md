@@ -260,3 +260,15 @@
       `species.schema.json`, whose `run` no longer requires or declares `threshold`
       and `massTolerance`. `dotnet build APThermo.sln`: 0 warnings, 0 errors. The
       protocol lint: 0 errors, 0 warnings.
+- [x] 2026-10-03 — Warm solvers for in-process invocations (the test pyramid, root `BOOT.md`, Test time
+      budgets; `API.md`, "Entry point (tree contract)"): `Program.RunCached` keeps one solver per database
+      content (the provenance hashes) and requested accelerator, `Run` is unchanged, a warm invocation gives
+      the bytes of a fresh one, and no `Bits*.approved.txt` moved. `Cli.Tests.SolverCacheTests`, over `Count`:
+      one solver for invocations on one database, two for a second content, the warm bytes equal the fresh
+      ones with `run` cut, disposing empties the cache. Red once: the key replaced by a constant, the
+      two-contents fact red (expected 2, actual 1), reverted. The accelerator half of the key has no fact: a
+      second accelerator is an `auto` run that binds CUDA on a machine that has it, and the command line's
+      tests are CPU only; it is the third element of the key tuple and nothing else reads it. The shipped cold
+      path is held to the same bits by `Cli.Tests.BitSnapshotTests.EveryExampleGivesTheRecordedOutputThroughTheProcess`
+      (`tests/Cli.Tests/BOOT.md`, the criterion of this date). `dotnet build APThermo.sln`: 0 warnings,
+      0 errors; the protocol lint: 0 errors, 0 warnings.
