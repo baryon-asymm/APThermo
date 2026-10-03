@@ -34,8 +34,20 @@ internal static class Tolerances
     /// Relative: a derivative of the state against a central difference of two solved states at p(1 ± 1e-4). The difference
     /// is second order, about 1e-8 at that step, and the polished states carry about 1e-11 of noise divided by the step, so
     /// the 1e-6 of the StateRecord criterion has two decades of room (measured 2e-8 to 9e-8 on the plateau, 2026-10-03).
+    /// The isentropic differences of the gas-participating plateau and of the near-univariant sliver take the same bound, at
+    /// <c>ε</c> of 1e-4 on a plateau and 1e-5 beside a near-univariant composition, where the stencil must stay inside the
+    /// sliver (measured 3e-10 on the CaCO3 plateau grid, 1e-10 at the other plateaus, 3e-9 on the sliver grid and 8e-8 along
+    /// the water march, whose polished states carry more noise; 2026-10-03).
     /// </summary>
     public const double FiniteDifference = 1.0e-6;
+
+    /// <summary>
+    /// Relative: <c>γ_s</c> of a pure participating gas against the closed form <c>1/(1 − 2/L + c/L²)</c>, which neglects the
+    /// volume of the condensed phases. That neglect grows with the pressure (measured 6.8e-7 at 1e4 Pa, 4.4e-6 at 1e5 Pa,
+    /// 3.1e-5 at 1e6 Pa), so the comparison is made at the two lowest pressures only and the bound is a factor two above the
+    /// worst of them.
+    /// </summary>
+    public const double ClosedForm = 1.0e-5;
 
     /// <summary>
     /// J/kg: an absolute floor added to the enthalpy self-consistency bound. <see cref="SelfConsistency"/> alone is relative

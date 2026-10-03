@@ -167,11 +167,17 @@ internal struct Derivatives
     /// <summary>The reaction part of cp/R, equation (2.59); zero at a pinned set.</summary>
     public double Reaction;
 
-    /// <summary>True when the condensed species of the solution have linearly dependent element vectors (the pinned set): the plateau convention of the node's API.md.</summary>
+    /// <summary>True when the condensed species of the solution have linearly dependent element vectors (the pinned set), or a condensed vector lies in the span of the gas composition and the vectors before it (a gas-participating plateau): the plateau convention of the node's API.md.</summary>
     public bool Pinned;
 
     /// <summary>False when a derivative system was singular; the caller reports <see cref="Thermo.CaseStatus.SingularMatrix"/>.</summary>
     public bool Solved;
+
+    /// <summary>True when <see cref="DlnVdlnPIsentropic"/> was solved from the isentropic system: at a gas-participating plateau (<see cref="Pinned"/>), or at a near-univariant state whose constant-temperature route cancels.</summary>
+    public bool Isentropic;
+
+    /// <summary>(∂ln V/∂ln p)_s from the isentropic system; meaningful only when <see cref="Isentropic"/>.</summary>
+    public double DlnVdlnPIsentropic;
 }
 
 /// <summary>

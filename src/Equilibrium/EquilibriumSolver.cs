@@ -322,7 +322,7 @@ internal static class EquilibriumSolver
         }
 
         var sums = Composition.Sums(table, scratch, result, state, logPressure, RetentionThreshold(state));
-        var derivatives = DerivativeSystem.Solve(table, scratch, result, state, ScratchLayout.MaxUnknowns(table.ElementCount));
+        var derivatives = DerivativeSystem.Solve(table, scratch, result, state, ScratchLayout.MaxUnknowns(table.ElementCount), sums);
         return !derivatives.Solved
             ? CaseStatus.SingularMatrix
             : MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange;

@@ -9,8 +9,10 @@ the parent was over the §15 limit. It turns a converged or frozen composition i
 - `DerivativeSystem` solves the derivative system of RP-1311 section 2.5 at the converged
   composition, with one species of a pinned set (the condensed species whose element vectors
   are linearly dependent) left out as the representative.
+- `PlateauIsentrope` assembles the isentropic system, the sp-shaped system at the converged composition
+  that carries `γ_s` at a gas-participating plateau and beside a near-univariant composition.
 - `MixtureProperties` writes the state: the assignments both paths share, then the equilibrium (or
-  pinned-pair) closure of section 2.6 or the frozen one, behind the state guard.
+  pinned-set) closure of section 2.6 or the frozen one, behind the state guard.
 
 `EquilibriumSolver` calls `DerivativeSystem.Solve` and `MixtureProperties.WriteEquilibrium` at the
 close of `Solve`, and `MixtureProperties.WriteFrozen` in `SolveFrozen` (`API.md`). The cluster has a
@@ -150,15 +152,32 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 
 ## Structure
 
-The classes of this node, all internal, static and kernel-compatible: `DerivativeSystem` and
-`MixtureProperties`, each described by the summary of its declaration. Every floating-point
-expression keeps the form and the order of evaluation it had when the node was part of its parent.
+The classes of this node, all internal, static and kernel-compatible: `DerivativeSystem`,
+`PlateauIsentrope` and `MixtureProperties`, each described by the summary of its declaration. Every
+floating-point expression keeps the form and the order of evaluation it had when the node was part of
+its parent.
 
 - **The dependence test.** `DerivativeSystem.DependentSlot` runs the modified Gram–Schmidt of
   `## Constraints` over the element vectors of the condensed species of the solution, in solution
   order, keeping its orthonormal basis in the first rows of the matrix scratch, which `Assemble`
   clears before it assembles anything: it needs no scratch of its own, and it reads no node but the
-  table view (2026-10-03).
+  table view (2026-10-03). With its `gasColumn` argument the first row of the basis is the unit
+  gas composition `g_i` (`LoadGasVector`), the condensed vectors follow from the second row, and
+  the slot returned is still the condensed species' index (2026-10-03, for 0.2.2).
+- **The isentropic system.** `PlateauIsentrope.Assemble` clears and fills the matrix scratch with the
+  system of `## Constraints`, "The gas-participating plateau", for the layout of the
+  constant-temperature system (its element and condensed counts, its stride and its tie); the
+  caller, `DerivativeSystem.Isentropic`, pins a surviving tie's row with the same `PinTiedRow` the
+  constant-temperature system uses, solves, and reads `(∂ln V/∂ln p)_s` from `PlateauIsentrope.DlnVdlnP`.
+  The assembly is its own class because the system has a reason of its own to change (RP-1311's sp
+  rows) and `DerivativeSystem` stands at the limit of the dependency check (`## Shape exceptions`).
+- **The carrier.** The result travels in `Derivatives.Isentropic` and `Derivatives.DlnVdlnPIsentropic`
+  (parent's `Carriers.cs`, 2026-10-03): at a gas-participating plateau `Pinned`, `Solved` and
+  `Isentropic` are all true, `DlnNdlnT` and `Reaction` zero, and `WriteEquilibrium` writes `DlnVdlnP`
+  from the isentropic value; at the sliver `Isentropic` is true and `Pinned` false, and
+  `WriteEquilibrium` overrides `γ_s` and `Cv` after the constant-temperature closure.
+  `MixtureProperties.IsNearUnivariant` decides the sliver from the same `CpEquilibrium` and
+  `CvEquilibrium` helpers the closure uses, so the ratio it tests is the one the state would carry.
 
 - **The pinned representative.** `DerivativeSystem` swaps the representative into the
   last slot exactly as today, so that the assembled rows and the pivoting keep their
@@ -173,7 +192,13 @@ the caller's condensed order before returning on every path, the singular one in
 ## Shape exceptions
 
 No type of this node is a declared exception to the root's code-shape constraint:
-`DerivativeSystem` measures 11 by the dependency check's walk, below the root's limit of 14.
+`DerivativeSystem` measures 14 by a hand count of the types its signatures and bodies name (the
+walk's own figure is not printed while the check is green), at the root's limit of 14 and no
+higher; the isentropic assembly is `PlateauIsentrope` (Ce 6) for that reason.
+
+⚠ 2026-10-03: was `DerivativeSystem` at 11, now 14 (`MixtureSums`, `PlateauIsentrope` and
+`MixtureProperties` added for the gas-participating plateau). A further type named by it is a
+decomposition to make, not an exception to declare.
 
 ⚠ 2026-09-28: was `DerivativeSystem` at 12, now 11 → HISTORY.md#ce-third-pass
 

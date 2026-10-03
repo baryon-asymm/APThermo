@@ -11,7 +11,8 @@ GPU/CPU tolerance table and the approved throughput figures.
 | every function of the root's math list is linked on CUDA and matches the CPU accelerator within 4 ULP, and the CPU accelerator reproduces `System.Math` bit for bit | L1 probe kernel | ✅ |
 | CUDA batches equal CPU-accelerator batches within the tolerance table, for all fields enumerated by reflection over `MixtureState`, `PerformanceFigures` and `TransportFigures`, on 100 000 cases, on every rocket and throat fixture family (the throat families since 2026-10-03; a condensed species at its own tier) and on the equilibrium families of the 0.2.1 fixtures (the three-element, threshold-flip and gas-column salt fixtures, one family per table, 2026-10-03) | L2 | ✅ |
 | every compared station of every family (rocket, throat, equilibrium) closes the element balance to a relative residual of at most 1e-13 on both accelerators, and the equilibrium families' mole fractions are compared as `ln x − Σ D ρ`, the balance remnants of both accelerators removed, at the unchanged tiers (2026-10-03; `BalanceRemnantTests` on the CPU, the CUDA families on the reference machine) | L2 | ✅ (2026-10-03) |
-| batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families, the 0.2.1 equilibrium families and the species-function batch included | L2 | ✅ |
+| CUDA batches equal CPU-accelerator batches within the tolerance table on the 0.2.2 gas-plateau families: hp and sp states on the plateaus of boiling water, ammonium chloride, calcium hydroxide and calcium carbonate, whose inputs the tree computes itself (`GasPlateauFamilies`) | L2 (`CudaTests.AGasPlateauFamilyOnCudaMatchesTheCpuAccelerator`) | ⏳ (written 2026-10-03, not yet run on the reference machine) |
+| batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families, the 0.2.1 and 0.2.2 equilibrium families and the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |
 | CUDA is at least 5× faster than the CPU accelerator with all cores on the reference machine, and the measured figure is recorded | Benchmark, `Throughput.approved.txt` | ✅ |
 | CUDA can be forbidden and the node then never touches the CUDA driver; an explicit CUDA request that cannot be met names every path tried | L0 | ✅ |
@@ -22,6 +23,9 @@ GPU/CPU tolerance table and the approved throughput figures.
 - The fixtures node's reference propellant inputs for building the batches: every
   rocket fixture, and every throat fixture (no exit stations), grouped into families by
   element list, product list and exit layout, and the tp, hp and sp fixtures of one propellant, or the named 0.2.1 families of tp fixtures sharing one element list and candidate list, as an equilibrium batch.
+  The 0.2.2 gas-plateau families are not fixtures: `GasPlateauFamilies` computes their inputs with the numerical nodes (the plateau
+  temperature by bisection on the condensed set of host tp solves, the reaction enthalpy from the species functions), because no
+  reference exists on a gas-participating plateau.
 - `GpuCpuTolerances.cs` in this node: the GPU/CPU table with derivations, the ULP
   bound of the probe and the bound on the share of stations at which the accelerators
   stop after different numbers of Newton steps; the condensed-species mole-fraction tier
