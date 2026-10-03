@@ -113,6 +113,34 @@ public sealed class MalformedFixtureTests : IDisposable
         Assert.Equal("x", c.Name);
     }
 
+    /// <summary>A complete seeded document, which assigns an enthalpy from a tp seed, loads.</summary>
+    [Fact]
+    public void ACompleteSeededDocumentLoads()
+    {
+        var path = Write("seeded", $$$"""
+            {"case": {"name": "x", "kind": "seeded", "inputs": {
+              "seed": {"kind": "tp", "temperature": 430.0}, "enthalpy": -1.0e7
+            }}, {{{Generator}}}, "outputs": {}}
+            """);
+        var c = CeaFixtures.Load(path);
+        Assert.Equal(430.0, c.Inputs.GetProperty("seed").GetProperty("temperature").GetDouble());
+    }
+
+    /// <summary>A seeded document without a seed, with a seed of another kind, with a seed without a temperature, or assigning both or neither of the enthalpy and the entropy is rejected, naming the field.</summary>
+    [Theory]
+    [InlineData("""{"enthalpy": -1.0e7}""", "case.inputs.seed")]
+    [InlineData("""{"seed": {"kind": "hp", "temperature": 430.0}, "enthalpy": -1.0e7}""", "case.inputs.seed.kind")]
+    [InlineData("""{"seed": {"kind": "tp"}, "enthalpy": -1.0e7}""", "case.inputs.seed.temperature")]
+    [InlineData("""{"seed": {"kind": "tp", "temperature": 430.0}}""", "case.inputs")]
+    [InlineData("""{"seed": {"kind": "tp", "temperature": 430.0}, "enthalpy": -1.0e7, "entropy": 2000.0}""", "case.inputs")]
+    public void AMalformedSeededDocumentIsRejected(string inputs, string field)
+    {
+        var path = Write("seeded", $$$"""{"case": {"name": "x", "kind": "seeded", "inputs": {{{inputs}}}}, {{{Generator}}}, "outputs": {}}""");
+        var e = Assert.Throws<FixtureFormatException>(() => CeaFixtures.Load(path));
+        Assert.Equal(path, e.FileName);
+        Assert.Equal(field, e.Field);
+    }
+
     /// <summary>A tolerance without a derivation is rejected.</summary>
     [Fact]
     public void AToleranceWithoutADerivationIsRejected()

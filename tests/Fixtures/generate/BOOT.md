@@ -45,7 +45,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
 
 - Layout: one module per fixture family (`constants.py`, `thermo_functions.py`,
   `transport_fits.py`, `rp1311.py`, `propellants.py`, `plateaus.py`, `throat_scan.py`
-  since 2026-09-27), the case builders over the
+  since 2026-09-27, `seeded.py` since 2026-10-03), the case builders over the
   package in `cea_cases.py`, shared helpers in `common.py`, the writer in `writer.py`,
   the document comparison of the sampled check in `document_comparison.py` (2026-09-30),
   the driver `regenerate.py`. Every family module exposes `generate(writer)` and runs
@@ -219,8 +219,15 @@ families):
     node's pinned set): hp and sp on the table, reactants and element moles of the tp fixture
     `ap-htpb-al_pc7MPa_T430` (imported, not copied), each seeded by tp at 430 K in one
     `EqSolution`, at the band fractions 0.1, 0.5 and 0.9 and the edges −0.05 and 1.05, at
-    1, 7 and 20 MPa. The band is the enthalpy (or entropy) between tp 415.9 K and 416.0 K
-    of the same seed, measured by the script, not typed; at 0.1 MPa there is no plateau.
+    1, 7 and 20 MPa. The band is the enthalpy (or entropy) between the tp state at 416.0 K
+    and the state at 415.9 K, measured by the script, not typed; at 0.1 MPa there is no
+    plateau. The state at 415.9 K is the package's hp state found by stepping the enthalpy
+    down from the 416.0 K state and bisecting, since the package converges no tp state below
+    the plateau (its abort "Re-insertion of AL2O3(a)", from every start tried).
+
+    ⚠ 2026-10-03: was "between tp 415.9 K and 416.0 K of the same seed", now the hp state
+    found by bisection at the lower end: the tp solve at 415.9 K aborts in the package, cold
+    and seeded alike, found when the script first ran.
   - The three-element tie (2026-10-03, `generate/three_element.py`; the generalized rule A
     of the Newton node): tp cases on the element moles and product lists of RP-1311
     examples 1 (r = 1.0) and 12, where only CO2, H2O and N2 (and Ar) are retained and row

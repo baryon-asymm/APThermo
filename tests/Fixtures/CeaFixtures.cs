@@ -108,6 +108,7 @@ public static class CeaFixtures
             }
 
             RequireReactantRoles(path, inputs);
+            RequireSeed(path, kind, inputs);
             var provenance = ReadProvenance(path, generator);
             return new CeaCase(name, kind, inputs.Clone(), outputs.Clone(), provenance, path);
         }
@@ -143,6 +144,36 @@ public static class CeaFixtures
             index++;
         }
     }
+
+    /// <summary>
+    /// A case of the <c>seeded</c> kind names the state it is solved from and assigns one property (BOOT.md, the
+    /// <c>seeded</c> kind): <c>inputs.seed</c> is an object whose <c>kind</c> is <c>tp</c> and whose <c>temperature</c> is a
+    /// number, and exactly one of <c>enthalpy</c> and <c>entropy</c> is a number, which says whether the case is hp or sp.
+    /// A document of another kind needs none of it.
+    /// </summary>
+    private static void RequireSeed(string path, string kind, JsonElement inputs)
+    {
+        if (!string.Equals(kind, "seeded", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var seed = Required(path, inputs, "case.inputs.seed", "seed", JsonValueKind.Object);
+        var seedKind = Required(path, seed, "case.inputs.seed.kind", "kind", JsonValueKind.String).GetString();
+        if (!string.Equals(seedKind, "tp", StringComparison.Ordinal))
+        {
+            throw new FixtureFormatException(path, "case.inputs.seed.kind", $"the seed kind '{seedKind}' is not 'tp'");
+        }
+
+        _ = Required(path, seed, "case.inputs.seed.temperature", "temperature", JsonValueKind.Number);
+        if (IsNumber(inputs, "enthalpy") == IsNumber(inputs, "entropy"))
+        {
+            throw new FixtureFormatException(path, "case.inputs", "a seeded case assigns exactly one of enthalpy and entropy");
+        }
+    }
+
+    private static bool IsNumber(JsonElement parent, string property) =>
+        parent.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number;
 
     /// <summary>Loads and parses every fixture document of one kind.</summary>
     /// <param name="kind">The fixture kind, a subdirectory of <see cref="FixtureFiles.Root"/>.</param>

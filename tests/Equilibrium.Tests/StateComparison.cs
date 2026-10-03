@@ -48,17 +48,40 @@ internal static class StateComparison
         }
     }
 
+    /// <summary>
+    /// Whether the reference's second-order fields are its singular fallback and so no reference for the tree's. A tp
+    /// assigned exactly at a bound two records of one substance share makes the reference's derivative matrix singular,
+    /// and it prints its convention (cp_eq = 0, gamma_s = -1/dlnVdlnP) instead of derivatives (Fixtures BOOT.md, the
+    /// singular-tp defect); the tree reports the chosen record's real response. The signature guards the skip: no real tp
+    /// state has a zero equilibrium heat capacity. A seeded case on a reaction plateau (the <c>seeded</c> kind) is
+    /// singular the same way, but the reference reports its frozen heat capacities there: the signature is
+    /// <c>cpEquilibrium == cpFrozen</c> exactly with a condensed species present, which no state with a reaction
+    /// contribution to <c>cp_eq</c> has.
+    /// </summary>
+    public static bool SecondOrderIsSingular(CeaCase c, SpeciesTable table)
+    {
+        var outputs = c.Outputs;
+        return c.Kind switch
+        {
+            "tp" => outputs.GetProperty("cpEquilibrium").GetDouble() == 0.0,
+            "seeded" => outputs.GetProperty("cpEquilibrium").GetDouble() == outputs.GetProperty("cpFrozen").GetDouble()
+                        && HoldsCondensed(outputs, table),
+            _ => false,
+        };
+    }
+
+    /// <summary>Whether the reference reports a condensed species of the table with a positive mole fraction.</summary>
+    private static bool HoldsCondensed(JsonElement outputs, SpeciesTable table) =>
+        outputs.GetProperty("moleFractions").EnumerateObject().Any(species =>
+            species.Value.GetDouble() > 0.0 && table.IndicesOf(species.Name) is [var first, ..] && first >= table.GasCount);
+
     /// <summary>Every state field and every listed mole fraction outside its tolerance, as messages; empty when the solution matches.</summary>
     public static IReadOnlyList<string> Compare(CeaCase c, HostSolution solution, ToleranceTable tolerances,
                                                 Func<string, bool>? includeField = null)
     {
         var mismatches = new List<string>();
 
-        // A tp assigned exactly at a bound two records of one substance share makes the reference's derivative
-        // matrix singular, and it prints its convention (cp_eq = 0, gamma_s = -1/dlnVdlnP) instead of derivatives
-        // (Fixtures BOOT.md, the singular-tp defect); the tree reports the chosen record's real response. The
-        // signature guards the skip: no real tp state has a zero equilibrium heat capacity.
-        var singularTp = c.Kind == "tp" && c.Outputs.GetProperty("cpEquilibrium").GetDouble() == 0.0;
+        var singular = SecondOrderIsSingular(c, solution.Case.Table);
         foreach (var (name, expected, field) in StateFields(c.Outputs))
         {
             if (includeField is not null && !includeField(name))
@@ -66,7 +89,7 @@ internal static class StateComparison
                 continue;
             }
 
-            if (singularTp && SecondOrderFields.Contains(name))
+            if (singular && SecondOrderFields.Contains(name))
             {
                 continue;
             }

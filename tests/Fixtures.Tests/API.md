@@ -10,6 +10,7 @@ points upward: it is what the parent may consider proven about `Fixtures`.
 | every committed fixture loads, names its kind, its script and the pinned package version, and was generated from the committed data files | L1: `FixtureLoadingTests` | ✅ 2026-09-12 |
 | the tolerance table loads with a derivation per field and covers every numeric state field the rocket and equilibrium fixtures report | L1: `ToleranceTableTests` | ✅ 2026-09-12 |
 | a malformed fixture or table is rejected with the file name and the field | L1: `MalformedFixtureTests` | ✅ 2026-09-12 |
+| a `seeded` document names its tp seed and assigns exactly one of enthalpy and entropy, and the kind is covered by the tolerance table | L1: `MalformedFixtureTests`, `ToleranceTableTests`, `FixtureLoadingTests` | ✅ 2026-10-03 |
 | every fixture's `scriptSha256` and `generatorSha256` match the committed generator, and all fixtures carry one `thermoLibSha256` and one `transLibSha256` | L1: `FixtureLoadingTests` | ✅ 2026-09-27 |
 
 ## What the tests rely on

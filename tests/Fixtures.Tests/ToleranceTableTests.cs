@@ -52,6 +52,7 @@ public sealed class ToleranceTableTests
     [InlineData("tp")]
     [InlineData("hp")]
     [InlineData("sp")]
+    [InlineData("seeded")]
     public void EveryStateFieldOfTheFixturesHasATolerance(string kind)
     {
         var table = ToleranceTable.Load();
