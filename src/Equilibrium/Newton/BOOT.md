@@ -230,22 +230,19 @@ rules A and B criterion.
   [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
 - [x] 2026-10-02 — On CUDA, on the reference machine: the second part of the same criterion
       (`../ACCEPTANCE.md`), green on `6dc2370`.
-- [ ] Rule A ties a linear combination of element rows (2026-10-03, `## Constraints`):
-      - unit facts, each red on `main` before the change: on the example 1 table with moles
-        on Ar, CO2, H2O and N2 only the combination for O is `c_C = 2`, `c_H = ½`, every
-        other coefficient 0; it stops holding once H2 or O2 has moles (the release); with
-        `H2O(L)` in the solution on the example 12 table the tie is held by a condensed
-        species; a warm start from the example 1 300 K solution at `P/2` equals its cold
-        solve;
-      - the grid of the 14 example 1 and 12 tp tables × `P·{1, 1e-3, 1e-2, 0.1, 10, 100}`
-        × {300 K, 600 K}: every state `Ok` and clear of `EquilibriumConditions.Violations`
-        (77 `SingularMatrix` on `main`);
-      - the new fixtures of the fixtures node's three-element family green under the
-        tolerance table, red on `main`;
-      - no existing bit snapshot moves; the new fixtures' lines added on both platforms;
-      - CUDA equals the CPU accelerator on the new fixtures and the rocket families, on the
-        reference machine; the rocket kernel's compile inside the execution node's bound.
-
+- [x] 2026-10-03 — Rule A ties a linear combination of element rows (`## Constraints`).
+      Evidence, merged `a2ff9e2` (coder `a731c5f`, `87f8711`):
+      - `tests/Equilibrium.Tests/ThreeElementTieTests.cs` (the O row's coefficients
+        `c_C = 2`, `c_H = ½`; the release once H2 or O2 has moles; the tie held by `H2O(L)`;
+        the grid of 168 states all `Ok` and clear of `EquilibriumConditions.Violations`) and
+        `WarmStartTests.AWarmStartFromTheThreeElementExample1SolutionAtHalfPressureEqualsItsColdSolve`;
+        23 tests red with `Find` limited to one coefficient (the old pair), green with it;
+      - the four `three-element_*` tp fixtures of the fixtures node green under the
+        tolerance table, red on the old rule;
+      - no existing bit line moved; four lines added to the Equilibrium, Thermo and Problems
+        records on Windows (`87f8711`) and Linux (`904222d`, WSL, 5559 green);
+      - the guard with `--cuda` on the reference machine: fast suite 5559, CUDA proofs 382,
+        `Execution.Tests` in Release 187, the rocket kernel's compile inside its bound.
 ## Taboos
 
 - No public type here: undocumented surface is a contract nobody agreed to.

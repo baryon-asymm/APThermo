@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- An assigned-temperature state whose retained gases tie three elements together (only
+  CO2, H2O and N2 at low temperature, where the oxygen row equals a combination of the
+  carbon and hydrogen rows) no longer ends `SingularMatrix`: the element tie now takes
+  any linear combination of element rows, not only a pair. A known limitation of 0.2.0.
+
 ### Changed
 - The rocket throat is found by a decision at `|u²/a² − 1| ≤ 1e-8` followed by exactly two
   more momentum steps, instead of iterating to `1e-10`. Throat and exit figures move at

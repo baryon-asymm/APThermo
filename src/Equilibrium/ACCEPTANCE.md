@@ -243,7 +243,9 @@
         ⚠ 2026-09-28: was the threshold flip a band of two perchlorate compositions, now
         a mechanism of the all-gas first stage (29 of 968 states)
         → HISTORY.md#crit-rules-ab
-      - **The three-element coupling.** With only CO2, H2O and N2 retained, row O
+      - **The three-element coupling.** ⚠ 2026-10-03: fixed for 0.2.1, now rule A's
+        linear-combination tie ([Newton/BOOT.md](Newton/BOOT.md), its criterion). As it stood:
+        With only CO2, H2O and N2 retained, row O
         equals 2·C + ½·H. 77 fuzz tp states on example 1 and example 12 tables at
         300 K and 600 K end `SingularMatrix`, which a pair tie cannot express.
       - **The reaction plateau.** hp inside the Al(OH)3/Al2O3/H2O(L) reaction plateau
