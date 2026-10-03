@@ -291,3 +291,7 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       residual of 1e-12 reported); red without the correction on CUDA: the merge-guard run
       of `de16866` (the families alone), `three-element-example1` x(H2) 3.8e-9 at equal
       steps; WSL fast suite green on `377998d`.
+- [ ] The appear-or-vanish rule of the balance-remnant correction is proven non-degenerate
+      (2026-10-03, AGENTS.md §13: no fixture family triggered it, 0 of 23 cases): a fact over
+      a case whose condensed set differs between `b(1 − h)`, `b` and `b(1 + h)`, which the
+      rule leaves uncorrected, red once with the rule disabled.
