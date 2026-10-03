@@ -174,7 +174,15 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
       species of the sums (`G c = g`, `G_il = Σ_j a_ij a_lj`, `g_i = Σ_j a_ij a_kj`, by
       `DenseSolver` in the matrix scratch, free during a remedy), and every species must
       satisfy `a_kj = Σ c_i a_ij` to 1e-10 relative; otherwise there is no tie. A pair
-      of elements is the case of one coefficient.
+      of elements is the case of one coefficient. When `G` itself is singular because
+      other active rows are dependent among themselves, the column whose pivot failed is
+      pinned (`c` = 0 there) and `G` is solved again, at most once per element: that row
+      lies in the span of the earlier ones, so every combination that exists survives.
+
+      ⚠ 2026-10-03, the review of the first implementation: was "no tie" whenever `G`
+      was singular. With H active, NH4CL(II) alone gives `G` = [[1,4],[4,16]] over {Cl,
+      H}, singular, so the pair N = Cl was lost; the pair facts had passed only on a state
+      with H inactive, which the solver's mask never produces.
     - **Action.** Row `k` is replaced by the linearized balance of `b_k − Σ c_i b_i`,
       summed over every in-play gaseous species, retained or not, plus the condensed
       columns, each with the weight `a_kj − Σ c_i a_ij`. This fixes the one direction of
@@ -192,7 +200,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
       fixtures within the tolerance table, no bit snapshot moved, the rocket kernel's CPU
       compile +6 %. The pair search (`ElementCoupling.Find`) is replaced, not kept beside
       it: measured identical, state for state, on the whole fuzz.
-    - **When.** At once when a condensed species of the solution holds both elements;
+    - **When.** At once when a condensed species of the solution holds the tied element
+      and an element whose coefficient is not zero;
       otherwise only after the two resets, which still handle transient couplings.
     - **Release.** Once the condensed-set update finds no further change and some
       species of the sums breaks the combination, the tie is released, at most once per
@@ -211,7 +220,11 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   The tie is per-case state: `ElementTie` in `IterationState` (active, element, released)
   and the coefficients `c` in the case's scratch, live and in the release snapshot, two
   slices of the element count each, grouped, with the multipliers snapshot, in `TieElementSlices`
-  so that `EquilibriumScratch`'s constructor does not grow. `ElementCoupling` holds the read-only queries,
+  so that `EquilibriumScratch`'s constructor does not grow. The coefficients' snapshot is
+  defensive: after a restore the close reads only `Tie.Element` today (shown by the review:
+  the snapshot removed and NaN written into the live coefficients at a restore moved no
+  test), and it is kept so that a later reader of the coefficients finds them restored.
+  `ElementCoupling` holds the read-only queries,
   `CondensedDependency` rule B's tests, and `IterationMatrix` stays the only writer of
   Newton rows. `SingularRemedies.Recover` tries rule B, then rule A, then the resets,
   then the targeted removal.
@@ -291,6 +304,18 @@ rules A and B criterion.
       fact (two condensed phases beside the gas give no combination); the KClO4 1:0.9:4
       fixtures at 300 K and 1e3 Pa, 500 K and 1 bar, 1000 K and 1e3 Pa, 1060 K and 1e3 Pa,
       red on the old rule; no existing bit moved; CUDA equal on the reference machine.
+
+- [ ] The review of the linear-combination tie (2026-10-03) is closed:
+      - the pair facts of `SingularRemedyRulesTests` run with every element of their table
+        active: NH4CL(II) alone ties N = Cl (through the pinned retry, red without it);
+        NH4CL(II) with HCL ties N = (H − Cl)/3 (`c_Cl` = −1/3, `c_H` = 1/3); NH4CL(II), HCL
+        and N2 with moles give no tie;
+      - the 168-state grid fact also checks `Cp_eq` against a central difference of the
+        solver's own enthalpy at `T ± δ`, and a tie that survives to the close turns it red;
+        hp and sp counterparts at the tp states' h and s reproduce the tp temperature;
+      - CUDA families over the `three-element_rp1311-example1_` and `…example12_` fixtures and
+        over the salt fixtures of the threshold flip and of rule B's gas column, beside
+        `AnEquilibriumFamilyOnCudaMatchesTheCpuAccelerator`, green on the reference machine.
 
 ## Taboos
 
