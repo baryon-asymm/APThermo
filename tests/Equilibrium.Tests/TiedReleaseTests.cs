@@ -8,7 +8,7 @@ namespace APThermo.Equilibrium.Tests;
 /// list at every temperature the fixtures node's generator produced for either salt, so it serves every state below
 /// too). At each, the tie a Newton step ties (K or Na against Cl, through <c>KCL(cr)</c>/<c>NaCL(cr)</c>) converges
 /// and polishes, the release then finds the trace carriers (<c>K</c>/<c>Cl</c>/<c>KO</c> or their sodium
-/// equivalents) tell the pair apart once the second-stage retention threshold admits them, and the settled set's own
+/// equivalents) tell the tied elements apart once the second-stage retention threshold admits them, and the settled set's own
 /// re-convergence without the tie oscillates those same carriers across that threshold on every step until the cap:
 /// <c>NotConverged</c> at `c02e14d`, where the way back restores the tied, already-polished iterate and closes with
 /// the tie in force.
