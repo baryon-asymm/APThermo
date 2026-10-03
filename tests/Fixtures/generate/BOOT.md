@@ -215,6 +215,12 @@ families):
     500 K and 1 bar, 1000 K and 1 kPa and 1060 K and 1 kPa, named `kclo4-lean_T{T}` at 1 bar
     and `kclo4-lean_T{T}_p{bar}bar` at 1 kPa (`p0.01bar`). The reference reaches `KCL(cr)`
     with a potassium superoxide (`KO2(a)`, `KO2(b)` or `KO2(L)`) beside an all-`O2` gas.
+  - The reaction plateau (2026-10-03, `generate/seeded.py`, kind `seeded`; the StateRecord
+    node's pinned set): hp and sp on the table, reactants and element moles of the tp fixture
+    `ap-htpb-al_pc7MPa_T430` (imported, not copied), each seeded by tp at 430 K in one
+    `EqSolution`, at the band fractions 0.1, 0.5 and 0.9 and the edges −0.05 and 1.05, at
+    1, 7 and 20 MPa. The band is the enthalpy (or entropy) between tp 415.9 K and 416.0 K
+    of the same seed, measured by the script, not typed; at 0.1 MPa there is no plateau.
   - The three-element tie (2026-10-03, `generate/three_element.py`; the generalized rule A
     of the Newton node): tp cases on the element moles and product lists of RP-1311
     examples 1 (r = 1.0) and 12, where only CO2, H2O and N2 (and Ar) are retained and row

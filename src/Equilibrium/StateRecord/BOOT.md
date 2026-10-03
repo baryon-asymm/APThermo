@@ -7,7 +7,8 @@ A child node of `src/Equilibrium` (its `BOOT.md`, `## Structure`), split out of 
 the parent was over the §15 limit. It turns a converged or frozen composition into the `MixtureState`:
 
 - `DerivativeSystem` solves the derivative system of RP-1311 section 2.5 at the converged
-  composition, with one record of a pinned pair as the representative.
+  composition, with one species of a pinned set (the condensed species whose element vectors
+  are linearly dependent) left out as the representative.
 - `MixtureProperties` writes the state: the assignments both paths share, then the equilibrium (or
   pinned-pair) closure of section 2.6 or the frozen one, behind the state guard.
 
@@ -31,8 +32,6 @@ The invariants of the parent ([BOOT.md](../BOOT.md)) hold here unchanged.
 
 - [Equilibrium](../API.md) — the descriptors of its inputs, scratch and outputs, `IterationState`,
   `SystemLayout`, `MixtureSums`, `Derivatives`, `DerivativeKind` and `DenseSolver`.
-- [Condensed](../Condensed/API.md) — `PhaseGeometry.SameFormula`, to find the partner of a pinned
-  record.
 - [Thermo](../../Thermo/API.md) — the species table view, `MixtureState` and
   `PhysicalConstants`.
 
@@ -60,7 +59,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   and positive is `TemperatureOutOfRange`. The window above keeps every case the
   committed data can serve, and the guard catches what a polynomial evaluated outside
   its fit may still produce inside the window. The pinned pair's `Cp_eq = Cv_eq = 0`
-  convention (Property definitions below) is exempt for the equilibrium pair only.
+  convention (Property definitions below) is exempt for the pinned set only.
 
     - **Derivatives.** A tie that survives to the close gives the derivative system a
       unit row that fixes the tied element's multiplier derivative at 0.
@@ -74,15 +73,35 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   the total gaseous moles per kilogram; `MW = 1/Σ n_j` (2.4a) over all species with
   the condensed ones counted as moles (the reference's MW, see the Thermo `API.md`);
   the condensed species are included in h, s and Cp of the mixture as in CEA.
-  At a pinned pair the constant-pressure derivatives do not exist: the derivative
-  system is assembled once, at constant temperature, with one record of the pair as
-  the representative (RP-1311 section 3.5; Gordon 1970), and the state carries the
+  At a pinned set the constant-pressure derivatives do not exist. At the close the
+  condensed species of the solution are tested in solution order for linear dependence of
+  their element vectors (modified Gram–Schmidt, relative residual 1e-9); the first one that
+  is a combination of those before it is the representative left out. A pinned pair (two
+  records of one formula, a melting plateau) is the one-formula case; a reaction plateau
+  among different condensed species (2 Al(OH)3 = Al2O3 + 3 H2O(L)) is the general one, and
+  both fix the temperature independently of the pressure, so the isentrope on the plateau
+  is an isotherm. The derivative system is assembled once, at constant temperature,
+  without the representative (RP-1311 section 3.5; Gordon 1970), and the state carries the
   reference's convention `Cp_eq = Cv_eq = (∂ln V/∂ln T)_p = 0` with
   `(∂ln V/∂ln p)_T` real, `γ_s = −1/(∂ln V/∂ln p)_T` and `a² = n R T γ_s` — the
   plateau values the throat search needs (the AP/Al verification record: `γ_s` 0.816
   on the plateau against 1.09 beside it; the zeros against NaN-plus-flag decided in
   the design session of 2026-09-13, so that the state struct, the surface snapshot
   and the reference comparisons stay unchanged).
+
+  ⚠ 2026-10-03: was a pinned **pair** found by `PhaseGeometry.SameFormula`, now a pinned
+  **set** found by linear dependence, and this node no longer depends on `Condensed` (the
+  orchestrator's investigation B3 for 0.2.1). Inside the Al(OH)3/Al2O3/H2O(L) band the
+  three condensed vectors are dependent, the constant-temperature derivative system was
+  singular, and every hp and sp state there failed (114 of 114 seeded, 474 in a scan; the
+  warm-start fallback reported `TemperatureOutOfRange`). Measured with the prototype: all
+  `Ok`, clear of the equilibrium conditions, the first-order fields within the tolerance
+  table against cea seeded from 430 K (150 of 150), `γ_s` against `d ln p/d ln ρ` along
+  the isentrope and `(∂ln V/∂ln p)_T` against the isothermal difference within 1e-7, no
+  bit moved. At a reaction plateau cea 3.3.4 recognises no plateau and reports its
+  singular fallback (frozen values, `γ_s` up to 75 % off the finite difference); the tree
+  does not follow it there. Not covered: a univariant equilibrium where the gas takes
+  part (CaCO3/CaO under pure CO2), where the plateau temperature depends on the pressure.
 
 ## Structure
 
@@ -117,6 +136,14 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
   [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
 - [x] 2026-10-02 — On CUDA, on the reference machine: the second part of the same criterion
       (`../ACCEPTANCE.md`), green on `6dc2370`.
+- [ ] The pinned set (2026-10-03, `## Constraints`): unit facts, each red on the pair rule —
+      seeded hp and sp inside the Al(OH)3/Al2O3/H2O(L) band at 1, 7 and 20 MPa end `Ok`, clear
+      of the equilibrium conditions, at `T* = 415.948162 K` with five condensed species; on the
+      plateau `Cp_eq = Cv_eq = (∂ln V/∂ln T)_p = 0` and `γ_s = −1/(∂ln V/∂ln p)_T`; `γ_s`
+      within 1e-6 of `d ln p/d ln ρ` along sp and `(∂ln V/∂ln p)_T` within 1e-6 of the
+      isothermal difference; a `DerivativeSystem` fact on three dependent species `Solved`
+      and pinned; the seeded fixtures of the fixtures node green; no existing bit moved;
+      CUDA equal on the reference machine.
 
 ## Taboos
 
