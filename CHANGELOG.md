@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   phase (KO2 entering beside K2O2(cr) and an all-O2 gas, KO2 being half of each, at
   K:Cl:O = 1:0.9:4) no longer cycles to
   `NotConverged`: the dependency test counts the gas phase as one more column.
+- An assigned-enthalpy or assigned-entropy state inside a reaction plateau between
+  different condensed species (Al(OH)3, Al2O3 and liquid water at 415.948 K near 7 MPa)
+  no longer ends `SingularMatrix` when the solve starts near the plateau: the derivative
+  properties treat any linearly dependent set of condensed species as melting plateaus
+  were already treated. A known limitation of 0.2.0.
 
 ### Changed
 - The rocket throat is found by a decision at `|u²/a² − 1| ≤ 1e-8` followed by exactly two
@@ -30,6 +35,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Journal 2021 (doi:10.2514/1.J060972): C 213.8 H 323.0 O 4.6 N 2.3, +342 kJ/mol. The
   earlier definition had no source. The guide notes that published HTPB heats of
   formation vary widely and change equilibrium results by up to 5 %.
+- On a reaction plateau the state reports the plateau convention it already reported on
+  a melting plateau: `CpEquilibrium`, `CvEquilibrium` and `DlnVdlnT` are 0 and `GammaS`
+  is `−1/DlnVdlnP`. NASA CEA 3.3.4 reports frozen values there instead.
+
+### Known limitations
+Known and not fixed in this release:
+- An assigned-enthalpy state on the AP/HTPB/Al table near 400 K fails from a cold
+  start. NASA CEA fails there too. A state warm-started from above the
+  Al(OH)3/Al2O3/H2O(L) plateau fails when it lies 25 K or more below it.
+- A univariant equilibrium in which the gas takes part (CaCO3 and CaO under pure CO2),
+  whose plateau temperature depends on the pressure, is not covered by the plateau
+  convention; its derivative properties there are not verified.
+- At the exact stoichiometry of KO2 or NaO2 (no chlorine, two oxygen atoms per alkali
+  atom) the gas phase vanishes and the solve ends `NotConverged`. NASA CEA does not
+  converge there either.
+- A reactant set with liquid water and no ice candidate (as in RP-1311 example 12)
+  cannot place an assigned-enthalpy or assigned-entropy state below 273.15 K. The
+  solve lands on supercooled vapour or ends `TemperatureOutOfRange`.
 
 ## [0.2.0] - 2026-09-30
 
