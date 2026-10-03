@@ -198,6 +198,15 @@ families):
     - AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass
       fractions and product table as the `ap-htpb-al` chamber fixture (imported from
       `propellants.py`, not copied): a direct tp solve, not a rocket station.
+  - The threshold flip (2026-10-03, `generate/retention_threshold.py`; the orchestrator's
+    investigation B2 for 0.2.1, Equilibrium `BOOT.md`, "The Newton loop" and the Newton
+    node's loop bookkeeping): three tp cases that the reference converges and the tree
+    ended `NotConverged` on before the verdict, switch and hold rules, on the salts of the
+    family above at their own 1 : 1 : 4 mole ratio: KClO4 at 1150 K, 1 bar and at 1200 K,
+    10 bar, and NaClO4 at 1120 K, 1 bar. The 10 bar case carries its pressure in its name,
+    `kclo4_T1200_p10bar`: `_salt_case_name` writes `{name}_T{T}` at 1 bar, as the first
+    four fixtures of the family were named, and `{name}_T{T}_p{bar}bar` at any other
+    pressure.
   - The three-element tie (2026-10-03, `generate/three_element.py`; the generalized rule A
     of the Newton node): tp cases on the element moles and product lists of RP-1311
     examples 1 (r = 1.0) and 12, where only CO2, H2O and N2 (and Ar) are retained and row

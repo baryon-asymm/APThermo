@@ -16,6 +16,23 @@ internal enum ConvergenceVerdict
     Polished,
 }
 
+/// <summary>Which way a step moved gases across the retention rule (<see cref="ConvergenceTests.Crossing"/>).</summary>
+[System.Flags]
+internal enum RetentionCrossing
+{
+    /// <summary>No gas crossed.</summary>
+    None = 0,
+
+    /// <summary>A gas entered the retained set.</summary>
+    Entered = 1,
+
+    /// <summary>A gas left the retained set.</summary>
+    Left = 2,
+
+    /// <summary>One gas entered while another left: the threshold flip's signature.</summary>
+    Both = Entered | Left,
+}
+
 /// <summary>
 /// The Newton loop's bookkeeping between steps (2026-09-26): how many steps have run since the condensed set last
 /// changed, whether the most recent verdict passed the report's tests, and how many polish steps have followed
@@ -36,11 +53,30 @@ internal struct NewtonLoopState
     /// <summary>Vanished-species resets tried in the current <c>Converge</c> call before a condensed removal is attempted (RP-1311 section 3.6).</summary>
     public int SingularResets;
 
+    /// <summary>The consecutive flips after which the case holds its retained set (BOOT.md, the threshold flip, 2026-10-03).</summary>
+    public const int FlipsBeforeHold = 2;
+
+    /// <summary>Consecutive second-stage steps that passed the report's tests and were refused for a flip: a gas in, another out.</summary>
+    public int Flips;
+
+    /// <summary>Records whether this step was a flip, a non-flip clearing the run; true when the run has reached <see cref="FlipsBeforeHold"/>.</summary>
+    public bool RecordFlip(bool flip)
+    {
+        Flips = flip ? Flips + 1 : 0;
+        return Flips >= FlipsBeforeHold;
+    }
+
     /// <summary>
     /// A change of the condensed set — an inclusion, a phase change, or a singular remedy's removal — restarts the
     /// step count, since the cap is "steps after the last change of the condensed species set" (BOOT.md).
     /// </summary>
     public void RecordSetChange() => Steps = 0;
+
+    /// <summary>
+    /// The switch to the second retention stage starts a convergence of its own: the polish steps of the first stage do
+    /// not count toward it (BOOT.md, the threshold flip, 2026-10-03).
+    /// </summary>
+    public void RestartPolish() => PolishSteps = 0;
 
     /// <summary>
     /// One step's verdict: a failed one clears the mark and the polish count, so a later pass polishes afresh and a

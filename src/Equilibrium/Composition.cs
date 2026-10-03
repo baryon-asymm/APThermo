@@ -42,12 +42,13 @@ internal static class Composition
     /// first-stage re-apply on the final state (BOOT.md, the two-stage retention threshold, 2026-09-28; corrected
     /// the third pass, finding F3: no caller ever re-applied a first-stage threshold).
     /// </summary>
-    public static double Retain(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold)
+    public static double Retain(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold,
+                                bool held)
     {
         var sumGas = 0.0;
         for (var j = 0; j < table.GasCount; j++)
         {
-            var retained = SpeciesMarks.InPlay(scratch, j) && scratch.LogMoles[j] - logN > -traceThreshold;
+            var retained = IsRetained(scratch, result, j, logN, traceThreshold, held);
             result.Moles[j] = retained ? Math.Exp(scratch.LogMoles[j]) : 0.0;
             sumGas += result.Moles[j];
         }
@@ -55,12 +56,20 @@ internal static class Composition
         return sumGas;
     }
 
+    /// <summary>
+    /// The retention rule for one gas: in play, and above the threshold or, once the case holds its retained set
+    /// (<see cref="IterationState.RetainedSetHeld"/>), already retained, <c>result.Moles[j]</c> still holding the amount the
+    /// last sums retained (BOOT.md, the threshold flip, 2026-10-03).
+    /// </summary>
+    public static bool IsRetained(in EquilibriumScratch scratch, in EquilibriumResult result, int j, double logN, double traceThreshold, bool held) =>
+        SpeciesMarks.InPlay(scratch, j) && (scratch.LogMoles[j] - logN > -traceThreshold || (held && result.Moles[j] > 0.0));
+
     /// <summary>The final iterate of a convergence: the species functions at the settled temperature and the retained moles, at the case's own active threshold.</summary>
     public static void Refresh(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                ref IterationState state)
     {
         Evaluate(table, scratch, ref state);
-        _ = Retain(table, scratch, result, state.LogN, EquilibriumSolver.RetentionThreshold(state));
+        _ = Retain(table, scratch, result, state.LogN, EquilibriumSolver.RetentionThreshold(state), state.RetainedSetHeld);
     }
 
     /// <summary>
@@ -72,7 +81,7 @@ internal static class Composition
                                    in IterationState state, double logPressure, double traceThreshold)
     {
         var gasCount = table.GasCount;
-        var sumGas = Retain(table, scratch, result, state.LogN, traceThreshold);
+        var sumGas = Retain(table, scratch, result, state.LogN, traceThreshold, state.RetainedSetHeld);
         var sums = new MixtureSums
         {
             LogN = state.LogN,

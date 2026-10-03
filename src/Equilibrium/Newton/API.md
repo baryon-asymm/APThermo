@@ -26,21 +26,36 @@ internal enum ConvergenceVerdict
     Polished,
 }
 
+[System.Flags]
+internal enum RetentionCrossing
+{
+    None = 0,
+    Entered = 1,    // a gas entered the retained set
+    Left = 2,       // a gas left it
+    Both = Entered | Left,    // the threshold flip's signature
+}
+
 internal struct NewtonLoopState
 {
+    public const int FlipsBeforeHold = 2;
     public int Steps;
     public bool Converged;
     public int PolishSteps;
     public int SingularResets;
+    public int Flips;
     public void RecordSetChange();                             // a change of the condensed set restarts the step count
+    public void RestartPolish();                               // the switch to the second stage clears the polish steps
     public void RecordVerdict(ConvergenceVerdict verdict);     // a failed verdict clears the mark and the polish count
+    public bool RecordFlip(bool flip);                         // a non-flip clears the run; true once the run reaches FlipsBeforeHold
 }
 
 internal static class ConvergenceTests
 {
     public static ConvergenceVerdict Evaluate(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout layout, in MixtureSums sums);
-    public static bool RetentionCrossed(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold);
-        // whether the step carried a gas across the retention threshold, in either direction
+    public static ConvergenceVerdict RetentionVerdict(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ConvergenceVerdict verdict, ref NewtonLoopState loop, ref IterationState state);
+        // a crossing refuses a passed verdict under the second stage only; two consecutive flips set state.RetainedSetHeld
+    public static RetentionCrossing Crossing(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logN, double traceThreshold, bool held);
+        // which way the step carried gases across the retention rule (Composition.IsRetained), in either direction
 }
 ```
 

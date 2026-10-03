@@ -84,7 +84,7 @@ public sealed class NewtonLoopStateTests
 
         // Species 1 was retained (its moles from the linearization point are positive) but the step just taken puts
         // it below the trace threshold: a crossing, whatever the step's own corrections say.
-        Assert.True(ConvergenceTests.RetentionCrossed(view, scratch, result, logN: 0.0, traceThreshold: EquilibriumSolver.TraceThreshold));
+        Assert.Equal(RetentionCrossing.Left, ConvergenceTests.Crossing(view, scratch, result, logN: 0.0, traceThreshold: EquilibriumSolver.TraceThreshold, held: false));
     }
 
     /// <summary>No crossing when every gaseous species keeps the same side of the trace threshold.</summary>
@@ -112,7 +112,7 @@ public sealed class NewtonLoopStateTests
         result.Moles[0] = 1.0;
         result.Moles[1] = 0.0;                                         // was not retained either
 
-        Assert.False(ConvergenceTests.RetentionCrossed(view, scratch, result, logN: 0.0, traceThreshold: EquilibriumSolver.TraceThreshold));
+        Assert.Equal(RetentionCrossing.None, ConvergenceTests.Crossing(view, scratch, result, logN: 0.0, traceThreshold: EquilibriumSolver.TraceThreshold, held: false));
     }
 
     /// <summary>

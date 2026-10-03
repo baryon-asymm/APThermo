@@ -211,9 +211,11 @@ public sealed class WarmStartTests
 
     /// <summary>
     /// The audit's exact cases: the warm solve is `Ok` and agrees with a fresh cold solve at half pressure. Red once
-    /// with the retention-crossing rule off (<c>NewtonIteration.cs</c>'s <c>if (verdict != NotConverged &amp;&amp;
-    /// RetentionCrossed(...))</c> replaced by <c>&amp;&amp; false</c>): every case then ends `NotConverged` after one
-    /// iteration (BOOT.md, warm starts, the audit's findings 3 and 4).
+    /// with the retention-crossing rule off (2026-09-28, <c>NewtonIteration.cs</c>'s <c>if (verdict != NotConverged
+    /// &amp;&amp; RetentionCrossed(...))</c> replaced by <c>&amp;&amp; false</c>): every case then ended `NotConverged`
+    /// after one iteration (BOOT.md, warm starts, the audit's findings 3 and 4). Since the second-stage rule of
+    /// 2026-10-03 the fact stays green with <c>ConvergenceTests.RetentionVerdict</c> returning its verdict unchanged
+    /// (measured that day), and the rule is held by <see cref="ThresholdFlipTests"/> and the bit snapshot instead.
     /// </summary>
     [Theory]
     [MemberData(nameof(AuditCases))]
