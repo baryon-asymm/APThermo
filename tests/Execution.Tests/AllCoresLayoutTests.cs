@@ -50,6 +50,7 @@ public sealed class AllCoresLayoutTests
     /// <see cref="AcceleratorChoice.CpuDeviceFor"/> used to under-report as 8 by keeping the multiprocessor count fixed at 1.
     /// </summary>
     [Fact]
+    [Trait("Category", "EndToEnd")]
     public void TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove()
     {
         var expectedThreads = new Dictionary<int, int> { [4] = 4, [12] = 12, [16] = 16, [64] = 64 };

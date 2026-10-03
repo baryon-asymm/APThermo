@@ -121,7 +121,7 @@ only in this node.
       and the process run by a flag, so the graph reached the process from both (the run is now a delegate the
       fact passes, and the in-process facts reach no process); the Python linter and tool self-tests started a
       process, never listed by the design brief, and now carry `Category=EndToEnd` (the ⚠ in the BOOT).
-      Open item, escalated (AGENTS.md §11), not closed in this node: the check is red on
-      `tests/Execution.Tests` — `AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`
-      starts a process and carries no `Category=EndToEnd`. Proposal: that node adds the trait to the fact; nothing
-      else changes, and the check is green once it does (it names no other fact).
+      The first run found one more fact, in `tests/Execution.Tests`:
+      `AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`
+      started a process without the trait; escalated (AGENTS.md §11), the trait added on the orchestrator's
+      decision, the check green on the whole tree after it (2026-10-03).

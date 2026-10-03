@@ -105,6 +105,10 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   verifies the refusal of an explicit CUDA request and returns, so the full suite
   passes in that process; on a machine without CUDA and without the variable the
   CUDA tests fail with the accelerator message, they do not skip.
+- **The all-cores layout fact is end-to-end** (2026-10-03, root `BOOT.md`, Test time budgets):
+  `AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`
+  starts a `dotnet test` process per processor count, so it carries `Category=EndToEnd` and runs in the
+  end-to-end set, not the fast set (`Protocol.Tests`' End-to-end level holds the rule).
 - **The approved throughput file is a tripwire**: a run writes `Throughput.actual.txt`
   next to it; the test fails when the ratio falls below the approved one by more than
   20 % or below 5×.
