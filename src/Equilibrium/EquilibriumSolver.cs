@@ -163,8 +163,8 @@ internal static class EquilibriumSolver
             Composition.Refresh(table, scratch, result, ref state);
             if (!CondensedSet.Update(table, problem, scratch, result, ref state))
             {
-                // Rule A's release (BOOT.md, 2026-09-28): once the settled set finds no further change and some species
-                // of the sums tells the tied pair apart, the tie is released, at most once per solve, and the settled
+                // Rule A's release (BOOT.md of the Newton node): once the settled set finds no further change and some
+                // species of the sums breaks the tied combination, the tie is released, at most once per solve, and the settled
                 // set converges again on the element's own row.
                 if (state.Tie.Active && !state.TieReleased
                     && !ElementCoupling.Coupled(table, scratch, result, state.CondensedCount, state.Tie))

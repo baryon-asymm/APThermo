@@ -57,17 +57,16 @@ internal static class SpeciesMarks
 }
 
 /// <summary>
-/// Rule A's tie (BOOT.md, "Two rules come before the remedies above", 2026-09-28, "Rule A: an element tie"): the one
-/// other active element a failed element row was found to duplicate, and the ratio a_k/a_i of their rows. Per-case
-/// state, carried in <see cref="IterationState"/> and copied into <see cref="SystemLayout"/> for the one Newton step
-/// that assembles the tie row (<see cref="Newton.IterationMatrix"/> is the only writer of it).
+/// Rule A's tie (BOOT.md of the Newton child node, "Rule A: an element tie"): the one active element whose failed row was
+/// found to equal a linear combination of the other active rows over every species of the sums. The coefficients of the
+/// combination are not part of the carrier: they live in the case's scratch (<see cref="TieElementSlices.Coefficients"/>),
+/// one per element. Per-case state, carried in <see cref="IterationState"/> and copied into <see cref="SystemLayout"/> for
+/// the one Newton step that assembles the tie row (<see cref="Newton.IterationMatrix"/> is the only writer of it).
 /// </summary>
 internal struct ElementTie
 {
     public bool Active;
     public int Element;
-    public int Partner;
-    public double Ratio;
 }
 
 /// <summary>
@@ -216,7 +215,7 @@ internal struct IterationState
     public bool RetentionSecondStage;
 
     /// <summary>
-    /// Rule A's tie (BOOT.md, 2026-09-28), once a coupled pair of elements made the matrix singular; inactive until
+    /// Rule A's tie (BOOT.md of the Newton child node), once a tied element row made the matrix singular; inactive until
     /// then. <see cref="StateRecord.DerivativeSystem"/> reads it from here, not from a parameter of its own.
     /// </summary>
     public ElementTie Tie;

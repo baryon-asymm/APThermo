@@ -57,7 +57,7 @@ internal readonly struct EquilibriumScratch              // slices of batch-size
     public readonly ArrayView<double> Corrections;     // [species], Δln n_j of the gaseous species
     public readonly ArrayView<double> TieLogMoles;     // [species], rule A's release snapshot of LogMoles (the third pass of 2026-09-28, finding F1)
     public readonly ArrayView<double> TieCondensedMoles; // [MaxCondensedInSolution], the snapshot's condensed moles
-    public readonly ArrayView<double> TieMultipliers;    // [MaxCondensedInSolution], the snapshot's Lagrange multipliers ([0, elementCount))
+    public readonly TieElementSlices TieElements;      // rule A's three slices of the element count: the multipliers snapshot, the live coefficients, their snapshot
     public readonly ArrayView<double> Matrix;          // [MaxUnknowns * MaxUnknowns], row-major
     public readonly ArrayView<double> RightHandSide;   // [MaxUnknowns]; the solution after a solve
     public readonly ArrayView<double> RowScale;        // [MaxUnknowns]
@@ -67,12 +67,20 @@ internal readonly struct EquilibriumScratch              // slices of batch-size
     public readonly ArrayView<int> TieCondensedSet;    // [MaxCondensedInSolution], the snapshot's condensed set
     public EquilibriumScratch(ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
                               ArrayView<double> logMoles, ArrayView<double> corrections,
-                              ArrayView<double> tieLogMoles, ArrayView<double> tieCondensedMoles, ArrayView<double> tieMultipliers,
+                              ArrayView<double> tieLogMoles, ArrayView<double> tieCondensedMoles, TieElementSlices tieElements,
                               ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
                               ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution,
                               ArrayView<int> tieCondensedSet);
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount);
         // cuts one case's scratch from views of at least DoublesPerCase and IntsPerCase elements
+}
+
+internal readonly struct TieElementSlices                // rule A's per-element slices, grouped so that EquilibriumScratch's constructor keeps its parameter count
+{
+    public readonly ArrayView<double> Multipliers;     // [element], the release snapshot of the Lagrange multipliers
+    public readonly ArrayView<double> Coefficients;    // [element], c_i of the live tie's combination; zero for the tied element
+    public readonly ArrayView<double> CoefficientSnapshot; // [element], the release's snapshot of Coefficients
+    public TieElementSlices(ArrayView<double> multipliers, ArrayView<double> coefficients, ArrayView<double> coefficientSnapshot);
 }
 
 internal readonly struct EquilibriumResult               // views the solver writes into
@@ -105,7 +113,7 @@ internal static class ScratchLayout
 {
     public const int MaxCondensedInSolution = 20;                              // = TableLimits.MaxElements (2026-09-26; was 8)
     public static int MaxUnknowns(int elementCount);                          // elementCount + MaxCondensedInSolution + 2
-    public static int DoublesPerCase(int speciesCount, int elementCount);     // 7 · species + 2 · MaxCondensedInSolution + MaxUnknowns² + 2 · MaxUnknowns
+    public static int DoublesPerCase(int speciesCount, int elementCount);     // 7 · species + MaxCondensedInSolution + 3 · elements + MaxUnknowns² + 2 · MaxUnknowns
     public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + 2 · MaxCondensedInSolution
 }
 
@@ -138,6 +146,14 @@ as this node's own tests do, picks up the new size without a change of its own; 
 task's evidence is every consuming node's own test suite green after the change
 (`Performance.Tests`, `Transport.Tests`, `Problems.Tests`, `Cli.Tests`,
 `Execution.Tests`), none of them touched.
+
+⚠ 2026-10-03: was one `MaxCondensedInSolution`-sized slice, `TieMultipliers`, for the release's
+snapshot of the multipliers, now the group `TieElements` of three slices of the element count each: that
+snapshot, the live coefficients of rule A's linear combination and their snapshot
+([Newton/BOOT.md](Newton/BOOT.md), "The tie is per-case state"). `ElementTie` lost its `Partner` and
+`Ratio`: the coefficients are the combination's, one per element. The constructor keeps its 16
+parameters, the doubles per case change from `2 · MaxCondensedInSolution` to
+`MaxCondensedInSolution + 3 · elements`, and a caller that sizes its buffers by `DoublesPerCase` needs no change.
 
 Units: SI throughout; mole numbers in kmol per kilogram of mixture, so that
 `Σ n_j M_j = 1` over the whole mixture. `Multipliers` are the dimensionless `π_i` of
