@@ -226,6 +226,7 @@ public sealed class OutputDocumentTests
 
     /// <summary>An auto run that fell back says why.</summary>
     [Fact]
+    [Trait("Category", "EndToEnd")]
     public void AnAutoRunThatFellBackSaysWhy()
     {
         // A separate process (ProcessTests' own pattern): APTHERMO_NO_CUDA is a process environment variable, and

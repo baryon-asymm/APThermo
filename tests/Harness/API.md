@@ -2,8 +2,8 @@
 
 Namespace `APThermo.Harness`. The scaffolding the test nodes
 share: a CPU host, bit comparison, bit hashes with their approval files, fixture
-families, and the JSON-document helpers (schema validation, the `run`-property cut, the
-field-by-field comparison).
+families, the JSON-document helpers (schema validation, the `run`-property cut, the
+field-by-field comparison), and the runner of a built assembly as a process.
 Everything not listed here is internal and may change.
 
 ## Host ✅
@@ -95,10 +95,31 @@ public static class JsonFieldComparison
 }
 ```
 
+## Processes ✅
+
+A built .NET assembly run as a separate process (2026-10-03, the test pyramid: the process runner
+of `Cli.Tests`, moved here so that `Docs.Tests` runs the command line as a process the same way).
+
+```csharp
+public sealed record DotnetProcessResult(int ExitCode, ReadOnlyMemory<byte> Output, ReadOnlyMemory<byte> Error);   // the raw bytes of both standard streams, in no encoding
+
+public static class DotnetProcess
+{
+    public static DotnetProcessResult Run(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory, IReadOnlyDictionary<string, string>? environment = null);   // `dotnet <assemblyPath> <arguments>` in workingDirectory, environment set on top of the inherited one, waited for
+    public static string BuiltAssemblyPath(string assemblyName, params string[] projectDirectory);   // the .dll next to the running test assembly when its runtime configuration was copied there, else the project's build output (projectDirectory below the repository root, e.g. "src", "Cli") in the running configuration
+}
+```
+
+The arguments are passed one to one, never re-parsed. Standard output and standard error are read as bytes from
+the process's base streams, so a caller sees the encoding the process wrote on the platform it ran on and
+decodes it itself. The type names no type of the node under test: the assembly is a path.
+
 ## Errors
 
 | Situation | Behaviour |
 |---|---|
+| `dotnet` does not start | `InvalidOperationException` from `DotnetProcess.Run` |
+| `BuiltAssemblyPath` finds no built assembly | `FileNotFoundException` naming the path it looked at |
 | the database or the tolerance table cannot be loaded | the `Data` or `Fixtures` exception, from the `CpuHost` constructor |
 | `Bits.Differences<T>` is called on a `T` with no public `double` or `int` field or property | `InvalidOperationException`, naming the type |
 | a schema uses a keyword outside `Validate`'s list | `InvalidOperationException`, naming the keyword |
@@ -115,7 +136,8 @@ from the first problem a run finds in it on, so that the file always ends comple
 through the last key the caller passed it; when a caller also passes `Problem` a
 `BitHash`'s `Fields`, a problem on that key writes one further file beside it,
 `<actual file>.<sanitized key>.fields.txt`, one field per line in the order the hash
-folded them (BOOT.md, the per-case field dump). Both are git-ignored.
+folded them (BOOT.md, the per-case field dump). Both are git-ignored. `DotnetProcess.Run` starts a
+`dotnet` process and waits for it; it writes no file of its own, and the process it starts may.
 
 ## Out of scope
 

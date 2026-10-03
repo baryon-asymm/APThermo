@@ -4,6 +4,7 @@ namespace APThermo.Cli.Tests;
 
 /// <summary>The command line as a separate process: real exit codes and standard streams, one run per exit code.</summary>
 [Collection("cli")]
+[Trait("Category", "EndToEnd")]
 public sealed class ProcessTests
 {
     /// <summary>The executable writes the document to standard output with exit 0.</summary>

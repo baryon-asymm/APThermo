@@ -60,6 +60,12 @@ public sealed partial class CommandLineExampleTests
         Exact,
     }
 
+    /// <summary>One way of checking the guide's invocations: how each is run, <see cref="CliInvocation.InProcess"/> on warm
+    /// solvers or <see cref="CliInvocation.AsProcess"/> as a fresh process, the shipped cold path, and how its document is
+    /// compared. The run is the method itself, passed by the fact, so that the call graph of an in-process fact never reaches
+    /// the process (<c>Protocol.Tests</c>, the end-to-end level).</summary>
+    private readonly record struct Check(ComparisonMode Comparison, Func<IReadOnlyList<string>, CliRun> Run);
+
     private static readonly HashSet<string> RunnableVerbs = new(StringComparer.Ordinal) { "rocket", "equilibrium", "states" };
     private static readonly HashSet<string> DeclaredOnlyVerbs = new(StringComparer.Ordinal) { "devices", "--version" };
     private static readonly Regex InlineSpan = MyRegex();
@@ -90,7 +96,7 @@ public sealed partial class CommandLineExampleTests
     [Fact]
     public void EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis()
     {
-        var runnableKeys = RunInvocations(ComparisonMode.Field);
+        var runnableKeys = RunInvocations(new Check(ComparisonMode.Field, CliInvocation.InProcess));
         CheckApprovedFilesMatch(runnableKeys);
     }
 
@@ -102,11 +108,28 @@ public sealed partial class CommandLineExampleTests
     /// </summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly() => RunInvocations(ComparisonMode.Exact);
+    public void EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly() => RunInvocations(new Check(ComparisonMode.Exact, CliInvocation.InProcess));
 
-    /// <summary>Finds every invocation of the guide and classifies each in <paramref name="mode"/>, returning the
+    /// <summary>
+    /// The same invocations, each as a fresh process, the shipped cold path (BOOT.md, L3, the end-to-end set): every
+    /// delivered document equals its platform's approved file field by field, on every runner, the hosted ones included.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EndToEnd")]
+    public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField() => RunInvocations(new Check(ComparisonMode.Field, CliInvocation.AsProcess));
+
+    /// <summary>
+    /// The same invocations, each as a fresh process, equal their platform's approved file exactly: the reference machine's
+    /// record of the shipped cold path, tagged <c>Category=BitSnapshot</c> like the in-process exact fact.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EndToEnd")]
+    [Trait("Category", "BitSnapshot")]
+    public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentExactly() => RunInvocations(new Check(ComparisonMode.Exact, CliInvocation.AsProcess));
+
+    /// <summary>Finds every invocation of the guide and classifies each under <paramref name="check"/>, returning the
     /// runnable keys the caller may still want to check the approved directory against.</summary>
-    private static List<ApprovedKey> RunInvocations(ComparisonMode mode)
+    private static List<ApprovedKey> RunInvocations(Check check)
     {
         var pages = GuideDocuments.SnippetSources();
         var invocations = FenceInvocationsOf(pages).Concat(InlineInvocationsOf(pages)).ToList();
@@ -115,7 +138,7 @@ public sealed partial class CommandLineExampleTests
         var runnableKeys = new List<ApprovedKey>();
         foreach (var (file, line, command, isFence) in invocations)
         {
-            Classify($"{file}:{line + 1}", command, runnableKeys, isFence, mode);
+            Classify($"{file}:{line + 1}", command, runnableKeys, isFence, check);
         }
 
         return runnableKeys;
@@ -236,7 +259,7 @@ public sealed partial class CommandLineExampleTests
     /// a bare verb there is checked as a full invocation instead of silently skipped (minor 2 of the fourth
     /// documentation review).
     /// </summary>
-    private static void Classify(string where, string command, List<ApprovedKey> runnableKeys, bool isFence, ComparisonMode mode)
+    private static void Classify(string where, string command, List<ApprovedKey> runnableKeys, bool isFence, Check check)
     {
         var tokens = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         Assert.True(tokens.Length >= 2 && tokens[0] == "apthermo", $"{where}: '{command}' names no command after 'apthermo'");
@@ -256,7 +279,7 @@ public sealed partial class CommandLineExampleTests
             var input = InputDocumentsOf(tokens[1..])[0];
             var key = RunnableKeyOf(baseKey!, tokens[2..], input);
             runnableKeys.Add(new ApprovedKey(key, "json"));
-            CheckExample(where, tokens[1..], key, mode);
+            CheckExample(where, tokens[1..], key, check);
             return;
         }
 
@@ -273,7 +296,7 @@ public sealed partial class CommandLineExampleTests
 
         if (verb == "--help")
         {
-            RunAndApproveText(where, tokens[1..], "help");
+            RunAndApproveText(where, tokens[1..], "help", check.Run);
             runnableKeys.Add(new ApprovedKey("help", "txt"));
             return;
         }
@@ -284,7 +307,7 @@ public sealed partial class CommandLineExampleTests
         }
 
         var syntheticKey = KeyOf(tokens[1..]);
-        RunAndApprove(where, tokens[1..], syntheticKey, cutRun: verb != "schema", mode);
+        RunAndApprove(where, tokens[1..], syntheticKey, cutRun: verb != "schema", check);
         runnableKeys.Add(new ApprovedKey(syntheticKey, "json"));
     }
 
@@ -409,23 +432,26 @@ public sealed partial class CommandLineExampleTests
     [GeneratedRegex(@"[^A-Za-z0-9.]+")]
     private static partial Regex NonKeyCharacters();
 
-    private static void CheckExample(string where, IReadOnlyList<string> argsAfterApthermo, string key, ComparisonMode mode)
+    private static void CheckExample(string where, IReadOnlyList<string> argsAfterApthermo, string key, Check check)
     {
         var input = InputDocumentsOf(argsAfterApthermo)[0];
         var args = argsAfterApthermo.Select(a => a == input ? Path.GetFullPath(Path.Combine(GuideDocuments.Root, input)) : a).ToArray();
-        RunAndApprove(where, args, key, cutRun: true, mode);
+        RunAndApprove(where, args, key, cutRun: true, check);
     }
 
-    /// <summary>Runs `apthermo &lt;args&gt;` in-process and compares its delivered document, `run` cut when requested,
-    /// with the platform's approved file keyed by <paramref name="key"/>, in <paramref name="mode"/>.</summary>
-    private static void RunAndApprove(string where, IReadOnlyList<string> args, string key, bool cutRun, ComparisonMode mode)
+    /// <summary>Runs `apthermo &lt;args&gt;` through <paramref name="run"/> and returns its result, failing unless it exited 0.</summary>
+    private static CliRun RunToExit0(string where, IReadOnlyList<string> args, Func<IReadOnlyList<string>, CliRun> run)
     {
-        using var output = new StringWriter();
-        using var error = new StringWriter();
-        var code = Cli.Program.Run([.. args], output, error);
-        Assert.True(code == 0, $"{where}: 'apthermo {string.Join(' ', args)}' exited with {code}: {error}");
+        var result = run(args);
+        Assert.True(result.Code == 0, $"{where}: 'apthermo {string.Join(' ', args)}' exited with {result.Code}: {result.Error}");
+        return result;
+    }
 
-        var document = output.ToString();
+    /// <summary>Runs `apthermo &lt;args&gt;` as the check says and compares its delivered document, `run` cut when
+    /// requested, with the platform's approved file keyed by <paramref name="key"/>, in the check's comparison.</summary>
+    private static void RunAndApprove(string where, IReadOnlyList<string> args, string key, bool cutRun, Check check)
+    {
+        var document = RunToExit0(where, args, check.Run).Output;
         using (var parsed = JsonDocument.Parse(document))
         {
             Assert.True(parsed.RootElement.ValueKind == JsonValueKind.Object, $"{where}: 'apthermo {string.Join(' ', args)}' delivered no JSON object to standard output");
@@ -443,7 +469,7 @@ public sealed partial class CommandLineExampleTests
         }
 
         var approved = GuideDocuments.Lf(File.ReadAllText(approvedPath));
-        var problem = mode == ComparisonMode.Exact
+        var problem = check.Comparison == ComparisonMode.Exact
             ? ExactMismatch(approved, actual)
             : FieldMismatchOf(approved, actual);
         if (problem is not null)
@@ -470,17 +496,12 @@ public sealed partial class CommandLineExampleTests
     }
 
     /// <summary>
-    /// Runs `apthermo &lt;args&gt;` in-process and compares its plain-text output (not JSON, no `run` cut) with the
-    /// approved file keyed by <paramref name="key"/> — the form `--help`'s usage text takes.
+    /// Runs `apthermo &lt;args&gt;` through <paramref name="run"/> and compares its plain-text output (not JSON, no
+    /// `run` cut) with the approved file keyed by <paramref name="key"/> — the form `--help`'s usage text takes.
     /// </summary>
-    private static void RunAndApproveText(string where, IReadOnlyList<string> args, string key)
+    private static void RunAndApproveText(string where, IReadOnlyList<string> args, string key, Func<IReadOnlyList<string>, CliRun> run)
     {
-        using var output = new StringWriter();
-        using var error = new StringWriter();
-        var code = Cli.Program.Run([.. args], output, error);
-        Assert.True(code == 0, $"{where}: 'apthermo {string.Join(' ', args)}' exited with {code}: {error}");
-
-        var actual = GuideDocuments.Lf(output.ToString());
+        var actual = GuideDocuments.Lf(RunToExit0(where, args, run).Output);
         var approvedPath = ApprovedPathOf(key, "txt");
         var actualPath = Path.Combine(Path.GetDirectoryName(approvedPath)!, key + ".actual.txt");
 
