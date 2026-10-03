@@ -198,6 +198,16 @@ families):
     - AP/HTPB/Al at 7 MPa/430 K and 1 MPa/420 K, on the same reactants, mass
       fractions and product table as the `ap-htpb-al` chamber fixture (imported from
       `propellants.py`, not copied): a direct tp solve, not a rocket station.
+  - The three-element tie (2026-10-03, `generate/three_element.py`; the generalized rule A
+    of the Newton node): tp cases on the element moles and product lists of RP-1311
+    examples 1 (r = 1.0) and 12, where only CO2, H2O and N2 (and Ar) are retained and row
+    O equals 2·C + ½·H. Fed as **pure-element** `Custom` reactants at the recorded element
+    moles: example 1's own reactants (H2 + air) give cea a `b` whose cancellation
+    `b_O − 2b_C − ½b_H` differs from the recorded one, so cea came out lean where the
+    recorded mixture is rich (x(H2O) 6.2e-6 apart, over the 5e-6 tolerance). Four cases:
+    example 1 at 300 K, 101 325 Pa and at 600 K, 1 013.25 Pa; example 12 at 300 K,
+    6.895 MPa (`H2O(L)` and an `O2` carrier) and at 600 K, 68.9 kPa (gas only); each is
+    one the equilibrium node ended `SingularMatrix` on before the rule.
   - `throat` (2026-09-27): the chamber and the throat of a shifting-equilibrium
     rocket, with no exit, where the throat is the first local maximum of the mass
     flux `ρu` met from the chamber along the chamber isentrope, found over the
