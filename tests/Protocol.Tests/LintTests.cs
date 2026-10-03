@@ -1,6 +1,7 @@
 namespace APThermo.Protocol.Tests;
 
 /// <summary>Lint level: the file half of the protocol, run as the linter process the loader names, in strict mode (the tree's criterion is zero warnings).</summary>
+[Trait("Category", "EndToEnd")]
 public sealed class LintTests
 {
     /// <summary>The tree passes the protocol linter with no error and no warning (strict mode: a warning fails too).</summary>

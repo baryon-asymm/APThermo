@@ -42,7 +42,8 @@ depends on console, serialization or file-layout concerns.
 
   ⚠ 2026-09-13: was names-only strictness, now a mass check → HISTORY.md#strict-values
 - **No hidden state**: no configuration files, no registry, no environment variable
-  except the ones `Execution` reads.
+  except the ones `Execution` reads; the warm solvers of `RunCached` are an explicit
+  parameter, a `SolverCache` its caller owns, never a static (2026-10-03).
 
 ## Dependencies
 
@@ -161,15 +162,20 @@ rows name composition roots that stayed here. → HISTORY.md#structure-children
 ⚠ 2026-09-15: was four table rows drifted from the code, now they follow it
 → HISTORY.md#structure-rows-drift
 
+⚠ 2026-10-03: was one in-process entry, `Program.Run`, now `Run` and `RunCached` with
+`SolverCache` (the test pyramid: a fresh engine per invocation was most of the command
+line's test time) → API.md, "Entry point (tree contract)"
+
 Types that stayed at this node's own level:
 
 | Type | Responsibility |
 |---|---|
-| `Program` | the entry point: dispatches through `CommandRegistry`, turns the exceptions it knows into their exit codes through `Failures`, and installs in `Main` the process's unhandled-exception handler that turns every other exception into exit code 3 (2026-09-24, API.md) |
+| `Program` | the entry point: dispatches through `CommandRegistry`, turns the exceptions it knows into their exit codes through `Failures`, and installs in `Main` the process's unhandled-exception handler that turns every other exception into exit code 3 (2026-09-24, API.md); `Run` is one in-process invocation with a fresh solver, `RunCached` (2026-10-03, API.md) the same with the solvers of a `SolverCache`, holding its gate, and both hand the handlers a `Func<string?, AcceleratorKind, SolverSession>` that opens the session, never the cache type |
 | `Failures` | the exception → exit code rule: `InputException` 2; an accelerator failure, an I/O failure (`IOException`, `UnauthorizedAccessException`) and, through the unhandled-exception handler, every unexpected exception 3 |
 | `CommandRegistry` | command name → handler, no logic (it was the class `Commands`); the handlers are this node's own `ProblemCommand`/`StatesCommand`/`SpeciesCommand`/`SchemaCommand` and `Listings.DeviceListing` |
 | `DocumentWords` | every word ↔ enum mapping of the documents and the options, both directions (flow, accelerator, role, amount kind, problem kind), with the place (a JSON path or an option) in the message (F-CL-11); read by all four clusters below, no dominant owner (see the warning above) |
-| `SolverSession` | the database and the solver of one run, with their timings; disposable |
+| `SolverSession` | the database and the solver of one run, with their timings; disposable, and it disposes only a solver it created itself, never one a `SolverCache` lent it |
+| `SolverCache` | (2026-10-03) the warm solvers an in-process caller keeps across invocations: one per database content (`Provenance.ThermoSha256` and `TransSha256`) and requested `AcceleratorKind`, a `Lock` gate that serializes the invocations of one cache (an engine is used from one thread at a time), `Count` of the solvers created, disposing them all; it holds no formula and no rule of a document, and is a type of the tree contract (API.md) |
 | `ProblemCommand` | `rocket` and `equilibrium`: read (`Documents`), check the problem type against the command, build the mixtures, expand the sweep, solve (`Cases`), write (`Output`) |
 | `StatesCommand` | `states`: the records split by `HasExits` (`Documents`), one call of `SolveStates` and one of `SolveRocketStates` with the run's `StateBatchOptions`, the cases back in input order, written (`Output`) |
 | `DatabaseFiles`, `DatabaseInfo` | where the database is found: `--database DIR`, or (2026-09-15) `Data.SpeciesDatabase.LoadBundled()` when no directory is given, reported as the `"embedded:…"` markers; and the record of what was found |

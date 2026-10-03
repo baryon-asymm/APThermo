@@ -62,8 +62,10 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
   ⚠ 2026-10-01: was `.github` not a node, now it and IsaProbe are → HISTORY.md#isaprobe
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
-    the build, the fast suite with `APTHERMO_NO_CUDA=1` and without the bit snapshots
-    (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint), and
+    the build, the fast suite and the end-to-end facts (`Category=EndToEnd`, the facts that
+    start a process) with `APTHERMO_NO_CUDA=1` and without the bit snapshots
+    (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint; the
+    workflows' filter `Category!=LongRunning&Category!=BitSnapshot` takes both sets), and
     packing both packages. The release's self-hosted jobs on the reference machine run
     the bit snapshots with the CUDA tests. Then the samples run against the fresh
     `APThermo` package from a local feed, the tool installed from that feed runs an
@@ -74,6 +76,10 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
     ⚠ 2026-09-30: was the example compared byte for byte, now field by field within 1e-9
     relative → HISTORY.md#ci-field-comparison
+
+    ⚠ 2026-10-03: was "the fast suite" alone, now with the end-to-end facts named: the filters
+    are unchanged, `Category!=BitSnapshot` already takes `Category=EndToEnd`, and the exact
+    process facts carry `Category=BitSnapshot`, so the self-hosted jobs run them
   - There is no nightly run (2026-09-17).
 
   ⚠ 2026-09-17: was a nightly run of the long-running tests, now none (they are CUDA

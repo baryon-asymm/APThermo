@@ -304,6 +304,16 @@ sealed class APThermo.Harness.CpuHost : IDisposable
     ToleranceTable Tolerances { get; }
     Void Dispose()
 
+static class APThermo.Harness.DotnetProcess
+    static DotnetProcessResult Run(String assemblyPath, IReadOnlyList<String> arguments, String workingDirectory, IReadOnlyDictionary<String, String>? environment = null)
+    static String BuiltAssemblyPath(String assemblyName, params String[] projectDirectory)
+
+sealed class (record) APThermo.Harness.DotnetProcessResult : IEquatable<DotnetProcessResult>
+    .ctor(Int32 ExitCode, ReadOnlyMemory<Byte> Output, ReadOnlyMemory<Byte> Error)
+    Int32 ExitCode { get; init; }
+    ReadOnlyMemory<Byte> Error { get; init; }
+    ReadOnlyMemory<Byte> Output { get; init; }
+
 static class APThermo.Harness.FixtureFamilies
     static IReadOnlyList<CeaCase> CasesOf(IEnumerable<String> kinds, Func<CeaCase, String> key, String familyKey)
     static IReadOnlyList<FixtureFamilyKey> Keys(IEnumerable<String> kinds, Func<CeaCase, String> key)

@@ -6,6 +6,7 @@ namespace APThermo.Protocol.Tests;
 /// never typed. The cases of this class run one after another (one class is one xunit collection), so the temp directories
 /// the self-tests build never meet.
 /// </summary>
+[Trait("Category", "EndToEnd")]
 public sealed class ToolSelfTestTests
 {
     private const int TailLines = 40;

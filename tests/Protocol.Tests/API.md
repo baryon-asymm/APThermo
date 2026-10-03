@@ -9,6 +9,7 @@ consider guaranteed about the agreement between its documents and its code.
 |---|---|---|
 | the tree passes the language-independent linter without errors or warnings | Lint level (`LintTests`) | ✅ |
 | every Python tool node's self-test passes (`tools/*/test_*.py`) | Tool self-tests level (`ToolSelfTestTests`) | ✅ 2026-10-02 |
+| every test method that starts a process, through a call of `Process.Start` or a `ProcessStartInfo` in the `tests` nodes' code, carries `Category=EndToEnd`, so the fast set holds no process fact | End-to-end level (`EndToEndTests`) | ✅ 2026-10-03 |
 | no public surface of a library assembly changes without the snapshot moving in the same commit | Surface level (`SurfaceTests`, `PublicSurface.approved.txt`) | ✅ |
 | every type a library assembly exports is named in its node's `API.md`, and every type of every assembly lives in its node's namespace | Coverage level (`CoverageTests`) | ✅ |
 | every declaration under ✅ exists, the type and the member | Declarations level (`DeclarationTests`) | ✅ |
@@ -51,6 +52,10 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
   not a skip.
 - Every `tools/*/test_*.py`, found by the walk, run as `python -X utf8 <script>` from the tree
   root, five minutes each; a non-zero exit, a timeout and an empty walk are failures.
+- The method bodies of the `tests` nodes' assemblies (2026-10-03): the static call graph from every
+  `[Fact]` and `[Theory]` to a call of `Process.Start` or a construction of a `ProcessStartInfo`, and the
+  `[Trait("Category", …)]` attributes on the method, its types and their bases; a virtual call is not resolved
+  and a call into a `src` assembly is not followed.
 - The C# syntax trees of the source files of every node whose code lives in one of the
   tree's assemblies — a node with its own project, or a project-less child node
   compiled into its nearest ancestor's (2026-09-14; child nodes, 2026-09-15) — read

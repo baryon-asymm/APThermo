@@ -15,13 +15,25 @@ public sealed class BitSnapshotTests
 {
     private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");
 
-    /// <summary>Every example gives the recorded output.</summary>
+    /// <summary>Every example gives the recorded output, run in-process on warm solvers: the fast tripwire.</summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void EveryExampleGivesTheRecordedOutput()
+    public void EveryExampleGivesTheRecordedOutput() => AssertRecorded(BitExamples.ComputeAll(), "in-process");
+
+    /// <summary>
+    /// Every example gives the recorded output as a fresh process, the shipped cold path: the raw bytes of standard
+    /// output, JSON and CSV, hashed as the in-process fact hashes its text, against the same approved file. Proves the
+    /// warm solvers and the in-process writer change no bit, and the encoding the process writes to its standard output
+    /// on this platform.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "EndToEnd")]
+    [Trait("Category", "BitSnapshot")]
+    public void EveryExampleGivesTheRecordedOutputThroughTheProcess() => AssertRecorded(ProcessBitExamples.ComputeAll(), "as a process");
+
+    private static void AssertRecorded(IReadOnlyList<BitExample> examples, string how)
     {
         var snapshot = ApprovedSnapshot.Load(ApprovedPath);
-        var examples = BitExamples.ComputeAll();
         var problems = new List<string>();
         foreach (var example in examples)
         {
@@ -35,7 +47,7 @@ public sealed class BitSnapshotTests
         problems.AddRange(snapshot.StaleKeys(examples.Select(e => e.Name))
             .Select(key => $"{key}: recorded in {ApprovedPath}, but no example produces it; delete the line in the commit that removed the example"));
 
-        Assert.True(problems.Count == 0, $"{problems.Count} example(s) no longer give the recorded output:\n" + string.Join("\n", problems));
+        Assert.True(problems.Count == 0, $"{problems.Count} example(s) no longer give the recorded output ({how}):\n" + string.Join("\n", problems));
     }
 
     /// <summary>
@@ -70,8 +82,8 @@ public sealed class BitSnapshotTests
 /// </summary>
 internal sealed record BitExample(string Name, string JsonSha256, string CsvSha256);
 
-/// <summary>One example's JSON and CSV text, exactly as the command line produced them, before either is hashed.</summary>
-internal sealed record RawExample(string Name, string Json, string Csv);
+/// <summary>One example's name and the arguments of its two runs, the JSON one and the CSV one.</summary>
+internal sealed record ExampleSpec(string Name, string[] JsonArgs, string[] CsvArgs);
 
 /// <summary>
 /// Every example the Bits level covers (BOOT.md, the Bits row): the problem and states documents of documents/, the
@@ -80,68 +92,29 @@ internal sealed record RawExample(string Name, string Json, string Csv);
 /// </summary>
 internal static class BitExamples
 {
-    public static IReadOnlyList<BitExample> ComputeAll() =>
-        [.. RawExamples().Select(e => new BitExample(e.Name, JsonSha256(e.Json, e.Name), Sha256(e.Csv)))];
+    /// <summary>Every example run in-process, hashed.</summary>
+    public static IReadOnlyList<BitExample> ComputeAll() => [.. Specs().Select(Compute)];
 
-    /// <summary>The same examples, before either the JSON or the CSV text is hashed (the delivered-bytes proof above reads this).</summary>
-    public static IReadOnlyList<RawExample> RawExamples()
+    /// <summary>The name and the two argument lists of every example, ordinal by name, before anything runs.</summary>
+    public static IReadOnlyList<ExampleSpec> Specs()
     {
-        var examples = new List<RawExample>();
+        var examples = new List<ExampleSpec>();
         foreach (var name in CliFixture.ProblemDocumentNames())
         {
             var command = name.StartsWith("rocket", StringComparison.Ordinal) ? "rocket" : "equilibrium";
-            examples.Add(FromArgs(name, CliFixture.Shared.Solving(command, CliFixture.Document(name)), CliFixture.Shared.Solving(command, CliFixture.Document(name), "--format", "csv")));
+            examples.Add(new(name, CliFixture.Shared.Solving(command, CliFixture.Document(name)), CliFixture.Shared.Solving(command, CliFixture.Document(name), "--format", "csv")));
         }
 
         foreach (var name in CliFixture.StatesDocumentNames())
         {
-            examples.Add(FromArgs(name, CliFixture.Shared.Solving("states", CliFixture.Document(name)), CliFixture.Shared.Solving("states", CliFixture.Document(name), "--format", "csv")));
+            examples.Add(new(name, CliFixture.Shared.Solving("states", CliFixture.Document(name)), CliFixture.Shared.Solving("states", CliFixture.Document(name), "--format", "csv")));
         }
 
         examples.AddRange(ApiProblemExamples());
         examples.AddRange(ApiRecordExamples());
-        examples.Add(FromArgs("species",
+        examples.Add(new("species",
             ["species", "--database", CliFixture.Shared.DatabasePath], ["species", "--database", CliFixture.Shared.DatabasePath, "--format", "csv"]));
         return [.. examples.OrderBy(e => e.Name, StringComparer.Ordinal)];
-    }
-
-    /// <summary>The `## Input document` fences of the Cli API, each solved through the command its own problem type names.</summary>
-    private static IEnumerable<RawExample> ApiProblemExamples()
-    {
-        var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
-        var inputs = CliFixture.JsonFencesOf(api, "## Input document ✅");
-        for (var i = 0; i < inputs.Count; i++)
-        {
-            var name = $"API.md input example {i}";
-            var isRocket = ProblemDocumentReader.Read(inputs[i], name).Problem is RocketDocument;
-            var path = CliFixture.Shared.TempFile($"bits-input-{i}.json");
-            File.WriteAllText(path, inputs[i]);
-            var command = isRocket ? "rocket" : "equilibrium";
-            yield return FromArgs(name, CliFixture.Shared.Solving(command, path), CliFixture.Shared.Solving(command, path, "--format", "csv"));
-        }
-    }
-
-    /// <summary>The `## Command line` state-record fences of the Cli API, each solved through `states`.</summary>
-    private static IEnumerable<RawExample> ApiRecordExamples()
-    {
-        var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
-        var records = CliFixture.JsonFencesOf(api, "## Command line ✅");
-        for (var i = 0; i < records.Count; i++)
-        {
-            var name = $"API.md record example {i}";
-            var path = CliFixture.Shared.TempFile($"bits-record-{i}.json");
-            File.WriteAllText(path, records[i]);
-            yield return FromArgs(name, CliFixture.Shared.Solving("states", path), CliFixture.Shared.Solving("states", path, "--format", "csv"));
-        }
-    }
-
-    private static RawExample FromArgs(string name, string[] jsonArgs, string[] csvArgs)
-    {
-        var json = CliFixture.Invoke(jsonArgs);
-        Assert.True(json.Code is 0 or 1, $"{name}: exit code {json.Code}: {json.Error}");
-        var csv = CliFixture.Invoke(csvArgs);
-        Assert.True(csv.Code is 0 or 1, $"{name}: exit code {csv.Code} (csv): {csv.Error}");
-        return new RawExample(name, json.Output, csv.Output);
     }
 
     /// <summary>
@@ -154,8 +127,56 @@ internal static class BitExamples
     /// order of every other property stay in. A document with no top-level `run` property, or with more than one,
     /// fails the test that calls this method; it never produces a hash (BOOT.md, the Bits level).
     /// </summary>
-    public static string JsonSha256(string json, string example) =>
-        Sha256(Encoding.UTF8.GetString(RunPropertyCut.Bytes(Encoding.UTF8.GetBytes(json), example)));
+    public static string JsonSha256(string json, string example) => JsonSha256(Encoding.UTF8.GetBytes(json), example);
 
-    private static string Sha256(string text) => new BitHash().Add(text).ToHex();
+    /// <summary>The same hash from the bytes a process wrote to its standard output, decoded as UTF-8 after the cut.</summary>
+    public static string JsonSha256(byte[] json, string example) =>
+        Sha256(Encoding.UTF8.GetString(RunPropertyCut.Bytes(json, example)));
+
+    /// <summary>The SHA-256 of a text's UTF-8 bytes, as the snapshot's lines hash it.</summary>
+    public static string Sha256(string text) => new BitHash().Add(text).ToHex();
+
+    private static BitExample Compute(ExampleSpec spec)
+    {
+        var json = Run(spec.Name, spec.JsonArgs, "");
+        var csv = Run(spec.Name, spec.CsvArgs, " (csv)");
+        return new BitExample(spec.Name, JsonSha256(json, spec.Name), Sha256(csv));
+    }
+
+    private static string Run(string name, string[] args, string which)
+    {
+        var run = CliFixture.Invoke(args);
+        Assert.True(run.Code is 0 or 1, $"{name}: exit code {run.Code}{which}: {run.Error}");
+        return run.Output;
+    }
+
+    /// <summary>The `## Input document` fences of the Cli API, each solved through the command its own problem type names.</summary>
+    private static IEnumerable<ExampleSpec> ApiProblemExamples()
+    {
+        var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
+        var inputs = CliFixture.JsonFencesOf(api, "## Input document ✅");
+        for (var i = 0; i < inputs.Count; i++)
+        {
+            var name = $"API.md input example {i}";
+            var isRocket = ProblemDocumentReader.Read(inputs[i], name).Problem is RocketDocument;
+            var path = CliFixture.Shared.TempFile($"bits-input-{i}.json");
+            File.WriteAllText(path, inputs[i]);
+            var command = isRocket ? "rocket" : "equilibrium";
+            yield return new(name, CliFixture.Shared.Solving(command, path), CliFixture.Shared.Solving(command, path, "--format", "csv"));
+        }
+    }
+
+    /// <summary>The `## Command line` state-record fences of the Cli API, each solved through `states`.</summary>
+    private static IEnumerable<ExampleSpec> ApiRecordExamples()
+    {
+        var api = File.ReadAllText(RepositoryPaths.Resolve("src", "Cli", "API.md"));
+        var records = CliFixture.JsonFencesOf(api, "## Command line ✅");
+        for (var i = 0; i < records.Count; i++)
+        {
+            var name = $"API.md record example {i}";
+            var path = CliFixture.Shared.TempFile($"bits-record-{i}.json");
+            File.WriteAllText(path, records[i]);
+            yield return new(name, CliFixture.Shared.Solving("states", path), CliFixture.Shared.Solving("states", path, "--format", "csv"));
+        }
+    }
 }

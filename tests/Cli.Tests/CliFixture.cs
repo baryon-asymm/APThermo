@@ -1,9 +1,10 @@
-using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Fixtures;
+using APThermo.Harness;
 using APThermo.Problems;
 
 namespace APThermo.Cli.Tests;
@@ -30,11 +31,18 @@ internal sealed class CliFixture : IDisposable
     /// <summary>The xUnit collection name every consuming class of this node is tagged with.</summary>
     public const string CollectionName = "cli";
 
-    /// <summary>The command line's assembly name, for <see cref="CliAssemblyPath"/> and <see cref="InvokeProcess"/>.</summary>
+    /// <summary>The command line's assembly name, for <see cref="InvokeProcess"/> and <see cref="Harness.DotnetProcess.BuiltAssemblyPath"/>.</summary>
     public const string CliAssembly = "APThermo.Cli";
 
     /// <summary>The one instance every test class of this node shares.</summary>
     public static readonly CliFixture Shared = new();
+
+    /// <summary>
+    /// The warm solvers every in-process invocation of this node shares (<see cref="Program.RunCached"/>): one per database
+    /// content and accelerator, so the kernels compile once per test assembly instead of once per invocation. Disposed
+    /// with the fixture.
+    /// </summary>
+    private static readonly SolverCache Solvers = new();
 
     private readonly Lazy<SpeciesDatabase> _database = new(() => SpeciesDatabase.Load(Path.Combine(RepositoryPaths.Data, "thermo.inp"), Path.Combine(RepositoryPaths.Data, "trans.inp")));
 
@@ -115,12 +123,12 @@ internal sealed class CliFixture : IDisposable
     /// <summary>Temp file.</summary>
     public string TempFile(string name) => Path.Combine(Temp, name);
 
-    /// <summary>In-process through the entry point.</summary>
+    /// <summary>In-process through the entry point, on the warm solvers every invocation of this node shares.</summary>
     public static Run Invoke(params string[] args)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
-        var code = Program.Run(args, output, error);
+        var code = Program.RunCached(args, output, error, Solvers);
         return new Run(code, output.ToString(), error.ToString());
     }
 
@@ -136,51 +144,15 @@ internal sealed class CliFixture : IDisposable
         return (run.Code, run.Json(), run.Error);
     }
 
-    /// <summary>As a separate process: dotnet on the command line's assembly, so that exit codes and the standard streams are real.</summary>
+    /// <summary>As a separate process (<see cref="DotnetProcess.Run"/>) on the command line's assembly, in the fixture's empty directory, its streams decoded as UTF-8.</summary>
     public Run InvokeProcess(IReadOnlyList<string> args, IReadOnlyDictionary<string, string>? environment = null)
     {
-        ArgumentNullException.ThrowIfNull(args);
-        var start = new ProcessStartInfo("dotnet")
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = Temp,
-        };
-        start.ArgumentList.Add(CliAssemblyPath());
-        foreach (var arg in args)
-        {
-            start.ArgumentList.Add(arg);
-        }
-
-        if (environment is not null)
-        {
-            foreach (var (name, value) in environment)
-            {
-                start.Environment[name] = value;
-            }
-        }
-
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("dotnet did not start");
-        var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
-        process.WaitForExit();
-        return new Run(process.ExitCode, output.Result, error.Result);
+        var result = DotnetProcess.Run(CliAssemblyPath(), args, Temp, environment);
+        return new Run(result.ExitCode, Encoding.UTF8.GetString(result.Output.Span), Encoding.UTF8.GetString(result.Error.Span));
     }
 
     /// <summary>The command line's assembly next to this test assembly when its runtime configuration was copied there, else its own build output.</summary>
-    public static string CliAssemblyPath()
-    {
-        var local = Path.Combine(AppContext.BaseDirectory, CliAssembly + ".dll");
-        if (File.Exists(local) && File.Exists(Path.Combine(AppContext.BaseDirectory, CliAssembly + ".runtimeconfig.json")))
-        {
-            return local;
-        }
-
-        var configuration = AppContext.BaseDirectory.Contains($"{Path.DirectorySeparatorChar}Release{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ? "Release" : "Debug";
-        var own = RepositoryPaths.Resolve("src", "Cli", "bin", configuration, "net10.0", CliAssembly + ".dll");
-        return File.Exists(own) ? own : throw new FileNotFoundException("the command line's assembly was not built", own);
-    }
+    public static string CliAssemblyPath() => DotnetProcess.BuiltAssemblyPath(CliAssembly, "src", "Cli");
 
     /// <summary>The json fences of one second-level section of a markdown document.</summary>
     public static IReadOnlyList<string> JsonFencesOf(string markdown, string heading)
@@ -226,6 +198,7 @@ internal sealed class CliFixture : IDisposable
     /// <summary>Dispose.</summary>
     public void Dispose()
     {
+        Solvers.Dispose();
         try
         {
             Directory.Delete(Temp, true);

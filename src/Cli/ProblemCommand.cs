@@ -10,7 +10,7 @@ namespace APThermo.Cli;
 /// <summary>The rocket and equilibrium commands: read the document, check its problem type, build the mixtures, expand the sweep, solve, write.</summary>
 internal static class ProblemCommand
 {
-    public static ExitCode Execute(Invocation invocation, TextWriter output)
+    public static ExitCode Execute(Invocation invocation, TextWriter output, Func<string?, AcceleratorKind, SolverSession> open)
     {
         var path = invocation.Arguments[0];
         var document = ProblemDocumentReader.Read(InputFile.ReadAllText(path), path);
@@ -18,7 +18,7 @@ internal static class ProblemCommand
         var options = invocation.Options;
         CheckMassToleranceApplies(document.Propellant, options);
         var accelerator = options.Accelerator ?? document.Accelerator ?? AcceleratorKind.Auto;
-        using var session = SolverSession.Open(options.Database, accelerator);
+        using var session = open(options.Database, accelerator);
         var combinations = Sweeps.Expand(document.Sweep);
         var (mixtures, ownRatio) = BuildMixtures(session.Solver, document.Propellant, combinations, options.MassTolerance);
         var cases = SolveCases(session.Solver, document, mixtures, combinations, ownRatio, path);

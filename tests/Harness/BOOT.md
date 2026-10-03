@@ -7,7 +7,9 @@ and the tolerance table, bit-for-bit comparison, bit hashes and the approval of 
 snapshot files, the grouping of fixture cases into families for batch tests, and
 (2026-09-16) the JSON-document helpers `JsonSchema` and `RunPropertyCut`, moved here
 from `Cli.Tests` where their second consumer, the docs tests node, belongs, and
-(2026-09-30) `JsonFieldComparison`, the field-by-field comparison of two documents. It holds no
+(2026-09-30) `JsonFieldComparison`, the field-by-field comparison of two documents, and
+(2026-10-03) `DotnetProcess`, a built assembly run as a separate process, moved here from
+`Cli.Tests` for its second consumer, `Docs.Tests`. It holds no
 formula and names no type of the nodes its consumers test, so it can move no result.
 
 It exists because the same scaffolding stood copied in four to six test nodes: the CPU
@@ -88,6 +90,13 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
   ⚠ 2026-09-19: was bits compared exactly everywhere, now on the reference machine only
   (consumers carry `BitSnapshot`) → HISTORY.md#bits-reference-machine
+- **A process is run once, here, and its streams are bytes** (2026-10-03, the test
+  pyramid). `DotnetProcess.Run` starts `dotnet` on an assembly path with explicit
+  arguments, working directory and environment, and returns the exit code and the raw
+  bytes of standard output and error, decoded by nobody: the encoding a process writes
+  is a fact its caller may be proving. It names no type of the node it runs, so the end-to-end
+  facts of `Cli.Tests` and `Docs.Tests` share one runner, and `Protocol.Tests` finds a
+  process start by the call in a body, whichever node's fact makes it.
 - **One host, CPU only.** `CpuHost` creates one ILGPU context and one CPU accelerator
   and loads the database (with `trans.inp`) and the tolerance table once; it never
   creates a CUDA accelerator.
@@ -392,6 +401,15 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
       CI evidence, 2026-09-30: run 36734450932 of `71e389c`, green on `windows-latest` and
       `ubuntu-latest`; the step "Install the packed tool and run an approved example"
       passed on both, the Linux one being the step that failed byte for byte before.
+
+- [x] 2026-10-03 — `DotnetProcess` (the test pyramid, `API.md`, "Processes") is proven through
+      its consumers: the eight facts of `Cli.Tests.ProcessTests`, `OutputDocumentTests.AnAutoRunThatFellBackSaysWhy`
+      and `BitSnapshotTests.EveryExampleGivesTheRecordedOutputThroughTheProcess` (the raw bytes of
+      standard output against the Windows `Bits.approved.txt`, unmoved), and the two process facts
+      of `Docs.Tests.CommandLineExampleTests`. Red once: `Output` and `Error` of the result swapped,
+      all ten end-to-end facts of `Cli.Tests` and both process facts of `Docs.Tests` red, reverted.
+      The public surface snapshot gained the two types in the commit that added them
+      (`PublicSurface.approved.txt`); no `Bits*.approved.txt` moved.
 
 ## Taboos
 

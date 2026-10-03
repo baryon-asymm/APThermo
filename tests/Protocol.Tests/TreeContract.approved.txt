@@ -22,7 +22,15 @@ static class APThermo.Cli.Program
     const String ToolName = "apthermo"
     static Int32 Main(String[] args)
     static Int32 Run(String[] args, TextWriter output, TextWriter error)
+    static Int32 RunCached(String[] args, TextWriter output, TextWriter error, SolverCache solvers)
     static String Version { get; }
+
+sealed class APThermo.Cli.SolverCache : IDisposable
+    .ctor()
+    Int32 Count { get; }
+    Void Dispose()
+    internal Lock Gate { get; }
+    internal Solver SolverFor(SpeciesDatabase database, AcceleratorKind accelerator)
 
 == src/Equilibrium
 
