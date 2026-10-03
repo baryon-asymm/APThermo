@@ -207,6 +207,14 @@ families):
     `kclo4_T1200_p10bar`: `_salt_case_name` writes `{name}_T{T}` at 1 bar, as the first
     four fixtures of the family were named, and `{name}_T{T}_p{bar}bar` at any other
     pressure.
+  - Rule B's gas column (2026-10-03, `generate/retention_threshold.py`; the orchestrator's
+    investigation B4 for 0.2.1, Newton `BOOT.md`, rule B): four tp cases that the reference
+    converges and the tree ended `NotConverged` on before the gas phase counted as a column of
+    the combination: KClO4 with a tenth of its chlorine missing, K : Cl : O = 1 : 0.9 : 4
+    (the same three pure-element `Custom` reactants, at that ratio), at 300 K and 1 kPa,
+    500 K and 1 bar, 1000 K and 1 kPa and 1060 K and 1 kPa, named `kclo4-lean_T{T}` at 1 bar
+    and `kclo4-lean_T{T}_p{bar}bar` at 1 kPa (`p0.01bar`). The reference reaches `KCL(cr)`
+    with a potassium superoxide (`KO2(a)`, `KO2(b)` or `KO2(L)`) beside an all-`O2` gas.
   - The three-element tie (2026-10-03, `generate/three_element.py`; the generalized rule A
     of the Newton node): tp cases on the element moles and product lists of RP-1311
     examples 1 (r = 1.0) and 12, where only CO2, H2O and N2 (and Ar) are retained and row

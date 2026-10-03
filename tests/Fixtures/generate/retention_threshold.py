@@ -25,6 +25,10 @@ the states where the trace carriers of the direction pi_K - pi_Cl (K and KO agai
 the first stage's threshold and the tree swapped them every step until the cap: KClO4 at 1150 K, 1 bar and at
 1200 K, 10 bar, NaClO4 at 1120 K, 1 bar. A fixture whose pressure is not 1 bar carries it in its name; the
 names of the 1 bar fixtures above are unchanged.
+
+Rule B's gas column (2026-10-03, the investigation B4 for 0.2.1, Newton BOOT.md): KClO4 with a tenth of its
+chlorine missing, K : Cl : O = 1 : 0.9 : 4, where the set reaches K2O2(cr), KCL(cr) and an all-O2 gas and KO2 is
+a combination of K2O2 and the gas phase: 300 K and 1 kPa, 500 K and 1 bar, 1000 K and 1 kPa, 1060 K and 1 kPa.
 """
 from __future__ import annotations
 
@@ -66,6 +70,11 @@ SALT_STATES = [(500.0, BAR_TO_PA), (800.0, BAR_TO_PA)]
 
 # The threshold flip: (salt, temperature K, pressure Pa), at the salt's own mole ratio.
 FLIP_STATES = [("kclo4", 1150.0, BAR_TO_PA), ("naclo4", 1120.0, BAR_TO_PA), ("kclo4", 1200.0, 10.0 * BAR_TO_PA)]
+
+# Rule B's gas column: KClO4 with a tenth of its chlorine missing, K : Cl : O = 1 : 0.9 : 4.
+LEAN_NAME = "kclo4-lean"
+LEAN_RATIO = [1.0, 0.9, 4.0]
+LEAN_STATES = [(300.0, 1.0e3), (500.0, BAR_TO_PA), (1000.0, 1.0e3), (1060.0, 1.0e3)]
 
 
 def _pure_element_reactants(elements: list[str], ratio: list[float]) -> tuple[list[Custom], np.ndarray]:
@@ -119,6 +128,7 @@ def generate(writer: Writer) -> None:
     for name, elements in SALTS:
         flips = [(t, p) for salt, t, p in FLIP_STATES if salt == name]
         _salt(writer, name, elements, SALT_RATIO, SALT_STATES + flips)
+    _salt(writer, LEAN_NAME, dict(SALTS)["kclo4"], LEAN_RATIO, LEAN_STATES)
     _ap_htpb_al(writer)
 
 

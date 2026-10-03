@@ -92,7 +92,8 @@ internal static class ElementCoupling
 internal static class CondensedDependency
 {
     public static int LeavingPosition(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount);
-        // rule B's ratio test: the position of the species that leaves, or −1
+        // rule B's ratio test: the position of the species that leaves, or −1; when the condensed columns alone
+        // hold no combination the gas phase counts as one more column and never leaves
 }
 
 internal static class TieSnapshot
