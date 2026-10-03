@@ -414,13 +414,17 @@ libdevice for the CUDA category.
       download thread of its own, the unpinned sibling array below the host array, the
       first download before the attempts) →
       HISTORY.md#chunk-transfer-construction-differences-2026-10-01
-- [ ] The throat fixtures are a CUDA family too, under the condensed tier (2026-10-03,
-      `## Invariants`): the 18 cases of `tests/Fixtures/cases/throat` run on CUDA and on
-      the CPU accelerator through the batch path and compare under the table, alongside the
-      rocket families; the condensed tier is its own entry of `GpuCpuTolerances.cs` with
-      its derivation, used only for condensed species; red once with the condensed tier
-      at 1e-11 (`LiOH(L)` of `li2o-throat_pc3MPa_h2.20625MJkg` fails); every rocket family
-      and the sweep green on the reference machine.
+- [x] 2026-10-03 — The throat fixtures are a CUDA family too, under the condensed tier
+      (`## Invariants`): the 18 cases of `tests/Fixtures/cases/throat`, batched as 7
+      families, run on CUDA and on the CPU accelerator and compare under the table
+      (`CudaTests.AThroatFamilyOnCudaMatchesTheCpuAccelerator`), and the CPU accelerator
+      equals the host solver bit for bit on them (`BatchTests.AThroatFamilyEqualsTheHostSolverBitForBit`);
+      the tier is `GpuCpuTolerances.Entries["condensedMoleFraction"]` with its derivation,
+      used for species at or after `SpeciesTable.GasCount` only. Red once with it at 1e-11:
+      `LiOH(L)` of `li2o-throat_pc3MPa_h2.20625MJkg` and `AL2O3(a)` of
+      `ap-htpb-al-throat_pc7MPa_dh-2.375MJkg` fail, 2 of 7. Merged `5dfbc0d` through the
+      guard with `--cuda`: fast suite 5503, CUDA proofs 378, this node in Release 187, all
+      green, the sweep included; Linux fast suite in WSL 5503 green.
 
       ⚠ 2026-10-03: L2's "every fixture family" did not hold: the comparison read only
       `cases/rocket`, and the throat family (plateau edges, bisection) never ran on CUDA.
