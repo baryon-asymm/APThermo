@@ -14,7 +14,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ✅ (2026-09-26) |
 | L0 | the library is checked before the device: a bad libnvvm names both paths and never leaks device memory (`BadLibraryTests`); the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`); a NUL-padded log is trimmed of it (`PostLinkTests`); a half-given library path pair is refused (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`) (2026-09-26) | `Execution`'s `BOOT.md` and `API.md`, the audit's F2, F3 and F4 | ✅ (2026-09-26) |
 | L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
-| L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
+| L2 | every fixture family and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators; the element balance of every compared station closes to 1e-13 and the equilibrium families are compared with the balance-remnant correction (2026-10-03, `BalanceRemnantTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
@@ -64,13 +64,30 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   (tp, hp and sp batches, whose input is `b`):
   - a mole fraction is compared as `ln x_j − Σ_i D_ij ρ_i` on each side, at the tiers
     above. `D` comes from central differences (`h` = 1e-8) through the CPU accelerator over
-    the same batch; a station gets no correction when a species appears or vanishes
-    between `b(1 ± h)` or the two one-sided differences disagree beyond a bound the coder
-    measures and records here;
+    the same batch; a case gets no correction when a condensed species appears or vanishes
+    between `b(1 ± h)`, and a species gets none when the two one-sided differences of its
+    `ln x` disagree by more than 2e-2 of its largest `|D_ij|` (or of 1 where that is
+    smaller). The bound is `GpuCpuTolerances.Entries["sensitivityDisagreement"]`, measured
+    on the CPU on 2026-10-03 over the six equilibrium families (23 cases, 206 compared
+    species): the appear-or-vanish rule dropped 0 of 23 cases; the disagreement was at most
+    2.1e-3 on the smooth rows (the H2 remnant, `κh` = 4.2e-3: the two differ by about
+    `0.5 κh` from the curvature) and 0.12 to 0.60 at the kinks (the threshold-flip KClO4
+    and NaClO4 cases, 13 species), with 6 noise-dominated rows of HCHO in lox-rp1 (`κ` 6e-7,
+    9 to 11); the bound is 9.5 times above the worst smooth row and 5.8 below the smallest
+    kink, and the guard drops 19 of the 206 species, each with `κ` at most 1.35, whose
+    correction is at most 1.4e-13, a seven-hundredth of the tier;
   - every compared station of every family asserts `ρ_i ≤ 1e-13` on both accelerators
     (twice the worst measured), which also catches a defect that breaks conservation.
 
   Measured after the correction: H2 2.4e-15, the worst gas row at equal steps 3.98e-11.
+  The worst `ρ` on the CPU accelerator, 2026-10-03: 3.9e-15 to 4.9e-14 over the six
+  equilibrium families (the threshold-flip KClO4 the worst), 3.8e-15 to 4.0e-14 over the
+  rocket and throat families (`nto-udmh` the worst). Facts without CUDA
+  (`BalanceRemnantTests`): the corrected comparison accepts what the uncorrected one
+  refuses on `three-element-example1` (a second CPU run over `b` moved by 16 ULP stands for
+  the other accelerator, H2 3.3e-9 against 8.7e-15); the two agree to `κ` times the
+  residuals where `κ` is small; the guard keeps the remnant and drops a kink; a residual of
+  1e-12 injected into a result is reported, in the equilibrium and in the rocket comparison.
   Rejected: a tier scaled by κ (it loosens); dropping the family (the only CUDA coverage
   of rule A's tie); comparing the multipliers (`π_H` carries the same conditioning). The
   probes: the orchestrator's scratchpad, `probe/` (2026-10-03).

@@ -1,3 +1,4 @@
+using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
 
@@ -12,6 +13,9 @@ public sealed class BatchTests
 
     /// <summary>The throat family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
     public static TheoryData<string> ThroatFamilies() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase, FixtureBatches.ThroatKind);
+
+    /// <summary>The names of the 0.2.1 equilibrium families as theory data, delegating to <see cref="FixtureBatches.NamedEquilibriumFamilyNames"/>.</summary>
+    public static TheoryData<string> NamedEquilibriumFamilies() => FixtureBatches.NamedEquilibriumFamilyNames();
 
     /// <summary>A rocket family equals the host solver bit for bit.</summary>
     [Theory]
@@ -32,6 +36,7 @@ public sealed class BatchTests
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         var differences = new List<string>();
         var stationCount = result.StationCount;
+        var balance = new ElementBalance(family.Table, batch.ElementMoles);
         for (var k = 0; k < batch.Count; k++)
         {
             var host = HostSolves.Rocket(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
@@ -53,6 +58,7 @@ public sealed class BatchTests
                 }
 
                 differences.AddRange(StationMoleDifferences(host.Moles, result.Moles, s, index, family.Table, label));
+                differences.AddRange(balance.Exceeding(balance.Residuals(k, result.Moles, index), "the CPU accelerator", $"{label} station {s}"));
             }
         }
 
@@ -135,12 +141,22 @@ public sealed class BatchTests
 
     /// <summary>An equilibrium family equals the host solver bit for bit.</summary>
     [Fact]
-    public void AnEquilibriumFamilyEqualsTheHostSolverBitForBit()
+    public void AnEquilibriumFamilyEqualsTheHostSolverBitForBit() =>
+        AssertEquilibriumFamilyEqualsTheHostSolver(FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-lh2_of6_pc7MPa"));
+
+    /// <summary>An equilibrium family of the 0.2.1 fixtures (three-element, threshold-flip and gas-column salts) equals the host solver bit for bit.</summary>
+    [Theory]
+    [MemberData(nameof(NamedEquilibriumFamilies))]
+    public void ANamedEquilibriumFamilyEqualsTheHostSolverBitForBit(string name) =>
+        AssertEquilibriumFamilyEqualsTheHostSolver(FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
+
+    private static void AssertEquilibriumFamilyEqualsTheHostSolver((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
     {
-        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-lh2_of6_pc7MPa");
+        var (batch, table, cases) = family;
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         Assert.Equal(cases.Count, result.Count);
+        var balance = new ElementBalance(table, batch.ElementMoles);
         for (var k = 0; k < batch.Count; k++)
         {
             var host = HostSolves.Equilibrium(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
@@ -153,6 +169,7 @@ public sealed class BatchTests
                 Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{cases[k].Name}: moles of {table.Species[j]}");
             }
 
+            Assert.Empty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", cases[k].Name));
             var reference = cases[k].Outputs.GetProperty("temperature").GetDouble();
             Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{cases[k].Name}: temperature {result.State[k].Temperature} vs {reference}");
         }

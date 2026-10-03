@@ -3,6 +3,9 @@ using APThermo.Thermo;
 
 namespace APThermo.Execution.Tests;
 
+/// <summary>A station that both accelerators solved: the moles of the two sides, the station's row, whether they stopped after the same number of Newton steps, and its label.</summary>
+internal sealed record MoleStation(double[] CpuMoles, double[] GpuMoles, long Index, bool SameSteps, string Label);
+
 /// <summary>
 /// One CUDA-against-CPU-accelerator comparison: the worst deviation seen so far per field, and how many stations compared so far
 /// stopped after a different number of Newton steps on the two accelerators, both accumulated across however many calls the
@@ -14,9 +17,19 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
 
     public int DifferentSteps { get; private set; }
 
-    /// <summary>Every rocket station of one batch, cpu against gpu: station status, state, figures and mole fractions.</summary>
-    public List<string> Rocket(RocketBatchResult cpu, RocketBatchResult gpu, RocketFamily family)
+    /// <summary>Species compared with the balance-remnant correction applied, over every call of <see cref="Moles"/>.</summary>
+    public int CorrectedSpecies { get; private set; }
+
+    /// <summary>Species compared above the floor without a correction, because the call carried none for them (the guard's drops included).</summary>
+    public int UncorrectedSpecies { get; private set; }
+
+    /// <summary>
+    /// Every rocket station of one batch, cpu against gpu: station status, state, figures, mole fractions, and the closure of the
+    /// element balance of <paramref name="batch"/>, which the two results were computed from.
+    /// </summary>
+    public List<string> Rocket(RocketBatchResult cpu, RocketBatchResult gpu, RocketFamily family, RocketBatch batch)
     {
+        var balance = new ElementBalance(family.Table, batch.ElementMoles);
         var mismatches = new List<string>();
         var stationCount = cpu.StationCount;
         for (var k = 0; k < cpu.Count; k++)
@@ -48,7 +61,8 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
                 var where = $"{label} station {s} ({cpu.Iterations[index]}/{gpu.Iterations[index]} steps)";
                 mismatches.AddRange(GpuCpuTolerances.Compare(cpu.Stations[index], gpu.Stations[index], where, Record));
                 mismatches.AddRange(GpuCpuTolerances.Compare(cpu.Figures[index], gpu.Figures[index], where, Record));
-                mismatches.AddRange(Moles(cpu.Moles, gpu.Moles, index, family.Table, sameSteps, where));
+                mismatches.AddRange(Balance(balance, balance.Residuals(k, cpu.Moles, index), balance.Residuals(k, gpu.Moles, index), where));
+                mismatches.AddRange(Moles(new MoleStation(cpu.Moles, gpu.Moles, index, sameSteps, where), family.Table));
             }
         }
 
@@ -56,38 +70,66 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
     }
 
     /// <summary>
+    /// The closure of the element balance of one station on both sides: records the worst residual and reports every element above
+    /// the bound of the tolerance table (<c>balanceResidual</c>).
+    /// </summary>
+    public IEnumerable<string> Balance(ElementBalance balance, double[] cpuResiduals, double[] gpuResiduals, string label)
+    {
+        ArgumentNullException.ThrowIfNull(balance);
+        ArgumentNullException.ThrowIfNull(cpuResiduals);
+        ArgumentNullException.ThrowIfNull(gpuResiduals);
+        Record("balanceResidual", Math.Max(cpuResiduals.Max(Math.Abs), gpuResiduals.Max(Math.Abs)));
+        return balance.Exceeding(cpuResiduals, "the CPU accelerator", label).Concat(balance.Exceeding(gpuResiduals, "CUDA", label));
+    }
+
+    /// <summary>
     /// Mole fractions of one case or station, relative to the total moles, within the tier of the mole-fraction tolerance above the
     /// floor; a species at or after <see cref="SpeciesTable.GasCount"/> is condensed (the table lists gaseous species first) and is
-    /// held to the condensed tier whatever the Newton counts.
+    /// held to the condensed tier whatever the Newton counts. With the corrections of the balance-remnant rule
+    /// (<see cref="BalanceSensitivities.Correction"/>, one per side) the quantity compared is <c>x_j exp(−Σ_i D_ij ρ_i)</c>, that is
+    /// <c>ln x_j − Σ_i D_ij ρ_i</c>; a species whose correction is NaN is compared as it is.
     /// </summary>
-    public IEnumerable<string> Moles(double[] cpuMoles, double[] gpuMoles, long index, SpeciesTable table, bool sameSteps, string label)
+    public IEnumerable<string> Moles(MoleStation station, SpeciesTable table, double[]? cpuCorrection = null, double[]? gpuCorrection = null)
     {
+        ArgumentNullException.ThrowIfNull(station);
+        ArgumentNullException.ThrowIfNull(table);
         var speciesCount = table.SpeciesCount;
-        var offset = index * speciesCount;
+        var offset = station.Index * speciesCount;
         var cpuTotal = 0.0;
         var gpuTotal = 0.0;
         for (var j = 0; j < speciesCount; j++)
         {
-            cpuTotal += cpuMoles[offset + j];
-            gpuTotal += gpuMoles[offset + j];
+            cpuTotal += station.CpuMoles[offset + j];
+            gpuTotal += station.GpuMoles[offset + j];
         }
 
         var floor = GpuCpuTolerances.MoleFractionFloor(tolerances);
         for (var j = 0; j < speciesCount; j++)
         {
-            var x = cpuMoles[offset + j] / cpuTotal;
-            var y = gpuMoles[offset + j] / gpuTotal;
+            var x = station.CpuMoles[offset + j] / cpuTotal;
+            var y = station.GpuMoles[offset + j] / gpuTotal;
             if (x < floor && y < floor)
             {
                 continue;
             }
 
+            if (cpuCorrection is not null && gpuCorrection is not null && !double.IsNaN(cpuCorrection[j]) && !double.IsNaN(gpuCorrection[j]))
+            {
+                x *= Math.Exp(-cpuCorrection[j]);
+                y *= Math.Exp(-gpuCorrection[j]);
+                CorrectedSpecies++;
+            }
+            else
+            {
+                UncorrectedSpecies++;
+            }
+
             var condensed = j >= table.GasCount;
-            var relative = GpuCpuTolerances.MoleFractionRelative(tolerances, sameSteps, condensed);
-            Record(condensed ? "condensedMoleFraction" : sameSteps ? "moleFraction" : "moleFractionAfterDifferentSteps", Math.Abs(x - y) / Math.Max(x, y));
+            var relative = GpuCpuTolerances.MoleFractionRelative(tolerances, station.SameSteps, condensed);
+            Record(condensed ? "condensedMoleFraction" : station.SameSteps ? "moleFraction" : "moleFractionAfterDifferentSteps", Math.Abs(x - y) / Math.Max(x, y));
             if (!GpuCpuTolerances.Matches(relative, x, y))
             {
-                yield return $"{label} x({table.Species[j]}): cpu {x:R}, cuda {y:R}";
+                yield return $"{station.Label} x({table.Species[j]}): cpu {x:R}, cuda {y:R}";
             }
         }
     }

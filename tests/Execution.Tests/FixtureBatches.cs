@@ -147,13 +147,59 @@ internal static class FixtureBatches
     /// <summary>The equilibrium problem kinds an equilibrium family's cases are drawn from.</summary>
     private static readonly string[] EquilibriumKinds = ["tp", "hp", "sp"];
 
-    /// <summary>The equilibrium fixtures (tp, hp, sp) sharing one table, as one batch with the table, in file order.</summary>
-    public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumFamily(SpeciesDatabase database, string namePrefix)
+    /// <summary>
+    /// The equilibrium families of the 0.2.1 fixtures by family name: the fixture-name prefixes of each, which share one element list,
+    /// one candidate list and so one table. The three-element fixtures and the threshold-flip and gas-column salt fixtures of the tp kind.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> NamedEquilibriumFamilies = new()
+    {
+        ["three-element-example1"] = ["three-element_rp1311-example1_"],
+        ["three-element-example12"] = ["three-element_rp1311-example12_"],
+        ["threshold-flip-kclo4"] = ["kclo4_T1150", "kclo4_T1200_p10bar"],
+        ["threshold-flip-naclo4"] = ["naclo4_T1120"],
+        ["gas-column-kclo4-lean"] = ["kclo4-lean_"],
+    };
+
+    /// <summary>The names of the 0.2.1 equilibrium families (<see cref="NamedEquilibriumFamily"/>) as theory data.</summary>
+    public static TheoryData<string> NamedEquilibriumFamilyNames()
+    {
+        var data = new TheoryData<string>();
+        foreach (var name in NamedEquilibriumFamilies.Keys)
+        {
+            data.Add(name);
+        }
+
+        return data;
+    }
+
+    /// <summary>One of the 0.2.1 equilibrium families by its name, as one batch with its table.</summary>
+    public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) NamedEquilibriumFamily(SpeciesDatabase database, string name) =>
+        EquilibriumFamily(database, NamedEquilibriumFamilies[name]);
+
+    /// <summary>An independent copy of an equilibrium batch, whose element moles the caller may then change.</summary>
+    public static EquilibriumBatch CopyOf(EquilibriumBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        var copy = new EquilibriumBatch(batch.Count, batch.ElementCount);
+        Array.Copy(batch.Kind, copy.Kind, batch.Count);
+        Array.Copy(batch.Pressure, copy.Pressure, batch.Count);
+        Array.Copy(batch.Temperature, copy.Temperature, batch.Count);
+        Array.Copy(batch.Target, copy.Target, batch.Count);
+        Array.Copy(batch.ElementMoles, copy.ElementMoles, batch.ElementMoles.Length);
+        return copy;
+    }
+
+    /// <summary>The equilibrium fixtures (tp, hp, sp) sharing one table whose names start with a prefix, as one batch with the table, in file order.</summary>
+    public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumFamily(SpeciesDatabase database, string namePrefix) =>
+        EquilibriumFamily(database, [namePrefix]);
+
+    /// <summary>The equilibrium fixtures (tp, hp, sp) sharing one table whose names start with any of the prefixes, as one batch with the table, in file order.</summary>
+    public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumFamily(SpeciesDatabase database, IReadOnlyList<string> namePrefixes)
     {
         var cases = EquilibriumKinds
             .SelectMany(FixtureFiles.Enumerate)
             .Select(CeaFixtures.Load)
-            .Where(c => c.Name.StartsWith(namePrefix, StringComparison.Ordinal))
+            .Where(c => namePrefixes.Any(prefix => c.Name.StartsWith(prefix, StringComparison.Ordinal)))
             .ToList();
         Assert.NotEmpty(cases);
         var first = cases[0].Inputs;
@@ -164,6 +210,7 @@ internal static class FixtureBatches
         for (var k = 0; k < cases.Count; k++)
         {
             var c = cases[k];
+            Assert.Equal(elements, c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name).ToArray());
             Assert.Equal(products, c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()!).ToArray());
             batch.Kind[k] = c.Kind switch
             {
