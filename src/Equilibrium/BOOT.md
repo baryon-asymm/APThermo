@@ -117,7 +117,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   at its converged amount, not zeroed. `Composition` stays the one place the retention rule
   is applied, and the stage is per-case state (`IterationState.RetentionSecondStage`, not
   `NewtonLoopState`: the flag must survive the several `Converge` calls of one `Solve`
-  attempt, and `NewtonLoopState` is rebuilt at each of them).
+  attempt, and `NewtonLoopState` is rebuilt at each of them). Once the retained set is
+  held (`IterationState.RetainedSetHeld`, the Newton node's flip rule of 2026-10-03), a gas
+  once retained stays retained whatever its amount: holding only adds species to the
+  minimized set, and the threshold still governs every species never retained.
   → HISTORY.md#retention-condensed-2026-10-02
 
   ⚠ 2026-09-28: was the report zeroing species below 1e-8 in a separate step, now the

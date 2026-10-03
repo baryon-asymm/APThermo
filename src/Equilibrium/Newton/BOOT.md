@@ -91,7 +91,27 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   - **A verdict is taken over the gases the step leaves above the trace threshold.** A
     step that carries a gas across the threshold, in either direction, is not a
     converged step, whatever its corrections, and the iteration goes on. The tests of
-    that step covered a set of gases the final refresh would not report.
+    that step covered a set of gases the final refresh would not report. This binds
+    the **second stage only**: under the first, a step that passes the report's tests
+    converges whatever crossed, and that convergence only triggers the switch, as the
+    reference's `tsize` does (`equilibrium.f90:1203-1300` has no crossing test).
+  - **The switch restarts the polish.** Polish steps of the first stage do not count
+    toward the second stage's convergence.
+  - **Two flips hold the retained set.** Two consecutive second-stage steps that pass
+    the report's tests and are refused only because one gas entered while another left
+    set `IterationState.RetainedSetHeld` for the rest of the attempt (the parent's
+    retention rule says what a held set means). The memory of "once retained" is the
+    case's own `Moles[j] > 0`; no scratch is added.
+
+  ⚠ 2026-10-03, the threshold flip of 0.2.0 (the orchestrator's investigation B2 for
+  0.2.1): the trace carriers of the direction `π_K − π_Cl` (K, KO against CL, with KCL,
+  K2CL2 and O2 retained at K:Cl = 1:1) sat within one e-fold of the first stage's
+  threshold on either side, and Newton swapped them every step until the cap: 29 of the
+  audit's 968 salt states, 423 of a broad scan of 43 380, `NotConverged`. Measured with
+  the prototype: 423 fixed, 0 regressions, 0 violations, 426 of 427 cea states within
+  the tolerance table; no bit moved; the 100 000-case sweep's iterations unchanged.
+  Hysteresis alone was rejected (310 `NotConverged` and 43 `SingularMatrix`
+  regressions), and so was the hold after one flip (one `SingularMatrix`).
   - **A failed verdict clears the mark and the polish count.** Polish counts only an
     unbroken run of passed verdicts, so a later pass polishes afresh. A step cap
     reached after a failed verdict is `NotConverged`, never `Ok`.
@@ -125,12 +145,27 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   investigation 6), in this order:
   - **Rule B: a dependent inclusion is a basis change.** When the matrix is singular
     and the condensed species added last is a linear combination of the other condensed
-    species of the solution, the entering species stays. The least-squares residual on
+    species of the solution, or, failing that, of them and the gas phase taken as one
+    more column with the composition of its retained species (`Σ_j a_ij n_j / Σ_j n_j`),
+    the entering species stays. The gas never leaves: at an assigned temperature and
+    pressure it is one phase of the set, and the singular matrix is the phase rule
+    speaking. The condensed-only test comes first, so every set rule B resolved before
+    resolves as before. The least-squares residual on
     the element vectors must be at most 1e-9 per element. The species that the
     favourable reaction uses up first leaves: the smallest `n_p/c_p` over the positive
     coefficients `c_p` of the combination, the simplex ratio test. This is a change of
     the set, and it is not marked for the anti-cycling skip. In hp and sp the
     temperature column keeps such a set non-singular, so in practice this is a tp rule.
+
+    ⚠ 2026-10-03, the alkali-rich perchlorates (the orchestrator's investigation B4 for
+    0.2.1): at K:Cl:O = 1:0.9:4 the set reached K2O2(cr), KCL(cr) and an all-O2 gas, and
+    the inclusion of KO2 (= ½ K2O2 + ½ O2(g)) made the matrix singular on the `n` row;
+    rule B, testing condensed columns only, found no combination, the resets diverged and
+    the removal took KO2 out again, until the cap: 4596 of 14 460 broad-scan states
+    `NotConverged`. With the gas column: 4751 fixed (155 NaClO4 states at 7–20 MPa among
+    them), 0 regressions, 858 cea states within the tolerance table, no bit and no sweep
+    iteration moved. Left, and declared: exact KO2/NaO2 stoichiometry (Cl 0, O 2), where
+    the gas vanishes and cea does not converge either.
   - **Rule A: an element tie.**
     - **Trigger.** The matrix is singular, the failed pivot is element row `k`, and
       over every species of the sums (the retained gases and the condensed species of
@@ -243,6 +278,20 @@ rules A and B criterion.
         records on Windows (`87f8711`) and Linux (`904222d`, WSL, 5559 green);
       - the guard with `--cuda` on the reference machine: fast suite 5559, CUDA proofs 382,
         `Execution.Tests` in Release 187, the rocket kernel's compile inside its bound.
+- [ ] The threshold flip is closed (2026-10-03, `## Constraints`, the verdict, the switch and
+      the hold): unit facts on `NewtonLoopState`'s flip count (a non-flip resets it, two
+      flips report the hold) and on `Composition`'s retention of a held gas below the
+      threshold; the H/O sp sentinel fact green with the polish restart; the L2 fact on the
+      `naclo4_T500` table at Na:Cl:O = 1:1:3, 825 K, 1e3 Pa `Ok` and clear of the
+      equilibrium conditions, `NotConverged` with the hold disabled; the salt fixtures
+      `kclo4_T1150` (1 bar), `naclo4_T1120` (1 bar) and KClO4 at 1200 K and 10 bar, red
+      on the old rule; no existing bit moved; CUDA equal on the reference machine.
+- [ ] Rule B's gas column (2026-10-03): a unit fact on the ratio test (K2O2(cr) leaves
+      when only O2 is retained) and three solve facts, red on the old rule; a negative
+      fact (two condensed phases beside the gas give no combination); the KClO4 1:0.9:4
+      fixtures at 300 K and 1e3 Pa, 500 K and 1 bar, 1000 K and 1e3 Pa, 1060 K and 1e3 Pa,
+      red on the old rule; no existing bit moved; CUDA equal on the reference machine.
+
 ## Taboos
 
 - No public type here: undocumented surface is a contract nobody agreed to.
