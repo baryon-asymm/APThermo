@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-03
+
 ### Fixed
 - An assigned-temperature state whose retained gases tie three elements together (only
   CO2, H2O and N2 at low temperature, where the oxygen row equals a combination of the
@@ -295,6 +297,7 @@ and planned for 0.2.1:
   output.
 - JSON Schemas embedded in the CLI (`apthermo schema <name>`).
 
-[Unreleased]: https://github.com/baryon-asymm/APThermo/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/baryon-asymm/APThermo/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/baryon-asymm/APThermo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/baryon-asymm/APThermo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/baryon-asymm/APThermo/releases/tag/v0.1.0
