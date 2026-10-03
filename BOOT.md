@@ -236,9 +236,13 @@ delivery (2026-09-15, `## Delivery` below).
 - Performance target: on a batch of 100 000 states the CUDA path is at least 5× faster
   than the CPU accelerator path using all cores. There is no single-case latency target
   in version 1.
-- Test time budget (2026-10-02, owner): the fast set (`Category!=LongRunning`) runs within
-  5 minutes on the reference machine (158 s measured that day); moving the Cli and Docs
-  tests in-process waits until the budget is broken.
+- Test time budgets (2026-10-03, owner; the test pyramid): on the reference machine, Debug,
+  the fast set (`Category!=LongRunning&Category!=EndToEnd`) runs within 5 minutes and the
+  end-to-end set (`Category=EndToEnd`) within 10. A fact that starts a process carries
+  `Category=EndToEnd`; the command line's other facts run in-process on warm solvers
+  ([src/Cli/API.md](src/Cli/API.md)); the approved outputs and bit records are also proven
+  through the real process, per platform, in the end-to-end set.
+  ⚠ 2026-10-03: was "in-process waits until broken", now two budgets → HISTORY.md#test-budgets
 - Data: [src/Data/BOOT.md](src/Data/BOOT.md), `## Constraints`.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA

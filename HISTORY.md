@@ -8,6 +8,27 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="test-budgets"></a>
+
+## 2026-10-03 — from "## Constraints" — the test time budget
+
+Original text:
+
+> - Test time budget (2026-10-02, owner): the fast set (`Category!=LongRunning`) runs within
+>   5 minutes on the reference machine (158 s measured that day); moving the Cli and Docs
+>   tests in-process waits until the budget is broken.
+
+Why it changed: the owner put the test pyramid into 0.2.2 on 2026-10-03. The design
+investigation found the premise wrong: Cli.Tests and Docs.Tests already ran in-process
+through `Program.Run`, and only 10 facts started a process. The cost was a fresh engine per
+invocation, whose kernels compile on the CPU accelerator at its first run (1–2 s each;
+36 invocations, 60 s, in one bit-snapshot fact). A prototype with warm solvers shared
+across in-process invocations measured Cli.Tests 155 s → 28 s and the fast set 204 s →
+126 s (Debug, CPU, `APTHERMO_NO_CUDA=1`), every fact of both nodes green, the bits
+identical. The process boundary keeps its proof in a separate end-to-end set.
+
+---
+
 <a id="retold-by-nodes"></a>
 
 ## 2026-10-01 — from "## Constraints" and "## Delivery" — three retellings of what a node holds

@@ -293,3 +293,8 @@ frame; this file holds the criteria that prove it, read only in the root node.
       and on the hosted runners, every CEA tolerance test green, and the throughput not
       below the root's 5×. A root decision: it replaces the math list of `## Constraints`
       and the execution node's libdevice wrappers.
+- [ ] The test pyramid (2026-10-03, `## Constraints`, Test time budgets): the fast set and
+      the end-to-end set within their budgets on the reference machine, on Windows and in
+      WSL2, both `dotnet test` durations recorded here; every fact that starts a process
+      carries `Category=EndToEnd` (a Protocol.Tests check, seen red once); the approved
+      outputs and bit records proven through the real process.
