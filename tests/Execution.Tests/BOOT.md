@@ -40,6 +40,17 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   ⚠ 2026-09-14: was the whole table "in one file", now the mole-fraction floor and the
   polish-threshold tier live in `tests/Fixtures/tolerances.json` and this node keeps the
   GPU-specific entries → HISTORY.md#tolerance-table-not-in-one-file-2026-09-14
+
+  A third mole-fraction tier (the owner's decision of 2026-10-03): a **condensed**
+  species not below the floor is compared at relative 1e-9 whatever the Newton counts.
+  Derivation: a condensed amount on a phase plateau is ill-conditioned, with `d ln x/d ln
+  p` of 59 to 290 measured at the throat fixtures' plateau stations (`LiOH(L)`,
+  `AL2O3(a)`) against 2 to 6 for gases; the two accelerators' throat pressures differ by
+  up to 8.4e-13 in `ln p`, so 290 × 8.4e-13 = 2.4e-10, and the solve's own floor for such
+  an amount is about 1e-10 (1.31e-10 under injected noise on the CPU). On CUDA on
+  2026-10-03 the worst were `LiOH(L)` 9.5e-11 (0.95 of the old tier) and `AL2O3(a)`
+  4.0e-11; every other condensed value of the throat and rocket fixtures was at most
+  1.1e-12. Gaseous species keep the two tiers above.
 - **Bit comparison goes through the harness** (2026-09-14): `BitEquality.cs`'s
   `SameBits` and `BitDifferences<T>` were, field for field, the harness's `Bits.Same`
   and `Bits.Differences<T>`; the file is gone and every call site of this node reads
@@ -403,6 +414,16 @@ libdevice for the CUDA category.
       download thread of its own, the unpinned sibling array below the host array, the
       first download before the attempts) →
       HISTORY.md#chunk-transfer-construction-differences-2026-10-01
+- [ ] The throat fixtures are a CUDA family too, under the condensed tier (2026-10-03,
+      `## Invariants`): the 18 cases of `tests/Fixtures/cases/throat` run on CUDA and on
+      the CPU accelerator through the batch path and compare under the table, alongside the
+      rocket families; the condensed tier is its own entry of `GpuCpuTolerances.cs` with
+      its derivation, used only for condensed species; red once with the condensed tier
+      at 1e-11 (`LiOH(L)` of `li2o-throat_pc3MPa_h2.20625MJkg` fails); every rocket family
+      and the sweep green on the reference machine.
+
+      ⚠ 2026-10-03: L2's "every fixture family" did not hold: the comparison read only
+      `cases/rocket`, and the throat family (plateau edges, bisection) never ran on CUDA.
 
 ## Taboos
 
