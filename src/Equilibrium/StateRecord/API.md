@@ -14,14 +14,26 @@ namespace APThermo.Equilibrium.StateRecord;
 
 internal static class DerivativeSystem
 {
-    public static Derivatives Solve(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state, int stride);
-        // the derivative system of RP-1311 section 2.5; Solved is false when it was singular, Pinned at a pinned pair
+    public static Derivatives Solve(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state, int stride, in MixtureSums sums);
+        // the derivative system of RP-1311 section 2.5 at the converged composition, whose sums the isentropic system reads;
+        // Solved is false when it was singular and no gas-participating plateau explains it, Pinned at a pinned set or a
+        // gas-participating plateau, Isentropic (with DlnVdlnPIsentropic) where gamma_s comes from the isentropic system
+}
+
+internal static class PlateauIsentrope
+{
+    public static SystemLayout Assemble(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in MixtureSums sums, in SystemLayout layout);
+        // the sp-shaped system at the converged composition for d ln p = 1; returns its layout, which the caller solves
+    public static double DlnVdlnP(in EquilibriumScratch scratch, in SystemLayout system);
+        // (dlnV/dlnp)_s = d ln n + d ln T - 1, read from the solved system
 }
 
 internal static class MixtureProperties
 {
     public static bool WriteEquilibrium(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums, in Derivatives derivatives);
-        // the converged state, or the plateau convention of a pinned pair; false, nothing written, when the state guard fails
+        // the converged state, or the plateau convention of a pinned set; false, nothing written, when the state guard fails
+    public static bool IsNearUnivariant(in MixtureSums sums, in Derivatives derivatives);
+        // true when |Cp/Cv| of the constant-temperature route exceeds 1e6: gamma_s then comes from the isentropic system
     public static bool WriteFrozen(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums);
         // the frozen state: CpEquilibrium = CpFrozen, the derivatives 1 and −1; false when the state guard fails
 }
@@ -37,8 +49,8 @@ None thrown. A refused state is `false`; the caller reports the status.
 ## Side effects
 
 None. `WriteEquilibrium` and `WriteFrozen` write `result.State[0]` and nothing else;
-`DerivativeSystem.Solve` uses the matrix scratch and restores the caller's condensed order before it
-returns.
+`DerivativeSystem.Solve` and `PlateauIsentrope.Assemble` use the matrix scratch, and `Solve` restores the
+caller's condensed order before it returns.
 
 ## Out of scope
 

@@ -132,7 +132,7 @@ public sealed class PinnedSetTests
         public Derivatives Solve()
         {
             var state = new IterationState { CondensedCount = _condensedCount, Temperature = Temperature };
-            return DerivativeSystem.Solve(_tableBuffers.View, Scratch, Result, state, ScratchLayout.MaxUnknowns(Table.ElementCount));
+            return DerivativeSystem.Solve(_tableBuffers.View, Scratch, Result, state, ScratchLayout.MaxUnknowns(Table.ElementCount), default);
         }
 
         public string[] NamesInSolution() =>

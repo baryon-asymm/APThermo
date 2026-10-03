@@ -27,20 +27,48 @@ internal static class MixtureProperties
             state.CpEquilibrium = 0.0;
             state.CvEquilibrium = 0.0;
             state.DlnVdlnT = 0.0;
-            state.DlnVdlnP = -1.0 + derivatives.DlnNdlnP;
+            state.DlnVdlnP = derivatives.Isentropic ? derivatives.DlnVdlnPIsentropic : -1.0 + derivatives.DlnNdlnP;
             state.GammaS = -1.0 / state.DlnVdlnP;
         }
         else
         {
-            state.CpEquilibrium = PhysicalConstants.R * (sums.CpOverR + derivatives.Reaction);
+            state.CpEquilibrium = CpEquilibrium(sums, derivatives);
             state.DlnVdlnT = 1.0 + derivatives.DlnNdlnT;
             state.DlnVdlnP = -1.0 + derivatives.DlnNdlnP;
-            state.CvEquilibrium = state.CpEquilibrium + sums.SumGas * PhysicalConstants.R * state.DlnVdlnT * state.DlnVdlnT / state.DlnVdlnP;
+            state.CvEquilibrium = CvEquilibrium(state.CpEquilibrium, sums, state.DlnVdlnT, state.DlnVdlnP);
             state.GammaS = -(state.CpEquilibrium / state.CvEquilibrium) / state.DlnVdlnP;
+            if (derivatives.Isentropic)
+            {
+                // The near-univariant sliver: γ_s from the isentropic system, Cv from the identity Cv = −Cp/(γ_s (∂ln V/∂ln p)_T).
+                state.GammaS = -1.0 / derivatives.DlnVdlnPIsentropic;
+                state.CvEquilibrium = -state.CpEquilibrium / (state.GammaS * state.DlnVdlnP);
+            }
         }
 
         return Close(result, sums, state, derivatives.Pinned);
     }
+
+    /// <summary>
+    /// True when the constant-temperature route to <c>γ_s</c> cancels: <c>|Cp/Cv|</c> beyond <see cref="IllConditionedRatio"/>,
+    /// the ratio of the very heat capacities <see cref="WriteEquilibrium"/> writes (BOOT.md, "The near-univariant sliver").
+    /// </summary>
+    public static bool IsNearUnivariant(in MixtureSums sums, in Derivatives derivatives)
+    {
+        var cp = CpEquilibrium(sums, derivatives);
+        var cv = CvEquilibrium(cp, sums, 1.0 + derivatives.DlnNdlnT, -1.0 + derivatives.DlnNdlnP);
+        return Math.Abs(cp) > IllConditionedRatio * Math.Abs(cv);
+    }
+
+    /// <summary>|Cp/Cv| above which <c>γ_s</c> is taken from the isentropic system: a design margin, not a fit (BOOT.md).</summary>
+    private const double IllConditionedRatio = 1.0e6;
+
+    /// <summary>Equation (2.49): the equilibrium heat capacity at constant pressure, J/(kg·K), the reaction part included.</summary>
+    private static double CpEquilibrium(in MixtureSums sums, in Derivatives derivatives) =>
+        PhysicalConstants.R * (sums.CpOverR + derivatives.Reaction);
+
+    /// <summary>The equilibrium heat capacity at constant volume, J/(kg·K): <c>Cp + n R (∂ln V/∂ln T)_p² / (∂ln V/∂ln p)_T</c>.</summary>
+    private static double CvEquilibrium(double cpEquilibrium, in MixtureSums sums, double dlnVdlnT, double dlnVdlnP) =>
+        cpEquilibrium + sums.SumGas * PhysicalConstants.R * dlnVdlnT * dlnVdlnT / dlnVdlnP;
 
     /// <summary>
     /// The frozen state: an ideal gas of fixed composition, whose equilibrium response is its frozen one. False, with

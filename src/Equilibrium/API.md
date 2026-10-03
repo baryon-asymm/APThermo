@@ -216,6 +216,20 @@ state was a failure before (an hp or sp state inside the Al(OH)3/Al2O3/H2O(L) ba
 reference's frozen second-order values there, which a comparison skips
 ([StateRecord/BOOT.md](StateRecord/BOOT.md), the ⚠ of that date).
 
+⚠ 2026-10-03: a state is pinned also on a **gas-participating plateau**, where a condensed vector lies
+in the span of the gas composition and of the condensed vectors before it (CaCO3 and CaO under CO2, a
+two-phase region of nearly pure water, NH4Cl, Ca(OH)2, MgCO3) and the plateau temperature depends on
+the pressure. Such a state was a failure before (`TemperatureOutOfRange` or `NotConverged`); it now
+carries the same zeros, but `DlnVdlnP` is `(∂ln V/∂ln p)_s`, the derivative along the isentrope, not the
+isothermal one, with `GammaS = −1/DlnVdlnP` and `SoundSpeed` from it, and `CpEquilibrium` is zero
+because `(∂ln V/∂ln T)_p` does not exist there. On a condensed-only plateau the two derivatives
+coincide. `GammaS` may fall below 1 (0.886 for Ca(OH)2 at 1 MPa), as for wet steam. Beside it, an `Ok`
+state whose `CpEquilibrium/CvEquilibrium` exceeds 1e6 in magnitude, a composition near a univariant
+one, takes `GammaS` from the same isentropic system, and `CvEquilibrium` follows from
+`−CpEquilibrium/(GammaS·DlnVdlnP)`; the other fields keep their values
+([StateRecord/BOOT.md](StateRecord/BOOT.md), "The gas-participating plateau" and "The near-univariant
+sliver").
+
 ⚠ 2026-09-14: `SpeciesActive` was documented as "1 when every element of the species
 is present", a two-valued mask, while the plateau rules of 2026-09-13 had made it
 carry a third value (2, a condensed record removed for its range once) and had
