@@ -222,12 +222,13 @@ Decisions taken with the review of 2026-09-14:
 
 - **The scratch descriptor keeps its constructor** (added 2026-09-14).
   `EquilibriumScratch` (the row below gives its parameter count) lists the slices of the
-  batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them
-  would move the contract and re-emit the kernels. It is this node's declared exception to
-  the parameter rule, on the root's condition that every creation names its arguments; a
-  scan of the construction sites found the one site, in `Slice`, and it names every argument.
-  ⚠ 2026-10-02: was 12 parameters and a positional site, now 16 and named
-  → HISTORY.md#slice-params-2026-10-02
+  batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot
+  slices grouped in `TieSlices`; grouping the rest would move the contract and re-emit the
+  kernels. It is this node's declared exception to the parameter rule, on the root's
+  condition that every creation names its arguments; the one construction site, in `Slice`,
+  names every argument.
+  ⚠ 2026-10-02: was 12 parameters and a positional site, now 16 and named → HISTORY.md#slice-params-2026-10-02
+  ⚠ 2026-10-03: was 16 parameters, now 14: rule A's four snapshot slices grouped in `TieSlices`, the bracket's ends one slice → HISTORY.md#scratch-14-2026-10-03
 - **Size.** No method over 60 lines and no control flow nested deeper than 3 in every
   stage; should the composition root's `Solve` not fit under 60 lines as a plain
   sequence of stage calls, the exception is declared here with the measured count,
@@ -257,12 +258,13 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
 | `EquilibriumSolver` | efferent coupling | 21 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
-| `EquilibriumScratch.EquilibriumScratch` | parameters | 16 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
+| `EquilibriumScratch.EquilibriumScratch` | parameters | 14 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot grouped in `TieSlices`; grouping the rest would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 The rows of the child nodes' types stand in their own `## Shape exceptions`
 ([Newton/BOOT.md](Newton/BOOT.md), [StateRecord/BOOT.md](StateRecord/BOOT.md)).
 
 ⚠ 2026-09-28: was `EquilibriumScratch` 12 parameters, now 16 → HISTORY.md#ce-scratch16
+⚠ 2026-10-03: was 16, now 14 → HISTORY.md#scratch-14-2026-10-03
 
 Every other type of the node and its children measures 14 or below by the dependency check's
 walk, the root's limit; at 14 stands `Newton.ConvergenceTests` and at 12 `ConvergenceSequence`

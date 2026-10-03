@@ -17,20 +17,20 @@ internal static class TieSnapshot
     {
         for (var j = 0; j < table.GasCount; j++)
         {
-            scratch.TieLogMoles[j] = scratch.LogMoles[j];
+            scratch.Tie.LogMoles[j] = scratch.LogMoles[j];
         }
 
         for (var c = 0; c < condensedCount; c++)
         {
             var species = scratch.CondensedInSolution[c];
-            scratch.TieCondensedSet[c] = species;
-            scratch.TieCondensedMoles[c] = result.Moles[species];
+            scratch.Tie.CondensedSet[c] = species;
+            scratch.Tie.CondensedMoles[c] = result.Moles[species];
         }
 
         for (var i = 0; i < table.ElementCount; i++)
         {
-            scratch.TieElements.Multipliers[i] = result.Multipliers[i];
-            scratch.TieElements.CoefficientSnapshot[i] = scratch.TieElements.Coefficients[i];
+            scratch.Tie.Elements.Multipliers[i] = result.Multipliers[i];
+            scratch.Tie.Elements.CoefficientSnapshot[i] = scratch.Tie.Elements.Coefficients[i];
         }
     }
 
@@ -39,20 +39,20 @@ internal static class TieSnapshot
     {
         for (var j = 0; j < table.GasCount; j++)
         {
-            scratch.LogMoles[j] = scratch.TieLogMoles[j];
+            scratch.LogMoles[j] = scratch.Tie.LogMoles[j];
         }
 
         for (var c = 0; c < condensedCount; c++)
         {
-            var species = scratch.TieCondensedSet[c];
+            var species = scratch.Tie.CondensedSet[c];
             scratch.CondensedInSolution[c] = species;
-            result.Moles[species] = scratch.TieCondensedMoles[c];
+            result.Moles[species] = scratch.Tie.CondensedMoles[c];
         }
 
         for (var i = 0; i < table.ElementCount; i++)
         {
-            result.Multipliers[i] = scratch.TieElements.Multipliers[i];
-            scratch.TieElements.Coefficients[i] = scratch.TieElements.CoefficientSnapshot[i];
+            result.Multipliers[i] = scratch.Tie.Elements.Multipliers[i];
+            scratch.Tie.Elements.Coefficients[i] = scratch.Tie.Elements.CoefficientSnapshot[i];
         }
     }
 }

@@ -8,6 +8,22 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="scratch-14-2026-10-03"></a>
+
+## 2026-10-03 — from "## Structure" and "## Shape exceptions" — the scratch descriptor's 16 parameters
+
+Step 2 of the 0.2.2 coding: rule A's four snapshot slices (the gaseous logarithms, the condensed moles, the condensed set and the group of element slices) became `TieSlices`, and the temperature bracket's two ends became the one slice `BracketEnds`, appended after `RowScale` so that no earlier offset moved; the constructor takes 14 parameters and `DoublesPerCase` is nine doubles per species (was seven). The wording of the decision and of its row stood:
+
+> `EquilibriumScratch` (the row below gives its parameter count) lists the slices of the
+> batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them
+> would move the contract and re-emit the kernels. It is this node's declared exception to
+> the parameter rule, on the root's condition that every creation names its arguments; a
+> scan of the construction sites found the one site, in `Slice`, and it names every argument.
+
+> | `EquilibriumScratch.EquilibriumScratch` | parameters | 16 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
+
+---
+
 <a id="ce-convergence-tests-2026-10-03"></a>
 
 ## 2026-10-03 — from "## Shape exceptions" — the type at 14

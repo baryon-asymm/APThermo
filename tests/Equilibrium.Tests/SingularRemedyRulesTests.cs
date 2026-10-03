@@ -117,12 +117,12 @@ public sealed class SingularRemedyRulesTests
     {
         for (var i = 0; i < elementCount; i++)
         {
-            scratch.TieElements.Coefficients[i] = 0.0;
+            scratch.Tie.Elements.Coefficients[i] = 0.0;
         }
 
         foreach (var (element, coefficient) in coefficients)
         {
-            scratch.TieElements.Coefficients[element] = coefficient;
+            scratch.Tie.Elements.Coefficients[element] = coefficient;
         }
     }
 
@@ -132,7 +132,7 @@ public sealed class SingularRemedyRulesTests
         for (var i = 0; i < elementCount; i++)
         {
             var want = expected.Where(e => e.Element == i).Select(e => e.Coefficient).SingleOrDefault();
-            var got = scratch.TieElements.Coefficients[i];
+            var got = scratch.Tie.Elements.Coefficients[i];
             Assert.True(Math.Abs(got - want) <= CoefficientTolerance, $"element {i}: coefficient {got:R}, expected {want:R}");
         }
     }

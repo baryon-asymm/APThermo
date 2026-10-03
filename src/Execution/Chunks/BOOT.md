@@ -85,12 +85,13 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
   largest per-case element count of its declarations beside `BytesPerCase`. The
   kernels and their PTX do not change.
   - ⚠ Only bytes bounded a chunk. With `ScratchBytes` above 16 GiB, legal on a large
-    GPU or on the CPU accelerator, a table at `TableLimits` (13 248 doubles per case)
-    wrapped the offset at case 162 100. On CUDA a thread then wrote before its buffer
-    (`CUDA_ERROR_ILLEGAL_ADDRESS`, or silent corruption). Found by the hidden-defect
+    GPU or on the CPU accelerator, a table at `TableLimits` (20 360 doubles per case:
+    9 · 2048 + 20 + 3 · 20 + 42² + 2 · 42) wrapped the offset at case 105 476. On CUDA a
+    thread then wrote before its buffer (`CUDA_ERROR_ILLEGAL_ADDRESS`, or silent corruption). Found by the hidden-defect
     audit of 2026-09-26 by reading the IL; the allocation needed to run it was too
     large to try.
 
+    ⚠ 2026-10-03: was 13 248 doubles per case (wrap at about case 162 100), now 20 360 (wrap at case 105 476) → HISTORY.md#doubles-per-case-2026-10-03
 - **A launch fits a time budget** (2026-09-28, the second audit's Execution finding F2;
   the parent's `BOOT.md` has the rule and the evidence). `LaunchBudget` is internal to
   this node and holds no ILGPU type. It is given the device's run-time limit at bind
@@ -207,8 +208,9 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
       libdevice post-link ran on the kernel module this node's buffers feed, and the
       namespace change did not touch it.
 
-- [x] 2026-09-26 — The element cap. A host fact plans a table at `TableLimits` (13 248
-      doubles per case, this node's own worked example above) with `ScratchBytes` of
+- [x] 2026-09-26 — The element cap. A host fact plans a table at `TableLimits` (a planner
+      input of 13 248 doubles per case, typed in the fact and kept as such; the worked
+      example above states the current figure) with `ScratchBytes` of
       64 GiB and `ChunkSize` of `int.MaxValue`, and asserts `chunk × perCase ≤
       int.MaxValue`; a second plan with the default options is unaffected by the new
       cap, confirming no other plan moves
