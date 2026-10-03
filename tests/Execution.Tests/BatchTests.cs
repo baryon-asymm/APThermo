@@ -1,3 +1,4 @@
+using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
 
@@ -12,6 +13,9 @@ public sealed class BatchTests
 
     /// <summary>The throat family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
     public static TheoryData<string> ThroatFamilies() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase, FixtureBatches.ThroatKind);
+
+    /// <summary>The names of the 0.2.1 equilibrium families as theory data, delegating to <see cref="FixtureBatches.NamedEquilibriumFamilyNames"/>.</summary>
+    public static TheoryData<string> NamedEquilibriumFamilies() => FixtureBatches.NamedEquilibriumFamilyNames();
 
     /// <summary>A rocket family equals the host solver bit for bit.</summary>
     [Theory]
@@ -135,9 +139,18 @@ public sealed class BatchTests
 
     /// <summary>An equilibrium family equals the host solver bit for bit.</summary>
     [Fact]
-    public void AnEquilibriumFamilyEqualsTheHostSolverBitForBit()
+    public void AnEquilibriumFamilyEqualsTheHostSolverBitForBit() =>
+        AssertEquilibriumFamilyEqualsTheHostSolver(FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-lh2_of6_pc7MPa"));
+
+    /// <summary>An equilibrium family of the 0.2.1 fixtures (three-element, threshold-flip and gas-column salts) equals the host solver bit for bit.</summary>
+    [Theory]
+    [MemberData(nameof(NamedEquilibriumFamilies))]
+    public void ANamedEquilibriumFamilyEqualsTheHostSolverBitForBit(string name) =>
+        AssertEquilibriumFamilyEqualsTheHostSolver(FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
+
+    private static void AssertEquilibriumFamilyEqualsTheHostSolver((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
     {
-        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-lh2_of6_pc7MPa");
+        var (batch, table, cases) = family;
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         Assert.Equal(cases.Count, result.Count);

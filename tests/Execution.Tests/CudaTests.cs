@@ -1,4 +1,5 @@
 using System.Globalization;
+using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
 
@@ -13,6 +14,9 @@ public sealed class CudaTests
 
     /// <summary>The throat family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
     public static TheoryData<string> ThroatFamilies() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase, FixtureBatches.ThroatKind);
+
+    /// <summary>The names of the 0.2.1 equilibrium families as theory data, delegating to <see cref="FixtureBatches.NamedEquilibriumFamilyNames"/>.</summary>
+    public static TheoryData<string> NamedEquilibriumFamilies() => FixtureBatches.NamedEquilibriumFamilyNames();
 
     /// <summary>A rocket family on cuda matches the cpu accelerator.</summary>
     [Theory]
@@ -80,7 +84,27 @@ public sealed class CudaTests
             return;
         }
 
-        var (batch, table, cases) = FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-rp1_of2.6_pc10MPa");
+        AssertEquilibriumFamilyMatches(cuda, FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-rp1_of2.6_pc10MPa"));
+    }
+
+    /// <summary>An equilibrium family of the 0.2.1 fixtures (three-element, threshold-flip and gas-column salts) on cuda matches the cpu accelerator.</summary>
+    [Theory]
+    [MemberData(nameof(NamedEquilibriumFamilies))]
+    [Trait("Category", "Cuda")]
+    public void ANamedEquilibriumFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        AssertEquilibriumFamilyMatches(cuda, FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
+    }
+
+    private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
+    {
+        var (batch, table, cases) = family;
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
