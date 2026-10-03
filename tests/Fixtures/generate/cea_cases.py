@@ -184,13 +184,21 @@ def rocket_station(solution: cea.RocketSolution, i: int, label: str, transport: 
 
 
 def solve_equilibrium(reac, prod, weights, kind: str, value_si: float, pressure_pa: float,
-                      transport: bool, trace: float | None = None) -> dict:
-    """tp: value is T in K; hp: h in J/kg; sp: s in J/(kg K). Returns the state record in SI."""
+                      transport: bool, trace: float | None = None, seed_temperature: float | None = None) -> dict:
+    """tp: value is T in K; hp: h in J/kg; sp: s in J/(kg K). Returns the state record in SI.
+
+    With `seed_temperature` the solution first converges a tp state at that temperature and the same pressure, and the
+    case is solved from it in the same `EqSolution`, which keeps the previous solution as its seed (the `seeded` kind:
+    the package's cold start does not converge some hp and sp states, tests/Fixtures/BOOT.md)."""
     options = {"transport": transport}
     if trace is not None:
         options["trace"] = trace
     solver = cea.EqSolver(prod, reactants=reac, **options)
     solution = cea.EqSolution(solver)
+    if seed_temperature is not None:
+        solver.solve(solution, EQ_TYPES["tp"], seed_temperature, pressure_pa / BAR_TO_PA, weights)
+        if not solution.converged:
+            raise RuntimeError(f"the tp seed at {seed_temperature} K did not converge (last_error {solution.last_error})")
     state1 = value_si if kind == "tp" else value_si / cea.R
     solver.solve(solution, EQ_TYPES[kind], state1, pressure_pa / BAR_TO_PA, weights)
     if not solution.converged:

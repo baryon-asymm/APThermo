@@ -23,7 +23,11 @@ internal sealed record HostSolution(
 /// <summary>Runs the solver on the host over CPU-accelerator buffers, with the inputs of a fixture case or given directly.</summary>
 internal static class HostSolver
 {
-    public static ProblemKind KindOf(CeaCase c) => c.Kind switch
+    /// <summary>The problem a case poses: its kind, or for a seeded case the one whose property its inputs assign.</summary>
+    public static string ProblemOf(CeaCase c) =>
+        c.Kind != "seeded" ? c.Kind : c.Inputs.TryGetProperty("enthalpy", out _) ? "hp" : "sp";
+
+    public static ProblemKind KindOf(CeaCase c) => ProblemOf(c) switch
     {
         "tp" => ProblemKind.AssignedTemperaturePressure,
         "hp" => ProblemKind.AssignedEnthalpyPressure,
@@ -45,7 +49,7 @@ internal static class HostSolver
     public static double TemperatureOf(CeaCase c) =>
         c.Kind == "tp" ? c.Inputs.GetProperty("temperature").GetDouble() : 0.0;
 
-    public static double TargetOf(CeaCase c) => c.Kind switch
+    public static double TargetOf(CeaCase c) => ProblemOf(c) switch
     {
         "hp" => c.Inputs.GetProperty("enthalpy").GetDouble(),
         "sp" => c.Inputs.GetProperty("entropy").GetDouble(),
@@ -67,6 +71,19 @@ internal static class HostSolver
         new(table, KindOf(c), PressureOf(c), TemperatureOf(c), TargetOf(c), ElementMolesOf(c));
 
     public static HostSolution Solve(CpuFixture fixture, CeaCase c) => Solve(fixture.Accelerator, Of(fixture, c));
+
+    /// <summary>
+    /// A seeded case solved as the reference solved it (Fixtures BOOT.md, the <c>seeded</c> kind): the tp state of its seed
+    /// first, then the case warm-started from the seed's composition, the seed's temperature the initial estimate.
+    /// </summary>
+    public static HostSolution SolveSeeded(Accelerator accelerator, SpeciesTable table, CeaCase c)
+    {
+        var seedTemperature = c.Inputs.GetProperty("seed").GetProperty("temperature").GetDouble();
+        var seed = Solve(accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, PressureOf(c), seedTemperature, 0.0, ElementMolesOf(c)));
+        return seed.Status == CaseStatus.Ok
+            ? Solve(accelerator, Of(table, c) with { Temperature = seedTemperature }, seed.Moles)
+            : throw new InvalidOperationException($"{c.Name}: the tp seed at {seedTemperature} K ended {seed.Status}");
+    }
 
     /// <summary>One solve; with <paramref name="estimate"/> the moles given are the initial estimate.</summary>
     public static HostSolution Solve(Accelerator accelerator, EquilibriumCase problem, double[]? estimate = null) =>

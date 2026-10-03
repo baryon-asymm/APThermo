@@ -314,3 +314,26 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
         the comment of the CI step says what it compares and where. The root's platform
         constraint is the owner's to extend if it should name the fixtures (a proposal,
         AGENTS.md §11).
+
+- [x] 2026-10-03 — The `seeded` kind (the case matrix, "The reaction plateau"; the StateRecord
+      node's pinned set): `generate/seeded.py`, registered in `regenerate.py`, with
+      `solve_equilibrium`'s `seed_temperature` in `cea_cases.py`.
+      - `regenerate.py` wrote the 30 cases (hp and sp, the fractions 0.1, 0.5, 0.9, −0.05 and
+        1.05, at 1, 7 and 20 MPa), and `regenerate.py --check` exits 0 right after, over all
+        379 fixtures. The band is measured by the script: at 7 MPa its lower end is the
+        package's own hp state at 415.9 K, the upper end the tp state at 416.0 K.
+      - The 18 cases inside the band all sit at T = 415.948162 K, whatever the pressure and
+        the problem, with five condensed species and `cpEquilibrium == cpFrozen`; the 12 at the
+        edges are single-phase (T 410.8 to 420.6 K, four condensed species) and carry real
+        second-order fields.
+      - The other 349 fixtures moved in `generator.generatorSha256` alone: each committed
+        file and its regenerated successor, parsed, are equal in `case` and `outputs` and in
+        every provenance key but that one (a script over `git diff` against `HEAD`, run once
+        and not committed; the hash moved because the generator gained `seeded.py` and
+        `cea_cases.py` changed).
+      - The loader requires the seed and one assigned property of a seeded document
+        (`CeaFixtures.RequireSeed`, `MalformedFixtureTests.AMalformedSeededDocumentIsRejected`,
+        seen red once with the kind test of `RequireSeed` mutated: 5 red), and
+        `FixtureLoadingTests.TheKindsPresentAreThoseOfTheCaseMatrix` and
+        `ToleranceTableTests.EveryStateFieldOfTheFixturesHasATolerance` know the kind;
+        `Fixtures.Tests` 42/42.

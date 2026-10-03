@@ -158,16 +158,16 @@ internal struct MixtureSums
 /// <summary>The equilibrium derivatives of RP-1311 section 2.5 at the converged composition.</summary>
 internal struct Derivatives
 {
-    /// <summary>(∂ln n/∂ln T)_p; zero at a pinned pair, where the constant-pressure derivatives do not exist.</summary>
+    /// <summary>(∂ln n/∂ln T)_p; zero at a pinned set, where the constant-pressure derivatives do not exist.</summary>
     public double DlnNdlnT;
 
     /// <summary>(∂ln n/∂ln p)_T.</summary>
     public double DlnNdlnP;
 
-    /// <summary>The reaction part of cp/R, equation (2.59); zero at a pinned pair.</summary>
+    /// <summary>The reaction part of cp/R, equation (2.59); zero at a pinned set.</summary>
     public double Reaction;
 
-    /// <summary>True when two records of one formula stand in the solution: the plateau convention of the node's API.md.</summary>
+    /// <summary>True when the condensed species of the solution have linearly dependent element vectors (the pinned set): the plateau convention of the node's API.md.</summary>
     public bool Pinned;
 
     /// <summary>False when a derivative system was singular; the caller reports <see cref="Thermo.CaseStatus.SingularMatrix"/>.</summary>

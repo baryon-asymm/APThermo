@@ -75,7 +75,9 @@ public sealed class FixtureFormatException : Exception
 
 `Load` checks the form of a document: `case.name`, `case.kind`, `case.inputs`, every
 provenance field, `outputs`, the date format, and that `case.kind` equals the name of
-the directory the file lies in. It does not check the outputs of a kind: which fields
+the directory the file lies in; for a ratio case the role of every reactant; for a
+`seeded` case (since 2026-10-03) `case.inputs.seed` with a `kind` of `tp` and a number
+`temperature`, and exactly one of `enthalpy` and `entropy`. It does not check the outputs of a kind: which fields
 a kind carries, and the caveats of the reference's fields (`mixtureMolarMass`, the
 frozen-station `cv`, the frozen `cp` of the transport set when transport is on, the
 reacting conductivity at the trace-component stations), are described in `BOOT.md`

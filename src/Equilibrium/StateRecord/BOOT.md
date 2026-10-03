@@ -32,8 +32,6 @@ The invariants of the parent ([BOOT.md](../BOOT.md)) hold here unchanged.
 
 - [Equilibrium](../API.md) — the descriptors of its inputs, scratch and outputs, `IterationState`,
   `SystemLayout`, `MixtureSums`, `Derivatives`, `DerivativeKind` and `DenseSolver`.
-- [Condensed](../Condensed/API.md) — `PhaseGeometry.SameFormula`, to find the partner of a pinned
-  record; dropped together with the code when the pinned set (`## Constraints`) lands.
 - [Thermo](../../Thermo/API.md) — the species table view, `MixtureState` and
   `PhysicalConstants`.
 
@@ -111,6 +109,12 @@ The classes of this node, all internal, static and kernel-compatible: `Derivativ
 `MixtureProperties`, each described by the summary of its declaration. Every floating-point
 expression keeps the form and the order of evaluation it had when the node was part of its parent.
 
+- **The dependence test.** `DerivativeSystem.DependentSlot` runs the modified Gram–Schmidt of
+  `## Constraints` over the element vectors of the condensed species of the solution, in solution
+  order, keeping its orthonormal basis in the first rows of the matrix scratch, which `Assemble`
+  clears before it assembles anything: it needs no scratch of its own, and it reads no node but the
+  table view (2026-10-03).
+
 - **The pinned representative.** `DerivativeSystem` swaps the representative into the
   last slot exactly as today, so that the assembled rows and the pivoting keep their
   order, and restores the caller's order before returning: the scratch is not
@@ -146,6 +150,10 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       isothermal difference; a `DerivativeSystem` fact on three dependent species `Solved`
       and pinned; the seeded fixtures of the fixtures node green; no existing bit moved;
       CUDA equal on the reference machine.
+      Evidence so far, CPU accelerator, 2026-10-03, not yet a tick (CUDA and Linux are open):
+      `ReactionPlateauTests` and `PinnedSetTests` of `tests/Equilibrium.Tests`, red on the pair
+      rule and green on this one, the fixtures of the `seeded` kind, and no line of
+      `Bits.approved.txt` moved.
 
 ## Taboos
 

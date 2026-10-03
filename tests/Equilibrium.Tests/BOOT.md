@@ -8,6 +8,7 @@ The definition of what "`Equilibrium` is ready" means.
 |---|---|---|---|
 | L0 | the internal dense solver on small systems; element conservation of a converged result; status codes on invalid input; the absent-element mask | analytic solutions; the invariant's tolerance; a table without the element | ✅ |
 | L1 | tp, hp and sp solves for the fixture mixtures: composition, temperature, `M`, `MW`, `Cp_eq`, `γ_s`, sound speed; condensed species inclusion (AP/binder/aluminium, RP-1311 example 14); frozen mode | the fixtures node's reference outputs and its tolerance table; the frozen stations of the reference rocket cases | ✅ |
+| L1 and L2 | the pinned set: hp and sp states inside the Al(OH)3/Al2O3/H2O(L) band end `Ok` at the plateau temperature with the reference's condensed set, the plateau convention holds, `γ_s` and `(∂ln V/∂ln p)_T` match finite differences, a `DerivativeSystem` on three dependent species is `Solved` and pinned | the `seeded` fixtures, solved as the reference was (tp at 430 K, then the case warm-started); the tree's own finite differences; the dependence of the element vectors | ✅ 2026-10-03 |
 | L1 | the solver inside a CPU-accelerator kernel gives the same bits as the host call | the host call | ✅ |
 | L2 | states the reference cannot reach: the pinned pair at a cut, the refusal where no admissible set exists, no condensed candidate with positive gain left out of an `Ok` status | the node's own condensed-species rule (`BOOT.md`), not the reference | ✅ |
 | Bits | the host solve of every tp, hp and sp fixture case gives the recorded bits: one line per case in `Bits.approved.txt`, the case file and the SHA-256 of the raw bits of the moles, the multipliers, every field of the state, the status and the iteration count, in that order | the approved snapshot, recorded at `8e36a27` before the decomposition of 2026-09-14 | ✅ |
@@ -303,6 +304,27 @@ creation names its arguments; it passes them by position today (the criterion be
       Evidence: `dotnet test tests/Equilibrium.Tests`, 697/697 (695 plus the two new
       facts), none skipped; the full fast suite of the tree green
       (`APTHERMO_NO_CUDA=1 dotnet test APThermo.sln --filter "Category!=LongRunning"`).
+
+- [x] 2026-10-03 — The pinned set (`src/Equilibrium/StateRecord/BOOT.md`, `## Constraints`; the
+      orchestrator's investigation B3 for 0.2.1), on the CPU accelerator, each fact red on the old
+      pair rule (`PhaseGeometry.SameFormula` restored in `DerivativeSystem` once: 25 red of 39 facts,
+      the rest green as designed) and green on the linear-dependence rule:
+      - `ReactionPlateauTests.ASeededCaseReproducesTheReference` over the 30 `seeded` fixtures:
+        `Ok`, every first-order field and mole fraction within the tolerance table, clear of
+        `EquilibriumConditions.Violations`; the 18 band cases red (`TemperatureOutOfRange`), the 12
+        edge cases green on both rules.
+      - `TheBandCasesShareOnePlateauTemperatureAndHoldTheReferencesCondensedSet` (one temperature
+        at 1, 7 and 20 MPa and in both problems, the reference's condensed count),
+        `ThePlateauConventionHoldsInTheBand` and
+        `GammaSAndTheIsothermalDerivativeMatchTheirFiniteDifferences` (three pressures,
+        `Tolerances.FiniteDifference`).
+      - `PinnedSetTests`: three dependent species `Solved` and pinned, two independent ones not, a
+        pair still pinned with the order restored, and the representative the first species that is a
+        combination of those before it.
+      - `StateComparison.SecondOrderIsSingular` skips the six second-order fields on the reference's
+        singular signature, as the singular tp case does. No line of `Bits.approved.txt` moved;
+        `dotnet test tests/Equilibrium.Tests`: 1077/1077.
+      The StateRecord criterion that names these facts is ticked by the orchestrator after CUDA and Linux.
 
 ## Taboos
 

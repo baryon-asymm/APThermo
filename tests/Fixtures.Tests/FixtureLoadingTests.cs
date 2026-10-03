@@ -57,12 +57,13 @@ public sealed partial class FixtureLoadingTests
     /// alone (generate/BOOT.md records the reason). This is the one hand-typed list AGENTS.md §6 allows for a
     /// quantifier of "all": it is the machine-generated list's own witness that nothing was added silently, so it
     /// is corrected by hand whenever a kind is deliberately added, never by a generator run.
+    /// 2026-10-03: gains <c>seeded</c> (the StateRecord node's pinned set, Fixtures BOOT.md).
     /// </remarks>
     [Fact]
     public void TheKindsPresentAreThoseOfTheCaseMatrix()
     {
         var present = Directory.GetDirectories(FixtureFiles.Root).Select(Path.GetFileName).OrderBy(k => k, StringComparer.Ordinal);
-        Assert.Equal(["constants", "hp", "reactant", "rocket", "sp", "thermo", "throat", "tp", "transport"], present);
+        Assert.Equal(["constants", "hp", "reactant", "rocket", "seeded", "sp", "thermo", "throat", "tp", "transport"], present);
     }
 
     /// <summary>Every fixture is tied to the committed data files.</summary>

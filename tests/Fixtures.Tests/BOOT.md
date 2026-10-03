@@ -81,6 +81,15 @@ Outside the tree: xunit.
       reverted before this tick, the evidence recorded in `tests/Fixtures/ACCEPTANCE.md`.
       `dotnet test tests/Fixtures.Tests`: 33/33.
 
+- [x] 2026-10-03 — The `seeded` kind (`tests/Fixtures/ACCEPTANCE.md`, the criterion of the same
+      date): `FixtureLoadingTests.TheKindsPresentAreThoseOfTheCaseMatrix` lists it,
+      `ToleranceTableTests.EveryStateFieldOfTheFixturesHasATolerance` covers its fields, and
+      `MalformedFixtureTests` (`ACompleteSeededDocumentLoads`, `AMalformedSeededDocumentIsRejected`
+      over a missing seed, a seed of another kind, a seed without a temperature, and both or neither
+      of the enthalpy and the entropy) proves the loader's field checks, seen red once with the
+      kind test of `CeaFixtures.RequireSeed` mutated (5 red, reverted). `dotnet test tests/Fixtures.Tests`:
+      42/42.
+
 ## Taboos
 
 - Do not type an expected value that exists in a fixture or in `requirements.txt`.

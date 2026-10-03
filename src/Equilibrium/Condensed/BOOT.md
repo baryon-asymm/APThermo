@@ -16,9 +16,13 @@ condensed set between two convergences and holds the exit guard:
 
 `EquilibriumSolver` calls `CondensedSet.Update` after each convergence and
 `ExitGuardFindsAPositiveCandidate` at the close; the `Newton` node removes a record through
-`CondensedSet.Remove` and `MarkRemoved`, and the `StateRecord` node asks `PhaseGeometry.SameFormula`
-(`API.md`). The cluster has a reason of its own to change: the report's tests for condensed species
-and the reference's own handling of phases.
+`CondensedSet.Remove` and `MarkRemoved` (`API.md`). The cluster has a reason of its own to change: the
+report's tests for condensed species and the reference's own handling of phases.
+
+⚠ 2026-10-03: was "the `StateRecord` node asks `PhaseGeometry.SameFormula`", now it asks nothing of this
+node: it finds its pinned set by linear dependence of the element vectors of the condensed species of
+the solution ([StateRecord/BOOT.md](../StateRecord/BOOT.md), `## Constraints`), and `SameFormula` serves
+this node's own rules alone.
 
 ⚠ 2026-10-02: was the condensed-species rule in `src/Equilibrium` itself, now this node
 → HISTORY.md#structure-split-2026-10-02

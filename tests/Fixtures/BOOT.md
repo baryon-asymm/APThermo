@@ -78,7 +78,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   The `seeded` kind holds hp and sp equilibrium cases that neither the reference nor the
   tree converges from a cold start, only from a converged neighbour: its inputs carry
   `"seed": {"kind": "tp", "temperature": …}` on the same reactants, and the generator
-  solves the seed and then the case in one `EqSolution` of the package. Its first use is
+  solves the seed and then the case in one `EqSolution` of the package. The problem is
+  the one whose assigned property the inputs carry, `enthalpy` (hp) or `entropy` (sp),
+  and the loader requires the seed and exactly one of the two. Its first use is
   the Al(OH)3/Al2O3/H2O(L) reaction plateau (the StateRecord node's pinned set). There the
   reference recognises no plateau and reports frozen second-order fields: a consumer
   compares the first-order fields and the mole fractions and skips the six second-order
@@ -187,7 +189,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   families: RP-1311 examples 1, 3, 5, 8, 12, 13 and 14; the LOX/LH2, LOX/RP-1,
   NTO/UDMH and AP/HTPB/Al rockets; the melting-plateau cases; equilibrium-only cases
   derived from stations; a sodium case; Rules A and B; the `throat` family; the
-  `thermo` and `transport` function fixtures; the `reactant` case.
+  reaction plateau (`seeded`); the `thermo` and `transport` function fixtures; the `reactant` case.
 - Tolerance table: `tolerances.json` alone (the invariant above), derived from the
   reference's print precision in its own sample output and its convergence criteria,
   every entry confirmed or reworded by the calibration criterion of 2026-09-12
