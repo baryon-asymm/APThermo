@@ -25,7 +25,6 @@ public sealed class BracketedStateTests
                    from kind in Kinds
                    from fraction in Fractions
                    from cold in Starts
-                   where cold || !IsTheTraceGasBand(system, pressure)
                    select (system, pressure, kind, fraction, cold);
         foreach (var (system, pressure, kind, fraction, cold) in rows)
         {
@@ -34,14 +33,6 @@ public sealed class BracketedStateTests
 
         return data;
     }
-
-    /// <summary>
-    /// Magnesite at 1e5 Pa seeded from the one-condensed side is the thin band of a trace gas (Recovery BOOT.md, the trace-gas
-    /// seam): the tp probes beside the plateau fail with a gas phase of vanishing amount, which the verdict cannot prove and the
-    /// iteration cannot reach, and the bracket gives up <c>TemperatureOutOfRange</c> (97 to 123 iterations). Left to the trace-gas
-    /// Newton of 0.2.2's last coder; the cold start of the same states does reach them.
-    /// </summary>
-    private static bool IsTheTraceGasBand(int system, double pressure) => Systems[system] == UnivariantSystem.Magnesite && pressure == 1.0e5;
 
     /// <summary>
     /// A state at a fraction of the transition of calcite or magnesite under carbon dioxide ends <c>Ok</c> on the plateau, at the

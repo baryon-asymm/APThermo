@@ -14,7 +14,9 @@ decides, at one assigned temperature and pressure, whether the equilibrium holds
 - `GasPhaseVerdict` composes the two into `Gasless`, `GasRequired` or `Undecided`, and gives the
   condensed minimum's enthalpy, entropy and heat capacity (`CondensedFigures`).
 
-The `Recovery` node asks the verdict after a failed tp attempt; nothing else calls it. The cluster
+The `Recovery` node asks the verdict after a failed tp attempt; nothing else calls it. The trace-gas node
+asks one more entry of the same program, `PhaseOnePoint`: the point phase one stops at, which starts its
+pass (2026-10-04). The cluster
 has a reason of its own to change: RP-1311's unknowns `ln n_j` and `ln n` cannot represent a gas
 phase of zero moles, so the equilibria where the gas vanishes (KO2 beside K2O2, water below its
 boiling point, Al2O3, KCl, a thermite, CaCO3 below its decomposition) need a method of their own
@@ -61,7 +63,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 - Kernel-compatible C#: no allocation, recursion or exception; of the math list `Exp`, `Log`,
   `Abs` and `KernelMath.Min`/`Max`; an ordered comparison with a constant has it on the right.
 - **Reached once.** `GasPhaseVerdict.Decide` carries `[MethodImpl(MethodImplOptions.NoInlining)]`
-  and has one call site, `Recovery.AttemptPlan.Next` (the root's compile-size constraint).
+  and has one call site, `Recovery.AttemptPlan.Next` (the root's compile-size constraint). `PhaseOnePoint`
+  likewise, its one call site the `TraceGas` node's (2026-10-04).
 - **Scratch.** No slice of its own; it borrows what an ended attempt leaves free: the matrix, the
   right-hand side and the row scales; `Corrections` (the basic values); `CondensedInSolution` (the
   basis: a column, or `−1 − row` for an artificial one); `Tie.CondensedSet` (row → element);
@@ -132,5 +135,6 @@ is named in the class that uses it.
 
 - No `Gasless` without the certificate: a failed attempt is no evidence that the gas vanished.
 - No temperature search: it is the bracket's ([Recovery](../Recovery/BOOT.md)).
-- No write to `BracketEnds`, and no write to the result for a verdict but `Gasless`.
+- No write to `BracketEnds`, and no write to the result for a verdict but `Gasless`; `PhaseOnePoint` writes
+  `result.Moles` only, for its one caller.
 - No public type; no `float`, exception, allocation or virtual call.

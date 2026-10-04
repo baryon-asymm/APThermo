@@ -23,7 +23,7 @@ A record whose data end below, with no record of its formula beyond (`H2O(L)` fr
 solve below it therefore reports the supersaturated gas, and that is correct (cea does the same, 2026-10-04,
 the no-ice investigation); the library adds no ice and no other record to a list (`Only` means exactly the list).
 
-`EquilibriumSolver` calls `CondensedSet.Update` after each convergence and
+`EquilibriumSolver` calls `CondensedSet.Update` after each convergence, as the `TraceGas` node does after each of its own (2026-10-04), and
 `ExitGuardFindsAPositiveCandidate` at the close; the `Newton` node removes a record through
 `CondensedSet.Remove` and `MarkRemoved` (`API.md`). The cluster has a reason of its own to change: the
 report's tests for condensed species and the reference's own handling of phases.

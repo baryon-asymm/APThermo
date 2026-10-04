@@ -6,15 +6,19 @@ Namespace `APThermo.Equilibrium.Recovery`. Internal to `src/Equilibrium`'s assem
 ## The attempt plan ✅
 
 ```csharp
-internal enum AttemptPhase { Warm, Cold, VerdictOnly, Final }
+internal enum AttemptPhase { Warm, Cold, VerdictOnly, Final, TraceGas, TraceGasFinal }
 internal struct AttemptPlan
 {
     public EquilibriumProblem Current; public EstimateSource Source; public AttemptPhase Phase;
-    public CaseStatus Status; public int Iterations;
+    public CaseStatus Status; public int Iterations; public CaseStatus Judged;   // Judged: the status of the attempt a GasRequired verdict judged
+    public int TraceGasFinals;                                 // trace-gas finals launched (seams (b), (b′)): at most one per case
     public TemperatureBracket Bracket; public EndKind Found; public CondensedFigures Figures;
     public RecheckState Recheck;
     public readonly bool RunsAttempt { get; }
+    public readonly bool OwesTraceGasFinal { get; }              // seam (b′): the ordinary final just ended NotConverged or SingularMatrix, and none was launched
+    public readonly bool RunsTraceGas { get; }                 // TraceGas or TraceGasFinal: Solve runs TraceGasPass.Run, not ConvergenceSequence.Run
     public void BeginBracket(double estimate);
+    public void SeekTraceGas();                            // seam (a): sets Phase = TraceGas, Source = PreviousSolution, Judged = Status after a failed NotConverged/SingularMatrix pass
     public void Begin(in EquilibriumProblem problem, bool useMolesAsEstimate);        // on a default plan; never returned by value
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Next(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
@@ -26,8 +30,8 @@ internal struct AttemptPlan
 ## The temperature bracket ✅
 
 ```csharp
-internal enum EndKind { Gas, Gasless }
-internal enum BracketMove { Probe, GiveUp, AttemptFromLever, AttemptFromProbe, GaslessAtProbe, GaslessFromLever }
+internal enum EndKind { Gas, Gasless, TraceGas }
+internal enum BracketMove { Probe, GiveUp, AttemptFromLever, AttemptFromProbe, TraceGasFromLever, TraceGasFromProbe, GaslessAtProbe, GaslessFromLever }
 internal struct TemperatureBracket
 {
     public bool Active; public CaseStatus FirstFailure; public CaseStatus GiveUpStatus; public bool Scanning;
@@ -66,5 +70,5 @@ internal static class DeadEnds
 ```
 
 `BracketDriver` (the bracket's moves), `DeadEndRecheck`, `BracketSeeds` (the only writer of `BracketEnds`: `Save`,
-`Seed`, `Lever`) and `PassOutcome` (`Finds`, `EndGasless`, `EndGiveUp`, `ClearState`, `Value`, `Slope` and the problem
+`Seed`, `Lever`, `Anchor`) and `PassOutcome` (`Finds`, `EndGasless`, `EndGiveUp`, `ClearState`, `Value`, `Slope` and the problem
 constructors) are internal to this node.

@@ -54,7 +54,9 @@ internal static class DerivativeSystem
             var kind = pass == 0 ? DerivativeKind.Temperature : DerivativeKind.Pressure;
             Assemble(table, scratch, result, layout, kind);
             PinTiedRow(scratch, layout);
-            if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride))
+            if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride)
+                && !(Unexplained(table, scratch, result, layout, derivatives.Pinned)
+                     && ScaledRetry(table, scratch, result, layout, kind, sums.SumGas)))
             {
                 derivatives = GasParticipatingPlateau(table, scratch, result, sums, layout, derivatives);
                 break;
@@ -109,6 +111,53 @@ internal static class DerivativeSystem
         derivatives.DlnNdlnT = 0.0;
         derivatives.Reaction = 0.0;
         return derivatives;
+    }
+
+    /// <summary>
+    /// Whether a singular constant-temperature system is left unexplained by the plateaus: a pinned set already has its
+    /// representative out, and otherwise no condensed vector lies in the span of the gas composition and the vectors before it
+    /// (the gas-participating plateau, <see cref="GasParticipatingPlateau"/>). Only then is the scaled solve worth a try.
+    /// </summary>
+    private static bool Unexplained(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                    in SystemLayout layout, bool pinned) =>
+        pinned || DependentSlot(table, scratch, result, layout.CondensedCount, layout.Stride, gasColumn: true) < 0;
+
+    /// <summary>
+    /// The same system once more with the condensed columns of the element rows carried relative to the gaseous moles
+    /// <paramref name="n"/> (unknowns <c>dn_c/n</c>), the condensed unknowns multiplied back by <paramref name="n"/> after the
+    /// solve (BOOT.md, 2026-10-04, for 0.2.2). A trace gas (n of 1e-10 beside condensed species of 1e-2) leaves the element rows'
+    /// multiplier pivots below the scale the condensed columns set, and the scaled solve keeps them at their own scale. It runs
+    /// only after the plain solve failed, so a state that is solved today is decided before it and no bit of it moves.
+    /// </summary>
+    private static bool ScaledRetry(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                    in SystemLayout layout, DerivativeKind kind, double n)
+    {
+        if (!(n > 0.0))
+        {
+            return false;
+        }
+
+        Assemble(table, scratch, result, layout, kind);
+        PinTiedRow(scratch, layout);
+        for (var c = 0; c < layout.CondensedCount; c++)
+        {
+            for (var i = 0; i < layout.ElementCount; i++)
+            {
+                scratch.Matrix[i * layout.Stride + layout.ElementCount + c] *= n;
+            }
+        }
+
+        if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, layout.Unknowns, layout.Stride))
+        {
+            return false;
+        }
+
+        for (var c = 0; c < layout.CondensedCount; c++)
+        {
+            scratch.RightHandSide[layout.ElementCount + c] *= n;
+        }
+
+        return true;
     }
 
     /// <summary>Assembles and solves the isentropic system of <see cref="PlateauIsentrope"/>; false when it is singular.</summary>

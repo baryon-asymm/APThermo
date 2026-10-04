@@ -36,6 +36,55 @@ internal static class CondensedSimplex
                                double temperature, out GasVerdict stop)
     {
         stop = GasVerdict.Undecided;
+        var rows = PhaseOne(table, problem, scratch, temperature, out var residual);
+        if (rows == 0)
+        {
+            return 0;
+        }
+
+        if (residual > 0.0)
+        {
+            stop = GasVerdict.GasRequired;
+            return 0;
+        }
+
+        return PhaseTwo(table, problem, scratch, temperature, rows);
+    }
+
+    /// <summary>
+    /// The point the trace-gas pass starts from (2026-10-04): the vertex phase one stops at when the condensed species cannot
+    /// hold every element (<paramref name="residual"/>: the moles they cannot hold, positive), else the condensed minimum
+    /// (residual zero), into <c>result.Moles</c> with every gas and every record at zero level zero. False, nothing written,
+    /// when the program does not complete. The same program as <see cref="Minimize"/>, which it shares both phases with.
+    /// </summary>
+    public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                             in EquilibriumResult result, double temperature, out double residual)
+    {
+        var rows = PhaseOne(table, problem, scratch, temperature, out residual);
+        if (rows > 0 && !(residual > 0.0))
+        {
+            rows = PhaseTwo(table, problem, scratch, temperature, rows);
+        }
+
+        if (rows == 0)
+        {
+            return false;
+        }
+
+        WriteMoles(table, scratch, result, problem, rows);
+        return true;
+    }
+
+    /// <summary>
+    /// Phase one: the artificial basis driven to its minimum. Returns the number of rows with the basis in
+    /// <c>CondensedInSolution</c> and the basic values in <c>Corrections</c>, or zero when it does not complete;
+    /// <paramref name="residual"/> is the sum of the artificial values above the conservation tolerance, the moles of the
+    /// elements the condensed species cannot hold.
+    /// </summary>
+    private static int PhaseOne(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                double temperature, out double residual)
+    {
+        residual = 0.0;
         ResetMarks(table, scratch);
         var m = Rows(table, scratch);
         if (m == 0 || table.SpeciesCount < m)
@@ -53,12 +102,14 @@ internal static class CondensedSimplex
             return 0;
         }
 
-        if (!HeldByCondensed(problem, scratch, m))
-        {
-            stop = GasVerdict.GasRequired;
-            return 0;
-        }
+        residual = Unheld(problem, scratch, m);
+        return m;
+    }
 
+    /// <summary>Phase two from a feasible phase-one basis: the artificial columns at zero level driven out, the true cost minimized; the number of rows, or zero when it does not complete or a basic value is negative.</summary>
+    private static int PhaseTwo(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                double temperature, int m)
+    {
         DriveOutArtificials(table, scratch, temperature, m);
         if (!Phase(table, problem, scratch, temperature, m, phaseOne: false)
             || !Primal(table, problem, scratch, m) || !Dual(table, scratch, m, phaseOne: false))
@@ -187,19 +238,20 @@ internal static class CondensedSimplex
         return m;
     }
 
-    /// <summary>After phase one: whether every artificial column is at zero level, that is whether the condensed species hold every element.</summary>
-    private static bool HeldByCondensed(in EquilibriumProblem problem, in EquilibriumScratch scratch, int m)
+    /// <summary>After phase one: the sum of the artificial columns' values above the conservation tolerance; zero when the condensed species hold every element.</summary>
+    private static double Unheld(in EquilibriumProblem problem, in EquilibriumScratch scratch, int m)
     {
+        var residual = 0.0;
         for (var r = 0; r < m; r++)
         {
             var b = problem.ElementMoles[scratch.Tie.CondensedSet[r]];
             if (scratch.CondensedInSolution[r] < 0 && scratch.Corrections[r] > ConservationTolerance * KernelMath.Max(1.0, b))
             {
-                return false;
+                residual += scratch.Corrections[r];
             }
         }
 
-        return true;
+        return residual;
     }
 
     /// <summary>x_B = B⁻¹ b into <c>Corrections</c>.</summary>

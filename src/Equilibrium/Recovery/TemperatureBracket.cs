@@ -100,7 +100,7 @@ internal struct TemperatureBracket
     /// <summary>Whether the pass in flight is the verdict-only final of two gasless ends or of a converged gasless probe.</summary>
     public bool Finishing;
 
-    /// <summary>The move that ended the search, once a gasless final is pending.</summary>
+    /// <summary>The move that ended the search, once a final is pending: the gasless one, or the attempt a final is.</summary>
     public BracketMove Final;
 
     /// <summary>ln T of a gasless final taken at the temperature Newton's step converged on.</summary>
@@ -173,7 +173,7 @@ internal struct TemperatureBracket
         if (Math.Abs(step) <= (gasless ? GaslessNarrow : Narrow))
         {
             FinalX = ProbeX + step;
-            return gasless ? BracketMove.GaslessAtProbe : BracketMove.AttemptFromProbe;
+            return gasless ? BracketMove.GaslessAtProbe : LastKind == EndKind.TraceGas ? BracketMove.TraceGasFromProbe : BracketMove.AttemptFromProbe;
         }
 
         if (Probes >= MaxProbes)
@@ -255,13 +255,14 @@ internal struct TemperatureBracket
 
     /// <summary>
     /// The final when both ends are known, chosen by what the ends found. Two gasless ends end in the verdict alone; any
-    /// other pair, one gas end or two, in the hp or sp case itself seeded by the lever rule. The trace-gas design adds the
-    /// arm of an end of its own kind here (BOOT.md, "The trace-gas seam" (b)).
+    /// other pair, one gas end or two, in the hp or sp case itself seeded by the lever rule, run by the trace-gas pass when
+    /// an end was found by it (BOOT.md, "The trace-gas seams" (b)).
     /// </summary>
     private readonly BracketMove LeverFinal() =>
         (LowKind, HighKind) switch
         {
             (EndKind.Gasless, EndKind.Gasless) => BracketMove.GaslessFromLever,
+            (EndKind.TraceGas, _) or (_, EndKind.TraceGas) => BracketMove.TraceGasFromLever,
             _ => BracketMove.AttemptFromLever,
         };
 

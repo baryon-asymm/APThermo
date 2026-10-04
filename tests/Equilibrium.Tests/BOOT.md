@@ -92,6 +92,8 @@ The definition of what "`Equilibrium` is ready" means.
   search its unit facts drive (`GasPhaseVerdict`, `CondensedSimplex`, `TangentPlane`).
 - [Recovery](../../src/Equilibrium/Recovery/API.md) — the temperature bracket and the attempt plan, whose pure
   transitions its unit facts drive (`TemperatureBracket`, `BracketMove`, `EndKind`, `AttemptPlan`).
+- [TraceGas](../../src/Equilibrium/TraceGas/API.md) — the trace-gas Newton pass, whose stage types its unit and
+  family facts drive (`TraceGasPass`, `TraceGasSystem`, `TraceGasStep`, `TraceGasStart`, `PhaseOneSeed`).
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
@@ -330,6 +332,25 @@ creation names its arguments; it passes them by position today (the criterion be
         singular signature, as the singular tp case does. No line of `Bits.approved.txt` moved;
         `dotnet test tests/Equilibrium.Tests`: 1077/1077.
       The StateRecord criterion that names these facts is ticked by the orchestrator after CUDA and Linux.
+
+- [x] 2026-10-04 — The trace-gas pass, the close guard and the trace-gas finals
+      ([TraceGas/BOOT.md](../../src/Equilibrium/TraceGas/BOOT.md), [Recovery/BOOT.md](../../src/Equilibrium/Recovery/BOOT.md)),
+      on the CPU accelerator, every fact asserting `EquilibriumConditions` at 1e-9 with every gas of any share
+      (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
+      - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`: the families
+        `TraceGasCases` generates from their parameters, none typed;
+      - `GasStationarityTests` (the guard's bound, and the states it refused through the bracket),
+        `TraceGasFinalTests` (the ownership of the finals, cold calcite states, the retried final),
+        `TemperatureBracketTests` (the arms of seam (b)), `TiedDerivativesTests` and `ScaledDerivativeTests`
+        (the two derivative retries against a central difference), `SupercooledVapourSpTests` (the sp states
+        of the vapour below the floors), `BracketedStateTests` (the magnesite band no longer excluded);
+      - `TraceGasScanTests`, `LongRunning`: the 4 158 tp states of `TraceGasCases.ScanFamilies` against
+        `TraceGasScanBaseline.txt` (the status of each before the pass, recorded once with the pass, the guard
+        and the finals switched off) and `TraceGasLeftovers.txt` (the declared states, each asserted as
+        declared, so a settled one makes the list stale).
+      Each rule shown red once by removing it (counts in the nodes' own criteria); no line of a
+      `Bits*.approved.txt` moved on Windows. `dotnet test tests/Equilibrium.Tests`: 1 798 facts (1 797 of the fast
+      set and the scan fact), green.
 
 ## Taboos
 

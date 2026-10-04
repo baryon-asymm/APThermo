@@ -36,5 +36,29 @@ internal static class TangentPlane
 }
 ```
 
-`Face` and `CoordinateRange` are the carriers of the search, internal to this node. The trace-gas design adds
-its phase-one entry here under ⏳.
+`Face` and `CoordinateRange` are the carriers of the search, internal to this node.
+
+## Trace-gas seed ✅ (2026-10-04)
+
+```csharp
+internal static class GasPhaseVerdict
+{
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static bool PhaseOnePoint(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                     in EquilibriumResult result, out double residual);
+        // tp at problem.Temperature. True when the program completes: result.Moles holds its condensed point, every gas
+        // and every other record zero — the phase-one vertex when the condensed species cannot hold every element
+        // (residual: the moles they cannot hold, > 0), else the condensed minimum (residual 0). False, nothing written,
+        // when phase one does not complete. One call site, TraceGas's PhaseOneSeed; it borrows the verdict's scratch and
+        // neither keeps nor restores the failed attempt's moles and multipliers.
+}
+
+internal static class CondensedSimplex
+{
+    public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, double temperature, out double residual);
+        // what PhaseOnePoint writes, from the program Minimize runs; both share its two phases
+}
+```
+
+After any verdict but `Gasless`, `Decide` leaves the multipliers it restored in
+`scratch.Tie.Elements.Multipliers` (2026-10-04): the trace-gas pass takes its anchor there.

@@ -143,17 +143,37 @@ internal static class BracketDriver
             return false;
         }
 
-        return move is BracketMove.AttemptFromLever or BracketMove.AttemptFromProbe
-            ? LaunchFinal(table, problem, scratch, result, move, ref plan)
-            : LaunchGasless(problem, move, ref plan);
+        return move is BracketMove.GaslessAtProbe or BracketMove.GaslessFromLever
+            ? LaunchGasless(problem, move, ref plan)
+            : LaunchFinal(table, problem, scratch, result, move, ref plan);
     }
 
-    /// <summary>The final attempt, the case itself, warm, from the lever rule between the two ends or from the last probe; it never falls back.</summary>
+    /// <summary>
+    /// Seam (b′): the ordinary final of the bracket ended <c>NotConverged</c> or <c>SingularMatrix</c>, and the case has not had a
+    /// trace-gas final yet, so the same final runs again from the same seed, rebuilt from the ends, by the trace-gas pass. False
+    /// when the case is not owed one.
+    /// </summary>
+    public static bool RetryFinalWithTraceGas(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                              in EquilibriumResult result, ref AttemptPlan plan)
+    {
+        if (!plan.OwesTraceGasFinal)
+        {
+            return false;
+        }
+
+        var move = plan.Bracket.Final == BracketMove.AttemptFromLever ? BracketMove.TraceGasFromLever : BracketMove.TraceGasFromProbe;
+        return LaunchFinal(table, problem, scratch, result, move, ref plan);
+    }
+
+    /// <summary>
+    /// The final attempt, the case itself, warm, from the lever rule between the two ends or from the last probe; it never falls back.
+    /// A trace-gas final (seams (b) and (b′)) takes the multipliers the result holds as its anchor, and counts once against the case.
+    /// </summary>
     private static bool LaunchFinal(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                     in EquilibriumResult result, BracketMove move, ref AttemptPlan plan)
     {
         var temperature = Math.Exp(plan.Bracket.ProbeX);
-        if (move == BracketMove.AttemptFromLever)
+        if (move is BracketMove.AttemptFromLever or BracketMove.TraceGasFromLever)
         {
             temperature = plan.Bracket.LeverTemperature(problem.Target);
             BracketSeeds.Lever(table, scratch, result, plan.Bracket.LeverFraction(problem.Target));
@@ -163,9 +183,17 @@ internal static class BracketDriver
             BracketSeeds.Seed(table, scratch, result, plan.Bracket.LastBelow);
         }
 
+        var traceGas = move is BracketMove.TraceGasFromLever or BracketMove.TraceGasFromProbe;
+        if (traceGas)
+        {
+            BracketSeeds.Anchor(table, scratch, result);
+            plan.TraceGasFinals++;
+        }
+
+        plan.Bracket.Final = move;
         plan.Current = PassOutcome.CaseAt(problem, temperature);
         plan.Source = EstimateSource.PreviousSolution;
-        plan.Phase = AttemptPhase.Final;
+        plan.Phase = traceGas ? AttemptPhase.TraceGasFinal : AttemptPhase.Final;
         return true;
     }
 
