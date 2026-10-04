@@ -202,6 +202,12 @@ public sealed class CudaTests(ITestOutputHelper output)
         var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed };
         var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
         var mismatches = comparison.Equilibrium(cpu, gpu, batch, table, labels, sensitivities);
+        if (bracketed)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"worst noGasPhaseTemperature deviation {comparison.WorstOf("noGasPhaseTemperature"):E2}, worst gas mole-fraction deviation {comparison.WorstOf("moleFraction"):E2}"));
+        }
+
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
         if (!bracketed)
         {
