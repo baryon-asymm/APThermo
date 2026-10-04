@@ -162,14 +162,12 @@ public sealed class ThreeElementTieTests
 
     /// <summary>
     /// The enthalpy or the entropy of every tp state of the grid, solved back at the same pressure, gives the tp
-    /// temperature to <see cref="TemperatureReproduction"/>. A state is left out only when the tp state holds a condensed
-    /// species and the hp or sp solve lands on the supercooled vapour branch: its temperature is below the lower bound of
-    /// that species' record, or the descent leaves the window (<c>TemperatureOutOfRange</c>). Example 12's table has
-    /// <c>H2O(L)</c> from 273.15 K and no <c>H2O(cr)</c>, so below that bound the vapour alone has no enthalpy of the
-    /// liquid's value and the descent from the hot start never meets the liquid branch; the same holds for the entropy.
-    /// Measured: 155 of the 168 hp solves and 158 of the sp solves reproduce the tp temperature (to 1.1e-12 and 5.2e-12);
-    /// the 13 and 10 left out are example 12's states with liquid at 300 K (ten of them in both), and for hp three liquid states at 600 K. The fact
-    /// allows a fifth of the grid to be left out so that it cannot pass over the whole set.
+    /// temperature to <see cref="TemperatureReproduction"/>, none left out. Example 12's table has <c>H2O(L)</c> from
+    /// 273.15 K and no <c>H2O(cr)</c>: below that bound the vapour alone has the enthalpy of a liquid state, and in 0.2.1 a
+    /// cold solve converged on that supercooled vapour or left the window (13 of the 168 hp solves and 10 of the sp solves,
+    /// the states with liquid at 300 K, and for hp three liquid states at 600 K). The recheck of an Ok state below a
+    /// dead-end floor and the temperature bracket (the Recovery node, "Dead-end floors") now reach the liquid state: the count
+    /// of states left out is zero.
     /// </summary>
     [Theory]
     [InlineData("hp")]
@@ -178,7 +176,6 @@ public sealed class ThreeElementTieTests
     {
         var names = GridNames();
         var walked = 0;
-        var left = 0;
         var failures = new List<string>();
         foreach (var (name, problem) in names.SelectMany(GridProblems))
         {
@@ -186,18 +183,13 @@ public sealed class ThreeElementTieTests
             var tp = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
             var back = HostSolver.Solve(CpuFixture.Shared.Accelerator, Counterpart(tp, kind));
             var deviation = back.Status == CaseStatus.Ok ? Math.Abs(back.State.Temperature - problem.Temperature) / problem.Temperature : double.PositiveInfinity;
-            if (tp.Status == CaseStatus.Ok && LandsOnTheSupercooledVapour(tp, back))
-            {
-                left++;
-            }
-            else if (tp.Status != CaseStatus.Ok || deviation > TemperatureReproduction)
+            if (tp.Status != CaseStatus.Ok || deviation > TemperatureReproduction)
             {
                 failures.Add($"{name} p={problem.Pressure:R} T={problem.Temperature:R}: tp {tp.Status}, {kind} {back.Status}, T {back.State.Temperature:R}");
             }
         }
 
         Assert.Equal(names.Count * PressureFactors.Length * Temperatures.Length, walked);
-        Assert.True(left * 5 < walked, $"{left} of {walked} states left out of the {kind} comparison");
         Assert.True(failures.Count == 0, $"{failures.Count} of {walked} states: {string.Join(" | ", failures)}");
     }
 
@@ -244,30 +236,6 @@ public sealed class ThreeElementTieTests
         kind == "hp"
             ? tp.Case with { Kind = ProblemKind.AssignedEnthalpyPressure, Temperature = 0.0, Target = tp.State.Enthalpy }
             : tp.Case with { Kind = ProblemKind.AssignedEntropyPressure, Temperature = 0.0, Target = tp.State.Entropy };
-
-    /// <summary>
-    /// True when <paramref name="tp"/> holds a condensed species and <paramref name="back"/>, its hp or sp counterpart, is
-    /// the vapour alone below the lowest lower bound of the records of the species held, or left the window.
-    /// </summary>
-    private static bool LandsOnTheSupercooledVapour(HostSolution tp, HostSolution back)
-    {
-        var held = HeldCondensed(tp);
-        if (!held.Contains('1', StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (back.Status == CaseStatus.TemperatureOutOfRange)
-        {
-            return true;
-        }
-
-        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, tp.Case.Table);
-        var lowest = Enumerable.Range(0, held.Length)
-            .Where(c => held[c] == '1')
-            .Min(c => SpeciesFunctions.RecordLow(buffers.View, tp.Case.Table.GasCount + c));
-        return back.Status == CaseStatus.Ok && back.State.Temperature < lowest;
-    }
 
     /// <summary>The tp problems of one table of the grid: the fixture's own table and element moles at each pressure factor and temperature.</summary>
     private static IEnumerable<(string Name, EquilibriumCase Problem)> GridProblems(string fixtureName)

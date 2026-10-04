@@ -31,9 +31,6 @@ internal struct TemperatureBracket
     /// <summary>K, section 3.1's estimate: the first probe when the case gives none.</summary>
     private const double DefaultStart = 3800.0;
 
-    /// <summary>A probe stops this far (relative) above the lowest bound of a condensed record before crossing it.</summary>
-    internal const double FloorMargin = 1.0 + 1.0e-9;
-
     /// <summary>Whether the bracket has started: the case's own attempts failed.</summary>
     public bool Active;
 

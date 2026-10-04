@@ -14,7 +14,14 @@ condensed set between two convergences and holds the exit guard:
   crossing of each pair, the effective range of a record, the adjacent record and the phase at a
   temperature.
 
-The `GasPhase` node asks `PhaseGeometry.InEffectiveRange` for a record's eligibility.
+The `GasPhase` node asks `PhaseGeometry.InEffectiveRange` for a record's eligibility, and the `Recovery`
+node asks `PhaseGeometry.SameFormula` and `CondensedSet.InclusionGain` for the dead-end floors of its
+recheck ([Recovery/BOOT.md](../Recovery/BOOT.md), "Dead-end floors").
+
+A record whose data end below, with no record of its formula beyond (`H2O(L)` from 273.15 K without
+`H2O(cr)`, `C(gr)` from 300 K), is no candidate below that bound: the range rule is the contract. A tp
+solve below it therefore reports the supersaturated gas, and that is correct (cea does the same, 2026-10-04,
+the no-ice investigation); the library adds no ice and no other record to a list (`Only` means exactly the list).
 
 `EquilibriumSolver` calls `CondensedSet.Update` after each convergence and
 `ExitGuardFindsAPositiveCandidate` at the close; the `Newton` node removes a record through
@@ -24,7 +31,7 @@ report's tests for condensed species and the reference's own handling of phases.
 ⚠ 2026-10-03: was "the `StateRecord` node asks `PhaseGeometry.SameFormula`", now it asks nothing of this
 node: it finds its pinned set by linear dependence of the element vectors of the condensed species of
 the solution ([StateRecord/BOOT.md](../StateRecord/BOOT.md), `## Constraints`), and `SameFormula` serves
-this node's own rules alone.
+this node's own rules and, since 2026-10-04, the dead-end floors of the `Recovery` node.
 
 ⚠ 2026-10-02: was the condensed-species rule in `src/Equilibrium` itself, now this node
 → HISTORY.md#structure-split-2026-10-02

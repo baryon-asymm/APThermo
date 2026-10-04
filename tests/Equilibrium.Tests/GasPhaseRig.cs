@@ -1,4 +1,5 @@
 using APThermo.Equilibrium.GasPhase;
+using APThermo.Equilibrium.Recovery;
 using APThermo.Thermo;
 using ILGPU.Runtime;
 
@@ -46,6 +47,31 @@ internal static class GasPhaseRig
         return new VerdictRun(
             verdict, figures, new Iterate((double[])moles.Clone(), (double[])multipliers.Clone()),
             new Iterate(molesBuffer.GetAsArray1D(), multipliersBuffer.GetAsArray1D()), state.GetAsArray1D()[0]);
+    }
+
+    /// <summary>The dead-end floor <see cref="DeadEnds.FloorBelow"/> gives for <paramref name="temperature"/> over the marks that a case's <c>Begin</c> leaves.</summary>
+    public static double FloorBelow(EquilibriumCase problem, double temperature)
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var table = problem.Table;
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        var speciesCount = table.SpeciesCount;
+        var elementCount = table.ElementCount;
+        using var elements = accelerator.Allocate1D(problem.ElementMoles);
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        using var molesBuffer = accelerator.Allocate1D<double>(speciesCount);
+        using var multipliersBuffer = accelerator.Allocate1D<double>(elementCount);
+        using var state = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        molesBuffer.MemSetToZero();
+        var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
+        var attempt = new IterationState();
+        Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(buffers.View, input, scratch, result, EstimateSource.Defaults, ref attempt));
+        return DeadEnds.FloorBelow(buffers.View, scratch, temperature);
     }
 
     /// <summary>

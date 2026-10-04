@@ -10,9 +10,11 @@ each attempt and when it ends:
   final attempt, and the state cleared on a failure.
 - `TemperatureBracket`: the bracket's ends and arithmetic (the safeguarded Newton on `ln T`, the
   bisection, the retreats, the stops), pure and testable on the host.
-- `BracketSeeds`: compositions between the result and the ends (an end saved, a probe seeded, the
-  lever mix, the highest record floor below). `PassOutcome`: what a tp pass found (the verdict, the
-  value and slope of its assigned property) and what it leaves in the state.
+- `BracketDriver` carries the bracket's moves out; `BracketSeeds`: compositions between the result and
+  the ends (an end saved, a probe seeded, the lever mix). `PassOutcome`: what a tp pass found (the
+  verdict, the value and slope of its assigned property) and what it leaves in the state.
+- `DeadEnds` and `DeadEndRecheck`: the floors where a condensed record's data stop with no record of
+  its formula beyond, and the recheck of an `Ok` state that lies below one ("Dead-end floors").
 
 `EquilibriumSolver.Solve` starts the plan with `AttemptPlan.Start` and calls `AttemptPlan.Next` after
 every attempt. The cluster has a reason of its own to change: what the tree does when the report's
@@ -24,8 +26,11 @@ own iteration fails, which RP-1311 leaves open.
 
 The parent's invariants hold here.
 
-- **An `Ok` attempt ends the case untouched.** The plan acts only after a failure: a case whose
-  first attempt or cold fallback ends `Ok` ends with the bits it had before 0.2.2.
+- **An `Ok` attempt ends the case untouched**, with the one exception of "Dead-end floors": an `Ok` cold
+  hp or sp state below a dead-end floor with a positive inclusion gain is rechecked, and ends with the bits
+  it had unless the recheck finds a state of the same h or s above the floor, which replaces it.
+
+  ⚠ 2026-10-04: was "the plan acts only after a failure", now also after an `Ok` below a dead-end floor → HISTORY.md#recheck-ok
 - **Every probe is a Gibbs minimization at an assigned temperature.** The probes are tp attempts of
   the same solver and verdicts of the `GasPhase` node; the final attempt is the case itself. No
   formula of the iteration changes and no equation is added.
@@ -38,6 +43,7 @@ The parent's invariants hold here.
 
 - [Equilibrium](../API.md) — the descriptors, `EstimateSource`, the constants of `EquilibriumSolver`.
 - [GasPhase](../GasPhase/API.md) — `GasPhaseVerdict.Decide`, `GasVerdict`, `CondensedFigures`.
+- [Condensed](../Condensed/API.md) — `CondensedSet.InclusionGain` and `PhaseGeometry.SameFormula`, for the dead-end floors.
 - [Thermo](../../Thermo/API.md) — the species table view, `CaseStatus`, `MixtureState`,
   `KernelMath`, `SpeciesFunctions.RecordLow`.
 
@@ -78,10 +84,11 @@ Inherited from the parent and, through it, from the root. In addition:
     ±ln 2 toward the target.
   - With both ends known: the Newton point, or the midpoint when that point leaves the bracket or
     the step does not halve the one before last.
-  - With one end known: the step clamped to ±ln 2 and to [ln 160, ln 20 000]. Going down, it stops
-    at the highest lowest record bound times (1 + 1e-9) among the condensed species of the last probe
-    below its temperature, since the data floor makes `P` non-monotone across it. At the domain's
-    edge in the target's direction the case gives up `TemperatureOutOfRange`.
+  - With one end known: the step clamped to ±ln 2 and to [ln 160, ln 20 000]. Going down, it lands AT the
+    highest dead-end floor below the probe (`DeadEnds.FloorBelow`, "Dead-end floors"), since across a floor
+    the candidate set changes and `P` is not monotone. A probe that stands on a floor goes on below it, so
+    where `P(floor)` is above the target the search continues down. At the domain's edge in the target's
+    direction the case gives up `TemperatureOutOfRange`.
   - A failed probe retreats halfway toward the nearer end, warm; with no end known or 8 retreats
     spent, the case gives up with its first failure.
 - **The stops and the finals.**
@@ -99,6 +106,29 @@ Inherited from the parent and, through it, from the root. In addition:
     gasless ends, and a state of that temperature and the pressure; otherwise the final attempt from
     the lever seed (from the last probe when only one end is known).
   - `Iterations` sums every attempt's Newton steps; a verdict counts none.
+- **Dead-end floors** (2026-10-04, the no-ice investigation). A condensed record is a dead end when its
+  lowest bound is not the gas data floor (200 K, where it is open below) and no record of its formula has
+  its upper bound at that bound (`PhaseGeometry.SameFormula`). The records of RP-1311 example 12's list
+  that are dead ends are `H2O(L)` (273.15 K, without `H2O(cr)`) and `C(gr)` (300 K); with `H2O(cr)` only
+  `C(gr)`. Across the floor of a record whose elements are present, the candidate set gains or loses a
+  phase, and the equilibrium enthalpy and entropy jump there.
+  - **A floor stops a downward step** wherever a record whose elements are present has it, held by the probe or
+    not (a probe of the gas alone stands just above the floor of the phase that is to join). The probe lands
+    at the floor itself, which the range tolerance admits; a record adjoined by a lower record of its formula
+    is no floor, because the pinned plateau keeps `P` continuous across it.
+  - **The recheck.** A cold hp or sp attempt (the first, or the fallback after a failed warm one) that ended `Ok`
+    at a temperature below the highest dead-end floor of a record whose inclusion gain at the final multipliers
+    is positive (`DeadEnds.FloorAbove`) is a supersaturated vapour; hp equilibrium is the maximum-entropy state
+    and sp the minimum-enthalpy one, so a state of the same h or s holding the phase above the floor, if there
+    is one, is the equilibrium. One tp probe is taken at that floor, cold. If its `P` (h for hp, s for sp) is at
+    or below the target, the bracket starts with it as its lower end and searches upward, and its final replaces
+    the `Ok`. If it is above, there is none and the `Ok` stands. If the probe or the bracket fails, or its final
+    does, the original attempt is rerun from the cold start, deterministic, and ends the case with the bits and
+    the iterations it had. A warm attempt is not rechecked: its seed is gone once a probe has run (the
+    declared limit; the case is that of a caller whose seed is itself a state below the floor).
+  - **The list is the contract.** tp below a dead-end floor reports the supersaturated gas, the range rule, and
+    that is correct (cea does the same). An hp or sp target that no state of the list reaches in the window
+    is `TemperatureOutOfRange`; no status is added and `Problems` adds no ice.
 - **The trace-gas seam** (its own design, 0.2.2):
   - (a) the `GasRequired` arm of step 2 after failed attempts schedules a `TraceGas` pass at the same
     temperature, which `Solve` sends to the trace-gas entry instead of `ConvergenceSequence.Run`,
@@ -114,10 +144,11 @@ Inherited from the parent and, through it, from the root. In addition:
 ## Structure
 
 `AttemptPlan` (struct: `Current`, `Source`, `Phase`, `Status`, `Iterations`, the `TemperatureBracket`,
-what the last pass `Found`; `RunsAttempt` is false for a `VerdictOnly` pass), `AttemptPhase` (enum:
-`Warm`, `Cold`, `VerdictOnly`, `Final`), `TemperatureBracket` (struct, pure transitions, each constant
-above named), `BracketMove` and `EndKind` (enums), `BracketSeeds` and `PassOutcome` (static). One type
-per file.
+what the last pass `Found`, the `RecheckState`; `RunsAttempt` is false for a `VerdictOnly` pass; `Next` is
+the ladder's one method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`),
+`TemperatureBracket` (struct, pure transitions, each constant above named), `BracketMove` and `EndKind`
+(enums), `BracketDriver` (carries the moves out), `BracketSeeds` and `PassOutcome` (static), `DeadEnds` (the
+floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state). One type per file.
 
 ## Acceptance criteria
 
@@ -144,9 +175,19 @@ per file.
       `RecoveryTests.ACaseTheBracketGivesUpOnLeavesAZeroStateAndSumsEveryAttempt`).
 - [ ] The five sp warm-430 K states of AP/HTPB/Al that land off the tp temperature in the prototype
       explained, and every `Ok` hp or sp state of the scans clear of `EquilibriumConditions`.
+- [x] Dead-end floors: on example 12's list, every hp and sp target of a tp state of the list plus `H2O(cr)` ends `Ok`
+      at the list-plus-ice temperature (1e-9 relative) when that state holds no ice, and otherwise
+      `TemperatureOutOfRange` or the vapour with the original attempt's iterations; every class walked
+      (2026-10-04, `DeadEndFloorTests.EveryTargetOfTheListPlusIceEndsAtItsStateOrBelowTheFloor`; red with the
+      recheck off: 2 hp and 4 sp false `Ok`s of 300 states each, and with the floors of the held records only: 4 of 168
+      in `ThreeElementTieTests`). The floors themselves: `TheLiquidIsADeadEndFloorExactlyWhenNoIceAdjoinsIt`,
+      `ADownwardStepLandsOnTheHighestDeadEndFloorBelowTheProbe`.
 - [x] No line of an `Ok` case moved in any `Bits*.approved.txt` (Equilibrium, Thermo,
       Performance, Problems, Docs, Cli), Windows: every `BitSnapshotTests` fact green against the
       unchanged records (2026-10-04). Linux records not touched (not run here).
+- [x] The rocket kernel's compile stays within the execution node's guard with `Next` reached once: the first
+      run allocated 495 882 064 bytes on the CPU accelerator, the program kept 163 882 800 bytes (2026-10-04,
+      `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound`).
 - [ ] CUDA on the reference machine: families of bracketed hp/sp states and of hp/sp `NoGasPhase`,
       GPU equal to CPU; one launch of a family where every case brackets stays within
       `LaunchBudget`; the rocket kernel's compile within the guard, its figure recorded; the
