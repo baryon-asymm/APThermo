@@ -168,6 +168,14 @@ AIAA Journal, 2021, doi:10.2514/1.J060972. The heat of formation of HTPB varies 
 in the literature and changes equilibrium results by up to 5 % (the same paper); set
 your own binder from your own data.
 
+An `Only` list means exactly that list: the library adds no species to it. A phase whose
+record ends below with no lower record of the same formula (`H2O(L)` without `H2O(cr)`
+below 273.15 K, `NH4CL(II)` below 298.15 K, `C(gr)` below 300 K) cannot be held below that
+temperature. An assigned-temperature state there reports the supersaturated gas, and an
+assigned-enthalpy or assigned-entropy target below every state of the list ends
+`TemperatureOutOfRange`; add the lower record to the list if you need the phase there. See
+[Troubleshooting](troubleshooting.md).
+
 <!-- snippet: CustomPropellantUsings -->
 ```csharp
 using APThermo.Data;

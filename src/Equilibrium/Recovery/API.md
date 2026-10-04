@@ -30,7 +30,7 @@ internal enum EndKind { Gas, Gasless }
 internal enum BracketMove { Probe, GiveUp, AttemptFromLever, AttemptFromProbe, GaslessAtProbe, GaslessFromLever }
 internal struct TemperatureBracket
 {
-    public bool Active; public CaseStatus FirstFailure; public CaseStatus GiveUpStatus;
+    public bool Active; public CaseStatus FirstFailure; public CaseStatus GiveUpStatus; public bool Scanning;
     public double LowX; public double HighX; public double LowP; public double HighP;      // ln T and the assigned property of the two ends
     public bool HaveLow; public bool HaveHigh; public EndKind LowKind; public EndKind HighKind;
     public bool LastBelow; public EndKind LastKind; public double ProbeX; public int Probes; public int Retreats;
@@ -43,6 +43,8 @@ internal struct TemperatureBracket
     public double Record(double target, double value, double slope, EndKind kind);   // the Newton step on ln T
     public BracketMove Advance(double step, double floor);
     public BracketMove Retreat();
+    public void BeginScan();
+    public BracketMove Scan(double floor);
     public readonly double LeverFraction(double target);
     public readonly double LeverTemperature(double target);
 }
@@ -56,6 +58,8 @@ internal struct RecheckState { public Recheck Stage; public EquilibriumProblem O
 internal static class DeadEnds
 {
     public static bool IsDeadEnd(in SpeciesTableView table, int species);
+    public static bool IsDeadCeiling(in SpeciesTableView table, int species);
+    public static bool BoundNear(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature);
     public static double FloorAbove(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double temperature);
     public static double FloorBelow(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature);
 }

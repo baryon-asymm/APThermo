@@ -31,6 +31,12 @@ internal struct TemperatureBracket
     /// <summary>K, section 3.1's estimate: the first probe when the case gives none.</summary>
     private const double DefaultStart = 3800.0;
 
+    /// <summary>
+    /// A scan probe stands this far (relative) below a dead-end floor: outside the range tolerance of its record
+    /// (<c>PhaseGeometry</c>'s 1e-9), so that the probe is the far side of the floor.
+    /// </summary>
+    private const double ScanMargin = 1.0e-8;
+
     /// <summary>Whether the bracket has started: the case's own attempts failed.</summary>
     public bool Active;
 
@@ -85,6 +91,9 @@ internal struct TemperatureBracket
     /// <summary>The last step on ln T.</summary>
     public double LastStep;
 
+    /// <summary>Whether the search is scanning the far sides of the dead-end floors below a gap for the first probe above the target (BOOT.md, "Dead-end gaps").</summary>
+    public bool Scanning;
+
     /// <summary>Whether the pass in flight is the verdict-only final of two gasless ends or of a converged gasless probe.</summary>
     public bool Finishing;
 
@@ -137,6 +146,7 @@ internal struct TemperatureBracket
             HighKind = kind;
         }
 
+        Scanning = false;
         LastBelow = below;
         LastKind = kind;
         Probes++;
@@ -177,6 +187,35 @@ internal struct TemperatureBracket
         OlderStep = LastStep;
         LastStep = next - ProbeX;
         ProbeX = next;
+        return BracketMove.Probe;
+    }
+
+    /// <summary>
+    /// The final attempt of two narrow ends has failed on a gap at a dead-end bound, so no state lies between them (BOOT.md,
+    /// "Dead-end gaps"): the ends are dropped and the search scans the far sides of the floors below, keeping the first failure.
+    /// </summary>
+    public void BeginScan()
+    {
+        var failure = FirstFailure;
+        this = default;
+        Active = true;
+        FirstFailure = failure;
+        Scanning = true;
+    }
+
+    /// <summary>
+    /// The next scan probe, just below <paramref name="floor"/> (the highest dead-end floor below the last one, 0 when there
+    /// is none). With no floor left the case gives up <c>TemperatureOutOfRange</c>: the segment below the last probe holds no
+    /// state of the target either.
+    /// </summary>
+    public BracketMove Scan(double floor)
+    {
+        if (!(floor > 0.0))
+        {
+            return GiveUp(CaseStatus.TemperatureOutOfRange);
+        }
+
+        ProbeX = Math.Log(floor * (1.0 - ScanMargin));
         return BracketMove.Probe;
     }
 

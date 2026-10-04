@@ -126,6 +126,78 @@ public sealed class RecoveryTests
         Assert.Empty(EquilibriumConditions.Violations(solution, Tolerances.GasChemicalPotential));
     }
 
+    /// <summary>The temperatures, K, of the AP/HTPB/Al tp states at 20 MPa below every dead-end floor of the table (273.15 K, 298.15 K, 300 K) whose enthalpy is asked for again.</summary>
+    public static TheoryData<double, bool> VapourStatesBelowTheFloors()
+    {
+        var data = new TheoryData<double, bool>();
+        foreach (var temperature in Enumerable.Range(0, 16).Select(i => 200.0 + 5.0 * i))
+        {
+            data.Add(temperature, false);
+            data.Add(temperature, true);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// The enthalpy of the AP/HTPB/Al tp state at 20 MPa and a temperature from 200 K to 275 K, the supercooled vapour below the
+    /// floors of <c>H2O(L)</c>, <c>NH4CL(II)</c> and <c>C(gr)</c>, put to the solver as an hp problem from the cold start and
+    /// from the 430 K state, ends <c>Ok</c> at the tp temperature, clear of the equilibrium conditions. The bracket converges
+    /// onto the jump of <c>H2O(L)</c> at its upper bound, 600 K, where no state lies, and the search goes on below the floors
+    /// (Recovery BOOT.md, "Dead-end gaps"). Red before the scan: <c>NotConverged</c> after the final attempt on the gap.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(VapourStatesBelowTheFloors))]
+    public void AnHpTargetOfASupercooledVapourStateAt20MPaEndsOkBelowTheFloors(double temperature, bool seeded)
+    {
+        const double pressure = 2.0e7;
+        var c = HostSolver.Load("tp", "ap-htpb-al_pc7MPa_T430");
+        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var moles = HostSolver.ElementMolesOf(c);
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var tp = HostSolver.Solve(accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, temperature, 0.0, moles));
+        var seed = HostSolver.Solve(accelerator, new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, 430.0, 0.0, moles));
+        Assert.Equal(CaseStatus.Ok, tp.Status);
+
+        var solution = seeded
+            ? HostSolver.Solve(accelerator, new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, pressure, 430.0, tp.State.Enthalpy, moles), (double[])seed.Moles.Clone())
+            : HostSolver.Solve(accelerator, new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, tp.State.Enthalpy, moles));
+
+        Assert.True(solution.Status == CaseStatus.Ok, $"{temperature} K {(seeded ? "seeded" : "cold")}: status {solution.Status} after {solution.Iterations} iterations");
+        Assert.Equal(temperature, solution.State.Temperature, Tolerances.SelfConsistency * temperature);
+        Assert.Empty(EquilibriumConditions.Violations(solution, Tolerances.GasChemicalPotential));
+    }
+
+    /// <summary>
+    /// An enthalpy a tenth or three tenths of the way across the jump of <c>H2O(L)</c> at its upper bound, 600 K (30 MPa,
+    /// AP/HTPB/Al), lies below every state of the table at or above 160 K: the tp state at 160 K, the lowest of the window, has
+    /// a higher enthalpy than the target. The bracket converges on the gap, the scan of the far sides of the floors below finds no
+    /// probe above the target, and the case ends <c>TemperatureOutOfRange</c> with a zero state, never <c>NotConverged</c>.
+    /// </summary>
+    [Theory]
+    [InlineData(0.1)]
+    [InlineData(0.3)]
+    public void AnEnthalpyInsideTheJumpAtTheLiquidsUpperBoundWithNoStateBelowEndsTemperatureOutOfRange(double fraction)
+    {
+        const double pressure = 3.0e7;
+        var c = HostSolver.Load("tp", "ap-htpb-al_pc7MPa_T430");
+        var table = HostSolver.BuildTable(CpuFixture.Shared.Database, c);
+        var moles = HostSolver.ElementMolesOf(c);
+        var accelerator = CpuFixture.Shared.Accelerator;
+        EquilibriumCase Tp(double temperature) => new(table, ProblemKind.AssignedTemperaturePressure, pressure, temperature, 0.0, moles);
+        var below = HostSolver.Solve(accelerator, Tp(599.999));
+        var above = HostSolver.Solve(accelerator, Tp(600.001));
+        var lowest = HostSolver.Solve(accelerator, Tp(160.0));
+        var target = below.State.Enthalpy + fraction * (above.State.Enthalpy - below.State.Enthalpy);
+        Assert.True(above.State.Enthalpy - below.State.Enthalpy > 1.0e5, $"jump {above.State.Enthalpy - below.State.Enthalpy} J/kg");
+        Assert.True(lowest.State.Enthalpy > target, $"the state at 160 K, {lowest.State.Enthalpy}, is not above the target {target}");
+
+        var solution = HostSolver.Solve(accelerator, new EquilibriumCase(table, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, moles));
+
+        Assert.True(solution.Status == CaseStatus.TemperatureOutOfRange, $"status {solution.Status} after {solution.Iterations} iterations");
+        Assert.Equal(default, solution.State);
+    }
+
     /// <summary>The melting temperature of a gasless system at a pressure by bisection on the condensed set, with the tp states a hair below and above it.</summary>
     private static (double Temperature, HostSolution Solid, HostSolution Liquid) MeltingOf(GaslessSystem system, double pressure)
     {

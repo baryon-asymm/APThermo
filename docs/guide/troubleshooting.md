@@ -97,7 +97,7 @@ Command-line exit codes:
 | Code | Meaning |
 |---|---|
 | 0 | Every case and station solved successfully. |
-| 1 | At least one case or station failed numerically; the document is still written with a per-case and per-station `status`. |
+| 1 | At least one case or station failed numerically or ended `noGasPhase`; the document is still written with a per-case and per-station `status`. |
 | 2 | Invalid input document, unknown option, bad database path, unknown reactant, a mass-tolerance refusal, or an unknown schema name. A message on standard error names the problem. |
 | 3 | Accelerator unavailable, or an unexpected infrastructure failure. Every library and device path tried is named. |
 
@@ -110,12 +110,15 @@ Per-case `CaseStatus` values, read off a `Station`, a `RocketResult` or an
 | `InvalidInput` | An equilibrium solve refused before iterating: every element abundance zero, a negative abundance, an empty table, a non-positive pressure, or (tp) a non-positive temperature. A rocket station refuses the same way for a non-positive chamber pressure, an empty table, or a pressure ratio not above 1 for that station; the exits after a failed chamber or throat keep this status instead of solving further. Transport refuses it for a non-positive or NaN temperature, a negative or NaN mole number, or a transport table that does not match the species table. |
 | `NotConverged` | The Newton iteration did not meet its tests within the step budget, the condensed set changed too many times, or the element-conservation check failed at the end; for a rocket exit, an area ratio not met within its own step budget. |
 | `SingularMatrix` | The derivative matrix stayed singular after the reference's remedies; for transport, a reaction system could not be solved, so the frozen figures stand in for the reacting ones. |
-| `TemperatureOutOfRange` | An hp or sp iterate left the database's temperature range `[100 K, 20000 K]`. This is a status, not an exception: the solve does not throw for it. |
+| `TemperatureOutOfRange` | An hp or sp iterate left the database's temperature range `[100 K, 20000 K]`, or the search on the temperature that follows a failed hp or sp iteration reached the edge of `[160 K, 20000 K]` without finding a state of the target enthalpy or entropy: no state of the species list has it. This is a status, not an exception: the solve does not throw for it. |
 | `ThroatNotFound` | A rocket case's sonic condition was not met within the throat search's step budget; the case ends there. |
 | `AreaRatioInvalid` | A rocket exit's area ratio was not above 1. |
 | `NoTransportData` | No gaseous species carried positive moles, so transport has nothing to evaluate. |
+| `NoGasPhase` | The equilibrium holds no gas phase (condensed species alone), proven by a tangent-plane certificate. `Moles` hold the condensed minimum with every gas zero. The state carries the temperature and the pressure only, every other field is 0; for an hp or sp case the temperature is the one the search found. This is a result, not a failure of the model: the command line writes `noGasPhase` and exits 1. |
 
-On any status but `Ok`, the state is zero, not partial — check `Status` first.
+On any status but `Ok`, the state is zero, not partial — check `Status` first. The one exception is `NoGasPhase`, whose state is the temperature and the pressure.
+
+A species list is a contract. A condensed record outside its data range is no candidate: an `Only` list holding `H2O(L)` without `H2O(cr)` cannot hold water below 273.15 K, and the same holds for `NH4CL(II)` below 298.15 K and `C(gr)` below 300 K. An assigned-temperature state there reports the supersaturated gas, which is correct (NASA CEA does the same), and an assigned-enthalpy or assigned-entropy target below every state of the list ends `TemperatureOutOfRange`. The library adds no species to a list.
 
 Refusals raised before any kernel runs (exceptions, not statuses):
 

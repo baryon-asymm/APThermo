@@ -129,6 +129,24 @@ Inherited from the parent and, through it, from the root. In addition:
   - **The list is the contract.** tp below a dead-end floor reports the supersaturated gas, the range rule, and
     that is correct (cea does the same). An hp or sp target that no state of the list reaches in the window
     is `TemperatureOutOfRange`; no status is added and `Problems` adds no ice.
+- **Dead-end gaps** (2026-10-04, owner's decision on the 2e7 Pa AP/HTPB/Al residue). A dead-end ceiling is the
+  mirror of a floor: the upper bound of a record with no record of its formula beginning there (`H2O(L)` at 600 K).
+  Across a ceiling the equilibrium enthalpy and entropy jump up with the temperature, so an hp or sp target inside
+  the jump has no state at the ceiling. When the final attempt of two narrow ends fails and its temperature lies within
+  1e-6 of a dead-end floor or ceiling of a record whose elements are present (`DeadEnds.BoundNear`), the bracket has
+  proven that no state lies there, and the failure is not reported.
+  - **The scan.** The ends are dropped and the search goes on below the nearest dead-end floor under the gap, for the
+    remaining root: one cold tp probe just below that floor (1e-8 relative, outside the range tolerance of its record).
+    Across a floor `P` jumps up going down, so a probe on the far side whose `P` is above the target has a root
+    below it, and from there the bracket is the one-sided search of "The bracket", landing at the floors below. A
+    probe at or below the target has none in its segment, since `P` rises with `T` within a segment, and the scan takes
+    the next floor down. With no floor left the case ends `TemperatureOutOfRange`: no state of the table at or above
+    160 K has the target. The segment between the gap and that floor holds none, for the same reason.
+  - It runs after the recheck's rerun and never for a final that did not fail on a bound; a failed scan probe retreats
+    and gives up with the first failure like any probe. Each scan starts below the last gap's temperature, so the
+    number of scans is bounded by the number of floors.
+  - The 16 AP/HTPB/Al hp targets of the tp states at 200–275 K and 20 MPa, `NotConverged` in 0.2.2's first
+    build, are `Ok` at their tp temperatures.
 - **The trace-gas seam** (its own design, 0.2.2):
   - (a) the `GasRequired` arm of step 2 after failed attempts schedules a `TraceGas` pass at the same
     temperature, which `Solve` sends to the trace-gas entry instead of `ConvergenceSequence.Run`,
@@ -182,11 +200,19 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
       recheck off: 2 hp and 4 sp false `Ok`s of 300 states each, and with the floors of the held records only: 4 of 168
       in `ThreeElementTieTests`). The floors themselves: `TheLiquidIsADeadEndFloorExactlyWhenNoIceAdjoinsIt`,
       `ADownwardStepLandsOnTheHighestDeadEndFloorBelowTheProbe`.
+- [x] Dead-end gaps: the hp targets of the AP/HTPB/Al tp states at 20 MPa and 200 to 275 K (16), cold and seeded
+      from 430 K, end `Ok` at the tp temperature clear of `EquilibriumConditions`; a target a tenth or three
+      tenths across the jump of `H2O(L)` at 600 K at 30 MPa, below every state at or above 160 K, ends
+      `TemperatureOutOfRange` with a zero state (2026-10-04,
+      `RecoveryTests.AnHpTargetOfASupercooledVapourStateAt20MPaEndsOkBelowTheFloors`,
+      `RecoveryTests.AnEnthalpyInsideTheJumpAtTheLiquidsUpperBoundWithNoStateBelowEndsTemperatureOutOfRange`; red
+      with the scan off: 34 of the 64 facts of the class; the host transitions in
+      `TemperatureBracketTests.AScanDropsTheEndsProbesJustBelowEachFloorAndGivesUpWhenNoneIsLeft`).
 - [x] No line of an `Ok` case moved in any `Bits*.approved.txt` (Equilibrium, Thermo,
       Performance, Problems, Docs, Cli), Windows: every `BitSnapshotTests` fact green against the
       unchanged records (2026-10-04). Linux records not touched (not run here).
 - [x] The rocket kernel's compile stays within the execution node's guard with `Next` reached once: the first
-      run allocated 495 882 064 bytes on the CPU accelerator, the program kept 163 882 800 bytes (2026-10-04,
+      run allocated 500 109 800 bytes on the CPU accelerator, the program kept 165 661 616 bytes (2026-10-04,
       `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound`).
 - [ ] CUDA on the reference machine: families of bracketed hp/sp states and of hp/sp `NoGasPhase`,
       GPU equal to CPU; one launch of a family where every case brackets stays within

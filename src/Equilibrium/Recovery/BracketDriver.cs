@@ -59,10 +59,34 @@ internal static class BracketDriver
             return true;
         }
 
+        if (plan.Bracket.Scanning && !(value > problem.Target))
+        {
+            var below = DeadEnds.FloorBelow(table, scratch, Math.Exp(plan.Bracket.ProbeX));
+            return Launch(table, problem, scratch, result, plan.Bracket.Scan(below), ref plan);
+        }
+
         var step = plan.Bracket.Record(problem.Target, value, PassOutcome.Slope(result, plan, hp), plan.Found);
         BracketSeeds.Save(table, scratch, result, plan.Bracket.LastBelow);
         var floor = plan.Bracket.NeedsFloor ? DeadEnds.FloorBelow(table, scratch, Math.Exp(plan.Bracket.ProbeX)) : 0.0;
         return Launch(table, problem, scratch, result, plan.Bracket.Advance(step, floor), ref plan);
+    }
+
+    /// <summary>
+    /// The final attempt of two narrow ends failed at a dead-end bound (BOOT.md, "Dead-end gaps"): the target lies in a gap
+    /// where no state exists, so the search goes on below the nearest dead-end floor, scanning the far side of each floor for
+    /// the first probe above the target; with no floor left the case ends <c>TemperatureOutOfRange</c>. False when the failure is not that.
+    /// </summary>
+    public static bool ScanBelowGap(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                    in EquilibriumResult result, ref AttemptPlan plan)
+    {
+        if (!(plan.Bracket.HaveLow && plan.Bracket.HaveHigh) || !DeadEnds.BoundNear(table, scratch, plan.Current.Temperature))
+        {
+            return false;
+        }
+
+        var floor = DeadEnds.FloorBelow(table, scratch, plan.Current.Temperature);
+        plan.Bracket.BeginScan();
+        return Launch(table, problem, scratch, result, plan.Bracket.Scan(floor), ref plan);
     }
 
     /// <summary>

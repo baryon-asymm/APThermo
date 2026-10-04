@@ -185,6 +185,34 @@ public sealed class TemperatureBracketTests
         Assert.Equal(6.0 + 1.0e-13, tiny.FinalX);
     }
 
+    /// <summary>
+    /// A scan drops the ends and keeps the first failure; its probes stand just below the floors, outside the range tolerance
+    /// of their records (1e-8 relative); with no floor left the case gives up <c>TemperatureOutOfRange</c>; the first probe that
+    /// is recorded ends the scan.
+    /// </summary>
+    [Fact]
+    public void AScanDropsTheEndsProbesJustBelowEachFloorAndGivesUpWhenNoneIsLeft()
+    {
+        var bracket = Bracketed(lowX: Math.Log(599.0), highX: Math.Log(601.0), probeX: Math.Log(600.0));
+        bracket.FirstFailure = CaseStatus.SingularMatrix;
+
+        bracket.BeginScan();
+
+        Assert.True(bracket.Active && bracket.Scanning);
+        Assert.False(bracket.HaveLow || bracket.HaveHigh);
+        Assert.Equal(CaseStatus.SingularMatrix, bracket.FirstFailure);
+        Assert.Equal(BracketMove.Probe, bracket.Scan(300.0));
+        Assert.Equal(300.0 * (1.0 - 1.0e-8), bracket.ProbeTemperature, 9);
+        Assert.Equal(BracketMove.Probe, bracket.Scan(273.15));
+        Assert.Equal(273.15 * (1.0 - 1.0e-8), bracket.ProbeTemperature, 9);
+        Assert.Equal(BracketMove.GiveUp, bracket.Scan(0.0));
+        Assert.Equal(CaseStatus.TemperatureOutOfRange, bracket.GiveUpStatus);
+
+        _ = bracket.Record(target: 10.0, value: 12.0, slope: 1.0, EndKind.Gas);
+        Assert.False(bracket.Scanning);
+        Assert.True(bracket.HaveHigh && !bracket.HaveLow);
+    }
+
     private static TemperatureBracket Started(double estimate)
     {
         var bracket = default(TemperatureBracket);

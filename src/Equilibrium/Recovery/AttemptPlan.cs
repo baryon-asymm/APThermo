@@ -65,7 +65,7 @@ internal struct AttemptPlan
         plan.Status = status;
         if (plan.Phase == AttemptPhase.Final)
         {
-            return DeadEndRecheck.EndFinal(result, ref plan);
+            return DeadEndRecheck.EndFinal(table, problem, scratch, result, ref plan);
         }
 
         if (status != CaseStatus.Ok && plan.Phase == AttemptPhase.Warm)
