@@ -60,7 +60,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         }
 
         var span = Span(length);
-        if (_transfer == ChunkTransfer.Input && span > 0)
+        if (_transfer is ChunkTransfer.Input or ChunkTransfer.InputOutput && span > 0)
         {
             var start = Start(offset);
             CheckHostLength(start, span);
@@ -74,7 +74,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     public void DownloadChunk(int offset, int length)
     {
         var span = Span(length);
-        if (_transfer is ChunkTransfer.Output or ChunkTransfer.ClearedOutput && span > 0)
+        if (_transfer is ChunkTransfer.Output or ChunkTransfer.ClearedOutput or ChunkTransfer.InputOutput && span > 0)
         {
             var start = Start(offset);
             CheckHostLength(start, span);

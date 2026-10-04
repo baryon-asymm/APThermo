@@ -104,7 +104,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - **Batch layout**: structure of arrays for inputs and outputs; the case index is the
   thread index; per-case scratch is a slice of a batch-sized buffer laid out by the
   numerical nodes' `ScratchLayout` and `TransportLayout`; the chunking of a batch, its
-  bytes bound and its device buffers: [Chunks/BOOT.md](Chunks/BOOT.md)
+  bytes bound and its device buffers: [Chunks/BOOT.md](Chunks/BOOT.md). A seeded
+  equilibrium batch (2026-10-04) uploads its seed into the result's moles buffer and the
+  kernel passes `useMolesAsEstimate`; a cold batch is unchanged (`API.md`, Batches).
 - **Kernels**: one entry point per program (`Equilibrium`, `Rocket`, `Transport`,
   and `Functions` for the species functions of `Thermo` at given temperatures) and
   the `Probe` of the root's math list; each entry point does nothing but slice the
@@ -218,7 +220,7 @@ Decisions taken with the review of 2026-09-14:
 - Review of 2026-09-14: the missing-definition guard names the wrapper, the chunk bound
   counts every buffer → HISTORY.md#review-decisions-guard-and-chunk-bound-2026-09-14
 - **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
-  and `EquilibriumBatchViews` (12) are kernel parameter descriptors; grouping their
+  and `EquilibriumBatchViews` (13) are kernel parameter descriptors; grouping their
   views would re-emit the kernels and move the contract. They are this node's
   declared exception to the parameter rule, and so are the constructors of
   `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which mirror the batch
@@ -253,7 +255,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `EquilibriumPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
 | `SpeciesFunctionPipeline` | efferent coupling | 18 | the same case as `RocketPipeline` above |
 | `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
-| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 12 | the same case as `RocketBatchViews` above |
+| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 13 | the same case as `RocketBatchViews` above |
 | `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
 | `EquilibriumBatchResult.EquilibriumBatchResult` | parameters | 7 | the same case as `RocketBatchResult` above |
 
@@ -262,6 +264,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 ⚠ 2026-09-27: was the `Kernels` row at 25, now 26 (`KernelMath.Min` and `Max` named) →
 HISTORY.md#kernels-ce-26-2026-09-27
+
+⚠ 2026-10-04: was `EquilibriumBatchViews` at 12 parameters, now 13 (`seeded`) → HISTORY.md#views-13-2026-10-04
 
 ## Acceptance criteria
 

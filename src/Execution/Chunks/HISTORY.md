@@ -8,6 +8,18 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="input-output-2026-10-04"></a>
+
+## 2026-10-04 — from "## Purpose" — five declaration methods
+
+`ChunkBuffers` gained a sixth declaration method, `InputOutput`, for the moles buffer of a seeded equilibrium batch, which the kernel reads and writes. The paragraph as it stood:
+
+> The rest of `src/Execution` reaches this through `ChunkPlan.For`/`.Chunks()`,
+> `ChunkBuffers`'s five declaration methods, `Allocate`, `UploadChunk`, `DownloadChunk`,
+> `BytesPerCase` and `MaxElementsPerCase` (2026-09-26, the audit's F4), and
+
+---
+
 <a id="doubles-per-case-2026-10-03"></a>
 
 ## 2026-10-03 — from "## Constraints" — the worked figure of the element cap

@@ -131,14 +131,18 @@ sealed class APThermo.Execution.Engine : IDisposable
 
 sealed class APThermo.Execution.EquilibriumBatch
     .ctor(Int32 count, Int32 elementCount)
+    .ctor(Int32 count, Int32 elementCount, Int32 seedSpeciesCount)
+    Boolean IsSeeded { get; }
     Double[] ElementMoles { get; }
     Double[] Pressure { get; }
+    Double[] SeedMoles { get; }
     Double[] Target { get; }
     Double[] Temperature { get; }
     Int32 Count { get; }
     Int32 ElementCount { get; }
+    Int32 SeedSpeciesCount { get; }
     ProblemKind[] Kind { get; }
-    internal Void Validate(Int32 elementCount)
+    internal Void Validate(Int32 elementCount, Int32 speciesCount)
 
 sealed class APThermo.Execution.EquilibriumBatchResult
     AcceleratorInfo Accelerator { get; }

@@ -76,6 +76,7 @@ internal enum ChunkTransfer
     Input,
     Output,
     ClearedOutput,
+    InputOutput,                                    // 2026-10-04: uploaded before the launch and downloaded after it
     Scratch,
     Constant,
 }
@@ -110,6 +111,7 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
     public ChunkBuffer<T> Input<T>(T[] host, long perCase) where T : unmanaged;
     public ChunkBuffer<T> Output<T>(T[] host, long perCase) where T : unmanaged;
     public ChunkBuffer<T> ClearedOutput<T>(T[] host, long perCase) where T : unmanaged;
+    public ChunkBuffer<T> InputOutput<T>(T[] host, long perCase) where T : unmanaged;   // 2026-10-04: uploaded before the launch, downloaded after
     public ChunkBuffer<T> Scratch<T>(long perCase) where T : unmanaged;
     public ChunkBuffer<T> Constant<T>(T[] host) where T : unmanaged;
 
@@ -121,7 +123,7 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
 ```
 
 A pipeline builds one `ChunkBuffers` per run, declares every buffer its program's
-kernel needs through the five typed methods above, reads `BytesPerCase` and
+kernel needs through the six typed methods above, reads `BytesPerCase` and
 `MaxElementsPerCase` into `ChunkPlan.For`, then calls `Allocate(plan.Size)` once; `BatchRun` (the parent node's
 own file) drives `UploadChunk`/`DownloadChunk` per chunk and `Dispose` at the end. A
 declaration's returned `ChunkBuffer<T>` is where a pipeline reads `.View` to build its
@@ -147,7 +149,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
 
 `ChunkBuffer<T>.Allocate` allocates one device buffer through the given `Accelerator`
 and, for a `Constant` buffer, uploads its host array immediately. `UploadChunk` and
-`DownloadChunk` copy between a chunk's slice of the host array and the device buffer,
+`DownloadChunk` copy between a chunk's slice of the host array and the device buffer, in both directions for an `InputOutput` buffer (2026-10-04),
 or clear the device buffer (`ClearedOutput`, before the launch). Every copy pins the
 host array for its duration (2026-10-01). `DownloadChunk` first fills the chunk's host
 slice with the sentinel and throws `InvalidOperationException` when the copy left the

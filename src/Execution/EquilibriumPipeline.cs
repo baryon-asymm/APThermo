@@ -13,8 +13,8 @@ internal static class EquilibriumPipeline
                                              UploadedTables tables, EquilibriumBatch batch)
     {
         var table = tables.Species;
-        batch.Validate(table.ElementCount);
         var speciesCount = table.SpeciesCount;
+        batch.Validate(table.ElementCount, speciesCount);
         var timer = new RunTimer();
         var launcher = kernels.Get<Action<AcceleratorStream, Index1D, SpeciesTableView, EquilibriumBatchViews>>(nameof(Kernels.Equilibrium), out var warmUp);
         timer.AddWarmUp(warmUp);
@@ -32,7 +32,7 @@ internal static class EquilibriumPipeline
         var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
         buffers.Allocate(plan.Size);
         var views = new EquilibriumBatchViews(
-            kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
+            seeded: batch.IsSeeded ? 1 : 0, kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
             elementMoles: elementBuffer.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
             moles: molesBuffer.View, multipliers: multiplierBuffer.View, states: stateBuffer.View,
             status: statusBuffer.View, iterations: iterationBuffer.View);
@@ -70,8 +70,10 @@ internal static class EquilibriumPipeline
         var elementMoles = buffers.Input(batch.ElementMoles, elementCount);
         var scratchDoubles = buffers.Scratch<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
         var scratchInts = buffers.Scratch<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        var molesHost = new double[(long)count * speciesCount];
-        var moles = buffers.ClearedOutput(molesHost, speciesCount);
+
+        // A seeded batch's moles buffer carries the seed in and the solution out; the copy leaves the caller's seed untouched.
+        var molesHost = batch.IsSeeded ? (double[])batch.SeedMoles.Clone() : new double[(long)count * speciesCount];
+        var moles = batch.IsSeeded ? buffers.InputOutput(molesHost, speciesCount) : buffers.ClearedOutput(molesHost, speciesCount);
         var multipliers = buffers.Scratch<double>(elementCount);
         var statesHost = new MixtureState[count];
         var states = buffers.ClearedOutput(statesHost, 1);
@@ -90,10 +92,12 @@ internal static class EquilibriumPipeline
     /// prove the 32-bit offset cap is actually wired from it into <see cref="ChunkPlan.For(int, long, long, EngineOptions, LaunchBudget)"/> —
     /// without running a batch large enough to make that cap bind for real.
     /// </summary>
-    internal static ChunkBuffers DeclareBuffers(Accelerator accelerator, int speciesCount, int elementCount)
+    /// <remarks>With <paramref name="seeded"/> (2026-10-04) it declares a seeded batch's buffers, so a test can read that a seeded batch and a cold one cost the same device bytes per case.</remarks>
+    internal static ChunkBuffers DeclareBuffers(Accelerator accelerator, int speciesCount, int elementCount, bool seeded = false)
     {
         var buffers = new ChunkBuffers(accelerator);
-        _ = Declare(buffers, new EquilibriumBatch(1, elementCount), speciesCount);
+        var placeholder = seeded ? new EquilibriumBatch(1, elementCount, speciesCount) : new EquilibriumBatch(1, elementCount);
+        _ = Declare(buffers, placeholder, speciesCount);
         return buffers;
     }
 }

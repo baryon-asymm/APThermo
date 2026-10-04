@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using APThermo.Equilibrium;
 using APThermo.Performance;
 using APThermo.Thermo;
@@ -23,9 +25,14 @@ internal static class BatchLength
     }
 }
 
-/// <summary>A batch of equilibrium cases, structure of arrays, one entry per case; the element order is the table's.</summary>
+/// <summary>
+/// A batch of equilibrium cases, structure of arrays, one entry per case; the element order is the table's. A cold batch
+/// starts every case from the solver's own estimate; a seeded batch (2026-10-04) starts every case from its row of
+/// <see cref="SeedMoles"/>, as <c>EquilibriumSolver.Solve</c> does with <c>useMolesAsEstimate</c>.
+/// </summary>
 internal sealed class EquilibriumBatch
 {
+    /// <summary>A cold batch: every case from the solver's own estimate.</summary>
     public EquilibriumBatch(int count, int elementCount)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
@@ -38,9 +45,21 @@ internal sealed class EquilibriumBatch
         ElementMoles = new double[BatchLength.Of(count, elementCount)];
     }
 
+    /// <summary>A seeded batch: every case from its row of <see cref="SeedMoles"/>, <paramref name="seedSpeciesCount"/> species per case.</summary>
+    public EquilibriumBatch(int count, int elementCount, int seedSpeciesCount)
+        : this(count, elementCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(seedSpeciesCount);
+        SeedSpeciesCount = seedSpeciesCount;
+        SeedMoles = new double[BatchLength.Of(count, seedSpeciesCount)];
+    }
+
     public int Count => Kind.Length;
 
     public int ElementCount { get; }
+
+    /// <summary>Species per case of <see cref="SeedMoles"/>; 0 for a cold batch.</summary>
+    public int SeedSpeciesCount { get; }
 
     public ProblemKind[] Kind { get; }
 
@@ -56,11 +75,37 @@ internal sealed class EquilibriumBatch
     /// <summary>[case * ElementCount + element] kmol per kg.</summary>
     public double[] ElementMoles { get; }
 
-    internal void Validate(int elementCount)
+    /// <summary>[case * SeedSpeciesCount + species] kmol per kg, in table order; null for a cold batch.</summary>
+    public double[]? SeedMoles { get; }
+
+    /// <summary>Whether every case starts from its row of <see cref="SeedMoles"/>.</summary>
+    [MemberNotNullWhen(true, nameof(SeedMoles))]
+    public bool IsSeeded => SeedMoles is not null;
+
+    internal void Validate(int elementCount, int speciesCount)
     {
         if (elementCount != ElementCount)
         {
             throw new ArgumentException($"the batch has {ElementCount} elements per case, the table {elementCount}");
+        }
+
+        if (!IsSeeded)
+        {
+            return;
+        }
+
+        if (SeedSpeciesCount != speciesCount)
+        {
+            throw new ArgumentException($"the batch seeds {SeedSpeciesCount} species per case, the table has {speciesCount}");
+        }
+
+        for (var i = 0; i < SeedMoles.Length; i++)
+        {
+            if (!double.IsFinite(SeedMoles[i]))
+            {
+                throw new ArgumentException(string.Create(CultureInfo.InvariantCulture,
+                    $"the seed of case {i / SeedSpeciesCount}, species {i % SeedSpeciesCount}, is {SeedMoles[i]}: a seed holds finite mole numbers"));
+            }
         }
     }
 }
@@ -191,10 +236,10 @@ internal sealed class EquilibriumBatchResult
 
     public int SpeciesCount { get; }
 
-    /// <summary>[case]; not written for a case whose status is not Ok (zero).</summary>
+    /// <summary>[case]; zero where the status is not Ok, except <c>NoGasPhase</c>, which carries Temperature and Pressure.</summary>
     public MixtureState[] State { get; }
 
-    /// <summary>[case * SpeciesCount + species] kmol per kg.</summary>
+    /// <summary>[case * SpeciesCount + species] kmol per kg; on a seeded batch an InvalidInput case holds its seed.</summary>
     public double[] Moles { get; }
 
     public CaseStatus[] Status { get; }

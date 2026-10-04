@@ -198,14 +198,18 @@ internal static class BatchLength                          // the one bound the 
 
 internal sealed class EquilibriumBatch                     // structure of arrays, one entry per case; element order of the table
 {
-    public EquilibriumBatch(int count, int elementCount);
+    public EquilibriumBatch(int count, int elementCount);                       // a cold batch: every case from the solver's own estimate
+    public EquilibriumBatch(int count, int elementCount, int seedSpeciesCount); // a seeded batch (2026-10-04): every case from its row of SeedMoles
     public int Count { get; }
     public int ElementCount { get; }
+    public int SeedSpeciesCount { get; }                 // 0 for a cold batch
     public ProblemKind[] Kind { get; }
     public double[] Pressure { get; }                    // [case] Pa
     public double[] Temperature { get; }                 // [case] K for tp, the estimate for hp and sp (0 = default)
     public double[] Target { get; }                      // [case] h in J/kg or s in J/(kg·K)
     public double[] ElementMoles { get; }                // [case * ElementCount + element] kmol per kg
+    public double[]? SeedMoles { get; }                  // [case * SeedSpeciesCount + species] kmol per kg, table order; null for a cold batch
+    public bool IsSeeded { get; }                        // SeedMoles is not null
 }
 
 internal sealed class RocketBatch
@@ -239,8 +243,8 @@ internal sealed class EquilibriumBatchResult
 {
     public int Count { get; }
     public int SpeciesCount { get; }
-    public MixtureState[] State { get; }                 // [case], zero where the status is not Ok
-    public double[] Moles { get; }                       // [case * SpeciesCount + species]
+    public MixtureState[] State { get; }                 // [case], zero where the status is not Ok, except NoGasPhase: its Temperature and Pressure
+    public double[] Moles { get; }                       // [case * SpeciesCount + species]; on a seeded batch an InvalidInput case holds its seed
     public CaseStatus[] Status { get; }
     public int[] Iterations { get; }
     public RunTimings Timings { get; }
@@ -297,6 +301,23 @@ the kernel-compatible ones of `Thermo`, and running them needs a view over accel
 memory, which this node owns; an evaluation on the host would be a second
 implementation of the polynomial.
 
+⚠ 2026-10-04: the equilibrium batch result's `State` said "zero where the status is not Ok". Wrong
+since 0.2.2: a `NoGasPhase` case (no gas phase, the condensed minimum) carries its Temperature and
+Pressure, the rest zero, as the root's failures-are-values invariant says. Found on 2026-10-04 by the
+orchestrator, from the comparison of the gasless families on CUDA (`GpuCpuComparison`), which reads them;
+the batch result has no multipliers, so such a case is compared on its moles and its state's two fields.
+
+**Seeded equilibrium batches** (2026-10-04, 0.2.2). A batch built with `seedSpeciesCount` runs every case as
+`EquilibriumSolver.Solve` does with `useMolesAsEstimate` ([Equilibrium](../Equilibrium/API.md)), its row of
+`SeedMoles` being the moles the solver starts from and `Temperature` the hp and sp estimate; a previous result's
+`Moles` row, of the same table, is a valid seed as it is. A seed of zeros is not the cold start: a batch is seeded or
+cold as a whole, and a caller with both builds two batches. `SeedMoles` is never written by a run: the pipeline copies
+it into the result's moles array, which the device reads before the launch and writes after it
+(`Chunks`' `InputOutput`), so a seeded batch costs no more device memory than a cold one and uploads `species × 8`
+bytes per case, the size of the download it already pays. The result's `Moles` of a case that ended `InvalidInput`
+hold its seed, where a cold batch holds zeros. Seeding is tree contract only: `Problems` builds cold batches and the
+package surface offers no seed.
+
 The kernel parameter structs `EquilibriumBatchViews`, `RocketBatchViews`,
 `TransportBatchViews` and `SpeciesFunctionBatchViews` (declared in `Kernels.cs`) are
 `internal`; they carry the device views of one chunk, are named by no other assembly
@@ -351,7 +372,7 @@ array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create` (reached through `AcceleratorProbe.Describe` or `Problems`' `Solver.Create`), naming the ILGPU version |
 | one of `LibNvvmPath` and `LibDevicePath` given without the other (2026-09-26) | `ArgumentException` at `Engine.Create` or `AcceleratorProbe.Describe`, naming the missing option |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
-| a batch of another element or species count than the table, tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
+| a batch of another element or species count than the table, a seeded equilibrium batch whose seed stride is not the table's species count or whose seed holds a value that is not finite (2026-10-04, naming the case and the species), tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
 | a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
 | a launch exceeds a display GPU's kernel run-time limit (2026-09-28, the second audit's Execution finding F2) | `AcceleratorUnavailableException` naming the limit, the chunk's case count and the CPU accelerator as remedy, its inner exception the driver's `CudaException` (`CUDA_ERROR_LAUNCH_TIMEOUT`); the context is lost with it, so the engine and its tables must be recreated |
 | `Upload`, a `Run` overload or `ProbeMath` is called after a launch of the same engine has already timed out (2026-09-29, the third audit pass, finding 2) | `AcceleratorUnavailableException` naming the earlier timeout, its inner exception that earlier `AcceleratorUnavailableException`; no CUDA call is made. Disposing a timed-out engine or its `UploadedTables` never throws: ILGPU's own cleanup of the lost context raises the same sticky `CudaException`, which is dropped rather than replacing whatever is already propagating |

@@ -91,6 +91,53 @@ public sealed class ChunkTransferTests
         Assert.False(ChunkBuffer<int>.HoldsOnlySentinel([]));
     }
 
+    /// <summary>
+    /// An <c>InputOutput</c> buffer (2026-10-04, <c>Chunks</c> BOOT.md) uploads its chunk's host slice and returns the device's values into
+    /// the same slice: four cases of three elements, the chunk the cases 1 and 2, the device overwritten with other values between the two
+    /// transfers, as a kernel would; the slice then holds the device's values and the cases 0 and 3 are untouched. Red once, 2026-10-04:
+    /// <c>InputOutput</c> dropped from the upload's branch (the device is then not what the host gave and the first assertion fails),
+    /// from the download's branch (the slice stays the zeros it was cleared to), and with the upload's start taken at offset 0 (the
+    /// device then holds the first two cases' values).
+    /// </summary>
+    [Fact]
+    public void AnInputOutputBufferUploadsItsSliceAndReturnsTheDevicesValues()
+    {
+        var accelerator = EngineFixture.Shared.Cpu.IlgpuAccelerator;
+        int[] host = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        using var buffers = new ChunkBuffers(accelerator);
+        var buffer = buffers.InputOutput(host, 3);
+        buffers.Allocate(2);
+
+        buffers.UploadChunk(1, 2);
+        var device = new int[6];
+        buffer.View.CopyToCPU(device);
+        Assert.Equal([4, 5, 6, 7, 8, 9], device);
+
+        buffer.View.CopyFromCPU([40, 50, 60, 70, 80, 90]);
+        buffers.DownloadChunk(1, 2);
+        Assert.Equal([1, 2, 3, 40, 50, 60, 70, 80, 90, 10, 11, 12], host);
+    }
+
+    /// <summary>
+    /// The guard of a download reaches the <c>InputOutput</c> branch (2026-10-04): a host slice of sentinel bytes in every element comes back
+    /// as it went up and is refused like a lost download, which is why the seed of a seeded equilibrium batch must be finite. Red once,
+    /// 2026-10-04: with <c>InputOutput</c> dropped from the download's branch nothing is refused.
+    /// </summary>
+    [Fact]
+    public void AnInputOutputSliceOfSentinelBytesIsRefused()
+    {
+        var accelerator = EngineFixture.Shared.Cpu.IlgpuAccelerator;
+        var host = new int[6];
+        Array.Fill(host, Unwritten);
+        using var buffers = new ChunkBuffers(accelerator);
+        _ = buffers.InputOutput(host, 3);
+        buffers.Allocate(2);
+        buffers.UploadChunk(0, 2);
+
+        var refusal = Assert.Throws<InvalidOperationException>(() => buffers.DownloadChunk(0, 2));
+        Assert.Contains("a download from the accelerator left its host slice unwritten", refusal.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>The host array after one download of a chunk whose device buffer was filled with the given values.</summary>
     private static int[] Download(Accelerator accelerator, int[] device, int offset, int length)
     {
