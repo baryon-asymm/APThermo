@@ -124,7 +124,7 @@ Exit codes:
 | Code | Meaning |
 |---|---|
 | 0 | All cases solved successfully. |
-| 1 | At least one case or station failed numerically; the document is still written with a per-case and per-station status. |
+| 1 | At least one case or station failed numerically or ended `noGasPhase`; the document is still written with a per-case and per-station status. |
 | 2 | Invalid input document, unknown option, bad database path, unknown reactant, mass-tolerance refusal, or unknown schema name. A message on standard error names the problem. |
 | 3 | Accelerator unavailable (no CUDA driver, ILGPU mismatch) or an unexpected infrastructure failure. Every path tried is named. |
 

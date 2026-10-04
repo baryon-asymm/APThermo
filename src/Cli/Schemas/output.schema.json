@@ -9,7 +9,7 @@
     "cases": { "type": "array", "items": { "$ref": "#/$defs/case" } }
   },
   "$defs": {
-    "status": { "enum": ["ok", "invalidInput", "notConverged", "singularMatrix", "temperatureOutOfRange", "throatNotFound", "areaRatioInvalid", "noTransportData"] },
+    "status": { "enum": ["ok", "invalidInput", "notConverged", "singularMatrix", "temperatureOutOfRange", "throatNotFound", "areaRatioInvalid", "noTransportData", "noGasPhase"] },
     "number": { "type": ["number", "null"] },
     "run": {
       "type": "object",

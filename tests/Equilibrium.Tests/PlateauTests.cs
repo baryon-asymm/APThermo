@@ -82,7 +82,9 @@ public sealed class PlateauTests
     /// wants the carbide. On the way there the solver exercises the whole anti-cycling rule (BOOT.md): the first
     /// escape through the bound is forgiven and the record re-enters as the only positive candidate, the second
     /// escape stands it down, and the stand-down guard then refuses the final state rather than reporting an Ok
-    /// that hides the positive-gain candidate.
+    /// that hides the positive-gain candidate. The refusal is <c>TemperatureOutOfRange</c> since 0.2.2 (it was
+    /// <c>NotConverged</c>): the temperature bracket converges on the carbide's dead-end ceiling at 2500 K, where
+    /// the target lies inside a jump with no state, and no floor below holds one (Recovery BOOT.md, "Dead-end gaps").
     /// </summary>
     [Fact]
     public void AnEnthalpyNoAdmissibleSetCanHoldIsRefusedRatherThanLiedAbout()
@@ -101,7 +103,7 @@ public sealed class PlateauTests
                                      [.. HostSolver.ProductsOf(c).Where(s => Cpu.Database[s].Phase == SpeciesPhase.Gas
                                                                              || s == "AL4C3(cr)" || s == "ALN(L)")]);
         var solution = HostSolver.Solve(Cpu.Accelerator, new EquilibriumCase(duo, ProblemKind.AssignedEnthalpyPressure, pressure, 0.0, target, elementMoles));
-        Assert.Equal(CaseStatus.NotConverged, solution.Status);
+        Assert.Equal(CaseStatus.TemperatureOutOfRange, solution.Status);
     }
 
     /// <summary>

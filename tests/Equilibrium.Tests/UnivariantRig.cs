@@ -150,6 +150,12 @@ internal sealed class UnivariantRig
             CpuFixture.Shared.Accelerator,
             new EquilibriumCase(Table, ProblemKind.AssignedEntropyPressure, Pressure, 0.0, Upper.State.Entropy - (1.0 - fraction) * TransitionEntropy * Extent, ElementMoles));
 
+    /// <summary>As <see cref="Hp"/>, from the cold start of the report's section 3.1: no estimate of the moles or of the temperature (2026-10-04).</summary>
+    public HostSolution HpCold(double fraction) =>
+        HostSolver.Solve(
+            CpuFixture.Shared.Accelerator,
+            new EquilibriumCase(Table, ProblemKind.AssignedEnthalpyPressure, Pressure, 0.0, Upper.State.Enthalpy - (1.0 - fraction) * TransitionEnthalpy * Extent, ElementMoles));
+
     /// <summary>As <see cref="HpFromLever"/>, at constant entropy.</summary>
     public HostSolution SpFromLever(double fraction) =>
         Solve(ProblemKind.AssignedEntropyPressure, Pressure, Temperature, Upper.State.Entropy - (1.0 - fraction) * TransitionEntropy * Extent, LeverMoles(fraction));

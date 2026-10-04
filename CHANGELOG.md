@@ -6,7 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `CaseStatus.NoGasPhase` (value 8, `noGasPhase` in the command line's documents): the
+  equilibrium holds no gas phase, proven by a tangent-plane certificate (a mixture of
+  condensed species alone, as KO2 below its melting point). `Moles` hold the condensed
+  minimum with every gas zero and `Multipliers` the certificate's. `State` carries the
+  temperature and the pressure only and every other field is 0; for an hp or sp case the
+  temperature is the one the search found. The command line exits 1 for it, as for any
+  failed case. Before, such a state ended `NotConverged` or `SingularMatrix`, or an hp or
+  sp state `TemperatureOutOfRange`. A known limitation of 0.2.1.
+
+### Changed
+- On any status but `Ok` the state is zero, as before, with the one exception of
+  `NoGasPhase`, whose state is the temperature and the pressure.
+
 ### Fixed
+- An assigned-enthalpy or assigned-entropy state the iteration cannot reach from its start
+  (much condensed water in the state, a gas-participating plateau of CaCO3 or MgCO3, the
+  AP/HTPB/Al states near 400 K that failed in 0.2.1) is now found by a search on the
+  temperature: tp states at assigned temperatures bracket the target, and the case ends
+  `Ok` at the temperature of the state, `NoGasPhase` where the state holds no gas, or
+  `TemperatureOutOfRange` where no state of the species list has the target.
+- A cold assigned-enthalpy or assigned-entropy state below the lower bound of a condensed
+  record whose data stop there (`H2O(L)` from 273.15 K without `H2O(cr)`, `C(gr)` from
+  300 K) no longer reports the supercooled vapour as `Ok` when a state of the same
+  enthalpy or entropy holding the phase exists above the bound: the equilibrium is the
+  one of higher entropy (hp) or lower enthalpy (sp). A silent wrong answer of 0.2.1 and
+  earlier.
 - A state on a plateau where the gas takes part (boiling water, CaCO3 and CaO under CO2,
   NH4Cl, Ca(OH)2, MgCO3), whose plateau temperature moves with the pressure, no longer
   ends `TemperatureOutOfRange` or `NotConverged` after its composition has converged. An
@@ -17,6 +43,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   derivative, and `GammaS` may fall below 1. A known limitation of 0.2.1.
 - Beside such a plateau, where the composition is only nearly univariant, `GammaS` was
   wrong by up to 0.17 % with an `Ok` status. It now comes from the isentrope as well.
+
+### Notes
+- An assigned-temperature state below a dead-end bound (the cases above) still reports the
+  supersaturated gas: the species list is the contract, a record outside its data range is
+  no candidate, and NASA CEA does the same. The library adds no species to a list, so an
+  `Only` list without `H2O(cr)` cannot hold water below 273.15 K; an hp or sp target that
+  no state of the list reaches ends `TemperatureOutOfRange`. The 0.2.1 limitation about a
+  reactant set with liquid water and no ice candidate is superseded by the two entries
+  above and this note.
 
 ## [0.2.1] - 2026-10-03
 

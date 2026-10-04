@@ -1,4 +1,5 @@
 using APThermo.Equilibrium.Condensed;
+using APThermo.Equilibrium.Recovery;
 using APThermo.Equilibrium.StateRecord;
 using APThermo.Thermo;
 
@@ -64,71 +65,52 @@ internal static class EquilibriumSolver
 
     internal const double MaxMixtureTemperature = 22000.0;
 
-    /// <summary>Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's temperature) are the initial estimate.</summary>
+    /// <summary>
+    /// Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's
+    /// temperature) are the initial estimate. After a failed attempt the case goes on as <see cref="AttemptPlan"/> decides
+    /// (Recovery/BOOT.md): the cold fallback of a warm start, the gasless verdict of a tp case, the temperature bracket of
+    /// an hp or sp case.
+    /// </summary>
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                              in EquilibriumResult result, bool useMolesAsEstimate)
     {
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        var source = useMolesAsEstimate ? EstimateSource.PreviousSolution : EstimateSource.Defaults;
-        var canFallBack = useMolesAsEstimate;
-        var priorIterations = 0;
-        var current = problem;
+        var plan = default(AttemptPlan);
+        plan.Begin(problem, useMolesAsEstimate);
         while (true)
         {
             var state = new IterationState();
-            if (CaseSetup.Begin(table, current, scratch, result, source, ref state) != CaseStatus.Ok)
+            if (CaseSetup.Begin(table, plan.Current, scratch, result, plan.Source, ref state) != CaseStatus.Ok)
             {
                 return;
             }
 
-            var logPressure = CaseSetup.LogPressure(current);
-            var status = ConvergenceSequence.Run(table, current, scratch, result, logPressure, ref state);
-            if (status == CaseStatus.Ok)
+            var status = CaseStatus.NotConverged;
+            if (plan.RunsAttempt)
             {
-                status = Close(table, current, scratch, result, logPressure, state);
+                var logPressure = CaseSetup.LogPressure(plan.Current);
+                status = ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
+                if (status == CaseStatus.Ok)
+                {
+                    status = Close(table, plan.Current, scratch, result, logPressure, state);
+                }
             }
 
-            // The fallback also covers a failure found at the close, not only the Newton loop's own status (BOOT.md,
-            // the warm-start fallback, the third pass of 2026-09-28, finding F2): the window, the element invariant,
-            // the exit guard, a singular derivative system and the state guard all retry once, exactly as a failed
-            // Newton loop does.
-            if (canFallBack && FallsBackToColdStart(status))
+            // The fallback also covers a failure found at the close, not only the Newton loop's own status (Recovery/BOOT.md,
+            // the cold fallback): the window, the element invariant, the exit guard, a singular derivative system and the
+            // state guard all retry once, exactly as a failed Newton loop does.
+            plan.Iterations += state.Iterations;
+            if (AttemptPlan.Next(table, problem, scratch, result, status, ref plan))
             {
-                canFallBack = false;
-                source = EstimateSource.Defaults;
-                current = ColdRetryProblem(current);
-                priorIterations += state.Iterations;
                 continue;
             }
 
-            state.Iterations += priorIterations;
-            result.Iterations[0] = state.Iterations;
-            result.Status[0] = (int)status;
+            result.Iterations[0] = plan.Iterations;
+            result.Status[0] = (int)plan.Status;
             return;
         }
     }
-
-    /// <summary>
-    /// The cold retry takes no part of the warm attempt's own seed (BOOT.md, 2026-09-28): for hp and sp it starts at
-    /// section 3.1's 3800 K, never at the failed warm attempt's temperature estimate, which is part of the seed the
-    /// retry is discarding, since <see cref="CaseSetup.InitialTemperature"/> reads a positive <see cref="EquilibriumProblem.Temperature"/>
-    /// as an estimate regardless of source. A tp's temperature is assigned, not an estimate, and is kept.
-    /// </summary>
-    private static EquilibriumProblem ColdRetryProblem(in EquilibriumProblem problem) =>
-        problem.Kind == ProblemKind.AssignedTemperaturePressure
-            ? problem
-            : new EquilibriumProblem(problem.Kind, problem.Pressure, 0.0, problem.Target, problem.ElementMoles);
-
-    /// <summary>
-    /// The warm-start fallback (BOOT.md, 2026-09-27, widened 2026-09-28): a warm start whose convergence fails, in any
-    /// way other than <see cref="CaseStatus.InvalidInput"/> — which never reaches this point, since
-    /// <see cref="CaseSetup.Begin"/> already returned by then — retries once from the cold start of section 3.1. A
-    /// sign test on a seeded condensed mole cannot tell a diverged seed from a sound one (the second hidden-defect
-    /// audit's finding F3): the seeded liquid can also diverge positive, or go negative and recover before the
-    /// remedies or the step cap ever see it, so every failure is retried rather than only the ones a sign test catches.
-    /// </summary>
-    private static bool FallsBackToColdStart(CaseStatus status) => status != CaseStatus.Ok;
 
     /// <summary>0.8: the frozen floor factor of the reference's stop of a frozen expansion (cea 3.3.4 <c>rocket.f90:331-341</c>, BOOT.md, 2026-09-28).</summary>
     private const double FrozenFloorFactor = 0.8;

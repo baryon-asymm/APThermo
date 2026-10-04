@@ -132,4 +132,35 @@ public sealed class EquilibriumTests
         Assert.Null(without.State.TransportStatus);
         Assert.Empty(StationEquality.BitDifferences(without.State with { Transport = null, TransportStatus = null }, result.State with { Transport = null, TransportStatus = null }, "state"));
     }
+
+    /// <summary>
+    /// Potassium superoxide at 500 K and 1 bar (K:O = 1:2, one kilogram): the equilibrium holds no gas phase, which the
+    /// front door reports as the status <c>NoGasPhase</c> and not as an exception. The station's state holds the temperature
+    /// and the pressure only, every other field zero; the mole fractions and the condensed mass fractions carry the
+    /// condensed composition (the mole fractions sum to one, every gas zero, the condensed masses to the kilogram), and no
+    /// transport is attached. Red on the code before the verdict: <c>NotConverged</c>.
+    /// </summary>
+    [Fact]
+    public void ACompositionWithNoGasPhaseIsAStatusWithATemperatureAndAPressureOnly()
+    {
+        var database = SolverFixture.Shared.Database;
+        var perKilogram = 1000.0 / (database.AtomicWeight("K") + 2.0 * database.AtomicWeight("O"));
+        var composition = new Dictionary<string, double>(StringComparer.Ordinal) { ["K"] = perKilogram, ["O"] = 2.0 * perKilogram };
+        const double pressure = 1.0e5;
+        const double temperature = 500.0;
+
+        var result = Assert.Single(SolverFixture.Shared.Solver.SolveStates(
+            [new StateRecord(pressure, composition, Temperature: temperature)], new StateBatchOptions(Transport: true)));
+
+        Assert.Equal(CaseStatus.NoGasPhase, result.Status);
+        var station = result.State;
+        Assert.Equal(CaseStatus.NoGasPhase, station.Status);
+        Assert.Equal(new MixtureState { Temperature = temperature, Pressure = pressure }, station.State);
+        Assert.Null(station.Transport);
+        Assert.Null(station.TransportStatus);
+        Assert.Equal(1.0, station.MoleFractions.Values.Sum(), 12);
+        var gases = result.Species.Where(name => !station.CondensedMassFractions.ContainsKey(name));
+        Assert.All(gases, name => Assert.Equal(0.0, station.MoleFractions[name]));
+        Assert.Equal(1.0, station.CondensedMassFractions.Values.Sum(), 3);
+    }
 }

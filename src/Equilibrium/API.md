@@ -110,6 +110,7 @@ internal static class EquilibriumSolver                  // kernel-compatible
                              in EquilibriumScratch scratch, in EquilibriumResult result,
                              bool useMolesAsEstimate);
         // useMolesAsEstimate: result.Moles (and problem.Temperature for hp/sp) are the initial estimate
+        // after a failure: the attempts of Recovery/BOOT.md (cold fallback, gasless verdict for tp)
     public static void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem,
                                    in EquilibriumScratch scratch, in EquilibriumResult result);
         // composition fixed to result.Moles; solves for the temperature (hp, sp) or evaluates at it (tp)
@@ -278,15 +279,24 @@ guard), `SingularMatrix` (only once none of the remedies resolves the singular s
 rule B's dependent-set ratio test, rule A's element tie, the two gaseous resets of RP-1311
 section 3.6, then the targeted removal of the species of the row whose pivot failed since
 2026-09-28, [Newton/BOOT.md](Newton/BOOT.md), "Two rules come before the remedies above" and the targeted
-singular remedy), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`; since
+singular remedy), `NoGasPhase` (2026-10-03: the equilibrium holds no gas phase, proven by the
+tangent-plane certificate of [GasPhase/BOOT.md](GasPhase/BOOT.md) for a tp attempt that failed, at its
+assigned temperature; `Moles` hold the condensed minimum with every gas zero, `Multipliers` the
+certificate's, and `State` the temperature and the pressure only), `TemperatureOutOfRange` (hp/sp iterate left `[100 K, 20000 K]`; since
 2026-09-28 also a converged state, tp included, outside the mixture window
 `[160 K, 22000 K]`, a `SolveFrozen` temperature below 0.8 times the lowest lower bound
 of the fits of the gases present or above `22000 K`, or a converged state whose frozen
 or equilibrium heat capacity, `γs` or sound speed is not finite and positive — the
 state guard, exempting a pinned set's zero `CpEquilibrium`/`CvEquilibrium` convention:
 `BOOT.md`, the mixture window, and [StateRecord/BOOT.md](StateRecord/BOOT.md), the state guard).
-On any status but `Ok`, `Moles` hold the last iterate and `State` is not written; on
-`InvalidInput` nothing but `Status` and `Iterations` (zero) is written.
+An hp or sp case whose iteration fails is bracketed on the temperature by tp probes and verdicts
+([Recovery/BOOT.md](Recovery/BOOT.md)); it ends `TemperatureOutOfRange` also when the bracket reaches
+the edge of `[160 K, 20000 K]` in the target's direction. For an hp or sp `NoGasPhase` case `State.Temperature`
+is the bracket's final temperature.
+On any status but `Ok`, `NoGasPhase` excepted, `Moles` hold the last iterate and `State` is not written (a case
+that was bracketed has it cleared to zero, a probe may have written one); on
+`InvalidInput` nothing but `Status` and `Iterations` (zero) is written. `Iterations` sums every attempt's
+Newton steps.
 
 ⚠ 2026-09-28: the `SingularMatrix` clause named only the targeted removal of 2026-09-28,
 as if it followed straight after the two gaseous resets. Rules A and B (BOOT.md, "Two

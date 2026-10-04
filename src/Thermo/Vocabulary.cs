@@ -151,6 +151,15 @@ public enum CaseStatus
 
     /// <summary>No transport data is available for the case's species.</summary>
     NoTransportData,
+
+    /// <summary>
+    /// The equilibrium holds no gas phase, proven by the Equilibrium node's tangent-plane certificate: the condensed species
+    /// alone hold every element and no gas of any composition would lower the Gibbs energy. The mixture model (an ideal gas
+    /// plus condensed species of no volume) has no density, molar mass or sound speed there. The condensed moles and the
+    /// multipliers are written, and so are the case's temperature and pressure, the one exception to "a status but Ok carries
+    /// no state"; every other field of the state is zero.
+    /// </summary>
+    NoGasPhase,
 }
 
 /// <summary>Size limits of a species table; they size the scratch of every consumer.</summary>

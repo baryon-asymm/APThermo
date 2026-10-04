@@ -8,6 +8,39 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="gas-positive-2026-10-03"></a>
+
+## 2026-10-03 — from "## Invariants" — every gas positive in every result
+
+Step 2 of the coder-2 session of 0.2.2 (`GasPhase/BOOT.md`): a `NoGasPhase` result is the condensed minimum with every gaseous species at zero moles, the one result the logarithmic unknowns of the iteration cannot represent. The wording of the candidate-list invariant stood:
+
+> - **The candidate list never changes.** Every species of the table is a candidate
+>   throughout; gaseous species stay positive because the unknowns are their logarithms;
+>   condensed species enter and leave the solution by the condensed-species rule of the
+>   Constraints (the report's tests, completed on 2026-09-13); a species is
+>   never deleted from the table by this node.
+
+---
+
+<a id="recovery-split-2026-10-03"></a>
+
+## 2026-10-03 — from "## Constraints" — the warm-start fallback stated in this node
+
+Step 2 of the coder-2 session of 0.2.2: what follows a failed attempt (the cold fallback, the gasless verdict, the temperature bracket) became the `Recovery` child node's (`Recovery/BOOT.md`), whose ladder restates the fallback unchanged; the paragraph stood here as:
+
+>   A warm start that fails, with any status other than `InvalidInput`, falls back once
+>   to the cold start of section 3.1, with the iterations of both attempts counted in the
+>   case's total (2026-09-28). A failure found at the close counts as well: the
+>   mixture window, the element invariant, the exit guard, a singular derivative system
+>   and the state guard (2026-09-28). A cold start never falls back. The cold start takes
+>   no part of the seed: for hp and sp it starts at 3 800 K, not at the previous
+>   solution's temperature, since that temperature is part of the seed.
+>   → HISTORY.md#warm-evidence
+>
+>   ⚠ 2026-09-28: was a warm-start fallback only for a negative seeded condensed species,
+>   now a fallback on any failure → HISTORY.md#warm-fallback
+
+
 <a id="release-invariant-2026-10-03"></a>
 
 ## 2026-10-03 — from the Newton node's "## Constraints" — the release's way back on a failed status only
