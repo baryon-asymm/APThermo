@@ -94,6 +94,9 @@ internal static class PhaseOneSeed
 {
     public static bool Fetch(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, out double residual);
     public static void LoadPoint(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state, bool dropLevel);
+    public static void KeepRoomForTheGas(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state);
+        // a set with as many records as active elements drops the record with the smallest positive amount (moles to zero, SetChanges counted);
+        // a record at zero stays; called at the end of LoadPoint and after every change of the condensed set
     public static double Place(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, in TraceGasFrame frame, bool leastSquares);
 }
 ```

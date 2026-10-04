@@ -49,6 +49,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   gas-level check of every `Ok` could not hold on both sides. The state reported is the equilibrium at
   the junction on the side whose enthalpy (entropy) is nearer the target, and it misses the target by
   at most the jump of the data, 1e-8 of c_p T (measured 8.3e-9 for gas mixtures at 1 000 K).
+- An assigned-temperature state whose mixture differs from a condensed assemblage by a trace of one
+  element, so that the gas phase is required but the condensed phase-one point already fills the elements
+  (KCl with 1e-10 too little chlorine at 1 200 K, Al(OH)3 with 1e-12 too little oxygen at 300 K), no
+  longer ends `NotConverged`.
+- A mixture of KO2 with 1e-10 too little oxygen no longer ends `NoGasPhase` with its second condensed
+  record (K2O, 9.4e-13 kmol/kg) left out of the composition and 1.3e-10 of the potassium unaccounted for.
+  The verdict's bound itself is unchanged, 1e-12 kmol/kg: a mixture within 1e-12 of exact stoichiometry
+  still ends `NoGasPhase`, and an excess of that size is not held by the reported moles.
 - Assigned-enthalpy and assigned-entropy states of MgCO3 under CO2 below its decomposition no longer
   end `TemperatureOutOfRange` when their derivative system was singular.
 - An assigned-enthalpy or assigned-entropy state the iteration cannot reach from its start

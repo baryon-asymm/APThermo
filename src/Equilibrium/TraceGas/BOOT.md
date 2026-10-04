@@ -282,7 +282,9 @@ Each constant of `## Constraints` is named in the class that uses it.
       removed alone: start 2 reds 3 of these facts, start 4 reds `ResidueVerdictTests`, start 3 the
       scan fact (`TraceGasScanTests`) alone.
 - [ ] The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
-      1e-12 kmol/kg or more, apart from the declared leftovers.
+      1e-12 kmol/kg or more, apart from the declared leftovers (`ResidueVerdictTests`, green 2026-10-04 with
+      the three declared `residue` states of Al(OH)3 at 300 K and 1 kPa and the false `Ok` declared
+      `notconverged`); left unticked for the decision on the declared leftovers.
 - [x] The close guard:
       - a unit fact at 5e-10 and 2e-9;
       - the states it refused in the scans (MgCO3 + 1e-6 CO2 below its plateau, and the loose `Ok`s of
@@ -322,14 +324,18 @@ Each constant of `## Constraints` is named in the class that uses it.
       - no `Ok` of the code before the pass lost;
       - the `NotConverged` tp states printed, and the declared leftovers only.
 
-      Written and green 2026-10-04 (`TraceGasScanTests`, 4 158 states, the three declared
-      leftovers); left unticked for the decision on those three (`## Declared leftovers`).
+      Written and green 2026-10-04 (`TraceGasScanTests`: the 4 158 states of the scan families, whose
+      `NotConverged` is the one declared false `Ok`, and the 1 632 states of the trace-excess scan,
+      whose `NotConverged` are the eight declared); left unticked for the decision on those nine
+      (`## Declared leftovers`). Red without room for the gas: both facts.
 - [ ] No line of an `Ok` case moved in any `Bits*.approved.txt`, Windows and Linux; every changed line
       was a failure before and is listed.
 
-      Windows, 2026-10-04: the fast set of every test node green with no record changed. Linux: not
-      run here (no WSL for this agent); no `Bits.linux.approved.txt` was touched, and none needs
-      re-approval unless the WSL run of the orchestrator moves a line.
+      Windows, 2026-10-04: the fast set of every test node green with one record line changed, in
+      `Bits.approved.txt` of Equilibrium and of Problems: `tp/seventeen-elements-many-condensed-phases_T350`,
+      which closed chlorine to 7.5e-13 of its abundance before the relative invariant (the failure it was)
+      and now reports NO and closes to 4e-16. Linux: not run here; `Bits.linux.approved.txt` of both nodes
+      needs the same line re-approved under WSL by the orchestrator.
 - [ ] CUDA on the reference machine:
       - the families `trace-gas-magnesite-1e7`, `trace-gas-excess` and `trace-gas-hp` equal to the
         CPU within the tier;
