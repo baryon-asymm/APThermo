@@ -41,6 +41,15 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   polish-threshold tier live in `tests/Fixtures/tolerances.json` and this node keeps the
   GPU-specific entries → HISTORY.md#tolerance-table-not-in-one-file-2026-09-14
 
+  ⚠ 2026-10-04: was "at most one station in a thousand" checked per family (a family of one
+  or a few cases failed on any single step difference, a share of one in one), now run-wide:
+  every CUDA family adds its stations and its differing stations to a ledger
+  (`StepShareLedger`, on `EngineFixture.Shared`), `CudaTests.TheStepShareOverTheWholeRun`,
+  ordered last in its class by `LastFactOrderer`, holds the share of the whole run at the
+  table's 1e-3 (it fails on an empty ledger), and a family keeps only a coarse guard of
+  `max(1, floor(1e-3 · stations))` differing stations. The table is not loosened. Facts
+  without CUDA: `StepShareLedgerTests`.
+
   A third mole-fraction tier (the owner's decision of 2026-10-03): a **condensed**
   species not below the floor is compared at relative 1e-9 whatever the Newton counts.
   Derivation: a condensed amount on a phase plateau is ill-conditioned, with `d ln x/d ln

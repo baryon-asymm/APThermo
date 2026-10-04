@@ -7,6 +7,7 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>L2 and the benchmark on the reference machine: CUDA against the CPU accelerator within the table, determinism, throughput.</summary>
 [Collection(EngineFixture.CollectionName)]
+[TestCaseOrderer("APThermo.Execution.Tests.LastFactOrderer", "APThermo.Execution.Tests")]
 public sealed class CudaTests
 {
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
@@ -254,8 +255,33 @@ public sealed class CudaTests
 
     private static string ThisFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 
-    /// <summary>The stations at which the accelerators stopped after different numbers of Newton steps must stay a rare threshold flip.</summary>
-    private static void AssertDifferentStepShare(int differentSteps, int stations) =>
-        Assert.True(differentSteps <= GpuCpuTolerances.DifferentStepShare * stations,
-                    $"{differentSteps} of {stations} stations stopped after different numbers of Newton steps on CUDA and on the CPU accelerator");
+    /// <summary>
+    /// The stations at which the accelerators stopped after different numbers of Newton steps are added to the run's ledger; one family is
+    /// held only to the coarse guard of <see cref="StepShareLedger.Allowed"/>, and the table's share is held over the whole run by
+    /// <see cref="TheStepShareOverTheWholeRun"/>.
+    /// </summary>
+    private static void AssertDifferentStepShare(int differentSteps, int stations)
+    {
+        EngineFixture.Shared.StepShare.Add(differentSteps, stations);
+        var violation = StepShareLedger.CoarseViolation(differentSteps, stations);
+        Assert.True(violation is null, violation);
+    }
+
+    /// <summary>
+    /// The stations at which the accelerators stopped after different numbers of Newton steps stay a rare threshold flip over the whole
+    /// run: at most the table's share (<see cref="GpuCpuTolerances.DifferentStepShare"/>) of every station of every family. Ordered last
+    /// in the class by <see cref="LastFactOrderer"/>; a run of this fact alone fails, its ledger being empty.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void TheStepShareOverTheWholeRun()
+    {
+        if (EngineFixture.Shared.RequireCuda() is null)
+        {
+            return;
+        }
+
+        var violation = EngineFixture.Shared.StepShare.RunViolation();
+        Assert.True(violation is null, violation);
+    }
 }

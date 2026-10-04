@@ -301,3 +301,12 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       sets; red with the rule disabled (no station left without a derivative). At this
       onset the disagreement bound drops the gas rows too, so the fact proves the rule's
       own output, not that the rule alone prevents a wrong correction.
+- [ ] The step-share bound holds over the whole run (`## Invariants`, the ⚠ of 2026-10-04):
+      `CudaTests.TheStepShareOverTheWholeRun` green on the reference machine after every CUDA
+      family, the sweep included (the figure: differing stations over stations of the run).
+      Without CUDA, proven 2026-10-04 by `StepShareLedgerTests` (6 facts: the coarse guard of a
+      family of one, the family over the guard, the run over the share, the empty run, the
+      ordering of the last fact, concurrent additions) and the trx of the run, which lists
+      `TheStepShareOverTheWholeRun` after every other `CudaTests` case. Red once, 2026-10-04:
+      the floor of one removed from `StepShareLedger.Allowed` (a family of one fails) and the
+      run's bound multiplied by 1000 (a run of 999 stations with one flip passes), 2 of 6 red.
