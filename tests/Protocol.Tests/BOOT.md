@@ -85,7 +85,8 @@ children rule, links check removed (the linter has it).
 
 ## Constraints
 
-- Part of the default test command; no accelerator is created.
+- Part of the fast set, except `ToolSelfTestTests`, which starts processes and so carries
+  `Category=EndToEnd` (the root's test budgets); no accelerator is created.
 - **The tool self-tests' deadline** (`ToolSelfTestTests.Deadline`, 2026-10-04) is a hang guard,
   not a budget: ten minutes per script, twice the worst measured run of the slowest script
   (the merge guard's, 271 s with 64 CPU-bound processes on 16 cores), rounded up. A script that
