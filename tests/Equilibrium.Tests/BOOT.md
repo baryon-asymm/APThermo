@@ -337,10 +337,13 @@ creation names its arguments; it passes them by position today (the criterion be
       ([TraceGas/BOOT.md](../../src/Equilibrium/TraceGas/BOOT.md), [Recovery/BOOT.md](../../src/Equilibrium/Recovery/BOOT.md)),
       on the CPU accelerator, every fact asserting `EquilibriumConditions` at 1e-9 with every gas of any share
       (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
-      - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`: the families
+      - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`, `GasBasisStartTests`
+        (2026-10-05, the gas basis): the families
         `TraceGasCases` generates from their parameters, none typed;
-      - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 360 cases (every tp, hp and sp
-        fixture, the magnesite band, the declared leftovers, KO2 − 1e-10 O, the junction states warm) run with
+      - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 361 cases (every tp, hp and sp
+        fixture, the magnesite band, the declared leftovers, the nine states the gas basis settles, CaCO3 +
+        1e-7 O at 10 MPa and 300 K, which fails after every start of the pass, KO2 − 1e-10 O, the junction
+        states warm) run with
         every buffer the solver owns or writes zeroed, filled with NaN and filled with 1e300
         (`HostSolver.SolveFilled`, `BufferFill`): the same status, iterations, moles and multipliers bit for
         bit, and the same state for `Ok` and `NoGasPhase`; a failure writes no state and the harness zeroes

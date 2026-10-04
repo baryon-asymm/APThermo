@@ -12,8 +12,14 @@ namespace APThermo.Equilibrium.TraceGas;
 /// </summary>
 internal static class TraceGasPass
 {
-    /// <summary>The starts, in order: the projection, the phase-one point with its own amounts, the same set by least squares, the point without its zero-level records.</summary>
-    private const int StartCount = 4;
+    /// <summary>The starts, in order: the projection, the phase-one point with its own amounts, the same set by least squares, the point without its zero-level records, the gas basis.</summary>
+    private const int StartCount = 5;
+
+    /// <summary>The start from the phase-one point without its zero-level records: the last that needs the point.</summary>
+    private const int DropLevelStart = 3;
+
+    /// <summary>The start from the gas basis (2026-10-05): the program with every gas a column at unit fraction.</summary>
+    private const int GasBasisStart = 4;
 
     /// <summary>
     /// One trace-gas pass from the entry <c>CaseSetup.Begin</c> prepared (the failed iterate, or the seed of a final), the anchor of
@@ -44,15 +50,15 @@ internal static class TraceGasPass
                 TraceGasStart.RestoreEntry(table, scratch, result, ref state, entryLogN, entryTemperature);
             }
 
-            var last = start == StartCount - 1;
-            if (last && !havePoint)
+            var dropLevel = start == DropLevelStart;
+            if (dropLevel && !havePoint)
             {
-                break;
+                continue;
             }
 
-            if (start > 0 && havePoint)
+            if (start > 0 && start < GasBasisStart && havePoint)
             {
-                PhaseOneSeed.LoadPoint(table, scratch, result, ref state, last);
+                PhaseOneSeed.LoadPoint(table, scratch, result, ref state, dropLevel);
             }
 
             if (!Place(table, problem, scratch, result, ref state, start))
@@ -73,20 +79,24 @@ internal static class TraceGasPass
 
     /// <summary>
     /// Places start <paramref name="start"/> on the condensed set the state holds: the projection for the first, the phase-one
-    /// placement for the others (the second with the amounts the result holds, the rest by least squares). False when the
-    /// start is skipped.
+    /// placement for the second to the fourth (the second with the amounts the result holds, the others by least squares), the gas
+    /// basis for the last (its own set). False when the start is skipped.
     /// </summary>
     private static bool Place(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                               in EquilibriumResult result, ref IterationState state, int start)
     {
-        var logPressure = CaseSetup.LogPressure(problem);
+        if (start == GasBasisStart)
+        {
+            return GasBasisSeed.Place(table, problem, scratch, result, ref state);
+        }
+
+        var frame = TraceGasFrame.AtStart(table, problem, state.CondensedCount, state.LogN, state.Temperature);
         if (start == 0)
         {
-            TraceGasStart.Project(table, scratch, result, TraceGasFrame.LayoutFor(table, problem, state.CondensedCount), logPressure, state.LogN);
+            TraceGasStart.Project(table, scratch, result, frame.Layout, frame.LogPressure, state.LogN);
             return true;
         }
 
-        var frame = new TraceGasFrame(TraceGasFrame.LayoutFor(table, problem, state.CondensedCount), logPressure, Math.Exp(state.LogN), 1.0, state.Temperature);
         var n = PhaseOneSeed.Place(table, problem, scratch, result, frame, start > 1);
         if (!(n > 0.0))
         {

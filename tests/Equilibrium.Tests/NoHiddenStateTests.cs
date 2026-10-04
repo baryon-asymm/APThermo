@@ -17,8 +17,16 @@ public sealed class NoHiddenStateTests
     private static readonly BufferFill[] Poisons = [BufferFill.NotANumber, BufferFill.Large];
 
     /// <summary>
+    /// CaCO3 + 1e-7 O at 10 MPa and 300 K: a state that ends <c>NotConverged</c> after every start of the trace-gas pass, the gas basis
+    /// included (TraceGas BOOT.md, "Declared leftovers": its balancing CaO lies below the rounding of the balance), so that the batch
+    /// walks a failure through the whole pass now that the declared leftovers are settled.
+    /// </summary>
+    private const string FailingEveryStart = "CaCO3|1E-07|10000000|300";
+
+    /// <summary>
     /// The batch: every fixture case of the three equilibrium kinds, the magnesite band (the trace-carrier states, 41), the states declared
-    /// <c>NotConverged</c> in <c>TraceGasLeftovers.txt</c> and the gasless states of KO2 − 1e-10 O, and the hp and sp states at the junction
+    /// <c>NotConverged</c> in <c>TraceGasLeftovers.txt</c>, the nine states the gas basis settles (<see cref="GasBasisStartTests.Settled"/>), the
+    /// one state that fails after every start of the pass (<see cref="FailingEveryStart"/>), the gasless states of KO2 − 1e-10 O, and the hp and sp states at the junction
     /// of the data warm-started from their tp composition: cases that end <c>Ok</c>, <c>NoGasPhase</c> and in every failure the solver reports.
     /// </summary>
     private static List<(string Label, EquilibriumCase Case, double[]? Estimate)> Batch()
@@ -31,7 +39,9 @@ public sealed class NoHiddenStateTests
 
         var known = TraceGasCases.ScanFamilies().Concat(TraceGasCases.TraceScan()).DistinctBy(state => state.Name).ToDictionary(state => state.Name);
         var states = TraceGasCases.MagnesiteBand().Concat(TraceGasLeftovers.NotConverged.Where(known.ContainsKey).Select(name => known[name]))
-            .Concat(TraceGasCases.Binary([-1.0e-10]).Where(state => state.Name.StartsWith("binary-ko2|", StringComparison.Ordinal)));
+            .Concat(GasBasisStartTests.Settled.Select(name => known[name]))
+            .Concat(TraceGasCases.Binary([-1.0e-10]).Where(state => state.Name.StartsWith("binary-ko2|", StringComparison.Ordinal)))
+            .Concat(TraceGasCases.Scan([1.0e-7]).Where(state => state.Name == FailingEveryStart));
         batch.AddRange(states.Select(state => (state.Name, state.AsCase(), (double[]?)null)));
         foreach (var state in TraceGasCases.JunctionStates().Where(state => state.Pressure == 1.0e5))
         {

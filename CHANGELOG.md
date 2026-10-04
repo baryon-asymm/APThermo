@@ -53,6 +53,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   element, so that the gas phase is required but the condensed phase-one point already fills the elements
   (KCl with 1e-10 too little chlorine at 1 200 K, Al(OH)3 with 1e-12 too little oxygen at 300 K), no
   longer ends `NotConverged`.
+- An assigned-temperature state whose gas carries a trace excess beside a condensed compound no longer
+  ends `NotConverged` when the gas had to be found on the other side of its own solution or beside a
+  second condensed phase present in a trace: Li2O with 1e-10 excess oxygen at 800 K, CaCO3 with 1e-8
+  excess oxygen at 500 and 800 K (with CaO at 1e-26 to 6e-12 kmol/kg), and Al(OH)3 with 1e-8 to 1e-12 too
+  little oxygen at 500 K, whose water is vapour. A last start places the gas from the linear program over
+  the condensed species and the gases at unit fraction.
 - A mixture of KO2 with 1e-10 too little oxygen no longer ends `NoGasPhase` with its second condensed
   record (K2O, 9.4e-13 kmol/kg) left out of the composition and 1.3e-10 of the potassium unaccounted for.
   The verdict's bound itself is unchanged, 1e-12 kmol/kg: a mixture within 1e-12 of exact stoichiometry

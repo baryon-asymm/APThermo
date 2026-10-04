@@ -60,7 +60,7 @@ internal static class PhaseOneSeed
 
     /// <summary>
     /// The one call site of <see cref="GasPhaseVerdict.PhaseOnePoint"/>, over the condensed records alone or, with
-    /// <paramref name="withGas"/>, over every gas too (<c>GasBasisSeed</c>). The simplex overwrites <c>Tie.LogMoles</c>, where the
+    /// <paramref name="withGas"/>, over every gas too (<see cref="GasBasisSeed"/>). The simplex overwrites <c>Tie.LogMoles</c>, where the
     /// pass keeps the entry's moles, so they are put aside in <c>scratch.LogMoles</c> and back; the optimal basis the program leaves in
     /// the scratch is untouched.
     /// </summary>

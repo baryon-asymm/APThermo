@@ -30,6 +30,8 @@ internal readonly struct TraceGasFrame(SystemLayout layout, double logPressure, 
     public readonly double Sum; public readonly double Temperature;
     public static SystemLayout LayoutFor(in SpeciesTableView table, in EquilibriumProblem problem, int condensedCount);
     public static SystemLayout TpLayoutFor(in SpeciesTableView table, int condensedCount);
+    public static TraceGasFrame AtStart(in SpeciesTableView table, in EquilibriumProblem problem, int condensedCount, double logN, double temperature);
+        // the frame a start is placed in: ln(p/p°) of the problem, n = exp(logN), S = 1 (2026-10-05)
 }
 
 internal static class TraceGasSystem
@@ -98,6 +100,14 @@ internal static class PhaseOneSeed
         // a set with as many records as active elements drops the record with the smallest positive amount (moles to zero, SetChanges counted);
         // a record at zero stays; called at the end of LoadPoint and after every change of the condensed set
     public static double Place(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, in TraceGasFrame frame, bool leastSquares);
+    public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, bool withGas, out double residual);
+        // the one call site of GasPhaseVerdict.PhaseOnePoint; Tie.LogMoles (the entry's moles) put aside and back (2026-10-05)
+}
+
+internal static class GasBasisSeed
+{
+    public static bool Place(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state);
+        // start 5 (2026-10-05): the condensed basics as the set, π from the basis, ln n of the basic gas; false: the start is skipped
 }
 ```
 
