@@ -86,6 +86,11 @@ children rule, links check removed (the linter has it).
 ## Constraints
 
 - Part of the default test command; no accelerator is created.
+- **The tool self-tests' deadline** (`ToolSelfTestTests.Deadline`, 2026-10-04) is a hang guard,
+  not a budget: ten minutes per script, twice the worst measured run of the slowest script
+  (the merge guard's, 271 s with 64 CPU-bound processes on 16 cores), rounded up. A script that
+  grows must be measured again under such a load before the figure moves; a deadline raised to
+  fit a slow run proves nothing (`ACCEPTANCE.md`).
 - The assemblies are loaded from the build output found through the project references
   of this test project, which references every node's project for that reason only and
   uses none of their types (its `## Dependencies` is `None`, checked like any other).

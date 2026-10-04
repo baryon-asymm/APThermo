@@ -8,11 +8,18 @@ this check, stops the run with one `GUARD:` line. The trial commands are replace
 subprocess with TMP, TEMP and TMPDIR pointing at a private directory: that is where its
 trial worktree, its log and its `gpu.lock` live, so a test can see what it left behind.
 
-    python -X utf8 tools/merge-guard/test_merge_guard.py -v
+    python -X utf8 tools/merge-guard/test_merge_guard.py [-v] [-j N] [Class.test_method ...]
+
+The cases are independent (each has its own repository and its own private temp directory),
+and what one costs is the processes it starts, so they run on several threads, eight by
+default: one after another they cost 38 s idle and 170 s with 32 CPU-bound processes on 16
+cores, on eight threads 7.7 s and 91 s (`BOOT.md`, Acceptance criteria).
 """
 
 from __future__ import annotations
 
+import argparse
+import concurrent.futures
 import json
 import os
 import re
@@ -21,6 +28,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional
@@ -77,6 +85,7 @@ SEED_FILES = {
 }
 
 TEMPLATE_ROOT: Optional[str] = None
+DEFAULT_JOBS = min(8, os.cpu_count() or 1)
 
 
 class Run(NamedTuple):
@@ -137,7 +146,7 @@ def setUpModule() -> None:  # noqa: N802
     TEMPLATE_ROOT = tempfile.mkdtemp(prefix="merge-guard-template-")
     repo = os.path.join(TEMPLATE_ROOT, "repo")
     os.mkdir(repo)
-    git(repo, "init", "-q", "-b", "main")
+    git(repo, "init", "-q", "-b", "main", "--template=")
     for key, value in (("user.name", "Test"), ("user.email", "test@example.com"),
                        ("commit.gpgsign", "false"), ("core.autocrlf", "false")):
         git(repo, "config", key, value)
@@ -849,5 +858,65 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual("0 Warning(s)", table["build"].green_when_output_contains)
 
 
+def flatten(suite: unittest.TestSuite) -> List[unittest.TestCase]:
+    """The test cases of a suite, nested suites opened, in the order the loader found them."""
+    cases: List[unittest.TestCase] = []
+    for item in suite:
+        if isinstance(item, unittest.TestSuite):
+            cases.extend(flatten(item))
+        else:
+            cases.append(item)
+    return cases
+
+
+def run_case(case: unittest.TestCase) -> unittest.TestResult:
+    """Run one case on its own result: the cases share nothing but the read-only template repository."""
+    result = unittest.TestResult()
+    case.run(result)
+    return result
+
+
+def run_in_parallel(names: List[str], jobs: int, verbose: bool) -> int:
+    """Run the named tests (all of them without names) on `jobs` threads; 0 when every one passed.
+
+    Every case builds its own repository and its own private temp directory and runs the guard
+    as a subprocess, so the cases are independent. A run that finds no test is a failure.
+    """
+    module = sys.modules[__name__]
+    loader = unittest.defaultTestLoader
+    cases = flatten(loader.loadTestsFromNames(names, module) if names else loader.loadTestsFromModule(module))
+    if not cases:
+        print("no test found", file=sys.stderr)
+        return 1
+    started = time.perf_counter()
+    setUpModule()
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+            results = list(pool.map(run_case, cases))
+    finally:
+        tearDownModule()
+    elapsed = time.perf_counter() - started
+    problems = [(case, trace) for case, result in zip(cases, results) for _, trace in result.failures + result.errors]
+    skipped = sum(len(result.skipped) for result in results)
+    if verbose:
+        for case, result in zip(cases, results):
+            print("{} ... {}".format(case.id(), "FAIL" if result.failures or result.errors else "ok"))
+    for case, trace in problems:
+        print("=" * 70 + "\nFAIL: {}\n".format(case.id()) + "-" * 70 + "\n" + trace)
+    print("-" * 70 + "\nRan {} tests in {:.3f}s on {} threads\n".format(len(cases), elapsed, jobs))
+    print("FAILED (problems={})".format(len(problems)) if problems else "OK" + (" (skipped={})".format(skipped) if skipped else ""))
+    return 1 if problems else 0
+
+
+def parse_arguments(argv: List[str]) -> argparse.Namespace:
+    """`[-v] [-j N] [test name ...]`, the names as `unittest` takes them (`Class.test_method`)."""
+    parser = argparse.ArgumentParser(description="Self-test of merge_guard.py")
+    parser.add_argument("-v", "--verbose", action="store_true", help="one line per test")
+    parser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS, help="threads (default {})".format(DEFAULT_JOBS))
+    parser.add_argument("names", nargs="*", help="tests to run, all when absent")
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
-    unittest.main()
+    arguments = parse_arguments(sys.argv[1:])
+    sys.exit(run_in_parallel(arguments.names, max(1, arguments.jobs), arguments.verbose))

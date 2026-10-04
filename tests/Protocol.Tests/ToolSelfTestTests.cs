@@ -11,7 +11,9 @@ public sealed class ToolSelfTestTests
 {
     private const int TailLines = 40;
 
-    private static readonly TimeSpan Deadline = TimeSpan.FromMinutes(5);
+    /// <summary>A hang guard, not a budget: the worst self-test (the merge guard's, 65 cases on 8 threads) took 7.7 s idle and
+    /// 271 s with 64 CPU-bound processes on 16 cores; twice that, rounded up to ten minutes (this node's BOOT.md).</summary>
+    private static readonly TimeSpan Deadline = TimeSpan.FromMinutes(10);
 
     /// <summary>Every self-test script under <c>tools/</c>, as a path relative to the tree root with forward slashes, in path
     /// order: one case of <see cref="EverySelfTestExitsZero"/> each.</summary>
