@@ -186,6 +186,33 @@ public sealed class TemperatureBracketTests
     }
 
     /// <summary>
+    /// Seam (b): an end the trace-gas pass found, on either side or both, makes the final of narrow ends the trace-gas final from the lever;
+    /// a converged step of such a probe makes it the trace-gas final from the probe; two gasless ends are still the verdict alone.
+    /// </summary>
+    [Fact]
+    public void TheFinalOfAnEndTheTraceGasPassFoundIsRunByThePass()
+    {
+        var both = Bracketed(lowX: 6.0, highX: 6.0 + 5.0e-8, probeX: 6.0, EndKind.TraceGas);
+        Assert.Equal(BracketMove.TraceGasFromLever, both.Advance(step: 1.0, floor: 0.0));
+
+        var lower = Bracketed(lowX: 6.0, highX: 6.0 + 5.0e-8, probeX: 6.0);
+        lower.LowKind = EndKind.TraceGas;
+        Assert.Equal(BracketMove.TraceGasFromLever, lower.Advance(step: 1.0, floor: 0.0));
+
+        var upper = Bracketed(lowX: 6.0, highX: 6.0 + 5.0e-8, probeX: 6.0);
+        upper.HighKind = EndKind.TraceGas;
+        Assert.Equal(BracketMove.TraceGasFromLever, upper.Advance(step: 1.0, floor: 0.0));
+
+        var gasless = Bracketed(lowX: 6.0, highX: 6.0 + 5.0e-10, probeX: 6.0, EndKind.Gasless);
+        gasless.LowKind = EndKind.Gasless;
+        gasless.HighKind = EndKind.Gasless;
+        Assert.Equal(BracketMove.GaslessFromLever, gasless.Advance(step: 1.0, floor: 0.0));
+
+        var converged = Bracketed(lowX: 5.0, highX: 7.0, probeX: 6.0, EndKind.TraceGas);
+        Assert.Equal(BracketMove.TraceGasFromProbe, converged.Advance(step: 1.0e-8, floor: 0.0));
+    }
+
+    /// <summary>
     /// A scan drops the ends and keeps the first failure; its probes stand just below the floors, outside the range tolerance
     /// of their records (1e-8 relative); with no floor left the case gives up <c>TemperatureOutOfRange</c>; the first probe that
     /// is recorded ends the scan.

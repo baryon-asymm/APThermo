@@ -56,6 +56,34 @@ public sealed class TiedDerivativesTests
         Assert.Equal(plain.Reaction, tied.Reaction);
     }
 
+    /// <summary>MgCO3 under CO2 at Mg:C:O = 1:2:5, 1 kPa to 1 MPa, 100 to 1 K below its plateau.</summary>
+    public static TheoryData<string> Near() => TraceGasCases.Names(TraceGasCases.MagnesiteWithCarbonDioxide());
+
+    /// <summary>
+    /// Cold hp and sp at the h and s of the tp states of MgCO3 under CO2 below its plateau end <c>Ok</c> at the tp temperature, clear of the
+    /// conditions, and their <c>Cp_eq</c> equals the central difference of the solver's own tp enthalpies at T ± 0.01 K: the derivative
+    /// system the element rows leave singular is solved with the tie found at the close. Red without the tie: <c>SingularMatrix</c> or
+    /// <c>TemperatureOutOfRange</c>.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Near))]
+    public void AnHpOrSpStateOfMagnesiteUnderCarbonDioxideBelowItsPlateauEndsOkWithTheHeatCapacityOfItsEnthalpy(string name)
+    {
+        var state = TraceGasCases.Named(name);
+        var tp = state.Solve();
+        TraceGasChecks.AssertOkAndClear(tp, name + " tp");
+        foreach (var mode in new[] { "hp-cold", "sp-cold" })
+        {
+            var solution = state.SolveInMode(tp, mode);
+
+            TraceGasChecks.AssertOkAndClear(solution, $"{mode} {name}");
+            Assert.True(
+                Math.Abs(solution.State.Temperature - tp.State.Temperature) <= 1.0e-9 * tp.State.Temperature,
+                $"{mode} {name}: T {solution.State.Temperature:R} against {tp.State.Temperature:R}");
+            TraceGasChecks.AssertHeatCapacityMatchesTheCentralDifference(state, solution, $"{mode} {name}");
+        }
+    }
+
     private static DerivativeRig Rig()
     {
         var table = UnivariantRig.TableOver(["MG", "C", "O"]);

@@ -276,13 +276,18 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       0.7 and 0.9, the lower fractions being the seed-side failure of the parent's open
       item; `DerivativeSystem` Ce 14; WSL fast suite green on `57ce721`.
 
-- [ ] The tie found at the close: MgCO3 1:2:5 hp and sp, cold, below the plateau at 1 kPa to 1 MPa,
+- [x] The tie found at the close: MgCO3 1:2:5 hp and sp, cold, below the plateau at 1 kPa to 1 MPa,
       end `Ok`, `Cp_eq` within 1e-6 of a central difference of the solver's own enthalpy at T ± 0.01 K;
-      red without the tie. The unit fact that needs no pass stands:
+      red without the tie. 2026-10-04, `TiedDerivativesTests.AnHpOrSpStateOfMagnesiteUnderCarbonDioxideBelowItsPlateauEndsOkWithTheHeatCapacityOfItsEnthalpy`
+      (12 states, 100 to 1 K below the plateau); red without the tie: 33 facts of the node's tests, 2 of them in this
+      file. The unit fact that needs no pass stands:
       `TiedDerivativesTests.ADirectionNoSpeciesOfTheSumsSeesIsFixedByTheTieAndMovesNoDerivative` (MgO beside
       CO2 alone: the plain system unsolved, the tied one solved with the derivatives of a gas of fixed moles).
-- [ ] The scaled retry: a trace-gas state whose plain derivative system is singular ends `Ok`, `Cp_eq`
-      against the same difference; red without the retry. No line of a record moved.
+- [x] The scaled retry: a trace-gas state whose plain derivative system is singular ends `Ok`, `Cp_eq`
+      against the same difference; red without the retry. No line of a record moved. 2026-10-04,
+      `ScaledDerivativeTests` (5 states of the trace-gas families that end `SingularMatrix` without the retry);
+      red without it: 137 facts of the node's tests, 5 of them these; Windows records unchanged, the Linux
+      ones not run here.
 
 ## Taboos
 

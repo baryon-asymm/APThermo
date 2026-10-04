@@ -22,6 +22,9 @@ internal static class TraceGasStep
     /// <summary>The element residual a convergence ends within, a tenth of the node's invariant.</summary>
     private const double BalanceTest = 1.0e-13;
 
+    /// <summary>The bound of the close guard on the stationarity of every reported gas, in ln: 50 times the worst residual of the closes the Equilibrium tests make, 10 times a trace-gas convergence's own, 17 times below the smallest false <c>Ok</c> found (BOOT.md, "The close guard").</summary>
+    private const double GasStationarityBound = 1.0e-9;
+
     /// <summary>The largest ln x_j the iteration evaluates; beyond it the iterate has left the problem.</summary>
     private const double MaxLogFraction = 300.0;
 
@@ -61,6 +64,39 @@ internal static class TraceGasStep
         }
 
         return sum;
+    }
+
+    /// <summary>
+    /// The close guard: every gas the result reports with moles above zero sits on its stationarity,
+    /// <c>|ln(n_j/Σ_gas n) − ln x_j| ≤ 1e-9</c> with <c>ln x_j</c> the exact fraction the multipliers give
+    /// (<see cref="LogFraction"/>). The element invariant cannot see a gas that is 1e-6 of the mixture and off its
+    /// stationarity by 1e-4: a tolerance of 1e-12 in absolute moles hides it. A state without gas holds trivially. Reads the
+    /// species functions at the settled temperature that <see cref="Composition.Refresh"/> left in the scratch; writes nothing.
+    /// </summary>
+    public static bool Stationary(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logPressure)
+    {
+        var sumGas = 0.0;
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            sumGas += result.Moles[j];
+        }
+
+        if (!(sumGas > 0.0))
+        {
+            return true;
+        }
+
+        var logSum = Math.Log(sumGas);
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (result.Moles[j] > 0.0
+                && !(Math.Abs(Math.Log(result.Moles[j]) - logSum - LogFraction(table, scratch, result, logPressure, j)) <= GasStationarityBound))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>ln x_j = Σ_i a_ij π_i − g_j/RT − ln(p/p°) at the multipliers in the result: the exact fraction of the gas, relative to n, that the stationarity of the gas gives.</summary>

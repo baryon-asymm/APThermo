@@ -12,7 +12,7 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ## 2026-10-04 — from "## Shape exceptions" — the composition root's row at 22
 
-The trace-gas node (`TraceGas/BOOT.md`) added `TraceGasPass` to the names of `EquilibriumSolver`, in the dispatch of `Solve` between the reduced iteration and the pass (`DerivativeSystem` became `TiedDerivatives`, one for one); the dependency check's walk measured 23, and the row follows. The row stood:
+The trace-gas node (`TraceGas/BOOT.md`) added `TraceGasPass` to the names of `EquilibriumSolver`, in the dispatch of `Solve` between the reduced iteration and the pass (`DerivativeSystem` became `TiedDerivatives`, one for one); the dependency check's walk measured 23; the close guard, `TraceGasStep.Stationary` (the pass type itself stood at the limit of 14 names), made it 24, and the row follows. The row stood:
 
 > | `EquilibriumSolver` | efferent coupling | 22 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
 

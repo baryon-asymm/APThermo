@@ -213,7 +213,8 @@ internal static class EquilibriumSolver
 
     /// <summary>
     /// The exit guards of an Ok status and the state record: the mixture's temperature window, element conservation at
-    /// the node's invariant, no condensed candidate hidden by the anti-cycling rule, then the derivatives of section
+    /// the node's invariant, no condensed candidate hidden by the anti-cycling rule, every reported gas on its stationarity
+    /// within 1e-9 (<see cref="TraceGasStep.Stationary"/>, 2026-10-04), then the derivatives of section
     /// 2.5 (<see cref="TiedDerivatives"/>: solved again with the tie the element rows show when the first solve is singular),
     /// the mixture properties of section 2.6 and the state guard (BOOT.md, 2026-09-28). The reported moles are
     /// exactly the composition every one of these checks was taken over: <c>Composition.Refresh</c>'s last call, at
@@ -228,7 +229,8 @@ internal static class EquilibriumSolver
         }
 
         if (!ElementBalance.WithinInvariant(table, problem, scratch, result)
-            || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state))
+            || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state)
+            || !TraceGasStep.Stationary(table, scratch, result, logPressure))
         {
             return CaseStatus.NotConverged;
         }

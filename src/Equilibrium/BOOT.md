@@ -258,13 +258,13 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `EquilibriumSolver` | efferent coupling | 23 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 14 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot grouped in `TieSlices`; grouping the rest would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 The rows of the child nodes' types stand in their own `## Shape exceptions`
 ([Newton/BOOT.md](Newton/BOOT.md), [StateRecord/BOOT.md](StateRecord/BOOT.md)).
 
-⚠ 2026-10-04: was `EquilibriumSolver` 22, now 23: `TraceGasPass` added → HISTORY.md#ce-solver-2026-10-04
+⚠ 2026-10-04: was `EquilibriumSolver` 22, now 24: `TraceGasPass` and `TraceGasStep` added → HISTORY.md#ce-solver-2026-10-04
 ⚠ 2026-09-28: was `EquilibriumScratch` 12 parameters, now 16 → HISTORY.md#ce-scratch16
 ⚠ 2026-10-03: was 16, now 14 → HISTORY.md#scratch-14-2026-10-03
 

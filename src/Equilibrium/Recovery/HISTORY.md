@@ -8,6 +8,18 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="magnesite-band-2026-10-04"></a>
+
+## 2026-10-04 — from "## Acceptance criteria" — the declared magnesite band
+
+The trace-gas pass reaches the states the third criterion of "Bracketed `Ok`" declared left. The text stood:
+
+> Left, and declared: magnesite at 1e5 Pa seeded from the one-condensed side ends
+> `TemperatureOutOfRange` after the bracket (the thin band of a trace gas, the trace-gas
+> coder's; the prototype's own scan gave the same 97 to 123 iterations).
+
+---
+
 <a id="tracegas-seams-2026-10-04"></a>
 
 ## 2026-10-04 — from "## Constraints" — the trace-gas seam
@@ -21,6 +33,8 @@ stood:
 >     and closes with the same `Close`;
 >   - (b) a bracket end of kind `TraceGas` selects the final in the one switch of
 >     `TemperatureBracket.LeverFinal`.
+
+Coder 3 then filled (b) and added (b′): the text of both is in `## Constraints`.
 >   - The trace-gas entry follows the kernel rules, has one `NoInlining` call site, and on `Ok` leaves
 >     `IterationState`, scratch and result as a converged `ConvergenceSequence` does. It does not
 >     reorder this ladder or change the bracket's numbers, and does not touch `BracketEnds`.

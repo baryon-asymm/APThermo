@@ -8,10 +8,11 @@ small for the reduced iteration of RP-1311, and it states what every `Ok` must s
 level:
 
 - `TraceGasPass`: `Run`, one trace-gas pass (its starts, its convergences and condensed-set changes,
-  the entry restored on failure), and `Stationary`, the close guard.
+  the entry restored on failure).
 - `TraceGasStart` and `PhaseOneSeed`: where a pass starts.
 - `TraceGasIteration`: one convergence of one condensed set.
-- `TraceGasSystem` and `TraceGasStep`: its matrix and its step.
+- `TraceGasSystem` and `TraceGasStep`: its matrix and its step; `TraceGasStep.Stationary` is the
+  close guard (it sits there because `TraceGasPass` stands at the limit of 14 names).
 
 The cluster has a reason of its own to change. RP-1311's tests weigh a correction by the share of
 the whole mixture (3.5), and its iteration carries ln n_j. Where the gas is 1e-6 of the mixture, or a
@@ -83,7 +84,12 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
     sits on the π diagonal, toward the present π. An absent element is a unit row.
   - Condensed row c: `Σ_i a_ic dπ_i = g_c/RT − Σ_i a_ic π_i` (plus `h_c τ`).
   - Phase-sum row: `Σ_j (x_j/S)(Σ_i a_ij dπ_i) = −ln S`, with `S = Σ_j x_j` over every gas in play.
-  - hp and sp add the temperature column and the enthalpy or entropy row.
+  - hp and sp add the temperature column and the enthalpy or entropy row. The column is divided by its
+    largest entry when that exceeds one (the unknown is then `scale · τ`, and `Solve` scales it back):
+    it holds the h/RT of the species, tens to hundreds, and a direction of π that only trace gases
+    carry sits at 1e-10 beside it, whose pivot would fall under the dense solver's 1e-13 of the
+    row's largest entry although the system is regular (2026-10-04: without the scaling every hp and
+    sp trace-gas final ends `SingularMatrix`, 24 facts of this node red).
 
   The matrix does not depend on n, so it stays regular as the gas vanishes.
 - **The step.**
@@ -126,6 +132,13 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   - 438 failures `Ok`, 1 704 certified gasless first, 3 left `NotConverged`;
   - no `Ok` lost, no record line moved;
   - without starts 2 to 4, every state whose failed iterate held no condensed species failed.
+
+  Measured on the code, the same day, over the 4 158 tp states of `TraceGasCases.ScanFamilies`
+  (`TraceGasScanTests`, against `TraceGasScanBaseline.txt`, the code before the pass):
+  - 315 failures `Ok`, 1 702 `NoGasPhase` from the verdict (all of them so before), 3 left
+    `NotConverged`, 2 138 `Ok` unchanged, no `Ok` lost, no line of a bit record moved;
+  - each start removed alone: start 2 reds 3 facts of `TraceExcessTests`, start 4 reds
+    `ResidueVerdictTests`, start 3 reds the scan fact only; all three removed: 63 facts red.
 - **The anchor and the entry.**
   - At entry, `Run` saves `result.Moles` in `scratch.Tie.LogMoles`, and takes the anchor multipliers
     from `scratch.Tie.Elements.Multipliers` into `result.Multipliers` (a multiplier that is not
@@ -140,7 +153,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   that no reported gas fixes is held by the ridge, and then fixed by the exact fractions of every
   gas in play. The unit row the derivatives need there is found at the close
   ([StateRecord](../StateRecord/BOOT.md)).
-- **The close guard** (`TraceGasPass.Stationary`, called by the parent's close after the element
+- **The close guard** (`TraceGasStep.Stationary`, called by the parent's close after the element
   invariant and the exit guard, `NotConverged` when false). The bound is 1e-9:
   - over the 17 356 closes of the Equilibrium tests the largest residual was 1.95e-11;
   - a trace-gas convergence leaves at most 1e-10;
@@ -148,9 +161,15 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 
   The residual is then the share of gas the iterate's n leaves out, so the guard bounds a stray
   carrier at 1e-9 of the gas. In force, it refused:
-  - no state of any test node's record;
-  - 8 false `Ok`s, and 5 states whose gas (1e-6 of the mixture or less) had converged only to 3e-8
-    to 5e-8, which the pass and the bracket now converge.
+  - no state of any test node's record (no line of a `Bits*.approved.txt` moved);
+  - the false `Ok`s of the design, and states whose gas (1e-6 of the mixture or less) had converged
+    only to 3e-8 to 5e-8, which the pass and the bracket now converge to the tp state's temperature
+    within 1e-9 (`GasStationarityTests`); removing the guard reds 81 facts of this node.
+  - A state at the junction of the data's two temperature ranges, 1 000 K, has no hp state within the
+    data's own jump of 9e-9 in ln x: the NASA fits are not continuous there. KCl + 1e-6 Cl at
+    100 kPa and 1 000 K, hp cold, warm and warm from 5 K above, ends `NotConverged` after the
+    trace-gas final (its temperature alternates across the junction by 1e-15 relative and ln S by
+    ±9e-9): declared, below.
 
 ## Structure
 
@@ -158,51 +177,75 @@ One type per file:
 
 | Type | Kind | Holds |
 |---|---|---|
-| `TraceGasPass` | static | `Run`, `Stationary`, the sequence |
+| `TraceGasPass` | static | `Run`, the sequence |
 | `TraceGasStart` | static | the entry's save and restore, the projection |
 | `PhaseOneSeed` | static | the point's fetch and load, starts 2 to 4 |
 | `TraceGasIteration` | static | `Converge` |
 | `TraceGasSystem` | static | `Assemble`, `Solve`, the energy row |
-| `TraceGasStep` | static | the fractions, the control factor, the weighted corrections, the step, the balance |
+| `TraceGasStep` | static | the fractions, the control factor, the weighted corrections, the step, the balance, `Stationary` |
 | `TraceGasFrame` | readonly struct | the layout, `ln(p/p°)`, n, S and T, which keeps every method within six parameters |
 
 Each constant of `## Constraints` is named in the class that uses it.
 
 ## Acceptance criteria
 
-- [ ] A trace carrier's walk (MgCO3 under CO2, Mg:C:O = 1:2:5, 10 MPa, cold tp every 5 K from 700 to
+- [x] A trace carrier's walk (MgCO3 under CO2, Mg:C:O = 1:2:5, 10 MPa, cold tp every 5 K from 700 to
       900 K):
       - every state `Ok`, clear of `EquilibriumConditions` at 1e-9;
       - CO twice O2 to the balance of the combination O − Mg − 2C, 3 · 1e-12 kmol/kg;
       - red on the old code: 25 of 41 `NotConverged`.
 
+      2026-10-04, `TraceCarrierWalkTests`; red with seam (a) removed: 26 of its 42 facts.
+
       ⚠ 2026-10-04: was "x_CO = 2 x_O2 within 1e-6", now the balance of the combination: the carriers
       are 1e-11 to 1e-9 of the gas, the balance holds to the element invariant, and the ratio measured
       1.9e-2 off at 765 K and 3e-5 at 800 K.
-- [ ] Trace excesses: CaCO3 + 1e-8 to 1e-5 CO2 (1 kPa to 10 MPa, 0.01 to 300 K below the plateau),
+- [x] Trace excesses: CaCO3 + 1e-8 to 1e-5 CO2 (1 kPa to 10 MPa, 0.01 to 300 K below the plateau),
       Al2O3 + 1e-10 and 1e-8 O (1 000 to 3 000 K), KCl + 1e-10 Cl (1 000, 1 200 K), CaCO3 + 1e-6 O
       (300 K) and MgCO3 + 1e-6 CO2 below its plateau, cold tp:
       - every state `Ok` and clear at 1e-9;
       - red on the old code;
       - starts 2 to 4 each shown necessary by removing them.
+
+      2026-10-04, `TraceExcessTests` (79 states); red with seam (a) removed: 67 of 79; each start
+      removed alone: start 2 reds 3 of these facts, start 4 reds `ResidueVerdictTests`, start 3 the
+      scan fact (`TraceGasScanTests`) alone.
 - [ ] The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
       1e-12 kmol/kg or more, apart from the declared leftovers.
 - [ ] The close guard:
       - a unit fact at 5e-10 and 2e-9;
-      - the 13 states it refused in the scans end `Ok` at the tp temperature within 1e-9 and clear
-        at 1e-9 (hp and sp through the bracket);
+      - the states it refused in the scans (MgCO3 + 1e-6 CO2 below its plateau, and the loose `Ok`s of
+        KCl, NaCl and KO2) end `Ok` at the tp temperature within 1e-9, clear at 1e-9, with the gas of
+        their tp state within 1e-9 of its fractions (hp and sp, cold and warm, through the bracket and
+        the trace-gas finals);
       - red with the guard removed.
-- [ ] Host units:
+
+      2026-10-04: `GasStationarityTests`, 124 facts (the unit fact at ±5e-10 and ±2e-9, and 120 states
+      in six modes) and `TraceGasFinalTests`, all green but the three declared KCl modes (below);
+      red with the guard removed: 81 facts; with (b′) removed: 37; with the temperature column
+      unscaled: 24. Left unticked: the states of the three declared modes do not end `Ok`
+      (⚠ 2026-10-04: was "the 13 states it refused", now all but the three hp modes of KCl + 1e-6 Cl at
+      100 kPa and 1 000 K, which no state of the data reaches within its own jump of 9e-9 in ln x).
+- [x] Host units:
       - the matrix equal at n and at 1e-12 n;
       - the control factor on hand-built corrections;
       - a failed pass leaving `Moles` and `Multipliers` bit-equal to its entry;
       - the iterations of a case the sum of its attempt's and its pass's.
+
+      2026-10-04, `TraceGasUnitTests` and `TraceCarrierWalkTests.TheIterationsOfACaseAreTheStepsOfItsAttemptAndOfItsTracePass`.
 - [ ] A `LongRunning` scan fact over the four scan families:
       - every `Ok` clear at 1e-9;
       - no `Ok` of the code before the pass lost;
       - the `NotConverged` tp states printed, and the declared leftovers only.
+
+      Written and green 2026-10-04 (`TraceGasScanTests`, 4 158 states, the three declared
+      leftovers); left unticked for the decision on those three (`## Declared leftovers`).
 - [ ] No line of an `Ok` case moved in any `Bits*.approved.txt`, Windows and Linux; every changed line
       was a failure before and is listed.
+
+      Windows, 2026-10-04: the fast set of every test node green with no record changed. Linux: not
+      run here (no WSL for this agent); no `Bits.linux.approved.txt` was touched, and none needs
+      re-approval unless the WSL run of the orchestrator moves a line.
 - [ ] CUDA on the reference machine:
       - the families `trace-gas-magnesite-1e7`, `trace-gas-excess` and `trace-gas-hp` equal to the
         CPU within the tier;
@@ -213,11 +256,22 @@ Each constant of `## Constraints` is named in the class that uses it.
 
 ## Declared leftovers
 
-The tp states of the scans that the pass does not settle are declared in `TraceGasLeftovers.txt` of
+The states of the scans that the pass does not settle are declared in `TraceGasLeftovers.txt` of
 [the tests node](../../../tests/Equilibrium.Tests/BOOT.md), one name per line, kind `notconverged`
 (as before the pass) or `residue` (`Ok` with less than 1e-12 kmol/kg of gas, through the pass: the
-verdict's face search found no certificate). 2026-10-04, the design's three and two more of the
-second kind, to be confirmed by the measurement of the whole scan.
+verdict's face search found no certificate). Measured on the code, 2026-10-04:
+- `NotConverged` tp states, the design's three: KCl − 1e-10 Cl at 1 200 K and 1 kPa, and at 1 500 K
+  and 100 kPa; Al(OH)3 − 1e-12 O at 300 K and 1 kPa. In all three the verdict answers `GasRequired`
+  with residual 0, the phase-one point completes, and every start ends `SingularMatrix`, after one
+  change of the condensed set (the first convergence is `Ok`: KCl at 1 iteration, Al(OH)3 at 58 to 59);
+  no fifth start and no looser test was tried.
+- `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
+  exact state (1.3e-18 kmol/kg of gas) and the + 1e-12 state (3.1e-14), both through start 4.
+- hp, three modes: KCl + 1e-6 Cl at 100 kPa and 1 000 K, `NotConverged` after the trace-gas final,
+  the junction of the data's two temperature ranges (above).
+- Beyond the design's scans, with excesses of 1e-8 and 1e-10 (not walked by any fact): 49 more tp
+  states end `NotConverged`, as before the pass, among them K2O, Li2O, MgO, Al(OH)3, thermite and
+  CaCO3 at deficits of 1e-8 and 1e-10 of the last element; reported to the orchestrator, not declared.
 
 ## Taboos
 

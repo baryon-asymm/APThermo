@@ -44,6 +44,8 @@ internal static class TraceGasStep
     public static double LogFraction(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logPressure, int j);
     public static double ControlFactor(in SpeciesTableView table, in EquilibriumScratch scratch, in SystemLayout layout);
     public static double Worst(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in TraceGasFrame frame);
+    public static bool Stationary(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logPressure);
+        // the close guard: every gas with moles above zero within 1e-9 of its stationarity; a state without gas holds
     public static void Apply(in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout layout, double lambda, ref double n);
     public static bool MoveTemperature(ref IterationState state, double lambda, double tau);
     public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result);
@@ -78,7 +80,7 @@ None thrown. `Run` returns `Ok`, `NotConverged`, `SingularMatrix` or `Temperatur
 ## Side effects
 
 `Run` writes `result.Moles`, `result.Multipliers`, the matrix scratch, `Corrections`, `LogMoles`,
-`CondensedInSolution`, `Tie.LogMoles`, `Tie.CondensedMoles` and `Tie.CondensedSet`.
+`CondensedInSolution`, `Tie.LogMoles`, `Tie.CondensedMoles` and `Tie.CondensedSet`. `Stationary` writes nothing.
 
 ## Out of scope
 

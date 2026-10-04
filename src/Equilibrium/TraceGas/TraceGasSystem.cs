@@ -20,12 +20,38 @@ internal static class TraceGasSystem
                              in EquilibriumResult result, in TraceGasFrame frame)
     {
         Assemble(table, problem, scratch, result, frame);
-        if (!frame.Layout.IsTp)
+        if (frame.Layout.IsTp)
         {
-            EnergyRow(table, problem, scratch, result, frame);
+            return DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, frame.Layout.Unknowns, frame.Layout.Stride);
         }
 
-        return DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, frame.Layout.Unknowns, frame.Layout.Stride);
+        EnergyRow(table, problem, scratch, result, frame);
+        var scale = ScaleTemperatureColumn(scratch, frame.Layout);
+        var solved = DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, frame.Layout.Unknowns, frame.Layout.Stride);
+        scratch.RightHandSide[frame.Layout.TRow] /= scale;
+        return solved;
+    }
+
+    /// <summary>
+    /// Divides the temperature column by its largest entry when that exceeds one, and returns the divisor: the unknown becomes
+    /// <c>scale · τ</c>. The column holds the enthalpies h/RT of the species (tens to hundreds), the rest of the matrix numbers of
+    /// order one, and a direction of π that only trace gases carry sits at 1e-10 beside them: left unscaled, its pivot falls under the
+    /// solver's 1e-13 of the row's largest entry although the system is regular.
+    /// </summary>
+    private static double ScaleTemperatureColumn(in EquilibriumScratch scratch, in SystemLayout layout)
+    {
+        var largest = 1.0;
+        for (var r = 0; r < layout.Unknowns; r++)
+        {
+            largest = KernelMath.Max(largest, Math.Abs(scratch.Matrix[r * layout.Stride + layout.TRow]));
+        }
+
+        for (var r = 0; r < layout.Unknowns; r++)
+        {
+            scratch.Matrix[r * layout.Stride + layout.TRow] /= largest;
+        }
+
+        return largest;
     }
 
     /// <summary>

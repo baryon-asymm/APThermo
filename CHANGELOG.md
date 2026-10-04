@@ -19,8 +19,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - On any status but `Ok` the state is zero, as before, with the one exception of
   `NoGasPhase`, whose state is the temperature and the pressure.
+- An `Ok` state whose gas is 1e-6 of the mixture or less, and whose gas composition had converged
+  only to about 5e-8, is now converged further; its composition moves at that level.
 
 ### Fixed
+- An assigned-temperature state whose gas is a trace beside condensed species, or one of whose
+  element combinations only trace gases carry, no longer ends `NotConverged`. Examples:
+  - MgCO3 under CO2 at 10 MPa between 700 and 845 K;
+  - CaCO3 or MgCO3 with a trace of excess CO2 just below decomposition;
+  - Al2O3 with a trace of excess oxygen at 1 000–3 000 K;
+  - KCl with a trace of excess chlorine.
+
+  When the gas-phase test finds that a gas is required, a second iteration that carries the gas
+  composition exactly converges it.
+- An assigned-enthalpy or assigned-entropy state with a trace gas no longer ends `Ok` with a gas
+  composition that had not converged. With 1e-6 excess CO2 beside MgCO3, CO was reported at up to
+  2e-5 of the gas where the equilibrium holds none. Every `Ok` now has each reported gas on its
+  chemical potential within 1e-9, and such a state is solved by the temperature search with the
+  trace-gas iteration as its last step.
+- Assigned-enthalpy and assigned-entropy states of MgCO3 under CO2 below its decomposition no longer
+  end `TemperatureOutOfRange` when their derivative system was singular.
 - An assigned-enthalpy or assigned-entropy state the iteration cannot reach from its start
   (much condensed water in the state, a gas-participating plateau of CaCO3 or MgCO3, the
   AP/HTPB/Al states near 400 K that failed in 0.2.1) is now found by a search on the

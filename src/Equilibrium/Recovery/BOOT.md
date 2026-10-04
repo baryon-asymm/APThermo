@@ -35,7 +35,7 @@ The parent's invariants hold here.
   the same solver and verdicts of the `GasPhase` node; the final attempt is the case itself. No
   formula of the iteration changes and no equation is added.
 - **Bounded.** At most 40 probes, 8 retreats, two attempts, two verdicts and one trace-gas pass per
-  probe, one final; one trace-gas pass for a tp case.
+  probe, one final and one trace-gas final; one trace-gas pass for a tp case.
 - **No status but `Ok` carries a state**, with one exception: a `NoGasPhase` case carries the
   temperature and the pressure (root `BOOT.md`, "Failures are values"). A case that ends otherwise
   after a probe wrote a state gets `result.State[0] = default`.
@@ -166,16 +166,27 @@ Inherited from the parent and, through it, from the root. In addition:
     - Its `Ok` ends a tp case `Ok`, or is a probe's outcome of kind `TraceGas` (P and slope as for
       `Gas`).
     - Any other status leaves the status of the attempt the verdict judged.
-  - `Solve` sends a pass with `plan.RunsTraceGas` to `TraceGasPass.Run` instead of
-    `ConvergenceSequence.Run`, and closes it the same way.
-  ⚠ 2026-10-04: was a seam to be filled, now (a) → HISTORY.md#tracegas-seams-2026-10-04
+  - (b) A final whose bracket has an end of kind `TraceGas` is a `TraceGas` final: the hp or sp case
+    from the seed the final would use (`BracketMove.TraceGasFromLever`, `TraceGasFromProbe`).
+  - (b′) An ordinary final that ends `NotConverged` or `SingularMatrix` is followed by one `TraceGas`
+    final from the same seed, rebuilt from `BracketEnds` (`AttemptPlan.OwesTraceGasFinal`,
+    `BracketDriver.RetryFinalWithTraceGas`); one per case (`AttemptPlan.TraceGasFinals`), tried
+    before the recheck's rerun and the scan below a gap.
+  - `BracketSeeds.Anchor` copies `result.Multipliers` into `Tie.Elements.Multipliers` before either;
+    the pass takes a value that is not finite as zero.
+  - A `TraceGas` final's status is the case's. `Solve` sends a pass with `plan.RunsTraceGas` to
+    `TraceGasPass.Run` instead of `ConvergenceSequence.Run`, and closes it the same way.
+  - (b) alone is not shown necessary end to end: with its arms removed every fact but the unit
+    `TemperatureBracketTests` stays green, since (b′) catches the final that fails; it saves the failed
+    attempt.
+  ⚠ 2026-10-04: was a seam to be filled, now (a), (b) and (b′) → HISTORY.md#tracegas-seams-2026-10-04
 - **Scratch.** `BracketEnds` (`[2 · species]`), written only by `BracketSeeds`, survives the
   probes; every other slice is an attempt's.
 
 ## Structure
 
 `AttemptPlan` (struct: `Current`, `Source`, `Phase`, `Status`, `Iterations`, `Judged` (the status the
-verdict judged), the `TemperatureBracket`, what the last pass `Found`, the `RecheckState`; `RunsAttempt`
+verdict judged), `TraceGasFinals`, the `TemperatureBracket`, what the last pass `Found`, the `RecheckState`; `RunsAttempt`
 is false for a `VerdictOnly` pass and `RunsTraceGas` true for a trace-gas one; `Next` is the ladder's one
 method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`, `TraceGas`, `TraceGasFinal`),
 `TemperatureBracket` (struct, pure transitions, each constant above named), `BracketMove` and `EndKind`
@@ -197,16 +208,36 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
       `Ok`, clear of `EquilibriumConditions`, the tp temperature reproduced within 1e-9 (2026-10-04,
       `BracketedStateTests`, `RecoveryTests.AStateOfApHtpbAlBelowTheWaterBandEndsOkAtItsTpTemperature`).
       Left, and declared: magnesite at 1e5 Pa seeded from the one-condensed side ends
-      `TemperatureOutOfRange` after the bracket (the thin band of a trace gas, the trace-gas
-      coder's; the prototype's own scan gave the same 97 to 123 iterations).
+      `TemperatureOutOfRange` after the bracket → HISTORY.md#magnesite-band-2026-10-04
+      ⚠ 2026-10-04: was "left and declared: magnesite at 1e5 Pa seeded from the one-condensed side ends `TemperatureOutOfRange`", now none: the trace-gas pass reaches them (`BracketedStateTests`, 72 of 72).
 - [x] `TemperatureBracket` on the host: the ln 2 clamp, the bisection safeguard, the floor stop,
       the retreats, the give-up statuses, the lever clamp, the finals (2026-10-04,
       `TemperatureBracketTests`).
 - [x] A failed bracket case after an `Ok` probe leaves `State` zero, and `Iterations` count more
       than the first attempt alone (2026-10-04,
       `RecoveryTests.ACaseTheBracketGivesUpOnLeavesAZeroStateAndSumsEveryAttempt`).
-- [ ] The five sp warm-430 K states of AP/HTPB/Al that land off the tp temperature in the prototype
+- [x] The five sp warm-430 K states of AP/HTPB/Al that land off the tp temperature in the prototype
       explained, and every `Ok` hp or sp state of the scans clear of `EquilibriumConditions`.
+      2026-10-04, `SupercooledVapourSpTests` (20 facts, tp states 200 to 290 K at 20 MPa, cold and seeded
+      from 430 K): the tp states below the floors are a vapour whose entropy, 2 217 to 2 567 J/(kg·K), is
+      above that of every state with its records in range from 300 K to the dehydration plateau at
+      415.948 K (1 487 at 300 K, 1 913 at 410 K); the sp state at such an entropy is `Ok`, clear, at that
+      entropy within 1e-9, at or above 300 K, and 5.6e5 to 6.1e5 J/kg below the vapour's enthalpy, which
+      is what the equilibrium of an assigned entropy and pressure asks (the least enthalpy): the
+      solver's states on the plateau (415.948 K) and above it (to 459 K) are the equilibria, the
+      vapour the metastable state the missing data leave. The second half is stated for the hp and sp
+      states of this node's facts (`GasStationarityTests`, `TiedDerivativesTests`, `TraceGasFinalTests`,
+      `SupercooledVapourSpTests`, `BracketedStateTests`), each asserting `EquilibriumConditions` at 1e-9
+      with every gas, not for a typed list of scans (⚠ 2026-10-04: was "of the scans").
+- [x] Seam (b): cold hp and sp at the h or s of trace-gas tp states (MgCO3 + 1e-6 CO2 below its
+      plateau, CaCO3 + 1e-8 CO2, MgCO3 under CO2) end `Ok` at the tp temperature within 1e-9; red on the
+      old code (`TemperatureOutOfRange`, `SingularMatrix`). 2026-10-04, `TraceGasFinalTests`,
+      `GasStationarityTests`, `TiedDerivativesTests`; the arms themselves in
+      `TemperatureBracketTests.TheFinalOfAnEndTheTraceGasPassFoundIsRunByThePass`.
+- [x] Seam (b′): MgCO3 + 1e-6 CO2 hp at T* − 1 K, 1 kPa, warm, ends `Ok` through the `TraceGas` final;
+      red with (b′) removed: 37 facts of `GasStationarityTests` and `TraceGasFinalTests`. 2026-10-04,
+      `TraceGasFinalTests.AnOrdinaryFinalThatFailsIsRetriedByTheTraceGasPass`; the ownership of the
+      retry in `TraceGasFinalTests.AFailedOrdinaryFinalIsOwedOneTraceGasFinal`.
 - [x] Dead-end floors: on example 12's list, every hp and sp target of a tp state of the list plus `H2O(cr)` ends `Ok`
       at the list-plus-ice temperature (1e-9 relative) when that state holds no ice, and otherwise
       `TemperatureOutOfRange` or the vapour with the original attempt's iterations; every class walked

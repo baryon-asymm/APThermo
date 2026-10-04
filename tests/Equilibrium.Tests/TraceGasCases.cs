@@ -28,6 +28,35 @@ internal sealed record TraceGasCase(string Name, string[] Elements, double[] Rat
                 TraceGasCases.TableOver(Elements), kind, Pressure, 0.0,
                 kind == ProblemKind.AssignedEnthalpyPressure ? tp.State.Enthalpy : tp.State.Entropy, ElementMoles));
 
+    /// <summary>
+    /// The hp or sp solve at the enthalpy or entropy of <paramref name="tp"/>, warm-started as the design's scans were: from the
+    /// composition <paramref name="seed"/> with the temperature <paramref name="estimate"/> as the initial estimate.
+    /// </summary>
+    public HostSolution SolveWarmAtStateOf(HostSolution tp, ProblemKind kind, HostSolution seed, double estimate) =>
+        HostSolver.Solve(
+            CpuFixture.Shared.Accelerator,
+            new EquilibriumCase(
+                TraceGasCases.TableOver(Elements), kind, Pressure, estimate,
+                kind == ProblemKind.AssignedEnthalpyPressure ? tp.State.Enthalpy : tp.State.Entropy, ElementMoles),
+            seed.Moles);
+
+    /// <summary>
+    /// The hp or sp solve at the h or s of <paramref name="tp"/> in a <paramref name="mode"/>: <c>hp-cold</c> and <c>sp-cold</c> from the
+    /// defaults, <c>hp-warm</c> and <c>sp-warm</c> from the composition and temperature of the tp state itself, <c>hp-warm5</c> and
+    /// <c>sp-warm5</c> from the tp state 5 K above (the starts of the design's scans).
+    /// </summary>
+    public HostSolution SolveInMode(HostSolution tp, string mode)
+    {
+        ArgumentNullException.ThrowIfNull(mode);
+        var kind = mode.StartsWith("hp", StringComparison.Ordinal) ? ProblemKind.AssignedEnthalpyPressure : ProblemKind.AssignedEntropyPressure;
+        return mode.EndsWith("cold", StringComparison.Ordinal) ? SolveAtStateOf(tp, kind)
+            : mode.EndsWith("warm", StringComparison.Ordinal) ? SolveWarmAtStateOf(tp, kind, tp, Temperature)
+            : SolveWarmAtStateOf(tp, kind, At(Temperature + 5.0).Solve(), Temperature + 5.0);
+    }
+
+    /// <summary>The same state at another temperature: a seed for a warm start.</summary>
+    public TraceGasCase At(double temperature) => this with { Temperature = temperature };
+
     public override string ToString() => Name;
 }
 
@@ -71,6 +100,17 @@ internal static class TraceGasCases
         }
 
         return data;
+    }
+
+    /// <summary>Registers a case under its name, as <see cref="Names"/> does, and returns the name.</summary>
+    public static string Register(TraceGasCase state)
+    {
+        lock (Registry)
+        {
+            Registry[state.Name] = state;
+        }
+
+        return state.Name;
     }
 
     /// <summary>The case registered under a name by <see cref="Names"/>.</summary>
@@ -122,6 +162,15 @@ internal static class TraceGasCases
         }
     }
 
+    /// <summary>
+    /// MgCO3 under CO2 at Mg:C:O = 1:2:5 below its plateau, at 1 kPa to 1 MPa, from 100 to 1 K below it (not the 200 K below, which at 1 kPa
+    /// is under the data of the MgCO3 record): the states whose hp and sp derivative system the element rows left singular, where the
+    /// direction π_O − π_Mg − 2π_C is carried only by trace gases.
+    /// </summary>
+    public static IEnumerable<TraceGasCase> MagnesiteWithCarbonDioxide() =>
+        MagnesitePressures.SelectMany(pressure => MagnesiteDistances.Select(below =>
+            new TraceGasCase(Name("magnesite-co2", pressure, below), ["MG", "C", "O"], [1.0, 2.0, 5.0], pressure, Plateau(UnivariantSystem.Magnesite, pressure) - below)));
+
     /// <summary>Al2O3 + 1e-10 and 1e-8 O, KCl + 1e-10 Cl, CaCO3 + 1e-6 O: the excesses whose failed iterates hold no condensed species or the wrong ones.</summary>
     public static IEnumerable<TraceGasCase> DegenerateExcesses()
     {
@@ -143,6 +192,20 @@ internal static class TraceGasCases
             yield return new TraceGasCase(Name("calcite-oxygen", 1.0e-6, pressure, 300.0), ["CA", "C", "O"], [1.0, 1.0, 3.0 * (1 + 1.0e-6)], pressure, 300.0);
         }
     }
+
+    /// <summary>
+    /// The states with a gas of 1e-6 of the mixture or less that the reduced iteration closed <c>Ok</c> with the gas converged only to
+    /// 3e-8 to 5e-8 (design D2): NaCl + 1e-6 Cl at 1 200 K and 10 MPa, KO2 + 1e-6 O at 1 000 K, and KCl + 1e-6 Cl at 1 000 K, each at the
+    /// pressures the design found them at.
+    /// </summary>
+    public static IEnumerable<TraceGasCase> LooseOks() =>
+    [
+        Shifted("loose-nacl", ["NA", "CL"], [1.0, 1.0], 1.0e-6, 1.0e7, 1200.0),
+        Shifted("loose-ko2", ["K", "O"], [1.0, 2.0], 1.0e-6, 1.0e3, 1000.0),
+        Shifted("loose-ko2", ["K", "O"], [1.0, 2.0], 1.0e-6, 1.0e5, 1000.0),
+        Shifted("loose-kcl", ["K", "CL"], [1.0, 1.0], 1.0e-6, 1.0e5, 1000.0),
+        Shifted("loose-kcl", ["K", "CL"], [1.0, 1.0], 1.0e-6, 1.0e7, 1000.0),
+    ];
 
     /// <summary>
     /// The systems of the design's scan of 17 two- and three-element mixtures, as (name, elements, ratio). The last element's moles carry
@@ -169,6 +232,21 @@ internal static class TraceGasCases
     public static IEnumerable<TraceGasCase> Binary(double[] excesses) =>
         BinarySystems.SelectMany(system => ScanPressures.SelectMany(pressure => system.Temperatures.SelectMany(temperature =>
             excesses.Select(excess => Shifted(system.Name, system.Elements, system.Ratio, excess, pressure, temperature)))));
+
+    /// <summary>The seven excesses of the design's scan of the 17 systems.</summary>
+    public static double[] ScanExcesses { get; } = [-1e-2, -1e-6, -1e-12, 0.0, 1e-12, 1e-6, 1e-2];
+
+    /// <summary>
+    /// The tp states of the scan fact: the binary scan (1 170 states), the scan of the 17 systems (2 856), and the families of the other
+    /// facts of this node, each state once.
+    /// </summary>
+    public static IEnumerable<TraceGasCase> ScanFamilies() =>
+        Binary(BinaryExcesses).Concat(Scan(ScanExcesses)).Concat(CalciteBelowThePlateau()).Concat(MagnesiteBelowThePlateau())
+            .Concat(MagnesiteWithCarbonDioxide()).Concat(DegenerateExcesses()).Concat(MagnesiteBand());
+
+    private static readonly double[] MagnesitePressures = [1.0e3, 1.0e4, 1.0e5, 1.0e6];
+
+    private static readonly double[] MagnesiteDistances = [100.0, 20.0, 1.0];
 
     private static readonly double[] ScanPressures = [1.0e3, 1.0e5, 1.0e7];
 
