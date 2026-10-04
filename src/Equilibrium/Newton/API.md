@@ -5,7 +5,7 @@ Namespace `APThermo.Equilibrium.Newton`. Every type is `internal`: the audience 
 (`Condensed`, `StateRecord`), and its tests node, not a neighbour or a caller outside the tree.
 Everything not listed here is internal to this node itself and may change without notice even to
 the parent. The types of the parent that the signatures name (`IterationState`, `SystemLayout`,
-`MixtureSums`, `ElementTie` (active and element), `EquilibriumScratch` (its `TieElements`), `EquilibriumResult`, `EquilibriumProblem`) are
+`MixtureSums`, `ElementTie` (active and element), `EquilibriumScratch` (its `Tie`), `EquilibriumResult`, `EquilibriumProblem`) are
 described in [the parent's API.md](../API.md) or by the summaries of their declarations.
 
 ## The loop ✅
@@ -78,7 +78,7 @@ internal static class ElementCoupling
 {
     public static ElementTie Find(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int element);
         // the tie of `element` as a linear combination of the other active rows over the species of the sums; its coefficients are
-        // left in scratch.TieElements.Coefficients (one per element, zero for `element`); inactive when no combination holds.
+        // left in scratch.Tie.Elements.Coefficients (one per element, zero for `element`); inactive when no combination holds.
         // When the normal equations are singular (other active rows dependent among themselves) the column whose pivot failed
         // is pinned (coefficient 0) and they are solved once more, at most once per call
     public static bool Coupled(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, in ElementTie tie);
@@ -96,6 +96,8 @@ internal static class CondensedDependency
     public static int LeavingPosition(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount);
         // rule B's ratio test: the position of the species that leaves, or −1; when the condensed columns alone
         // hold no combination the gas phase counts as one more column and never leaves
+    public static int LeavingPositionWithoutGas(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount);
+        // the same test over the condensed columns alone, without the gas column: what hp and sp cases ask (2026-10-03, BOOT.md, rule B)
 }
 
 internal static class TieSnapshot

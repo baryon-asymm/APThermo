@@ -136,6 +136,31 @@ internal sealed class UnivariantRig
     public HostSolution Sp(double fraction) =>
         SpAt(Pressure, Upper.State.Entropy - (1.0 - fraction) * TransitionEntropy * Extent);
 
+    /// <summary>
+    /// As <see cref="Hp"/>, seeded on the plateau itself (2026-10-03): the temperature estimate is the plateau's, and the moles are
+    /// the lever mix of the two tp states a hair either side of it at the same fraction, the seed a temperature search that has
+    /// bracketed the plateau hands the final attempt.
+    /// </summary>
+    public HostSolution HpFromLever(double fraction) =>
+        Solve(ProblemKind.AssignedEnthalpyPressure, Pressure, Temperature, Upper.State.Enthalpy - (1.0 - fraction) * TransitionEnthalpy * Extent, LeverMoles(fraction));
+
+    /// <summary>As <see cref="Sp"/>, from the cold start of the report's section 3.1: no estimate of the moles or of the temperature (2026-10-03).</summary>
+    public HostSolution SpCold(double fraction) =>
+        HostSolver.Solve(
+            CpuFixture.Shared.Accelerator,
+            new EquilibriumCase(Table, ProblemKind.AssignedEntropyPressure, Pressure, 0.0, Upper.State.Entropy - (1.0 - fraction) * TransitionEntropy * Extent, ElementMoles));
+
+    /// <summary>As <see cref="HpFromLever"/>, at constant entropy.</summary>
+    public HostSolution SpFromLever(double fraction) =>
+        Solve(ProblemKind.AssignedEntropyPressure, Pressure, Temperature, Upper.State.Entropy - (1.0 - fraction) * TransitionEntropy * Extent, LeverMoles(fraction));
+
+    /// <summary>The moles at <paramref name="fraction"/> of the way through the transition by the lever rule over the tp states at the plateau temperature ∓ <see cref="Bracket"/>.</summary>
+    private double[] LeverMoles(double fraction)
+    {
+        var lower = Tp(ElementMoles, Temperature - Bracket);
+        return [.. Upper.Moles.Zip(lower.Moles, (upper, below) => fraction * upper + (1.0 - fraction) * below)];
+    }
+
     /// <summary>A state at constant entropy and an arbitrary pressure, seeded as the plateau's own are.</summary>
     public HostSolution SpAt(double pressure, double entropy) =>
         Solve(ProblemKind.AssignedEntropyPressure, pressure, entropy, Seed.Moles);

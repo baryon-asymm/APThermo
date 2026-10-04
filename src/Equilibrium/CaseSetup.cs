@@ -70,6 +70,7 @@ internal static class CaseSetup
             FunctionsAt = -1.0,
             LastSwitchedOut = -1,
             LastRemovedForRange = -1,
+            AssignedTemperature = problem.Kind == ProblemKind.AssignedTemperaturePressure,
         };
         Estimate(table, scratch, result, source, activeGases, ref state);
         for (var i = 0; i < table.ElementCount; i++)

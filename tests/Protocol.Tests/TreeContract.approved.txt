@@ -55,7 +55,8 @@ readonly struct APThermo.Equilibrium.EquilibriumResult
     readonly ArrayView<MixtureState> State
 
 readonly struct APThermo.Equilibrium.EquilibriumScratch
-    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, ArrayView<Double> tieLogMoles, ArrayView<Double> tieCondensedMoles, TieElementSlices tieElements, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution, ArrayView<Int32> tieCondensedSet)
+    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, TieSlices tie, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution, ArrayView<Double> bracketEnds)
+    readonly ArrayView<Double> BracketEnds
     readonly ArrayView<Double> Corrections
     readonly ArrayView<Double> CpOverR
     readonly ArrayView<Double> GOverRT
@@ -65,13 +66,10 @@ readonly struct APThermo.Equilibrium.EquilibriumScratch
     readonly ArrayView<Double> RightHandSide
     readonly ArrayView<Double> RowScale
     readonly ArrayView<Double> SOverR
-    readonly ArrayView<Double> TieCondensedMoles
-    readonly ArrayView<Double> TieLogMoles
     readonly ArrayView<Int32> CondensedInSolution
     readonly ArrayView<Int32> ElementActive
     readonly ArrayView<Int32> SpeciesActive
-    readonly ArrayView<Int32> TieCondensedSet
-    readonly TieElementSlices TieElements
+    readonly TieSlices Tie
     static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
 
 static class APThermo.Equilibrium.EquilibriumSolver
@@ -99,6 +97,13 @@ readonly struct APThermo.Equilibrium.TieElementSlices
     readonly ArrayView<Double> CoefficientSnapshot
     readonly ArrayView<Double> Coefficients
     readonly ArrayView<Double> Multipliers
+
+readonly struct APThermo.Equilibrium.TieSlices
+    .ctor(ArrayView<Double> logMoles, ArrayView<Double> condensedMoles, ArrayView<Int32> condensedSet, TieElementSlices elements)
+    readonly ArrayView<Double> CondensedMoles
+    readonly ArrayView<Double> LogMoles
+    readonly ArrayView<Int32> CondensedSet
+    readonly TieElementSlices Elements
 
 == src/Execution
 

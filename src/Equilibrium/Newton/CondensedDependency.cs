@@ -25,7 +25,18 @@ internal static class CondensedDependency
     /// entered last is not a linear combination of the other condensed species of the solution, alone or with the gas
     /// phase.
     /// </summary>
-    public static int LeavingPosition(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount)
+    public static int LeavingPosition(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount) =>
+        Leaving(table, scratch, result, condensedCount, true);
+
+    /// <summary>
+    /// As <see cref="LeavingPosition"/> over the condensed species alone, without the gas column (BOOT.md, rule B,
+    /// 2026-10-03): the test of an hp or sp case, where the temperature column keeps a set with the gas as one more
+    /// column non-singular and the combination is not a null vector.
+    /// </summary>
+    public static int LeavingPositionWithoutGas(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount) =>
+        Leaving(table, scratch, result, condensedCount, false);
+
+    private static int Leaving(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, bool gasColumn)
     {
         var others = condensedCount - 1;
         if (others < 1)
@@ -34,7 +45,7 @@ internal static class CondensedDependency
         }
 
         var found = Combines(table, scratch, result, others, 0.0);
-        if (!found)
+        if (!found && gasColumn)
         {
             var gasMoles = 0.0;
             for (var j = 0; j < table.GasCount; j++)

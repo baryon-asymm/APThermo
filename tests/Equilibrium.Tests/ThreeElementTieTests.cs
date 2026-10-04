@@ -346,7 +346,7 @@ public sealed class ThreeElementTieTests
         }
 
         /// <summary>The coefficients <see cref="ElementCoupling.Find"/> left in the scratch, one per element.</summary>
-        public double[] Coefficients() => [.. Enumerable.Range(0, Table.ElementCount).Select(i => Scratch.TieElements.Coefficients[i])];
+        public double[] Coefficients() => [.. Enumerable.Range(0, Table.ElementCount).Select(i => Scratch.Tie.Elements.Coefficients[i])];
 
         public void Dispose()
         {

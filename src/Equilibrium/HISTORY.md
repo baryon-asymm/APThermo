@@ -8,6 +8,66 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="release-invariant-2026-10-03"></a>
+
+## 2026-10-03 — from the Newton node's "## Constraints" — the release's way back on a failed status only
+
+Step 3 of the 0.2.2 coding (`Newton/BOOT.md`, rule A, "Release"): the restore of the tied iterate was taken only when the release's one convergence failed by status. A release that passes the report's tests but leaves an element's balance beyond the invariant has failed at the one thing it is for; since the case would end `NotConverged` or `TemperatureOutOfRange` at the close anyway, the restore is now taken on `ElementBalance.WithinInvariant`, the close's own predicate, over the moles the close would judge (after the `Composition.Refresh` of the final iterate). Measured on the magnesite plateau (`MagnesiteLeverSeedTests`): hp states at fractions up to one half, seeded on the plateau at 1e4 and 1e6 Pa, ended `TemperatureOutOfRange` after 67 to 70 iterations without it and `Ok` after 47 to 49 with it. The wording stood:
+
+>       When that convergence fails, the tied iterate the release started from is
+>       restored and closed with the tie in force, as a tie that survived to the close
+>       (the third pass of 2026-09-28).
+
+---
+
+<a id="rule-b-tp-2026-10-03"></a>
+
+## 2026-10-03 — from the Newton node's "## Constraints" — rule B in hp and sp
+
+Step 3 of the 0.2.2 coding (`Newton/BOOT.md`, rule B): the sentence "in practice this is a tp rule" was a claim about the matrix, not a test, and the gas column of rule B did fire in hp and sp (8 times in `GasPlateauSystemsTests`) and removed MgCO3 from the true univariant state of the MgCO3/MgO plateau under CO2. The gas column now binds an assigned temperature only (`IterationState.AssignedTemperature`); the condensed-only half still binds hp and sp, which a measurement decided (limiting the whole rule to tp failed four of the six states of `RuleBCondensedHalfTests` and two gas-plateau families of `Execution.Tests`). The wording stood:
+
+>     the set, and it is not marked for the anti-cycling skip. In hp and sp the
+>     temperature column keeps such a set non-singular, so in practice this is a tp rule.
+
+---
+
+<a id="scratch-14-2026-10-03"></a>
+
+## 2026-10-03 — from "## Structure" and "## Shape exceptions" — the scratch descriptor's 16 parameters
+
+Step 2 of the 0.2.2 coding: rule A's four snapshot slices (the gaseous logarithms, the condensed moles, the condensed set and the group of element slices) became `TieSlices`, and the temperature bracket's two ends became the one slice `BracketEnds`, appended after `RowScale` so that no earlier offset moved; the constructor takes 14 parameters and `DoublesPerCase` is nine doubles per species (was seven). The wording of the decision and of its row stood:
+
+> `EquilibriumScratch` (the row below gives its parameter count) lists the slices of the
+> batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them
+> would move the contract and re-emit the kernels. It is this node's declared exception to
+> the parameter rule, on the root's condition that every creation names its arguments; a
+> scan of the construction sites found the one site, in `Slice`, and it names every argument.
+
+> | `EquilibriumScratch.EquilibriumScratch` | parameters | 16 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice; grouping them would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
+
+---
+
+<a id="ce-convergence-tests-2026-10-03"></a>
+
+## 2026-10-03 — from "## Shape exceptions" — the type at 14
+
+Moved to make room in `BOOT.md` (`AGENTS.md`, §15) when `ConvergenceSequence` joined the sentence above it. The paragraph below stood after the review of the convergence-tests bullet; the figure it states is still true, and the current text names the type in the sentence about every other type.
+
+> ⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14, on the root's limit, since it
+> names the types `RetentionVerdict` and `Crossing` read; no other type moved
+
+---
+
+<a id="ce-solver-2026-10-03"></a>
+
+## 2026-10-03 — from "## Shape exceptions" — the composition root's row at 24
+
+`ConvergenceSequence` took `RunToConvergence` out of `EquilibriumSolver` (step 1 of the 0.2.2 coding, moved without change), and with it the names `NewtonIteration`, `ElementTie`, `TieSnapshot` and `ElementCoupling`; the dependency check's walk then measured 21 for `EquilibriumSolver`, and the row follows the measurement. The row stood:
+
+> | `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+
+---
+
 <a id="exit-guard-scope-2026-10-02"></a>
 
 ## 2026-10-02 — from "## Constraints" — the exit guard's scope

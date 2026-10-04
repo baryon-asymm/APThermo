@@ -44,7 +44,7 @@ internal static class ElementCoupling
         for (var i = 0; i < elementCount; i++)
         {
             var coefficient = i == element ? 0.0 : scratch.RightHandSide[i];
-            scratch.TieElements.Coefficients[i] = coefficient;
+            scratch.Tie.Elements.Coefficients[i] = coefficient;
             any |= coefficient != 0.0;
         }
 
@@ -97,7 +97,7 @@ internal static class ElementCoupling
         var combination = 0.0;
         for (var i = 0; i < table.ElementCount; i++)
         {
-            combination += scratch.TieElements.Coefficients[i] * table.Stoichiometry[i * speciesCount + species];
+            combination += scratch.Tie.Elements.Coefficients[i] * table.Stoichiometry[i * speciesCount + species];
         }
 
         return table.Stoichiometry[element * speciesCount + species] - combination;
@@ -109,7 +109,7 @@ internal static class ElementCoupling
         var combination = 0.0;
         for (var i = 0; i < elementCount; i++)
         {
-            combination += scratch.TieElements.Coefficients[i] * problem.ElementMoles[i];
+            combination += scratch.Tie.Elements.Coefficients[i] * problem.ElementMoles[i];
         }
 
         return problem.ElementMoles[element] - combination;
@@ -122,7 +122,7 @@ internal static class ElementCoupling
         var scale = Math.Abs(table.Stoichiometry[element * speciesCount + species]);
         for (var i = 0; i < table.ElementCount; i++)
         {
-            scale += Math.Abs(scratch.TieElements.Coefficients[i] * table.Stoichiometry[i * speciesCount + species]);
+            scale += Math.Abs(scratch.Tie.Elements.Coefficients[i] * table.Stoichiometry[i * speciesCount + species]);
         }
 
         return Math.Abs(Weight(table, scratch, element, species)) <= CombinationTolerance * scale;
@@ -134,7 +134,7 @@ internal static class ElementCoupling
         var speciesCount = table.SpeciesCount;
         for (var i = 0; i < table.ElementCount; i++)
         {
-            if (scratch.TieElements.Coefficients[i] != 0.0 && table.Stoichiometry[i * speciesCount + species] != 0.0)
+            if (scratch.Tie.Elements.Coefficients[i] != 0.0 && table.Stoichiometry[i * speciesCount + species] != 0.0)
             {
                 return true;
             }
