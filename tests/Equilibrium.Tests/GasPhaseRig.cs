@@ -147,6 +147,47 @@ internal static class GasPhaseRig
 
         return new Vertex(directions, pi, molesBuffer.GetAsArray1D());
     }
+
+    /// <summary>
+    /// The optimal basis of the program with every gas a column at unit fraction (TraceGas BOOT.md, "The gas basis"): each basic
+    /// species by name with its amount (kmol/kg, zero for a basic at zero level). Null when the program does not complete.
+    /// </summary>
+    public static Dictionary<string, double>? GasBasisOf(EquilibriumCase problem)
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var table = problem.Table;
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        var speciesCount = table.SpeciesCount;
+        var elementCount = table.ElementCount;
+        using var elements = accelerator.Allocate1D(problem.ElementMoles);
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        using var molesBuffer = accelerator.Allocate1D<double>(speciesCount);
+        using var multipliersBuffer = accelerator.Allocate1D<double>(elementCount);
+        using var state = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
+        var view = buffers.View;
+        var attempt = new IterationState();
+        Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(view, input, scratch, result, EstimateSource.Defaults, ref attempt));
+        if (!GasPhaseVerdict.PhaseOnePoint(view, input, scratch, result, true, out _))
+        {
+            return null;
+        }
+
+        var basis = new Dictionary<string, double>();
+        var rows = Enumerable.Range(0, elementCount).Count(i => problem.ElementMoles[i] > 0.0);
+        for (var k = 0; k < rows; k++)
+        {
+            var column = scratch.CondensedInSolution[k];
+            basis[column >= 0 ? table.Species[column] : "artificial"] = scratch.Corrections[k];
+        }
+
+        return basis;
+    }
 }
 
 /// <summary>The condensed minimum before the tangent-plane search: the face's dimension, the vertex multipliers and the moles.</summary>

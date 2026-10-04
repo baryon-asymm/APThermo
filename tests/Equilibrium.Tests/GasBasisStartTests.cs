@@ -30,4 +30,32 @@ public sealed class GasBasisStartTests
     /// <summary>The theory walks all nine: a name that left its scan would otherwise drop out silently.</summary>
     [Fact]
     public void TheNineStatesAreAllInTheScans() => Assert.Equal(Settled.Length, States().Count);
+
+    /// <summary>
+    /// The program with the gases as columns: for Li2O + 1e-10 O at 800 K and 1 kPa the basis is Li2O(cr) holding the lithium and O2 the
+    /// excess of oxygen, b_O − b_Li/2, as O2; for CaCO3 + 1e-8 O at 500 K and 1 kPa it holds CaO(cr) at zero level beside CaCO3(cr) and O2,
+    /// the balancing phase; for Al(OH)3 − 1e-8 O at 500 K and 1 kPa it holds water as vapour and the hydrogen the oxygen cannot bind as H2.
+    /// </summary>
+    [Fact]
+    public void TheProgramWithTheGasesAsColumnsHoldsTheCarrierAndTheBalancingPhase()
+    {
+        var all = TraceGasCases.TraceScan().ToDictionary(state => state.Name);
+        var lithia = all["Li2O|1E-10|1000|800"];
+        var basis = GasPhaseRig.GasBasisOf(lithia.AsCase());
+        Assert.NotNull(basis);
+        Assert.Equal(["Li2O(cr)", "O2"], basis.Keys.Order(StringComparer.Ordinal));
+        var b = lithia.ElementMoles;
+        Assert.Equal(b[0] / 2.0, basis["Li2O(cr)"], b[0] * 1.0e-14);
+        var excess = (b[1] - b[0] / 2.0) / 2.0;
+        Assert.Equal(excess, basis["O2"], excess * 1.0e-4);
+
+        var calcite = GasPhaseRig.GasBasisOf(all["CaCO3|1E-08|1000|500"].AsCase());
+        Assert.NotNull(calcite);
+        Assert.Equal(["CaCO3(cr)", "CaO(cr)", "O2"], calcite.Keys.Order(StringComparer.Ordinal));
+        Assert.True(calcite["CaO(cr)"] == 0.0, $"CaO(cr) at {calcite["CaO(cr)"]}");
+
+        var gibbsite = GasPhaseRig.GasBasisOf(all["Al(OH)3|-1E-08|1000|500"].AsCase());
+        Assert.NotNull(gibbsite);
+        Assert.Equal(["AL2O3(a)", "H2", "H2O"], gibbsite.Keys.Order(StringComparer.Ordinal));
+    }
 }

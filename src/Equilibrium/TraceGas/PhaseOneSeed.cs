@@ -39,12 +39,7 @@ internal static class PhaseOneSeed
     public static bool Fetch(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                              in EquilibriumResult result, out double residual)
     {
-        for (var j = 0; j < table.SpeciesCount; j++)
-        {
-            scratch.LogMoles[j] = scratch.Tie.LogMoles[j];
-        }
-
-        var found = GasPhaseVerdict.PhaseOnePoint(table, problem, scratch, result, out residual);
+        var found = Point(table, problem, scratch, result, false, out residual);
         var records = 0;
         for (var j = table.GasCount; j < table.SpeciesCount && found; j++)
         {
@@ -60,6 +55,24 @@ internal static class PhaseOneSeed
             scratch.Tie.CondensedSet[k] = -1;
         }
 
+        return found;
+    }
+
+    /// <summary>
+    /// The one call site of <see cref="GasPhaseVerdict.PhaseOnePoint"/>, over the condensed records alone or, with
+    /// <paramref name="withGas"/>, over every gas too (<c>GasBasisSeed</c>). The simplex overwrites <c>Tie.LogMoles</c>, where the
+    /// pass keeps the entry's moles, so they are put aside in <c>scratch.LogMoles</c> and back; the optimal basis the program leaves in
+    /// the scratch is untouched.
+    /// </summary>
+    public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                             in EquilibriumResult result, bool withGas, out double residual)
+    {
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            scratch.LogMoles[j] = scratch.Tie.LogMoles[j];
+        }
+
+        var found = GasPhaseVerdict.PhaseOnePoint(table, problem, scratch, result, withGas, out residual);
         for (var j = 0; j < table.SpeciesCount; j++)
         {
             scratch.Tie.LogMoles[j] = scratch.LogMoles[j];

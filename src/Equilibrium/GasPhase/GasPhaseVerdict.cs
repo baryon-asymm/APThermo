@@ -39,19 +39,22 @@ internal static class GasPhaseVerdict
 
     /// <summary>
     /// The point the trace-gas pass starts from (2026-10-04), for the tp <paramref name="problem"/> at its temperature: true when
-    /// the program completes, with <c>result.Moles</c> holding its condensed point and every gas and every other record zero. That is
-    /// the vertex phase one stops at when the condensed species cannot hold every element (<paramref name="residual"/>: the moles
-    /// they cannot hold, above zero), else the condensed minimum (residual zero). False, nothing written, when phase one does not
-    /// complete. It borrows the verdict's scratch as <see cref="Decide"/> does and neither keeps nor restores the failed attempt's
-    /// moles and multipliers: its one caller, the trace-gas node's <c>PhaseOneSeed</c>, has put them aside. Reached through this
-    /// one method so that ILGPU compiles it once (root BOOT.md, compile size).
+    /// the program completes, with <c>result.Moles</c> holding its point and every other species zero. That is the vertex phase one
+    /// stops at when the columns cannot hold every element (<paramref name="residual"/>: the moles they cannot hold, above zero),
+    /// else the minimum over the columns (residual zero). The columns are the condensed records, and with
+    /// <paramref name="withGas"/> every gas too, at unit fraction (BOOT.md, "The gas basis", 2026-10-05); the optimal basis then
+    /// stays in the scratch. False, nothing written, when phase one does not complete. It borrows the verdict's scratch as
+    /// <see cref="Decide"/> does and neither keeps nor restores the failed attempt's moles and multipliers: its one caller, the
+    /// trace-gas node's <c>PhaseOneSeed</c>, has put them aside. Reached through this one method so that ILGPU compiles it once
+    /// (root BOOT.md, compile size).
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool PhaseOnePoint(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                     in EquilibriumResult result, out double residual)
+                                     in EquilibriumResult result, bool withGas, out double residual)
     {
         Composition.EvaluateFunctions(table, scratch, problem.Temperature);
-        return CondensedSimplex.Point(table, problem, scratch, result, problem.Temperature, out residual);
+        var columns = new SimplexColumns(problem.Temperature, withGas ? CaseSetup.LogPressure(problem) : 0.0, withGas);
+        return CondensedSimplex.Point(table, problem, scratch, result, columns, out residual);
     }
 
     /// <summary>ln S of the gas phase at the multipliers in <c>result.Multipliers</c> (the certificate's quantity).</summary>

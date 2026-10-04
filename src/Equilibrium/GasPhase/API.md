@@ -45,20 +45,31 @@ internal static class GasPhaseVerdict
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool PhaseOnePoint(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                     in EquilibriumResult result, out double residual);
-        // tp at problem.Temperature. True when the program completes: result.Moles holds its condensed point, every gas
-        // and every other record zero — the phase-one vertex when the condensed species cannot hold every element
-        // (residual: the moles they cannot hold, > 0), else the condensed minimum (residual 0). False, nothing written,
-        // when phase one does not complete. One call site, TraceGas's PhaseOneSeed; it borrows the verdict's scratch and
-        // neither keeps nor restores the failed attempt's moles and multipliers.
+                                     in EquilibriumResult result, bool withGas, out double residual);
+        // tp at problem.Temperature. True when the program completes: result.Moles holds its point, every other species
+        // zero — the phase-one vertex when the columns cannot hold every element (residual: the moles they cannot hold,
+        // > 0), else the minimum over the columns (residual 0). The columns are the records and, withGas, every gas at
+        // unit fraction (2026-10-05); the optimal basis then stays in CondensedInSolution, Corrections and
+        // Tie.CondensedSet. False, nothing written, when phase one does not complete. One call site, TraceGas's
+        // PhaseOneSeed.Point; it borrows the verdict's scratch and neither keeps nor restores the failed attempt's
+        // moles and multipliers.
 }
 
 internal static class CondensedSimplex
 {
-    public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, double temperature, out double residual);
+    public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, in SimplexColumns columns, out double residual);
         // what PhaseOnePoint writes, from the program Minimize runs; both share its two phases
 }
+
+internal readonly struct SimplexColumns(double temperature, double logPressure, bool withGas)
+{
+    public readonly double Temperature; public readonly double LogPressure; public readonly bool WithGas;
+    public int FirstColumn(in SpeciesTableView table);                 // 0 with the gases, else table.GasCount
+}
 ```
+
+⚠ 2026-10-05: was `PhaseOnePoint(…, out double residual)` and `Point(…, double temperature, out double residual)`,
+now with `bool withGas` and `in SimplexColumns columns`: the trace-gas pass asks the program with the gases.
 
 After any verdict but `Gasless`, `Decide` leaves the multipliers it restored in
 `scratch.Tie.Elements.Multipliers` (2026-10-04): the trace-gas pass takes its anchor there.
