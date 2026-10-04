@@ -65,7 +65,8 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   through explicit parameters; numerical nodes have no mutable static fields. Checked
   by reflection (`Protocol.Tests.InvariantTests.NumericalNodesHaveNoMutableStaticField`).
 - **Failures are values.** Numerical code reports a per-case status code and never
-  throws; the front door node turns statuses into results or exceptions.
+  throws; the front door node turns statuses into results or exceptions. Only `Ok`
+  carries a state, and `NoGasPhase` (no gas) its temperature and pressure (2026-10-03).
 
 ## Dependencies
 
