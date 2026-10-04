@@ -301,7 +301,7 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       sets; red with the rule disabled (no station left without a derivative). At this
       onset the disagreement bound drops the gas rows too, so the fact proves the rule's
       own output, not that the rule alone prevents a wrong correction.
-- [ ] The step-share bound holds over the whole run (`## Invariants`, the ⚠ of 2026-10-04):
+- [x] The step-share bound holds over the whole run (`## Invariants`, the ⚠ of 2026-10-04):
       `CudaTests.TheStepShareOverTheWholeRun` green on the reference machine after every CUDA
       family, the sweep included (the figure: differing stations over stations of the run).
       Without CUDA, proven 2026-10-04 by `StepShareLedgerTests` (6 facts: the coarse guard of a
@@ -310,7 +310,8 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       `TheStepShareOverTheWholeRun` after every other `CudaTests` case. Red once, 2026-10-04:
       the floor of one removed from `StepShareLedger.Allowed` (a family of one fails) and the
       run's bound multiplied by 1000 (a run of 999 stations with one flip passes), 2 of 6 red.
-- [ ] The 0.2.2 gasless and bracketed families on CUDA (`## Purpose`, the L2 row of 2026-10-04):
+      On CUDA, 2026-10-04 (fixes-0.2.2 at 11fe71f6, Release, the whole `CudaTests` class, the sweep included, 68 of 68): "35 of 400725 stations differ (share 8.73E-005, bound 1e-3)".
+- [x] The 0.2.2 gasless and bracketed families on CUDA (`## Purpose`, the L2 row of 2026-10-04):
       `CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator` green on the reference machine for each
       family of `RecoveryFamilies.Names` (`gasless-ko2`, `gasless-nao2`, `bracket-calcite-1e5`,
       `bracket-magnesite-1e5`, `bracket-ap-htpb-al-20mpa`): equal statuses, `Ok` fields within the table,
@@ -328,13 +329,15 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       of `## Invariants` (bracketed cases: totals of `Iterations` not counted, gas fractions at the first tier;
       `ABracketedComparisonCountsNoStepsAndHoldsTheFirstTier` on the CPU), after which the five families and the
       launch-budget fact are green on the reference machine in Release (6 of 6, `CudaTests` without the long set 32 of 32).
-- [ ] One launch of cases that all bracket stays within the launch budget (`## Purpose`, the same L2 row):
+      On CUDA, 2026-10-04 (11fe71f6, Release, `CudaTests`): green for all five families; worst `noGasPhaseTemperature` 2.05e-14 (gasless-ko2) and 9.7e-16 (gasless-nao2), worst bracketed gas mole fraction 2.06e-12.
+- [x] One launch of cases that all bracket stays within the launch budget (`## Purpose`, the same L2 row):
       `CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget` green on the reference machine,
       the kernel time of one launch of 16 384 (or one wave, if smaller) hp and sp cases of `gasless-ko2`
       below a quarter of `LaunchBudget.DefaultRunTimeLimit`, the figure in the test output. Without CUDA the
       check (`RecoveryFamilies.LaunchViolation`) is proven on the CPU accelerator, 2026-10-04:
       `BracketedFamiliesTests.TheLaunchBudgetCheckRefusesALaunchOverTheLimitAndACaseThatDidNotBracket`
       (a limit of zero and a case that ended `Ok` are refused).
+      On CUDA, 2026-10-04 (11fe71f6, Release): 16 384 bracketing cases in one launch, kernel 361.3 ms against the 500 ms budget, 151 Newton steps per case on average.
 - [ ] Seeded families and every equilibrium fixture table (2026-10-04, 0.2.2; `src/Execution/ACCEPTANCE.md`, criterion of
       that date; `## Purpose`, the L2 row): the families of `SeededFamilies` (`seeded-fixtures`, the tp fixtures of every table
       at half pressure, the bracketed calcite and magnesite states seeded 20 K above the plateau) and the family of every
@@ -371,10 +374,11 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
         `API.md`; the protocol lint gives 0 and 0.
       - Seeded bracketed families are compared with `IterationsSumAttempts` and so add nothing to the step-share ledger; the
         seeded fixtures, the warm families and the table families do.
-- [ ] The comparison rules of `## Invariants`, "What a difference between the accelerators is not" (2026-10-04, coder 5 of 0.2.2;
+- [x] The comparison rules of `## Invariants`, "What a difference between the accelerators is not" (2026-10-04, coder 5 of 0.2.2;
       the box stays unticked until the orchestrator's CUDA run on the merged tree): the full `CudaTests` class in Release on the
       reference machine, a short run, no throughput measurement: 67 of 67 green (the throughput fact excluded), the eight failures
       of the run of de7cda2f resolved without a tier, share bound or case moved: 2026-10-04, `CudaTests` (the `measured:` lines
       of the run name the worst species, κ and balance residual of each case a rule decided). Without CUDA the four rules are
       proven by the four facts of `ComparisonRuleTests`, each red once with its rule alone broken (enthalpy bound at zero,
       `DataEffect` null, `NoiseFactor` 0, the guard at its entry), 2026-10-04.
+      On the merged tree, 2026-10-04 (11fe71f6, Release, the whole `CudaTests` class with the sweep and the throughput fact): 68 of 68 green; the `measured:` lines unchanged from the coder's run.
