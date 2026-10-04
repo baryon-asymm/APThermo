@@ -131,7 +131,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name);
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, onlyOk: true);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: false);
     }
 
     /// <summary>
@@ -154,7 +154,7 @@ public sealed class CudaTests(ITestOutputHelper output)
 
         var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
         output.WriteLine($"{name}: {family.Batch.Count} cases, {family.Gasless} gasless, {family.Dropped} dropped");
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, onlyOk: false);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: true);
     }
 
     /// <summary>
@@ -186,24 +186,27 @@ public sealed class CudaTests(ITestOutputHelper output)
     }
 
     private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], onlyOk: true);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], bracketed: false);
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool onlyOk)
+    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool bracketed)
     {
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
         var gpu = cuda.Run(cudaTables, batch);
-        if (onlyOk)
+        if (!bracketed)
         {
             Assert.All(cpu.Status, status => Assert.Equal(CaseStatus.Ok, status));
         }
 
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
+        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed };
         var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
         var mismatches = comparison.Equilibrium(cpu, gpu, batch, table, labels, sensitivities);
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
-        AssertDifferentStepShare(comparison.DifferentSteps, batch.Count);
+        if (!bracketed)
+        {
+            AssertDifferentStepShare(comparison.DifferentSteps, batch.Count);
+        }
     }
 
     /// <summary>The sweep of 100000 cases on cuda matches the cpu accelerator and is deterministic.</summary>

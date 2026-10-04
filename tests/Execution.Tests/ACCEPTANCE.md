@@ -323,6 +323,11 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       `BatchTests.ABracketedFamilyEqualsTheHostSolverBitForBit` (the CPU accelerator equals the host solver
       bit for bit, `NoGasPhase` cases included). Red once, 2026-10-04: the host call over element moles moved
       by 1e-9 (5 of 5 `BatchTests` red) and the expected status of `AFamilyHoldsTheCasesItStandsFor` swapped (5 of 5 red).
+      First CUDA run (the merge-guard of `763382cc`): the gasless families green, the three bracketed ones red on the
+      step-share guard alone, every field and fraction inside the tiers; measured and resolved 2026-10-04 by the rule
+      of `## Invariants` (bracketed cases: totals of `Iterations` not counted, gas fractions at the first tier;
+      `ABracketedComparisonCountsNoStepsAndHoldsTheFirstTier` on the CPU), after which the five families and the
+      launch-budget fact are green on the reference machine in Release (6 of 6, `CudaTests` without the long set 32 of 32).
 - [ ] One launch of cases that all bracket stays within the launch budget (`## Purpose`, the same L2 row):
       `CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget` green on the reference machine,
       the kernel time of one launch of 16 384 (or one wave, if smaller) hp and sp cases of `gasless-ko2`

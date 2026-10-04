@@ -20,6 +20,15 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
 
     public int DifferentSteps { get; private set; }
 
+    /// <summary>
+    /// True for the cases of a family that runs the 0.2.2 temperature bracket: their <c>Iterations</c> is the sum of the Newton steps of
+    /// every attempt and every tp probe, so two accelerators that took the same decisions up to a flip in one probe differ in the
+    /// total without differing in the final solve. <see cref="Equilibrium"/> then does not count the difference toward the step share
+    /// and compares every mole fraction at the first tier, the one for equal steps, which is stricter than the second (Execution.Tests
+    /// BOOT.md, 2026-10-04); the total's difference is recorded as <c>bracketedIterationDifference</c>.
+    /// </summary>
+    public bool IterationsSumAttempts { get; init; }
+
     /// <summary>Species compared with the balance-remnant correction applied, over every call of <see cref="Moles"/>.</summary>
     public int CorrectedSpecies { get; private set; }
 
@@ -98,15 +107,22 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
             }
 
             var sameSteps = cpu.Iterations[k] == gpu.Iterations[k];
-            var station = new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps, labels[k]);
-            if (cpu.Status[k] == CaseStatus.Ok)
+            if (IterationsSumAttempts)
+            {
+                Record("bracketedIterationDifference", Math.Abs(cpu.Iterations[k] - gpu.Iterations[k]));
+            }
+            else
             {
                 CountSteps(sameSteps);
+            }
+
+            var station = new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps || IterationsSumAttempts, labels[k]);
+            if (cpu.Status[k] == CaseStatus.Ok)
+            {
                 mismatches.AddRange(OkCase(cpu, gpu, balance, station, sensitivities, table));
             }
             else if (cpu.Status[k] == CaseStatus.NoGasPhase)
             {
-                CountSteps(sameSteps);
                 mismatches.AddRange(GaslessCase(cpu, gpu, batch, balance, station, table));
             }
         }

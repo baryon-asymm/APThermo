@@ -51,6 +51,19 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   `max(1, floor(1e-3 · stations))` differing stations. The table is not loosened. Facts
   without CUDA: `StepShareLedgerTests`.
 
+  **Bracketed cases** (0.2.2, 2026-10-04): the `Iterations` of an hp or sp case that ran the
+  temperature bracket sums every attempt and every tp probe (`Equilibrium`'s `API.md`), and
+  the batch result does not split it, so a flip of one probe or bisection decision moves the
+  total without moving the final solve. Measured on CUDA on the reference machine on the 18
+  stations of `bracket-calcite-1e5`, `bracket-magnesite-1e5` and `bracket-ap-htpb-al-20mpa`:
+  totals differ by up to 89 (14 of 18 differ) while the final states agree far inside the
+  first tier: temperature 2.9e-13, state fields 6.5e-13, condensed fractions 5e-13, gas
+  fractions 4e-12 (AP/HTPB/Al) and 3e-13 (calcite after the balance-remnant correction; raw
+  3e-9 on the O2 remnant, κ 1e6 times residuals of 1e-14). The rule for a family that runs
+  the bracket (`GpuCpuComparison.IterationsSumAttempts`): no difference of totals counts toward
+  the step share, and every gaseous mole fraction is held to the first tier (1e-10; a condensed one keeps its own 1e-9), stricter than the
+  second the totals would have bought. No tier moves and the share bound stays 1e-3.
+
   A third mole-fraction tier (the owner's decision of 2026-10-03): a **condensed**
   species not below the floor is compared at relative 1e-9 whatever the Newton counts.
   Derivation: a condensed amount on a phase plateau is ill-conditioned, with `d ln x/d ln

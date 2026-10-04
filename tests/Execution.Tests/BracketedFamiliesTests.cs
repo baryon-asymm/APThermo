@@ -67,7 +67,7 @@ public sealed class BracketedFamiliesTests(ITestOutputHelper output)
     {
         var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
         var run = BalanceRemnantTests.TwoRuns((family.Batch, family.Table, []));
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
+        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true };
         var mismatches = comparison.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities);
         output.WriteLine($"{name}: worst {comparison.Worst()}");
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
@@ -129,6 +129,34 @@ public sealed class BracketedFamiliesTests(ITestOutputHelper output)
         Assert.Contains("did not end NoGasPhase", RecoveryFamilies.LaunchViolation(run, TimeSpan.FromMinutes(1)), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A bracketed case's <c>Iterations</c> sums every attempt and every probe (Equilibrium API), so a second run over moved element moles
+    /// differs in the total while its final state agrees to the first tier: the comparison for bracketed families counts nothing toward the
+    /// step share (<see cref="GpuCpuComparison.IterationsSumAttempts"/>) and holds every mole fraction to the first tier, which a
+    /// second-tier deviation (5e-10, inside the polish-threshold tier and above the first) must fail, where an unbracketed comparison of
+    /// stations with different step counts accepts it.
+    /// </summary>
+    [Fact]
+    public void ABracketedComparisonCountsNoStepsAndHoldsTheFirstTier()
+    {
+        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, "bracket-magnesite-1e5");
+        var run = BalanceRemnantTests.TwoRuns((family.Batch, family.Table, []));
+        Assert.Contains(Enumerable.Range(0, family.Batch.Count), k => run.Cpu.Iterations[k] != run.Other.Iterations[k]);
+        var bracketed = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true };
+        Assert.Empty(bracketed.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities));
+        Assert.Equal(0, bracketed.DifferentSteps);
+        Assert.Contains("bracketedIterationDifference", bracketed.Worst(), StringComparison.Ordinal);
+
+        var species = family.Table.SpeciesCount;
+        var total = run.Other.Moles.Take(species).Sum();
+        var gas = Enumerable.Range(0, family.Table.GasCount).First(j => run.Other.Moles[j] / total > 1e-3);
+        run.Other.Moles[gas] *= 1.0 + 5e-10;
+        var strict = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true };
+        Assert.Contains(strict.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities), m => m.Contains($"x({family.Table.Species[gas]})", StringComparison.Ordinal));
+        var loose = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
+        Assert.DoesNotContain(loose.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities), m => m.Contains($"x({family.Table.Species[gas]})", StringComparison.Ordinal));
+    }
+
     private static string Single(List<string> mismatches) => Assert.Single(mismatches);
 
     /// <summary>The family run twice on the CPU accelerator, the second result broken by <paramref name="breakIt"/>, and the comparison of the two.</summary>
@@ -137,6 +165,6 @@ public sealed class BracketedFamiliesTests(ITestOutputHelper output)
         var cpu = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
         var other = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
         breakIt(other);
-        return new GpuCpuComparison(EngineFixture.Shared.Tolerances).Equilibrium(cpu, other, family.Batch, family.Table, family.Labels, sensitivities);
+        return new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true }.Equilibrium(cpu, other, family.Batch, family.Table, family.Labels, sensitivities);
     }
 }
