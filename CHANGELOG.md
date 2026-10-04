@@ -43,6 +43,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   2e-5 of the gas where the equilibrium holds none. Every `Ok` now has each reported gas on its
   chemical potential within 1e-9, and such a state is solved by the temperature search with the
   trace-gas iteration as its last step.
+- An assigned-enthalpy or assigned-entropy state whose target lies at a temperature where the NASA
+  fits of two ranges meet (1 000 K for most species) ends `Ok` there. The two fits disagree by up to
+  1e-8 in ln x of a gas, so no temperature has the target within the iteration's tolerance and the
+  gas-level check of every `Ok` could not hold on both sides. The state reported is the equilibrium at
+  the junction on the side whose enthalpy (entropy) is nearer the target, and it misses the target by
+  at most the jump of the data, 1e-8 of c_p T (measured 8.3e-9 for gas mixtures at 1 000 K).
 - Assigned-enthalpy and assigned-entropy states of MgCO3 under CO2 below its decomposition no longer
   end `TemperatureOutOfRange` when their derivative system was singular.
 - An assigned-enthalpy or assigned-entropy state the iteration cannot reach from its start

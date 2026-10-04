@@ -36,6 +36,8 @@ a full restatement of the equations in this document, which nobody has asked for
   ⚠ 2026-10-04: was ≤ 1e-12 · max(1, b_i), now ≤ 1e-13 · b_i → HISTORY.md#relative-invariant
 - **Gas-level stationarity at convergence** (2026-10-04). Every gas an `Ok` reports sits on its
   stationarity within 1e-9; the close refuses any other state as `NotConverged` ([TraceGas](TraceGas/BOOT.md)).
+  An hp or sp state at a data junction (an interval bound where the fits of two ranges disagree) is the tp
+  state at the bound or at the next double, the one nearer the target (TraceGas, "The data junction").
 - **The candidate list never changes.** Every species of the table is a candidate
   throughout; in the Newton iteration gaseous species stay positive because the unknowns
   are their logarithms, and a `NoGasPhase` result reports them zero

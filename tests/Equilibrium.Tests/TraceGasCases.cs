@@ -220,6 +220,28 @@ internal static class TraceGasCases
         ("Li2O", ["LI", "O"], [2.0, 1.0]), ("MgO", ["MG", "O"], [1.0, 1.0]), ("CaCO3", ["CA", "C", "O"], [1.0, 1.0, 3.0]),
     ];
 
+    /// <summary>K: the junction of the data's two temperature ranges, where the NASA fits of the gases of most species meet.</summary>
+    public const double JunctionTemperature = 1000.0;
+
+    /// <summary>
+    /// The nine all-gas systems at 1 kPa, 100 kPa and 10 MPa, each at the junction of the data's two temperature ranges, at the double below and
+    /// the double above it, and at its temperature times 1 ± 1e-9: the tp states whose hp and sp states the iteration cannot reach inside the
+    /// jump of the data (TraceGas BOOT.md, "The data junction"). 135 states.
+    /// </summary>
+    public static IEnumerable<TraceGasCase> JunctionStates() =>
+        JunctionSystems.SelectMany(system => ScanPressures.SelectMany(pressure => JunctionTemperatures.Select(temperature =>
+            new TraceGasCase(Name(system.Name, pressure, temperature), system.Elements, system.Ratio, pressure, temperature))));
+
+    private static readonly double[] JunctionTemperatures =
+        [JunctionTemperature, Math.BitDecrement(JunctionTemperature), Math.BitIncrement(JunctionTemperature), JunctionTemperature * (1.0 + 1.0e-9), JunctionTemperature * (1.0 - 1.0e-9)];
+
+    private static readonly (string Name, string[] Elements, double[] Ratio)[] JunctionSystems =
+    [
+        ("h2o", ["H", "O"], [2.0, 1.0]), ("h4o", ["H", "O"], [4.0, 1.0]), ("h2o2", ["H", "O"], [2.0, 2.0]),
+        ("co2", ["C", "O"], [1.0, 2.0]), ("co3", ["C", "O"], [1.0, 3.0]), ("air", ["N", "O"], [4.0, 1.0]),
+        ("chon", ["C", "H", "O", "N"], [1.0, 4.0, 3.0, 2.0]), ("hcl", ["H", "CL"], [1.0, 1.0]), ("kcl3", ["K", "CL"], [1.0, 3.0]),
+    ];
+
     /// <summary>The 17 systems at the excesses <paramref name="excesses"/> of their last element, at 300 to 3000 K and 1 kPa, 100 kPa and 10 MPa.</summary>
     public static IEnumerable<TraceGasCase> Scan(double[] excesses) =>
         Systems.SelectMany(system => ScanPressures.SelectMany(pressure => ScanTemperatures.SelectMany(temperature =>

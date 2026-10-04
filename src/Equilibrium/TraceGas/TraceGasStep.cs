@@ -196,9 +196,13 @@ internal static class TraceGasStep
     /// <summary>ln T += λ τ; false when the temperature leaves the iterate window of hp and sp (or is not a number), which ends the convergence <c>TemperatureOutOfRange</c>.</summary>
     public static bool MoveTemperature(ref IterationState state, double lambda, double tau)
     {
-        state.Temperature = Math.Exp(Math.Log(state.Temperature) + lambda * tau);
+        state.Temperature = NextTemperature(state.Temperature, lambda, tau);
         return state.Temperature is >= EquilibriumSolver.MinTemperature and <= EquilibriumSolver.MaxTemperature;
     }
+
+    /// <summary>The temperature the step λ τ leads to from <paramref name="temperature"/>: <c>exp(ln T + λ τ)</c>.</summary>
+    public static double NextTemperature(double temperature, double lambda, double tau) =>
+        Math.Exp(Math.Log(temperature) + lambda * tau);
 
     /// <summary>Whether every active element's balance holds within <see cref="BalanceTest"/> times b_i over the moles in the result.</summary>
     public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)

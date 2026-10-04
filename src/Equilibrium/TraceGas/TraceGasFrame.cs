@@ -28,4 +28,8 @@ internal readonly struct TraceGasFrame(SystemLayout layout, double logPressure, 
     /// <summary>The shape of the system of a case with <paramref name="condensedCount"/> condensed species in the solution: the problem's kind, the table's elements, the row stride of the scratch.</summary>
     public static SystemLayout LayoutFor(in SpeciesTableView table, in EquilibriumProblem problem, int condensedCount) =>
         new(problem.Kind, table.ElementCount, condensedCount, ScratchLayout.MaxUnknowns(table.ElementCount));
+
+    /// <summary>The shape of the tp system of the same case: no temperature unknown and no energy row, as an hp or sp convergence pinned at a data junction solves.</summary>
+    public static SystemLayout TpLayoutFor(in SpeciesTableView table, int condensedCount) =>
+        new(ProblemKind.AssignedTemperaturePressure, table.ElementCount, condensedCount, ScratchLayout.MaxUnknowns(table.ElementCount));
 }

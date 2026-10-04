@@ -34,6 +34,7 @@ internal static class TraceGasIteration
                                       in EquilibriumResult result, double logPressure, ref IterationState state)
     {
         var layout = TraceGasFrame.LayoutFor(table, problem, state.CondensedCount);
+        var pin = new JunctionPin();
         var n = Math.Exp(state.LogN);
         var smallStep = false;
         for (var step = 0; step <= MaxSteps; step++)
@@ -48,10 +49,16 @@ internal static class TraceGasIteration
             if (smallStep && TraceGasStep.Balanced(table, problem, scratch, result) && Math.Abs(Math.Log(sum)) <= SumTest)
             {
                 state.LogN = Math.Log(n) + Math.Log(sum);
-                state.RetentionSecondStage = true;
-                state.RetainedSetHeld = true;
-                state.TraceCarriers = TraceGasReport.KeepBalanceCarriers(table, problem, scratch, result, state.LogN);
-                return CaseStatus.Ok;
+                if (DataJunction.Decides(table, problem, scratch, result, ref state, ref pin))
+                {
+                    state.RetentionSecondStage = true;
+                    state.RetainedSetHeld = true;
+                    state.TraceCarriers = TraceGasReport.KeepBalanceCarriers(table, problem, scratch, result, state.LogN);
+                    return CaseStatus.Ok;
+                }
+
+                smallStep = false;
+                continue;
             }
 
             if (step == MaxSteps)
@@ -70,9 +77,19 @@ internal static class TraceGasIteration
             var tau = layout.IsTp ? 0.0 : scratch.RightHandSide[layout.TRow];
             var worst = TraceGasStep.Worst(table, scratch, result, frame);
             TraceGasStep.Apply(scratch, result, layout, lambda, ref n);
-            if (!layout.IsTp && !TraceGasStep.MoveTemperature(ref state, lambda, tau))
+            if (!layout.IsTp)
             {
-                return CaseStatus.TemperatureOutOfRange;
+                if (DataJunction.Pins(table, scratch, ref state, ref pin, TraceGasStep.NextTemperature(state.Temperature, lambda, tau), tau))
+                {
+                    layout = TraceGasFrame.TpLayoutFor(table, state.CondensedCount);
+                    smallStep = false;
+                    continue;
+                }
+
+                if (!TraceGasStep.MoveTemperature(ref state, lambda, tau))
+                {
+                    return CaseStatus.TemperatureOutOfRange;
+                }
             }
 
             smallStep = lambda == 1.0 && worst <= PolishTest && Math.Abs(tau) <= PolishTest;

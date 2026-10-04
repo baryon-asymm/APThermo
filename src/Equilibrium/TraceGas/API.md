@@ -29,6 +29,7 @@ internal readonly struct TraceGasFrame(SystemLayout layout, double logPressure, 
     public readonly SystemLayout Layout; public readonly double LogPressure; public readonly double N;
     public readonly double Sum; public readonly double Temperature;
     public static SystemLayout LayoutFor(in SpeciesTableView table, in EquilibriumProblem problem, int condensedCount);
+    public static SystemLayout TpLayoutFor(in SpeciesTableView table, int condensedCount);
 }
 
 internal static class TraceGasSystem
@@ -48,6 +49,7 @@ internal static class TraceGasStep
         // the close guard: every gas with moles above zero within 1e-9 of its stationarity; a state without gas holds
     public static void Apply(in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout layout, double lambda, ref double n);
     public static bool MoveTemperature(ref IterationState state, double lambda, double tau);
+    public static double NextTemperature(double temperature, double lambda, double tau);
     public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result);
         // every active element within 3e-14 · b_i
 }
@@ -57,6 +59,22 @@ internal static class TraceGasReport
     public static int KeepBalanceCarriers(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, double logN);
         // zeroes the gases below the second retention stage that carry no part of a balance (atoms within 1e-16 of
         // b_i for every active element); returns how many stay: IterationState.TraceCarriers
+}
+
+internal static class DataJunction
+{
+    public static bool Pins(in SpeciesTableView table, in EquilibriumScratch scratch, ref IterationState state, ref JunctionPin pin, double next, double tau);
+        // the step to `next` crosses, again, the interval bound the previous crossing crossed, |tau| <= 1e-7: the convergence is pinned
+    public static bool Decides(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state, ref JunctionPin pin);
+        // after a converged tp convergence of a pin: true when it is the answer, false when the temperature moved for another
+    public static double Bound(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, double t1, double t2, out double upper);
+        // the largest temperature T_J on the lower interval of every species in play between t1 and t2, upper the next double; 0 when none crosses
+}
+
+internal struct JunctionPin
+{
+    public const int Free = 0; public const int MeasuringLower = 1; public const int AtUpper = 2; public const int AtLower = 3;
+    public double LastBound; public double Lower; public double Upper; public double LowerMiss; public int Phase;
 }
 
 internal static class TraceGasIteration

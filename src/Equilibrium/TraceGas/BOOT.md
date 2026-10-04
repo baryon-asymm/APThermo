@@ -14,6 +14,7 @@ level:
 - `TraceGasSystem` and `TraceGasStep`: its matrix and its step; `TraceGasStep.Stationary` is the
   close guard (it sits there because `TraceGasPass` stands at the limit of 14 names).
 - `TraceGasReport`: which gases below the second retention stage an `Ok` still reports.
+- `DataJunction` and `JunctionPin`: the pin of an hp or sp convergence at an interval bound of the data.
 
 The cluster has a reason of its own to change. RP-1311's tests weigh a correction by the share of
 the whole mixture (3.5), and its iteration carries ln n_j. Where the gas is 1e-6 of the mixture, or a
@@ -186,11 +187,36 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
     only to 3e-8 to 5e-8, which the pass and the bracket now converge to the tp state's temperature
     within 1e-9 (`GasStationarityTests`); removing the guard reds 81 facts of this node.
   - A state at the junction of the data's two temperature ranges, 1 000 K, has no hp state within the
-    data's own jump of 9e-9 in ln x: the NASA fits are not continuous there. KCl + 1e-6 Cl at
-    100 kPa and 1 000 K, hp cold, warm and warm from 5 K above, ends `NotConverged` after the
-    trace-gas final (its temperature alternates across the junction by 1e-15 relative and ln S by
-    ±9e-9): declared, below.
+    data's own jump of 9e-9 in ln x: the NASA fits are not continuous there. The data junction, below,
+    pins it.
 
+  ⚠ 2026-10-04: was "KCl + 1e-6 Cl at 100 kPa and 1 000 K, hp cold, warm and warm from 5 K above, ends
+  `NotConverged` after the trace-gas final: declared", now `Ok` at the junction itself.
+- **The data junction** (2026-10-04, `DataJunction`, `JunctionPin`). An internal interval bound T_J of
+  a species' fits, where the fits of two ranges disagree by the data's own jump (ΔG/RT 1e-8 to 1e-9
+  at 1 000 K, 1 531 of the gas junctions of `thermo.inp`), is a defect of the fits, not physics; any
+  state between T_J and the next double is the equilibrium to the data's precision.
+  - **Detection.** In an hp or sp convergence, a temperature step that crosses an interval bound of
+    a species in play (a gas in play, or a condensed species of the solution) again, after the
+    previous crossing crossed the same bound, with `|τ| ≤ 1e-7`, is dithering across it. The bound is
+    found by a bisection on `SpeciesFunctions.IntervalOf` between the two temperatures (at most 64
+    halvings, ending on adjacent doubles): T_J is the largest double on the lower interval, T_J⁺ the
+    next, the smallest on the upper. No contract of `Thermo` is read beyond `IntervalOf`.
+  - **Pinned.** The convergence then drops the temperature unknown and the energy row and continues as
+    a tp convergence: at T_J (the lower interval's functions), then at T_J⁺ from that iterate.
+  - **The nearer of the two** (decision of the owner, 2026-10-04, option (B); proposed was T_J alone,
+    refused was `NotConverged`). The answer is the tp state whose h (hp) or s (sp) is nearer the
+    target, T_J on a tie: when the upper state is nearer it is kept, otherwise a third tp convergence
+    returns to T_J. The reported h or s differs from the target by at most the jump of the mixture's
+    h or s at T_J: measured at most 8.3e-9 of c_p T for gas mixtures at 1 000 K, nil for the KCl state.
+  - **The bound 1e-7** sits 12 times above the largest measured mixture jump and above the steps of
+    the dither (1e-15 to 1e-8). A mixture dominated by a species whose junction jumps h by 1e-4 of c_p T
+    (ALOCL, SnCL2 at 1 000 K) is not pinned and stays `NotConverged`: declared.
+  - **Only the trace-gas iteration pins.** The reduced iteration of the Newton loop keeps its bits;
+    its junction failures are refused by the close guard and reach this iteration through the
+    bracket's finals. Measured over 822 hp and sp solves at the junction (nine gas systems at three
+    pressures, five temperatures at and about 1 000 K, six modes, with KCl + 1e-6 Cl): none ends
+    otherwise than `Ok`; 77 are pinned, 22 end at T_J and 55 at T_J⁺, the other 745 converge freely.
 ## Structure
 
 One type per file:
@@ -204,6 +230,8 @@ One type per file:
 | `TraceGasSystem` | static | `Assemble`, `Solve`, the energy row |
 | `TraceGasStep` | static | the fractions, the control factor, the weighted corrections, the step, the balance, `Stationary` |
 | `TraceGasReport` | static | `KeepBalanceCarriers`: what an `Ok` reports below the second retention stage |
+| `DataJunction` | static | `Pins`, `Decides`, `Bound`: the data junction |
+| `JunctionPin` | struct | what a convergence remembers of a junction: the last bound, T_J, T_J⁺, the first miss, the phase |
 | `TraceGasFrame` | readonly struct | the layout, `ln(p/p°)`, n, S and T, which keeps every method within six parameters |
 
 Each constant of `## Constraints` is named in the class that uses it.
@@ -241,7 +269,7 @@ Each constant of `## Constraints` is named in the class that uses it.
       scan fact (`TraceGasScanTests`) alone.
 - [ ] The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
       1e-12 kmol/kg or more, apart from the declared leftovers.
-- [ ] The close guard:
+- [x] The close guard:
       - a unit fact at 5e-10 and 2e-9;
       - the states it refused in the scans (MgCO3 + 1e-6 CO2 below its plateau, and the loose `Ok`s of
         KCl, NaCl and KO2) end `Ok` at the tp temperature within 1e-9, clear at 1e-9, with the gas of
@@ -250,11 +278,24 @@ Each constant of `## Constraints` is named in the class that uses it.
       - red with the guard removed.
 
       2026-10-04: `GasStationarityTests`, 124 facts (the unit fact at ±5e-10 and ±2e-9, and 120 states
-      in six modes) and `TraceGasFinalTests`, all green but the three declared KCl modes (below);
-      red with the guard removed: 81 facts; with (b′) removed: 37; with the temperature column
-      unscaled: 24. Left unticked: the states of the three declared modes do not end `Ok`
-      (⚠ 2026-10-04: was "the 13 states it refused", now all but the three hp modes of KCl + 1e-6 Cl at
-      100 kPa and 1 000 K, which no state of the data reaches within its own jump of 9e-9 in ln x).
+      in six modes) and `TraceGasFinalTests`, all green; red with the guard removed: 81 facts; with
+      (b′) removed: 37; with the temperature column unscaled: 24.
+
+      ⚠ 2026-10-04: was ticked for all but the three hp modes of KCl + 1e-6 Cl at 100 kPa and 1 000 K,
+      declared because no state of the data reaches them within its own jump of 9e-9 in ln x; now the
+      data junction settles them and the box is ticked.
+- [x] The data junction:
+      - every hp and sp state, cold and warm, at the enthalpy and entropy of the tp states of nine gas
+        systems at 1 kPa, 100 kPa and 10 MPa at 1 000 K, the double below and above it and 1 000 K times
+        1 ± 1e-9 (135 states) ends `Ok`, clear at 1e-9, at the tp temperature within 1e-8 and within
+        1e-7 of c_p T (hp) or c_p (sp) of the target;
+      - a pinned state ends at the nearer of T_J and T_J⁺ (both outcomes occur), KCl + 1e-6 Cl at T_J
+        exactly with h within one ulp of the target;
+      - the search for the bound finds 1 000 K between its neighbouring doubles and the lowest of two bounds;
+      - red with the pin removed: 27 of the 135 states and the KCl and the nearer-of-two facts.
+
+      2026-10-04, `JunctionTests` (140 facts), `GasStationarityTests`; 77 of 822 solves pinned, 22 at
+      T_J and 55 at T_J⁺.
 - [x] Host units:
       - the matrix equal at n and at 1e-12 n;
       - the control factor on hand-built corrections;
@@ -296,8 +337,8 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
   no fifth start and no looser test was tried.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas) and the + 1e-12 state (3.1e-14), both through start 4.
-- hp, three modes: KCl + 1e-6 Cl at 100 kPa and 1 000 K, `NotConverged` after the trace-gas final,
-  the junction of the data's two temperature ranges (above).
+- hp, three modes of KCl + 1e-6 Cl at 100 kPa and 1 000 K left the list on 2026-10-04: the data junction
+  settles them (above).
 - Beyond the design's scans, with excesses of 1e-8 and 1e-10 (not walked by any fact): 49 more tp
   states end `NotConverged`, as before the pass, among them K2O, Li2O, MgO, Al(OH)3, thermite and
   CaCO3 at deficits of 1e-8 and 1e-10 of the last element; reported to the orchestrator, not declared.

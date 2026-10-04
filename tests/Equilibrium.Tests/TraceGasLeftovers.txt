@@ -1,7 +1,6 @@
 # The tp states of the trace-gas families that the pass does not settle, declared (TraceGas BOOT.md, "Declared leftovers").
 # One "kind name" pair per line: kind notconverged or residue; name = family|excess|pressure (Pa)|temperature (K); an hp or sp state
-# carries its mode first (mode|name): the tp state at the junction of the data's two temperature ranges, 1000 K, whose enthalpy has no
-# state within the data's own jump of 9e-9 in ln x (the stationarity bound is 1e-9).
+# carries its mode first (mode|name). No hp or sp state is declared since the data junction (TraceGas BOOT.md, "The data junction").
 notconverged binary-kcl|-1E-10|1000|1200
 notconverged binary-kcl|-1E-10|100000|1500
 notconverged Al(OH)3|-1E-12|1000|300
@@ -10,6 +9,3 @@ notconverged Al(OH)3|-1E-12|1000|300
 notconverged Al(OH)3|-1E-12|100000|500
 residue Al(OH)3|0|1000|300
 residue Al(OH)3|1E-12|1000|300
-notconverged hp-cold|loose-kcl|1E-06|100000|1000
-notconverged hp-warm|loose-kcl|1E-06|100000|1000
-notconverged hp-warm5|loose-kcl|1E-06|100000|1000
