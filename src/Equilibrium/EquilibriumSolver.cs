@@ -93,7 +93,7 @@ internal static class EquilibriumSolver
                 status = ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
                 if (status == CaseStatus.Ok)
                 {
-                    status = Close(table, plan.Current, scratch, result, logPressure, state);
+                    status = Close(table, plan.Current, scratch, result, logPressure, ref state);
                 }
             }
 
@@ -211,12 +211,13 @@ internal static class EquilibriumSolver
     /// <summary>
     /// The exit guards of an Ok status and the state record: the mixture's temperature window, element conservation at
     /// the node's invariant, no condensed candidate hidden by the anti-cycling rule, then the derivatives of section
-    /// 2.5, the mixture properties of section 2.6 and the state guard (BOOT.md, 2026-09-28). The reported moles are
+    /// 2.5 (<see cref="TiedDerivatives"/>: solved again with the tie the element rows show when the first solve is singular),
+    /// the mixture properties of section 2.6 and the state guard (BOOT.md, 2026-09-28). The reported moles are
     /// exactly the composition every one of these checks was taken over: <c>Composition.Refresh</c>'s last call, at
     /// the case's own active threshold (BOOT.md, "The report's own zeroing", corrected 2026-09-28).
     /// </summary>
     private static CaseStatus Close(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                    in EquilibriumResult result, double logPressure, in IterationState state)
+                                    in EquilibriumResult result, double logPressure, ref IterationState state)
     {
         if (state.Temperature is < MinMixtureTemperature or > MaxMixtureTemperature)
         {
@@ -230,7 +231,7 @@ internal static class EquilibriumSolver
         }
 
         var sums = Composition.Sums(table, scratch, result, state, logPressure, RetentionThreshold(state));
-        var derivatives = DerivativeSystem.Solve(table, scratch, result, state, ScratchLayout.MaxUnknowns(table.ElementCount), sums);
+        var derivatives = TiedDerivatives.Solve(table, scratch, result, ref state, ScratchLayout.MaxUnknowns(table.ElementCount), sums);
         return !derivatives.Solved
             ? CaseStatus.SingularMatrix
             : MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange;

@@ -9,13 +9,15 @@ the parent was over the §15 limit. It turns a converged or frozen composition i
 - `DerivativeSystem` solves the derivative system of RP-1311 section 2.5 at the converged
   composition, with one species of a pinned set (the condensed species whose element vectors
   are linearly dependent) left out as the representative.
+- `TiedDerivatives` solves the derivative system at the close and, when it stays singular with no tie
+  in force, again with the tie the element rows show over the species of the sums (2026-10-04).
 - `PlateauIsentrope` assembles the isentropic system, the sp-shaped system at the converged composition
   that carries `γ_s` at a gas-participating plateau and beside a near-univariant composition.
 - `MixtureProperties` writes the state: the assignments both paths share, then the equilibrium (or
   pinned-set) closure of section 2.6 or the frozen one, behind the state guard.
 
-`EquilibriumSolver` calls `DerivativeSystem.Solve` and `MixtureProperties.WriteEquilibrium` at the
-close of `Solve`, and `MixtureProperties.WriteFrozen` in `SolveFrozen` (`API.md`). The cluster has a
+`EquilibriumSolver` calls `TiedDerivatives.Solve` (which calls `DerivativeSystem.Solve`) and
+`MixtureProperties.WriteEquilibrium` at the close of `Solve`, and `MixtureProperties.WriteFrozen` in `SolveFrozen` (`API.md`). The cluster has a
 reason of its own to change: the property definitions of the report and the reference's convention
 at a plateau.
 
@@ -34,6 +36,7 @@ The invariants of the parent ([BOOT.md](../BOOT.md)) hold here unchanged.
 
 - [Equilibrium](../API.md) — the descriptors of its inputs, scratch and outputs, `IterationState`,
   `SystemLayout`, `MixtureSums`, `Derivatives`, `DerivativeKind` and `DenseSolver`.
+- [Newton](../Newton/API.md) — `ElementCoupling.Find`, for the tie found at the close.
 - [Thermo](../../Thermo/API.md) — the species table view, `MixtureState` and
   `PhysicalConstants`.
 
@@ -69,6 +72,25 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   An `Ok` frozen state carries `CpEquilibrium = CpFrozen`, `CvEquilibrium = CvFrozen`,
   the derivatives 1 and −1 and `γ_s = Cp/Cv`.
 
+- **Two retries of a singular derivative system** (2026-10-04, for 0.2.2). Both act only where the
+  derivatives were unsolved, the state's status `SingularMatrix`, so no solved state moves.
+  - **Scaled.** A pass whose constant-temperature system is singular, at a composition the
+    gas-participating plateau does not explain or with a pinned set, is assembled again with the
+    condensed columns of the element rows multiplied by n (the gaseous moles of the sums), solved,
+    and its condensed unknowns multiplied back by n. It is the same system with `dn_c/n` for
+    unknowns. A trace gas (n of 1e-10 beside condensed species of 1e-2) leaves the element rows'
+    multiplier pivots below the row scales the condensed columns set, and the scaled solve keeps
+    them at their own scale.
+  - **The tie found at the close.** When the system is still singular and no tie is in force, the
+    first active element whose row `ElementCoupling.Find` expresses as a combination of the other
+    rows over the species of the sums is tied, as a surviving tie is (recorded in the case's
+    `IterationState`, which the close therefore takes by `ref`), and the system is solved again.
+    - This happens after a convergence that held no tie: the trace-gas pass's, or the reduced
+      iteration's when the carriers of a direction sit below the retention threshold.
+    - The tied direction is invisible to every species of the sums, so the unit row's zero changes
+      no derivative the state reports.
+    - Measured with the prototype and an emulation (2026-10-04): MgCO3 under CO2 hp and sp at 1 kPa
+      to 1 MPa, 29 to 32 states `TemperatureOutOfRange` before, now `Ok`; no bit moved.
 - Property definitions of RP-1311: `Cp_eq` includes the reaction contribution of the
   composition derivatives ((2.49), (2.59), section 2.5); `γ_s = −(∂ln p/∂ln V)_s` and
   `a² = n R T γ_s` per unit mass (2.71, 2.74, section 2.6); `M = 1/n` (2.3a) with `n`
@@ -158,6 +180,10 @@ The classes of this node, all internal, static and kernel-compatible: `Derivativ
 floating-point expression keeps the form and the order of evaluation it had when the node was part of
 its parent.
 
+- **The close's entry.** `TiedDerivatives.Solve` is what `EquilibriumSolver`'s close calls. It calls
+  `DerivativeSystem.Solve` once, and once more with the tie it found. `DerivativeSystem` stays at
+  the limit of the dependency check, and the search is a type of its own for that reason.
+  `ScaledRetry` is private to `DerivativeSystem`.
 - **The dependence test.** `DerivativeSystem.DependentSlot` runs the modified Gram–Schmidt of
   `## Constraints` over the element vectors of the condensed species of the solution, in solution
   order, keeping its orthonormal basis in the first rows of the matrix scratch, which `Assemble`
@@ -249,6 +275,14 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
       march 40 of 40 `Ok`, the sliver within 3.1e-9; the facts seed hp and sp at fractions
       0.7 and 0.9, the lower fractions being the seed-side failure of the parent's open
       item; `DerivativeSystem` Ce 14; WSL fast suite green on `57ce721`.
+
+- [ ] The tie found at the close: MgCO3 1:2:5 hp and sp, cold, below the plateau at 1 kPa to 1 MPa,
+      end `Ok`, `Cp_eq` within 1e-6 of a central difference of the solver's own enthalpy at T ± 0.01 K;
+      red without the tie. The unit fact that needs no pass stands:
+      `TiedDerivativesTests.ADirectionNoSpeciesOfTheSumsSeesIsFixedByTheTieAndMovesNoDerivative` (MgO beside
+      CO2 alone: the plain system unsolved, the tied one solved with the derivatives of a gas of fixed moles).
+- [ ] The scaled retry: a trace-gas state whose plain derivative system is singular ends `Ok`, `Cp_eq`
+      against the same difference; red without the retry. No line of a record moved.
 
 ## Taboos
 

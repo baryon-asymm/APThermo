@@ -17,7 +17,15 @@ internal static class DerivativeSystem
     public static Derivatives Solve(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state, int stride, in MixtureSums sums);
         // the derivative system of RP-1311 section 2.5 at the converged composition, whose sums the isentropic system reads;
         // Solved is false when it was singular and no gas-participating plateau explains it, Pinned at a pinned set or a
-        // gas-participating plateau, Isentropic (with DlnVdlnPIsentropic) where gamma_s comes from the isentropic system
+        // gas-participating plateau, Isentropic (with DlnVdlnPIsentropic) where gamma_s comes from the isentropic system;
+        // a singular pass is solved once more with the condensed columns carried relative to n
+}
+
+internal static class TiedDerivatives
+{
+    public static Derivatives Solve(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state, int stride, in MixtureSums sums);
+        // DerivativeSystem.Solve; when unsolved with no tie in force, again with the first tie ElementCoupling.Find shows,
+        // recorded in state.Tie (field by field, as a surviving tie is)
 }
 
 internal static class PlateauIsentrope
