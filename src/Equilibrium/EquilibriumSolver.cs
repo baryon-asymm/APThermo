@@ -68,7 +68,8 @@ internal static class EquilibriumSolver
     /// <summary>
     /// Solves the tp, hp or sp problem. With <paramref name="useMolesAsEstimate"/> the result's moles (and the problem's
     /// temperature) are the initial estimate. After a failed attempt the case goes on as <see cref="AttemptPlan"/> decides
-    /// (Recovery/BOOT.md): the cold fallback of a warm start, the gasless verdict of a tp case.
+    /// (Recovery/BOOT.md): the cold fallback of a warm start, the gasless verdict of a tp case, the temperature bracket of
+    /// an hp or sp case.
     /// </summary>
     public static void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                              in EquilibriumResult result, bool useMolesAsEstimate)
@@ -84,11 +85,15 @@ internal static class EquilibriumSolver
                 return;
             }
 
-            var logPressure = CaseSetup.LogPressure(plan.Current);
-            var status = ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
-            if (status == CaseStatus.Ok)
+            var status = CaseStatus.NotConverged;
+            if (plan.RunsAttempt)
             {
-                status = Close(table, plan.Current, scratch, result, logPressure, state);
+                var logPressure = CaseSetup.LogPressure(plan.Current);
+                status = ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
+                if (status == CaseStatus.Ok)
+                {
+                    status = Close(table, plan.Current, scratch, result, logPressure, state);
+                }
             }
 
             // The fallback also covers a failure found at the close, not only the Newton loop's own status (Recovery/BOOT.md,

@@ -289,7 +289,12 @@ of the fits of the gases present or above `22000 K`, or a converged state whose 
 or equilibrium heat capacity, `γs` or sound speed is not finite and positive — the
 state guard, exempting a pinned set's zero `CpEquilibrium`/`CvEquilibrium` convention:
 `BOOT.md`, the mixture window, and [StateRecord/BOOT.md](StateRecord/BOOT.md), the state guard).
-On any status but `Ok`, `NoGasPhase` excepted, `Moles` hold the last iterate and `State` is not written; on
+An hp or sp case whose iteration fails is bracketed on the temperature by tp probes and verdicts
+([Recovery/BOOT.md](Recovery/BOOT.md)); it ends `TemperatureOutOfRange` also when the bracket reaches
+the edge of `[160 K, 20000 K]` in the target's direction. For an hp or sp `NoGasPhase` case `State.Temperature`
+is the bracket's final temperature.
+On any status but `Ok`, `NoGasPhase` excepted, `Moles` hold the last iterate and `State` is not written (a case
+that was bracketed has it cleared to zero, a probe may have written one); on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written. `Iterations` sums every attempt's
 Newton steps.
 

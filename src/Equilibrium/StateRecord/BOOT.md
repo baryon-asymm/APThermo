@@ -149,6 +149,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   1e15 to 1e28 and `γ_s` from 1e-10 to 1. Left, and declared: an hp or sp state seeded on
   the one-condensed side drives `T` below the 100 K window before the second condensed
   species can enter (`TemperatureOutOfRange`; cea fails the same way).
+  ⚠ 2026-10-03: was a seed-side hp or sp state left `TemperatureOutOfRange`, now bracketed ([Recovery](../Recovery/BOOT.md))
 
 ## Structure
 

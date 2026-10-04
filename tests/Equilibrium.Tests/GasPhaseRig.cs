@@ -49,6 +49,36 @@ internal static class GasPhaseRig
     }
 
     /// <summary>
+    /// The Newton steps of the first cold attempt of a case alone: <see cref="CaseSetup.Begin"/> and
+    /// <see cref="ConvergenceSequence.Run"/> over fresh views, none of the attempts that follow a failure.
+    /// </summary>
+    public static int FirstAttemptIterations(EquilibriumCase problem)
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var table = problem.Table;
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        var speciesCount = table.SpeciesCount;
+        var elementCount = table.ElementCount;
+        using var elements = accelerator.Allocate1D(problem.ElementMoles);
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
+        using var molesBuffer = accelerator.Allocate1D<double>(speciesCount);
+        using var multipliersBuffer = accelerator.Allocate1D<double>(elementCount);
+        using var state = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        molesBuffer.MemSetToZero();
+        var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
+        var view = buffers.View;
+        var attempt = new IterationState();
+        Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(view, input, scratch, result, EstimateSource.Defaults, ref attempt));
+        _ = ConvergenceSequence.Run(view, input, scratch, result, CaseSetup.LogPressure(input), ref attempt);
+        return attempt.Iterations;
+    }
+
+    /// <summary>
     /// The vertex the simplex ends at, before the tangent-plane search: the number of directions of the face of optimal
     /// multipliers and the multipliers π0 of the vertex itself, by element (zero for an absent element), with the moles of the
     /// condensed minimum. Null when the program does not reach an optimal basis.
