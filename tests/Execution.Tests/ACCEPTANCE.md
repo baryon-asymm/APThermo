@@ -301,3 +301,37 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       sets; red with the rule disabled (no station left without a derivative). At this
       onset the disagreement bound drops the gas rows too, so the fact proves the rule's
       own output, not that the rule alone prevents a wrong correction.
+- [ ] The step-share bound holds over the whole run (`## Invariants`, the ⚠ of 2026-10-04):
+      `CudaTests.TheStepShareOverTheWholeRun` green on the reference machine after every CUDA
+      family, the sweep included (the figure: differing stations over stations of the run).
+      Without CUDA, proven 2026-10-04 by `StepShareLedgerTests` (6 facts: the coarse guard of a
+      family of one, the family over the guard, the run over the share, the empty run, the
+      ordering of the last fact, concurrent additions) and the trx of the run, which lists
+      `TheStepShareOverTheWholeRun` after every other `CudaTests` case. Red once, 2026-10-04:
+      the floor of one removed from `StepShareLedger.Allowed` (a family of one fails) and the
+      run's bound multiplied by 1000 (a run of 999 stations with one flip passes), 2 of 6 red.
+- [ ] The 0.2.2 gasless and bracketed families on CUDA (`## Purpose`, the L2 row of 2026-10-04):
+      `CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator` green on the reference machine for each
+      family of `RecoveryFamilies.Names` (`gasless-ko2`, `gasless-nao2`, `bracket-calcite-1e5`,
+      `bracket-magnesite-1e5`, `bracket-ap-htpb-al-20mpa`): equal statuses, `Ok` fields within the table,
+      `NoGasPhase` amounts within the condensed tier, pressure exact and every other state field zero,
+      the worst `noGasPhaseTemperature` deviation recorded. Without CUDA, proven 2026-10-04 on the CPU:
+      `BracketedFamiliesTests` (what each family holds, the comparison over a second run on moved element
+      moles passes on every family, and each deliberate break of it is refused: a nonzero field, a
+      pressure and a tp temperature one ULP off, an hp temperature at 1e-9, a gas mole, a condensed amount
+      at 1e-8, a status, and for the `Ok` cases an enthalpy at 1e-6) and
+      `BatchTests.ABracketedFamilyEqualsTheHostSolverBitForBit` (the CPU accelerator equals the host solver
+      bit for bit, `NoGasPhase` cases included). Red once, 2026-10-04: the host call over element moles moved
+      by 1e-9 (5 of 5 `BatchTests` red) and the expected status of `AFamilyHoldsTheCasesItStandsFor` swapped (5 of 5 red).
+      First CUDA run (the merge-guard of `763382cc`): the gasless families green, the three bracketed ones red on the
+      step-share guard alone, every field and fraction inside the tiers; measured and resolved 2026-10-04 by the rule
+      of `## Invariants` (bracketed cases: totals of `Iterations` not counted, gas fractions at the first tier;
+      `ABracketedComparisonCountsNoStepsAndHoldsTheFirstTier` on the CPU), after which the five families and the
+      launch-budget fact are green on the reference machine in Release (6 of 6, `CudaTests` without the long set 32 of 32).
+- [ ] One launch of cases that all bracket stays within the launch budget (`## Purpose`, the same L2 row):
+      `CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget` green on the reference machine,
+      the kernel time of one launch of 16 384 (or one wave, if smaller) hp and sp cases of `gasless-ko2`
+      below a quarter of `LaunchBudget.DefaultRunTimeLimit`, the figure in the test output. Without CUDA the
+      check (`RecoveryFamilies.LaunchViolation`) is proven on the CPU accelerator, 2026-10-04:
+      `BracketedFamiliesTests.TheLaunchBudgetCheckRefusesALaunchOverTheLimitAndACaseThatDidNotBracket`
+      (a limit of zero and a case that ended `Ok` are refused).

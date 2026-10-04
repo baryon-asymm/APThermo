@@ -50,6 +50,9 @@ internal sealed class EngineFixture : IDisposable
     /// <summary>The tolerance table this node compares against.</summary>
     public ToleranceTable Tolerances { get; }
 
+    /// <summary>The stations of every CUDA family of the run, and those among them that stopped after different numbers of steps.</summary>
+    internal StepShareLedger StepShare { get; } = new();
+
     /// <summary>The CPU accelerator engine.</summary>
     internal Engine Cpu { get; }
 

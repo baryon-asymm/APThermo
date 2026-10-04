@@ -15,6 +15,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | the library is checked before the device: a bad libnvvm names both paths and never leaks device memory (`BadLibraryTests`); the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`); a NUL-padded log is trimmed of it (`PostLinkTests`); a half-given library path pair is refused (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`) (2026-09-26) | `Execution`'s `BOOT.md` and `API.md`, the audit's F2, F3 and F4 | ✅ (2026-09-26) |
 | L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
 | L2 | every fixture family, the computed gas-plateau families of 0.2.2 (`GasPlateauFamilies`) and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators; the element balance of every compared station closes to 1e-13 and the equilibrium families are compared with the balance-remnant correction (2026-10-03, `BalanceRemnantTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
+| L2 | the 0.2.2 gasless verdict and temperature bracket on CUDA (`RecoveryFamilies`, 2026-10-04): tp, hp and sp states of KO2 and NaO2 at their exact 1:2 stoichiometry under 1e7 Pa where the gas vanishes, a gasless KO2(a)/KO2(L) melting plateau, gas plateaus of CaCO3 and MgCO3 at 1e5 Pa started cold at 0.1 to 0.5 of the transition, and AP/HTPB/Al hp states at 20 MPa below the water band, each family keeping the cases the CPU accelerator ends `NoGasPhase` or `Ok` as it stands for; equal statuses, `Ok` fields and `NoGasPhase` amounts within the table, a `NoGasPhase` state's pressure (and a tp case's temperature) exact and its other fields zero, one launch of cases that all bracket inside the launch budget (`CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator`, `AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`; on the CPU `BracketedFamiliesTests` and `BatchTests.ABracketedFamilyEqualsTheHostSolverBitForBit`) | the CPU accelerator and the host calls; the species functions for the h and s targets | ⏳ (CUDA run pending) |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
@@ -40,6 +41,28 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   ⚠ 2026-09-14: was the whole table "in one file", now the mole-fraction floor and the
   polish-threshold tier live in `tests/Fixtures/tolerances.json` and this node keeps the
   GPU-specific entries → HISTORY.md#tolerance-table-not-in-one-file-2026-09-14
+
+  ⚠ 2026-10-04: was "at most one station in a thousand" checked per family (a family of one
+  or a few cases failed on any single step difference, a share of one in one), now run-wide:
+  every CUDA family adds its stations and its differing stations to a ledger
+  (`StepShareLedger`, on `EngineFixture.Shared`), `CudaTests.TheStepShareOverTheWholeRun`,
+  ordered last in its class by `LastFactOrderer`, holds the share of the whole run at the
+  table's 1e-3 (it fails on an empty ledger), and a family keeps only a coarse guard of
+  `max(1, floor(1e-3 · stations))` differing stations. The table is not loosened. Facts
+  without CUDA: `StepShareLedgerTests`.
+
+  **Bracketed cases** (0.2.2, 2026-10-04): the `Iterations` of an hp or sp case that ran the
+  temperature bracket sums every attempt and every tp probe (`Equilibrium`'s `API.md`), and
+  the batch result does not split it, so a flip of one probe or bisection decision moves the
+  total without moving the final solve. Measured on CUDA on the reference machine on the 18
+  stations of `bracket-calcite-1e5`, `bracket-magnesite-1e5` and `bracket-ap-htpb-al-20mpa`:
+  totals differ by up to 89 (14 of 18 differ) while the final states agree far inside the
+  first tier: temperature 2.9e-13, state fields 6.5e-13, condensed fractions 5e-13, gas
+  fractions 4e-12 (AP/HTPB/Al) and 3e-13 (calcite after the balance-remnant correction; raw
+  3e-9 on the O2 remnant, κ 1e6 times residuals of 1e-14). The rule for a family that runs
+  the bracket (`GpuCpuComparison.IterationsSumAttempts`): no difference of totals counts toward
+  the step share, and every gaseous mole fraction is held to the first tier (1e-10; a condensed one keeps its own 1e-9), stricter than the
+  second the totals would have bought. No tier moves and the share bound stays 1e-3.
 
   A third mole-fraction tier (the owner's decision of 2026-10-03): a **condensed**
   species not below the floor is compared at relative 1e-9 whatever the Newton counts.
