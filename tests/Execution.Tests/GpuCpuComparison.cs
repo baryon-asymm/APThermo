@@ -283,6 +283,9 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
         }
     }
 
+    /// <summary>The worst deviation recorded so far for one field, zero when none was recorded.</summary>
+    public double WorstOf(string field) => _worst.GetValueOrDefault(field);
+
     /// <summary>The worst deviation per field, largest first, for a failure message.</summary>
     public string Worst() => string.Join(", ", _worst.OrderByDescending(kv => kv.Value).Take(8).Select(kv => $"{kv.Key} {kv.Value:E1}"));
 }

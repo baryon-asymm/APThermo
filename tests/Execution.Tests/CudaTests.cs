@@ -185,10 +185,10 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(violation is null, violation);
     }
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
+    private void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
         AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], bracketed: false);
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool bracketed)
+    private void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool bracketed)
     {
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
@@ -327,7 +327,11 @@ public sealed class CudaTests(ITestOutputHelper output)
             return;
         }
 
-        var violation = EngineFixture.Shared.StepShare.RunViolation();
+        var ledger = EngineFixture.Shared.StepShare;
+        var (different, stations) = (ledger.Different, ledger.Stations);
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"{different} of {stations} stations differ (share {(stations == 0 ? 0.0 : (double)different / stations):E2}, bound {GpuCpuTolerances.DifferentStepShare.ToString("0e+0", CultureInfo.InvariantCulture)})"));
+        var violation = ledger.RunViolation();
         Assert.True(violation is null, violation);
     }
 }
