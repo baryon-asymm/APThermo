@@ -9,6 +9,30 @@ used to stand.
 
 ---
 
+<a id="throughput-per-iteration-2026-10-04"></a>
+
+## 2026-10-04 - from "## Invariants", the approved throughput file - the per-iteration check and the record of 2026-09-19
+
+Coder 7 of 0.2.2. The merged branch of coder 6 (d38e3f89) made the rocket sweep's CUDA kernel 0.222 s against 0.178 s: a loop-live `IterationState` passed by `ref` to the `NoInlining` `TraceGasPass.Run` made the local address-taken, and the whole Newton loop accessed it through a generic pointer that may alias every view store (PTX generic loads 12 669 to 20 200). The ratio fell to 18.09 to 18.60, below the floor of 0.8 times the approved 23.58 (18.86); but the check that held the file was a ratio, which moves with the CPU accelerator's load and with the transfer overhead (CUDA seconds 0.151 at the record, 0.249 today), so it cannot tell a slower kernel from a busier CPU, and a floor lowered by an honest re-approval would have let the regression through. The kernel time per Newton step does: with the fix (`EquilibriumSolver.Solve` and `StationSolve.At` pass copies) the kernel was 0.175 and 0.176 s over two quiet runs, 7.820e-08 and 7.849e-08 s per step at 22.403 steps per case (sum of `RocketBatchResult.Iterations` over the stations, per case; deterministic), and d38e3f89 measured 1.023e-07 s per step, 130.3 % of the approved figure, where 0.2.0 to 0.2.1 differed by 4 % and run-to-run variation is under 2 %.
+
+The Windows record of 2026-09-19 (ratio 23.58, CUDA 0.151 s, CPU accelerator 3.557 s, kernel 0.132 s) does not reproduce even at its own commit: v0.1.0 measures 19.7 to 21.2 on the same machine today (the investigator's runs, 2026-10-04), because the transfer overhead around the kernel grew. `Throughput.approved.txt` was re-approved from the second of two quiet Release runs of 2026-10-04 (ratio 21.28 and 21.29, 20.71 in the first, with 25 % background CPU load from other sessions). The record stood:
+
+> cuda_seconds: 0.151
+> cpu_seconds: 3.557
+> ratio: 23.58
+> cuda_kernel_seconds: 0.132
+> date: 2026-09-19
+
+The bullet stood:
+
+> - **The approved throughput file is a tripwire**: a run writes `Throughput.actual.txt`
+>   next to it; the test fails when the ratio falls below the approved one by more than
+>   20 % or below 5×.
+
+`Throughput.linux.approved.txt` was not re-measured (no WSL measurement from the coder's session): it carries no per-iteration line, so the fact fails there with a message naming the file until the orchestrator re-approves it under WSL.
+
+---
+
 <a id="left-out-states"></a>
 
 ## 2026-10-04 - from "## Invariants" - states left out of the families for their element balance

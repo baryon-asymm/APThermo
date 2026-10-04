@@ -383,3 +383,20 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       proven by the four facts of `ComparisonRuleTests`, each red once with its rule alone broken (enthalpy bound at zero,
       `DataEffect` null, `NoiseFactor` 0, the guard at its entry), 2026-10-04.
       On the merged tree, 2026-10-04 (11fe71f6, Release, the whole `CudaTests` class with the sweep and the throughput fact): 68 of 68 green; the `measured:` lines unchanged from the coder's run.
+- [x] 2026-10-04 — The throughput tripwire per Newton step (coder 7 of 0.2.2; the ⚠ 2026-10-04 of `BOOT.md`):
+      `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio` writes `iterations_per_case` (22.403) and
+      `cuda_kernel_seconds_per_iteration` and fails above 115 % of the approved figure (`ThroughputRecord`); the rule and the
+      failure of a record without the figure are proven without a GPU by `ThroughputRecordTests` (7 facts).
+      - Shown red once, on the Windows reference machine, Release: with `EquilibriumSolver.cs` and `StationSolve.cs` at d38e3f89
+        (the loop-live `IterationState` passed by `ref` to `TraceGasPass.Run`) the fact failed with "the CUDA kernel time per
+        Newton step 1.023e-07 s is 130.3 % of the approved 7.849e-08 s", the ratio check alone passing at 17.65 (floor 17.03);
+        with the fix (51c5515c, 1cee836d) green.
+      - `Throughput.approved.txt` re-approved from two quiet Release runs of 2026-10-04: kernel 0.175 and 0.176 s, 7.820e-08 and
+        7.849e-08 s per step, ratio 20.71 and 21.29 (25 % background CPU load); a third run inside the solution-wide Release run
+        measured 7.834e-08 (kernel 0.176 s). The record of 2026-09-19 (ratio 23.58) does not reproduce, even at v0.1.0
+        → HISTORY.md#throughput-per-iteration-2026-10-04
+      - Windows, Release, `dotnet test APThermo.sln -c Release --filter "Category=Cuda|Category=BitSnapshot"`: green in every
+        project, `Execution.Tests` 84 of 84 (the bits unchanged: no `Bits*.approved.txt` moved, `ByteVectorTests` included).
+- [ ] `Throughput.linux.approved.txt` carries no `iterations_per_case` and no `cuda_kernel_seconds_per_iteration` line (the coder
+      has no WSL measurement): on Linux the throughput fact fails with "carries no valid cuda_kernel_seconds_per_iteration line"
+      until the file is re-approved from a quiet Release run under WSL2. Ticked when that run is recorded.

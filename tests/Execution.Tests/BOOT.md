@@ -16,7 +16,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
 | L2 | every rocket and throat fixture family; every equilibrium fixture table, tp, hp and sp, one family per table (`FixtureBatches.EquilibriumTableFamily`, 2026-10-04); the `seeded` fixtures, the tp fixtures of every table warm-started at half pressure and the bracketed calcite and magnesite states seeded 20 K above the plateau (`SeededFamilies`, 2026-10-04); the computed gas-plateau families of 0.2.2 (`GasPlateauFamilies`); and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case, a seeded case with its seed; determinism of two runs; chunking gives the same result as one chunk, a seeded batch's included; the species-function batch against the host functions and across accelerators; the element balance of every compared station closes to 1e-13 and the equilibrium families are compared with the balance-remnant correction (2026-10-03, `BalanceRemnantTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | L2 | the 0.2.2 gasless verdict and temperature bracket on CUDA (`RecoveryFamilies`, 2026-10-04): tp, hp and sp states of KO2 and NaO2 at their exact 1:2 stoichiometry under 1e7 Pa where the gas vanishes, a gasless KO2(a)/KO2(L) melting plateau, gas plateaus of CaCO3 and MgCO3 at 1e5 Pa started cold at 0.1 to 0.5 of the transition, and AP/HTPB/Al hp states at 20 MPa below the water band, each family keeping the cases the CPU accelerator ends `NoGasPhase` or `Ok` as it stands for; equal statuses, `Ok` fields and `NoGasPhase` amounts within the table, a `NoGasPhase` state's pressure (and a tp case's temperature) exact and its other fields zero, one launch of cases that all bracket inside the launch budget (`CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator`, `AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`; on the CPU `BracketedFamiliesTests` and `BatchTests.ABracketedFamilyEqualsTheHostSolverBitForBit`) | the CPU accelerator and the host calls; the species functions for the h and s targets | ⏳ (CUDA run pending) |
-| Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
+| Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5×, nor rise above 115 % of the approved CUDA kernel time per Newton step (2026-10-04) (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ⚠ 2026-10-04: was "every fixture family", now the families named: the `seeded` kind had never run in a batch, and most tp, hp and sp fixture tables were not batched → HISTORY.md#l2-every-family-2026-10-04
@@ -178,7 +178,22 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   end-to-end set, not the fast set (`Protocol.Tests`' End-to-end level holds the rule).
 - **The approved throughput file is a tripwire**: a run writes `Throughput.actual.txt`
   next to it; the test fails when the ratio falls below the approved one by more than
-  20 % or below 5×.
+  20 % or below 5×, and when the rocket sweep's CUDA kernel time per Newton step
+  (`cuda_kernel_seconds_per_iteration`, the kernel seconds over the steps summed over every
+  station of every case; `iterations_per_case` records that workload) exceeds 115 % of the
+  approved figure (2026-10-04, `ThroughputRecord`; run-to-run variation is under 2 %). A
+  record without a valid per-iteration line fails with a message naming the file, never
+  skips: a platform's file is re-approved from a run on that platform.
+
+  ⚠ 2026-10-04: was the ratio alone, now the kernel time per Newton step too; a ratio
+  moves with the CPU's load and the transfer overhead and let +25 % on the kernel (0.2.1
+  to 0.2.2, a loop-live local passed by reference to a `NoInlining` call) pass the floor
+  → HISTORY.md#throughput-per-iteration-2026-10-04
+
+  ⚠ 2026-10-04: was the Windows record of 2026-09-19 (ratio 23.58, CUDA 0.151 s, CPU
+  3.557 s), now ratio 21.29 (CUDA 0.249 s, CPU 5.306 s, kernel 0.176 s): the old record
+  does not reproduce even at its own commit (v0.1.0 measures 19.7 to 21.2 today; the
+  transfer overhead grew) → HISTORY.md#throughput-per-iteration-2026-10-04
 
   ⚠ 2026-09-17: was one approved throughput file, now one per platform:
   `ApprovedPathFor` picks `Throughput.approved.txt` or `Throughput.linux.approved.txt`,
