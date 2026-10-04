@@ -59,10 +59,51 @@ public sealed class TraceGasScanTests
         }
 
         Assert.True(seen.Count > 0 && seen.Count == baseline.Count, $"{seen.Count} states against {baseline.Count} in the baseline");
-        var declared = TraceGasLeftovers.NotConverged.Where(name => !name.Contains("-cold|", StringComparison.Ordinal) && !name.Contains("-warm", StringComparison.Ordinal)).ToHashSet();
+        var declared = TraceGasLeftovers.NotConverged.Where(seen.Contains).ToHashSet();
         problems.AddRange(notConverged.Except(declared).Select(name => $"{name}: NotConverged and not declared"));
         problems.AddRange(declared.Except(notConverged).Select(name => $"{name}: declared NotConverged but not"));
         Assert.True(problems.Count == 0, $"{problems.Count} problems in {seen.Count} states:\n" + string.Join("\n", problems.Take(30)));
+    }
+
+    /// <summary>
+    /// The trace-excess scan (<see cref="TraceGasCases.TraceScan"/>: the 17 systems at ± 1e-8 and ± 1e-10 of their last element, 1 632 tp states
+    /// the design's scans did not walk): every state ends <c>Ok</c> clear of the conditions at 1e-9 with every element within the relative
+    /// invariant, or <c>NoGasPhase</c>, or <c>NotConverged</c> exactly as declared in <c>TraceGasLeftovers.txt</c>; and every tp state the file
+    /// declares <c>NotConverged</c> belongs to this scan or to <see cref="TraceGasCases.ScanFamilies"/>. Red without room for the gas:
+    /// 50 states end <c>NotConverged</c> and 42 of them are not declared.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "LongRunning")]
+    public void EveryStateOfTheTraceExcessScanEndsClearOrIsDeclared()
+    {
+        var problems = new List<string>();
+        var notConverged = new HashSet<string>();
+        var seen = new HashSet<string>();
+        foreach (var state in TraceGasCases.TraceScan())
+        {
+            _ = seen.Add(state.Name);
+            var solution = state.Solve();
+            if (solution.Status == CaseStatus.NotConverged)
+            {
+                _ = notConverged.Add(state.Name);
+            }
+            else if (solution.Status is not (CaseStatus.Ok or CaseStatus.NoGasPhase))
+            {
+                problems.Add($"{state.Name}: {solution.Status}");
+            }
+            else
+            {
+                problems.AddRange(Violations(state, solution));
+            }
+        }
+
+        var declared = TraceGasLeftovers.NotConverged.Where(seen.Contains).ToHashSet();
+        problems.AddRange(notConverged.Except(declared).Select(name => $"{name}: NotConverged and not declared"));
+        problems.AddRange(declared.Except(notConverged).Select(name => $"{name}: declared NotConverged but not"));
+        var known = TraceGasCases.ScanFamilies().Select(state => state.Name).ToHashSet();
+        problems.AddRange(TraceGasLeftovers.NotConverged.Where(name => !seen.Contains(name) && !known.Contains(name)).Select(name => $"{name}: declared, in no scan"));
+        Assert.True(seen.Count == 1632, $"{seen.Count} states");
+        Assert.True(problems.Count == 0, $"{problems.Count} problems in {seen.Count} states:\n" + string.Join("\n", problems.Take(60)));
     }
 
     private static IEnumerable<string> Violations(TraceGasCase state, HostSolution solution)

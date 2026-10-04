@@ -99,6 +99,55 @@ internal static class PhaseOneSeed
         }
 
         state.CondensedCount = count;
+        KeepRoomForTheGas(table, scratch, result, ref state);
+    }
+
+    /// <summary>
+    /// Leaves room for the gas (BOOT.md, "The starts"): the phase rule allows at most (active elements − 1) condensed phases beside a gas
+    /// at an assigned temperature and pressure, so when the set holds as many records as there are active elements, the record with the
+    /// smallest positive amount leaves the set and its moles go to zero; a record at zero, the newcomer of an inclusion, stays. The
+    /// verdict has proved a gas is required, so the record that carries the excess the gas replaces is the smallest. It counts in
+    /// <c>SetChanges</c> like any change of the set.
+    /// </summary>
+    public static void KeepRoomForTheGas(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                         ref IterationState state)
+    {
+        var active = 0;
+        for (var i = 0; i < table.ElementCount; i++)
+        {
+            active += scratch.ElementActive[i] != 0 ? 1 : 0;
+        }
+
+        var count = state.CondensedCount;
+        if (count < active)
+        {
+            return;
+        }
+
+        var smallest = -1;
+        for (var c = 0; c < count; c++)
+        {
+            var moles = result.Moles[scratch.CondensedInSolution[c]];
+            if (moles > 0.0 && (smallest < 0 || moles < result.Moles[scratch.CondensedInSolution[smallest]]))
+            {
+                smallest = c;
+            }
+        }
+
+        if (smallest < 0)
+        {
+            return;
+        }
+
+        result.Moles[scratch.CondensedInSolution[smallest]] = 0.0;
+        for (var c = smallest; c < count - 1; c++)
+        {
+            scratch.CondensedInSolution[c] = scratch.CondensedInSolution[c + 1];
+        }
+
+        scratch.CondensedInSolution[count - 1] = -1;
+        state.CondensedCount = count - 1;
+        state.SetChanges++;
     }
 
     /// <summary>

@@ -32,12 +32,11 @@ internal static class TraceGasPass
         TraceGasStart.SaveEntry(table, scratch, result);
         var status = CaseStatus.NotConverged;
         var havePoint = false;
-        var residual = 0.0;
         for (var start = 0; start < StartCount; start++)
         {
             if (start == 1)
             {
-                havePoint = PhaseOneSeed.Fetch(table, problem, scratch, result, out residual);
+                havePoint = PhaseOneSeed.Fetch(table, problem, scratch, result, out _);
             }
 
             if (start > 0)
@@ -51,7 +50,7 @@ internal static class TraceGasPass
                 break;
             }
 
-            if (start > 0 && (last || (havePoint && residual > 0.0)))
+            if (start > 0 && havePoint)
             {
                 PhaseOneSeed.LoadPoint(table, scratch, result, ref state, last);
             }
@@ -126,6 +125,7 @@ internal static class TraceGasPass
                 return CaseStatus.NotConverged;
             }
 
+            PhaseOneSeed.KeepRoomForTheGas(table, scratch, result, ref state);
             TraceGasStart.Project(table, scratch, result, TraceGasFrame.LayoutFor(table, problem, state.CondensedCount), logPressure, state.LogN);
         }
     }

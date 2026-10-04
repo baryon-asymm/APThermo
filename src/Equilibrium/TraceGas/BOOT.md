@@ -127,8 +127,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   a singular matrix is `SingularMatrix`. Either ends the start.
 - **The sequence.**
   - Converge, `Composition.Refresh`, `CondensedSet.Update`.
-  - A change counts in `SetChanges` against `MaxCondensedSetChanges`. It is followed by the
-    projection from the present iterate and another convergence.
+  - A change counts in `SetChanges` against `MaxCondensedSetChanges`. It is followed by room for
+    the gas (below), the projection from the present iterate and another convergence.
   - No change ends the start `Ok`.
 - **The starts**, in this order, each from the entry:
   1. **The projection.** π is the weighted least squares of the stationarities of the gases the
@@ -137,7 +137,9 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
      reported gas. `scratch.LogMoles` does not select the gases, because `CaseSetup.Begin` writes an
      estimate there for every gas it was not given.
   2. **The phase-one point, own amounts.** The point is that of `GasPhaseVerdict.PhaseOnePoint`
-     when its residual is positive, otherwise the entry's condensed species. From it:
+     whenever it completed, a residual of zero included (F1, 2026-10-04: it was the entry's
+     condensed species when the residual was zero, so a failed iterate with none started the pass
+     all-gas and every inclusion had to bring the whole condensed mass in from zero). From it:
      - π moves the least distance from the anchor onto the condensed stationarities;
      - π then moves along the unit excess `r = b − A n_c` until `|ln S| < 1e-12` (at most 60 Newton
        steps on `ln S`);
@@ -147,6 +149,18 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   3. **The same species, least-squares amounts** (`Aᵀ A n_c = Aᵀ b`), then as in 2.
   4. **The phase-one point with its records at or below 1e-12 kmol/kg dropped**, least-squares
      amounts, then as in 2. It runs only when `PhaseOnePoint` completed.
+
+  **Room for the gas** (F2, 2026-10-04): beside a gas at an assigned temperature and pressure the phase
+  rule allows at most (active elements − 1) condensed phases. When a loaded point, or the set after
+  `CondensedSet.Update`, holds as many records as active elements, the record with the smallest positive
+  amount leaves and its moles go to zero (`PhaseOneSeed.KeepRoomForTheGas`); the newcomer of an inclusion
+  enters at zero and stays. The verdict has proved a gas required, and the record the gas replaces is the
+  one that carries the excess, the smallest. It counts in `SetChanges`. The phase-one point of a
+  `GasRequired` verdict is a vertex with as many records as elements, so with the gas added the system
+  was over-determined: the condensed rows fixed every π and the phase-sum row was dependent
+  (`SingularMatrix`; for KCl, whose gas is congruent with the liquid, the determinant was O(1e-20)).
+  A projection of the excess off the condensed formulas was tried and rejected (22 states lost, CaCO3 + O
+  among them). Removing F2 reds the KCl states; removing F1 reds `TraceExcessTests` and the scan facts.
 
   `PhaseOnePoint` is asked once per pass, before start 2. Measured on 2026-10-04 by an emulation of
   seam (a) over 4 357 tp states of five scans:
@@ -330,18 +344,25 @@ The states of the scans that the pass does not settle are declared in `TraceGasL
 [the tests node](../../../tests/Equilibrium.Tests/BOOT.md), one name per line, kind `notconverged`
 (as before the pass) or `residue` (`Ok` with less than 1e-12 kmol/kg of gas, through the pass: the
 verdict's face search found no certificate). Measured on the code, 2026-10-04:
-- `NotConverged` tp states, the design's three: KCl − 1e-10 Cl at 1 200 K and 1 kPa, and at 1 500 K
-  and 100 kPa; Al(OH)3 − 1e-12 O at 300 K and 1 kPa. In all three the verdict answers `GasRequired`
-  with residual 0, the phase-one point completes, and every start ends `SingularMatrix`, after one
-  change of the condensed set (the first convergence is `Ok`: KCl at 1 iteration, Al(OH)3 at 58 to 59);
-  no fifth start and no looser test was tried.
+- `NotConverged` tp states: KCl − 1e-10 Cl at 1 200 K and 1 kPa and at 1 500 K and 100 kPa left the list
+  on 2026-10-04 (room for the gas). Al(OH)3 − 1e-12 O at 300 K and 1 kPa: the verdict answers `GasRequired`
+  with residual 0, and every start ends `SingularMatrix` after one change of the condensed set.
+- Under investigation (2026-10-04), the owner has not decided: eight tp states of the trace-excess scan
+  (`TraceGasCases.TraceScan`, 1 632 states at ± 1e-8 and ± 1e-10) that no mechanism settles, and
+  `Al(OH)3|-1E-12|100000|500`, a false `Ok` before the relative invariant (H open by 3.2e-12 of its
+  abundance) and `NotConverged` since. The eight: Al(OH)3 − 1e-8 O at 500 K and 1 kPa, Al(OH)3 − 1e-10 O
+  at 500 K and 100 kPa, Li2O + 1e-10 O at 800 K and 1 kPa and 100 kPa, CaCO3 + 1e-8 O at 500 K and 1 kPa
+  and at 800 K and 1 kPa, 100 kPa and 10 MPa. Each is an excess of the anion-forming element beside its
+  oxide, or an Al(OH)3 deficit. In the trace of the related KCl + 1e-12 Cl at 800 K every step moves π
+  toward a K-rich gas while n collapses by the positivity floor, and starts 2 to 4 end at step 0 (S not
+  finite after the placement along the excess). A follow-up investigation with a different start.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas) and the + 1e-12 state (3.1e-14), both through start 4.
 - hp, three modes of KCl + 1e-6 Cl at 100 kPa and 1 000 K left the list on 2026-10-04: the data junction
   settles them (above).
-- Beyond the design's scans, with excesses of 1e-8 and 1e-10 (not walked by any fact): 49 more tp
-  states end `NotConverged`, as before the pass, among them K2O, Li2O, MgO, Al(OH)3, thermite and
-  CaCO3 at deficits of 1e-8 and 1e-10 of the last element; reported to the orchestrator, not declared.
+- The 49 further tp states at excesses of 1e-8 and 1e-10 that ended `NotConverged` (K2O, Li2O, MgO,
+  Al(OH)3, thermite, CaCO3) are walked now (`TraceGasScanTests`, the trace-excess scan): all end `Ok` or
+  `NoGasPhase` but the eight above, which stay.
 
 ## Taboos
 

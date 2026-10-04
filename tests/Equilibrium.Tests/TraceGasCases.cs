@@ -247,6 +247,12 @@ internal static class TraceGasCases
         Systems.SelectMany(system => ScanPressures.SelectMany(pressure => ScanTemperatures.SelectMany(temperature =>
             excesses.Select(excess => Shifted(system.Name, system.Elements, system.Ratio, excess, pressure, temperature)))));
 
+    /// <summary>The excesses of the trace-excess scan: ± 1e-8 and ± 1e-10 of the last element, the states the design's scans did not walk.</summary>
+    public static double[] TraceScanExcesses { get; } = [-1e-8, -1e-10, 1e-8, 1e-10];
+
+    /// <summary>The 17 systems at <see cref="TraceScanExcesses"/>, 1 632 tp states (<see cref="Scan"/>).</summary>
+    public static IEnumerable<TraceGasCase> TraceScan() => Scan(TraceScanExcesses);
+
     /// <summary>The 13 excesses of the design's binary scan.</summary>
     public static double[] BinaryExcesses { get; } = [-1e-2, -1e-4, -1e-6, -1e-8, -1e-10, -1e-12, 0.0, 1e-12, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2];
 
