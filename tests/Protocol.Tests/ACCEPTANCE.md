@@ -109,6 +109,21 @@ only in this node.
       one after another, so the self-tests' temp directories never meet (no collection
       attribute was needed); the merge guard's takes about 70 s, the slowest case of the node.
 
+  ⚠ 2026-10-04: was the merge guard's self-test at about 70 s under a five-minute deadline,
+  now 7.7 s on eight threads under a ten-minute one → the next criterion
+- [x] 2026-10-04 — The tool self-tests no longer time out under load. The deadline was missed now and
+      then by the merge guard's self-test (sequential, 38 s idle, 70 s on a busy machine); the cause
+      was the processes its 65 cases start, not a build (its commands were stubs already), and the
+      script now runs the cases on eight threads (`tools/merge-guard/BOOT.md`, Acceptance criteria).
+      Measured on the reference machine, 16 logical cores, `APTHERMO_NO_CUDA=1`: the script alone,
+      sequential against eight threads, idle 38 s against 7.7 s, beside a loop of `dotnet build
+      APThermo.sln -c Release --no-incremental` 77 s against 15 s, with 32 CPU-bound processes 170 s
+      against 91 s, and with 64 of them 271 s on eight threads. `Deadline` is that worst figure
+      times two, rounded up to ten minutes (`ToolSelfTestTests.Deadline`). The class, `dotnet test
+      tests/Protocol.Tests --filter "Category=EndToEnd"`: 5 passed in 17 to 19 s idle (two runs) and in
+      25 and 41 s beside the Release build loop (two runs; the Debug outputs the test runs from
+      cannot be rebuilt beside it).
+
   ⚠ 2026-10-03: was inside the fast set, now `Category=EndToEnd`: each case starts a Python
   process, which the End-to-end level counts as a process start (root `BOOT.md`, Test time budgets)
 - [x] 2026-10-03 — The End-to-end level (root `BOOT.md`, Test time budgets; `BOOT.md`, the level of that

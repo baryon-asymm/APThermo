@@ -51,7 +51,10 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
   from the tree root, with Python found on the path; absence of Python is a failure,
   not a skip.
 - Every `tools/*/test_*.py`, found by the walk, run as `python -X utf8 <script>` from the tree
-  root, five minutes each; a non-zero exit, a timeout and an empty walk are failures.
+  root, ten minutes each (2026-10-04); a non-zero exit, a timeout and an empty walk are failures.
+
+  ⚠ 2026-10-04: was five minutes each, now ten, a hang guard derived from measurement
+  (`ACCEPTANCE.md`); the merge guard's self-test also runs on threads now and takes seconds.
 - The method bodies of the `tests` nodes' assemblies (2026-10-03): the static call graph from every
   `[Fact]` and `[Theory]` to a call of `Process.Start` or a construction of a `ProcessStartInfo`, and the
   `[Trait("Category", …)]` attributes on the method, its types and their bases; a virtual call is not resolved

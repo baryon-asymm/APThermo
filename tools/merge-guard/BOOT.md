@@ -123,9 +123,21 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
 - [x] The self-test `python -X utf8 tools/merge-guard/test_merge_guard.py` passes and
       builds its repositories in the system temp directory, never in this tree; its
       command table is replaced by stub commands (`--commands`), so it needs no .NET
-      SDK and runs in under a minute (2026-10-02, `test_merge_guard.py`: 65 tests, none
-      skipped, 46 s on the reference machine; every guard run is a subprocess whose
-      `TMP` is a private directory).
+      SDK and runs in seconds (2026-10-04, `test_merge_guard.py`: 65 tests, none
+      skipped, 7.7 s on the reference machine on eight threads; every guard run is a
+      subprocess whose `TMP` is a private directory). The cases are independent, so the
+      script runs them on threads (`-j N`, default `min(8, CPU count)`; `-j 1` is the old
+      sequential run), and a run that finds no test, or a name that matches none, is red.
+      Measured 2026-10-04 on the reference machine, 16 logical cores, sequential against
+      eight threads: idle 38 s against 7.7 s; with a loop of `dotnet build APThermo.sln -c
+      Release --no-incremental` beside it 77 s against 15 s; with 32 CPU-bound processes 170 s
+      against 91 s; with 64, 271 s on eight threads (the worst figure; the deadline of
+      `tests/Protocol.Tests` derives from it).
+
+      ⚠ 2026-10-04: was a sequential run, 38 to 46 s idle and 70 s on a busy machine, which
+      timed out the five-minute deadline of the tool self-tests now and then; now eight
+      threads. The cost was the processes the cases start (up to about 45 each, 20 ms and more
+      on Windows, none of them a build: the commands were stubs already), not the checks.
 
       ⚠ 2026-10-02: was "so it runs in seconds", now under a minute: 62 tests each
       start the guard and 20 to 30 git processes on Windows, and 44 s is what that costs.
