@@ -44,6 +44,26 @@ internal static class GasPlateauFamilies
             [(ProblemKind.AssignedEntropyPressure, 0.3), (ProblemKind.AssignedEntropyPressure, 0.9)]),
     };
 
+    /// <summary>
+    /// The plateaus whose hp and sp states a cold start reaches only through the 0.2.2 temperature bracket (the 0.2.1 solver left the
+    /// states seeded on the one-condensed side of the plateau at <c>TemperatureOutOfRange</c>, StateRecord BOOT.md): calcium and
+    /// magnesium carbonate under their own carbon dioxide at 1e5 Pa, at the fractions of the transition the families above leave out.
+    /// </summary>
+    private static readonly Dictionary<string, PlateauSystem> BracketedSystems = new()
+    {
+        ["bracket-calcite-1e5"] = new(
+            new(["CA", "C", "O"], [1, 2, 5], 0), "CaCO3", [("CaCO3(cr)", -1), ("CaO(cr)", 1), ("CO2", 1)], 1.0e5,
+            [(ProblemKind.AssignedEnthalpyPressure, 0.1), (ProblemKind.AssignedEntropyPressure, 0.1), (ProblemKind.AssignedEnthalpyPressure, 0.3),
+             (ProblemKind.AssignedEntropyPressure, 0.3), (ProblemKind.AssignedEnthalpyPressure, 0.5), (ProblemKind.AssignedEntropyPressure, 0.5)]),
+        ["bracket-magnesite-1e5"] = new(
+            new(["MG", "C", "O"], [1, 2, 5], 0), "MgCO3", [("MgCO3(cr)", -1), ("MgO(cr)", 1), ("CO2", 1)], 1.0e5,
+            [(ProblemKind.AssignedEnthalpyPressure, 0.1), (ProblemKind.AssignedEntropyPressure, 0.1), (ProblemKind.AssignedEnthalpyPressure, 0.3),
+             (ProblemKind.AssignedEntropyPressure, 0.3), (ProblemKind.AssignedEnthalpyPressure, 0.5), (ProblemKind.AssignedEntropyPressure, 0.5)]),
+    };
+
+    /// <summary>The names of the plateau families that end <c>Ok</c> only through the bracket (<see cref="RecoveryFamilies"/> keeps their <c>Ok</c> cases).</summary>
+    public static IReadOnlyCollection<string> BracketedNames => BracketedSystems.Keys;
+
     /// <summary>The names of the 0.2.2 equilibrium families as theory data.</summary>
     public static TheoryData<string> Names()
     {
@@ -60,9 +80,9 @@ internal static class GasPlateauFamilies
     public static PlateauFamily Family(SpeciesDatabase database, string name)
     {
         ArgumentNullException.ThrowIfNull(database);
-        var system = Systems[name];
+        var system = Systems.TryGetValue(name, out var known) ? known : BracketedSystems[name];
         var table = TableOver(database, system.Mixture.Elements);
-        var moles = ElementMolesOf(database, system);
+        var moles = ElementMolesOf(database, system.Mixture.Elements, system.Mixture.Ratio);
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
         var plateau = PlateauTemperature(tables, system, moles);
         var upper = TpAt(tables, system, moles, plateau + Bracket);
@@ -135,7 +155,8 @@ internal static class GasPlateauFamilies
         return sum * PhysicalConstants.R * temperature;
     }
 
-    private static SpeciesTable TableOver(SpeciesDatabase database, string[] elements)
+    /// <summary>The table of every gaseous and condensed product of the database made of the given elements, ions excluded.</summary>
+    internal static SpeciesTable TableOver(SpeciesDatabase database, string[] elements)
     {
         var allowed = new HashSet<string>(elements, StringComparer.OrdinalIgnoreCase);
         var names = database.Products
@@ -144,10 +165,11 @@ internal static class GasPlateauFamilies
         return SpeciesTable.Build(database, elements, names);
     }
 
-    private static double[] ElementMolesOf(SpeciesDatabase database, PlateauSystem system)
+    /// <summary>The element moles per kilogram of a mixture whose elements are in the given ratio of moles.</summary>
+    internal static double[] ElementMolesOf(SpeciesDatabase database, string[] elements, double[] ratio)
     {
-        var mass = system.Mixture.Elements.Select((element, i) => system.Mixture.Ratio[i] * database.AtomicWeight(element)).Sum();
-        return [.. system.Mixture.Ratio.Select(r => r / mass)];
+        var mass = elements.Select((element, i) => ratio[i] * database.AtomicWeight(element)).Sum();
+        return [.. ratio.Select(r => r / mass)];
     }
 
     /// <summary>A univariant system at one pressure: its mixture, the reaction through the plateau and the states of the family.</summary>

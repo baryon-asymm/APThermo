@@ -17,6 +17,9 @@ public sealed class BatchTests
     /// <summary>The names of the 0.2.1 equilibrium families as theory data, delegating to <see cref="FixtureBatches.NamedEquilibriumFamilyNames"/>.</summary>
     public static TheoryData<string> NamedEquilibriumFamilies() => FixtureBatches.NamedEquilibriumFamilyNames();
 
+    /// <summary>The names of the 0.2.2 families of the gasless verdict and the temperature bracket as theory data, delegating to <see cref="RecoveryFamilies.Names"/>.</summary>
+    public static TheoryData<string> BracketedFamilyNames() => RecoveryFamilies.Names();
+
     /// <summary>The names of the 0.2.2 gas-plateau families as theory data, delegating to <see cref="GasPlateauFamilies.Names"/>.</summary>
     public static TheoryData<string> GasPlateauFamilyNames() => GasPlateauFamilies.Names();
 
@@ -174,6 +177,20 @@ public sealed class BatchTests
         }
     }
 
+    /// <summary>
+    /// A family of the 0.2.2 gasless verdict and temperature bracket (<see cref="RecoveryFamilies"/>) equals the host solver bit for bit,
+    /// <c>NoGasPhase</c> cases included (state with its temperature and pressure, the condensed moles), and the element balance of every
+    /// case closes to the table's bound.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(BracketedFamilyNames))]
+    public void ABracketedFamilyEqualsTheHostSolverBitForBit(string name)
+    {
+        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
+        Assert.NotEmpty(family.Labels);
+        _ = AssertEquilibriumBatchEqualsTheHostSolver(family.Batch, family.Table, family.Labels, gaslessAllowed: true);
+    }
+
     private static void AssertEquilibriumFamilyEqualsTheHostSolver((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
     {
         var (batch, table, cases) = family;
@@ -185,7 +202,8 @@ public sealed class BatchTests
         }
     }
 
-    private static EquilibriumBatchResult AssertEquilibriumBatchEqualsTheHostSolver(EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels)
+    private static EquilibriumBatchResult AssertEquilibriumBatchEqualsTheHostSolver(EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels,
+                                                                                    bool gaslessAllowed = false)
     {
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
@@ -194,7 +212,7 @@ public sealed class BatchTests
         for (var k = 0; k < batch.Count; k++)
         {
             var host = HostSolves.Equilibrium(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
-            Assert.Equal(CaseStatus.Ok, host.Status);
+            Assert.True(host.Status == CaseStatus.Ok || (gaslessAllowed && host.Status == CaseStatus.NoGasPhase), $"{labels[k]}: host status {host.Status}");
             Assert.Equal(host.Status, result.Status[k]);
             Assert.Equal(host.Iterations, result.Iterations[k]);
             Assert.Empty(Bits.Differences(host.State, result.State[k], labels[k]));

@@ -1,4 +1,7 @@
+using System.Reflection;
+using APThermo.Equilibrium;
 using APThermo.Fixtures;
+using APThermo.Harness;
 using APThermo.Thermo;
 
 namespace APThermo.Execution.Tests;
@@ -68,6 +71,118 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
 
         return mismatches;
     }
+
+    /// <summary>
+    /// Every case of an equilibrium batch, cpu against gpu: the status, then by the status the CPU accelerator ended in. <c>Ok</c>: the
+    /// state within the table, the closure of the element balance and the mole fractions with the balance-remnant correction
+    /// (<paramref name="sensitivities"/>). <c>NoGasPhase</c> (0.2.2): <see cref="GaslessCase"/>. Any other status is compared by status
+    /// alone, as a failed rocket station is.
+    /// </summary>
+    public List<string> Equilibrium(EquilibriumBatchResult cpu, EquilibriumBatchResult gpu, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels,
+                                    BalanceSensitivities sensitivities)
+    {
+        ArgumentNullException.ThrowIfNull(cpu);
+        ArgumentNullException.ThrowIfNull(gpu);
+        ArgumentNullException.ThrowIfNull(batch);
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(labels);
+        ArgumentNullException.ThrowIfNull(sensitivities);
+        var balance = new ElementBalance(table, batch.ElementMoles);
+        var mismatches = new List<string>();
+        for (var k = 0; k < batch.Count; k++)
+        {
+            if (cpu.Status[k] != gpu.Status[k])
+            {
+                mismatches.Add($"{labels[k]}: status cpu {cpu.Status[k]}, cuda {gpu.Status[k]}");
+                continue;
+            }
+
+            var sameSteps = cpu.Iterations[k] == gpu.Iterations[k];
+            var station = new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps, labels[k]);
+            if (cpu.Status[k] == CaseStatus.Ok)
+            {
+                CountSteps(sameSteps);
+                mismatches.AddRange(OkCase(cpu, gpu, balance, station, sensitivities, table));
+            }
+            else if (cpu.Status[k] == CaseStatus.NoGasPhase)
+            {
+                CountSteps(sameSteps);
+                mismatches.AddRange(GaslessCase(cpu, gpu, batch, balance, station, table));
+            }
+        }
+
+        return mismatches;
+    }
+
+    private IEnumerable<string> OkCase(EquilibriumBatchResult cpu, EquilibriumBatchResult gpu, ElementBalance balance, MoleStation station,
+                                        BalanceSensitivities sensitivities, SpeciesTable table)
+    {
+        var k = (int)station.Index;
+        var cpuResiduals = balance.Residuals(k, cpu.Moles, k);
+        var gpuResiduals = balance.Residuals(k, gpu.Moles, k);
+        return GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], station.Label, Record)
+            .Concat(Balance(balance, cpuResiduals, gpuResiduals, station.Label))
+            .Concat(Moles(station, table, sensitivities.Correction(k, cpuResiduals), sensitivities.Correction(k, gpuResiduals)));
+    }
+
+    /// <summary>
+    /// A case both accelerators ended <c>NoGasPhase</c> (the 0.2.2 gasless verdict): the state carries the pressure of the case, which
+    /// must be the batch's own bit for bit on both sides, and the temperature, which for a tp case is the batch's own bit for bit and
+    /// for an hp or sp case, a result of the bracket, agrees within the temperature tier (its deviation is recorded); every other
+    /// field of the state is zero on both. The moles are the condensed minimum with every gas zero, compared at the tiers of the table
+    /// without the balance-remnant correction (a condensed amount is set by the balance, not by a small difference of large amounts),
+    /// both as fractions and as amounts (a fraction of one condensed species is always one), and close the element balance as an <c>Ok</c> station does. The multipliers are not part of a batch result.
+    /// </summary>
+    private List<string> GaslessCase(EquilibriumBatchResult cpu, EquilibriumBatchResult gpu, EquilibriumBatch batch, ElementBalance balance,
+                                            MoleStation station, SpeciesTable table)
+    {
+        var k = (int)station.Index;
+        var cpuState = cpu.State[k];
+        var gpuState = gpu.State[k];
+        var mismatches = new List<string>();
+        foreach (var (side, state) in new[] { ("cpu", cpuState), ("cuda", gpuState) })
+        {
+            if (!Bits.Same(state.Pressure, batch.Pressure[k]))
+            {
+                mismatches.Add($"{station.Label}: pressure on {side} {state.Pressure:R}, the case's {batch.Pressure[k]:R}");
+            }
+
+            if (batch.Kind[k] == ProblemKind.AssignedTemperaturePressure && !Bits.Same(state.Temperature, batch.Temperature[k]))
+            {
+                mismatches.Add($"{station.Label}: temperature on {side} {state.Temperature:R}, the case's {batch.Temperature[k]:R}");
+            }
+
+            mismatches.AddRange(NonZeroFields(state, $"{station.Label} on {side}"));
+        }
+
+        Record("noGasPhaseTemperature", Math.Abs(cpuState.Temperature - gpuState.Temperature) / cpuState.Temperature);
+        if (!GpuCpuTolerances.Matches(GpuCpuTolerances.Entries["temperature"].Relative, cpuState.Temperature, gpuState.Temperature))
+        {
+            mismatches.Add($"{station.Label}: temperature cpu {cpuState.Temperature:R}, cuda {gpuState.Temperature:R}");
+        }
+
+        var floor = GpuCpuTolerances.MoleFractionFloor(tolerances) * Enumerable.Range(0, table.SpeciesCount).Sum(j => cpu.Moles[k * table.SpeciesCount + j]);
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            var (x, y) = (cpu.Moles[k * table.SpeciesCount + j], gpu.Moles[k * table.SpeciesCount + j]);
+            if (j < table.GasCount ? x != 0.0 || y != 0.0 : (x >= floor || y >= floor) && !GpuCpuTolerances.Matches(GpuCpuTolerances.Entries["condensedMoleFraction"].Relative, x, y))
+            {
+                mismatches.Add($"{station.Label}: moles of {table.Species[j]}: cpu {x:R}, cuda {y:R}");
+            }
+        }
+
+        mismatches.AddRange(Balance(balance, balance.Residuals(k, cpu.Moles, k), balance.Residuals(k, gpu.Moles, k), station.Label));
+        mismatches.AddRange(Moles(station, table));
+        return mismatches;
+    }
+
+    /// <summary>The fields of a <c>NoGasPhase</c> state other than the temperature and the pressure that are not zero, as messages.</summary>
+    private static IEnumerable<string> NonZeroFields(MixtureState state, string label) =>
+        typeof(MixtureState).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(f => f.Name is not nameof(MixtureState.Temperature) and not nameof(MixtureState.Pressure))
+            .Select(f => (f.Name, Value: (double)f.GetValue(state)!))
+            .Where(f => f.Value != 0.0)
+            .Select(f => $"{label}: {f.Name} {f.Value:R}, zero for a NoGasPhase state");
 
     /// <summary>
     /// The closure of the element balance of one station on both sides: records the worst residual and reports every element above

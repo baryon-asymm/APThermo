@@ -1,15 +1,20 @@
 using System.Globalization;
+using APThermo.Execution.Chunks;
 using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Thermo;
+using Xunit.Abstractions;
 
 namespace APThermo.Execution.Tests;
 
 /// <summary>L2 and the benchmark on the reference machine: CUDA against the CPU accelerator within the table, determinism, throughput.</summary>
 [Collection(EngineFixture.CollectionName)]
 [TestCaseOrderer("APThermo.Execution.Tests.LastFactOrderer", "APThermo.Execution.Tests")]
-public sealed class CudaTests
+public sealed class CudaTests(ITestOutputHelper output)
 {
+    /// <summary>The most cases of the launch-budget fact: one wave of the device where it is smaller, so that the fact never launches more than the engine's own first chunk would.</summary>
+    private const int LaunchBudgetCases = 16_384;
+
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
     public static TheoryData<string> Families() => FixtureBatches.FamilyNames(EngineFixture.SharedDatabase);
 
@@ -21,6 +26,9 @@ public sealed class CudaTests
 
     /// <summary>The names of the 0.2.2 gas-plateau families as theory data, delegating to <see cref="GasPlateauFamilies.Names"/>.</summary>
     public static TheoryData<string> GasPlateauFamilyNames() => GasPlateauFamilies.Names();
+
+    /// <summary>The names of the 0.2.2 families of the gasless verdict and the temperature bracket as theory data, delegating to <see cref="RecoveryFamilies.Names"/>.</summary>
+    public static TheoryData<string> BracketedFamilyNames() => RecoveryFamilies.Names();
 
     /// <summary>A rocket family on cuda matches the cpu accelerator.</summary>
     [Theory]
@@ -123,42 +131,77 @@ public sealed class CudaTests
         }
 
         var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name);
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, onlyOk: true);
+    }
+
+    /// <summary>
+    /// A family of the 0.2.2 gasless verdict and temperature bracket (<see cref="RecoveryFamilies"/>) on cuda matches the cpu accelerator:
+    /// equal statuses, <c>Ok</c> cases within the table, <c>NoGasPhase</c> cases with their moles within the table, their temperature and
+    /// pressure exact where they are inputs and every other state field zero. The families keep the cases the CPU accelerator ends
+    /// <c>Ok</c> or <c>NoGasPhase</c> as each stands for; the cases it ended otherwise are left out and counted in
+    /// <see cref="BracketedFamily.Dropped"/>, which the CPU fact <c>BracketedFamiliesTests</c> reports.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(BracketedFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void ABracketedFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
+        output.WriteLine($"{name}: {family.Batch.Count} cases, {family.Gasless} gasless, {family.Dropped} dropped");
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, onlyOk: false);
+    }
+
+    /// <summary>
+    /// One launch of cases that all bracket (the hp and sp states of the gasless KO2 family, repeated) stays within the launch budget
+    /// (Execution.Tests BOOT.md; the quarter of the default run-time limit, which <c>LaunchBudget</c> sizes later chunks from): the
+    /// engine's first chunk is one wave of the device, so a family that all brackets must fit it, and the measured kernel time of the
+    /// launch is below the budget. Every case ends <c>NoGasPhase</c> on CUDA; the figure is written to the test output.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget()
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, "gasless-ko2");
+        var count = Math.Min(LaunchBudgetCases, cuda.IlgpuAccelerator.MaxNumThreads);
+        var batch = RecoveryFamilies.Tiled(RecoveryFamilies.WithoutTp(family.Batch), count);
+        using var tables = cuda.Upload(family.Table);
+        _ = cuda.Run(tables, batch);
+        var run = cuda.Run(tables, batch);
+        var limit = LaunchBudget.DefaultRunTimeLimit / 4;
+        output.WriteLine($"{count} bracketing cases in one launch: kernel {run.Timings.Kernel.TotalMilliseconds:F1} ms, the budget {limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
+        var violation = RecoveryFamilies.LaunchViolation(run, limit);
+        Assert.True(violation is null, violation);
     }
 
     private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)]);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], onlyOk: true);
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels)
+    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool onlyOk)
     {
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
         var gpu = cuda.Run(cudaTables, batch);
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
-        var balance = new ElementBalance(table, batch.ElementMoles);
-        var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
-        var mismatches = new List<string>();
-        for (var k = 0; k < batch.Count; k++)
+        if (onlyOk)
         {
-            Assert.Equal(CaseStatus.Ok, cpu.Status[k]);
-            if (cpu.Status[k] != gpu.Status[k])
-            {
-                mismatches.Add($"{labels[k]}: status cpu {cpu.Status[k]}, cuda {gpu.Status[k]}");
-                continue;
-            }
-
-            var sameSteps = cpu.Iterations[k] == gpu.Iterations[k];
-            comparison.CountSteps(sameSteps);
-
-            mismatches.AddRange(GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], labels[k], comparison.Record));
-            var cpuResiduals = balance.Residuals(k, cpu.Moles, k);
-            var gpuResiduals = balance.Residuals(k, gpu.Moles, k);
-            mismatches.AddRange(comparison.Balance(balance, cpuResiduals, gpuResiduals, labels[k]));
-            mismatches.AddRange(comparison.Moles(new MoleStation(cpu.Moles, gpu.Moles, k, sameSteps, labels[k]), table,
-                                                 sensitivities.Correction(k, cpuResiduals), sensitivities.Correction(k, gpuResiduals)));
+            Assert.All(cpu.Status, status => Assert.Equal(CaseStatus.Ok, status));
         }
 
+        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
+        var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
+        var mismatches = comparison.Equilibrium(cpu, gpu, batch, table, labels, sensitivities);
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
         AssertDifferentStepShare(comparison.DifferentSteps, batch.Count);
     }
