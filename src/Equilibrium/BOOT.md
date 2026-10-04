@@ -32,10 +32,13 @@ a full restatement of the equations in this document, which nobody has asked for
   1e-12 · max(1, b_i)` in kmol per kilogram; a converged case that violates it is
   reported as `NotConverged`, never as `Ok`.
 - **The candidate list never changes.** Every species of the table is a candidate
-  throughout; gaseous species stay positive because the unknowns are their logarithms;
-  condensed species enter and leave the solution by the condensed-species rule of the
-  Constraints (the report's tests, completed on 2026-09-13); a species is
-  never deleted from the table by this node.
+  throughout; in the Newton iteration gaseous species stay positive because the unknowns
+  are their logarithms, and a `NoGasPhase` result reports them zero
+  ([GasPhase/BOOT.md](GasPhase/BOOT.md)); condensed species enter and leave the solution by
+  the condensed-species rule of the Constraints (the report's tests, completed on
+  2026-09-13); a species is never deleted from the table by this node.
+
+  ⚠ 2026-10-03: was every gas positive in every result, now zero in `NoGasPhase` → HISTORY.md#gas-positive-2026-10-03
 - **An absent element is a mask, not an error.** A case whose abundance of an element
   is zero runs with every species containing that element inactive (mole number zero,
   no row or column in the iteration) and that element's equation dropped; the active
@@ -46,9 +49,12 @@ a full restatement of the equations in this document, which nobody has asked for
 - **Deterministic and stateless.** All inputs and all scratch are explicit parameters;
   the same inputs give the same bits on the same accelerator.
 - **Failures are values.** Every exit path sets a `CaseStatus`; the state record is
-  fully written only for `Ok`.
+  fully written only for `Ok`. `NoGasPhase` writes the condensed moles, the certificate's
+  multipliers and a state of the temperature and the pressure only; a state a probe of
+  the bracket wrote is cleared ([Recovery/BOOT.md](Recovery/BOOT.md)).
 - **Bounded work.** The iteration count is capped (see Constraints); a case that does
-  not converge within the cap returns `NotConverged` with the last iterate.
+  not converge within the cap returns `NotConverged` with the last iterate. The attempts
+  after a failure are bounded too ([Recovery/BOOT.md](Recovery/BOOT.md)).
 
 ## Dependencies
 
@@ -91,17 +97,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   not finite and positive is `InvalidInput`, as for the frozen solve (2026-09-28)
   → HISTORY.md#warm-evidence
 
-  A warm start that fails, with any status other than `InvalidInput`, falls back once
-  to the cold start of section 3.1, with the iterations of both attempts counted in the
-  case's total (2026-09-28). A failure found at the close counts as well: the
-  mixture window, the element invariant, the exit guard, a singular derivative system
-  and the state guard (2026-09-28). A cold start never falls back. The cold start takes
-  no part of the seed: for hp and sp it starts at 3 800 K, not at the previous
-  solution's temperature, since that temperature is part of the seed.
-  → HISTORY.md#warm-evidence
-
-  ⚠ 2026-09-28: was a warm-start fallback only for a negative seeded condensed species,
-  now a fallback on any failure → HISTORY.md#warm-fallback
+  What follows a failed attempt — the cold fallback of a warm start, the gasless verdict
+  of a tp attempt, the temperature bracket of an hp or sp case — is the `Recovery` child
+  node's ([Recovery/BOOT.md](Recovery/BOOT.md)), the verdict the `GasPhase` node's
+  ([GasPhase/BOOT.md](GasPhase/BOOT.md)).
+  ⚠ 2026-10-03: was the fallback stated here, now in `Recovery` → HISTORY.md#recovery-split-2026-10-03
 
 - The retention threshold has two stages, as the reference's `tsize`/`xsize` (2026-09-28):
   `ln(n_j/n) = −18.420681` (`n_j/n = 1e-8`, the report's) until the first convergence of
@@ -181,6 +181,8 @@ below) is the proof.
 | `EquilibriumSolver` | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula. Named here as the composition root the root's Ce rule allows above its limit (Ce 19 by the dependency check's walk on 2026-09-14) | internal (2026-09-15, distribution phase), contract unchanged |
 | `Newton` (child node) | converges one condensed set: assembles, damps, judges, keeps the loop's bookkeeping and recovers from a singular system; holds `NewtonIteration`, the second composition root of the node ([Newton/BOOT.md](Newton/BOOT.md)) | internal, no project of its own |
 | `Condensed` (child node) | changes the condensed set between two convergences and holds the exit guard ([Condensed/BOOT.md](Condensed/BOOT.md)) | internal, no project of its own |
+| `GasPhase` (child node) | the gasless verdict of a failed tp attempt: the condensed-only Gibbs minimum by a two-phase revised simplex and the tangent-plane certificate that no gas lowers it ([GasPhase/BOOT.md](GasPhase/BOOT.md)) | internal, no project of its own |
+| `Recovery` (child node) | the attempts of a case after the first and their order: the cold fallback, the verdict's place, the temperature bracket of hp and sp over tp probes, the finals, the state cleared on a failure; `AttemptPlan.Next`, reached from `Solve` through one `NoInlining` method ([Recovery/BOOT.md](Recovery/BOOT.md)) | internal, no project of its own |
 | `StateRecord` (child node) | turns a converged or frozen composition into the `MixtureState` (RP-1311 sections 2.5 and 2.6, the plateau convention, the state guard) ([StateRecord/BOOT.md](StateRecord/BOOT.md)) | internal, no project of its own |
 
 The other stage classes of this directory (`CaseSetup`, `ConvergenceSequence`, `Composition`,
@@ -189,7 +191,7 @@ summary of its declaration; the classes of the child nodes are listed in their `
 The data flow: `Solve`, `CaseSetup`, then `ConvergenceSequence` (a loop of `Newton.Converge`,
 `Composition.Refresh` and `Condensed.Update`, with the tie's release and its way back), then the
 close: window, element invariant, exit guard, `Composition.Sums`, `DerivativeSystem`,
-`MixtureProperties`.
+`MixtureProperties`; after every attempt `Recovery.AttemptPlan.Next` names the next one or the status.
 → HISTORY.md#structure-table-rows
 
 ⚠ 2026-09-15: was six types public, now internal with grants → HISTORY.md#visibility
@@ -257,7 +259,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `EquilibriumSolver` | efferent coupling | 21 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `EquilibriumSolver` | efferent coupling | 22 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 14 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot grouped in `TieSlices`; grouping the rest would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 The rows of the child nodes' types stand in their own `## Shape exceptions`
@@ -271,7 +273,7 @@ walk, the root's limit; at 14 stands `Newton.ConvergenceTests` and at 13 `Conver
 (2026-10-03) → HISTORY.md#ce-rest-2026-10-02
 
 ⚠ 2026-10-03: was every other type 11 or below, now `Newton.ConvergenceTests` 14 → HISTORY.md#ce-convergence-tests-2026-10-03
-⚠ 2026-10-03: was `EquilibriumSolver` 24, now 21: `ConvergenceSequence` took four names → HISTORY.md#ce-solver-2026-10-03
+⚠ 2026-10-03: was `EquilibriumSolver` 24, now 22: `ConvergenceSequence` and `AttemptPlan` took four names → HISTORY.md#ce-solver-2026-10-03
 ⚠ 2026-09-28: was the rest "10 or below", now 11 → HISTORY.md#ce-rules-ab
 ⚠ 2026-09-28: was `EquilibriumSolver` at 19 and `NewtonIteration` at 18, now 22 and 19 → HISTORY.md#ce-roots-22
 ⚠ 2026-09-28: was the roots at 22 and 19, now 24 and 20 → HISTORY.md#ce-roots

@@ -14,6 +14,8 @@ condensed set between two convergences and holds the exit guard:
   crossing of each pair, the effective range of a record, the adjacent record and the phase at a
   temperature.
 
+The `GasPhase` node asks `PhaseGeometry.InEffectiveRange` for a record's eligibility.
+
 `EquilibriumSolver` calls `CondensedSet.Update` after each convergence and
 `ExitGuardFindsAPositiveCandidate` at the close; the `Newton` node removes a record through
 `CondensedSet.Remove` and `MarkRemoved` (`API.md`). The cluster has a reason of its own to change: the

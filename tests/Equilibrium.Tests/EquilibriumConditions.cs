@@ -30,6 +30,70 @@ internal static class EquilibriumConditions
         return violations;
     }
 
+    /// <summary>The margin of the tangent-plane certificate: ln S of a gasless state lies below minus this (GasPhase BOOT.md).</summary>
+    public const double CertificateMargin = 1.0e-9;
+
+    /// <summary>
+    /// The conditions of a <see cref="CaseStatus.NoGasPhase"/> state, each computed here and not by the code under test: the
+    /// conditions above (no retained gas, so the chemical-potential part is empty), every gas at zero moles, the state
+    /// carrying the case's temperature and pressure, and the tangent-plane sum of the gas phase at the reported multipliers
+    /// below one by the certificate's margin (ln S &lt; −1e-9: no gas of any composition lowers the Gibbs energy).
+    /// </summary>
+    public static List<string> GaslessViolations(HostSolution solution)
+    {
+        var violations = Violations(solution, Tolerances.GasChemicalPotential);
+        var table = solution.Case.Table;
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (solution.Moles[j] != 0.0)
+            {
+                violations.Add($"gas {table.Species[j]} holds {solution.Moles[j]:E3} moles in a gasless state");
+            }
+        }
+
+        if (solution.State.Pressure != solution.Case.Pressure || !(solution.State.Temperature > 0.0))
+        {
+            violations.Add($"state carries T {solution.State.Temperature}, p {solution.State.Pressure} for p {solution.Case.Pressure}");
+        }
+
+        var logSum = LogTangentSum(solution);
+        if (!(logSum < -CertificateMargin))
+        {
+            violations.Add($"ln S of the gas phase is {logSum:E3}, not below the certificate's margin");
+        }
+
+        return violations;
+    }
+
+    /// <summary>ln Σ_j exp(Σ_i a_ij π_i − g_j/RT − ln(p/p°)) over the gases whose elements are all present in the case, at the solution's multipliers and its state's temperature.</summary>
+    public static double LogTangentSum(HostSolution solution)
+    {
+        var table = solution.Case.Table;
+        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        var view = buffers.View;
+        var temperature = solution.State.Temperature;
+        var logPressure = Math.Log(solution.Case.Pressure / 1e5);
+        var exponents = new List<double>();
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (CarriesAbsentElement(solution, j))
+            {
+                continue;
+            }
+
+            var exponent = -SpeciesFunctions.GOverRT(view, j, temperature) - logPressure;
+            for (var i = 0; i < table.ElementCount; i++)
+            {
+                exponent += table.Arrays.Stoichiometry[i * table.SpeciesCount + j] * solution.Multipliers[i];
+            }
+
+            exponents.Add(exponent);
+        }
+
+        var largest = exponents.Max();
+        return largest + Math.Log(exponents.Sum(e => Math.Exp(e - largest)));
+    }
+
     /// <summary>Every element whose conservation residual exceeds <see cref="ElementInvariant"/>.</summary>
     private static List<string> ElementConservationViolations(HostSolution solution)
     {
