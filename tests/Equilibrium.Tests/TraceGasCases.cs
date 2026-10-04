@@ -14,19 +14,22 @@ internal sealed record TraceGasCase(string Name, string[] Elements, double[] Rat
     /// <summary>The element moles per kilogram of the mixture.</summary>
     public double[] ElementMoles => UnivariantRig.ElementMolesOf(Elements, Ratio);
 
+    /// <summary>The tp problem of the state over every ion-free product of its elements.</summary>
+    public EquilibriumCase AsCase() =>
+        new(TraceGasCases.TableOver(Elements), ProblemKind.AssignedTemperaturePressure, Pressure, Temperature, 0.0, ElementMoles);
+
     /// <summary>The cold tp solve of the state over every ion-free product of its elements.</summary>
-    public HostSolution Solve() =>
-        HostSolver.Solve(
-            CpuFixture.Shared.Accelerator,
-            new EquilibriumCase(TraceGasCases.TableOver(Elements), ProblemKind.AssignedTemperaturePressure, Pressure, Temperature, 0.0, ElementMoles));
+    public HostSolution Solve() => HostSolver.Solve(CpuFixture.Shared.Accelerator, AsCase());
+
+    /// <summary>The hp or sp problem at the enthalpy or entropy of <paramref name="tp"/>, the converged tp state of this case.</summary>
+    public EquilibriumCase CaseAtStateOf(HostSolution tp, ProblemKind kind) =>
+        new(
+            TraceGasCases.TableOver(Elements), kind, Pressure, 0.0,
+            kind == ProblemKind.AssignedEnthalpyPressure ? tp.State.Enthalpy : tp.State.Entropy, ElementMoles);
 
     /// <summary>The cold hp or sp solve at the enthalpy or entropy of <paramref name="tp"/>, the converged tp state of this case.</summary>
     public HostSolution SolveAtStateOf(HostSolution tp, ProblemKind kind) =>
-        HostSolver.Solve(
-            CpuFixture.Shared.Accelerator,
-            new EquilibriumCase(
-                TraceGasCases.TableOver(Elements), kind, Pressure, 0.0,
-                kind == ProblemKind.AssignedEnthalpyPressure ? tp.State.Enthalpy : tp.State.Entropy, ElementMoles));
+        HostSolver.Solve(CpuFixture.Shared.Accelerator, CaseAtStateOf(tp, kind));
 
     /// <summary>
     /// The hp or sp solve at the enthalpy or entropy of <paramref name="tp"/>, warm-started as the design's scans were: from the

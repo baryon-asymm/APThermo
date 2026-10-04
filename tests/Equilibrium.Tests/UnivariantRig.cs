@@ -62,8 +62,8 @@ internal sealed class UnivariantRig
         Temperature = plateau;
         TransitionEnthalpy = ReactionEnthalpy(plateau);
         TransitionEntropy = TransitionEnthalpy / plateau;
-        Upper = Tp(elementMoles, plateau + Bracket);
-        Seed = Tp(elementMoles, plateau + SeedOffset);
+        Upper = OkTp(elementMoles, plateau + Bracket);
+        Seed = OkTp(elementMoles, plateau + SeedOffset);
     }
 
     public UnivariantSystem System { get; }
@@ -163,7 +163,7 @@ internal sealed class UnivariantRig
     /// <summary>The moles at <paramref name="fraction"/> of the way through the transition by the lever rule over the tp states at the plateau temperature ∓ <see cref="Bracket"/>.</summary>
     private double[] LeverMoles(double fraction)
     {
-        var lower = Tp(ElementMoles, Temperature - Bracket);
+        var lower = OkTp(ElementMoles, Temperature - Bracket);
         return [.. Upper.Moles.Zip(lower.Moles, (upper, below) => fraction * upper + (1.0 - fraction) * below)];
     }
 
@@ -193,6 +193,19 @@ internal sealed class UnivariantRig
         }
 
         return sum * PhysicalConstants.R * temperature;
+    }
+
+    /// <summary>
+    /// The tp state a target is built from: it must have converged, since the state of a failed solve is not written and its enthalpy and entropy
+    /// are whatever the buffer held (the nondeterminism investigation of 2026-10-04 found a rig that took its targets from one).
+    /// </summary>
+    private HostSolution OkTp(double[] elementMoles, double temperature)
+    {
+        var solution = Tp(elementMoles, temperature);
+        Assert.True(
+            solution.Status == CaseStatus.Ok,
+            $"{System.Name} at {Pressure:G3} Pa: the tp state at {temperature:R} K the targets are built from ends {solution.Status}");
+        return solution;
     }
 
     private HostSolution Tp(double[] elementMoles, double temperature) =>

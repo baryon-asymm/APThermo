@@ -93,7 +93,23 @@ internal static class HostSolver
     public static HostSolution SolveFrozen(Accelerator accelerator, EquilibriumCase problem, double[] composition) =>
         Run(accelerator, problem, composition, frozen: true);
 
-    private static HostSolution Run(Accelerator accelerator, EquilibriumCase problem, double[]? moles, bool frozen)
+    /// <summary>
+    /// One solve with every buffer the solver owns or writes (the scratch, the multipliers, the state, the status and the iterations) filled
+    /// with <paramref name="fill"/> before the run instead of zeros: a solver with no hidden state gives the same case results whatever the
+    /// buffers held (<c>NoHiddenStateTests</c>). With <paramref name="moles"/> the moles given are the initial estimate.
+    /// </summary>
+    public static HostSolution SolveFilled(Accelerator accelerator, EquilibriumCase problem, double[]? moles, BufferFill fill) =>
+        Run(accelerator, problem, moles, frozen: false, fill);
+
+    private static HostSolution Run(Accelerator accelerator, EquilibriumCase problem, double[]? moles, bool frozen) =>
+        Run(accelerator, problem, moles, frozen, BufferFill.Zero);
+
+    /// <summary>
+    /// ILGPU allocates without clearing, so every buffer the solver does not fill itself is filled here before the run: with zeros, as a
+    /// run of the batch pipeline starts, or with the poison of <paramref name="fill"/>. A failed case's state and multipliers are then
+    /// zero (or the poison), never the bits of an earlier run.
+    /// </summary>
+    private static HostSolution Run(Accelerator accelerator, EquilibriumCase problem, double[]? moles, bool frozen, BufferFill fill)
     {
         var table = problem.Table;
         using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
@@ -112,6 +128,8 @@ internal static class HostSolver
             molesBuffer.MemSetToZero();
         }
 
+        fill.Scratch(doubles, ints);
+        fill.Outputs(multipliers, state, status, iterations);
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
         var result = new EquilibriumResult(molesBuffer.View, multipliers.View, state.View, status.View, iterations.View);

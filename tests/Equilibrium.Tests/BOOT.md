@@ -339,6 +339,15 @@ creation names its arguments; it passes them by position today (the criterion be
       (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
       - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`: the families
         `TraceGasCases` generates from their parameters, none typed;
+      - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 360 cases (every tp, hp and sp
+        fixture, the magnesite band, the declared leftovers, KO2 − 1e-10 O, the junction states warm) run with
+        every buffer the solver owns or writes zeroed, filled with NaN and filled with 1e300
+        (`HostSolver.SolveFilled`, `BufferFill`): the same status, iterations, moles and multipliers bit for
+        bit, and the same state for `Ok` and `NoGasPhase`; a failure writes no state and the harness zeroes
+        it. `HostSolver` clears every buffer before a run (ILGPU's `Allocate1D` does not), and
+        `UnivariantRig` refuses a failed tp solve as the source of its targets (it had taken them from the
+        unwritten state of one). Red with the estimate of the gaseous moles left unwritten by the cold branch of
+        `CaseSetup.Begin`: 180 differences in the 360 cases;
       - `TraceGasClosureTests` (2026-10-04, the relative invariant `EquilibriumConditions.ElementInvariant`,
         `1e-13 · b_i`; a gasless state is held to `EquilibriumConditions.GaslessElementResidual`, the
         verdict's absolute 1e-12): the 72 plateau states of calcite and magnesite and Al(OH)3 + 1e-6 O,
