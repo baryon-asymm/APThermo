@@ -530,6 +530,7 @@ sealed class (record) APThermo.Problems.Station : IEquatable<Station>
 enum APThermo.Thermo.CaseStatus : Int32
     AreaRatioInvalid = 6
     InvalidInput = 1
+    NoGasPhase = 8
     NoTransportData = 7
     NotConverged = 2
     Ok = 0

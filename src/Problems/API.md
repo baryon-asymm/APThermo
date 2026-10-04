@@ -279,7 +279,7 @@ public sealed record EquilibriumProblem
 public sealed record Station               // internal constructor (M1): a consumer only reads one; every property is init, for this node's own tests
 {
     public string Name { get; init; }                                        // "chamber", "throat", "exit1", "exit2", …; "state" for an equilibrium result
-    public MixtureState State { get; init; }                                 // zero where the status is not Ok
+    public MixtureState State { get; init; }                                 // zero where the status is not Ok; NoGasPhase holds Temperature and Pressure only (2026-10-03)
     public PerformanceFigures? Performance { get; init; }                    // rocket stations only
     public IReadOnlyDictionary<string, double> MoleFractions { get; init; }  // every species of the table, n_j over the moles of all species
     public IReadOnlyDictionary<string, double> CondensedMassFractions { get; init; }   // every condensed species, n_j M_j
@@ -313,6 +313,13 @@ public sealed record EquilibriumResult     // internal constructor (M1): a consu
     public AcceleratorInfo Accelerator { get; }
 }
 ```
+
+`NoGasPhase` (2026-10-03, 0.2.2) is a status like the others for this node: `Station.State` holds
+`Temperature` and `Pressure` only, every other field zero (for an hp or sp case the temperature the
+equilibrium search found); `MoleFractions` and `CondensedMassFractions` carry the condensed composition the
+equilibrium found, every gas zero; `TransportStatus` is null; and a rocket case whose chamber ends
+`NoGasPhase` ends with it, its throat and exits `InvalidInput` as after any failed chamber. No exception:
+the case is a valid equilibrium outside the mixture model's figures.
 
 ⚠ 2026-09-15 (distribution phase): `Station`, `RocketResult` and `EquilibriumResult`
 had public positional constructors that no other assembly called (the API review's

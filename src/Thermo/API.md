@@ -62,8 +62,15 @@ public enum CaseStatus
     ThroatNotFound,
     AreaRatioInvalid,
     NoTransportData,
+    NoGasPhase,
 }
 ```
+
+`NoGasPhase` (2026-10-03, 0.2.2): the equilibrium holds no gas phase, proven by the Equilibrium node's
+tangent-plane certificate; the condensed moles and the multipliers are written, and so are the case's
+temperature and pressure; every other field of the state is zero, the mixture model having no density,
+molar mass or sound speed without gas. It is the one status but `Ok` that carries part of a state
+([root BOOT.md](../../BOOT.md), "Failures are values").
 
 `InternalEnergy`, `MixtureMolarMass`, `CvFrozen` and `CvEquilibrium` were added to the
 sketch when the reference fixtures turned out to report them; a numerical node that
