@@ -67,18 +67,26 @@ internal static class HostSolves
         using var elements = accelerator.Allocate1D(batch.ElementMoles.AsSpan(k * elementCount, elementCount).ToArray());
         using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
         using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        using var moles = accelerator.Allocate1D<double>(speciesCount);
+
+        // A seeded batch's case starts from its row of the seed, as the solver's own warm start reads it (2026-10-04).
+        using var moles = batch.IsSeeded
+            ? accelerator.Allocate1D(batch.SeedMoles.AsSpan(k * speciesCount, speciesCount).ToArray())
+            : accelerator.Allocate1D<double>(speciesCount);
         using var multipliers = accelerator.Allocate1D<double>(elementCount);
         using var state = accelerator.Allocate1D<MixtureState>(1);
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
-        moles.MemSetToZero();
+        if (!batch.IsSeeded)
+        {
+            moles.MemSetToZero();
+        }
+
         state.MemSetToZero();
         var problem = new EquilibriumProblem(batch.Kind[k], batch.Pressure[k], batch.Temperature[k], batch.Target[k], elements.View);
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
         var view = buffers.View;
-        EquilibriumSolver.Solve(in view, in problem, in scratch, in result, false);
+        EquilibriumSolver.Solve(in view, in problem, in scratch, in result, batch.IsSeeded);
         return new HostEquilibriumCase(state.GetAsArray1D()[0], moles.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
     }
 

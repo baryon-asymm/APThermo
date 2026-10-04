@@ -30,6 +30,12 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>The names of the 0.2.2 families of the gasless verdict and the temperature bracket as theory data, delegating to <see cref="RecoveryFamilies.Names"/>.</summary>
     public static TheoryData<string> BracketedFamilyNames() => RecoveryFamilies.Names();
 
+    /// <summary>The names of the seeded families (2026-10-04) as theory data, delegating to <see cref="SeededFamilies.Names"/>.</summary>
+    public static TheoryData<string> SeededFamilyNames() => SeededFamilies.Names();
+
+    /// <summary>The names of the families of every equilibrium fixture table (2026-10-04) as theory data, delegating to <see cref="FixtureBatches.EquilibriumTableFamilyNames"/>.</summary>
+    public static TheoryData<string> EquilibriumTableFamilyNames() => FixtureBatches.EquilibriumTableFamilyNames();
+
     /// <summary>A rocket family on cuda matches the cpu accelerator.</summary>
     [Theory]
     [MemberData(nameof(Families))]
@@ -114,6 +120,42 @@ public sealed class CudaTests(ITestOutputHelper output)
         AssertEquilibriumFamilyMatches(cuda, FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
     }
 
+    /// <summary>The family of every equilibrium fixture sharing one table (every table of the tp, hp and sp fixtures) on cuda matches the cpu accelerator.</summary>
+    [Theory]
+    [MemberData(nameof(EquilibriumTableFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        AssertEquilibriumFamilyMatches(cuda, FixtureBatches.EquilibriumTableFamily(EngineFixture.Shared.Database, name));
+    }
+
+    /// <summary>
+    /// A family seeded by moles (2026-10-04, <see cref="SeededFamilies"/>) on cuda matches the cpu accelerator, both handed the same seeds:
+    /// the <c>seeded</c> fixtures, tp warm starts at half pressure, and bracketed plateau states seeded above the plateau. The bracketed
+    /// states sum the attempts of the temperature bracket into <c>Iterations</c> and are compared by the rule of that case.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SeededFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void ASeededFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        var family = SeededFamilies.Family(EngineFixture.Shared.Database, name);
+        Assert.True(family.Batch.IsSeeded);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: family.SumsAttempts);
+    }
+
     /// <summary>
     /// A gas-participating plateau family (the 0.2.2 families, <see cref="GasPlateauFamilies"/>) on cuda matches the cpu accelerator: states
     /// on the plateaus of boiling water, ammonium chloride, calcium hydroxide and calcium carbonate, whose <c>γ_s</c> comes from the
@@ -185,10 +227,10 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(violation is null, violation);
     }
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
+    private void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
         AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], bracketed: false);
 
-    private static void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool bracketed)
+    private void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool bracketed)
     {
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
@@ -199,13 +241,26 @@ public sealed class CudaTests(ITestOutputHelper output)
             Assert.All(cpu.Status, status => Assert.Equal(CaseStatus.Ok, status));
         }
 
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed };
+        var support = new ComparisonSupport(EngineFixture.Shared.Cpu, cpuTables, table, batch, cpu,
+                                            new SpeciesFunctionSources(functions => EngineFixture.Shared.Cpu.Run(cpuTables, functions), functions => cuda.Run(cudaTables, functions)));
+        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed, Support = support };
         var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
         var mismatches = comparison.Equilibrium(cpu, gpu, batch, table, labels, sensitivities);
+        foreach (var decision in support.Decisions)
+        {
+            output.WriteLine(decision);
+        }
+
+        if (bracketed)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"worst noGasPhaseTemperature deviation {comparison.WorstOf("noGasPhaseTemperature"):E2}, worst gas mole-fraction deviation {comparison.WorstOf("moleFraction"):E2}"));
+        }
+
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
         if (!bracketed)
         {
-            AssertDifferentStepShare(comparison.DifferentSteps, batch.Count);
+            AssertDifferentStepShare(comparison.DifferentSteps, batch.Count - comparison.StepShareExcluded);
         }
     }
 
@@ -327,7 +382,11 @@ public sealed class CudaTests(ITestOutputHelper output)
             return;
         }
 
-        var violation = EngineFixture.Shared.StepShare.RunViolation();
+        var ledger = EngineFixture.Shared.StepShare;
+        var (different, stations) = (ledger.Different, ledger.Stations);
+        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"{different} of {stations} stations differ (share {(stations == 0 ? 0.0 : (double)different / stations):E2}, bound {GpuCpuTolerances.DifferentStepShare.ToString("0e+0", CultureInfo.InvariantCulture)})"));
+        var violation = ledger.RunViolation();
         Assert.True(violation is null, violation);
     }
 }

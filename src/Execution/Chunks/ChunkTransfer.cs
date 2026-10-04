@@ -12,6 +12,9 @@ internal enum ChunkTransfer
     /// <summary>Zeroed before the launch and copied to its host array after it: the kernel writes only the slots of the cases it solved.</summary>
     ClearedOutput,
 
+    /// <summary>Copied from its host array before the launch and back to it after (2026-10-04): the kernel reads what the host gave and writes the slots of the cases it solved.</summary>
+    InputOutput,
+
     /// <summary>Working memory of the kernel: never moved, only sized.</summary>
     Scratch,
 

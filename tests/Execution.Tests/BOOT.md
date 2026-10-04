@@ -14,10 +14,12 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 | L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, both paths of the post-link occur, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits; an engine binds CUDA only after the probe kernel loads, and a post-link failure at bind is the `Auto` fallback's reason or the explicit request's exception (2026-09-26) | the engine's own CUDA kernels and probe, the CPU accelerator, the GPU/CPU tolerance table | ✅ (2026-09-26) |
 | L0 | the library is checked before the device: a bad libnvvm names both paths and never leaks device memory (`BadLibraryTests`); the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`); a NUL-padded log is trimmed of it (`PostLinkTests`); a half-given library path pair is refused (`AcceleratorChoiceTests.AHalfGivenExplicitLibraryPairIsRefused`) (2026-09-26) | `Execution`'s `BOOT.md` and `API.md`, the audit's F2, F3 and F4 | ✅ (2026-09-26) |
 | L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
-| L2 | every fixture family, the computed gas-plateau families of 0.2.2 (`GasPlateauFamilies`) and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators; the element balance of every compared station closes to 1e-13 and the equilibrium families are compared with the balance-remnant correction (2026-10-03, `BalanceRemnantTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
+| L2 | every rocket and throat fixture family; every equilibrium fixture table, tp, hp and sp, one family per table (`FixtureBatches.EquilibriumTableFamily`, 2026-10-04; the one table named under Invariants is left out); the `seeded` fixtures, the tp fixtures of every table warm-started at half pressure and the bracketed calcite and magnesite states seeded 20 K above the plateau (`SeededFamilies`, 2026-10-04); the computed gas-plateau families of 0.2.2 (`GasPlateauFamilies`); and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case, a seeded case with its seed; determinism of two runs; chunking gives the same result as one chunk, a seeded batch's included; the species-function batch against the host functions and across accelerators; the element balance of every compared station closes to 1e-13 and the equilibrium families are compared with the balance-remnant correction (2026-10-03, `BalanceRemnantTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
 | L2 | the 0.2.2 gasless verdict and temperature bracket on CUDA (`RecoveryFamilies`, 2026-10-04): tp, hp and sp states of KO2 and NaO2 at their exact 1:2 stoichiometry under 1e7 Pa where the gas vanishes, a gasless KO2(a)/KO2(L) melting plateau, gas plateaus of CaCO3 and MgCO3 at 1e5 Pa started cold at 0.1 to 0.5 of the transition, and AP/HTPB/Al hp states at 20 MPa below the water band, each family keeping the cases the CPU accelerator ends `NoGasPhase` or `Ok` as it stands for; equal statuses, `Ok` fields and `NoGasPhase` amounts within the table, a `NoGasPhase` state's pressure (and a tp case's temperature) exact and its other fields zero, one launch of cases that all bracket inside the launch budget (`CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator`, `AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`; on the CPU `BracketedFamiliesTests` and `BatchTests.ABracketedFamilyEqualsTheHostSolverBitForBit`) | the CPU accelerator and the host calls; the species functions for the h and s targets | ⏳ (CUDA run pending) |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5× (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
+
+⚠ 2026-10-04: was "every fixture family", now the families named: the `seeded` kind had never run in a batch, and most tp, hp and sp fixture tables were not batched → HISTORY.md#l2-every-family-2026-10-04
 
 ## Invariants
 
@@ -90,7 +92,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
     the same batch; a case gets no correction when a condensed species appears or vanishes
     between `b(1 ± h)`, and a species gets none when the two one-sided differences of its
     `ln x` disagree by more than 2e-2 of its largest `|D_ij|` (or of 1 where that is
-    smaller). The bound is `GpuCpuTolerances.Entries["sensitivityDisagreement"]`, measured
+    smaller; raised for a large κ, "A curved remnant" below). The entry is `GpuCpuTolerances.Entries["sensitivityDisagreement"]`, measured
     on the CPU on 2026-10-03 over the six equilibrium families (23 cases, 206 compared
     species): the appear-or-vanish rule dropped 0 of 23 cases; the disagreement was at most
     2.1e-3 on the smooth rows (the H2 remnant, `κh` = 4.2e-3: the two differ by about
@@ -117,6 +119,48 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   Rejected: a tier scaled by κ (it loosens); dropping the family (the only CUDA coverage
   of rule A's tie); comparing the multipliers (`π_H` carries the same conditioning). The
   probes: the orchestrator's scratchpad, `probe/` (2026-10-03).
+- **What a difference between the accelerators is not** (2026-10-04, coder 5 of 0.2.2, on the eight failures of the CUDA
+  run of de7cda2f; no tier moves, the step-share bound stays 1e-3, no case is dropped for these rules; `GpuCpuComparison`
+  with `ComparisonSupport`, proven without a GPU by `ComparisonRuleTests`). Every rule asks the CPU accelerator, case by case
+  and only for a case the plain comparison refused or whose field is a cancelling sum, what rounding or the other
+  accelerator's own species data do by themselves; a difference above that is still reported.
+  - **Enthalpy that cancels**: `si-in-argon_T298.15` and `li-in-argon_T298.15` are the elements at the reference temperature,
+    enthalpy 3e-6 J/kg out of terms of 1e5. Two accelerators sum at most `8 + S` terms per species, each bounded by
+    `|H/RT| + Cp/R`, so they differ by at most `2 (8 + S) u R T Σ n_j (|H_j/RT| + Cp_j/R)`
+    (`ComparisonSupport.EnthalpyBound`, `u` the unit roundoff); a difference above the tier within that bound is accepted for
+    the field Enthalpy only. Where the enthalpy does not cancel the bound is below a thousandth of the tier (checked for every
+    case of the water table).
+  - **Species data**: the two accelerators' G/RT of a species whose polynomial cancels by decades differ. H2O(L) cancels by about
+    five decades and its G/RT differs by 1e-11 to 6e-11 between CUDA and the CPU. A tp case on the liquid-gas boundary carries that
+    into x(H2O) at the species' own sensitivity: `rp1311-example14_T300`, `T304` and `T304.3` 1.31e-10, 1.52e-10 and 1.15e-10
+    (tier 1e-10, κ 10.9, balance residual 4e-15 to 1.2e-14), and `ap-htpb-al_pc1MPa_T420` x(CH4) 1.31e-10 (κ 12.1).
+    `ComparisonSupport.DataEffect` measures the directional derivative of the CPU solve of the case along the two accelerators'
+    measured difference of G/RT (central difference, largest move 1e-7, through the constant b2 of the entropy fit) and adds it
+    to the other side's correction; what remains is compared at the tier. Applied to tp cases only: an hp or sp case needs the
+    derivative of the temperature too, and none of the measured failures needs it.
+  - **Plateau states**: the states of `seeded-fixtures` on the AP/HTPB/Al reaction plateau (a pinned phase set) are
+    ill-conditioned: the CPU accelerator alone moves a mole fraction by up to 7e-9 under 1 to 16 ULP of the element moles. The
+    CUDA deviations measured: x(H2O(L)) 1.25e-9 and 3.11e-9 (κ 897 and 304), x(CH4) 1.0e-10 to 6.0e-10 (κ 13 to 50), x(HCL)
+    1.2e-10 and 2.3e-10 (κ 77 and 204), balance residual 7e-15 to 4.8e-14. `ComparisonSupport.NoiseResponse` replicates the case
+    16 times (1, 2, 3, 4, 6, 8, 12 and 16 ULP of every element's moles, two alternations) and takes for each species the largest
+    `|ln x_r − ln x_0|`; the tolerance of a species is raised to `NoiseFactor` times that where it is above the tier. The largest
+    ratio of the CUDA deviation to the replicates' maximum was 0.92 over 153 compared quantities (median 0.21), so the factor 2
+    leaves 2.2 above it; it is an empirical bound, not a derived one, and the one judgment call of this section. A replicate
+    whose condensed set differs makes the response null and the rule does not apply.
+  - **Newton counts that flip inside the noise**: a station whose two counts differ, the other accelerator's count lying in the
+    range the CPU's own replicates take (18 and 16 steps against 15 to 19; 14 stations of `seeded-fixtures`), is not counted in
+    the share and not in its denominator (`StepShareExcluded`). The ledger over the whole run: 35 of 400 725 stations differ,
+    share 8.73e-5 against 1e-3.
+  - **A curved remnant**: the guard on the one-sided differences of the balance-remnant correction was 2e-2 flat. A smooth
+    remnant's two differences disagree by one half of `κ h` (h = 1e-8); at κ 4.3e6 that is 2.15e-2, above 2e-2, and the
+    correction was dropped, leaving 1.9e-8 on x(CO) and x(O2) of `seeded-bracket-calcite-p1e4` (the 0.1 states). The guard is
+    now `min(6e-2, max(2e-2, κ h))`: `κ h`, twice the curvature share, admits the smooth case; the cap, half of the smallest kink
+    measured (0.12, the threshold-flip cases), keeps every kink out, so the 19 species dropped on 2026-10-03 stay dropped.
+    ⚠ 2026-10-04: was a flat 2e-2, now `max(entry, κ h)` capped at 6e-2 → HISTORY.md#guard-curvature
+  - Red once, 2026-10-04, `ComparisonRuleTests` with each rule alone broken (the enthalpy bound at zero, `DataEffect` answering
+    null, `NoiseFactor` at 0, the guard at its entry): one fact fails each time.
+  Open for the solver, not for this node: condensed amounts and some gas fractions in the interior of a reaction plateau converge
+  to about 1e-9 on the CPU accelerator alone; the rules above compare the accelerators to that floor and do not claim it is right.
 - **Bit comparison goes through the harness** (2026-09-14): `BitEquality.cs`'s
   `SameBits` and `BitDifferences<T>` were, field for field, the harness's `Bits.Same`
   and `Bits.Differences<T>`; the file is gone and every call site of this node reads
@@ -149,7 +193,20 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
 - **No expected value is typed into a test**: the CPU accelerator is compared with
   the numerical nodes called directly over the same buffers, CUDA with the CPU
   accelerator, and the reference temperature of the equilibrium family comes from the
-  fixture.
+  fixture. A seeded family's seeds are the CPU accelerator's own results (a tp batch at the
+  fixture's seed temperature, a cold batch of the same cases, a tp state 20 K above a plateau),
+  handed identically to both accelerators, so a CUDA comparison compares the seeded solve alone
+  (2026-10-04).
+- **States left out of the families for their element balance** (2026-10-04, the findings of the
+  seeding work; the closure bound of 1e-13 is not loosened). The CPU accelerator ends `Ok` and
+  closes the balance only to 7.5e-13 (the 17-element table's one case, 1.2e-12 at half pressure; 17
+  elements, many condensed phases) and to between 1e-11 and 1.5e-11 (carbon, `ρ`; 4e-12 to 6e-12 for
+  oxygen) on the hp states of magnesite at 1e4 and 1e6 Pa, cold as well as seeded (sp states and
+  calcite close to 1.5e-14). They are left out by name (`FixtureBatches.LeftOutTables`,
+  `GasPlateauFamilies`' `LeftOut`) and `BatchTests.TheLeftOutStatesStillExceedTheClosureBound`
+  keeps each a finding: it goes red when the solver closes it, the time to put it back. The owner
+  decides between a solver fix and a bound by conditioning; the magnesite band is the trace-gas
+  work of `Recovery`'s `BOOT.md`.
 
 ## Dependencies
 

@@ -49,6 +49,22 @@ public sealed class ChunkPlanWiringTests
                     $"{name}: {plan.Size} * {expectedLargestStride} (independently expected) overflows a 32-bit offset");
     }
 
+    /// <summary>
+    /// A seeded equilibrium batch declares the same device bytes per case and the same largest per-case element count as a cold one
+    /// (2026-10-04): its moles buffer is an <c>InputOutput</c> of the stride the <c>ClearedOutput</c> it replaces had, so a plan's chunk size
+    /// does not move. Red once, 2026-10-04: with <c>InputOutput</c>'s <c>BytesPerCase</c> answering zero the two differ by
+    /// <c>SpeciesCount × 8</c>.
+    /// </summary>
+    [Fact]
+    public void ASeededEquilibriumBatchDeclaresTheSameDeviceBytesAsAColdOne()
+    {
+        var accelerator = EngineFixture.Shared.Cpu.IlgpuAccelerator;
+        using var cold = EquilibriumPipeline.DeclareBuffers(accelerator, SpeciesCount, ElementCount, seeded: false);
+        using var seeded = EquilibriumPipeline.DeclareBuffers(accelerator, SpeciesCount, ElementCount, seeded: true);
+        Assert.Equal(cold.BytesPerCase, seeded.BytesPerCase);
+        Assert.Equal(cold.MaxElementsPerCase, seeded.MaxElementsPerCase);
+    }
+
     /// <summary>The three pipelines whose per-case buffers actually scale with the element or species count, each with
     /// its independently computed largest declared stride (the species-function pipeline's buffers are all one
     /// element per case, so the offset cap is vacuous there and it is not included).</summary>

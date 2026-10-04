@@ -32,6 +32,10 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
     public ChunkBuffer<T> ClearedOutput<T>(T[] host, long perCase) where T : unmanaged =>
         Declare(new ChunkBuffer<T>(host, perCase, ChunkTransfer.ClearedOutput));
 
+    /// <summary>A buffer the kernel reads and writes: filled from its host array before every launch and read back into it after (2026-10-04).</summary>
+    public ChunkBuffer<T> InputOutput<T>(T[] host, long perCase) where T : unmanaged =>
+        Declare(new ChunkBuffer<T>(host, perCase, ChunkTransfer.InputOutput));
+
     /// <summary>Working memory of the kernel: sized per case, never moved.</summary>
     public ChunkBuffer<T> Scratch<T>(long perCase) where T : unmanaged =>
         Declare(new ChunkBuffer<T>(null, perCase, ChunkTransfer.Scratch));

@@ -395,3 +395,18 @@
 
       The evidence at `ee3c598` and the per-project peak table (0.75 to 1.61 GiB per
       process tree) → HISTORY.md#compile-bound-evidence-table-2026-09-30
+- [ ] Seeded equilibrium batches (2026-10-04, 0.2.2; `BOOT.md`, Batch layout; `API.md`, Batches). A
+      seeded batch on the CPU accelerator equals `EquilibriumSolver.Solve` called with the same seed and
+      `useMolesAsEstimate` bit for bit, on every seeded family of the tests node
+      (`BatchTests.ASeededFamilyEqualsTheHostSolverBitForBit`); it does not depend on the chunking
+      (`BatchTests.ASeededBatchIsIndependentOfChunking`); it costs the same device bytes per case as a cold batch
+      (`ChunkPlanWiringTests.ASeededEquilibriumBatchDeclaresTheSameDeviceBytesAsAColdOne`); a seed of another stride or a
+      non-finite seed is refused before any kernel runs (`AcceleratorChoiceTests.ASeededBatchWhoseSeedDoesNotFitTheTableIsRefusedBeforeAnyKernelRuns`);
+      a cold batch moves no bit: every `Bits*.approved.txt`, `Throughput*.approved.txt`, the Docs approved outputs and
+      `PublicSurface.approved.txt` unchanged, `TreeContract.approved.txt` moved with this `API.md`. On CUDA the seeded
+      families equal the CPU accelerator within the tests node's table (`CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator`),
+      Windows and WSL, `ByteVectorTests` green. Red once each (the tests node's criterion of the same date lists them).
+      Evidence so far (2026-10-04, the coder's part; the box stays unticked until the CUDA and WSL runs are in): the
+      facts above green on the CPU accelerator and each shown red once (`tests/Execution.Tests/ACCEPTANCE.md`, criterion of
+      this date, which lists the families, the mutations and the findings); the fast set of the solution green with no
+      approved record moved; `TreeContract.approved.txt` replaced in the commit that moved `API.md`.

@@ -10,10 +10,12 @@ namespace APThermo.Execution;
 /// assembly, not a public type (the API review of 2026-09-15; the wrong claim "must be public"
 /// stood here since 2026-09-12).</summary>
 internal readonly struct EquilibriumBatchViews(
-    ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
+    int seeded, ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
     ArrayView<double> elementMoles, ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
     ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> states, ArrayView<int> status, ArrayView<int> iterations)
 {
+    /// <summary>1 when every case starts from its row of the moles view (a seeded batch), 0 for a cold one; an int, never a bool (the post-link constraint of the equilibrium node).</summary>
+    public readonly int Seeded = seeded;
     public readonly ArrayView<int> Kinds = kinds;
     public readonly ArrayView<double> Pressures = pressures;
     public readonly ArrayView<double> Temperatures = temperatures;
@@ -97,7 +99,7 @@ internal static class Kernels
         var result = new EquilibriumResult(batch.Moles.SubView(index * speciesCount, speciesCount),
                                            batch.Multipliers.SubView(index * elementCount, elementCount),
                                            batch.States.SubView(index, 1), batch.Status.SubView(index, 1), batch.Iterations.SubView(index, 1));
-        EquilibriumSolver.Solve(in table, in problem, in scratch, in result, false);
+        EquilibriumSolver.Solve(in table, in problem, in scratch, in result, batch.Seeded != 0);
     }
 
     internal static void Rocket(Index1D index, SpeciesTableView table, RocketBatchViews batch)

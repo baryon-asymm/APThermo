@@ -7,7 +7,7 @@ namespace APThermo.Execution.Tests;
 /// <see cref="GpuCpuTolerances.SensitivityStep"/>) through the CPU accelerator over the same batch with one element's moles scaled by
 /// (1 ± h), and the guard that says where those derivatives may be used: a case in which a condensed species appears or vanishes
 /// between <c>b(1 − h)</c>, <c>b</c> and <c>b(1 + h)</c> has no usable derivative, and a species whose two one-sided differences
-/// disagree by more than <see cref="GpuCpuTolerances.Entries"/>["sensitivityDisagreement"] has none either. The correction
+/// disagree by more than <see cref="GpuCpuTolerances.SensitivityGuard"/> has none either. The correction
 /// <c>Σ_i D_ij ρ_i</c> is what a balance residual <c>ρ</c> moves <c>ln x_j</c> by (Execution.Tests BOOT.md).
 /// </summary>
 internal sealed class BalanceSensitivities
@@ -101,11 +101,10 @@ internal sealed class BalanceSensitivities
     public double[] Correction(int caseIndex, double[] residuals)
     {
         ArgumentNullException.ThrowIfNull(residuals);
-        var bound = GpuCpuTolerances.Entries["sensitivityDisagreement"].Relative;
         var correction = new double[_speciesCount];
         for (var j = 0; j < _speciesCount; j++)
         {
-            if (!_phaseSetHolds[caseIndex] || !(Disagreement(caseIndex, j) <= bound))
+            if (!_phaseSetHolds[caseIndex] || !(Disagreement(caseIndex, j) <= GpuCpuTolerances.SensitivityGuard(Kappa(caseIndex, j))))
             {
                 correction[j] = double.NaN;
                 continue;

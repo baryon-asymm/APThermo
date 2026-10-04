@@ -237,6 +237,46 @@ public sealed class AcceleratorChoiceTests
     }
 
     /// <summary>
+    /// A seeded equilibrium batch (2026-10-04) whose seed does not fit the table is refused before any kernel runs: a seed stride of another
+    /// species count, a NaN and an infinite value, the last two naming the case and the species; a negative seed value runs, as the host
+    /// solver ignores it. Red once, 2026-10-04: with the seed checks removed from <c>EquilibriumBatch.Validate</c> every refusal is missing.
+    /// </summary>
+    [Fact]
+    public void ASeededBatchWhoseSeedDoesNotFitTheTableIsRefusedBeforeAnyKernelRuns()
+    {
+        var (cold, table, _) = FixtureBatches.EquilibriumFamily(EngineFixture.Shared.Database, "lox-lh2_of6_pc7MPa");
+        using var tables = EngineFixture.Shared.Cpu.Upload(table);
+        EquilibriumBatch Seeded(int stride)
+        {
+            var batch = new EquilibriumBatch(cold.Count, cold.ElementCount, stride);
+            Array.Copy(cold.Kind, batch.Kind, cold.Count);
+            Array.Copy(cold.Pressure, batch.Pressure, cold.Count);
+            Array.Copy(cold.Temperature, batch.Temperature, cold.Count);
+            Array.Copy(cold.Target, batch.Target, cold.Count);
+            Array.Copy(cold.ElementMoles, batch.ElementMoles, cold.ElementMoles.Length);
+            Array.Fill(batch.SeedMoles!, 0.1);
+            return batch;
+        }
+
+        var stride = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, Seeded(table.SpeciesCount + 1)));
+        Assert.Contains($"the batch seeds {table.SpeciesCount + 1} species per case, the table has {table.SpeciesCount}", stride.Message, StringComparison.Ordinal);
+
+        var notANumber = Seeded(table.SpeciesCount);
+        notANumber.SeedMoles![2 * table.SpeciesCount + 3] = double.NaN;
+        var nan = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, notANumber));
+        Assert.Contains("the seed of case 2, species 3, is NaN", nan.Message, StringComparison.Ordinal);
+
+        var infinite = Seeded(table.SpeciesCount);
+        infinite.SeedMoles![1 * table.SpeciesCount] = double.PositiveInfinity;
+        var infinity = Assert.Throws<ArgumentException>(() => EngineFixture.Shared.Cpu.Run(tables, infinite));
+        Assert.Contains("the seed of case 1, species 0, is", infinity.Message, StringComparison.Ordinal);
+
+        var negative = Seeded(table.SpeciesCount);
+        negative.SeedMoles![0] = -1.0;
+        Assert.Equal(cold.Count, EngineFixture.Shared.Cpu.Run(tables, negative).Count);
+    }
+
+    /// <summary>
     /// A batch constructor refuses a count whose per-case array would overflow a 32-bit array length (BOOT.md, the
     /// second audit's observation 6), before attempting the allocation: plain <c>int</c> arithmetic wraps silently
     /// past <see cref="int.MaxValue"/> instead of throwing, so the checked computation must run first.

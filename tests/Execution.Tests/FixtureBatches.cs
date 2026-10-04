@@ -176,16 +176,39 @@ internal static class FixtureBatches
     public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) NamedEquilibriumFamily(SpeciesDatabase database, string name) =>
         EquilibriumFamily(database, NamedEquilibriumFamilies[name]);
 
+    /// <summary>One case of an equilibrium batch as a batch of its own (its seed row included), whose arrays the caller may then change.</summary>
+    public static EquilibriumBatch CaseOf(EquilibriumBatch batch, int k)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        var one = batch.IsSeeded ? new EquilibriumBatch(1, batch.ElementCount, batch.SeedSpeciesCount) : new EquilibriumBatch(1, batch.ElementCount);
+        one.Kind[0] = batch.Kind[k];
+        one.Pressure[0] = batch.Pressure[k];
+        one.Temperature[0] = batch.Temperature[k];
+        one.Target[0] = batch.Target[k];
+        Array.Copy(batch.ElementMoles, k * batch.ElementCount, one.ElementMoles, 0, batch.ElementCount);
+        if (batch.IsSeeded)
+        {
+            Array.Copy(batch.SeedMoles, k * batch.SeedSpeciesCount, one.SeedMoles!, 0, batch.SeedSpeciesCount);
+        }
+
+        return one;
+    }
+
     /// <summary>An independent copy of an equilibrium batch, whose element moles the caller may then change.</summary>
     public static EquilibriumBatch CopyOf(EquilibriumBatch batch)
     {
         ArgumentNullException.ThrowIfNull(batch);
-        var copy = new EquilibriumBatch(batch.Count, batch.ElementCount);
+        var copy = batch.IsSeeded ? new EquilibriumBatch(batch.Count, batch.ElementCount, batch.SeedSpeciesCount) : new EquilibriumBatch(batch.Count, batch.ElementCount);
         Array.Copy(batch.Kind, copy.Kind, batch.Count);
         Array.Copy(batch.Pressure, copy.Pressure, batch.Count);
         Array.Copy(batch.Temperature, copy.Temperature, batch.Count);
         Array.Copy(batch.Target, copy.Target, batch.Count);
         Array.Copy(batch.ElementMoles, copy.ElementMoles, batch.ElementMoles.Length);
+        if (batch.IsSeeded)
+        {
+            Array.Copy(batch.SeedMoles, copy.SeedMoles!, batch.SeedMoles.Length);
+        }
+
         return copy;
     }
 
@@ -202,6 +225,71 @@ internal static class FixtureBatches
             .Where(c => namePrefixes.Any(prefix => c.Name.StartsWith(prefix, StringComparison.Ordinal)))
             .ToList();
         Assert.NotEmpty(cases);
+        return EquilibriumFamilyOf(database, cases);
+    }
+
+    /// <summary>
+    /// Every equilibrium fixture (tp, hp, sp) grouped by its table, the element list and the candidate species the file names (2026-10-04):
+    /// one family per table, in file order, named after the first fixture of the table.
+    /// </summary>
+    private static List<(string Name, List<CeaCase> Cases)> EquilibriumTables()
+    {
+        var groups = new Dictionary<string, (string Name, List<CeaCase> Cases)>(StringComparer.Ordinal);
+        foreach (var c in EquilibriumKinds.SelectMany(FixtureFiles.Enumerate).Select(CeaFixtures.Load))
+        {
+            var key = TableKey(c);
+            if (!groups.TryGetValue(key, out var group))
+            {
+                groups[key] = group = (c.Name, []);
+            }
+
+            group.Cases.Add(c);
+        }
+
+        return [.. groups.Values];
+    }
+
+    /// <summary>The element list and the candidate species of a fixture as one string: what two fixtures must share to share a table.</summary>
+    internal static string TableKey(CeaCase c)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        return string.Join(",", c.Inputs.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name)) + "|" +
+               string.Join(",", c.Inputs.GetProperty("products").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    /// <summary>
+    /// The tables of the equilibrium fixtures whose family is left out of the facts that compare against the host solver and the element
+    /// balance, by the name of the family (2026-10-04): the CPU accelerator closes the balance of the 17-element table's one case, with
+    /// its many condensed phases, only to 7.5e-13 (cold) and 1.2e-12 (at half pressure) against the table's 1e-13. The bound is not
+    /// loosened; <c>BatchTests.TheLeftOutStatesStillExceedTheClosureBound</c> keeps the finding visible and goes red when it is gone.
+    /// </summary>
+    public static IReadOnlyList<string> LeftOutTables { get; } = ["seventeen-elements-many-condensed-phases_T350"];
+
+    /// <summary>
+    /// The names of the families of <see cref="EquilibriumTableFamily"/>, one per table of the equilibrium fixtures except the
+    /// <see cref="LeftOutTables"/>; with a <paramref name="kind"/> only the tables that hold a fixture of that kind (<c>tp</c>, <c>hp</c> or <c>sp</c>).
+    /// </summary>
+    public static IReadOnlyList<string> EquilibriumTableNames(string? kind = null) =>
+        [.. EquilibriumTables().Where(group => !LeftOutTables.Contains(group.Name) && (kind is null || group.Cases.Any(c => c.Kind == kind))).Select(group => group.Name)];
+
+    /// <summary>The names of <see cref="EquilibriumTableNames"/> as theory data.</summary>
+    public static TheoryData<string> EquilibriumTableFamilyNames()
+    {
+        var data = new TheoryData<string>();
+        foreach (var name in EquilibriumTableNames())
+        {
+            data.Add(name);
+        }
+
+        return data;
+    }
+
+    /// <summary>The family of every equilibrium fixture (tp, hp, sp) that shares a table with the named one, as one batch with the table, in file order.</summary>
+    public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumTableFamily(SpeciesDatabase database, string name) =>
+        EquilibriumFamilyOf(database, EquilibriumTables().Single(g => g.Name == name).Cases);
+
+    private static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) EquilibriumFamilyOf(SpeciesDatabase database, List<CeaCase> cases)
+    {
         var first = cases[0].Inputs;
         var elements = first.GetProperty("elementMoles").EnumerateObject().Select(p => p.Name).ToArray();
         var products = first.GetProperty("products").EnumerateArray().Select(e => e.GetString()!).ToArray();

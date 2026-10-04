@@ -27,6 +27,21 @@ internal static class GpuCpuTolerances
     /// </summary>
     public const double SensitivityStep = 1e-8;
 
+    /// <summary>
+    /// The largest share of its own derivative at which the two one-sided differences of a species may disagree for the balance-remnant
+    /// correction to be used however large its κ: half of the smallest kink measured (0.12, the threshold-flip cases), so that a curvature
+    /// share <c>κ h</c> never admits a kink (Execution.Tests BOOT.md, 2026-10-04).
+    /// </summary>
+    public const double SensitivityGuardCap = 6e-2;
+
+    /// <summary>
+    /// How many times the CPU accelerator's own response to rounding-level noise a mole fraction may differ by between the accelerators
+    /// where that response is above the tier: the largest ratio of the other accelerator's deviation to the response's maximum over 16
+    /// replicates was 0.92 (153 quantities of the 28 plateau states, median 0.21, CUDA on the reference machine, 2026-10-04), and 2 leaves
+    /// a factor of 2.2 above it.
+    /// </summary>
+    public const double NoiseFactor = 2.0;
+
     public static readonly IReadOnlyDictionary<string, (double Relative, string Derivation)> Entries = new Dictionary<string, (double, string)>(StringComparer.Ordinal)
     {
         ["temperature"] = (1e-10, "The Newton iteration is polished until its corrections are below 1e-11, the rounding floor of the linear solves; a few ULP in exp and log move the converged iterate by 1e-12, and one polish step more on one accelerator by 1e-11 (measured 3.4e-13 and 1.4e-11 in the sweep)."),
@@ -66,6 +81,14 @@ internal static class GpuCpuTolerances
             : tolerances.For("polishThresholdRelative").Relative;
     }
 
+    /// <summary>
+    /// The bound on the disagreement of the one-sided differences of a species under which its balance-remnant correction is used: the
+    /// entry's, or the curvature share <c>κ h</c> where that is larger (a smooth remnant's two differences disagree by one half of it times
+    /// the species' largest derivative, measured 2.1e-3 at κ 4.2e5 and 1.6e-2 to 2.2e-2 at κ 3.2e6 to 4.3e6), capped by <see cref="SensitivityGuardCap"/>.
+    /// </summary>
+    public static double SensitivityGuard(double kappa) =>
+        Math.Min(SensitivityGuardCap, Math.Max(Entries["sensitivityDisagreement"].Relative, kappa * SensitivityStep));
+
     /// <summary>The tolerance of a field of one of the result structs.</summary>
     public static double RelativeFor(Type owner, string field)
     {
@@ -80,8 +103,11 @@ internal static class GpuCpuTolerances
     public static bool Matches(double relative, double expected, double actual) =>
         Math.Abs(expected - actual) <= relative * Math.Abs(expected);
 
-    /// <summary>The mismatches between two structs of the same type, field by field; ints must be equal, doubles within the field's tolerance.</summary>
-    public static IEnumerable<string> Compare<T>(T cpu, T cuda, string label, Action<string, double>? record = null) where T : struct
+    /// <summary>
+    /// The mismatches between two structs of the same type, field by field; ints must be equal, doubles within the field's tolerance, or
+    /// accepted by <paramref name="accepted"/> (field name, the two values) where the caller has a derived bound for that field.
+    /// </summary>
+    public static IEnumerable<string> Compare<T>(T cpu, T cuda, string label, Action<string, double>? record = null, Func<string, double, double, bool>? accepted = null) where T : struct
     {
         foreach (var field in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
@@ -92,7 +118,7 @@ internal static class GpuCpuTolerances
                 var relative = RelativeFor(typeof(T), field.Name);
                 var deviation = x == 0.0 ? Math.Abs(y) : Math.Abs(x - y) / Math.Abs(x);
                 record?.Invoke($"{typeof(T).Name}.{field.Name}", deviation);
-                if (!Matches(relative, x, y))
+                if (!Matches(relative, x, y) && accepted?.Invoke(field.Name, x, y) != true)
                 {
                     yield return $"{label} {field.Name}: cpu {x:R}, cuda {y:R}";
                 }

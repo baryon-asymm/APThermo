@@ -17,7 +17,7 @@ A child node of `src/Execution` (its `BOOT.md`, the child-nodes decision of
   is one launch's slice of a batch (its offset and length).
 
 The rest of `src/Execution` reaches this through `ChunkPlan.For`/`.Chunks()`,
-`ChunkBuffers`'s five declaration methods, `Allocate`, `UploadChunk`, `DownloadChunk`,
+`ChunkBuffers`'s six declaration methods (one per `ChunkTransfer`), `Allocate`, `UploadChunk`, `DownloadChunk`,
 `BytesPerCase` and `MaxElementsPerCase` (2026-09-26, the audit's F4), and
 `ChunkBuffer<T>.View` on what a declaration returns — a
 contract far narrower than the six types behind it: `IChunkBuffer`, `ChunkTransfer`
@@ -26,6 +26,8 @@ its own to change that the rest of `src/Execution` does not share: the chunking 
 transfer policy (how big a chunk is, what moves when, in what order), not the kernel
 loop that runs a chunk (`BatchRun`, the parent's own file) or the accelerator session
 it runs on.
+
+⚠ 2026-10-04: was five declaration methods, now six (`InputOutput`) → HISTORY.md#input-output-2026-10-04
 
 ## Invariants
 
@@ -40,7 +42,7 @@ it runs on.
   counts every buffer"); this node is where it is kept true.
 - **A buffer's declaration is its single source of truth.** A `ChunkBuffer<T>` knows
   its own host array, direction and per-case stride from the call that declared it
-  (`ChunkBuffers.Input`/`Output`/`ClearedOutput`/`Scratch`/`Constant`); nothing later
+  (`ChunkBuffers.Input`/`Output`/`ClearedOutput`/`InputOutput`/`Scratch`/`Constant`); nothing later
   restates them, and `ChunkBuffers.BytesPerCase` — the number `ChunkPlan.For` clamps
   against — is the sum of what the declarations already said, never a separately
   maintained total.
@@ -122,6 +124,16 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 
   ⚠ 2026-09-12: was a chunk bounded by the case count only, now also by `ScratchBytes`,
   the rocket chunk's moles included → HISTORY.md#batch-layout-scratch-bound-2026-09-12
+- **A buffer the kernel reads and writes** (2026-10-04, the seeded equilibrium batches of
+  the parent's `API.md`). `InputOutput` uploads the chunk's host slice before the launch,
+  as `Input` does, and downloads it after, as `Output` does, through the same pinned
+  overloads and the same sentinel guard. Its device bytes count as any other buffer's,
+  so it adds nothing to a plan that the `ClearedOutput` it replaces did not. The guard's
+  argument holds only when no uploaded slice is the sentinel everywhere: a slice the
+  kernel leaves as it was comes back as uploaded. The declaring pipeline guarantees that
+  (the equilibrium seed is refused when not finite); a slice of sentinel bytes is refused
+  like a lost download. Each chunk uploads its own slice once and downloads it once, so
+  results stay independent of the chunking.
 - **The cap is proven as wiring** (2026-09-28, the guards part's F8). Each pipeline's
   chosen plan is asserted against `MaxElementsPerCase`, not only `ChunkPlan.For` with
   explicit numbers.
@@ -162,8 +174,8 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
     with its own `ArgumentOutOfRangeException`, but `CheckHostLength` names the chunk.
 
 - **A download that wrote nothing is refused** (2026-10-01, the owner's decision for
-  0.2.0: the fix and a guard). Before `DownloadChunk` copies an `Output` or
-  `ClearedOutput` buffer, it fills the chunk's host slice with the sentinel, every byte
+  0.2.0: the fix and a guard). Before `DownloadChunk` copies an `Output`,
+  `ClearedOutput` or `InputOutput` buffer, it fills the chunk's host slice with the sentinel, every byte
   `0xFF`. After the copy it refuses a slice whose every element still holds the
   sentinel: `InvalidOperationException` naming the element type, the chunk's offset and
   length and the words "a download from the accelerator left its host slice
@@ -381,6 +393,14 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
         gen0 collections each, 0 stations `Ok` with zero transport, 0 other differences
         from the first solve and 0 refusals (a refusal would have ended the run). The same
         harness lost 7 to 9 downloads per run before the fix.
+
+- [ ] 2026-10-04 — `InputOutput` (the constraint above): the round trip
+      (`ChunkTransferTests.AnInputOutputBufferUploadsItsSliceAndReturnsTheDevicesValues`), the guard on its download
+      (`ChunkTransferTests.AnInputOutputSliceOfSentinelBytesIsRefused`), chunk independence of a seeded batch
+      (`BatchTests.ASeededBatchIsIndependentOfChunking`). Its one declaration is the equilibrium moles of a seeded
+      batch, element type `double`, finite by the batch's validation, so the 2026-10-01 argument covers it. Red once:
+      `InputOutput` dropped from `UploadChunk`'s branch, then from `DownloadChunk`'s, then the upload's start taken at
+      offset 0 — each named fact red, each reverted.
 
 ## Taboos
 

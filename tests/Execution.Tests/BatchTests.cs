@@ -23,6 +23,12 @@ public sealed class BatchTests
     /// <summary>The names of the 0.2.2 gas-plateau families as theory data, delegating to <see cref="GasPlateauFamilies.Names"/>.</summary>
     public static TheoryData<string> GasPlateauFamilyNames() => GasPlateauFamilies.Names();
 
+    /// <summary>The names of the seeded families (2026-10-04) as theory data, delegating to <see cref="SeededFamilies.Names"/>.</summary>
+    public static TheoryData<string> SeededFamilyNames() => SeededFamilies.Names();
+
+    /// <summary>The names of the families of every equilibrium fixture table (2026-10-04) as theory data, delegating to <see cref="FixtureBatches.EquilibriumTableFamilyNames"/>.</summary>
+    public static TheoryData<string> EquilibriumTableFamilyNames() => FixtureBatches.EquilibriumTableFamilyNames();
+
     /// <summary>A rocket family equals the host solver bit for bit.</summary>
     [Theory]
     [MemberData(nameof(Families))]
@@ -191,6 +197,103 @@ public sealed class BatchTests
         _ = AssertEquilibriumBatchEqualsTheHostSolver(family.Batch, family.Table, family.Labels, gaslessAllowed: true);
     }
 
+    /// <summary>The family of every equilibrium fixture sharing one table (every table of the tp, hp and sp fixtures) equals the host solver bit for bit.</summary>
+    [Theory]
+    [MemberData(nameof(EquilibriumTableFamilyNames))]
+    public void AnEquilibriumTableFamilyEqualsTheHostSolverBitForBit(string name) =>
+        AssertEquilibriumFamilyEqualsTheHostSolver(FixtureBatches.EquilibriumTableFamily(EngineFixture.Shared.Database, name));
+
+    /// <summary>
+    /// A batch seeded by moles (2026-10-04) equals the host solver called with the same seed and <c>useMolesAsEstimate</c>, bit for bit:
+    /// the <c>seeded</c> fixtures, the tp fixtures of every table warm-started at half pressure, and the bracketed plateau states seeded 20 K
+    /// above the plateau. The seed of the caller is not written by the run, and a fixture family's temperature is the reference's.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SeededFamilyNames))]
+    public void ASeededFamilyEqualsTheHostSolverBitForBit(string name)
+    {
+        var family = SeededFamilies.Family(EngineFixture.Shared.Database, name);
+        Assert.True(family.Batch.IsSeeded);
+        var seed = (double[])family.Batch.SeedMoles!.Clone();
+
+        var result = AssertEquilibriumBatchEqualsTheHostSolver(family.Batch, family.Table, family.Labels);
+
+        Assert.True(seed.AsSpan().SequenceEqual(family.Batch.SeedMoles), $"{name}: a run wrote the caller's seed");
+        for (var k = 0; k < family.Labels.Count; k++)
+        {
+            if (family.References is { } references)
+            {
+                var reference = references[k].Outputs.GetProperty("temperature").GetDouble();
+                Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", reference, result.State[k].Temperature), $"{family.Labels[k]}: temperature {result.State[k].Temperature} vs {reference}");
+            }
+
+            if (family.PlateauTemperature is { } plateau)
+            {
+                Assert.True(EngineFixture.Shared.Tolerances.Matches("temperature", plateau, result.State[k].Temperature), $"{family.Labels[k]}: temperature {result.State[k].Temperature} vs the plateau's {plateau}");
+                Assert.Equal(0.0, result.State[k].CpEquilibrium);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The states and tables left out of the families for their element balance (<see cref="FixtureBatches.LeftOutTables"/>,
+    /// <see cref="GasPlateauFamilies.Family"/>) still exceed the table's closure bound on the CPU accelerator: each is a finding, not a
+    /// passing case, and this fact goes red when the solver closes it, which is the time to put the case back in its family.
+    /// </summary>
+    [Fact]
+    public void TheLeftOutStatesStillExceedTheClosureBound()
+    {
+        var left = new List<(EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<string> Labels)>();
+        foreach (var name in FixtureBatches.LeftOutTables)
+        {
+            var (batch, table, cases) = FixtureBatches.EquilibriumTableFamily(EngineFixture.Shared.Database, name);
+            left.Add((batch, table, [.. cases.Select(c => c.Name)]));
+        }
+
+        foreach (var name in GasPlateauFamilies.LeftOutKeys)
+        {
+            var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name, leftOut: true);
+            left.Add((family.Batch, family.Table, family.Labels));
+        }
+
+        Assert.NotEmpty(left);
+        foreach (var (batch, table, labels) in left)
+        {
+            using var tables = EngineFixture.Shared.Cpu.Upload(table);
+            var result = EngineFixture.Shared.Cpu.Run(tables, batch);
+            var balance = new ElementBalance(table, batch.ElementMoles);
+            for (var k = 0; k < batch.Count; k++)
+            {
+                Assert.Equal(CaseStatus.Ok, result.Status[k]);
+                Assert.NotEmpty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", labels[k]));
+            }
+        }
+    }
+
+    /// <summary>A seeded batch does not depend on the chunking: five chunks of seven cases, the last of two, equal the shared engine's one chunk in every bit (2026-10-04).</summary>
+    [Fact]
+    public void ASeededBatchIsIndependentOfChunking()
+    {
+        var family = SeededFamilies.Family(EngineFixture.Shared.Database, SeededFamilies.Fixtures);
+        Assert.Equal(30, family.Batch.Count);
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
+        var whole = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
+        using var chunked = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 7 });
+        using var chunkedTables = chunked.Upload(family.Table);
+        var pieces = chunked.Run(chunkedTables, family.Batch);
+        Assert.Equal(whole.Status, pieces.Status);
+        Assert.Equal(whole.Iterations, pieces.Iterations);
+        for (var k = 0; k < family.Batch.Count; k++)
+        {
+            Assert.Empty(Bits.Differences(whole.State[k], pieces.State[k], family.Labels[k]));
+        }
+
+        for (var j = 0; j < whole.Moles.Length; j++)
+        {
+            Assert.True(Bits.Same(whole.Moles[j], pieces.Moles[j]), $"moles differ at {j}");
+        }
+    }
+
     private static void AssertEquilibriumFamilyEqualsTheHostSolver((EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family)
     {
         var (batch, table, cases) = family;
@@ -209,6 +312,7 @@ public sealed class BatchTests
         var result = EngineFixture.Shared.Cpu.Run(tables, batch);
         Assert.Equal(labels.Count, result.Count);
         var balance = new ElementBalance(table, batch.ElementMoles);
+        var open = new List<string>();
         for (var k = 0; k < batch.Count; k++)
         {
             var host = HostSolves.Equilibrium(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, batch, k);
@@ -221,8 +325,10 @@ public sealed class BatchTests
                 Assert.True(Bits.Same(host.Moles[j], result.Moles[(long)k * table.SpeciesCount + j]), $"{labels[k]}: moles of {table.Species[j]}");
             }
 
-            Assert.Empty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", labels[k]));
+            open.AddRange(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", labels[k]));
         }
+
+        Assert.True(open.Count == 0, string.Join('\n', open));
 
         var transport = TransportBatch.FromEquilibrium(result);
         Assert.Equal(result.Count, transport.Count);

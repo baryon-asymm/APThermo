@@ -9,6 +9,19 @@ used to stand.
 
 ---
 
+<a id="views-13-2026-10-04"></a>
+
+## 2026-10-04 — from "## Structure" and "## Shape exceptions" — the equilibrium views struct at 12 parameters
+
+The equilibrium views struct gained the scalar `seeded` (the seeded batches of 0.2.2, `API.md`, Batches), a thirteenth parameter, an `int` and never a `bool` (the post-link constraint of the equilibrium node). The two texts as they stood:
+
+> - **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
+>   and `EquilibriumBatchViews` (12) are kernel parameter descriptors; grouping their
+
+> | `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 12 | the same case as `RocketBatchViews` above |
+
+---
+
 <a id="audit-f1-neighbour-claim-2026-10-01"></a>
 
 ## 2026-10-01 — from "## Constraints" — the probe's constant-first order: the claim about the thermo node's own test
