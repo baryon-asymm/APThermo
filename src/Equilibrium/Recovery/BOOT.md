@@ -63,7 +63,10 @@ Inherited from the parent and, through it, from the root. In addition:
   load into predicate registers (`ld.local.v2.b8 {%p, %p}`), which ptxas refuses (`Arguments mismatch for
   instruction 'ld'`), so that no kernel loads on CUDA while every CPU test stays green. So: no struct of this
   node holds two `bool` fields next to each other (a field of another type between them, as `TemperatureBracket`'s
-  order does), and a plan is built in place (`default` and `AttemptPlan.Begin`), not returned by value.
+  order does), and a plan is built in place (`default` and `AttemptPlan.Begin`), not returned by value. The
+  rule holds for `IterationState` too (2026-10-04): once the trace-gas pass took its `ref` the compiler kept the
+  struct in local memory and stored and loaded its adjacent `bool` pairs as vectors of bytes, so the struct
+  declares its fields with an `int` or a `double` between every two `bool`s.
   `ByteVectorTests` compiles every entry point and fails on any vector load or store of bytes or predicates.
 - **Reached once.** `AttemptPlan.Next` (static, `ref AttemptPlan`, six parameters) carries
   `[MethodImpl(MethodImplOptions.NoInlining)]` and has one call site in `Solve`.
