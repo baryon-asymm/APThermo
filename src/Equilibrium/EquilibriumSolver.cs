@@ -82,7 +82,8 @@ internal static class EquilibriumSolver
         while (true)
         {
             var state = new IterationState();
-            if (CaseSetup.Begin(table, plan.Current, scratch, result, plan.Source, ref state) != CaseStatus.Ok)
+            var current = plan.Current;
+            if (CaseSetup.Begin(table, current, scratch, result, plan.Source, ref state) != CaseStatus.Ok)
             {
                 return;
             }
@@ -90,21 +91,27 @@ internal static class EquilibriumSolver
             var status = CaseStatus.NotConverged;
             if (plan.RunsAttempt)
             {
-                var logPressure = CaseSetup.LogPressure(plan.Current);
+                var logPressure = CaseSetup.LogPressure(current);
                 status = plan.RunsTraceGas
-                    ? TraceGasPass.Run(table, plan.Current, scratch, result, logPressure, ref state)
-                    : ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
+                    ? RunTraceGas(table, current, scratch, result, logPressure, ref state)
+                    : ConvergenceSequence.Run(table, current, scratch, result, logPressure, ref state);
                 if (status == CaseStatus.Ok)
                 {
-                    status = Close(table, plan.Current, scratch, result, logPressure, ref state);
+                    status = Close(table, current, scratch, result, logPressure, ref state);
                 }
             }
 
             // The fallback also covers a failure found at the close, not only the Newton loop's own status (Recovery/BOOT.md,
             // the cold fallback): the window, the element invariant, the exit guard, a singular derivative system and the
-            // state guard all retry once, exactly as a failed Newton loop does.
+            // state guard all retry once, exactly as a failed Newton loop does. The views go to the NoInlining AttemptPlan.Next
+            // as copies: a loop-live local passed by ref or in to such a call is address-taken, and its every access in the
+            // loop goes through a generic pointer (BOOT.md, Compile size).
             plan.Iterations += state.Iterations;
-            if (AttemptPlan.Next(table, problem, scratch, result, status, ref plan))
+            var nextTable = table;
+            var nextProblem = problem;
+            var nextScratch = scratch;
+            var nextResult = result;
+            if (AttemptPlan.Next(nextTable, nextProblem, nextScratch, nextResult, status, ref plan))
             {
                 continue;
             }
@@ -113,6 +120,25 @@ internal static class EquilibriumSolver
             result.Status[0] = (int)plan.Status;
             return;
         }
+    }
+
+    /// <summary>
+    /// The trace-gas pass over copies of the loop-live locals: the NoInlining <see cref="TraceGasPass.Run"/> would otherwise
+    /// take the address of the iteration state and the views in <see cref="Solve"/>'s loop, and ILGPU would access them through
+    /// a generic pointer that may alias every view store (the root's Compile size constraint; measured +25 % on the rocket
+    /// sweep's kernel). The state is copied in and back, so what the pass leaves in it is what the caller continues with.
+    /// </summary>
+    private static CaseStatus RunTraceGas(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                          in EquilibriumResult result, double logPressure, ref IterationState state)
+    {
+        var traceState = state;
+        var traceTable = table;
+        var traceProblem = problem;
+        var traceScratch = scratch;
+        var traceResult = result;
+        var status = TraceGasPass.Run(traceTable, traceProblem, traceScratch, traceResult, logPressure, ref traceState);
+        state = traceState;
+        return status;
     }
 
     /// <summary>0.8: the frozen floor factor of the reference's stop of a frozen expansion (cea 3.3.4 <c>rocket.f90:331-341</c>, BOOT.md, 2026-09-28).</summary>

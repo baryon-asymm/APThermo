@@ -171,6 +171,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the reacting conductivity), the iteration count and the status.
 - The state guard, the figures of an `Ok` frozen state, the property definitions of RP-1311 and the
   pinned pair's convention: [StateRecord/BOOT.md](StateRecord/BOOT.md), `## Constraints`.
+- Compile size (2026-10-04, the root's Compile size constraint): `Solve` calls its `NoInlining` stages (`TraceGasPass.Run` through `RunTraceGas`, `AttemptPlan.Next`) with copies of its loop-live locals, never `ref` or `in` to them; no bit moves.
 
 ## Structure
 
