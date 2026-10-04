@@ -406,3 +406,7 @@
       `PublicSurface.approved.txt` unchanged, `TreeContract.approved.txt` moved with this `API.md`. On CUDA the seeded
       families equal the CPU accelerator within the tests node's table (`CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator`),
       Windows and WSL, `ByteVectorTests` green. Red once each (the tests node's criterion of the same date lists them).
+      Evidence so far (2026-10-04, the coder's part; the box stays unticked until the CUDA and WSL runs are in): the
+      facts above green on the CPU accelerator and each shown red once (`tests/Execution.Tests/ACCEPTANCE.md`, criterion of
+      this date, which lists the families, the mutations and the findings); the fast set of the solution green with no
+      approved record moved; `TreeContract.approved.txt` replaced in the commit that moved `API.md`.

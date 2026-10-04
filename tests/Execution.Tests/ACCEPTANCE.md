@@ -344,3 +344,30 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       `AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator`); the bracketed seeded states are compared by the rule of
       `## Invariants`, "Bracketed cases"; the mechanism facts of `ChunkTransferTests`, `AcceleratorChoiceTests`,
       `ChunkPlanWiringTests` and `BatchTests` are green; the states left out (`## Invariants`) still exceed the closure bound.
+      Red once, 2026-10-04, each applied alone and reverted (`APTHERMO_NO_CUDA=1`, Debug):
+      - `Kernels.Equilibrium` passing `false` whatever the flag: 19 of 19 seeded families of
+        `ASeededFamilyEqualsTheHostSolverBitForBit` red (iterations or bits against the host), the 41 cold rows green;
+      - `EquilibriumPipeline` declaring the moles `ClearedOutput` for a seeded batch: the same 19 red, the 41 green;
+      - the seed checks of `EquilibriumBatch.Validate` removed: `ASeededBatchWhoseSeedDoesNotFitTheTableIsRefusedBeforeAnyKernelRuns` red
+        ("No exception was thrown");
+      - `InputOutput`'s `BytesPerCase` answering 0: `ASeededEquilibriumBatchDeclaresTheSameDeviceBytesAsAColdOne` red (109 612 against
+        102 412, the 7 200 bytes of 900 species);
+      - `InputOutput` dropped from `UploadChunk`'s branch: both `ChunkTransferTests` facts and `ASeededBatchIsIndependentOfChunking` red;
+        from `DownloadChunk`'s branch: both `ChunkTransferTests` facts red; the upload's start taken at offset 0: the round trip and
+        `ASeededBatchIsIndependentOfChunking` red.
+      Not shown red here: the CUDA side of a seeded family handed a copy of the batch without its seed (it needs the device).
+      Evidence so far (the coder's part, no GPU; the box stays unticked until the orchestrator's CUDA and WSL runs are in):
+      - Families: `seeded-fixtures` 30 cases; the tp fixtures of 13 tables at half pressure, 83 cases in all (the cases whose cold
+        solve ends `Ok`); `seeded-bracket-calcite` at 1e4, 1e5 and 1e6 Pa, 6 states each (hp and sp at 0.1, 0.3 and 0.5), and
+        `seeded-bracket-magnesite` at 1e4 and 1e6 Pa, 3 states each (the sp states; the hp states are left out, below); 137
+        seeded cases in 19 families. The equilibrium tables: 15 families, 150 cases, every one `Ok` on the CPU accelerator and equal to
+        the host solver bit for bit.
+      - Findings, not loosened (`## Invariants`, "States left out"): the hp states of magnesite at 1e4 and 1e6 Pa close the element
+        balance of the CPU accelerator only to 1.0e-11 to 1.5e-11 on carbon, cold as well as seeded, and take 1 800 to 2 250 Newton steps
+        (sum of the attempts); the 17-element table's one case closes chlorine only to 7.5e-13 (1.2e-12 at half pressure).
+      - The fast set of the solution, Debug, `APTHERMO_NO_CUDA=1`: all eleven test projects green, `tests/Execution.Tests` 315 of 315
+        (25 s alone, 72 s inside the parallel run of the solution); no `Bits*.approved.txt`, `Throughput*.approved.txt`, Docs approved
+        record or `PublicSurface.approved.txt` changed (`git status` clean after the run); `TreeContract.approved.txt` moved with
+        `API.md`; the protocol lint gives 0 and 0.
+      - Seeded bracketed families are compared with `IterationsSumAttempts` and so add nothing to the step-share ledger; the
+        seeded fixtures, the warm families and the table families do.
