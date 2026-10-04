@@ -221,4 +221,33 @@ public sealed class GasPhaseTests
 
         Assert.Equal(enumerated, reported, Tolerances.SelfConsistency * Math.Max(1.0, Math.Abs(enumerated)));
     }
+
+    /// <summary>
+    /// A gasless minimum writes every record it holds, whatever its amount (GasPhase BOOT.md, owner decision G1, 2026-10-04): KO2 with a deficit
+    /// of 1e-10 of its oxygen, at 300 to 1 500 K and 1 kPa to 10 MPa, is KO2 and K2O (K2O2 at 300 K), the second record at 9.4e-13 kmol/kg, which an omission of the amounts
+    /// at the verdict's absolute 1e-12 dropped together with its potassium and oxygen. Every <c>NoGasPhase</c> state of the family carries both records
+    /// and closes every element to the relative invariant; there are 22. Red with the omission: potassium misses by 1.3e-10 of its abundance.
+    /// </summary>
+    [Fact]
+    public void AGaslessMinimumWritesEveryRecordItHolds()
+    {
+        var gasless = 0;
+        foreach (var state in TraceGasCases.Binary([-1.0e-10]).Where(c => c.Name.StartsWith("binary-ko2|", StringComparison.Ordinal)))
+        {
+            var solution = state.Solve();
+            if (solution.Status != CaseStatus.NoGasPhase)
+            {
+                continue;
+            }
+
+            gasless++;
+            var table = solution.Case.Table;
+            var records = Enumerable.Range(table.GasCount, table.SpeciesCount - table.GasCount).Count(j => solution.Moles[j] > 0.0);
+            Assert.True(records >= 2, $"{state.Name}: {records} condensed records, the deficit's carrier left out");
+            var violations = EquilibriumConditions.ElementConservationViolations(solution);
+            Assert.True(violations.Count == 0, $"{state.Name}: {string.Join("; ", violations)}");
+        }
+
+        Assert.Equal(22, gasless);
+    }
 }

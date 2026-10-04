@@ -71,7 +71,7 @@ internal static class CondensedSimplex
             return false;
         }
 
-        WriteMoles(table, scratch, result, problem, rows);
+        WriteMoles(table, scratch, result, rows);
         return true;
     }
 
@@ -177,9 +177,8 @@ internal static class CondensedSimplex
         return true;
     }
 
-    /// <summary>The condensed minimum into <c>result.Moles</c>: every gas and every record at zero level zero.</summary>
-    public static void WriteMoles(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                  in EquilibriumProblem problem, int m)
+    /// <summary>The condensed minimum into <c>result.Moles</c>: every gas zero, every basic record at its positive amount (owner decision G1, 2026-10-04; the omission of the records at zero level dropped a K2O of 9.4e-13 kmol/kg with its potassium and oxygen).</summary>
+    public static void WriteMoles(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int m)
     {
         for (var j = 0; j < table.SpeciesCount; j++)
         {
@@ -189,7 +188,7 @@ internal static class CondensedSimplex
         for (var r = 0; r < m; r++)
         {
             var column = scratch.CondensedInSolution[r];
-            if (column >= 0 && !ZeroLevel(problem, scratch, r))
+            if (column >= 0 && scratch.Corrections[r] > 0.0)
             {
                 result.Moles[column] += scratch.Corrections[r];
             }

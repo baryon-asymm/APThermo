@@ -26,7 +26,7 @@ internal static class CondensedSimplex
 {
     public static int Minimize(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, double temperature, out GasVerdict stop);
         // the number of rows with the optimal basis in the scratch, or 0 with the verdict that ends the test
-    public static void WriteMoles(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in EquilibriumProblem problem, int m);
+    public static void WriteMoles(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int m);
 }
 internal static class TangentPlane
 {

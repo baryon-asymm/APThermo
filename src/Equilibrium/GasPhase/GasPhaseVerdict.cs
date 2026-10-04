@@ -69,7 +69,7 @@ internal static class GasPhaseVerdict
             return stop;
         }
 
-        CondensedSimplex.WriteMoles(table, scratch, result, problem, m);
+        CondensedSimplex.WriteMoles(table, scratch, result, m);
         var directions = TangentPlane.Directions(table, problem, scratch, m);
         if (directions < 0)
         {

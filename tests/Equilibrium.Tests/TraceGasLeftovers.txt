@@ -1,7 +1,6 @@
 # The tp states of the trace-gas families that the pass does not settle, declared (TraceGas BOOT.md, "Declared leftovers").
 # One "kind name" pair per line: kind notconverged or residue; name = family|excess|pressure (Pa)|temperature (K); an hp or sp state
 # carries its mode first (mode|name). No hp or sp state is declared since the data junction (TraceGas BOOT.md, "The data junction").
-notconverged Al(OH)3|-1E-12|1000|300
 # Under investigation (2026-10-04), the owner has not decided: before the relative invariant of 1e-13 this state ended Ok with H 3.2e-12 of
 # its abundance open (a false Ok, the reported state ignores the 1e-12 deficit of O); it ends NotConverged now.
 notconverged Al(OH)3|-1E-12|100000|500
@@ -17,5 +16,6 @@ notconverged CaCO3|1E-08|1000|500
 notconverged CaCO3|1E-08|1000|800
 notconverged CaCO3|1E-08|100000|800
 notconverged CaCO3|1E-08|10000000|800
+residue Al(OH)3|-1E-12|1000|300
 residue Al(OH)3|0|1000|300
 residue Al(OH)3|1E-12|1000|300

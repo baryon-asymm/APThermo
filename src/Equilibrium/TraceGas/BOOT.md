@@ -344,9 +344,10 @@ The states of the scans that the pass does not settle are declared in `TraceGasL
 [the tests node](../../../tests/Equilibrium.Tests/BOOT.md), one name per line, kind `notconverged`
 (as before the pass) or `residue` (`Ok` with less than 1e-12 kmol/kg of gas, through the pass: the
 verdict's face search found no certificate). Measured on the code, 2026-10-04:
-- `NotConverged` tp states: KCl − 1e-10 Cl at 1 200 K and 1 kPa and at 1 500 K and 100 kPa left the list
-  on 2026-10-04 (room for the gas). Al(OH)3 − 1e-12 O at 300 K and 1 kPa: the verdict answers `GasRequired`
-  with residual 0, and every start ends `SingularMatrix` after one change of the condensed set.
+- `NotConverged` tp states: KCl − 1e-10 Cl at 1 200 K and 1 kPa and at 1 500 K and 100 kPa, and
+  Al(OH)3 − 1e-12 O at 300 K and 1 kPa, left the list on 2026-10-04 (room for the gas, and for the
+  Al(OH)3 state the gasless write: its phase-one point needs the records at zero level). Every start
+  of the three had ended `SingularMatrix` after one change of the condensed set.
 - Under investigation (2026-10-04), the owner has not decided: eight tp states of the trace-excess scan
   (`TraceGasCases.TraceScan`, 1 632 states at ± 1e-8 and ± 1e-10) that no mechanism settles, and
   `Al(OH)3|-1E-12|100000|500`, a false `Ok` before the relative invariant (H open by 3.2e-12 of its
@@ -357,7 +358,8 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
   toward a K-rich gas while n collapses by the positivity floor, and starts 2 to 4 end at step 0 (S not
   finite after the placement along the excess). A follow-up investigation with a different start.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
-  exact state (1.3e-18 kmol/kg of gas) and the + 1e-12 state (3.1e-14), both through start 4.
+  exact state (1.3e-18 kmol/kg of gas), the + 1e-12 state (3.1e-14), both through start 4, and since
+  2026-10-04 the − 1e-12 state (6.2e-14, the carrier of the deficit of oxygen).
 - hp, three modes of KCl + 1e-6 Cl at 100 kPa and 1 000 K left the list on 2026-10-04: the data junction
   settles them (above).
 - The 49 further tp states at excesses of 1e-8 and 1e-10 that ended `NotConverged` (K2O, Li2O, MgO,

@@ -28,10 +28,20 @@ The parent's invariants hold here; the method is still the minimum of the Gibbs 
 element conservation, restricted to the condensed species, with no equilibrium constant.
 
 - **A verdict is a proof or nothing.** `Gasless` only when the condensed minimum holds every element
-  (phase one leaves each artificial column within `1e-12 · max(1, b_i)`, and the moles written omit
-  an amount within that), no eligible record left out gains more than 1e-9 per mole at the reported
-  multipliers, and `ln S < −1e-9` there. What the search cannot prove is `Undecided`, and the caller
-  keeps its failure.
+  (phase one leaves each artificial column within `1e-12 · max(1, b_i)`, and the moles written are
+  every basic record at its positive amount), no eligible record left out gains more than 1e-9 per
+  mole at the reported multipliers, and `ln S < −1e-9` there. What the search cannot prove is
+  `Undecided`, and the caller keeps its failure.
+  - The 1e-12 is in kmol/kg: `b_i` is below 1 for every real mixture, so it is an absolute bound.
+    An element the condensed species cannot hold within it is left unheld by a `Gasless` state, whose
+    residual is then the input's own perturbation (a mixture within ±1e-12 of exact stoichiometry
+    ends `NoGasPhase` with an excess of up to 2e-12 of an element unaccounted for). The owner chose
+    this bound over a relative 1e-13 · b_i (decision G1, 2026-10-04): the relative form turns 273 of
+    the ±1e-12 states into `Ok` with their excess as a trace gas and costs six `Ok` states.
+
+  ⚠ 2026-10-04: was "the moles written omit an amount within that", now every basic record with a
+  positive amount is written: KO2 − 1e-10 O is KO2 and K2O, the K2O at 9.4e-13 kmol/kg, and the
+  omission dropped it with its potassium and oxygen (ρ_K = −1.3e-10). `ZeroLevel` stays for the face search.
 - **A verdict writes only a proof.** For every verdict but `Gasless`, `Decide` returns with
   `result.Moles` and `result.Multipliers` as it found them, bit for bit; for `Gasless` it writes the
   condensed minimum (every gas zero) and the certificate's multipliers, and nothing else of the result.
@@ -117,6 +127,10 @@ is named in the class that uses it.
 - [x] The minimum is the minimum: on systems of at most three elements, the condensed minimum's Gibbs energy
       equals the least over every feasible basis the test enumerates (2026-10-04,
       `GasPhaseTests.TheCondensedMinimumIsTheLeastOverEveryBasis`, over `BasisEnumeration`).
+- [x] A gasless minimum writes every record it holds (2026-10-04, `GasPhaseTests.AGaslessMinimumWritesEveryRecordItHolds`:
+      KO2 − 1e-10 O, 300 to 1 500 K, 1 kPa to 10 MPa, 22 `NoGasPhase` states, each with its second record and every
+      element within the relative invariant; red with the omission at 1e-12 restored; `ResidueVerdictTests`
+      holds the ±1e-12 states to the verdict's absolute bound).
 - [x] The degenerate face: exact stoichiometry whose vertex multipliers do not prove it and whose face search does
       (2026-10-04, `GasPhaseTests.TheDegenerateFaceNeedsTheSearchForItsCertificate`, 11 of 119 facts red with the
       sweeps set to 0); a redundant row keeps its artificial column (`ARedundantRowKeepsItsArtificialColumnAndTheVerdictStillHolds`);

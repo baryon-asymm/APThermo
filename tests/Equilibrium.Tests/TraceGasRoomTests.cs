@@ -12,7 +12,7 @@ public sealed class TraceGasRoomTests
 {
     /// <summary>The tp states the three starts ended <c>SingularMatrix</c> on after one change of the condensed set, KCl − 1e-10 Cl.</summary>
     public static TheoryData<string> States() =>
-        TraceGasCases.Names(TraceGasCases.ScanFamilies().Where(c => c.Name is "binary-kcl|-1E-10|1000|1200" or "binary-kcl|-1E-10|100000|1500"));
+        TraceGasCases.Names(TraceGasCases.ScanFamilies().Where(c => c.Name is "binary-kcl|-1E-10|1000|1200" or "binary-kcl|-1E-10|100000|1500" or "Al(OH)3|-1E-12|1000|300"));
 
     /// <summary>
     /// KCl − 1e-10 Cl at 1 200 K and 1 kPa and at 1 500 K and 100 kPa: <c>Ok</c>, clear of the conditions at 1e-9 with every gas, every element
