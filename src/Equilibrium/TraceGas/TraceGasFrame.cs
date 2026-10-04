@@ -29,6 +29,13 @@ internal readonly struct TraceGasFrame(SystemLayout layout, double logPressure, 
     public static SystemLayout LayoutFor(in SpeciesTableView table, in EquilibriumProblem problem, int condensedCount) =>
         new(problem.Kind, table.ElementCount, condensedCount, ScratchLayout.MaxUnknowns(table.ElementCount));
 
+    /// <summary>
+    /// The frame a start is placed in: the layout of <paramref name="condensedCount"/> condensed species, ln(p/p°) of the problem, n = exp(ln n)
+    /// and S = 1, at <paramref name="temperature"/>.
+    /// </summary>
+    public static TraceGasFrame AtStart(in SpeciesTableView table, in EquilibriumProblem problem, int condensedCount, double logN, double temperature) =>
+        new(LayoutFor(table, problem, condensedCount), CaseSetup.LogPressure(problem), Math.Exp(logN), 1.0, temperature);
+
     /// <summary>The shape of the tp system of the same case: no temperature unknown and no energy row, as an hp or sp convergence pinned at a data junction solves.</summary>
     public static SystemLayout TpLayoutFor(in SpeciesTableView table, int condensedCount) =>
         new(ProblemKind.AssignedTemperaturePressure, table.ElementCount, condensedCount, ScratchLayout.MaxUnknowns(table.ElementCount));

@@ -9,7 +9,7 @@ level:
 
 - `TraceGasPass`: `Run`, one trace-gas pass (its starts, its convergences and condensed-set changes,
   the entry restored on failure).
-- `TraceGasStart` and `PhaseOneSeed`: where a pass starts.
+- `TraceGasStart`, `PhaseOneSeed` and `GasBasisSeed`: where a pass starts.
 - `TraceGasIteration`: one convergence of one condensed set.
 - `TraceGasSystem` and `TraceGasStep`: its matrix and its step; `TraceGasStep.Stationary` is the
   close guard (it sits there because `TraceGasPass` stands at the limit of 14 names).
@@ -85,7 +85,12 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 - **Reached once.** `TraceGasPass.Run` and `TraceGasIteration.Converge` carry
   `[MethodImpl(MethodImplOptions.NoInlining)]`, each with one call site (`EquilibriumSolver.Solve`,
   and the sequence of `Run`), as the root's compile-size constraint asks; so does
-  `GasPhaseVerdict.PhaseOnePoint`, called from `PhaseOneSeed.Fetch` alone.
+  `GasPhaseVerdict.PhaseOnePoint`, called from `PhaseOneSeed.Point` alone, which `PhaseOneSeed.Fetch` (the
+  records) and `GasBasisSeed.Place` (the records and the gases) call.
+
+  ⚠ 2026-10-05: was "called from `PhaseOneSeed.Fetch` alone", now from `PhaseOneSeed.Point`, whose two callers
+  are the phase-one point and the gas basis; still one call site and one compiled copy (the rocket kernel's
+  compile on the CPU accelerator allocated 1.008 to 1.010 GB before, 1.012 to 1.015 GB after).
 - **No whole `IterationState` through `ref`.** The entry is kept field by field. A build that
   assigned the whole struct through `ref` failed ptxas on CUDA on 2026-10-04: "vector with elements
   of different types" in `st`. That the copy caused it is inferred; the GPU run did not separate
@@ -149,6 +154,29 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   3. **The same species, least-squares amounts** (`Aᵀ A n_c = Aᵀ b`), then as in 2.
   4. **The phase-one point with its records at or below 1e-12 kmol/kg dropped**, least-squares
      amounts, then as in 2. It runs only when `PhaseOnePoint` completed.
+  5. **The gas basis** (2026-10-05, `GasBasisSeed`), after Reynolds's STANJAN initializer (1986, Sec. 7):
+     `PhaseOnePoint` over the records and every gas, a gas a column at unit fraction with the cost
+     `g_j/RT + ln(p/p°)`. Its optimal basis is the start:
+     - the condensed set is the condensed basics, one at zero level included at zero moles (the balancing
+       phase: CaO beside CaCO3 under an excess of oxygen);
+     - π solves the stationarities of the basis: `g_c/RT` for a record, `g_j/RT + ln(p/p°) + ln(v_j/n)` for
+       a basic gas of amount `v_j`, at unit fraction for one at zero level;
+     - n is the sum of the basic gases; the start is skipped when no gas is basic with a positive amount, an
+       artificial column stays basic, or the basis is singular.
+
+     Every gas then follows from π, and the excess sits in its carrier on its own branch. With the records
+     fixed the gas must satisfy `n F(π) = b*` and `Σ_j x_j = 1`; along a free direction of π the sum is
+     convex, so it has two roots, and only the one where `F` has the sign of `b*` gives a positive n. The
+     start runs last. As the first start it settles the same states and moves the bits of 728 `Ok` states of
+     the scans; in place of starts 2 to 4 it loses 7 `Ok` states (CaCO3 + 1e-6 and 1e-10 O and Al(OH)3 at
+     300 K), alone 9. Measured 2026-10-05 (the scans on the prototype of this code, the rest on it):
+     - the 5 795 tp states of the two scan facts and `LooseOks`: the nine declared `NotConverged` end `Ok`
+       and clear, no other state changes its status or a bit;
+     - 7 968 further tp states, the 17 systems and the binary scan at ±1e-14 to ±1e-1: 13 of 14
+       `NotConverged` end `Ok`, nothing else moves;
+     - removing the gas columns reds the nine and both scan facts. Neither the zero-level record in the set
+       nor the shares of the basic gases is needed for the status: without the record the CaCO3 pass takes
+       4 to 20 steps instead of 1 to 3, without the shares the Al(OH)3 pass 22 to 29 instead of 1.
 
   **Room for the gas** (F2, 2026-10-04): beside a gas at an assigned temperature and pressure the phase
   rule allows at most (active elements − 1) condensed phases. When a loaded point, or the set after
@@ -162,7 +190,13 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   A projection of the excess off the condensed formulas was tried and rejected (22 states lost, CaCO3 + O
   among them). Removing F2 reds the KCl states; removing F1 reds `TraceExcessTests` and the scan facts.
 
-  `PhaseOnePoint` is asked once per pass, before start 2. Measured on 2026-10-04 by an emulation of
+  `PhaseOnePoint` is asked at most twice per pass: over the records before start 2, over the records and the
+  gases at start 5.
+
+  ⚠ 2026-10-05: was "asked once per pass, before start 2", now twice: the gas basis asks the program with
+  the gases.
+
+  Measured on 2026-10-04 by an emulation of
   seam (a) over 4 357 tp states of five scans:
   - 438 failures `Ok`, 1 704 certified gasless first, 3 left `NotConverged`;
   - no `Ok` lost, no record line moved;
@@ -239,14 +273,15 @@ One type per file:
 |---|---|---|
 | `TraceGasPass` | static | `Run`, the sequence |
 | `TraceGasStart` | static | the entry's save and restore, the projection |
-| `PhaseOneSeed` | static | the point's fetch and load, starts 2 to 4 |
+| `PhaseOneSeed` | static | the point's fetch and load, starts 2 to 4, `Point`: the one call site of `PhaseOnePoint` |
+| `GasBasisSeed` | static | `Place`: start 5, the gas basis |
 | `TraceGasIteration` | static | `Converge` |
 | `TraceGasSystem` | static | `Assemble`, `Solve`, the energy row |
 | `TraceGasStep` | static | the fractions, the control factor, the weighted corrections, the step, the balance, `Stationary` |
 | `TraceGasReport` | static | `KeepBalanceCarriers`: what an `Ok` reports below the second retention stage |
 | `DataJunction` | static | `Pins`, `Decides`, `Bound`: the data junction |
 | `JunctionPin` | struct | what a convergence remembers of a junction: the last bound, T_J, T_J⁺, the first miss, the phase |
-| `TraceGasFrame` | readonly struct | the layout, `ln(p/p°)`, n, S and T, which keeps every method within six parameters |
+| `TraceGasFrame` | readonly struct | the layout, `ln(p/p°)`, n, S and T, which keeps every method within six parameters; `AtStart`, the frame a start is placed in |
 
 Each constant of `## Constraints` is named in the class that uses it.
 
@@ -281,6 +316,14 @@ Each constant of `## Constraints` is named in the class that uses it.
       2026-10-04, `TraceExcessTests` (79 states); red with seam (a) removed: 67 of 79; each start
       removed alone: start 2 reds 3 of these facts, start 4 reds `ResidueVerdictTests`, start 3 the
       scan fact (`TraceGasScanTests`) alone.
+- [x] The gas basis (start 5): the nine states declared `NotConverged` until 2026-10-05 (Li2O + 1e-10 O at 800 K,
+      1 kPa and 100 kPa; CaCO3 + 1e-8 O at 500 K and 1 kPa and at 800 K and 1 kPa to 10 MPa; Al(OH)3 − 1e-8 O at
+      500 K and 1 kPa, − 1e-10 and − 1e-12 O at 500 K and 100 kPa):
+      - every state `Ok`, clear at 1e-9, every element within `1e-13 · b_i`;
+      - the program's basis holds Li2O(cr) and O2 at the excess, CaO(cr) at zero level beside CaCO3(cr), water as vapour.
+
+      2026-10-05, `GasBasisStartTests` (11 facts); red on 7c921f02: the nine; red with the gas columns removed:
+      the nine, the basis fact and both scan facts.
 - [ ] The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
       1e-12 kmol/kg or more, apart from the declared leftovers (`ResidueVerdictTests`, green 2026-10-04 with
       the three declared `residue` states of Al(OH)3 at 300 K and 1 kPa and the false `Ok` declared
@@ -319,15 +362,17 @@ Each constant of `## Constraints` is named in the class that uses it.
       - the iterations of a case the sum of its attempt's and its pass's.
 
       2026-10-04, `TraceGasUnitTests` and `TraceCarrierWalkTests.TheIterationsOfACaseAreTheStepsOfItsAttemptAndOfItsTracePass`.
-- [ ] A `LongRunning` scan fact over the four scan families:
+- [x] A `LongRunning` scan fact over the four scan families:
       - every `Ok` clear at 1e-9;
       - no `Ok` of the code before the pass lost;
       - the `NotConverged` tp states printed, and the declared leftovers only.
 
-      Written and green 2026-10-04 (`TraceGasScanTests`: the 4 158 states of the scan families, whose
-      `NotConverged` is the one declared false `Ok`, and the 1 632 states of the trace-excess scan,
-      whose `NotConverged` are the eight declared); left unticked for the decision on those nine
-      (`## Declared leftovers`). Red without room for the gas: both facts.
+      2026-10-05, `TraceGasScanTests`: the 4 158 states of the scan families and the 1 632 states of the
+      trace-excess scan, none `NotConverged`, none declared. Red without room for the gas: both facts; red
+      without the gas basis: both (1 and 8 states).
+
+      ⚠ 2026-10-05: was unticked, "written and green 2026-10-04 ... left unticked for the decision on those
+      nine", now ticked: the gas basis settles the nine.
 - [ ] No line of an `Ok` case moved in any `Bits*.approved.txt`, Windows and Linux; every changed line
       was a failure before and is listed.
 
@@ -354,15 +399,26 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
   Al(OH)3 − 1e-12 O at 300 K and 1 kPa, left the list on 2026-10-04 (room for the gas, and for the
   Al(OH)3 state the gasless write: its phase-one point needs the records at zero level). Every start
   of the three had ended `SingularMatrix` after one change of the condensed set.
-- Under investigation (2026-10-04), the owner has not decided: eight tp states of the trace-excess scan
-  (`TraceGasCases.TraceScan`, 1 632 states at ± 1e-8 and ± 1e-10) that no mechanism settles, and
-  `Al(OH)3|-1E-12|100000|500`, a false `Ok` before the relative invariant (H open by 3.2e-12 of its
-  abundance) and `NotConverged` since. The eight: Al(OH)3 − 1e-8 O at 500 K and 1 kPa, Al(OH)3 − 1e-10 O
-  at 500 K and 100 kPa, Li2O + 1e-10 O at 800 K and 1 kPa and 100 kPa, CaCO3 + 1e-8 O at 500 K and 1 kPa
-  and at 800 K and 1 kPa, 100 kPa and 10 MPa. Each is an excess of the anion-forming element beside its
-  oxide, or an Al(OH)3 deficit. In the trace of the related KCl + 1e-12 Cl at 800 K every step moves π
-  toward a K-rich gas while n collapses by the positivity floor, and starts 2 to 4 end at step 0 (S not
-  finite after the placement along the excess). A follow-up investigation with a different start.
+- Settled on 2026-10-05 by the gas basis (start 5): the eight tp states of the trace-excess scan and
+  `Al(OH)3|-1E-12|100000|500` declared under investigation. Three mechanisms, traced on 7c921f02:
+  - Li2O + 1e-10 O at 800 K: every start reached the metal-rich root of `Σ_j x_j = 1` (`F` < 0); the step
+    then asked `δ` of −1, −88, −9e4 and on, and n fell by the positivity floor, 3.3e-6 to 5e-322;
+  - CaCO3 + 1e-8 O at 500 and 800 K: the starts put O2 on its branch, but beside CaCO3 alone no gas above
+    e^−72 carried π_Ca − π_C and the first step was `SingularMatrix`; the balancing CaO (1.3e-26 to 5.7e-12
+    kmol/kg) was in no start's set;
+  - Al(OH)3 − 1e-8 to − 1e-12 O at 500 K: the gas is the water, 1.9e-2 kmol/kg, not a trace; the phase-one
+    point held it as H2O(L), the projection as AL(OH)3 gas, and the iteration, which drops no record within
+    a convergence, diverged (condensed amounts of −2e64).
+
+  ⚠ 2026-10-05: was "under investigation (2026-10-04), the owner has not decided ... in the trace of the
+  related KCl + 1e-12 Cl at 800 K every step moves π toward a K-rich gas while n collapses", now settled;
+  that mechanism held for Li2O alone, and KCl + 1e-12 Cl at 800 K has ended `NoGasPhase` since the gasless
+  write (K over by 1.3e-14 kmol/kg, inside the verdict's 1e-12).
+- Known outside the scans (2026-10-05): CaCO3 + 1e-7 O at 10 MPa and 300 K ends `NotConverged` after every
+  start. Its balancing CaO, n x_CO2 ≈ 3e-34 kmol/kg, lies below the rounding of the calcium balance
+  (1e-18): the gas basis converges with CaO at −4.7e-48, `CondensedSet.Update` removes it, and CaCO3 alone is
+  singular as above. No scan walks it, so `TraceGasLeftovers.txt` does not declare it; `NoHiddenStateTests`
+  takes it as its failure through the whole pass.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas), the + 1e-12 state (3.1e-14), both through start 4, and since
   2026-10-04 the − 1e-12 state (6.2e-14, the carrier of the deficit of oxygen).
@@ -370,7 +426,7 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
   settles them (above).
 - The 49 further tp states at excesses of 1e-8 and 1e-10 that ended `NotConverged` (K2O, Li2O, MgO,
   Al(OH)3, thermite, CaCO3) are walked now (`TraceGasScanTests`, the trace-excess scan): all end `Ok` or
-  `NoGasPhase` but the eight above, which stay.
+  `NoGasPhase`, the eight that stayed `NotConverged` until 2026-10-05 included.
 
 ## Taboos
 

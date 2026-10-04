@@ -36,7 +36,8 @@ internal static class CondensedSimplex
                                double temperature, out GasVerdict stop)
     {
         stop = GasVerdict.Undecided;
-        var rows = PhaseOne(table, problem, scratch, temperature, out var residual);
+        var columns = new SimplexColumns(temperature, 0.0, false);
+        var rows = PhaseOne(table, problem, scratch, columns, out var residual);
         if (rows == 0)
         {
             return 0;
@@ -48,22 +49,24 @@ internal static class CondensedSimplex
             return 0;
         }
 
-        return PhaseTwo(table, problem, scratch, temperature, rows);
+        return PhaseTwo(table, problem, scratch, columns, rows);
     }
 
     /// <summary>
-    /// The point the trace-gas pass starts from (2026-10-04): the vertex phase one stops at when the condensed species cannot
-    /// hold every element (<paramref name="residual"/>: the moles they cannot hold, positive), else the condensed minimum
-    /// (residual zero), into <c>result.Moles</c> with every gas and every record at zero level zero. False, nothing written,
-    /// when the program does not complete. The same program as <see cref="Minimize"/>, which it shares both phases with.
+    /// The point the trace-gas pass starts from (2026-10-04): the vertex phase one stops at when the columns cannot
+    /// hold every element (<paramref name="residual"/>: the moles they cannot hold, positive), else the minimum over the columns
+    /// (residual zero), into <c>result.Moles</c> with every record at zero level zero. False, nothing written, when the program
+    /// does not complete. The same program as <see cref="Minimize"/>, which it shares both phases with; with the gases among
+    /// the columns (<see cref="SimplexColumns.WithGas"/>, 2026-10-05) each gas is a column at unit fraction, and the optimal basis
+    /// stays in the scratch for the caller (<c>CondensedInSolution</c>, <c>Corrections</c>, <c>Tie.CondensedSet</c>).
     /// </summary>
     public static bool Point(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                             in EquilibriumResult result, double temperature, out double residual)
+                             in EquilibriumResult result, in SimplexColumns columns, out double residual)
     {
-        var rows = PhaseOne(table, problem, scratch, temperature, out residual);
+        var rows = PhaseOne(table, problem, scratch, columns, out residual);
         if (rows > 0 && !(residual > 0.0))
         {
-            rows = PhaseTwo(table, problem, scratch, temperature, rows);
+            rows = PhaseTwo(table, problem, scratch, columns, rows);
         }
 
         if (rows == 0)
@@ -82,7 +85,7 @@ internal static class CondensedSimplex
     /// elements the condensed species cannot hold.
     /// </summary>
     private static int PhaseOne(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                double temperature, out double residual)
+                                in SimplexColumns columns, out double residual)
     {
         residual = 0.0;
         ResetMarks(table, scratch);
@@ -97,7 +100,7 @@ internal static class CondensedSimplex
             scratch.CondensedInSolution[r] = -1 - r;
         }
 
-        if (!Phase(table, problem, scratch, temperature, m, phaseOne: true) || !Primal(table, problem, scratch, m))
+        if (!Phase(table, problem, scratch, columns, m, phaseOne: true) || !Primal(table, problem, scratch, m))
         {
             return 0;
         }
@@ -108,11 +111,11 @@ internal static class CondensedSimplex
 
     /// <summary>Phase two from a feasible phase-one basis: the artificial columns at zero level driven out, the true cost minimized; the number of rows, or zero when it does not complete or a basic value is negative.</summary>
     private static int PhaseTwo(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                double temperature, int m)
+                                in SimplexColumns columns, int m)
     {
-        DriveOutArtificials(table, scratch, temperature, m);
-        if (!Phase(table, problem, scratch, temperature, m, phaseOne: false)
-            || !Primal(table, problem, scratch, m) || !Dual(table, scratch, m, phaseOne: false))
+        DriveOutArtificials(table, scratch, columns, m);
+        if (!Phase(table, problem, scratch, columns, m, phaseOne: false)
+            || !Primal(table, problem, scratch, m) || !Dual(table, scratch, columns, m, phaseOne: false))
         {
             return 0;
         }
@@ -136,6 +139,10 @@ internal static class CondensedSimplex
     public static bool Eligible(in SpeciesTableView table, in EquilibriumScratch scratch, int j, double temperature) =>
         SpeciesMarks.Of(scratch, j) != SpeciesMark.Absent && PhaseGeometry.InEffectiveRange(table, scratch, j, temperature);
 
+    /// <summary>Whether species <paramref name="j"/> is a column of the program: a gas not absent when the gases are columns, a record by <see cref="Eligible"/>.</summary>
+    private static bool IsColumn(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int j) =>
+        j < table.GasCount ? columns.WithGas && SpeciesMarks.Of(scratch, j) != SpeciesMark.Absent : Eligible(table, scratch, j, columns.Temperature);
+
     /// <summary>Whether the record is a basic column of the first <paramref name="m"/> rows.</summary>
     public static bool InBasis(in EquilibriumScratch scratch, int m, int j)
     {
@@ -155,13 +162,13 @@ internal static class CondensedSimplex
         column >= 0 ? table.Stoichiometry[scratch.Tie.CondensedSet[row] * table.SpeciesCount + column] : (-1 - column == row ? 1.0 : 0.0);
 
     /// <summary>The multipliers of the optimal basis: π = B⁻ᵀ c_B into <c>Tie.LogMoles</c>.</summary>
-    public static bool Dual(in SpeciesTableView table, in EquilibriumScratch scratch, int m, bool phaseOne)
+    public static bool Dual(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int m, bool phaseOne)
     {
         var stride = ScratchLayout.MaxUnknowns(table.ElementCount);
         AssembleBasis(table, scratch, m, stride, transpose: true);
         for (var k = 0; k < m; k++)
         {
-            scratch.RightHandSide[k] = Cost(scratch, scratch.CondensedInSolution[k], phaseOne);
+            scratch.RightHandSide[k] = Cost(table, scratch, columns, scratch.CondensedInSolution[k], phaseOne);
         }
 
         if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, m, stride))
@@ -208,8 +215,10 @@ internal static class CondensedSimplex
         }
     }
 
-    private static double Cost(in EquilibriumScratch scratch, int column, bool phaseOne) =>
-        phaseOne ? (column < 0 ? 1.0 : 0.0) : (column < 0 ? 0.0 : scratch.GOverRT[column]);
+    /// <summary>The cost of a column: 1 for an artificial one in phase one, else 0 there; in phase two g/RT, and g/RT + ln(p/p°) for a gas (its chemical potential at unit fraction).</summary>
+    private static double Cost(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int column, bool phaseOne) =>
+        phaseOne ? (column < 0 ? 1.0 : 0.0)
+            : column < 0 ? 0.0 : column < table.GasCount ? scratch.GOverRT[column] + columns.LogPressure : scratch.GOverRT[column];
 
     private static void ResetMarks(in SpeciesTableView table, in EquilibriumScratch scratch)
     {
@@ -289,9 +298,9 @@ internal static class CondensedSimplex
         return DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, m, stride);
     }
 
-    private static double ReducedCost(in SpeciesTableView table, in EquilibriumScratch scratch, int m, int j, bool phaseOne)
+    private static double ReducedCost(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int m, int j, bool phaseOne)
     {
-        var d = Cost(scratch, j, phaseOne);
+        var d = Cost(table, scratch, columns, j, phaseOne);
         for (var r = 0; r < m; r++)
         {
             d -= scratch.Tie.LogMoles[r] * Entry(table, scratch, j, r);
@@ -301,17 +310,17 @@ internal static class CondensedSimplex
     }
 
     /// <summary>One phase of the simplex to optimality, Bland's rule for both the entering and the leaving column.</summary>
-    private static bool Phase(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, double temperature,
+    private static bool Phase(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in SimplexColumns columns,
                               int m, bool phaseOne)
     {
         for (var pivot = 0; pivot < MaxPivots; pivot++)
         {
-            if (!Primal(table, problem, scratch, m) || !Dual(table, scratch, m, phaseOne))
+            if (!Primal(table, problem, scratch, m) || !Dual(table, scratch, columns, m, phaseOne))
             {
                 return false;
             }
 
-            var entering = Entering(table, scratch, temperature, m, phaseOne);
+            var entering = Entering(table, scratch, columns, m, phaseOne);
             if (entering < 0)
             {
                 return true;
@@ -335,12 +344,12 @@ internal static class CondensedSimplex
     }
 
     /// <summary>The lowest eligible record outside the basis with a reduced cost below the tolerance; −1 when the basis is optimal.</summary>
-    private static int Entering(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature, int m, bool phaseOne)
+    private static int Entering(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int m, bool phaseOne)
     {
-        for (var j = table.GasCount; j < table.SpeciesCount; j++)
+        for (var j = columns.FirstColumn(table); j < table.SpeciesCount; j++)
         {
-            if (Eligible(table, scratch, j, temperature) && !InBasis(scratch, m, j)
-                && ReducedCost(table, scratch, m, j, phaseOne) < -ReducedCostTolerance)
+            if (IsColumn(table, scratch, columns, j) && !InBasis(scratch, m, j)
+                && ReducedCost(table, scratch, columns, m, j, phaseOne) < -ReducedCostTolerance)
             {
                 return j;
             }
@@ -375,7 +384,7 @@ internal static class CondensedSimplex
     }
 
     /// <summary>Every artificial column left in the basis at zero level is replaced by an eligible record with a nonzero entry in its row; a row none can enter is redundant and keeps its artificial.</summary>
-    private static void DriveOutArtificials(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature, int m)
+    private static void DriveOutArtificials(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int m)
     {
         for (var r = 0; r < m; r++)
         {
@@ -384,7 +393,7 @@ internal static class CondensedSimplex
                 continue;
             }
 
-            var replacement = Replacement(table, scratch, temperature, m, r);
+            var replacement = Replacement(table, scratch, columns, m, r);
             if (replacement >= 0)
             {
                 scratch.CondensedInSolution[r] = replacement;
@@ -393,11 +402,11 @@ internal static class CondensedSimplex
     }
 
     /// <summary>The lowest eligible record outside the basis whose direction has a nonzero entry in the row; −1 when none.</summary>
-    private static int Replacement(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature, int m, int r)
+    private static int Replacement(in SpeciesTableView table, in EquilibriumScratch scratch, in SimplexColumns columns, int m, int r)
     {
-        for (var j = table.GasCount; j < table.SpeciesCount; j++)
+        for (var j = columns.FirstColumn(table); j < table.SpeciesCount; j++)
         {
-            if (!Eligible(table, scratch, j, temperature) || InBasis(scratch, m, j) || !Direction(table, scratch, m, j))
+            if (!IsColumn(table, scratch, columns, j) || InBasis(scratch, m, j) || !Direction(table, scratch, m, j))
             {
                 continue;
             }

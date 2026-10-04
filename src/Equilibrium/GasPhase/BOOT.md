@@ -16,7 +16,8 @@ decides, at one assigned temperature and pressure, whether the equilibrium holds
 
 The `Recovery` node asks the verdict after a failed tp attempt; nothing else calls it. The trace-gas node
 asks one more entry of the same program, `PhaseOnePoint`: the point phase one stops at, which starts its
-pass (2026-10-04). The cluster
+pass (2026-10-04), and, with every gas a column at unit fraction, the basis its fifth start is placed on
+(2026-10-05). The cluster
 has a reason of its own to change: RP-1311's unknowns `ln n_j` and `ln n` cannot represent a gas
 phase of zero moles, so the equilibria where the gas vanishes (KO2 beside K2O2, water below its
 boiling point, Al2O3, KCl, a thermite, CaCO3 below its decomposition) need a method of their own
@@ -48,7 +49,9 @@ element conservation, restricted to the condensed species, with no equilibrium c
 - **Eligibility is the condensed-species rule's.** A record is a column when its elements are
   present (any mark but `Absent`) and it lies in its effective range at the temperature
   (`PhaseGeometry.InEffectiveRange`); an attempt's anti-cycling memories do not bind the program,
-  which is global.
+  which is global. In the program `PhaseOnePoint` runs with `withGas` (2026-10-05) every gas whose
+  elements are present is a column too, at the cost `g_j/RT + ln(p/p°)`, its chemical potential at unit
+  fraction; the verdict's program has no gas column.
 
 ## Dependencies
 
@@ -74,7 +77,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   `Abs` and `KernelMath.Min`/`Max`; an ordered comparison with a constant has it on the right.
 - **Reached once.** `GasPhaseVerdict.Decide` carries `[MethodImpl(MethodImplOptions.NoInlining)]`
   and has one call site, `Recovery.AttemptPlan.Next` (the root's compile-size constraint). `PhaseOnePoint`
-  likewise, its one call site the `TraceGas` node's (2026-10-04).
+  likewise, its one call site the `TraceGas` node's `PhaseOneSeed.Point` (2026-10-04; `withGas` since
+  2026-10-05).
 - **Scratch.** No slice of its own; it borrows what an ended attempt leaves free: the matrix, the
   right-hand side and the row scales; `Corrections` (the basic values); `CondensedInSolution` (the
   basis: a column, or `−1 − row` for an artificial one); `Tie.CondensedSet` (row → element);
@@ -82,8 +86,10 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   and `Tie.Elements.Multipliers` (the failed attempt's moles and multipliers, restored unless
   `Gasless`). The face directions lie in the matrix past its first `ElementCount` rows of stride.
   `BracketEnds` is never touched.
-- **The program.** Rows: the active elements. Columns: the eligible records at cost `g_j/RT`, and
-  one artificial column per row, cost 1 in phase one and 0 in phase two. Bland's rule: the entering
+- **The program.** Rows: the active elements. Columns: the eligible records at cost `g_j/RT`, every gas
+  not absent at `g_j/RT + ln(p/p°)` when `PhaseOnePoint` is asked `withGas` (the scans then start at the
+  first gas, `SimplexColumns.FirstColumn`), and one artificial column per row, cost 1 in phase one and 0
+  in phase two. Bland's rule: the entering
   column is the lowest index with a reduced cost below −1e-9, the leaving one the smallest ratio,
   ties to the lowest column; a pivot below 1e-11 is refused; at most 256 pivots per phase. After
   phase one, an element the condensed species cannot hold beyond `1e-12 · max(1, b_i)` makes the
@@ -109,8 +115,9 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 Internal, kernel-compatible, one type per file: `GasPhaseVerdict` (static facade), `CondensedSimplex`
 (static), `TangentPlane` (static), `GasVerdict` (enum: `Undecided = 0`, `GasRequired`, `Gasless`),
 `CondensedFigures` (struct: `Enthalpy`, `Entropy`, `HeatCapacity`), `Face` (readonly struct: the
-row count, the direction count, the directions' offset, `ln(p/p°)`, the temperature) and
-`CoordinateRange` (readonly struct: the interval of one face coordinate), which keep every method of
+row count, the direction count, the directions' offset, `ln(p/p°)`, the temperature),
+`CoordinateRange` (readonly struct: the interval of one face coordinate) and `SimplexColumns` (readonly
+struct: the temperature, `ln(p/p°)` and whether the gases are columns, 2026-10-05), which keep every method of
 `TangentPlane` within six parameters and its nesting within three. Each constant of `## Constraints`
 is named in the class that uses it.
 
@@ -142,6 +149,9 @@ is named in the class that uses it.
       bit for bit; no line of an `Ok` case moved in any `Bits*.approved.txt` (2026-10-04, the two `GasPhaseTests`
       facts of the previous criterion for the moles and multipliers; every `BitSnapshotTests` fact of the
       Equilibrium, Problems, Performance and Cli tests nodes green against the unchanged Windows records).
+- [x] The program with the gases as columns (2026-10-05, `GasBasisStartTests.TheProgramWithTheGasesAsColumnsHoldsTheCarrierAndTheBalancingPhase`:
+      Li2O + 1e-10 O, CaCO3 + 1e-8 O, Al(OH)3 − 1e-8 O); the verdict's program unchanged: every `GasPhaseTests`
+      fact and every `BitSnapshotTests` fact of the Equilibrium, Performance and Problems tests nodes green.
 - [ ] CUDA: a tp family of gasless states, GPU equal to CPU (status, moles and multipliers within the tier); Linux
       bits re-approved; the shape facts green with no new row.
 
