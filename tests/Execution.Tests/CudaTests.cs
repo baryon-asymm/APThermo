@@ -30,6 +30,12 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>The names of the 0.2.2 families of the gasless verdict and the temperature bracket as theory data, delegating to <see cref="RecoveryFamilies.Names"/>.</summary>
     public static TheoryData<string> BracketedFamilyNames() => RecoveryFamilies.Names();
 
+    /// <summary>The names of the seeded families (2026-10-04) as theory data, delegating to <see cref="SeededFamilies.Names"/>.</summary>
+    public static TheoryData<string> SeededFamilyNames() => SeededFamilies.Names();
+
+    /// <summary>The names of the families of every equilibrium fixture table (2026-10-04) as theory data, delegating to <see cref="FixtureBatches.EquilibriumTableFamilyNames"/>.</summary>
+    public static TheoryData<string> EquilibriumTableFamilyNames() => FixtureBatches.EquilibriumTableFamilyNames();
+
     /// <summary>A rocket family on cuda matches the cpu accelerator.</summary>
     [Theory]
     [MemberData(nameof(Families))]
@@ -112,6 +118,42 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         AssertEquilibriumFamilyMatches(cuda, FixtureBatches.NamedEquilibriumFamily(EngineFixture.Shared.Database, name));
+    }
+
+    /// <summary>The family of every equilibrium fixture sharing one table (every table of the tp, hp and sp fixtures) on cuda matches the cpu accelerator.</summary>
+    [Theory]
+    [MemberData(nameof(EquilibriumTableFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        AssertEquilibriumFamilyMatches(cuda, FixtureBatches.EquilibriumTableFamily(EngineFixture.Shared.Database, name));
+    }
+
+    /// <summary>
+    /// A family seeded by moles (2026-10-04, <see cref="SeededFamilies"/>) on cuda matches the cpu accelerator, both handed the same seeds:
+    /// the <c>seeded</c> fixtures, tp warm starts at half pressure, and bracketed plateau states seeded above the plateau. The bracketed
+    /// states sum the attempts of the temperature bracket into <c>Iterations</c> and are compared by the rule of that case.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SeededFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void ASeededFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        var family = SeededFamilies.Family(EngineFixture.Shared.Database, name);
+        Assert.True(family.Batch.IsSeeded);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: family.SumsAttempts);
     }
 
     /// <summary>

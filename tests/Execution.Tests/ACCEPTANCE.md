@@ -335,3 +335,12 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       check (`RecoveryFamilies.LaunchViolation`) is proven on the CPU accelerator, 2026-10-04:
       `BracketedFamiliesTests.TheLaunchBudgetCheckRefusesALaunchOverTheLimitAndACaseThatDidNotBracket`
       (a limit of zero and a case that ended `Ok` are refused).
+- [ ] Seeded families and every equilibrium fixture table (2026-10-04, 0.2.2; `src/Execution/ACCEPTANCE.md`, criterion of
+      that date; `## Purpose`, the L2 row): the families of `SeededFamilies` (`seeded-fixtures`, the tp fixtures of every table
+      at half pressure, the bracketed calcite and magnesite states seeded 20 K above the plateau) and the family of every
+      equilibrium fixture table (`FixtureBatches.EquilibriumTableFamilyNames`) equal the host solver bit for bit on the CPU
+      accelerator (`BatchTests.ASeededFamilyEqualsTheHostSolverBitForBit`, `AnEquilibriumTableFamilyEqualsTheHostSolverBitForBit`)
+      and the CPU accelerator within the table on CUDA (`CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator`,
+      `AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator`); the bracketed seeded states are compared by the rule of
+      `## Invariants`, "Bracketed cases"; the mechanism facts of `ChunkTransferTests`, `AcceleratorChoiceTests`,
+      `ChunkPlanWiringTests` and `BatchTests` are green; the states left out (`## Invariants`) still exceed the closure bound.

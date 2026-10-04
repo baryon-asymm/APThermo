@@ -1,3 +1,4 @@
+using System.Globalization;
 using APThermo.Data;
 using APThermo.Equilibrium;
 using APThermo.Thermo;
@@ -6,7 +7,8 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>
 /// An equilibrium family of gas-participating plateau states (the 0.2.2 families, StateRecord BOOT.md, "The gas-participating
-/// plateau"): one table, one batch of hp and sp cases inside one plateau, the labels of its cases and the plateau temperature.
+/// plateau"): one table, one batch of hp and sp cases inside one plateau, the labels of its cases and the plateau temperature. A seeded
+/// family (2026-10-04) carries in its batch the tp state a few kelvin above the plateau as the seed of every case.
 /// </summary>
 internal sealed record PlateauFamily(string Name, SpeciesTable Table, EquilibriumBatch Batch, IReadOnlyList<string> Labels, double PlateauTemperature);
 
@@ -14,13 +16,17 @@ internal sealed record PlateauFamily(string Name, SpeciesTable Table, Equilibriu
 /// The 0.2.2 equilibrium families, built from inputs the tree computes (nothing is typed but the system and the fractions): the
 /// plateau temperature of a univariant system at a pressure, found by bisection on the condensed set of host tp solves of its own
 /// mixture; the enthalpy of its reaction from the species functions; and hp and sp targets a fraction of the way through the
-/// transition above the tp state a hair over the plateau. A batch carries a temperature estimate and no seed moles, so only
-/// states whose cold start reaches the plateau end <c>Ok</c> on the CPU accelerator; the fractions of each family are those that do.
+/// transition above the tp state a hair over the plateau. The four families of 2026-10-03 start cold, at the fractions whose cold
+/// start reached the plateau before the temperature bracket; the bracketed families (2026-10-04) mirror <c>Equilibrium.Tests</c>'
+/// <c>BracketedStateTests</c> grid, seeded 20 K above the plateau.
 /// </summary>
 internal static class GasPlateauFamilies
 {
     /// <summary>K: how far above the plateau the tp state sits that stands for the upper end of the transition.</summary>
     private const double Bracket = 1.0e-6;
+
+    /// <summary>K: how far above the plateau the tp state sits that seeds the cases of a seeded family.</summary>
+    private const double SeedOffset = 20.0;
 
     private const double LowestBisection = 200.0;
     private const double HighestBisection = 3000.0;
@@ -61,6 +67,19 @@ internal static class GasPlateauFamilies
              (ProblemKind.AssignedEntropyPressure, 0.3), (ProblemKind.AssignedEnthalpyPressure, 0.5), (ProblemKind.AssignedEntropyPressure, 0.5)]),
     };
 
+    /// <summary>
+    /// The seeded families (2026-10-04): the calcium and magnesium carbonate states of the bracketed families at 1e4, 1e5 and 1e6 Pa, each
+    /// case started from the tp moles <see cref="SeedOffset"/> above the plateau. Magnesite at 1e5 Pa is left out: its seeded state is in the
+    /// trace-gas band the Recovery node declares.
+    /// </summary>
+    private static readonly Dictionary<string, PlateauSystem> SeededSystems = SeededGrid();
+
+    /// <summary>The names of the seeded plateau families that leave states out (<see cref="Family"/>).</summary>
+    public static IReadOnlyCollection<string> LeftOutKeys => [.. SeededSystems.Where(pair => pair.Value.LeftOut.Length > 0).Select(pair => pair.Key)];
+
+    /// <summary>The names of the seeded plateau families (2026-10-04).</summary>
+    public static IReadOnlyCollection<string> SeededKeys => SeededSystems.Keys;
+
     /// <summary>The names of the plateau families that end <c>Ok</c> only through the bracket (<see cref="RecoveryFamilies"/> keeps their <c>Ok</c> cases).</summary>
     public static IReadOnlyCollection<string> BracketedNames => BracketedSystems.Keys;
 
@@ -76,11 +95,15 @@ internal static class GasPlateauFamilies
         return data;
     }
 
-    /// <summary>One of the 0.2.2 families by its name, as one batch with its table.</summary>
-    public static PlateauFamily Family(SpeciesDatabase database, string name)
+    /// <summary>
+    /// One of the families by its name, as one batch with its table. A seeded family leaves out the states its system names in
+    /// <see cref="PlateauSystem.LeftOut"/>, whose element balance the CPU accelerator closes only to 1e-11 (the hp states of magnesite at 1e4 and 1e6 Pa, cold as well as seeded) (Execution.Tests BOOT.md, the findings
+    /// of 2026-10-04); with <paramref name="leftOut"/> the family holds those states and no others.
+    /// </summary>
+    public static PlateauFamily Family(SpeciesDatabase database, string name, bool leftOut = false)
     {
         ArgumentNullException.ThrowIfNull(database);
-        var system = Systems.TryGetValue(name, out var known) ? known : BracketedSystems[name];
+        var system = Systems.TryGetValue(name, out var known) ? known : BracketedSystems.TryGetValue(name, out var bracketed) ? bracketed : SeededSystems[name];
         var table = TableOver(database, system.Mixture.Elements);
         var moles = ElementMolesOf(database, system.Mixture.Elements, system.Mixture.Ratio);
         using var tables = EngineFixture.Shared.Cpu.Upload(table);
@@ -88,18 +111,28 @@ internal static class GasPlateauFamilies
         var upper = TpAt(tables, system, moles, plateau + Bracket);
         var enthalpy = ReactionEnthalpy(tables, system, plateau);
         var extent = moles[system.Mixture.ExtentElement];
-        var batch = new EquilibriumBatch(system.States.Length, table.ElementCount);
+        var states = system.States.Where(state => system.LeftOut.Contains(state) == leftOut).ToArray();
+        var seed = system.SeedOffset > 0.0 ? TpAt(tables, system, moles, plateau + system.SeedOffset) : (HostEquilibriumCase?)null;
+        Assert.True(seed is null || seed.Value.Status == CaseStatus.Ok, $"{name}: the seed state ends {seed?.Status}");
+        var batch = seed is null
+            ? new EquilibriumBatch(states.Length, table.ElementCount)
+            : new EquilibriumBatch(states.Length, table.ElementCount, table.SpeciesCount);
         var labels = new List<string>();
-        for (var k = 0; k < system.States.Length; k++)
+        for (var k = 0; k < states.Length; k++)
         {
-            var (kind, fraction) = system.States[k];
+            var (kind, fraction) = states[k];
             batch.Kind[k] = kind;
             batch.Pressure[k] = system.Pressure;
-            batch.Temperature[k] = 0.0;
+            batch.Temperature[k] = seed is null ? 0.0 : plateau + system.SeedOffset;
             batch.Target[k] = kind == ProblemKind.AssignedEnthalpyPressure
                 ? upper.State.Enthalpy - (1.0 - fraction) * enthalpy * extent
                 : upper.State.Entropy - (1.0 - fraction) * enthalpy / plateau * extent;
             Array.Copy(moles, 0, batch.ElementMoles, k * table.ElementCount, table.ElementCount);
+            if (seed is { } start)
+            {
+                Array.Copy(start.Moles, 0, batch.SeedMoles!, k * table.SpeciesCount, table.SpeciesCount);
+            }
+
             labels.Add($"{name} {kind} fraction {fraction}");
         }
 
@@ -155,6 +188,25 @@ internal static class GasPlateauFamilies
         return sum * PhysicalConstants.R * temperature;
     }
 
+    private static Dictionary<string, PlateauSystem> SeededGrid()
+    {
+        var seeded = new Dictionary<string, PlateauSystem>();
+        foreach (var (name, system) in BracketedSystems)
+        {
+            var material = name.Split('-')[1];
+            foreach (var pressure in new[] { 1.0e4, 1.0e5, 1.0e6 })
+            {
+                if (material != "magnesite" || pressure != 1.0e5)
+                {
+                    var leftOut = material == "magnesite" ? new[] { (ProblemKind.AssignedEnthalpyPressure, 0.1), (ProblemKind.AssignedEnthalpyPressure, 0.3), (ProblemKind.AssignedEnthalpyPressure, 0.5) } : [];
+                    seeded[$"seeded-bracket-{material}-p{pressure.ToString("0e0", CultureInfo.InvariantCulture)}"] = system with { Pressure = pressure, SeedOffset = SeedOffset, LeftOut = leftOut };
+                }
+            }
+        }
+
+        return seeded;
+    }
+
     /// <summary>The table of every gaseous and condensed product of the database made of the given elements, ions excluded.</summary>
     internal static SpeciesTable TableOver(SpeciesDatabase database, string[] elements)
     {
@@ -174,7 +226,14 @@ internal static class GasPlateauFamilies
 
     /// <summary>A univariant system at one pressure: its mixture, the reaction through the plateau and the states of the family.</summary>
     private sealed record PlateauSystem(
-        Mixture Mixture, string LowSpecies, (string Species, double Nu)[] Reaction, double Pressure, (ProblemKind Kind, double Fraction)[] States);
+        Mixture Mixture, string LowSpecies, (string Species, double Nu)[] Reaction, double Pressure, (ProblemKind Kind, double Fraction)[] States)
+    {
+        /// <summary>K above the plateau of the tp state whose moles seed every case; 0 for a cold family.</summary>
+        public double SeedOffset { get; init; }
+
+        /// <summary>The states of <see cref="States"/> a family leaves out, with the reason in <see cref="Family"/>'s summary.</summary>
+        public (ProblemKind Kind, double Fraction)[] LeftOut { get; init; } = [];
+    }
 
     /// <summary>The elements of a system, their ratio of moles and the one whose moles per kilogram are the moles of the reaction (one mole of it per mole of reaction).</summary>
     private sealed record Mixture(string[] Elements, double[] Ratio, int ExtentElement);

@@ -9,6 +9,16 @@ used to stand.
 
 ---
 
+<a id="l2-every-family-2026-10-04"></a>
+
+## 2026-10-04 — from "## Purpose" — the L2 row's claim "every fixture family"
+
+The claim was wider than the code: the `seeded` kind (30 cases, 2026-10-03) had never run in a batch, because no batch could carry a seed, and of 151 tp, hp and sp fixtures only the `lox-lh2_of6_pc7MPa` family (CPU), the `lox-rp1_of2.6_pc10MPa` family (CUDA) and the five named 0.2.1 families were batched. Now every equilibrium fixture table is a family on both accelerators and the seeded kinds run through seeded batches. The row as it stood:
+
+> | L2 | every fixture family, the computed gas-plateau families of 0.2.2 (`GasPlateauFamilies`) and a 100 000-case sweep on CUDA equal the CPU accelerator; the CPU accelerator equals the numerical nodes called case by case; determinism of two runs; chunking gives the same result as one chunk; the species-function batch against the host functions and across accelerators; the element balance of every compared station closes to 1e-13 and the equilibrium families are compared with the balance-remnant correction (2026-10-03, `BalanceRemnantTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`BatchTests`, `CudaTests`, `SpeciesFunctionTests`) | ✅ |
+
+---
+
 <a id="chunk-transfer-construction-differences-2026-10-01"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — criterion: the transfers of Chunks, where the construction differs from the sketch
