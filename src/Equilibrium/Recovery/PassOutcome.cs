@@ -13,19 +13,35 @@ internal static class PassOutcome
     /// <summary>
     /// Whether the verdict of the gas phase proves the tp pass to hold no gas, the window of the mixture bounding its
     /// temperature as for an Ok state; if so the result is the condensed minimum and its multipliers, and the plan's
-    /// <see cref="AttemptPlan.Found"/> is <see cref="EndKind.Gasless"/> with its figures. The one call site of the verdict.
+    /// <see cref="AttemptPlan.Found"/> is <see cref="EndKind.Gasless"/> with its figures. Any other verdict leaves the moles and the
+    /// multipliers as the failed attempt had them, the multipliers also in <c>Tie.Elements.Multipliers</c>, the anchor of a
+    /// trace-gas pass (GasPhase API.md). Seam (a) (BOOT.md, "The ladder"): when the verdict is <c>GasRequired</c> to the attempts of a
+    /// pass that ended <c>NotConverged</c> or <c>SingularMatrix</c>, the plan is set to one trace-gas pass at the same temperature,
+    /// warm from the iterate the verdict restored, and the answer is false: the caller reads <see cref="AttemptPlan.Phase"/>. A
+    /// verdict-only pass has no failed attempt to judge, and another status (the state guard's <c>TemperatureOutOfRange</c>) stands.
+    /// The one call site of the verdict.
     /// </summary>
     public static bool Finds(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref AttemptPlan plan)
     {
-        if (plan.Current.Temperature is < EquilibriumSolver.MinMixtureTemperature or > EquilibriumSolver.MaxMixtureTemperature
-            || GasPhaseVerdict.Decide(table, plan.Current, scratch, result, out var figures) != GasVerdict.Gasless)
+        if (plan.Current.Temperature is < EquilibriumSolver.MinMixtureTemperature or > EquilibriumSolver.MaxMixtureTemperature)
         {
             return false;
         }
 
-        plan.Found = EndKind.Gasless;
-        plan.Figures = figures;
-        return true;
+        var verdict = GasPhaseVerdict.Decide(table, plan.Current, scratch, result, out var figures);
+        if (verdict == GasVerdict.Gasless)
+        {
+            plan.Found = EndKind.Gasless;
+            plan.Figures = figures;
+            return true;
+        }
+
+        if (verdict == GasVerdict.GasRequired)
+        {
+            plan.SeekTraceGas();
+        }
+
+        return false;
     }
 
     /// <summary>

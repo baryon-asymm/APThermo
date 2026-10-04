@@ -33,6 +33,9 @@ internal sealed class DerivativeRig : IDisposable
 
     public EquilibriumResult Result { get; }
 
+    /// <summary>The table's view over the rig's buffers.</summary>
+    public SpeciesTableView View => _tableBuffers.View;
+
     /// <summary>The element multipliers' tied element after <see cref="SolveTied"/>, or none.</summary>
     public ElementTie Tie { get; private set; }
 

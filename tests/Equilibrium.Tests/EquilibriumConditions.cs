@@ -30,6 +30,41 @@ internal static class EquilibriumConditions
         return violations;
     }
 
+    /// <summary>
+    /// Every gas the solution reports, of any share of the gas, whose chemical potential <c>g_j/RT + ln(n_j/Σn) + ln(p/p°)</c> departs from
+    /// <c>Σ_i a_ij π_i</c> by more than <paramref name="residualBound"/>: the stationarity the close guard enforces, computed here from the
+    /// reported moles, multipliers and temperature, and not by the code under test.
+    /// </summary>
+    public static List<string> EveryGasViolations(HostSolution solution, double residualBound)
+    {
+        var violations = new List<string>();
+        var table = solution.Case.Table;
+        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        var view = buffers.View;
+        var totalGasMoles = solution.Moles.Take(table.GasCount).Sum();
+        var logPressureRatio = Math.Log(solution.Case.Pressure / 1e5);
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (!(solution.Moles[j] > 0.0))
+            {
+                continue;
+            }
+
+            var potential = SpeciesFunctions.GOverRT(view, j, solution.State.Temperature) + Math.Log(solution.Moles[j] / totalGasMoles) + logPressureRatio;
+            for (var i = 0; i < table.ElementCount; i++)
+            {
+                potential -= table.Arrays.Stoichiometry[i * table.SpeciesCount + j] * solution.Multipliers[i];
+            }
+
+            if (!(Math.Abs(potential) <= residualBound))
+            {
+                violations.Add($"gas {table.Species[j]} ({solution.Moles[j] / totalGasMoles:E2} of the gas) chemical-potential residual {potential:E3}");
+            }
+        }
+
+        return violations;
+    }
+
     /// <summary>The margin of the tangent-plane certificate: ln S of a gasless state lies below minus this (GasPhase BOOT.md).</summary>
     public const double CertificateMargin = 1.0e-9;
 

@@ -8,6 +8,30 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="ce-solver-2026-10-04"></a>
+
+## 2026-10-04 — from "## Shape exceptions" — the composition root's row at 22
+
+The trace-gas node (`TraceGas/BOOT.md`) added `TraceGasPass` to the names of `EquilibriumSolver`, in the dispatch of `Solve` between the reduced iteration and the pass (`DerivativeSystem` became `TiedDerivatives`, one for one); the dependency check's walk measured 23, and the row follows. The row stood:
+
+> | `EquilibriumSolver` | efferent coupling | 22 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+
+---
+
+<a id="carriers-by-name-2026-10-04"></a>
+
+## 2026-10-04 — from "## Structure" — the carriers are filled by name
+
+Moved to make room for the gas-level invariant and the `TraceGas` row (`AGENTS.md`, §15): the bullet is a decision of the clean-code pass of 2026-09-14, unchanged. It stood as:
+
+> - **The carriers are filled by name, not by position.** `MixtureSums` and `Derivatives`
+> are structs written at the one place that computes them and read through `in`, not
+> readonly structs with a nine- and a five-parameter constructor: a carrier that removes
+> the parameter hazard may not reintroduce it in its own constructor; `SystemLayout`
+> stays readonly, its arguments being the shape of the system. → HISTORY.md#s-settled
+
+---
+
 <a id="gas-positive-2026-10-03"></a>
 
 ## 2026-10-03 — from "## Invariants" — every gas positive in every result

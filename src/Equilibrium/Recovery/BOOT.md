@@ -34,7 +34,8 @@ The parent's invariants hold here.
 - **Every probe is a Gibbs minimization at an assigned temperature.** The probes are tp attempts of
   the same solver and verdicts of the `GasPhase` node; the final attempt is the case itself. No
   formula of the iteration changes and no equation is added.
-- **Bounded.** At most 40 probes, 8 retreats, two attempts and two verdicts per probe, one final.
+- **Bounded.** At most 40 probes, 8 retreats, two attempts, two verdicts and one trace-gas pass per
+  probe, one final; one trace-gas pass for a tp case.
 - **No status but `Ok` carries a state**, with one exception: a `NoGasPhase` case carries the
   temperature and the pressure (root `BOOT.md`, "Failures are values"). A case that ends otherwise
   after a probe wrote a state gets `result.State[0] = default`.
@@ -154,25 +155,28 @@ Inherited from the parent and, through it, from the root. In addition:
     number of scans is bounded by the number of floors.
   - The 16 AP/HTPB/Al hp targets of the tp states at 200–275 K and 20 MPa, `NotConverged` in 0.2.2's first
     build, are `Ok` at their tp temperatures.
-- **The trace-gas seam** (its own design, 0.2.2):
-  - (a) the `GasRequired` arm of step 2 after failed attempts schedules a `TraceGas` pass at the same
-    temperature, which `Solve` sends to the trace-gas entry instead of `ConvergenceSequence.Run`,
-    and closes with the same `Close`;
-  - (b) a bracket end of kind `TraceGas` selects the final in the one switch of
-    `TemperatureBracket.LeverFinal`.
-  - The trace-gas entry follows the kernel rules, has one `NoInlining` call site, and on `Ok` leaves
-    `IterationState`, scratch and result as a converged `ConvergenceSequence` does. It does not
-    reorder this ladder or change the bracket's numbers, and does not touch `BracketEnds`.
+- **The trace-gas seams** ([TraceGas](../TraceGas/BOOT.md), 2026-10-04):
+  - (a) A tp pass whose attempts ended `NotConverged` or `SingularMatrix`, at a temperature in the
+    window, whose verdict is `GasRequired`, gets one `TraceGas` pass: the same problem, warm from the
+    iterate the verdict restored, anchored on the multipliers it left in `Tie.Elements.Multipliers`.
+    A `TemperatureOutOfRange` or an `Undecided` stands.
+    - Its `Ok` ends a tp case `Ok`, or is a probe's outcome of kind `TraceGas` (P and slope as for
+      `Gas`).
+    - Any other status leaves the status of the attempt the verdict judged.
+  - `Solve` sends a pass with `plan.RunsTraceGas` to `TraceGasPass.Run` instead of
+    `ConvergenceSequence.Run`, and closes it the same way.
+  ⚠ 2026-10-04: was a seam to be filled, now (a) → HISTORY.md#tracegas-seams-2026-10-04
 - **Scratch.** `BracketEnds` (`[2 · species]`), written only by `BracketSeeds`, survives the
   probes; every other slice is an attempt's.
 
 ## Structure
 
-`AttemptPlan` (struct: `Current`, `Source`, `Phase`, `Status`, `Iterations`, the `TemperatureBracket`,
-what the last pass `Found`, the `RecheckState`; `RunsAttempt` is false for a `VerdictOnly` pass; `Next` is
-the ladder's one method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`),
+`AttemptPlan` (struct: `Current`, `Source`, `Phase`, `Status`, `Iterations`, `Judged` (the status the
+verdict judged), the `TemperatureBracket`, what the last pass `Found`, the `RecheckState`; `RunsAttempt`
+is false for a `VerdictOnly` pass and `RunsTraceGas` true for a trace-gas one; `Next` is the ladder's one
+method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`, `TraceGas`, `TraceGasFinal`),
 `TemperatureBracket` (struct, pure transitions, each constant above named), `BracketMove` and `EndKind`
-(enums), `BracketDriver` (carries the moves out), `BracketSeeds` and `PassOutcome` (static), `DeadEnds` (the
+(enums; the end kinds are `Gas`, `Gasless` and `TraceGas`), `BracketDriver` (carries the moves out), `BracketSeeds` and `PassOutcome` (static), `DeadEnds` (the
 floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state). One type per file.
 
 ## Acceptance criteria
@@ -229,5 +233,5 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 ## Taboos
 
 - No formula of the iteration and no new equation: a probe is a tp solve of the same solver.
-- No second call site of `GasPhaseVerdict.Decide`, `ConvergenceSequence.Run` or the trace-gas entry.
+- No second call site of `GasPhaseVerdict.Decide`, `ConvergenceSequence.Run` or `TraceGasPass.Run`.
 - No public type; no `float`, exception, allocation or virtual call.

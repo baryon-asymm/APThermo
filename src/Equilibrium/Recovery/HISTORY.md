@@ -8,6 +8,25 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="tracegas-seams-2026-10-04"></a>
+
+## 2026-10-04 — from "## Constraints" — the trace-gas seam
+
+Coder 3 of 0.2.2 filled the seam with the trace-gas node ([TraceGas](../TraceGas/BOOT.md)). The bullet, as coder 2 left it,
+stood:
+
+> - **The trace-gas seam** (its own design, 0.2.2):
+>   - (a) the `GasRequired` arm of step 2 after failed attempts schedules a `TraceGas` pass at the same
+>     temperature, which `Solve` sends to the trace-gas entry instead of `ConvergenceSequence.Run`,
+>     and closes with the same `Close`;
+>   - (b) a bracket end of kind `TraceGas` selects the final in the one switch of
+>     `TemperatureBracket.LeverFinal`.
+>   - The trace-gas entry follows the kernel rules, has one `NoInlining` call site, and on `Ok` leaves
+>     `IterationState`, scratch and result as a converged `ConvergenceSequence` does. It does not
+>     reorder this ladder or change the bracket's numbers, and does not touch `BracketEnds`.
+
+---
+
 <a id="recheck-ok"></a>
 
 ## 2026-10-04 — from "## Invariants" — an Ok attempt ends the case untouched

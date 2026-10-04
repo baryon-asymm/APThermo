@@ -1,0 +1,7 @@
+# The tp states of the trace-gas families that the pass does not settle, declared (TraceGas BOOT.md, "Declared leftovers").
+# One "kind name" pair per line: kind notconverged or residue; name = family|excess|pressure (Pa)|temperature (K).
+notconverged binary-kcl|-1E-10|1000|1200
+notconverged binary-kcl|-1E-10|100000|1500
+notconverged Al(OH)3|-1E-12|1000|300
+residue Al(OH)3|0|1000|300
+residue Al(OH)3|1E-12|1000|300

@@ -92,6 +92,8 @@ The definition of what "`Equilibrium` is ready" means.
   search its unit facts drive (`GasPhaseVerdict`, `CondensedSimplex`, `TangentPlane`).
 - [Recovery](../../src/Equilibrium/Recovery/API.md) — the temperature bracket and the attempt plan, whose pure
   transitions its unit facts drive (`TemperatureBracket`, `BracketMove`, `EndKind`, `AttemptPlan`).
+- [TraceGas](../../src/Equilibrium/TraceGas/API.md) — the trace-gas Newton pass, whose stage types its unit and
+  family facts drive (`TraceGasPass`, `TraceGasSystem`, `TraceGasStep`, `TraceGasStart`, `PhaseOneSeed`).
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.

@@ -1,6 +1,7 @@
 using APThermo.Equilibrium.Condensed;
 using APThermo.Equilibrium.Recovery;
 using APThermo.Equilibrium.StateRecord;
+using APThermo.Equilibrium.TraceGas;
 using APThermo.Thermo;
 
 namespace APThermo.Equilibrium;
@@ -90,7 +91,9 @@ internal static class EquilibriumSolver
             if (plan.RunsAttempt)
             {
                 var logPressure = CaseSetup.LogPressure(plan.Current);
-                status = ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
+                status = plan.RunsTraceGas
+                    ? TraceGasPass.Run(table, plan.Current, scratch, result, logPressure, ref state)
+                    : ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
                 if (status == CaseStatus.Ok)
                 {
                     status = Close(table, plan.Current, scratch, result, logPressure, ref state);

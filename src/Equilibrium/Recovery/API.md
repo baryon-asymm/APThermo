@@ -6,15 +6,17 @@ Namespace `APThermo.Equilibrium.Recovery`. Internal to `src/Equilibrium`'s assem
 ## The attempt plan ✅
 
 ```csharp
-internal enum AttemptPhase { Warm, Cold, VerdictOnly, Final }
+internal enum AttemptPhase { Warm, Cold, VerdictOnly, Final, TraceGas, TraceGasFinal }
 internal struct AttemptPlan
 {
     public EquilibriumProblem Current; public EstimateSource Source; public AttemptPhase Phase;
-    public CaseStatus Status; public int Iterations;
+    public CaseStatus Status; public int Iterations; public CaseStatus Judged;   // Judged: the status of the attempt a GasRequired verdict judged
     public TemperatureBracket Bracket; public EndKind Found; public CondensedFigures Figures;
     public RecheckState Recheck;
     public readonly bool RunsAttempt { get; }
+    public readonly bool RunsTraceGas { get; }                 // TraceGas or TraceGasFinal: Solve runs TraceGasPass.Run, not ConvergenceSequence.Run
     public void BeginBracket(double estimate);
+    public void SeekTraceGas();                            // seam (a): sets Phase = TraceGas, Source = PreviousSolution, Judged = Status after a failed NotConverged/SingularMatrix pass
     public void Begin(in EquilibriumProblem problem, bool useMolesAsEstimate);        // on a default plan; never returned by value
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Next(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
@@ -26,7 +28,7 @@ internal struct AttemptPlan
 ## The temperature bracket ✅
 
 ```csharp
-internal enum EndKind { Gas, Gasless }
+internal enum EndKind { Gas, Gasless, TraceGas }
 internal enum BracketMove { Probe, GiveUp, AttemptFromLever, AttemptFromProbe, GaslessAtProbe, GaslessFromLever }
 internal struct TemperatureBracket
 {
