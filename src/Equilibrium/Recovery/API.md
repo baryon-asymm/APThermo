@@ -15,7 +15,7 @@ internal struct AttemptPlan
     public RecheckState Recheck;
     public readonly bool RunsAttempt { get; }
     public void BeginBracket(double estimate);
-    public static AttemptPlan Start(in EquilibriumProblem problem, bool useMolesAsEstimate);
+    public void Begin(in EquilibriumProblem problem, bool useMolesAsEstimate);        // on a default plan; never returned by value
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Next(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                             in EquilibriumResult result, CaseStatus status, ref AttemptPlan plan);

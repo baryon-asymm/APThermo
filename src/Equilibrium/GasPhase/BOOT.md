@@ -52,6 +52,9 @@ in the parent's tree contract; the child belongs to the parent's assembly and re
 
 Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root. In addition:
 
+- **No whole-struct copies the CUDA post-link rejects** (2026-10-04): no struct of this node holds two `bool`
+  fields next to each other, and a struct with a `bool` field is not returned by value (the rule and its reason
+  are in [Recovery/BOOT.md](../Recovery/BOOT.md), "No whole-struct copies"; `ByteVectorTests` checks every entry point).
 - Every type is `internal`; no project of its own: the files compile into `src/Equilibrium`'s
   assembly under `APThermo.Equilibrium.GasPhase`. The root's code-shape constraint applies; no
   row is declared.

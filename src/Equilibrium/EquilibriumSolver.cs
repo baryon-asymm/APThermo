@@ -76,7 +76,8 @@ internal static class EquilibriumSolver
     {
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        var plan = AttemptPlan.Start(problem, useMolesAsEstimate);
+        var plan = default(AttemptPlan);
+        plan.Begin(problem, useMolesAsEstimate);
         while (true)
         {
             var state = new IterationState();

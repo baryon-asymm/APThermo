@@ -43,14 +43,18 @@ internal struct AttemptPlan
     /// <summary>Starts the bracket at <paramref name="estimate"/> K, remembering the status of the attempt that sent the case there.</summary>
     public void BeginBracket(double estimate) => Bracket.Start(Status, estimate);
 
-    /// <summary>The plan of a case's first attempt: warm from the result's moles when <paramref name="useMolesAsEstimate"/>, else cold.</summary>
-    public static AttemptPlan Start(in EquilibriumProblem problem, bool useMolesAsEstimate) =>
-        new()
-        {
-            Current = problem,
-            Source = useMolesAsEstimate ? EstimateSource.PreviousSolution : EstimateSource.Defaults,
-            Phase = useMolesAsEstimate ? AttemptPhase.Warm : AttemptPhase.Cold,
-        };
+    /// <summary>
+    /// Sets the plan of a case's first attempt on a plan that is <c>default</c>: warm from the result's moles when
+    /// <paramref name="useMolesAsEstimate"/>, else cold. A method on the plan and not a function that returns one: the whole-struct
+    /// copy of a return value is a load of every field, and ILGPU 1.5.3 emits the pair of adjacent <c>bool</c> fields of
+    /// <see cref="TemperatureBracket"/> as a vector load into predicate registers, which ptxas refuses (BOOT.md, "No whole-struct copies").
+    /// </summary>
+    public void Begin(in EquilibriumProblem problem, bool useMolesAsEstimate)
+    {
+        Current = problem;
+        Source = useMolesAsEstimate ? EstimateSource.PreviousSolution : EstimateSource.Defaults;
+        Phase = useMolesAsEstimate ? AttemptPhase.Warm : AttemptPhase.Cold;
+    }
 
     /// <summary>
     /// Decides the pass after one ended with <paramref name="status"/> (the placeholder of a verdict-only pass): true with

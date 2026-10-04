@@ -58,14 +58,17 @@ internal struct TemperatureBracket
     /// <summary>The assigned property of the tp equilibrium at the upper end.</summary>
     public double HighP;
 
+    // No two bool fields are adjacent below: the struct is carried through the case's loop, and ILGPU 1.5.3 loads two adjacent
+    // bools as one vector into predicate registers, which ptxas refuses (BOOT.md, "No whole-struct copies").
+
     /// <summary>Whether a lower end is known.</summary>
     public bool HaveLow;
 
-    /// <summary>Whether an upper end is known.</summary>
-    public bool HaveHigh;
-
     /// <summary>What the lower end found.</summary>
     public EndKind LowKind;
+
+    /// <summary>Whether an upper end is known.</summary>
+    public bool HaveHigh;
 
     /// <summary>What the upper end found.</summary>
     public EndKind HighKind;
@@ -79,6 +82,9 @@ internal struct TemperatureBracket
     /// <summary>ln T of the probe in flight.</summary>
     public double ProbeX;
 
+    /// <summary>Whether the search is scanning the far sides of the dead-end floors below a gap for the first probe above the target (BOOT.md, "Dead-end gaps").</summary>
+    public bool Scanning;
+
     /// <summary>Probes recorded.</summary>
     public int Probes;
 
@@ -90,9 +96,6 @@ internal struct TemperatureBracket
 
     /// <summary>The last step on ln T.</summary>
     public double LastStep;
-
-    /// <summary>Whether the search is scanning the far sides of the dead-end floors below a gap for the first probe above the target (BOOT.md, "Dead-end gaps").</summary>
-    public bool Scanning;
 
     /// <summary>Whether the pass in flight is the verdict-only final of two gasless ends or of a converged gasless probe.</summary>
     public bool Finishing;

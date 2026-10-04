@@ -16,7 +16,7 @@ each attempt and when it ends:
 - `DeadEnds` and `DeadEndRecheck`: the floors where a condensed record's data stop with no record of
   its formula beyond, and the recheck of an `Ok` state that lies below one ("Dead-end floors").
 
-`EquilibriumSolver.Solve` starts the plan with `AttemptPlan.Start` and calls `AttemptPlan.Next` after
+`EquilibriumSolver.Solve` starts the plan with `AttemptPlan.Begin` and calls `AttemptPlan.Next` after
 every attempt. The cluster has a reason of its own to change: what the tree does when the report's
 own iteration fails, which RP-1311 leaves open.
 
@@ -57,6 +57,13 @@ Inherited from the parent and, through it, from the root. In addition:
 - Every type is `internal`, under `APThermo.Equilibrium.Recovery`, no project of its own; the
   root's code-shape constraint applies, no row declared; kernel-compatible C#, the math list only,
   NaN-safe comparisons.
+- **No whole-struct copies the CUDA post-link rejects** (2026-10-04). ILGPU 1.5.3 carries a struct that a loop or a
+  `ref` call keeps alive as one value, and loads it field by field; two adjacent `bool` fields become one vector
+  load into predicate registers (`ld.local.v2.b8 {%p, %p}`), which ptxas refuses (`Arguments mismatch for
+  instruction 'ld'`), so that no kernel loads on CUDA while every CPU test stays green. So: no struct of this
+  node holds two `bool` fields next to each other (a field of another type between them, as `TemperatureBracket`'s
+  order does), and a plan is built in place (`default` and `AttemptPlan.Begin`), not returned by value.
+  `ByteVectorTests` compiles every entry point and fails on any vector load or store of bytes or predicates.
 - **Reached once.** `AttemptPlan.Next` (static, `ref AttemptPlan`, six parameters) carries
   `[MethodImpl(MethodImplOptions.NoInlining)]` and has one call site in `Solve`.
 - **The ladder.** After a pass that ended with status `s`:
