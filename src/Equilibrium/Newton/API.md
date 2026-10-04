@@ -83,6 +83,10 @@ internal static class ElementCoupling
         // is pinned (coefficient 0) and they are solved once more, at most once per call
     public static bool Coupled(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, in ElementTie tie);
         // whether every species of the sums still satisfies the combination of the live coefficients, to 1e-10 relative
+    public static ElementTie FindOver(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout sums, int element);
+    public static bool CoupledOver(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout sums, in ElementTie tie);
+        // Find and Coupled over the species of the sums that `sums` names: its condensed count, and the gases it reads
+        // (SystemLayout.GasMoles: a state's trace carriers are none of them); the close's tie search (StateRecord) is the caller
     public static bool HeldByCondensed(in SpeciesTableView table, in EquilibriumScratch scratch, int condensedCount, in ElementTie tie);
         // whether a condensed species of the solution carries the tied element and an element of the combination
     public static double Weight(in SpeciesTableView table, in EquilibriumScratch scratch, int element, int species);

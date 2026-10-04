@@ -27,6 +27,7 @@ internal static class TiedDerivatives
             return derivatives;
         }
 
+        var read = new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, state.CondensedCount, stride, state);
         for (var k = 0; k < table.ElementCount; k++)
         {
             if (scratch.ElementActive[k] == 0)
@@ -34,7 +35,7 @@ internal static class TiedDerivatives
                 continue;
             }
 
-            var tie = ElementCoupling.Find(table, scratch, result, state.CondensedCount, k);
+            var tie = ElementCoupling.FindOver(table, scratch, result, read, k);
             if (!tie.Active)
             {
                 continue;

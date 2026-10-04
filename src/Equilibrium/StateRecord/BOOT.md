@@ -91,6 +91,16 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
       no derivative the state reports.
     - Measured with the prototype and an emulation (2026-10-04): MgCO3 under CO2 hp and sp at 1 kPa
       to 1 MPa, 29 to 32 states `TemperatureOutOfRange` before, now `Ok`; no bit moved.
+- **The derivative set of a state with trace carriers** (2026-10-04, for 0.2.2). A trace-gas `Ok`
+  reports the gases below the second retention stage that carry a part of a balance
+  (`IterationState.TraceCarriers`, [TraceGas/BOOT.md](../TraceGas/BOOT.md)). Every derivative system,
+  the isentropic one, the dependence test and the tie search included, reads no gas below that
+  stage of such a state: `SystemLayout.GasMoles` is the one predicate, `SystemLayout.CarrierLogN`
+  (ln n of the state, −∞ for every other) switches it. The carriers' contributions to `Cp`, the two
+  derivatives and the tie are of their own size, 1e-14 of the mixture, and with them in, a plateau
+  state's derivative system is singular (CO at 1e-14 of the gas sets a direction of curvature below
+  the solver's pivot: every MgCO3 plateau hp state ended `SingularMatrix` in the trial). The sums of
+  h, s and M include them. A state without carriers reads every gas, as before.
 - Property definitions of RP-1311: `Cp_eq` includes the reaction contribution of the
   composition derivatives ((2.49), (2.59), section 2.5); `γ_s = −(∂ln p/∂ln V)_s` and
   `a² = n R T γ_s` per unit mass (2.71, 2.74, section 2.6); `M = 1/n` (2.3a) with `n`

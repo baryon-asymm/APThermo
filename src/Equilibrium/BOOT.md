@@ -29,8 +29,11 @@ a full restatement of the equations in this document, which nobody has asked for
   the mole numbers of the condensed species in the solution). No reaction sets, no
   equilibrium constants.
 - **Element conservation at convergence.** For every element, `|Σ a_ij n_j − b_i| ≤
-  1e-12 · max(1, b_i)` in kmol per kilogram; a converged case that violates it is
-  reported as `NotConverged`, never as `Ok`.
+  1e-13 · b_i` in kmol per kilogram; a converged case that violates it is
+  reported as `NotConverged`, never as `Ok`. A `NoGasPhase` state is held to the gasless
+  verdict's own absolute 1e-12 ([GasPhase/BOOT.md](GasPhase/BOOT.md)).
+
+  ⚠ 2026-10-04: was ≤ 1e-12 · max(1, b_i), now ≤ 1e-13 · b_i → HISTORY.md#relative-invariant
 - **Gas-level stationarity at convergence** (2026-10-04). Every gas an `Ok` reports sits on its
   stationarity within 1e-9; the close refuses any other state as `NotConverged` ([TraceGas](TraceGas/BOOT.md)).
 - **The candidate list never changes.** Every species of the table is a candidate

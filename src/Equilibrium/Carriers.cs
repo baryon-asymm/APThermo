@@ -85,6 +85,7 @@ internal readonly struct SystemLayout
         TRow = NRow + 1;
         Unknowns = elementCount + condensedCount + 1 + (kind == ProblemKind.AssignedTemperaturePressure ? 0 : 1);
         Tie = default;
+        CarrierLogN = double.NegativeInfinity;
     }
 
     /// <summary>As above, with rule A's tie for the Newton step that assembles the tie row.</summary>
@@ -92,6 +93,22 @@ internal readonly struct SystemLayout
         : this(kind, elementCount, condensedCount, stride)
     {
         Tie = tie;
+    }
+
+    /// <summary>
+    /// As above, for a derivative system over a state that holds trace carriers: <paramref name="carrierLogN"/> is the ln n the
+    /// carriers are measured against, <c>−∞</c> for a state that holds none (<see cref="IterationState.TraceCarriers"/>).
+    /// </summary>
+    public SystemLayout(ProblemKind kind, int elementCount, int condensedCount, int stride, ElementTie tie, double carrierLogN)
+        : this(kind, elementCount, condensedCount, stride, tie)
+    {
+        CarrierLogN = carrierLogN;
+    }
+
+    /// <summary>As above, the tie and the carriers' ln n taken from the state a derivative system is built over.</summary>
+    public SystemLayout(ProblemKind kind, int elementCount, int condensedCount, int stride, in IterationState state)
+        : this(kind, elementCount, condensedCount, stride, state.Tie, state.TraceCarriers > 0 ? state.LogN : double.NegativeInfinity)
+    {
     }
 
     public readonly ProblemKind Kind;
@@ -111,6 +128,17 @@ internal readonly struct SystemLayout
     public readonly int TRow;
 
     public readonly int Unknowns;
+
+    /// <summary>
+    /// ln n of a state that holds trace carriers, the gases a trace-gas <c>Ok</c> reports below the second retention stage because
+    /// they carry a part of a balance (BOOT.md, "Element conservation"); <c>−∞</c> for every other state. The derivative systems read no
+    /// gas below that stage of it (<see cref="GasMoles"/>); the sums of h, s and M include them.
+    /// </summary>
+    public readonly double CarrierLogN;
+
+    /// <summary>The moles of gas <paramref name="j"/> the derivative systems read: the result's, and zero for a trace carrier.</summary>
+    public double GasMoles(in EquilibriumScratch scratch, in EquilibriumResult result, int j) =>
+        scratch.LogMoles[j] - CarrierLogN <= -EquilibriumSolver.SecondStageTraceThreshold ? 0.0 : result.Moles[j];
 
     public bool IsTp => Kind == ProblemKind.AssignedTemperaturePressure;
 
@@ -225,6 +253,12 @@ internal struct IterationState
 
     /// <summary>Changes of the condensed set, capped by <see cref="EquilibriumSolver.MaxCondensedSetChanges"/>.</summary>
     public int SetChanges;
+
+    /// <summary>
+    /// How many gases a trace-gas <c>Ok</c> reports below the second retention stage because they carry a part of a balance (TraceGas
+    /// BOOT.md, "An Ok reports its balance carriers"); zero for every other state. <see cref="SystemLayout.CarrierLogN"/> keeps them out of the derivatives.
+    /// </summary>
+    public int TraceCarriers;
 
     /// <summary>
     /// Rule A's tie (BOOT.md of the Newton child node), once a tied element row made the matrix singular; inactive until

@@ -20,7 +20,7 @@ internal static class PlateauIsentrope
     public static SystemLayout Assemble(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                         in MixtureSums sums, in SystemLayout layout)
     {
-        var system = new SystemLayout(ProblemKind.AssignedEntropyPressure, layout.ElementCount, layout.CondensedCount, layout.Stride, layout.Tie);
+        var system = new SystemLayout(ProblemKind.AssignedEntropyPressure, layout.ElementCount, layout.CondensedCount, layout.Stride, layout.Tie, layout.CarrierLogN);
         for (var k = 0; k < system.Unknowns * system.Stride; k++)
         {
             scratch.Matrix[k] = 0.0;
@@ -49,7 +49,7 @@ internal static class PlateauIsentrope
         var stride = system.Stride;
         for (var j = 0; j < table.GasCount; j++)
         {
-            var nj = result.Moles[j];
+            var nj = system.GasMoles(scratch, result, j);
             if (nj == 0.0)
             {
                 continue;

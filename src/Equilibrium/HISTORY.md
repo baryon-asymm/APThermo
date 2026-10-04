@@ -8,6 +8,18 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="relative-invariant"></a>
+
+## 2026-10-04 — from "## Invariants" — the element invariant on max(1, b_i)
+
+The leftovers design of 0.2.2 (coder 6, commit 1): `b_i` is below 1 kmol/kg for every real mixture (pure hydrogen is 0.992), so `1e-12 · max(1, b_i)` was an absolute 1e-12 kmol/kg and, for carbon of Mg:C:O = 1:2:5, 6.4e-11 of its abundance. A carrier (one CO of 1.6e-13 kmol/kg) passed it while the reduced iteration walked the direction `π_O − π_Mg − 2π_C` down one e-fold per step, and the polish cap ended the loop `Ok` mid-walk: 50 tp `Ok` states of the scans closed above 1e-13 relative, 28 above 1e-12, 3 above 1e-11. The bullet stood:
+
+> - **Element conservation at convergence.** For every element, `|Σ a_ij n_j − b_i| ≤
+>   1e-12 · max(1, b_i)` in kmol per kilogram; a converged case that violates it is
+>   reported as `NotConverged`, never as `Ok`.
+
+---
+
 <a id="ce-solver-2026-10-04"></a>
 
 ## 2026-10-04 — from "## Shape exceptions" — the composition root's row at 22

@@ -13,7 +13,7 @@ namespace APThermo.Equilibrium.TraceGas;
 internal static class TraceGasSystem
 {
     /// <summary>The ridge on the multipliers' block, relative to the row's largest entry: a direction of π whose curvature comes only from gases below this share of the gas is held, not solved.</summary>
-    private const double Ridge = 1.0e-12;
+    private const double Ridge = 1.0e-13;
 
     /// <summary>Assembles and solves the step's system at <paramref name="frame"/>; false when it is singular. The solution is in the right-hand side.</summary>
     public static bool Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,

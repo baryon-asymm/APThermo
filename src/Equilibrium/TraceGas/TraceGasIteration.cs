@@ -49,6 +49,8 @@ internal static class TraceGasIteration
             {
                 state.LogN = Math.Log(n) + Math.Log(sum);
                 state.RetentionSecondStage = true;
+                state.RetainedSetHeld = true;
+                state.TraceCarriers = TraceGasReport.KeepBalanceCarriers(table, problem, scratch, result, state.LogN);
                 return CaseStatus.Ok;
             }
 

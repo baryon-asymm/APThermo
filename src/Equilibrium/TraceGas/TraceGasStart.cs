@@ -75,6 +75,7 @@ internal static class TraceGasStart
         state.LastRemovedForRange = -1;
         state.RetentionSecondStage = false;
         state.RetainedSetHeld = false;
+        state.TraceCarriers = 0;
         state.Tie.Active = false;
         state.TieReleased = false;
     }

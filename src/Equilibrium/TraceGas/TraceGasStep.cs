@@ -19,8 +19,8 @@ internal static class TraceGasStep
     /// <summary>ln(1e-4): a trace gas may not grow above 1e-4 of the gas in one step, as equation (3.2).</summary>
     private const double SmallSpeciesBound = 9.2103404;
 
-    /// <summary>The element residual a convergence ends within, a tenth of the node's invariant.</summary>
-    private const double BalanceTest = 1.0e-13;
+    /// <summary>The element residual a convergence ends within, relative to the element's abundance: 0.3 of the node's invariant, so that the report's own rounding stays inside it.</summary>
+    private const double BalanceTest = 0.3 * ElementBalance.Invariant;
 
     /// <summary>The bound of the close guard on the stationarity of every reported gas, in ln: 50 times the worst residual of the closes the Equilibrium tests make, 10 times a trace-gas convergence's own, 17 times below the smallest false <c>Ok</c> found (BOOT.md, "The close guard").</summary>
     private const double GasStationarityBound = 1.0e-9;
@@ -200,7 +200,7 @@ internal static class TraceGasStep
         return state.Temperature is >= EquilibriumSolver.MinTemperature and <= EquilibriumSolver.MaxTemperature;
     }
 
-    /// <summary>Whether every active element's balance holds within <see cref="BalanceTest"/> times max(1, b_i) over the moles in the result.</summary>
+    /// <summary>Whether every active element's balance holds within <see cref="BalanceTest"/> times b_i over the moles in the result.</summary>
     public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
     {
         for (var i = 0; i < table.ElementCount; i++)
@@ -211,7 +211,7 @@ internal static class TraceGasStep
             }
 
             var residual = Math.Abs(problem.ElementMoles[i] - ElementBalance.Abundance(table, result, i));
-            if (!(residual <= BalanceTest * KernelMath.Max(1.0, problem.ElementMoles[i])))
+            if (!(residual <= BalanceTest * problem.ElementMoles[i]))
             {
                 return false;
             }

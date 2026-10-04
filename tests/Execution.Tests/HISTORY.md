@@ -9,6 +9,25 @@ used to stand.
 
 ---
 
+<a id="left-out-states"></a>
+
+## 2026-10-04 - from "## Invariants" - states left out of the families for their element balance
+
+Moved by the leftovers commit of 0.2.2 (coder 6): the solver's close is relative (`1e-13 · b_i`, Equilibrium `BOOT.md`), the CPU accelerator closes every one of the states below to the table's bound, `BatchTests.TheLeftOutStatesStillExceedTheClosureBound` went red as it was written to, and the states went back into their families (`FixtureBatches.LeftOutTables` and `GasPlateauFamilies`' `LeftOut` are gone, the fact is retired). The solver fix was chosen, not a bound by conditioning. The bullet stood:
+
+> - **States left out of the families for their element balance** (2026-10-04, the findings of the
+>   seeding work; the closure bound of 1e-13 is not loosened). The CPU accelerator ends `Ok` and
+>   closes the balance only to 7.5e-13 (the 17-element table's one case, 1.2e-12 at half pressure; 17
+>   elements, many condensed phases) and to between 1e-11 and 1.5e-11 (carbon, `ρ`; 4e-12 to 6e-12 for
+>   oxygen) on the hp states of magnesite at 1e4 and 1e6 Pa, cold as well as seeded (sp states and
+>   calcite close to 1.5e-14). They are left out by name (`FixtureBatches.LeftOutTables`,
+>   `GasPlateauFamilies`' `LeftOut`) and `BatchTests.TheLeftOutStatesStillExceedTheClosureBound`
+>   keeps each a finding: it goes red when the solver closes it, the time to put it back. The owner
+>   decides between a solver fix and a bound by conditioning; the magnesite band is the trace-gas
+>   work of `Recovery`'s `BOOT.md`.
+
+---
+
 <a id="guard-curvature"></a>
 
 ## 2026-10-04 - from "## Invariants" - the guard of the balance-remnant correction

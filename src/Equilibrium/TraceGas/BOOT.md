@@ -13,6 +13,7 @@ level:
 - `TraceGasIteration`: one convergence of one condensed set.
 - `TraceGasSystem` and `TraceGasStep`: its matrix and its step; `TraceGasStep.Stationary` is the
   close guard (it sits there because `TraceGasPass` stands at the limit of 14 names).
+- `TraceGasReport`: which gases below the second retention stage an `Ok` still reports.
 
 The cluster has a reason of its own to change. RP-1311's tests weigh a correction by the share of
 the whole mixture (3.5), and its iteration carries ln n_j. Where the gas is 1e-6 of the mixture, or a
@@ -42,6 +43,18 @@ The parent's invariants hold here.
 - **An `Ok` leaves what a converged `ConvergenceSequence` leaves**: the temperature, `LogN`, the
   condensed set and its count, the moles refreshed at the second retention stage, no tie, every
   step counted.
+- **An `Ok` reports its balance carriers** (2026-10-04, `TraceGasReport`). Every gas below the
+  second retention stage whose atoms exceed `1e-16 · b_i` of some active element stays at its
+  converged amount (`IterationState.TraceCarriers` counts them; `RetainedSetHeld` keeps them through
+  the refresh); the others are zeroed. The dropped ones sum to under `1e-16 · b_i` times their
+  number, a tenth of the invariant at the most. The converged iteration held every gas, so a gas the
+  report drops takes its atoms out of the balance it closed: Al(OH)3 + 1e-6 O at 10 MPa and 800 K
+  missed H by 3.8e-13 kmol/kg (9.8e-12 of b_H) with H2 and Al(OH)3 at 5e-12 and 2e-12 of the gas
+  dropped. The derivatives read no carrier ([StateRecord](../StateRecord/BOOT.md)); the sums of h, s
+  and M include them.
+
+  ⚠ 2026-10-04: was "the moles refreshed at the second retention stage" alone, now the carriers held
+  too: the report dropped every gas below the stage.
 - **A failure leaves what it found.** On any status but `Ok`, `result.Moles` and `result.Multipliers`
   are those of the entry.
 - **Every `Ok` is stationary at the gas level** (the close guard, both paths): every gas reported with
@@ -80,8 +93,10 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 - **The unknowns and rows.**
   - Unknowns: `dπ_i`, `u_c = dn_c/n`, `δ = dn/n`, and `τ = d ln T` for hp and sp.
   - Element row i, divided by n: `Σ_j a_ij x_j (Σ_k a_kj dπ_k + δ) + Σ_c a_ic u_c` (plus the
-    temperature terms) `= (b_i − Σ_j a_ij n_j)/n`. A ridge of 1e-12 times the row's largest entry
-    sits on the π diagonal, toward the present π. An absent element is a unit row.
+    temperature terms) `= (b_i − Σ_j a_ij n_j)/n`. A ridge of 1e-13 times the row's largest entry
+    sits on the π diagonal, toward the present π (1e-12 stalled the H2O ± 1e-12 states at a balance of
+    6.7e-13: a carrier at 1e-12 of the gas has a curvature at the ridge's own scale; 1e-15 lost H2O at
+    step 3, `SingularMatrix`). An absent element is a unit row.
   - Condensed row c: `Σ_i a_ic dπ_i = g_c/RT − Σ_i a_ic π_i` (plus `h_c τ`).
   - Phase-sum row: `Σ_j (x_j/S)(Σ_i a_ij dπ_i) = −ln S`, with `S = Σ_j x_j` over every gas in play.
   - hp and sp add the temperature column and the enthalpy or entropy row. The column is divided by its
@@ -99,8 +114,13 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   - A temperature outside `[100 K, 20 000 K]` is `TemperatureOutOfRange`.
   - A bound of ±2 on `Δ ln n` was measured and rejected (79 `Ok` lost in the scans, 2026-10-04).
 - **Converged** when a step with `λ = 1` leaves weighted corrections and `|τ|` at or below 1e-11,
-  and the next evaluation finds every active element within `1e-13 · max(1, b_i)` and
-  `|ln S| ≤ 1e-10`. Then `LogN = ln n + ln S` and the second retention stage holds.
+  and the next evaluation finds every active element within `3e-14 · b_i` (0.3 of the node's
+  invariant, so that the report's rounding stays inside it) and `|ln S| ≤ 1e-10`. Then
+  `LogN = ln n + ln S`, the second retention stage holds and the balance carriers are reported.
+
+  ⚠ 2026-10-04: was `1e-13 · max(1, b_i)`, now `3e-14 · b_i`: the old test was an absolute 1e-13
+  kmol/kg for every real mixture, 6.4e-12 of the carbon of MgCO3, and `magnesite-band|700` closed
+  carbon to 3.5e-12 with CO five times its equilibrium.
 - **Caps.** At most 150 steps per convergence; 50 left 18 of 19 CaCO3 states near their plateau
   unconverged (2026-10-04). A fraction above `e^300` or an `S` that is not finite is `NotConverged`;
   a singular matrix is `SingularMatrix`. Either ends the start.
@@ -183,6 +203,7 @@ One type per file:
 | `TraceGasIteration` | static | `Converge` |
 | `TraceGasSystem` | static | `Assemble`, `Solve`, the energy row |
 | `TraceGasStep` | static | the fractions, the control factor, the weighted corrections, the step, the balance, `Stationary` |
+| `TraceGasReport` | static | `KeepBalanceCarriers`: what an `Ok` reports below the second retention stage |
 | `TraceGasFrame` | readonly struct | the layout, `ln(p/p°)`, n, S and T, which keeps every method within six parameters |
 
 Each constant of `## Constraints` is named in the class that uses it.
@@ -192,7 +213,7 @@ Each constant of `## Constraints` is named in the class that uses it.
 - [x] A trace carrier's walk (MgCO3 under CO2, Mg:C:O = 1:2:5, 10 MPa, cold tp every 5 K from 700 to
       900 K):
       - every state `Ok`, clear of `EquilibriumConditions` at 1e-9;
-      - CO twice O2 to the balance of the combination O − Mg − 2C, 3 · 1e-12 kmol/kg;
+      - CO twice O2 to the balance of the combination O − Mg − 2C, 1e-13 · (b_O + b_Mg + 2 b_C);
       - red on the old code: 25 of 41 `NotConverged`.
 
       2026-10-04, `TraceCarrierWalkTests`; red with seam (a) removed: 26 of its 42 facts.
@@ -200,6 +221,14 @@ Each constant of `## Constraints` is named in the class that uses it.
       ⚠ 2026-10-04: was "x_CO = 2 x_O2 within 1e-6", now the balance of the combination: the carriers
       are 1e-11 to 1e-9 of the gas, the balance holds to the element invariant, and the ratio measured
       1.9e-2 off at 765 K and 3e-5 at 800 K.
+- [x] Every `Ok` closes every element to the relative invariant (`1e-13 · b_i`):
+      - the 72 plateau states of calcite and magnesite (1e4, 1e5, 1e6 Pa, hp and sp, three fractions,
+        cold and seeded), the magnesite hp states among them, reached by the bracket's trace-gas final;
+      - Al(OH)3 + 1e-6 O at 10 MPa and 800 K, whose dropped gases carried hydrogen.
+
+      2026-10-04, `TraceGasClosureTests`, `ElementConservationTests`, `TraceCarrierWalkTests`; 60
+      facts of the Equilibrium tests red on the absolute form, none on the relative; red with the
+      carriers kept out of the derivatives removed: 58 facts, with the report of the carriers removed: 55.
 - [x] Trace excesses: CaCO3 + 1e-8 to 1e-5 CO2 (1 kPa to 10 MPa, 0.01 to 300 K below the plateau),
       Al2O3 + 1e-10 and 1e-8 O (1 000 to 3 000 K), KCl + 1e-10 Cl (1 000, 1 200 K), CaCO3 + 1e-6 O
       (300 K) and MgCO3 + 1e-6 CO2 below its plateau, cold tp:

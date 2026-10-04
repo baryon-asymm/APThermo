@@ -49,6 +49,14 @@ internal static class TraceGasStep
     public static void Apply(in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout layout, double lambda, ref double n);
     public static bool MoveTemperature(ref IterationState state, double lambda, double tau);
     public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result);
+        // every active element within 3e-14 · b_i
+}
+
+internal static class TraceGasReport
+{
+    public static int KeepBalanceCarriers(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, double logN);
+        // zeroes the gases below the second retention stage that carry no part of a balance (atoms within 1e-16 of
+        // b_i for every active element); returns how many stay: IterationState.TraceCarriers
 }
 
 internal static class TraceGasIteration

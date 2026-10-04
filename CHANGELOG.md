@@ -21,6 +21,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `NoGasPhase`, whose state is the temperature and the pressure.
 - An `Ok` state whose gas is 1e-6 of the mixture or less, and whose gas composition had converged
   only to about 5e-8, is now converged further; its composition moves at that level.
+- Every `Ok` state closes each element's balance to 1e-13 of that element's abundance. Before, the
+  bound was 1e-12 kmol/kg, which for a real mixture is 6e-11 of the carbon of MgCO3, and a state
+  could stop with one trace carrier (1.6e-13 kmol/kg of CO) outside the balance: the hp states of
+  MgCO3 under CO2 on its decomposition plateau closed carbon to 1.4e-11 of its abundance and now
+  close to 1e-14. The one tp state of the 17-element fixture that closed chlorine to 7.5e-13
+  reports one more species (NO, 2.4e-14 of the gas) and closes to 4e-16.
 
 ### Fixed
 - An assigned-temperature state whose gas is a trace beside condensed species, or one of whose

@@ -339,6 +339,10 @@ creation names its arguments; it passes them by position today (the criterion be
       (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
       - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`: the families
         `TraceGasCases` generates from their parameters, none typed;
+      - `TraceGasClosureTests` (2026-10-04, the relative invariant `EquilibriumConditions.ElementInvariant`,
+        `1e-13 · b_i`; a gasless state is held to `EquilibriumConditions.GaslessElementResidual`, the
+        verdict's absolute 1e-12): the 72 plateau states of calcite and magnesite and Al(OH)3 + 1e-6 O,
+        each `Ok` and clear with every element within the invariant;
       - `GasStationarityTests` (the guard's bound, and the states it refused through the bracket),
         `TraceGasFinalTests` (the ownership of the finals, cold calcite states, the retried final),
         `TemperatureBracketTests` (the arms of seam (b)), `TiedDerivativesTests` and `ScaledDerivativeTests`

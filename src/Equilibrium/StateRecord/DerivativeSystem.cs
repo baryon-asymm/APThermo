@@ -37,7 +37,8 @@ internal static class DerivativeSystem
                                     in IterationState state, int stride, in MixtureSums sums)
     {
         var condensedCount = state.CondensedCount;
-        var representative = DependentSlot(table, scratch, result, condensedCount, stride, gasColumn: false);
+        var whole = new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, condensedCount, stride, state);
+        var representative = DependentSlot(table, scratch, result, whole, gasColumn: false);
         var derivatives = new Derivatives { Pinned = representative >= 0, Solved = true };
         var derivativeCount = condensedCount;
         if (derivatives.Pinned)
@@ -48,7 +49,7 @@ internal static class DerivativeSystem
             derivativeCount = condensedCount - 1;
         }
 
-        var layout = new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, derivativeCount, stride, state.Tie);
+        var layout = new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, derivativeCount, stride, state);
         for (var pass = derivatives.Pinned ? 1 : 0; pass < 2; pass++)
         {
             var kind = pass == 0 ? DerivativeKind.Temperature : DerivativeKind.Pressure;
@@ -98,7 +99,7 @@ internal static class DerivativeSystem
     {
         derivatives.Solved = false;
         if (derivatives.Pinned
-            || DependentSlot(table, scratch, result, layout.CondensedCount, layout.Stride, gasColumn: true) < 0
+            || DependentSlot(table, scratch, result, layout, gasColumn: true) < 0
             || !Isentropic(table, scratch, result, sums, layout, out var dlnVdlnPs))
         {
             return derivatives;
@@ -120,7 +121,7 @@ internal static class DerivativeSystem
     /// </summary>
     private static bool Unexplained(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                     in SystemLayout layout, bool pinned) =>
-        pinned || DependentSlot(table, scratch, result, layout.CondensedCount, layout.Stride, gasColumn: true) < 0;
+        pinned || DependentSlot(table, scratch, result, layout, gasColumn: true) < 0;
 
     /// <summary>
     /// The same system once more with the condensed columns of the element rows carried relative to the gaseous moles
@@ -204,16 +205,17 @@ internal static class DerivativeSystem
     /// <see cref="PlateauIsentrope.Assemble"/> clear before they assemble anything.
     /// </summary>
     private static int DependentSlot(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                     int condensedCount, int stride, bool gasColumn)
+                                     in SystemLayout layout, bool gasColumn)
     {
         var elementCount = table.ElementCount;
+        var stride = layout.Stride;
         var first = gasColumn ? 1 : 0;
         if (gasColumn)
         {
-            LoadGasVector(table, scratch, result);
+            LoadGasVector(table, scratch, result, layout);
         }
 
-        for (var c = 0; c < condensedCount; c++)
+        for (var c = 0; c < layout.CondensedCount; c++)
         {
             var row = (c + first) * stride;
             var norm = LoadElementVector(table, scratch, scratch.CondensedInSolution[c], row);
@@ -239,7 +241,8 @@ internal static class DerivativeSystem
     }
 
     /// <summary>Writes the unit vector of the gas composition <c>Σ_j a_ij n_j</c> over the gaseous species at row 0 of the matrix.</summary>
-    private static void LoadGasVector(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result)
+    private static void LoadGasVector(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                      in SystemLayout layout)
     {
         var norm = 0.0;
         for (var i = 0; i < table.ElementCount; i++)
@@ -247,7 +250,7 @@ internal static class DerivativeSystem
             var g = 0.0;
             for (var j = 0; j < table.GasCount; j++)
             {
-                g += table.Stoichiometry[i * table.SpeciesCount + j] * result.Moles[j];
+                g += table.Stoichiometry[i * table.SpeciesCount + j] * layout.GasMoles(scratch, result, j);
             }
 
             scratch.Matrix[i] = g;
@@ -324,7 +327,7 @@ internal static class DerivativeSystem
 
         for (var j = 0; j < table.GasCount; j++)
         {
-            var nj = result.Moles[j];
+            var nj = layout.GasMoles(scratch, result, j);
             if (nj == 0.0)
             {
                 continue;
@@ -400,7 +403,7 @@ internal static class DerivativeSystem
             var sum = 0.0;
             for (var j = 0; j < gasCount; j++)
             {
-                sum += table.Stoichiometry[i * speciesCount + j] * result.Moles[j] * scratch.HOverRT[j];
+                sum += table.Stoichiometry[i * speciesCount + j] * layout.GasMoles(scratch, result, j) * scratch.HOverRT[j];
             }
 
             reaction += sum * scratch.RightHandSide[i];
@@ -414,21 +417,22 @@ internal static class DerivativeSystem
         var gasEnthalpy = 0.0;
         for (var j = 0; j < gasCount; j++)
         {
-            gasEnthalpy += result.Moles[j] * scratch.HOverRT[j];
+            gasEnthalpy += layout.GasMoles(scratch, result, j) * scratch.HOverRT[j];
         }
 
         // The parenthesis is the report's grouping and the code's before the decomposition: the two last terms are summed
         // first and added to the element and condensed sums once, so that no rounding moves.
-        return reaction + (gasEnthalpy * dlnNdlnT + HSquared(table, scratch, result));
+        return reaction + (gasEnthalpy * dlnNdlnT + HSquared(table, scratch, result, layout));
     }
 
     /// <summary>Σ n_j (h_j°/RT)² over the gaseous species: the last term of equation (2.59).</summary>
-    private static double HSquared(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result)
+    private static double HSquared(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                   in SystemLayout layout)
     {
         var hSquared = 0.0;
         for (var j = 0; j < table.GasCount; j++)
         {
-            var nj = result.Moles[j];
+            var nj = layout.GasMoles(scratch, result, j);
             if (nj == 0.0)
             {
                 continue;

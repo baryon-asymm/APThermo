@@ -16,11 +16,16 @@ public sealed class TraceCarrierWalkTests
 {
     /// <summary>
     /// kmol/kg: how far n_CO − 2 n_O2 may be from zero. The mixture satisfies O = Mg + 2C exactly, so the true state has twice as much CO as
-    /// O2, but the balance of the combination O − Mg − 2C holds only to the element invariant on each of its three elements
-    /// (<see cref="EquilibriumConditions.ElementInvariant"/>, absolute below 1 kmol/kg), and the carriers are 1e-11 to 1e-9 of the
-    /// gas: a ratio is not held tighter than a few percent at the lower end (measured 1.9e-2 at 765 K, 3e-5 at 800 K).
+    /// O2, and the difference is minus the combination r_O − r_Mg − 2 r_C of the element residuals, each within
+    /// <see cref="EquilibriumConditions.ElementInvariant"/> of its element's abundance: the bound is the sum of the three.
     /// </summary>
-    private const double CarrierBalance = 3.0 * EquilibriumConditions.ElementInvariant;
+    private static double CarrierBalance(HostSolution solution)
+    {
+        List<string> elements = [.. solution.Case.Table.Elements];
+        var moles = solution.Case.ElementMoles;
+        return EquilibriumConditions.ElementInvariant
+            * (moles[elements.IndexOf("O")] + moles[elements.IndexOf("MG")] + 2.0 * moles[elements.IndexOf("C")]);
+    }
 
     /// <summary>The 41 temperatures from 700 to 900 K every 5 K.</summary>
     public static TheoryData<string> States() => TraceGasCases.Names(TraceGasCases.MagnesiteBand());
@@ -40,7 +45,7 @@ public sealed class TraceCarrierWalkTests
         var table = solution.Case.Table;
         var carbonMonoxide = solution.Moles[table.IndexOf("CO")];
         var oxygen = solution.Moles[table.IndexOf("O2")];
-        Assert.True(Math.Abs(carbonMonoxide - 2.0 * oxygen) <= CarrierBalance, $"{name}: CO {carbonMonoxide:E3}, O2 {oxygen:E3} kmol/kg");
+        Assert.True(Math.Abs(carbonMonoxide - 2.0 * oxygen) <= CarrierBalance(solution), $"{name}: CO {carbonMonoxide:E3}, O2 {oxygen:E3} kmol/kg");
     }
 
     /// <summary>
