@@ -371,3 +371,10 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
         `API.md`; the protocol lint gives 0 and 0.
       - Seeded bracketed families are compared with `IterationsSumAttempts` and so add nothing to the step-share ledger; the
         seeded fixtures, the warm families and the table families do.
+- [ ] The comparison rules of `## Invariants`, "What a difference between the accelerators is not" (2026-10-04, coder 5 of 0.2.2;
+      the box stays unticked until the orchestrator's CUDA run on the merged tree): the full `CudaTests` class in Release on the
+      reference machine, a short run, no throughput measurement: 67 of 67 green (the throughput fact excluded), the eight failures
+      of the run of de7cda2f resolved without a tier, share bound or case moved: 2026-10-04, `CudaTests` (the `measured:` lines
+      of the run name the worst species, κ and balance residual of each case a rule decided). Without CUDA the four rules are
+      proven by the four facts of `ComparisonRuleTests`, each red once with its rule alone broken (enthalpy bound at zero,
+      `DataEffect` null, `NoiseFactor` 0, the guard at its entry), 2026-10-04.

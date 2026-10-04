@@ -241,9 +241,16 @@ public sealed class CudaTests(ITestOutputHelper output)
             Assert.All(cpu.Status, status => Assert.Equal(CaseStatus.Ok, status));
         }
 
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed };
+        var support = new ComparisonSupport(EngineFixture.Shared.Cpu, cpuTables, table, batch, cpu,
+                                            new SpeciesFunctionSources(functions => EngineFixture.Shared.Cpu.Run(cpuTables, functions), functions => cuda.Run(cudaTables, functions)));
+        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed, Support = support };
         var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
         var mismatches = comparison.Equilibrium(cpu, gpu, batch, table, labels, sensitivities);
+        foreach (var decision in support.Decisions)
+        {
+            output.WriteLine(decision);
+        }
+
         if (bracketed)
         {
             output.WriteLine(string.Create(CultureInfo.InvariantCulture,
@@ -253,7 +260,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
         if (!bracketed)
         {
-            AssertDifferentStepShare(comparison.DifferentSteps, batch.Count);
+            AssertDifferentStepShare(comparison.DifferentSteps, batch.Count - comparison.StepShareExcluded);
         }
     }
 

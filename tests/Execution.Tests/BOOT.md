@@ -92,7 +92,7 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
     the same batch; a case gets no correction when a condensed species appears or vanishes
     between `b(1 ± h)`, and a species gets none when the two one-sided differences of its
     `ln x` disagree by more than 2e-2 of its largest `|D_ij|` (or of 1 where that is
-    smaller). The bound is `GpuCpuTolerances.Entries["sensitivityDisagreement"]`, measured
+    smaller; raised for a large κ, "A curved remnant" below). The entry is `GpuCpuTolerances.Entries["sensitivityDisagreement"]`, measured
     on the CPU on 2026-10-03 over the six equilibrium families (23 cases, 206 compared
     species): the appear-or-vanish rule dropped 0 of 23 cases; the disagreement was at most
     2.1e-3 on the smooth rows (the H2 remnant, `κh` = 4.2e-3: the two differ by about
@@ -119,6 +119,48 @@ table for CUDA against the CPU accelerator and the approved throughput figures.
   Rejected: a tier scaled by κ (it loosens); dropping the family (the only CUDA coverage
   of rule A's tie); comparing the multipliers (`π_H` carries the same conditioning). The
   probes: the orchestrator's scratchpad, `probe/` (2026-10-03).
+- **What a difference between the accelerators is not** (2026-10-04, coder 5 of 0.2.2, on the eight failures of the CUDA
+  run of de7cda2f; no tier moves, the step-share bound stays 1e-3, no case is dropped for these rules; `GpuCpuComparison`
+  with `ComparisonSupport`, proven without a GPU by `ComparisonRuleTests`). Every rule asks the CPU accelerator, case by case
+  and only for a case the plain comparison refused or whose field is a cancelling sum, what rounding or the other
+  accelerator's own species data do by themselves; a difference above that is still reported.
+  - **Enthalpy that cancels**: `si-in-argon_T298.15` and `li-in-argon_T298.15` are the elements at the reference temperature,
+    enthalpy 3e-6 J/kg out of terms of 1e5. Two accelerators sum at most `8 + S` terms per species, each bounded by
+    `|H/RT| + Cp/R`, so they differ by at most `2 (8 + S) u R T Σ n_j (|H_j/RT| + Cp_j/R)`
+    (`ComparisonSupport.EnthalpyBound`, `u` the unit roundoff); a difference above the tier within that bound is accepted for
+    the field Enthalpy only. Where the enthalpy does not cancel the bound is below a thousandth of the tier (checked for every
+    case of the water table).
+  - **Species data**: the two accelerators' G/RT of a species whose polynomial cancels by decades differ. H2O(L) cancels by about
+    five decades and its G/RT differs by 1e-11 to 6e-11 between CUDA and the CPU. A tp case on the liquid-gas boundary carries that
+    into x(H2O) at the species' own sensitivity: `rp1311-example14_T300`, `T304` and `T304.3` 1.31e-10, 1.52e-10 and 1.15e-10
+    (tier 1e-10, κ 10.9, balance residual 4e-15 to 1.2e-14), and `ap-htpb-al_pc1MPa_T420` x(CH4) 1.31e-10 (κ 12.1).
+    `ComparisonSupport.DataEffect` measures the directional derivative of the CPU solve of the case along the two accelerators'
+    measured difference of G/RT (central difference, largest move 1e-7, through the constant b2 of the entropy fit) and adds it
+    to the other side's correction; what remains is compared at the tier. Applied to tp cases only: an hp or sp case needs the
+    derivative of the temperature too, and none of the measured failures needs it.
+  - **Plateau states**: the states of `seeded-fixtures` on the AP/HTPB/Al reaction plateau (a pinned phase set) are
+    ill-conditioned: the CPU accelerator alone moves a mole fraction by up to 7e-9 under 1 to 16 ULP of the element moles. The
+    CUDA deviations measured: x(H2O(L)) 1.25e-9 and 3.11e-9 (κ 897 and 304), x(CH4) 1.0e-10 to 6.0e-10 (κ 13 to 50), x(HCL)
+    1.2e-10 and 2.3e-10 (κ 77 and 204), balance residual 7e-15 to 4.8e-14. `ComparisonSupport.NoiseResponse` replicates the case
+    16 times (1, 2, 3, 4, 6, 8, 12 and 16 ULP of every element's moles, two alternations) and takes for each species the largest
+    `|ln x_r − ln x_0|`; the tolerance of a species is raised to `NoiseFactor` times that where it is above the tier. The largest
+    ratio of the CUDA deviation to the replicates' maximum was 0.92 over 153 compared quantities (median 0.21), so the factor 2
+    leaves 2.2 above it; it is an empirical bound, not a derived one, and the one judgment call of this section. A replicate
+    whose condensed set differs makes the response null and the rule does not apply.
+  - **Newton counts that flip inside the noise**: a station whose two counts differ, the other accelerator's count lying in the
+    range the CPU's own replicates take (18 and 16 steps against 15 to 19; 14 stations of `seeded-fixtures`), is not counted in
+    the share and not in its denominator (`StepShareExcluded`). The ledger over the whole run: 35 of 400 725 stations differ,
+    share 8.73e-5 against 1e-3.
+  - **A curved remnant**: the guard on the one-sided differences of the balance-remnant correction was 2e-2 flat. A smooth
+    remnant's two differences disagree by one half of `κ h` (h = 1e-8); at κ 4.3e6 that is 2.15e-2, above 2e-2, and the
+    correction was dropped, leaving 1.9e-8 on x(CO) and x(O2) of `seeded-bracket-calcite-p1e4` (the 0.1 states). The guard is
+    now `min(6e-2, max(2e-2, κ h))`: `κ h`, twice the curvature share, admits the smooth case; the cap, half of the smallest kink
+    measured (0.12, the threshold-flip cases), keeps every kink out, so the 19 species dropped on 2026-10-03 stay dropped.
+    ⚠ 2026-10-04: was a flat 2e-2, now `max(entry, κ h)` capped at 6e-2 → HISTORY.md#guard-curvature
+  - Red once, 2026-10-04, `ComparisonRuleTests` with each rule alone broken (the enthalpy bound at zero, `DataEffect` answering
+    null, `NoiseFactor` at 0, the guard at its entry): one fact fails each time.
+  Open for the solver, not for this node: condensed amounts and some gas fractions in the interior of a reaction plateau converge
+  to about 1e-9 on the CPU accelerator alone; the rules above compare the accelerators to that floor and do not claim it is right.
 - **Bit comparison goes through the harness** (2026-09-14): `BitEquality.cs`'s
   `SameBits` and `BitDifferences<T>` were, field for field, the harness's `Bits.Same`
   and `Bits.Differences<T>`; the file is gone and every call site of this node reads

@@ -9,6 +9,19 @@ used to stand.
 
 ---
 
+<a id="guard-curvature"></a>
+
+## 2026-10-04 - from "## Invariants" - the guard of the balance-remnant correction
+
+The wording before the change, in the paragraph of the balance-remnant correction: "a species gets none when the two one-sided
+differences of its `ln x` disagree by more than 2e-2 of its largest `|D_ij|` (or of 1 where that is smaller). The bound is
+`GpuCpuTolerances.Entries["sensitivityDisagreement"]`". Why it was wrong: a smooth remnant's two one-sided differences disagree
+by one half of `kappa h` of its largest derivative, which at kappa 4.3e6 and h 1e-8 is 2.15e-2, above the flat 2e-2, so the
+correction of the remnant x(CO) and x(O2) of `seeded-bracket-calcite-p1e4` was dropped and 1.9e-8 stayed in the comparison. Found
+by the CUDA run of de7cda2f; the measurement is in `## Invariants`, "A curved remnant".
+
+---
+
 <a id="l2-every-family-2026-10-04"></a>
 
 ## 2026-10-04 — from "## Purpose" — the L2 row's claim "every fixture family"

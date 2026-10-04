@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using APThermo.Equilibrium;
 using APThermo.Fixtures;
@@ -19,6 +20,20 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
     private readonly Dictionary<string, double> _worst = new(StringComparer.Ordinal);
 
     public int DifferentSteps { get; private set; }
+
+    /// <summary>
+    /// What <see cref="Equilibrium"/> may measure on the CPU accelerator when the plain comparison of an <c>Ok</c> case fails or its enthalpy
+    /// cancels (<see cref="ComparisonSupport"/>); null compares by the tiers alone. The cases a rule decided are in
+    /// <see cref="ComparisonSupport.Decisions"/>.
+    /// </summary>
+    public ComparisonSupport? Support { get; init; }
+
+    /// <summary>
+    /// The cases of <see cref="Equilibrium"/> whose step counts differ between the accelerators inside the range the CPU accelerator's own
+    /// replicates take (<see cref="ComparisonSupport.StepRange"/>) and so are neither counted in <see cref="DifferentSteps"/> nor among the stations the
+    /// share is taken over: a caller adds <c>cases - StepShareExcluded</c> to its ledger.
+    /// </summary>
+    public int StepShareExcluded { get; private set; }
 
     /// <summary>
     /// True for the cases of a family that runs the 0.2.2 temperature bracket: their <c>Iterations</c> is the sum of the Newton steps of
@@ -111,6 +126,11 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
             {
                 Record("bracketedIterationDifference", Math.Abs(cpu.Iterations[k] - gpu.Iterations[k]));
             }
+            else if (!sameSteps && Support?.StepRange(k) is { } range && gpu.Iterations[k] >= range.Min && gpu.Iterations[k] <= range.Max)
+            {
+                StepShareExcluded++;
+                Support.Decisions.Add($"{labels[k]}: {cpu.Iterations[k]} and {gpu.Iterations[k]} steps, the CPU accelerator's own replicates take {range.Min} to {range.Max}");
+            }
             else
             {
                 CountSteps(sameSteps);
@@ -136,9 +156,96 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
         var k = (int)station.Index;
         var cpuResiduals = balance.Residuals(k, cpu.Moles, k);
         var gpuResiduals = balance.Residuals(k, gpu.Moles, k);
-        return GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], station.Label, Record)
-            .Concat(Balance(balance, cpuResiduals, gpuResiduals, station.Label))
-            .Concat(Moles(station, table, sensitivities.Correction(k, cpuResiduals), sensitivities.Correction(k, gpuResiduals)));
+        var state = GpuCpuTolerances.Compare(cpu.State[k], gpu.State[k], station.Label, Record, EnthalpyAccepted(k, station.Label));
+        var cpuCorrection = sensitivities.Correction(k, cpuResiduals);
+        var gpuCorrection = sensitivities.Correction(k, gpuResiduals);
+        var moles = Moles(station, table, cpuCorrection, gpuCorrection).ToList();
+        if (moles.Count > 0 && Support is not null)
+        {
+            Support.Decisions.Add(Measured(station, table, sensitivities, moles, Math.Max(cpuResiduals.Max(Math.Abs), gpuResiduals.Max(Math.Abs))));
+            moles = Rescued(station, table, cpuCorrection, gpuCorrection, moles);
+        }
+
+        return state.Concat(Balance(balance, cpuResiduals, gpuResiduals, station.Label)).Concat(moles);
+    }
+
+    /// <summary>
+    /// The acceptance of an enthalpy that differs above the tier by less than the rounding bound of its sum (<see cref="ComparisonSupport.EnthalpyBound"/>):
+    /// null without support, and otherwise a function that accepts only the enthalpy field.
+    /// </summary>
+    private Func<string, double, double, bool>? EnthalpyAccepted(int k, string label) =>
+        Support is null
+            ? null
+            : (field, x, y) =>
+            {
+                var accepted = field == nameof(MixtureState.Enthalpy) && Math.Abs(x - y) <= Support.EnthalpyBound(k);
+                if (accepted)
+                {
+                    Support.Decisions.Add($"{label}: enthalpy within its rounding bound");
+                }
+
+                return accepted;
+            };
+
+    /// <summary>
+    /// One line of evidence for a case whose plain mole-fraction comparison failed: the worst species (the corrected fractions of the two sides, relative
+    /// deviation), its sensitivity <c>κ</c>, the number of species above the tier and the worst element-balance residual, so that a rule's derivation can be
+    /// read back from the run that needed it.
+    /// </summary>
+    private static string Measured(MoleStation station, SpeciesTable table, BalanceSensitivities sensitivities, List<string> plain, double residual)
+    {
+        var (name, deviation) = plain.Select(Parsed).MaxBy(entry => entry.Deviation);
+        return string.Create(CultureInfo.InvariantCulture,
+            $"{station.Label} measured: {plain.Count} species above the tier, worst {name} {deviation:E2}, kappa {sensitivities.Kappa((int)station.Index, table.IndexOf(name)):E2}, balance residual {residual:E2}");
+    }
+
+    /// <summary>The species name and the relative deviation of one mole-fraction mismatch message.</summary>
+    private static (string Name, double Deviation) Parsed(string mismatch)
+    {
+        var open = mismatch.LastIndexOf(" x(", StringComparison.Ordinal) + 3;
+        var close = mismatch.IndexOf("): cpu ", open, StringComparison.Ordinal);
+        var values = mismatch[(close + 7)..].Split(", cuda ");
+        var (x, y) = (double.Parse(values[0], CultureInfo.InvariantCulture), double.Parse(values[1], CultureInfo.InvariantCulture));
+        return (mismatch[open..close], Math.Abs(x - y) / Math.Max(x, y));
+    }
+
+    /// <summary>
+    /// The mole-fraction mismatches of an <c>Ok</c> case that failed the tiers, once more with the two things the plain comparison does not know.
+    /// A tp case's other-accelerator mole fractions are first freed of what the two accelerators' own species data do to them
+    /// (<see cref="ComparisonSupport.DataEffect"/>, added to the balance-remnant correction of that side); what still fails is compared with the
+    /// tolerance of each species raised to <see cref="GpuCpuTolerances.NoiseFactor"/> times the CPU accelerator's own response to rounding-level
+    /// noise (<see cref="ComparisonSupport.NoiseResponse"/>) wherever that is above it. The mismatches that remain after both are the case's.
+    /// </summary>
+    private List<string> Rescued(MoleStation station, SpeciesTable table, double[] cpuCorrection, double[] gpuCorrection, List<string> plain)
+    {
+        var k = (int)station.Index;
+        var effect = Support!.DataEffect(k);
+        var withData = plain;
+        var corrected = gpuCorrection;
+        if (effect is not null)
+        {
+            corrected = [.. gpuCorrection.Select((value, j) => value + effect[j])];
+            withData = [.. Moles(station, table, cpuCorrection, corrected)];
+            if (withData.Count == 0)
+            {
+                Support.Decisions.Add($"{station.Label}: the accelerators' own species data");
+                return withData;
+            }
+        }
+
+        var noise = Support.NoiseResponse(k);
+        if (noise is null)
+        {
+            return withData;
+        }
+
+        var withNoise = Moles(station, table, cpuCorrection, corrected, noise).ToList();
+        if (withNoise.Count == 0)
+        {
+            Support.Decisions.Add($"{station.Label}: within the CPU accelerator's own response to rounding noise{(effect is null ? string.Empty : ", species data first")}");
+        }
+
+        return withNoise;
     }
 
     /// <summary>
@@ -218,9 +325,10 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
     /// floor; a species at or after <see cref="SpeciesTable.GasCount"/> is condensed (the table lists gaseous species first) and is
     /// held to the condensed tier whatever the Newton counts. With the corrections of the balance-remnant rule
     /// (<see cref="BalanceSensitivities.Correction"/>, one per side) the quantity compared is <c>x_j exp(−Σ_i D_ij ρ_i)</c>, that is
-    /// <c>ln x_j − Σ_i D_ij ρ_i</c>; a species whose correction is NaN is compared as it is.
+    /// <c>ln x_j − Σ_i D_ij ρ_i</c>; a species whose correction is NaN is compared as it is. With <paramref name="noise"/> (per species, from
+    /// <see cref="ComparisonSupport.NoiseResponse"/>) the relative tolerance of a species is at least <see cref="GpuCpuTolerances.NoiseFactor"/> times its response.
     /// </summary>
-    public IEnumerable<string> Moles(MoleStation station, SpeciesTable table, double[]? cpuCorrection = null, double[]? gpuCorrection = null)
+    public IEnumerable<string> Moles(MoleStation station, SpeciesTable table, double[]? cpuCorrection = null, double[]? gpuCorrection = null, double[]? noise = null)
     {
         ArgumentNullException.ThrowIfNull(station);
         ArgumentNullException.ThrowIfNull(table);
@@ -257,6 +365,11 @@ internal sealed class GpuCpuComparison(ToleranceTable tolerances)
 
             var condensed = j >= table.GasCount;
             var relative = GpuCpuTolerances.MoleFractionRelative(tolerances, station.SameSteps, condensed);
+            if (noise is not null && !double.IsNaN(noise[j]))
+            {
+                relative = Math.Max(relative, GpuCpuTolerances.NoiseFactor * noise[j]);
+            }
+
             Record(condensed ? "condensedMoleFraction" : station.SameSteps ? "moleFraction" : "moleFractionAfterDifferentSteps", Math.Abs(x - y) / Math.Max(x, y));
             if (!GpuCpuTolerances.Matches(relative, x, y))
             {

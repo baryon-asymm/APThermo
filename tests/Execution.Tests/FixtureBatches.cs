@@ -176,6 +176,24 @@ internal static class FixtureBatches
     public static (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) NamedEquilibriumFamily(SpeciesDatabase database, string name) =>
         EquilibriumFamily(database, NamedEquilibriumFamilies[name]);
 
+    /// <summary>One case of an equilibrium batch as a batch of its own (its seed row included), whose arrays the caller may then change.</summary>
+    public static EquilibriumBatch CaseOf(EquilibriumBatch batch, int k)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        var one = batch.IsSeeded ? new EquilibriumBatch(1, batch.ElementCount, batch.SeedSpeciesCount) : new EquilibriumBatch(1, batch.ElementCount);
+        one.Kind[0] = batch.Kind[k];
+        one.Pressure[0] = batch.Pressure[k];
+        one.Temperature[0] = batch.Temperature[k];
+        one.Target[0] = batch.Target[k];
+        Array.Copy(batch.ElementMoles, k * batch.ElementCount, one.ElementMoles, 0, batch.ElementCount);
+        if (batch.IsSeeded)
+        {
+            Array.Copy(batch.SeedMoles, k * batch.SeedSpeciesCount, one.SeedMoles!, 0, batch.SeedSpeciesCount);
+        }
+
+        return one;
+    }
+
     /// <summary>An independent copy of an equilibrium batch, whose element moles the caller may then change.</summary>
     public static EquilibriumBatch CopyOf(EquilibriumBatch batch)
     {
