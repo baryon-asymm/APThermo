@@ -30,6 +30,18 @@ internal static class BracketSeeds
         }
     }
 
+    /// <summary>
+    /// The multipliers the result holds into <c>Tie.Elements.Multipliers</c>, where a trace-gas final takes its anchor from (seams (b)
+    /// and (b′)): the last converged probe's, or the failed final's. The pass makes a value that is not finite zero.
+    /// </summary>
+    public static void Anchor(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result)
+    {
+        for (var i = 0; i < table.ElementCount; i++)
+        {
+            scratch.Tie.Elements.Multipliers[i] = result.Multipliers[i];
+        }
+    }
+
     /// <summary>The lever mix of the two ends into the result's moles: <c>(1 − f) n_low + f n_high</c>.</summary>
     public static void Lever(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double fraction)
     {

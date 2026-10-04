@@ -8,6 +8,18 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="throat-stop-note-2026-10-04"></a>
+
+## 2026-10-04 — from "## Constraints", the Throat bullet — the full text of the 2026-10-02 correction note
+
+Moved to leave room for the Compile size sentence; the pointer in `BOOT.md` names both wordings. The note stood:
+
+>   ⚠ 2026-10-02, the owner's decisions: was `1e-10`, then `1e-11` (696 of 400 000 sweep
+>   stations at different Newton counts, the guard's limit 400), now `1e-8` and two steps
+>   (34 to 40, not the throat's; +5.4 % station solves) → HISTORY.md#throat-stop-rule;
+
+---
+
 <a id="stations-35"></a>
 
 ## 2026-10-03 — correction of `#throat-stop-rule` and of the Throat bullet's pointer — whose the remaining 34 to 40 stations are

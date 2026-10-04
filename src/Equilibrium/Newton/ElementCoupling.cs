@@ -25,16 +25,23 @@ internal static class ElementCoupling
     /// the earlier ones, so every combination that exists survives. <see cref="ElementTie.Active"/> is false when no
     /// combination holds; the coefficients are then not meaningful.
     /// </summary>
-    public static ElementTie Find(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int element)
+    public static ElementTie Find(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, int element) =>
+        FindOver(table, scratch, result, new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, condensedCount, 0), element);
+
+    /// <summary>
+    /// As above over the species of the sums <paramref name="sums"/> names: its condensed count, and the gases it reads
+    /// (<see cref="SystemLayout.GasMoles"/>: a state's trace carriers are no species of the sums for the tie the derivatives need).
+    /// </summary>
+    public static ElementTie FindOver(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout sums, int element)
     {
         var elementCount = table.ElementCount;
-        if (!AssembleNormalEquations(table, scratch, result, condensedCount, element, pinned: -1))
+        if (!AssembleNormalEquations(table, scratch, result, sums, element, pinned: -1))
         {
             return default;
         }
 
         if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, elementCount, elementCount, out var failedColumn)
-            && (!AssembleNormalEquations(table, scratch, result, condensedCount, element, failedColumn)
+            && (!AssembleNormalEquations(table, scratch, result, sums, element, failedColumn)
                 || !DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, elementCount, elementCount)))
         {
             return default;
@@ -49,21 +56,25 @@ internal static class ElementCoupling
         }
 
         var tie = new ElementTie { Active = true, Element = element };
-        return any && Coupled(table, scratch, result, condensedCount, tie) ? tie : default;
+        return any && CoupledOver(table, scratch, result, sums, tie) ? tie : default;
     }
 
     /// <summary>True when every species of the sums satisfies the combination of <paramref name="tie"/> within <see cref="CombinationTolerance"/>.</summary>
-    public static bool Coupled(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, in ElementTie tie)
+    public static bool Coupled(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int condensedCount, in ElementTie tie) =>
+        CoupledOver(table, scratch, result, new SystemLayout(ProblemKind.AssignedTemperaturePressure, table.ElementCount, condensedCount, 0), tie);
+
+    /// <summary>As above over the species of the sums <paramref name="sums"/> names.</summary>
+    public static bool CoupledOver(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout sums, in ElementTie tie)
     {
         for (var j = 0; j < table.GasCount; j++)
         {
-            if (result.Moles[j] != 0.0 && !Satisfied(table, scratch, tie.Element, j))
+            if (sums.GasMoles(scratch, result, j) != 0.0 && !Satisfied(table, scratch, tie.Element, j))
             {
                 return false;
             }
         }
 
-        for (var c = 0; c < condensedCount; c++)
+        for (var c = 0; c < sums.CondensedCount; c++)
         {
             if (!Satisfied(table, scratch, tie.Element, scratch.CondensedInSolution[c]))
             {
@@ -148,11 +159,11 @@ internal static class ElementCoupling
     /// <paramref name="pinned"/> (−1 for none); false when no species of the sums carries the tied element.
     /// </summary>
     private static bool AssembleNormalEquations(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                                int condensedCount, int element, int pinned)
+                                                in SystemLayout sums, int element, int pinned)
     {
         var elementCount = table.ElementCount;
         ClearNormalEquations(scratch, elementCount);
-        if (!AccumulateNormalEquations(table, scratch, result, condensedCount, element))
+        if (!AccumulateNormalEquations(table, scratch, result, sums, element))
         {
             return false;
         }
@@ -181,18 +192,18 @@ internal static class ElementCoupling
 
     /// <summary>Sums the normal equations over the retained gases and the condensed species of the solution; true when one of them carries the tied element.</summary>
     private static bool AccumulateNormalEquations(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                                                  int condensedCount, int element)
+                                                  in SystemLayout sums, int element)
     {
         var carries = false;
         for (var j = 0; j < table.GasCount; j++)
         {
-            if (result.Moles[j] != 0.0)
+            if (sums.GasMoles(scratch, result, j) != 0.0)
             {
                 carries |= AddSpecies(table, scratch, j, element);
             }
         }
 
-        for (var c = 0; c < condensedCount; c++)
+        for (var c = 0; c < sums.CondensedCount; c++)
         {
             carries |= AddSpecies(table, scratch, scratch.CondensedInSolution[c], element);
         }

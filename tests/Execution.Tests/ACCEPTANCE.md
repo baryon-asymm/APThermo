@@ -346,7 +346,8 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       and the CPU accelerator within the table on CUDA (`CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator`,
       `AnEquilibriumTableFamilyOnCudaMatchesTheCpuAccelerator`); the bracketed seeded states are compared by the rule of
       `## Invariants`, "Bracketed cases"; the mechanism facts of `ChunkTransferTests`, `AcceleratorChoiceTests`,
-      `ChunkPlanWiringTests` and `BatchTests` are green; the states left out (`## Invariants`) still exceed the closure bound.
+      `ChunkPlanWiringTests` and `BatchTests` are green.
+      ⚠ 2026-10-04: was "the states left out (`## Invariants`) still exceed the closure bound", now none left out: the relative closure of the solver puts them back (the 17-element table, the hp states of magnesite at 1e4 and 1e6 Pa); `BatchTests.TheLeftOutStatesStillExceedTheClosureBound` is retired → HISTORY.md#left-out-states
       Red once, 2026-10-04, each applied alone and reverted (`APTHERMO_NO_CUDA=1`, Debug):
       - `Kernels.Equilibrium` passing `false` whatever the flag: 19 of 19 seeded families of
         `ASeededFamilyEqualsTheHostSolverBitForBit` red (iterations or bits against the host), the 41 cold rows green;
@@ -362,12 +363,12 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       Evidence so far (the coder's part, no GPU; the box stays unticked until the orchestrator's CUDA and WSL runs are in):
       - Families: `seeded-fixtures` 30 cases; the tp fixtures of 13 tables at half pressure, 83 cases in all (the cases whose cold
         solve ends `Ok`); `seeded-bracket-calcite` at 1e4, 1e5 and 1e6 Pa, 6 states each (hp and sp at 0.1, 0.3 and 0.5), and
-        `seeded-bracket-magnesite` at 1e4 and 1e6 Pa, 3 states each (the sp states; the hp states are left out, below); 137
-        seeded cases in 19 families. The equilibrium tables: 15 families, 150 cases, every one `Ok` on the CPU accelerator and equal to
-        the host solver bit for bit.
-      - Findings, not loosened (`## Invariants`, "States left out"): the hp states of magnesite at 1e4 and 1e6 Pa close the element
-        balance of the CPU accelerator only to 1.0e-11 to 1.5e-11 on carbon, cold as well as seeded, and take 1 800 to 2 250 Newton steps
-        (sum of the attempts); the 17-element table's one case closes chlorine only to 7.5e-13 (1.2e-12 at half pressure).
+        `seeded-bracket-magnesite` at 1e4 and 1e6 Pa, 6 states each; 143
+        seeded cases in 19 families. The equilibrium tables: 16 families, 151 cases, every one `Ok` on the CPU accelerator and equal to
+        the host solver bit for bit (coder 6, `APTHERMO_NO_CUDA=1`, Debug, 2026-10-04).
+      - Findings of the coder before (closed 2026-10-04, `HISTORY.md#left-out-states`): the hp states of magnesite at 1e4 and 1e6 Pa
+        closed the element balance of the CPU accelerator only to 1.0e-11 to 1.5e-11 on carbon, and the 17-element table's one case
+        chlorine only to 7.5e-13; with the relative closure of the solver both are in their families at the table's 1e-13.
       - The fast set of the solution, Debug, `APTHERMO_NO_CUDA=1`: all eleven test projects green, `tests/Execution.Tests` 315 of 315
         (25 s alone, 72 s inside the parallel run of the solution); no `Bits*.approved.txt`, `Throughput*.approved.txt`, Docs approved
         record or `PublicSurface.approved.txt` changed (`git status` clean after the run); `TreeContract.approved.txt` moved with
@@ -382,3 +383,20 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       proven by the four facts of `ComparisonRuleTests`, each red once with its rule alone broken (enthalpy bound at zero,
       `DataEffect` null, `NoiseFactor` 0, the guard at its entry), 2026-10-04.
       On the merged tree, 2026-10-04 (11fe71f6, Release, the whole `CudaTests` class with the sweep and the throughput fact): 68 of 68 green; the `measured:` lines unchanged from the coder's run.
+- [x] 2026-10-04 — The throughput tripwire per Newton step (coder 7 of 0.2.2; the ⚠ 2026-10-04 of `BOOT.md`):
+      `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio` writes `iterations_per_case` (22.403) and
+      `cuda_kernel_seconds_per_iteration` and fails above 115 % of the approved figure (`ThroughputRecord`); the rule and the
+      failure of a record without the figure are proven without a GPU by `ThroughputRecordTests` (7 facts).
+      - Shown red once, on the Windows reference machine, Release: with `EquilibriumSolver.cs` and `StationSolve.cs` at d38e3f89
+        (the loop-live `IterationState` passed by `ref` to `TraceGasPass.Run`) the fact failed with "the CUDA kernel time per
+        Newton step 1.023e-07 s is 130.3 % of the approved 7.849e-08 s", the ratio check alone passing at 17.65 (floor 17.03);
+        with the fix (51c5515c, 1cee836d) green.
+      - `Throughput.approved.txt` re-approved from two quiet Release runs of 2026-10-04: kernel 0.175 and 0.176 s, 7.820e-08 and
+        7.849e-08 s per step, ratio 20.71 and 21.29 (25 % background CPU load); a third run inside the solution-wide Release run
+        measured 7.834e-08 (kernel 0.176 s). The record of 2026-09-19 (ratio 23.58) does not reproduce, even at v0.1.0
+        → HISTORY.md#throughput-per-iteration-2026-10-04
+      - Windows, Release, `dotnet test APThermo.sln -c Release --filter "Category=Cuda|Category=BitSnapshot"`: green in every
+        project, `Execution.Tests` 84 of 84 (the bits unchanged: no `Bits*.approved.txt` moved, `ByteVectorTests` included).
+- [ ] `Throughput.linux.approved.txt` carries no `iterations_per_case` and no `cuda_kernel_seconds_per_iteration` line (the coder
+      has no WSL measurement): on Linux the throughput fact fails with "carries no valid cuda_kernel_seconds_per_iteration line"
+      until the file is re-approved from a quiet Release run under WSL2. Ticked when that run is recorded.

@@ -92,6 +92,8 @@ The definition of what "`Equilibrium` is ready" means.
   search its unit facts drive (`GasPhaseVerdict`, `CondensedSimplex`, `TangentPlane`).
 - [Recovery](../../src/Equilibrium/Recovery/API.md) — the temperature bracket and the attempt plan, whose pure
   transitions its unit facts drive (`TemperatureBracket`, `BracketMove`, `EndKind`, `AttemptPlan`).
+- [TraceGas](../../src/Equilibrium/TraceGas/API.md) — the trace-gas Newton pass, whose stage types its unit and
+  family facts drive (`TraceGasPass`, `TraceGasSystem`, `TraceGasStep`, `TraceGasStart`, `PhaseOneSeed`).
 - [Thermo](../../src/Thermo/API.md) — building the tables of the fixture species lists.
 - [Data](../../src/Data/API.md) — loading the database.
 - [Fixtures](../Fixtures/API.md) — reference cases and the tolerance table.
@@ -330,6 +332,38 @@ creation names its arguments; it passes them by position today (the criterion be
         singular signature, as the singular tp case does. No line of `Bits.approved.txt` moved;
         `dotnet test tests/Equilibrium.Tests`: 1077/1077.
       The StateRecord criterion that names these facts is ticked by the orchestrator after CUDA and Linux.
+
+- [x] 2026-10-04 — The trace-gas pass, the close guard and the trace-gas finals
+      ([TraceGas/BOOT.md](../../src/Equilibrium/TraceGas/BOOT.md), [Recovery/BOOT.md](../../src/Equilibrium/Recovery/BOOT.md)),
+      on the CPU accelerator, every fact asserting `EquilibriumConditions` at 1e-9 with every gas of any share
+      (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
+      - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`: the families
+        `TraceGasCases` generates from their parameters, none typed;
+      - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 360 cases (every tp, hp and sp
+        fixture, the magnesite band, the declared leftovers, KO2 − 1e-10 O, the junction states warm) run with
+        every buffer the solver owns or writes zeroed, filled with NaN and filled with 1e300
+        (`HostSolver.SolveFilled`, `BufferFill`): the same status, iterations, moles and multipliers bit for
+        bit, and the same state for `Ok` and `NoGasPhase`; a failure writes no state and the harness zeroes
+        it. `HostSolver` clears every buffer before a run (ILGPU's `Allocate1D` does not), and
+        `UnivariantRig` refuses a failed tp solve as the source of its targets (it had taken them from the
+        unwritten state of one). Red with the estimate of the gaseous moles left unwritten by the cold branch of
+        `CaseSetup.Begin`: 180 differences in the 360 cases;
+      - `TraceGasClosureTests` (2026-10-04, the relative invariant `EquilibriumConditions.ElementInvariant`,
+        `1e-13 · b_i`; a gasless state is held to `EquilibriumConditions.GaslessElementResidual`, the
+        verdict's absolute 1e-12): the 72 plateau states of calcite and magnesite and Al(OH)3 + 1e-6 O,
+        each `Ok` and clear with every element within the invariant;
+      - `GasStationarityTests` (the guard's bound, and the states it refused through the bracket),
+        `TraceGasFinalTests` (the ownership of the finals, cold calcite states, the retried final),
+        `TemperatureBracketTests` (the arms of seam (b)), `TiedDerivativesTests` and `ScaledDerivativeTests`
+        (the two derivative retries against a central difference), `SupercooledVapourSpTests` (the sp states
+        of the vapour below the floors), `BracketedStateTests` (the magnesite band no longer excluded);
+      - `TraceGasScanTests`, `LongRunning`: the 4 158 tp states of `TraceGasCases.ScanFamilies` against
+        `TraceGasScanBaseline.txt` (the status of each before the pass, recorded once with the pass, the guard
+        and the finals switched off) and `TraceGasLeftovers.txt` (the declared states, each asserted as
+        declared, so a settled one makes the list stale).
+      Each rule shown red once by removing it (counts in the nodes' own criteria); no line of a
+      `Bits*.approved.txt` moved on Windows. `dotnet test tests/Equilibrium.Tests`: 1 798 facts (1 797 of the fast
+      set and the scan fact), green.
 
 ## Taboos
 

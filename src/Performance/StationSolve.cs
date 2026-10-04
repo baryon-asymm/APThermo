@@ -17,13 +17,18 @@ internal static class StationSolve
         var equilibriumProblem = new EquilibriumProblem(ProblemKind.AssignedEntropyPressure, request.Pressure, request.TemperatureEstimate,
                                                         request.Entropy, context.Problem.ElementMoles);
         var stationResult = ViewsOf(in context, request.Station);
+
+        // Copies of the context's views: this method is NoInlining, and the callee takes them by `in`; a reference into the
+        // context's own fields would make them address-taken for the whole rocket kernel (the root's Compile size constraint).
+        var table = context.Table;
+        var scratch = context.Scratch;
         if (request.Flow == StationFlow.Frozen)
         {
-            EquilibriumSolver.SolveFrozen(in context.Table, in equilibriumProblem, in context.Scratch, in stationResult);
+            EquilibriumSolver.SolveFrozen(in table, in equilibriumProblem, in scratch, in stationResult);
         }
         else
         {
-            EquilibriumSolver.Solve(in context.Table, in equilibriumProblem, in context.Scratch, in stationResult, true);
+            EquilibriumSolver.Solve(in table, in equilibriumProblem, in scratch, in stationResult, true);
         }
 
         return context.Result.StationStatus[request.Station] == (int)CaseStatus.Ok;

@@ -33,10 +33,12 @@
       reference within the tolerance table for every converged fixture case: part of
       the `FixtureSolveTests` comparison above (`cpEquilibrium`, `cvEquilibrium`,
       `gammaS`, `dlnVdlnT`, `dlnVdlnP`, `soundSpeed` for all 106 cases).
-- [x] 2026-09-12 — Element conservation holds for every converged fixture case at
-      the invariant's tolerance:
+- [x] 2026-10-04 — Element conservation holds for every converged fixture case at
+      the invariant's tolerance, relative, `1e-13 · b_i`:
       `ElementConservationTests.ElementsAreConservedAtTheInvariantTolerance` over
-      the machine-generated list of the 106 tp, hp and sp cases.
+      the machine-generated list of the tp, hp and sp cases (red on the 17-element table
+      before the close was relative: Cl at 7.45e-13 of its abundance).
+      ⚠ 2026-10-04: was `1e-12 · max(1, b_i)`, verified 2026-09-12, now relative → HISTORY.md#relative-invariant
 - [x] 2026-09-12 — A case with an absent element gives the same result as the same case
       solved on a table without that element's species, bit for bit on the same
       accelerator: `AbsentElementTests.AZeroAbundanceEqualsATableWithoutTheElement`; an

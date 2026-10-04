@@ -47,8 +47,11 @@ GPU/CPU tolerance table and the approved throughput figures.
   (`SensitivityStep`, 1e-8), each with its derivation (2026-10-03).
 - `Throughput.approved.txt` in this node: build configuration, device name, ILGPU
   version, CPU accelerator and threads, cases, stations, species, CUDA time, CPU time,
-  ratio, CUDA kernel time, date. The fact refuses to compare a run against a file
-  measured in a different configuration (2026-09-19, BOOT.md).
+  ratio, CUDA kernel time, the Newton steps per case of the rocket sweep and the CUDA
+  kernel seconds per Newton step (`iterations_per_case`, `cuda_kernel_seconds_per_iteration`,
+  2026-10-04), date. The fact refuses to compare a run against a file measured in a
+  different configuration (2026-09-19, BOOT.md), and fails on a file that carries no
+  per-iteration figure (2026-10-04).
 
 ⚠ 2026-09-12: the sketch named the table `Tolerances.cs`; the file is
 `GpuCpuTolerances.cs`, so that it is not mistaken for the fixtures node's tolerance

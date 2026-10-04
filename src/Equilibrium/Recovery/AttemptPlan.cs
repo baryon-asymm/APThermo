@@ -37,8 +37,21 @@ internal struct AttemptPlan
     /// <summary>What the recheck of an Ok state below a dead-end floor keeps of the attempt it may replace.</summary>
     public RecheckState Recheck;
 
+    /// <summary>The status of the failed attempt the verdict judged <c>GasRequired</c>, which a failed trace-gas pass leaves as the pass's own status (BOOT.md, seam (a)).</summary>
+    public CaseStatus Judged;
+
+    /// <summary>Trace-gas finals the case has launched (seams (b) and (b′)): at most one.</summary>
+    public int TraceGasFinals;
+
     /// <summary>Whether <see cref="EquilibriumSolver.Solve"/> runs the iteration for the pass asked for; false for a pass that is the verdict alone.</summary>
     public readonly bool RunsAttempt => Phase != AttemptPhase.VerdictOnly;
+
+    /// <summary>Whether <see cref="EquilibriumSolver.Solve"/> runs the trace-gas pass, not the reduced iteration, for the pass asked for.</summary>
+    public readonly bool RunsTraceGas => Phase is AttemptPhase.TraceGas or AttemptPhase.TraceGasFinal;
+
+    /// <summary>Whether the ordinary final that just ended is owed the trace-gas final of seam (b′): it ended <c>NotConverged</c> or <c>SingularMatrix</c> and the case has had none.</summary>
+    public readonly bool OwesTraceGasFinal =>
+        TraceGasFinals == 0 && Phase == AttemptPhase.Final && Status is CaseStatus.NotConverged or CaseStatus.SingularMatrix;
 
     /// <summary>Starts the bracket at <paramref name="estimate"/> K, remembering the status of the attempt that sent the case there.</summary>
     public void BeginBracket(double estimate) => Bracket.Start(Status, estimate);
@@ -67,7 +80,7 @@ internal struct AttemptPlan
                             in EquilibriumResult result, CaseStatus status, ref AttemptPlan plan)
     {
         plan.Status = status;
-        if (plan.Phase == AttemptPhase.Final)
+        if (plan.Phase is AttemptPhase.Final or AttemptPhase.TraceGasFinal)
         {
             return DeadEndRecheck.EndFinal(table, problem, scratch, result, ref plan);
         }
@@ -88,11 +101,50 @@ internal struct AttemptPlan
         }
 
         plan.Found = EndKind.Gas;
+        if (plan.Phase == AttemptPhase.TraceGas)
+        {
+            return AfterTraceGas(table, problem, scratch, result, ref plan);
+        }
+
         var needsVerdict = status != CaseStatus.Ok || plan.Phase == AttemptPhase.VerdictOnly;
         var proven = !needsVerdict || PassOutcome.Finds(table, scratch, result, ref plan);
         return !proven
-            ? BracketDriver.Unproven(table, problem, scratch, result, ref plan)
+            ? plan.Phase == AttemptPhase.TraceGas || BracketDriver.Unproven(table, problem, scratch, result, ref plan)
             : plan.Bracket.Active ? BracketDriver.Probed(table, problem, scratch, result, ref plan) : EndTp(result, ref plan);
+    }
+
+    /// <summary>
+    /// Seam (a): the verdict judged the failed pass <c>GasRequired</c>. A pass that ended <c>NotConverged</c> or <c>SingularMatrix</c> is
+    /// followed by one trace-gas pass at the same temperature, warm from the iterate the verdict restored, its status kept in
+    /// <see cref="Judged"/>. A verdict-only pass has no failed attempt to judge, and another status (the state guard's
+    /// <c>TemperatureOutOfRange</c>) stands.
+    /// </summary>
+    public void SeekTraceGas()
+    {
+        if (Phase != AttemptPhase.VerdictOnly && Status is CaseStatus.NotConverged or CaseStatus.SingularMatrix)
+        {
+            Judged = Status;
+            Phase = AttemptPhase.TraceGas;
+            Source = EstimateSource.PreviousSolution;
+        }
+    }
+
+    /// <summary>
+    /// A trace-gas pass ended (seam (a)): its <c>Ok</c> is the pass's outcome, of kind <see cref="EndKind.TraceGas"/> for a probe; any
+    /// other status leaves the status of the attempt the verdict judged, and the case goes on as after a failed pass the verdict
+    /// did not prove.
+    /// </summary>
+    private static bool AfterTraceGas(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                      in EquilibriumResult result, ref AttemptPlan plan)
+    {
+        if (plan.Status != CaseStatus.Ok)
+        {
+            plan.Status = plan.Judged;
+            return BracketDriver.Unproven(table, problem, scratch, result, ref plan);
+        }
+
+        plan.Found = EndKind.TraceGas;
+        return plan.Bracket.Active ? BracketDriver.Probed(table, problem, scratch, result, ref plan) : EndTp(result, ref plan);
     }
 
     /// <summary>A tp case ends: Ok, or gasless when the verdict proved it, or the failure that stands.</summary>

@@ -258,19 +258,10 @@ internal static class FixtureBatches
     }
 
     /// <summary>
-    /// The tables of the equilibrium fixtures whose family is left out of the facts that compare against the host solver and the element
-    /// balance, by the name of the family (2026-10-04): the CPU accelerator closes the balance of the 17-element table's one case, with
-    /// its many condensed phases, only to 7.5e-13 (cold) and 1.2e-12 (at half pressure) against the table's 1e-13. The bound is not
-    /// loosened; <c>BatchTests.TheLeftOutStatesStillExceedTheClosureBound</c> keeps the finding visible and goes red when it is gone.
-    /// </summary>
-    public static IReadOnlyList<string> LeftOutTables { get; } = ["seventeen-elements-many-condensed-phases_T350"];
-
-    /// <summary>
-    /// The names of the families of <see cref="EquilibriumTableFamily"/>, one per table of the equilibrium fixtures except the
-    /// <see cref="LeftOutTables"/>; with a <paramref name="kind"/> only the tables that hold a fixture of that kind (<c>tp</c>, <c>hp</c> or <c>sp</c>).
+    /// The names of the families of <see cref="EquilibriumTableFamily"/>, one per table of the equilibrium fixtures; with a <paramref name="kind"/> only the tables that hold a fixture of that kind (<c>tp</c>, <c>hp</c> or <c>sp</c>).
     /// </summary>
     public static IReadOnlyList<string> EquilibriumTableNames(string? kind = null) =>
-        [.. EquilibriumTables().Where(group => !LeftOutTables.Contains(group.Name) && (kind is null || group.Cases.Any(c => c.Kind == kind))).Select(group => group.Name)];
+        [.. EquilibriumTables().Where(group => kind is null || group.Cases.Any(c => c.Kind == kind)).Select(group => group.Name)];
 
     /// <summary>The names of <see cref="EquilibriumTableNames"/> as theory data.</summary>
     public static TheoryData<string> EquilibriumTableFamilyNames()

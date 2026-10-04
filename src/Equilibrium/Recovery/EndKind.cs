@@ -8,4 +8,7 @@ internal enum EndKind
 
     /// <summary>The gasless verdict held: <c>P</c> and its slope are the condensed minimum's.</summary>
     Gasless,
+
+    /// <summary>The tp state was found by the trace-gas pass after the verdict required a gas: <c>P</c> and its slope are the state's, as for <see cref="Gas"/>.</summary>
+    TraceGas,
 }

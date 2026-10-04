@@ -11,22 +11,68 @@ namespace APThermo.Equilibrium.Tests;
 /// </summary>
 internal static class EquilibriumConditions
 {
-    /// <summary>The element-conservation invariant's tolerance (Equilibrium BOOT.md, matching <see cref="ElementConservationTests"/>).</summary>
-    public const double ElementInvariant = 1e-12;
+    /// <summary>The element-conservation invariant's tolerance, relative to the element's abundance (Equilibrium BOOT.md, matching <see cref="ElementConservationTests"/>).</summary>
+    public const double ElementInvariant = 1e-13;
+
+    /// <summary>
+    /// The bound of a <see cref="CaseStatus.NoGasPhase"/> state's element residuals, kmol per kilogram times max(1, b_i): the gasless
+    /// verdict's own absolute 1e-12 (GasPhase BOOT.md; owner decision G1, 2026-10-04). An element the condensed species cannot hold within
+    /// it is left unheld, so a mixture within ±1e-12 of exact stoichiometry ends gasless with its excess unaccounted for.
+    /// </summary>
+    public const double GaslessElementResidual = 1e-12;
 
     /// <summary>Candidates this far inside their range are clear of the effective-bound shift at a crossing (matching <see cref="PlateauTests"/>).</summary>
     private const double RangeMargin = 1.5;
 
     /// <summary>Every violation of the conditions below; empty when the state is honest.</summary>
-    public static List<string> Violations(HostSolution solution, double gasChemicalPotentialResidual)
+    public static List<string> Violations(HostSolution solution, double gasChemicalPotentialResidual) =>
+        ViolationsOf(solution, gasChemicalPotentialResidual, gasless: false);
+
+    /// <summary>As above; a <paramref name="gasless"/> state's elements are held to <see cref="GaslessElementResidual"/> instead of the relative invariant.</summary>
+    private static List<string> ViolationsOf(HostSolution solution, double gasChemicalPotentialResidual, bool gasless)
     {
         var table = solution.Case.Table;
         using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
         var view = buffers.View;
 
-        var violations = ElementConservationViolations(solution);
+        var violations = ElementViolationsOf(solution, gasless);
         violations.AddRange(GasChemicalPotentialViolations(solution, view, gasChemicalPotentialResidual));
         violations.AddRange(CondensedInclusionGainViolations(solution, view));
+        return violations;
+    }
+
+    /// <summary>
+    /// Every gas the solution reports, of any share of the gas, whose chemical potential <c>g_j/RT + ln(n_j/Σn) + ln(p/p°)</c> departs from
+    /// <c>Σ_i a_ij π_i</c> by more than <paramref name="residualBound"/>: the stationarity the close guard enforces, computed here from the
+    /// reported moles, multipliers and temperature, and not by the code under test.
+    /// </summary>
+    public static List<string> EveryGasViolations(HostSolution solution, double residualBound)
+    {
+        var violations = new List<string>();
+        var table = solution.Case.Table;
+        using var buffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
+        var view = buffers.View;
+        var totalGasMoles = solution.Moles.Take(table.GasCount).Sum();
+        var logPressureRatio = Math.Log(solution.Case.Pressure / 1e5);
+        for (var j = 0; j < table.GasCount; j++)
+        {
+            if (!(solution.Moles[j] > 0.0))
+            {
+                continue;
+            }
+
+            var potential = SpeciesFunctions.GOverRT(view, j, solution.State.Temperature) + Math.Log(solution.Moles[j] / totalGasMoles) + logPressureRatio;
+            for (var i = 0; i < table.ElementCount; i++)
+            {
+                potential -= table.Arrays.Stoichiometry[i * table.SpeciesCount + j] * solution.Multipliers[i];
+            }
+
+            if (!(Math.Abs(potential) <= residualBound))
+            {
+                violations.Add($"gas {table.Species[j]} ({solution.Moles[j] / totalGasMoles:E2} of the gas) chemical-potential residual {potential:E3}");
+            }
+        }
+
         return violations;
     }
 
@@ -41,7 +87,7 @@ internal static class EquilibriumConditions
     /// </summary>
     public static List<string> GaslessViolations(HostSolution solution)
     {
-        var violations = Violations(solution, Tolerances.GasChemicalPotential);
+        var violations = ViolationsOf(solution, Tolerances.GasChemicalPotential, gasless: true);
         var table = solution.Case.Table;
         for (var j = 0; j < table.GasCount; j++)
         {
@@ -95,7 +141,11 @@ internal static class EquilibriumConditions
     }
 
     /// <summary>Every element whose conservation residual exceeds <see cref="ElementInvariant"/>.</summary>
-    private static List<string> ElementConservationViolations(HostSolution solution)
+    public static List<string> ElementConservationViolations(HostSolution solution) =>
+        ElementViolationsOf(solution, gasless: false);
+
+    /// <summary>As above; a <paramref name="gasless"/> state is held to <see cref="GaslessElementResidual"/> times max(1, b_i) instead.</summary>
+    private static List<string> ElementViolationsOf(HostSolution solution, bool gasless)
     {
         var violations = new List<string>();
         var table = solution.Case.Table;
@@ -110,7 +160,9 @@ internal static class EquilibriumConditions
             }
 
             var residual = Math.Abs(sum - solution.Case.ElementMoles[i]);
-            var bound = ElementInvariant * Math.Max(1.0, solution.Case.ElementMoles[i]);
+            var bound = gasless
+                ? GaslessElementResidual * Math.Max(1.0, solution.Case.ElementMoles[i])
+                : ElementInvariant * solution.Case.ElementMoles[i];
             if (!(residual <= bound))
             {
                 violations.Add($"element {table.Elements[i]} residual {residual:E3} above {bound:E3}");

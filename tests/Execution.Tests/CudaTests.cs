@@ -302,7 +302,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(sweep.Cpu.Status.All(s => s == CaseStatus.Ok), $"{sweep.Cpu.Status.Count(s => s != CaseStatus.Ok)} cases failed on the CPU accelerator");
     }
 
-    /// <summary>Throughput is recorded and not below the approved ratio.</summary>
+    /// <summary>Throughput is recorded, the CUDA/CPU ratio is not below 80 % of the approved one and the kernel time per Newton step is not above 115 % of the approved figure.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
     [Trait("Category", "LongRunning")]
@@ -316,6 +316,7 @@ public sealed class CudaTests(ITestOutputHelper output)
 
         var sweep = EngineFixture.Shared.Sweep;
         var ratio = sweep.CpuSeconds.TotalSeconds / sweep.CudaSeconds.TotalSeconds;
+        var perIteration = ThroughputRecord.KernelSecondsPerIteration(sweep.Cuda!);
         var directory = Path.GetDirectoryName(ThisFile())!;
         var actualLines = new[]
         {
@@ -330,6 +331,8 @@ public sealed class CudaTests(ITestOutputHelper output)
             $"cpu_seconds: {sweep.CpuSeconds.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
             $"ratio: {ratio.ToString("F2", CultureInfo.InvariantCulture)}",
             $"cuda_kernel_seconds: {sweep.Cuda!.Timings.Kernel.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
+            ThroughputRecord.Line(ThroughputRecord.IterationsPerCaseKey, ThroughputRecord.IterationsPerCase(sweep.Cuda)),
+            ThroughputRecord.Line(ThroughputRecord.PerIterationKey, perIteration),
             $"date: {DateTime.Now:yyyy-MM-dd}",
         };
         var approvedPath = ApprovedSnapshot.ApprovedPathFor(directory, "Throughput");
@@ -337,10 +340,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         File.WriteAllLines(actualPath, actualLines);
 
         Assert.True(File.Exists(approvedPath), $"no approved throughput file at {approvedPath}; the measured figures are in {actualPath}");
-        var approved = File.ReadAllLines(approvedPath)
-            .Select(line => line.Split(':', 2))
-            .Where(parts => parts.Length == 2)
-            .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim(), StringComparer.Ordinal);
+        var approved = ThroughputRecord.Parse(File.ReadAllLines(approvedPath));
         var approvedConfiguration = approved.GetValueOrDefault("configuration");
         Assert.True(approvedConfiguration is not null,
             $"{Path.GetFileName(approvedPath)} carries no configuration: line; re-approve it from a Release run (BOOT.md)");
@@ -352,6 +352,8 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(ratio >= 5.0, $"CUDA is only {ratio:F2}x faster than the CPU accelerator (root criterion: at least 5x); see {actualPath}");
         Assert.True(ratio >= 0.8 * approvedRatio,
             $"CUDA/CPU ratio {ratio:F2} fell below 80 % of the approved {approvedRatio:F2} ({Path.GetFileName(approvedPath)})");
+        var violation = ThroughputRecord.Violation(approved, Path.GetFileName(approvedPath), perIteration);
+        Assert.True(violation is null, violation);
     }
 
     private static string ThisFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;

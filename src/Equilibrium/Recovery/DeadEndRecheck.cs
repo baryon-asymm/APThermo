@@ -52,7 +52,7 @@ internal static class DeadEndRecheck
         return value > target && Rerun(ref plan);
     }
 
-    /// <summary>The final attempt's status is the case's; a state a probe wrote is cleared when it is not Ok, a recheck that fails here reruns the original attempt instead, and a final that fails on a gap at a dead-end bound scans below it.</summary>
+    /// <summary>The final attempt's status is the case's; a state a probe wrote is cleared when it is not Ok, an ordinary final that ends <c>NotConverged</c> or <c>SingularMatrix</c> is owed one trace-gas final (seam (b′)), a recheck that fails here reruns the original attempt instead, and a final that fails on a gap at a dead-end bound scans below it.</summary>
     public static bool EndFinal(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                 in EquilibriumResult result, ref AttemptPlan plan)
     {
@@ -61,7 +61,9 @@ internal static class DeadEndRecheck
             return false;
         }
 
-        if (Rerun(ref plan) || BracketDriver.ScanBelowGap(table, problem, scratch, result, ref plan))
+        if (BracketDriver.RetryFinalWithTraceGas(table, problem, scratch, result, ref plan)
+            || Rerun(ref plan)
+            || BracketDriver.ScanBelowGap(table, problem, scratch, result, ref plan))
         {
             return true;
         }

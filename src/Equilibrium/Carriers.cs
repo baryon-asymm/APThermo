@@ -85,6 +85,7 @@ internal readonly struct SystemLayout
         TRow = NRow + 1;
         Unknowns = elementCount + condensedCount + 1 + (kind == ProblemKind.AssignedTemperaturePressure ? 0 : 1);
         Tie = default;
+        CarrierLogN = double.NegativeInfinity;
     }
 
     /// <summary>As above, with rule A's tie for the Newton step that assembles the tie row.</summary>
@@ -92,6 +93,22 @@ internal readonly struct SystemLayout
         : this(kind, elementCount, condensedCount, stride)
     {
         Tie = tie;
+    }
+
+    /// <summary>
+    /// As above, for a derivative system over a state that holds trace carriers: <paramref name="carrierLogN"/> is the ln n the
+    /// carriers are measured against, <c>−∞</c> for a state that holds none (<see cref="IterationState.TraceCarriers"/>).
+    /// </summary>
+    public SystemLayout(ProblemKind kind, int elementCount, int condensedCount, int stride, ElementTie tie, double carrierLogN)
+        : this(kind, elementCount, condensedCount, stride, tie)
+    {
+        CarrierLogN = carrierLogN;
+    }
+
+    /// <summary>As above, the tie and the carriers' ln n taken from the state a derivative system is built over.</summary>
+    public SystemLayout(ProblemKind kind, int elementCount, int condensedCount, int stride, in IterationState state)
+        : this(kind, elementCount, condensedCount, stride, state.Tie, state.TraceCarriers > 0 ? state.LogN : double.NegativeInfinity)
+    {
     }
 
     public readonly ProblemKind Kind;
@@ -111,6 +128,17 @@ internal readonly struct SystemLayout
     public readonly int TRow;
 
     public readonly int Unknowns;
+
+    /// <summary>
+    /// ln n of a state that holds trace carriers, the gases a trace-gas <c>Ok</c> reports below the second retention stage because
+    /// they carry a part of a balance (BOOT.md, "Element conservation"); <c>−∞</c> for every other state. The derivative systems read no
+    /// gas below that stage of it (<see cref="GasMoles"/>); the sums of h, s and M include them.
+    /// </summary>
+    public readonly double CarrierLogN;
+
+    /// <summary>The moles of gas <paramref name="j"/> the derivative systems read: the result's, and zero for a trace carrier.</summary>
+    public double GasMoles(in EquilibriumScratch scratch, in EquilibriumResult result, int j) =>
+        scratch.LogMoles[j] - CarrierLogN <= -EquilibriumSolver.SecondStageTraceThreshold ? 0.0 : result.Moles[j];
 
     public bool IsTp => Kind == ProblemKind.AssignedTemperaturePressure;
 
@@ -184,6 +212,9 @@ internal struct Derivatives
 /// The state one case carries from stage to stage and from one convergence to the next: the iterate itself, the temperature
 /// its species functions were evaluated at, the counters the caps are measured against, and the two memories of the
 /// condensed-species rule (BOOT.md). Passed by <c>ref</c>; it is the whole of the per-case state that is not in the views.
+/// No two <c>bool</c> fields stand next to each other: ILGPU 1.5.3 stores and loads two adjacent ones as one vector of bytes or
+/// predicates, which ptxas refuses once a <c>ref</c> to a non-inlined pass keeps the struct in local memory (Recovery BOOT.md,
+/// "No whole-struct copies").
 /// </summary>
 internal struct IterationState
 {
@@ -193,23 +224,11 @@ internal struct IterationState
     /// <summary>ln of the total gaseous moles per kilogram.</summary>
     public double LogN;
 
-    /// <summary>How many entries of <c>scratch.CondensedInSolution</c> are live.</summary>
-    public int CondensedCount;
-
     /// <summary>The temperature <c>scratch.HOverRT</c> and its neighbours were last evaluated at; −1 before the first evaluation.</summary>
     public double FunctionsAt;
 
-    /// <summary>Newton steps taken over the whole solve, the number reported.</summary>
-    public int Iterations;
-
-    /// <summary>Changes of the condensed set, capped by <see cref="EquilibriumSolver.MaxCondensedSetChanges"/>.</summary>
-    public int SetChanges;
-
-    /// <summary>The record switched out at the last range switch, which may pair with its neighbour again; −1 if none.</summary>
-    public int LastSwitchedOut;
-
-    /// <summary>The record removed for its range at the last convergence, skipped by one inclusion pass; −1 if none.</summary>
-    public int LastRemovedForRange;
+    /// <summary>How many entries of <c>scratch.CondensedInSolution</c> are live.</summary>
+    public int CondensedCount;
 
     /// <summary>
     /// Whether the case has already switched its gaseous retention threshold to the second stage (BOOT.md, the
@@ -220,6 +239,9 @@ internal struct IterationState
     /// </summary>
     public bool RetentionSecondStage;
 
+    /// <summary>Newton steps taken over the whole solve, the number reported.</summary>
+    public int Iterations;
+
     /// <summary>
     /// Whether the retained set is held (BOOT.md, the threshold flip, 2026-10-03): set at most once per attempt, when two
     /// consecutive second-stage steps passed the report's tests and were refused only because one gas entered the retained
@@ -228,6 +250,15 @@ internal struct IterationState
     /// species leave free are summed together rather than one side at a time. Never cleared within an attempt.
     /// </summary>
     public bool RetainedSetHeld;
+
+    /// <summary>Changes of the condensed set, capped by <see cref="EquilibriumSolver.MaxCondensedSetChanges"/>.</summary>
+    public int SetChanges;
+
+    /// <summary>
+    /// How many gases a trace-gas <c>Ok</c> reports below the second retention stage because they carry a part of a balance (TraceGas
+    /// BOOT.md, "An Ok reports its balance carriers"); zero for every other state. <see cref="SystemLayout.CarrierLogN"/> keeps them out of the derivatives.
+    /// </summary>
+    public int TraceCarriers;
 
     /// <summary>
     /// Rule A's tie (BOOT.md of the Newton child node), once a tied element row made the matrix singular; inactive until
@@ -238,6 +269,9 @@ internal struct IterationState
     /// <summary>Whether the tie has already been released once in this solve (BOOT.md, rule A, "Release"): at most once per solve.</summary>
     public bool TieReleased;
 
+    /// <summary>The record switched out at the last range switch, which may pair with its neighbour again; −1 if none.</summary>
+    public int LastSwitchedOut;
+
     /// <summary>
     /// Whether the temperature is assigned (a tp problem), set by <see cref="CaseSetup.Begin"/> (BOOT.md of the Newton child
     /// node, rule B, 2026-10-03). Rule B's gas column binds an assigned temperature only: with the temperature a variable, a
@@ -245,4 +279,6 @@ internal struct IterationState
     /// singular direction is rule A's element tie, not a removal.
     /// </summary>
     public bool AssignedTemperature;
+    /// <summary>The record removed for its range at the last convergence, skipped by one inclusion pass; −1 if none.</summary>
+    public int LastRemovedForRange;
 }

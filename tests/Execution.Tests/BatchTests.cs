@@ -235,41 +235,6 @@ public sealed class BatchTests
         }
     }
 
-    /// <summary>
-    /// The states and tables left out of the families for their element balance (<see cref="FixtureBatches.LeftOutTables"/>,
-    /// <see cref="GasPlateauFamilies.Family"/>) still exceed the table's closure bound on the CPU accelerator: each is a finding, not a
-    /// passing case, and this fact goes red when the solver closes it, which is the time to put the case back in its family.
-    /// </summary>
-    [Fact]
-    public void TheLeftOutStatesStillExceedTheClosureBound()
-    {
-        var left = new List<(EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<string> Labels)>();
-        foreach (var name in FixtureBatches.LeftOutTables)
-        {
-            var (batch, table, cases) = FixtureBatches.EquilibriumTableFamily(EngineFixture.Shared.Database, name);
-            left.Add((batch, table, [.. cases.Select(c => c.Name)]));
-        }
-
-        foreach (var name in GasPlateauFamilies.LeftOutKeys)
-        {
-            var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name, leftOut: true);
-            left.Add((family.Batch, family.Table, family.Labels));
-        }
-
-        Assert.NotEmpty(left);
-        foreach (var (batch, table, labels) in left)
-        {
-            using var tables = EngineFixture.Shared.Cpu.Upload(table);
-            var result = EngineFixture.Shared.Cpu.Run(tables, batch);
-            var balance = new ElementBalance(table, batch.ElementMoles);
-            for (var k = 0; k < batch.Count; k++)
-            {
-                Assert.Equal(CaseStatus.Ok, result.Status[k]);
-                Assert.NotEmpty(balance.Exceeding(balance.Residuals(k, result.Moles, k), "the CPU accelerator", labels[k]));
-            }
-        }
-    }
-
     /// <summary>A seeded batch does not depend on the chunking: five chunks of seven cases, the last of two, equal the shared engine's one chunk in every bit (2026-10-04).</summary>
     [Fact]
     public void ASeededBatchIsIndependentOfChunking()

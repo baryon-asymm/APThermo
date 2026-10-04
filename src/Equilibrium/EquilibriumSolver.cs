@@ -1,6 +1,7 @@
 using APThermo.Equilibrium.Condensed;
 using APThermo.Equilibrium.Recovery;
 using APThermo.Equilibrium.StateRecord;
+using APThermo.Equilibrium.TraceGas;
 using APThermo.Thermo;
 
 namespace APThermo.Equilibrium;
@@ -81,7 +82,8 @@ internal static class EquilibriumSolver
         while (true)
         {
             var state = new IterationState();
-            if (CaseSetup.Begin(table, plan.Current, scratch, result, plan.Source, ref state) != CaseStatus.Ok)
+            var current = plan.Current;
+            if (CaseSetup.Begin(table, current, scratch, result, plan.Source, ref state) != CaseStatus.Ok)
             {
                 return;
             }
@@ -89,19 +91,27 @@ internal static class EquilibriumSolver
             var status = CaseStatus.NotConverged;
             if (plan.RunsAttempt)
             {
-                var logPressure = CaseSetup.LogPressure(plan.Current);
-                status = ConvergenceSequence.Run(table, plan.Current, scratch, result, logPressure, ref state);
+                var logPressure = CaseSetup.LogPressure(current);
+                status = plan.RunsTraceGas
+                    ? RunTraceGas(table, current, scratch, result, logPressure, ref state)
+                    : ConvergenceSequence.Run(table, current, scratch, result, logPressure, ref state);
                 if (status == CaseStatus.Ok)
                 {
-                    status = Close(table, plan.Current, scratch, result, logPressure, state);
+                    status = Close(table, current, scratch, result, logPressure, ref state);
                 }
             }
 
             // The fallback also covers a failure found at the close, not only the Newton loop's own status (Recovery/BOOT.md,
             // the cold fallback): the window, the element invariant, the exit guard, a singular derivative system and the
-            // state guard all retry once, exactly as a failed Newton loop does.
+            // state guard all retry once, exactly as a failed Newton loop does. The views go to the NoInlining AttemptPlan.Next
+            // as copies: a loop-live local passed by ref or in to such a call is address-taken, and its every access in the
+            // loop goes through a generic pointer (BOOT.md, Compile size).
             plan.Iterations += state.Iterations;
-            if (AttemptPlan.Next(table, problem, scratch, result, status, ref plan))
+            var nextTable = table;
+            var nextProblem = problem;
+            var nextScratch = scratch;
+            var nextResult = result;
+            if (AttemptPlan.Next(nextTable, nextProblem, nextScratch, nextResult, status, ref plan))
             {
                 continue;
             }
@@ -110,6 +120,25 @@ internal static class EquilibriumSolver
             result.Status[0] = (int)plan.Status;
             return;
         }
+    }
+
+    /// <summary>
+    /// The trace-gas pass over copies of the loop-live locals: the NoInlining <see cref="TraceGasPass.Run"/> would otherwise
+    /// take the address of the iteration state and the views in <see cref="Solve"/>'s loop, and ILGPU would access them through
+    /// a generic pointer that may alias every view store (the root's Compile size constraint; measured +25 % on the rocket
+    /// sweep's kernel). The state is copied in and back, so what the pass leaves in it is what the caller continues with.
+    /// </summary>
+    private static CaseStatus RunTraceGas(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
+                                          in EquilibriumResult result, double logPressure, ref IterationState state)
+    {
+        var traceState = state;
+        var traceTable = table;
+        var traceProblem = problem;
+        var traceScratch = scratch;
+        var traceResult = result;
+        var status = TraceGasPass.Run(traceTable, traceProblem, traceScratch, traceResult, logPressure, ref traceState);
+        state = traceState;
+        return status;
     }
 
     /// <summary>0.8: the frozen floor factor of the reference's stop of a frozen expansion (cea 3.3.4 <c>rocket.f90:331-341</c>, BOOT.md, 2026-09-28).</summary>
@@ -210,13 +239,15 @@ internal static class EquilibriumSolver
 
     /// <summary>
     /// The exit guards of an Ok status and the state record: the mixture's temperature window, element conservation at
-    /// the node's invariant, no condensed candidate hidden by the anti-cycling rule, then the derivatives of section
-    /// 2.5, the mixture properties of section 2.6 and the state guard (BOOT.md, 2026-09-28). The reported moles are
+    /// the node's invariant, no condensed candidate hidden by the anti-cycling rule, every reported gas on its stationarity
+    /// within 1e-9 (<see cref="TraceGasStep.Stationary"/>, 2026-10-04), then the derivatives of section
+    /// 2.5 (<see cref="TiedDerivatives"/>: solved again with the tie the element rows show when the first solve is singular),
+    /// the mixture properties of section 2.6 and the state guard (BOOT.md, 2026-09-28). The reported moles are
     /// exactly the composition every one of these checks was taken over: <c>Composition.Refresh</c>'s last call, at
     /// the case's own active threshold (BOOT.md, "The report's own zeroing", corrected 2026-09-28).
     /// </summary>
     private static CaseStatus Close(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                    in EquilibriumResult result, double logPressure, in IterationState state)
+                                    in EquilibriumResult result, double logPressure, ref IterationState state)
     {
         if (state.Temperature is < MinMixtureTemperature or > MaxMixtureTemperature)
         {
@@ -224,13 +255,14 @@ internal static class EquilibriumSolver
         }
 
         if (!ElementBalance.WithinInvariant(table, problem, scratch, result)
-            || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state))
+            || CondensedSet.ExitGuardFindsAPositiveCandidate(table, scratch, result, state)
+            || !TraceGasStep.Stationary(table, scratch, result, logPressure))
         {
             return CaseStatus.NotConverged;
         }
 
         var sums = Composition.Sums(table, scratch, result, state, logPressure, RetentionThreshold(state));
-        var derivatives = DerivativeSystem.Solve(table, scratch, result, state, ScratchLayout.MaxUnknowns(table.ElementCount), sums);
+        var derivatives = TiedDerivatives.Solve(table, scratch, result, ref state, ScratchLayout.MaxUnknowns(table.ElementCount), sums);
         return !derivatives.Solved
             ? CaseStatus.SingularMatrix
             : MixtureProperties.WriteEquilibrium(problem, result, sums, derivatives) ? CaseStatus.Ok : CaseStatus.TemperatureOutOfRange;

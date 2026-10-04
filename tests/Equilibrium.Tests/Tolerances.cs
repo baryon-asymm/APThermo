@@ -31,6 +31,14 @@ internal static class Tolerances
     public const double GasChemicalPotential = 1.0e-6;
 
     /// <summary>
+    /// The largest departure of the chemical potential of any reported gas, of any share of the gas, from the sum of its element
+    /// multipliers that an Ok state may show, in units of RT, as <see cref="EquilibriumConditions.EveryGasViolations"/> checks it: the bound
+    /// the trace-gas close guard enforces (TraceGas BOOT.md), 50 times above the worst of the 17 356 closes of this node's tests
+    /// (1.95e-11) and 17 times below the smallest false Ok found (1.7e-8), 2026-10-04.
+    /// </summary>
+    public const double EveryGasChemicalPotential = 1.0e-9;
+
+    /// <summary>
     /// Relative: a derivative of the state against a central difference of two solved states at p(1 ± 1e-4). The difference
     /// is second order, about 1e-8 at that step, and the polished states carry about 1e-11 of noise divided by the step, so
     /// the 1e-6 of the StateRecord criterion has two decades of room (measured 2e-8 to 9e-8 on the plateau, 2026-10-03).

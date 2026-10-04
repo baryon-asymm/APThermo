@@ -74,9 +74,6 @@ internal static class GasPlateauFamilies
     /// </summary>
     private static readonly Dictionary<string, PlateauSystem> SeededSystems = SeededGrid();
 
-    /// <summary>The names of the seeded plateau families that leave states out (<see cref="Family"/>).</summary>
-    public static IReadOnlyCollection<string> LeftOutKeys => [.. SeededSystems.Where(pair => pair.Value.LeftOut.Length > 0).Select(pair => pair.Key)];
-
     /// <summary>The names of the seeded plateau families (2026-10-04).</summary>
     public static IReadOnlyCollection<string> SeededKeys => SeededSystems.Keys;
 
@@ -95,12 +92,8 @@ internal static class GasPlateauFamilies
         return data;
     }
 
-    /// <summary>
-    /// One of the families by its name, as one batch with its table. A seeded family leaves out the states its system names in
-    /// <see cref="PlateauSystem.LeftOut"/>, whose element balance the CPU accelerator closes only to 1e-11 (the hp states of magnesite at 1e4 and 1e6 Pa, cold as well as seeded) (Execution.Tests BOOT.md, the findings
-    /// of 2026-10-04); with <paramref name="leftOut"/> the family holds those states and no others.
-    /// </summary>
-    public static PlateauFamily Family(SpeciesDatabase database, string name, bool leftOut = false)
+    /// <summary>One of the families by its name, as one batch with its table.</summary>
+    public static PlateauFamily Family(SpeciesDatabase database, string name)
     {
         ArgumentNullException.ThrowIfNull(database);
         var system = Systems.TryGetValue(name, out var known) ? known : BracketedSystems.TryGetValue(name, out var bracketed) ? bracketed : SeededSystems[name];
@@ -111,7 +104,7 @@ internal static class GasPlateauFamilies
         var upper = TpAt(tables, system, moles, plateau + Bracket);
         var enthalpy = ReactionEnthalpy(tables, system, plateau);
         var extent = moles[system.Mixture.ExtentElement];
-        var states = system.States.Where(state => system.LeftOut.Contains(state) == leftOut).ToArray();
+        var states = system.States;
         var seed = system.SeedOffset > 0.0 ? TpAt(tables, system, moles, plateau + system.SeedOffset) : (HostEquilibriumCase?)null;
         Assert.True(seed is null || seed.Value.Status == CaseStatus.Ok, $"{name}: the seed state ends {seed?.Status}");
         var batch = seed is null
@@ -198,8 +191,7 @@ internal static class GasPlateauFamilies
             {
                 if (material != "magnesite" || pressure != 1.0e5)
                 {
-                    var leftOut = material == "magnesite" ? new[] { (ProblemKind.AssignedEnthalpyPressure, 0.1), (ProblemKind.AssignedEnthalpyPressure, 0.3), (ProblemKind.AssignedEnthalpyPressure, 0.5) } : [];
-                    seeded[$"seeded-bracket-{material}-p{pressure.ToString("0e0", CultureInfo.InvariantCulture)}"] = system with { Pressure = pressure, SeedOffset = SeedOffset, LeftOut = leftOut };
+                    seeded[$"seeded-bracket-{material}-p{pressure.ToString("0e0", CultureInfo.InvariantCulture)}"] = system with { Pressure = pressure, SeedOffset = SeedOffset };
                 }
             }
         }
@@ -230,9 +222,6 @@ internal static class GasPlateauFamilies
     {
         /// <summary>K above the plateau of the tp state whose moles seed every case; 0 for a cold family.</summary>
         public double SeedOffset { get; init; }
-
-        /// <summary>The states of <see cref="States"/> a family leaves out, with the reason in <see cref="Family"/>'s summary.</summary>
-        public (ProblemKind Kind, double Fraction)[] LeftOut { get; init; } = [];
     }
 
     /// <summary>The elements of a system, their ratio of moles and the one whose moles per kilogram are the moles of the reaction (one mole of it per mole of reaction).</summary>

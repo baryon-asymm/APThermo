@@ -87,9 +87,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   accelerators rarely, and a flipped decision costs under 1e-12 in `ln p` after the
   tail. The area-ratio iteration keeps `RocketSolver.TightTolerance` (1e-10).
 
-  ⚠ 2026-10-02, the owner's decisions: was `1e-10`, then `1e-11` (696 of 400 000 sweep
-  stations at different Newton counts, the guard's limit 400), now `1e-8` and two steps
-  (34 to 40, not the throat's; +5.4 % station solves) → HISTORY.md#throat-stop-rule;
+  ⚠ 2026-10-02, the owner's decisions: was `1e-10`, then `1e-11`, now `1e-8` and two steps → HISTORY.md#throat-stop-rule;
   ⚠ 2026-10-03: was "the area-ratio exits'", now mostly the polish's → HISTORY.md#stations-35
 
   The bracket (2026-09-26). The search keeps the smallest pressure solved with
@@ -199,8 +197,9 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   `ThroatBracketSearch` four times, `UpstreamChokeCheck`; the fourth is the throat
   tail's and the bisection fallback's `Trial`, 2026-10-02), and ILGPU inlines a full copy
   of the solve at each. A new stage that calls it adds a call, never a copy; a stage that
-  would reach `Equilibrium` another way is a root decision. Its arguments are `in`
-  structs and views as before, so the result bits do not move.
+  would reach `Equilibrium` another way is a root decision. It passes the callee copies of the
+  context's `Table` and `Scratch`, never a reference into the context (2026-10-04, the root's
+  Compile size constraint: a `NoInlining` call takes copies of loop-live locals); no bit moves.
 
 ## Structure
 

@@ -29,8 +29,15 @@ a full restatement of the equations in this document, which nobody has asked for
   the mole numbers of the condensed species in the solution). No reaction sets, no
   equilibrium constants.
 - **Element conservation at convergence.** For every element, `|Σ a_ij n_j − b_i| ≤
-  1e-12 · max(1, b_i)` in kmol per kilogram; a converged case that violates it is
-  reported as `NotConverged`, never as `Ok`.
+  1e-13 · b_i` in kmol per kilogram; a converged case that violates it is
+  reported as `NotConverged`, never as `Ok`. A `NoGasPhase` state is held to the gasless
+  verdict's own absolute 1e-12 ([GasPhase/BOOT.md](GasPhase/BOOT.md)).
+
+  ⚠ 2026-10-04: was ≤ 1e-12 · max(1, b_i), now ≤ 1e-13 · b_i → HISTORY.md#relative-invariant
+- **Gas-level stationarity at convergence** (2026-10-04). Every gas an `Ok` reports sits on its
+  stationarity within 1e-9; the close refuses any other state as `NotConverged` ([TraceGas](TraceGas/BOOT.md)).
+  An hp or sp state at a data junction (an interval bound where the fits of two ranges disagree) is the tp
+  state at the bound or at the next double, the one nearer the target (TraceGas, "The data junction").
 - **The candidate list never changes.** Every species of the table is a candidate
   throughout; in the Newton iteration gaseous species stay positive because the unknowns
   are their logarithms, and a `NoGasPhase` result reports them zero
@@ -164,6 +171,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   the reacting conductivity), the iteration count and the status.
 - The state guard, the figures of an `Ok` frozen state, the property definitions of RP-1311 and the
   pinned pair's convention: [StateRecord/BOOT.md](StateRecord/BOOT.md), `## Constraints`.
+- Compile size (2026-10-04, the root's Compile size constraint): `Solve` calls its `NoInlining` stages (`TraceGasPass.Run` through `RunTraceGas`, `AttemptPlan.Next`) with copies of its loop-live locals, never `ref` or `in` to them; no bit moves.
 
 ## Structure
 
@@ -183,15 +191,17 @@ below) is the proof.
 | `Condensed` (child node) | changes the condensed set between two convergences and holds the exit guard ([Condensed/BOOT.md](Condensed/BOOT.md)) | internal, no project of its own |
 | `GasPhase` (child node) | the gasless verdict of a failed tp attempt: the condensed-only Gibbs minimum by a two-phase revised simplex and the tangent-plane certificate that no gas lowers it ([GasPhase/BOOT.md](GasPhase/BOOT.md)) | internal, no project of its own |
 | `Recovery` (child node) | the attempts of a case after the first and their order: the cold fallback, the verdict's place, the temperature bracket of hp and sp over tp probes, the finals, the state cleared on a failure; `AttemptPlan.Next`, reached from `Solve` through one `NoInlining` method ([Recovery/BOOT.md](Recovery/BOOT.md)) | internal, no project of its own |
+| `TraceGas` (child node) | the trace-gas pass that `Recovery` schedules after a `GasRequired` verdict and as a bracket's final, and the close guard of gas-level stationarity ([TraceGas/BOOT.md](TraceGas/BOOT.md)) | internal, no project of its own |
 | `StateRecord` (child node) | turns a converged or frozen composition into the `MixtureState` (RP-1311 sections 2.5 and 2.6, the plateau convention, the state guard) ([StateRecord/BOOT.md](StateRecord/BOOT.md)) | internal, no project of its own |
 
 The other stage classes of this directory (`CaseSetup`, `ConvergenceSequence`, `Composition`,
 `SpeciesMarks`, `ElementBalance`, `FrozenTemperature`, `DenseSolver`) are internal, each described by the
 summary of its declaration; the classes of the child nodes are listed in their `BOOT.md`.
 The data flow: `Solve`, `CaseSetup`, then `ConvergenceSequence` (a loop of `Newton.Converge`,
-`Composition.Refresh` and `Condensed.Update`, with the tie's release and its way back), then the
-close: window, element invariant, exit guard, `Composition.Sums`, `DerivativeSystem`,
-`MixtureProperties`; after every attempt `Recovery.AttemptPlan.Next` names the next one or the status.
+`Composition.Refresh` and `Condensed.Update`, with the tie's release and its way back) or, for a pass
+`Recovery` names, `TraceGasPass.Run`; then the close: window, element invariant, exit guard, gas
+stationarity, `Composition.Sums`, `TiedDerivatives`, `MixtureProperties`; after every attempt
+`Recovery.AttemptPlan.Next` names the next one or the status.
 → HISTORY.md#structure-table-rows
 
 ⚠ 2026-09-15: was six types public, now internal with grants → HISTORY.md#visibility
@@ -242,15 +252,10 @@ marks and the two reductions of the input. → HISTORY.md#s-marks
 
 What the implementation settled, 2026-09-14, in the coding session that followed:
 
-- **The `ref` carrier holds** (`KernelEqualityTests`, here and in `Performance.Tests`), and `Solve`
-  and `SolveFrozen` fit under 60 lines as plain stage sequences
-  → HISTORY.md#s-settled-2026-10-02
+- **The `ref` carrier holds**, and `Solve` and `SolveFrozen` fit under 60 lines → HISTORY.md#s-settled-2026-10-02
 
-- **The carriers are filled by name, not by position.** `MixtureSums` and `Derivatives`
-are structs written at the one place that computes them and read through `in`, not
-readonly structs with a nine- and a five-parameter constructor: a carrier that removes
-the parameter hazard may not reintroduce it in its own constructor; `SystemLayout`
-stays readonly, its arguments being the shape of the system. → HISTORY.md#s-settled
+- **The carriers are filled by name, not by position** (`MixtureSums`, `Derivatives`; `SystemLayout`
+  stays readonly) → HISTORY.md#carriers-by-name-2026-10-04
 
 ## Shape exceptions
 
@@ -259,12 +264,13 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `EquilibriumSolver` | efferent coupling | 22 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
+| `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
 | `EquilibriumScratch.EquilibriumScratch` | parameters | 14 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot grouped in `TieSlices`; grouping the rest would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 The rows of the child nodes' types stand in their own `## Shape exceptions`
 ([Newton/BOOT.md](Newton/BOOT.md), [StateRecord/BOOT.md](StateRecord/BOOT.md)).
 
+⚠ 2026-10-04: was `EquilibriumSolver` 22, now 24: `TraceGasPass` and `TraceGasStep` added → HISTORY.md#ce-solver-2026-10-04
 ⚠ 2026-09-28: was `EquilibriumScratch` 12 parameters, now 16 → HISTORY.md#ce-scratch16
 ⚠ 2026-10-03: was 16, now 14 → HISTORY.md#scratch-14-2026-10-03
 

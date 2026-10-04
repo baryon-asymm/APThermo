@@ -9,6 +9,49 @@ used to stand.
 
 ---
 
+<a id="throughput-per-iteration-2026-10-04"></a>
+
+## 2026-10-04 - from "## Invariants", the approved throughput file - the per-iteration check and the record of 2026-09-19
+
+Coder 7 of 0.2.2. The merged branch of coder 6 (d38e3f89) made the rocket sweep's CUDA kernel 0.222 s against 0.178 s: a loop-live `IterationState` passed by `ref` to the `NoInlining` `TraceGasPass.Run` made the local address-taken, and the whole Newton loop accessed it through a generic pointer that may alias every view store (PTX generic loads 12 669 to 20 200). The ratio fell to 18.09 to 18.60, below the floor of 0.8 times the approved 23.58 (18.86); but the check that held the file was a ratio, which moves with the CPU accelerator's load and with the transfer overhead (CUDA seconds 0.151 at the record, 0.249 today), so it cannot tell a slower kernel from a busier CPU, and a floor lowered by an honest re-approval would have let the regression through. The kernel time per Newton step does: with the fix (`EquilibriumSolver.Solve` and `StationSolve.At` pass copies) the kernel was 0.175 and 0.176 s over two quiet runs, 7.820e-08 and 7.849e-08 s per step at 22.403 steps per case (sum of `RocketBatchResult.Iterations` over the stations, per case; deterministic), and d38e3f89 measured 1.023e-07 s per step, 130.3 % of the approved figure, where 0.2.0 to 0.2.1 differed by 4 % and run-to-run variation is under 2 %.
+
+The Windows record of 2026-09-19 (ratio 23.58, CUDA 0.151 s, CPU accelerator 3.557 s, kernel 0.132 s) does not reproduce even at its own commit: v0.1.0 measures 19.7 to 21.2 on the same machine today (the investigator's runs, 2026-10-04), because the transfer overhead around the kernel grew. `Throughput.approved.txt` was re-approved from the second of two quiet Release runs of 2026-10-04 (ratio 21.28 and 21.29, 20.71 in the first, with 25 % background CPU load from other sessions). The record stood:
+
+> cuda_seconds: 0.151
+> cpu_seconds: 3.557
+> ratio: 23.58
+> cuda_kernel_seconds: 0.132
+> date: 2026-09-19
+
+The bullet stood:
+
+> - **The approved throughput file is a tripwire**: a run writes `Throughput.actual.txt`
+>   next to it; the test fails when the ratio falls below the approved one by more than
+>   20 % or below 5×.
+
+`Throughput.linux.approved.txt` was not re-measured (no WSL measurement from the coder's session): it carries no per-iteration line, so the fact fails there with a message naming the file until the orchestrator re-approves it under WSL.
+
+---
+
+<a id="left-out-states"></a>
+
+## 2026-10-04 - from "## Invariants" - states left out of the families for their element balance
+
+Moved by the leftovers commit of 0.2.2 (coder 6): the solver's close is relative (`1e-13 · b_i`, Equilibrium `BOOT.md`), the CPU accelerator closes every one of the states below to the table's bound, `BatchTests.TheLeftOutStatesStillExceedTheClosureBound` went red as it was written to, and the states went back into their families (`FixtureBatches.LeftOutTables` and `GasPlateauFamilies`' `LeftOut` are gone, the fact is retired). The solver fix was chosen, not a bound by conditioning. The bullet stood:
+
+> - **States left out of the families for their element balance** (2026-10-04, the findings of the
+>   seeding work; the closure bound of 1e-13 is not loosened). The CPU accelerator ends `Ok` and
+>   closes the balance only to 7.5e-13 (the 17-element table's one case, 1.2e-12 at half pressure; 17
+>   elements, many condensed phases) and to between 1e-11 and 1.5e-11 (carbon, `ρ`; 4e-12 to 6e-12 for
+>   oxygen) on the hp states of magnesite at 1e4 and 1e6 Pa, cold as well as seeded (sp states and
+>   calcite close to 1.5e-14). They are left out by name (`FixtureBatches.LeftOutTables`,
+>   `GasPlateauFamilies`' `LeftOut`) and `BatchTests.TheLeftOutStatesStillExceedTheClosureBound`
+>   keeps each a finding: it goes red when the solver closes it, the time to put it back. The owner
+>   decides between a solver fix and a bound by conditioning; the magnesite band is the trace-gas
+>   work of `Recovery`'s `BOOT.md`.
+
+---
+
 <a id="guard-curvature"></a>
 
 ## 2026-10-04 - from "## Invariants" - the guard of the balance-remnant correction

@@ -137,7 +137,7 @@ internal static class GasPhaseRig
             return null;
         }
 
-        CondensedSimplex.WriteMoles(view, scratch, result, input, rows);
+        CondensedSimplex.WriteMoles(view, scratch, result, rows);
         var directions = TangentPlane.Directions(view, input, scratch, rows);
         var pi = new double[elementCount];
         for (var r = 0; r < rows; r++)

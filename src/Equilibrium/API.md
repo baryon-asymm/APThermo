@@ -110,7 +110,7 @@ internal static class EquilibriumSolver                  // kernel-compatible
                              in EquilibriumScratch scratch, in EquilibriumResult result,
                              bool useMolesAsEstimate);
         // useMolesAsEstimate: result.Moles (and problem.Temperature for hp/sp) are the initial estimate
-        // after a failure: the attempts of Recovery/BOOT.md (cold fallback, gasless verdict for tp)
+        // after a failure: the attempts of Recovery/BOOT.md (cold fallback, gasless verdict for tp, a trace-gas pass after a GasRequired verdict)
     public static void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem,
                                    in EquilibriumScratch scratch, in EquilibriumResult result);
         // composition fixed to result.Moles; solves for the temperature (hp, sp) or evaluates at it (tp)
@@ -275,7 +275,7 @@ not finite (2026-09-28)),
 change of the condensed set, more than `MaxCondensedSetChanges` changes, the element
 conservation invariant violated at the end, or, since 2026-09-26, a condensed candidate
 left out of an otherwise converged state by more than 1e-9 per mole: `BOOT.md`, the exit
-guard), `SingularMatrix` (only once none of the remedies resolves the singular system:
+guard, and the trace-gas pass of [TraceGas/BOOT.md](TraceGas/BOOT.md) ending without a state, 2026-10-04), `SingularMatrix` (only once none of the remedies resolves the singular system:
 rule B's dependent-set ratio test, rule A's element tie, the two gaseous resets of RP-1311
 section 3.6, then the targeted removal of the species of the row whose pivot failed since
 2026-09-28, [Newton/BOOT.md](Newton/BOOT.md), "Two rules come before the remedies above" and the targeted

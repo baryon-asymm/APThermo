@@ -7,8 +7,8 @@ namespace APThermo.Equilibrium.Tests;
 [Collection(CpuFixture.CollectionName)]
 public sealed class ElementConservationTests
 {
-    /// <summary>The invariant's tolerance (Equilibrium BOOT.md): |Σ a_ij n_j − b_i| ≤ 1e-12 · max(1, b_i).</summary>
-    private const double Invariant = 1e-12;
+    /// <summary>The invariant's tolerance (Equilibrium BOOT.md): |Σ a_ij n_j − b_i| ≤ 1e-13 · b_i.</summary>
+    private const double Invariant = EquilibriumConditions.ElementInvariant;
 
     private static readonly string[] Kinds = ["tp", "hp", "sp"];
     private static readonly double[] TwoElementMoles = [0.2, 0.1];
@@ -106,7 +106,7 @@ public sealed class ElementConservationTests
             }
 
             var residual = Math.Abs(b - solution.Case.ElementMoles[i]);
-            var bound = Invariant * Math.Max(1.0, solution.Case.ElementMoles[i]);
+            var bound = Invariant * solution.Case.ElementMoles[i];
             if (!(residual <= bound))
             {
                 violations.Add($"{solution.Case.Table.Elements[i]}: residual {residual:E3} above {bound:E3}");

@@ -15,6 +15,12 @@ internal enum BracketMove
     /// <summary>The final attempt, seeded by the last probe, which Newton's step converged on.</summary>
     AttemptFromProbe,
 
+    /// <summary>The final attempt run by the trace-gas pass (seam (b)), seeded by the lever rule: an end of the bracket was found by a trace-gas pass.</summary>
+    TraceGasFromLever,
+
+    /// <summary>The final attempt run by the trace-gas pass (seam (b)), seeded by the last probe, a trace-gas end on which Newton's step converged.</summary>
+    TraceGasFromProbe,
+
     /// <summary>The gasless final at the temperature Newton's step converged on: the verdict alone.</summary>
     GaslessAtProbe,
 

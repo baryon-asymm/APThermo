@@ -9,15 +9,19 @@ namespace APThermo.Equilibrium;
 /// <remarks>
 /// The two tests are two different questions and therefore two methods rather than one with a flag: equation (3.6a) of
 /// RP-1311 asks whether the iterate is converged, relative to the largest abundance of the case; the node's own invariant
-/// (BOOT.md) asks whether a converged result may be reported as Ok at all, per element and absolute.
+/// (BOOT.md) asks whether a converged result may be reported as Ok at all, per element and relative to its abundance.
 /// </remarks>
 internal static class ElementBalance
 {
     /// <summary>Equation (3.6a): the convergence test on the element residuals, relative to the largest abundance.</summary>
     private const double ReportTest = 1.0e-6;
 
-    /// <summary>The node's element-conservation invariant (BOOT.md), on max(1, b_i).</summary>
-    private const double Invariant = 1.0e-12;
+    /// <summary>
+    /// The node's element-conservation invariant (BOOT.md), relative to the element's abundance b_i: 1e-13, the comparison node's bound and a
+    /// tenth of the smallest input perturbation the scans resolve. The form it replaced, 1e-12 times max(1, b_i), was an absolute
+    /// 1e-12 kmol/kg for every real mixture (b_i is below 1 kmol/kg) and let a carrier of 1.6e-13 kmol/kg out of the balance.
+    /// </summary>
+    internal const double Invariant = 1.0e-13;
 
     /// <summary>The element's abundance in the composition: Σ a_ij n_j in kmol per kilogram.</summary>
     public static double Abundance(in SpeciesTableView table, in EquilibriumResult result, int element)
@@ -59,7 +63,7 @@ internal static class ElementBalance
     }
 
     /// <summary>
-    /// The node's invariant: every active element's residual within Invariant times max(1, b_i°). An Ok status requires
+    /// The node's invariant: every active element's residual within Invariant times b_i°. An Ok status requires
     /// it. A NaN abundance is outside the invariant (2026-09-28, the guards audit's O8): the comparison is written so
     /// that a NaN residual, which is neither less than nor greater than any threshold, fails it rather than passing it
     /// by finding no violation.
@@ -75,7 +79,7 @@ internal static class ElementBalance
             }
 
             var residual = Math.Abs(problem.ElementMoles[i] - Abundance(table, result, i));
-            if (!(residual <= Invariant * KernelMath.Max(1.0, problem.ElementMoles[i])))
+            if (!(residual <= Invariant * problem.ElementMoles[i]))
             {
                 return false;
             }
