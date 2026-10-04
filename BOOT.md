@@ -223,13 +223,13 @@ delivery (2026-09-15, `## Delivery` below).
     by-reference transfer. → HISTORY.md#ilgpu-hazards-condensed
 
   ⚠ 2026-09-26: was the defect tied to libnvvm, now to the target → HISTORY.md#ilgpu-sm
-- Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default
-  (`InliningMode.Default`), so each call site of a method that holds a whole solve is a
-  full copy of it in the compiled program. A stage that holds or reaches a whole solve
-  (`Equilibrium`'s `Solve` and `SolveFrozen`, through `StationSolve` in `Performance`) is
-  reached through one method marked `[MethodImpl(MethodImplOptions.NoInlining)]`, or has
-  one call site. The rocket kernel's compile on the CPU accelerator stays inside the
-  bounds of the execution node's guard (its `BOOT.md`).
+- Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default (`InliningMode.Default`), so each call
+  site of a method that holds a whole solve is a full copy of it in the compiled program. A stage that holds or reaches
+  a whole solve (`Equilibrium`'s `Solve` and `SolveFrozen`, through `StationSolve` in `Performance`) is reached through
+  one method marked `[MethodImpl(MethodImplOptions.NoInlining)]`, or has one call site. The rocket kernel's compile on
+  the CPU accelerator stays inside the bounds of the execution node's guard (its `BOOT.md`). A `NoInlining` method is
+  called with copies of the caller's loop-live locals, never `ref` or `in` to them (2026-10-04): an address-taken local
+  is reached through a generic pointer that may alias every view store, and cost the rocket kernel 25 % on CUDA.
 
   ⚠ 2026-09-30: was no compile bound (11.2 GB), now one (0.43 GB) → HISTORY.md#compile
 - Batches: structure-of-arrays layout, one case per GPU thread, no dynamic allocation
