@@ -314,7 +314,7 @@ public sealed record EquilibriumResult     // internal constructor (M1): a consu
 }
 ```
 
-`NoGasPhase` (2026-10-03, 0.2.2) is a status like the others for this node: `Station.State` holds
+`NoGasPhase` (2026-10-03, 0.3.0) is a status like the others for this node: `Station.State` holds
 `Temperature` and `Pressure` only, every other field zero (for an hp or sp case the temperature the
 equilibrium search found); `MoleFractions` and `CondensedMassFractions` carry the condensed composition the
 equilibrium found, every gas zero; `TransportStatus` is null; and a rocket case whose chamber ends

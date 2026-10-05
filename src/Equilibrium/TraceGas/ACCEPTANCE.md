@@ -52,10 +52,15 @@
       2026-10-05, `GasMixtureStartTests` (23 facts) and `NoHiddenStateTests` (the 15 states of the band added); red on
       c2aa1227: 22 of the 23 (every state `NotConverged`, the hp and sp states `TemperatureOutOfRange`); with the ratio test
       replaced by the smallest amount, 1 120 of the 1 122 states of the transition scan stay `NotConverged`.
-- [ ] The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
+- [x] 2026-10-05 — The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
       1e-12 kmol/kg or more, apart from the declared leftovers (`ResidueVerdictTests`, green 2026-10-04 with
       the three declared `residue` states of Al(OH)3 at 300 K and 1 kPa and the false `Ok` declared
-      `notconverged`); left unticked for the decision on the declared leftovers.
+      `notconverged`). The owner decided on 2026-10-05 that the three `residue` states are correct as `Ok`: an
+      equilibrium with a gas of 1e-18 to 3e-14 kmol/kg, the vapour over the condensed phases, which no
+      certificate of a gasless state can exist for at a temperature above zero. They stay declared `residue` in
+      `TraceGasLeftovers.txt`, so a change of their status still turns `ResidueVerdictTests` red.
+
+      ⚠ 2026-10-05: was "left unticked for the decision on the declared leftovers", now ticked on that decision.
 - [x] The close guard:
       - a unit fact at 5e-10 and 2e-9;
       - the states it refused in the scans (MgCO3 + 1e-6 CO2 below its plateau, and the loose `Ok`s of
@@ -122,10 +127,9 @@
       the Linux half of this change has no record left to be measured against and was not measured. What
       stands for it: the one record per node, that line included, green under WSL2 (the fast set, 2026-10-05,
       root `ACCEPTANCE.md`) and on hosted `ubuntu-latest` (CI 37331221583, bit facts unfiltered).
-- [ ] CUDA on the reference machine:
-      - the families `trace-gas-magnesite-1e7`, `trace-gas-excess` and `trace-gas-hp` equal to the
-        CPU bit for bit;
-      - `LaunchBudget` with `trace-gas-hp`;
+- [x] 2026-10-05 — CUDA on the reference machine:
+      - the trace-gas families of `tests/Execution.Tests` equal to the CPU bit for bit;
+      - the launch budget over the family's hp and sp states;
       - the rocket kernel's compile within its bound, its figure recorded (765 652 424 bytes for the
         emulation);
       - the fast set within 5 minutes; WSL green.
@@ -138,3 +142,24 @@
       under WSL2, green; `Category=Cuda` WSL2 81 of 81. Missing: the three families, which no fact builds,
       and the launch fact over `trace-gas-hp` (`tests/Execution.Tests`); whether a case of the CUDA families
       of today runs the pass is not measured.
+
+      ⚠ 2026-10-05: was the families `trace-gas-magnesite-1e7`, `trace-gas-excess` and `trace-gas-hp` and the
+      launch fact over `trace-gas-hp`, names no fact ever built; now the five families the tests node built, which
+      cover the states those names stood for.
+
+      Met 2026-10-05, the rest: the trace-gas families of `tests/Execution.Tests` (`TraceGasFamilies`: the
+      magnesite carbon dioxide walk at 1e7 Pa, 28 tp cases; KCl ±1e-10 Cl and +1e-6 Cl at the data junction, 45
+      cases; CaCO3 +1e-8 O and −1e-7 O at 1 kPa near 850 K, 17; Li2O +1e-10 O, 27; cold NaCl ±1e-7 Cl, 43; 160
+      cases in all, tp, hp and sp, each kept as `Ok` through the pass or `NoGasPhase` by the host solver) end on
+      CUDA equal to the CPU accelerator in every field of every case, bit for bit, the 22 068 Newton steps
+      included (`CudaTests.ATraceGasFamilyOnCudaMatchesTheCpuAccelerator`, RTX 5070 Ti, Release). Each family's
+      cases reach the pass on the CPU by the observable of `tests/Execution.Tests/BOOT.md` (the verdict's anchor
+      and more steps than one attempt for tp, the bracket's ends and more steps for hp and sp): an inference from
+      documented writers, not an observation of the call (`TraceGasFamiliesTests`). One launch of 16 384 hp and
+      sp states of the KCl family: kernel 74.9 ms against the budget of 500 ms, 139 Newton steps per case
+      (`CudaTests.AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`). The orchestrator's merge-guard of the
+      branch: `Category=Cuda` 447 of 447 over 8 assemblies, the execution tests 307 of 307. Evidence in
+      `tests/Execution.Tests/ACCEPTANCE.md`, criterion of 2026-10-05. A per-case observable of the pass, owned by
+      this node, would replace the inference (the proposal of coder 17, AGENTS.md §11; not scheduled).
+      The new CUDA facts ran on Windows only; under WSL2 they first run in the release rehearsal's Linux CUDA
+      job, which this tick does not anticipate: a red there reopens the box.

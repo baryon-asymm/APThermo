@@ -381,7 +381,7 @@ and `transport` with `status` and, when it is `ok`, every field of
 2026-09-26). A non-finite number
 is written as `null`. Statuses are the library's `CaseStatus` names in camel case.
 
-`noGasPhase` (2026-10-03, 0.2.2): the station's `moleFractions` and `condensedMassFractions` are written, its
+`noGasPhase` (2026-10-03, 0.3.0): the station's `moleFractions` and `condensedMassFractions` are written, its
 `temperature` and `pressure` are written and every other state field is 0; exit code 1.
 
 The CSV form has one row per case and station: `case`, the scalar inputs under the

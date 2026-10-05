@@ -304,12 +304,12 @@ memory, which this node owns; an evaluation on the host would be a second
 implementation of the polynomial.
 
 ⚠ 2026-10-04: the equilibrium batch result's `State` said "zero where the status is not Ok". Wrong
-since 0.2.2: a `NoGasPhase` case (no gas phase, the condensed minimum) carries its Temperature and
+since 0.3.0: a `NoGasPhase` case (no gas phase, the condensed minimum) carries its Temperature and
 Pressure, the rest zero, as the root's failures-are-values invariant says. Found on 2026-10-04 by the
 orchestrator, from the comparison of the gasless families on CUDA (`GpuCpuComparison`), which reads them;
 the batch result has no multipliers, so such a case is compared on its moles and its state's two fields.
 
-**Seeded equilibrium batches** (2026-10-04, 0.2.2). A batch built with `seedSpeciesCount` runs every case as
+**Seeded equilibrium batches** (2026-10-04, 0.3.0). A batch built with `seedSpeciesCount` runs every case as
 `EquilibriumSolver.Solve` does with `useMolesAsEstimate` ([Equilibrium](../Equilibrium/API.md)), its row of
 `SeedMoles` being the moles the solver starts from and `Temperature` the hp and sp estimate; a previous result's
 `Moles` row, of the same table, is a valid seed as it is. A seed of zeros is not the cold start: a batch is seeded or

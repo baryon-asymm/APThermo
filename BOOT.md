@@ -362,7 +362,9 @@ those nodes' own invariants. → HISTORY.md#test-nodes-retelling
 
 ## Delivery
 
-Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first release.
+Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first release. The work
+cycle the documents call 0.2.2 is released as 0.3.0, since it breaks the public surface
+(owner, 2026-10-05).
 
 - **Packages.** `APThermo` is packed from `src/Problems`, the front door, and carries
   every library assembly (`Data`, `Thermo`, `Equilibrium`, `Performance`, `Transport`,
@@ -443,4 +445,6 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
 - **Evidence for workflow changes**: [.github/BOOT.md](.github/BOOT.md).
 
   ⚠ 2026-10-01: was IsaProbe a deviation, now a node → .github/HISTORY.md#isaprobe
+
+  ⚠ 2026-10-05: was IsaProbe a node, now removed with its step (owner) → .github/HISTORY.md#isaprobe-removed
 - Nothing is pushed to GitHub or nuget.org without the owner's word.

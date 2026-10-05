@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-05
+
+This release breaks the public surface of 0.2.1: the CUDA Toolkit paths leave `EngineOptions`,
+`AcceleratorInfo` and `AcceleratorUnavailableException` and the command line's documents (below), and
+`CaseStatus` gains `NoGasPhase`. Every numerical result moves in its last digits, the same on CUDA and on the
+CPU.
+
 ### Removed
 - The CUDA Toolkit is no longer needed, named or looked for. The kernels call no libdevice function, so
   the package removes, from its public surface:
@@ -37,9 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   field of every result of a batch is equal on the two accelerators, statuses and iteration counts included,
   so a result no longer depends on the accelerator that ran it. Results move in their last digits against
   0.2.1; the figures in `docs/` that quote them were regenerated. Correct rounding costs time on both. Measured
-  on the reference machine, shared with other test runs: the CPU accelerator takes 7.2 s for the 100 000-case
-  rocket batch against 5.3 s (+36 %, the owner accepted the cost), and the CUDA kernel 1.43e-7 s per Newton
-  step against 7.85e-8 s (+82 %); the CUDA/CPU ratio stays at 20 or more.
+  on the reference machine (the median of three timed runs): the CPU accelerator takes 6.6 s for the
+  100 000-case rocket batch against 5.3 s (+24 %, the owner accepted the cost), and the CUDA kernel 1.24e-7 s
+  per Newton step against 7.85e-8 s (+58 %); CUDA stays 18.5 times faster than the CPU accelerator on Windows
+  and 25.9 times under WSL2.
 - The bit records of the tests are one per node, not one per platform: Windows and Linux (WSL2) produce the
   same bits.
 - On any status but `Ok` the state is zero, as before, with the one exception of
@@ -137,8 +145,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   wrong by up to 0.17 % with an `Ok` status. It now comes from the isentrope as well.
 
 ### Notes
-- CaCO3 with 1e-7 too little oxygen at 1 kPa and 849 to 851 K still ends `NotConverged`, between `NoGasPhase`
-  states at 845 K and below and `Ok` states at 855 K and above.
 - An assigned-temperature state below a dead-end bound (the cases above) still reports the
   supersaturated gas: the species list is the contract, a record outside its data range is
   no candidate, and NASA CEA does the same. The library adds no species to a list, so an
@@ -438,7 +444,8 @@ and planned for 0.2.1:
   output.
 - JSON Schemas embedded in the CLI (`apthermo schema <name>`).
 
-[Unreleased]: https://github.com/baryon-asymm/APThermo/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/baryon-asymm/APThermo/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/baryon-asymm/APThermo/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/baryon-asymm/APThermo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/baryon-asymm/APThermo/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/baryon-asymm/APThermo/releases/tag/v0.1.0

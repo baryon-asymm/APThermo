@@ -24,7 +24,7 @@
 
   <!-- The one version of every package (root BOOT.md, ## Delivery, Packages): a release tag v<version> must equal it. -->
   <PropertyGroup>
-    <VersionPrefix>0.2.1</VersionPrefix>
+    <VersionPrefix>0.3.0</VersionPrefix>
   </PropertyGroup>
 
   <!--
