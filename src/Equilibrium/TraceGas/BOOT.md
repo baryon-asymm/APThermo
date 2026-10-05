@@ -161,8 +161,24 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
        phase: CaO beside CaCO3 under an excess of oxygen);
      - π solves the stationarities of the basis: `g_c/RT` for a record, `g_j/RT + ln(p/p°) + ln(v_j/n)` for
        a basic gas of amount `v_j`, at unit fraction for one at zero level;
-     - n is the sum of the basic gases; the start is skipped when no gas is basic with a positive amount, an
-       artificial column stays basic, or the basis is singular.
+     - n is the sum of the basic gases; the start is skipped when an artificial column stays basic or the basis
+       is singular;
+     - **the mixture column** (2026-10-05): when no gas is basic and `ln S0 > 0` at the multipliers π0 of the
+       basis, every gas lies below unit fraction while their mixture lowers the Gibbs energy. The mixture
+       `y_j = x_j(π0)/S0` is the column of least reduced cost, `−ln S0`, and enters by one pivot: `B w = A y`;
+       the record it replaces is the least `v_k/w_k` over `w_k > 1e-11` (the lowest row on a tie); n is that
+       ratio, the other basics move to `v − n w`; π solves the remaining records' stationarities and the
+       mixture's, `y·Aπ = y·Aπ0 − ln S0`, where `S ≥ 1` by Jensen's inequality and is 1 to second order. The
+       start is skipped when a basic is a gas or an artificial, `ln S0 ≤ 0`, no record leaves at a positive
+       ratio, or a system is singular. The case is the band above a transition where a gasless assemblage
+       gives way to a gas of several species: CaCO3 − 1e-7 O is CaCO3(cr) + CaO(cr) + C(gr) until `ln S0` of
+       that vertex reaches zero, at T_t = 848.153 K at 1 kPa, and CaCO3(cr) + CaO(cr) under CO and CO2 above it;
+       until CO alone reaches unit fraction at the vertex (854.3 K) the program holds no gas.
+
+     ⚠ 2026-10-05: was "the start is skipped when no gas is basic with a positive amount", now the gas mixture
+     enters as one column then. The states of the band ended `NotConverged`: starts 1 to 4 dropped CaO for the
+     gas (room for the gas, below: CaO and C(gr) tie at 1.5e-7 b_Ca), the projection after its re-inclusion
+     overflowed `S`, and the gas basis was skipped.
 
      Every gas then follows from π, and the excess sits in its carrier on its own branch. With the records
      fixed the gas must satisfy `n F(π) = b*` and `Σ_j x_j = 1`; along a free direction of π the sum is
@@ -178,12 +194,27 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
        nor the shares of the basic gases is needed for the status: without the record the CaCO3 pass takes
        4 to 20 steps instead of 1 to 3, without the shares the Al(OH)3 pass 22 to 29 instead of 1.
 
+     The mixture column, measured 2026-10-05 on its prototype, each state solved with the column and without:
+     - 393 807 tp states of the 17 systems at ±1e-6 to ±1e-10, 100 Pa to 10 MPa, 300 to 3 000 K, refined to
+       0.01 K wherever the status or the condensed set changes: 1 122 `NotConverged` end `Ok` and clear (CaCO3 −
+       1e-7 O at 100 Pa and 1 kPa, NaCl − 1e-6 Cl at 100 kPa and 1 160 K), nothing else changes a status or a bit;
+     - 127 143 states of CaCO3, MgCO3 and CaCO3 with its carbon shifted, at 1e-6 to 1e-10 either way, 100 Pa to
+       10 MPa, 300 to 1 600 K: 22 787 `NotConverged` end `Ok` and clear (CaCO3 − 1e-7 and − 3e-8 O at every
+       pressure from 100 Pa, the band 5 to 16 K wide), five MgCO3 states stay `NotConverged` as before (declared
+       leftovers, below), nothing else moves;
+     - the record left by the smallest amount instead of the ratio test: 1 120 of the 1 122 stay `NotConverged`;
+       π0 kept instead of the mixture's row: no status changes, 0.7 more steps on average.
+
   **Room for the gas** (F2, 2026-10-04): beside a gas at an assigned temperature and pressure the phase
   rule allows at most (active elements − 1) condensed phases. When a loaded point, or the set after
   `CondensedSet.Update`, holds as many records as active elements, the record with the smallest positive
   amount leaves and its moles go to zero (`PhaseOneSeed.KeepRoomForTheGas`); the newcomer of an inclusion
-  enters at zero and stays. The verdict has proved a gas required, and the record the gas replaces is the
-  one that carries the excess, the smallest. It counts in `SetChanges`. The phase-one point of a
+  enters at zero and stays. The verdict has proved a gas required, and the record the gas replaces is
+  usually the one that carries the excess, the smallest. It counts in `SetChanges`.
+
+  ⚠ 2026-10-05: was "the record the gas replaces is the one that carries the excess, the smallest", now
+  usually: for CaCO3 − ε O, CaO(cr) and C(gr) tie at 1.5 ε b_Ca and the gas replaces C(gr); the rule dropped
+  CaO and the start failed. The ratio test of the mixture column (start 5) chooses by the gas's composition. The phase-one point of a
   `GasRequired` verdict is a vertex with as many records as elements, so with the gas added the system
   was over-determined: the condensed rows fixed every π and the phase-sum row was dependent
   (`SingularMatrix`; for KCl, whose gas is congruent with the liquid, the determinant was O(1e-20)).
@@ -274,7 +305,7 @@ One type per file:
 | `TraceGasPass` | static | `Run`, the sequence |
 | `TraceGasStart` | static | the entry's save and restore, the projection |
 | `PhaseOneSeed` | static | the point's fetch and load, starts 2 to 4, `Point`: the one call site of `PhaseOnePoint` |
-| `GasBasisSeed` | static | `Place`: start 5, the gas basis |
+| `GasBasisSeed` | static | `Place`: start 5, the gas basis, and its mixture column |
 | `TraceGasIteration` | static | `Converge` |
 | `TraceGasSystem` | static | `Assemble`, `Solve`, the energy row |
 | `TraceGasStep` | static | the fractions, the control factor, the weighted corrections, the step, the balance, `Stationary` |
@@ -287,107 +318,7 @@ Each constant of `## Constraints` is named in the class that uses it.
 
 ## Acceptance criteria
 
-- [x] A trace carrier's walk (MgCO3 under CO2, Mg:C:O = 1:2:5, 10 MPa, cold tp every 5 K from 700 to
-      900 K):
-      - every state `Ok`, clear of `EquilibriumConditions` at 1e-9;
-      - CO twice O2 to the balance of the combination O − Mg − 2C, 1e-13 · (b_O + b_Mg + 2 b_C);
-      - red on the old code: 25 of 41 `NotConverged`.
-
-      2026-10-04, `TraceCarrierWalkTests`; red with seam (a) removed: 26 of its 42 facts.
-
-      ⚠ 2026-10-04: was "x_CO = 2 x_O2 within 1e-6", now the balance of the combination: the carriers
-      are 1e-11 to 1e-9 of the gas, the balance holds to the element invariant, and the ratio measured
-      1.9e-2 off at 765 K and 3e-5 at 800 K.
-- [x] Every `Ok` closes every element to the relative invariant (`1e-13 · b_i`):
-      - the 72 plateau states of calcite and magnesite (1e4, 1e5, 1e6 Pa, hp and sp, three fractions,
-        cold and seeded), the magnesite hp states among them, reached by the bracket's trace-gas final;
-      - Al(OH)3 + 1e-6 O at 10 MPa and 800 K, whose dropped gases carried hydrogen.
-
-      2026-10-04, `TraceGasClosureTests`, `ElementConservationTests`, `TraceCarrierWalkTests`; 60
-      facts of the Equilibrium tests red on the absolute form, none on the relative; red with the
-      carriers kept out of the derivatives removed: 58 facts, with the report of the carriers removed: 55.
-- [x] Trace excesses: CaCO3 + 1e-8 to 1e-5 CO2 (1 kPa to 10 MPa, 0.01 to 300 K below the plateau),
-      Al2O3 + 1e-10 and 1e-8 O (1 000 to 3 000 K), KCl + 1e-10 Cl (1 000, 1 200 K), CaCO3 + 1e-6 O
-      (300 K) and MgCO3 + 1e-6 CO2 below its plateau, cold tp:
-      - every state `Ok` and clear at 1e-9;
-      - red on the old code;
-      - starts 2 to 4 each shown necessary by removing them.
-
-      2026-10-04, `TraceExcessTests` (79 states); red with seam (a) removed: 67 of 79; each start
-      removed alone: start 2 reds 3 of these facts, start 4 reds `ResidueVerdictTests`, start 3 the
-      scan fact (`TraceGasScanTests`) alone.
-- [x] The gas basis (start 5): the nine states declared `NotConverged` until 2026-10-05 (Li2O + 1e-10 O at 800 K,
-      1 kPa and 100 kPa; CaCO3 + 1e-8 O at 500 K and 1 kPa and at 800 K and 1 kPa to 10 MPa; Al(OH)3 − 1e-8 O at
-      500 K and 1 kPa, − 1e-10 and − 1e-12 O at 500 K and 100 kPa):
-      - every state `Ok`, clear at 1e-9, every element within `1e-13 · b_i`;
-      - the program's basis holds Li2O(cr) and O2 at the excess, CaO(cr) at zero level beside CaCO3(cr), water as vapour.
-
-      2026-10-05, `GasBasisStartTests` (11 facts); red on 7c921f02: the nine; red with the gas columns removed:
-      the nine, the basis fact and both scan facts.
-- [ ] The residue: the exact and ±1e-12 states of the scans end `NoGasPhase`, or `Ok` with a gas of
-      1e-12 kmol/kg or more, apart from the declared leftovers (`ResidueVerdictTests`, green 2026-10-04 with
-      the three declared `residue` states of Al(OH)3 at 300 K and 1 kPa and the false `Ok` declared
-      `notconverged`); left unticked for the decision on the declared leftovers.
-- [x] The close guard:
-      - a unit fact at 5e-10 and 2e-9;
-      - the states it refused in the scans (MgCO3 + 1e-6 CO2 below its plateau, and the loose `Ok`s of
-        KCl, NaCl and KO2) end `Ok` at the tp temperature within 1e-9, clear at 1e-9, with the gas of
-        their tp state within 1e-9 of its fractions (hp and sp, cold and warm, through the bracket and
-        the trace-gas finals);
-      - red with the guard removed.
-
-      2026-10-04: `GasStationarityTests`, 124 facts (the unit fact at ±5e-10 and ±2e-9, and 120 states
-      in six modes) and `TraceGasFinalTests`, all green; red with the guard removed: 81 facts; with
-      (b′) removed: 37; with the temperature column unscaled: 24.
-
-      ⚠ 2026-10-04: was ticked for all but the three hp modes of KCl + 1e-6 Cl at 100 kPa and 1 000 K,
-      declared because no state of the data reaches them within its own jump of 9e-9 in ln x; now the
-      data junction settles them and the box is ticked.
-- [x] The data junction:
-      - every hp and sp state, cold and warm, at the enthalpy and entropy of the tp states of nine gas
-        systems at 1 kPa, 100 kPa and 10 MPa at 1 000 K, the double below and above it and 1 000 K times
-        1 ± 1e-9 (135 states) ends `Ok`, clear at 1e-9, at the tp temperature within 1e-8 and within
-        1e-7 of c_p T (hp) or c_p (sp) of the target;
-      - a pinned state ends at the nearer of T_J and T_J⁺ (both outcomes occur), KCl + 1e-6 Cl at T_J
-        exactly with h within one ulp of the target;
-      - the search for the bound finds 1 000 K between its neighbouring doubles and the lowest of two bounds;
-      - red with the pin removed: 27 of the 135 states and the KCl and the nearer-of-two facts.
-
-      2026-10-04, `JunctionTests` (140 facts), `GasStationarityTests`; 77 of 822 solves pinned, 22 at
-      T_J and 55 at T_J⁺.
-- [x] Host units:
-      - the matrix equal at n and at 1e-12 n;
-      - the control factor on hand-built corrections;
-      - a failed pass leaving `Moles` and `Multipliers` bit-equal to its entry;
-      - the iterations of a case the sum of its attempt's and its pass's.
-
-      2026-10-04, `TraceGasUnitTests` and `TraceCarrierWalkTests.TheIterationsOfACaseAreTheStepsOfItsAttemptAndOfItsTracePass`.
-- [x] A `LongRunning` scan fact over the four scan families:
-      - every `Ok` clear at 1e-9;
-      - no `Ok` of the code before the pass lost;
-      - the `NotConverged` tp states printed, and the declared leftovers only.
-
-      2026-10-05, `TraceGasScanTests`: the 4 158 states of the scan families and the 1 632 states of the
-      trace-excess scan, none `NotConverged`, none declared. Red without room for the gas: both facts; red
-      without the gas basis: both (1 and 8 states).
-
-      ⚠ 2026-10-05: was unticked, "written and green 2026-10-04 ... left unticked for the decision on those
-      nine", now ticked: the gas basis settles the nine.
-- [ ] No line of an `Ok` case moved in any `Bits*.approved.txt`, Windows and Linux; every changed line
-      was a failure before and is listed.
-
-      Windows, 2026-10-04: the fast set of every test node green with one record line changed, in
-      `Bits.approved.txt` of Equilibrium and of Problems: `tp/seventeen-elements-many-condensed-phases_T350`,
-      which closed chlorine to 7.5e-13 of its abundance before the relative invariant (the failure it was)
-      and now reports NO and closes to 4e-16. Linux: not run here; `Bits.linux.approved.txt` of both nodes
-      needs the same line re-approved under WSL by the orchestrator.
-- [ ] CUDA on the reference machine:
-      - the families `trace-gas-magnesite-1e7`, `trace-gas-excess` and `trace-gas-hp` equal to the
-        CPU within the tier;
-      - `LaunchBudget` with `trace-gas-hp`;
-      - the rocket kernel's compile within its bound, its figure recorded (765 652 424 bytes for the
-        emulation);
-      - the fast set within 5 minutes; WSL green.
+→ [ACCEPTANCE.md](ACCEPTANCE.md)
 
 ## Declared leftovers
 
@@ -423,10 +354,20 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
 
   ⚠ 2026-10-05: was "Known outside the scans: CaCO3 + 1e-7 O at 10 MPa and 300 K ends `NotConverged` after every start ...
   `NoHiddenStateTests` takes it as its failure", now closed by the rule above.
-- Known outside the scans (2026-10-05): CaCO3 − 1e-7 O at 1 kPa at 849, 850 and 851 K ends `NotConverged` (94 iterations)
-  between `NoGasPhase` states at 845 K and below and `Ok` states at 855 K and above; at 2 kPa the same temperatures end
-  `NoGasPhase`. Found beside the balancing record's grid, unchanged by it (the rule does not fire there); no scan walks it, so
-  `TraceGasLeftovers.txt` does not declare it.
+- Closed 2026-10-05 by the mixture column (start 5, above): CaCO3 − 1e-7 O at 1 kPa from T_t = 848.153 K to 854.3 K, the band
+  where the gasless CaCO3(cr) + CaO(cr) + C(gr) has given way to CO and CO2 and no gas reaches unit fraction at its vertex; the same
+  band lies above T_t at every pressure from 100 Pa (775.1 K) to 10 MPa (1 380.4 K), and with − 3e-8 O. Each state ends `Ok` and
+  clear, CaCO3(cr) + CaO(cr) under 83 % CO at 850 K and 1 kPa, which cea 3.3.4 reproduces (CO2/CO 0.2032, CaO 3.61e-7 of Ca); cea
+  finds no state below T_t, where this tree's is `NoGasPhase` (`GasMixtureStartTests`).
+
+  ⚠ 2026-10-05: was "Known outside the scans: CaCO3 − 1e-7 O at 1 kPa at 849, 850 and 851 K ends `NotConverged` ... at 2 kPa the
+  same temperatures end `NoGasPhase`", now closed; the band was 848.16 to 854.27 K, and at 2 kPa it lies at 873.0 to 879.5 K.
+- Known outside the scans (2026-10-05): MgCO3 + 1e-8 O at 10 MPa from 335.09 to 336.66 K ends `NotConverged` (133 iterations),
+  with and without the mixture column. The gas basis places MgCO3(cr) + MgO(cr) at zero under O2; MgO's amount, n x_CO2 ≈ 5e-19
+  kmol/kg, lies below the rounding of the magnesium balance, the step returns it as −8e-27, and the balancing record's rule
+  removes it, because CO2 (2.8e-9 of the gas) keeps the element rows independent without it; the inclusion test then takes it
+  back, and the set alternates until `MaxCondensedSetChanges`. A matter of [Condensed](../Condensed/BOOT.md)'s rule, for the owner;
+  no scan walks it.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas), the + 1e-12 state (3.1e-14), both through start 4, and since
   2026-10-04 the − 1e-12 state (6.2e-14, the carrier of the deficit of oxygen).

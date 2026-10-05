@@ -338,10 +338,11 @@ creation names its arguments; it passes them by position today (the criterion be
       on the CPU accelerator, every fact asserting `EquilibriumConditions` at 1e-9 with every gas of any share
       (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
       - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`, `GasBasisStartTests`
-        (2026-10-05, the gas basis): the families
+        (2026-10-05, the gas basis), `GasMixtureStartTests` (2026-10-05, its mixture column): the families
         `TraceGasCases` generates from their parameters, none typed;
-      - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 361 cases (every tp, hp and sp
-        fixture, the magnesite band, the declared leftovers, the nine states the gas basis settles, CaCO3 +
+      - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 376 cases (every tp, hp and sp
+        fixture, the magnesite band, the declared leftovers, the nine states the gas basis settles, the 15 states
+        of the band its mixture column settles (2026-10-05), CaCO3 +
         1e-7 O over a table of CaCO3(cr) and O2 alone, built to end `SingularMatrix` after every start of
         the pass since 2026-10-05, KO2 − 1e-10 O, the junction states warm) run with
         every buffer the solver owns or writes zeroed, filled with NaN and filled with 1e300
