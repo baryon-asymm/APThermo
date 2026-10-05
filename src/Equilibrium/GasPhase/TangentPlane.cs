@@ -116,11 +116,11 @@ internal static class TangentPlane
         {
             if (SpeciesMarks.Of(scratch, j) != SpeciesMark.Absent)
             {
-                sum += Math.Exp(GasExponent(table, scratch, result, j, logPressure) - largest);
+                sum += KernelMath.Exp(GasExponent(table, scratch, result, j, logPressure) - largest);
             }
         }
 
-        return largest + Math.Log(sum);
+        return largest + KernelMath.Log(sum);
     }
 
     /// <summary>π = π0 + V t into the result's multipliers; returns ln S there.</summary>
@@ -255,7 +255,7 @@ internal static class TangentPlane
                 continue;
             }
 
-            var w = Math.Exp(GasExponent(table, scratch, result, j, face.LogPressure) - largest);
+            var w = KernelMath.Exp(GasExponent(table, scratch, result, j, face.LogPressure) - largest);
             weight += w;
             moment += w * Along(table, scratch, face, j, k);
         }

@@ -41,7 +41,7 @@ internal static class RocketSolver
     internal const double ThroatBracketWidth = 1.0e-10;
 
     /// <summary>Within this of 1, the chamber's isentropic exponent takes (6.15) through its limit
-    /// <c>p_c·e^(−1/2)</c> instead of the degenerate <c>Math.Pow(1, ±∞)</c> (BOOT.md, 2026-09-28, finding F4).</summary>
+    /// <c>p_c·e^(−1/2)</c> instead of the degenerate <c>KernelMath.Pow(1, ±∞)</c> (BOOT.md, 2026-09-28, finding F4).</summary>
     internal const double GammaOneTolerance = 1.0e-6;
 
     /// <summary>Isentropic expansion (BOOT.md, Invariants, 2026-09-26): every accepted station downstream of the

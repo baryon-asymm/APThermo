@@ -36,7 +36,7 @@ internal static class GasBasisSeed
         }
 
         state.CondensedCount = CondensedBasics(table, scratch, result, rows);
-        state.LogN = Math.Log(n);
+        state.LogN = KernelMath.Log(n);
         return true;
     }
 
@@ -92,7 +92,7 @@ internal static class GasBasisSeed
 
             var amount = scratch.Corrections[k];
             scratch.RightHandSide[k] = column >= table.GasCount ? scratch.GOverRT[column]
-                : scratch.GOverRT[column] + logPressure + (amount > 0.0 ? Math.Log(amount / n) : 0.0);
+                : scratch.GOverRT[column] + logPressure + (amount > 0.0 ? KernelMath.Log(amount / n) : 0.0);
         }
 
         if (!DenseSolver.Solve(scratch.Matrix, scratch.RightHandSide, scratch.RowScale, rows, stride))

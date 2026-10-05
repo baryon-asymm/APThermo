@@ -77,8 +77,8 @@ internal sealed class TransportTable
     /// <summary>The viscosity and conductivity runs of every gaseous species of the table, in table order.</summary>
     private static void AppendSpeciesRuns(TransportDatabase database, SpeciesTable species, List<double> fits, SpeciesRuns runs)
     {
-        var viscosityShift = Math.Log(ViscosityFactorToSi);
-        var conductivityShift = Math.Log(ConductivityFactorToSi);
+        var viscosityShift = KernelMath.Log(ViscosityFactorToSi);
+        var conductivityShift = KernelMath.Log(ConductivityFactorToSi);
         for (var j = 0; j < species.GasCount; j++)
         {
             var name = species.Species[j];
@@ -100,7 +100,7 @@ internal sealed class TransportTable
     /// <summary>The interaction runs of every pair of the database whose two species are gaseous members of the table, in database order.</summary>
     private static void AppendPairRuns(TransportDatabase database, SpeciesTable species, List<double> fits, PairRuns pairs)
     {
-        var viscosityShift = Math.Log(ViscosityFactorToSi);
+        var viscosityShift = KernelMath.Log(ViscosityFactorToSi);
         var count = species.SpeciesCount;
         foreach (var entry in database.Entries)
         {

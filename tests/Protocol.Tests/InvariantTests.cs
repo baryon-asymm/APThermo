@@ -83,10 +83,11 @@ public sealed class InvariantTests
     }
 
     /// <summary>The double overloads of `System.Math` a numerical node may call anywhere (root BOOT.md, "Math in numerical
-    /// nodes"): the IEEE operations both accelerators compute the same bits for. Every one of them is accepted only when
-    /// every one of its parameters is `double`, so an overload for another type of the same name (`Math.Abs(int)`) is
-    /// refused like any unlisted member.</summary>
-    private static readonly IReadOnlyList<string> AllowedMathMethods = ["Exp", "Log", "Log10", "Pow", "Sqrt", "Abs", "Floor", "Ceiling"];
+    /// nodes"): the IEEE operations both accelerators compute the same bits for, each a single instruction on CUDA. `Exp`,
+    /// `Log`, `Log10` and `Pow` are not on the list (2026-10-05, item 13 of 0.2.2): the tree's own `KernelMath.Exp`, `Log` and
+    /// `Pow` replaced them. Every one of them is accepted only when every one of its parameters is `double`, so an overload for
+    /// another type of the same name (`Math.Abs(int)`) is refused like any unlisted member.</summary>
+    private static readonly IReadOnlyList<string> AllowedMathMethods = ["Sqrt", "Abs", "Floor", "Ceiling"];
 
     /// <summary>The `System.Math` members that only `KernelMath` and the `Elementary` node (the tree's own elementary
     /// functions) may call: the fused multiply-add is the one place a product is fused with a sum.</summary>
@@ -106,7 +107,7 @@ public sealed class InvariantTests
     /// <summary>
     /// Numerical nodes call no member of `System.Math` or `System.Double` outside the root's allow-list (root BOOT.md,
     /// "Math in numerical nodes", 2026-09-28, the guards audit's F1): both accelerators must run the same comparisons,
-    /// selections and functions, which only the wrappers the execution node completes provide, and an unlisted member
+    /// selections and functions, which only the tree's own functions and single IEEE instructions provide, and an unlisted member
     /// either compiles to a PTX instruction with different NaN behaviour (`Math.Min`/`Max`, `double.Min`/`Max`, all four
     /// compiling to the same `min.f64`/`max.f64` regardless of the declaring type the source names) or is not proven to
     /// compile for CUDA at all. Fails on an empty scan, so a broken walk over the numerical assemblies cannot pass

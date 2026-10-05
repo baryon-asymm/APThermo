@@ -51,11 +51,11 @@ internal static class ThroatBracketSearch
         var gammaChamber = chamber.GammaS;
 
         // Equation (6.15): the first estimate of the throat pressure from the chamber's isentropic exponent, through
-        // its limit at gamma_s = 1 exactly, where (6.15) itself is Math.Pow(1, +-infinity) = 1, the chamber pressure
+        // its limit at gamma_s = 1 exactly, where (6.15) itself is KernelMath.Pow(1, +-infinity) = 1, the chamber pressure
         // (BOOT.md, 2026-09-28, finding F4): the equilibrium node's plateau convention for an undissociated gas.
         var pressureCandidate = Math.Abs(gammaChamber - 1.0) <= RocketSolver.GammaOneTolerance
-            ? chamber.Pressure * Math.Exp(-0.5)
-            : chamber.Pressure / Math.Pow(0.5 * (gammaChamber + 1.0), gammaChamber / (gammaChamber - 1.0));
+            ? chamber.Pressure * KernelMath.Exp(-0.5)
+            : chamber.Pressure / KernelMath.Pow(0.5 * (gammaChamber + 1.0), gammaChamber / (gammaChamber - 1.0));
         pressureSolved = pressureCandidate;
         sonicRatio = 0.0;
         converged = false;
@@ -196,7 +196,7 @@ internal static class ThroatBracketSearch
                 break;
             }
 
-            var midPressure = Math.Exp(0.5 * (Math.Log(bracket.SubsonicPressure) + Math.Log(bracket.SupersonicPressure)));
+            var midPressure = KernelMath.Exp(0.5 * (KernelMath.Log(bracket.SubsonicPressure) + KernelMath.Log(bracket.SupersonicPressure)));
             var midTemperature = 0.5 * (bracket.SubsonicTemperature + bracket.SupersonicTemperature);
             var request = new StationRequest(RocketSolver.Throat, midPressure, midTemperature, chamber.Entropy, query.Flow);
             if (!StationSolve.At(in context, in request))
@@ -261,7 +261,7 @@ internal static class ThroatBracketSearch
         var offset = 0.0;
         for (var attempt = 0; attempt < MaxEdgeAttempts; attempt++)
         {
-            var pressure = bracket.SubsonicPressure * Math.Exp(offset);
+            var pressure = bracket.SubsonicPressure * KernelMath.Exp(offset);
             StationSolve.CopyComposition(in context, RocketSolver.Chamber, RocketSolver.Throat);
             var request = new StationRequest(RocketSolver.Throat, pressure, bracket.SubsonicTemperature, chamber.Entropy, query.Flow);
             if (!StationSolve.At(in context, in request))

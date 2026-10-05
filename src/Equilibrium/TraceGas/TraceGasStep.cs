@@ -39,7 +39,7 @@ internal static class TraceGasStep
     public static double Fractions(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                    double n, double logPressure)
     {
-        var logN = Math.Log(n);
+        var logN = KernelMath.Log(n);
         var sum = 0.0;
         for (var j = 0; j < table.GasCount; j++)
         {
@@ -58,7 +58,7 @@ internal static class TraceGasStep
 
             scratch.Corrections[j] = logFraction;
             scratch.LogMoles[j] = logN + logFraction;
-            var x = Math.Exp(logFraction);
+            var x = KernelMath.Exp(logFraction);
             result.Moles[j] = n * x;
             sum += x;
         }
@@ -86,11 +86,11 @@ internal static class TraceGasStep
             return true;
         }
 
-        var logSum = Math.Log(sumGas);
+        var logSum = KernelMath.Log(sumGas);
         for (var j = 0; j < table.GasCount; j++)
         {
             if (result.Moles[j] > 0.0
-                && !(Math.Abs(Math.Log(result.Moles[j]) - logSum - LogFraction(table, scratch, result, logPressure, j)) <= GasStationarityBound))
+                && !(Math.Abs(KernelMath.Log(result.Moles[j]) - logSum - LogFraction(table, scratch, result, logPressure, j)) <= GasStationarityBound))
             {
                 return false;
             }
@@ -202,7 +202,13 @@ internal static class TraceGasStep
 
     /// <summary>The temperature the step λ τ leads to from <paramref name="temperature"/>: <c>exp(ln T + λ τ)</c>.</summary>
     public static double NextTemperature(double temperature, double lambda, double tau) =>
-        Math.Exp(Math.Log(temperature) + lambda * tau);
+        KernelMath.Exp(KernelMath.Log(temperature) + lambda * tau);
+
+    /// <summary>The total moles <c>n = exp(ln n)</c> of the iteration's own logarithm, the one place this stage turns <c>LogN</c> back into moles.</summary>
+    public static double Total(double logN) => KernelMath.Exp(logN);
+
+    /// <summary>The logarithm of a total (or of its sum of mole fractions) the iteration carries as <c>LogN</c>.</summary>
+    public static double LogTotal(double total) => KernelMath.Log(total);
 
     /// <summary>Whether every active element's balance holds within <see cref="BalanceTest"/> times b_i over the moles in the result.</summary>
     public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)

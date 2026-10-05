@@ -56,7 +56,7 @@ internal static class PlateauIsentrope
             }
 
             var h = scratch.HOverRT[j];
-            var s = scratch.SOverR[j] - Math.Log(nj) + sums.LogN - sums.LogPressure;
+            var s = scratch.SOverR[j] - KernelMath.Log(nj) + sums.LogN - sums.LogPressure;
             for (var k = 0; k < system.ElementCount; k++)
             {
                 var akj = table.Stoichiometry[k * speciesCount + j];

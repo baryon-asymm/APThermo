@@ -8,6 +8,20 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="allow-list-own-math-2026-10-05"></a>
+
+## 2026-10-05 — from "## Constraints" — the allow-list of `System.Math` calls: `Exp`, `Log`, `Log10`, `Pow`
+
+Item 13 of release 0.2.2 gave the tree its own correctly rounded `Exp`, `Log` and `Pow` (`KernelMath`, implemented in `src/Thermo/Elementary`) and dropped `Log10` (owner decisions O1 to O3). The allow-list lost the four members; the fact `NumericalNodesCallOnlyTheAllowedMathAndDoubleMembers` is red for any numerical node that still calls one of them (shown red once, 2026-10-05, on a call of `Math.Exp` in a numerical node). The text as it stood:
+
+> - **The math list is an allow-list (F1).** The IL fact on the numerical nodes refuses
+>   every call into `System.Math` and `System.Double` except `Exp`, `Log`, `Log10`, `Pow`,
+>   `Sqrt`, `Abs`, `Floor` and `Ceiling` of `double`, and `double.IsNaN` and
+>   `double.IsNegative` inside `KernelMath` only (the root's math constraint). It reads
+>   static members only: the instance `Equals`, `ToString` and `CompareTo` are host-side.
+
+---
+
 <a id="crit-ilgpu-byref"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — criterion: no src method passes host memory to ILGPU by reference

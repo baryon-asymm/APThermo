@@ -14,8 +14,11 @@ can be uploaded to an accelerator and evaluated without allocation.
 - **Pure functions.** Every species function takes the table view, a species index
   and a temperature and returns a value; it allocates nothing, throws nothing, keeps
   no state. Results are bit-identical between two calls with the same arguments on
-  the same accelerator, and agree between the CPU accelerator and CUDA within the
-  math-function tolerance of the execution tests node.
+  the same accelerator, and between the CPU accelerator and CUDA (2026-10-05: every
+  function they call is a single IEEE operation or one of `KernelMath`'s correctly
+  rounded `Exp`, `Log` and `Pow`, and the execution node's post-link forbids contraction).
+  ⚠ 2026-10-05: was "agree within the math-function tolerance of the execution tests
+  node", now bit-identical → HISTORY.md#bit-identical-2026-10-05
 - **The table is immutable and ordered.** Species indices are `0 … SpeciesCount−1` in
   the order given to the builder; gaseous species come first (`0 … GasCount−1`), then
   condensed ones; element indices are the order given to the builder. Nothing
@@ -141,7 +144,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   name); the pieces stand adjacent, ascending, in the place of their record in the
   given order, and `Records` maps each piece, and each concatenated species, to the
   record that provided its first interval.
-- Math: only `Math.Log` and `Math.Pow` from the root's list are needed; `Math.Pow`
+- Math: only `KernelMath.Log` and `KernelMath.Pow` are needed (2026-10-05: not `System.Math`'s); `Pow`
   is used for the general exponents, the usual exponents −2 … 4 are evaluated by
   multiplication.
 - The table view is a struct of `ArrayView<double>` and `ArrayView<int>` over buffers of

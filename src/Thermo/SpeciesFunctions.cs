@@ -4,7 +4,7 @@ namespace APThermo.Thermo;
 
 /// <summary>
 /// The NASA polynomials evaluated for one species at one temperature. Kernel-compatible: static, no allocation, no
-/// exceptions, only <see cref="Math.Log(double)"/> and <see cref="Math.Pow(double, double)"/> of the root's list.
+/// exceptions, only <see cref="KernelMath.Log(double)"/> and <see cref="KernelMath.Pow(double, double)"/> of the root's list.
 /// The layout constants (strides and slots) come from <see cref="TableLayout"/>, the same ones the builder writes by.
 /// </summary>
 /// <remarks>
@@ -130,7 +130,7 @@ internal static class SpeciesFunctions
         for (var k = 0; k < TableLayout.CoefficientsPerInterval; k++)
         {
             var e = table.Exponents[interval * TableLayout.ExponentsPerInterval + k];
-            var term = e == 0.0 ? Math.Log(temperature) : Power(temperature, e) / e;
+            var term = e == 0.0 ? KernelMath.Log(temperature) : Power(temperature, e) / e;
             sum += table.Coefficients[interval * TableLayout.CoefficientStride + k] * term;
         }
 
@@ -142,7 +142,7 @@ internal static class SpeciesFunctions
         HOverRT(table, species, temperature) - SOverR(table, species, temperature);
 
     /// <summary>I_h(e, T) of the class remarks: the enthalpy integral of one polynomial term.</summary>
-    private static double EnthalpyTerm(double e, double t) => e == -1.0 ? Math.Log(t) / t : Power(t, e) / (e + 1.0);
+    private static double EnthalpyTerm(double e, double t) => e == -1.0 ? KernelMath.Log(t) / t : Power(t, e) / (e + 1.0);
 
     /// <summary>T^e: the usual exponents −2 … 4 by multiplication, any other through Math.Pow.</summary>
     private static double Power(double t, double e)
@@ -183,6 +183,6 @@ internal static class SpeciesFunctions
             return t2 * t2;
         }
 
-        return Math.Pow(t, e);
+        return KernelMath.Pow(t, e);
     }
 }

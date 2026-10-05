@@ -57,7 +57,7 @@ internal static class ThroatSearch
         chamberFigures.PressureRatio = 1.0;
         chamberFigures.CharacteristicVelocity = characteristicVelocity;
         result.Figures[RocketSolver.Chamber] = chamberFigures;
-        return new ThroatReference(pressureThroat, massFluxThroat, characteristicVelocity, Math.Log(pressureChamber / pressureThroat),
+        return new ThroatReference(pressureThroat, massFluxThroat, characteristicVelocity, KernelMath.Log(pressureChamber / pressureThroat),
                                    throatState.GammaS);
     }
 }

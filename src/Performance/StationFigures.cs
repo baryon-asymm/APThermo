@@ -23,6 +23,12 @@ internal static class StationFigures
     public static double VelocityClamped(double chamberEnthalpy, in MixtureState state) =>
         Math.Sqrt(KernelMath.Max(VelocitySquared(chamberEnthalpy, in state), 0.0));
 
+    /// <summary>The natural logarithm of a ratio the exit iteration works in: ln(A/A_t) and ln(p_c/p).</summary>
+    public static double LogOf(double ratio) => KernelMath.Log(ratio);
+
+    /// <summary>The pressure <c>p_c exp(−ln(p_c/p))</c> of the station whose logarithmic pressure ratio is <paramref name="logPressureRatio"/>.</summary>
+    public static double PressureAt(double chamberPressure, double logPressureRatio) => chamberPressure * KernelMath.Exp(-logPressureRatio);
+
     /// <summary>The area ratio A/A_t from the throat's mass flux and the station's: (ρ_t u_t)/(ρ u).</summary>
     public static double AreaRatio(double throatMassFlux, in MixtureState state, double velocity) => throatMassFlux / (state.Density * velocity);
 

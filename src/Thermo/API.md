@@ -183,7 +183,7 @@ internal static class SpeciesFunctions                       // kernel-compatibl
 `temperature` is in K and must be positive; the functions are dimensionless. Species
 indices are those of the table. The functions are safe to call from any thread and
 from kernels; the usual exponents −2 … 4 are evaluated by multiplication, any other
-through `Math.Pow`.
+through `KernelMath.Pow` (the tree's own, correctly rounded).
 
 ## Join-and-cut of condensed records (tree contract) ✅
 

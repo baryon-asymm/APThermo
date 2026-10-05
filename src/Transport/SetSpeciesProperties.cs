@@ -73,7 +73,7 @@ internal static class SetSpeciesProperties
             var molarMass = species.MolarMass[scratch.IndexList[a]];
             if (scratch.Eta[a * Stride + a] == 0.0)
             {
-                var omega = KernelMath.Max(1.0, Math.Log(50.0 * Math.Pow(molarMass, 4.6) / Math.Pow(temperature, 1.4)));
+                var omega = KernelMath.Max(1.0, KernelMath.Log(50.0 * KernelMath.Pow(molarMass, 4.6) / KernelMath.Pow(temperature, 1.4)));
                 scratch.Eta[a * Stride + a] = 0.3125 * Math.Sqrt(TransportSolver.Boltzmann * molarMass * temperature / (Math.PI * TransportSolver.Avogadro))
                                               / (TransportSolver.CollisionDiameter * TransportSolver.CollisionDiameter * omega);
             }

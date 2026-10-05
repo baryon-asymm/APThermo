@@ -138,7 +138,7 @@ internal struct ThroatBracket
     public readonly bool IsComplete => HasSubsonic && HasSupersonic;
 
     /// <summary>The bracket's width in ln p; meaningful only while <see cref="IsComplete"/>.</summary>
-    public readonly double LogWidth => Math.Log(SubsonicPressure) - Math.Log(SupersonicPressure);
+    public readonly double LogWidth => KernelMath.Log(SubsonicPressure) - KernelMath.Log(SupersonicPressure);
 
     /// <summary>Records one trial if it narrows its side of the bracket (the smallest subsonic pressure, the largest supersonic one).</summary>
     public void Track(double pressure, double temperature, double sonicRatio, long fingerprint)

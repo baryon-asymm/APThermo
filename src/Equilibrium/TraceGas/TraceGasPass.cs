@@ -103,7 +103,7 @@ internal static class TraceGasPass
             return false;
         }
 
-        state.LogN = Math.Log(n);
+        state.LogN = TraceGasStart.LogTotal(n);
         return true;
     }
 

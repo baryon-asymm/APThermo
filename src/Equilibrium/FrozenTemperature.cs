@@ -81,7 +81,7 @@ internal static class FrozenTemperature
             else
             {
                 value += j < gasCount
-                    ? nj * (scratch.SOverR[j] - Math.Log(nj) + state.LogN - logPressure)
+                    ? nj * (scratch.SOverR[j] - KernelMath.Log(nj) + state.LogN - logPressure)
                     : nj * scratch.SOverR[j];
             }
         }

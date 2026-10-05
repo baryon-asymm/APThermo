@@ -90,7 +90,7 @@ internal static class TransportSolver
     public static double FitValue(in TransportTableView transport, int fit, double temperature)
     {
         var offset = fit * TransportTable.FitStride;
-        return Math.Exp(transport.Fits[offset + 2] * Math.Log(temperature) + transport.Fits[offset + 3] / temperature
+        return KernelMath.Exp(transport.Fits[offset + 2] * KernelMath.Log(temperature) + transport.Fits[offset + 3] / temperature
                         + transport.Fits[offset + 4] / (temperature * temperature) + transport.Fits[offset + 5]);
     }
 
