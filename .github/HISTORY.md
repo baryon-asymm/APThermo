@@ -12,6 +12,132 @@ Since 2026-10-05 newer entries stand above them: "the first" is the entry `isapr
 
 ---
 
+<a id="isaprobe-removed"></a>
+
+## 2026-10-05 — from "## Purpose", "## Constraints" and `API.md` — the runner-diagnostics step and the IsaProbe node are removed
+
+The owner decided on 2026-10-05 to remove the runner-diagnostics step and the node
+`diagnostics/IsaProbe`. They were made to explain why the bit records diverged between hosted
+runners (the hosted-runner bit investigation of 2026-09-18): the CPU model and core count, and
+the instruction sets .NET selects. Since the tree's own `Exp`, `Log` and `Pow` read nothing of
+the runner's C runtime, the bits are equal on every CPU (CI run 37331221583 at `ed0c9ef9`, green
+on both hosted runners with the bit facts unfiltered), and the step has no purpose left. Removed
+together: `.github/diagnostics/IsaProbe` (project, `Program.cs`, `BOOT.md`, `API.md`), the
+composite action `actions/runner-diagnostics` (its CPU-model and core-count half too: the owner
+chose to remove the step as a whole) and every `Runner diagnostics` step of `workflows/ci.yml`
+and `workflows/release.yml`, with the comments that only explained them; the project reference of
+`tests/Protocol.Tests` and the `IsaProbe` section of its public-surface snapshot went too
+(`tests/Protocol.Tests/HISTORY.md#diagnostics-isaprobe-removed`).
+
+The claims of this node's documents that named them, as they stood:
+
+> `.github/BOOT.md`, `## Purpose`: "... the scripts under `scripts/`, and `diagnostics/IsaProbe`, the probe
+> of the runner-diagnostics step (a node of its own). ..."
+
+> `.github/BOOT.md`, `## Constraints`:
+> - `diagnostics/IsaProbe` is a node with a pair of its own. The root's Diagnostics constraint
+>   covers it, since `Directory.Build.props` applies to it and `DiagnosticsTests` reads `.github`.
+
+> `.github/API.md`, header: "What the directory provides to the tree: two workflows, the composite actions and scripts
+> they share, and a diagnostics probe. It declares no C# surface; the probe's own contract
+> is in diagnostics/IsaProbe/API.md. Nodes: `.github` and diagnostics/IsaProbe."
+
+> `.github/API.md`, `## Composite actions`, the row of the second action:
+> `actions/runner-diagnostics` | every job except `publish` | prints the CPU model and logical core count, and, with the input `dotnet-available` set to `'true'`, runs the probe
+
+> `.github/API.md`, `## Tool`: `diagnostics/IsaProbe` | the instruction-set facts .NET sees on a runner, printed by `actions/runner-diagnostics`
+
+The whole `BOOT.md` of the removed node, as it stood (relative links as they were written, from
+`.github/diagnostics/IsaProbe`):
+
+```markdown
+# BOOT.md — .github/diagnostics/IsaProbe
+
+## Purpose
+
+A console program that prints the instruction-set facts .NET itself sees on the machine it
+runs on: the process architecture, the operating system, whether `Avx2`, `Fma` and
+`Avx512F` are supported, and the logical core count. The runner-diagnostics action
+(`../../actions/runner-diagnostics`) runs it in every job of both workflows once the .NET
+SDK is set up, so that a bit-snapshot difference on a hosted runner can be read back
+against the hardware and the runtime that produced it (the hosted-runner bit investigation
+of 2026-09-18, root `BOOT.md`, platform constraint). It is configuration's tool, not the
+product's.
+
+## Invariants
+
+- **It only reads and prints.** The program reads `System.Runtime.InteropServices` and
+  `System.Runtime.Intrinsics.X86` facts and writes six lines to the standard output; it
+  touches no file and no network, and returns no exit code of its own other than 0.
+- **It is not part of the product.** It never enters `APThermo.sln`, no node depends on it
+  and no package carries it; it is run directly with `dotnet run --project`.
+
+## Dependencies
+
+None.
+
+Outside the tree: the .NET SDK of `global.json` (`System.Runtime.InteropServices`,
+`System.Runtime.Intrinsics.X86`).
+
+## Constraints
+
+- The root's Diagnostics constraint binds it like every project: `Directory.Build.props`
+  applies, the maximum analyzers run, nothing is suppressed, and `DiagnosticsTests` reads
+  its files.
+- Its output is the contract the runner-diagnostics action prints into a job's log: one
+  `Name: value` line per fact, in the order of [API.md](API.md). A fact is added by
+  appending a line, never by reformatting the existing ones.
+- The probe holds no type of the tree and no named type of its own beyond the top-level
+  program; there is nothing for the reflection checks of `AGENTS.md` §13 to measure.
+
+## Acceptance criteria
+
+- [x] 2026-10-01 — The program builds under the root's settings with 0 warnings and prints
+      the six lines of [API.md](API.md) on the reference machine (Windows 11 x64):
+      `dotnet run --project .github/diagnostics/IsaProbe --configuration Release`.
+- [ ] A hosted runner's log carries the six lines in a job of each workflow: the runner
+      diagnostics step of a CI run and of a dispatch run of the release workflow, after the
+      comment-only edits of 2026-10-01 (`../BOOT.md`, `## Acceptance criteria`).
+
+## Taboos
+
+- No assertion and no exit code other than 0: a diagnostic that fails a job is a check, and
+  a check belongs in a test node.
+- No reference to a node of the tree: the probe must run on a machine that has built
+  nothing else.
+```
+
+The whole `API.md` of the removed node, as it stood:
+
+```markdown
+# API.md — .github/diagnostics/IsaProbe
+
+The node exposes a command line and no C# surface: its only program is the top-level
+statements of `Program.cs`, and it declares no public type.
+
+## Command line ✅
+
+Run directly, with its project argument pointed at this directory (it is not in
+`APThermo.sln`): `dotnet run --project .github/diagnostics/IsaProbe --configuration Release`.
+
+| Output line | Meaning |
+|---|---|
+| `ProcessArchitecture` | `RuntimeInformation.ProcessArchitecture` |
+| `OSDescription` | `RuntimeInformation.OSDescription` |
+| `Avx2.IsSupported` | whether .NET selected the AVX2 instruction set |
+| `Fma.IsSupported` | whether .NET selected the FMA instruction set |
+| `Avx512F.IsSupported` | whether .NET selected the AVX-512 foundation instruction set |
+| `Environment.ProcessorCount` | the logical core count .NET sees |
+
+Each line is `<name>: <value>` on the standard output, in the order above. The program
+returns no exit code of its own other than 0. The caller is the runner-diagnostics action of [`.github`](../../API.md).
+```
+
+Its open criterion (a hosted runner's log carrying the six lines) is not met and not reformulated:
+it was never ticked and its subject is gone.
+
+---
+
 <a id="ci-end-to-end"></a>
 
 ## 2026-10-05 — from "## Constraints", "Continuous integration" — the end-to-end note shortened
