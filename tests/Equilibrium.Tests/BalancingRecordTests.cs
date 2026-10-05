@@ -119,12 +119,79 @@ public sealed class BalancingRecordTests
         Assert.Equal(["CaCO3(cr)"], rig.NamesInSolution());
     }
 
+    /// <summary>
+    /// The states of MgCO3 with a trace of extra oxygen whose set alternated until the cap of set changes (2026-10-05): MgO(cr), at
+    /// n x_CO2 ≈ 5e-19 to 5e-17 kmol/kg below the rounding of the magnesium balance, came back from each convergence as rounding of either
+    /// sign; removed while CO2 kept the element rows independent, it returned at the next inclusion test with a gain of 8e-6, and the case
+    /// ended <c>NotConverged</c>. As (excess, pressure, temperature).
+    /// </summary>
+    public static TheoryData<double, double, double> AlternatingMagnesite() => new()
+    {
+        { 1.0e-8, 1.0e7, 334.795 }, { 1.0e-8, 1.0e7, 335.09 }, { 1.0e-8, 1.0e7, 335.26 }, { 1.0e-8, 1.0e7, 336.51 },
+        { 1.0e-8, 1.0e7, 336.655 }, { 1.0e-8, 1.0e7, 336.77 }, { 1.0e-8, 1.0e6, 307.5 }, { 1.0e-8, 1.0e6, 307.55 },
+        { 1.0e-6, 1.0e7, 300.615 }, { 1.0e-6, 1.0e7, 301.0 }, { 1.0e-6, 1.0e7, 301.29 },
+    };
+
+    /// <summary>
+    /// Each state that alternated ends <c>Ok</c> and clear, MgO(cr) on its stationarity (no left-out record gains above 1e-9) and MgCO3(cr)
+    /// the one condensed species with moles. Red on the rule without its last change: each ends <c>NotConverged</c> after the cap.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AlternatingMagnesite))]
+    public void AStateWhoseSetAlternatedOnARoundingRecordEndsOkAtTheLastChange(double excess, double pressure, double temperature)
+    {
+        var state = new TraceGasCase(
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"magnesite-oxygen|{excess:E0}|{pressure:F0}|{temperature:R}"),
+            ["MG", "C", "O"], [1.0, 1.0, 3.0 * (1.0 + excess)], pressure, temperature);
+        var solution = state.Solve();
+        TraceGasChecks.AssertOkAndClear(solution, state.Name);
+        var table = solution.Case.Table;
+        Assert.Equal(["MgCO3(cr)"], Enumerable.Range(table.GasCount, table.SpeciesCount - table.GasCount).Where(j => solution.Moles[j] > 0.0).Select(j => table.Species[j]));
+    }
+
+    /// <summary>
+    /// At the last change the cap of set changes allows, a record negative by less than the rounding stays at zero even where the element
+    /// rows are independent without it (O2 and CO2 in the gas): the set has alternated on it. One change earlier it is removed as before.
+    /// </summary>
+    [Fact]
+    public void AtTheLastChangeTheCapAllowsARoundingRecordStaysWhereTheRowsAreIndependentWithoutIt()
+    {
+        using (var last = Rig(-1.0e-40, ["O2", "CO2"], EquilibriumSolver.MaxCondensedSetChanges))
+        {
+            Assert.False(last.Update());
+            Assert.Equal(["CaCO3(cr)", "CaO(cr)"], last.NamesInSolution());
+            Assert.Equal(0.0, last.Moles("CaO(cr)"));
+        }
+
+        using var earlier = Rig(-1.0e-40, ["O2", "CO2"], EquilibriumSolver.MaxCondensedSetChanges - 1);
+        Assert.True(earlier.Update());
+        Assert.Equal(["CaCO3(cr)"], earlier.NamesInSolution());
+    }
+
+    /// <summary>
+    /// The last change keeps only what the two other tests allow: a record negative beyond the rounding (−1e-6) is removed, and so is one
+    /// whose keeping leaves the rows dependent (CO2 the one gas, CaCO3 = CaO + CO2).
+    /// </summary>
+    [Fact]
+    public void AtTheLastChangeARecordBeyondTheRoundingOrDependentWithTheRestIsRemoved()
+    {
+        using (var beyond = Rig(-1.0e-6, ["O2", "CO2"], EquilibriumSolver.MaxCondensedSetChanges))
+        {
+            Assert.True(beyond.Update());
+            Assert.Equal(["CaCO3(cr)"], beyond.NamesInSolution());
+        }
+
+        using var dependent = Rig(-1.0e-40, ["CO2"], EquilibriumSolver.MaxCondensedSetChanges);
+        Assert.True(dependent.Update());
+        Assert.Equal(["CaCO3(cr)"], dependent.NamesInSolution());
+    }
+
     private static IEnumerable<TraceGasCase> Calcite(double[] excesses, double[] pressures, double[] temperatures) =>
         excesses.SelectMany(excess => pressures.SelectMany(pressure => temperatures.Select(temperature =>
             new TraceGasCase($"calcite-oxygen|{excess:E0}|{pressure:F0}|{temperature:F0}", ["CA", "C", "O"], [1.0, 1.0, 3.0 * (1.0 + excess)], pressure, temperature))));
 
     /// <summary>The set CaCO3(cr) at 9.99e-3, then CaO(cr) at <paramref name="calciumOxide"/>, over the gases named at 1e-3 kmol/kg each.</summary>
-    private static UpdateRig Rig(double calciumOxide, string[] gases) => new(calciumOxide, gases);
+    private static UpdateRig Rig(double calciumOxide, string[] gases, int setChanges = 0) => new(calciumOxide, gases, setChanges);
 
     /// <summary>A condensed set of two records over the elements Ca, C and O at 300 K, and the gases of a test, put through <c>CondensedSet.Update</c>.</summary>
     private sealed class UpdateRig : IDisposable
@@ -133,7 +200,7 @@ public sealed class BalancingRecordTests
         private readonly MemoryBuffer1D<double, Stride1D.Dense> _elements;
         private IterationState _state;
 
-        public UpdateRig(double calciumOxide, string[] gases)
+        public UpdateRig(double calciumOxide, string[] gases, int setChanges)
         {
             var table = TraceGasCases.TableOver(["CA", "C", "O"]);
             var gasIndices = gases.Select(table.IndexOf).ToHashSet();
@@ -144,7 +211,7 @@ public sealed class BalancingRecordTests
                 SpeciesMarks.Set(_rig.Scratch, table.IndexOf(name), SpeciesMark.Active);
             }
 
-            _state = new IterationState { CondensedCount = 2, Temperature = Temperature, LastRemovedForRange = -1 };
+            _state = new IterationState { CondensedCount = 2, Temperature = Temperature, LastRemovedForRange = -1, SetChanges = setChanges };
             Composition.EvaluateFunctions(_rig.View, _rig.Scratch, Temperature);
         }
 
