@@ -5,10 +5,10 @@ cpu: CPUAccelerator with 16 threads
 cases: 100000
 stations: 4
 species: 11
-cuda_seconds: 0.249
-cpu_seconds: 5.306
-ratio: 21.29
-cuda_kernel_seconds: 0.176
+cuda_seconds: 0.360
+cpu_seconds: 7.217
+ratio: 20.07
+cuda_kernel_seconds: 0.319
 iterations_per_case: 22.403
-cuda_kernel_seconds_per_iteration: 7.849e-08
-date: 2026-10-04
+cuda_kernel_seconds_per_iteration: 1.426e-07
+date: 2026-10-05
