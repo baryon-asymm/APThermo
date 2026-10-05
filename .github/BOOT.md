@@ -135,7 +135,9 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
       The CI half, 2026-10-05: run 37331221583 at `ed0c9ef9`, green on both hosted runners with
       the bit facts unfiltered. That run is dated before the removal of the runner-diagnostics
       step and does not cover it: the CI half must be proven again by a run of a commit that
-      contains the removal. The dispatch half waits for the owner's word.
+      contains the removal. Proven again 2026-10-05: CI run 37350467689 at `4a812f6a`, which
+      contains the removal, green on `windows-latest` and `ubuntu-latest` with the bit facts
+      unfiltered. The dispatch half waits for the owner's word.
 
 ## Taboos
 
