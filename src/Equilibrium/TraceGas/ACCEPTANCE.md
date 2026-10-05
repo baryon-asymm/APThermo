@@ -108,18 +108,33 @@
 
       ⚠ 2026-10-05: was unticked, "written and green 2026-10-04 ... left unticked for the decision on those
       nine", now ticked: the gas basis settles the nine.
-- [ ] No line of an `Ok` case moved in any `Bits*.approved.txt`, Windows and Linux; every changed line
-      was a failure before and is listed.
+- [x] No line of an `Ok` case moved in any `Bits*.approved.txt`; every changed line was a failure before and
+      is listed.
 
       Windows, 2026-10-04: the fast set of every test node green with one record line changed, in
       `Bits.approved.txt` of Equilibrium and of Problems: `tp/seventeen-elements-many-condensed-phases_T350`,
       which closed chlorine to 7.5e-13 of its abundance before the relative invariant (the failure it was)
-      and now reports NO and closes to 4e-16. Linux: not run here; `Bits.linux.approved.txt` of both nodes
-      needs the same line re-approved under WSL by the orchestrator.
+      and now reports NO and closes to 4e-16.
+
+      ⚠ 2026-10-05: was "Windows and Linux", the Linux half waiting for `Bits.linux.approved.txt` of both nodes
+      to be re-approved under WSL. It never was: the Linux records were dropped on 2026-10-05 (`20a7776a`, one bit
+      record per node, `tests/Harness/BOOT.md`), the tree's own math making the Windows and WSL2 bits equal, so
+      the Linux half of this change has no record left to be measured against and was not measured. What
+      stands for it: the one record per node, that line included, green under WSL2 (the fast set, 2026-10-05,
+      root `ACCEPTANCE.md`) and on hosted `ubuntu-latest` (CI 37331221583, bit facts unfiltered).
 - [ ] CUDA on the reference machine:
       - the families `trace-gas-magnesite-1e7`, `trace-gas-excess` and `trace-gas-hp` equal to the
-        CPU within the tier;
+        CPU bit for bit;
       - `LaunchBudget` with `trace-gas-hp`;
       - the rocket kernel's compile within its bound, its figure recorded (765 652 424 bytes for the
         emulation);
       - the fast set within 5 minutes; WSL green.
+
+      ⚠ 2026-10-05: was "equal to the CPU within the tier"; the tier is gone, the comparison exact
+      (`tests/Execution.Tests/ACCEPTANCE.md`, the criterion of the date).
+
+      Met 2026-10-05: the compile bound, now the process's allocation, 3 575.9 to 3 577.6 MB in Release
+      against 7 GiB (the tests node's criterion of the date); the fast set 1 min 56 s on Windows, 127 s
+      under WSL2, green; `Category=Cuda` WSL2 81 of 81. Missing: the three families, which no fact builds,
+      and the launch fact over `trace-gas-hp` (`tests/Execution.Tests`); whether a case of the CUDA families
+      of today runs the pass is not measured.

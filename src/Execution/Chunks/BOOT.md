@@ -394,13 +394,17 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
         from the first solve and 0 refusals (a refusal would have ended the run). The same
         harness lost 7 to 9 downloads per run before the fix.
 
-- [ ] 2026-10-04 — `InputOutput` (the constraint above): the round trip
+- [x] 2026-10-05 — `InputOutput` (the constraint above, 2026-10-04): the round trip
       (`ChunkTransferTests.AnInputOutputBufferUploadsItsSliceAndReturnsTheDevicesValues`), the guard on its download
       (`ChunkTransferTests.AnInputOutputSliceOfSentinelBytesIsRefused`), chunk independence of a seeded batch
       (`BatchTests.ASeededBatchIsIndependentOfChunking`). Its one declaration is the equilibrium moles of a seeded
       batch, element type `double`, finite by the batch's validation, so the 2026-10-01 argument covers it. Red once:
       `InputOutput` dropped from `UploadChunk`'s branch, then from `DownloadChunk`'s, then the upload's start taken at
       offset 0 — each named fact red, each reverted.
+      Evidence: the facts and the mutations 2026-10-04 (`cc531473`), the three facts green again 2026-10-05 on the
+      CPU accelerator (Release, `APTHERMO_NO_CUDA=1`); on CUDA the buffer is the seeded families' path,
+      `CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator` bit for bit, Windows and WSL2, 2026-10-05 (the parent's
+      seeded-batch criterion, `../ACCEPTANCE.md`).
 
 ## Taboos
 
