@@ -342,8 +342,8 @@ creation names its arguments; it passes them by position today (the criterion be
         `TraceGasCases` generates from their parameters, none typed;
       - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 361 cases (every tp, hp and sp
         fixture, the magnesite band, the declared leftovers, the nine states the gas basis settles, CaCO3 +
-        1e-7 O at 10 MPa and 300 K, which fails after every start of the pass, KO2 − 1e-10 O, the junction
-        states warm) run with
+        1e-7 O over a table of CaCO3(cr) and O2 alone, built to end `SingularMatrix` after every start of
+        the pass since 2026-10-05, KO2 − 1e-10 O, the junction states warm) run with
         every buffer the solver owns or writes zeroed, filled with NaN and filled with 1e300
         (`HostSolver.SolveFilled`, `BufferFill`): the same status, iterations, moles and multipliers bit for
         bit, and the same state for `Ok` and `NoGasPhase`; a failure writes no state and the harness zeroes
@@ -351,6 +351,11 @@ creation names its arguments; it passes them by position today (the criterion be
         `UnivariantRig` refuses a failed tp solve as the source of its targets (it had taken them from the
         unwritten state of one). Red with the estimate of the gaseous moles left unwritten by the cold branch of
         `CaseSetup.Begin`: 180 differences in the 360 cases;
+      - `BalancingRecordTests` (2026-10-05, the balancing record, [Condensed/BOOT.md](../../src/Equilibrium/Condensed/BOOT.md)):
+        the 45 states of CaCO3 + 1e-7 to 1e-9 O at 100 kPa to 10 MPa and 300 to 500 K and the three the rule
+        settles, each `Ok` and clear; `CondensedSet.Update` on a rig keeps the record at zero when its amount
+        is rounding and its removal singular, and removes it when it is not rounding, when the element rows are
+        independent without it, and when they are dependent with it too (each test shown red by removing it);
       - `TraceGasClosureTests` (2026-10-04, the relative invariant `EquilibriumConditions.ElementInvariant`,
         `1e-13 · b_i`; a gasless state is held to `EquilibriumConditions.GaslessElementResidual`, the
         verdict's absolute 1e-12): the 72 plateau states of calcite and magnesite and Al(OH)3 + 1e-6 O,
