@@ -6,8 +6,9 @@ Append-only store of what `BOOT.md` no longer needs to state as current truth
 start procedure (`AGENTS.md`, §10) does not read this file; it is reached only by
 following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
-The four entries below the entry `isaprobe` were moved here on 2026-10-01 from the root
-`HISTORY.md`, with the bullets of the root `## Delivery` they belong to.
+The four entries after the first were moved here on 2026-10-01 from the root `HISTORY.md`,
+with the bullets of the root `## Delivery` they belong to.
+Since 2026-10-05 newer entries stand above them: "the first" is the entry `isaprobe`.
 
 ---
 
