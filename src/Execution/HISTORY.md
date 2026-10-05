@@ -9,6 +9,165 @@ used to stand.
 
 ---
 
+<a id="bad-library-criterion-2026-10-05"></a>
+
+## 2026-10-05 — from "ACCEPTANCE.md", the criterion of 2026-09-26 on F2, F3 and observations — the bad-library bullet
+
+The engine no longer loads libnvvm, so there is no bad library to refuse (item 13 of release 0.2.2). The text as it stood:
+
+>       - **The bad library.** `AcceleratorChoice.Cuda` now loads libnvvm and asks its IR
+>         version, then reads the bitcode, through one new internal `LoadNvvm`, before
+>         `CreateAccelerator` (also new) ever creates a CUDA context; the session keeps
+>         that one `NvvmAPI` binding, so no second `NvvmAPI.Create` follows once the
+>         accelerator is up. A file named as the platform's libnvvm that is not a
+>         library, with the real bitcode and discovery off
+>         (`BadLibraryTests.ABadLibraryNamesBothPathsAndNeverReachesTheDevice`,
+>         `Category=Cuda`):
+>         - `Cuda` throws `AcceleratorUnavailableException` naming both paths;
+>         - `Auto` binds the CPU with a `CudaSkippedBecause` that names the library
+>           path;
+>         - on the reference machine, the free device memory after 20 such `Auto`
+>           creations is within 64 MiB of the memory before it (measured: 15 037 MiB
+>           before, 15 037 MiB after, 0 MiB lost — the audit's own run of the
+>           pre-fix code lost 3 800 MiB over the same 20 attempts).
+> 
+>         The red-once record of the bad-library fact against the pre-fix order →
+>         HISTORY.md#bad-library-red-once-2026-09-26
+
+---
+
+<a id="criteria-libdevice-tolerance-2026-10-05"></a>
+
+## 2026-10-05 — from "ACCEPTANCE.md" — the criteria that named the libdevice post-link, libnvvm discovery and the GPU/CPU tolerance table
+
+Item 13 of release 0.2.2 (the tree's own correctly rounded `Exp`, `Log` and `Pow`, no libdevice, exact GPU=CPU) made these criteria describe code and tests that no longer exist: the libdevice wrappers and their post-link, the discovery of the toolkit, the paths tried and the tolerance table. Replaced by the three criteria of the same date at the top of the file. The text as it stood:
+
+> - [x] 2026-09-12 — Probe kernel with every function of the root's math list: loads on
+>       CUDA through the post-link, and its results equal the CPU accelerator within the
+>       tolerance table (execution tests node; `ProbeKernelTests`:
+>       `TheCpuAcceleratorReproducesDotnetMathExactly`,
+>       `CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`).
+
+> - [x] 2026-09-12 — The rocket batch of 100 000 cases on CUDA equals the same batch on
+>       the CPU accelerator within the tolerance table; the compared fields are
+>       enumerated by reflection over `MixtureState` and `PerformanceFigures`
+>       (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
+>       long-running). The table has two tiers for mole fractions, by whether both
+>       accelerators stopped after the same number of Newton steps at the station: see
+>       the tests node's invariants for the finding behind it.
+
+> - [x] 2026-09-12 — With `AcceleratorKind.Cuda` and libdevice paths pointing nowhere,
+>       the error names every path that was tried
+>       (`AcceleratorChoiceTests.AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`,
+>       `DiscoveryReportsTheToolkitPathsItExamined`).
+
+> - [x] 2026-09-12 — The species-function batch equals the host calls of `Thermo`'s
+>       functions bit for bit on the CPU accelerator and matches CUDA within the tolerance
+>       table, inside and outside the records' ranges (`SpeciesFunctionTests`:
+>       `TheCpuAcceleratorEqualsTheHostFunctionsBitForBit`,
+>       `CudaMatchesTheCpuAcceleratorWithinTheTable`,
+>       `ASpeciesIndexOutsideTheTableIsRefusedBeforeAnyKernelRuns`).
+
+> - [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
+>       off and the explicit paths pointing nowhere, the engine is the CPU one and
+>       `CudaSkippedBecause` names what was missing and the paths tried
+>       (`AcceleratorChoiceTests.AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried`,
+>       the mirror of `AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`);
+>       committed in `c10ab0e`, where the equivalent test against the code of `8e36a27`
+>       (where `AcceleratorInfo` said nothing) would have been red.
+
+> - [x] 2026-09-14 — The missing-definition guard of the post-link is proven
+>       non-degenerate: a wrapper body with one definition removed makes the check name
+>       that wrapper, without a GPU
+>       (`PostLinkTests.AWrapperBodyWithOneDefinitionRemovedNamesThatWrapper`,
+>       `..._with_every_definition_removed_names_every_wrapper`, and
+>       `ACallSiteIsNotMistakenForADefinition` against the two-substring-search
+>       shape the guard had before `23ccc1d`, which read the whole linked text instead
+>       of the wrapper body alone).
+
+> - [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice` merged back into
+>       `CompileWrappers` (R-Execution-2): `ShapeTests.NoControlFlowNestsDeeperThan3` and
+>       `NoMethodSpansMoreThan60Lines` hold, and
+>       `ProbeKernelTests.CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`
+>       is green on the reference machine →
+>       HISTORY.md#criterion-compile-against-libdevice-merged-2026-09-15
+
+> - [x] 2026-09-15 (distribution phase) — Linux libdevice discovery (`cf87211`):
+>       `LibDeviceLocator` branches on `OperatingSystem.IsWindows()` / `IsLinux()` and is
+>       covered by `tests/Execution.Tests/LibDeviceDiscoveryTests.cs` through the internal
+>       `Locate` seam over fake toolkit trees (12 facts, all green, the ordering fact
+>       shown red once); the snapshots and the lint unchanged →
+>       HISTORY.md#criterion-linux-libdevice-discovery-2026-09-15
+
+> - [x] 2026-09-26 — No libnvvm or driver result is ignored: no `NvvmResult` or
+>       `CudaError` returned by a call of the post-link is discarded (no `_ =` on such a
+>       call remains in `LibDevicePostLink.cs`); the result-to-exception method is tested
+>       with every non-success `NvvmResult` and a failing `CudaError`; the CUDA tests of
+>       this node are green in Release, the long-running sweep and the throughput tripwire
+>       included, with no `Bits*` or `Throughput*` record moving; the fast suite and the
+>       lint are green.
+> 
+>       The implementation (the two `ThrowIfFailed` overloads, the checked calls, the
+>       release rule) and the evidence of the run (the `PostLinkTests` facts, 3178 fast
+>       tests, 126 of 126 in Release) →
+>       HISTORY.md#criterion-no-result-ignored-implementation-2026-09-26
+> 
+>       ⚠ 2026-09-26, review: was the message naming the call and the result only, now
+>       leading with "the libdevice post-link for {arch}" and the library; the release in
+>       `ReleaseProgram` is best-effort without a catch →
+>       HISTORY.md#no-result-ignored-message-review-2026-09-26
+
+> - [x] 2026-09-26 — Every GPU architecture (the root's criterion of the same date; audit
+>       finding F1).
+>       - **The architecture fact** (`Category=Cuda`, `Category=LongRunning`). The architectures are every
+>         `CudaArchitecture` ILGPU 1.5.3 declares from SM_75 up, and the entry points are
+>         every entry point of `Kernels`; both lists come from reflection. For each
+>         pair, the fact compiles the entry point with a `PTXBackend` for that
+>         architecture and the session's libnvvm, passes it through `Link`, and loads it
+>         on the reference device. It then asserts four things:
+>         - both paths of the post-link occur: at least one architecture where ILGPU
+>           defined every wrapper and `Link` compiled none, and one where `Link` compiled
+>           them all;
+>         - every kernel's PTX equals the same entry point's PTX for the device's own
+>           architecture, once ILGPU's generated numeric suffixes, comment lines, blank
+>           lines and the `.target` line are set aside;
+>         - the probe launched from each architecture's kernel returns the engine's own
+>           CUDA probe bit for bit;
+>         - it stays within `GpuCpuTolerances.MathUlp` of the CPU accelerator.
+> 
+>         The implementation of the architecture fact (11 architectures, SM_75 to SM_121,
+>         and 5 entry points; both post-link paths measured) and its red-once record →
+>         HISTORY.md#architecture-fact-implementation-2026-09-26
+> 
+>         ⚠ 2026-09-28: was "about three minutes" for the fact, now 8 m 2 s on Windows and
+>         11 m 3 s under WSL2, the assertions unchanged →
+>         HISTORY.md#architecture-fact-duration-2026-09-28
+>       - **The wrapper inventory without a GPU**, on the hosted runners. Two text
+>         fixtures hold ILGPU 1.5.3's PTX of the probe kernel: one for SM_89, which
+>         defines the wrappers, and one for SM_120, which defines none. Their provenance
+>         is in the tests node's `BOOT.md`. On both, the inventory reads the same called
+>         set, the math list's libdevice functions. It reads them all as defined on
+>         SM_89 and none on SM_120. No `_param_` name is read as a call. The result is
+>         the same with LF and CRLF line ends.
+> 
+>         The implementation of the inventory facts (`WrapperInventoryTests`, 5 facts) and
+>         their red-once record against the old `WrapperCall` regex →
+>         HISTORY.md#wrapper-inventory-implementation-2026-09-26
+>       - **The bind-time probe** (`Category=Cuda`). The real libnvvm is paired with a
+>         libdevice path to a file that is not libdevice bitcode, and discovery is off:
+>         - `Auto` binds the CPU accelerator, and `CudaSkippedBecause` names the
+>           libdevice post-link;
+>         - `Cuda` throws `AcceleratorUnavailableException` whose inner exception is the
+>           post-link's.
+> 
+>         The implementation of the bind-time facts and why no substitute input was needed
+>         → HISTORY.md#bind-time-probe-implementation-2026-09-26
+>       The evidence run of the criterion (134 of 134 in Release, 3185 fast tests) and the
+>       records it moved (`CHANGELOG.md`) →
+>       HISTORY.md#architecture-nothing-else-moves-2026-09-26
+
+---
+
 <a id="gpu-equals-cpu-exact-2026-10-05"></a>
 
 ## 2026-10-05 — from "## Invariants" — GPU equals CPU: the tolerance table the root gave this node's tests
