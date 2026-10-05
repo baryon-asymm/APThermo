@@ -7,9 +7,8 @@ using Xunit.Abstractions;
 
 namespace APThermo.Execution.Tests;
 
-/// <summary>L2 and the benchmark on the reference machine: CUDA against the CPU accelerator within the table, determinism, throughput.</summary>
+/// <summary>L2 and the benchmark on the reference machine: CUDA against the CPU accelerator bit for bit, determinism, throughput.</summary>
 [Collection(EngineFixture.CollectionName)]
-[TestCaseOrderer("APThermo.Execution.Tests.LastFactOrderer", "APThermo.Execution.Tests")]
 public sealed class CudaTests(ITestOutputHelper output)
 {
     /// <summary>The most cases of the launch-budget fact: one wave of the device where it is smaller, so that the fact never launches more than the engine's own first chunk would.</summary>
@@ -69,26 +68,12 @@ public sealed class CudaTests(ITestOutputHelper output)
         using var cudaTables = cuda.Upload(family.Table, family.Transport);
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
         var gpu = cuda.Run(cudaTables, batch);
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
-        var mismatches = comparison.Rocket(cpu, gpu, family, batch);
-        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
-        AssertDifferentStepShare(comparison.DifferentSteps, cpu.Stations.Length);
+        var mismatches = ExactComparison.Rocket(cpu, gpu, k => k < family.Members.Count ? family.Members[k] : $"case {k}");
+        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
 
         var transport = TransportBatch.FromRocket(cpu);
-        var cpuTransport = EngineFixture.Shared.Cpu.Run(cpuTables, transport);
-        var gpuTransport = cuda.Run(cudaTables, transport);
-        var transportMismatches = new List<string>();
-        for (var i = 0; i < transport.Count; i++)
-        {
-            if (cpuTransport.Status[i] != gpuTransport.Status[i])
-            {
-                transportMismatches.Add($"station {i}: status cpu {cpuTransport.Status[i]}, cuda {gpuTransport.Status[i]}");
-            }
-
-            transportMismatches.AddRange(GpuCpuTolerances.Compare(cpuTransport.Figures[i], gpuTransport.Figures[i], $"station {i}", comparison.Record));
-        }
-
-        Assert.True(transportMismatches.Count == 0, string.Join("\n", transportMismatches.Take(30)) + "\nworst: " + comparison.Worst());
+        var transportMismatches = ExactComparison.Transport(EngineFixture.Shared.Cpu.Run(cpuTables, transport), cuda.Run(cudaTables, transport));
+        Assert.True(transportMismatches.Count == 0, string.Join("\n", transportMismatches));
     }
 
     /// <summary>An equilibrium family on cuda matches the cpu accelerator.</summary>
@@ -241,34 +226,16 @@ public sealed class CudaTests(ITestOutputHelper output)
             Assert.All(cpu.Status, status => Assert.Equal(CaseStatus.Ok, status));
         }
 
-        var support = new ComparisonSupport(EngineFixture.Shared.Cpu, cpuTables, table, batch, cpu,
-                                            new SpeciesFunctionSources(functions => EngineFixture.Shared.Cpu.Run(cpuTables, functions), functions => cuda.Run(cudaTables, functions)));
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = bracketed, Support = support };
-        var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, cpuTables, batch, table);
-        var mismatches = comparison.Equilibrium(cpu, gpu, batch, table, labels, sensitivities);
-        foreach (var decision in support.Decisions)
-        {
-            output.WriteLine(decision);
-        }
-
-        if (bracketed)
-        {
-            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"worst noGasPhaseTemperature deviation {comparison.WorstOf("noGasPhaseTemperature"):E2}, worst gas mole-fraction deviation {comparison.WorstOf("moleFraction"):E2}"));
-        }
-
-        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
-        if (!bracketed)
-        {
-            AssertDifferentStepShare(comparison.DifferentSteps, batch.Count - comparison.StepShareExcluded);
-        }
+        var mismatches = ExactComparison.Equilibrium(cpu, gpu, k => labels[k]);
+        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
+        output.WriteLine($"{batch.Count} cases, {cpu.Iterations.Sum(i => (long)i)} Newton steps, every field equal bit for bit");
     }
 
-    /// <summary>The sweep of 100000 cases on cuda matches the cpu accelerator and is deterministic.</summary>
+    /// <summary>The sweep of 100000 cases on cuda equals the cpu accelerator bit for bit and is deterministic.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
     [Trait("Category", "LongRunning")]
-    public void TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic()
+    public void TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic()
     {
         var cuda = EngineFixture.Shared.RequireCuda();
         if (cuda is null)
@@ -280,26 +247,12 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.NotNull(sweep.Cuda);
         Assert.NotNull(sweep.CudaAgain);
         Assert.Equal(SweepRun.LongRunningCases, sweep.Batch.Count);
-        var family = FixtureBatches.Family(EngineFixture.Shared.Database, SweepRun.FamilyName);
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
-        var mismatches = comparison.Rocket(sweep.Cpu, sweep.Cuda, family, sweep.Batch);
-        Assert.True(mismatches.Count == 0, $"{mismatches.Count} mismatches:\n" + string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
-        AssertDifferentStepShare(comparison.DifferentSteps, sweep.Cpu.Stations.Length);
-        Assert.True(comparison.DifferentSteps > 0, "no station of the sweep stopped after different numbers of Newton steps; the second tier of the mole-fraction tolerance was not exercised");
-
-        Assert.Equal(sweep.Cuda.Status, sweep.CudaAgain.Status);
-        for (var i = 0; i < sweep.Cuda.Stations.Length; i++)
-        {
-            Assert.Empty(Bits.Differences(sweep.Cuda.Stations[i], sweep.CudaAgain.Stations[i], $"station {i}"));
-            Assert.Empty(Bits.Differences(sweep.Cuda.Figures[i], sweep.CudaAgain.Figures[i], $"station {i}"));
-        }
-
-        for (long j = 0; j < sweep.Cuda.Moles.LongLength; j++)
-        {
-            Assert.True(Bits.Same(sweep.Cuda.Moles[j], sweep.CudaAgain.Moles[j]), $"moles differ at {j}");
-        }
-
+        var mismatches = ExactComparison.Rocket(sweep.Cpu, sweep.Cuda, k => $"case {k}");
+        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches));
+        var repeated = ExactComparison.Rocket(sweep.Cuda, sweep.CudaAgain, k => $"case {k}");
+        Assert.True(repeated.Count == 0, "two CUDA runs differ:\n" + string.Join("\n", repeated));
         Assert.True(sweep.Cpu.Status.All(s => s == CaseStatus.Ok), $"{sweep.Cpu.Status.Count(s => s != CaseStatus.Ok)} cases failed on the CPU accelerator");
+        output.WriteLine($"{sweep.Cpu.Stations.Length} stations, {sweep.Cpu.Iterations.Sum(i => (long)i)} Newton steps, every field equal bit for bit");
     }
 
     /// <summary>Throughput is recorded, the CUDA/CPU ratio is not below 80 % of the approved one and the kernel time per Newton step is not above 115 % of the approved figure.</summary>
@@ -357,38 +310,4 @@ public sealed class CudaTests(ITestOutputHelper output)
     }
 
     private static string ThisFile([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
-
-    /// <summary>
-    /// The stations at which the accelerators stopped after different numbers of Newton steps are added to the run's ledger; one family is
-    /// held only to the coarse guard of <see cref="StepShareLedger.Allowed"/>, and the table's share is held over the whole run by
-    /// <see cref="TheStepShareOverTheWholeRun"/>.
-    /// </summary>
-    private static void AssertDifferentStepShare(int differentSteps, int stations)
-    {
-        EngineFixture.Shared.StepShare.Add(differentSteps, stations);
-        var violation = StepShareLedger.CoarseViolation(differentSteps, stations);
-        Assert.True(violation is null, violation);
-    }
-
-    /// <summary>
-    /// The stations at which the accelerators stopped after different numbers of Newton steps stay a rare threshold flip over the whole
-    /// run: at most the table's share (<see cref="GpuCpuTolerances.DifferentStepShare"/>) of every station of every family. Ordered last
-    /// in the class by <see cref="LastFactOrderer"/>; a run of this fact alone fails, its ledger being empty.
-    /// </summary>
-    [Fact]
-    [Trait("Category", "Cuda")]
-    public void TheStepShareOverTheWholeRun()
-    {
-        if (EngineFixture.Shared.RequireCuda() is null)
-        {
-            return;
-        }
-
-        var ledger = EngineFixture.Shared.StepShare;
-        var (different, stations) = (ledger.Different, ledger.Stations);
-        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"{different} of {stations} stations differ (share {(stations == 0 ? 0.0 : (double)different / stations):E2}, bound {GpuCpuTolerances.DifferentStepShare.ToString("0e+0", CultureInfo.InvariantCulture)})"));
-        var violation = ledger.RunViolation();
-        Assert.True(violation is null, violation);
-    }
 }

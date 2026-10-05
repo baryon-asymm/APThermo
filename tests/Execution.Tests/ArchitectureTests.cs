@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using APThermo.Execution.LibDevice;
+using APThermo.Execution.Ptx;
+using APThermo.Harness;
 using ILGPU;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.PTX;
@@ -12,7 +13,8 @@ namespace APThermo.Execution.Tests;
 /// <summary>
 /// L1: every architecture ILGPU 1.5.3 declares from SM_75 up passes the post-link and loads on the reference device
 /// (BOOT.md, the criterion of 2026-09-26, audit finding F1). The architectures and the entry points both come from
-/// reflection, never typed out by hand, so a future ILGPU release or a new kernel is covered automatically.
+/// reflection, never typed out by hand, so a future ILGPU release or a new kernel is covered automatically. No library of the
+/// CUDA Toolkit is involved (2026-10-05): the post-link is a text rewrite of the PTX ILGPU emits for the target.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed partial class ArchitectureTests
@@ -23,7 +25,7 @@ public sealed partial class ArchitectureTests
     /// <summary>
     /// The PTX with comment lines, blank lines and the <c>.target</c> line set aside, and ILGPU's generated numeric suffixes
     /// (register and label names) folded to one placeholder, so that two architectures' otherwise identical kernels compare
-    /// equal (the spike behind BOOT.md's design measured this normalization against libnvvm 12.9, 13.3 and 13.4).
+    /// equal.
     /// </summary>
     private static string Normalize(string ptx) => string.Join('\n', ptx.Split('\n')
         .Select(line => line.TrimEnd('\r'))
@@ -33,9 +35,9 @@ public sealed partial class ArchitectureTests
         .Select(line => GeneratedSuffix().Replace(line, "_N")));
 
     /// <summary>
-    /// For every architecture and every entry point: the post-link succeeds and the kernel loads on the reference device; both
-    /// paths of the post-link occur across the range; the normalized PTX equals the device's own; the probe matches the
-    /// engine's own CUDA probe bit for bit and stays within the GPU/CPU tolerance of the CPU accelerator.
+    /// For every architecture and every entry point: the post-link succeeds and the kernel loads on the reference device; the
+    /// post-link marked arithmetic <c>.rn</c> on every architecture and inlined the probe's fused multiply-add; the normalized
+    /// PTX equals the device's own; the probe matches the engine's own CUDA probe and the CPU accelerator bit for bit.
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
@@ -49,26 +51,25 @@ public sealed partial class ArchitectureTests
         }
 
         var accelerator = (CudaAccelerator)cuda.IlgpuAccelerator;
-        var (dll, bitcode, _) = LibDeviceLocator.Locate(new EngineOptions());
         var methods = EntryPoints();
-        var baseline = Baseline(accelerator, dll!, bitcode!, methods);
+        var baseline = Baseline(accelerator, methods);
 
         var inputs = ProbeInputs();
         var cpuProbe = EngineFixture.Shared.Cpu.ProbeMath(inputs);
         var deviceProbe = cuda.ProbeMath(inputs);
 
-        var sawIlgpuComplete = false;
-        var sawPostLinkComplete = false;
-        foreach (var arch in ArchitecturesFromSm75Up())
+        var architectures = ArchitecturesFromSm75Up();
+        Assert.NotEmpty(architectures);
+        foreach (var arch in architectures)
         {
             foreach (var method in methods)
             {
-                var (ptx, link) = CompileAndLink(accelerator, dll!, bitcode!, arch, method);
-                Assert.Equal(baseline[method.Name], Normalize(ptx));
-                sawIlgpuComplete |= link.DefinedByIlgpu.Count > 0 && link.Compiled.Count == 0;
-                sawPostLinkComplete |= link.Compiled.Count > 0 && link.DefinedByIlgpu.Count == 0;
+                var link = CompileAndLink(accelerator, arch, method);
+                Assert.Equal(baseline[method.Name], Normalize(link.Kernel.PTXAssembly));
+                Assert.True(link.RoundedOperations > 0, $"{arch} {method.Name}: no multiplication, addition or subtraction was marked .rn");
                 if (method.Name == nameof(Kernels.Probe))
                 {
+                    Assert.True(link.FusedSites > 0, $"{arch}: the probe's fused multiply-add was not inlined");
                     AssertProbeMatches(accelerator, link.Kernel, inputs, deviceProbe, cpuProbe, arch);
                 }
                 else
@@ -77,42 +78,29 @@ public sealed partial class ArchitectureTests
                 }
             }
         }
-
-        Assert.True(sawIlgpuComplete, "no architecture from SM_75 up had ILGPU define every wrapper the kernels call");
-        Assert.True(sawPostLinkComplete, "no architecture from SM_75 up needed the post-link to compile every wrapper");
     }
 
     /// <summary>The normalized, post-linked PTX of every entry point, compiled for the device's own architecture: the baseline every other architecture's PTX is compared against.</summary>
-    private static Dictionary<string, string> Baseline(CudaAccelerator accelerator, string dll, string bitcode, IReadOnlyList<MethodInfo> methods)
+    private static Dictionary<string, string> Baseline(CudaAccelerator accelerator, IReadOnlyList<MethodInfo> methods)
     {
         var baseline = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var method in methods)
         {
-            var (ptx, _) = CompileAndLink(accelerator, dll, bitcode, accelerator.Architecture, method);
-            baseline[method.Name] = Normalize(ptx);
+            baseline[method.Name] = Normalize(CompileAndLink(accelerator, accelerator.Architecture, method).Kernel.PTXAssembly);
         }
 
         return baseline;
     }
 
-    /// <summary>
-    /// Compiles one entry point for one architecture with a backend of its own, and passes it through the post-link. Creates
-    /// its own <see cref="NvvmAPI"/> rather than sharing one across backends (2026-09-28, the second audit's observation 4):
-    /// <c>PTXBackend.Dispose</c> frees the <c>NvvmAPI</c> it was given, so a shared instance is freed once per backend, which
-    /// only appeared to work in this fixture because the CUDA engine created earlier keeps the same libnvvm library loaded; a
-    /// libnvvm held by nothing else crashed in <c>NvvmAPI.GetIRVersion</c> once the audit tried it.
-    /// </summary>
-    private static (string Ptx, LibDevicePostLink.LinkResult Link) CompileAndLink(
-        CudaAccelerator accelerator, string dll, string bitcode, CudaArchitecture arch, MethodInfo method)
+    /// <summary>Compiles one entry point for one architecture with a backend of its own, and passes it through the post-link.</summary>
+    private static PtxPostLink.LinkResult CompileAndLink(CudaAccelerator accelerator, CudaArchitecture arch, MethodInfo method)
     {
-        using var nvvm = NvvmAPI.Create(dll, bitcode);
-        using var backend = new PTXBackend(accelerator.Context, arch, accelerator.InstructionSet, nvvm);
+        using var backend = new PTXBackend(accelerator.Context, arch, accelerator.InstructionSet, null!);
         var compiled = (PTXCompiledKernel)backend.Compile(EntryPointDescription.FromImplicitlyGroupedKernel(method), KernelSpecialization.Empty);
-        var linked = LibDevicePostLink.Link(accelerator, nvvm, compiled);
-        return (linked.Kernel.PTXAssembly, linked);
+        return PtxPostLink.Link(accelerator, compiled);
     }
 
-    /// <summary>Loads and launches the probe kernel of one architecture, and compares it with the engine's own CUDA probe and the CPU accelerator.</summary>
+    /// <summary>Loads and launches the probe kernel of one architecture, and compares it with the engine's own CUDA probe and the CPU accelerator, bit for bit.</summary>
     private static void AssertProbeMatches(
         CudaAccelerator accelerator, PTXCompiledKernel compiled, double[] inputs, double[] deviceProbe, double[] cpuProbe, CudaArchitecture arch)
     {
@@ -125,10 +113,8 @@ public sealed partial class ArchitectureTests
         var result = outputBuffer.GetAsArray1D();
         for (var i = 0; i < result.Length; i++)
         {
-            Assert.True(BitConverter.DoubleToInt64Bits(result[i]) == BitConverter.DoubleToInt64Bits(deviceProbe[i]),
-                        $"{arch} probe[{i}]: {result[i]:R} against the engine's own {deviceProbe[i]:R}");
-            Assert.True(GpuCpuTolerances.UlpDistance(cpuProbe[i], result[i]) <= GpuCpuTolerances.MathUlp,
-                        $"{arch} probe[{i}] against the CPU accelerator: {result[i]:R} vs {cpuProbe[i]:R}");
+            Assert.True(Bits.Same(result[i], deviceProbe[i]), $"{arch} probe[{i}]: {result[i]:R} against the engine's own {deviceProbe[i]:R}");
+            Assert.True(Bits.Same(result[i], cpuProbe[i]), $"{arch} probe[{i}] against the CPU accelerator: {result[i]:R} vs {cpuProbe[i]:R}");
         }
     }
 
@@ -145,7 +131,7 @@ public sealed partial class ArchitectureTests
         [.. typeof(Kernels).GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
             .Where(m => m.GetParameters() is [{ ParameterType.Name: nameof(Index1D) }, ..])];
 
-    /// <summary>Inputs spanning 26 decades, as the probe's own tolerance is measured over (fewer than <c>ProbeKernelTests</c>, since this fact repeats the launch across every architecture).</summary>
+    /// <summary>Inputs spanning 26 decades (fewer than <c>ProbeKernelTests</c>, since this fact repeats the launch across every architecture).</summary>
     private static double[] ProbeInputs()
     {
         const int count = 256;

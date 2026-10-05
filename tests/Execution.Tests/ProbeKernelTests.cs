@@ -1,9 +1,10 @@
 using APThermo.Harness;
+using APThermo.Thermo;
 using Xunit.Abstractions;
 
 namespace APThermo.Execution.Tests;
 
-/// <summary>L1: the probe kernel of the root's math list loads on CUDA through the post-link and matches the CPU accelerator within the ULP bound.</summary>
+/// <summary>L1: the probe kernel of the root's math list loads on CUDA through the post-link and equals the CPU accelerator bit for bit, and the CPU accelerator equals the host.</summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed class ProbeKernelTests(ITestOutputHelper output)
 {
@@ -11,7 +12,7 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
     /// The solver's whole input domain, beyond the decade span (2026-09-27, the guards audit's F11): until now the probe's
     /// inputs were positive only, plus a handful of values around 1, so <c>exp</c>'s mostly-negative arguments, <c>Floor</c>
     /// and <c>Ceiling</c>'s negative inputs, and <c>Min</c>/<c>Max</c>'s NaN case were never probed. NaN and the signed zeros
-    /// and infinities exercise <see cref="GpuCpuTolerances.UlpDistance"/>'s own special-value handling.
+    /// and infinities exercise the special-value handling of every function, compared by bits.
     /// </summary>
     private static double[] SpecialInputs() =>
     [
@@ -46,6 +47,15 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
         return values;
     }
 
+    /// <summary>
+    /// Whether two probe values are the same: the same bits, or both NaN. A NaN's payload and sign are the hardware's, not the
+    /// program's (the x86 unit hands on the payload of its operand, PTX arithmetic returns its own canonical NaN, and
+    /// <c>Abs(NaN - 1)</c> shows the difference), and the tree never reads them: a NaN is a failed case, reported by its status.
+    /// Everything that is not a NaN is compared by its bits.
+    /// </summary>
+    private static bool SameValue(double expected, double actual) =>
+        Bits.Same(expected, actual) || (double.IsNaN(expected) && double.IsNaN(actual));
+
     /// <summary>The kernels stride constant matches the function list.</summary>
     [Fact]
     public void TheKernelsStrideConstantMatchesTheFunctionList() =>
@@ -54,9 +64,9 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
         // if a function is ever added to the root's math list (F-EX-07).
         Assert.Equal(MathProbe.StrideCount, MathProbe.FunctionCount);
 
-    /// <summary>The cpu accelerator reproduces dotnet math exactly.</summary>
+    /// <summary>The cpu accelerator reproduces the host's own functions exactly: the tree's <c>KernelMath</c> and the IEEE operations of .NET.</summary>
     [Fact]
-    public void TheCpuAcceleratorReproducesDotnetMathExactly()
+    public void TheCpuAcceleratorReproducesTheHostFunctionsExactly()
     {
         var inputs = Inputs();
         var outputs = EngineFixture.Shared.Cpu.ProbeMath(inputs);
@@ -66,23 +76,24 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
             var v = inputs[i];
             var expected = new[]
             {
-                Math.Exp(v), Math.Log(v), Math.Log10(v),
-                Math.Pow(v, MathProbe.PowExponent1), Math.Pow(v, MathProbe.PowExponent2), Math.Pow(v, MathProbe.PowExponent3),
+                KernelMath.Exp(v), KernelMath.Log(v),
+                KernelMath.Pow(v, MathProbe.PowExponent1), KernelMath.Pow(v, MathProbe.PowExponent2), KernelMath.Pow(v, MathProbe.PowExponent3),
                 Math.Sqrt(v), Math.Floor(v), Math.Ceiling(v), Math.Abs(v - 1.0),
-                Math.Min(v, 1.0), Math.Max(v, 1.0), Math.Min(1.0, v), Math.Max(1.0, v),
+                KernelMath.Min(v, 1.0), KernelMath.Max(v, 1.0), KernelMath.Min(1.0, v), KernelMath.Max(1.0, v),
+                KernelMath.Fma(v, MathProbe.Factor, MathProbe.Addend), v * MathProbe.Factor + MathProbe.Addend,
             };
             for (var f = 0; f < MathProbe.FunctionCount; f++)
             {
-                Assert.True(Bits.Same(expected[f], outputs[i * MathProbe.FunctionCount + f]),
+                Assert.True(SameValue(expected[f], outputs[i * MathProbe.FunctionCount + f]),
                             $"{MathProbe.Functions[f]}({v:R}): host {expected[f]:R}, cpu accelerator {outputs[i * MathProbe.FunctionCount + f]:R}");
             }
         }
     }
 
-    /// <summary>Cuda matches the cpu accelerator within the ulp bound for every function.</summary>
+    /// <summary>Cuda equals the cpu accelerator bit for bit for every function, on the whole input domain.</summary>
     [Fact]
     [Trait("Category", "Cuda")]
-    public void CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction()
+    public void CudaEqualsTheCpuAcceleratorBitForBitForEveryFunction()
     {
         var cuda = EngineFixture.Shared.RequireCuda();
         if (cuda is null)
@@ -94,7 +105,6 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
         var cpu = EngineFixture.Shared.Cpu.ProbeMath(inputs);
         var gpu = cuda.ProbeMath(inputs);
         Assert.Equal(cpu.Length, gpu.Length);
-        var worst = new long[MathProbe.FunctionCount];
         var mismatches = new List<string>();
         for (var i = 0; i < inputs.Length; i++)
         {
@@ -102,29 +112,21 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
             {
                 var a = cpu[i * MathProbe.FunctionCount + f];
                 var b = gpu[i * MathProbe.FunctionCount + f];
-                var ulp = GpuCpuTolerances.UlpDistance(a, b);
-                worst[f] = Math.Max(worst[f], ulp);
-                if (ulp > GpuCpuTolerances.MathUlp)
+                if (!SameValue(a, b))
                 {
-                    mismatches.Add($"{MathProbe.Functions[f]}({inputs[i]:R}): cpu {a:R}, cuda {b:R}, {ulp} ULP");
+                    mismatches.Add($"{MathProbe.Functions[f]}({inputs[i]:R}): cpu {a:R}, cuda {b:R}");
                 }
             }
         }
 
-        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(20)));
-        var report = string.Join(", ", MathProbe.Functions.Select((name, f) => $"{name} {worst[f]}"));
-        Assert.True(worst.Max() <= GpuCpuTolerances.MathUlp, report);
-        for (var f = MathProbe.LibdeviceFunctionCount; f < MathProbe.FunctionCount; f++)
-        {
-            Assert.True(worst[f] == 0, $"{MathProbe.Functions[f]} is not a libdevice call and must be exact: {worst[f]} ULP");
-        }
+        Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {cpu.Length} values differ:\n" + string.Join("\n", mismatches.Take(20)));
     }
 
     /// <summary>
     /// Records CUDA against the CPU accelerator for every special input on its own, one line per function (2026-09-27, F11):
-    /// evidence for BOOT.md's criterion, read from this fact's own output, not typed by hand. Asserts the same ULP bound as
-    /// <see cref="CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction"/>, which already covers these inputs as part
-    /// of the whole domain; a divergence here is a finding for the owner (BOOT.md's Constraints), not a reason to loosen it.
+    /// evidence for BOOT.md's criterion, read from this fact's own output, not typed by hand. Asserts the same bit equality as
+    /// <see cref="CudaEqualsTheCpuAcceleratorBitForBitForEveryFunction"/>, which already covers these inputs as part of the
+    /// whole domain.
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
@@ -145,9 +147,8 @@ public sealed class ProbeKernelTests(ITestOutputHelper output)
             {
                 var a = cpu[i * MathProbe.FunctionCount + f];
                 var b = gpu[i * MathProbe.FunctionCount + f];
-                var ulp = GpuCpuTolerances.UlpDistance(a, b);
-                output.WriteLine($"{MathProbe.Functions[f]}({special[i]:R}): cpu {a:R}, cuda {b:R}, {ulp} ULP");
-                Assert.True(ulp <= GpuCpuTolerances.MathUlp, $"{MathProbe.Functions[f]}({special[i]:R}): cpu {a:R}, cuda {b:R}, {ulp} ULP");
+                output.WriteLine($"{MathProbe.Functions[f]}({special[i]:R}): cpu {a:R}, cuda {b:R}");
+                Assert.True(SameValue(a, b), $"{MathProbe.Functions[f]}({special[i]:R}): cpu {a:R}, cuda {b:R}");
             }
         }
     }
