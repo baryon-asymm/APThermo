@@ -50,12 +50,15 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   change. Cases with different species sets belong to different batches.
 - **The CPU path needs no NVIDIA software.** No numerical node references the
   `ILGPU.Runtime.Cuda` namespace; only the execution node does, and it works with the
-  CPU accelerator when there is no CUDA device or no libdevice. Checked by reflection
+  CPU accelerator when there is no CUDA device. Checked by reflection
   over every assembly (`Protocol.Tests.InvariantTests.OnlyTheExecutionNodeAndItsTestsNameCudaTypes`).
-- **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU
-  accelerator agree within the tolerance table owned by the execution tests node
-  (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
-  Every batch test compares both.
+- **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU accelerator
+  are equal bit for bit: every field of every result, statuses and iteration counts
+  included, a NaN's payload aside. The tree's own correctly rounded `Exp`, `Log` and `Pow`
+  and the execution node's post-link, which keeps CUDA from fusing a multiplication into
+  an addition, make the two run one set of IEEE operations. Every batch test compares both.
+
+  ⚠ 2026-10-05: was within a tolerance table (1e-10 temperature, 1e-9 mole fractions), now exact → HISTORY.md#gpu-exact
 
   ⚠ 2026-09-12: was 1e-10 on mole fractions, now second tier 1e-9 → HISTORY.md#gpu-tier
 - **SI units in every public type**: K, Pa, J/kg, J/(kg·K), kg/kmol, kg/m³, m/s,
@@ -76,12 +79,9 @@ Outside the tree: .NET SDK 10.0 (C# 14), pinned by `global.json` to 10.0.112 wit
 `rollForward: latestPatch` (2026-09-17, the CI audit), whose bundled SourceLink replaces
 the explicit package the tree briefly referenced; ILGPU 1.5.3 (NuGet; ILGPU.Algorithms is not
 used); for the GPU path an NVIDIA GPU of compute capability 7.5 or newer (2026-09-26,
-the range the execution node proves; an older device may work with a 12.x toolkit and is
-not verified, and a 13.x libnvvm refuses its target when the engine binds, which the
-`Auto` choice turns into the CPU accelerator with the reason), an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
-(`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
-`libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
-`nvvm/bin/x64`; on Linux, and under WSL2, the toolkit's `nvvm/lib64`); NASA CEA data `thermo.inp` and `trans.inp` from
+the range the execution node proves; an older device is not verified) and an NVIDIA driver
+with CUDA 12.8 or newer, nothing else: no CUDA Toolkit, libnvvm or libdevice (2026-10-05);
+NASA CEA data `thermo.inp` and `trans.inp` from
 github.com/nasa/cea (Apache-2.0); the `cea` Python package 3.3.4 (NASA CEA,
 Apache-2.0) as the generator of the reference outputs; Python 3.8+ for the protocol
 linter; xunit for tests; Microsoft.CodeAnalysis.CSharp (Roslyn) for the protocol tests
@@ -90,30 +90,22 @@ node's shape check (2026-09-14); BenchmarkDotNet 0.15.8 for the benchmarks node
 `RuntimeMoniker.Net10`, since 0.15.0; pinned in `Directory.Packages.props`); GitHub Actions and nuget.org for
 delivery (2026-09-15, `## Delivery` below).
 
+⚠ 2026-10-05: was a CUDA Toolkit's libnvvm and libdevice too, now the driver alone → HISTORY.md#ilgpu-libdevice-retired
+
 ## Constraints
 
 - Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
-  accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
-  and file names may be platform-specific. Every test runs on both platforms. The
-  approved records are platform-specific (2026-09-17): a node's `Bits.approved.txt`
-  holds the Windows bits and its `Bits.linux.approved.txt` the Linux bits, the execution
-  tests node's throughput figures follow the same rule, the harness picks the file of
-  the running platform, and an intended numerical change re-approves both in the same
-  commit. The bits are a record of the reference machine, not of the platform alone
-  (2026-09-18): they are compared exactly on the reference machine, in local runs and
-  on the self-hosted release runners (Windows and WSL2), and not on the hosted CI
-  runners, where the facts carrying the trait `Category=BitSnapshot` are filtered out
-  and the CEA tolerance tests hold correctness.
+  accelerator and on CUDA (2026-09-15). Nothing but the execution node's WSL device
+  registration may be platform-specific. Every test runs on both platforms, and the bit
+  records are compared exactly on every runner, the hosted CI runners included
+  (2026-10-05). The approved records are one per node: a node's `Bits.approved.txt` holds
+  the bits of both platforms, since the tree's own `Exp`, `Log` and `Pow` do not read the
+  machine's C runtime and the Windows and WSL2 bits are equal; the throughput figures keep
+  a Windows and a Linux file, a speed belonging to a machine. An intended numerical change
+  re-approves them in the same commit.
 
-  ⚠ 2026-09-18, declared deviation from "every test runs on both platforms" (AGENTS.md
-  §12): a hosted `windows-latest` runner changed one rocket case of the front door's
-  snapshot in its last bits, every CEA tolerance test green. The Windows C runtime picks
-  FMA3 or plain variants of `exp`, `log` and `pow` from the CPU and hosted runners land
-  on different CPUs (disabling the FMA3 variants locally moved 38 of 99 rocket cases),
-  so a bit record belongs to a machine. The user chose exact comparison on the
-  reference machine over a field-by-field tolerance on hosted runners. What lifts the
-  deviation: a bit-stable math path (the CPU dispatch pinned in the execution node) or
-  hosted runners of a fixed CPU model. → HISTORY.md#platform-deviation-condensed
+  ⚠ 2026-10-05: was a declared deviation (bit facts off the hosted runners, a C runtime moving
+  last bits), now lifted → HISTORY.md#platform-deviation-lifted, HISTORY.md#platform-deviation-condensed
 
   ⚠ 2026-09-17: was bits alone per platform, now throughput too → HISTORY.md#plat-tput
 
@@ -178,31 +170,35 @@ delivery (2026-09-15, `## Delivery` below).
   `ArrayView` inputs and scratch, no allocation, no exceptions, no virtual calls, no
   LINQ, no strings, no recursion. Per-case scratch lives in batch-sized global buffers;
   the case index is the thread index.
-- Math in numerical nodes: only the `double` overloads of `System.Math` from this
-  list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Floor`, `Ceiling`, plus the
-  constant `Math.PI`, which the compiler inlines and which needs no wrapper (the
-  transport node's hard-sphere estimate uses it). The minimum and the maximum come from
-  the thermo node's `KernelMath.Min` and `KernelMath.Max`, never from `Math.Min` or
-  `Math.Max`, nor from `double.Min`, `double.Max` or any other member of `System.Math`
-  or `System.Double` outside this list: `double.Max` is `Math.Max` in CoreLib's IL and
-  compiles to the same `max.f64`. The protocol tests node checks the list itself, as an
-  allow-list of the calls a numerical node makes into `System.Math` and `System.Double`,
-  `double.IsNaN` and `double.IsNegative` allowed inside `KernelMath` only. Adding a
-  function is a root decision, because the execution node must provide its libdevice
-  wrapper. → HISTORY.md#math-list-condensed
+- Math in numerical nodes: only the `double` overloads of `System.Math` from this list:
+  `Sqrt`, `Abs`, `Floor`, `Ceiling` (exact in IEEE 754, so equal on both accelerators),
+  plus the constant `Math.PI`, which the compiler inlines (the transport node's
+  hard-sphere estimate uses it). `Exp`, `Log` and `Pow` are the tree's own, correctly
+  rounded (`KernelMath.Exp`, `Log`, `Pow` over the thermo node's `Elementary`), never
+  `Math.Exp`, `Math.Log`, `Math.Log10` or `Math.Pow`; the minimum and the maximum are
+  `KernelMath.Min` and `Max`, never `Math.Min`, `Math.Max`, `double.Min`, `double.Max` or
+  any other member of `System.Math` or `System.Double` outside this list (`double.Max` is
+  `Math.Max` in CoreLib's IL). `Math.FusedMultiplyAdd`, `double.IsNaN`, `double.IsNegative`
+  and the `BitConverter` bit conversions appear inside `KernelMath` and `Elementary` only.
+  The protocol tests node checks the list as an allow-list. Adding a function is a root
+  decision: the execution node's probe must prove it equal on both accelerators.
+  → HISTORY.md#math-list-condensed
+
+  ⚠ 2026-10-05: was `Exp`, `Log`, `Log10`, `Pow` of `System.Math` through libdevice, now the tree's own → HISTORY.md#allow-list-own-math
 
   ⚠ 2026-09-28: was a Min/Max-only check, now an allow-list → HISTORY.md#math-allow
 
   ⚠ 2026-09-27: was `Min`/`Max` listed, now `KernelMath` (NaN) → HISTORY.md#math-nan
-- ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
-  `compute_100` and newer (Blackwell): libnvvm rejects the module ILGPU emits, and
-  ILGPU silently drops the wrappers. For `compute_75` to `compute_90` libnvvm accepts
-  it and ILGPU defines the wrappers itself. The execution node checks every kernel and
-  completes the wrappers ILGPU dropped; nothing else in the tree may know about the
-  mechanism.
+- ILGPU 1.5.3 is pinned. Its libdevice support is defective for `compute_100` and newer,
+  and the tree does not reach it (2026-10-05): no kernel calls a libdevice function, the
+  context is built without `LibDevice()`, and the execution node's post-link works on the
+  kernel's PTX text alone, making the arithmetic the same on both accelerators (every
+  double multiplication, addition and subtraction `.rn`, `Math.FusedMultiplyAdd` the
+  instruction `fma.rn.f64`). Nothing else in the tree may know about the mechanism.
+  ⚠ 2026-10-05: was libdevice wrappers completed by a post-link, now no libdevice → HISTORY.md#ilgpu-libdevice-retired
   - A second defect (2026-09-27): under WSL the second CUDA engine of a process failed
-    to bind; the execution node registers the devices itself
-    ([BOOT.md](src/Execution/BOOT.md)). → HISTORY.md#retold-by-nodes
+    to bind; the execution node's `Ptx` child registers the devices itself
+    ([BOOT.md](src/Execution/Ptx/BOOT.md)). → HISTORY.md#retold-by-nodes
   - A third (2026-09-28): ILGPU moves a constant left operand of a floating-point
     comparison to the right and inverts its NaN ordering while doing so, so `1.0 < v`
     compiles to `setp.gtu.f64` and is true for a NaN `v` on CUDA and false on the CPU.
@@ -242,17 +238,17 @@ delivery (2026-09-15, `## Delivery` below).
   end-to-end set (`Category=EndToEnd`) within 10. A fact that starts a process carries
   `Category=EndToEnd`; the command line's other facts run in-process on warm solvers
   ([src/Cli/API.md](src/Cli/API.md)); the approved outputs and bit records are also proven
-  through the real process, per platform, in the end-to-end set.
+  through the real process, on both platforms, in the end-to-end set.
   ⚠ 2026-10-03: was "in-process waits until broken", now two budgets → HISTORY.md#test-budgets
 - Data: [src/Data/BOOT.md](src/Data/BOOT.md), `## Constraints`.
 - Repository: git, branch `main`, Conventional Commits, MIT license, English in every
   document, identifier, comment and commit message. No binaries other than the NASA
   text data and text fixtures. Nothing secret exists in this repository.
-- Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, CUDA
-  Toolkits 12.9, 13.3 and 13.4 (13.4 recorded 2026-09-26; discovery binds the newest),
-  16 logical CPU cores. Recorded, not required. It is the only GPU the tree is run on:
-  older architectures are proven by compiling for them and running the result on this
-  device (the execution node's architecture fact), not on their own hardware.
+- Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, 16 logical
+  CPU cores (its CUDA Toolkits unused since 2026-10-05). Recorded, not required. It is
+  the only GPU the tree is run on: older architectures are proven by compiling for them
+  and running the result on this device (the execution node's architecture fact), not on
+  their own hardware. → HISTORY.md#ilgpu-libdevice-retired
 - Code shape (2026-09-14, the clean-code pass): a type spans at most 400 lines of
   code from its declaration to its closing brace, a method at most 60 (a line of code
   holds more than white space and comments), control flow
@@ -310,7 +306,7 @@ There is no external ancestor: the tree root is the repository root, and the loa
 - No equilibrium constants, reaction sets or hidden species lists: they bind results to
   choices nobody can review.
 - No `LibDevice.*`, `XMath` or ILGPU.Algorithms in numerical nodes: Algorithms replaces
-  double math with CORDIC, and direct bindings bypass the wrapper list.
+  double math with CORDIC, and direct bindings bypass the tree's own correctly rounded math.
 - No exceptions, allocations or virtual calls in numerical nodes: kernels cannot run them.
 - No unit conversion inside numerical nodes: SI in, SI out.
 - No CUDA type outside the execution node: it would silently remove the CPU path.
@@ -427,11 +423,12 @@ Decided with the user on 2026-09-15 (distribution phase); 0.1.0 is the first rel
   - The docs tests node `tests/Docs.Tests` proves the guide against the samples, the
     approved outputs, the schemas and the links, each check failing when the set it
     walks is empty and each shown red once ([BOOT.md](tests/Docs.Tests/BOOT.md)). The
-    approved output of an invocation is a record of the reference machine like the bit
-    snapshots (2026-09-29): a Windows and a Linux file, compared exactly under
-    `Category=BitSnapshot`; on every runner, the hosted ones included, the same document
-    is compared field by field, its numbers within 1e-9 relative.
+    approved output of an invocation is one file for both platforms, like the bit records
+    (2026-10-05), compared exactly under `Category=BitSnapshot` and field by field, its
+    numbers within 1e-9 relative, on every runner, the hosted ones included.
     → HISTORY.md#retold-by-nodes
+
+      ⚠ 2026-10-05: was a Windows and a Linux file, exact on the reference machine only, now one file → HISTORY.md#docs-one-file
 
       ⚠ 2026-09-29: was one approved file, now per-platform, 1e-9 → HISTORY.md#docs-plat
   - The JSON Schemas of the command line's documents: [src/Cli/BOOT.md](src/Cli/BOOT.md).
