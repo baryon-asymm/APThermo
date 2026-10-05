@@ -338,7 +338,7 @@ creation names its arguments; it passes them by position today (the criterion be
       on the CPU accelerator, every fact asserting `EquilibriumConditions` at 1e-9 with every gas of any share
       (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
       - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`, `GasBasisStartTests`
-        (2026-10-05, the gas basis), `GasMixtureStartTests` (2026-10-05, its mixture column): the families
+        (2026-10-05, the gas basis), `GasMixtureStartTests` (2026-10-05, its mixture column), `TraceGasRoundTests` (2026-10-05, the second round): the families
         `TraceGasCases` generates from their parameters, none typed;
       - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 376 cases (every tp, hp and sp
         fixture, the magnesite band, the declared leftovers, the nine states the gas basis settles, the 15 states
