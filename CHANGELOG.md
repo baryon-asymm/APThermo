@@ -84,6 +84,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   excess oxygen at 500 and 800 K (with CaO at 1e-26 to 6e-12 kmol/kg), and Al(OH)3 with 1e-8 to 1e-12 too
   little oxygen at 500 K, whose water is vapour. A last start places the gas from the linear program over
   the condensed species and the gases at unit fraction.
+- An assigned-temperature state beside a condensed compound whose balancing second record lies below the
+  rounding of the element balances no longer ends `NotConverged`: CaCO3 with 1e-7 excess oxygen at 10 MPa
+  and 300 K (CaO at 3e-34 kmol/kg), with 1e-9 at 1 MPa and 300 K, and with 1e-6 at 10 MPa and 350 K. The
+  step returned the record's amount as rounding of either sign, and a negative one removed it, leaving
+  CaCO3 alone with no gas that carries calcium. The record now stays in the set at zero moles when its
+  amount is rounding and its removal would leave the element system singular; every other negative
+  record is removed as before.
 - A mixture of KO2 with 1e-10 too little oxygen no longer ends `NoGasPhase` with its second condensed
   record (K2O, 9.4e-13 kmol/kg) left out of the composition and 1.3e-10 of the potassium unaccounted for.
   The verdict's bound itself is unchanged, 1e-12 kmol/kg: a mixture within 1e-12 of exact stoichiometry
@@ -114,6 +121,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   wrong by up to 0.17 % with an `Ok` status. It now comes from the isentrope as well.
 
 ### Notes
+- CaCO3 with 1e-7 too little oxygen at 1 kPa and 849 to 851 K still ends `NotConverged`, between `NoGasPhase`
+  states at 845 K and below and `Ok` states at 855 K and above.
 - An assigned-temperature state below a dead-end bound (the cases above) still reports the
   supersaturated gas: the species list is the contract, a record outside its data range is
   no candidate, and NASA CEA does the same. The library adds no species to a list, so an

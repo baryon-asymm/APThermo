@@ -414,11 +414,19 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
   related KCl + 1e-12 Cl at 800 K every step moves π toward a K-rich gas while n collapses", now settled;
   that mechanism held for Li2O alone, and KCl + 1e-12 Cl at 800 K has ended `NoGasPhase` since the gasless
   write (K over by 1.3e-14 kmol/kg, inside the verdict's 1e-12).
-- Known outside the scans (2026-10-05): CaCO3 + 1e-7 O at 10 MPa and 300 K ends `NotConverged` after every
-  start. Its balancing CaO, n x_CO2 ≈ 3e-34 kmol/kg, lies below the rounding of the calcium balance
-  (1e-18): the gas basis converges with CaO at −4.7e-48, `CondensedSet.Update` removes it, and CaCO3 alone is
-  singular as above. No scan walks it, so `TraceGasLeftovers.txt` does not declare it; `NoHiddenStateTests`
-  takes it as its failure through the whole pass.
+- Closed 2026-10-05 by the balancing record ([Condensed/BOOT.md](../Condensed/BOOT.md), `## Constraints`): CaCO3 + 1e-7 O at
+  10 MPa and 300 K, CaCO3 + 1e-9 O at 1 MPa and 300 K and CaCO3 + 1e-6 O at 10 MPa and 350 K ended `NotConverged` after
+  every start. The gas basis converged with the balancing CaO at −5e-48 to −6e-43 kmol/kg (its amount, n x_CO2 ≈ 3e-34,
+  lies below the rounding of the calcium balance, 1e-18), `CondensedSet.Update` removed it, and CaCO3 alone is singular as
+  above. They end `Ok` and clear, CaO kept at zero in the set (`BalancingRecordTests`). `NoHiddenStateTests` no longer
+  takes the first as its failure through the whole pass: it builds one, a table of CaCO3(cr) and O2 alone, `SingularMatrix`.
+
+  ⚠ 2026-10-05: was "Known outside the scans: CaCO3 + 1e-7 O at 10 MPa and 300 K ends `NotConverged` after every start ...
+  `NoHiddenStateTests` takes it as its failure", now closed by the rule above.
+- Known outside the scans (2026-10-05): CaCO3 − 1e-7 O at 1 kPa at 849, 850 and 851 K ends `NotConverged` (94 iterations)
+  between `NoGasPhase` states at 845 K and below and `Ok` states at 855 K and above; at 2 kPa the same temperatures end
+  `NoGasPhase`. Found beside the balancing record's grid, unchanged by it (the rule does not fire there); no scan walks it, so
+  `TraceGasLeftovers.txt` does not declare it.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas), the + 1e-12 state (3.1e-14), both through start 4, and since
   2026-10-04 the − 1e-12 state (6.2e-14, the carrier of the deficit of oxygen).

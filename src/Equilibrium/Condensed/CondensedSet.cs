@@ -25,7 +25,7 @@ internal static class CondensedSet
     {
         var skipInclusion = state.LastRemovedForRange;
         state.LastRemovedForRange = -1;
-        return RemoveNegative(scratch, result, ref state)
+        return RemoveNegative(table, scratch, result, ref state)
                || OutOfRange(table, problem, scratch, result, ref state)
                || Include(table, scratch, result, skipInclusion, ref state);
     }
@@ -100,16 +100,28 @@ internal static class CondensedSet
         return condensedCount;
     }
 
-    /// <summary>Rule 1: the first record whose mole number turned negative leaves the solution.</summary>
-    private static bool RemoveNegative(in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state)
+    /// <summary>
+    /// Rule 1: the first record whose mole number turned negative leaves the solution, unless it is a balancing record
+    /// (<see cref="BalancingRecord"/>): negative by the rounding of its balances and the only carrier of a direction the
+    /// rest of the set leaves free, it stays at exactly zero moles and the scan goes on.
+    /// </summary>
+    private static bool RemoveNegative(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state)
     {
         for (var c = 0; c < state.CondensedCount; c++)
         {
-            if (result.Moles[scratch.CondensedInSolution[c]] < 0.0)
+            if (!(result.Moles[scratch.CondensedInSolution[c]] < 0.0))
             {
-                state.CondensedCount = Remove(scratch, result, state.CondensedCount, c);
-                return true;
+                continue;
             }
+
+            if (BalancingRecord.Holds(table, scratch, result, state.CondensedCount, c))
+            {
+                result.Moles[scratch.CondensedInSolution[c]] = 0.0;
+                continue;
+            }
+
+            state.CondensedCount = Remove(scratch, result, state.CondensedCount, c);
+            return true;
         }
 
         return false;

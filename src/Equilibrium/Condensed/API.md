@@ -15,7 +15,8 @@ namespace APThermo.Equilibrium.Condensed;
 internal static class CondensedSet
 {
     public static bool Update(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state);
-        // applies at most one change of the set and says whether it changed; the caller converges again if it did
+        // applies at most one change of the set and says whether it changed; the caller converges again if it did.
+        // A negative record that is a balancing record (BOOT.md, "A balancing record stays") is no change: it stays at zero moles
     public static double InclusionGain(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, int species);
         // the per-mole gain of adding a condensed species at the current multipliers (RP-1311 section 3.4)
     public static bool ExitGuardFindsAPositiveCandidate(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, in IterationState state);

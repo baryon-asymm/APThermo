@@ -17,17 +17,26 @@ public sealed class NoHiddenStateTests
     private static readonly BufferFill[] Poisons = [BufferFill.NotANumber, BufferFill.Large];
 
     /// <summary>
-    /// CaCO3 + 1e-7 O at 10 MPa and 300 K: a state that ends <c>NotConverged</c> after every start of the trace-gas pass, the gas basis
-    /// included (TraceGas BOOT.md, "Declared leftovers": its balancing CaO lies below the rounding of the balance), so that the batch
-    /// walks a failure through the whole pass now that the declared leftovers are settled.
+    /// A tp state that ends in a failure through the whole pass, built to: CaCO3 with 1e-7 of extra oxygen at 10 MPa and 300 K over a table
+    /// that holds two species, <c>CaCO3(cr)</c> and <c>O2</c>, and so no species that carries calcium or carbon but
+    /// the record itself. The direction of the multipliers that the record alone fixes has no carrier, so no start of the trace-gas pass finds a
+    /// non-singular system and the case ends <c>SingularMatrix</c>, which writes no state. It replaces the balancing-record state this
+    /// batch used until 2026-10-05, when the rule of Condensed BOOT.md ("A balancing record stays") settled that state and the last declared
+    /// <c>NotConverged</c> leftover had gone before it (<c>TraceGasLeftovers.txt</c> declares none).
     /// </summary>
-    private const string FailingEveryStart = "CaCO3|1E-07|10000000|300";
+    private static (string Label, EquilibriumCase Case, double[]? Estimate) DegenerateTable()
+    {
+        var database = CpuFixture.Shared.Database;
+        var table = SpeciesTable.Build(database, ["CA", "C", "O"], ["CaCO3(cr)", "O2"]);
+        var moles = UnivariantRig.ElementMolesOf(["CA", "C", "O"], [1.0, 1.0, 3.0 * (1.0 + 1.0e-7)]);
+        return ("CaCO3 + 1e-7 O over CaCO3(cr) and O2 only", new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, 1.0e7, 300.0, 0.0, moles), null);
+    }
 
     /// <summary>
     /// The batch: every fixture case of the three equilibrium kinds, the magnesite band (the trace-carrier states, 41), the states declared
     /// <c>NotConverged</c> in <c>TraceGasLeftovers.txt</c>, the nine states the gas basis settles (<see cref="GasBasisStartTests.Settled"/>), the
-    /// one state that fails after every start of the pass (<see cref="FailingEveryStart"/>), the gasless states of KO2 − 1e-10 O, and the hp and sp states at the junction
-    /// of the data warm-started from their tp composition: cases that end <c>Ok</c>, <c>NoGasPhase</c> and in every failure the solver reports.
+    /// the one state built to fail through the whole pass (<see cref="DegenerateTable"/>), the gasless states of KO2 − 1e-10 O, and the hp and sp states at the junction
+    /// of the data warm-started from their tp composition: cases that end <c>Ok</c>, <c>NoGasPhase</c> and a failure the solver reports.
     /// </summary>
     private static List<(string Label, EquilibriumCase Case, double[]? Estimate)> Batch()
     {
@@ -40,9 +49,9 @@ public sealed class NoHiddenStateTests
         var known = TraceGasCases.ScanFamilies().Concat(TraceGasCases.TraceScan()).DistinctBy(state => state.Name).ToDictionary(state => state.Name);
         var states = TraceGasCases.MagnesiteBand().Concat(TraceGasLeftovers.NotConverged.Where(known.ContainsKey).Select(name => known[name]))
             .Concat(GasBasisStartTests.Settled.Select(name => known[name]))
-            .Concat(TraceGasCases.Binary([-1.0e-10]).Where(state => state.Name.StartsWith("binary-ko2|", StringComparison.Ordinal)))
-            .Concat(TraceGasCases.Scan([1.0e-7]).Where(state => state.Name == FailingEveryStart));
+            .Concat(TraceGasCases.Binary([-1.0e-10]).Where(state => state.Name.StartsWith("binary-ko2|", StringComparison.Ordinal)));
         batch.AddRange(states.Select(state => (state.Name, state.AsCase(), (double[]?)null)));
+        batch.Add(DegenerateTable());
         foreach (var state in TraceGasCases.JunctionStates().Where(state => state.Pressure == 1.0e5))
         {
             var tp = state.Solve();
@@ -78,7 +87,7 @@ public sealed class NoHiddenStateTests
             }
         }
 
-        Assert.True(batch.Count > 300 && statuses.Contains(CaseStatus.Ok) && statuses.Contains(CaseStatus.NoGasPhase) && statuses.Contains(CaseStatus.NotConverged),
+        Assert.True(batch.Count > 300 && statuses.Contains(CaseStatus.Ok) && statuses.Contains(CaseStatus.NoGasPhase) && statuses.Contains(CaseStatus.SingularMatrix),
             $"{batch.Count} cases ending {string.Join(", ", statuses)}");
         Assert.True(problems.Count == 0, $"{problems.Count} differences in {batch.Count} cases:\n" + string.Join("\n", problems.Take(20)));
     }
