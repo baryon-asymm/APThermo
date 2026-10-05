@@ -17,13 +17,15 @@ namespace APThermo.Execution.Tests;
 public sealed class RocketCompileTests(ITestOutputHelper output)
 {
     /// <summary>
-    /// The bound on what one first compile of the rocket kernel allocates on the calling thread, 2 GiB. Measured over five
-    /// fresh processes each: with the attribute on <c>StationSolve.At</c> at most 324 MiB in Debug and 291 MiB in Release,
-    /// without it at least 8 261 MiB in Debug and 6 853 MiB in Release. The bound is 6.3 times the green figure and 0.30 of
-    /// the red one (the <c>BOOT.md</c> of this node records the runs). The metric is bytes, not seconds: the same on every
-    /// run of a machine, and not moved by its load.
+    /// The bound on what one first compile of the rocket kernel allocates in the whole process, 7 GiB. ILGPU compiles on a
+    /// pool of threads sized by the machine's core count, so the share that lands on the calling thread is a property of the
+    /// machine (1.0 GB on 16 cores, 1.6 GB on 2, 2.57 GB on a hosted 4-core runner), while the bytes allocated by every
+    /// thread together are the compile's own size: 3 576 MB in Release and 3 890 MB in Debug at every processor count from
+    /// 2 to 16, a spread of 0.05 %. The bound is twice the Release figure and 1.93 times the Debug one; the red figures
+    /// (the attribute on <c>StationSolve.At</c> removed) are in the <c>BOOT.md</c> of this node, which also records the runs.
+    /// The metric is bytes, not seconds: not moved by the load of a machine, and since 2026-10-05 not by its core count.
     /// </summary>
-    private const long CompileAllocationBound = 2L * 1024 * 1024 * 1024;
+    private const long CompileAllocationBound = 7L * 1024 * 1024 * 1024;
 
     /// <summary>
     /// The least a real compile allocates, 32 MB: a measurement below it means the kernel was not compiled by the run this
@@ -38,9 +40,12 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
     private const long CompiledProgramFloor = 32L * 1024 * 1024;
 
     /// <summary>
-    /// The first rocket run of a fresh CPU engine, one case, allocates less than <see cref="CompileAllocationBound"/> bytes on
-    /// the calling thread. The compile is on that thread and dominates the run: the case itself allocates the size of its
-    /// buffers. Red with the attribute of <c>StationSolve.At</c> removed.
+    /// The first rocket run of a fresh CPU engine, one case, allocates less than <see cref="CompileAllocationBound"/> bytes in
+    /// the whole process, every thread counted (<see cref="GC.GetTotalAllocatedBytes"/>, precise). The compile dominates the
+    /// run: the case itself allocates the size of its buffers. The class joins the engine collection, so no other fact of that
+    /// collection allocates beside it; the three classes outside it allocate under a megabyte in the same window (BOOT.md
+    /// records the run of the whole fast set against the fact alone). Red with the attribute of
+    /// <c>StationSolve.At</c> removed.
     /// </summary>
     [Fact]
     public void TheRocketKernelCompilesWithinItsAllocationBound()
@@ -50,16 +55,18 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
         using var engine = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
         using var tables = engine.Upload(family.Table, family.Transport);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
+        var totalBefore = GC.GetTotalAllocatedBytes(precise: true);
+        var callingThreadBefore = GC.GetAllocatedBytesForCurrentThread();
         var result = engine.Run(tables, batch);
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        var callingThread = GC.GetAllocatedBytesForCurrentThread() - callingThreadBefore;
+        var allocated = GC.GetTotalAllocatedBytes(precise: true) - totalBefore;
 
-        output.WriteLine($"the rocket kernel's first run allocated {allocated} bytes on the calling thread, warm-up {result.Timings.WarmUp.TotalSeconds:F2} s");
+        output.WriteLine($"the rocket kernel's first run allocated {allocated} bytes in the process ({callingThread} of them on the calling thread, a figure of this machine's {Environment.ProcessorCount} processors), warm-up {result.Timings.WarmUp.TotalSeconds:F2} s");
         Assert.Equal(CaseStatus.Ok, result.Status[0]);
         Assert.True(result.Timings.WarmUp > TimeSpan.Zero, "the run did not compile the rocket kernel, so there is nothing to bound");
-        Assert.True(allocated > CompileAllocationFloor, $"the compile allocated {allocated} bytes on the calling thread, below the floor of a real compile ({CompileAllocationFloor})");
+        Assert.True(allocated > CompileAllocationFloor, $"the compile allocated {allocated} bytes in the process, below the floor of a real compile ({CompileAllocationFloor})");
         Assert.True(allocated <= CompileAllocationBound,
-                    $"the rocket kernel's compile allocated {allocated} bytes on the calling thread, over the bound of {CompileAllocationBound}: a stage that holds a whole solve is inlined at too many call sites (root BOOT.md, Compile size)");
+                    $"the rocket kernel's compile allocated {allocated} bytes in the process, over the bound of {CompileAllocationBound}: a stage that holds a whole solve is inlined at too many call sites (root BOOT.md, Compile size)");
     }
 
     /// <summary>

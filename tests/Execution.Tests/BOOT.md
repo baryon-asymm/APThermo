@@ -14,12 +14,38 @@ throughput figures.
 | L1 | the probe kernel with every function of the root's math list, `KernelMath.Fma` and the unfused product and sum included, loads through the post-link on CUDA and equals the CPU accelerator bit for bit on every input, NaN payload aside; the CPU accelerator reproduces the host's own functions (`KernelMath` and the IEEE operations) bit for bit (`ProbeKernelTests`) | the CPU accelerator and the host functions | ✅ (2026-10-05) |
 | L1 | every architecture ILGPU 1.5.3 declares from SM_75 up: every entry point compiled for it passes the post-link and loads on the reference device, the post-link marks arithmetic `.rn` on each, inlines the probe's fused multiply-add, the PTX equals the device's own up to ILGPU's generated names and the `.target` line, and the probe returns the device's own bits and the CPU accelerator's; an engine binds CUDA only after the probe kernel loads (`ArchitectureTests`, `ByteVectorTests`) | the engine's own CUDA kernels and probe, the CPU accelerator | ✅ (2026-10-05) |
 | L0 | the CPU accelerator is sized for `Environment.ProcessorCount`, proven at 4, 16 and 64 in child processes, with identical batch results (`AllCoresLayoutTests`); a chunk stays within 32-bit offsets at the tree's own size limits (`AcceleratorChoiceTests.ChunksStayWithinInt32OffsetsAtTableLimits`) | `Execution`'s `BOOT.md` and `API.md`, the audit's F3 and F4 | ✅ (2026-10-05) |
-| L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
+| L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 7 GiB in the whole process, every thread counted (2026-10-05), a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-10-05) |
 | L2 | every rocket and throat fixture family; every equilibrium fixture table, tp, hp and sp, one family per table (`FixtureBatches.EquilibriumTableFamily`); the `seeded` fixtures, the tp fixtures of every table warm-started at half pressure and the bracketed calcite and magnesite states seeded 20 K above the plateau (`SeededFamilies`); the computed gas-plateau families (`GasPlateauFamilies`); the 0.2.2 gasless verdict and temperature bracket (`RecoveryFamilies`: KO2 and NaO2 at their exact stoichiometry where the gas vanishes, a gasless melting plateau, the gas plateaus of CaCO3 and MgCO3, AP/HTPB/Al hp states at 20 MPa), each family keeping the cases the CPU accelerator ends `NoGasPhase` or `Ok` as it stands for; and a 100 000-case sweep on CUDA equal the CPU accelerator in every field of every case, bit for bit, the bracketed cases' summed iteration counts included, and the transport pass and the species-function batch likewise (`CudaTests`, `SpeciesFunctionTests`); the CPU accelerator equals the numerical nodes called case by case, a seeded case with its seed; determinism of two runs, the sweep's included; chunking gives the same result as one chunk; the element balance of every host-compared station closes to `ElementBalance.ClosureBound` (`BatchTests`); one launch of cases that all bracket stays inside the launch budget (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`; on the CPU `BracketedFamiliesTests`) | the CPU accelerator and the host calls; reflection-enumerated fields (`ExactComparison`) | ✅ (2026-10-05) |
 | Benchmark | throughput of the 100 000-case batch on CUDA against the CPU accelerator with all cores | the approved figures file for the running platform (`Throughput.approved.txt`, `Throughput.linux.approved.txt` on Linux, 2026-09-17), asymmetry: may improve, must not regress below 80 % of the approved ratio or below the root's 5×, nor rise above 115 % of the approved CUDA kernel time per Newton step (2026-10-04) (`CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`) | ✅ |
 | Protocol | the tree invariant, documents against code | `AGENTS.md`, the surface snapshot | ✅ (2026-09-13, the Protocol.Tests node) |
 
 ⚠ 2026-10-04: was "every fixture family", now the families named: the `seeded` kind had never run in a batch, and most tp, hp and sp fixture tables were not batched → HISTORY.md#l2-every-family-2026-10-04
+
+⚠ 2026-10-05: was the rocket compile bounded at 2 GiB allocated on the calling thread, now at 7 GiB allocated in the whole process → HISTORY.md#compile-bound-process-wide-2026-10-05
+
+The bound of `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound` (2026-10-05, release 0.2.2, coder 16). ILGPU
+compiles on a pool sized by the machine's cores, so the share of a compile that lands on the calling thread is a figure of the
+machine: hosted `windows-latest` (4 cores, Release) measured 2 566 509 328 bytes against 1 008 787 280 here, and failed a bound
+that held on the commit before it. The bytes of every thread together are the compile's own size. The same fact, one fresh process
+per row, `APTHERMO_NO_CUDA=1`, `DOTNET_PROCESSOR_COUNT` set, the reference machine:
+
+| Configuration | Processors | Calling thread (bytes) | Whole process (bytes) |
+|---|---|---|---|
+| Release | 16 | 1 005 250 800 | 3 576 888 496 |
+| Release | 16, in the fast set of 289 facts | 1 005 747 448 | 3 576 409 888 |
+| Release | 8 | 1 049 884 200 | 3 577 609 720 |
+| Release | 4 | 1 456 857 072 | 3 576 929 760 |
+| Release | 2 | 1 600 315 544 | 3 575 907 960 |
+| Debug | 16 | 1 098 500 216 | 3 890 141 000 |
+| Debug | 4 | 1 759 460 056 | 3 888 768 888 |
+
+The calling thread varies by 59 % across the counts (1.01 to 1.60 GB); the whole process by 0.05 % (3 575.9 to 3 577.6 MB in
+Release, 3 888.8 to 3 890.1 MB in Debug), and by 0.5 MB between the fact alone and the fast set, where the three classes outside
+the `engine` collection run beside it. The bound is 7 GiB (7 516 192 768): 2.10 times the Release figure and 1.93 times the
+Debug one, a margin that covers another runtime's or platform's allocation pattern, and below the red side: the whole process
+allocates at least what its calling thread does, and the calling thread of the compile without the attribute on
+`StationSolve.At` allocated at least 6 853 MiB (Release) and 8 261 MiB (Debug) on the kernel of 2026-09-30
+(`HISTORY.md#compile-bound-red-once-list-2026-09-30`). The red run under the new measure is the open criterion of `ACCEPTANCE.md`.
 
 ## Invariants
 

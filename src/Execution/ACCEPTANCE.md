@@ -264,6 +264,9 @@
         The fact that `StationSolve.At` carries `NoInlining` is the performance tests node's
         (`CompileSizeTests.TheStationSolveIsNotInlined`), moved there on 2026-09-30.
 
+        ⚠ 2026-10-05: was 2 GiB on the calling thread, now 7 GiB in the whole process (the calling thread's
+        share depends on the core count: 2.57 GB on a hosted 4-core runner) → ../../tests/Execution.Tests/HISTORY.md#compile-bound-process-wide-2026-10-05
+
         The metric chosen for the guard (bytes allocated on the calling thread) and the
         five fresh-process runs each of Debug and Release, with the attribute on and
         removed → HISTORY.md#compile-guard-metric-and-runs-2026-09-30

@@ -9,6 +9,17 @@ used to stand.
 
 ---
 
+<a id="compile-bound-process-wide-2026-10-05"></a>
+
+## 2026-10-05 — from "BOOT.md" (the L0 row of the rocket compile bound) — the bound on the calling thread
+
+Hosted `windows-latest` failed `TheRocketKernelCompilesWithinItsAllocationBound`: 2 566 509 328 bytes on the calling thread against the bound of 2 147 483 648 (warm-up 22.18 s), where the reference machine, 16 logical cores, measured 1 008 787 280 on the same commit (Release, warm-up 6.06 s). The row read:
+
+| L0 | the rocket kernel's compile is bounded and released (2026-09-30): the first rocket run of a fresh CPU engine allocates under 2 GiB on the calling thread, a disposed engine holds no launcher and no compiled program, and the 32-bit bounds of the batch constructors and of the probe are checked on `BatchLength.Of` and `MathProbe.OutputLength` without allocating (`RocketCompileTests`, `AcceleratorChoiceTests.TheBatchLengthBoundIsInclusiveOfTheLargestArrayLength`, `TheProbeOutputLengthBoundIsInclusiveOfTheLargestOffset`) | the measured figures in `Execution`'s `BOOT.md` (criterion of 2026-09-30), the root's Compile size constraint | ✅ (2026-09-30) |
+
+The bound of the fact was 2 GiB on the calling thread, measured on the kernel of 2026-09-30 (green at most 324 MiB in Debug and 291 MiB in Release, red at least 8 261 MiB and 6 853 MiB, five fresh processes each). The metric was a property of the machine: ILGPU's compile threads are sized by the core count, and what they do not take falls on the calling thread (1.01 GB at 16 processors, 1.46 GB at 4, 1.60 GB at 2 here).
+
+
 <a id="criteria-tolerance-libdevice-2026-10-05"></a>
 
 ## 2026-10-05 — from "ACCEPTANCE.md" — the criteria of the GPU/CPU tolerance table, the libdevice post-link and the earlier throughput records
