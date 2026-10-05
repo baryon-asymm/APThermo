@@ -37,18 +37,18 @@ namespace APThermo.Docs.Tests;
 /// The two JSON-document facts — a shown document matching its `samples/cli/` file, and every JSON fence carrying
 /// that marker (MA1) — live in `CliDocumentTests.cs`, next to each other since both read a `cli-document` marker.
 ///
-/// A runnable example's approved JSON document follows the root's platform rule (2026-09-29, `BOOT.md`, "The
-/// command-line examples' approved documents follow the root's platform rule"): `approved/cli/&lt;key&gt;.approved.json`
-/// is the Windows record, `&lt;key&gt;.linux.approved.json` the Linux one, picked by the running platform exactly as
-/// the harness picks a bit snapshot (<see cref="ApprovedPathOf"/>). <see cref="EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis"/>
+/// A runnable example's approved JSON document is one record for every platform (2026-10-05, owner decision O5, `BOOT.md`:
+/// the tree's own correctly rounded `Exp`, `Log` and `Pow` made the Windows and Linux documents equal, and the text is read
+/// with its line breaks as <c>\n</c>): `approved/cli/&lt;key&gt;.approved.json` (<see cref="ApprovedPathOf"/>).
+/// <see cref="EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis"/>
 /// compares the delivered document against it field by field (<see cref="JsonFieldComparison.Mismatch"/>: the same
 /// members in the same order, every string and boolean equal, every number within
 /// <see cref="JsonFieldComparison.RelativeNumberTolerance"/>) and runs on every runner, the hosted ones included;
 /// <see cref="EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly"/>
 /// re-runs the same invocations and compares the bytes exactly, carrying <c>Category=BitSnapshot</c> so it runs only
-/// on the reference machine (locally and on the self-hosted release runners), where the platform's own record is
-/// known to be exact. `--help`'s plain-text record is not split per platform (its bytes have never been observed to
-/// differ) and stays exactly compared in both facts. The two facts above run each invocation in-process on warm
+/// on the reference machine (locally and on the self-hosted release runners), where the record is
+/// known to be exact; the hosted runners' own check is the field-by-field one. `--help`'s plain-text record is compared
+/// exactly in both facts. The two facts above run each invocation in-process on warm
 /// solvers (<see cref="CliInvocation.InProcess"/>); two more, <see cref="EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField"/>
 /// and <see cref="EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentExactly"/>, run the same invocations
 /// as fresh processes (<see cref="CliInvocation.AsProcess"/>), <c>Category=EndToEnd</c>, the exact one also
@@ -523,9 +523,7 @@ public sealed partial class CommandLineExampleTests
         }
     }
 
-    /// <summary>No runnable example without an approved file, and no approved file without one (D1), read for the
-    /// running platform: a JSON approved file of the other platform's naming (<see cref="SplitApprovedFileName"/>)
-    /// is not this platform's concern and is skipped rather than counted as orphaned.</summary>
+    /// <summary>No runnable example without an approved file, and no approved file without one (D1).</summary>
     private static void CheckApprovedFilesMatch(IReadOnlyList<ApprovedKey> runnableKeys)
     {
         var directory = Path.GetDirectoryName(ApprovedPathOf("x", "json"))!;
@@ -533,8 +531,6 @@ public sealed partial class CommandLineExampleTests
             ? Directory.EnumerateFiles(directory, "*.approved.*")
                 .Select(Path.GetFileName)
                 .Select(name => SplitApprovedFileName(name!))
-                .Where(key => key is not null)
-                .Select(key => key!.Value)
                 .ToList()
             : [];
 
@@ -545,42 +541,24 @@ public sealed partial class CommandLineExampleTests
     }
 
     /// <summary>
-    /// The key and extension of one approved file's name, or null when it is the other platform's record
-    /// (<c>&lt;key&gt;.linux.approved.json</c> read on Windows, or <c>&lt;key&gt;.approved.json</c> read on Linux):
-    /// the root's platform rule keeps exactly one JSON record per platform, and this node's directory listing must
-    /// see only the one it runs against, the same way <see cref="ApprovedPathOf"/> picks it to read. A `.txt` record
-    /// is not split (root `BOOT.md`, Delivery: Documentation) and is read on both platforms.
+    /// The key and extension of one approved file's name: <c>&lt;key&gt;.approved.json</c> or <c>&lt;key&gt;.approved.txt</c>. A
+    /// <c>&lt;key&gt;.linux.approved.json</c> is no longer a record (2026-10-05): its key keeps the <c>.linux</c>, matches no
+    /// runnable example and is reported as an orphan, so a forgotten per-platform file cannot linger.
     /// </summary>
-    private static ApprovedKey? SplitApprovedFileName(string fileName)
+    private static ApprovedKey SplitApprovedFileName(string fileName)
     {
-        const string linuxJson = ".linux.approved.json";
         const string json = ".approved.json";
         const string text = ".approved.txt";
-
-        return fileName.EndsWith(linuxJson, StringComparison.Ordinal)
-            ? OperatingSystem.IsLinux() ? new ApprovedKey(fileName[..^linuxJson.Length], "json") : null
-            : fileName.EndsWith(json, StringComparison.Ordinal)
-                ? OperatingSystem.IsLinux() ? null : new ApprovedKey(fileName[..^json.Length], "json")
-                : fileName.EndsWith(text, StringComparison.Ordinal)
-                    ? new ApprovedKey(fileName[..^text.Length], "txt")
-                    : null;
+        return fileName.EndsWith(json, StringComparison.Ordinal)
+            ? new ApprovedKey(fileName[..^json.Length], "json")
+            : new ApprovedKey(fileName.EndsWith(text, StringComparison.Ordinal) ? fileName[..^text.Length] : fileName, "txt");
     }
 
     private static string Describe(ApprovedKey key) => key.Extension == "json" ? key.Key : $"{key.Key} ({key.Extension})";
 
-    /// <summary>
-    /// The approved path for <paramref name="key"/>: a `.txt` record is not split per platform (unchanged); a JSON
-    /// record follows the root's platform rule the same way the harness picks a bit snapshot
-    /// (<see cref="APThermo.Harness.ApprovedSnapshot.ApprovedPathFor"/>) — `&lt;key&gt;.approved.json` everywhere but
-    /// Linux, `&lt;key&gt;.linux.approved.json` there.
-    /// </summary>
-    private static string ApprovedPathOf(string key, string extension)
-    {
-        var fileName = extension == "json" && OperatingSystem.IsLinux()
-            ? $"{key}.linux.approved.json"
-            : $"{key}.approved.{extension}";
-        return RepositoryPaths.Resolve("tests", "Docs.Tests", "approved", "cli", fileName);
-    }
+    /// <summary>The approved path for <paramref name="key"/>: <c>&lt;key&gt;.approved.&lt;extension&gt;</c> on every platform.</summary>
+    private static string ApprovedPathOf(string key, string extension) =>
+        RepositoryPaths.Resolve("tests", "Docs.Tests", "approved", "cli", $"{key}.approved.{extension}");
 
     private static string? OptionValue(IReadOnlyList<string> args, string name)
     {

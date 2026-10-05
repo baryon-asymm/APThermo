@@ -32,6 +32,10 @@ The definition of what "`Performance` is ready" means.
   snapshot that names no current fixture fails a test of its own instead of staying
   silent (`EveryApprovedLineNamesARocketFixture`, 2026-09-15).
 
+  ⚠ 2026-10-05: was a Windows and a Linux record, now one `Bits.approved.txt` picked by
+  `Harness.ApprovedSnapshot.RecordPathFor`, the tree's own `Exp`, `Log` and `Pow` making the
+  platforms equal → tests/Harness/HISTORY.md#one-record-2026-10-05
+
   ⚠ 2026-09-17: was one snapshot file, now a Windows and a Linux record, picked by
   `Harness.ApprovedSnapshot.ApprovedPathFor` → HISTORY.md#bits-per-platform
 

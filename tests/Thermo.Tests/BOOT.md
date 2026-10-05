@@ -50,6 +50,12 @@ and the criterion below carry the day they were written.
   `EveryRecordedLineIsAFixtureCase` naming the stale key
   (`BitSnapshot.StaleKeys`, the harness's `ApprovedSnapshot.StaleKeys`).
 
+  ⚠ 2026-10-05: the Windows and the Linux record named below are one record now (owner
+  decision O5, item 13 of release 0.2.2). The tree's own correctly rounded `Exp`, `Log`
+  and `Pow` replaced the platform's C runtime in every kernel, and this node's table builder never called either, so its Windows and Linux bits were always equal; `ApprovedPath` resolves through
+  `Harness.ApprovedSnapshot.RecordPathFor` to `Bits.approved.txt` on every platform;
+  `Bits.linux.approved.txt` is deleted.
+
   ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
   now keeps a Windows and a Linux record for every node's Bits level; `ApprovedPath`
   resolves through `Harness.ApprovedSnapshot.ApprovedPathFor` (`tests/Harness/API.md`),

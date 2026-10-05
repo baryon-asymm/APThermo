@@ -75,9 +75,9 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
   (`ApprovedSnapshot.StaleKeys`, the harness's own contract), so a fixture cannot
   drop out of the directory listing and out of this level's coverage unnoticed.
 
-  The snapshot is a record of the reference machine, per platform: `ApprovedPath`
-  resolves through `Harness.ApprovedSnapshot.ApprovedPathFor` (`tests/Harness/API.md`)
-  to `Bits.approved.txt` or `Bits.linux.approved.txt`, so this node's own code names no
+  The snapshot is a record of the reference machine, one for every platform (2026-10-05):
+  `ApprovedPath` resolves through `Harness.ApprovedSnapshot.RecordPathFor`
+  (`tests/Harness/API.md`) to `Bits.approved.txt`, so this node's own code names no
   platform. `EveryFixtureGivesTheRecordedBits` carries
   `[Trait("Category", "BitSnapshot")]`: it runs in every local run and in the release's
   self-hosted jobs (`release.yml`'s `cuda-windows` and `cuda-linux`, filter
@@ -85,6 +85,8 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
   (`ci.yml`; `release.yml`'s `matrix` job; filter
   `Category!=LongRunning&Category!=BitSnapshot`), where the front door's own tolerance
   tests hold correctness instead.
+  ⚠ 2026-10-05: was one record per platform, now one record, the tree's own `Exp`, `Log`
+  and `Pow` making the platforms equal → tests/Harness/HISTORY.md#one-record-2026-10-05
   ⚠ 2026-09-17: was one snapshot file, now one per platform; ⚠ 2026-09-19: was the
   bits a record of the platform, now of the reference machine
   → HISTORY.md#invariants-bits-platform

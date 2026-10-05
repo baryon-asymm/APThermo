@@ -167,7 +167,7 @@ Item 13 of release 0.2.2 gave the tree its own correctly rounded `Exp`, `Log` an
 >   Open for the solver, not for this node: condensed amounts and some gas fractions in the interior of a reaction plateau converge
 >   to about 1e-9 on the CPU accelerator alone; the rules above compare the accelerators to that floor and do not claim it is right.
 
-> - [Execution.LibDevice](../../src/Execution/LibDevice/API.md) — `LibDeviceLocator`,
+> - `Execution.LibDevice` (`src/Execution/LibDevice/API.md`) — `LibDeviceLocator`,
 >   `LibDevicePostLink` and `CudaWslDevices`, in the discovery, post-link and WSL facts (a
 >   child node of `Execution`, 2026-10-01).
 
