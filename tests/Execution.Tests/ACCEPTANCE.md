@@ -12,12 +12,10 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       Release, `APTHERMO_NO_CUDA=1`) is green and its figure for the fact differs from the fact alone by 0.5 MB. Hosted
       `windows-latest` had failed the calling-thread bound with 2.57 GB. ⚠ 2026-10-05: was the calling thread's allocation under
       2 GiB, now the process's under 7 GiB → HISTORY.md#compile-bound-process-wide-2026-10-05
-- [ ] 2026-10-05 — Open: `TheRocketKernelCompilesWithinItsAllocationBound` seen red under the new measure with the attribute of
-      `StationSolve.At` removed (a scratch edit in `src/Performance`, reverted). Not run: the coder's scope hook of coder 16 allows
-      writes only under `tests/Execution.Tests` and refused the scratch edit, so the orchestrator, or a coder scoped to
-      `src/Performance`, runs it and ticks this line with the figure. What stands in its place is an inequality, not a run: the
-      whole process allocates at least what its calling thread does, and the calling thread's figure without the attribute was at
-      least 6 853 MiB in Release and 8 261 MiB in Debug on the kernel of 2026-09-30.
+- [x] 2026-10-05 — `TheRocketKernelCompilesWithinItsAllocationBound` seen red under the new measure with the attribute of
+      `StationSolve.At` removed (a scratch edit in `src/Performance`, reverted; run by the orchestrator, Release,
+      `APTHERMO_NO_CUDA=1`, 16 processors): 113 080 797 032 bytes in the process (44 785 589 192 on the calling thread),
+      warm-up 263.22 s, against the bound of 7 516 192 768: red by a factor of 15.
 - [x] 2026-10-05 — CUDA equals the CPU accelerator bit for bit on every family (`## Invariants`, item 13 of 0.2.2, owner
       decisions O1 and O6). `ExactComparison` (`Rocket`, `Equilibrium`, `Transport`, `Functions`) compares the bits of every
       field of every result, the statuses and iteration counts included, and returns at most 30 mismatches, each naming the
