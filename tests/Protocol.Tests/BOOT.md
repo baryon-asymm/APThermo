@@ -279,9 +279,15 @@ Designed 2026-09-24 for the root's Diagnostics constraint. A build fails on any 
 that is raised; it cannot see one never raised because someone suppressed it (a pragma,
 an attribute, a `NoWarn`, a lowered severity, a project overriding the root's properties).
 This level reads the files that could do that, as text and syntax, skipping `bin`, `obj`,
-`.git`, `.claude` and every dot directory except `.github`, which CI builds
-(`.github/diagnostics/IsaProbe`) under the root's settings.
+`.git`, `.claude` and every dot directory except `.github`, which it still reads
+(2026-10-05): the directory holds the workflows and no project, but a build file may
+return there and reading it costs nothing. No fact walks `.github` alone, so none can
+turn empty for lack of it; that the `.github` part of the walk is live is proved red by a
+scratch file there (acceptance criteria).
 → HISTORY.md#diagnostics-intro
+
+⚠ 2026-10-05: was `.github` read because CI built its project `IsaProbe` under the root's
+settings, now read as a precaution, the project being removed → HISTORY.md#diagnostics-isaprobe-removed
 
 ⚠ 2026-09-26: was the walk's exclusions the tree walk's only, now every dot directory
 but `.github` → HISTORY.md#diagnostics-walk-scope

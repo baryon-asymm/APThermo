@@ -4,8 +4,7 @@
 
 The repository's continuous-integration and release configuration and the one tool that
 configuration runs: the workflows `ci.yml` and `release.yml`, the composite actions they
-share under `actions/`, the scripts under `scripts/`, and `diagnostics/IsaProbe`, the probe
-of the runner-diagnostics step (a node of its own). It gives the tree the proof, on every
+share under `actions/` and the scripts under `scripts/`. It gives the tree the proof, on every
 push and pull request, that a commit builds and passes the fast suite on a Windows and a
 Linux runner, and, on a tag, the path from the tested commit to the packages on nuget.org.
 It holds no product code and no formula: a step calls the tree's own projects, scripts and
@@ -104,13 +103,16 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
   ⚠ 2026-09-19: was a workflow verified by reading (four moved tags), now a green
   dispatch rehearsal before any tag → HISTORY.md#rehearsal-first-release
-- `diagnostics/IsaProbe` is a node with a pair of its own. The root's Diagnostics constraint
-  covers it, since `Directory.Build.props` applies to it and `DiagnosticsTests` reads `.github`.
+- The Diagnostics constraint of the root binds any project that returns to this directory:
+  `Directory.Build.props` applies to it and `DiagnosticsTests` still reads `.github`.
+
+  ⚠ 2026-10-05: was `diagnostics/IsaProbe`, the runner-diagnostics probe, a node of this directory,
+  now removed with the step → HISTORY.md#isaprobe-removed
 
 ## Acceptance criteria
 
-- [x] 2026-10-01 — `.github` and `diagnostics/IsaProbe` are nodes and the protocol lint reads
-      them: 0 errors for both (`python -X utf8 tools/protocol-lint/protocol_lint.py .
+- [x] 2026-10-01 — `.github` and (until its removal, HISTORY.md#isaprobe-removed)
+      `diagnostics/IsaProbe` are nodes and the protocol lint reads them: 0 errors for both (`python -X utf8 tools/protocol-lint/protocol_lint.py .
       --exclude templates`, `Protocol.Tests.LintTests`; the lint's own fact
       `test_dot_github_is_read_as_part_of_the_tree` is the reason it sees them).
 - [x] 2026-10-02 — The comment-only edits of 2026-10-01 to the workflows, actions and scripts, which
@@ -123,13 +125,17 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
 - [ ] The workflow changes of 2026-10-05 run once on GitHub (Invariants, "Evidence for
       workflow changes"): the bit facts in the hosted filter of `ci.yml` and of
-      `release.yml`'s `matrix`, the preflight without the CUDA Toolkit checks, and the
+      `release.yml`'s `matrix`, the preflight without the CUDA Toolkit checks, the removal of
+      the runner-diagnostics step (the composite action `actions/runner-diagnostics`, every
+      `Runner diagnostics` step of both workflows and the node `diagnostics/IsaProbe`), and the
       comments. Evidence still to come: a CI run green on `windows-latest` and
-      `ubuntu-latest` with the bit facts unfiltered (also the evidence the root's own-math
-      criterion waits for), and a release dispatch green through Pack, both CUDA jobs
-      passing the new preflight on the self-hosted runners.
+      `ubuntu-latest` with the bit facts unfiltered and without the step (also the evidence the
+      root's own-math criterion waits for), and a release dispatch green through Pack, both CUDA
+      jobs passing the new preflight on the self-hosted runners and no job naming the removed action.
       The CI half, 2026-10-05: run 37331221583 at `ed0c9ef9`, green on both hosted runners with
-      the bit facts unfiltered. The dispatch half waits for the owner's word.
+      the bit facts unfiltered. That run is dated before the removal of the runner-diagnostics
+      step and does not cover it: the CI half must be proven again by a run of a commit that
+      contains the removal. The dispatch half waits for the owner's word.
 
 ## Taboos
 

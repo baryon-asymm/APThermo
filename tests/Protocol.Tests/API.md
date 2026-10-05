@@ -77,8 +77,8 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
   attribute data, against the nodes' `## Dependencies` and against whether the grantee
   actually names a tree-contract type of the granter.
 - Every C# source file (from the compiled-sources list above, plus a narrow directory
-  walk of `.github` for the one project with no `BOOT.md`/`API.md` this node's
-  reflection cannot load), MSBuild project/properties/targets file, analyzer-configuration
+  walk of `.github`, which holds no project since 2026-10-05 and is read all the same),
+  MSBuild project/properties/targets file, analyzer-configuration
   file and `Directory.Build.rsp` of the whole tree (2026-09-25; the guards audit's F4 and
   F5, 2026-09-28), read as text and syntax rather than through any node's own file walk,
   because a suppressed diagnostic can hide in any file of the tree, this node's own

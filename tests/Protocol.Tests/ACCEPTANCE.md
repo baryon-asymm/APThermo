@@ -150,3 +150,19 @@ only in this node.
       `AllCoresLayoutTests.TheCpuEngineReportsTheDocumentedLayoutAtEveryProcessorCountAndResultsDoNotMove`
       started a process without the trait; escalated (AGENTS.md §11), the trait added on the orchestrator's
       decision, the check green on the whole tree after it (2026-10-03).
+- [x] 2026-10-05 — The runner-diagnostics probe `.github/diagnostics/IsaProbe` is removed from the
+      checks (`.github/HISTORY.md#isaprobe-removed`), and the Diagnostics walk still reads `.github`
+      (`## Diagnostics check`, the ⚠ of that date). No fact walks `.github` alone, so none is left
+      empty: the facts of `DiagnosticsTests` read the whole tree and keep their empty-set assertions
+      (the C# trees count 0 would fail `NoSourceFileSuppressesADiagnostic` and its siblings). Each
+      changed fact seen red once, scratch files applied together and removed again, never committed:
+      a scratch `.github/scratch/Scratch.cs` holding `#pragma warning disable CA1000` turns
+      `NoSourceFileSuppressesADiagnostic` red ("`.github/scratch/Scratch.cs:1: a #pragma warning
+      directive`"), a scratch `.github/scratch/Scratch.csproj` setting `NoWarn` turns
+      `NoBuildFileSuppressesOrOverridesADiagnostic` red ("`.github/scratch/Scratch.csproj: sets NoWarn to
+      'CA1000'`"), the other six facts of the class staying green (2 failed, 6 passed); the section
+      `== IsaProbe` put back into `PublicSurface.approved.txt` turns
+      `SurfaceTests.ThePublicSurfaceOfTheLibraryAssembliesMatchesTheApprovedSnapshot` red ("First
+      difference at line 582"). With the project reference and the snapshot section removed:
+      `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests` 46 passed, 0 failed, the end-to-end facts
+      included; `dotnet build APThermo.sln` 0 warnings, 0 errors; the protocol lint 0 errors, 0 warnings.

@@ -1,9 +1,11 @@
 # API.md — .github
 
-What the directory provides to the tree: two workflows, the composite actions and scripts
-they share, and a diagnostics probe. It declares no C# surface; the probe's own contract
-is in [diagnostics/IsaProbe/API.md](diagnostics/IsaProbe/API.md). Nodes: `.github` and
-[diagnostics/IsaProbe](diagnostics/IsaProbe/API.md).
+What the directory provides to the tree: two workflows and the composite action and scripts
+they share. It declares no C# surface. Its one node is `.github`.
+
+⚠ 2026-10-05: was two workflows, their shared actions and scripts and a diagnostics probe
+(the node `diagnostics/IsaProbe`, the `runner-diagnostics` action and its step), now without
+the probe and the step → HISTORY.md#isaprobe-removed
 
 ## Workflows ✅
 
@@ -21,7 +23,6 @@ A manual dispatch of `release.yml` is the rehearsal: it runs `check` to `pack` a
 | Action | Used by | What it does |
 |---|---|---|
 | `actions/preflight` | `cuda-windows`, `cuda-linux` | asserts what a self-hosted GPU runner must provide and names every missing item |
-| `actions/runner-diagnostics` | every job except `publish` | prints the CPU model and logical core count, and, with the input `dotnet-available` set to `'true'`, runs the probe |
 
 ## Scripts ✅
 
@@ -30,11 +31,5 @@ A manual dispatch of `release.yml` is the rehearsal: it runs `check` to `pack` a
 | `scripts/check-release.sh` | `check` | compares the tag with the packed version and extracts the notes of `CHANGELOG.md` |
 | `scripts/preflight-windows.ps1` | `actions/preflight` on Windows | the preflight under Windows PowerShell 5.1 |
 | `scripts/preflight-linux.sh` | `actions/preflight` on Linux | the preflight under bash |
-
-## Tool ✅
-
-| Path | What it provides |
-|---|---|
-| `diagnostics/IsaProbe` | the instruction-set facts .NET sees on a runner, printed by `actions/runner-diagnostics` |
 
 `actionlint.yaml` declares the runner label `gpu` of the two self-hosted jobs to actionlint.

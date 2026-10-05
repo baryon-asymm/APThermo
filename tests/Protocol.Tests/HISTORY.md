@@ -8,6 +8,19 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="diagnostics-isaprobe-removed"></a>
+
+## 2026-10-05 — from "## Diagnostics check" — `.github` was read for the project CI built there
+
+Moved when the owner removed the runner-diagnostics step and its probe project
+`.github/diagnostics/IsaProbe` (`.github/HISTORY.md#isaprobe-removed`): the walk still reads
+`.github`, now as a precaution. The text as it stood:
+
+> `.git`, `.claude` and every dot directory except `.github`, which CI builds
+> (`.github/diagnostics/IsaProbe`) under the root's settings.
+
+---
+
 <a id="allow-list-own-math-2026-10-05"></a>
 
 ## 2026-10-05 — from "## Constraints" — the allow-list of `System.Math` calls: `Exp`, `Log`, `Log10`, `Pow`
