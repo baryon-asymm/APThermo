@@ -77,6 +77,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   rounding of its balances no longer ends `NotConverged`: MgCO3 with 1e-8 or 1e-6 excess oxygen at 1 and
   10 MPa between 300 and 337 K, whose MgO (5e-19 kmol/kg) was removed and brought back until the limit of
   set changes. At the last change the limit allows, such a record now stays at zero moles.
+- An assigned-temperature state whose gas is a supersaturated vapour of large molecules no longer ends
+  `NotConverged`: NaCl within 1e-6 of its stoichiometry at 250 to 300 K and C:O = 2:1 at 254 to 273 K, below
+  the data of solid NaCl and graphite, at 100 Pa to 10 MPa. Its element balances stopped at 3e-14 to 7e-14 of
+  each abundance, inside the 1e-13 every `Ok` is held to but outside the iteration's own stricter test; a
+  second round of the iteration's starts now closes such a balance within the 1e-13 itself.
 - A mixture of KO2 with 1e-10 too little oxygen no longer ends `NoGasPhase` with its second condensed
   record (K2O, 9.4e-13 kmol/kg) left out of the composition and 1.3e-10 of the potassium unaccounted for.
   The verdict's bound itself is unchanged, 1e-12 kmol/kg: a mixture within 1e-12 of exact stoichiometry

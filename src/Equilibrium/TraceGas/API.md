@@ -52,8 +52,10 @@ internal static class TraceGasStep
     public static void Apply(in EquilibriumScratch scratch, in EquilibriumResult result, in SystemLayout layout, double lambda, ref double n);
     public static bool MoveTemperature(ref IterationState state, double lambda, double tau);
     public static double NextTemperature(double temperature, double lambda, double tau);
-    public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result);
-        // every active element within 3e-14 · b_i
+    public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                bool atCapOfSecondRound);
+        // every active element within 3e-14 · b_i, or, at the step cap of the pass's second round, within the invariant 1e-13 · b_i
+        // ⚠ 2026-10-05: was without `atCapOfSecondRound` (BOOT.md, "The rounds")
 }
 
 internal static class TraceGasReport

@@ -46,7 +46,8 @@ internal static class TraceGasIteration
                 return CaseStatus.NotConverged;
             }
 
-            if (smallStep && TraceGasStep.Balanced(table, problem, scratch, result) && Math.Abs(Math.Log(sum)) <= SumTest)
+            if (smallStep && TraceGasStep.Balanced(table, problem, scratch, result, step == MaxSteps && state.TraceGasRound != 0)
+                && Math.Abs(Math.Log(sum)) <= SumTest)
             {
                 state.LogN = Math.Log(n) + Math.Log(sum);
                 if (DataJunction.Decides(table, problem, scratch, result, ref state, ref pin))

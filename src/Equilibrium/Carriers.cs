@@ -281,4 +281,11 @@ internal struct IterationState
     public bool AssignedTemperature;
     /// <summary>The record removed for its range at the last convergence, skipped by one inclusion pass; −1 if none.</summary>
     public int LastRemovedForRange;
+
+    /// <summary>
+    /// The trace-gas pass's round (TraceGas BOOT.md, "The rounds", 2026-10-05): 0 in the first, where a convergence ends within its own
+    /// balance test or not at all; 1 in the second, which a pass runs only after every start of the first failed, and where a
+    /// convergence at its step cap may close within the node's invariant itself. Zero for every other state.
+    /// </summary>
+    public int TraceGasRound;
 }
