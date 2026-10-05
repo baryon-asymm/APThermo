@@ -362,12 +362,19 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
 
   ⚠ 2026-10-05: was "Known outside the scans: CaCO3 − 1e-7 O at 1 kPa at 849, 850 and 851 K ends `NotConverged` ... at 2 kPa the
   same temperatures end `NoGasPhase`", now closed; the band was 848.16 to 854.27 K, and at 2 kPa it lies at 873.0 to 879.5 K.
-- Known outside the scans (2026-10-05): MgCO3 + 1e-8 O at 10 MPa from 335.09 to 336.66 K ends `NotConverged` (133 iterations),
-  with and without the mixture column. The gas basis places MgCO3(cr) + MgO(cr) at zero under O2; MgO's amount, n x_CO2 ≈ 5e-19
-  kmol/kg, lies below the rounding of the magnesium balance, the step returns it as −8e-27, and the balancing record's rule
-  removes it, because CO2 (2.8e-9 of the gas) keeps the element rows independent without it; the inclusion test then takes it
-  back, and the set alternates until `MaxCondensedSetChanges`. A matter of [Condensed](../Condensed/BOOT.md)'s rule, for the owner;
-  no scan walks it.
+- Closed 2026-10-05 by the balancing record's last change ([Condensed/BOOT.md](../Condensed/BOOT.md)): MgCO3 + 1e-8 O at 10 MPa from
+  334.8 to 336.8 K and at 1 MPa at 307.5 K, and + 1e-6 O at 10 MPa from 300.6 to 301.4 K, whose set alternated on MgO(cr) (n x_CO2 ≈
+  5e-19 kmol/kg, below the rounding of the magnesium balance) until `MaxCondensedSetChanges`. They end `Ok` and clear, MgO(cr) at
+  zero in the set, x_CO2 = 2.80e-9 at 335.09 K as cea 3.3.4 gives at 1e-6 (cea finds no state at 1e-8).
+
+  ⚠ 2026-10-05: was "Known outside the scans: MgCO3 + 1e-8 O at 10 MPa from 335.09 to 336.66 K ends `NotConverged` … for the
+  owner", now closed; the finer scan found the same alternation at 1 MPa and at 1e-6.
+- Known outside the scans (2026-10-05): the supersaturated gas below a dead-end floor, NaCl at ±1e-6 to ±1e-10 Cl from 250 to 300 K
+  (every pressure from 100 Pa to 10 MPa) and C:O = 2:1 at ±1e-6 to ±1e-10 from 254 to 273 K, 738 tp states of 401 000 walked: no
+  condensed record is a candidate there (the range rule), the reduced iteration converges, and the close refuses the element
+  invariant; the trace-gas pass reaches |ln S| of 5e-14 but not its balance test of 3e-14 · b_i in 150 steps, at multipliers of
+  ±176 on a gas of Na3CL3 or C3O2 and C5, where ln x carries some 1e-13 of rounding. Neither alternation nor a condensed set is
+  involved; unchanged by the mixture column and the last change. For the owner.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas), the + 1e-12 state (3.1e-14), both through start 4, and since
   2026-10-04 the − 1e-12 state (6.2e-14, the carrier of the deficit of oxygen).

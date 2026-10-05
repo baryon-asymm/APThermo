@@ -73,6 +73,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   assigned-enthalpy and assigned-entropy states there no longer end `TemperatureOutOfRange`. No single gas
   reached unit fraction there, so the last start found no gas to place; the gas mixture now enters it as one
   column.
+- An assigned-temperature state whose condensed set alternated on a second record present only below the
+  rounding of its balances no longer ends `NotConverged`: MgCO3 with 1e-8 or 1e-6 excess oxygen at 1 and
+  10 MPa between 300 and 337 K, whose MgO (5e-19 kmol/kg) was removed and brought back until the limit of
+  set changes. At the last change the limit allows, such a record now stays at zero moles.
 - A mixture of KO2 with 1e-10 too little oxygen no longer ends `NoGasPhase` with its second condensed
   record (K2O, 9.4e-13 kmol/kg) left out of the composition and 1.3e-10 of the potassium unaccounted for.
   The verdict's bound itself is unchanged, 1e-12 kmol/kg: a mixture within 1e-12 of exact stoichiometry

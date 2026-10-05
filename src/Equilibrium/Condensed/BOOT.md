@@ -118,7 +118,9 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
      only positive candidate it is taken, so no equilibrium is lost.
 
   A balancing record stays (2026-10-05, owner). A record whose mole number is negative is kept, at exactly
-  zero moles and in its place in the set, when both hold:
+  zero moles and in its place in the set, when its amount is rounding (the first test below) and either its
+  removal would make the element system singular (the second) or the change would be the one past the cap
+  (the third):
   - Its amount is rounding. For every active element `i` the record carries, `|a_ij n_j| ≤ 4 ε T_i`, with
     `ε = 2^-52` and `T_i = max_k |a_ik n_k|` over the retained gases and the condensed set, the record
     included: the largest term of the balance `Σ_k a_ik n_k`. Every addition of that sum is exact to
@@ -134,6 +136,27 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
     and a record that the set could not do without and does not do with (CaCO3 = CaO + CO2 on a
     plateau, three dependent vectors) is removed as before. The matrix scratch is the workspace;
     the Newton matrix between two convergences is dead.
+  - The last change (2026-10-05): the set has made `MaxCondensedSetChanges` changes, so removing the record
+    would end the case `NotConverged`, and the element system stays independent with it (the second half
+    of the test above). There a record whose sign is rounding has been alternating: removed while a trace
+    gas keeps the rows independent without it, it comes back from the next inclusion test, because without
+    it the balance that fixes its partner gas is the difference of two equal abundances, and returns negative
+    by rounding again. Its true amount lies below what the balances resolve, zero is the equilibrium to that
+    resolution, and the close's guards (the element invariant, no left-out record gaining above 1e-9, every
+    gas on its stationarity) judge the state as any other. MgCO3 + 1e-8 O at 10 MPa and 335 K: MgO(cr) at
+    n x_CO2 ≈ 5e-19 kmol/kg, returned at −8e-27 and −3e-32, regained 8.1e-6 per mole after each removal,
+    and the case ended `NotConverged` once the set had made the changes the cap allows.
+
+  ⚠ 2026-10-05: was "kept … when both hold" (rounding, and a removal that leaves the system singular), now
+  also at the last change the cap allows. The rule removed MgO(cr) beside MgCO3(cr) under O2, since CO2 at
+  2.8e-9 of the gas kept the rows independent, and the set alternated to the cap (found by the transition
+  scan of the gas basis's mixture column, 2026-10-05). Measured on its prototype, every state solved with
+  and without the clause: over 936 000 tp states (the 19 systems and carbonates at ±1e-6 to ±1e-10, 100 Pa
+  to 10 MPa, 250 to 3 000 K, refined to 0.005 K at every change) it settles 25 states, MgCO3 + 1e-8 and
+  1e-6 O at 1 and 10 MPa between 300.6 and 336.8 K, and moves no other status or bit. Rejected, measured:
+  keeping a returned record at its first return (a memory in the iteration state) settles the same and moves
+  22 states that alternated and then ended `Ok` on a positive rounding (58 or 100 fewer steps, the record at 0
+  instead of 4e-25); dropping the singularity test moves 123 to 205.
   A record that is kept ends the scan of rule 1 at that record; the other negative records are tested
   in their turn, and when none is removed the rules 2 and 3 follow. Measured 2026-10-05 on 13 218 tp
   states (`TraceGasCases.ScanFamilies`, the trace-excess scan, 16 further excesses of the 17 systems
@@ -222,6 +245,11 @@ the condensed-species facts, the anti-cycling rule, the plateau facts and the ex
       (`Update` on a rig of CaCO3(cr), CaO(cr) and the gases of the case), each shown red once by removing the test; red
       without the rule: 7 of the 53 facts. No bit moved: `BitSnapshot` facts of Equilibrium, Performance and Problems
       green, and the 13 218 tp states of the measurement above identical but for the two named.
+- [x] 2026-10-05 — The last change: `BalancingRecordTests`, the 11 states of MgCO3 + 1e-8 O (1 and 10 MPa) and + 1e-6 O
+      (10 MPa) whose set alternated to the cap, each `Ok` and clear with MgCO3(cr) the one record with moles; `Update` on the rig
+      at the cap keeps CaO(cr) at −1e-40 beside O2 and CO2 and removes it one change earlier, and at the cap still removes it at
+      −1e-6 and beside CO2 alone. Red without the clause: 12 of the 66 facts (the 11 states, `NotConverged`, and the rig at the cap).
+      No bit moved: `BitSnapshot` facts of Equilibrium, Performance and Problems green, and the scans of the ⚠ above.
 
 ## Taboos
 

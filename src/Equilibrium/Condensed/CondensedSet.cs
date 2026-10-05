@@ -103,7 +103,8 @@ internal static class CondensedSet
     /// <summary>
     /// Rule 1: the first record whose mole number turned negative leaves the solution, unless it is a balancing record
     /// (<see cref="BalancingRecord"/>): negative by the rounding of its balances and the only carrier of a direction the
-    /// rest of the set leaves free, it stays at exactly zero moles and the scan goes on.
+    /// rest of the set leaves free, or so negative at the last change the cap allows, it stays at exactly zero moles and the
+    /// scan goes on.
     /// </summary>
     private static bool RemoveNegative(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state)
     {
@@ -114,7 +115,7 @@ internal static class CondensedSet
                 continue;
             }
 
-            if (BalancingRecord.Holds(table, scratch, result, state.CondensedCount, c))
+            if (BalancingRecord.Holds(table, scratch, result, state.CondensedCount, c, state.SetChanges >= EquilibriumSolver.MaxCondensedSetChanges))
             {
                 result.Moles[scratch.CondensedInSolution[c]] = 0.0;
                 continue;
