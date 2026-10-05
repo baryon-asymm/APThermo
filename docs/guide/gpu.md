@@ -3,8 +3,8 @@
 ## Purpose
 
 Choose and verify the accelerator a solve runs on — the CPU accelerator, which needs
-nothing beyond the package, or CUDA, which needs an NVIDIA driver and the CUDA
-libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
+nothing beyond the package, or CUDA, which needs an NVIDIA driver and nothing else
+at run time — and diagnose why an `Auto` run fell back to the CPU.
 
 ## When to use
 
@@ -22,36 +22,25 @@ libraries at run time — and diagnose why an `Auto` run fell back to the CPU.
 
 1. **Requirements.** The CPU accelerator (`AcceleratorKind.Cpu`) needs nothing beyond
    the package and ILGPU. CUDA (`AcceleratorKind.Cuda`, or `Auto` when a usable GPU
-   is found) additionally needs, at run time:
-   - an NVIDIA driver with CUDA 12.8 or newer;
-   - `libnvvm` (`nvvm64_40_0.dll` on Windows, tried first under the toolkit's
-     `nvvm/bin`, then under `nvvm/bin/x64` — a 13.x toolkit keeps it at the latter;
-     `libnvvm.so` on Linux, including under WSL2, under `nvvm/lib64`) and
-     `libdevice.10.bc` (`nvvm/libdevice/libdevice.10.bc` on both platforms), both from
-     an NVIDIA CUDA Toolkit 12.8 or newer.
+   is found) additionally needs, at run time, an NVIDIA driver with CUDA 12.8 or
+   newer, on Windows and on Linux, under WSL2 included. It needs no CUDA Toolkit: the
+   kernels call no library function of one (the package computes its own `exp`, `log`
+   and `pow`, correctly rounded), so CUDA and the CPU accelerator return the same bits.
    Windows x64 and Linux x64 are both supported on the CPU accelerator. CUDA is
    supported on both too, but Linux verification is still pending: the root
    `BOOT.md`'s Linux acceptance criterion (the fast suite on the CPU accelerator and
    the execution tests node's CUDA sweep, under WSL2 on the reference machine) is
    unticked as of this release.
-2. **Discovery order**, applied when `Solver.Create` or `AcceleratorProbe.Describe`
-   binds CUDA: `EngineOptions.LibNvvmPath`/`LibDevicePath` when both are given and
-   exist, tried first. Otherwise, when `LibDeviceDiscovery` is true (the default): the
-   `CUDA_PATH` environment variable, on either platform; then, Linux only, `CUDA_HOME`,
-   the fixed directory `/usr/local/cuda`, and the versioned `/usr/local/cuda-*`
-   directories (newest version first); Windows only, the versioned `v*` directories
-   under `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA` (newest version first,
-   `ProgramFiles` read from the environment). Under each candidate root in turn,
-   `libnvvm` (the NVVM compiler library the CUDA Toolkit ships, not the driver) is
-   tried at the paths of point 1 above and `libdevice.10.bc` at `nvvm/libdevice/`;
-   discovery stops at the first root where both files are found, and
-   `AcceleratorUnavailableException` names every path tried, in this order.
+2. **Same bits on both accelerators.** For one batch CUDA returns exactly the values the
+   CPU accelerator returns, in every field, so a result does not depend on which
+   accelerator ran it. Nothing is searched for at bind time: `Solver.Create` and
+   `AcceleratorProbe.Describe` ask the driver for the device at
+   `EngineOptions.CudaDeviceIndex` and load one small kernel on it.
 3. **Choosing an accelerator kind**: `AcceleratorKind.Auto` (the default) binds CUDA
-   when it is not forbidden and every library and device is found, and falls back to
+   when it is not forbidden and the device is found and a kernel loads on it, and falls back to
    the CPU accelerator otherwise — including when the CUDA context itself cannot be
    created — without throwing. `Cpu` always binds the CPU accelerator. `Cuda` binds
-   CUDA or throws `AcceleratorUnavailableException`, naming the missing piece and
-   every path tried.
+   CUDA or throws `AcceleratorUnavailableException`, naming what failed.
 4. **Forbidding CUDA outright**: the environment variable `APTHERMO_NO_CUDA=1`
    (`EngineOptions.NoCudaVariable`) makes every accelerator kind but `Cpu` refuse or
    fall back, everywhere in the tree. This is how the fast test suite and CI prove
@@ -123,10 +112,10 @@ $ apthermo devices
 
 | Situation | Behaviour |
 |---|---|
-| `Cuda` requested and CUDA is forbidden, no libnvvm or libdevice found, no device at the index, or the context cannot be created | `AcceleratorUnavailableException`, naming the missing piece and every path tried |
+| `Cuda` requested and CUDA is forbidden, no device at the index, or the context cannot be created | `AcceleratorUnavailableException`, naming what failed |
 | `Auto` requested and the same failures occur | silent fallback to the CPU accelerator; `AcceleratorInfo.CudaSkippedBecause` names the reason |
 | the installed ILGPU version, or a reflected member it exposes, does not match what the tree expects | `InvalidOperationException` naming the ILGPU version, at `Solver.Create` or `AcceleratorProbe.Describe` |
-| a kernel's compiled program calls a libdevice wrapper this tree has no fragment for, or libnvvm/the driver refuses the linked module | `InvalidOperationException` naming the wrapper or carrying the compiler's log, on that program's first run |
+| a kernel's compiled program holds an instruction the package's post-link will not vouch for, or the driver refuses the module | `InvalidOperationException` naming the instruction or carrying the driver's log, on that program's first run |
 | a launch on CUDA exceeds the device's kernel run-time limit (a display GPU's driver kills a kernel that runs too long, 2 s by default) | `AcceleratorUnavailableException` naming the limit and the CPU accelerator as the remedy; the solver is unusable from there on — every later solve throws naming the earlier timeout, and disposing it never throws |
 
 ## See also

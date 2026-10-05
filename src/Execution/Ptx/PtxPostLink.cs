@@ -1,146 +1,160 @@
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using ILGPU;
 using ILGPU.Backends.PTX;
 using ILGPU.Runtime.Cuda;
 
-namespace APThermo.Execution.LibDevice;
+namespace APThermo.Execution.Ptx;
 
 /// <summary>
-/// Completes, rather than replaces, ILGPU's own libdevice wrappers in a compiled CUDA kernel: the one place in the tree that
-/// knows ILGPU's internals. ILGPU 1.5.3 defines the wrappers itself for the targets <c>compute_75</c> to <c>compute_90</c> and
-/// silently drops them for <c>compute_100</c> and newer (root <c>BOOT.md</c>, the ILGPU constraint); <see cref="Link"/> reads
-/// which wrappers a kernel calls and which it already defines, compiles only the missing ones from ILGPU's own fragments, and
-/// trial-loads the result on either path, so that a refusal carries the driver's log. No libnvvm or driver result of that
-/// sequence is ignored (the parent's `BOOT.md`, Invariants: "No libnvvm or driver result is ignored"): every call into libnvvm or the CUDA driver is
-/// checked through the <c>ThrowIfFailed</c> overloads, the one place that turns a non-success result into an exception.
+/// Fixes the arithmetic of a compiled CUDA kernel and checks it before it is loaded: the one place in the tree that knows
+/// ILGPU's internals (root <c>BOOT.md</c>, "Math in numerical nodes" and the ILGPU constraint). <see cref="Link"/> turns
+/// <c>Math.FusedMultiplyAdd</c>, which ILGPU emits as a call of an undefined external function, into the single instruction
+/// <c>fma.rn.f64</c>; marks every <c>mul</c>, <c>add</c> and <c>sub</c> of <c>.f64</c> with <c>.rn</c>, which PTX defines as
+/// never contracted into a fused multiply-add (the CPU never contracts either: the two accelerators then run the same
+/// operations and return the same bits); refuses a kernel whose PTX then holds a fused multiply-add it did not write, an
+/// <c>.approx</c> f64 instruction or an external function; and trial-loads the result through the CUDA driver, so that a refusal
+/// carries the driver's log. No driver result is ignored (the parent's <c>BOOT.md</c>, Invariants): every call into the driver is
+/// checked through <see cref="ThrowIfFailed"/>, the one place that turns a non-success result into an exception.
 /// </summary>
-internal static partial class LibDevicePostLink
+internal static partial class PtxPostLink
 {
     /// <summary>The ILGPU version whose internals this post-link was written against.</summary>
     public const string ExpectedIlgpuVersion = "1.5.3.0";
 
-    private const string FragmentsType = "ILGPU.Backends.PTX.PTXLibDeviceNvvm";
-    private const string FragmentsField = "fragments";
     private const string AssemblyField = "<PTXAssembly>k__BackingField";
-    private const string TargetTriple = "target triple = \"nvptx64-unknown-cuda\"";
-    private const string TargetDataLayout =
-        "target datalayout = \"e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64\"";
 
     /// <summary>
-    /// A wrapper name at an actual <c>call</c> instruction, never a parameter declaration or a <c>.func</c> header: both share
-    /// the <c>__ilgpu__nv_*</c> prefix (a parameter of <c>__nv_exp</c> is named <c>__ilgpu__nv_exp_param_0</c>), but only the
-    /// callee name at a call site is immediately followed by a comma, never a definition's name (followed by <c>(</c>) or a
-    /// parameter's (followed by end of line or another parameter's own text, never a bare comma right after the identifier).
-    /// The lazy span from <c>call</c> never crosses a <c>;</c>, so it never reaches into an unrelated statement.
+    /// The call sequence ILGPU 1.5.3 emits for <c>Math.FusedMultiplyAdd</c>: three parameters stored, one call, the result
+    /// loaded, all in one block. The inlined form is the one instruction the call stands for.
     /// </summary>
-    [GeneratedRegex(@"\bcall(?:\.uni)?\b[^;]*?(__ilgpu__nv_[A-Za-z0-9_]+)\s*,")]
-    private static partial Regex WrapperCall();
+    [GeneratedRegex(
+        @"\{\s*\.param \.f64 callParam0;\s*st\.param\.f64\s*\[callParam0\], (\S+);\s*\.param \.f64 callParam1;\s*st\.param\.f64\s*\[callParam1\], (\S+);\s*\.param \.f64 callParam2;\s*st\.param\.f64\s*\[callParam2\], (\S+);\s*\.param \.f64 callRetVal;\s*call\.uni \(callRetVal\), \w*FusedMultiplyAdd\w*, \(\s*callParam0,\s*callParam1,\s*callParam2\s*\);\s*ld\.param\.f64\s*(\S+), \[callRetVal\];\s*\}")]
+    private static partial Regex FusedCall();
 
-    /// <summary>
-    /// A wrapper's own <c>.func</c> definition line, wherever it appears: in a kernel's own PTX, to find what ILGPU already
-    /// defined, or in the post-link's own compiled body, to check what it inserted. Never a call site, which spells the name
-    /// followed by a comma, not a parenthesis.
-    /// </summary>
-    [GeneratedRegex(@"^\s*\.(visible|weak)?\s*\.func\b[^;]*?(__ilgpu__nv_[A-Za-z0-9_]+)\s*\(", RegexOptions.Multiline)]
-    private static partial Regex WrapperDefinition();
+    /// <summary>The declaration of the external function ILGPU emits for <c>Math.FusedMultiplyAdd</c>, which has no body.</summary>
+    [GeneratedRegex(@"\.extern \.func \(\.param \.f64 \w+\) \w*FusedMultiplyAdd\w*\(\s*\.param \.f64 \w+,\s*\.param \.f64 \w+,\s*\.param \.f64 \w+\s*\)\s*;\s*")]
+    private static partial Regex FusedDeclaration();
+
+    /// <summary>A call of the fused multiply-add's external function that the inlining did not recognise.</summary>
+    [GeneratedRegex(@"\bcall(?:\.uni)?\b[^;]*FusedMultiplyAdd")]
+    private static partial Regex SurvivingFusedCall();
+
+    /// <summary>A multiplication, addition or subtraction of doubles without a rounding modifier: the ones a PTX compiler may contract.</summary>
+    [GeneratedRegex(@"\b(mul|add|sub)\.f64\b")]
+    private static partial Regex UnroundedArithmetic();
+
+    /// <summary>Any fused multiply-add of doubles, whatever its rounding modifier, and the older <c>mad</c> forms.</summary>
+    [GeneratedRegex(@"\b(?:fma|mad)(?:\.\w+)*\.f64\b")]
+    private static partial Regex FusedInstruction();
+
+    /// <summary>An instruction of doubles with the <c>.approx</c> modifier: not correctly rounded, so not the same on every device.</summary>
+    [GeneratedRegex(@"\b\w+(?:\.\w+)*\.approx(?:\.\w+)*\.f64\b")]
+    private static partial Regex ApproximateInstruction();
+
+    /// <summary>An external function: declared here and defined elsewhere, so not part of the kernel the guards have read.</summary>
+    [GeneratedRegex(@"\.extern\b[^;{]*")]
+    private static partial Regex ExternalFunction();
 
     [GeneratedRegex(@"^\.target\s+sm_(\d+)", RegexOptions.Multiline)]
     private static partial Regex Target();
 
-    private static readonly Lazy<(FieldInfo Fragments, FieldInfo Assembly)> Members = new(() => AssertIlgpu(ExpectedIlgpuVersion));
+    private static readonly Lazy<FieldInfo> Backing = new(() => AssertIlgpu(ExpectedIlgpuVersion));
 
     /// <summary>The ILGPU version string of the loaded assembly.</summary>
     public static string IlgpuVersion => typeof(Context).Assembly.GetName().Version?.ToString() ?? "unknown";
 
-    /// <summary>Asserts the ILGPU version and the reflected members once; an exception names the version.</summary>
-    public static void AssertIlgpu() => _ = Members.Value;
+    /// <summary>Asserts the ILGPU version and the reflected member once; an exception names the version.</summary>
+    public static void AssertIlgpu() => _ = Backing.Value;
 
     /// <summary>The assertion against a given version, for the tests to prove it fails loudly.</summary>
-    internal static (FieldInfo Fragments, FieldInfo Assembly) AssertIlgpu(string expectedVersion)
+    internal static FieldInfo AssertIlgpu(string expectedVersion)
     {
         var version = IlgpuVersion;
         if (version != expectedVersion)
         {
-            throw new InvalidOperationException(
-                $"ILGPU {version} is loaded, but the libdevice post-link was written for ILGPU {expectedVersion}; its internals must be re-verified.");
-        }
-
-        var assembly = typeof(PTXBackend).Assembly;
-        var fragments = assembly.GetType(FragmentsType)?.GetField(FragmentsField, BindingFlags.NonPublic | BindingFlags.Static);
-        if (fragments is null || fragments.FieldType != typeof(Dictionary<string, string>))
-        {
-            throw new InvalidOperationException($"ILGPU {version}: {FragmentsType}.{FragmentsField} is not the dictionary of wrapper fragments the post-link expects.");
+            throw new InvalidOperationException($"ILGPU {version} is loaded, but the PTX post-link was written for ILGPU {expectedVersion}; its internals must be re-verified.");
         }
 
         var backing = typeof(PTXCompiledKernel).GetField(AssemblyField, BindingFlags.NonPublic | BindingFlags.Instance);
         return backing is null || backing.FieldType != typeof(string)
             ? throw new InvalidOperationException($"ILGPU {version}: {nameof(PTXCompiledKernel)}.{AssemblyField} is not the string field the post-link expects.")
-            : (fragments, backing);
+            : backing;
     }
 
-    /// <summary>The wrapper names a PTX text calls, from actual <c>call</c> instructions only, without the <c>__ilgpu</c> prefix
-    /// (as the fragment keys are), in order of appearance.</summary>
-    public static IReadOnlyList<string> WrappersCalled(string ptx) =>
-        [.. WrapperCall().Matches(ptx).Select(m => m.Groups[1].Value["__ilgpu".Length..]).Distinct()];
+    /// <summary>What <see cref="Link"/> did to a kernel: how many multiply, add and subtract instructions it marked <c>.rn</c> and how many calls of the fused multiply-add it turned into the instruction.</summary>
+    internal readonly record struct LinkResult(PTXCompiledKernel Kernel, int RoundedOperations, int FusedSites);
 
-    /// <summary>The wrapper names a PTX text defines as its own <c>.func</c> headers, without the <c>__ilgpu</c> prefix, distinct.</summary>
-    public static IReadOnlyList<string> WrappersDefined(string ptx) =>
-        [.. WrapperDefinition().Matches(ptx).Select(m => m.Groups[2].Value["__ilgpu".Length..]).Distinct()];
-
-    /// <summary>What <see cref="Link"/> did to a kernel: which of its called wrappers ILGPU had already defined, and which this
-    /// method compiled from its own fragments. Both empty when the kernel calls no wrapper at all.</summary>
-    internal readonly record struct LinkResult(PTXCompiledKernel Kernel, IReadOnlyList<string> DefinedByIlgpu, IReadOnlyList<string> Compiled);
+    /// <summary>The PTX after the post-link's rewrite, and what the rewrite did.</summary>
+    internal readonly record struct Rewritten(string Ptx, int RoundedOperations, int FusedSites);
 
     /// <summary>
-    /// Completes the kernel's PTX with the libdevice wrappers it calls and ILGPU did not already define (BOOT.md, "The
-    /// post-link"): compiles only the missing ones from ILGPU's own fragments, splices them in, and trial-loads the result
-    /// through the CUDA driver on either path (nothing missing, or something compiled), so that a refusal carries the driver's
-    /// log. A kernel that calls no wrapper at all is returned untouched, without a trial load.
+    /// Rewrites, checks and trial-loads the kernel (BOOT.md, "The post-link"): the fused multiply-add calls become the instruction,
+    /// every unrounded multiply, add and subtract becomes <c>.rn</c>, the guards read the result, the driver loads it once and
+    /// destroys the module again, and the kernel's PTX is replaced by the rewritten text.
     /// </summary>
-    public static LinkResult Link(CudaAccelerator accelerator, NvvmAPI nvvm, PTXCompiledKernel compiled)
+    public static LinkResult Link(CudaAccelerator accelerator, PTXCompiledKernel compiled)
     {
-        var ptx = compiled.PTXAssembly;
-        var called = WrappersCalled(ptx);
-        if (called.Count == 0)
-        {
-            return new LinkResult(compiled, [], []);
-        }
-
-        var missing = called.Except(WrappersDefined(ptx)).ToList();
-        var arch = TargetArch(ptx);
+        var rewritten = Rewrite(compiled.PTXAssembly);
+        var arch = TargetArch(rewritten.Ptx);
 
         // The driver checks the PTX against a context bound to the calling thread; bind the accelerator's before the trial load.
         accelerator.Bind();
-        if (missing.Count == 0)
+        TrialLoad(rewritten.Ptx, arch);
+        Backing.Value.SetValue(compiled, rewritten.Ptx);
+        return new LinkResult(compiled, rewritten.RoundedOperations, rewritten.FusedSites);
+    }
+
+    /// <summary>The text rewrite and the guards, without a driver: what the facts that read PTX drive.</summary>
+    internal static Rewritten Rewrite(string ptx)
+    {
+        var sites = FusedCall().Count(ptx);
+        var inlined = FusedCall().Replace(ptx, "fma.rn.f64\t$4, $1, $2, $3;");
+        var arch = TargetArch(inlined);
+
+        // The declaration goes only when no call of it is left: a surviving call keeps its external declaration, which the guard refuses.
+        if (!SurvivingFusedCall().IsMatch(inlined))
         {
-            TrialLoad(ptx, arch);
-            return new LinkResult(compiled, called, []);
+            inlined = FusedDeclaration().Replace(inlined, string.Empty);
         }
 
-        var body = WrapperBody(nvvm, missing, arch);
-        AssertEveryWrapperDefined(body, missing);
-        var linked = InsertAfterHeader(ptx, body);
-        TrialLoad(linked, arch);
-        Members.Value.Assembly.SetValue(compiled, linked);
-        return new LinkResult(compiled, [.. called.Except(missing)], missing);
+        var rounded = UnroundedArithmetic().Count(inlined);
+        var linked = UnroundedArithmetic().Replace(inlined, "$1.rn.f64");
+        Guard(linked, sites, arch);
+        return new Rewritten(linked, rounded, sites);
     }
 
     /// <summary>
-    /// The one shape every checked libnvvm failure throws in: it names the post-link, the target, libnvvm and the call, and the
-    /// result code, with the log where one exists. Throws nothing for <see cref="NvvmResult.NVVM_SUCCESS"/>.
+    /// The guards on the rewritten PTX: a fused multiply-add it did not write (the count of <c>fma</c> and <c>mad</c> of doubles is
+    /// not the number of sites it inlined), an <c>.approx</c> instruction of doubles, an external function (the fused
+    /// multiply-add's own among them, when a call survived the inlining). Each refusal
+    /// names the kernel's target and the offending text.
     /// </summary>
-    internal static void ThrowIfFailed(NvvmResult result, string call, string arch, string? log = null)
+    internal static void Guard(string ptx, int fusedSites, string arch)
     {
-        if (result != NvvmResult.NVVM_SUCCESS)
+        var fused = FusedInstruction().Matches(ptx).Select(match => match.Value).ToList();
+        var written = fused.Count(text => text == "fma.rn.f64");
+        var foreign = fused.Where(text => text != "fma.rn.f64").ToList();
+        if (foreign.Count > 0 || written != fusedSites)
         {
-            throw new InvalidOperationException(FailureMessage($"libnvvm {call} returned {result}", arch, log));
+            throw new InvalidOperationException(FailureMessage(
+                $"the PTX holds {fused.Count} fused multiply-add instruction(s) of doubles ({(foreign.Count > 0 ? foreign[0] : "fma.rn.f64")}) and the post-link wrote {fusedSites}", arch, null));
+        }
+
+        RefuseFirst(ApproximateInstruction(), ptx, "an approximate instruction of doubles", arch);
+        RefuseFirst(ExternalFunction(), ptx, "an external function", arch);
+    }
+
+    private static void RefuseFirst(Regex pattern, string ptx, string what, string arch)
+    {
+        var match = pattern.Match(ptx);
+        if (match.Success)
+        {
+            throw new InvalidOperationException(FailureMessage($"the PTX holds {what}: {match.Value.Trim()}", arch, null));
         }
     }
 
-    /// <summary>The same shape for a CUDA driver result. Throws nothing for <see cref="CudaError.CUDA_SUCCESS"/>.</summary>
+    /// <summary>The one shape every checked failure throws in: it names the post-link, the target, the CUDA driver, the call and the result code, with the log where one exists. Throws nothing for <see cref="CudaError.CUDA_SUCCESS"/>.</summary>
     internal static void ThrowIfFailed(CudaError result, string call, string arch, string? log = null)
     {
         if (result != CudaError.CUDA_SUCCESS)
@@ -149,145 +163,25 @@ internal static partial class LibDevicePostLink
         }
     }
 
-    /// <summary>The one message shape: the post-link, the target, what failed (its library, its call and its result), and, where
-    /// one exists, a non-empty log. An empty log (after trimming) is treated as no log at all, so the message carries no
-    /// trailing ": " with nothing after it (2026-09-28, the second audit's observation 7).</summary>
+    /// <summary>The one message shape: the post-link, the target, what failed, and, where one exists, a non-empty log. An empty log (after trimming) is treated as no log at all, so the message carries no trailing ": " with nothing after it (2026-09-28, the second audit's observation 7).</summary>
     private static string FailureMessage(string outcome, string arch, string? log)
     {
         var trimmed = log is null ? null : TrimLog(log);
         return string.IsNullOrEmpty(trimmed)
-            ? $"the libdevice post-link for {arch}: {outcome}."
-            : $"the libdevice post-link for {arch}: {outcome}: {trimmed}";
+            ? $"the PTX post-link for {arch}: {outcome}."
+            : $"the PTX post-link for {arch}: {outcome}: {trimmed}";
     }
 
-    /// <summary>Trims a driver or libnvvm log of both whitespace and the NUL padding of ILGPU's own log buffer (BOOT.md, the
-    /// audit's observations): a plain <see cref="string.Trim()"/> leaves the padding, which a caller sees as trailing
-    /// squares or nothing at all depending on the terminal.</summary>
+    /// <summary>Trims a driver log of both whitespace and the NUL padding of ILGPU's own log buffer (BOOT.md, the audit's observations): a plain <see cref="string.Trim()"/> leaves the padding, which a caller sees as trailing squares or nothing at all depending on the terminal.</summary>
     private static string TrimLog(string log) => log.Trim(['\0', ' ', '\t', '\r', '\n']);
 
     /// <summary>The kernel's own target, from its <c>.target sm_XX</c> line: ILGPU's choice per device, not a fixed value.</summary>
-    private static string TargetArch(string ptx)
+    internal static string TargetArch(string ptx)
     {
         var match = Target().Match(ptx);
         return !match.Success
             ? throw new InvalidOperationException("the kernel PTX has no .target line.")
             : "compute_" + match.Groups[1].Value;
-    }
-
-    /// <summary>The wrapper PTX libnvvm compiles from ILGPU's own fragments, its module-header lines stripped (the kernel supplies its own).</summary>
-    private static string WrapperBody(NvvmAPI nvvm, IReadOnlyList<string> names, string arch)
-    {
-        var fragments = (Dictionary<string, string>)Members.Value.Fragments.GetValue(null)!;
-        foreach (var name in names)
-        {
-            if (!fragments.ContainsKey(name))
-            {
-                throw new InvalidOperationException($"the kernel calls the libdevice wrapper {name}, for which ILGPU {IlgpuVersion} has no fragment.");
-            }
-        }
-
-        ThrowIfFailed(nvvm.GetIRVersion(out var irMajor, out _, out _, out _), nameof(NvvmAPI.GetIRVersion), arch);
-        var module = new StringBuilder();
-        _ = module.Append(TargetTriple).Append('\n').Append(TargetDataLayout).Append('\n');
-        _ = module.Append("!nvvmir.version = !{!0}\n!0 = !{i32 ").Append(irMajor).Append(", i32 0}\n");
-        foreach (var name in names)
-        {
-            _ = module.Append(fragments[name]).Append('\n');
-        }
-
-        var wrapperPtx = CompileWrappers(nvvm, module.ToString(), arch);
-        return string.Join("\n", wrapperPtx.Split('\n')
-            .Where(line => !(line.StartsWith(".version", StringComparison.Ordinal) || line.StartsWith(".target", StringComparison.Ordinal)
-                             || line.StartsWith(".address_size", StringComparison.Ordinal))));
-    }
-
-    private static string CompileWrappers(NvvmAPI nvvm, string module, string arch)
-    {
-        var moduleBytes = Encoding.ASCII.GetBytes(module);
-        var libdevice = nvvm.LibDeviceBytes.ToArray();
-        ThrowIfFailed(nvvm.CreateProgram(out var program), nameof(NvvmAPI.CreateProgram), arch);
-        var succeeded = false;
-        try
-        {
-            using var options = new NvvmOptions(arch);
-            unsafe
-            {
-                fixed (byte* modulePointer = moduleBytes)
-                fixed (byte* libdevicePointer = libdevice)
-                {
-                    ThrowIfFailed(nvvm.AddModuleToProgram(program, (IntPtr)modulePointer, moduleBytes.Length, "apthermo-wrappers"), nameof(NvvmAPI.AddModuleToProgram), arch);
-                    ThrowIfFailed(nvvm.LazyAddModuleToProgram(program, (IntPtr)libdevicePointer, libdevice.Length, "libdevice"), nameof(NvvmAPI.LazyAddModuleToProgram), arch);
-                    var result = nvvm.CompileProgram(program, NvvmOptions.Count, options.Pointer);
-                    if (result != NvvmResult.NVVM_SUCCESS)
-                    {
-                        ThrowCompileFailure(nvvm, program, result, arch);
-                    }
-                }
-            }
-
-            ThrowIfFailed(nvvm.GetCompiledResult(program, out var wrapperPtx), nameof(NvvmAPI.GetCompiledResult), arch);
-            succeeded = true;
-            return wrapperPtx ?? throw new InvalidOperationException($"libnvvm returned no PTX for the libdevice wrappers ({arch}).");
-        }
-        finally
-        {
-            ReleaseProgram(nvvm, ref program, arch, succeeded);
-        }
-    }
-
-    /// <summary>
-    /// The compile log is read only after a failed compile (the parent's `BOOT.md`, Invariants: "No libnvvm or driver result is ignored", the log of a failed compilation). If reading
-    /// it fails too, the compile failure still propagates, saying the log could not be read and naming that result.
-    /// </summary>
-    private static void ThrowCompileFailure(NvvmAPI nvvm, IntPtr program, NvvmResult result, string arch)
-    {
-        var logResult = nvvm.GetProgramLog(program, out var log);
-        var reason = logResult == NvvmResult.NVVM_SUCCESS ? log : $"the log could not be read ({logResult})";
-        ThrowIfFailed(result, nameof(NvvmAPI.CompileProgram), arch, reason);
-    }
-
-    /// <summary>
-    /// <see cref="NvvmAPI.DestroyProgram"/> is checked only when the path before it succeeded (the parent's `BOOT.md`, Invariants:
-    /// "checked only when the path before them succeeded"). When an earlier call already failed, its exception is propagating through this
-    /// <c>finally</c>; the release is still attempted but its own result is not checked, since throwing for it here would
-    /// replace the exception already in flight with the release's instead of letting the primary one through.
-    /// </summary>
-    private static void ReleaseProgram(NvvmAPI nvvm, ref IntPtr program, string arch, bool succeeded)
-    {
-        var released = nvvm.DestroyProgram(ref program);
-        if (succeeded)
-        {
-            ThrowIfFailed(released, nameof(NvvmAPI.DestroyProgram), arch);
-        }
-    }
-
-    /// <summary>The wrapper body spliced right after the kernel's module header: the callee must precede the call site.</summary>
-    private static string InsertAfterHeader(string ptx, string body)
-    {
-        var headerEnd = ptx.IndexOf(".address_size", StringComparison.Ordinal);
-        if (headerEnd < 0)
-        {
-            throw new InvalidOperationException("the kernel PTX has no .address_size line.");
-        }
-
-        headerEnd = ptx.IndexOf('\n', headerEnd) + 1;
-        return string.Concat(ptx.AsSpan(0, headerEnd), body, "\n", ptx.AsSpan(headerEnd));
-    }
-
-    /// <summary>
-    /// Every wrapper the kernel calls has a <c>.func</c> definition in the body libnvvm produced (not the kernel PTX, which also
-    /// contains a call to the same name and would make a substring search pass regardless of whether the definition exists). A set
-    /// comparison so the message names exactly the wrappers that are missing, not merely the first name in the call list.
-    /// </summary>
-    internal static void AssertEveryWrapperDefined(string body, IReadOnlyList<string> names)
-    {
-        var defined = WrapperDefinition().Matches(body).Select(m => m.Groups[2].Value["__ilgpu".Length..]).ToHashSet(StringComparer.Ordinal);
-        var missing = names.Except(defined).ToList();
-        if (missing.Count > 0)
-        {
-            throw new InvalidOperationException(
-                $"the post-link produced no definition of the libdevice wrapper{(missing.Count > 1 ? "s" : "")} {string.Join(", ", missing)}.");
-        }
     }
 
     /// <summary>
@@ -300,28 +194,5 @@ internal static partial class LibDevicePostLink
         var loadResult = CudaAPI.CurrentAPI.LoadModule(out var handle, linked, out var log);
         ThrowIfFailed(loadResult, nameof(CudaAPI.LoadModule), arch, log);
         ThrowIfFailed(CudaAPI.CurrentAPI.DestroyModule(handle), nameof(CudaAPI.DestroyModule), arch);
-    }
-
-    /// <summary>The one-element libnvvm compiler-options array (<c>-arch=...</c>), owning its two unmanaged allocations.</summary>
-    private readonly struct NvvmOptions : IDisposable
-    {
-        private readonly IntPtr _option;
-
-        public NvvmOptions(string arch)
-        {
-            _option = Marshal.StringToHGlobalAnsi("-arch=" + arch);
-            Pointer = Marshal.AllocHGlobal(IntPtr.Size);
-            Marshal.WriteIntPtr(Pointer, _option);
-        }
-
-        public IntPtr Pointer { get; }
-
-        public static int Count => 1;
-
-        public void Dispose()
-        {
-            Marshal.FreeHGlobal(Pointer);
-            Marshal.FreeHGlobal(_option);
-        }
     }
 }

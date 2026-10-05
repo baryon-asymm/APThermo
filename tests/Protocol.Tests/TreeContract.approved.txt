@@ -163,11 +163,12 @@ sealed class APThermo.Execution.KernelCache
     internal static Kernel Load(AcceleratorSession session, String name)
 
 static class APThermo.Execution.MathProbe
+    const Double Addend = 4.6
+    const Double Factor = 1.37
     const Double PowExponent1 = 1.37
     const Double PowExponent2 = 1.4
     const Double PowExponent3 = 4.6
-    internal const Int32 LibdeviceFunctionCount = 9
-    internal const Int32 StrideCount = 14
+    internal const Int32 StrideCount = 15
     static Int32 FunctionCount { get; }
     static Int32 OutputLength(Int32 inputCount)
     static readonly IReadOnlyList<Double> PowExponents

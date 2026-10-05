@@ -311,7 +311,7 @@ it. `amountKind` values are spelled `mass-fraction` and `moles`, like the flow n
   "run": {
     "tool": "apthermo", "version": "0.1.0", "command": "rocket", "inputs": ["problem.json"],
     "database": { "thermoPath": "data/thermo.inp", "transPath": "data/trans.inp", "thermoSha256": "…", "transSha256": "…" },
-    "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "libNvvmPath": "…", "libDevicePath": "…", "threadsOrMultiprocessors": 70, "cudaSkippedBecause": null },
+    "accelerator": { "kind": "cuda", "deviceName": "NVIDIA GeForce RTX 5070 Ti", "ilgpuVersion": "1.5.3", "threadsOrMultiprocessors": 70, "cudaSkippedBecause": null },
     "timings": { "database": 0.31, "solve": 1.2 },
     "threshold": 5e-6,
     "massTolerance": 0.01
@@ -416,6 +416,8 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 `auto` run fell back to the CPU accelerator (the `Execution` node's
 `AcceleratorInfo.CudaSkippedBecause`), so that a document says why it ran on the CPU.
 
+⚠ 2026-10-05: was `libNvvmPath` and `libDevicePath` in every accelerator object and `pathsTried` in the unavailable CUDA object of the `devices` listing, now none of the three: the kernels use no libdevice, so there is no library to name (owner decision O4, item 13).
+
 ## Errors
 
 | Situation | Behaviour |
@@ -429,7 +431,7 @@ never hides the figure the check compared. 2026-09-14: `run.accelerator` and the
 | `--mass-tolerance` with a value that is not a finite non-negative number, on a listing command, or against a document whose propellant is given by reactants | `the mass tolerance must be a finite non-negative number, not 'X'`, or the option named as not applying (2026-09-28, finding F7: this row used to name only the listing commands); exit code 2 |
 | input file or database directory not found | message with the path, exit code 2 |
 | `--output` names a path whose directory does not exist | `PATH: directory not found`, exit code 2 |
-| accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3; for an accelerator, every path tried |
+| accelerator unavailable, ILGPU mismatch, an unexpected failure | the message, exit code 3 |
 | a case or station failed numerically | the document is written with the status per case and station; exit code 1 |
 
 ⚠ 2026-09-15: `--output` into a missing directory had drifted to exit code 3 (an

@@ -26,7 +26,7 @@ a composition root, holding no formula of its own.
   `BOOT.md`, F-CL-08).
 - **The devices probe never throws for a missing CUDA device.** `DeviceProbe.Run`
   always returns a `DeviceReport`: the CPU accelerator always created, the CUDA one
-  `null` with its own message and paths tried when it could not be bound
+  `null` with its own message when it could not be bound
   (`AcceleratorUnavailableException` and `InvalidOperationException`, both `Execution`'s,
   caught here and turned into the report's fields, never propagated).
 - **`devices` is `Execution.Engine.CudaForbidden` read once**, next to `cpu` and `cuda`,

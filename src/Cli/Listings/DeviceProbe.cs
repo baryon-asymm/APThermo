@@ -11,15 +11,15 @@ internal static class DeviceProbe
         try
         {
             var cuda = AcceleratorProbe.Describe(new EngineOptions { Accelerator = AcceleratorKind.Cuda });
-            return new DeviceReport(cpu, cuda, null, []);
+            return new DeviceReport(cpu, cuda, null);
         }
         catch (AcceleratorUnavailableException e)
         {
-            return new DeviceReport(cpu, null, e.Message, e.PathsTried);
+            return new DeviceReport(cpu, null, e.Message);
         }
         catch (InvalidOperationException e)
         {
-            return new DeviceReport(cpu, null, e.Message, []);
+            return new DeviceReport(cpu, null, e.Message);
         }
     }
 }

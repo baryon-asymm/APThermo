@@ -5,7 +5,7 @@ using ILGPU.Backends.PTX;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
 
-namespace APThermo.Execution.LibDevice;
+namespace APThermo.Execution.Ptx;
 
 /// <summary>
 /// Works around ILGPU 1.5.3's WSL defect (BOOT.md, "Every CUDA context of a process binds under WSL", 2026-09-27):
@@ -81,18 +81,18 @@ internal static class CudaWslDevices
     {
         // Neither name can be given with nameof: both members are internal to ILGPU, which grants this assembly no
         // InternalsVisibleTo, so the compiler cannot see them; only reflection reaches across that boundary (the same reason
-        // LibDevicePostLink reads its own ILGPU internals by name rather than nameof).
+        // PtxPostLink reads its own ILGPU internals by name rather than nameof).
         var registryProperty = typeof(Context.Builder).GetProperty(registryPropertyName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
         if (registryProperty is null || registryProperty.PropertyType != typeof(DeviceRegistry))
         {
-            throw new AcceleratorUnavailableException($"ILGPU {LibDevicePostLink.IlgpuVersion}: Context.Builder.{registryPropertyName} is not the property the WSL workaround expects.");
+            throw new AcceleratorUnavailableException($"ILGPU {PtxPostLink.IlgpuVersion}: Context.Builder.{registryPropertyName} is not the property the WSL workaround expects.");
         }
 
         var getDevices = typeof(CudaDevice).GetMethod(getDevicesMethodName, BindingFlags.Static | BindingFlags.NonPublic, binder: null,
             types: [typeof(Action<CudaDeviceOverride>), typeof(Predicate<CudaDevice>), typeof(DeviceRegistry)], modifiers: null);
         return getDevices is null
             ? throw new AcceleratorUnavailableException(
-                $"ILGPU {LibDevicePostLink.IlgpuVersion}: CudaDevice.{getDevicesMethodName}(Action<CudaDeviceOverride>, Predicate<CudaDevice>, DeviceRegistry) is not the method the WSL workaround expects.")
+                $"ILGPU {PtxPostLink.IlgpuVersion}: CudaDevice.{getDevicesMethodName}(Action<CudaDeviceOverride>, Predicate<CudaDevice>, DeviceRegistry) is not the method the WSL workaround expects.")
             : (registryProperty, getDevices);
     }
 }

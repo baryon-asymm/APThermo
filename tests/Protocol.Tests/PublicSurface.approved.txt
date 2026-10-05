@@ -179,8 +179,6 @@ sealed class (record) APThermo.Execution.AcceleratorInfo : IEquatable<Accelerato
     String DeviceName { get; }
     String IlgpuVersion { get; }
     String? CudaSkippedBecause { get; init; }
-    String? LibDevicePath { get; }
-    String? LibNvvmPath { get; }
 
 enum APThermo.Execution.AcceleratorKind : Int32
     Auto = 0
@@ -195,18 +193,13 @@ sealed class APThermo.Execution.AcceleratorUnavailableException : Exception, ISe
     .ctor()
     .ctor(String message)
     .ctor(String message, Exception innerException)
-    .ctor(String message, IReadOnlyList<String> pathsTried, Exception? inner = null)
-    IReadOnlyList<String> PathsTried { get; }
 
 sealed class (record) APThermo.Execution.EngineOptions : IEquatable<EngineOptions>
     .ctor()
     AcceleratorKind Accelerator { get; init; }
-    Boolean LibDeviceDiscovery { get; init; }
     Int32 ChunkSize { get; init; }
     Int32 CudaDeviceIndex { get; init; }
     Int64 ScratchBytes { get; init; }
-    String? LibDevicePath { get; init; }
-    String? LibNvvmPath { get; init; }
     const Int32 DefaultChunkSize = 16384
     const Int64 DefaultScratchBytes = 268435456
     const String NoCudaVariable = "APTHERMO_NO_CUDA"

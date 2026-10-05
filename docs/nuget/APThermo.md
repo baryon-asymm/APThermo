@@ -58,14 +58,12 @@ if (chamber.Status == CaseStatus.Ok)
 
 The CPU accelerator (`AcceleratorKind.Cpu`) needs nothing beyond this package and
 ILGPU. The CUDA accelerator (`AcceleratorKind.Cuda`, or `Auto` on a machine with a
-usable GPU) additionally needs, at run time:
-
-- an NVIDIA driver with CUDA 12.8 or newer;
-- `libnvvm` (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
-  `libdevice.10.bc`, both from an NVIDIA CUDA Toolkit 12.8 or newer.
+usable GPU) additionally needs, at run time, an NVIDIA driver with CUDA 12.8 or newer:
+no CUDA Toolkit, no `libnvvm`, no `libdevice`. CUDA and the CPU accelerator return the
+same bits.
 
 `AcceleratorKind.Auto` falls back to the CPU accelerator when no usable CUDA device
-or library is found; a bound solver's `solver.Accelerator.CudaSkippedBecause` names
+is found; a bound solver's `solver.Accelerator.CudaSkippedBecause` names
 the reason (`AcceleratorProbe.Describe` answers the same question without solving a
 case).
 

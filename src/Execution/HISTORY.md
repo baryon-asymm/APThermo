@@ -9,6 +9,119 @@ used to stand.
 
 ---
 
+<a id="gpu-equals-cpu-exact-2026-10-05"></a>
+
+## 2026-10-05 — from "## Invariants" — GPU equals CPU: the tolerance table the root gave this node's tests
+
+Item 13 of release 0.2.2 (the tree's own correctly rounded `Exp`, `Log` and `Pow`, the post-link without libdevice) made the two accelerators run one program on one set of IEEE operations, and the facts of `tests/Execution.Tests` compare every field by its bits. The invariant stated no tolerance of its own here; the tolerance table, the tiers by step count, the step share, the balance-remnant correction and the comparison rules lived in that node and are in its `HISTORY.md`. This entry holds the two lines of this node that named them:
+
+> - **The wrapper list equals the root's math list.** The post-link provides wrappers
+>   for exactly the `System.Math` functions the root allows; a probe kernel using each
+>   of them loads and matches the CPU accelerator within the tolerance table.
+
+---
+
+<a id="post-link-ptx-2026-10-05"></a>
+
+## 2026-10-05 — from "## Invariants", "## Purpose" and "## Taboos" — the post-link that completed the libdevice wrappers, and everything that went with libnvvm and libdevice
+
+The tree's own `Exp`, `Log` and `Pow` replaced the `System.Math` ones, so no kernel calls a libdevice function, the context is built without `LibDevice()`, and the post-link has no wrapper to complete. The passages as they stood (the discovery of libnvvm, the checked libnvvm results, the dependencies on a CUDA Toolkit, the library bound before the device, the half-given path pair, the wrapper-missing guard and the taboos):
+
+> chunking of large batches, and the loading of kernels on CUDA with the libdevice
+> wrappers linked by this node. It is the only node that knows CUDA exists, so that every
+> numerical node stays testable without it.
+
+> - **Every CUDA kernel goes through the post-link, which completes it.** ILGPU 1.5.3
+>   defines the libdevice wrappers itself for `compute_75` to `compute_90` and silently
+>   drops them for `compute_100` and newer (the root's ILGPU constraint). The post-link
+>   compiles and inserts only the wrappers a kernel calls and does not define, and none
+>   when none is missing. Every kernel that calls a wrapper is loaded once as a trial on
+>   either path; one that still calls an undefined wrapper is refused at load, the error
+>   naming it. Either path yields the same program: the kernels ILGPU completes equal
+>   those the post-link completes, as PTX text, up to ILGPU's generated names and the
+>   `.target` line (the architecture fact, Acceptance criteria).
+
+> - **No libnvvm or driver result is ignored** (2026-09-26). The post-link checks the
+>   result of every call it makes into libnvvm (`GetIRVersion`, `CreateProgram`,
+>   `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`,
+>   `GetCompiledResult`, `DestroyProgram`) and into the CUDA driver (`LoadModule`,
+>   `DestroyModule`). A result other than success is an `InvalidOperationException` naming
+>   the post-link, the target `compute_XX`, the failing library (libnvvm or the CUDA
+>   driver), its call and the result code, with the compiler's or the driver's log where
+>   one exists (`API.md`, Errors).
+>   - If reading the log of a failed compilation fails too, the compilation's exception
+>     still propagates and says the log could not be read, naming that result.
+>   - `DestroyProgram` and `DestroyModule` are checked only when the path before them
+>     succeeded; after an earlier failure the earlier exception propagates unchanged and
+>     the release is best-effort, so a cleanup failure never hides the cause.
+>   - One internal method turns a result into the exception, so the message has one shape.
+>     It is unit-tested on the CPU with every non-success value of `NvvmResult` and a
+>     failing `CudaError`; the success path is proven by the CUDA tests of this node,
+>     which must stay green with no bit or throughput record moving.
+>   ⚠ 2026-09-26: was only `CompileProgram` and `LoadModule` checked, now the result of
+>   every libnvvm and driver call → HISTORY.md#no-result-ignored-first-cut-2026-09-26
+
+> - **The wrapper list equals the root's math list.** The post-link provides wrappers
+>   for exactly the `System.Math` functions the root allows; a probe kernel using each
+>   of them loads and matches the CPU accelerator within the tolerance table.
+
+> Outside the tree: ILGPU 1.5.3 (NuGet); for CUDA an NVIDIA GPU of compute capability 7.5
+> or newer (2026-09-26, the root's range), an NVIDIA driver with CUDA 12.8 or
+> newer, libnvvm (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
+> `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
+> 
+> ⚠ 2026-09-15: was libnvvm named as `nvvm64_40_0.dll` only, now also `libnvvm.so` on
+> Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
+
+> - **Accelerator choice** (`AcceleratorKind.Auto`): CUDA if `APTHERMO_NO_CUDA` is not
+>   `1`, libnvvm and libdevice are found, the device at the requested index exists, the
+>   context and accelerator can be created, and the math probe kernel post-links and loads
+>   on the device (the invariant "CUDA is bound only when a kernel runs on it"); otherwise
+>   the CPU accelerator with all cores. `AcceleratorKind.Cuda` fails instead of falling
+>   back and names what was missing, with every path tried; `AcceleratorKind.Cpu` never
+
+> - **libdevice discovery order**: the explicit pair, then the platform's toolkit roots
+>   → `LibDevice/BOOT.md` (now `Ptx/BOOT.md`)
+> - **The post-link**, the one place in the tree that knows ILGPU internals, and its
+>   stages → `LibDevice/BOOT.md` (now `Ptx/BOOT.md`)
+
+>   - **The library before the device (F2).** The choice loads libnvvm and asks its IR
+>     version (`NvvmAPI.Create`, `GetIRVersion`), and reads the bitcode, before it
+>     creates any CUDA context. The session keeps that binding, instead of a second
+>     `NvvmAPI.Create` after the accelerator. A failure there is an
+>     `AcceleratorUnavailableException` naming `[dll, bitcode]`, as `CudaContext` already
+>     does for the context. `CreateCudaAccelerator` is wrapped the same way, so every
+>     bind failure has the documented exception type. With `Auto` it becomes the
+>     fallback reason, with its paths.
+>     - ⚠ 2026-09-26: was the context created before libnvvm was loaded, now the library
+>       first → HISTORY.md#bad-library-leaked-the-context-2026-09-26
+
+>   - **Observations.** `Engine.Upload` disposes the buffers it already uploaded when a
+>     later upload fails. A half-given explicit path pair (`LibNvvmPath` without
+>     `LibDevicePath`, or the reverse) is an `ArgumentException` at `Create` naming the
+>     missing option. The trimming of a driver or libnvvm log is
+>     `LibDevice/BOOT.md`'s → HISTORY.md#audit-observations-2026-10-01
+
+> | `LibDevice/` (child node, `APThermo.Execution.LibDevice`) | libdevice discovery (`LibDeviceLocator`), the post-link (`LibDevicePostLink`, whose `Link` returns what it did) and the WSL workaround (`CudaWslDevices`); its own `BOOT.md`/`API.md` hold the contract | internal |
+
+> - No ILGPU.Algorithms, no `XMath`, no `LibDevice.*` calls: the wrappers are provided by
+>   the post-link and the numerical nodes call `System.Math`.
+> - No kernel whose wrappers go unchecked: `Context.Builder.LibDevice()` defines them for
+>   some targets and silently drops them for others (the post-link constraint).
+> 
+>   ⚠ 2026-09-26: was "No reliance on `Context.Builder.LibDevice()` for wrappers", now it
+>   does for `compute_75` to `compute_90` → HISTORY.md#taboo-libdevice-reliance-2026-09-26
+
+---
+
+<a id="libdevice-retired-2026-10-05"></a>
+
+## 2026-10-05 — from "## Dependencies", "## Constraints", "## Structure" and "## Taboos" — libnvvm and libdevice retired
+
+The same change as the entry above, in the places that named the libraries rather than the wrappers: the options (`LibNvvmPath`, `LibDevicePath`, `LibDeviceDiscovery`), the accelerator description (the two paths), the exception's `PathsTried`, the `Ptx/` child node (was `LibDevice/`, whose `LibDeviceLocator` is deleted), the CLI's flags and schema fields, and every document claim that required a CUDA Toolkit. The passages of this node's `BOOT.md` are in the entry above; the text of the contract is in `API.md`'s ⚠ of the same date.
+
+---
+
 <a id="views-13-2026-10-04"></a>
 
 ## 2026-10-04 — from "## Structure" and "## Shape exceptions" — the equilibrium views struct at 12 parameters

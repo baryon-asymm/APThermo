@@ -46,13 +46,11 @@
     "accelerator": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "deviceName", "ilgpuVersion", "libNvvmPath", "libDevicePath", "threadsOrMultiprocessors", "cudaSkippedBecause"],
+      "required": ["kind", "deviceName", "ilgpuVersion", "threadsOrMultiprocessors", "cudaSkippedBecause"],
       "properties": {
         "kind": { "enum": ["cpu", "cuda"] },
         "deviceName": { "type": "string" },
         "ilgpuVersion": { "type": "string" },
-        "libNvvmPath": { "type": ["string", "null"] },
-        "libDevicePath": { "type": ["string", "null"] },
         "threadsOrMultiprocessors": { "type": "integer" },
         "cudaSkippedBecause": { "type": ["string", "null"] }
       }

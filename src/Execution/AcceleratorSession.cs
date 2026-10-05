@@ -6,9 +6,8 @@ using ILGPU.Runtime.Cuda;
 namespace APThermo.Execution;
 
 /// <summary>
-/// One ILGPU context, the accelerator built on it, the libnvvm binding the CUDA path needs, and the description of all three.
-/// Disposes them in order, once, and disposes whatever the build created when the build fails: the rule lives here instead of
-/// once per creation path.
+/// One ILGPU context, the accelerator built on it, and the description of both. Disposes them in order, once, and disposes
+/// whatever the build created when the build fails: the rule lives here instead of once per creation path.
 /// </summary>
 internal sealed class AcceleratorSession : IDisposable
 {
@@ -23,9 +22,6 @@ internal sealed class AcceleratorSession : IDisposable
 
     /// <summary>The accelerator; available once the build has attached it.</summary>
     public Accelerator Accelerator => _accelerator ?? throw new InvalidOperationException("the session has no accelerator: its build did not finish.");
-
-    /// <summary>The libnvvm binding of the CUDA path, null on the CPU accelerator.</summary>
-    public NvvmAPI? Nvvm { get; private set; }
 
     /// <summary>The launch budget of this session's accelerator (2026-09-28, "A launch fits a time budget"):
     /// <see cref="LaunchBudget.None"/> until the build delegate calls <see cref="Attach(LaunchBudget)"/>, which every
@@ -65,9 +61,6 @@ internal sealed class AcceleratorSession : IDisposable
         return accelerator;
     }
 
-    /// <summary>Hands the libnvvm binding to the session, which owns it from that moment.</summary>
-    public NvvmAPI Attach(NvvmAPI nvvm) => Nvvm = nvvm;
-
     /// <summary>Records the launch budget the build delegate decided for this session's accelerator.</summary>
     public LaunchBudget Attach(LaunchBudget budget) => Budget = budget;
 
@@ -88,7 +81,7 @@ internal sealed class AcceleratorSession : IDisposable
         {
             throw new AcceleratorUnavailableException(
                 $"this engine's CUDA context was lost by an earlier launch timeout ({timeout.Message}); " +
-                "create a new engine, or use the CPU accelerator.", [], timeout);
+                "create a new engine, or use the CPU accelerator.", timeout);
         }
     }
 
@@ -120,14 +113,6 @@ internal sealed class AcceleratorSession : IDisposable
         }
 
         _disposed = true;
-        try
-        {
-            Nvvm?.Dispose();
-        }
-        catch (CudaException failure) when (DropsAfterLoss(failure))
-        {
-        }
-
         try
         {
             _accelerator?.Dispose();

@@ -1,74 +1,53 @@
-# API.md — Execution.LibDevice
+# API.md — Execution.Ptx
 
-Namespace `APThermo.Execution.LibDevice`. Every type is `internal`: the audience is
+Namespace `APThermo.Execution.Ptx`. Every type is `internal`: the audience is
 `src/Execution`'s own files (`AcceleratorChoice`, `Engine`, `KernelCache`) and its
 tests node, not a neighbour or a caller outside the tree. Everything not listed here is
 internal to this node itself and may change without notice even to the parent.
 
-## Discovery ✅
-
-```csharp
-namespace APThermo.Execution.LibDevice;
-
-internal enum LocatorPlatform
-{
-    Windows,
-    Linux,
-    Other,
-}
-
-internal static class LibDeviceLocator
-{
-    public static string LibraryFileName { get; }      // the platform's libnvvm file name, named in a "not found" message
-    public static ValueTuple<string?, string?, IReadOnlyList<string>> Locate(EngineOptions options);   // (Dll, Bitcode, Tried)
-    internal static ValueTuple<string?, string?, IReadOnlyList<string>> Locate(EngineOptions options, LocatorPlatform platform, Func<string, string?> environment, string globRoot);   // the seam the tests drive
-}
-```
-
-The tuples are C# value tuples (`(string? Dll, string? Bitcode, IReadOnlyList<string> Tried)`
-for `Locate`), spelled `ValueTuple<…>` in the blocks because the declaration check reads no
-tuple syntax.
-
-`Locate` returns the libnvvm and libdevice paths, or nulls, with every path examined, in
-the order `BOOT.md`, Constraints, "libdevice discovery order", fixes. It reads the
-environment and the file system and nothing else.
-
 ## Post-link ✅
 
 ```csharp
-namespace APThermo.Execution.LibDevice;
+namespace APThermo.Execution.Ptx;
 
-internal static class LibDevicePostLink
+internal static class PtxPostLink
 {
     public const string ExpectedIlgpuVersion = "1.5.3.0";
     public static string IlgpuVersion { get; }          // the loaded ILGPU assembly's version string
     public static void AssertIlgpu();                    // once per process; a mismatch names the ILGPU version
-    internal static ValueTuple<FieldInfo, FieldInfo> AssertIlgpu(string expectedVersion);   // the seam the tests drive
+    internal static FieldInfo AssertIlgpu(string expectedVersion);   // the seam the tests drive: the reflected backing field of the PTX text
 
-    public static IReadOnlyList<string> WrappersCalled(string ptx);
-    public static IReadOnlyList<string> WrappersDefined(string ptx);
-
-    public static LinkResult Link(CudaAccelerator accelerator, NvvmAPI nvvm, PTXCompiledKernel compiled);
-
-    internal static void ThrowIfFailed(NvvmResult result, string call, string arch, string? log = null);
+    public static LinkResult Link(CudaAccelerator accelerator, PTXCompiledKernel compiled);
+    internal static Rewritten Rewrite(string ptx);       // the text rewrite and the guards, no driver
+    internal static void Guard(string ptx, int fusedSites, string arch);
+    internal static string TargetArch(string ptx);       // "compute_XX" from the kernel's .target sm_XX line
     internal static void ThrowIfFailed(CudaError result, string call, string arch, string? log = null);
-    internal static void AssertEveryWrapperDefined(string body, IReadOnlyList<string> names);
 
-    internal readonly record struct LinkResult(PTXCompiledKernel Kernel, IReadOnlyList<string> DefinedByIlgpu, IReadOnlyList<string> Compiled);
+    internal readonly record struct LinkResult(PTXCompiledKernel Kernel, int RoundedOperations, int FusedSites);
+    internal readonly record struct Rewritten(string Ptx, int RoundedOperations, int FusedSites);
 }
 ```
 
-`Link` completes a compiled CUDA kernel with the libdevice wrappers it calls and ILGPU
-did not define, trial-loads the result on either path, and returns what it did as a
-value (`LinkResult`); a kernel that calls no wrapper is returned untouched. A refusal is
-an `InvalidOperationException` of the one shape `ThrowIfFailed` builds (the post-link,
-the target, the library, the call, the result code, the log). The two `ThrowIfFailed`
-overloads and `AssertEveryWrapperDefined` are internal for the tests node.
+`Link` rewrites a compiled CUDA kernel's PTX (`Rewrite`: every call of
+`Math.FusedMultiplyAdd` becomes `fma.rn.f64`, every unrounded `mul`, `add` and `sub` of
+doubles becomes `.rn`), refuses what the guards forbid, trial-loads the result through the
+CUDA driver and replaces the kernel's PTX by the rewritten text. It returns what it did as
+a value (`LinkResult`: the operations marked, the calls inlined). A refusal is an
+`InvalidOperationException` of the one shape `ThrowIfFailed` and the guards build (the
+post-link, the target, what failed, the driver's log). `Rewrite`, `Guard`, `TargetArch`
+and `ThrowIfFailed` are internal for the tests node, which drives them on PTX text with no
+device.
+
+⚠ 2026-10-05: was `LibDevicePostLink` (namespace `APThermo.Execution.LibDevice`) with
+`WrappersCalled`, `WrappersDefined`, `AssertEveryWrapperDefined`, a `ThrowIfFailed` for
+libnvvm results, a `Link` taking an `NvvmAPI` and a `LinkResult` of two wrapper lists, and
+`LibDeviceLocator` with `LocatorPlatform`; now `PtxPostLink` and none of the others →
+HISTORY.md#libdevice-retired-2026-10-05
 
 ## WSL workaround ✅
 
 ```csharp
-namespace APThermo.Execution.LibDevice;
+namespace APThermo.Execution.Ptx;
 
 internal static class CudaWslDevices
 {
@@ -84,8 +63,8 @@ only when it throws the resolver-already-set exception; a missing ILGPU member i
 
 ## Side effects
 
-`LibDeviceLocator.Locate` reads environment variables and the file system. `Link`
-binds the accelerator's context to the calling thread, loads PTX through the CUDA
-driver as a trial and calls libnvvm. `Register` calls ILGPU's CUDA device registration.
-`AssertIlgpu` reads ILGPU's metadata by reflection. The statics of this node are the
-`Lazy` reflected members and constants: nothing records a result of any call.
+`Link` binds the accelerator's context to the calling thread and loads PTX through the CUDA
+driver as a trial. `Register` calls ILGPU's CUDA device registration. `AssertIlgpu` reads
+ILGPU's metadata by reflection. `Rewrite`, `Guard` and `TargetArch` touch nothing. The
+statics of this node are the `Lazy` reflected member, the compiled patterns and constants:
+nothing records a result of any call.

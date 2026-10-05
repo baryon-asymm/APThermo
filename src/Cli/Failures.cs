@@ -26,15 +26,10 @@ internal static class Failures
         return ExitCode.InvalidInput;
     }
 
-    /// <summary>An accelerator that could not be created: the message and every path tried, exit code 3.</summary>
+    /// <summary>An accelerator that could not be created: the message alone, exit code 3.</summary>
     public static ExitCode Handle(AcceleratorUnavailableException e, TextWriter error)
     {
         error.WriteLine(e.Message);
-        foreach (var path in e.PathsTried)
-        {
-            error.WriteLine($"  tried {path}");
-        }
-
         return ExitCode.Infrastructure;
     }
 

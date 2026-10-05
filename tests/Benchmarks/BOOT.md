@@ -6,7 +6,7 @@ Measures how fast the library computes, so that a change of the code, the clean-
 pass of 2026-09-14/15 first, can be compared against the code before it. The
 bit-for-bit guards prove that the numbers did not change; nothing proves the speed.
 Extracting kernel stages can change inlining on the CPU accelerator and in the
-NVVM-generated CUDA code. This node is a library of BenchmarkDotNet benchmark classes,
+the CUDA code. This node is a library of BenchmarkDotNet benchmark classes,
 run by hand through its child node [Runner](Runner/BOOT.md) (2026-09-25), never by
 `dotnet test`. It records figures and asserts none.
 
@@ -26,17 +26,18 @@ node `Runner` (CA1515) → HISTORY.md#console-to-library
     bit-for-bit there, so a difference on the CPU accelerator is a finding about the
     code, never noise of the measurement.
   - On CUDA the before and after statuses must be equal, and the results must agree
-    within the GPU/CPU tolerance table of `tests/Execution.Tests`
-    (`GpuCpuTolerances.Entries`: its first tier, relative 1e-10 on temperature and
-    1e-9 on the other fields, where the two sides' iteration counts at a station
-    match; its second tier, relative 1e-9 on mole fractions at or above
-    `tolerances.json`'s `moleFractionFloor`, where they do not). NVVM compiles the
-    restructured kernels the clean-code pass produced to different last-ULP
-    arithmetic than it compiled the kernels before the pass — the same
-    libdevice-against-.NET last-ULP effect the root `BOOT.md`'s GPU-equals-CPU
-    invariant already documents for a single run. The comparison run records the
+    within the relative tolerances of the comparison class (1e-10 on temperature, 1e-9 on
+    the other fields, and `tolerances.json`'s `moleFractionFloor` and
+    `polishThresholdRelative` for a mole fraction): they are the figures the
+    execution tests node's GPU/CPU table held until 2026-10-05, kept here for the
+    consumer path (`Solver` against the engine). Since that date CUDA equals the CPU
+    accelerator bit for bit, so the comparison of a later change is expected bit-equal
+    on both. The comparison run records the
     largest relative difference per field (the CUDA comparison procedure under
     `## Constraints`), so that a systematic change cannot hide inside the tolerance.
+    ⚠ 2026-10-05: was the last-ULP difference of NVVM's libdevice arithmetic against
+    .NET's named as the reason for the CUDA tolerance, now the tree's own math removed it;
+    the tolerances stay for the consumer path → HISTORY.md#cuda-tolerance-own-math-2026-10-05
 
   ⚠ 2026-09-15: was CUDA hashes required equal to the before's, now the GPU/CPU
   tolerance tiers, largest difference 4.9e-16 → HISTORY.md#cuda-hash-tier
@@ -151,7 +152,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   4. **One-time costs.**
      - database load;
      - chemical-system assembly;
-     - kernel compilation on the CPU accelerator, and on CUDA with the libdevice
+     - kernel compilation on the CPU accelerator, and on CUDA with the PTX
        post-link;
      - species-table upload.
   5. **Allocations on the batch path.** The root's no-allocation-during-a-solve

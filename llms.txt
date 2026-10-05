@@ -15,7 +15,7 @@
 - [Batch solving](docs/guide/batch.md): many rocket problems, or an oxidizer-to-fuel sweep, in one call
 - [Equilibrium states](docs/guide/equilibrium.md): a single tp, hp or sp state without a nozzle
 - [State records](docs/guide/states.md): states of another simulation, with or without exits
-- [GPU acceleration](docs/guide/gpu.md): CUDA requirements, discovery order, choosing an accelerator
+- [GPU acceleration](docs/guide/gpu.md): CUDA requirements (a driver, no toolkit), choosing an accelerator
 - [The database](docs/guide/data.md): the bundled NASA database, loading files, provenance
 - [Command line](docs/guide/cli.md): the `apthermo` tool over JSON documents
 - [Troubleshooting](docs/guide/troubleshooting.md#errors): exit codes, statuses, mass and accelerator refusals — the one place for `CaseStatus` meanings

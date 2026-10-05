@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+- The CUDA Toolkit is no longer needed, named or looked for. The kernels call no libdevice function, so
+  the package removes, from its public surface:
+  - `EngineOptions.LibNvvmPath`, `EngineOptions.LibDevicePath` and `EngineOptions.LibDeviceDiscovery`;
+  - `AcceleratorInfo.LibNvvmPath` and `AcceleratorInfo.LibDevicePath`;
+  - `AcceleratorUnavailableException.PathsTried` and its constructor that took the paths (its message
+    alone says what failed).
+
+  The command line drops, from the `run.accelerator` object of every document and from the `devices`
+  listing, the fields `libNvvmPath` and `libDevicePath`, and from the `devices` listing's unavailable CUDA
+  object the field `pathsTried`; the schemas follow. A machine needs an NVIDIA driver with CUDA 12.8 or
+  newer and nothing else to run on CUDA.
+- `Log10` leaves the tree's math list: no numerical node used it.
+
+### Changed
+- CUDA and the CPU accelerator return the same bits. The package computes its own `exp`, `log` and `pow` for
+  both, correctly rounded (the result is the representable double nearest the exact value, ties to even), on the
+  CPU and on CUDA, in place of .NET's and libdevice's, which agreed to a few units in the last place. Every
+  field of every result of a batch is equal on the two accelerators, statuses and iteration counts included,
+  so a result no longer depends on the accelerator that ran it. Results move in their last digits against
+  0.2.1; the figures in `docs/` that quote them were regenerated. The CPU accelerator is 25 to 34 % slower
+  for it (the owner accepted the cost), the CUDA kernel is within a few percent of what it was.
+- The bit records of the tests are one per node, not one per platform: Windows and Linux (WSL2) produce the
+  same bits.
+
 ### Added
 - `CaseStatus.NoGasPhase` (value 8, `noGasPhase` in the command line's documents): the
   equilibrium holds no gas phase, proven by a tangent-plane certificate (a mixture of

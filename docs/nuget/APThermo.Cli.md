@@ -46,13 +46,11 @@ the tool's version.
 ## CUDA
 
 `--accelerator cpu` needs nothing beyond the tool. `--accelerator cuda` (or `auto` on
-a machine with a usable GPU) additionally needs, at run time:
+a machine with a usable GPU) additionally needs, at run time, an NVIDIA driver with
+CUDA 12.8 or newer: no CUDA Toolkit, no `libnvvm`, no `libdevice`. CUDA and the CPU
+accelerator return the same bits.
 
-- an NVIDIA driver with CUDA 12.8 or newer;
-- `libnvvm` (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
-  `libdevice.10.bc`, both from an NVIDIA CUDA Toolkit 12.8 or newer.
-
-`auto` falls back to the CPU accelerator when no usable CUDA device or library is
+`auto` falls back to the CPU accelerator when no usable CUDA device is
 found; the output document's `run.accelerator.cudaSkippedBecause` names the reason.
 
 ## Guide

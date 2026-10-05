@@ -1,24 +1,25 @@
-# BOOT.md — Execution.LibDevice
+# BOOT.md — Execution.Ptx
 
 ## Purpose
 
 A child node of `src/Execution` (its `BOOT.md`, `## Structure`), split out of that node
 on 2026-10-01 because the rules of three of its files filled a third of its document. It
-owns the three files that know libnvvm, libdevice and ILGPU's CUDA internals:
+owns the two files that know ILGPU's CUDA internals:
 
-- `LibDeviceLocator` finds libnvvm and `libdevice.10.bc`: the explicit path pair of the
-  engine options, then the toolkit directories of the platform.
-- `LibDevicePostLink` completes a compiled CUDA kernel with the libdevice wrappers it
-  calls and ILGPU did not define, and trial-loads the result: the one place in the tree
-  that knows ILGPU's internals.
+- `PtxPostLink` rewrites the PTX of a compiled CUDA kernel so that its arithmetic is the
+  CPU's, refuses what it cannot vouch for, and trial-loads the result: the one place in
+  the tree that knows ILGPU's internals.
 - `CudaWslDevices` registers the CUDA devices of every context of a process under WSL,
   where ILGPU 1.5.3 binds only the first.
 
-The rest of `src/Execution` reaches this node through `LibDeviceLocator.Locate` and
-`.LibraryFileName`, `LibDevicePostLink.Link`, `.IlgpuVersion` and `.AssertIlgpu`, and
-`CudaWslDevices.Register` (`API.md`). The cluster has a reason of its own to change:
-the versions of ILGPU, libnvvm and the CUDA driver, which the session, the engine and
-the kernel loop do not share.
+The rest of `src/Execution` reaches this node through `PtxPostLink.Link`, `.IlgpuVersion`
+and `.AssertIlgpu`, and `CudaWslDevices.Register` (`API.md`). The cluster has a reason of
+its own to change: the versions of ILGPU and of the CUDA driver, which the session, the
+engine and the kernel loop do not share.
+
+⚠ 2026-10-05: was three files (`LibDeviceLocator`, `LibDevicePostLink`, `CudaWslDevices`)
+that found libnvvm and libdevice and completed the wrappers a kernel called, now two →
+HISTORY.md#libdevice-retired-2026-10-05
 
 ⚠ 2026-10-01: was rejected as a child on 2026-09-15 (three types, the bar being about
 five), now a node, because about 90 lines of rules bind only these files and the parent
@@ -26,26 +27,26 @@ was over the §15 limit → HISTORY.md#child-nodes-decision-2026-09-15
 
 ## Invariants
 
-The invariants of the parent ([BOOT.md](../BOOT.md)) about the post-link, the
-checked libnvvm and driver results, the wrapper list and the CPU path hold here
-unchanged; this node is where they are kept true.
+The invariants of the parent ([BOOT.md](../BOOT.md)) about the post-link, the checked
+driver results and the CPU path hold here unchanged; this node is where they are kept true.
 
-- **Nothing here touches CUDA on the CPU path.** `LibDeviceLocator.Locate` reads the
-  environment and the file system; `AssertIlgpu` and `IlgpuVersion` read ILGPU's
-  metadata; `Link` and `Register` run only after the accelerator choice decided to try
-  CUDA.
-- **No state is kept between calls.** The statics are constants and the `Lazy` reflected
-  members; nothing records the result of a discovery, a link or a registration.
+- **Nothing here touches CUDA on the CPU path.** `AssertIlgpu` and `IlgpuVersion` read
+  ILGPU's metadata; `Rewrite`, `Guard` and `TargetArch` work on text; `Link` and
+  `Register` run only after the accelerator choice decided to try CUDA.
+- **No state is kept between calls.** The statics are constants, the compiled patterns and
+  the `Lazy` reflected member; nothing records the result of a link or a registration.
+- **The rewrite adds no rounding the CPU lacks and removes none it has.** Every
+  instruction of doubles that the C# wrote as one IEEE operation is one such instruction in
+  the PTX after the rewrite: a `.rn` multiplication, addition or subtraction, an `fma.rn`
+  where the source wrote `Math.FusedMultiplyAdd` and nowhere else.
 
 ## Dependencies
 
-[Execution](../API.md) — `EngineOptions` (the explicit path pair and `LibDeviceDiscovery`
-for `LibDeviceLocator`) and `AcceleratorUnavailableException` (for `CudaWslDevices`).
+[Execution](../API.md) — `AcceleratorUnavailableException` (for `CudaWslDevices`).
 
 Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Backends.PTX`, `ILGPU.Runtime`,
-`ILGPU.Runtime.Cuda`); libnvvm and the CUDA driver through ILGPU's `NvvmAPI` and
-`CudaAPI`; `libdevice.10.bc` of a CUDA Toolkit (the parent's and the root's
-`## Dependencies` give the versions).
+`ILGPU.Runtime.Cuda`); the CUDA driver through ILGPU's `CudaAPI`. No libnvvm and no
+libdevice (2026-10-05).
 
 ## Constraints
 
@@ -55,86 +56,49 @@ addition:
 - Every type here is `internal`; none becomes public (root `BOOT.md`, `## Delivery`,
   "Tree contracts").
 - No project of its own: the `.cs` files compile into `src/Execution`'s assembly under
-  the namespace `APThermo.Execution.LibDevice`, mirroring this directory from the tree
-  root (`AGENTS.md` §1).
-- The root's code-shape constraint applies unchanged.
+  the namespace `APThermo.Execution.Ptx`, mirroring this directory from the tree root
+  (`AGENTS.md` §1).
+- The root's code-shape constraint applies unchanged. `PtxPostLink` is `partial` for the
+  `[GeneratedRegex]` members only, the one use the root allows.
 
-- **libdevice discovery order**: an explicit path pair in the options is tried first,
-  on every platform. Unless `LibDeviceDiscovery` is off, the platform is then chosen
-  with `OperatingSystem.IsWindows()` / `IsLinux()`; any other OS does no discovery (the
-  explicit pair is still tried, and the CPU accelerator is used when it is absent
-  too).
+- **The post-link**, the one place in the tree that knows ILGPU internals (2026-10-05).
+  Its stages, in order:
+  1. The Execution node compiles the entry point with the CUDA accelerator's backend,
+     whose context has no `LibDevice()`. The PTX holds no libdevice call: `Exp`, `Log` and
+     `Pow` are the tree's own C#, and `Sqrt`, `Floor`, `Ceiling` and `Abs` are single
+     instructions.
+  2. **Inline the fused multiply-add.** ILGPU 1.5.3 emits `Math.FusedMultiplyAdd` as a call
+     of an undefined external function: three parameters stored, one call, the result
+     loaded, in one block. Each such block becomes the one instruction `fma.rn.f64` with
+     the block's own operands and result; the declaration of the function goes when no call
+     of it is left.
+  3. **Mark every unrounded arithmetic instruction.** A PTX compiler is free to contract a
+     `mul.f64` and an `add.f64` into a fused multiply-add; the CPU never does. Every
+     `mul.f64`, `add.f64` and `sub.f64` becomes `.rn.f64`, which PTX defines as never
+     contracted. The count is reported.
+  4. **Guard** (`Rewrite` ends with it): the PTX is refused, naming the target and the
+     offending text, when it holds
+     - an `fma` or `mad` instruction of doubles in any form other than the `fma.rn.f64`
+       it wrote, or a different number of them than the call blocks it inlined;
+     - an instruction of doubles with the `.approx` modifier, which is not correctly
+       rounded and so not the same on every device;
+     - an external function, declared here and defined elsewhere, so read by no guard
+       (a call of the fused multiply-add that stage 2 did not recognise is one).
+  5. Bind the accelerator's context to the calling thread and load the PTX once through the
+     CUDA driver as a trial, so that a refusal carries the driver's log; the module is
+     destroyed again.
+  6. Set the private backing field of `PTXCompiledKernel.PTXAssembly` by reflection to the
+     rewritten text, and load with `LoadAutoGroupedKernel`.
 
-  On **Windows**: the roots are the `CUDA_PATH` directory, then
-  `%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v*` from the newest version down;
-  in each root both `nvvm\bin\nvvm64_40_0.dll` (12.x layout) and
-  `nvvm\bin\x64\nvvm64_40_0.dll` (13.x layout) are tried, with
-  `nvvm\libdevice\libdevice.10.bc`.
+  The target is read from the kernel's own `.target sm_XX` line, not fixed. `Link` reports
+  what it did as a value, so that the tests can see it; it stays internal. The CPU
+  accelerator loads the same method through `LoadAutoGroupedKernel(MethodInfo)` without any
+  of this. The ILGPU assembly version and the type of the reflected member are asserted
+  once per process, at the first `Engine.Create`, and a mismatch is an error that names
+  the ILGPU version.
 
-  On **Linux**: the roots are `CUDA_PATH`, then `CUDA_HOME`, then `/usr/local/cuda`,
-  then `/usr/local/cuda-*` from the newest version down; in each root
-  `nvvm/lib64/libnvvm.so` is tried, with `nvvm/libdevice/libdevice.10.bc`.
-
-  On both platforms a root already tried (`CUDA_PATH` repeated among the versioned
-  roots, or equal to `CUDA_HOME` on Linux) is skipped, and a root whose library exists
-  but whose bitcode does not is passed over rather than accepted.
-
-  The context is created with `LibDevice(dllPath, bitcodePath)` so that ILGPU emits
-  the intrinsic calls.
-
-  ⚠ 2026-09-15: was the Windows roots and `nvvm64_40_0.dll` only, now a platform branch
-  with the Linux roots and `libnvvm.so` →
-  HISTORY.md#libdevice-discovery-linux-2026-09-15
-
-- **The post-link**, the one place in the tree that knows ILGPU internals. Its stages,
-  in order:
-  1. Compile the entry point with the CUDA accelerator's backend.
-  2. Take the wrapper inventory of the kernel PTX (2026-09-26):
-     - the wrappers *called* are the `__ilgpu__nv_*` names at `call` instructions
-       only, never parameter names or `ld.param` operands;
-     - the wrappers *defined* are the names of the kernel's own `.func` headers.
-
-     Both sets drop the `__ilgpu` prefix, as the fragment keys do.
-  3. The *missing* wrappers are those called and not defined.
-     - When no wrapper is called, the kernel is returned untouched, without a trial
-       load (as before).
-     - When none is missing, nothing is compiled or inserted: ILGPU defined them all.
-  4. Otherwise build an NVVM module from ILGPU's own fragments of the missing wrappers
-     only. The fragments are the private static `fragments` dictionary of
-     `ILGPU.Backends.PTX.PTXLibDeviceNvvm`, read by reflection. The header goes in the
-     order libnvvm accepts: `target triple`, `target datalayout`, then
-     `!nvvmir.version`.
-  5. Compile that module with ILGPU's `NvvmAPI` for the `compute_XX` of the kernel's
-     `.target sm_XX` line.
-  6. Strip `.version`, `.target` and `.address_size` from the result.
-  7. Insert it right after the kernel's `.address_size` line.
-  8. Check that every missing wrapper now has a definition in the inserted text.
-  9. Bind the accelerator's context to the calling thread and load the PTX once through
-     the CUDA driver API as a trial, so that a refusal carries the driver's log. This
-     happens on both paths of stage 3.
-  10. When anything was inserted, set the private backing field of
-      `PTXCompiledKernel.PTXAssembly` by reflection.
-  11. Load with `LoadAutoGroupedKernel`.
-
-  The reason the completion needs no branch for a kernel with some wrappers defined and
-  some missing (ILGPU defines all of a kernel's fragments or none) →
-  HISTORY.md#post-link-mixed-definitions-rationale-2026-09-26
-
-  `Link` reports what it did as a value (the wrappers ILGPU defined, the wrappers it
-  compiled), so that the tests can see which path a kernel took. It stays internal.
-
-  The CPU accelerator loads the same method through `LoadAutoGroupedKernel(MethodInfo)`
-  without any of this. The ILGPU assembly version and the presence and types of every
-  reflected member are asserted once per process, at the first `Engine.Create`, and a
-  mismatch is an error that names the ILGPU version.
-
-  ⚠ 2026-09-26: was "collect the distinct `__ilgpu__nv_*` names" and compile and insert
-  unconditionally, now the inventory of wrappers called against defined and only the
-  missing ones inserted → HISTORY.md#post-link-wrapper-inventory-2026-09-26
-
-  ⚠ 2026-09-12: was the wrappers compiled for a fixed `compute_80` with no trial load,
-  now the target read from the kernel's PTX and a trial load on the bound thread →
-  HISTORY.md#post-link-target-and-trial-load-2026-09-12
+  ⚠ 2026-10-05: was an inventory of the libdevice wrappers a kernel called and ILGPU left
+  undefined, compiled with libnvvm and inserted → HISTORY.md#libdevice-retired-2026-10-05
 
 - **Every CUDA context of a process binds under WSL** (2026-09-27). ILGPU 1.5.3's
   `builder.Cuda()` calls `NativeLibrary.SetDllImportResolver` on its own assembly
@@ -163,15 +127,14 @@ addition:
     message test would then miss it, and every later engine would fall back to the
     CPU (the second audit's observation 5, by reading).
 
-- A driver or libnvvm log is trimmed of NUL padding as well as white space (the
-  trial load's message carried 45 NULs).
-
+- A driver log is trimmed of NUL padding as well as white space (the trial load's message
+  carried 45 NULs).
 
 ## Acceptance criteria
 
 The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these files
-hold unchanged: the post-link's architecture fact, the checked results, the discovery
-facts and the WSL facts of `tests/Execution.Tests` (its `BOOT.md`).
+hold: the architecture fact, the checked results, the post-link facts on PTX text and the
+WSL facts of `tests/Execution.Tests` (its `BOOT.md`).
 
 - [x] 2026-10-01 — The split changes no behaviour on the CPU path: no code line moves but
       the namespace and the `using` lines (`git diff -M` of the three files), `dotnet
@@ -189,7 +152,7 @@ facts and the WSL facts of `tests/Execution.Tests` (its `BOOT.md`).
 ## Taboos
 
 - No public type here: undocumented surface is a contract nobody agreed to.
-- No result of a libnvvm or driver call ignored, no reliance on ILGPU's own wrapper
-  generation, no `LibDevice.*`, `XMath` or ILGPU.Algorithms (the parent's and the root's
-  taboos, unchanged).
+- No result of a driver call ignored, no `LibDevice.*`, `XMath` or ILGPU.Algorithms, no
+  instruction of the PTX that no guard has read (the parent's and the root's taboos,
+  unchanged in substance).
 - No CUDA type in a signature that leaves `src/Execution`.

@@ -263,7 +263,7 @@ public sealed class ExitCodeTests
         // The rule itself (Failures.Handle), directly: an input refusal is 2; an accelerator failure is 3 (F-CL-13),
         // so a defect of this node is never mistaken for invalid input.
         Assert.Equal(ExitCode.InvalidInput, Failures.Handle(new InputException("bad input"), TextWriter.Null));
-        Assert.Equal(ExitCode.Infrastructure, Failures.Handle(new AcceleratorUnavailableException("no cuda", []), TextWriter.Null));
+        Assert.Equal(ExitCode.Infrastructure, Failures.Handle(new AcceleratorUnavailableException("no cuda"), TextWriter.Null));
     }
 
     /// <summary>An unnamed exception is exit 3 through the unhandled exception rule.</summary>
