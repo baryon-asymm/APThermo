@@ -8,8 +8,11 @@ A child node of `src/Equilibrium` (its `BOOT.md`, `## Structure`), split out of 
 condensed set between two convergences and holds the exit guard:
 
 - `CondensedSet` applies at most one change per convergence (a negative mole number removes the
-  record, a record beyond its range changes phase, the inclusion test adds the best candidate), and
-  answers the exit guard's question, whether an `Ok` state left a positive-gain candidate out.
+  record unless it is a balancing record, a record beyond its range changes phase, the inclusion test
+  adds the best candidate), and answers the exit guard's question, whether an `Ok` state left a
+  positive-gain candidate out.
+- `BalancingRecord` is the test that keeps a record whose negative amount is rounding and whose removal
+  would leave the element system singular (2026-10-05, `## Constraints`, "A balancing record stays").
 - `PhaseGeometry` is the geometry of the table the rule reads: which records share a bound, the
   crossing of each pair, the effective range of a record, the adjacent record and the phase at a
   temperature.
@@ -74,7 +77,15 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 
 - Condensed species: one change per convergence, tested in this order after the
   report's tests pass.
-  1. A condensed species with a negative mole number is removed.
+  1. A condensed species with a negative mole number is removed, unless it is a balancing record
+     (below), which stays in the set at exactly zero moles.
+
+     ⚠ 2026-10-05: was "A condensed species with a negative mole number is removed", now removed
+     unless it is a balancing record. The old wording removed CaO(cr), whose amount beside CaCO3(cr)
+     is 3e-34 kmol/kg, sixteen orders below the rounding of the calcium balance, when the step
+     returned it as −5e-48; CaCO3 alone with a gas that carries no calcium leaves the direction
+     π_Ca − π_C without a carrier, and the case ended `NotConverged`. Found by the investigation of
+     the nine trace-gas leftovers (`NoHiddenStateTests`, CaCO3 + 1e-7 O at 10 MPa and 300 K).
   2. A record beyond its effective range (below) changes phase. A record whose
      same-formula partner is in the solution beside it — a pinned pair — is exempt
      from the range test. Otherwise the candidate is the record of the same formula
@@ -105,6 +116,34 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
      by rule 2, never by inclusion; and, once, the record just removed for range
      while another positive candidate exists — the anti-cycling rule; when it is the
      only positive candidate it is taken, so no equilibrium is lost.
+
+  A balancing record stays (2026-10-05, owner). A record whose mole number is negative is kept, at exactly
+  zero moles and in its place in the set, when both hold:
+  - Its amount is rounding. For every active element `i` the record carries, `|a_ij n_j| ≤ 4 ε T_i`, with
+    `ε = 2^-52` and `T_i = max_k |a_ik n_k|` over the retained gases and the condensed set, the record
+    included: the largest term of the balance `Σ_k a_ik n_k`. Every addition of that sum is exact to
+    `ε T_i`, so a record below four of those cannot be told from zero by the balance that holds it:
+    its sign is rounding, not a measurement. The count of four is a few ulps; measured on 13 218 tp
+    states, any count from 1 to 16 gives the same settled states and no other change (0.01 loses one
+    thermite state, 1e6 changes the iterations of 28 more).
+  - Its removal would make the element system singular: the element vectors of the retained gases
+    (`Moles > 0` after the refresh) and of the other condensed records span fewer than the active
+    elements, while with the record they span them. The test is the singularity, to `DenseSolver`, of
+    the matrix `G_il = Σ_j a_ij a_lj` over those species, with a unit row for each absent element,
+    asked twice, without and with the record: the weights `n_j` drop out of the kernel of the block,
+    and a record that the set could not do without and does not do with (CaCO3 = CaO + CO2 on a
+    plateau, three dependent vectors) is removed as before. The matrix scratch is the workspace;
+    the Newton matrix between two convergences is dead.
+  A record that is kept ends the scan of rule 1 at that record; the other negative records are tested
+  in their turn, and when none is removed the rules 2 and 3 follow. Measured 2026-10-05 on 13 218 tp
+  states (`TraceGasCases.ScanFamilies`, the trace-excess scan, 16 further excesses of the 17 systems
+  and 10 of the five binary ones): the rule fires on CaCO3 + 1e-7 O at 10 MPa and 300 K (−4.7e-48),
+  `NotConverged` before and `Ok` now, and on one `NoGasPhase` state, `thermite|0|10000000|1200`
+  (−2.2e-19), whose bits do not move and whose iterations fall from 238 to 133; every other state is
+  the same, status, iterations and bits. In a finer grid of CaCO3 at 1e-5 to 1e-11 O, 1 kPa to 10 MPa
+  and 300 to 900 K (7 000 states) it settles two more, CaCO3 + 1e-9 O at 1 MPa and 300 K (−1.8e-49)
+  and CaCO3 + 1e-6 O at 10 MPa and 350 K (−6.3e-43). No `Bits*.approved.txt` line of Equilibrium,
+  Performance or Problems moves.
 
   Open below (2026-09-26): a condensed record whose lowest lower bound equals the gas
   data floor has no lower bound in any of these rules. The floor is 200 K,
@@ -149,8 +188,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 
 ## Structure
 
-The classes of this node, all internal, static and kernel-compatible: `CondensedSet` and
-`PhaseGeometry`, each described by the summary of its declaration. Every floating-point expression
+The classes of this node, all internal, static and kernel-compatible: `CondensedSet`,
+`PhaseGeometry` and `BalancingRecord`, each described by the summary of its declaration. Every floating-point expression
 keeps the form and the order of evaluation it had when the node was part of its parent.
 
 - **The geometry stays here.** The pure part of `PhaseGeometry` (which records share
@@ -177,6 +216,12 @@ the condensed-species facts, the anti-cycling rule, the plateau facts and the ex
   [ACCEPTANCE.md](../ACCEPTANCE.md), `git diff -M` and the bit snapshot.
 - [x] 2026-10-02 — On CUDA, on the reference machine: the second part of the same criterion
       (`../ACCEPTANCE.md`), green on `6dc2370`.
+- [x] 2026-10-05 — A balancing record stays: `BalancingRecordTests` (CPU), the 45 states of CaCO3 + 1e-7 to
+      1e-9 O at 100 kPa to 10 MPa and 300 to 500 K, the three states named in the correction above, each `Ok` and clear
+      at 1e-9 with every element within `1e-13 · b_i`; the rule's two tests and the rounding bound each on its own
+      (`Update` on a rig of CaCO3(cr), CaO(cr) and the gases of the case), each shown red once by removing the test; red
+      without the rule: 7 of the 53 facts. No bit moved: `BitSnapshot` facts of Equilibrium, Performance and Problems
+      green, and the 13 218 tp states of the measurement above identical but for the two named.
 
 ## Taboos
 
