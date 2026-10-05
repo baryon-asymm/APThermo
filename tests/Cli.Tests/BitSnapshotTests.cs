@@ -13,7 +13,7 @@ namespace APThermo.Cli.Tests;
 [Collection("cli")]
 public sealed class BitSnapshotTests
 {
-    private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");
+    private static readonly string ApprovedPath = ApprovedSnapshot.RecordPathFor(CliFixture.NodeDirectory, "Bits");
 
     /// <summary>Every example gives the recorded output, run in-process on warm solvers: the fast tripwire.</summary>
     [Fact]

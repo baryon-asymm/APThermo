@@ -18,7 +18,7 @@ public sealed class BitSnapshotTests
         [.. typeof(TransportFigures).GetProperties(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken)];
 
     /// <summary>The committed snapshot: one line per fixture, its path relative to the repository root, a space, the hash.</summary>
-    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Transport.Tests"), "Bits");
+    public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Transport.Tests"), "Bits");
 
     /// <summary>Every fixture with transport gives the recorded bits.</summary>
     [Fact]

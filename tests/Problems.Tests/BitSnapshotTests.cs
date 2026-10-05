@@ -21,7 +21,7 @@ namespace APThermo.Problems.Tests;
 public sealed class BitSnapshotTests
 {
     /// <summary>The path of this node's approved bit snapshot, platform-specific (root BOOT.md, Constraints).</summary>
-    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
+    public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Problems.Tests"), "Bits");
 
     /// <summary>Every fixture gives the recorded bits.</summary>
     [Fact]

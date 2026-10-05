@@ -64,7 +64,7 @@ public sealed class BitSnapshotTests
     private static readonly ApprovedSnapshot Snapshot = ApprovedSnapshot.Load(ApprovedPath);
 
     /// <summary>The path of this node's approved bit snapshot.</summary>
-    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Performance.Tests"), "Bits");
+    public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Performance.Tests"), "Bits");
 
     /// <summary>The rocket fixture files as theory data, delegating to <see cref="RocketHost.Cases()"/>.</summary>
     public static TheoryData<string> Cases() => RocketHost.Cases();

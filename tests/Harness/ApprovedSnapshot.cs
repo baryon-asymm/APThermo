@@ -31,12 +31,19 @@ public sealed class ApprovedSnapshot
     }
 
     /// <summary>
-    /// The approved path for a snapshot named <paramref name="baseName"/> under <paramref name="directory"/>: the root
-    /// BOOT.md's platform constraint keeps one record per platform, <c>&lt;baseName&gt;.approved.txt</c> everywhere but
-    /// Linux and <c>&lt;baseName&gt;.linux.approved.txt</c> on Linux, so that a difference the two accelerators'
-    /// C runtimes round differently stays visible to the bit on both rather than being averaged away by a shared
-    /// tolerance. This is the one place that picks between them: every consumer's Bits level calls it instead of
-    /// repeating the platform check.
+    /// The approved path of a bit record named <paramref name="baseName"/> under <paramref name="directory"/>
+    /// (2026-10-05, owner decision O5): one file, <c>&lt;baseName&gt;.approved.txt</c>, on every platform. The tree's own
+    /// correctly rounded <c>Exp</c>, <c>Log</c> and <c>Pow</c> do not depend on the C runtime of the machine, and the
+    /// Windows and Linux records were equal bit for bit when this method replaced the pair, so a platform-keyed
+    /// record would only hide a difference between the two.
+    /// </summary>
+    public static string RecordPathFor(string directory, string baseName) => Path.Combine(directory, $"{baseName}.approved.txt");
+
+    /// <summary>
+    /// The approved path of a record that stays per platform, the throughput figures (the root BOOT.md's platform
+    /// constraint): <c>&lt;baseName&gt;.approved.txt</c> everywhere but Linux and
+    /// <c>&lt;baseName&gt;.linux.approved.txt</c> on Linux, because a speed is a property of the machine and its runtime.
+    /// This is the one place that picks between them: every consumer calls it instead of repeating the platform check.
     /// </summary>
     public static string ApprovedPathFor(string directory, string baseName) =>
         Path.Combine(directory, OperatingSystem.IsLinux() ? $"{baseName}.linux.approved.txt" : $"{baseName}.approved.txt");

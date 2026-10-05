@@ -30,7 +30,7 @@ internal sealed class BitSnapshot
         }
     }
 
-    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Thermo.Tests"), "Bits");
+    public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Thermo.Tests"), "Bits");
 
     /// <summary>The case files of the kinds that carry a chemical system, enumerated through the fixtures node.</summary>
     public static IEnumerable<string> CaseFiles() => Kinds.SelectMany(FixtureFiles.Enumerate);
