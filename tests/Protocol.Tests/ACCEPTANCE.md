@@ -123,6 +123,16 @@ only in this node.
       tests/Protocol.Tests --filter "Category=EndToEnd"`: 5 passed in 17 to 19 s idle (two runs) and in
       25 and 41 s beside the Release build loop (two runs; the Debug outputs the test runs from
       cannot be rebuilt beside it).
+- [x] 2026-10-05 — The linter's own self-test, `tools/protocol-lint/test_protocol_lint.py`, is run by this
+      node: it is one case of the walk, `ToolSelfTestTests.EverySelfTestExitsZero(script:
+      "tools/protocol-lint/test_protocol_lint.py")`, in the end-to-end set under the ten-minute deadline above, with
+      the tools' own checkbox about it ticked in `tools/protocol-lint/BOOT.md`. Measured on the reference machine,
+      `APTHERMO_NO_CUDA=1`: the linter's case 1 s, the coder-scope hook's 9 s, the merge guard's 13 s, the class 25 s
+      idle, the whole node (46 facts) 27 s; far inside the deadline. Red, on a scratch copy of the linter node under
+      this directory (removed again): with one canonical section name changed in the copy of `protocol_lint.py` its
+      self-test exits 1 with 13 failures, and the fact asserts on any non-zero exit (the red of the fact itself:
+      the 2026-10-02 criterion above). Found stale rather than missing: the wording "nothing runs it" came from the
+      kit's import and was true of the kit, not of this tree since 2026-10-02.
 
   ⚠ 2026-10-03: was inside the fast set, now `Category=EndToEnd`: each case starts a Python
   process, which the End-to-end level counts as a process start (root `BOOT.md`, Test time budgets)
