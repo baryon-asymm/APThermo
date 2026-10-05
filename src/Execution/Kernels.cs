@@ -156,19 +156,20 @@ internal static class Kernels
     {
         var v = inputs[index];
         var o = index * MathProbe.StrideCount;
-        outputs[o] = Math.Exp(v);
-        outputs[o + 1] = Math.Log(v);
-        outputs[o + 2] = Math.Log10(v);
-        outputs[o + 3] = Math.Pow(v, MathProbe.PowExponent1);
-        outputs[o + 4] = Math.Pow(v, MathProbe.PowExponent2);
-        outputs[o + 5] = Math.Pow(v, MathProbe.PowExponent3);
-        outputs[o + 6] = Math.Sqrt(v);
-        outputs[o + 7] = Math.Floor(v);
-        outputs[o + 8] = Math.Ceiling(v);
-        outputs[o + 9] = Math.Abs(v - 1.0);
-        outputs[o + 10] = KernelMath.Min(v, 1.0);
-        outputs[o + 11] = KernelMath.Max(v, 1.0);
-        outputs[o + 12] = KernelMath.Min(1.0, v);
-        outputs[o + 13] = KernelMath.Max(1.0, v);
+        outputs[o] = KernelMath.Exp(v);
+        outputs[o + 1] = KernelMath.Log(v);
+        outputs[o + 2] = KernelMath.Pow(v, MathProbe.PowExponent1);
+        outputs[o + 3] = KernelMath.Pow(v, MathProbe.PowExponent2);
+        outputs[o + 4] = KernelMath.Pow(v, MathProbe.PowExponent3);
+        outputs[o + 5] = Math.Sqrt(v);
+        outputs[o + 6] = Math.Floor(v);
+        outputs[o + 7] = Math.Ceiling(v);
+        outputs[o + 8] = Math.Abs(v - 1.0);
+        outputs[o + 9] = KernelMath.Min(v, 1.0);
+        outputs[o + 10] = KernelMath.Max(v, 1.0);
+        outputs[o + 11] = KernelMath.Min(1.0, v);
+        outputs[o + 12] = KernelMath.Max(1.0, v);
+        outputs[o + 13] = KernelMath.Fma(v, MathProbe.Factor, MathProbe.Addend);
+        outputs[o + 14] = v * MathProbe.Factor + MathProbe.Addend;
     }
 }

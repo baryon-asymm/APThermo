@@ -49,7 +49,7 @@ internal static class Composition
         for (var j = 0; j < table.GasCount; j++)
         {
             var retained = IsRetained(scratch, result, j, logN, traceThreshold, held);
-            result.Moles[j] = retained ? Math.Exp(scratch.LogMoles[j]) : 0.0;
+            result.Moles[j] = retained ? KernelMath.Exp(scratch.LogMoles[j]) : 0.0;
             sumGas += result.Moles[j];
         }
 
@@ -87,7 +87,7 @@ internal static class Composition
             LogN = state.LogN,
             LogPressure = logPressure,
             Temperature = state.Temperature,
-            N = Math.Exp(state.LogN),
+            N = KernelMath.Exp(state.LogN),
             SumGas = sumGas,
         };
         for (var j = 0; j < table.SpeciesCount; j++)
@@ -134,7 +134,7 @@ internal static class Composition
             if (j < gasCount)
             {
                 sums.SumGas += nj;
-                sums.SOverR += nj * (scratch.SOverR[j] - Math.Log(nj) + state.LogN - logPressure);
+                sums.SOverR += nj * (scratch.SOverR[j] - KernelMath.Log(nj) + state.LogN - logPressure);
             }
             else
             {

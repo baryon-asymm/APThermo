@@ -43,53 +43,6 @@ else {
     Write-Host "nvidia-smi: runs"
 }
 
-# libnvvm and libdevice.10.bc, via CUDA_PATH or the toolkit directories (root BOOT.md's Dependencies section;
-# src/Execution/API.md's Side effects: CUDA_PATH and ProgramFiles are the Windows discovery variables).
-$toolkitDirs = New-Object System.Collections.Generic.List[string]
-if ($env:CUDA_PATH) {
-    $toolkitDirs.Add($env:CUDA_PATH)
-}
-if ($env:ProgramFiles) {
-    $toolkitRoot = Join-Path $env:ProgramFiles "NVIDIA GPU Computing Toolkit\CUDA"
-    if (Test-Path $toolkitRoot) {
-        Get-ChildItem $toolkitRoot -Directory | Sort-Object Name -Descending | ForEach-Object { $toolkitDirs.Add($_.FullName) }
-    }
-}
-
-$nvvmFound = $null
-$libdeviceFound = $null
-foreach ($dir in $toolkitDirs) {
-    if (-not $nvvmFound) {
-        $candidate = Join-Path $dir "nvvm\bin\x64\nvvm64_40_0.dll"
-        if (Test-Path $candidate) {
-            $nvvmFound = $candidate
-        }
-    }
-    if (-not $libdeviceFound) {
-        $nvvmDir = Join-Path $dir "nvvm"
-        if (Test-Path $nvvmDir) {
-            $match = Get-ChildItem -Path $nvvmDir -Filter "libdevice.10.bc" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($match) {
-                $libdeviceFound = $match.FullName
-            }
-        }
-    }
-}
-
-if ($nvvmFound) {
-    Write-Host "libnvvm: found at $nvvmFound"
-}
-else {
-    $failures.Add("nvvm64_40_0.dll not found under CUDA_PATH or Program Files\NVIDIA GPU Computing Toolkit\CUDA\v* (nvvm\bin\x64); toolkit directories searched: $($toolkitDirs -join '; ')")
-}
-
-if ($libdeviceFound) {
-    Write-Host "libdevice.10.bc: found at $libdeviceFound"
-}
-else {
-    $failures.Add("libdevice.10.bc not found under the CUDA toolkit directories searched: $($toolkitDirs -join '; ')")
-}
-
 # APTHERMO_NO_CUDA must be unset, or the CUDA tests only check the refusal
 if ($env:APTHERMO_NO_CUDA) {
     $failures.Add("APTHERMO_NO_CUDA is set ('$($env:APTHERMO_NO_CUDA)'); the CUDA tests would refuse the accelerator instead of running on it")

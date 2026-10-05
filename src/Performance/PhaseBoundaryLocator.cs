@@ -25,12 +25,12 @@ internal static class PhaseBoundaryLocator
         var lo = span.Inner;
         for (var b = 0; b < RocketSolver.MaxThroatBisections; b++)
         {
-            if (Math.Log(hi.Pressure) - Math.Log(lo.Pressure) < RocketSolver.ThroatBracketWidth)
+            if (KernelMath.Log(hi.Pressure) - KernelMath.Log(lo.Pressure) < RocketSolver.ThroatBracketWidth)
             {
                 break;
             }
 
-            var midPressure = Math.Exp(0.5 * (Math.Log(hi.Pressure) + Math.Log(lo.Pressure)));
+            var midPressure = KernelMath.Exp(0.5 * (KernelMath.Log(hi.Pressure) + KernelMath.Log(lo.Pressure)));
             var midTemperature = 0.5 * (hi.Temperature + lo.Temperature);
             var request = new StationRequest(RocketSolver.Throat, midPressure, midTemperature, chamber.Entropy, query.Flow);
             if (!StationSolve.At(in context, in request))

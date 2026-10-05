@@ -9,6 +9,24 @@ used to stand.
 
 ---
 
+<a id="one-record-2026-10-05"></a>
+
+## 2026-10-05 — from "## Invariants" — one approved file per platform
+
+Item 13 of release 0.2.2 (the tree's own correctly rounded `Exp`, `Log` and `Pow`, no libdevice) made the Windows and Linux (WSL2) bits of `Equilibrium.Tests`, `Performance.Tests`, `Problems.Tests`, `Transport.Tests` and `Cli.Tests` equal, and `Thermo.Tests` was equal already (its Windows record passed under WSL2). The Cli record's JSON hash needed the platform's line break read as `\n` (`Cli.Tests`); the Docs approved outputs were already read with LF. The owner decided one record per node (O5). The text as it stood:
+
+> - **One approved file per platform, picked in one place.** The root BOOT.md's platform
+>   constraint (2026-09-17) keeps a Windows and a Linux record for every bit snapshot,
+>   since the CPU accelerator's `System.Math` calls the platform's C runtime and the two
+>   do not round the last bit alike. `ApprovedSnapshot.ApprovedPathFor` is the one place
+>   that chooses between `<name>.approved.txt` and `<name>.linux.approved.txt`; every
+>   consumer's Bits level calls it instead of building the choice itself, so a future
+>   Bits level needs no platform logic of its own. A node whose Linux bits equal its
+>   Windows bits still keeps both files, byte for byte identical, so the rule has no
+>   exception (`Thermo.Tests`, whose table holds no accelerator solve).
+
+---
+
 <a id="compares-bits"></a>
 
 ## 2026-10-01 — from "## Invariants" — "this node compares bits" and JsonFieldComparison

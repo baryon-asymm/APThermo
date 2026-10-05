@@ -21,7 +21,7 @@ internal static class CaseSetup
     private const double UnestimatedOffset = 1.0;
 
     /// <summary>ln(p/p°) of the case.</summary>
-    public static double LogPressure(in EquilibriumProblem problem) => Math.Log(problem.Pressure / StandardPressure);
+    public static double LogPressure(in EquilibriumProblem problem) => KernelMath.Log(problem.Pressure / StandardPressure);
 
     /// <summary>The assigned temperature for tp, the caller's estimate for hp and sp, or the default of section 3.1.</summary>
     public static double InitialTemperature(in EquilibriumProblem problem) =>
@@ -148,8 +148,8 @@ internal static class CaseSetup
     private static void FromDefaults(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                      int activeGases, ref IterationState state)
     {
-        state.LogN = Math.Log(InitialGaseousMoles);
-        var each = Math.Log(InitialGaseousMoles / activeGases);
+        state.LogN = KernelMath.Log(InitialGaseousMoles);
+        var each = KernelMath.Log(InitialGaseousMoles / activeGases);
         for (var j = 0; j < table.GasCount; j++)
         {
             scratch.LogMoles[j] = each;
@@ -183,11 +183,11 @@ internal static class CaseSetup
             estimate = InitialGaseousMoles;
         }
 
-        state.LogN = Math.Log(estimate);
+        state.LogN = KernelMath.Log(estimate);
         for (var j = 0; j < gasCount; j++)
         {
             scratch.LogMoles[j] = SpeciesMarks.InPlay(scratch, j) && result.Moles[j] > 0.0
-                ? Math.Log(result.Moles[j])
+                ? KernelMath.Log(result.Moles[j])
                 : state.LogN - EquilibriumSolver.TraceThreshold - UnestimatedOffset;
         }
 

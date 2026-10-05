@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
-using APThermo.Execution.LibDevice;
+using APThermo.Execution.Ptx;
 using ILGPU;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.PTX;
@@ -83,6 +83,6 @@ internal sealed class KernelCache(AcceleratorSession session)
         // Every CUDA kernel goes through the post-link; the CPU accelerator loads the method as ILGPU does.
         var entry = EntryPointDescription.FromImplicitlyGroupedKernel(method);
         var compiled = (PTXCompiledKernel)cuda.Backend.Compile(entry, KernelSpecialization.Empty);
-        return cuda.LoadAutoGroupedKernel(LibDevicePostLink.Link(cuda, session.Nvvm!, compiled).Kernel);
+        return cuda.LoadAutoGroupedKernel(PtxPostLink.Link(cuda, compiled).Kernel);
     }
 }

@@ -13,7 +13,7 @@ namespace APThermo.Cli.Tests;
 [Collection("cli")]
 public sealed class BitSnapshotTests
 {
-    private static readonly string ApprovedPath = ApprovedSnapshot.ApprovedPathFor(CliFixture.NodeDirectory, "Bits");
+    private static readonly string ApprovedPath = ApprovedSnapshot.RecordPathFor(CliFixture.NodeDirectory, "Bits");
 
     /// <summary>Every example gives the recorded output, run in-process on warm solvers: the fast tripwire.</summary>
     [Fact]
@@ -129,9 +129,15 @@ internal static class BitExamples
     /// </summary>
     public static string JsonSha256(string json, string example) => JsonSha256(Encoding.UTF8.GetBytes(json), example);
 
-    /// <summary>The same hash from the bytes a process wrote to its standard output, decoded as UTF-8 after the cut.</summary>
+    /// <summary>
+    /// The same hash from the bytes a process wrote to its standard output, decoded as UTF-8 after the cut, with the line
+    /// breaks of the platform (<see cref="Environment.NewLine"/>, which the JSON writer puts between lines) read as
+    /// <c>\n</c> (2026-10-05, one record for every platform): the numbers of a document are the same on Windows and Linux
+    /// since the tree's own <c>Exp</c>, <c>Log</c> and <c>Pow</c>, and the line break was all that told the two platforms'
+    /// hashes apart. The CSV is written with <c>\n</c> on both and needs no reading.
+    /// </summary>
     public static string JsonSha256(byte[] json, string example) =>
-        Sha256(Encoding.UTF8.GetString(RunPropertyCut.Bytes(json, example)));
+        Sha256(Encoding.UTF8.GetString(RunPropertyCut.Bytes(json, example)).ReplaceLineEndings("\n"));
 
     /// <summary>The SHA-256 of a text's UTF-8 bytes, as the snapshot's lines hash it.</summary>
     public static string Sha256(string text) => new BitHash().Add(text).ToHex();

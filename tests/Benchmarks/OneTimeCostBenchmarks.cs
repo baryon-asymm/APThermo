@@ -12,7 +12,7 @@ namespace APThermo.Benchmarks;
 
 /// Group 4 of `BOOT.md`, Constraints: the one-time costs a .NET caller pays once per
 /// process (database load, chemical-system assembly, kernel compilation on the CPU
-/// accelerator and on CUDA with the libdevice post-link, species-table upload).
+/// accelerator and on CUDA with the PTX post-link, species-table upload).
 /// `[IterationSetup]`/`[IterationCleanup]` rebuild the cold state the compilation and
 /// upload benchmarks measure, so that every measured call is genuinely first.
 [MemoryDiagnoser]
@@ -102,7 +102,7 @@ public class OneTimeCostBenchmarks
     }
 
     /// <summary>Creates a fresh CUDA engine and uploads the species table into it, so the next `CompileCudaKernel` iteration
-    /// compiles cold, the libdevice post-link included.</summary>
+    /// compiles cold, the PTX post-link included.</summary>
     [IterationSetup(Target = nameof(CompileCudaKernel))]
     public void SetupCudaCompile()
     {

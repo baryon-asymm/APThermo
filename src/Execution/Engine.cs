@@ -1,5 +1,5 @@
 using APThermo.Execution.Chunks;
-using APThermo.Execution.LibDevice;
+using APThermo.Execution.Ptx;
 using APThermo.Thermo;
 using APThermo.Transport;
 using ILGPU;
@@ -42,13 +42,7 @@ internal sealed class Engine : IDisposable
             throw new ArgumentException("the scratch bound must be positive", nameof(options));
         }
 
-        if ((options.LibNvvmPath is null) != (options.LibDevicePath is null))
-        {
-            var missing = options.LibNvvmPath is null ? nameof(EngineOptions.LibNvvmPath) : nameof(EngineOptions.LibDevicePath);
-            throw new ArgumentException($"an explicit libnvvm/libdevice path pair must be given together; {missing} is missing", nameof(options));
-        }
-
-        LibDevicePostLink.AssertIlgpu();
+        PtxPostLink.AssertIlgpu();
         return new Engine(AcceleratorChoice.Decide(options).Session, options);
     }
 

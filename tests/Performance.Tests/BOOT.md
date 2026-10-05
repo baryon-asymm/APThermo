@@ -32,6 +32,10 @@ The definition of what "`Performance` is ready" means.
   snapshot that names no current fixture fails a test of its own instead of staying
   silent (`EveryApprovedLineNamesARocketFixture`, 2026-09-15).
 
+  ⚠ 2026-10-05: was a Windows and a Linux record, now one `Bits.approved.txt` picked by
+  `Harness.ApprovedSnapshot.RecordPathFor`, the tree's own `Exp`, `Log` and `Pow` making the
+  platforms equal → tests/Harness/HISTORY.md#one-record-2026-10-05
+
   ⚠ 2026-09-17: was one snapshot file, now a Windows and a Linux record, picked by
   `Harness.ApprovedSnapshot.ApprovedPathFor` → HISTORY.md#bits-per-platform
 
@@ -39,6 +43,10 @@ The definition of what "`Performance` is ready" means.
   `EveryRocketFixtureGivesTheRecordedBits` and `EveryApprovedLineNamesARocketFixture`
   carry `[Trait("Category", "BitSnapshot")]`, filtered out of the hosted fast suite
   → HISTORY.md#bits-reference-machine
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (`Category!=LongRunning&Category!=BitSnapshot`),
+  now the hosted runs filter `Category!=LongRunning` only and the two bit facts run on every
+  runner, the hosted ones included, against the one `Bits.approved.txt` (root BOOT.md, Platform)
 - The node owns the tolerances of comparisons that are not with the reference: the
   invariants' tolerances and the self-consistency and identity tolerances are named
   constants of the node with their origin in a comment, never literals in an

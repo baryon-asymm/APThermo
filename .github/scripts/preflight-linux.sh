@@ -40,37 +40,6 @@ else
   failures+=("nvidia-smi did not run: $nvidia_smi_out")
 fi
 
-# libnvvm and libdevice.10.bc under the toolkit's nvvm/lib64 (root BOOT.md's Dependencies section; on WSL,
-# /usr/local/cuda*/nvvm/lib64/libnvvm.so).
-nvvm_found=""
-for f in /usr/local/cuda*/nvvm/lib64/libnvvm.so; do
-  if [[ -e "$f" ]]; then
-    nvvm_found="$f"
-    break
-  fi
-done
-if [[ -n "$nvvm_found" ]]; then
-  echo "libnvvm: found at $nvvm_found"
-else
-  failures+=("libnvvm.so not found under /usr/local/cuda*/nvvm/lib64")
-fi
-
-libdevice_found=""
-for d in /usr/local/cuda*/nvvm; do
-  if [[ -d "$d" ]]; then
-    found=$(find "$d" -name 'libdevice.10.bc' -print -quit 2>/dev/null)
-    if [[ -n "$found" ]]; then
-      libdevice_found="$found"
-      break
-    fi
-  fi
-done
-if [[ -n "$libdevice_found" ]]; then
-  echo "libdevice.10.bc: found at $libdevice_found"
-else
-  failures+=("libdevice.10.bc not found under /usr/local/cuda*/nvvm")
-fi
-
 # APTHERMO_NO_CUDA must be unset, or the CUDA tests only check the refusal
 if [[ -n "${APTHERMO_NO_CUDA:-}" ]]; then
   failures+=("APTHERMO_NO_CUDA is set ('$APTHERMO_NO_CUDA'); the CUDA tests would refuse the accelerator instead of running on it")

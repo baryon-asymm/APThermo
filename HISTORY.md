@@ -8,6 +8,193 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="docs-one-file"></a>
+
+## 2026-10-05 — from "## Delivery", "Documentation" — one approved document per example
+
+The text as it stood (a rule of 2026-09-29):
+
+>   - The docs tests node `tests/Docs.Tests` proves the guide against the samples, the
+>     approved outputs, the schemas and the links, each check failing when the set it
+>     walks is empty and each shown red once ([BOOT.md](tests/Docs.Tests/BOOT.md)). The
+>     approved output of an invocation is a record of the reference machine like the bit
+>     snapshots (2026-09-29): a Windows and a Linux file, compared exactly under
+>     `Category=BitSnapshot`; on every runner, the hosted ones included, the same document
+>     is compared field by field, its numbers within 1e-9 relative.
+>     → HISTORY.md#retold-by-nodes
+
+Why it changed: the Windows and the Linux documents differed only through the C runtimes'
+`exp`, `log` and `pow` (about 1e-13 relative, the entry `docs-plat`). With the tree's own
+correctly rounded functions (the entry `platform-deviation-lifted`) the Windows and the
+WSL2 documents are equal byte for byte, so the six `*.linux.approved.json` files were
+deleted and the exact comparison runs on every runner. The field-by-field comparison stays
+(owner decision O5 of item 13 of 0.2.2, 2026-10-05; `tests/Docs.Tests/BOOT.md`, its
+criterion of that date).
+
+---
+
+<a id="ilgpu-libdevice-retired"></a>
+
+## 2026-10-05 — from "## Invariants", "## Dependencies" and "## Constraints" — libdevice and the CUDA Toolkit leave the tree
+
+The texts as they stood. In `## Invariants`, "The CPU path needs no NVIDIA software":
+
+> - **The CPU path needs no NVIDIA software.** No numerical node references the
+>   `ILGPU.Runtime.Cuda` namespace; only the execution node does, and it works with the
+>   CPU accelerator when there is no CUDA device or no libdevice. Checked by reflection
+>   over every assembly (`Protocol.Tests.InvariantTests.OnlyTheExecutionNodeAndItsTestsNameCudaTypes`).
+
+In `## Dependencies`, the GPU path's prerequisites:
+
+> used); for the GPU path an NVIDIA GPU of compute capability 7.5 or newer (2026-09-26,
+> the range the execution node proves; an older device may work with a 12.x toolkit and is
+> not verified, and a 13.x libnvvm refuses its target when the engine binds, which the
+> `Auto` choice turns into the CPU accelerator with the reason), an NVIDIA driver with CUDA 12.8 or newer, plus libnvvm
+> (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux, 2026-09-15) and
+> `libdevice.10.bc` from a CUDA Toolkit 12.8 or newer (13.x keeps the DLL under
+> `nvvm/bin/x64`; on Linux, and under WSL2, the toolkit's `nvvm/lib64`); NASA CEA data `thermo.inp` and `trans.inp` from
+
+In `## Constraints`, the head of the ILGPU paragraph (its sub-bullets stay):
+
+> - ILGPU 1.5.3 is pinned, and its libdevice support is defective for the targets
+>   `compute_100` and newer (Blackwell): libnvvm rejects the module ILGPU emits, and
+>   ILGPU silently drops the wrappers. For `compute_75` to `compute_90` libnvvm accepts
+>   it and ILGPU defines the wrappers itself. The execution node checks every kernel and
+>   completes the wrappers ILGPU dropped; nothing else in the tree may know about the
+>   mechanism.
+>   - A second defect (2026-09-27): under WSL the second CUDA engine of a process failed
+>     to bind; the execution node registers the devices itself
+>     ([BOOT.md](src/Execution/BOOT.md)). → HISTORY.md#retold-by-nodes
+
+In `## Constraints`, the reference machine:
+
+> - Reference machine for measurements: RTX 5070 Ti (SM_120), driver 13.4, CUDA
+>   Toolkits 12.9, 13.3 and 13.4 (13.4 recorded 2026-09-26; discovery binds the newest),
+>   16 logical CPU cores. Recorded, not required.
+
+Why it changed: libdevice was the CUDA half of the math list, and the tree's own `Exp`,
+`Log` and `Pow` (the entry `allow-list-own-math`) replace it on both accelerators. With no
+kernel calling a libdevice function, there is nothing for libnvvm to link: the context is
+built without `LibDevice()`, the discovery of libnvvm and libdevice and the public members
+that named their paths are removed (`CHANGELOG.md`, `[Unreleased]`), and the execution
+node's former `LibDevice` child became `Ptx`, whose post-link edits the kernel's PTX text
+alone: every double `mul`, `add` and `sub` marked `.rn`, so that the driver's compiler
+cannot contract them into an fma the CPU does not run, and `Math.FusedMultiplyAdd` emitted
+as `fma.rn.f64`. A bound CUDA engine loads no library of the toolkit
+(`AcceleratorChoiceTests.ACudaEngineLoadsNoLibraryOfTheCudaToolkit`, the execution node's
+criterion of 2026-10-05). ILGPU's libdevice defect for `compute_100` and newer still exists
+and is no longer reached.
+
+---
+
+<a id="allow-list-own-math"></a>
+
+## 2026-10-05 — from "## Constraints", "Math in numerical nodes" — Exp, Log and Pow are the tree's own
+
+The text as it stood:
+
+> - Math in numerical nodes: only the `double` overloads of `System.Math` from this
+>   list: `Exp`, `Log`, `Log10`, `Pow`, `Sqrt`, `Abs`, `Floor`, `Ceiling`, plus the
+>   constant `Math.PI`, which the compiler inlines and which needs no wrapper (the
+>   transport node's hard-sphere estimate uses it). The minimum and the maximum come from
+>   the thermo node's `KernelMath.Min` and `KernelMath.Max`, never from `Math.Min` or
+>   `Math.Max`, nor from `double.Min`, `double.Max` or any other member of `System.Math`
+>   or `System.Double` outside this list: `double.Max` is `Math.Max` in CoreLib's IL and
+>   compiles to the same `max.f64`. The protocol tests node checks the list itself, as an
+>   allow-list of the calls a numerical node makes into `System.Math` and `System.Double`,
+>   `double.IsNaN` and `double.IsNegative` allowed inside `KernelMath` only. Adding a
+>   function is a root decision, because the execution node must provide its libdevice
+>   wrapper. → HISTORY.md#math-list-condensed
+
+Why it changed: the root's open criterion "The elementary functions are one program too"
+(the owner's task of 2026-10-02, scheduled as item 13 of 0.2.2 with the owner's decisions
+O1 to O9 on 2026-10-05). The C runtime's and libdevice's `exp`, `log` and `pow` differed by
+up to 3 ULP, enough to flip a stop test near the noise between accelerators, and the
+Windows C runtime's FMA3 dispatch made the bit records a property of the machine. The thermo
+node's `Elementary` child holds correctly rounded `exp`, `log` and `pow` in kernel-compatible
+C#, reached through `KernelMath`: the full CORE-MATH worst-case lists, 2 266 122 inputs, give
+0 wrong results (`FullWorstCaseListsTests`), and the fast paths keep their errors 6.96 (exp),
+10.87 (log) and 8.94 (pow) times below their bounds (`src/Thermo/Elementary/BOOT.md`, its
+criteria of 2026-10-05). `Log10` left the list because no numerical node needs it (O3).
+`Math.FusedMultiplyAdd` and the `BitConverter` bit conversions entered it, confined to
+`KernelMath` and `Elementary` with `double.IsNaN` and `double.IsNegative`
+(`Protocol.Tests.InvariantTests`). A function now enters the list when the execution node's
+probe proves it equal on both accelerators, not when a libdevice wrapper exists.
+
+---
+
+<a id="platform-deviation-lifted"></a>
+
+## 2026-10-05 — from "## Constraints", "Platform" — the declared deviation is lifted, one bit record per node
+
+The text as it stood (the bullet and its declared deviation of 2026-09-18, whose longer
+first wording is the entry `platform-deviation-condensed`):
+
+> - Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
+>   accelerator and on CUDA (2026-09-15). Nothing but the CUDA library discovery paths
+>   and file names may be platform-specific. Every test runs on both platforms. The
+>   approved records are platform-specific (2026-09-17): a node's `Bits.approved.txt`
+>   holds the Windows bits and its `Bits.linux.approved.txt` the Linux bits, the execution
+>   tests node's throughput figures follow the same rule, the harness picks the file of
+>   the running platform, and an intended numerical change re-approves both in the same
+>   commit. The bits are a record of the reference machine, not of the platform alone
+>   (2026-09-18): they are compared exactly on the reference machine, in local runs and
+>   on the self-hosted release runners (Windows and WSL2), and not on the hosted CI
+>   runners, where the facts carrying the trait `Category=BitSnapshot` are filtered out
+>   and the CEA tolerance tests hold correctness.
+>
+>   ⚠ 2026-09-18, declared deviation from "every test runs on both platforms" (AGENTS.md
+>   §12): a hosted `windows-latest` runner changed one rocket case of the front door's
+>   snapshot in its last bits, every CEA tolerance test green. The Windows C runtime picks
+>   FMA3 or plain variants of `exp`, `log` and `pow` from the CPU and hosted runners land
+>   on different CPUs (disabling the FMA3 variants locally moved 38 of 99 rocket cases),
+>   so a bit record belongs to a machine. The user chose exact comparison on the
+>   reference machine over a field-by-field tolerance on hosted runners. What lifts the
+>   deviation: a bit-stable math path (the CPU dispatch pinned in the execution node) or
+>   hosted runners of a fixed CPU model. → HISTORY.md#platform-deviation-condensed
+
+Why it changed: the first of the two conditions that lift the deviation is met. The tree's
+own `Exp`, `Log` and `Pow` (the entry `allow-list-own-math`) read nothing of the machine's
+C runtime, and the remaining math of the numerical nodes (`Sqrt`, `Abs`, `Floor`, `Ceiling`,
+the four arithmetic operations, an explicit fused multiply-add) is exact in IEEE 754. On
+the reference machine the Windows and the WSL2 bits of every node were equal, so the
+`Bits.linux.approved.txt` files were deleted and the harness names one record per node
+(`tests/Harness/BOOT.md`, "One bit record per node", owner decision O5, 2026-10-05); the
+throughput records keep their pair. The CUDA library discovery was the one other
+platform-specific code and is gone (the entry `ilgpu-libdevice-retired`). The hosted runners
+now run the bit facts too (`.github/BOOT.md`, Continuous integration); the first hosted run
+that does so is the evidence the root's criterion still waits for.
+
+---
+
+<a id="gpu-exact"></a>
+
+## 2026-10-05 — from "## Invariants", "GPU equals CPU" — CUDA equals the CPU accelerator bit for bit
+
+The text as it stood:
+
+> - **GPU equals CPU.** For the same batch, the results on CUDA and on the CPU
+>   accelerator agree within the tolerance table owned by the execution tests node
+>   (relative 1e-10 on temperature, relative 1e-10 on mole fractions not below 1e-8).
+>   Every batch test compares both.
+>
+>   ⚠ 2026-09-12: was 1e-10 on mole fractions, now second tier 1e-9 → HISTORY.md#gpu-tier
+
+Why it changed: the tolerance table existed because libdevice and the C runtime rounded
+`exp`, `log` and `pow` differently and because the driver's compiler contracted a
+multiplication and an addition into an fma the CPU accelerator does not run; a last-ULP
+difference then flipped a Newton step's stop decision now and then (the entry `gpu-tier`).
+The tree's own correctly rounded functions (the entry `allow-list-own-math`) and the
+post-link that marks every double multiplication, addition and subtraction `.rn` (the entry
+`ilgpu-libdevice-retired`) remove both causes. The execution tests node's tolerance
+machinery was replaced by `ExactComparison`, and every CUDA family, the probe kernel and
+the 100 000-case sweep equal the CPU accelerator in statuses, iteration counts and every
+field: on 2026-10-05, Windows, Debug, `Category=Cuda` 80 of 81 (the throughput fact refuses
+a Debug run by design) and WSL2, Release, 81 of 81 (`src/Execution/ACCEPTANCE.md`, the
+criterion of that date).
+
+---
+
 <a id="test-budgets"></a>
 
 ## 2026-10-03 — from "## Constraints" — the test time budget

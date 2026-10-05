@@ -24,14 +24,22 @@ frame; this file holds the criteria that prove it, read only in the root node.
       frozen-station cv, the singular derivative matrix of a bound-exact tp) are
       skipped by the rules recorded there, and each skip is guarded: the defect must
       be visible on the reference's own output.
-- [x] 2026-09-12 — A batch of 100 000 states on CUDA equals the same batch on the CPU
-      accelerator within the tolerance table; the list of compared fields is produced
-      by reflection over the result type
-      (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`
-      in the execution tests node, long-running; the table's second tier for mole
-      fractions is described under the GPU-equals-CPU invariant above). Re-verified
-      2026-09-15 on the decomposed code at `62cd99e`, same test, green on the
-      reference machine.
+- [x] 2026-10-05 — A batch of 100 000 states on CUDA equals the same batch on the CPU
+      accelerator bit for bit, statuses and iteration counts included, a NaN's payload
+      aside (the GPU-equals-CPU invariant), and two runs of it on CUDA are identical
+      (`CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic`
+      in the execution tests node, long-running, through its `ExactComparison`). Evidence:
+      the execution node's criterion of 2026-10-05 (`src/Execution/ACCEPTANCE.md`):
+      `Category=Cuda` 80 of 81 on Windows in Debug, the one other the throughput fact,
+      which refuses a Debug run by design, and 81 of 81 under WSL2 in Release.
+
+      ⚠ 2026-10-05: was "within the tolerance table", ticked 2026-09-12 and re-verified
+      2026-09-15 at `62cd99e` on the reference machine with
+      `CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
+      the list of compared fields produced by reflection over the result type and the
+      table's second tier for mole fractions described under the invariant
+      (HISTORY.md#gpu-tier). The tree's own math made the comparison exact, and the
+      tolerance table is gone (HISTORY.md#gpu-exact).
 - [x] 2026-09-12 — On the reference machine the CUDA path is at least 5× faster than
       the CPU accelerator path with all cores on the 100 000-state batch; the measured
       figure is recorded in the benchmark's approved file
@@ -43,6 +51,11 @@ frame; this file holds the criteria that prove it, read only in the root node.
       filter: 23.58× on Windows (CUDA 0.151 s against 3.557 s) and 27.48× under WSL2
       (0.204 s against 5.593 s), recorded in `Throughput.approved.txt` and
       `Throughput.linux.approved.txt` with their configuration (merged as `a316ecb`).
+      Re-measured 2026-10-05 after the tree's own math (Release, the median of three
+      runs): 20.07× on Windows and 31.07× under WSL2, both files re-approved; the CUDA
+      kernel 1.43e-7 s per Newton step against 7.85e-8 s before, the CPU accelerator
+      7.2 s against 5.3 s for the batch, measured on a machine shared with other test runs
+      (the execution node's criterion of that date, which asks for a quiet re-measure).
 
       ⚠ 2026-09-19: the figures above of 2026-09-12 (56.28×) and the Linux 52.01× were
       Debug measurements, a fact no record stated. The CPU accelerator runs the kernels
@@ -214,6 +227,14 @@ frame; this file holds the criteria that prove it, read only in the root node.
       Every architecture is compiled for and then run on the RTX 5070 Ti; no GPU older
       than Blackwell has run it. A one-time run on rented hardware (a T4 or an L4) is
       planned by the owner and will be recorded here.
+
+      ⚠ 2026-10-05: was "has loaded a kernel carrying every wrapper of the math list", now
+      no kernel calls a libdevice function and there is no wrapper to carry
+      (HISTORY.md#ilgpu-libdevice-retired). The architecture fact holds the new post-link
+      instead: for every architecture from SM_75 up, the kernels pass it, equal the
+      device's own in PTX and give the probe's bits
+      (`ArchitectureTests.EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice`,
+      the execution node's criterion of 2026-10-05).
 - [x] 2026-09-30 — The second hidden-defect audit (2026-09-28, five read-only parts at `5a732f0`,
       reports kept out of the tree with the first audit's) is closed before 0.2.0 is
       tagged: every finding of every part is fixed or answered by an owner's decision,
@@ -279,20 +300,41 @@ frame; this file holds the criteria that prove it, read only in the root node.
       `v0.1.0` was: its release run failed before any package was published (the
       owner's decision of 2026-10-01).
 
-- [ ] The elementary functions are one program too (the owner's future task of 2026-10-02,
-      not scheduled): `Exp`, `Log`, `Log10` and `Pow` of the numerical nodes are the tree's
-      own kernel-compatible C#, correctly rounded (in the manner of CORE-MATH or CRlibm),
-      and the CPU accelerator and CUDA run the same code instead of the C runtime and
-      libdevice, with floating-point contraction into FMA held equal on both sides. Why:
-      the two implementations differ by up to 3 ULP (the execution tests' probe kernel), so
-      a stop test near the noise flips between accelerators (the throat of the cited HTPB,
-      2026-10-02, `src/Performance/BOOT.md`), and the C runtime's FMA3 dispatch makes the
-      bit records a property of the machine (the declared deviation under `## Constraints`,
-      Platform, which this lifts). Done when the GPU/CPU comparison of the execution tests
-      is exact on every fixture and the sweep, the bit records equal on Windows and Linux
-      and on the hosted runners, every CEA tolerance test green, and the throughput not
-      below the root's 5×. A root decision: it replaces the math list of `## Constraints`
-      and the execution node's libdevice wrappers.
+- [ ] The elementary functions are one program too (the owner's task of 2026-10-02,
+      item 13 of 0.2.2 since 2026-10-05): `Exp`, `Log` and `Pow` of the numerical nodes
+      are the tree's own kernel-compatible C#, correctly rounded (in the manner of
+      CORE-MATH or CRlibm), and the CPU accelerator and CUDA run the same code instead of
+      the C runtime and libdevice, with floating-point contraction into FMA held equal on
+      both sides. Why: the two implementations differ by up to 3 ULP (the execution tests'
+      probe kernel), so a stop test near the noise flips between accelerators (the throat
+      of the cited HTPB, 2026-10-02, `src/Performance/BOOT.md`), and the C runtime's FMA3
+      dispatch makes the bit records a property of the machine (the declared deviation
+      under `## Constraints`, Platform, which this lifts). Done when the GPU/CPU comparison
+      of the execution tests is exact on every fixture and the sweep, the bit records
+      equal on Windows and Linux and on the hosted runners, every CEA tolerance test
+      green, and the throughput not below the root's 5×. A root decision: it replaces the
+      math list of `## Constraints` and the execution node's libdevice wrappers.
+
+      Evidence so far, 2026-10-05, on the reference machine:
+      - correctly rounded: the thermo node's `Elementary` child, 0 wrong results over the
+        full CORE-MATH worst-case lists, 2 266 122 inputs (`FullWorstCaseListsTests`), the
+        fast paths' errors 6.96 (exp), 10.87 (log) and 8.94 (pow) times below their bounds
+        (`FastPathMarginTests`; `src/Thermo/Elementary/BOOT.md`, its criteria);
+      - exact GPU/CPU comparison on every family, the probe and the sweep, and no
+        libdevice, libnvvm or CUDA Toolkit loaded (`src/Execution/ACCEPTANCE.md`, the
+        criteria of 2026-10-05; the criterion on the 100 000-case batch above);
+      - one bit record per node, the Windows and WSL2 bits equal
+        (`tests/Harness/BOOT.md`, "One bit record per node"), and one approved document
+        per command-line example (`tests/Docs.Tests/BOOT.md`, its criterion of the date);
+      - the throughput 20.07× on Windows and 31.07× under WSL2 (the criterion above).
+
+      What it still waits for: a hosted CI run (`.github/workflows/ci.yml`) green with the
+      bit facts no longer filtered out, which is the evidence for "on the hosted runners",
+      and the whole fast set, the CEA tolerance tests in it, recorded green on Windows and
+      under WSL2 on the merged tree. The tick follows those two runs.
+
+      ⚠ 2026-10-05: was `Exp`, `Log`, `Log10` and `Pow`, "not scheduled"; `Log10` left the
+      math list instead, no numerical node needing it (HISTORY.md#allow-list-own-math).
 - [ ] The test pyramid (2026-10-03, `## Constraints`, Test time budgets): the fast set and
       the end-to-end set within their budgets on the reference machine, on Windows and in
       WSL2, both `dotnet test` durations recorded here; every fact that starts a process

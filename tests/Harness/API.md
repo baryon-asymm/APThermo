@@ -45,7 +45,8 @@ public sealed class BitHash                                 // SHA-256 over litt
 
 public sealed class ApprovedSnapshot                        // a snapshot file of "key value" lines: tab-delimited when a recorded key can hold a space, space-delimited otherwise, detected from the file itself
 {
-    public static string ApprovedPathFor(string directory, string baseName);   // <baseName>.approved.txt, or <baseName>.linux.approved.txt on Linux; the one place that picks between a node's per-platform bit snapshots
+    public static string RecordPathFor(string directory, string baseName);      // <baseName>.approved.txt on every platform (2026-10-05): the one place that names a node's bit record
+    public static string ApprovedPathFor(string directory, string baseName);    // <baseName>.approved.txt, or <baseName>.linux.approved.txt on Linux: the throughput figures, which stay per platform
     public static ApprovedSnapshot Load(string approvedPath);                  // an absent file is an empty snapshot
     public string? Problem(string key, string actualLine, IReadOnlyList<string>? fields = null);   // null when the approved line of the key equals it; else the problem naming the key and how to approve; the pair is kept, and the actual file is (re)written beside the approved one from this call on; fields given and the key a problem, they are written one per line to a per-case dump beside the actual file (<actual-base>.<sanitized key>.fields.txt)
     public IReadOnlyList<string> StaleKeys(IEnumerable<string> producedKeys);  // approved keys no run produced, sorted ordinally

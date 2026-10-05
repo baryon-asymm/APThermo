@@ -37,6 +37,9 @@ internal static class TraceGasStart
         }
     }
 
+    /// <summary>The <c>LogN</c> a placed start carries: the logarithm of the total moles its seed placed.</summary>
+    public static double LogTotal(double total) => KernelMath.Log(total);
+
     /// <summary>
     /// Puts the entry back: the moles, the condensed set rebuilt from them in species order, the anchor multipliers, and the
     /// fields of the state the iteration moves (<paramref name="entryLogN"/>, <paramref name="entryTemperature"/>, the
@@ -108,10 +111,10 @@ internal static class TraceGasStart
                 continue;
             }
 
-            var logFraction = Math.Log(result.Moles[j]) - logN;
+            var logFraction = KernelMath.Log(result.Moles[j]) - logN;
             if (logFraction > -EquilibriumSolver.SecondStageTraceThreshold)
             {
-                Accumulate(table, scratch, layout, j, Math.Exp(logFraction), logFraction + scratch.GOverRT[j] + logPressure);
+                Accumulate(table, scratch, layout, j, KernelMath.Exp(logFraction), logFraction + scratch.GOverRT[j] + logPressure);
             }
         }
 

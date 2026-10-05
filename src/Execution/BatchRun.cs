@@ -105,5 +105,5 @@ internal static class BatchRun
     private static AcceleratorUnavailableException TimeoutFailure(int cases, CudaException inner) =>
         new($"the launch of {cases} case(s) exceeded the device's kernel run-time limit " +
             $"({LaunchBudget.DefaultRunTimeLimit.TotalSeconds:0.###} s by default on a display GPU); " +
-            "retry on the CPU accelerator, or on a device without a run-time limit (TCC mode, headless).", [], inner);
+            "retry on the CPU accelerator, or on a device without a run-time limit (TCC mode, headless).", inner);
 }

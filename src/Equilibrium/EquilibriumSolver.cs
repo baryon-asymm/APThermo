@@ -184,7 +184,7 @@ internal static class EquilibriumSolver
             return;
         }
 
-        var state = new IterationState { Temperature = initialTemperature, LogN = Math.Log(sumGas) };
+        var state = new IterationState { Temperature = initialTemperature, LogN = KernelMath.Log(sumGas) };
         var logPressure = CaseSetup.LogPressure(problem);
         var status = problem.Kind == ProblemKind.AssignedTemperaturePressure
             ? CaseStatus.Ok

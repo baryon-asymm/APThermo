@@ -6,9 +6,9 @@ Runs the per-case numerical programs of `Equilibrium`, `Performance` and `Transp
 over batches of cases on an accelerator: the ILGPU context and accelerator choice
 (CUDA when available and allowed, otherwise the CPU accelerator), the upload of the
 tables, the batch buffers in structure-of-arrays layout, the kernel entry points, the
-chunking of large batches, and the loading of kernels on CUDA with the libdevice
-wrappers linked by this node. It is the only node that knows CUDA exists, so that every
-numerical node stays testable without it.
+chunking of large batches, and the loading of kernels on CUDA after the post-link of
+their PTX, which makes their arithmetic the CPU's. It is the only node that knows CUDA
+exists, so that every numerical node stays testable without it.
 
 ## Invariants
 
@@ -19,48 +19,51 @@ numerical node stays testable without it.
 - **The same kernels everywhere.** A kernel is one static entry point per program; it
   is loaded on the CPU accelerator and on CUDA from the same method; there is no
   accelerator-specific numerical code.
-- **Every CUDA kernel goes through the post-link, which completes it.** ILGPU 1.5.3
-  defines the libdevice wrappers itself for `compute_75` to `compute_90` and silently
-  drops them for `compute_100` and newer (the root's ILGPU constraint). The post-link
-  compiles and inserts only the wrappers a kernel calls and does not define, and none
-  when none is missing. Every kernel that calls a wrapper is loaded once as a trial on
-  either path; one that still calls an undefined wrapper is refused at load, the error
-  naming it. Either path yields the same program: the kernels ILGPU completes equal
-  those the post-link completes, as PTX text, up to ILGPU's generated names and the
-  `.target` line (the architecture fact, Acceptance criteria).
+- **Every CUDA kernel goes through the post-link, which makes its arithmetic the CPU's**
+  (2026-10-05). The kernels call no libdevice function: the tree's own `Exp`, `Log` and
+  `Pow` are C#, the context is built without `LibDevice()`, and `Sqrt`, `Floor`,
+  `Ceiling` and `Abs` compile to single IEEE instructions. Two things of ILGPU's
+  arithmetic remain. `Math.FusedMultiplyAdd` is an undefined external function: the
+  post-link inlines each call as `fma.rn.f64`. A PTX compiler may contract a `mul.f64`
+  and an `add.f64` into an fma the C# never wrote: the post-link marks every `mul`, `add`
+  and `sub` of `.f64` `.rn`, which PTX defines as never contracted. It then refuses a
+  kernel whose PTX holds a fused or `mad` instruction it did not write, an `.approx`
+  `f64` instruction or an external function, and loads it once as a trial. The stages:
+  [Ptx/BOOT.md](Ptx/BOOT.md). The architecture fact shows the same program on every
+  target from `compute_75` (Acceptance criteria).
+  ⚠ 2026-10-05: was the post-link completing the libdevice wrappers a kernel called and
+  ILGPU left undefined, now rounding and refusing → HISTORY.md#post-link-ptx-2026-10-05
   ⚠ 2026-09-26: was "ILGPU's wrapper generation is never relied on", now the post-link
   completes the dropped ones → HISTORY.md#post-link-completes-not-replaces-2026-09-26
 - **CUDA is bound only when a kernel runs on it** (2026-09-26). The choice accepts a
-  CUDA session only after the math probe kernel, which calls every wrapper of the math
+  CUDA session only after the math probe kernel, which calls every function of the math
   list, has been compiled, post-linked and loaded on its device: `Engine.Create` and
   `AcceleratorProbe.Describe` never report a CUDA device on which no kernel can load.
   ⚠ 2026-09-26: was a CUDA session accepted once its context existed, now only after
   the probe kernel loaded → HISTORY.md#cuda-bound-only-when-a-kernel-runs-2026-09-26
-- **No libnvvm or driver result is ignored** (2026-09-26). The post-link checks the
-  result of every call it makes into libnvvm (`GetIRVersion`, `CreateProgram`,
-  `AddModuleToProgram`, `LazyAddModuleToProgram`, `CompileProgram`, `GetProgramLog`,
-  `GetCompiledResult`, `DestroyProgram`) and into the CUDA driver (`LoadModule`,
-  `DestroyModule`). A result other than success is an `InvalidOperationException` naming
-  the post-link, the target `compute_XX`, the failing library (libnvvm or the CUDA
-  driver), its call and the result code, with the compiler's or the driver's log where
-  one exists (`API.md`, Errors).
-  - If reading the log of a failed compilation fails too, the compilation's exception
-    still propagates and says the log could not be read, naming that result.
-  - `DestroyProgram` and `DestroyModule` are checked only when the path before them
-    succeeded; after an earlier failure the earlier exception propagates unchanged and
-    the release is best-effort, so a cleanup failure never hides the cause.
-  - One internal method turns a result into the exception, so the message has one shape.
-    It is unit-tested on the CPU with every non-success value of `NvvmResult` and a
-    failing `CudaError`; the success path is proven by the CUDA tests of this node,
-    which must stay green with no bit or throughput record moving.
+- **No driver result is ignored** (2026-09-26, narrowed 2026-10-05). The post-link checks
+  the result of the two calls it makes into the CUDA driver (`LoadModule`, `DestroyModule`;
+  `DestroyModule` only after a load that succeeded). A result other than success is an
+  `InvalidOperationException` naming the post-link, the target `compute_XX`, the driver, the
+  call and the result code, with the driver's log where one exists (`API.md`, Errors); one
+  internal method turns a result into the exception, so the message has one shape.
+  ⚠ 2026-10-05: was every libnvvm call and the driver's checked, now the driver's alone
+  → HISTORY.md#libdevice-retired-2026-10-05
   ⚠ 2026-09-26: was only `CompileProgram` and `LoadModule` checked, now the result of
   every libnvvm and driver call → HISTORY.md#no-result-ignored-first-cut-2026-09-26
-- **The wrapper list equals the root's math list.** The post-link provides wrappers
-  for exactly the `System.Math` functions the root allows; a probe kernel using each
-  of them loads and matches the CPU accelerator within the tolerance table.
+- **The probe equals the root's math list** (2026-10-05). A probe kernel calls every
+  function of the list, `KernelMath.Fma` and the unfused product and sum beside it
+  included, and equals the CPU accelerator bit for bit, on every input.
+- **GPU equals CPU, bit for bit** (2026-10-05). For one batch the two accelerators return
+  the same bits in every field of every result: statuses, iteration counts, states,
+  figures, amounts and transport figures. There is no tolerance table. The facts compare
+  by bits, and the NaN payload alone is left out of the probe's comparison, since the
+  hardware chooses it (`tests/Execution.Tests`).
+  ⚠ 2026-10-05: was a tolerance table, tiers by step count and a correction of the balance
+  remnant, now bit equality → HISTORY.md#gpu-equals-cpu-exact-2026-10-05
 - **The accelerator is explicit in the result**: every batch result names the
-  accelerator that produced it (kind, device name, ILGPU version, libnvvm and
-  libdevice paths or none) and carries the timings of the run.
+  accelerator that produced it (kind, device name, ILGPU version) and carries the
+  timings of the run.
 - **Deterministic batches.** No atomics, no reductions, no shared memory: each case
   writes only its own slots, so a batch result is bit-identical between two runs on
   the same accelerator and does not depend on the chunking.
@@ -75,9 +78,11 @@ numerical node stays testable without it.
 - [Transport](../Transport/API.md) — the transport table and evaluation.
 
 Outside the tree: ILGPU 1.5.3 (NuGet); for CUDA an NVIDIA GPU of compute capability 7.5
-or newer (2026-09-26, the root's range), an NVIDIA driver with CUDA 12.8 or
-newer, libnvvm (`nvvm64_40_0.dll` on Windows, `libnvvm.so` on Linux) and
-`libdevice.10.bc` from a CUDA Toolkit 12.8 or newer.
+or newer (2026-09-26, the root's range) and an NVIDIA driver with CUDA 12.8 or newer,
+nothing else: no CUDA Toolkit, no libnvvm, no libdevice (2026-10-05).
+
+⚠ 2026-10-05: was libnvvm and `libdevice.10.bc` of a CUDA Toolkit 12.8 or newer, now the
+driver alone → HISTORY.md#libdevice-retired-2026-10-05
 
 ⚠ 2026-09-15: was libnvvm named as `nvvm64_40_0.dll` only, now also `libnvvm.so` on
 Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
@@ -87,20 +92,18 @@ Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - **Accelerator choice** (`AcceleratorKind.Auto`): CUDA if `APTHERMO_NO_CUDA` is not
-  `1`, libnvvm and libdevice are found, the device at the requested index exists, the
-  context and accelerator can be created, and the math probe kernel post-links and loads
-  on the device (the invariant "CUDA is bound only when a kernel runs on it"); otherwise
-  the CPU accelerator with all cores. `AcceleratorKind.Cuda` fails instead of falling
-  back and names what was missing, with every path tried; `AcceleratorKind.Cpu` never
+  `1`, the device at the requested index exists, the context and accelerator can be
+  created, and the math probe kernel post-links and loads on the device (the invariant
+  "CUDA is bound only when a kernel runs on it"); otherwise the CPU accelerator with all
+  cores. `AcceleratorKind.Cuda` fails instead of falling back and names what was
+  missing; `AcceleratorKind.Cpu` never
   looks for CUDA. When the probe fails, with `Auto` its failure is the fallback reason
   in `CudaSkippedBecause`, with the post-link's message; with `Cuda` it is an
   `AcceleratorUnavailableException` carrying the post-link's exception as its inner
   exception; in both cases the session is disposed before the choice returns. The probe
   kernel is released at once (its cost: HISTORY.md#choice-probe-cost-2026-10-01).
-- **libdevice discovery order**: the explicit pair, then the platform's toolkit roots
-  → [LibDevice/BOOT.md](LibDevice/BOOT.md)
 - **The post-link**, the one place in the tree that knows ILGPU internals, and its
-  stages → [LibDevice/BOOT.md](LibDevice/BOOT.md)
+  stages → [Ptx/BOOT.md](Ptx/BOOT.md)
 - **Batch layout**: structure of arrays for inputs and outputs; the case index is the
   thread index; per-case scratch is a slice of a batch-sized buffer laid out by the
   numerical nodes' `ScratchLayout` and `TransportLayout`; the chunking of a batch, its
@@ -118,7 +121,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - **Warm-up**: kernel compilation and post-link happen on the first run of a program
   per engine and are cached for the engine's lifetime; the time is reported as the
   run's `WarmUp`, separately from the upload, kernel and download times.
-- **Host-side errors are exceptions** (missing libdevice, ILGPU version mismatch,
+- **Host-side errors are exceptions** (a missing device, ILGPU version mismatch,
   inconsistent batches, a refused PTX, out-of-memory); per-case failures are statuses
   in the output arrays.
 - Reference figures of 2026-09-12 (probe within 4 ULP of the CPU; sweep 56 to 65 times
@@ -126,16 +129,6 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - **The audit's findings F2 and F3 and its observations** (the hidden-defect audit of
   2026-09-26; decided that day, F3 by the owner):
-  - **The library before the device (F2).** The choice loads libnvvm and asks its IR
-    version (`NvvmAPI.Create`, `GetIRVersion`), and reads the bitcode, before it
-    creates any CUDA context. The session keeps that binding, instead of a second
-    `NvvmAPI.Create` after the accelerator. A failure there is an
-    `AcceleratorUnavailableException` naming `[dll, bitcode]`, as `CudaContext` already
-    does for the context. `CreateCudaAccelerator` is wrapped the same way, so every
-    bind failure has the documented exception type. With `Auto` it becomes the
-    fallback reason, with its paths.
-    - ⚠ 2026-09-26: was the context created before libnvvm was loaded, now the library
-      first → HISTORY.md#bad-library-leaked-the-context-2026-09-26
   - **All cores (F3).** The CPU accelerator runs `Environment.ProcessorCount` threads,
     through a `CPUDevice` sized for it rather than ILGPU's predefined 16-thread device.
     The layout rounds down to the nearest multiple of 4 not above the count, and the
@@ -148,13 +141,13 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     - ⚠ 2026-09-26: was `CPUDevice.Default` (all cores on a 16-thread machine only), now
       sized from `ProcessorCount` → HISTORY.md#all-cores-cpudevice-default-2026-09-26
   - **Observations.** `Engine.Upload` disposes the buffers it already uploaded when a
-    later upload fails. A half-given explicit path pair (`LibNvvmPath` without
-    `LibDevicePath`, or the reverse) is an `ArgumentException` at `Create` naming the
-    missing option. The trimming of a driver or libnvvm log is
-    [LibDevice/BOOT.md](LibDevice/BOOT.md)'s → HISTORY.md#audit-observations-2026-10-01
+    later upload fails. The trimming of a driver log is [Ptx/BOOT.md](Ptx/BOOT.md)'s →
+    HISTORY.md#audit-observations-2026-10-01
+  - ⚠ 2026-10-05: was the library bound before the device and a half-given path pair
+    refused, now no library → HISTORY.md#libdevice-retired-2026-10-05
 
 - **Every CUDA context of a process binds under WSL** (2026-09-27): the workaround
-  and its rule → [LibDevice/BOOT.md](LibDevice/BOOT.md)
+  and its rule → [Ptx/BOOT.md](Ptx/BOOT.md)
 
 - **Audit fixes of 2026-09-28** (the second hidden-defect audit, Execution findings F1
   and F2 and observations 1 to 8; the guards part's F7, F8 and O2).
@@ -193,13 +186,13 @@ the package surface → HISTORY.md#engine-and-mathprobe-internal-2026-09-15
 | Type | Responsibility | Visibility |
 |---|---|---|
 | `Engine`, `KernelCache`, `MathProbe` | the composition root: `Create` delegating to the choice, `Upload`, the four `Run` overloads delegating to their pipelines, `ProbeMath` (the one run without a pipeline), `Budget`, `RunBatchLoop` and `Launchers` (exposed for the tests node's facts) and `Dispose`, which empties the kernel cache before it disposes the session; no loop, no arithmetic, no ILGPU call except through the session. `KernelCache`: typed kernel launchers, compiled and post-linked on first use, one per entry-point name, with the warm-up time, `Count` and `Clear`. `MathProbe`: the probe of the root's math list, whose `StrideCount` the kernel strides by, tied to `FunctionCount` by a test. The root's Ce rule allows `Engine` above its limit as a composition root (`## Shape exceptions`); the contracts are `API.md`'s; condensed → HISTORY.md#structure-rows-condensed-2026-10-01 | internal |
-| `AcceleratorSession` | owns one ILGPU context, one accelerator, the optional NvvmAPI and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
-| `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session, the reason CUDA was skipped when it was, the paths tried | internal |
+| `AcceleratorSession` | owns one ILGPU context, one accelerator and the `AcceleratorInfo`; disposes them in order, once, and disposes what was built when the build fails | internal |
+| `AcceleratorChoice` | turns `EngineOptions` into an `AcceleratorDecision` by the rules under Constraints: the session and the reason CUDA was skipped when it was | internal |
 | `RunTimer` | the four phases of one run as named scopes; produces `RunTimings` | internal |
 | `Chunks/` (child node, `APThermo.Execution.Chunks`) | the chunking policy and one program's chunk device buffers: `Chunk`, `ChunkPlan`, `ChunkBuffer<T>`, `ChunkBuffers`, `ChunkTransfer`, `IChunkBuffer`; its own `BOOT.md`/`API.md` hold the contract | internal |
 | `BatchRun` | the loop and nothing else: per chunk, upload, launch and synchronise, download, each in its timer scope; since 2026-09-29 also owns disposing the chunk buffers it was given, in its own `finally`, through the private `DisposeChunkBuffers` — the one place of this node whose `catch` drops a lost session's own sticky `CudaException` (the third audit pass's finding 2; `AcceleratorSession.DropsAfterLoss` holds the decision, `Engine.DisposeAfterLoss` and `AcceleratorSession.Dispose` read the same decision for the pieces CA2000 does not force into this node's own method) | internal |
 | `EquilibriumPipeline`, `RocketPipeline`, `TransportPipeline`, `SpeciesFunctionPipeline`, `Kernels` | one pipeline per program declares its host arrays, device buffers and views struct and assembles its result; `Kernels` is the registry of entry points, each slicing the views of its case and calling the numerical node; no formula in either. The root's Ce rule allows them above its limit as composition roots and a registry (`## Shape exceptions`); `LaunchBudget` is threaded from `session.Budget` into `ChunkPlan.For`. Three pipelines also have an internal `DeclareBuffers` for the F8 wiring fact; it and `Run` call one private `Declare`, so the two cannot drift, and `Run`'s `using var buffers` exists only because CA2000 needs a literal dispose beside the allocation (`BatchRun.Execute` has already disposed) | internal |
-| `LibDevice/` (child node, `APThermo.Execution.LibDevice`) | libdevice discovery (`LibDeviceLocator`), the post-link (`LibDevicePostLink`, whose `Link` returns what it did) and the WSL workaround (`CudaWslDevices`); its own `BOOT.md`/`API.md` hold the contract | internal |
+| `Ptx/` (child node, `APThermo.Execution.Ptx`) | the post-link (`PtxPostLink`, whose `Link` returns what it did) and the WSL workaround (`CudaWslDevices`); its own `BOOT.md`/`API.md` hold the contract | internal |
 
 ⚠ 2026-09-14: was `FunctionCount` the kernel's stride, now the const `StrideCount` →
 HISTORY.md#probe-stride-count-2026-09-14
@@ -212,13 +205,17 @@ HISTORY.md#child-nodes-decision-2026-09-15
 ⚠ 2026-10-01: was `LibDevice/` failed (three types), now a child: about 90 lines of
 rules bind only its files → HISTORY.md#libdevice-child-node-2026-10-01
 
+⚠ 2026-10-05: was `LibDevice/` with the discovery of libnvvm and libdevice, now `Ptx/`
+with the post-link and the WSL workaround only → HISTORY.md#libdevice-retired-2026-10-05
+
 Decisions taken with the review of 2026-09-14:
 
 - The fallback says why (`CudaSkippedBecause`, a contract change recorded in `API.md`).
   ⚠ 2026-09-15: was `CudaSkippedBecause` null when CUDA was not tried, now null when
   CUDA was bound or the CPU was asked for → HISTORY.md#fallback-says-why-2026-09-15
-- Review of 2026-09-14: the missing-definition guard names the wrapper, the chunk bound
-  counts every buffer → HISTORY.md#review-decisions-guard-and-chunk-bound-2026-09-14
+- Review of 2026-09-14: the chunk bound counts every buffer; its other half, a guard that
+  names a missing wrapper, went with the wrappers (2026-10-05) →
+  HISTORY.md#review-decisions-guard-and-chunk-bound-2026-09-14
 - **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
   and `EquilibriumBatchViews` (13) are kernel parameter descriptors; grouping their
   views would re-emit the kernels and move the contract. They are this node's
@@ -274,13 +271,14 @@ HISTORY.md#kernels-ce-26-2026-09-27
 ## Taboos
 
 - No numerical formula in this node: kernels only slice and call.
-- No ILGPU.Algorithms, no `XMath`, no `LibDevice.*` calls: the wrappers are provided by
-  the post-link and the numerical nodes call `System.Math`.
-- No kernel whose wrappers go unchecked: `Context.Builder.LibDevice()` defines them for
-  some targets and silently drops them for others (the post-link constraint).
+- No ILGPU.Algorithms, no `XMath`, no `LibDevice.*` call and no `LibDevice()` in the context
+  builder: a libdevice function is a result the CPU cannot reproduce, which the tree's own
+  correctly rounded `Exp`, `Log` and `Pow` replaced (2026-10-05).
+- No kernel whose arithmetic goes unchecked: the post-link refuses a fused or `.approx`
+  instruction and an external function it did not write.
 
-  ⚠ 2026-09-26: was "No reliance on `Context.Builder.LibDevice()` for wrappers", now it
-  does for `compute_75` to `compute_90` → HISTORY.md#taboo-libdevice-reliance-2026-09-26
+  ⚠ 2026-10-05: was "No kernel whose wrappers go unchecked", now arithmetic, since there are
+  no wrappers → HISTORY.md#libdevice-retired-2026-10-05
 - No fallback from an explicitly requested CUDA accelerator to the CPU: silent
   fallbacks hide the very failures this node exists to surface.
 - No reduction, atomic or shared-memory construct in a kernel: determinism first.

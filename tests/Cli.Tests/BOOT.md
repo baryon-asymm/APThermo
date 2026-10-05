@@ -75,6 +75,14 @@ The definition of what "`Cli` is ready" means.
   the line in the commit that removed the example`, so a deleted example's line cannot
   survive unnoticed either.
 
+  ⚠ 2026-10-05: the Windows and the Linux record named below are one record now (owner
+  decision O5, item 13 of release 0.2.2). The tree's own correctly rounded `Exp`, `Log`
+  and `Pow` replaced the platform's C runtime in every kernel, so the Windows and the
+  Linux (WSL2) bits of this node are equal and `ApprovedPath` resolves through
+  `Harness.ApprovedSnapshot.RecordPathFor` to `Bits.approved.txt` on every platform;
+  `Bits.linux.approved.txt` is deleted. The JSON hash reads the platform's line break as
+  `\n` (`BitExamples.JsonSha256`), the one difference left between the two platforms.
+
   ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
   now keeps a Windows and a Linux record, since the CPU accelerator's `System.Math`
   calls the platform's C runtime and the two do not round the last bit alike;
@@ -99,6 +107,12 @@ The definition of what "`Cli` is ready" means.
   carries no trait: it compares one run's captured text against the same run's
   delivered file, never against `Bits.approved.txt`, so it stays outside this
   deviation and keeps running on hosted CI.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and the bit facts run on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform). The wrong claim
+  stood in this node after the record became one; found when the merged tree was verified.
 - **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
   tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
   wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,

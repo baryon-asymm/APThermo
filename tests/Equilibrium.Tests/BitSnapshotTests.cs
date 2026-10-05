@@ -17,7 +17,7 @@ public sealed class BitSnapshotTests
     private static readonly string[] Kinds = ["tp", "hp", "sp"];
 
     /// <summary>The path of this node's approved bit snapshot.</summary>
-    public static string ApprovedPath => ApprovedSnapshot.ApprovedPathFor(RepositoryPaths.Resolve("tests", "Equilibrium.Tests"), "Bits");
+    public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Equilibrium.Tests"), "Bits");
 
     /// <summary>The host solve of every tp, hp and sp fixture case gives the recorded bits.</summary>
     [Fact]

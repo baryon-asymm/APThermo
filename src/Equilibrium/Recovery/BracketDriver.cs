@@ -61,13 +61,13 @@ internal static class BracketDriver
 
         if (plan.Bracket.Scanning && !(value > problem.Target))
         {
-            var below = DeadEnds.FloorBelow(table, scratch, Math.Exp(plan.Bracket.ProbeX));
+            var below = DeadEnds.FloorBelow(table, scratch, plan.Bracket.ProbeAsTemperature);
             return Launch(table, problem, scratch, result, plan.Bracket.Scan(below), ref plan);
         }
 
         var step = plan.Bracket.Record(problem.Target, value, PassOutcome.Slope(result, plan, hp), plan.Found);
         BracketSeeds.Save(table, scratch, result, plan.Bracket.LastBelow);
-        var floor = plan.Bracket.NeedsFloor ? DeadEnds.FloorBelow(table, scratch, Math.Exp(plan.Bracket.ProbeX)) : 0.0;
+        var floor = plan.Bracket.NeedsFloor ? DeadEnds.FloorBelow(table, scratch, plan.Bracket.ProbeAsTemperature) : 0.0;
         return Launch(table, problem, scratch, result, plan.Bracket.Advance(step, floor), ref plan);
     }
 
@@ -172,7 +172,7 @@ internal static class BracketDriver
     private static bool LaunchFinal(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                     in EquilibriumResult result, BracketMove move, ref AttemptPlan plan)
     {
-        var temperature = Math.Exp(plan.Bracket.ProbeX);
+        var temperature = plan.Bracket.ProbeAsTemperature;
         if (move is BracketMove.AttemptFromLever or BracketMove.TraceGasFromLever)
         {
             temperature = plan.Bracket.LeverTemperature(problem.Target);
@@ -200,7 +200,7 @@ internal static class BracketDriver
     /// <summary>The gasless final: the verdict alone at the temperature Newton's step converged on, or at the lever temperature between two gasless ends.</summary>
     private static bool LaunchGasless(in EquilibriumProblem problem, BracketMove move, ref AttemptPlan plan)
     {
-        var temperature = move == BracketMove.GaslessAtProbe ? Math.Exp(plan.Bracket.FinalX) : plan.Bracket.LeverTemperature(problem.Target);
+        var temperature = move == BracketMove.GaslessAtProbe ? plan.Bracket.FinalAsTemperature : plan.Bracket.LeverTemperature(problem.Target);
         plan.Bracket.Finishing = true;
         plan.Bracket.Final = move;
         plan.Current = PassOutcome.TpAt(problem, temperature);

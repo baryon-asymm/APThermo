@@ -6,9 +6,8 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>
 /// The 0.2.2 families of the gasless verdict and the temperature bracket (<see cref="RecoveryFamilies"/>) on the CPU accelerator alone,
-/// the half of <see cref="CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator"/> that needs no GPU: what each family holds, that the
-/// comparison accepts a second CPU run over moved element moles (the stand-in for the other accelerator, as in
-/// <see cref="BalanceRemnantTests"/>), and that it refuses what it should, each break shown red once on <c>NoGasPhase</c> and on <c>Ok</c> cases.
+/// the half of <see cref="CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator"/> that needs no GPU: what each family holds and
+/// the check of the launch budget. The exact comparison of two runs, each break shown red once, is <see cref="ExactComparisonTests"/>.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed class BracketedFamiliesTests(ITestOutputHelper output)
@@ -60,56 +59,6 @@ public sealed class BracketedFamiliesTests(ITestOutputHelper output)
         }
     }
 
-    /// <summary>The comparison accepts a second CPU run over moved element moles on every family: the CPU half of the CUDA comparison, <c>NoGasPhase</c> cases included.</summary>
-    [Theory]
-    [MemberData(nameof(FamilyNames))]
-    public void TheComparisonAcceptsASecondRunOverMovedElementMoles(string name)
-    {
-        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
-        var run = BalanceRemnantTests.TwoRuns((family.Batch, family.Table, []));
-        var comparison = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true };
-        var mismatches = comparison.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities);
-        output.WriteLine($"{name}: worst {comparison.Worst()}");
-        Assert.True(mismatches.Count == 0, string.Join("\n", mismatches.Take(30)) + "\nworst: " + comparison.Worst());
-    }
-
-    /// <summary>Two identical CPU runs over the gasless KO2 family compare clean, and each deliberate break of the second is refused with its own message: red once per rule.</summary>
-    [Fact]
-    public void TheGaslessComparisonRefusesWhatItShould()
-    {
-        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, "gasless-ko2");
-        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
-        var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, tables, family.Batch, family.Table);
-        var tp = family.Batch.Kind.ToList().IndexOf(ProblemKind.AssignedTemperaturePressure);
-        var hp = family.Batch.Kind.ToList().IndexOf(ProblemKind.AssignedEnthalpyPressure);
-        var species = family.Table.SpeciesCount;
-        var baseline = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
-        var condensed = Enumerable.Range(family.Table.GasCount, species - family.Table.GasCount).First(j => baseline.Moles[tp * species + j] > 0.0);
-        Assert.Empty(Compare(tables, family, sensitivities, _ => { }));
-
-        Assert.Contains("zero for a NoGasPhase state", Single(Compare(tables, family, sensitivities, r => r.State[tp] = r.State[tp] with { Density = 1.0 })), StringComparison.Ordinal);
-        Assert.Contains("zero for a NoGasPhase state", Single(Compare(tables, family, sensitivities, r => r.State[hp] = r.State[hp] with { SoundSpeed = 1e-300 })), StringComparison.Ordinal);
-        Assert.Contains("pressure on cuda", Single(Compare(tables, family, sensitivities, r => r.State[tp] = r.State[tp] with { Pressure = Math.BitIncrement(r.State[tp].Pressure) })), StringComparison.Ordinal);
-        Assert.Contains("temperature on cuda", string.Join('\n', Compare(tables, family, sensitivities, r => r.State[tp] = r.State[tp] with { Temperature = Math.BitIncrement(r.State[tp].Temperature) })), StringComparison.Ordinal);
-        Assert.Empty(Compare(tables, family, sensitivities, r => r.State[hp] = r.State[hp] with { Temperature = r.State[hp].Temperature * (1.0 + 1e-12) }));
-        Assert.Contains("temperature cpu", string.Join('\n', Compare(tables, family, sensitivities, r => r.State[hp] = r.State[hp] with { Temperature = r.State[hp].Temperature * (1.0 + 1e-9) })), StringComparison.Ordinal);
-        Assert.Contains($"moles of {family.Table.Species[0]}", string.Join('\n', Compare(tables, family, sensitivities, r => r.Moles[tp * species] = 1e-3)), StringComparison.Ordinal);
-        Assert.Contains($"moles of {family.Table.Species[condensed]}", string.Join('\n', Compare(tables, family, sensitivities, r => r.Moles[tp * species + condensed] *= 1.0 + 1e-8)), StringComparison.Ordinal);
-        Assert.Contains("status cpu NoGasPhase, cuda NotConverged", Single(Compare(tables, family, sensitivities, r => r.Status[tp] = CaseStatus.NotConverged)), StringComparison.Ordinal);
-    }
-
-    /// <summary>The comparison still refuses a perturbed <c>Ok</c> case of a bracketed family: the state, and a mole fraction.</summary>
-    [Fact]
-    public void TheOkComparisonOfABracketedFamilyRefusesWhatItShould()
-    {
-        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, "bracket-calcite-1e5");
-        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
-        var sensitivities = BalanceSensitivities.Measure(EngineFixture.Shared.Cpu, tables, family.Batch, family.Table);
-        Assert.Empty(Compare(tables, family, sensitivities, _ => { }));
-        Assert.Contains("Enthalpy", string.Join('\n', Compare(tables, family, sensitivities, r => r.State[0] = r.State[0] with { Enthalpy = r.State[0].Enthalpy * (1.0 + 1e-6) })), StringComparison.Ordinal);
-        Assert.Contains("status cpu Ok, cuda NoGasPhase", Single(Compare(tables, family, sensitivities, r => r.Status[0] = CaseStatus.NoGasPhase)), StringComparison.Ordinal);
-    }
-
     /// <summary>
     /// The check of the launch-budget fact on the CPU accelerator (<see cref="CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget"/>
     /// needs the device): a launch of the tiled hp and sp cases ends every case <c>NoGasPhase</c> and passes a generous limit, and a limit of
@@ -127,44 +76,5 @@ public sealed class BracketedFamiliesTests(ITestOutputHelper output)
         Assert.Contains("above the budget", RecoveryFamilies.LaunchViolation(run, TimeSpan.Zero), StringComparison.Ordinal);
         run.Status[0] = CaseStatus.Ok;
         Assert.Contains("did not end NoGasPhase", RecoveryFamilies.LaunchViolation(run, TimeSpan.FromMinutes(1)), StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// A bracketed case's <c>Iterations</c> sums every attempt and every probe (Equilibrium API), so a second run over moved element moles
-    /// differs in the total while its final state agrees to the first tier: the comparison for bracketed families counts nothing toward the
-    /// step share (<see cref="GpuCpuComparison.IterationsSumAttempts"/>) and holds every mole fraction to the first tier, which a
-    /// second-tier deviation (5e-10, inside the polish-threshold tier and above the first) must fail, where an unbracketed comparison of
-    /// stations with different step counts accepts it.
-    /// </summary>
-    [Fact]
-    public void ABracketedComparisonCountsNoStepsAndHoldsTheFirstTier()
-    {
-        var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, "bracket-magnesite-1e5");
-        var run = BalanceRemnantTests.TwoRuns((family.Batch, family.Table, []));
-        Assert.Contains(Enumerable.Range(0, family.Batch.Count), k => run.Cpu.Iterations[k] != run.Other.Iterations[k]);
-        var bracketed = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true };
-        Assert.Empty(bracketed.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities));
-        Assert.Equal(0, bracketed.DifferentSteps);
-        Assert.Contains("bracketedIterationDifference", bracketed.Worst(), StringComparison.Ordinal);
-
-        var species = family.Table.SpeciesCount;
-        var total = run.Other.Moles.Take(species).Sum();
-        var gas = Enumerable.Range(0, family.Table.GasCount).First(j => run.Other.Moles[j] / total > 1e-3);
-        run.Other.Moles[gas] *= 1.0 + 5e-10;
-        var strict = new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true };
-        Assert.Contains(strict.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities), m => m.Contains($"x({family.Table.Species[gas]})", StringComparison.Ordinal));
-        var loose = new GpuCpuComparison(EngineFixture.Shared.Tolerances);
-        Assert.DoesNotContain(loose.Equilibrium(run.Cpu, run.Other, family.Batch, family.Table, family.Labels, run.Sensitivities), m => m.Contains($"x({family.Table.Species[gas]})", StringComparison.Ordinal));
-    }
-
-    private static string Single(List<string> mismatches) => Assert.Single(mismatches);
-
-    /// <summary>The family run twice on the CPU accelerator, the second result broken by <paramref name="breakIt"/>, and the comparison of the two.</summary>
-    private static List<string> Compare(UploadedTables tables, BracketedFamily family, BalanceSensitivities sensitivities, Action<EquilibriumBatchResult> breakIt)
-    {
-        var cpu = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
-        var other = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
-        breakIt(other);
-        return new GpuCpuComparison(EngineFixture.Shared.Tolerances) { IterationsSumAttempts = true }.Equilibrium(cpu, other, family.Batch, family.Table, family.Labels, sensitivities);
     }
 }

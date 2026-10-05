@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using APThermo.Execution.LibDevice;
 using ILGPU;
 using ILGPU.Backends.EntryPoints;
 using ILGPU.Backends.PTX;
@@ -33,7 +32,6 @@ public sealed partial class ByteVectorTests
         }
 
         var accelerator = (CudaAccelerator)cuda.IlgpuAccelerator;
-        var (dll, bitcode, _) = LibDeviceLocator.Locate(new EngineOptions());
         var methods = typeof(Kernels).GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
             .Where(m => m.GetParameters().Length > 0 && m.GetParameters()[0].ParameterType == typeof(Index1D))
             .ToList();
@@ -41,9 +39,7 @@ public sealed partial class ByteVectorTests
         var offenders = new List<string>();
         foreach (var method in methods)
         {
-            using var nvvm = NvvmAPI.Create(dll!, bitcode!);
-            using var backend = new PTXBackend(accelerator.Context, accelerator.Architecture, accelerator.InstructionSet, nvvm);
-            var compiled = (PTXCompiledKernel)backend.Compile(EntryPointDescription.FromImplicitlyGroupedKernel(method), KernelSpecialization.Empty);
+            var compiled = (PTXCompiledKernel)accelerator.Backend.Compile(EntryPointDescription.FromImplicitlyGroupedKernel(method), KernelSpecialization.Empty);
             Assert.NotEmpty(compiled.PTXAssembly);
             var found = ByteVector().Count(compiled.PTXAssembly);
             if (found > 0)

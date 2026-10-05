@@ -9,7 +9,7 @@ namespace APThermo.Execution.Tests;
 /// An equilibrium family whose batch is seeded by moles (2026-10-04): one table, one seeded batch, the labels of its cases, the fixture
 /// cases whose reference temperature the CPU accelerator is checked against (null where the inputs are computed), the temperature of the
 /// plateau every case lies on (null where there is none), and whether a case's <c>Iterations</c> sums the attempts of the temperature
-/// bracket (<see cref="GpuCpuComparison.IterationsSumAttempts"/>).
+/// bracket (the sum is part of what the exact comparison holds equal).
 /// </summary>
 internal sealed record SeededFamily(SpeciesTable Table, EquilibriumBatch Batch, IReadOnlyList<string> Labels, IReadOnlyList<CeaCase>? References,
                                     double? PlateauTemperature, bool SumsAttempts);

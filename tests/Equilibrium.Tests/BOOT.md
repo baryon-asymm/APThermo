@@ -32,6 +32,13 @@ The definition of what "`Equilibrium` is ready" means.
   is re-approved with that reason recorded here. A fixture case absent from the
   snapshot fails the test with instructions, as the surface snapshot does.
 
+  ⚠ 2026-10-05: the Windows and the Linux record named below are one record now (owner
+  decision O5, item 13 of release 0.2.2). The tree's own correctly rounded `Exp`, `Log`
+  and `Pow` replaced the platform's C runtime in every kernel, so the Windows and the
+  Linux (WSL2) bits of this node are equal and `ApprovedPath` resolves through
+  `Harness.ApprovedSnapshot.RecordPathFor` to `Bits.approved.txt` on every platform;
+  `Bits.linux.approved.txt` is deleted.
+
   ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
   now keeps a Windows and a Linux record, since the CPU accelerator's `System.Math`
   calls the platform's C runtime and the two do not round the last bit alike;
@@ -54,6 +61,11 @@ The definition of what "`Equilibrium` is ready" means.
   (`ci.yml`; `release.yml`'s `matrix` job; filter
   `Category!=LongRunning&Category!=BitSnapshot`), where the CEA tolerance tests of
   the L1 row above hold correctness instead.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and the bit facts run on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform).
 - **This node owns the tolerance of a comparison that is not with the reference**
   (2026-09-14): two paths of this tree reaching the same state (an equilibrium solve
   and a frozen one at its composition; a plateau state reached twice) or an algebraic

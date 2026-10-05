@@ -74,7 +74,7 @@ internal static class SingularRemedies
             {
                 if (SpeciesMarks.InPlay(scratch, j) && result.Moles[j] == 0.0)
                 {
-                    scratch.LogMoles[j] = Math.Log(ResetMoles);
+                    scratch.LogMoles[j] = KernelMath.Log(ResetMoles);
                 }
             }
 

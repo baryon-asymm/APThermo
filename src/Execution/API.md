@@ -35,9 +35,6 @@ public sealed record EngineOptions
     public const long DefaultScratchBytes = 256L << 20;
     public AcceleratorKind Accelerator { get; init; } = AcceleratorKind.Auto;
     public int CudaDeviceIndex { get; init; } = 0;
-    public string? LibNvvmPath { get; init; }          // explicit libnvvm path (nvvm64_40_0.dll on Windows, libnvvm.so on Linux), tried first; given together with LibDevicePath or not at all (2026-09-26)
-    public string? LibDevicePath { get; init; }        // explicit libdevice.10.bc, tried first
-    public bool LibDeviceDiscovery { get; init; } = true;   // CUDA_PATH and the toolkit directories after the explicit pair
     public int ChunkSize { get; init; } = DefaultChunkSize;         // cases (or stations) per launch
     public long ScratchBytes { get; init; } = DefaultScratchBytes;  // a chunk shrinks so that its device bytes (every buffer of the chunk) stay within this; positive
 }
@@ -47,10 +44,8 @@ public sealed record AcceleratorInfo             // the constructor is internal 
     public AcceleratorKind Kind { get; }
     public string DeviceName { get; }
     public string IlgpuVersion { get; }
-    public string? LibNvvmPath { get; }
-    public string? LibDevicePath { get; }
     public int ThreadsOrMultiprocessors { get; }
-    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, the forbidding variable included, with the paths tried where they apply; null when CUDA was bound or the options asked for the CPU
+    public string? CudaSkippedBecause { get; init; }   // Auto fell back to the CPU accelerator: the failure that turned the choice, the forbidding variable included; null when CUDA was bound or the options asked for the CPU
 }
 
 public sealed class AcceleratorUnavailableException : Exception
@@ -58,8 +53,6 @@ public sealed class AcceleratorUnavailableException : Exception
     public AcceleratorUnavailableException();
     public AcceleratorUnavailableException(string message);
     public AcceleratorUnavailableException(string message, Exception innerException);
-    public AcceleratorUnavailableException(string message, IReadOnlyList<string> pathsTried, Exception? inner = null);
-    public IReadOnlyList<string> PathsTried { get; }   // the libnvvm and libdevice paths examined, in order
 }
 
 public static class AcceleratorProbe             // replaces Engine on the package surface (F1)
@@ -73,10 +66,16 @@ public static class AcceleratorProbe             // replaces Engine on the packa
 internal `Engine.Create` does (below); creating a CUDA context takes time, so call it
 once per accelerator kind, not per case.
 
-The first three constructors of `AcceleratorUnavailableException` were added
-2026-09-24 by the root's Diagnostics constraint (CA1032), for the .NET exception
-conventions; the tree itself always throws through the fourth. Their data property
-takes a neutral value: `PathsTried` empty.
+The three constructors of `AcceleratorUnavailableException` are the standard ones of the
+.NET exception conventions (the root's Diagnostics constraint, CA1032).
+
+⚠ 2026-10-05 (item 13 of 0.2.2, owner decision O4): was `EngineOptions.LibNvvmPath`,
+`.LibDevicePath` and `.LibDeviceDiscovery`, `AcceleratorInfo.LibNvvmPath` and
+`.LibDevicePath`, and `AcceleratorUnavailableException.PathsTried` with a constructor
+that took the paths; now none of them. The kernels call no libdevice function (the tree's
+own correctly rounded `Exp`, `Log` and `Pow` are C#), so no CUDA Toolkit file is looked
+for, named or required, and the exception's message alone says what failed. The package
+surface breaks here: `CHANGELOG.md`, Unreleased.
 
 ## Engine (tree contract) ✅
 
@@ -119,12 +118,14 @@ internal sealed class UploadedTables : IDisposable        // device copies of th
 
 internal static class MathProbe
 {
-    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Log10, Pow(1.37), Pow(1.4), Pow(4.6), Sqrt, Floor, Ceiling, Abs, Min(v,1), Max(v,1), Min(1,v), Max(1,v)
+    public static readonly IReadOnlyList<string> Functions;   // Exp, Log, Pow(1.37), Pow(1.4), Pow(4.6), Sqrt, Floor, Ceiling, Abs, Min(v,1), Max(v,1), Min(1,v), Max(1,v), Fma(v,1.37,4.6), v*1.37+4.6 (2026-10-05)
     public static int FunctionCount { get; }
     public static readonly IReadOnlyList<double> PowExponents;   // 1.37, 1.4, 4.6 (2026-09-27, the guards audit's F11)
     public const double PowExponent1 = 1.37;
     public const double PowExponent2 = 1.4;
     public const double PowExponent3 = 4.6;
+    public const double Factor = 1.37;                     // the factor and the addend of the last two entries (2026-10-05)
+    public const double Addend = 4.6;
     public static int OutputLength(int inputCount);        // inputCount * FunctionCount; ArgumentException above int.MaxValue (2026-09-30), the bound ProbeMath calls
 }
 ```
@@ -133,12 +134,13 @@ internal static class MathProbe
 
 ⚠ 2026-09-28 (the second hidden-defect audit, Execution finding F1): `Functions` listed one `Min`/`Max` entry each, both compiled from `KernelMath.Min(v, 1.0)`/`Max(v, 1.0)` — the variable-first order only. ILGPU 1.5.3 moves a constant left operand of a floating comparison to the right and inverts its NaN ordering while doing so (root `BOOT.md`, the third ILGPU defect), so the constant-first order compiles to different PTX and, for a NaN `v`, answered differently on CUDA (`KernelMath.Min(1.0, NaN)` was `1.0` on CUDA, `NaN` on the CPU accelerator, before the thermo node's `KernelMath` was made to test both operands for NaN first). `Functions` now probes both orders (`Min(v,1)`/`Max(v,1)` and `Min(1,v)`/`Max(1,v)`), and Floor and Ceiling moved next to the other libdevice-calling entries: they were documented as "the compiler emits directly", which held only for Abs (the post-link's own wrapper inventory names `__nv_floor` and `__nv_ceil` among the seven wrappers it completes for the probe). `StrideCount`/`FunctionCount` rise from 12 to 14.
 
+⚠ 2026-10-05 (item 13 of 0.2.2): `Functions` listed `Exp`, `Log`, `Log10`, `Pow` three times and the libdevice-calling `Floor` and `Ceiling` among the libdevice entries; now `Log10` is gone (the owner dropped it from the math list), `Exp`, `Log` and `Pow` are the tree's own `KernelMath` functions, and two entries make contraction visible, `KernelMath.Fma(v, Factor, Addend)` and `v * Factor + Addend`, which differ in the last bit for many `v` exactly when a compiler contracts the second into the first. `StrideCount`/`FunctionCount` are 15. The probe equals the CPU accelerator bit for bit on every entry.
+
 `Create` with `Auto` binds CUDA when all of the following hold, and the CPU
 accelerator otherwise:
 - CUDA is not forbidden;
-- libnvvm and libdevice are found;
 - the device exists and its CUDA context can be created;
-- the math probe kernel, which calls every libdevice wrapper of the math list,
+- the math probe kernel, which calls every function of the math list,
   post-links and loads on that device (2026-09-26).
 
 With `Cuda` every one of those failures is an `AcceleratorUnavailableException`. A CUDA
@@ -350,7 +352,8 @@ transport pass takes a plain batch of stations, built from either result by the 
 factories, so that the engine does not know where a composition came from; the counts
 make the flat layouts self-describing. `LibDeviceDiscovery` and `ScratchBytes` were
 added to the options: the first so that a test can prove the "paths tried" message
-on a machine with a toolkit, the second because the transport scratch is 40 KB per
+on a machine with a toolkit (gone with the libdevice, 2026-10-05, the ⚠ of that date
+under the Accelerator section), the second because the transport scratch is 40 KB per
 station and a fixed chunk of 16 384 would take 700 MB.
 
 ⚠ 2026-09-30 (the memory investigation of 2026-09-29): a disposed `Engine` kept every kernel
@@ -367,13 +370,12 @@ array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now
 
 | Situation | Behaviour |
 |---|---|
-| `AcceleratorKind.Cuda` requested and CUDA forbidden, no libnvvm or libdevice, no device at the index, or the context cannot be created | `AcceleratorUnavailableException` naming the missing piece and every path tried |
+| `AcceleratorKind.Cuda` requested and CUDA forbidden, no device at the index, or the context cannot be created | `AcceleratorUnavailableException` naming what failed |
 | `AcceleratorKind.Cuda` requested and the math probe kernel cannot be post-linked or loaded on the device (2026-09-26) | `AcceleratorUnavailableException` at `Engine.Create` or `AcceleratorProbe.Describe`, its inner exception the post-link's `InvalidOperationException` (the next rows); with `Auto`, the CPU accelerator, the post-link's message in `CudaSkippedBecause` |
 | ILGPU version or reflected member mismatch | `InvalidOperationException` at `Engine.Create` (reached through `AcceleratorProbe.Describe` or `Problems`' `Solver.Create`), naming the ILGPU version |
-| one of `LibNvvmPath` and `LibDevicePath` given without the other (2026-09-26) | `ArgumentException` at `Engine.Create` or `AcceleratorProbe.Describe`, naming the missing option |
 | a batch of zero cases or zero elements or species | `ArgumentOutOfRangeException` at construction |
 | a batch of another element or species count than the table, a seeded equilibrium batch whose seed stride is not the table's species count or whose seed holds a value that is not finite (2026-10-04, naming the case and the species), tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
-| a kernel's PTX calls a wrapper ILGPU has no fragment for, the post-link produced no definition, libnvvm or the driver refused the PTX, or any libnvvm or driver call of the post-link returned a result other than success (2026-09-26, `BOOT.md`, "No libnvvm or driver result is ignored") | `InvalidOperationException` naming the wrapper, or the call and its result code, and carrying the compiler's or the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
+| a kernel's PTX holds a fused multiply-add the post-link did not write, an `.approx` instruction of doubles or an external function, or the driver refused the PTX, or a driver call of the post-link returned a result other than success (2026-10-05, `BOOT.md`, "No driver result is ignored") | `InvalidOperationException` naming the post-link, the target, what the PTX holds or the call and its result code, and carrying the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
 | a launch exceeds a display GPU's kernel run-time limit (2026-09-28, the second audit's Execution finding F2) | `AcceleratorUnavailableException` naming the limit, the chunk's case count and the CPU accelerator as remedy, its inner exception the driver's `CudaException` (`CUDA_ERROR_LAUNCH_TIMEOUT`); the context is lost with it, so the engine and its tables must be recreated |
 | `Upload`, a `Run` overload or `ProbeMath` is called after a launch of the same engine has already timed out (2026-09-29, the third audit pass, finding 2) | `AcceleratorUnavailableException` naming the earlier timeout, its inner exception that earlier `AcceleratorUnavailableException`; no CUDA call is made. Disposing a timed-out engine or its `UploadedTables` never throws: ILGPU's own cleanup of the lost context raises the same sticky `CudaException`, which is dropped rather than replacing whatever is already propagating |
 | a download from the accelerator leaves a chunk's host slice unwritten (2026-10-01, `Chunks/BOOT.md`, "A download that wrote nothing is refused"; never seen since the transfers are pinned) | `InvalidOperationException` from the `Run` overload, naming the element type and the chunk; no result is returned, so no `Ok` case carries zero figures |
@@ -382,13 +384,13 @@ array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now
 
 ## Side effects
 
-Creates an ILGPU context and accelerator; reads the environment variables
-`APTHERMO_NO_CUDA`, `CUDA_PATH`, `ProgramFiles` (Windows discovery) and `CUDA_HOME`
-(Linux discovery); loads native libraries (the CUDA driver, libnvvm) only when CUDA is
-chosen. No files are written.
+Creates an ILGPU context and accelerator; reads the environment variable
+`APTHERMO_NO_CUDA`; loads the CUDA driver only when CUDA is chosen. No files are written.
 
-⚠ 2026-09-15 (distribution phase): this row named `CUDA_PATH` and `ProgramFiles` only,
-before Linux discovery (`CUDA_HOME`, root BOOT.md's Platform constraint) was added.
+⚠ 2026-10-05: was also `CUDA_PATH`, `ProgramFiles` and `CUDA_HOME` (the discovery of
+libnvvm and libdevice) and libnvvm as a loaded library, now none: no toolkit is looked for.
+(2026-09-15: the row named `CUDA_PATH` and `ProgramFiles` only, before Linux discovery was
+added.)
 
 ## Out of scope
 

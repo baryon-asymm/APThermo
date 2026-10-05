@@ -16,13 +16,13 @@ namespace APThermo.Benchmarks;
 /// `PerformanceFigures` field is checked for bit equality first (`Harness.Bits.Same`);
 /// on the CPU accelerator a dry run found every field of every case bit-for-bit equal
 /// (BOOT.md, group 7's acceptance criterion), so a difference there is a finding, not
-/// an expected outcome. On CUDA the same dry run found `Solver` and the engine not
-/// bit-for-bit identical even though both call the identical kernel on the identical
-/// batch (worst observed 3.5e-12 relative on temperature): the same last-ULP pattern
-/// the root `BOOT.md`'s GPU-equals-CPU invariant documents for CUDA against the CPU
-/// accelerator, so a CUDA field is held to the GPU/CPU tolerance tiers this node's own
-/// `BOOT.md` already quotes from the execution tests node's `GpuCpuTolerances.Entries`
-/// (relative 1e-10 on temperature, 1e-9 on every other field); a mole fraction, the one
+/// an expected outcome. On CUDA the same dry run (2026-09-15, before the tree's own correctly
+/// rounded `Exp`, `Log` and `Pow` of 2026-10-05, when CUDA's libdevice and .NET's math differed in the
+/// last bit) found `Solver` and the engine not bit-for-bit identical even though both call the
+/// identical kernel on the identical batch (worst observed 3.5e-12 relative on temperature),
+/// so a CUDA field is held to the relative tolerances below, which this node keeps as they
+/// were (relative 1e-10 on temperature, 1e-9 on every other field) and which a bit-equal
+/// result now meets with room to spare; a mole fraction, the one
 /// value `Solver` derives — `n_j` over the moles of all species (`Problems/API.md`) —
 /// by a division whose rounding can differ from the engine's own summation even on the
 /// CPU accelerator, is held on every accelerator to the fixtures node's tolerance table
@@ -32,10 +32,9 @@ namespace APThermo.Benchmarks;
 /// path against the engine.
 internal sealed class EngineSolverComparison(ToleranceTable tolerances)
 {
-    // The execution tests node's GPU/CPU tolerance tiers (`GpuCpuTolerances.Entries`),
-    // already quoted in this node's own BOOT.md Invariants; Benchmarks may not name
-    // that node's internal type (its API.md exposes nothing outward), so the two
-    // figures are repeated here, as BOOT.md repeats them, rather than read from code.
+    // The relative tolerances this node's own BOOT.md Invariants quote; they were the execution
+    // tests node's GPU/CPU tiers until 2026-10-05, when that node's table was retired (CUDA
+    // equals the CPU accelerator bit for bit), and are kept here unchanged for the consumer path.
     private const double TemperatureRelativeTolerance = 1.0e-10;
     private const double OtherFieldRelativeTolerance = 1.0e-9;
 

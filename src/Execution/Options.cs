@@ -3,7 +3,7 @@ namespace APThermo.Execution;
 /// <summary>Which accelerator an engine binds to.</summary>
 public enum AcceleratorKind
 {
-    /// <summary>CUDA when a device, libnvvm and libdevice are found and CUDA is not forbidden; otherwise the CPU accelerator.</summary>
+    /// <summary>CUDA when a device exists and CUDA is not forbidden; otherwise the CPU accelerator.</summary>
     Auto,
 
     /// <summary>The CPU accelerator of ILGPU with all cores; no CUDA API is touched.</summary>
@@ -31,15 +31,6 @@ public sealed record EngineOptions
     /// <value>The index of the CUDA device to bind to, when more than one is present. Defaults to 0.</value>
     public int CudaDeviceIndex { get; init; }
 
-    /// <summary>Explicit path of the libnvvm library (<c>nvvm64_40_0.dll</c> on Windows, <c>libnvvm.so</c> on Linux); tried first.</summary>
-    public string? LibNvvmPath { get; init; }
-
-    /// <summary>Explicit path of <c>libdevice.10.bc</c>; tried first.</summary>
-    public string? LibDevicePath { get; init; }
-
-    /// <summary>Whether <c>CUDA_PATH</c> and the CUDA toolkit directories are searched after the explicit paths.</summary>
-    public bool LibDeviceDiscovery { get; init; } = true;
-
     /// <value>The largest number of cases (or stations) one kernel launch processes. Defaults to
     /// <see cref="DefaultChunkSize"/>.</value>
     public int ChunkSize { get; init; } = DefaultChunkSize;
@@ -57,15 +48,11 @@ public sealed record EngineOptions
 /// </summary>
 public sealed record AcceleratorInfo
 {
-    internal AcceleratorInfo(
-        AcceleratorKind kind, string deviceName, string ilgpuVersion,
-        string? libNvvmPath, string? libDevicePath, int threadsOrMultiprocessors)
+    internal AcceleratorInfo(AcceleratorKind kind, string deviceName, string ilgpuVersion, int threadsOrMultiprocessors)
     {
         Kind = kind;
         DeviceName = deviceName;
         IlgpuVersion = ilgpuVersion;
-        LibNvvmPath = libNvvmPath;
-        LibDevicePath = libDevicePath;
         ThreadsOrMultiprocessors = threadsOrMultiprocessors;
     }
 
@@ -78,18 +65,12 @@ public sealed record AcceleratorInfo
     /// <value>The version of the ILGPU package in use.</value>
     public string IlgpuVersion { get; }
 
-    /// <value>The libnvvm path that was used, or <see langword="null"/> when the CPU accelerator was bound.</value>
-    public string? LibNvvmPath { get; }
-
-    /// <value>The libdevice path that was used, or <see langword="null"/> when the CPU accelerator was bound.</value>
-    public string? LibDevicePath { get; }
-
     /// <value>The number of hardware threads (CPU accelerator) or multiprocessors (CUDA) of the bound device.</value>
     public int ThreadsOrMultiprocessors { get; }
 
     /// <summary>
     /// Why <see cref="AcceleratorKind.Auto"/> fell back to the CPU accelerator: the failure that turned the choice, the forbidding
-    /// variable included, with the paths tried where they apply. Null when CUDA was bound or the options asked for the CPU.
+    /// variable included. Null when CUDA was bound or the options asked for the CPU.
     /// </summary>
     public string? CudaSkippedBecause { get; init; }
 }
@@ -97,44 +78,24 @@ public sealed record AcceleratorInfo
 /// <summary>Where the time of a run went. Warm-up is the kernel compilation on first use and is zero afterwards.</summary>
 internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
 
-/// <summary>A requested accelerator cannot be created; the message names the missing piece and every path that was tried.</summary>
+/// <summary>A requested accelerator cannot be created; the message names the missing piece.</summary>
 public sealed class AcceleratorUnavailableException : Exception
 {
-    /// <summary>Creates the exception, appending the tried paths to <paramref name="message"/> when there are any.</summary>
-    /// <param name="message">A description of what is missing.</param>
-    /// <param name="pathsTried">The libnvvm and libdevice paths that were examined, in order; may be empty.</param>
-    /// <param name="inner">The exception that caused this one, or <see langword="null"/> when there is none.</param>
-    public AcceleratorUnavailableException(string message, IReadOnlyList<string> pathsTried, Exception? inner = null)
-        : base(FormatMessage(message, pathsTried), inner)
-    {
-        PathsTried = pathsTried;
-    }
-
-    /// <summary>The libnvvm and libdevice paths that were examined, in order.</summary>
-    public IReadOnlyList<string> PathsTried { get; }
-
-    private static string FormatMessage(string message, IReadOnlyList<string> pathsTried)
-    {
-        ArgumentNullException.ThrowIfNull(pathsTried);
-        return pathsTried.Count == 0 ? message : message + " Paths tried: " + string.Join("; ", pathsTried) + ".";
-    }
-
-    /// <summary>Initializes a new instance with no paths tried. The tree itself always throws through the
-    /// constructor above; this exists for the .NET exception conventions (CA1032).</summary>
+    /// <summary>Initializes a new instance with no message (the .NET exception conventions, CA1032).</summary>
     public AcceleratorUnavailableException() : base()
     {
-        PathsTried = [];
     }
 
-    /// <summary>Initializes a new instance with the given message and no paths tried.</summary>
+    /// <summary>Initializes a new instance with a description of what is missing.</summary>
+    /// <param name="message">A description of what is missing.</param>
     public AcceleratorUnavailableException(string message) : base(message)
     {
-        PathsTried = [];
     }
 
-    /// <summary>Initializes a new instance with the given message and inner exception and no paths tried.</summary>
+    /// <summary>Initializes a new instance with a description of what is missing and the exception that caused it.</summary>
+    /// <param name="message">A description of what is missing.</param>
+    /// <param name="innerException">The exception that caused this one.</param>
     public AcceleratorUnavailableException(string message, Exception innerException) : base(message, innerException)
     {
-        PathsTried = [];
     }
 }

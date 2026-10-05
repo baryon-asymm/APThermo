@@ -9,6 +9,20 @@ used to stand.
 
 ---
 
+<a id="cuda-tolerance-own-math-2026-10-05"></a>
+
+## 2026-10-05 — from "## Constraints" — the reason for the CUDA tolerance of the before and after comparison
+
+Item 13 of release 0.2.2 replaced `System.Math`'s and libdevice's `exp`, `log` and `pow` by the tree's own correctly rounded ones; CUDA and the CPU accelerator return the same bits since. The comparison class keeps its relative tolerances for the consumer path. The text as it stood:
+
+> NVVM compiles the
+> restructured kernels the clean-code pass produced to different last-ULP
+> arithmetic than it compiled the kernels before the pass — the same
+> libdevice-against-.NET last-ULP effect the root `BOOT.md`'s GPU-equals-CPU
+> invariant already documents for a single run.
+
+---
+
 <a id="console-to-library"></a>
 
 ## 2026-10-01 — from "## Purpose" — the node stood a console project

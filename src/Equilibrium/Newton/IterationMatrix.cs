@@ -62,7 +62,7 @@ internal static class IterationMatrix
                 continue;
             }
 
-            var nj = Math.Exp(scratch.LogMoles[j]);
+            var nj = KernelMath.Exp(scratch.LogMoles[j]);
             var mu = scratch.GOverRT[j] + scratch.LogMoles[j] - sums.LogN + sums.LogPressure;
             var dn = d * nj;
             for (var l = 0; l < elementCount; l++)

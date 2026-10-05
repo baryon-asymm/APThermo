@@ -8,6 +8,29 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="linux-copies-lifted"></a>
+
+## 2026-10-05 — from "## Acceptance criteria" — the declared deviation of the Linux approved copies
+
+Moved because the deviation is lifted: item 13 of release 0.2.2 (the tree's own correctly rounded `Exp`, `Log` and `Pow`) made the Windows and WSL2 documents equal, the six `*.linux.approved.json` files were deleted and the node keeps one record per example (owner decision O5). The text as it stood:
+
+>       - Declared deviation (AGENTS.md §12) from "checked against its own platform's
+>         record": the six new `*.linux.approved.json` files are byte-for-byte copies of
+>         their Windows counterparts, made by this task because it runs on the
+>         reference machine's Windows side only and cannot produce a genuine WSL
+>         recording. They make the file that `ApprovedPathOf` requires on Linux exist
+>         and let the Linux exact fact run at all, but they do not yet carry a real
+>         Linux byte pattern — on Linux today they would pass only because the platform
+>         difference (about 1e-13 relative, the Documentation ⚠ of 2026-09-29, now at
+>         root `HISTORY.md#docs-plat`) happens to round away in most of these six records' printed
+>         digits, not because the file was recorded there. This is lifted only by a run
+>         under WSL on the reference machine that re-records each file for real, which
+>         this task leaves to the orchestrator, together with the "red once" evidence
+>         for a changed Linux byte under WSL that the mechanism above already proves on
+>         Windows.
+
+---
+
 <a id="field-comparison-moved"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — JsonFieldComparison moves to the harness

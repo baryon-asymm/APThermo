@@ -8,6 +8,18 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="bit-identical-2026-10-05"></a>
+
+## 2026-10-05 — from "## Invariants" — the agreement between CPU and CUDA
+
+Item 13 of release 0.2.2 (the tree's own correctly rounded `Exp`, `Log` and `Pow`, `src/Thermo/Elementary`) made the two accelerators equal bit for bit on every fixture family, the sweep and the species functions (`tests/Execution.Tests`). The text as it stood:
+
+> Results are bit-identical between two calls with the same arguments on
+> the same accelerator, and agree between the CPU accelerator and CUDA within the
+> math-function tolerance of the execution tests node.
+
+---
+
 <a id="crit-kernelmath-payload"></a>
 
 ## 2026-10-01 — from "## Acceptance criteria" — criterion: the KernelMath host fact does not take System.Math's NaN payload for an oracle

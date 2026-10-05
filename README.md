@@ -95,10 +95,10 @@ nothing beyond the package. CUDA is supported on both too, but Linux verificatio
 still pending as of this release (the root `BOOT.md`'s Linux acceptance criterion,
 the fast suite on the CPU accelerator and the execution tests node's CUDA sweep under
 WSL2 on the reference machine, is unticked). CUDA additionally needs, at run time, an
-NVIDIA driver with CUDA 12.8 or newer, plus `libnvvm` and `libdevice.10.bc` from a
-CUDA Toolkit 12.8 or newer.
-`AcceleratorKind.Auto` falls back to the CPU accelerator when no usable GPU or library
-is found. See [GPU acceleration](docs/guide/gpu.md) for the discovery order and how to
+NVIDIA driver with CUDA 12.8 or newer, and nothing else: no CUDA Toolkit. CUDA and the
+CPU accelerator return the same bits.
+`AcceleratorKind.Auto` falls back to the CPU accelerator when no usable GPU
+is found. See [GPU acceleration](docs/guide/gpu.md) for how the accelerator is chosen and how to
 check which accelerator a run used.
 
 ## Units

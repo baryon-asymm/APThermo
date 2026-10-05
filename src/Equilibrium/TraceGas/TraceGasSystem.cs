@@ -78,7 +78,7 @@ internal static class TraceGasSystem
                 continue;
             }
 
-            var x = Math.Exp(scratch.Corrections[j]);
+            var x = KernelMath.Exp(scratch.Corrections[j]);
             for (var k = 0; k < elementCount; k++)
             {
                 var akj = table.Stoichiometry[k * speciesCount + j];
@@ -100,7 +100,7 @@ internal static class TraceGasSystem
 
         ElementRows(table, problem, scratch, result, frame);
         CondensedRows(table, scratch, result, layout);
-        scratch.RightHandSide[nRow] = -Math.Log(frame.Sum);
+        scratch.RightHandSide[nRow] = -KernelMath.Log(frame.Sum);
     }
 
     /// <summary>The right-hand side <c>(b_i − Σ_j a_ij n_j)/n</c> of every element row, the ridge on its diagonal, the unit row of an absent element.</summary>
@@ -171,7 +171,7 @@ internal static class TraceGasSystem
             }
 
             var logFraction = scratch.Corrections[j];
-            var x = Math.Exp(logFraction);
+            var x = KernelMath.Exp(logFraction);
             var h = scratch.HOverRT[j];
             var w = hp ? h : scratch.SOverR[j] - logFraction - frame.LogPressure;
             var dpiWeight = hp ? h : w - 1.0;

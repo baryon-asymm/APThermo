@@ -107,7 +107,13 @@ internal struct TemperatureBracket
     public double FinalX;
 
     /// <summary>The temperature of the probe in flight, K, never below the mixture window's floor.</summary>
-    public readonly double ProbeTemperature => KernelMath.Max(EquilibriumSolver.MinMixtureTemperature, Math.Exp(ProbeX));
+    /// <summary>The temperature of the probe, <c>exp(ProbeX)</c>, without the floor of <see cref="ProbeTemperature"/>.</summary>
+    public readonly double ProbeAsTemperature => KernelMath.Exp(ProbeX);
+
+    /// <summary>The temperature of the final point, <c>exp(FinalX)</c>.</summary>
+    public readonly double FinalAsTemperature => KernelMath.Exp(FinalX);
+
+    public readonly double ProbeTemperature => KernelMath.Max(EquilibriumSolver.MinMixtureTemperature, KernelMath.Exp(ProbeX));
 
     /// <summary>Whether the search stands at a one-sided probe going down, where the data floor of a condensed record may stop it.</summary>
     public readonly bool NeedsFloor => !(HaveLow && HaveHigh) && !LastBelow;
@@ -117,7 +123,7 @@ internal struct TemperatureBracket
     {
         Active = true;
         FirstFailure = firstFailure;
-        ProbeX = Math.Log(estimate > 0.0 ? estimate : DefaultStart);
+        ProbeX = KernelMath.Log(estimate > 0.0 ? estimate : DefaultStart);
     }
 
     /// <summary>Whether the end nearer to <paramref name="x"/> is the lower one; false when only the upper end is known.</summary>
@@ -218,7 +224,7 @@ internal struct TemperatureBracket
             return GiveUp(CaseStatus.TemperatureOutOfRange);
         }
 
-        ProbeX = Math.Log(floor * (1.0 - ScanMargin));
+        ProbeX = KernelMath.Log(floor * (1.0 - ScanMargin));
         return BracketMove.Probe;
     }
 
@@ -245,7 +251,7 @@ internal struct TemperatureBracket
 
     /// <summary>The lever rule's temperature between the two ends, K.</summary>
     public readonly double LeverTemperature(double target) =>
-        Math.Exp(LowX) + LeverFraction(target) * (Math.Exp(HighX) - Math.Exp(LowX));
+        KernelMath.Exp(LowX) + LeverFraction(target) * (KernelMath.Exp(HighX) - KernelMath.Exp(LowX));
 
     private BracketMove GiveUp(CaseStatus status)
     {
@@ -267,7 +273,7 @@ internal struct TemperatureBracket
         };
 
     private readonly bool OutOfDomain() =>
-        LastBelow ? ProbeX >= Math.Log(EquilibriumSolver.MaxTemperature) : ProbeX <= Math.Log(EquilibriumSolver.MinMixtureTemperature);
+        LastBelow ? ProbeX >= KernelMath.Log(EquilibriumSolver.MaxTemperature) : ProbeX <= KernelMath.Log(EquilibriumSolver.MinMixtureTemperature);
 
     /// <summary>Inside a known bracket: the Newton point, or the midpoint when it leaves the bracket or does not halve the step.</summary>
     private readonly double Inside(double step)
@@ -287,7 +293,7 @@ internal struct TemperatureBracket
     private readonly double Outward(double step, double floor)
     {
         var next = ProbeX + KernelMath.Max(-MaxLogStep, KernelMath.Min(MaxLogStep, step));
-        next = KernelMath.Max(Math.Log(EquilibriumSolver.MinMixtureTemperature), KernelMath.Min(Math.Log(EquilibriumSolver.MaxTemperature), next));
-        return !LastBelow && floor > 0.0 ? KernelMath.Max(next, Math.Log(floor)) : next;
+        next = KernelMath.Max(KernelMath.Log(EquilibriumSolver.MinMixtureTemperature), KernelMath.Min(KernelMath.Log(EquilibriumSolver.MaxTemperature), next));
+        return !LastBelow && floor > 0.0 ? KernelMath.Max(next, KernelMath.Log(floor)) : next;
     }
 }

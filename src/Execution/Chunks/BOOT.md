@@ -317,7 +317,7 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
         collection inside its transfer": a `ChunkBuffers` with one `Output<int>` buffer,
         the device filled with a pattern; a helper thread holds ILGPU's
         `Accelerator.syncRoot` (a private field, reached by reflection; ILGPU's version
-        is asserted by the parent's `LibDevicePostLink.AssertIlgpu`) while the main
+        is asserted by the parent's `PtxPostLink.AssertIlgpu` (2026-10-05, was `LibDevicePostLink`)) while the main
         thread enters `DownloadChunk`, runs `GC.Collect(0, GCCollectionMode.Forced,
         blocking: true, compacting: true)` and releases it; the fact asserts that the
         pattern arrived in the host array, and that the collection compacted: a second,

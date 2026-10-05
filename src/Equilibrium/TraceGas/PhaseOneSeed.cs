@@ -367,13 +367,13 @@ internal static class PhaseOneSeed
                 continue;
             }
 
-            var x = Math.Exp(TraceGasStep.LogFraction(table, scratch, result, frame.LogPressure, j) - top);
+            var x = KernelMath.Exp(TraceGasStep.LogFraction(table, scratch, result, frame.LogPressure, j) - top);
             sum += x;
             moment += x * ExcessCoefficient(table, scratch, frame.Layout, j);
         }
 
         slope = moment / sum;
-        return top + Math.Log(sum);
+        return top + KernelMath.Log(sum);
     }
 
     /// <summary>Σ_i a_ij r_i: the change of ln x_j per unit step along the unit excess.</summary>
@@ -406,7 +406,7 @@ internal static class PhaseOneSeed
             {
                 if (SpeciesMarks.InPlay(scratch, j))
                 {
-                    g += table.Stoichiometry[i * table.SpeciesCount + j] * Math.Exp(TraceGasStep.LogFraction(table, scratch, result, frame.LogPressure, j));
+                    g += table.Stoichiometry[i * table.SpeciesCount + j] * KernelMath.Exp(TraceGasStep.LogFraction(table, scratch, result, frame.LogPressure, j));
                 }
             }
 

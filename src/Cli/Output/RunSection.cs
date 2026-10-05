@@ -54,8 +54,6 @@ internal static class RunSection
         writer.WriteString("kind", DocumentWords.Accelerator(accelerator.Kind));
         writer.WriteString("deviceName", accelerator.DeviceName);
         writer.WriteString("ilgpuVersion", accelerator.IlgpuVersion);
-        writer.WriteString("libNvvmPath", accelerator.LibNvvmPath);
-        writer.WriteString("libDevicePath", accelerator.LibDevicePath);
         writer.WriteNumber("threadsOrMultiprocessors", accelerator.ThreadsOrMultiprocessors);
         writer.WriteString("cudaSkippedBecause", accelerator.CudaSkippedBecause);
         writer.WriteEndObject();

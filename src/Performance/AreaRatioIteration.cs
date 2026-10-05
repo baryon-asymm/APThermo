@@ -23,7 +23,7 @@ internal static class AreaRatioIteration
     {
         var result = context.Result;
         var flow = context.Problem.Flow == FlowModel.ShiftingEquilibrium ? StationFlow.Shifting : StationFlow.Frozen;
-        var logAreaRatio = Math.Log(areaRatio);
+        var logAreaRatio = StationFigures.LogOf(areaRatio);
         var logPressureRatio = InitialLogPressureRatio(in throat, areaRatio, logAreaRatio, in estimate);
         var temperatureEstimate = estimate.Temperature;
         var outcome = ExitOutcome.NeverSupersonic;
@@ -31,7 +31,7 @@ internal static class AreaRatioIteration
         var derivative = 1.0;
         for (var iteration = 0; iteration < RocketSolver.MaxAreaRatioIterations; iteration++)
         {
-            var pressure = chamber.Pressure * Math.Exp(-logPressureRatio);
+            var pressure = StationFigures.PressureAt(chamber.Pressure, logPressureRatio);
             var request = new StationRequest(station, pressure, temperatureEstimate, chamber.Entropy, flow);
             if (!StationSolve.At(in context, in request))
             {
@@ -56,7 +56,7 @@ internal static class AreaRatioIteration
             var currentAreaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
             // Equation (6.23): ∂ln(A_e/A_t)/∂ln(p_c/p_e) at constant entropy.
             derivative = (velocitySquared - soundSquared) / (state.GammaS * velocitySquared);
-            var correction = (logAreaRatio - Math.Log(currentAreaRatio)) / derivative;
+            var correction = (logAreaRatio - StationFigures.LogOf(currentAreaRatio)) / derivative;
             if (Math.Abs(correction) <= RocketSolver.TightTolerance)
             {
                 outcome = ExitOutcome.Converged;
@@ -107,6 +107,6 @@ internal static class AreaRatioIteration
         var inputs = new StationFigureInputs(velocity, currentAreaRatio, chamber.Pressure / state.Pressure, throat.CharacteristicVelocity);
         StationFigures.Write(in context, station, in inputs, chamber.Entropy);
         estimate.Extrapolable = areaRatio > RocketSolver.ExtrapolationAreaRatio;
-        estimate.LogPressureRatio = Math.Log(chamber.Pressure / state.Pressure);
+        estimate.LogPressureRatio = StationFigures.LogOf(chamber.Pressure / state.Pressure);
     }
 }

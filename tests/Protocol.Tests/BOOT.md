@@ -316,10 +316,16 @@ Each fact was shown red once by a mutation applied alone and restored (2026-09-2
 **Audit fixes of 2026-09-28** (the second hidden-defect audit, guards part, F1, F3, F4,
 F5, O4, O6, O7); each closes a way a defect or a suppression passed every guard.
 - **The math list is an allow-list (F1).** The IL fact on the numerical nodes refuses
-  every call into `System.Math` and `System.Double` except `Exp`, `Log`, `Log10`, `Pow`,
-  `Sqrt`, `Abs`, `Floor` and `Ceiling` of `double`, and `double.IsNaN` and
-  `double.IsNegative` inside `KernelMath` only (the root's math constraint). It reads
+  every call into `System.Math` and `System.Double` except `Sqrt`, `Abs`, `Floor` and
+  `Ceiling` of `double`, and `double.IsNaN` and `double.IsNegative` inside `KernelMath`
+  only (the root's math constraint). It reads
   static members only: the instance `Equals`, `ToString` and `CompareTo` are host-side.
+  ⚠ 2026-10-05: was `Exp`, `Log`, `Log10` and `Pow` also allowed, now the tree's own
+  `KernelMath` functions replace them → HISTORY.md#allow-list-own-math-2026-10-05
+  Since 2026-10-05 the confinement covers `KernelMath` and the `Elementary` child of `src/Thermo`
+  (the tree's own elementary functions) and three more members: `Math.FusedMultiplyAdd`,
+  `BitConverter.DoubleToInt64Bits` and `Int64BitsToDouble` are called there and nowhere else,
+  and no other `BitConverter` member is called by a numerical node at all.
 - **No constant on the left of an ordered comparison (the third ILGPU defect).** A syntax
   fact over the numerical nodes' sources: no literal and no `const` left of `<`, `<=`,
   `>` or `>=` between floating-point operands, typed by the semantic model's

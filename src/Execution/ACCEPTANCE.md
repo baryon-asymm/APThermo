@@ -2,32 +2,48 @@
 
 ## Acceptance criteria
 
-- [x] 2026-09-12 — Probe kernel with every function of the root's math list: loads on
-      CUDA through the post-link, and its results equal the CPU accelerator within the
-      tolerance table (execution tests node; `ProbeKernelTests`:
-      `TheCpuAcceleratorReproducesDotnetMathExactly`,
-      `CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`).
-- [x] 2026-09-12 — The rocket batch of 100 000 cases on CUDA equals the same batch on
-      the CPU accelerator within the tolerance table; the compared fields are
-      enumerated by reflection over `MixtureState` and `PerformanceFigures`
-      (`CudaTests.TheSweepOf100000CasesOnCudaMatchesTheCpuAcceleratorAndIsDeterministic`,
-      long-running). The table has two tiers for mole fractions, by whether both
-      accelerators stopped after the same number of Newton steps at the station: see
-      the tests node's invariants for the finding behind it.
+- [x] 2026-10-05 — GPU equals CPU, bit for bit (item 13 of 0.2.2, owner decisions O1 to O9; `BOOT.md`, Invariants). The
+      tree's own correctly rounded `Exp`, `Log` and `Pow` and the post-link that fixes the arithmetic of the PTX make the two
+      accelerators run one program on one set of IEEE operations, so every comparison is exact (the tests node's
+      `ExactComparison`; its `ACCEPTANCE.md` holds the facts).
+      - The probe kernel, 15 entries of the math list and the constant operand orders, equals the host functions on the CPU
+        accelerator (`ProbeKernelTests.TheCpuAcceleratorReproducesTheHostFunctionsExactly`) and the CPU accelerator on CUDA
+        bit for bit, the NaN payload aside (`CudaEqualsTheCpuAcceleratorBitForBitForEveryFunction`).
+      - The rocket, equilibrium, transport and species-function batches on CUDA equal the CPU accelerator in statuses,
+        iteration counts and every field (`CudaTests` families; `SpeciesFunctionTests.CudaEqualsTheCpuAcceleratorBitForBit`),
+        and the sweep of 100 000 cases does too and is deterministic
+        (`CudaTests.TheSweepOf100000CasesOnCudaEqualsTheCpuAcceleratorBitForBitAndIsDeterministic`, long-running).
+      - Throughput: the CUDA/CPU ratio stays above the root's 5x floor, 20.07 on Windows and 31.07 under WSL2 (Release, median
+        of three runs; `tests/Execution.Tests/Throughput*.approved.txt`). The CUDA kernel costs 1.43e-7 s per Newton step against
+        7.85e-8 s before (+82 %, runs 1.26e-7 to 1.43e-7), the CPU accelerator 7.2 s against 5.3 s for the batch (+36 %); both
+        figures are of a machine shared with other test runs, and the orchestrator re-measures them on a quiet one.
+      - Evidence, 2026-10-05, the merged tree: Windows, Debug, `Category=Cuda` 80 of 81 (the one failure is the throughput fact,
+        which refuses to compare a Debug run with the Release record); Release, the throughput and the compile facts 4 of 4;
+        WSL2 Ubuntu 24.04, Release, `Category=Cuda` 81 of 81 (the sweep, the architecture fact and the throughput fact included, 27 m 37 s).
+- [x] 2026-10-05 — The PTX post-link (`Ptx/BOOT.md`): `Math.FusedMultiplyAdd` becomes `fma.rn.f64`, every double `mul`, `add`
+      and `sub` is marked `.rn`, and a foreign fma or mad, an `.approx` f64 instruction and any `.extern` are refused before
+      the trial load. `PostLinkTests` (15 facts, no GPU) and every architecture of `ArchitectureTests.EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice`
+      (the kernels of SM_75 to SM_121 equal the device's own in PTX and in the probe's bits). Red once each, 2026-10-05, each
+      mutation of `PtxPostLink.cs` alone and reverted (`git status` clean): the rounding replacement removed (1 red,
+      `EveryDoubleMultiplyAddAndSubtractIsMarkedRoundToNearest`); the approximate-instruction refusal removed (1 red);
+      the external-function refusal removed (2 red); the foreign-fma refusal removed (5 red); the declaration kept while a call
+      survives (1 red).
+- [x] 2026-10-05 — No CUDA Toolkit, libnvvm or libdevice is needed, named or looked for: the context is built without
+      `LibDevice()`, `EngineOptions` and `AcceleratorInfo` carry no path, and a bound CUDA engine has loaded no library of the
+      toolkit (`AcceleratorChoiceTests.ACudaEngineLoadsNoLibraryOfTheCudaToolkit`); the surface moves are the package
+      surface and tree contract snapshots and `CHANGELOG.md`, `[Unreleased]`. The WSL device-binding fix, the reflected ILGPU
+      field and the trial load stay (`CudaWslDevicesTests`, 3 facts).
+
 - [x] 2026-09-12 — Throughput: the 100 000-case rocket batch on CUDA is at least 5×
       faster than on the CPU accelerator with all cores on the reference machine; the
       measured figures are written to the approved benchmark file (long-running test
       `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio`;
-      `tests/Execution.Tests/Throughput.approved.txt`: 56.28×).
+      `tests/Execution.Tests/Throughput.approved.txt`, 20.07× on 2026-10-05).
 - [x] 2026-09-12 — With `APTHERMO_NO_CUDA=1` every test of this node passes on the CPU
-      accelerator and no CUDA API is called (verified by the absence of `nvcuda` and
-      `nvvm` in the loaded modules of the test process:
+      accelerator and no CUDA API is called (verified by the absence of `nvcuda` in the
+      loaded modules of the test process:
       `AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda`;
       the whole solution's suite run with the variable set, see the root's criteria).
-- [x] 2026-09-12 — With `AcceleratorKind.Cuda` and libdevice paths pointing nowhere,
-      the error names every path that was tried
-      (`AcceleratorChoiceTests.AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`,
-      `DiscoveryReportsTheToolkitPathsItExamined`).
 - [x] 2026-09-12 — The ILGPU version and reflected members are asserted at startup; a
       mutation test proves the assertion fails loudly
       (`AcceleratorChoiceTests.TheIlgpuAssertionFailsLoudlyForAnotherVersion`
@@ -36,12 +52,6 @@
 - [x] 2026-09-12 — Two runs of the same batch on the same accelerator are bit-identical
       (`BatchTests.ChunkingAndRepetitionDoNotChangeABit` on the CPU accelerator,
       the sweep test above on CUDA).
-- [x] 2026-09-12 — The species-function batch equals the host calls of `Thermo`'s
-      functions bit for bit on the CPU accelerator and matches CUDA within the tolerance
-      table, inside and outside the records' ranges (`SpeciesFunctionTests`:
-      `TheCpuAcceleratorEqualsTheHostFunctionsBitForBit`,
-      `CudaMatchesTheCpuAcceleratorWithinTheTable`,
-      `ASpeciesIndexOutsideTheTableIsRefusedBeforeAnyKernelRuns`).
 - [x] 2026-09-14 — The decomposition of 2026-09-14 (`## Structure`): no type or method
       above the root's code-shape limits, the declared exceptions being the four views
       structs' constructors and the Ce of `Engine` and `Kernels`; `ShapeTests` green at
@@ -56,21 +66,6 @@
       ⚠ 2026-09-15: was figures of the code at `42efbe7`, now `## Shape exceptions`
       holds ten rows and this node records no line figure of its own →
       HISTORY.md#decomposition-shape-rows-2026-09-15
-- [x] 2026-09-14 — The fallback names its reason: with `Auto`, `LibDeviceDiscovery`
-      off and the explicit paths pointing nowhere, the engine is the CPU one and
-      `CudaSkippedBecause` names what was missing and the paths tried
-      (`AcceleratorChoiceTests.AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried`,
-      the mirror of `AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried`);
-      committed in `c10ab0e`, where the equivalent test against the code of `8e36a27`
-      (where `AcceleratorInfo` said nothing) would have been red.
-- [x] 2026-09-14 — The missing-definition guard of the post-link is proven
-      non-degenerate: a wrapper body with one definition removed makes the check name
-      that wrapper, without a GPU
-      (`PostLinkTests.AWrapperBodyWithOneDefinitionRemovedNamesThatWrapper`,
-      `..._with_every_definition_removed_names_every_wrapper`, and
-      `ACallSiteIsNotMistakenForADefinition` against the two-substring-search
-      shape the guard had before `23ccc1d`, which read the whole linked text instead
-      of the wrapper body alone).
 - [x] 2026-09-14 — `ScratchBytes` of zero or less is refused at `Create` naming the
       option, like `ChunkSize`
       (`AcceleratorChoiceTests.ChunksAreBoundedByTheChunkSizeAndTheScratchMemory`,
@@ -86,112 +81,15 @@
 - [x] 2026-09-15 — `Engine.ProbeMath`'s dead `RunTimer` is gone, `Engine`'s Ce 26 → 25,
       held by `ShapeTests.EveryShapeExceptionIsMeasuredAndStillNeeded` (repair review,
       R-Execution-1) → HISTORY.md#criterion-dead-run-timer-2026-09-15
-- [x] 2026-09-15 — `LibDevicePostLink.CompileAgainstLibdevice` merged back into
-      `CompileWrappers` (R-Execution-2): `ShapeTests.NoControlFlowNestsDeeperThan3` and
-      `NoMethodSpansMoreThan60Lines` hold, and
-      `ProbeKernelTests.CudaMatchesTheCpuAcceleratorWithinTheUlpBoundForEveryFunction`
-      is green on the reference machine →
-      HISTORY.md#criterion-compile-against-libdevice-merged-2026-09-15
 - [x] 2026-09-15 — Every ticked criterion above re-verified on the decomposed and
       repaired code at `62cd99e`: its tests green in the full suite
       (`APTHERMO_NO_CUDA=1`, every category, 3037 tests, none skipped), and
       CUDA-category evidence on the reference machine (`tests/Execution.Tests`, 41,
       and the long-running sweep and throughput tests).
-- [x] 2026-09-15 (distribution phase) — Linux libdevice discovery (`cf87211`):
-      `LibDeviceLocator` branches on `OperatingSystem.IsWindows()` / `IsLinux()` and is
-      covered by `tests/Execution.Tests/LibDeviceDiscoveryTests.cs` through the internal
-      `Locate` seam over fake toolkit trees (12 facts, all green, the ordering fact
-      shown red once); the snapshots and the lint unchanged →
-      HISTORY.md#criterion-linux-libdevice-discovery-2026-09-15
-
-- [x] 2026-09-26 — No libnvvm or driver result is ignored: no `NvvmResult` or
-      `CudaError` returned by a call of the post-link is discarded (no `_ =` on such a
-      call remains in `LibDevicePostLink.cs`); the result-to-exception method is tested
-      with every non-success `NvvmResult` and a failing `CudaError`; the CUDA tests of
-      this node are green in Release, the long-running sweep and the throughput tripwire
-      included, with no `Bits*` or `Throughput*` record moving; the fast suite and the
-      lint are green.
-
-      The implementation (the two `ThrowIfFailed` overloads, the checked calls, the
-      release rule) and the evidence of the run (the `PostLinkTests` facts, 3178 fast
-      tests, 126 of 126 in Release) →
-      HISTORY.md#criterion-no-result-ignored-implementation-2026-09-26
-
-      ⚠ 2026-09-26, review: was the message naming the call and the result only, now
-      leading with "the libdevice post-link for {arch}" and the library; the release in
-      `ReleaseProgram` is best-effort without a catch →
-      HISTORY.md#no-result-ignored-message-review-2026-09-26
-
-- [x] 2026-09-26 — Every GPU architecture (the root's criterion of the same date; audit
-      finding F1).
-      - **The architecture fact** (`Category=Cuda`, `Category=LongRunning`). The architectures are every
-        `CudaArchitecture` ILGPU 1.5.3 declares from SM_75 up, and the entry points are
-        every entry point of `Kernels`; both lists come from reflection. For each
-        pair, the fact compiles the entry point with a `PTXBackend` for that
-        architecture and the session's libnvvm, passes it through `Link`, and loads it
-        on the reference device. It then asserts four things:
-        - both paths of the post-link occur: at least one architecture where ILGPU
-          defined every wrapper and `Link` compiled none, and one where `Link` compiled
-          them all;
-        - every kernel's PTX equals the same entry point's PTX for the device's own
-          architecture, once ILGPU's generated numeric suffixes, comment lines, blank
-          lines and the `.target` line are set aside;
-        - the probe launched from each architecture's kernel returns the engine's own
-          CUDA probe bit for bit;
-        - it stays within `GpuCpuTolerances.MathUlp` of the CPU accelerator.
-
-        The implementation of the architecture fact (11 architectures, SM_75 to SM_121,
-        and 5 entry points; both post-link paths measured) and its red-once record →
-        HISTORY.md#architecture-fact-implementation-2026-09-26
-
-        ⚠ 2026-09-28: was "about three minutes" for the fact, now 8 m 2 s on Windows and
-        11 m 3 s under WSL2, the assertions unchanged →
-        HISTORY.md#architecture-fact-duration-2026-09-28
-      - **The wrapper inventory without a GPU**, on the hosted runners. Two text
-        fixtures hold ILGPU 1.5.3's PTX of the probe kernel: one for SM_89, which
-        defines the wrappers, and one for SM_120, which defines none. Their provenance
-        is in the tests node's `BOOT.md`. On both, the inventory reads the same called
-        set, the math list's libdevice functions. It reads them all as defined on
-        SM_89 and none on SM_120. No `_param_` name is read as a call. The result is
-        the same with LF and CRLF line ends.
-
-        The implementation of the inventory facts (`WrapperInventoryTests`, 5 facts) and
-        their red-once record against the old `WrapperCall` regex →
-        HISTORY.md#wrapper-inventory-implementation-2026-09-26
-      - **The bind-time probe** (`Category=Cuda`). The real libnvvm is paired with a
-        libdevice path to a file that is not libdevice bitcode, and discovery is off:
-        - `Auto` binds the CPU accelerator, and `CudaSkippedBecause` names the
-          libdevice post-link;
-        - `Cuda` throws `AcceleratorUnavailableException` whose inner exception is the
-          post-link's.
-
-        The implementation of the bind-time facts and why no substitute input was needed
-        → HISTORY.md#bind-time-probe-implementation-2026-09-26
-      The evidence run of the criterion (134 of 134 in Release, 3185 fast tests) and the
-      records it moved (`CHANGELOG.md`) →
-      HISTORY.md#architecture-nothing-else-moves-2026-09-26
-
 - [x] 2026-09-26 — The audit's F2, F3 and observations (Constraints; the observations of the post-link
-      stand in `LibDevice/BOOT.md`), every fact but
+      stand in `Ptx/BOOT.md`), every fact but
       one (noted below) shown red once against the code before the change:
-      - **The bad library.** `AcceleratorChoice.Cuda` now loads libnvvm and asks its IR
-        version, then reads the bitcode, through one new internal `LoadNvvm`, before
-        `CreateAccelerator` (also new) ever creates a CUDA context; the session keeps
-        that one `NvvmAPI` binding, so no second `NvvmAPI.Create` follows once the
-        accelerator is up. A file named as the platform's libnvvm that is not a
-        library, with the real bitcode and discovery off
-        (`BadLibraryTests.ABadLibraryNamesBothPathsAndNeverReachesTheDevice`,
-        `Category=Cuda`):
-        - `Cuda` throws `AcceleratorUnavailableException` naming both paths;
-        - `Auto` binds the CPU with a `CudaSkippedBecause` that names the library
-          path;
-        - on the reference machine, the free device memory after 20 such `Auto`
-          creations is within 64 MiB of the memory before it (measured: 15 037 MiB
-          before, 15 037 MiB after, 0 MiB lost — the audit's own run of the
-          pre-fix code lost 3 800 MiB over the same 20 attempts).
-
-        The red-once record of the bad-library fact against the pre-fix order →
-        HISTORY.md#bad-library-red-once-2026-09-26
+      - ⚠ 2026-10-05: was the bullet "The bad library" (libnvvm loaded and its IR version asked before the device), now gone with libnvvm → HISTORY.md#bad-library-criterion-2026-10-05
       - **All cores.** `AcceleratorChoice.CpuDeviceFor(int)` sizes the CPU device from
         `Environment.ProcessorCount`. Below 4 processors the warp size alone carries the
         count (`Math.Max(2, count)`, one warp, one multiprocessor: ILGPU refuses a
@@ -219,8 +117,8 @@
       HISTORY.md#audit-f2-f3-observations-and-evidence-2026-09-26
 
 - [x] 2026-09-27 — Every CUDA context of a process binds under WSL (Constraints;
-      the rule now stands in `LibDevice/BOOT.md`).
-      Implemented as `CudaWslDevices.Register` (`src/Execution/LibDevice/CudaWslDevices.cs`):
+      the rule now stands in `Ptx/BOOT.md`).
+      Implemented as `CudaWslDevices.Register` (`src/Execution/Ptx/CudaWslDevices.cs`):
       tries `builder.Cuda()` first, every time (no static state records that a resolver
       was ever set); when that call throws `InvalidOperationException` ("A resolver is
       already set for the assembly"), registers the devices itself through ILGPU's
@@ -238,9 +136,7 @@
       - **The probe (F1).** `Kernels.Probe` now calls `KernelMath.Min`/`Max` with the
         constant in both operand orders (`Min(v,1)`/`Max(v,1)` and `Min(1,v)`/`Max(1,v)`,
         `StrideCount` 12 → 14); `ProbeKernelTests` and `ArchitectureTests` compare every
-        order against the CPU accelerator on CUDA. The two PTX fixtures are regenerated
-        from the current probe on the reference machine and the wrapper-inventory facts
-        (`WrapperInventoryTests`, no GPU) stay green against them (5/5).
+        order against the CPU accelerator on CUDA. (The PTX fixtures and `WrapperInventoryTests` this bullet named left with the libdevice wrappers, 2026-10-05.)
       - **The launch budget (F2).** `LaunchBudgetTests` (7 facts): `LaunchBudget`'s
         arithmetic and `ChunkPlan.FirstChunkCases`/`NextChunkCases`, with injected times
         per case (no budget never bounds a chunk; a bounded one scales from the previous
@@ -295,9 +191,9 @@
           itself needs no driver-touching `CudaException` to test (2026-09-29, the
           second review below); `DropsAfterLoss(CudaException)` is a thin extraction of
           `CudaException.Error` onto it, and is what every real catch filter reads.
-          `AcceleratorSession.Dispose` reads it in three literal
+          `AcceleratorSession.Dispose` reads it in literal
           `try { … } catch (CudaException failure) when (DropsAfterLoss(failure))`
-          blocks, one per disposed piece (`Nvvm`, the accelerator, the context), each
+          blocks, one per disposed piece (the accelerator and the context since 2026-10-05; the `Nvvm` piece left with libnvvm), each
           proceeding to the next regardless (releases what it can); `Engine.DisposeAfterLoss`
           reads the same decision for `UploadedTables`' own buffers; `BatchRun`'s new
           `DisposeChunkBuffers` reads it for a pipeline's chunk buffers. Any other
@@ -395,7 +291,7 @@
 
       The evidence at `ee3c598` and the per-project peak table (0.75 to 1.61 GiB per
       process tree) → HISTORY.md#compile-bound-evidence-table-2026-09-30
-- [ ] Seeded equilibrium batches (2026-10-04, 0.2.2; `BOOT.md`, Batch layout; `API.md`, Batches). A
+- [x] 2026-10-05 — Seeded equilibrium batches (2026-10-04, 0.2.2; `BOOT.md`, Batch layout; `API.md`, Batches). A
       seeded batch on the CPU accelerator equals `EquilibriumSolver.Solve` called with the same seed and
       `useMolesAsEstimate` bit for bit, on every seeded family of the tests node
       (`BatchTests.ASeededFamilyEqualsTheHostSolverBitForBit`); it does not depend on the chunking
@@ -404,9 +300,9 @@
       non-finite seed is refused before any kernel runs (`AcceleratorChoiceTests.ASeededBatchWhoseSeedDoesNotFitTheTableIsRefusedBeforeAnyKernelRuns`);
       a cold batch moves no bit: every `Bits*.approved.txt`, `Throughput*.approved.txt`, the Docs approved outputs and
       `PublicSurface.approved.txt` unchanged, `TreeContract.approved.txt` moved with this `API.md`. On CUDA the seeded
-      families equal the CPU accelerator within the tests node's table (`CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator`),
-      Windows and WSL, `ByteVectorTests` green. Red once each (the tests node's criterion of the same date lists them).
-      Evidence so far (2026-10-04, the coder's part; the box stays unticked until the CUDA and WSL runs are in): the
+      families equal the CPU accelerator bit for bit (`CudaTests.ASeededFamilyOnCudaMatchesTheCpuAccelerator`),
+      Windows (Debug, 80 of 81 of `Category=Cuda`, the Debug-refused throughput fact the one other) and WSL2 (Release, 81 of 81), 2026-10-05, `ByteVectorTests` green. Red once each (the tests node's criterion of the same date lists them).
+      Evidence (2026-10-04 the coder's part, 2026-10-05 the CUDA and WSL runs): the
       facts above green on the CPU accelerator and each shown red once (`tests/Execution.Tests/ACCEPTANCE.md`, criterion of
       this date, which lists the families, the mutations and the findings); the fast set of the solution green with no
       approved record moved; `TreeContract.approved.txt` replaced in the commit that moved `API.md`.

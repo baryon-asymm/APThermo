@@ -78,18 +78,16 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
   argument overload, a gap recorded here rather than left to be assumed closed
   (`AGENTS.md` §8), and open for whichever of those nodes wants it next. `BitHash.cs`,
   `ApprovedSnapshot.cs`.
-- **One approved file per platform, picked in one place.** The root BOOT.md's platform
-  constraint (2026-09-17) keeps a Windows and a Linux record for every bit snapshot,
-  since the CPU accelerator's `System.Math` calls the platform's C runtime and the two
-  do not round the last bit alike. `ApprovedSnapshot.ApprovedPathFor` is the one place
-  that chooses between `<name>.approved.txt` and `<name>.linux.approved.txt`; every
-  consumer's Bits level calls it instead of building the choice itself, so a future
-  Bits level needs no platform logic of its own. A node whose Linux bits equal its
-  Windows bits still keeps both files, byte for byte identical, so the rule has no
-  exception (`Thermo.Tests`, whose table holds no accelerator solve).
-
-  ⚠ 2026-09-19: was bits compared exactly everywhere, now on the reference machine only
-  (consumers carry `BitSnapshot`) → HISTORY.md#bits-reference-machine
+- **One bit record per node, picked in one place** (2026-10-05, owner decision O5).
+  `ApprovedSnapshot.RecordPathFor` names `<name>.approved.txt` on every platform, and every
+  consumer's Bits level calls it, so the record of a node is one file. The tree's own correctly
+  rounded `Exp`, `Log` and `Pow` do not depend on the C runtime of the machine, and the
+  Windows and the Linux (WSL2) bits of every node were equal when the pair was dropped. The
+  throughput figures keep their platform split, `ApprovedSnapshot.ApprovedPathFor`: a speed
+  belongs to a machine.
+  ⚠ 2026-10-05: was a Windows and a Linux record for every bit snapshot, picked by
+  `ApprovedPathFor`, since the C runtimes of the two platforms did not round the last bit alike
+  → HISTORY.md#one-record-2026-10-05
 - **A process is run once, here, and its streams are bytes** (2026-10-03, the test
   pyramid). `DotnetProcess.Run` starts `dotnet` on an assembly path with explicit
   arguments, working directory and environment, and returns the exit code and the raw

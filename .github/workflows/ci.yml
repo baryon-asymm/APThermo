@@ -75,10 +75,12 @@ jobs:
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 
+      # The bit snapshots run here too (2026-10-05, root BOOT.md's platform constraint): the tree's own Exp, Log and
+      # Pow read nothing of the runner's C runtime, so the one record per node holds on every CPU.
       - name: Fast test suite
         env:
           APTHERMO_NO_CUDA: '1'
-        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning&Category!=BitSnapshot"
+        run: dotnet test APThermo.sln --configuration Release --no-build --filter "Category!=LongRunning"
 
       # Every *.actual.txt (a mismatched or missing bit-snapshot key) and its *.fields.txt per-case field dump
       # (tests/Harness/BOOT.md, "a field dump is a caller's opt-in"), whenever the fast suite above failed: the CPU
@@ -175,9 +177,10 @@ jobs:
 
           PATH="$PWD/.tool:$PATH" apthermo rocket samples/cli/problems/rocket.json --accelerator cpu > actual-rocket.json
 
-          # Field by field, numbers within 1e-9 relative (.github/BOOT.md, Continuous integration), against the
-          # Windows record on every runner: a hosted runner's CPU is not the reference machine's, and the exact byte
-          # comparison stays with the Category=BitSnapshot facts of the docs tests node.
+          # Field by field, numbers within 1e-9 relative (.github/BOOT.md, Continuous integration), against the one
+          # approved record of every platform: this step proves the packed tool runs and delivers the document, while
+          # the exact byte comparison is the Category=BitSnapshot facts of the docs tests node, which the fast suite
+          # above runs on this runner (2026-10-05).
           dotnet run --project .ci/run-cut --configuration Release -- "$PWD/actual-rocket.json" rocket "$PWD/tests/Docs.Tests/approved/cli/rocket.approved.json"
 
       - name: Upload packages

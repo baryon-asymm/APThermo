@@ -50,6 +50,12 @@ and the criterion below carry the day they were written.
   `EveryRecordedLineIsAFixtureCase` naming the stale key
   (`BitSnapshot.StaleKeys`, the harness's `ApprovedSnapshot.StaleKeys`).
 
+  ⚠ 2026-10-05: the Windows and the Linux record named below are one record now (owner
+  decision O5, item 13 of release 0.2.2). The tree's own correctly rounded `Exp`, `Log`
+  and `Pow` replaced the platform's C runtime in every kernel, and this node's table builder never called either, so its Windows and Linux bits were always equal; `ApprovedPath` resolves through
+  `Harness.ApprovedSnapshot.RecordPathFor` to `Bits.approved.txt` on every platform;
+  `Bits.linux.approved.txt` is deleted.
+
   ⚠ 2026-09-17: this bullet assumed one snapshot file. The root's platform constraint
   now keeps a Windows and a Linux record for every node's Bits level; `ApprovedPath`
   resolves through `Harness.ApprovedSnapshot.ApprovedPathFor` (`tests/Harness/API.md`),
@@ -75,6 +81,11 @@ and the criterion below carry the day they were written.
   the platform difference does not reach (the bullet above), so the filtering costs
   hosted CI no coverage this node's own bits could catch that the other L0/L1 rows
   do not.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and both bit facts run on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform).
 - Kernel tests create their own ILGPU context with the CPU accelerator; no CUDA.
 
 ## Dependencies

@@ -123,8 +123,11 @@ Child nodes compile into their parent's assembly or belong to its test node, and
 holds a pair of documents of its own:
 
 - `Execution`: [Chunks](./src/Execution/Chunks/API.md) (the chunk plan and the device
-  buffers of a batch run) and [LibDevice](./src/Execution/LibDevice/API.md) (the libdevice
-  discovery and the post-link).
+  buffers of a batch run) and [Ptx](./src/Execution/Ptx/API.md) (the post-link of the CUDA
+  kernels' PTX and the WSL workaround).
+- `Thermo`: [Elementary](./src/Thermo/Elementary/API.md) (the correctly rounded `exp`, `log`
+  and `pow` behind `KernelMath`, internal), proven by the tests node's child
+  [Elementary](./tests/Thermo.Tests/Elementary/API.md).
 - `Cli`: [Cases](./src/Cli/Cases/API.md), [Documents](./src/Cli/Documents/API.md),
   [Listings](./src/Cli/Listings/API.md), [Output](./src/Cli/Output/API.md) and
   [Syntax](./src/Cli/Syntax/API.md), all internal to the tool.

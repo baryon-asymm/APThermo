@@ -43,13 +43,6 @@ internal static class DeviceListing
         writer.WriteStartObject();
         writer.WriteBoolean("available", false);
         writer.WriteString("message", report.CudaMessage);
-        writer.WriteStartArray("pathsTried");
-        foreach (var path in report.CudaPathsTried)
-        {
-            writer.WriteStringValue(path);
-        }
-
-        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 }

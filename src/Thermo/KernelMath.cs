@@ -1,3 +1,5 @@
+using APThermo.Thermo.Elementary;
+
 namespace APThermo.Thermo;
 
 /// <summary>
@@ -24,6 +26,18 @@ namespace APThermo.Thermo;
 /// </remarks>
 internal static class KernelMath
 {
+    /// <summary>exp(<paramref name="x"/>) correctly rounded to nearest, ties to even (the tree's own, <c>Elementary</c>): the same bits on both accelerators and on every platform.</summary>
+    public static double Exp(double x) => ExpFunction.Exp(x);
+
+    /// <summary>log(<paramref name="x"/>) correctly rounded to nearest, ties to even (the tree's own, <c>Elementary</c>): the same bits on both accelerators and on every platform.</summary>
+    public static double Log(double x) => LogFunction.Log(x);
+
+    /// <summary><paramref name="x"/>^<paramref name="y"/> correctly rounded to nearest, ties to even, the C99 special values (the tree's own, <c>Elementary</c>): the same bits on both accelerators and on every platform.</summary>
+    public static double Pow(double x, double y) => PowFunction.Pow(x, y);
+
+    /// <summary><c>a·b + c</c> with one rounding: the one fused multiply-add of the tree, an IEEE operation on both accelerators; a product is never fused with a sum unless the source writes this.</summary>
+    public static double Fma(double a, double b, double c) => ErrorFree.Fma(a, b, c);
+
     /// <summary>Equals <see cref="Math.Min(double, double)"/> bit for bit off NaN: NaN if either operand is NaN, −0 below +0.</summary>
     public static double Min(double val1, double val2) =>
         double.IsNaN(val1)

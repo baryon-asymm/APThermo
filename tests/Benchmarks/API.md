@@ -76,7 +76,7 @@ public class SingleCaseBenchmarks
 }
 
 // Group 4: the one-time costs of database load, chemical-system assembly, kernel
-// compilation on the CPU accelerator and on CUDA with the libdevice post-link, and
+// compilation on the CPU accelerator and on CUDA with the PTX post-link, and
 // species-table upload.
 public class OneTimeCostBenchmarks
 {

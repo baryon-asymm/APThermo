@@ -17,11 +17,13 @@ tools. Its contract is the list of workflows, jobs, actions and scripts in [API.
   and on manual dispatch, and the runners run under an account without administrator
   rights, started for a release rather than kept as services.
   - What a runner must provide, checked by a preflight step that names the missing
-    item: git, the .NET SDK of `global.json`, an NVIDIA driver (`nvidia-smi`), libnvvm
-    and `libdevice.10.bc` where the execution node's discovery looks, and no
-    `APTHERMO_NO_CUDA`. Nothing else is assumed: no PowerShell 7, no Python, no Git
+    item: git, the .NET SDK of `global.json`, an NVIDIA driver (`nvidia-smi`), and no
+    `APTHERMO_NO_CUDA`. Nothing else is assumed: no CUDA Toolkit, libnvvm or libdevice
+    (2026-10-05, the root's `## Dependencies`), no PowerShell 7, no Python, no Git
     Bash. A step of a self-hosted job names its shell explicitly, `powershell` on
     Windows and `bash` on Linux.
+
+    ⚠ 2026-10-05: was libnvvm and `libdevice.10.bc` checked too, now neither → HISTORY.md#preflight-toolkit
 - **Evidence for workflow changes.** A change under `.github/` runs only on GitHub, so it
   is accepted on a run of the path it changes, on the runner class it targets: a CI
   run for `ci.yml`, a dispatch run for `release.yml`. A review or a linter is not
@@ -62,24 +64,24 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
 
   ⚠ 2026-10-01: was `.github` not a node, now it and IsaProbe are → HISTORY.md#isaprobe
   - Every push and pull request, on Windows and Linux hosted runners: the protocol lint,
-    the build, the fast suite and the end-to-end facts (`Category=EndToEnd`, the facts that
-    start a process) with `APTHERMO_NO_CUDA=1` and without the bit snapshots
-    (`Category!=BitSnapshot`, the ⚠ of 2026-09-18 under the platform constraint; the
-    workflows' filter `Category!=LongRunning&Category!=BitSnapshot` takes both sets), and
-    packing both packages. The release's self-hosted jobs on the reference machine run
-    the bit snapshots with the CUDA tests. Then the samples run against the fresh
-    `APThermo` package from a local feed, the tool installed from that feed runs an
-    approved example, and the docs tests run (the ⚠ of 2026-09-17 under Documentation).
-    The example's output is compared with the approved record field by field, numbers
-    within 1e-9 relative, the Documentation rule of 2026-09-29 (a hosted runner's CPU is
-    not the reference machine's). → HISTORY.md#delivery-ci-condensed
+    the build, the fast suite, the end-to-end facts (`Category=EndToEnd`, the facts that
+    start a process) and the bit snapshots (`Category=BitSnapshot`, 2026-10-05: one record
+    per node holds on every CPU, the platform constraint), with `APTHERMO_NO_CUDA=1` (the
+    workflows' filter `Category!=LongRunning` takes all three), and packing both packages.
+    The release's self-hosted jobs on the reference machine run the bit snapshots again
+    with the CUDA tests. Then the samples run against the fresh `APThermo` package from a
+    local feed, the tool installed from that feed runs an approved example, and the docs
+    tests run (the ⚠ of 2026-09-17 under Documentation). The packed tool's output is
+    compared with the approved record field by field, numbers within 1e-9 relative (the
+    Documentation rule); its exact comparison is the docs tests node's bit facts, run in
+    the fast suite. → HISTORY.md#delivery-ci-condensed
+
+    ⚠ 2026-10-05: was the bit snapshots filtered out on hosted runners, now run there → HISTORY.md#ci-bit-facts
 
     ⚠ 2026-09-30: was the example compared byte for byte, now field by field within 1e-9
     relative → HISTORY.md#ci-field-comparison
 
-    ⚠ 2026-10-03: was "the fast suite" alone, now with the end-to-end facts named: the filters
-    are unchanged, `Category!=BitSnapshot` already takes `Category=EndToEnd`, and the exact
-    process facts carry `Category=BitSnapshot`, so the self-hosted jobs run them
+    ⚠ 2026-10-03: was "the fast suite" alone, now the end-to-end facts named → HISTORY.md#ci-end-to-end
   - There is no nightly run (2026-09-17).
 
   ⚠ 2026-09-17: was a nightly run of the long-running tests, now none (they are CUDA
@@ -118,6 +120,14 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
       36962876677 on `main` at `3cd11a6`, green; release dispatch 36963991777 on `main` at
       `3cd11a6`, green through Pack (both CUDA jobs on the self-hosted runners), Publish
       and Release skipped as a dispatch does.
+
+- [ ] The workflow changes of 2026-10-05 run once on GitHub (Invariants, "Evidence for
+      workflow changes"): the bit facts in the hosted filter of `ci.yml` and of
+      `release.yml`'s `matrix`, the preflight without the CUDA Toolkit checks, and the
+      comments. Evidence still to come: a CI run green on `windows-latest` and
+      `ubuntu-latest` with the bit facts unfiltered (also the evidence the root's own-math
+      criterion waits for), and a release dispatch green through Pack, both CUDA jobs
+      passing the new preflight on the self-hosted runners.
 
 ## Taboos
 

@@ -163,11 +163,12 @@ sealed class APThermo.Execution.KernelCache
     internal static Kernel Load(AcceleratorSession session, String name)
 
 static class APThermo.Execution.MathProbe
+    const Double Addend = 4.6
+    const Double Factor = 1.37
     const Double PowExponent1 = 1.37
     const Double PowExponent2 = 1.4
     const Double PowExponent3 = 4.6
-    internal const Int32 LibdeviceFunctionCount = 9
-    internal const Int32 StrideCount = 14
+    internal const Int32 StrideCount = 15
     static Int32 FunctionCount { get; }
     static Int32 OutputLength(Int32 inputCount)
     static readonly IReadOnlyList<Double> PowExponents
@@ -316,8 +317,12 @@ sealed class (record) APThermo.Problems.MixtureSpecification+OxidizerToFuel : Mi
 == src/Thermo
 
 static class APThermo.Thermo.KernelMath
+    static Double Exp(Double x)
+    static Double Fma(Double a, Double b, Double c)
+    static Double Log(Double x)
     static Double Max(Double val1, Double val2)
     static Double Min(Double val1, Double val2)
+    static Double Pow(Double x, Double y)
 
 static class APThermo.Thermo.PhysicalConstants
     const Double R = 8314.51
@@ -384,6 +389,91 @@ static class APThermo.Thermo.TableLimits
     const Int32 MaxElements = 20
     const Int32 MaxIntervalsPerSpecies = 6
     const Int32 MaxSpecies = 2048
+
+== src/Thermo/Elementary
+
+readonly struct APThermo.Thermo.Elementary.Dd
+    .ctor(Double hi, Double lo)
+    Double Hi { get; }
+    Double Lo { get; }
+
+static class APThermo.Thermo.Elementary.ElementaryConstants
+    const Double ExpInverseStep = 92.33248261689366
+    const Double ExpStepHigh = 0.010830424696249145
+    const Double ExpStepLow = 3.623510646634843E-19
+    const Double InverseLn2 = 1.4426950408889634
+    const Double Ln2High = 0.6931471805599453
+    const Double Ln2Low = 2.3190468138462996E-17
+    const Double Ln2T0 = 0.6931471805599453
+    const Double Ln2T1 = 2.3190468138462996E-17
+    const Double Ln2T2 = 5.707708438416212E-34
+    const Double ThirdHigh = 0.3333333333333333
+    const Double ThirdLow = 1.850371707708594E-17
+
+static class APThermo.Thermo.Elementary.ErrorFree
+    static Dd FastTwoSum(Double a, Double b)
+    static Dd TwoProd(Double a, Double b)
+    static Dd TwoSum(Double a, Double b)
+    static Double Fma(Double a, Double b, Double c)
+    static Double Pow2(Int32 e)
+    static Double Scale(Double v, Int32 e)
+
+static class APThermo.Thermo.Elementary.ExactPower
+    static Boolean TryRoundMidpoint(Double x, Double y, out Double result)
+
+static class APThermo.Thermo.Elementary.ExpFunction
+    const Double FastError = 2.117582368135751E-22
+    const Double XMax = 709.782712893384
+    const Double XSubnormal = -708.3964185322641
+    const Double XZero = -746
+    static Dd Fast(Double x, Double xl, out Int32 k)
+    static Double Accurate(Double x, Double xl)
+    static Double Exp(Double x)
+    static Td AccurateTd(Td x, out Int32 e)
+
+static class APThermo.Thermo.Elementary.ExpTable
+    static Dd At(Int32 j)
+
+static class APThermo.Thermo.Elementary.LogFunction
+    const Double FastError = 5.293955920339377E-23
+    static Dd Fast(Double x)
+    static Double Log(Double x)
+    static Td AccurateTd(Double x)
+
+static class APThermo.Thermo.Elementary.LogTable
+    static LogTableEntry At(Int32 i)
+
+readonly struct APThermo.Thermo.Elementary.LogTableEntry
+    .ctor(Double c, Double hi, Double lo)
+    Double C { get; }
+    Double Hi { get; }
+    Double Lo { get; }
+
+static class APThermo.Thermo.Elementary.PowFunction
+    static Dd LogProduct(Double x, Double y)
+    static Double Accurate(Double x, Double y)
+    static Double FastErrorBound(Double z)
+    static Double Pow(Double x, Double y)
+
+static class APThermo.Thermo.Elementary.RoundingTest
+    static Boolean Certifies(Dd f, Double relativeError, out Double rounded)
+
+readonly struct APThermo.Thermo.Elementary.Td
+    .ctor(Double h, Double m, Double l)
+    Double H { get; }
+    Double L { get; }
+    Double M { get; }
+
+static class APThermo.Thermo.Elementary.TripleDouble
+    static Double Round(Td v)
+    static Double RoundScaled(Td v, Int32 e)
+    static Td Add(Td a, Td b)
+    static Td Div(Td a, Td b)
+    static Td DivD(Td a, Double n)
+    static Td Mul(Td a, Td b)
+    static Td MulD(Td a, Double b)
+    static Td Of(Double a)
+    static Td Renorm(Double x0, Double x1, Double x2, Double x3, Double x4)
 
 == src/Transport
 

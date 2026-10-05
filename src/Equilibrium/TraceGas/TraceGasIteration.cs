@@ -35,7 +35,7 @@ internal static class TraceGasIteration
     {
         var layout = TraceGasFrame.LayoutFor(table, problem, state.CondensedCount);
         var pin = new JunctionPin();
-        var n = Math.Exp(state.LogN);
+        var n = TraceGasStep.Total(state.LogN);
         var smallStep = false;
         for (var step = 0; step <= MaxSteps; step++)
         {
@@ -47,9 +47,9 @@ internal static class TraceGasIteration
             }
 
             if (smallStep && TraceGasStep.Balanced(table, problem, scratch, result, step == MaxSteps && state.TraceGasRound != 0)
-                && Math.Abs(Math.Log(sum)) <= SumTest)
+                && Math.Abs(TraceGasStep.LogTotal(sum)) <= SumTest)
             {
-                state.LogN = Math.Log(n) + Math.Log(sum);
+                state.LogN = TraceGasStep.LogTotal(n) + TraceGasStep.LogTotal(sum);
                 if (DataJunction.Decides(table, problem, scratch, result, ref state, ref pin))
                 {
                     state.RetentionSecondStage = true;

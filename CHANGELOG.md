@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+- The CUDA Toolkit is no longer needed, named or looked for. The kernels call no libdevice function, so
+  the package removes, from its public surface:
+  - `EngineOptions.LibNvvmPath`, `EngineOptions.LibDevicePath` and `EngineOptions.LibDeviceDiscovery`;
+  - `AcceleratorInfo.LibNvvmPath` and `AcceleratorInfo.LibDevicePath`;
+  - `AcceleratorUnavailableException.PathsTried` and its constructor that took the paths (its message
+    alone says what failed).
+
+  The command line drops, from the `run.accelerator` object of every document and from the `devices`
+  listing, the fields `libNvvmPath` and `libDevicePath`, and from the `devices` listing's unavailable CUDA
+  object the field `pathsTried`; the schemas follow. A machine needs an NVIDIA driver with CUDA 12.8 or
+  newer and nothing else to run on CUDA.
+- `Log10` leaves the tree's math list: no numerical node used it.
+
 ### Added
 - `CaseStatus.NoGasPhase` (value 8, `noGasPhase` in the command line's documents): the
   equilibrium holds no gas phase, proven by a tangent-plane certificate (a mixture of
@@ -17,6 +31,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   sp state `TemperatureOutOfRange`. A known limitation of 0.2.1.
 
 ### Changed
+- CUDA and the CPU accelerator return the same bits. The package computes its own `exp`, `log` and `pow` for
+  both, correctly rounded (the result is the representable double nearest the exact value, ties to even), on the
+  CPU and on CUDA, in place of .NET's and libdevice's, which agreed to a few units in the last place. Every
+  field of every result of a batch is equal on the two accelerators, statuses and iteration counts included,
+  so a result no longer depends on the accelerator that ran it. Results move in their last digits against
+  0.2.1; the figures in `docs/` that quote them were regenerated. Correct rounding costs time on both. Measured
+  on the reference machine, shared with other test runs: the CPU accelerator takes 7.2 s for the 100 000-case
+  rocket batch against 5.3 s (+36 %, the owner accepted the cost), and the CUDA kernel 1.43e-7 s per Newton
+  step against 7.85e-8 s (+82 %); the CUDA/CPU ratio stays at 20 or more.
+- The bit records of the tests are one per node, not one per platform: Windows and Linux (WSL2) produce the
+  same bits.
 - On any status but `Ok` the state is zero, as before, with the one exception of
   `NoGasPhase`, whose state is the temperature and the pressure.
 - An `Ok` state whose gas is 1e-6 of the mixture or less, and whose gas composition had converged

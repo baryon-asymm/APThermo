@@ -1,13 +1,13 @@
 using System.Diagnostics;
 using APThermo.Execution.Chunks;
-using APThermo.Execution.LibDevice;
+using APThermo.Execution.Ptx;
 using APThermo.Performance;
 using APThermo.Thermo;
 using APThermo.Transport;
 
 namespace APThermo.Execution.Tests;
 
-/// <summary>L0: accelerator choice, the environment variable, libdevice discovery messages, the ILGPU assertion, batch validation.</summary>
+/// <summary>L0: accelerator choice, the environment variable, the reasons of a fallback, the ILGPU assertion, batch validation.</summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed class AcceleratorChoiceTests
 {
@@ -17,139 +17,61 @@ public sealed class AcceleratorChoiceTests
     {
         var info = EngineFixture.Shared.Cpu.Accelerator;
         Assert.Equal(AcceleratorKind.Cpu, info.Kind);
-        Assert.Equal(LibDevicePostLink.ExpectedIlgpuVersion, info.IlgpuVersion);
-        Assert.Null(info.LibNvvmPath);
-        Assert.Null(info.LibDevicePath);
+        Assert.Equal(PtxPostLink.ExpectedIlgpuVersion, info.IlgpuVersion);
         Assert.True(info.ThreadsOrMultiprocessors >= 1);
         Assert.False(string.IsNullOrWhiteSpace(info.DeviceName));
         Assert.Null(info.CudaSkippedBecause);   // an engine asked for the CPU never tried CUDA
     }
 
     /// <summary>
-    /// An auto fallback says why cuda was skipped and which paths were tried. Decided with <c>cudaForbidden: false</c>
-    /// (2026-09-28, the guards audit's F7): on every hosted CI job <c>APTHERMO_NO_CUDA=1</c> made
-    /// <see cref="AcceleratorChoice.Decide(EngineOptions)"/> refuse for that reason alone, before discovery's own "not
-    /// found" message was ever built there, and this fact's assertions on that message ran only on a local machine. The
-    /// injected seam reaches discovery's refusal on every runner, CUDA forbidden or not.
+    /// An auto fallback says why cuda was skipped. Decided with <c>cudaForbidden: false</c> (2026-09-28, the guards audit's
+    /// F7): on every hosted CI job <c>APTHERMO_NO_CUDA=1</c> made <see cref="AcceleratorChoice.Decide(EngineOptions)"/> refuse
+    /// for that reason alone, so the refusals of the CUDA path itself ran only on a local machine. The injected seam reaches
+    /// them on every runner, CUDA forbidden or not. The device index is far out of range (2026-10-05, no toolkit file to
+    /// point at any more): a machine with CUDA refuses the index, a machine without it cannot create the context, and
+    /// either way the reason is a message and the session is the CPU's.
     /// </summary>
     [Fact]
-    public void AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried()
+    public void AnAutoFallbackSaysWhyCudaWasSkipped()
     {
-        const string dll = @"X:\nowhere\nvvm64_40_0.dll";
-        const string bitcode = @"X:\nowhere\libdevice.10.bc";
-        var options = new EngineOptions { Accelerator = AcceleratorKind.Auto, LibNvvmPath = dll, LibDevicePath = bitcode, LibDeviceDiscovery = false };
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Auto, CudaDeviceIndex = 9999 };
         var decision = AcceleratorChoice.Decide(options, cudaForbidden: false);
         using (decision.Session)
         {
             Assert.Equal(AcceleratorKind.Cpu, decision.Session.Info.Kind);
             var reason = decision.CudaSkippedBecause;
-            Assert.NotNull(reason);
-            Assert.Contains("libdevice", reason, StringComparison.Ordinal);
-            Assert.Contains(dll, reason, StringComparison.Ordinal);
-            Assert.Contains(bitcode, reason, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(reason));
             Assert.Equal(reason, decision.Session.Info.CudaSkippedBecause);
-            Assert.Equal([dll, bitcode], decision.PathsTried);
         }
     }
 
-    /// <summary>
-    /// An explicit cuda request with paths nowhere names every path tried. Decided with <c>cudaForbidden: false</c>, the
-    /// same reason as <see cref="AnAutoFallbackSaysWhyCudaWasSkippedAndWhichPathsWereTried"/> (F7).
-    /// </summary>
+    /// <summary>An explicit cuda request that cannot be met fails instead of falling back. Decided with <c>cudaForbidden: false</c>, the same reason as <see cref="AnAutoFallbackSaysWhyCudaWasSkipped"/> (F7).</summary>
     [Fact]
-    public void AnExplicitCudaRequestWithPathsNowhereNamesEveryPathTried()
+    public void AnExplicitCudaRequestThatCannotBeMetFailsInsteadOfFallingBack()
     {
-        const string dll = @"X:\nowhere\nvvm64_40_0.dll";
-        const string bitcode = @"X:\nowhere\libdevice.10.bc";
-        var options = new EngineOptions { Accelerator = AcceleratorKind.Cuda, LibNvvmPath = dll, LibDevicePath = bitcode, LibDeviceDiscovery = false };
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Cuda, CudaDeviceIndex = 9999 };
         var refused = Assert.Throws<AcceleratorUnavailableException>(() => AcceleratorChoice.Decide(options, cudaForbidden: false));
-        Assert.Contains(dll, refused.Message, StringComparison.Ordinal);
-        Assert.Contains(bitcode, refused.Message, StringComparison.Ordinal);
-        Assert.Equal([dll, bitcode], refused.PathsTried);
+        Assert.False(string.IsNullOrWhiteSpace(refused.Message));
     }
 
     /// <summary>
-    /// The same two requests with <c>cudaForbidden: true</c> refuse for that reason alone, before discovery ever runs:
-    /// the other half of the injected seam (F7), proving <c>cudaForbidden</c> actually gates the "not found" branch
-    /// rather than being ignored.
+    /// The same two requests with <c>cudaForbidden: true</c> refuse for that reason alone, before any CUDA context is
+    /// created: the other half of the injected seam (F7), proving <c>cudaForbidden</c> actually gates the CUDA path rather
+    /// than being ignored.
     /// </summary>
     [Fact]
-    public void CudaForbiddenRefusesBeforeDiscoveryEverRuns()
+    public void CudaForbiddenRefusesBeforeAnyCudaContextIsCreated()
     {
-        var options = new EngineOptions
-        {
-            Accelerator = AcceleratorKind.Auto,
-            LibNvvmPath = @"X:\nowhere\nvvm64_40_0.dll",
-            LibDevicePath = @"X:\nowhere\libdevice.10.bc",
-            LibDeviceDiscovery = false,
-        };
+        var options = new EngineOptions { Accelerator = AcceleratorKind.Auto };
         var decision = AcceleratorChoice.Decide(options, cudaForbidden: true);
         using (decision.Session)
         {
             Assert.Contains(EngineOptions.NoCudaVariable, decision.CudaSkippedBecause, StringComparison.Ordinal);
-            Assert.Empty(decision.PathsTried);   // the paths are never even looked at
         }
 
         var refused = Assert.Throws<AcceleratorUnavailableException>(
             () => AcceleratorChoice.Decide(options with { Accelerator = AcceleratorKind.Cuda }, cudaForbidden: true));
         Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
-        Assert.Empty(refused.PathsTried);
-    }
-
-    /// <summary>Discovery reports the toolkit paths it examined.</summary>
-    [Fact]
-    public void DiscoveryReportsTheToolkitPathsItExamined()
-    {
-        var (dll, bitcode, tried) = LibDeviceLocator.Locate(new EngineOptions());
-
-        // The shape holds on every machine, toolkit or not: any path this locator ever tried is either the
-        // platform's own libnvvm file name or a bitcode file, never anything else.
-        Assert.All(tried, path => Assert.True(
-            path.EndsWith(LibDeviceLocator.LibraryFileName, StringComparison.OrdinalIgnoreCase) || path.EndsWith(".bc", StringComparison.OrdinalIgnoreCase),
-            path));
-
-        // A non-empty list is only guaranteed where the locator has a candidate root to look under: an
-        // environment variable it reads, or a directory it looks in. A bare runner with neither honestly
-        // tries nothing, and that is not a defect of discovery.
-        if (ACandidateToolkitRootExists())
-        {
-            Assert.NotEmpty(tried);
-        }
-
-        if (dll is not null)
-        {
-            Assert.True(File.Exists(dll), dll);
-            Assert.True(File.Exists(bitcode!), bitcode);
-            Assert.EndsWith(LibDeviceLocator.LibraryFileName, dll, StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    /// <summary>
-    /// Whether this machine offers <see cref="LibDeviceLocator"/> at least one root to look under. On Linux
-    /// its <c>ToolkitRoots</c> always yields the fixed root under <c>/usr/local</c>, whether or not that
-    /// directory exists, so discovery there never examines nothing. On Windows it needs <c>CUDA_PATH</c> or a
-    /// versioned directory under the default toolkit base to have anything to try.
-    /// </summary>
-    private static bool ACandidateToolkitRootExists()
-    {
-        if (OperatingSystem.IsLinux())
-        {
-            return true;
-        }
-
-        if (!OperatingSystem.IsWindows())
-        {
-            return false;   // an unsupported platform does no discovery at all
-        }
-
-        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("CUDA_PATH")))
-        {
-            return true;
-        }
-
-        var toolkitBase = Path.Combine(
-            Environment.GetEnvironmentVariable("ProgramFiles") ?? @"C:\Program Files", "NVIDIA GPU Computing Toolkit", "CUDA");
-        return Directory.Exists(toolkitBase) && Directory.GetDirectories(toolkitBase, "v*").Length > 0;
     }
 
     /// <summary>The variable forbids cuda and auto falls back to the cpu.</summary>
@@ -187,31 +109,41 @@ public sealed class AcceleratorChoiceTests
         Assert.Equal(AcceleratorKind.Cpu, auto.Accelerator.Kind);
         var modules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(m => m.ModuleName).ToList();
         Assert.DoesNotContain(modules, name => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// A CUDA engine runs with nothing of the CUDA Toolkit loaded (2026-10-05, item 13): the driver's own library is the only
+    /// NVIDIA module of the process, and no libnvvm, no libdevice user and no toolkit runtime was ever needed to bind it,
+    /// compile its kernels or run them.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void ACudaEngineLoadsNoLibraryOfTheCudaToolkit()
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        _ = cuda.ProbeMath([1.0, 2.0]);
+        var modules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(m => m.ModuleName).ToList();
+        Assert.Contains(modules, name => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase) || name.StartsWith("libcuda", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(modules, name => name.Contains("nvvm", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(modules, name => name.Contains("cudart", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(modules, name => name.Contains("nvrtc", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>The ilgpu assertion fails loudly for another version.</summary>
     [Fact]
     public void TheIlgpuAssertionFailsLoudlyForAnotherVersion()
     {
-        var wrong = Assert.Throws<InvalidOperationException>(() => LibDevicePostLink.AssertIlgpu("9.9.9.0"));
+        var wrong = Assert.Throws<InvalidOperationException>(() => PtxPostLink.AssertIlgpu("9.9.9.0"));
         Assert.Contains("9.9.9.0", wrong.Message, StringComparison.Ordinal);
-        Assert.Contains(LibDevicePostLink.ExpectedIlgpuVersion, wrong.Message, StringComparison.Ordinal);
-        var (fragments, assembly) = LibDevicePostLink.AssertIlgpu(LibDevicePostLink.ExpectedIlgpuVersion);
-        Assert.Equal("fragments", fragments.Name);
+        Assert.Contains(PtxPostLink.ExpectedIlgpuVersion, wrong.Message, StringComparison.Ordinal);
+        var assembly = PtxPostLink.AssertIlgpu(PtxPostLink.ExpectedIlgpuVersion);
         Assert.Equal("<PTXAssembly>k__BackingField", assembly.Name);
-        var keys = ((Dictionary<string, string>)fragments.GetValue(null)!).Keys;
-        Assert.Contains("__nv_exp", keys);
-        Assert.Contains("__nv_log", keys);
-        Assert.Contains("__nv_pow", keys);
-    }
-
-    /// <summary>Wrapper names are read from the ptx without the prefix.</summary>
-    [Fact]
-    public void WrapperNamesAreReadFromThePtxWithoutThePrefix()
-    {
-        const string ptx = "call.uni (r), __ilgpu__nv_exp, (a);\ncall.uni (r), __ilgpu__nv_log10, (b);\ncall.uni (r), __ilgpu__nv_exp, (c);";
-        Assert.Equal(["__nv_exp", "__nv_log10"], LibDevicePostLink.WrappersCalled(ptx));
+        Assert.Equal(typeof(string), assembly.FieldType);
     }
 
     /// <summary>Inconsistent batches are refused before any kernel runs.</summary>
@@ -371,20 +303,6 @@ public sealed class AcceleratorChoiceTests
         _ = Assert.Throws<ArgumentException>(() => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, ScratchBytes = -1 }));
     }
 
-    /// <summary>A half-given explicit library path pair (BOOT.md, the audit's observations) is refused at <c>Create</c>, naming
-    /// the missing option, rather than silently falling through to discovery as `("", path)` used to.</summary>
-    [Fact]
-    public void AHalfGivenExplicitLibraryPairIsRefused()
-    {
-        var missingBitcode = Assert.Throws<ArgumentException>(
-            () => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, LibNvvmPath = @"X:\nowhere\nvvm64_40_0.dll" }));
-        Assert.Contains(nameof(EngineOptions.LibDevicePath), missingBitcode.Message, StringComparison.Ordinal);
-
-        var missingDll = Assert.Throws<ArgumentException>(
-            () => Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu, LibDevicePath = @"X:\nowhere\libdevice.10.bc" }));
-        Assert.Contains(nameof(EngineOptions.LibNvvmPath), missingDll.Message, StringComparison.Ordinal);
-    }
-
     /// <summary>
     /// A chunk's buffers stay within 32-bit offsets (BOOT.md, `Execution.Chunks`, the audit's F4): bytes alone bounded a chunk,
     /// so a table at the tree's own size limits with a large enough <see cref="EngineOptions.ScratchBytes"/> and
@@ -403,82 +321,6 @@ public sealed class AcceleratorChoiceTests
         // No other plan moves: the default options are far below the cap, so an ordinary chunk is unaffected by it.
         var ordinary = ChunkPlan.For(1_000_000, TableLimits.MaxSpecies * sizeof(double), TableLimits.MaxSpecies, new EngineOptions());
         Assert.Equal(EngineOptions.DefaultChunkSize, ordinary.Size);
-    }
-
-    /// <summary>
-    /// The bind-time probe (BOOT.md, "CUDA is bound only when a kernel runs on it"): a real libnvvm paired with a libdevice path
-    /// that exists but is not libdevice bitcode reaches the post-link at bind, and an <c>Auto</c> request falls back to the CPU
-    /// accelerator with the post-link's own message as the reason.
-    /// </summary>
-    [Fact]
-    [Trait("Category", "Cuda")]
-    public void AnAutoFallbackNamesThePostLinkWhenTheProbeKernelCannotBind()
-    {
-        var bogus = BogusLibDevice();
-        try
-        {
-            using var engine = Engine.Create(ProbeFailureOptions(AcceleratorKind.Auto, bogus));
-            Assert.Equal(AcceleratorKind.Cpu, engine.Accelerator.Kind);
-            var reason = engine.Accelerator.CudaSkippedBecause;
-            Assert.NotNull(reason);
-            if (Engine.CudaForbidden)
-            {
-                Assert.Contains(EngineOptions.NoCudaVariable, reason, StringComparison.Ordinal);
-                return;
-            }
-
-            Assert.Contains("libdevice post-link", reason, StringComparison.Ordinal);
-        }
-        finally
-        {
-            File.Delete(bogus);
-        }
-    }
-
-    /// <summary>The same input, requested explicitly: <see cref="AcceleratorUnavailableException"/> whose inner exception is the post-link's own.</summary>
-    [Fact]
-    [Trait("Category", "Cuda")]
-    public void AnExplicitCudaRequestFailsWithThePostLinksOwnExceptionWhenTheProbeKernelCannotBind()
-    {
-        var bogus = BogusLibDevice();
-        try
-        {
-            var refused = Assert.Throws<AcceleratorUnavailableException>(() => Engine.Create(ProbeFailureOptions(AcceleratorKind.Cuda, bogus)));
-            if (Engine.CudaForbidden)
-            {
-                Assert.Contains(EngineOptions.NoCudaVariable, refused.Message, StringComparison.Ordinal);
-                return;
-            }
-
-            Assert.Contains("the math probe kernel could not be loaded", refused.Message, StringComparison.Ordinal);
-            var inner = Assert.IsType<InvalidOperationException>(refused.InnerException);
-            Assert.Contains("libdevice post-link", inner.Message, StringComparison.Ordinal);
-        }
-        finally
-        {
-            File.Delete(bogus);
-        }
-    }
-
-    /// <summary>A file that exists (so it passes discovery's existence check) but holds no libdevice bitcode at all.</summary>
-    private static string BogusLibDevice()
-    {
-        var path = Path.GetTempFileName();
-        File.WriteAllText(path, "not libdevice bitcode, just some text");
-        return path;
-    }
-
-    /// <summary>The real libnvvm this machine's discovery would find, paired with the given (bogus) libdevice path, discovery off.</summary>
-    private static EngineOptions ProbeFailureOptions(AcceleratorKind kind, string bogusLibDevice)
-    {
-        var (dll, _, _) = LibDeviceLocator.Locate(new EngineOptions());
-        return new EngineOptions
-        {
-            Accelerator = kind,
-            LibNvvmPath = dll ?? @"X:\nowhere\nvvm64_40_0.dll",
-            LibDevicePath = bogusLibDevice,
-            LibDeviceDiscovery = false,
-        };
     }
 
     /// <summary>Result layouts follow the station and species counts.</summary>
