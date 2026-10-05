@@ -3,6 +3,32 @@
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 
+- [x] 2026-10-05 — CUDA equals the CPU accelerator bit for bit on the trace-gas families, and one launch of trace-gas hp and sp states stays within
+      the launch budget (release 0.2.2, coder 17; the L2 row of `BOOT.md`; `TraceGasFamilies`, `TraceGasFamiliesTests`). The facts are
+      `CudaTests.ATraceGasFamilyOnCudaMatchesTheCpuAccelerator` (a theory over the five families, `ExactComparison.Equilibrium`: statuses, iteration
+      counts, every state field and every amount, bit for bit) and `CudaTests.AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`; on the CPU
+      `TraceGasFamiliesTests` (8 facts, 5.9 s of the fast set, 303 facts in 50 s in Debug with `APTHERMO_NO_CUDA=1`) proves what each family holds
+      and that its cases reach the pass. The families, built from the system and its excess, the grid and the host solver's own verdicts (nothing typed
+      but the systems and the grids): `trace-gas-magnesite-walk` (Mg:C:O = 1:2:5, 1e7 Pa, tp 700 to 900 K every 5 K) 28 kept of 41, tp 28; `trace-gas-kcl`
+      (+-1e-10 Cl at 1 and 100 kPa, 700 to 1500 K; +1e-6 Cl at 100 kPa, 950 to 1050 K, tp, hp and sp) 45 kept, 8 dropped, tp 23 (3 `NoGasPhase`), hp 11,
+      sp 11; `trace-gas-calcite` (+1e-8 O at 100 kPa and 10 MPa, 300 to 900 K; -1e-7 O at 1 kPa, 830 to 870 K, the gas-mixture column band near 850 K)
+      17 kept, tp 17 (4 `NoGasPhase`); `trace-gas-lithia` (+1e-10 O at 1 and 100 kPa, 600 to 1000 K, tp, hp and sp) 27 kept, 3 dropped, tp 10, hp 8, sp 9;
+      `trace-gas-halite-cold` (+-1e-7 Cl, 1 kPa to 10 MPa, 250 to 300 K, tp, hp and sp) 43 kept, 127 dropped, tp 13, hp 10, sp 20 (25 `NoGasPhase`):
+      160 cases, 22 068 Newton steps summed on CUDA. A tp case is kept when the host solver ends it `Ok` with the verdict's anchor in the scratch and more
+      Newton steps than one attempt takes (the pass settled it) or `NoGasPhase`; an hp or sp case when the temperature bracket settled it at the state its
+      target came from. What that proves and does not is `BOOT.md`, "The pass observable": an inference from documented writers, each condition shown
+      false on a real state (`TheTwoConditionsOfThePassObservableAreEachNecessary`), the probed solve bit-identical to the plain one
+      (`ThePassObservableTellsAStateTheOrdinaryAttemptSettlesFromOneThePassSettles`), and every kept case re-checked against the CPU accelerator's status
+      and iteration count (`AFamilyHoldsTheCasesItStandsFor`). Evidence, 2026-10-05, Windows, Release, RTX 5070 Ti: the five families equal in every field
+      of every case; the launch fact: 16 384 hp and sp cases of `trace-gas-kcl` in one launch, kernel 74.9 ms against the budget of 500 ms, 139 Newton
+      steps per case on average; `dotnet test tests/Execution.Tests -c Release --filter "Category=Cuda"` 87 of 87 in 1 m 40 s, the sweep, the
+      throughput fact and the architecture fact included. Red once, each
+      mutation reverted: a kept row's temperature moved to 2000 K (`AFamilyHoldsTheCasesItStandsFor` red on all five families, "does not reach the pass: Ok
+      in 14 steps, verdict anchor False"); `ReachesThePass` reduced to the status (`ThePassObservable...` red), to the status and the iteration bound
+      (`TheTwoConditions...` red on the junction state), to the status and the anchor (`TheTwoConditions...` red on the 2000 K state); one unit in the
+      last place added to the pressure of the first case of the CUDA batch only (the theory red on all five families, "Pressure: expected 10000000, actual
+      10000000.000000002"); the launch limit lowered to 10 ms ("16384 trace-gas cases took 74.8 ms in one launch, above the budget of 10 ms"); the CPU
+      check of the launch fact refuses a zero limit and a `NotConverged` case (`TheLaunchBudgetCheckRefusesALaunchOverTheLimitAndACaseThatFailed`, red with the status count multiplied by zero).
 - [x] 2026-10-05 — The rocket compile bound is a property of the code, not of the machine (the L0 row of `BOOT.md`; release 0.2.2,
       coder 16). `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound` reads the bytes
       allocated by every thread of the process (`GC.GetTotalAllocatedBytes(precise: true)`) over the first rocket run of a fresh CPU

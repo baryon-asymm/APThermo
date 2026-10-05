@@ -10,7 +10,20 @@ namespace APThermo.Execution.Tests;
 internal readonly record struct HostRocketCase(MixtureState[] Stations, double[] Moles, PerformanceFigures[] Figures, CaseStatus[] StationStatus, int[] Iterations, CaseStatus Status);
 
 /// <summary>One equilibrium case solved on the host.</summary>
-internal readonly record struct HostEquilibriumCase(MixtureState State, double[] Moles, CaseStatus Status, int Iterations);
+internal readonly record struct HostEquilibriumCase(MixtureState State, double[] Moles, CaseStatus Status, int Iterations)
+{
+    /// <summary>
+    /// Whether the solve left a verdict's anchor in <c>Tie.Elements.Multipliers</c>: set only by a probed solve
+    /// (<see cref="HostSolves.EquilibriumProbed"/>), where the scratch started filled with a value no solve writes.
+    /// </summary>
+    public bool Anchored { get; init; }
+
+    /// <summary>
+    /// Whether the solve wrote the temperature bracket's ends (<c>scratch.BracketEnds</c>, written only by the Recovery node's bracket seeds):
+    /// set only by a probed solve, and only an hp or sp case whose ordinary iteration failed brackets.
+    /// </summary>
+    public bool Bracketed { get; init; }
+}
 
 /// <summary>One station's transport evaluated on the host.</summary>
 internal readonly record struct HostTransportStation(CaseStatus Status, TransportFigures Figures);
@@ -59,7 +72,27 @@ internal static class HostSolves
                                   [.. stationStatus.GetAsArray1D().Select(s => (CaseStatus)s)], iterations.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0]);
     }
 
-    public static HostEquilibriumCase Equilibrium(Accelerator accelerator, SpeciesTableBuffers buffers, EquilibriumBatch batch, int k)
+    /// <summary>A value no solve writes into its scratch: the probe's fill of every double slot.</summary>
+    private const double UnwrittenDouble = 1.2345e100;
+
+    /// <summary>A value no solve writes into its scratch: the probe's fill of every integer slot.</summary>
+    private const int UnwrittenInt = -1_234_567;
+
+    public static HostEquilibriumCase Equilibrium(Accelerator accelerator, SpeciesTableBuffers buffers, EquilibriumBatch batch, int k) =>
+        Equilibrium(accelerator, buffers, batch, k, probe: false);
+
+    /// <summary>
+    /// The same solve over a scratch filled with values no solve writes, and whether the verdict left its anchor: after any gas-phase
+    /// verdict but <c>Gasless</c>, <c>GasPhaseVerdict.Decide</c> leaves the multipliers it restored in
+    /// <c>scratch.Tie.Elements.Multipliers</c>, where the trace-gas pass takes its anchor (the Equilibrium node's <c>GasPhase</c> API.md,
+    /// "Trace-gas seed"), so a changed slot there means the ordinary attempt failed and the verdict ran. Nothing but the scratch's
+    /// starting content differs from <see cref="Equilibrium(Accelerator, SpeciesTableBuffers, EquilibriumBatch, int)"/>, and the
+    /// result must be the same bit for bit (<c>TraceGasFamiliesTests</c> holds it).
+    /// </summary>
+    public static HostEquilibriumCase EquilibriumProbed(Accelerator accelerator, SpeciesTableBuffers buffers, EquilibriumBatch batch, int k) =>
+        Equilibrium(accelerator, buffers, batch, k, probe: true);
+
+    private static HostEquilibriumCase Equilibrium(Accelerator accelerator, SpeciesTableBuffers buffers, EquilibriumBatch batch, int k, bool probe)
     {
         var table = buffers.Table;
         var speciesCount = table.SpeciesCount;
@@ -82,12 +115,27 @@ internal static class HostSolves
         }
 
         state.MemSetToZero();
+        if (probe)
+        {
+            doubles.CopyFromCPU([.. Enumerable.Repeat(UnwrittenDouble, (int)doubles.Length)]);
+            ints.CopyFromCPU([.. Enumerable.Repeat(UnwrittenInt, (int)ints.Length)]);
+        }
+
         var problem = new EquilibriumProblem(batch.Kind[k], batch.Pressure[k], batch.Temperature[k], batch.Target[k], elements.View);
         var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         EquilibriumSolver.Solve(in view, in problem, in scratch, in result, batch.IsSeeded);
-        return new HostEquilibriumCase(state.GetAsArray1D()[0], moles.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0]);
+        // The host arrays start unwritten, so a lost download reads as "not written" and can only turn a fact red (root BOOT.md, ILGPU's fourth defect).
+        double[] anchor = [.. Enumerable.Repeat(UnwrittenDouble, (int)scratch.Tie.Elements.Multipliers.Length)];
+        scratch.Tie.Elements.Multipliers.CopyToCPU(anchor);
+        double[] ends = [.. Enumerable.Repeat(UnwrittenDouble, (int)scratch.BracketEnds.Length)];
+        scratch.BracketEnds.CopyToCPU(ends);
+        return new HostEquilibriumCase(state.GetAsArray1D()[0], moles.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0])
+        {
+            Anchored = probe && anchor.Any(value => value != UnwrittenDouble),
+            Bracketed = probe && ends.Any(value => value != UnwrittenDouble),
+        };
     }
 
     public static HostTransportStation Transport(Accelerator accelerator, SpeciesTableBuffers species, TransportTableBuffers transport,
