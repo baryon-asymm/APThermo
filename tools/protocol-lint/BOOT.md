@@ -202,9 +202,17 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
       (2026-10-01): with the exception emptied `test_dot_github_is_read_as_part_of_the_tree`
       turns red, with the dot rule removed `test_every_other_dot_directory_stays_skipped`
       and `test_excluded_directories_are_not_nodes` turn red.
-- [ ] The self-test is not run automatically by anything except a manual
-      `python -X utf8 tools/protocol-lint/test_protocol_lint.py`: in a project it has to
-      be wired into the project's own test set.
+- [x] The self-test is wired into the project's own test set (2026-10-05):
+      `Protocol.Tests.ToolSelfTestTests.EverySelfTestExitsZero(script:
+      "tools/protocol-lint/test_protocol_lint.py")` runs it as a process in the end-to-end
+      set (`Category=EndToEnd`), where a non-zero exit fails the fact and an empty walk
+      fails `TheWalkFindsTheSelfTests`. Seen red in a scratch copy with one canonical
+      section name changed in the copy of the linter: the self-test exits 1.
+
+      ⚠ 2026-10-05: was "not run automatically by anything except a manual run", now run by
+      `Protocol.Tests` since 2026-10-02 (end-to-end set since 2026-10-03). The old wording came
+      with the kit and was never true of this tree after the walk of `tools/*/test_*.py`
+      was written; it was found stale, not fixed, on 2026-10-05.
 - [x] The document templates of the tree satisfy the checker: every `BOOT.md` under
       `docs/protocol/templates/` carries the six canonical sections, and the test fails,
       not skips, when that directory holds no BOOT template, since an empty walk proves
@@ -218,8 +226,16 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
       this tree does not have, and was skipped (`unittest.skipUnless`) for as long as it
       existed, which `AGENTS.md` §13 forbids for a check. Found when the checks of 3.1 were
       taken over; the owner decided that the test reads `docs/protocol/templates/`.
-- [ ] The checks that need reflection are not implemented here and cannot be: that is
-      a separate node for the project's stack (`AGENTS.md`, §13).
+- [x] The checks that need reflection are not implemented here and cannot be: they are a
+      separate node for the project's stack (`AGENTS.md`, §13), in this tree
+      [Protocol.Tests](../../tests/Protocol.Tests/API.md) (2026-10-05): the public surface
+      (`SurfaceTests`), exported types against `API.md` (`CoverageTests`), declarations under ✅
+      (`DeclarationTests`) and the declared dependencies against the real ones (`DependencyTests`),
+      all green in `dotnet test tests/Protocol.Tests`.
+
+      ⚠ 2026-10-05: was an open box, "not implemented here", which is a limitation of this
+      node by design and not a gap to close; reformulated as satisfied by the neighbouring
+      node that implements the four reflection checks, and ticked.
 
 ## Taboos
 
