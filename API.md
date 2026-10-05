@@ -144,5 +144,5 @@ Tooling that is part of the tree but not of the product:
 [protocol-lint](./tools/protocol-lint/API.md) (the language-independent checks of
 AGENTS.md §13), [merge-guard](./tools/merge-guard/API.md) (the orchestrator's acceptance
 gate for a coder's branch), [coder-scope](./tools/coder-scope/API.md) (the hook holding a
-coder to its nodes, enabled by the owner) and [.github](./.github/API.md) (the workflows, actions and scripts, with
-its child [diagnostics/IsaProbe](./.github/diagnostics/IsaProbe/API.md)).
+coder to its nodes, enabled by the owner) and [.github](./.github/API.md) (the workflows, actions and scripts).
+
