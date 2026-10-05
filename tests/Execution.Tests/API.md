@@ -10,10 +10,10 @@ are compared by their bits.
 | Claim | Confirmed by | State |
 |---|---|---|
 | every function of the root's math list, `KernelMath.Fma` and the unfused product and sum beside it included, is linked on CUDA and equals the CPU accelerator bit for bit on every input (a NaN's payload aside), and the CPU accelerator reproduces the host's own functions bit for bit | L1 probe kernel | ✅ (2026-10-05) |
-| CUDA batches equal CPU-accelerator batches bit for bit, in every field of every case: the status, the iteration count (the bracketed cases' sum of attempts included), the state, the figures and every amount, on 100 000 cases, on every rocket and throat fixture family, on the equilibrium families of the 0.2.1 fixtures, on every equilibrium fixture table (tp, hp and sp), on the seeded families, on the 0.2.2 gas-plateau families and on the 0.2.2 gasless and bracketed families (`RecoveryFamilies`), the transport pass and the species-function batch included | L2 (`CudaTests`, `SpeciesFunctionTests`) | ✅ (2026-10-05) |
+| CUDA batches equal CPU-accelerator batches bit for bit, in every field of every case: the status, the iteration count (the bracketed cases' sum of attempts included), the state, the figures and every amount, on 100 000 cases, on every rocket and throat fixture family, on the equilibrium families of the 0.2.1 fixtures, on every equilibrium fixture table (tp, hp and sp), on the seeded families, on the 0.2.2 gas-plateau families and on the 0.2.2 gasless and bracketed families (`RecoveryFamilies`), on the 0.2.2 trace-gas families (`TraceGasFamilies`, 2026-10-05), the transport pass and the species-function batch included | L2 (`CudaTests`, `SpeciesFunctionTests`) | ✅ (2026-10-05) |
 | the exact comparison is not degenerate: every kind of difference, down to one unit in the last place, is refused with a message naming the case and the field | L0 (`ExactComparisonTests`) | ✅ (2026-10-05) |
 | every host-compared station of every family closes the element balance to a relative residual of at most `ElementBalance.ClosureBound`, 1e-13 | L2 (`BatchTests`) | ✅ |
-| one launch of cases that all bracket stays within the launch budget | L2 (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`) | ✅ |
+| one launch of cases that all bracket stays within the launch budget, and so does one launch of trace-gas hp and sp states | L2 (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`, `AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`, 2026-10-05) | ✅ |
 | batches on the CPU accelerator seeded by moles equal the solver called with the same seed, bit for bit, and independently of the chunking: the `seeded` fixtures, warm starts at half pressure, the bracketed gas-plateau states seeded 20 K above the plateau (2026-10-04) | L2 (`BatchTests.ASeededFamilyEqualsTheHostSolverBitForBit`, `ASeededBatchIsIndependentOfChunking`) | ✅ (2026-10-04) |
 | batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families, the 0.2.1 and 0.2.2 equilibrium families and the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |
@@ -39,6 +39,11 @@ the post-link's own refusals → HISTORY.md#exact-comparison-2026-10-05
   The 0.2.2 gasless and bracketed families (`RecoveryFamilies`) are computed the same way: the enthalpy and entropy of a gasless tp state
   from the condensed moles the solver found and the species functions, the melting temperature by bisection on the condensed set, the
   AP/HTPB/Al targets from tp states of the fixtures' own table; a batch result carries no multipliers, so those are not compared.
+  The 0.2.2 trace-gas families (`TraceGasFamilies`, 2026-10-05) are computed from the tree's own solves too: a mixture by its element ratio with a
+  trace excess or deficit of one element, a grid of temperatures and pressures, and the enthalpy and entropy of the converged tp states as the targets
+  of hp and sp cases. A host solve over a scratch filled with a value no solve writes (`HostSolves.EquilibriumProbed`) tells the cases the
+  pass settled (a verdict's anchor in `Tie.Elements.Multipliers` and more Newton steps than one attempt takes) and the hp and sp cases the
+  temperature bracket settled (`BracketEnds` written); `BOOT.md` states what that proves and what it does not.
   The seeded families take their seeds from the CPU accelerator's own runs of the fixtures node's inputs (the `seeded` kind's
   `seed.temperature`; the tp fixtures of every equilibrium table) and of `GasPlateauFamilies`' computed systems (2026-10-04).
 - `ExactComparison.cs` in this node: the one comparison of two results, by bits, for a
