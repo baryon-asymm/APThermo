@@ -35,8 +35,9 @@ public sealed class NoHiddenStateTests
     /// <summary>
     /// The batch: every fixture case of the three equilibrium kinds, the magnesite band (the trace-carrier states, 41), the states declared
     /// <c>NotConverged</c> in <c>TraceGasLeftovers.txt</c>, the nine states the gas basis settles (<see cref="GasBasisStartTests.Settled"/>), the
-    /// the one state built to fail through the whole pass (<see cref="DegenerateTable"/>), the gasless states of KO2 − 1e-10 O, and the hp and sp states at the junction
-    /// of the data warm-started from their tp composition: cases that end <c>Ok</c>, <c>NoGasPhase</c> and a failure the solver reports.
+    /// 15 states of the band its mixture column settles (<see cref="GasMixtureStartTests.Band"/>), the one state built to fail through the whole pass
+    /// (<see cref="DegenerateTable"/>), the gasless states of KO2 − 1e-10 O, and the hp and sp states at the junction of the data
+    /// warm-started from their tp composition: cases that end <c>Ok</c>, <c>NoGasPhase</c> and a failure the solver reports.
     /// </summary>
     private static List<(string Label, EquilibriumCase Case, double[]? Estimate)> Batch()
     {
@@ -49,6 +50,7 @@ public sealed class NoHiddenStateTests
         var known = TraceGasCases.ScanFamilies().Concat(TraceGasCases.TraceScan()).DistinctBy(state => state.Name).ToDictionary(state => state.Name);
         var states = TraceGasCases.MagnesiteBand().Concat(TraceGasLeftovers.NotConverged.Where(known.ContainsKey).Select(name => known[name]))
             .Concat(GasBasisStartTests.Settled.Select(name => known[name]))
+            .Concat(GasMixtureStartTests.Band())
             .Concat(TraceGasCases.Binary([-1.0e-10]).Where(state => state.Name.StartsWith("binary-ko2|", StringComparison.Ordinal)));
         batch.AddRange(states.Select(state => (state.Name, state.AsCase(), (double[]?)null)));
         batch.Add(DegenerateTable());

@@ -210,8 +210,13 @@ internal static class TraceGasStep
     /// <summary>The logarithm of a total (or of its sum of mole fractions) the iteration carries as <c>LogN</c>.</summary>
     public static double LogTotal(double total) => KernelMath.Log(total);
 
-    /// <summary>Whether every active element's balance holds within <see cref="BalanceTest"/> times b_i over the moles in the result.</summary>
-    public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
+    /// <summary>
+    /// Whether every active element's balance holds within <see cref="BalanceTest"/> times b_i over the moles in the result, or, for a
+    /// convergence at its step cap in the pass's second round (<paramref name="atCapOfSecondRound"/>), within the node's invariant itself
+    /// (BOOT.md, "The rounds", 2026-10-05).
+    /// </summary>
+    public static bool Balanced(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result,
+                                bool atCapOfSecondRound)
     {
         for (var i = 0; i < table.ElementCount; i++)
         {
@@ -223,7 +228,7 @@ internal static class TraceGasStep
             var residual = Math.Abs(problem.ElementMoles[i] - ElementBalance.Abundance(table, result, i));
             if (!(residual <= BalanceTest * problem.ElementMoles[i]))
             {
-                return false;
+                return atCapOfSecondRound && ElementBalance.WithinInvariant(table, problem, scratch, result);
             }
         }
 

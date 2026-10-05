@@ -18,6 +18,12 @@ internal static class TraceGasPass
     /// <summary>The start from the phase-one point without its zero-level records: the last that needs the point.</summary>
     private const int DropLevelStart = 3;
 
+    /// <summary>
+    /// The rounds of the starts (2026-10-05): the second runs only when every start of the first failed, and in it a convergence at its step
+    /// cap may close within the node's invariant itself (BOOT.md, "The rounds").
+    /// </summary>
+    private const int Rounds = 2;
+
     /// <summary>The start from the gas basis (2026-10-05): the program with every gas a column at unit fraction.</summary>
     private const int GasBasisStart = 4;
 
@@ -38,17 +44,20 @@ internal static class TraceGasPass
         TraceGasStart.SaveEntry(table, scratch, result);
         var status = CaseStatus.NotConverged;
         var havePoint = false;
-        for (var start = 0; start < StartCount; start++)
+        for (var pass = 0; pass < Rounds * StartCount; pass++)
         {
+            var start = pass % StartCount;
             if (start == 1)
             {
                 havePoint = PhaseOneSeed.Fetch(table, problem, scratch, result, out _);
             }
 
-            if (start > 0)
+            if (pass > 0)
             {
                 TraceGasStart.RestoreEntry(table, scratch, result, ref state, entryLogN, entryTemperature);
             }
+
+            state.TraceGasRound = pass / StartCount;
 
             var dropLevel = start == DropLevelStart;
             if (dropLevel && !havePoint)
@@ -74,6 +83,7 @@ internal static class TraceGasPass
         }
 
         TraceGasStart.RestoreEntry(table, scratch, result, ref state, entryLogN, entryTemperature);
+        state.TraceGasRound = 0;
         return status;
     }
 
