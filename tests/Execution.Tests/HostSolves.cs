@@ -126,9 +126,10 @@ internal static class HostSolves
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         EquilibriumSolver.Solve(in view, in problem, in scratch, in result, batch.IsSeeded);
-        var anchor = new double[scratch.Tie.Elements.Multipliers.Length];
+        // The host arrays start unwritten, so a lost download reads as "not written" and can only turn a fact red (root BOOT.md, ILGPU's fourth defect).
+        double[] anchor = [.. Enumerable.Repeat(UnwrittenDouble, (int)scratch.Tie.Elements.Multipliers.Length)];
         scratch.Tie.Elements.Multipliers.CopyToCPU(anchor);
-        var ends = new double[scratch.BracketEnds.Length];
+        double[] ends = [.. Enumerable.Repeat(UnwrittenDouble, (int)scratch.BracketEnds.Length)];
         scratch.BracketEnds.CopyToCPU(ends);
         return new HostEquilibriumCase(state.GetAsArray1D()[0], moles.GetAsArray1D(), (CaseStatus)status.GetAsArray1D()[0], iterations.GetAsArray1D()[0])
         {
