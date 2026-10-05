@@ -58,9 +58,25 @@ throughput figures.
   20 % or below 5×, and when the rocket sweep's CUDA kernel time per Newton step
   (`cuda_kernel_seconds_per_iteration`, the kernel seconds over the steps summed over every
   station of every case; `iterations_per_case` records that workload) exceeds 115 % of the
-  approved figure (2026-10-04, `ThroughputRecord`; run-to-run variation is under 2 %). A
+  approved figure (2026-10-04, `ThroughputRecord`). The figure is the median of the three
+  timed runs' kernel times over the steps (`CudaTiming`, 2026-10-05), the same statistic as
+  `cuda_seconds`; the median of five such runs varies by 0.2 % (Windows) and 0.3 % (WSL2). A
   record without a valid per-iteration line fails with a message naming the file, never
   skips: a platform's file is re-approved from a run on that platform.
+
+  ⚠ 2026-10-05: was the figure of the first timed run's kernel time, now the median of the
+  timed runs' kernel times. The first timed run's kernel time is not representative: three
+  quiet runs measured `cuda_seconds` 0.355, 0.354, 0.355 and the first run's kernel 0.376,
+  0.277, 0.349 s (1.680e-07, 1.237e-07, 1.557e-07 per step), once above the median total, and
+  the check failed at 120.6 % in the merge guard. The median of the three, which one outlier
+  does not move, is the figure compared and recorded (`cuda_kernel_seconds`); the first run's
+  result still goes to the determinism pair (runs 0 and 1). Over five runs per platform after
+  the fix the median per-step figure spread 1.236 to 1.238e-07 (Windows) and 1.233 to
+  1.237e-07 (WSL2), while the first run's own was 1.235 to 1.371e-07 and 1.233 to 1.438e-07,
+  up to 16 % above the median in one run of five and 10 to 11 % in two of the Windows five: no
+  usable margin against the 115 % limit. The CUDA warm-up of five launches is kept; the
+  outlier is the first timed run only, which the median absorbs. The records were re-approved
+  from these runs (`ACCEPTANCE.md`).
 
   ⚠ 2026-10-04: was the ratio alone, now the kernel time per Newton step too; a ratio
   moves with the CPU's load and the transfer overhead and let +25 % on the kernel (0.2.1

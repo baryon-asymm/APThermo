@@ -139,6 +139,20 @@ The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` 
       `BracketedFamiliesTests.TheLaunchBudgetCheckRefusesALaunchOverTheLimitAndACaseThatDidNotBracket`
       (a limit of zero and a case that ended `Ok` are refused).
       On CUDA, 2026-10-04 (11fe71f6, Release): 16 384 bracketing cases in one launch, kernel 361.3 ms against the 500 ms budget, 151 Newton steps per case on average.
+- [x] 2026-10-05 — The throughput tripwire reads the median kernel time (coder 15 of 0.2.2; the ⚠ 2026-10-05 of `BOOT.md`):
+      `SweepRun` takes `cuda_kernel_seconds` and the per-iteration figure from the median of the three timed runs' kernel times
+      (`CudaTiming`), proven without a GPU by `ThroughputRecordTests.TheKernelTimeOfTheFigureIsTheMedianOfTheTimedRunsInAnyOrder`
+      (3 cases; red once with the median replaced by the first run: expected 0.349 s, actual 0.376 and 0.277 s).
+      - Five quiet Release runs on Windows (`TheSweepOf100000` and `ThroughputIsRecorded`), per step in 1e-07 s, first timed run
+        under the old rule against the median under the new: 1.237 / 1.236, 1.371 / 1.237, 1.359 / 1.237, 1.235 / 1.236,
+        1.238 / 1.238 (old spread 11.0 %, new 0.2 %); ratios 18.54, 18.21, 18.35, 18.52, 18.56.
+      - Five quiet Release runs in WSL2 (Ubuntu-24.04, a tree of this commit under `~`): 1.235 / 1.235, 1.234 / 1.234, 1.438 / 1.235,
+        1.271 / 1.237, 1.233 / 1.233 (old spread 16.6 %, new 0.3 %); ratios 26.50, 25.74, 25.92, 25.77, 26.51.
+      - `Throughput.approved.txt` re-approved at the median of the five Windows runs: ratio 18.52 (CUDA 0.355 s, CPU 6.570 s, the
+        run of the median ratio), kernel 0.277 s, 1.237e-07 s per step. `Throughput.linux.approved.txt` at the run of the median
+        ratio, which is also the median per step: ratio 25.92 (CUDA 0.369 s, CPU 9.570 s), kernel 0.277 s, 1.235e-07 s per step.
+        The earlier records (1.426e-07 and 1.364e-07) were measured with the first-run rule on the tree before the own math.
+
 - [x] 2026-10-04 — The throughput tripwire per Newton step (coder 7 of 0.2.2; the ⚠ 2026-10-04 of `BOOT.md`):
       `CudaTests.ThroughputIsRecordedAndNotBelowTheApprovedRatio` writes `iterations_per_case` (22.403) and
       `cuda_kernel_seconds_per_iteration` and fails above 115 % of the approved figure (`ThroughputRecord`); the rule and the
