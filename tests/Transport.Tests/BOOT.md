@@ -56,6 +56,11 @@ The definition of what "`Transport` is ready" means.
   (`ci.yml`; `release.yml`'s `matrix` job; filter
   `Category!=LongRunning&Category!=BitSnapshot`), where the reference comparison
   holds correctness instead.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and the bit fact runs on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform).
 - The node owns the tolerances of comparisons that are not with the reference (a
   self-consistency of two paths through the same arithmetic, an algebraic identity);
   they are named constants of the node with their origin in a comment, never literals

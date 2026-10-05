@@ -81,6 +81,11 @@ and the criterion below carry the day they were written.
   the platform difference does not reach (the bullet above), so the filtering costs
   hosted CI no coverage this node's own bits could catch that the other L0/L1 rows
   do not.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and both bit facts run on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform).
 - Kernel tests create their own ILGPU context with the CPU accelerator; no CUDA.
 
 ## Dependencies

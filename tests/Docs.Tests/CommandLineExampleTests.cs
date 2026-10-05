@@ -45,9 +45,9 @@ namespace APThermo.Docs.Tests;
 /// members in the same order, every string and boolean equal, every number within
 /// <see cref="JsonFieldComparison.RelativeNumberTolerance"/>) and runs on every runner, the hosted ones included;
 /// <see cref="EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly"/>
-/// re-runs the same invocations and compares the bytes exactly, carrying <c>Category=BitSnapshot</c> so it runs only
-/// on the reference machine (locally and on the self-hosted release runners), where the record is
-/// known to be exact; the hosted runners' own check is the field-by-field one. `--help`'s plain-text record is compared
+/// re-runs the same invocations and compares the bytes exactly, carrying <c>Category=BitSnapshot</c>, which every runner
+/// runs, the hosted ones included (2026-10-05: the hosted runs filter <c>Category!=LongRunning</c> only, since the record
+/// is one for every platform). `--help`'s plain-text record is compared
 /// exactly in both facts. The two facts above run each invocation in-process on warm
 /// solvers (<see cref="CliInvocation.InProcess"/>); two more, <see cref="EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField"/>
 /// and <see cref="EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentExactly"/>, run the same invocations
@@ -107,8 +107,8 @@ public sealed partial class CommandLineExampleTests
     /// <summary>
     /// The same runnable examples' delivered documents equal their platform's approved file exactly
     /// (<see cref="ComparisonMode.Exact"/>; BOOT.md, "The command-line examples' approved documents follow the root's
-    /// platform rule"). Tagged so it runs on the reference machine, locally and on the self-hosted release runners,
-    /// and not on the hosted CI runners, where the field-by-field fact above holds correctness instead.
+    /// platform rule"). Tagged <c>Category=BitSnapshot</c>, and run on every runner, the hosted CI runners included
+    /// (2026-10-05), next to the field-by-field fact above.
     /// </summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
@@ -123,8 +123,8 @@ public sealed partial class CommandLineExampleTests
     public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField() => RunInvocations(new Check(ComparisonMode.Field, CliInvocation.AsProcess));
 
     /// <summary>
-    /// The same invocations, each as a fresh process, equal their platform's approved file exactly: the reference machine's
-    /// record of the shipped cold path, tagged <c>Category=BitSnapshot</c> like the in-process exact fact.
+    /// The same invocations, each as a fresh process, equal their approved file exactly: the record of the shipped cold
+    /// path on every runner, tagged <c>Category=BitSnapshot</c> like the in-process exact fact.
     /// </summary>
     [Fact]
     [Trait("Category", "EndToEnd")]
@@ -483,7 +483,7 @@ public sealed partial class CommandLineExampleTests
         }
     }
 
-    /// <summary>The reference machine's exact comparison (<c>Category=BitSnapshot</c>): the two texts differ at all.</summary>
+    /// <summary>The exact comparison (<c>Category=BitSnapshot</c>, every runner): the two texts differ at all.</summary>
     private static string? ExactMismatch(string approved, string actual) =>
         approved.Equals(actual, StringComparison.Ordinal) ? null : "bytes differ";
 

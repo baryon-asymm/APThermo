@@ -61,6 +61,11 @@ The definition of what "`Equilibrium` is ready" means.
   (`ci.yml`; `release.yml`'s `matrix` job; filter
   `Category!=LongRunning&Category!=BitSnapshot`), where the CEA tolerance tests of
   the L1 row above hold correctness instead.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and the bit facts run on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform).
 - **This node owns the tolerance of a comparison that is not with the reference**
   (2026-09-14): two paths of this tree reaching the same state (an equilibrium solve
   and a frozen one at its composition; a plateau state reached twice) or an algebraic

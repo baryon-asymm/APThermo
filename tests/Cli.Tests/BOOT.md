@@ -107,6 +107,12 @@ The definition of what "`Cli` is ready" means.
   carries no trait: it compares one run's captured text against the same run's
   delivered file, never against `Bits.approved.txt`, so it stays outside this
   deviation and keeps running on hosted CI.
+
+  ⚠ 2026-10-05: was "filtered out of the hosted fast suite" (filter
+  `Category!=LongRunning&Category!=BitSnapshot`), now the hosted runs filter
+  `Category!=LongRunning` only and the bit facts run on every runner, the hosted ones
+  included, against the one `Bits.approved.txt` (root BOOT.md, Platform). The wrong claim
+  stood in this node after the record became one; found when the merged tree was verified.
 - **The snapshot mechanics go through the harness** (2026-09-14): the hand-rolled
   tab-delimited reader/writer (`BitFile`) and the line-by-line comparison this node
   wrote for its own three-field lines (a name, then a JSON and a CSV SHA-256,
