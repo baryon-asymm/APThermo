@@ -152,8 +152,16 @@ is named in the class that uses it.
 - [x] The program with the gases as columns (2026-10-05, `GasBasisStartTests.TheProgramWithTheGasesAsColumnsHoldsTheCarrierAndTheBalancingPhase`:
       Li2O + 1e-10 O, CaCO3 + 1e-8 O, Al(OH)3 − 1e-8 O); the verdict's program unchanged: every `GasPhaseTests`
       fact and every `BitSnapshotTests` fact of the Equilibrium, Performance and Problems tests nodes green.
-- [ ] CUDA: a tp family of gasless states, GPU equal to CPU (status, moles and multipliers within the tier); Linux
-      bits re-approved; the shape facts green with no new row.
+- [x] CUDA: families of gasless tp states, GPU equal to the CPU accelerator bit for bit (status, iterations, state
+      and moles: the batch result carries no multipliers); the one bit record per node green on Windows and under
+      WSL2; the shape facts green with no new row. 2026-10-05: `CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator`
+      through `ExactComparison.Equilibrium`, `gasless-ko2` 51 cases and `gasless-nao2` 18, every one `NoGasPhase`, tp,
+      hp and sp among them (`BracketedFamiliesTests`), Release on the reference machine, and in the `Category=Cuda`
+      runs of `tests/Execution.Tests/ACCEPTANCE.md` (Windows 80 of 81, WSL2 81 of 81); the fast set, `ShapeTests` and
+      every `BitSnapshotTests` fact in it, green on Windows and under WSL2 (root `ACCEPTANCE.md`, the test pyramid).
+      ⚠ 2026-10-05: was "moles and multipliers within the tier; Linux bits re-approved": the tier and the Linux
+      records are gone (exact comparison; one bit record per node, `tests/Harness/BOOT.md`), and no batch result
+      carries the multipliers.
 
 ## Taboos
 

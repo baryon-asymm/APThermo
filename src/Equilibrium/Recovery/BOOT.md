@@ -259,10 +259,22 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 - [x] The rocket kernel's compile stays within the execution node's guard with `Next` reached once: the first
       run allocated 500 109 800 bytes on the CPU accelerator, the program kept 165 661 616 bytes (2026-10-04,
       `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound`).
-- [ ] CUDA on the reference machine: families of bracketed hp/sp states and of hp/sp `NoGasPhase`,
+- [x] CUDA on the reference machine: families of bracketed hp/sp states and of hp/sp `NoGasPhase`,
       GPU equal to CPU; one launch of a family where every case brackets stays within
       `LaunchBudget`; the rocket kernel's compile within the guard, its figure recorded; the
       throughput tripwire not below the approved ratio; the fast set within 5 minutes; WSL green.
+      2026-10-05, the tree's own math:
+      - `CudaTests.ABracketedFamilyOnCudaMatchesTheCpuAccelerator`, bit for bit (`ExactComparison`), Release:
+        `gasless-ko2` 51 cases, `gasless-nao2` 18 (`NoGasPhase`), `bracket-calcite-1e5` 6, `bracket-magnesite-1e5` 6,
+        `bracket-ap-htpb-al-20mpa` 6 (`Ok`); and in the `Category=Cuda` runs of `tests/Execution.Tests/ACCEPTANCE.md`
+        (Windows 80 of 81, the Debug-refused throughput fact the other; WSL2 81 of 81);
+      - `CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`, Release: 16 384 cases, kernel 291.7 ms
+        against 500 ms, 151 Newton steps per case;
+      - `RocketCompileTests.TheRocketKernelCompilesWithinItsAllocationBound`: the process allocated 3 575.9 to
+        3 577.6 MB in Release against 7 GiB (the guard's measure since 2026-10-05, the tests node's criterion);
+      - the throughput tripwire green in five quiet Release runs per platform, re-approved at 18.52× (Windows)
+        and 25.92× (WSL2);
+      - the fast set 1 min 56 s on Windows and 127 s under WSL2, green (root `ACCEPTANCE.md`, the test pyramid).
 
 ## Taboos
 
