@@ -247,8 +247,18 @@ internal static class KernelMath
 {
     public static double Min(double val1, double val2);   // equals System.Math.Min(val1, val2) bit for bit on every non-NaN result, a NaN whenever System.Math gives one, the first NaN operand exactly for a NaN operand; on both accelerators
     public static double Max(double val1, double val2);   // equals System.Math.Max(val1, val2) bit for bit on every non-NaN result, a NaN whenever System.Math gives one, the first NaN operand exactly for a NaN operand; on both accelerators
+    public static double Exp(double x);                   // the exact value rounded to nearest even on every input; the same bits on both accelerators and every platform (2026-10-05)
+    public static double Log(double x);                   // the same, log
+    public static double Pow(double x, double y);         // the same, pow, with the C99 special values
+    public static double Fma(double a, double b, double c);   // a*b + c with one rounding: the one fused multiply-add of the tree
 }
 ```
+
+Added 2026-10-05 (`BOOT.md`, "`KernelMath`"): `Exp`, `Log` and `Pow` are the tree's own correctly
+rounded functions, each forwarding to the child node [Elementary](Elementary/API.md), which owns the algorithms, the
+bounds and the facts; they replace `System.Math.Exp`, `Log`, `Pow` and `Log10` in every numerical node
+(the root's math constraint), and `Log10` is not offered. `Fma` is the one place a product is fused with a sum: nothing else in a kernel
+is, on either accelerator.
 
 Implemented 2026-09-27 (`BOOT.md`): written with comparisons and selections only. NaN
 propagates from either operand; of two equal values (`+0`/`−0` included) `Min` treats

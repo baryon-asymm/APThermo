@@ -320,6 +320,10 @@ F5, O4, O6, O7); each closes a way a defect or a suppression passed every guard.
   `Sqrt`, `Abs`, `Floor` and `Ceiling` of `double`, and `double.IsNaN` and
   `double.IsNegative` inside `KernelMath` only (the root's math constraint). It reads
   static members only: the instance `Equals`, `ToString` and `CompareTo` are host-side.
+  Since 2026-10-05 the confinement covers `KernelMath` and the `Elementary` child of `src/Thermo`
+  (the tree's own elementary functions) and three more members: `Math.FusedMultiplyAdd`,
+  `BitConverter.DoubleToInt64Bits` and `Int64BitsToDouble` are called there and nowhere else,
+  and no other `BitConverter` member is called by a numerical node at all.
 - **No constant on the left of an ordered comparison (the third ILGPU defect).** A syntax
   fact over the numerical nodes' sources: no literal and no `const` left of `<`, `<=`,
   `>` or `>=` between floating-point operands, typed by the semantic model's

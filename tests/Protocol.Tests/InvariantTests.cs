@@ -82,18 +82,26 @@ public sealed class InvariantTests
         Assert.True(problems.Count == 0, "root BOOT.md, Invariants: no hidden state.\n" + string.Join("\n", problems));
     }
 
-    /// <summary>The double overloads of `System.Math` a numerical node may call (root BOOT.md, "Math in numerical
-    /// nodes", 2026-09-28): every one of them is accepted only when every one of its parameters is `double`, so an
-    /// overload for another type of the same name (`Math.Abs(int)`) is refused like any unlisted member.</summary>
+    /// <summary>The double overloads of `System.Math` a numerical node may call anywhere (root BOOT.md, "Math in numerical
+    /// nodes"): the IEEE operations both accelerators compute the same bits for. Every one of them is accepted only when
+    /// every one of its parameters is `double`, so an overload for another type of the same name (`Math.Abs(int)`) is
+    /// refused like any unlisted member.</summary>
     private static readonly IReadOnlyList<string> AllowedMathMethods = ["Exp", "Log", "Log10", "Pow", "Sqrt", "Abs", "Floor", "Ceiling"];
 
-    /// <summary>The static `System.Double` members a numerical node may call, and only inside `KernelMath` (unchanged
-    /// from 2026-09-27; `double.Min`/`Max` are never on this list, root BOOT.md, the guards audit's F1). Only static
-    /// members are read at all: `double.Equals`, `double.ToString` and `double.CompareTo` are instance methods the
-    /// hand-written `IEquatable&lt;T&gt;` structs and an exception message call on the host side, never kernel code,
-    /// and the root's math constraint is about the functions a kernel might run, not the formatting or equality of a
-    /// result once it is off the GPU.</summary>
-    private static readonly IReadOnlyList<string> AllowedDoubleMethods = ["IsNaN", "IsNegative"];
+    /// <summary>The `System.Math` members that only `KernelMath` and the `Elementary` node (the tree's own elementary
+    /// functions) may call: the fused multiply-add is the one place a product is fused with a sum.</summary>
+    private static readonly IReadOnlyList<string> ConfinedMathMethods = ["FusedMultiplyAdd"];
+
+    /// <summary>The static `System.Double` members a numerical node may call, and only inside `KernelMath` and `Elementary`
+    /// (`double.Min`/`Max` are never on this list, root BOOT.md, the guards audit's F1). Only static members are read at
+    /// all: `double.Equals`, `double.ToString` and `double.CompareTo` are instance methods the hand-written
+    /// `IEquatable&lt;T&gt;` structs and an exception message call on the host side, never kernel code, and the root's math
+    /// constraint is about the functions a kernel might run, not the formatting or equality of a result once it is off the GPU.</summary>
+    private static readonly IReadOnlyList<string> ConfinedDoubleMethods = ["IsNaN", "IsNegative"];
+
+    /// <summary>The `System.BitConverter` members a numerical node may call, and only inside `KernelMath` and `Elementary`:
+    /// the bit conversions of a double (`mov.b64` on CUDA).</summary>
+    private static readonly IReadOnlyList<string> ConfinedBitConverterMethods = ["DoubleToInt64Bits", "Int64BitsToDouble"];
 
     /// <summary>
     /// Numerical nodes call no member of `System.Math` or `System.Double` outside the root's allow-list (root BOOT.md,
@@ -114,7 +122,7 @@ public sealed class InvariantTests
         var problems = scanned.SelectMany(pair => KernelMathProblems(pair.Node, pair.Assembly)).ToList();
         Assert.True(problems.Count == 0,
             "root BOOT.md, Constraints: only the double overloads of System.Math named in the allow-list, and " +
-            "double.IsNaN/IsNegative nowhere outside KernelMath.\n" + string.Join("\n", problems));
+            "Math.FusedMultiplyAdd, double.IsNaN/IsNegative and the BitConverter bit conversions nowhere outside KernelMath and Elementary.\n" + string.Join("\n", problems));
     }
 
     /// <summary>
@@ -336,10 +344,11 @@ public sealed class InvariantTests
     private static bool IsAllowedStaticReadonlyType(Type type) => type.IsPrimitive || type == typeof(string) || type.IsEnum;
 
     /// <summary>
-    /// The calls of one type's method bodies that the Constraint above forbids: any overload of <c>Math.Min</c> or
-    /// <c>Math.Max</c>, and, outside <c>KernelMath</c> itself, <c>double.IsNaN</c> or <c>double.IsNegative</c>. Split
-    /// into three small methods, one per level of the walk (type, method, instruction), so that no method nests
-    /// deeper than the root's limit of 3.
+    /// The calls of one type's method bodies that the Constraint above forbids: a <c>System.Math</c> member outside the
+    /// allow-list (any overload of <c>Math.Min</c> or <c>Math.Max</c> included) and, outside <c>KernelMath</c> and the
+    /// <c>Elementary</c> node, <c>Math.FusedMultiplyAdd</c>, <c>double.IsNaN</c>, <c>double.IsNegative</c> and the two
+    /// bit conversions of <c>BitConverter</c>. Split into small methods, one per level of the walk (type, method,
+    /// instruction), so that no method nests deeper than the root's limit of 3.
     /// </summary>
     private static IEnumerable<string> KernelMathProblems(Node node, Assembly assembly)
     {
@@ -354,45 +363,50 @@ public sealed class InvariantTests
 
     private static IEnumerable<string> KernelMathProblemsInType(Node node, Type type)
     {
-        var isKernelMath = type.FullName == "APThermo.Thermo.KernelMath";
+        var confined = type.FullName == "APThermo.Thermo.KernelMath" || type.Namespace == "APThermo.Thermo.Elementary";
         foreach (var method in TypeShape.MethodsOf(type))
         {
-            foreach (var problem in KernelMathProblemsInMethod(node, type, method, isKernelMath))
+            foreach (var problem in KernelMathProblemsInMethod(node, type, method, confined))
             {
                 yield return problem;
             }
         }
     }
 
-    private static IEnumerable<string> KernelMathProblemsInMethod(Node node, Type type, MethodBase method, bool isKernelMath)
+    private static IEnumerable<string> KernelMathProblemsInMethod(Node node, Type type, MethodBase method, bool confined)
     {
         foreach (var instruction in IlBody.Instructions(method))
         {
-            if (instruction.Operand is not MethodBase called || called.DeclaringType is not { } declaring)
+            if (instruction.Operand is MethodBase { DeclaringType: { } declaring } called && CallProblem(declaring, called, confined) is { } problem)
             {
-                continue;
-            }
-
-            if (declaring == typeof(Math))
-            {
-                if (!AllowedMathMethods.Contains(called.Name, StringComparer.Ordinal) || !IsDoubleOverload(called))
-                {
-                    yield return $"{node.Name}: {type.FullName}.{method.Name} calls Math.{called.Name}, outside the allow-list";
-                }
-            }
-            else if (declaring == typeof(double) && called.IsStatic)
-            {
-                if (!AllowedDoubleMethods.Contains(called.Name, StringComparer.Ordinal))
-                {
-                    yield return $"{node.Name}: {type.FullName}.{method.Name} calls double.{called.Name}, outside the allow-list";
-                }
-                else if (!isKernelMath)
-                {
-                    yield return $"{node.Name}: {type.FullName}.{method.Name} calls double.{called.Name} outside KernelMath";
-                }
+                yield return $"{node.Name}: {type.FullName}.{method.Name} {problem}";
             }
         }
     }
+
+    /// <summary>What is wrong with one call into <c>System.Math</c>, <c>System.Double</c> or <c>System.BitConverter</c>, or null:
+    /// a call outside the allow-list, or a confined member outside <c>KernelMath</c> and <c>Elementary</c>
+    /// (<paramref name="confined"/> is true inside them).</summary>
+    private static string? CallProblem(Type declaring, MethodBase called, bool confined) =>
+        declaring == typeof(Math)
+            ? MathProblem(called, confined)
+            : declaring == typeof(double) && called.IsStatic
+                ? MemberProblem("double", called.Name, ConfinedDoubleMethods, confined)
+                : declaring == typeof(BitConverter) ? MemberProblem("BitConverter", called.Name, ConfinedBitConverterMethods, confined) : null;
+
+    private static string? MathProblem(MethodBase called, bool confined)
+    {
+        var allowed = AllowedMathMethods.Contains(called.Name, StringComparer.Ordinal);
+        var isConfined = ConfinedMathMethods.Contains(called.Name, StringComparer.Ordinal);
+        return !IsDoubleOverload(called) || !(allowed || isConfined)
+            ? $"calls Math.{called.Name}, outside the allow-list"
+            : isConfined && !confined ? $"calls Math.{called.Name} outside KernelMath and Elementary" : null;
+    }
+
+    private static string? MemberProblem(string type, string name, IReadOnlyList<string> confinedMembers, bool confined) =>
+        !confinedMembers.Contains(name, StringComparer.Ordinal)
+            ? $"calls {type}.{name}, outside the allow-list"
+            : confined ? null : $"calls {type}.{name} outside KernelMath and Elementary";
 
     /// <summary>Whether every parameter of a `System.Math` overload is `double`: the allow-list names the double
     /// overload only, so a same-named overload of another type (`Math.Abs(Int32)`) is refused like any unlisted
