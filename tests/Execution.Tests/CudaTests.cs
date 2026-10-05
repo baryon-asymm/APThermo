@@ -268,8 +268,12 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         var sweep = EngineFixture.Shared.Sweep;
-        var ratio = sweep.CpuSeconds.TotalSeconds / sweep.CudaSeconds.TotalSeconds;
-        var perIteration = ThroughputRecord.KernelSecondsPerIteration(sweep.Cuda!);
+        var ratio = sweep.CpuSeconds.TotalSeconds / sweep.CudaTime.Elapsed.TotalSeconds;
+        var perIteration = ThroughputRecord.KernelSecondsPerIteration(sweep.CudaTime.Kernel, sweep.Cuda!);
+        var perRun = sweep.CudaTime.KernelRuns.Select(kernel => ThroughputRecord.KernelSecondsPerIteration(kernel, sweep.Cuda!));
+        output.WriteLine("CUDA kernel seconds per Newton step of the timed runs: "
+            + string.Join(", ", perRun.Select(figure => figure.ToString("0.000e+00", CultureInfo.InvariantCulture)))
+            + $"; the median {perIteration.ToString("0.000e+00", CultureInfo.InvariantCulture)} is the figure compared");
         var directory = Path.GetDirectoryName(ThisFile())!;
         var actualLines = new[]
         {
@@ -280,11 +284,11 @@ public sealed class CudaTests(ITestOutputHelper output)
             $"cases: {sweep.Batch.Count}",
             $"stations: {sweep.Cpu.StationCount}",
             $"species: {sweep.Cpu.SpeciesCount}",
-            $"cuda_seconds: {sweep.CudaSeconds.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
+            $"cuda_seconds: {sweep.CudaTime.Elapsed.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
             $"cpu_seconds: {sweep.CpuSeconds.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
             $"ratio: {ratio.ToString("F2", CultureInfo.InvariantCulture)}",
-            $"cuda_kernel_seconds: {sweep.Cuda!.Timings.Kernel.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
-            ThroughputRecord.Line(ThroughputRecord.IterationsPerCaseKey, ThroughputRecord.IterationsPerCase(sweep.Cuda)),
+            $"cuda_kernel_seconds: {sweep.CudaTime.Kernel.TotalSeconds.ToString("F3", CultureInfo.InvariantCulture)}",
+            ThroughputRecord.Line(ThroughputRecord.IterationsPerCaseKey, ThroughputRecord.IterationsPerCase(sweep.Cuda!)),
             ThroughputRecord.Line(ThroughputRecord.PerIterationKey, perIteration),
             $"date: {DateTime.Now:yyyy-MM-dd}",
         };

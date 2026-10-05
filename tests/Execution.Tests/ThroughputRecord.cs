@@ -22,8 +22,11 @@ internal static class ThroughputRecord
     /// <summary>The Newton steps of the batch, summed over every station of every case, per case.</summary>
     public static double IterationsPerCase(RocketBatchResult result) => (double)Steps(result) / result.Count;
 
-    /// <summary>The kernel's wall time over the Newton steps of the batch, in seconds.</summary>
-    public static double KernelSecondsPerIteration(RocketBatchResult result) => result.Timings.Kernel.TotalSeconds / Steps(result);
+    /// <summary>
+    /// A kernel wall time over the Newton steps of the batch, in seconds. The caller passes the median kernel time of the timed runs: the
+    /// first run's is not representative (2026-10-05, Execution.Tests BOOT.md), and the steps are the same in every run.
+    /// </summary>
+    public static double KernelSecondsPerIteration(TimeSpan kernel, RocketBatchResult result) => kernel.TotalSeconds / Steps(result);
 
     /// <summary>The figure as a line of the record: the per-iteration time in scientific notation with four significant digits, the step count with three decimals.</summary>
     public static string Line(string key, double value) =>

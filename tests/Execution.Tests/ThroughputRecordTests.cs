@@ -66,4 +66,23 @@ public sealed class ThroughputRecordTests
         Assert.Equal(7.857e-8, double.Parse(parsed[ThroughputRecord.PerIterationKey], CultureInfo.InvariantCulture), 12);
         Assert.Equal("22.403", parsed[ThroughputRecord.IterationsPerCaseKey]);
     }
+
+    /// <summary>
+    /// The kernel time of the figure is the median of the timed runs whatever the order, so an unrepresentative first run (the quiet
+    /// runs of 2026-10-05 measured 0.376, 0.277 and 0.349 s) moves neither the median nor the per-step figure; the median's own
+    /// elapsed time is taken independently.
+    /// </summary>
+    [Theory]
+    [InlineData(376, 277, 349)]
+    [InlineData(277, 376, 349)]
+    [InlineData(349, 277, 376)]
+    public void TheKernelTimeOfTheFigureIsTheMedianOfTheTimedRunsInAnyOrder(int first, int second, int third)
+    {
+        TimeSpan[] kernels = [TimeSpan.FromMilliseconds(first), TimeSpan.FromMilliseconds(second), TimeSpan.FromMilliseconds(third)];
+        TimeSpan[] elapsed = [TimeSpan.FromMilliseconds(355), TimeSpan.FromMilliseconds(354), TimeSpan.FromMilliseconds(355)];
+        var timing = CudaTiming.From(elapsed, kernels);
+        Assert.Equal(TimeSpan.FromMilliseconds(349), timing.Kernel);
+        Assert.Equal(TimeSpan.FromMilliseconds(355), timing.Elapsed);
+        Assert.Equal(kernels, timing.KernelRuns);
+    }
 }

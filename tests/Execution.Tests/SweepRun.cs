@@ -4,9 +4,10 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>
 /// The long-running sweep: the same batch on the CPU accelerator and on CUDA, timed as the median of three
-/// timed runs after a warm-up, so a single slow or fast sample does not move the throughput tripwire.
+/// timed runs after a warm-up, so a single slow or fast sample does not move the throughput tripwire; the CUDA kernel time is the
+/// median of the timed runs' kernel times, not the first run's.
 /// </summary>
-internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, RocketBatchResult? Cuda, RocketBatchResult? CudaAgain, TimeSpan CpuSeconds, TimeSpan CudaSeconds)
+internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, RocketBatchResult? Cuda, RocketBatchResult? CudaAgain, TimeSpan CpuSeconds, CudaTiming CudaTime)
 {
     public const int LongRunningCases = 100_000;
     public const string FamilyName = "lox-lh2_of4_pc10MPa_frozenAtChamber";
@@ -30,7 +31,7 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
 
         if (fixture.Cuda is not { } engine)
         {
-            return new SweepRun(batch, cpu, null, null, cpuSeconds, TimeSpan.Zero);
+            return new SweepRun(batch, cpu, null, null, cpuSeconds, CudaTiming.None);
         }
 
         using var cudaTables = engine.Upload(family.Table);
@@ -39,8 +40,8 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
             _ = engine.Run(cudaTables, warmUp);
         }
 
-        var (cuda, cudaSeconds, again) = TimeMedianKeepingTwo(engine, cudaTables, batch);
-        return new SweepRun(batch, cpu, cuda, again, cpuSeconds, cudaSeconds);
+        var (cuda, cudaTime, again) = TimeMedianKeepingTwo(engine, cudaTables, batch);
+        return new SweepRun(batch, cpu, cuda, again, cpuSeconds, cudaTime);
     }
 
     /// <summary>Runs <paramref name="run"/> <paramref name="count"/> times, timed; returns the first run's result and the median elapsed time.</summary>
@@ -57,14 +58,14 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
             first ??= result;
         }
 
-        return (first!, Median(elapsed));
+        return (first!, CudaTiming.Median(elapsed));
     }
 
     /// <summary>
-    /// Times CUDA the same way as <see cref="TimeMedian"/>, but also keeps a second run's result, so the
-    /// determinism check still has two independent CUDA results to compare bit for bit.
+    /// Times CUDA the same way as <see cref="TimeMedian"/>, taking the median kernel time of the runs too, and keeps the first two
+    /// runs' results, so the determinism check still has two independent CUDA results to compare bit for bit.
     /// </summary>
-    private static (RocketBatchResult First, TimeSpan Median, RocketBatchResult Second) TimeMedianKeepingTwo(Engine engine, UploadedTables tables, RocketBatch batch)
+    private static (RocketBatchResult First, CudaTiming Time, RocketBatchResult Second) TimeMedianKeepingTwo(Engine engine, UploadedTables tables, RocketBatch batch)
     {
         var results = new RocketBatchResult[TimedRunCount];
         var elapsed = new TimeSpan[TimedRunCount];
@@ -76,13 +77,7 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
             elapsed[i] = watch.Elapsed;
         }
 
-        return (results[0], Median(elapsed), results[1]);
-    }
-
-    private static TimeSpan Median(TimeSpan[] values)
-    {
-        var sorted = (TimeSpan[])values.Clone();
-        Array.Sort(sorted);
-        return sorted[sorted.Length / 2];
+        var kernels = results.Select(result => result.Timings.Kernel).ToArray();
+        return (results[0], CudaTiming.From(elapsed, kernels), results[1]);
     }
 }
