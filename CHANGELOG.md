@@ -66,6 +66,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   CaCO3 alone with no gas that carries calcium. The record now stays in the set at zero moles when its
   amount is rounding and its removal would leave the element system singular; every other negative
   record is removed as before.
+- An assigned-temperature state just above the temperature where a gasless assemblage gives way to a gas of
+  several species no longer ends `NotConverged`: CaCO3 with 1e-7 or 3e-8 too little oxygen, gasless as CaCO3,
+  CaO and graphite up to that temperature (848.153 K at 1 kPa) and CaCO3 and CaO under CO and CO2 above it, in
+  a band of 5 to 16 K from 100 Pa to 10 MPa, and NaCl with 1e-6 too little chlorine at 100 kPa and 1 160 K; the
+  assigned-enthalpy and assigned-entropy states there no longer end `TemperatureOutOfRange`. No single gas
+  reached unit fraction there, so the last start found no gas to place; the gas mixture now enters it as one
+  column.
 - A mixture of KO2 with 1e-10 too little oxygen no longer ends `NoGasPhase` with its second condensed
   record (K2O, 9.4e-13 kmol/kg) left out of the composition and 1.3e-10 of the potassium unaccounted for.
   The verdict's bound itself is unchanged, 1e-12 kmol/kg: a mixture within 1e-12 of exact stoichiometry

@@ -107,7 +107,8 @@ internal static class PhaseOneSeed
 internal static class GasBasisSeed
 {
     public static bool Place(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state);
-        // start 5 (2026-10-05): the condensed basics as the set, π from the basis, ln n of the basic gas; false: the start is skipped
+        // start 5 (2026-10-05): the condensed basics as the set, π from the basis, ln n of the basic gas; with no gas basic and
+        // ln S above zero at the basis's π, the gas mixture entered by the ratio test (2026-10-05); false: the start is skipped
 }
 ```
 
