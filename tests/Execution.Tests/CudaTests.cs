@@ -29,6 +29,9 @@ public sealed class CudaTests(ITestOutputHelper output)
     /// <summary>The names of the 0.2.2 families of the gasless verdict and the temperature bracket as theory data, delegating to <see cref="RecoveryFamilies.Names"/>.</summary>
     public static TheoryData<string> BracketedFamilyNames() => RecoveryFamilies.Names();
 
+    /// <summary>The names of the 0.2.2 families of the trace-gas pass as theory data, delegating to <see cref="TraceGasFamilies.Names"/>.</summary>
+    public static TheoryData<string> TraceGasFamilyNames() => TraceGasFamilies.Names();
+
     /// <summary>The names of the seeded families (2026-10-04) as theory data, delegating to <see cref="SeededFamilies.Names"/>.</summary>
     public static TheoryData<string> SeededFamilyNames() => SeededFamilies.Names();
 
@@ -138,7 +141,7 @@ public sealed class CudaTests(ITestOutputHelper output)
 
         var family = SeededFamilies.Family(EngineFixture.Shared.Database, name);
         Assert.True(family.Batch.IsSeeded);
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: family.SumsAttempts);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: family.SumsAttempts);
     }
 
     /// <summary>
@@ -158,7 +161,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         }
 
         var family = GasPlateauFamilies.Family(EngineFixture.Shared.Database, name);
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: false);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: false);
     }
 
     /// <summary>
@@ -181,7 +184,29 @@ public sealed class CudaTests(ITestOutputHelper output)
 
         var family = RecoveryFamilies.Family(EngineFixture.Shared.Database, name);
         output.WriteLine($"{name}: {family.Batch.Count} cases, {family.Gasless} gasless, {family.Dropped} dropped");
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, bracketed: true);
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: true);
+    }
+
+    /// <summary>
+    /// A family of the 0.2.2 trace-gas pass (<see cref="TraceGasFamilies"/>) on cuda matches the cpu accelerator: tp, hp and sp states of
+    /// mixtures with a trace excess or deficit of one element, of the magnesite carbon dioxide walk and of the data junction of KCl, each kept
+    /// because the host solver ended it <c>Ok</c> through the pass or <c>NoGasPhase</c> through the verdict; every field, the iteration counts of
+    /// the pass included, equal bit for bit. <see cref="TraceGasFamiliesTests"/> proves on the CPU that the cases reach the pass.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(TraceGasFamilyNames))]
+    [Trait("Category", "Cuda")]
+    public void ATraceGasFamilyOnCudaMatchesTheCpuAccelerator(string name)
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
+
+        var family = TraceGasFamilies.Family(EngineFixture.Shared.Database, name);
+        output.WriteLine($"{name}: {family.Batch.Count} cases, {family.Gasless} gasless, {family.Dropped} dropped");
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, family.Labels, mixedStatuses: true);
     }
 
     /// <summary>
@@ -212,16 +237,45 @@ public sealed class CudaTests(ITestOutputHelper output)
         Assert.True(violation is null, violation);
     }
 
-    private void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
-        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], bracketed: false);
+    /// <summary>
+    /// One launch of trace-gas hp and sp cases (the data-junction and chlorine-excess states of the KCl family of
+    /// <see cref="TraceGasFamilies"/>, repeated, each settled by the temperature bracket and the pass) stays within the launch budget, as
+    /// <see cref="AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget"/> holds for the gasless bracket: one wave of the device, every case
+    /// ends <c>Ok</c> or <c>NoGasPhase</c>, and the measured kernel time of the launch is below the quarter of the default run-time limit.
+    /// The figure is written to the test output.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Cuda")]
+    public void AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget()
+    {
+        var cuda = EngineFixture.Shared.RequireCuda();
+        if (cuda is null)
+        {
+            return;
+        }
 
-    private void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool bracketed)
+        var family = TraceGasFamilies.Family(EngineFixture.Shared.Database, TraceGasFamilies.LaunchFamily);
+        var count = Math.Min(LaunchBudgetCases, cuda.IlgpuAccelerator.MaxNumThreads);
+        var batch = TraceGasFamilies.Tiled(TraceGasFamilies.WithoutTp(family.Batch), count);
+        using var tables = cuda.Upload(family.Table);
+        _ = cuda.Run(tables, batch);
+        var run = cuda.Run(tables, batch);
+        var limit = LaunchBudget.DefaultRunTimeLimit / 4;
+        output.WriteLine($"{count} trace-gas hp and sp cases in one launch: kernel {run.Timings.Kernel.TotalMilliseconds:F1} ms, the budget {limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
+        var violation = TraceGasFamilies.LaunchViolation(run, limit);
+        Assert.True(violation is null, violation);
+    }
+
+    private void AssertEquilibriumFamilyMatches(Engine cuda, (EquilibriumBatch Batch, SpeciesTable Table, IReadOnlyList<CeaCase> Cases) family) =>
+        AssertEquilibriumFamilyMatches(cuda, family.Batch, family.Table, [.. family.Cases.Select(c => c.Name)], mixedStatuses: false);
+
+    private void AssertEquilibriumFamilyMatches(Engine cuda, EquilibriumBatch batch, SpeciesTable table, IReadOnlyList<string> labels, bool mixedStatuses)
     {
         using var cpuTables = EngineFixture.Shared.Cpu.Upload(table);
         using var cudaTables = cuda.Upload(table);
         var cpu = EngineFixture.Shared.Cpu.Run(cpuTables, batch);
         var gpu = cuda.Run(cudaTables, batch);
-        if (!bracketed)
+        if (!mixedStatuses)
         {
             Assert.All(cpu.Status, status => Assert.Equal(CaseStatus.Ok, status));
         }
