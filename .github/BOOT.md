@@ -128,6 +128,8 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
       `ubuntu-latest` with the bit facts unfiltered (also the evidence the root's own-math
       criterion waits for), and a release dispatch green through Pack, both CUDA jobs
       passing the new preflight on the self-hosted runners.
+      The CI half, 2026-10-05: run 37331221583 at `ed0c9ef9`, green on both hosted runners with
+      the bit facts unfiltered. The dispatch half waits for the owner's word.
 
 ## Taboos
 

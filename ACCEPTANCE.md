@@ -300,7 +300,7 @@ frame; this file holds the criteria that prove it, read only in the root node.
       `v0.1.0` was: its release run failed before any package was published (the
       owner's decision of 2026-10-01).
 
-- [ ] The elementary functions are one program too (the owner's task of 2026-10-02,
+- [x] The elementary functions are one program too (the owner's task of 2026-10-02,
       item 13 of 0.2.2 since 2026-10-05): `Exp`, `Log` and `Pow` of the numerical nodes
       are the tree's own kernel-compatible C#, correctly rounded (in the manner of
       CORE-MATH or CRlibm), and the CPU accelerator and CUDA run the same code instead of
@@ -328,15 +328,23 @@ frame; this file holds the criteria that prove it, read only in the root node.
         per command-line example (`tests/Docs.Tests/BOOT.md`, its criterion of the date);
       - the throughput 20.07× on Windows and 31.07× under WSL2 (the criterion above).
 
-      What it still waits for: a hosted CI run (`.github/workflows/ci.yml`) green with the
-      bit facts no longer filtered out, which is the evidence for "on the hosted runners",
-      and the whole fast set, the CEA tolerance tests in it, recorded green on Windows and
-      under WSL2 on the merged tree. The tick follows those two runs.
+      Closed 2026-10-05: hosted CI run 37331221583 at `ed0c9ef9`, green on `windows-latest`
+      and `ubuntu-latest` with the bit facts unfiltered (`ci.yml`, filter `Category!=LongRunning`);
+      the whole fast set, the CEA tolerance tests in it, green on the merged tree on Windows
+      (6 900 facts, 1 min 56 s) and under WSL2 (the same counts, 127 s), and again 6 921 on
+      Windows in the merge guard of `ed0c9ef9`; the throughput re-approved from five quiet runs
+      of the median rule, 18.52× on Windows and 25.92× under WSL2
+      (`tests/Execution.Tests/ACCEPTANCE.md`, the criterion of the date).
 
       ⚠ 2026-10-05: was `Exp`, `Log`, `Log10` and `Pow`, "not scheduled"; `Log10` left the
       math list instead, no numerical node needing it (HISTORY.md#allow-list-own-math).
-- [ ] The test pyramid (2026-10-03, `## Constraints`, Test time budgets): the fast set and
+- [x] The test pyramid (2026-10-03, `## Constraints`, Test time budgets): the fast set and
       the end-to-end set within their budgets on the reference machine, on Windows and in
       WSL2, both `dotnet test` durations recorded here; every fact that starts a process
       carries `Category=EndToEnd` (a Protocol.Tests check, seen red once); the approved
       outputs and bit records proven through the real process.
+      2026-10-05, the merged own-math tree (Debug, `APTHERMO_NO_CUDA=1`): Windows fast set
+      1 min 56 s (budget 5), end-to-end set 2 min 04 s (budget 10); WSL2 127 s and 135 s;
+      `Protocol.Tests` `EndToEndTests.EveryFactThatStartsAProcessCarriesEndToEnd` (seen red
+      in the pyramid's merge, 2026-10-03); the process facts of `Cli.Tests` and `Docs.Tests`
+      prove the approved outputs and bit records through the real process, green on both.
