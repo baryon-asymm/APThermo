@@ -83,6 +83,13 @@
 
       2026-10-04, `JunctionTests` (140 facts), `GasStationarityTests`; 77 of 822 solves pinned, 22 at
       T_J and 55 at T_J⁺.
+- [x] The second round: the supersaturated gas of NaCl and of C:O = 2:1 below the data of NaCl(cr) and C(gr), one state of each
+      excess and pressure of the 738 (31), each `Ok` and clear, every element within `1e-13 · b_i`; red on 2e381648 (with the balancing
+      record's last change): all 31 `NotConverged`. Over 936 606 tp states of three scans (the 19 systems at ±1e-6 to ±1e-10, 100 Pa to
+      10 MPa, 250 to 3 000 K, refined to 0.005 K at every change), each solved with and without the round: the 738 end `Ok`, no other
+      status, iteration or bit changes.
+
+      2026-10-05, `TraceGasRoundTests` (31 facts).
 - [x] Host units:
       - the matrix equal at n and at 1e-12 n;
       - the control factor on hand-built corrections;

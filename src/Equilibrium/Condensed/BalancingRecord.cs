@@ -19,12 +19,14 @@ internal static class BalancingRecord
 
     /// <summary>
     /// True when the record at <paramref name="position"/> of the condensed set, whose mole number is negative, is a balancing
-    /// record: within the rounding of every balance it carries, and the only thing that keeps the element system independent.
+    /// record: within the rounding of every balance it carries, the element system independent with it, and either the only thing
+    /// that keeps that system independent or, at the <paramref name="lastChange"/> the cap of set changes allows, the record the
+    /// set has kept removing and bringing back (BOOT.md, "A balancing record stays", the last change, 2026-10-05).
     /// </summary>
     public static bool Holds(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
-                             int condensedCount, int position) =>
+                             int condensedCount, int position, bool lastChange) =>
         WithinRounding(table, scratch, result, condensedCount, scratch.CondensedInSolution[position])
-        && Dependent(table, scratch, result, condensedCount, position)
+        && (Dependent(table, scratch, result, condensedCount, position) || lastChange)
         && !Dependent(table, scratch, result, condensedCount, -1);
 
     /// <summary>

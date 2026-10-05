@@ -338,7 +338,7 @@ creation names its arguments; it passes them by position today (the criterion be
       on the CPU accelerator, every fact asserting `EquilibriumConditions` at 1e-9 with every gas of any share
       (`TraceGasChecks`, `EquilibriumConditions.EveryGasViolations`):
       - `TraceCarrierWalkTests`, `TraceExcessTests`, `ResidueVerdictTests`, `TraceGasUnitTests`, `GasBasisStartTests`
-        (2026-10-05, the gas basis), `GasMixtureStartTests` (2026-10-05, its mixture column): the families
+        (2026-10-05, the gas basis), `GasMixtureStartTests` (2026-10-05, its mixture column), `TraceGasRoundTests` (2026-10-05, the second round): the families
         `TraceGasCases` generates from their parameters, none typed;
       - `NoHiddenStateTests` (2026-10-04, the nondeterminism investigation): 376 cases (every tp, hp and sp
         fixture, the magnesite band, the declared leftovers, the nine states the gas basis settles, the 15 states
@@ -354,8 +354,9 @@ creation names its arguments; it passes them by position today (the criterion be
         `CaseSetup.Begin`: 180 differences in the 360 cases;
       - `BalancingRecordTests` (2026-10-05, the balancing record, [Condensed/BOOT.md](../../src/Equilibrium/Condensed/BOOT.md)):
         the 45 states of CaCO3 + 1e-7 to 1e-9 O at 100 kPa to 10 MPa and 300 to 500 K and the three the rule
-        settles, each `Ok` and clear; `CondensedSet.Update` on a rig keeps the record at zero when its amount
-        is rounding and its removal singular, and removes it when it is not rounding, when the element rows are
+        settles, each `Ok` and clear, and the 11 states of MgCO3 + O whose set alternated to the cap (the last
+        change, 2026-10-05); `CondensedSet.Update` on a rig keeps the record at zero when its amount
+        is rounding and its removal singular, or at the cap, and removes it when it is not rounding, when the element rows are
         independent without it, and when they are dependent with it too (each test shown red by removing it);
       - `TraceGasClosureTests` (2026-10-04, the relative invariant `EquilibriumConditions.ElementInvariant`,
         `1e-13 · b_i`; a gasless state is held to `EquilibriumConditions.GaslessElementResidual`, the

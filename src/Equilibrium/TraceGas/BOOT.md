@@ -127,6 +127,22 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   ⚠ 2026-10-04: was `1e-13 · max(1, b_i)`, now `3e-14 · b_i`: the old test was an absolute 1e-13
   kmol/kg for every real mixture, 6.4e-12 of the carbon of MgCO3, and `magnesite-band|700` closed
   carbon to 3.5e-12 with CO five times its equilibrium.
+- **The rounds** (2026-10-05). When every start has failed, the pass runs its starts a second time, from
+  the entry as before, and in that round a convergence that reaches its step cap with a step of `λ = 1`
+  and corrections at or below 1e-11 and `|ln S| ≤ 1e-10` closes when every active element lies within the
+  node's invariant itself, `1e-13 · b_i`, in place of 0.3 of it (`IterationState.TraceGasRound`,
+  `TraceGasStep.Balanced`). The close holds the state to the invariant unchanged. The 0.3 is below what some
+  balances resolve: ln x_j is the sum of `Σ_k a_kj π_k`, `g_j/RT` and `ln(p/p°)`, rounded to ε times their
+  magnitude, so the balance of element i cannot be placed closer than about `ε Σ_j |a_ij n_j| (1 + M_j)`,
+  M_j that magnitude. For a supersaturated gas of Na3CL3 at 250 K (π_Na 14.7, π_Cl −176) that is 2.3e-13 ·
+  b_i; every convergence stagnated at 3e-14 to 7.2e-14 · b_i, above its test and below the invariant, for
+  150 steps. The second round, not the first, so that no state another start settles changes: closing at
+  the cap in the first round settles the same states and moves 145 `Ok` states of a scan, whose first start
+  reached the cap and a later one converged.
+
+  ⚠ 2026-10-05: was "converged when … every active element within `3e-14 · b_i`", now also, at the step cap
+  of the second round, within `1e-13 · b_i`. 738 tp states ended `NotConverged` (NaCl ±1e-6 to ±1e-10 Cl at
+  250 to 300 K, C:O = 2:1 at 254 to 273 K, every pressure from 100 Pa to 10 MPa).
 - **Caps.** At most 150 steps per convergence; 50 left 18 of 19 CaCO3 states near their plateau
   unconverged (2026-10-04). A fraction above `e^300` or an `S` that is not finite is `NotConverged`;
   a singular matrix is `SingularMatrix`. Either ends the start.
@@ -221,8 +237,10 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   A projection of the excess off the condensed formulas was tried and rejected (22 states lost, CaCO3 + O
   among them). Removing F2 reds the KCl states; removing F1 reds `TraceExcessTests` and the scan facts.
 
-  `PhaseOnePoint` is asked at most twice per pass: over the records before start 2, over the records and the
-  gases at start 5.
+  `PhaseOnePoint` is asked at most twice per round of the pass: over the records before start 2, over the
+  records and the gases at start 5.
+
+  ⚠ 2026-10-05: was "at most twice per pass", now twice per round: the second round asks again.
 
   ⚠ 2026-10-05: was "asked once per pass, before start 2", now twice: the gas basis asks the program with
   the gases.
@@ -362,12 +380,21 @@ verdict's face search found no certificate). Measured on the code, 2026-10-04:
 
   ⚠ 2026-10-05: was "Known outside the scans: CaCO3 − 1e-7 O at 1 kPa at 849, 850 and 851 K ends `NotConverged` ... at 2 kPa the
   same temperatures end `NoGasPhase`", now closed; the band was 848.16 to 854.27 K, and at 2 kPa it lies at 873.0 to 879.5 K.
-- Known outside the scans (2026-10-05): MgCO3 + 1e-8 O at 10 MPa from 335.09 to 336.66 K ends `NotConverged` (133 iterations),
-  with and without the mixture column. The gas basis places MgCO3(cr) + MgO(cr) at zero under O2; MgO's amount, n x_CO2 ≈ 5e-19
-  kmol/kg, lies below the rounding of the magnesium balance, the step returns it as −8e-27, and the balancing record's rule
-  removes it, because CO2 (2.8e-9 of the gas) keeps the element rows independent without it; the inclusion test then takes it
-  back, and the set alternates until `MaxCondensedSetChanges`. A matter of [Condensed](../Condensed/BOOT.md)'s rule, for the owner;
-  no scan walks it.
+- Closed 2026-10-05 by the balancing record's last change ([Condensed/BOOT.md](../Condensed/BOOT.md)): MgCO3 + 1e-8 O at 10 MPa from
+  334.8 to 336.8 K and at 1 MPa at 307.5 K, and + 1e-6 O at 10 MPa from 300.6 to 301.4 K, whose set alternated on MgO(cr) (n x_CO2 ≈
+  5e-19 kmol/kg, below the rounding of the magnesium balance) until `MaxCondensedSetChanges`. They end `Ok` and clear, MgO(cr) at
+  zero in the set, x_CO2 = 2.80e-9 at 335.09 K as cea 3.3.4 gives at 1e-6 (cea finds no state at 1e-8).
+
+  ⚠ 2026-10-05: was "Known outside the scans: MgCO3 + 1e-8 O at 10 MPa from 335.09 to 336.66 K ends `NotConverged` … for the
+  owner", now closed; the finer scan found the same alternation at 1 MPa and at 1e-6.
+- Closed 2026-10-05 by the second round (above): the supersaturated gas below the data of NaCl(cr) and C(gr), NaCl at ±1e-6 to ±1e-10
+  Cl from 250 to 300 K and C:O = 2:1 at ±1e-6 to ±1e-10 from 254 to 273 K, 738 tp states at 100 Pa to 10 MPa. They end `Ok` and clear,
+  every element within 3.0e-14 to 7.2e-14 of b_i; cea 3.3.4 gives the same gas (Na2CL2 2.509e-8 at 250.68 K and 10 MPa, to four
+  digits; its trace carriers differ because cea rounds the mixture it is given to single precision). Before the relative invariant
+  (08c06bc7) they ended `Ok` with every element 1.0e-13 to 1.7e-11 off its abundance, a tenth of them 5 to 74 times the resolution
+  above: the invariant refused them rightly, and holds them now.
+
+  ⚠ 2026-10-05: was "Known outside the scans: the supersaturated gas below a dead-end floor … For the owner", now closed.
 - `Ok` with a residue of gas, the verdict not certifying Al(OH)3 at 300 K and 1 kPa gasless: the
   exact state (1.3e-18 kmol/kg of gas), the + 1e-12 state (3.1e-14), both through start 4, and since
   2026-10-04 the − 1e-12 state (6.2e-14, the carrier of the deficit of oxygen).
