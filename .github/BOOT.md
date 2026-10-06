@@ -123,7 +123,7 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
       `3cd11a6`, green through Pack (both CUDA jobs on the self-hosted runners), Publish
       and Release skipped as a dispatch does.
 
-- [ ] The workflow changes of 2026-10-05 run once on GitHub (Invariants, "Evidence for
+- [x] 2026-10-06 — The workflow changes of 2026-10-05 run once on GitHub (Invariants, "Evidence for
       workflow changes"): the bit facts in the hosted filter of `ci.yml` and of
       `release.yml`'s `matrix`, the preflight without the CUDA Toolkit checks, the removal of
       the runner-diagnostics step (the composite action `actions/runner-diagnostics`, every
@@ -137,7 +137,10 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
       step and does not cover it: the CI half must be proven again by a run of a commit that
       contains the removal. Proven again 2026-10-05: CI run 37350467689 at `4a812f6a`, which
       contains the removal, green on `windows-latest` and `ubuntu-latest` with the bit facts
-      unfiltered. The dispatch half waits for the owner's word.
+      unfiltered. The dispatch half, 2026-10-06: release dispatch 37390108633 at `ea62488c`, green
+      through Pack (the tag and CHANGELOG check, both hosted runners, both CUDA jobs past the new
+      preflight on the self-hosted runners, no job naming the removed action), Publish and Release
+      skipped as a dispatch does.
 
 ## Taboos
 

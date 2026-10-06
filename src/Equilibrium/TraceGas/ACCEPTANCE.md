@@ -162,4 +162,5 @@
       `tests/Execution.Tests/ACCEPTANCE.md`, criterion of 2026-10-05. A per-case observable of the pass, owned by
       this node, would replace the inference (the proposal of coder 17, AGENTS.md §11; not scheduled).
       The new CUDA facts ran on Windows only; under WSL2 they first run in the release rehearsal's Linux CUDA
-      job, which this tick does not anticipate: a red there reopens the box.
+      job, which this tick does not anticipate: a red there reopens the box. Green there 2026-10-06: the job
+      `CUDA (Linux GPU)` of release dispatch 37390108633 at `ea62488c`.
