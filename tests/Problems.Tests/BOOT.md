@@ -421,4 +421,3 @@ contracts are unchanged.
 - Do not loosen a tolerance for green; do not exclude a failing propellant or station.
 - Do not skip a reacting field without proving the reference's defect visible at that station.
 - Do not compute `b_i` or `h_0` in the test with the code under test.
-

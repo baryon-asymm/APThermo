@@ -97,5 +97,3 @@ internal static class ApplicabilityMetadata
 
     internal static string[] Strings(JsonNode value) => [.. value.AsArray().Select(item => item!.GetValue<string>())];
 }
-
-
