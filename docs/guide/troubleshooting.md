@@ -17,7 +17,9 @@ was not found.
 
 **Read `Status` before reading a figure, always.** Numerical code never throws for a
 per-case failure: it reports a status, and the failed result or station carries a
-zero state instead of a partial one. This scenario shows four of the five refusals of
+zero state, except that `NoGasPhase` retains temperature and pressure. Compositions
+at other failed stations may contain diagnostic iterates, not a solution. This
+scenario shows four of the five refusals of
 the exception table below (the accelerator refusal is covered in
 [GPU acceleration](gpu.md)) and one failed station:
 
@@ -106,19 +108,37 @@ Per-case `CaseStatus` values, read off a `Station`, a `RocketResult` or an
 
 | Status | Meaning |
 |---|---|
-| `Ok` | Solved; every figure is meaningful. |
+| `Ok` | Converged within the selected model and its numerical checks. Read the model-applicability limits below before interpreting the figures. |
 | `InvalidInput` | An equilibrium solve refused before iterating: every element abundance zero, a negative abundance, an empty table, a non-positive pressure, or (tp) a non-positive temperature. A rocket station refuses the same way for a non-positive chamber pressure, an empty table, or a pressure ratio not above 1 for that station; the exits after a failed chamber or throat keep this status instead of solving further. Transport refuses it for a non-positive or NaN temperature, a negative or NaN mole number, or a transport table that does not match the species table. |
 | `NotConverged` | The Newton iteration did not meet its tests within the step budget, the condensed set changed too many times, or the element-conservation check failed at the end; for a rocket exit, an area ratio not met within its own step budget. |
-| `SingularMatrix` | The derivative matrix stayed singular after the reference's remedies; for transport, a reaction system could not be solved, so the frozen figures stand in for the reacting ones. |
-| `TemperatureOutOfRange` | An hp or sp iterate left the database's temperature range `[100 K, 20000 K]`, or the search on the temperature that follows a failed hp or sp iteration reached the edge of `[160 K, 20000 K]` without finding a state of the target enthalpy or entropy: no state of the species list has it. This is a status, not an exception: the solve does not throw for it. |
-| `ThroatNotFound` | A rocket case's sonic condition was not met within the throat search's step budget; the case ends there. |
+| `SingularMatrix` | The derivative matrix stayed singular after the available remedies. If the transport reaction system fails, `TransportStatus` records the refusal and the public station's `Transport` is null; an internal frozen fallback is not a public successful transport result. |
+| `TemperatureOutOfRange` | A temperature iterate or a final state failed the numerical window, fit or finite-property checks; TP is subject to final-state checks too. HP/SP recovery may reach a search boundary without finding an accepted target. The status is a numerical refusal, not a proof that no physical equilibrium exists. The exact windows are in the [equilibrium contract](../../src/Equilibrium/API.md). |
+| `ThroatNotFound` | The search could not establish the first mass-flux maximum from the chamber within its budget; the case ends there. At a phase boundary this need not be a Mach-one point. |
 | `AreaRatioInvalid` | A rocket exit's area ratio was not above 1. |
 | `NoTransportData` | No gaseous species carried positive moles, so transport has nothing to evaluate. |
 | `NoGasPhase` | The equilibrium holds no gas phase (condensed species alone), proven by a tangent-plane certificate. `Moles` hold the condensed minimum with every gas zero. The state carries the temperature and the pressure only, every other field is 0; for an hp or sp case the temperature is the one the search found. This is a result, not a failure of the model: the command line writes `noGasPhase` and exits 1. |
 
 On any status but `Ok`, the state is zero, not partial — check `Status` first. The one exception is `NoGasPhase`, whose state is the temperature and the pressure.
 
-A species list is a contract. A condensed record outside its data range is no candidate: an `Only` list holding `H2O(L)` without `H2O(cr)` cannot hold water below 273.15 K, and the same holds for `NH4CL(II)` below 298.15 K and `C(gr)` below 300 K. An assigned-temperature state there reports the supersaturated gas, which is correct (NASA CEA does the same), and an assigned-enthalpy or assigned-entropy target below every state of the list ends `TemperatureOutOfRange`. The library adds no species to a list.
+A species list and its admitted phase ranges define the model. This applies to the
+default database selection as well as to `Only`: some condensed records cease to be
+candidates below their lower effective bound. For example, graphite is absent below
+300 K, so a C/H TP result can change sharply across that boundary and may represent
+supersaturated gas. This is a range-limited equilibrium model, not evidence of the
+stable state of the real material. Effective/open-below rules also exist: ice can
+remain eligible down to 160 K despite a raw fit starting at 200 K. The library adds
+no species to an `Only` list. See [model applicability](../../src/Problems/API.md#model-applicability).
+
+Frozen flow retains the freezing station's condensed composition. Its properties
+may therefore extrapolate a condensed fit far outside that fit's temperature range;
+an `Ok` station does not certify the extrapolation's physical accuracy. Before using
+such a result, inspect its positive condensed mass fractions and the corresponding
+records from `SpeciesDatabase.Records`, and compare the station temperature with
+their raw fit bounds. The aluminized custom-propellant example uses this policy.
+For applications that require equilibrium phase changes, use shifting equilibrium
+and still check its admitted phase ranges. Both frozen and reacting transport figures
+may be reported on a frozen station; choose the transport model appropriate to the
+application rather than interpreting both as the same property.
 
 Refusals raised before any kernel runs (exceptions, not statuses):
 

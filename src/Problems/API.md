@@ -369,6 +369,28 @@ stated meaning (the clean-code review's open question 5). They are computed the 
 way as an `Ok` station's, from the moles the numerical nodes left at that station when
 they stopped: no solution, offered for diagnosis only, never pinned by a test.
 
+## Model applicability
+
+`Ok` certifies convergence and the numerical checks of the selected model; it is not
+a certificate of material stability outside the model's admitted phase domains.
+The default species selection, as well as an explicit `Only` list, uses the
+[equilibrium range policy](../Equilibrium/API.md). Some condensed candidates become
+unavailable below their effective bounds, while the declared open-below rules keep
+others eligible. A raw database fit bound alone is not the whole admission rule.
+
+For frozen flow the freezing station's composition is held, including condensate.
+Its thermodynamic polynomials may be extrapolated beyond their fit ranges according
+to the [performance contract](../Performance/API.md). Inspect the station's positive
+`CondensedMassFractions`, its temperature and `SpeciesDatabase.Records` of those
+names when fit-domain validity matters; an `Ok` status alone does not validate the
+extrapolation. Equilibrium and frozen transport quantities are separate models even
+when both are reported for a frozen-flow station.
+
+⚠ 2026-11-14: this contract previously left the default-list phase-domain and frozen
+condensate policies in internal-node documents, which made `Ok` appear to promise
+more physical validity than it establishes. Those policies are now explicit here;
+their numerical definitions have not been replaced by a blanket raw-bound rule.
+
 ## Solving ✅
 
 ```csharp
@@ -408,6 +430,13 @@ and `SolveRocketStates` are that overload over state records without and with ex
 respectively (the elemental-mixtures section). The uploaded tables of every element
 set and species list, and the reactant enthalpies of every propellant instance, are
 kept until `Dispose`.
+
+Use one solver from one thread at a time, including queries, solves and disposal.
+Independent solver instances may be used concurrently. Sharing a loaded immutable
+database does not make the solver's device resources or caches thread-safe.
+
+⚠ 2026-11-14: the one-thread precondition was stated only by the execution node;
+it now appears at the public boundary that owns that engine.
 
 Every public method throws `ObjectDisposedException` once the solver is disposed,
 `Database` and `Accelerator` excepted: they name no device resource and stay readable.

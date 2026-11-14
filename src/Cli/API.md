@@ -119,6 +119,17 @@ Exit codes: `0` all cases `ok`; `1` at least one case or station failed numerica
 (the document is written); `2` invalid input document, option, database path, reactant
 or schema name; `3` accelerator or infrastructure error.
 
+`ok` means success within the selected model, not physical validity beyond its data
+domains. Default species lists have condensed-phase admission limits too; frozen
+flow can extrapolate the retained condensate's fits. The library's
+[model-applicability contract](../Problems/API.md#model-applicability) applies unchanged
+to CLI results. Inspect `condensedMassFractions` and temperature, and query the
+database records when that extrapolation matters.
+
+⚠ 2026-11-14: these default-list and frozen-condensate limits were not propagated to
+the command-line contract; they are now linked explicitly rather than attributed
+only to a manual species restriction.
+
 ⚠ 2026-09-12: `apthermo` is the tool command name (`PackAsTool`, `ToolCommandName`);
 the assembly is `APThermo.Cli`, named after its namespace as
 the root requires, so a direct run is `dotnet APThermo.Cli.dll …`.

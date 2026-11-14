@@ -26,11 +26,11 @@ at run time — and diagnose why an `Auto` run fell back to the CPU.
    newer, on Windows and on Linux, under WSL2 included. It needs no CUDA Toolkit: the
    kernels call no library function of one (the package computes its own `exp`, `log`
    and `pow`, correctly rounded), so CUDA and the CPU accelerator return the same bits.
-   Windows x64 and Linux x64 are both supported on the CPU accelerator. CUDA is
-   supported on both too, but Linux verification is still pending: the root
-   `BOOT.md`'s Linux acceptance criterion (the fast suite on the CPU accelerator and
-   the execution tests node's CUDA sweep, under WSL2 on the reference machine) is
-   unticked as of this release.
+   Windows x64 and Linux x64 are supported on both accelerators. The reference-machine
+   verification includes the CPU suite and CUDA comparison/sweep on Windows and Linux
+   under WSL2; the root [acceptance evidence](../../ACCEPTANCE.md) records the runs.
+   Compiling for older CUDA architectures on that GPU does not establish execution
+   on every physical GPU model.
 2. **Same bits on both accelerators.** For one batch CUDA returns exactly the values the
    CPU accelerator returns, in every field, so a result does not depend on which
    accelerator ran it. Nothing is searched for at bind time: `Solver.Create` and

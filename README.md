@@ -91,10 +91,9 @@ ways.
 ## Platforms and CUDA
 
 Windows x64 and Linux x64 are both supported on the CPU accelerator, which needs
-nothing beyond the package. CUDA is supported on both too, but Linux verification is
-still pending as of this release (the root `BOOT.md`'s Linux acceptance criterion,
-the fast suite on the CPU accelerator and the execution tests node's CUDA sweep under
-WSL2 on the reference machine, is unticked). CUDA additionally needs, at run time, an
+nothing beyond the package. CUDA is supported on both too; the reference-machine
+verification includes Windows and Linux under WSL2, as recorded in the root
+[acceptance evidence](ACCEPTANCE.md). CUDA additionally needs, at run time, an
 NVIDIA driver with CUDA 12.8 or newer, and nothing else: no CUDA Toolkit. CUDA and the
 CPU accelerator return the same bits.
 `AcceleratorKind.Auto` falls back to the CPU accelerator when no usable GPU
