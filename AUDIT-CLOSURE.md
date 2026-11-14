@@ -75,6 +75,8 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 | R06 | Copy failure before allocation result enters ownership (A04) | Local pass 2026-11-14 | `05ff0258`, `0a37d7aa`; real ILGPU CPU-buffer fault controls observe allocation layers and cleanup; root Transport 20/20 |
 | R07 | Transport diagnostic storage can replace the primary (A04) | Local pass 2026-11-14 | `0e8b032e`; old 3 red, corrected 18/18 diagnostic controls, root ownership integration 20/20 |
 | R08 | Explicitly seeded SP can bypass the multi-floor candidate bank (A35) | Slice pass 2026-11-14 | `77d9c7b2`; root old 1 red/1 positive; corrected lower controls 16/16, CPU consumers 2/2 and Equilibrium 2197/2197; final integrated hardware matrix pending |
+| R09 | A cumulative sampled-run time is used as a single-launch safety observation | In progress | C0 hardware reports 6523.4/668.8 ms across 16,384-case workloads; the original 500 ms target applies to each launch. Add actual maximum/count/coverage telemetry, retain cumulative time and the red observations; require fresh device proof at the unchanged target |
+| R10 | Candidate-bank changes regress approved kernel throughput | In progress | Quiet C0 hardware: ratio 14.21 below 80% of 18.52; median CUDA seconds/Newton step 3.107e-7 versus approved 1.237e-7 and unchanged 115% ceiling. Controlled exact-state bank storage variant under evaluation; numerical comparisons and all architectures passed |
 
 ## Integration verification
 
