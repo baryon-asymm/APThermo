@@ -16,46 +16,46 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | ID | Obligation | Status | Evidence |
 |---|---|---|---|
 | A01 | Eligible polymorph stability | Local pass 2026-11-14 | `25b95f55`; independent integration regression 18/18, full platform verification pending |
-| A02 | Immutable database and problem snapshots | Open | Pending |
+| A02 | Immutable database and problem snapshots | Local pass 2026-11-14 | `e5e3bfe5`, `782ced8f`; Data 54/54, public integration controls 28/28; final matrix pending |
 | A03 | Cleanup preserves the primary failure | Open | Pending |
-| A04 | Rollback partial table allocation | Open | Pending |
-| A05 | Exact condensed-set identity | Open | Pending |
-| A06 | Ordinary-throat reference sensitivity | Open | Pending |
-| A07 | Finite transport comparison | Open | Pending |
-| A08 | Benchmark comparison rejects nonfinite mismatches | Open | Pending |
-| A09 | Actual boundary-walk cap verification | Open | Pending |
-| A10 | First-maximum ordering oracle | Open | Pending |
-| A11 | Generated performance field inventory | Open | Pending |
+| A04 | Rollback partial table allocation | In progress | Transport ownership controls pass; Execution species/upload rollback remains |
+| A05 | Exact condensed-set identity | Local pass 2026-11-14 | `14d875bb`; Performance integration controls 32/32; architecture follow-up in progress |
+| A06 | Ordinary-throat reference sensitivity | Local pass 2026-11-14 | `14d875bb`; finite corrupted ordinary-throat controls included in 32/32 |
+| A07 | Finite transport comparison | Local pass 2026-11-14 | `14d875bb`; Transport integration controls 73/73 |
+| A08 | Benchmark comparison rejects nonfinite mismatches | Local pass 2026-11-14 | `ed8acaae`; whole-entry controls included in root 90/90 contract/comparison run |
+| A09 | Actual boundary-walk cap verification | Local pass 2026-11-14 | `14d875bb`; actual automaton cap and mutation controls; root Performance 32/32 |
+| A10 | First-maximum ordering oracle | Local pass 2026-11-14 | `14d875bb`; late-higher-peak rejection; root Performance 32/32 |
+| A11 | Generated performance field inventory | Local pass 2026-11-14 | `14d875bb`; reflected six-field corruption controls; root Performance 32/32 |
 | A12 | Pinned full math corpus integrity | Open | Pending |
 | A13 | Internal frozen-state finite guards | Open | Pending |
-| A14 | Internal transport finite temperature | Open | Pending |
+| A14 | Internal transport finite temperature | Local pass 2026-11-14 | `14d875bb`; root Transport controls 73/73 |
 | A15 | Windows and Linux CUDA-driver detection | Open | Pending |
-| A16 | Approved snapshot write protection | Open | Pending |
-| A17 | Schema validator semantics and keyword coverage | Open | Pending |
+| A16 | Approved snapshot write protection | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68, including ordinary/link output controls |
+| A17 | Schema validator semantics and keyword coverage | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68 and schema consumers 3/3 |
 | A18 | Chunk enumerator integer boundary | Open | Pending |
 | A19 | Pinned and atomically published merge candidate | Local pass 2026-11-14 | `a6ff702c`; merge guard self-tests 72/72, independent rerun |
 | A20 | Preservation of active acceptance criteria | Local pass 2026-11-14 | `a6ff702c`; history guard 35/35 and baseline-to-HEAD criteria check |
-| A21 | Complete documented signatures | Open | Pending |
+| A21 | Complete documented signatures | Local pass 2026-11-14 | `3b9f5f7e`, `739a69b4`; root contract/comparison controls 90/90; final changed-document reconciliation pending |
 | A22 | Complete source and build-manifest node discovery | Open | Pending |
 | A23 | PowerShell preflight failure propagation | Open | Pending |
 | A24 | Current protocol-linter negative controls | Local pass 2026-11-14 | `a6ff702c`; lint self-tests 75/75, strict lint 0/0 |
 | A25 | Inclusive sweep limit | Open | Pending |
 | A26 | Input/output schema parity | Open | Pending |
-| A27 | Finite fixture tolerances | Open | Pending |
-| A28 | Current contract and guide claims | Open | Pending |
-| A29 | Unambiguous chemical-system cache key | Open | Pending |
-| A30 | Release propellant references at Dispose | Open | Pending |
-| A31 | Scale-invariant group normalization | Open | Pending |
-| A32 | Complete batch-composition comparison | Open | Pending |
+| A27 | Finite fixture tolerances | Local pass 2026-11-14 | `ed8acaae`; finite-intermediate-overflow control included in root Fixtures 68/68 |
+| A28 | Current contract and guide claims | In progress | Owning numerical/public corrections integrated; benchmark and final consumer reconciliation remains |
+| A29 | Unambiguous chemical-system cache key | Local pass 2026-11-14 | `782ced8f`; framed-name collision and positive controls in root public 28/28 |
+| A30 | Release propellant references at Dispose | Local pass 2026-11-14 | `782ced8f`; reachability and cleanup-failure controls in root public 28/28 |
+| A31 | Scale-invariant group normalization | Local pass 2026-11-14 | `782ced8f`; subnormal group control in root public 28/28; ordinary records unchanged |
+| A32 | Complete batch-composition comparison | Local pass 2026-11-14 | `31c28741`; union/condensed/zero-key controls in root public 28/28 |
 | A33 | Literal release tag shell arguments | Open | Pending |
 | A34 | Literal changelog version matching | Open | Pending |
-| A35 | Multi-floor HP/SP objective selection | In progress | Rejected-floor continuation passes; bounded best-candidate selection still required |
-| A36 | Failed-state public postcondition | Open | Pending |
-| A37 | Public condensed-model applicability | Open | Pending |
-| A38 | Disposal overload inventory | Open | Pending |
+| A35 | Multi-floor HP/SP objective selection | Local pass 2026-11-14 | `b8f90090`; complete bank/floor/independent-witness controls 34/34 in integration; hardware/public witness matrix pending |
+| A36 | Failed-state public postcondition | Local pass 2026-11-14 | `14d875bb`, `782ced8f`; internal/public failure controls, NoGasPhase exception and prior-success preservation |
+| A37 | Public condensed-model applicability | Local pass 2026-11-14 | `668939f6`, `14d875bb`; Problems contract and rocket/troubleshooting guides name frozen extrapolation and retained phase bounds |
+| A38 | Disposal overload inventory | Local pass 2026-11-14 | `31c28741`; exact MethodInfo inventory and same-name wrong-overload negative control |
 | A39 | TraceGas scan automation | Open | Pending |
-| A40 | Tail-test name and established behavior | Open | Pending |
-| A41 | Required database section transition | Open | Pending |
+| A40 | Tail-test name and established behavior | Local pass 2026-11-14 | `14d875bb`; policy-only name states the constants it verifies |
+| A41 | Required database section transition | Local pass 2026-11-14 | `e5e3bfe5`; missing/duplicate/reordered section controls in root Data 54/54 |
 
 ## Integration verification
 
