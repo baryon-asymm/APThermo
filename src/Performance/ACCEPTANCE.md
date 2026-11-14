@@ -149,8 +149,14 @@
 - [x] 2026-11-14 — The phase-boundary cap uses PhaseBoundaryWalk in Verify;
   PhaseBoundaryWalkTests rejects the unresolved stream at the cap. Replacing its
   refusal with Ok makes the negative control fail; reaching the candidate is green.
-- [ ] The changed rocket program passes the orchestrator's CUDA/CPU equality and
+- [x] The changed rocket program passes the orchestrator's CUDA/CPU equality and
   architecture runs, without blind approval of any moved bit snapshot.
+  (2026-11-15: c0df `AuditPhaseCudaTests`, ordinary rocket comparisons, bit facts and
+  `ArchitectureTests.EveryArchitectureFromSm75UpPassesThePostLinkAndMatchesTheDevice`
+  pass on actual Windows and Ubuntu-24.04 CUDA. The independently justified BeO row
+  and every other approval stay as reviewed.  external snapshot-approval and
+  `final-candidate/c0df7b146ffd-windows-cuda/result.json` and
+  `final-candidate/c0df7b146ffd-linux-cuda/result.json` retain the actual source.)
 
 - [x] 2026-11-14 — Integration coupling corrections: the full ShapeTests run reports
   no Performance violation after PhaseBoundaryEnd encapsulation and moving station

@@ -287,9 +287,14 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
 
 ## Acceptance criteria
 
-- [ ] Audit A02/A41: collection-mutation controls cannot change a loaded snapshot;
+- [x] Audit A02/A41: collection-mutation controls cannot change a loaded snapshot;
   missing section transitions and nonfinite numeric fields fail at their source line,
   while the unchanged NASA files and supported finite format anomalies still load.
+  (2026-11-15: `ImmutableDatabaseTests.LoadedCollectionsAndNestedRecordsAreImmutable`
+  and `CorruptionTests` pass in both c0df Release CPU cohorts, 7,611 cases each.
+  External audit receipts: `final-candidate/c0df7b146ffd-windows-cpu/result.json`
+  and `final-candidate/c0df7b146ffd-linux-cpu/result.json`, under `fix-evidence/`.
+  NASA input bytes are unchanged.)
 
 - [x] 2026-09-12 — The number of product species and of reactant records parsed equals
       the counts produced by an independent line scan of the file in the test

@@ -38,10 +38,15 @@
   18 passed, strict lint 0/0; evidence `SCRATCH/audit/probe-copy-negative.log`,
   `copy-window-execution-controls.log`, `copy-window-protocol.log`.
 
-- [ ] P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
+- [x] P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
   in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
   refusal labeled as no hardware proof. The CPU companion passes after R08;
   actual Windows/WSL CUDA equality and the independent scientific obligations must pass.
+  (2026-11-15: `AuditPhaseCudaTests.ActualCudaMatchesTheCpuOnEveryFrozenPhaseInput`
+  passes both expanded rows on actual c0df Windows and Ubuntu-24.04 CUDA, including
+  cold/seeded and rocket consumers. The five-result budget and full CUDA receipts
+  record the selected device. Both CPU cohorts and independent phase/objective
+  witnesses pass.  forbidden-CUDA CPU counts are not reported as hardware proof.)
   ⚠ 2026-11-15: the last sentence is stated as a readiness requirement rather than
   an implementation handoff's pending status, so a later tick cannot coexist with
   a claim that verification remains undone. It still requires actual device proof
@@ -86,7 +91,7 @@ archive. This revises the observed CPU status without asserting hardware proof.
   `SCRATCH/audit/launch-observation-final-controls.log`, `launch-omitted-negative.log`,
   `launch-late-negative.log`, `launch-last-negative.log`, `launch-sum-negative.log`.
 
-- [ ] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
+- [x] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
   on actual CUDA under the documented bounded sampling policy: unknown or changed
   workloads start at one case; an identical workload may probe a live observed full
   initial prefix through Calibration. Every later launch grows by at most 2x.
@@ -95,6 +100,12 @@ archive. This revises the observed CPU status without asserting hardware proof.
   Report current first-launch cases/reuse, aggregate, count, maximum duration and
   its chunk cases/ordinal. Preserve all cumulative throughput workloads, timing
   domains and 5x/80%/115% gates unchanged.
+  (2026-11-15: actual c0df budget phases pass 5/5 on both platforms with complete
+  current coverage. Windows KO2/trace maxima are 454.293/86.7546 ms.  Ubuntu-24.04
+  422.3941/77.4743 ms, each below the same 500 ms target over 16,384 cases.
+  Current cold/hit/changed-input first sizes are 1/15/1, coverage 31 each. Original
+  quiet throughput passes separately at medians 1.269e-7/1.254e-7 s per Newton step.
+  all original timing domains, 5x/80%/115% gates and earlier failures are retained.)
   ⚠ 2026-11-15: the accepted calibration design (`90dfdec1`) permits a live identical
   workload prefix as a new empirical probe; its merged duration is measured again,
   never inferred from the old sum. The previous blanket first-one-case wording did

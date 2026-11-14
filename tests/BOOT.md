@@ -28,9 +28,20 @@ No diagnostic is suppressed and no child may relax the root's requirements.
 
 ## Acceptance criteria
 
-- [ ] Project evaluation preserves test discovery and the plain-library opt-outs;
+- [x] Project evaluation preserves test discovery and the plain-library opt-outs;
   solution build and affected test discovery provide the evidence.
-- [ ] Protocol discovery recognizes this build-manifest directory and its documents.
+  (2026-11-15: both c0df Release solution builds report 0 warnings/errors and actual
+  output manifests.  both full CPU cohorts discover/execute all 11 test assemblies
+  with 7,611 passing cases. Plain fixture/harness/process-probe opt-outs remain.
+  external `final-candidate/c0df7b146ffd-windows-build/result.json`,
+  `final-candidate/c0df7b146ffd-linux-build/result.json`,
+  `final-candidate/c0df7b146ffd-windows-cpu/result.json` and
+  `final-candidate/c0df7b146ffd-linux-cpu/result.json` record that inventory.)
+- [x] Protocol discovery recognizes this build-manifest directory and its documents.
+  (2026-11-15: c0df strict protocol lint is 0 errors/0 warnings and current discovery
+  controls pass. External `c0df7b146ffd-windows-tools-revalidated-parser-v2/result.json`
+  validates the unchanged original process logs (10 exits 0, 281 methods).  it is
+  metadata revalidation, not another execution. Original adapter exit 3 is retained.)
 
 ## Taboos
 

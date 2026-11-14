@@ -70,18 +70,50 @@ SHA-256; ILGPU 1.5.3 ArrayView type identification only, without CUDA runtime.
 
 ## Acceptance criteria
 
-- [ ] Cold and every incompatible workload start at one; a compatible live repeat
+- [x] Cold and every incompatible workload start at one; a compatible live repeat
   reuses only the observed prefix, then retains current 2x and all static bounds.
-- [ ] Machine-enumerated buffer mutations, seed A→output B→new input B, scalar,
+  (2026-11-15: `CalibrationIdentityTests`, `CalibrationPrefixTests` and
+  `CalibrationLoopTests` pass in both source-pinned `c0df7b146ffd` CPU cohorts.
+  Controlled first-prefix histories 15 and non-doubling 10 exercise actual BatchRun.
+  R12 evidence: external `fix-evidence/worker-calibration-loop-R12-SCRATCH/`.
+  Static memory/offset bounds and subsequent 2x growth remain unchanged.)
+- [x] Machine-enumerated buffer mutations, seed A→output B→new input B, scalar,
   view type, table, launcher, plan and budget changes cause misses; clone A may hit.
-- [ ] Prefixes never come from tail timing, rounding, partial completion or an
+  (2026-11-15: `BufferIdentityTests`, `CalibrationIdentityTests` (including
+  `ProductionDescriptorsIncludeEveryActualIntegerScalar`) and
+  `InitialSeedIdentityIsCapturedBeforeDownloadMutatesIt` pass in both c0df CPU cohorts.
+  Initial digest A, changed output/input B, clone A and scalar/plan/table/launcher
+  controls remain distinct.  R12 stale/post-download key mutants fail and are restored.)
+- [x] Prefixes never come from tail timing, rounding, partial completion or an
   over-target launch; expiry before match/launch and backward clock take cold path.
-- [ ] Actual batch-loop controls show new launches/results/timings on hits; omitted
+  (2026-11-15: `CalibrationPrefixTests` and
+  `CalibrationLifecycleTests.ExpiryDuringUploadRestoresTheColdPhysicalLaunch`
+  pass in both c0df CPU cohorts. Fast-tail and stale-physical-prefix mutations are
+  retained in external `fix-evidence/worker-calibration-SCRATCH/audit/`.
+  The target, whole-prefix boundary, TTL and backward-clock refusals are unchanged.)
+- [x] Actual batch-loop controls show new launches/results/timings on hits; omitted
   current recording, cached results, stale key and premature publication go red.
-- [ ] Upload, launch, download, cleanup, late assembly, loss, clear and dispose
+  (2026-11-15: `CalibrationLoopTests` and `LaunchObservationTests` pass in both
+  c0df CPU cohorts. Controlled 15/10 prefixes still perform current work and record
+  current successful synchronization. Omitted-observation, skipped-work, stale-key
+  and premature-publication mutants are red in the preserved worker audit logs.
+  R12 final loop/prefix controls pass 15/15. No cached timing or result is imported.)
+- [x] Upload, launch, download, cleanup, late assembly, loss, clear and dispose
   controls invalidate without replacing a primary; weak GC proves nonretention.
-- [ ] Real CUDA cold/hit/changed-input observations, unchanged 500 ms budget facts,
+  (2026-11-15: `CalibrationLifecycleTests` and
+  `CalibrationLoopTests.SuccessfulLoopIsNotPublishedBeforeResultAssemblyCommits`
+  pass in both c0df CPU cohorts, covering all owner boundaries, the primary error
+  and weak workload identities. The original failure/retention controls are retained.)
+- [x] Real CUDA cold/hit/changed-input observations, unchanged 500 ms budget facts,
   original 5x/80%/115% throughput, science/bits and both platform matrices pass.
+  (2026-11-15: actual c0df Windows and Ubuntu-24.04 budget phases pass 5/5 each,
+  including `ActualCudaReportsColdHitAndChangedInputWithExactResults` (cold 1, hit 15,
+  changed 1.  current coverage 31 each), both 16,384-case budgets and both P1 rows.
+  Both full CUDA architecture/science/bit cohorts and separate original throughput
+  facts pass. External audit `fix-evidence/final-candidate/` source/result/TRX
+  receipts are `c0df7b146ffd-windows-budget-phase/`, `c0df7b146ffd-linux-budget-phase/`,
+  `c0df7b146ffd-windows-cuda/`, `c0df7b146ffd-linux-cuda/`,
+  `c0df7b146ffd-windows-throughput/` and `c0df7b146ffd-linux-throughput/`.)
 
 Host evidence 2026-11-14: CalibrationIdentityTests, CalibrationPrefixTests,
 CalibrationLoopTests and CalibrationLifecycleTests pass (37 host cases). Seven
@@ -89,6 +121,13 @@ runtime mutations fail behavior assertions: omitted scalar, stale input key,
 fast tail, omitted current observation, skipped current computation, premature
 publication and stale physical prefix. Logs: worktree SCRATCH/audit/mutant-*.log.
 All acceptance boxes remain pending integrated review and actual CUDA gates.
+
+⚠ 2026-11-15: the preceding "All acceptance boxes remain pending" sentence is
+retained as the 2026-11-14 implementation handoff state. The six criteria now
+carry source-pinned c0df host and actual Windows/Ubuntu-24.04 device evidence.
+Their completed status supersedes that pending handoff; it does not turn the
+old 37-case host run or its mutation logs into hardware evidence.
+The measured prefix remains an empirical probe, and all original gates remain.
 
 ## Taboos
 

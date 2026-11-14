@@ -13,6 +13,11 @@ tests. The final integrated CPU, CUDA, platform and package checks remain separa
 Historical measurements and active criteria are preserved; no blind snapshot approval,
 tolerance weakening or diagnostic suppression is an acceptable closure.
 
+⚠ 2026-11-15: the original A01-A41 rows retain their dated repair-handoff evidence
+verbatim. Earlier "pending" phrases there describe that handoff; current native
+acceptance is recorded in the final native table below. GitHub-specific evidence
+for A23/A33/A39 and the workflow criterion remains open, as does the root aggregate.
+
 | ID | Obligation | Status | Evidence |
 |---|---|---|---|
 | A01 | Eligible polymorph stability | Local pass 2026-11-14 | `25b95f55`; independent integration regression 18/18, full platform verification pending |
@@ -75,20 +80,75 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 | R06 | Copy failure before allocation result enters ownership (A04) | Local pass 2026-11-14 | `05ff0258`, `0a37d7aa`; real ILGPU CPU-buffer fault controls observe allocation layers and cleanup; root Transport 20/20 |
 | R07 | Transport diagnostic storage can replace the primary (A04) | Local pass 2026-11-14 | `0e8b032e`; old 3 red, corrected 18/18 diagnostic controls, root ownership integration 20/20 |
 | R08 | Explicitly seeded SP can bypass the multi-floor candidate bank (A35) | Slice pass 2026-11-14 | `77d9c7b2`; root old 1 red/1 positive; corrected lower controls 16/16, CPU consumers 2/2 and Equilibrium 2197/2197; final integrated hardware matrix pending |
-| R09 | A cumulative sampled-run time is used as a single-launch safety observation | Local hardware pass 2026-11-15; full matrix pending | Actual synchronized launch count, coverage and maximum are distinct from aggregate time. C1 `c1db01d3` budget/calibration/P1 gate 5/5: KO2 maximum 436.6268 ms and trace-gas maximum 80.4482 ms, both below the unchanged 500 ms target; 16,384 cases covered in each workload. Earlier cumulative-time failures remain in the external receipts |
-| R10 | Candidate-bank changes regress approved kernel throughput | Local hardware pass 2026-11-15; full matrix pending | Typed per-case state storage, private crossing code-generation boundary and bounded calibration of identical workloads are integrated in `c1db01d3`. Original quiet throughput retry passes: median 1.306e-7 s/Newton step below the unchanged 1.42255e-7 ceiling; cold sample retained. The initial same-code failure (1.469e-7), older failures and diagnostic-only measurements remain recorded. No threshold or throughput approval changed |
-| R11 | Invalid approved throughput scalars can disable a regression gate | Local pass 2026-11-15; integrated matrix pending | `3883976c`, `d928da01`; `ThroughputRecordTests`: old per-step reader 9 red/18 green, old ratio reader 12 red/33 green; corrected combined controls 45/45. Both approved scalars require finite positive values; per-step measurements require finite nonnegative values. Original inclusive 5x, 80% and 115% arithmetic is preserved, with representable-boundary controls. Wall-time messages no longer infer a code-only cause |
-| R12 | Host calibration integration assumes a fixed adaptive launch partition | Local pass 2026-11-15; integrated matrix pending | `96f1bcaf`; the full Windows CPU run at `a56ba02b` passed 7,609/7,610; the sole failure expected first block 15 instead of the legitimate adaptive 10. Controlled observation histories now drive the actual batch loop: both 15 and 10 are exact positive controls, independent of host scheduling. The real cold-input-to-changed-input path remains; post-download-key and skipped-current-work mutations fail. Corrected loop/prefix controls 15/15; no production, GPU assertion, budget or approval changes |
+| R09 | A cumulative sampled-run time is used as a single-launch safety observation | Final native pass 2026-11-15; GitHub acceptance separate | Actual synchronized launch count, coverage and maximum are distinct from aggregate time. C1 `c1db01d3` budget/calibration/P1 gate 5/5: KO2 maximum 436.6268 ms and trace-gas maximum 80.4482 ms, both below the unchanged 500 ms target; 16,384 cases covered in each workload. Earlier cumulative-time failures remain in the external receipts. Final c0df maxima: Windows KO2/trace 454.293/86.7546 ms; Linux 422.3941/77.4743 ms; complete 16,384-case coverage and actual 1/15/1 cold/hit/changed calibration each. |
+| R10 | Candidate-bank changes regress approved kernel throughput | Final native pass 2026-11-15; GitHub acceptance separate | Typed per-case state storage, private crossing code-generation boundary and bounded calibration of identical workloads are integrated in `c1db01d3`. Original quiet throughput retry passes: median 1.306e-7 s/Newton step below the unchanged 1.42255e-7 ceiling; cold sample retained. The initial same-code failure (1.469e-7), older failures and diagnostic-only measurements remain recorded. No threshold or throughput approval changed. Final c0df original quiet facts pass first attempts on both platforms: medians 1.269e-7 Windows and 1.254e-7 Linux s/Newton step, with cold samples retained; unchanged ceilings 1.42255e-7 Windows and 1.42025e-7 Linux. |
+| R11 | Invalid approved throughput scalars can disable a regression gate | Final native pass 2026-11-15; GitHub acceptance separate | `3883976c`, `d928da01`; `ThroughputRecordTests`: old per-step reader 9 red/18 green, old ratio reader 12 red/33 green; corrected combined controls 45/45. Both approved scalars require finite positive values; per-step measurements require finite nonnegative values. Original inclusive 5x, 80% and 115% arithmetic is preserved, with representable-boundary controls. Wall-time messages no longer infer a code-only cause. Both final c0df Release CPU cohorts pass, including the finite approved-scalar/ratio and representable-boundary controls; no throughput approval changed. |
+| R12 | Host calibration integration assumes a fixed adaptive launch partition | Final native pass 2026-11-15; GitHub acceptance separate | `96f1bcaf`; the full Windows CPU run at `a56ba02b` passed 7,609/7,610; the sole failure expected first block 15 instead of the legitimate adaptive 10. Controlled observation histories now drive the actual batch loop: both 15 and 10 are exact positive controls, independent of host scheduling. The real cold-input-to-changed-input path remains; post-download-key and skipped-current-work mutations fail. Corrected loop/prefix controls 15/15; no production, GPU assertion, budget or approval changes. Both final c0df Release CPU cohorts pass 7,611/7,611, including controlled prefix 15 and non-doubling 10 and the preserved real cold-to-changed-input path. |
 
 ## Integration verification
 
-- [ ] Strict protocol lint and all tool self-tests.
-- [ ] Build with zero warnings/errors; reflection, signatures, dependencies and shape.
-- [ ] Targeted public regressions and independent numerical witnesses.
-- [ ] Windows and Linux CPU suites, including process examples and long scans.
-- [ ] Serialized Windows/WSL CUDA correctness, bit records and throughput.
-- [ ] Local packages, samples, installed tool, schemas and symbols.
+- [x] Strict protocol lint and all tool self-tests.
+  Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
+  the dated final native verification table below names the source/result/TRX
+  and supplementary evidence. GitHub validation remains a separate open criterion.
+- [x] Build with zero warnings/errors; reflection, signatures, dependencies and shape.
+  Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
+  the dated final native verification table below names the source/result/TRX
+  and supplementary evidence. GitHub validation remains a separate open criterion.
+- [x] Targeted public regressions and independent numerical witnesses.
+  Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
+  the dated final native verification table below names the source/result/TRX
+  and supplementary evidence. GitHub validation remains a separate open criterion.
+- [x] Windows and Linux CPU suites, including process examples and long scans.
+  Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
+  the dated final native verification table below names the source/result/TRX
+  and supplementary evidence. GitHub validation remains a separate open criterion.
+- [x] Serialized Windows/WSL CUDA correctness, bit records and throughput.
+  Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
+  the dated final native verification table below names the source/result/TRX
+  and supplementary evidence. GitHub validation remains a separate open criterion.
+- [x] Local packages, samples, installed tool, schemas and symbols.
+  Evidence 2026-11-15: final native proof at executed code `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`;
+  the dated final native verification table below names the source/result/TRX
+  and supplementary evidence. GitHub validation remains a separate open criterion.
 - [ ] Workflow validation on the affected runner paths.
+
+## Final native verification — 2026-11-15
+
+Executed code: `c0df7b146ffdd3addb733e8931aaabf0ca5fc660`. Receipt paths below
+are relative to the external audit's `fix-evidence/`. A later document-only head
+must carry an explicit unchanged-code comparison; execution and SourceLink records
+retain c0df as their actual source. These local results do not establish GitHub
+runner execution, and the workflow criterion and root aggregate stay unchecked.
+
+| Proof | Windows | Ubuntu-24.04 | External receipts |
+|---|---|---|---|
+| Release build | 0 warnings/errors | 0 warnings/errors | `final-candidate/c0df7b146ffd-windows-build/result.json`; `final-candidate/c0df7b146ffd-linux-build/result.json` |
+| Full CPU solution | 7,611 passed, 0 skipped | 7,611 passed, 0 skipped | `final-candidate/c0df7b146ffd-windows-cpu/`; `final-candidate/c0df7b146ffd-linux-cpu/` |
+| Full CORE-MATH | 1 fact over 2,266,122 pinned inputs | same full corpus, 1 passed fact | `final-candidate/c0df7b146ffd-windows-math/`; `final-candidate/c0df7b146ffd-linux-math/` |
+| TraceGas scans | exact 2/2, both full corpora | exact 2/2, both full corpora | `final-candidate/c0df7b146ffd-windows-trace/`; `final-candidate/c0df7b146ffd-linux-trace/` |
+| Actual budget/P1/calibration | 5/5; KO2/trace max 454.293/86.7546 ms | 5/5; max 422.3941/77.4743 ms | `final-candidate/c0df7b146ffd-windows-budget-phase/`; `final-candidate/c0df7b146ffd-linux-budget-phase/` |
+| Original quiet throughput | median 1.269e-7 s/Newton step | median 1.254e-7 s/Newton step | `final-candidate/c0df7b146ffd-windows-throughput/`; `final-candidate/c0df7b146ffd-linux-throughput/`; first cold samples retained, all original gates unchanged |
+| Full CUDA science/bits/architecture | 449/449 passed | 449/449 passed | `final-candidate/c0df7b146ffd-windows-cuda/`; `final-candidate/c0df7b146ffd-linux-cuda/`; actual device and unchanged source/binary records |
+| Compile and release resources | all 3 RocketCompileTests passed | all 3 passed | same Release CPU TRX: allocations 5,221,920,496/5,223,287,992 B below 7 GiB; weak launcher/program release controls pass |
+| Debug build / fast / end-to-end | 0 warnings/errors; 7,580 in 179.415 s; 32 in 195.466 s | Release platform proof above | `final-candidate/c0df7b146ffd-windows-debug/result.json`; original 300/600 s limits |
+| Tools and protocol | 10 original processes exit 0, 281 methods | applicable portable controls in CPU/scan lanes | `final-candidate/c0df7b146ffd-windows-tools-revalidated-parser-v2/result.json`; metadata parser correction, no execution rerun; original adapter exit 3 preserved |
+| Fresh package consumption and symbols | 12 exact samples; 11 installed-tool checks (7 real, 4 cache); library 7 / tool 8 PDBs all c0df SourceLink | no package-platform claim added | `package-final-c0df7b14/final-package-receipt.json` and `pdb-final-proof-v1/result.json`; isolated feed/cache SHA-512 and all 4 archive hashes |
+
+The versioned `final-candidate/supplementary-proof-index-c0df7b146ffd-v1.json`
+links completed Debug, original tool execution/revalidation and package/PDB proof.
+Earlier C0 failures, the first c1db throughput failure and a56's 7,609/7,610 CPU
+cohort remain historical failures, not environment passes or c0df executions.
+
+⚠ 2026-11-15: the following complete prior R09-R12/T10 rows are retained as the
+pre-final-native handoff state. Their pending statements are superseded by the
+source-pinned native acceptance above; GitHub acceptance is still open.
+
+> | R09 | A cumulative sampled-run time is used as a single-launch safety observation | Local hardware pass 2026-11-15; full matrix pending | Actual synchronized launch count, coverage and maximum are distinct from aggregate time. C1 `c1db01d3` budget/calibration/P1 gate 5/5: KO2 maximum 436.6268 ms and trace-gas maximum 80.4482 ms, both below the unchanged 500 ms target; 16,384 cases covered in each workload. Earlier cumulative-time failures remain in the external receipts |
+> | R10 | Candidate-bank changes regress approved kernel throughput | Local hardware pass 2026-11-15; full matrix pending | Typed per-case state storage, private crossing code-generation boundary and bounded calibration of identical workloads are integrated in `c1db01d3`. Original quiet throughput retry passes: median 1.306e-7 s/Newton step below the unchanged 1.42255e-7 ceiling; cold sample retained. The initial same-code failure (1.469e-7), older failures and diagnostic-only measurements remain recorded. No threshold or throughput approval changed |
+> | R11 | Invalid approved throughput scalars can disable a regression gate | Local pass 2026-11-15; integrated matrix pending | `3883976c`, `d928da01`; `ThroughputRecordTests`: old per-step reader 9 red/18 green, old ratio reader 12 red/33 green; corrected combined controls 45/45. Both approved scalars require finite positive values; per-step measurements require finite nonnegative values. Original inclusive 5x, 80% and 115% arithmetic is preserved, with representable-boundary controls. Wall-time messages no longer infer a code-only cause |
+> | R12 | Host calibration integration assumes a fixed adaptive launch partition | Local pass 2026-11-15; integrated matrix pending | `96f1bcaf`; the full Windows CPU run at `a56ba02b` passed 7,609/7,610; the sole failure expected first block 15 instead of the legitimate adaptive 10. Controlled observation histories now drive the actual batch loop: both 15 and 10 are exact positive controls, independent of host scheduling. The real cold-input-to-changed-input path remains; post-download-key and skipped-current-work mutations fail. Corrected loop/prefix controls 15/15; no production, GPU assertion, budget or approval changes |
+> | T10 | Distinguish CPU-forbidden CUDA facts from real hardware proof | Separate final hardware lanes; explicit backend/device reporting and new P1 consumers in progress |
 
 ## Test-quality review obligations
 
@@ -100,7 +160,7 @@ so that correcting a test name cannot silently substitute for its behavioral che
 |---|---|---|
 | T07 | Observe compilation and release without memory floors | `b5b72b23`; warm-up/cache/weak-reference observations, upper budgets retained; cache/IR retention mutations red |
 | T08 | Separate family results from fallback-path inference | `b15c6cdd`; behavior and mechanism facts split, 13/13; marker mutation fails five diagnostics while five result checks remain green |
-| T10 | Distinguish CPU-forbidden CUDA facts from real hardware proof | Separate final hardware lanes; explicit backend/device reporting and new P1 consumers in progress |
+| T10 | Distinguish CPU-forbidden CUDA facts from real hardware proof | 2026-11-15: source-pinned CPU lanes and actual device lanes pass separately; budget/P1/calibration 5/5 each, full Windows/Ubuntu CUDA and original quiet throughput pass. Forbidden-CUDA CPU returns are not hardware proof |
 | T11/T12 | Retain independent scientific evidence and bounded bit contracts | Existing independent suites retained; one BeO numerical row approved only after raw NASA9 and independent sonic validation (`0702dd45`, `effc89f2`) |
 | T13 | Show solved-throat sensitivity to skipped tail execution | `508ab286`; analytic Ar calibration and independently integrated/bisected N2 sonic state, skipped-tail mutation fails the physical comparison while policy/Ar pass; Performance 1496/1496, no production/tolerance/snapshot change |
 | T14 | Bound subprocess completion and preserve partial output | `af3ac921`; root process-fixture integration 79/79, controlled timeout/cancellation/pipe cases |
