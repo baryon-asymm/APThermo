@@ -73,6 +73,14 @@ parent's assembly and reads them as its own.
 
 ## Constraints
 
+- R10 compiler experiment, 2026-11-14: isolate only the private overlap-crossing
+  calculation with `NoInlining`, passing a fresh local copy of its read-only table.
+  Keep its signature, bisection operations, guards, phase choices and call order.
+  Do not make the enclosing update with its loop-live `ref IterationState` opaque.
+  The hypothesis is that the new cold H/S/Log/Pow expansions inflate the hot CUDA
+  function; only unchanged scientific/bit controls and the original measured
+  throughput gates can accept this storage/code-generation change.
+
 Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root. In addition:
 
 - Every type here is `internal`; none becomes public (root `BOOT.md`, `## Delivery`,
