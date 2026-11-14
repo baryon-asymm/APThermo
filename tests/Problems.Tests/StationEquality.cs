@@ -49,20 +49,14 @@ internal static class StationEquality
             yield return $"{label}: statuses differ";
         }
 
-        foreach (var (name, x) in expected.MoleFractions)
+        foreach (var difference in BitCompositionDifferences(expected.MoleFractions, actual.MoleFractions, label + " x"))
         {
-            if (!actual.MoleFractions.TryGetValue(name, out var y) || !Bits.Same(x, y))
-            {
-                yield return $"{label} x({name}): {x:R} vs {(actual.MoleFractions.TryGetValue(name, out var v) ? v.ToString("R") : "missing")}";
-            }
+            yield return difference;
         }
 
-        foreach (var (name, x) in expected.CondensedMassFractions)
+        foreach (var difference in BitCompositionDifferences(expected.CondensedMassFractions, actual.CondensedMassFractions, label + " w"))
         {
-            if (!actual.CondensedMassFractions.TryGetValue(name, out var y) || !Bits.Same(x, y))
-            {
-                yield return $"{label} w({name}) differs";
-            }
+            yield return difference;
         }
     }
 
@@ -72,7 +66,7 @@ internal static class StationEquality
     /// </summary>
     public static IEnumerable<string> RelativeDifferences(Station expected, Station actual, double relative, double moleFractionFloor, string label)
     {
-        static bool Close(double p, double q, double relative) => Math.Abs(p - q) <= relative * Math.Max(Math.Abs(p), Math.Abs(q));
+        static bool Close(double p, double q, double relative) => double.IsFinite(p) && double.IsFinite(q) && Math.Abs(p - q) <= relative * Math.Max(Math.Abs(p), Math.Abs(q));
 
         if (expected.Status != actual.Status || expected.TransportStatus != actual.TransportStatus)
         {
@@ -111,15 +105,47 @@ internal static class StationEquality
             yield return difference;
         }
 
-        foreach (var (name, p) in expected.MoleFractions)
+        foreach (var difference in RelativeCompositionDifferences(expected.MoleFractions, actual.MoleFractions, relative, moleFractionFloor, label + " x"))
         {
-            var q = actual.MoleFractions.GetValueOrDefault(name);
+            yield return difference;
+        }
 
-            // Math.Max(p, q) returns NaN when either argument is NaN, which would otherwise fail the floor test below and
-            // skip the pair silently (the guards audit's F5/F6): a NaN mole fraction is checked regardless of the floor.
-            if ((double.IsNaN(p) || double.IsNaN(q) || Math.Max(p, q) >= moleFractionFloor) && !Close(p, q, relative))
+        foreach (var difference in RelativeCompositionDifferences(expected.CondensedMassFractions, actual.CondensedMassFractions, relative, 0.0, label + " w"))
+        {
+            yield return difference;
+        }
+    }
+
+    private static IEnumerable<string> BitCompositionDifferences(IReadOnlyDictionary<string, double> expected, IReadOnlyDictionary<string, double> actual, string label)
+    {
+        foreach (var name in expected.Keys.Union(actual.Keys, StringComparer.Ordinal))
+        {
+            var expectedPresent = expected.TryGetValue(name, out var p);
+            var actualPresent = actual.TryGetValue(name, out var q);
+            // An additional zero species is valid in a union table. Shared entries retain signed-zero bit checks.
+            if (expectedPresent != actualPresent && p == 0.0 && q == 0.0)
             {
-                yield return $"{label} x({name}): {p:R} vs {q:R}";
+                continue;
+            }
+
+            if (!Bits.Same(p, q))
+            {
+                yield return $"{label}({name}): {p:R} vs {q:R}";
+            }
+        }
+    }
+
+    private static IEnumerable<string> RelativeCompositionDifferences(IReadOnlyDictionary<string, double> expected, IReadOnlyDictionary<string, double> actual, double relative, double floor, string label)
+    {
+        foreach (var name in expected.Keys.Union(actual.Keys, StringComparer.Ordinal))
+        {
+            var p = expected.GetValueOrDefault(name);
+            var q = actual.GetValueOrDefault(name);
+            var finite = double.IsFinite(p) && double.IsFinite(q);
+            var magnitude = Math.Max(Math.Abs(p), Math.Abs(q));
+            if (!finite || (magnitude >= floor && Math.Abs(p - q) > relative * magnitude))
+            {
+                yield return $"{label}({name}): {p:R} vs {q:R}";
             }
         }
     }
@@ -142,7 +168,7 @@ internal static class StationEquality
         {
             var x = field.GetValue(a)!;
             var y = field.GetValue(b)!;
-            var same = x is double p && y is double q ? Math.Abs(p - q) <= relative * Math.Max(Math.Abs(p), Math.Abs(q)) : x.Equals(y);
+            var same = x is double p && y is double q ? double.IsFinite(p) && double.IsFinite(q) && Math.Abs(p - q) <= relative * Math.Max(Math.Abs(p), Math.Abs(q)) : x.Equals(y);
             if (!same)
             {
                 yield return $"{label} transport {field.Name}: {x} vs {y}";

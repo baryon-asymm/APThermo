@@ -18,6 +18,11 @@ tree's acceptance: the end-to-end comparison with the reference implementation r
 ⚠ 2026-09-14: was a level table without the plateau row, now the L2 row above
 → HISTORY.md#purpose-plateau-row
 
+⚠ 2026-11-14: relative station equality previously omitted condensed mass and
+actual-only species; comparisons now use the union of keys, treating absent zero
+species as valid union padding. Disposal coverage formerly compared method names;
+it now compares exact overload identities from the same expressions it executes.
+
 ## Invariants
 
 - Reference is files; tolerances from the fixtures node; every fixture case is
@@ -368,6 +373,17 @@ Outside the tree: xunit.
       differs from `main` only in this one case's line, matching the diff recorded at
       `627f815` (`tests/Performance.Tests/BOOT.md`'s 2026-09-28 entry has the field
       values).
+
+- [x] 2026-11-14 — Audit A32/A38: `CompositionComparisonTests` detects condensed
+  changes and actual-only nonzero species in either direction; extra zero union
+  species remain valid. Pre-fix controls failed. `RejectionTests` inventories exact
+  `MethodInfo` identities extracted from executable invocations; replacing one Solve
+  overload with another of the same name failed the inventory (`overload-negative.log`).
+  `InputSnapshotTests`, `AuditRuntimeTests`, `StationBoundaryTests` and
+  `SolverDisposalTests` pin publication, cache, underflow and failure contracts.
+  CPU suite: 1336 passed, no skips, unchanged approved files; build zero warnings/errors.
+  Evidence `SCRATCH/audit/problems-final.log`, `comparison-green.log`,
+  `overload-negative.log`, `disposal-negative.log` in audit-public worktree.
 
 ## Taboos
 

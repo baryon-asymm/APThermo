@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -330,7 +331,7 @@ public sealed partial class RejectionTests
                       .Where(m => !m.IsSpecialName && m.Name != nameof(Solver.Dispose));
 
     /// <summary>One invocation per overload of every method reflection finds, so that a call reaching a disposed solver is observed for each.</summary>
-    private List<(string Name, Action<Solver> Invoke)> DisposedInvocations()
+    private static List<(MethodInfo Method, Action<Solver> Invoke)> DisposedInvocations()
     {
         var propellant = LoxLh2().OxidizerToFuelRatio(6.0).Build();
         var mixture = ElementalMixture.Create(Water, RecordEnthalpy);
@@ -342,32 +343,38 @@ public sealed partial class RejectionTests
         var stateRecord = new StateRecord(RecordPressure, Water, Temperature: 3000.0);
         var rocketStateRecord = new StateRecord(RecordPressure, Water, Enthalpy: RecordEnthalpy) { AreaRatios = [20.0] };
 
+        IReadOnlyList<string> elements = ["H", "O"];
+        IReadOnlyList<StateRecord> states = [stateRecord];
+        IReadOnlyList<StateRecord> rocketStates = [rocketStateRecord];
         return
         [
-            (nameof(Solver.MixtureOf), s => s.MixtureOf(propellant)),
-            (nameof(Solver.CandidateSpeciesFor), s => s.CandidateSpeciesFor(["H", "O"])),
-            (nameof(Solver.MassOf), s => s.MassOf(mixture)),
-            (nameof(Solver.Solve), s => s.Solve(propellant, rocketProblem)),
-            (nameof(Solver.Solve), s => s.Solve(propellant, rocketProblems)),
-            (nameof(Solver.Solve), s => s.Solve(propellant, equilibriumProblem)),
-            (nameof(Solver.Solve), s => s.Solve(propellant, equilibriumProblems)),
-            (nameof(Solver.Solve), s => s.Solve(mixture, rocketProblem)),
-            (nameof(Solver.Solve), s => s.Solve(mixture, rocketProblems)),
-            (nameof(Solver.Solve), s => s.Solve(mixture, equilibriumProblem)),
-            (nameof(Solver.Solve), s => s.Solve(mixture, equilibriumProblems)),
-            (nameof(Solver.Solve), s => s.Solve(mixtures, rocketProblems)),
-            (nameof(Solver.Solve), s => s.Solve(mixtures, equilibriumProblems)),
-            (nameof(Solver.SolveStates), s => s.SolveStates([stateRecord])),
-            (nameof(Solver.SolveRocketStates), s => s.SolveRocketStates([rocketStateRecord])),
+            DisposalInvocation(s => s.MixtureOf(propellant)),
+            DisposalInvocation(s => s.CandidateSpeciesFor(elements)),
+            DisposalInvocation(s => s.MassOf(mixture)),
+            DisposalInvocation(s => s.Solve(propellant, rocketProblem)),
+            DisposalInvocation(s => s.Solve(propellant, rocketProblems)),
+            DisposalInvocation(s => s.Solve(propellant, equilibriumProblem)),
+            DisposalInvocation(s => s.Solve(propellant, equilibriumProblems)),
+            DisposalInvocation(s => s.Solve(mixture, rocketProblem)),
+            DisposalInvocation(s => s.Solve(mixture, rocketProblems)),
+            DisposalInvocation(s => s.Solve(mixture, equilibriumProblem)),
+            DisposalInvocation(s => s.Solve(mixture, equilibriumProblems)),
+            DisposalInvocation(s => s.Solve(mixtures, rocketProblems)),
+            DisposalInvocation(s => s.Solve(mixtures, equilibriumProblems)),
+            DisposalInvocation(s => s.SolveStates(states)),
+            DisposalInvocation(s => s.SolveRocketStates(rocketStates)),
         ];
     }
+
+    private static (MethodInfo Method, Action<Solver> Invoke) DisposalInvocation(Expression<Action<Solver>> invocation) =>
+        (((MethodCallExpression)invocation.Body).Method, invocation.Compile());
 
     /// <summary>The hand-written list above names every overload reflection finds, once each, so that a new method cannot be missed (BOOT.md, F-PR-09).</summary>
     [Fact]
     public void TheDisposalFactsCoverEveryPublicMethodOfTheSolver()
     {
-        var reflected = DisposalGuardedMethods().Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
-        var covered = DisposedInvocations().Select(i => i.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+        var reflected = DisposalGuardedMethods().OrderBy(m => m.MetadataToken).ToList();
+        var covered = DisposedInvocations().Select(i => i.Method).OrderBy(m => m.MetadataToken).ToList();
         Assert.Equal(reflected, covered);
     }
 
