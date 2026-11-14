@@ -15,7 +15,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 
 | ID | Obligation | Status | Evidence |
 |---|---|---|---|
-| A01 | Eligible polymorph stability | Open | Pending |
+| A01 | Eligible polymorph stability | Local pass 2026-11-14 | `25b95f55`; independent integration regression 18/18, full platform verification pending |
 | A02 | Immutable database and problem snapshots | Open | Pending |
 | A03 | Cleanup preserves the primary failure | Open | Pending |
 | A04 | Rollback partial table allocation | Open | Pending |
@@ -49,7 +49,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A32 | Complete batch-composition comparison | Open | Pending |
 | A33 | Literal release tag shell arguments | Open | Pending |
 | A34 | Literal changelog version matching | Open | Pending |
-| A35 | Multi-floor HP/SP objective selection | Open | Pending |
+| A35 | Multi-floor HP/SP objective selection | In progress | Rejected-floor continuation passes; bounded best-candidate selection still required |
 | A36 | Failed-state public postcondition | Open | Pending |
 | A37 | Public condensed-model applicability | Open | Pending |
 | A38 | Disposal overload inventory | Open | Pending |
