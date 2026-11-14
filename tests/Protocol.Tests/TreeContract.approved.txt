@@ -55,8 +55,8 @@ readonly struct APThermo.Equilibrium.EquilibriumResult
     readonly ArrayView<MixtureState> State
 
 readonly struct APThermo.Equilibrium.EquilibriumScratch
-    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, TieSlices tie, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution, ArrayView<Double> bracketEnds)
-    readonly ArrayView<Double> BracketEnds
+    .ctor(ArrayView<Double> hOverRT, ArrayView<Double> sOverR, ArrayView<Double> cpOverR, ArrayView<Double> gOverRT, ArrayView<Double> logMoles, ArrayView<Double> corrections, TieSlices tie, ArrayView<Double> matrix, ArrayView<Double> rightHandSide, ArrayView<Double> rowScale, ArrayView<Int32> speciesActive, ArrayView<Int32> elementActive, ArrayView<Int32> condensedInSolution, RecoverySlices recovery)
+    ArrayView<Double> BracketEnds { get; }
     readonly ArrayView<Double> Corrections
     readonly ArrayView<Double> CpOverR
     readonly ArrayView<Double> GOverRT
@@ -69,6 +69,7 @@ readonly struct APThermo.Equilibrium.EquilibriumScratch
     readonly ArrayView<Int32> CondensedInSolution
     readonly ArrayView<Int32> ElementActive
     readonly ArrayView<Int32> SpeciesActive
+    readonly RecoverySlices Recovery
     readonly TieSlices Tie
     static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
 
@@ -85,6 +86,13 @@ static class APThermo.Equilibrium.EquilibriumSolver
     static Double RetentionThreshold(in IterationState state)
     static Void Solve(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, Boolean useMolesAsEstimate)
     static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
+
+readonly struct APThermo.Equilibrium.RecoverySlices
+    .ctor(ArrayView<Double> bracketEnds, ArrayView<Double> bestMoles, ArrayView<Double> bestMultipliers)
+    readonly ArrayView<Double> BestMoles
+    readonly ArrayView<Double> BestMultipliers
+    readonly ArrayView<Double> BracketEnds
+    static RecoverySlices Slice(ArrayView<Double> doubles, Int64 offset, Int32 speciesCount, Int32 elementCount)
 
 static class APThermo.Equilibrium.ScratchLayout
     const Int32 MaxCondensedInSolution = 20
@@ -290,6 +298,7 @@ static class APThermo.Performance.RocketSolver
     const Int32 MaxAreaRatioIterations = 20
     const Int32 MaxThroatBisections = 60
     const Int32 MaxThroatIterations = 20
+    internal const Double AreaRatioResidualTolerance = 1E-06
     internal const Double EntropyTolerance = 1E-09
     internal const Double ExtrapolationAreaRatio = 2
     internal const Double GammaOneTolerance = 1E-06
@@ -299,6 +308,7 @@ static class APThermo.Performance.RocketSolver
     internal const Int32 Chamber = 0
     internal const Int32 Throat = 1
     internal const Int32 ThroatTailSteps = 2
+    internal static Void FinalizeFailures(in RocketResult result)
     static Void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
 
 == src/Problems
