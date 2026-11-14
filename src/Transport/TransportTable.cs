@@ -242,20 +242,36 @@ internal sealed class TransportTableBuffers : IDisposable
     private static TransportTableView UploadView(Accelerator accelerator, TransportTable table, TransportBufferOwnership owner)
     {
         var arrays = table.Arrays;
-        var viscosityStart = owner.Acquire(() => accelerator.Allocate1D(arrays.ViscosityStart));
-        var viscosityCount = owner.Acquire(() => accelerator.Allocate1D(arrays.ViscosityCount));
-        var conductivityStart = owner.Acquire(() => accelerator.Allocate1D(arrays.ConductivityStart));
-        var conductivityCount = owner.Acquire(() => accelerator.Allocate1D(arrays.ConductivityCount));
-        var fits = owner.Acquire(() => accelerator.Allocate1D(arrays.Fits));
-        var pairIndex = owner.Acquire(() => accelerator.Allocate1D(arrays.PairIndex));
-        var pairStart = owner.Acquire(() => accelerator.Allocate1D(arrays.PairStart));
-        var pairCount = owner.Acquire(() => accelerator.Allocate1D(arrays.PairCount));
+        var viscosityStart = UploadColumn(accelerator, arrays.ViscosityStart, owner);
+        var viscosityCount = UploadColumn(accelerator, arrays.ViscosityCount, owner);
+        var conductivityStart = UploadColumn(accelerator, arrays.ConductivityStart, owner);
+        var conductivityCount = UploadColumn(accelerator, arrays.ConductivityCount, owner);
+        var fits = UploadColumn(accelerator, arrays.Fits, owner);
+        var pairIndex = UploadColumn(accelerator, arrays.PairIndex, owner);
+        var pairStart = UploadColumn(accelerator, arrays.PairStart, owner);
+        var pairCount = UploadColumn(accelerator, arrays.PairCount, owner);
         return new TransportTableView(
             speciesCount: table.SpeciesCount, pairTotal: arrays.PairTotal,
-            viscosityStart: viscosityStart.View, viscosityCount: viscosityCount.View,
-            conductivityStart: conductivityStart.View, conductivityCount: conductivityCount.View,
-            fits: fits.View, pairIndex: pairIndex.View, pairStart: pairStart.View, pairCount: pairCount.View);
+            viscosityStart: viscosityStart, viscosityCount: viscosityCount,
+            conductivityStart: conductivityStart, conductivityCount: conductivityCount,
+            fits: fits, pairIndex: pairIndex, pairStart: pairStart, pairCount: pairCount);
     }
+    /// <summary>Acquire before copying; an empty column needs only the same empty view, without an empty wrapper.</summary>
+    private static ArrayView<T> UploadColumn<T>(Accelerator accelerator, T[] values, TransportBufferOwnership owner)
+        where T : unmanaged => values.Length == 0
+            ? default
+            : AcquireInitialized(owner, () => accelerator.Allocate1D<T>(values.Length),
+                buffer => buffer.View.CopyFromCPU(accelerator.DefaultStream, values)).View;
+
+    /// <summary>Ownership is published before initialization, so Build also rolls back an initialization failure.</summary>
+    private static T AcquireInitialized<T>(TransportBufferOwnership owner, Func<T> allocate, Action<T> initialize)
+        where T : class, IDisposable
+    {
+        var buffer = owner.Acquire(allocate);
+        initialize(buffer);
+        return buffer;
+    }
+
     /// <summary>The table the buffers hold.</summary>
     public TransportTable Table { get; }
 

@@ -258,8 +258,10 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 - An otherwise successful evaluation with unrepresentable numeric figures returns
   TemperatureOutOfRange with zero figures. Fit extrapolation remains the reference
   policy for representable values.
-- Table upload owns each buffer as soon as allocation succeeds. A later allocation
-  failure rolls back previous allocations; disposal attempts every owned buffer.
+- Table upload acquires by length, publishes ownership, then copies each nonempty
+  column. Allocation or copy failure rolls back every returned buffer, including
+  the current column. Empty columns expose the same default empty view without a
+  buffer or copy. Disposal attempts every owned buffer for recoverable failures.
   A child OutOfMemoryException is recorded and does not stop later cleanup.
   StackOverflowException and AccessViolationException propagate; actual host OOM
   is not claimed tested, and diagnostic storage under it is best effort.
@@ -273,6 +275,16 @@ replacing the primary with NotSupportedException. Diagnostic attachment now foll
 the same recoverable-exception policy as cleanup; the two CLR fatal exceptions remain
 outside that guarantee. No actual memory exhaustion or driver failure is simulated.
 
+
+⚠ 2026-11-14: independent ownership review of ILGPU1.5.3 found Allocate1D(array)
+allocates then copies without a rollback handler. The previous outer acquisition
+could not own the current column if that copy threw. Production columns now use a
+private acquire/initialize sequence that registers the returned buffer before copying.
+An empty ILGPU wrapper itself threw on disposal in the isolated control; default
+empty views preserve the outward empty-column semantics without that wrapper.
+CPU controls inject a null explicit stream only in that initializer; they inspect
+actual wrapper/native disposal. This does not simulate a production null stream,
+actual OOM/TDR, finalizer timing, or GPU driver recovery.
 
 ## Acceptance criteria
 

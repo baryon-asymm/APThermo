@@ -147,7 +147,20 @@ hash traversal and approved bytes; labels are diagnostic text only.
   temperature cannot report Ok with nonfinite figures.
 
 
+A copy-boundary control invokes the private production acquire/initialize operation
+as a typed delegate, rather than duplicating allocation policy. It acquires real
+ILGPU CPU buffers and injects a null explicit copy stream. Pinned ILGPU1.5.3 child
+buffer tracking exposes native and wrapper IsDisposed states. Each control releases
+its buffers in finally even when the deliberately unsafe order is tested. Normal
+int/double and empty upload-column paths exercise the same production helper.
+
 ## Acceptance criteria
+
+- [x] 2026-11-14 — `UploadCopyBoundaryTests` checks current and earlier real CPU buffer cleanup
+  after copy failure, exact primary identity, empty/nonempty round trips and repeat
+  cleanup; an unsafe factory-order mutation is detected without GPU/OOM/TDR.
+  Full CPU Transport 240/240, no skips (`transport-ownership-final-full.trx` in
+  `SCRATCH/audit/` of audit-performance); numeric and approved controls unchanged.
 
 - [x] 2026-11-14 — `RollbackDiagnosticTests` controls the actual production Build/Rollback path:
   original exception identity and every cleanup attempt survive read-only diagnostic

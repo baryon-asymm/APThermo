@@ -145,3 +145,17 @@
   `transport-diagnostic-fixed.trx` in audit-performance. Read-only Data and ordinary
   throwing getters/setters were the three old failures; injected diagnostic OOM
   payloads and writable secondary diagnostics remained positive controls.
+- [x] 2026-11-14 — `UploadCopyBoundaryTests` exercises production's private acquire/initialize
+  sequence on real CPU buffers. A deterministic copy-stage failure preserves the
+  primary and disposes both current native/wrapper buffers plus earlier resources;
+  recreating allocate-and-copy inside the acquisition factory must be red. Empty
+  and nonempty int/double columns round-trip through the production column helper.
+  Copy-boundary evidence: `transport-copy-boundary-green.trx` (20/20 ownership
+  controls) and `transport-copy-boundary-unsafe-mutation.trx` (one red, both current
+  native/wrapper buffers observed not disposed) in `SCRATCH/audit/` of audit-performance.
+  The mutant was restored and its test finally releases the observed buffers.
+  `transport-empty-wrapper-disposal.trx` records why the same empty view is returned
+  without constructing an unnecessary SDK wrapper. No actual OOM/TDR was attempted.
+  Full CPU evidence after both A04 corrections: Transport.Tests 240/240, no skips,
+  including the numeric/reference/kernel/bit controls; no approved record moved.
+  `SCRATCH/audit/transport-ownership-final-full.trx` in audit-performance.

@@ -243,3 +243,12 @@ now lose secondary diagnostics but cannot replace the exact original exception f
 recoverable managed failures. Every owned buffer is attempted first; StackOverflowException
 and AccessViolationException remain outside the recovery guarantee. Managed fault
 injections cover this contract, not actual host exhaustion or driver recovery.
+Upload is transactional across both length-based allocation and initialization:
+every nonempty column is owned before host-to-device copy starts, so a failed copy
+also releases its current native/wrapper buffer. Empty columns expose the same
+empty ArrayView without constructing an ILGPU empty buffer wrapper; no copy or
+resource is needed for them. An isolated pinned-ILGPU control found that wrapper's
+own disposal throws, so retaining a wrapper is not part of the outward empty-view
+contract. The public signatures, view layout and numerical calculations are unchanged.
+CPU/null-stream fault controls establish this boundary; actual OOM, TDR and GPU
+recovery remain outside their evidence.
