@@ -32,6 +32,12 @@ Windows preflight runs under Windows PowerShell 5.1, without Python or Git Bash.
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — A39 fresh-report control: `test_trace_scan.py` ten tests pass.
+  A stale successful TRX plus a new zero-exit/no-report attempt was first accepted
+  (red control), then refused while preserving the old report's bytes under a
+  unique previous-report name. Evidence: `SCRATCH/audit/trace-stale-report-red.txt`,
+  `trace-stale-report-green.txt`.
+
 - [x] 2026-11-14 — A39 matrix truth: `test_trace_scan.py` nine tests pass; nine failure
   subcases were red before started-state persistence (nonzero exit, timeout and
   invalid/missing/skipped reports). Execution attempts retain started; only verified

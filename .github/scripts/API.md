@@ -43,3 +43,11 @@ Matrix entries now change to "started" before the execution call; that means an
 execution attempt, not proof each method ran. Only an exact successful TRX changes
 them to "passed". Nonzero exit, timeout and malformed/missing report retain
 "started" with their execution log/error; discover-only retains "not-run".
+
+Before execution, a previous trace-gas.trx is retained byte-for-byte as
+trace-gas.previous-<unique-id>.trx. Only the newly emitted current report can verify
+this attempt; an old successful report cannot cover a missing new report.
+
+⚠ 2026-11-14: reusing a results directory could previously accept a stale successful
+TRX when the new process returned zero without a report. A controlled counterexample
+was red; preserving/renaming the old report before execution closes that path.

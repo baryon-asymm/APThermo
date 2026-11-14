@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import uuid
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -81,6 +82,11 @@ def execute(root, artifacts, configuration="Release", discover_only=False, run=s
     for entry in matrix:
         entry["execution"] = "started"
     (artifacts / "matrix.json").write_text(json.dumps(matrix, indent=2) + "\n", encoding="utf-8")
+    previous_report = artifacts / "trace-gas.trx"
+    if previous_report.exists() or previous_report.is_symlink():
+        if not previous_report.is_file() and not previous_report.is_symlink():
+            raise RuntimeError("existing trace-gas.trx is not a report file")
+        previous_report.rename(artifacts / ("trace-gas.previous-" + uuid.uuid4().hex + ".trx"))
     with (artifacts / "execution.log").open("wb") as log:
         result = run(command + ["--logger", "trx;LogFileName=trace-gas.trx", "--results-directory", str(artifacts)],
                      cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, timeout=1200)

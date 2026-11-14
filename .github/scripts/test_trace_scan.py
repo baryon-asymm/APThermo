@@ -104,6 +104,19 @@ class TraceRunnerGuards(unittest.TestCase):
         self.assertTrue(all(entry["execution"] == "started" for entry in matrix))
         self.assertEqual(b"partial execution", (self.artifacts / "execution.log").read_bytes())
 
+    def test_stale_success_cannot_cover_a_missing_new_report(self):
+        self.artifacts.mkdir()
+        self.report()
+        previous = (self.artifacts / "trace-gas.trx").read_bytes()
+        with self.assertRaises(RuntimeError):
+            scan.execute(self.root, self.artifacts, run=self.executor(report=False))
+        retained = list(self.artifacts.glob("trace-gas.previous-*.trx"))
+        self.assertEqual(1, len(retained))
+        self.assertEqual(previous, retained[0].read_bytes())
+        self.assertFalse((self.artifacts / "trace-gas.trx").exists())
+        matrix = json.loads((self.artifacts / "matrix.json").read_text())
+        self.assertTrue(all(entry["execution"] == "started" for entry in matrix))
+
     def test_discovery_only_is_explicitly_unexecuted(self):
         scan.execute(self.root, self.artifacts, discover_only=True, run=self.executor())
         matrix = json.loads((self.artifacts / "matrix.json").read_text())
