@@ -20,8 +20,12 @@ internal static class CaseSetup
     /// <summary>One e-fold below the trace threshold: where a gaseous species the caller's estimate does not mention starts.</summary>
     private const double UnestimatedOffset = 1.0;
 
-    /// <summary>ln(p/p°) of the case.</summary>
-    public static double LogPressure(in EquilibriumProblem problem) => KernelMath.Log(problem.Pressure / StandardPressure);
+    /// <summary>ln(p/p°); preserve ordinary bits, and subtract logs only when the pressure ratio underflows.</summary>
+    public static double LogPressure(in EquilibriumProblem problem)
+    {
+        var ratio = problem.Pressure / StandardPressure;
+        return ratio > 0.0 ? KernelMath.Log(ratio) : KernelMath.Log(problem.Pressure) - KernelMath.Log(StandardPressure);
+    }
 
     /// <summary>The assigned temperature for tp, the caller's estimate for hp and sp, or the default of section 3.1.</summary>
     public static double InitialTemperature(in EquilibriumProblem problem) =>
@@ -36,7 +40,7 @@ internal static class CaseSetup
     public static CaseStatus Begin(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                    in EquilibriumResult result, EstimateSource source, ref IterationState state)
     {
-        if (table.SpeciesCount <= 0 || table.ElementCount <= 0 || !(problem.Pressure > 0.0)
+        if (table.SpeciesCount <= 0 || table.ElementCount <= 0 || problem.Pressure is not (> 0.0 and < double.PositiveInfinity)
             || table.ElementCount > TableLimits.MaxElements)
         {
             return CaseStatus.InvalidInput;

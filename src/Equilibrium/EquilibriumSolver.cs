@@ -153,7 +153,7 @@ internal static class EquilibriumSolver
     {
         result.Iterations[0] = 0;
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        if (table.SpeciesCount <= 0 || !(problem.Pressure > 0.0))
+        if (table.SpeciesCount <= 0 || problem.Pressure is not (> 0.0 and < double.PositiveInfinity))
         {
             return;
         }

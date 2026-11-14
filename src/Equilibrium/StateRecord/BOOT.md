@@ -28,7 +28,7 @@ at a plateau.
 
 The invariants of the parent ([BOOT.md](../BOOT.md)) hold here unchanged.
 
-- **A refused state is never written.** `WriteEquilibrium` and `WriteFrozen` decide the state guard
+- **A partial state is never published.** `WriteEquilibrium` and `WriteFrozen` decide the state guard
   before a successful state is published, clear `result.State[0]` on refusal, and write
   nothing but `result.State[0]` otherwise.
 
@@ -253,9 +253,10 @@ decomposition to make, not an exception to declare.
 
 ## Acceptance criteria
 
-- [ ] `FiniteStateTests` rejects frozen TP at double.Epsilon, nonfinite pressure and
+- [x] 2026-11-14 — `FiniteStateTests` and `MixturePropertiesTests` reject frozen TP at double.Epsilon, nonfinite pressure and
   overflowing calculated density with zero state, admits ordinary and representable
-  extreme finite pressures, and verifies state-writer refusals clear poisoned output.
+  extreme finite pressures including underflow of p/p0 at a small gas amount, and
+  verifies state-writer refusals clear poisoned output.
 
 The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these files hold unchanged:
 the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snapshot.

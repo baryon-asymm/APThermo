@@ -273,7 +273,7 @@ callers cut a case's scratch the same way everywhere.
 An element with zero abundance is allowed: the species containing it are inactive
 for the case and get mole number zero. The solver never throws. `Status` is one of
 `Ok`, `InvalidInput` (every abundance zero, negative abundance, empty table,
-non-positive pressure, a tp temperature that is non-positive or not finite, a
+non-positive or nonfinite pressure, a tp temperature that is non-positive or not finite, a
 *given* (nonzero) hp or sp temperature estimate that is not finite and positive —
 0 stays the sentinel for "none given", defaulting to 3800 K, the third pass of
 2026-09-28, observation O1 — more elements than `TableLimits.MaxElements`; for
@@ -302,7 +302,7 @@ An hp or sp case whose iteration fails is bracketed on the temperature by tp pro
 ([Recovery/BOOT.md](Recovery/BOOT.md)); it ends `TemperatureOutOfRange` also when the bracket reaches
 the edge of `[160 K, 20000 K]` in the target's direction. For an hp or sp `NoGasPhase` case `State.Temperature`
 is the bracket's final temperature.
-On any status but `Ok`, `NoGasPhase` excepted, `Moles` hold the last iterate and `State` is not written (a case
+On any status but `Ok`, `NoGasPhase` excepted, `Moles` hold the last iterate and a state-guard refusal clears `State` to zero; other failures leave it unwritten (a case
 that was bracketed has it cleared to zero, a probe may have written one); on
 `InvalidInput` nothing but `Status` and `Iterations` (zero) is written. `Iterations` sums every attempt's
 Newton steps.
@@ -325,3 +325,14 @@ None. Writes only into the views of `EquilibriumResult` and `EquilibriumScratch`
 - Transport properties: `Transport`.
 - Building tables, choosing species, computing `ElementMoles` from reactants: `Problems`.
 - Allocating and slicing the batch buffers: `Execution`.
+
+⚠ 2026-11-14: A13 extends the calculated-state guard beyond heat capacities and
+sound speed to finite h/u/s/g/volume derivatives and finite positive T/p/density/M/MW.
+A calculated density rounded to zero is refused as `TemperatureOutOfRange`; large
+finite pressures remain admitted when their calculated state is representable.
+The state writer now clears refused output instead of leaving prior state untouched.
+Nonfinite pressure is `InvalidInput` on both equilibrium and frozen paths.
+
+The pressure mixing term retains ln(p/p0) for ordinary bits; if that positive-pressure
+ratio underflows, it uses ln(p)-ln(p0). A small pressure is therefore not refused solely
+because its ratio underflows when the final density and other fields are representable.

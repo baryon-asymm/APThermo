@@ -39,11 +39,11 @@ internal static class PlateauIsentrope
 internal static class MixtureProperties
 {
     public static bool WriteEquilibrium(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums, in Derivatives derivatives);
-        // the converged state, or the plateau convention of a pinned set; false, nothing written, when the state guard fails
+        // the converged state, or the plateau convention of a pinned set; false, zero state written, when the state guard fails
     public static bool IsNearUnivariant(in MixtureSums sums, in Derivatives derivatives);
         // true when |Cp/Cv| of the constant-temperature route exceeds 1e6: gamma_s then comes from the isentropic system
     public static bool WriteFrozen(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums);
-        // the frozen state: CpEquilibrium = CpFrozen, the derivatives 1 and −1; false when the state guard fails
+        // the frozen state: CpEquilibrium = CpFrozen, the derivatives 1 and −1; false and zero state when the state guard fails
 }
 ```
 

@@ -37,12 +37,25 @@ public sealed class FiniteStateTests
         Assert.Equal(pressure, solution.State.Pressure);
     }
 
-    private static HostSolution FrozenAt(double pressure)
+    /// <summary>A pressure ratio may underflow while the density remains representable at a small gas amount.</summary>
+    [Fact]
+    public void ARepresentableStateSurvivesPressureRatioUnderflow()
+    {
+        var solution = FrozenAt(1e-320, 1e-6);
+        Assert.Equal(CaseStatus.Ok, solution.Status);
+        Assert.True(solution.State.Density > 0.0);
+        foreach (var property in typeof(MixtureState).GetProperties())
+        {
+            Assert.True(double.IsFinite((double)property.GetValue(solution.State)!), property.Name);
+        }
+    }
+
+    private static HostSolution FrozenAt(double pressure, double scale = 1.0)
     {
         var table = SpeciesTable.Build(CpuFixture.Shared.Database, ["H", "O"], ["H2", "O2", "H2O"]);
         var moles = new double[table.SpeciesCount];
-        moles[table.IndexOf("H2")] = 0.1;
-        moles[table.IndexOf("O2")] = 0.05;
+        moles[table.IndexOf("H2")] = scale * 0.1;
+        moles[table.IndexOf("O2")] = scale * 0.05;
         var problem = new EquilibriumCase(table, ProblemKind.AssignedTemperaturePressure, pressure, 3000.0, 0.0, [0.2, 0.1]);
         return HostSolver.SolveFrozen(CpuFixture.Shared.Accelerator, problem, moles);
     }

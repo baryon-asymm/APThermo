@@ -15,8 +15,8 @@ internal static class MixtureProperties
 {
     /// <summary>
     /// The converged equilibrium state, with the derivatives of section 2.5 or the plateau convention of a pinned pair.
-    /// False, with nothing written, when the state guard (<see cref="IsPhysical"/>) fails (the third pass of
-    /// 2026-09-28, finding F3): the guard is decided before <c>result.State[0]</c> is touched, not after.
+    /// False, with a zero state, when the state guard (<see cref="IsPhysical"/>) fails (the third pass of
+    /// 2026-09-28, finding F3): the guard is decided before a valid state is published; refusal clears prior output.
     /// </summary>
     public static bool WriteEquilibrium(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums,
                                         in Derivatives derivatives)
@@ -72,7 +72,7 @@ internal static class MixtureProperties
 
     /// <summary>
     /// The frozen state: an ideal gas of fixed composition, whose equilibrium response is its frozen one. False, with
-    /// nothing written, when the state guard fails (the third pass of 2026-09-28, finding F3).
+    /// a zero state, when the state guard fails (the third pass of 2026-09-28, finding F3).
     /// </summary>
     public static bool WriteFrozen(in EquilibriumProblem problem, in EquilibriumResult result, in MixtureSums sums)
     {
@@ -115,7 +115,7 @@ internal static class MixtureProperties
 
     /// <summary>
     /// The sound speed needs the isentropic exponent, so it is computed after the closure; the flow speed is the
-    /// performance node's. The state guard is decided on this local state before anything is written (the third
+    /// performance node's. The state guard is decided on this local state before it is published (the third
     /// pass of 2026-09-28, finding F3): a caller reading a failing status never finds a stale or partial
     /// <c>result.State[0]</c>.
     /// </summary>
@@ -124,6 +124,7 @@ internal static class MixtureProperties
         state.SoundSpeed = Math.Sqrt(sums.SumGas * PhysicalConstants.R * sums.Temperature * state.GammaS);
         if (!IsPhysical(state, pinned))
         {
+            result.State[0] = default;
             return false;
         }
 
@@ -132,7 +133,7 @@ internal static class MixtureProperties
     }
 
     /// <summary>
-    /// The state guard (BOOT.md, 2026-09-28): true when every heat capacity, γs and the sound speed of the state are
+    /// The full-state guard (BOOT.md, A13): primary fields must be finite, density and molar masses positive; response fields are
     /// finite and positive — a species evaluated outside its fitted range can still return a finite but unphysical
     /// polynomial value inside the mixture's temperature window. The pinned pair's zero <c>CpEquilibrium</c>/
     /// <c>CvEquilibrium</c> convention (Property definitions, BOOT.md) is exempt for <paramref name="pinned"/>: a
@@ -142,8 +143,15 @@ internal static class MixtureProperties
     {
         var equilibriumOk = pinned || (IsFinitePositive(state.CpEquilibrium) && IsFinitePositive(state.CvEquilibrium));
         return IsFinitePositive(state.CpFrozen) && IsFinitePositive(state.CvFrozen) && equilibriumOk
-               && IsFinitePositive(state.GammaS) && IsFinitePositive(state.SoundSpeed);
+               && IsFinitePositive(state.GammaS) && IsFinitePositive(state.SoundSpeed)
+               && IsFinitePositive(state.Temperature) && IsFinitePositive(state.Pressure)
+               && IsFinitePositive(state.Density) && IsFinitePositive(state.MolarMass) && IsFinitePositive(state.MixtureMolarMass)
+               && IsFinite(state.Enthalpy) && IsFinite(state.InternalEnergy) && IsFinite(state.Entropy) && IsFinite(state.GibbsEnergy)
+               && IsFinite(state.DlnVdlnT) && IsFinite(state.DlnVdlnP);
     }
+
+    /// <summary>Finite signed property: zero and negative h, u, s, g and derivatives can be physical.</summary>
+    private static bool IsFinite(double value) => value is > double.NegativeInfinity and < double.PositiveInfinity;
 
     /// <summary>Finite and strictly positive: excludes NaN (every comparison with it is false), zero, negative values and +∞.</summary>
     private static bool IsFinitePositive(double value) => value is > 0.0 and < double.PositiveInfinity;
