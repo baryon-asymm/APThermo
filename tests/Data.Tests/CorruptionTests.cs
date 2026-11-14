@@ -98,4 +98,13 @@ public sealed class CorruptionTests
         Assert.Contains("record starting at line 3", e.Message, StringComparison.Ordinal);
         Assert.Contains("-1", e.Message, StringComparison.Ordinal);
     }
+    /// <summary>The section transition cannot be omitted or repeated.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("END PRODUCTS\nEND PRODUCTS\n")]
+    public void AProductSectionNeedsExactlyOneTerminator(string replacement)
+    {
+        var text = MinimalFile(r => r).Replace("END PRODUCTS\n", replacement, StringComparison.Ordinal);
+        _ = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
+    }
 }

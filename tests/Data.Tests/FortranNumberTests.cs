@@ -22,4 +22,12 @@ public sealed class FortranNumberTests
     [Fact]
     public void RejectsText() =>
         _ = Assert.Throws<FormatException>(() => FortranNumberAccessor.Parse("abc"));
+    /// <summary>Mandatory data numbers cannot be nonfinite or overflow to infinity.</summary>
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("-Infinity")]
+    [InlineData("1e999")]
+    public void RejectsNonfiniteNumbers(string field) =>
+        _ = Assert.Throws<FormatException>(() => FortranNumberAccessor.Parse(field));
 }
