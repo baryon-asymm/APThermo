@@ -299,3 +299,8 @@
   timer range, inherited pipes, tree kill and bounded excerpts/full raw evidence.
   Eleven controls green, old unbounded forwarding seven red/two green, targeted
   kill/excerpt mutations red. Fixtures.Tests 79/79; logs in `SCRATCH/audit/process-*`.
+
+- [x] 2026-11-14 — IT01: `Fixtures.Tests.JsonComparisonGuardTests` whole-entry
+  finite-domain controls pass (11/11; old source four red/seven green), including
+  nested path reporting and ordinary near-limit/budget controls. The public numeric
+  tolerance is unchanged. Evidence: `SCRATCH/audit/it01-red/it01-red.trx`, `it01-green/it01-green.trx`.

@@ -91,8 +91,11 @@ public static class JsonFieldComparison
     /// at zero.</summary>
     private static string? NumberMismatch(JsonElement approved, JsonElement actual, string path)
     {
-        var expected = approved.GetDouble();
-        var delivered = actual.GetDouble();
+        if (!approved.TryGetDouble(out var expected) || !actual.TryGetDouble(out var delivered)
+            || !double.IsFinite(expected) || !double.IsFinite(delivered))
+        {
+            return $"{path}: numeric result outside the finite double domain (approved {approved}, delivered {actual})";
+        }
         var scale = Math.Max(Math.Abs(expected), Math.Abs(delivered));
         var difference = Math.Abs(expected - delivered);
         return difference <= scale * RelativeNumberTolerance

@@ -21,6 +21,14 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
 ## Invariants
 
+- JSON result comparisons accept only values converting to finite double output.
+  Invalid/unrepresentable/nonfinite numeric output is a path-named mismatch, before
+  relative-tolerance arithmetic. The existing relative budget is unchanged (IT01).
+
+⚠ 2026-11-14: IT01 independently reproduced 1 versus 1e400 as an accepted result:
+Infinity <= Infinity arose after conversion. Whole-entry finite-domain controls
+replace that false equality; schema numeric semantics are a separate obligation.
+
 - Process waits and stream drainage share a deadline. The existing four-argument
   `DotnetProcess.Run` delegates to a five-minute default; an additive six-argument
   overload accepts timeout/cancellation. Timeout must be positive and representable

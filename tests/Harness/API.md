@@ -193,3 +193,7 @@ Pre-launch cancellation also attaches empty StandardOutput/StandardError arrays.
 The start-failure row now distinguishes native startup failure from a null process
 return; the old InvalidOperationException-only wording overstated existing behavior
 (clarified 2026-11-14, without changing native startup exceptions).
+
+JSON field comparison requires finite converted double output values. An invalid or
+nonfinite numeric result is a path-named mismatch before tolerance arithmetic; the
+relative number tolerance is unchanged (IT01, 2026-11-14).

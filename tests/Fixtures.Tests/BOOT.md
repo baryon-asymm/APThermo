@@ -44,6 +44,10 @@ Outside the tree: xunit.
 
 ## Constraints
 
+Infrastructure review controls exercise public whole-entry APIs: JSON comparison
+walks complete documents, schema validation checks complete schemas/instances, and
+process controls remain distinct from any thermodynamic reference calculation.
+
 - Part of the default test command; runs without Python and without the reference
   package.
 - The regeneration check is not an xunit test: a test that must be skipped where the
