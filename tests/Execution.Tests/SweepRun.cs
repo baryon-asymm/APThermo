@@ -9,6 +9,9 @@ namespace APThermo.Execution.Tests;
 /// </summary>
 internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, RocketBatchResult? Cuda, RocketBatchResult? CudaAgain, TimeSpan CpuSeconds, CudaTiming CudaTime)
 {
+    /// <summary>The bounded R09 summaries of the timed CPU runs, in original order.</summary>
+    public IReadOnlyList<RunTimings> CpuLaunchRuns { get; init; } = [];
+
     public const int LongRunningCases = 100_000;
     public const string FamilyName = "lox-lh2_of4_pc10MPa_frozenAtChamber";
     public const string From = "lox-lh2_of4_pc7MPa_shiftingEquilibrium";
@@ -27,11 +30,11 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
 
         using var cpuTables = fixture.Cpu.Upload(family.Table);
         _ = fixture.Cpu.Run(cpuTables, warmUp);
-        var (cpu, cpuSeconds) = TimeMedian(TimedRunCount, () => fixture.Cpu.Run(cpuTables, batch));
+        var (cpu, cpuSeconds, cpuLaunchRuns) = TimeMedian(TimedRunCount, () => fixture.Cpu.Run(cpuTables, batch));
 
         if (fixture.Cuda is not { } engine)
         {
-            return new SweepRun(batch, cpu, null, null, cpuSeconds, CudaTiming.None);
+            return new SweepRun(batch, cpu, null, null, cpuSeconds, CudaTiming.None) { CpuLaunchRuns = cpuLaunchRuns };
         }
 
         using var cudaTables = engine.Upload(family.Table);
@@ -41,13 +44,14 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
         }
 
         var (cuda, cudaTime, again) = TimeMedianKeepingTwo(engine, cudaTables, batch);
-        return new SweepRun(batch, cpu, cuda, again, cpuSeconds, cudaTime);
+        return new SweepRun(batch, cpu, cuda, again, cpuSeconds, cudaTime) { CpuLaunchRuns = cpuLaunchRuns };
     }
 
-    /// <summary>Runs <paramref name="run"/> <paramref name="count"/> times, timed; returns the first run's result and the median elapsed time.</summary>
-    private static (RocketBatchResult Result, TimeSpan Median) TimeMedian(int count, Func<RocketBatchResult> run)
+    /// <summary>Runs <paramref name="run"/> <paramref name="count"/> times, timed; returns the first result, unchanged median elapsed time and bounded per-run R09 summaries.</summary>
+    private static (RocketBatchResult Result, TimeSpan Median, IReadOnlyList<RunTimings> LaunchRuns) TimeMedian(int count, Func<RocketBatchResult> run)
     {
         var elapsed = new TimeSpan[count];
+        var observations = new RunTimings[count];
         var watch = new Stopwatch();
         RocketBatchResult? first = null;
         for (var i = 0; i < count; i++)
@@ -55,15 +59,16 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
             watch.Restart();
             var result = run();
             elapsed[i] = watch.Elapsed;
+            observations[i] = result.Timings;
             first ??= result;
         }
 
-        return (first!, CudaTiming.Median(elapsed));
+        return (first!, CudaTiming.Median(elapsed), observations);
     }
 
     /// <summary>
     /// Times CUDA the same way as <see cref="TimeMedian"/>, taking the median kernel time of the runs too, and keeps the first two
-    /// runs' results, so the determinism check still has two independent CUDA results to compare bit for bit.
+    /// runs' results, so the determinism check still has two independent CUDA results to compare bit for bit. Only the small R09 summaries of every run are retained additionally.
     /// </summary>
     private static (RocketBatchResult First, CudaTiming Time, RocketBatchResult Second) TimeMedianKeepingTwo(Engine engine, UploadedTables tables, RocketBatch batch)
     {
@@ -78,6 +83,7 @@ internal sealed record SweepRun(RocketBatch Batch, RocketBatchResult Cpu, Rocket
         }
 
         var kernels = results.Select(result => result.Timings.Kernel).ToArray();
-        return (results[0], CudaTiming.From(elapsed, kernels), results[1]);
+        var timing = CudaTiming.From(elapsed, kernels) with { LaunchRuns = [.. results.Select(result => result.Timings)] };
+        return (results[0], timing, results[1]);
     }
 }

@@ -9,6 +9,9 @@ namespace APThermo.Execution.Tests;
 /// <param name="KernelRuns">The kernel time of every timed run, in the order of the runs.</param>
 internal sealed record CudaTiming(TimeSpan Elapsed, TimeSpan Kernel, IReadOnlyList<TimeSpan> KernelRuns)
 {
+    /// <summary>The bounded R09 observation of each timed run, in original order; not per-launch samples.</summary>
+    public IReadOnlyList<RunTimings> LaunchRuns { get; init; } = [];
+
     /// <summary>No CUDA run: every time is zero.</summary>
     public static CudaTiming None { get; } = new(TimeSpan.Zero, TimeSpan.Zero, []);
 

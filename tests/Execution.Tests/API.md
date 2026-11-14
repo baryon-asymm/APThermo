@@ -95,3 +95,18 @@ the documented mechanism inference.
 ⚠ 2026-11-14: the per-case mechanism assertion previously lived in the same fact
 as the backend/status comparison. The split makes an internal-path change distinct
 from a numerical result failure; it removes no controlled observable check.
+
+## Throughput observations ✅
+
+The fixed three timed CPU/CUDA runs retain their R09 scalar summaries in run order:
+launch count, covered cases, longest synchronized-launch duration and its case
+count/ordinal, alongside cumulative Kernel. Output occurs only after all timing
+samples are captured. Workload, warm-ups, elapsed capture points, independent
+medians, original record lines and numerical acceptance gates are unchanged.
+`CachedKernelDiagnostics` uses ILGPU 1.5.3's public `KernelUtil.TryGetKernel` on the
+already cached launcher. Where available it reports cached PTX UTF-8 bytes/SHA-256,
+virtual `.reg` declaration-line count and FunctionInfo local-allocation byte sizes.
+Missing kernel, PTX or FunctionInfo is explicitly unavailable; diagnostics enable
+no compiler options. No new field retains a kernel or IR, and the full PTX is not
+printed. IR local allocations and virtual declarations are compiler metadata,
+not measured physical spills, physical registers or occupancy.

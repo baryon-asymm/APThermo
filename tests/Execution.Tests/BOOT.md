@@ -193,6 +193,14 @@ Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA
 
 ## Constraints
 
+- R10 throughput diagnostics retain the existing workload, warm-ups, timed-run count,
+  elapsed capture points and independent medians. Keep each timed run's bounded R09
+  summary and print it after measurement, alongside unchanged cumulative metrics.
+  Cached-kernel metadata may be read through public ILGPU APIs without recompilation
+  or compiler-option changes. Missing FunctionInfo remains explicitly unavailable;
+  IR local allocations and PTX virtual register declarations are not physical spill
+  measurements. No diagnostic output becomes a new acceptance threshold.
+
 - The display-driver safety target is 500 ms for each successful synchronized
   launch over the unchanged 16,384-case bracketing and trace-gas workloads.
   Record launch count, longest duration and its case count at the production

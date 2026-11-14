@@ -1,5 +1,13 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [x] 2026-11-14 — R10 diagnostic guard: `CachedKernelDiagnosticsTests` and existing
+  `ThroughputRecordTests` 13 passed in `SCRATCH/audit/r10-observability-controls.log`.
+  A real cached CPU probe is described through public ILGPU APIs with zero new
+  warm-up and unchanged cache count; an unrelated delegate reports unavailable.
+  Synthetic PTX checks declaration labels, summary SHA/byte fields and no raw PTX
+  output. Actual CUDA metadata/per-run logs require the root's later serial run;
+  these diagnostics do not close the independently failed throughput gate.
+
 - [x] 2026-11-14 — A15/A18: `PlanningBoundaryTests` and the platform driver-name table
   plus forbidden-CUDA and ordinary chunk controls: 20 passed; old source 10 failed/8 passed.
   Evidence: `SCRATCH/audit/planning-old-negative.log`, `planning-final.log`.

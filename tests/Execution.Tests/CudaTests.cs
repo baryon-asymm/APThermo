@@ -328,6 +328,23 @@ public sealed class CudaTests(ITestOutputHelper output)
         output.WriteLine("CUDA kernel seconds per Newton step of the timed runs: "
             + string.Join(", ", perRun.Select(figure => figure.ToString("0.000e+00", CultureInfo.InvariantCulture)))
             + $"; the median {perIteration.ToString("0.000e+00", CultureInfo.InvariantCulture)} is the figure compared");
+        for (var index = 0; index < sweep.CpuLaunchRuns.Count; index++)
+        {
+            output.WriteLine($"CPU timed run {index + 1}: {LaunchBudgetObservation.Describe(sweep.CpuLaunchRuns[index])}");
+        }
+
+        for (var index = 0; index < sweep.CudaTime.LaunchRuns.Count; index++)
+        {
+            output.WriteLine($"CUDA timed run {index + 1}: {LaunchBudgetObservation.Describe(sweep.CudaTime.LaunchRuns[index])}");
+        }
+
+        // The completed sweep has already compiled this exact cache entry; this reads its existing delegate, not a new kernel.
+        var cachedRocket = cuda.Launchers.Get<Delegate>(nameof(Kernels.Rocket), out _);
+        foreach (var line in CachedKernelDiagnostics.Lines(cachedRocket))
+        {
+            output.WriteLine(line);
+        }
+
         var directory = Path.GetDirectoryName(ThisFile())!;
         var actualLines = new[]
         {
