@@ -8,7 +8,7 @@ public sealed class TransportDatabase
 
     internal TransportDatabase(IReadOnlyList<TransportEntry> entries)
     {
-        Entries = entries;
+        Entries = Array.AsReadOnly(entries.ToArray());
         _single = new Dictionary<string, TransportEntry>(StringComparer.Ordinal);
         _pairs = [];
         foreach (var entry in entries)

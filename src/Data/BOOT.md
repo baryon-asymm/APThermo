@@ -386,6 +386,13 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
       The database error double-prefix note is the command line's fix; its own
       criterion records that evidence.
 
+- [x] 2026-11-14 — Read-only snapshots and strict section transitions:
+  `ImmutableDatabaseTests`, `CorruptionTests.AProductSectionNeedsExactlyOneTerminator`;
+  seven frozen controls failed against pre-fix source, then passed. Mandatory-number
+  finiteness: `FortranNumberTests.RejectsNonfiniteNumbers`, header/coefficient corruption
+  controls. Full `Data.Tests`: 54 passed, no skipped tests, source data unchanged;
+  evidence `SCRATCH/audit/data-red.log`, `data-green.log` in audit-public worktree.
+
 ## Taboos
 
 - No evaluation of the polynomials here: that is `Thermo`, and one formula lives once.

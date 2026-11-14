@@ -39,8 +39,8 @@ public sealed record TemperatureInterval
     {
         TLow = tLow;
         THigh = tHigh;
-        Exponents = exponents;
-        Coefficients = coefficients;
+        Exponents = Array.AsReadOnly(exponents.ToArray());
+        Coefficients = Array.AsReadOnly(coefficients.ToArray());
         B1 = b1;
         B2 = b2;
         EnthalpyOffset = enthalpyOffset;
@@ -84,12 +84,12 @@ public sealed record Species
         Name = name;
         Comment = comment;
         DateCode = dateCode;
-        Formula = formula;
+        Formula = Array.AsReadOnly(formula.ToArray());
         Phase = phase;
         MolarMass = molarMass;
         FormationEnthalpy = formationEnthalpy;
         AssignedTemperature = assignedTemperature;
-        Intervals = intervals;
+        Intervals = Array.AsReadOnly(intervals.ToArray());
         Section = section;
         IsInert = isInert;
     }
@@ -139,7 +139,7 @@ public sealed record DatabaseProvenance
     internal DatabaseProvenance(string headerDate, IReadOnlyList<double> defaultIntervalBounds, string thermoSha256, string? transSha256)
     {
         HeaderDate = headerDate;
-        DefaultIntervalBounds = defaultIntervalBounds;
+        DefaultIntervalBounds = Array.AsReadOnly(defaultIntervalBounds.ToArray());
         ThermoSha256 = thermoSha256;
         TransSha256 = transSha256;
     }
@@ -206,8 +206,8 @@ public sealed record TransportEntry
         Species = species;
         Partner = partner;
         Reference = reference;
-        Viscosity = viscosity;
-        Conductivity = conductivity;
+        Viscosity = Array.AsReadOnly(viscosity.ToArray());
+        Conductivity = Array.AsReadOnly(conductivity.ToArray());
     }
 
     /// <value>The species name of the block, as in the file.</value>

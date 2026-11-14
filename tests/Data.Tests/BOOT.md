@@ -116,6 +116,11 @@ them from the files they read.
       `DatabaseFormatException` at line 96, and a hash mismatch); reverted, nothing of
       the mutation committed.
 
+- [x] 2026-11-14 — Frozen immutability, missing/repeated product markers and nonfinite
+  numeric controls: seven pre-fix failures, full post-fix `Data.Tests` 54 passed,
+  no skips. `ImmutableDatabaseTests`, `CorruptionTests`, `FortranNumberTests`;
+  `SCRATCH/audit/data-red.log` and `data-green.log` in audit-public worktree.
+
 ## Taboos
 
 - Do not loosen a comparison: parsed doubles are compared exactly, not approximately.

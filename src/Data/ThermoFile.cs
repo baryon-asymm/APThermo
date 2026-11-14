@@ -37,6 +37,7 @@ internal static class ThermoFile
             var line = lines[i];
             if (line.StartsWith("END PRODUCTS", StringComparison.Ordinal))
             {
+                RequireSection(section, SpeciesSection.Products, fileName, i + 1);
                 section = SpeciesSection.Reactants;
                 i++;
                 continue;
@@ -44,6 +45,8 @@ internal static class ThermoFile
 
             if (line.StartsWith("END REACTANTS", StringComparison.Ordinal))
             {
+                RequireSection(section, SpeciesSection.Reactants, fileName, i + 1);
+                ValidateTrailer(lines, i + 1, fileName);
                 break;
             }
 
@@ -60,6 +63,27 @@ internal static class ThermoFile
         return new Result(products, reactants, headerDate, bounds);
     }
 
+    private static void RequireSection(SpeciesSection actual, SpeciesSection expected, string? fileName, int line)
+    {
+        if (actual != expected)
+        {
+            throw new DatabaseFormatException(fileName, line, expected == SpeciesSection.Reactants
+                ? "'END REACTANTS' appeared before 'END PRODUCTS'"
+                : "'END PRODUCTS' was repeated after the reactants section began");
+        }
+    }
+
+    private static void ValidateTrailer(string[] lines, int first, string? fileName)
+    {
+        for (var index = first; index < lines.Length; index++)
+        {
+            var line = lines[index].Trim();
+            if (line.Length > 0 && !line.StartsWith('!'))
+            {
+                throw new DatabaseFormatException(fileName, index + 1, "unexpected content after 'END REACTANTS'");
+            }
+        }
+    }
     private static int SkipLeadingComments(string[] lines, string? fileName)
     {
         var i = 0;
@@ -87,6 +111,11 @@ internal static class ThermoFile
             if (!double.TryParse(tokens[k], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
             {
                 break;
+            }
+
+            if (!double.IsFinite(value))
+            {
+                throw new DatabaseFormatException(fileName, lineNumber, "a header interval bound must be finite");
             }
 
             bounds.Add(value);

@@ -18,8 +18,8 @@ internal static class FortranNumber
         }
 
         var normalized = Normalize(text);
-        return !double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-            ? throw new FormatException($"'{field}' is not a number")
+        return !double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) || !double.IsFinite(value)
+            ? throw new FormatException($"'{field}' is not a finite number")
             : value;
     }
 

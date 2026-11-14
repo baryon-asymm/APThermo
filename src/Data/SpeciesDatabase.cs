@@ -15,8 +15,8 @@ public sealed class SpeciesDatabase
 
     private SpeciesDatabase(ThermoFile.Result thermo, TransportDatabase? transport, string thermoSha256, string? transSha256)
     {
-        Products = thermo.Products;
-        Reactants = thermo.Reactants;
+        Products = Array.AsReadOnly(thermo.Products.ToArray());
+        Reactants = Array.AsReadOnly(thermo.Reactants.ToArray());
         Transport = transport;
         Provenance = new DatabaseProvenance(thermo.HeaderDate, thermo.DefaultIntervalBounds, thermoSha256, transSha256);
         _recordsByName = IndexByName(thermo.Products, thermo.Reactants);
@@ -63,7 +63,7 @@ public sealed class SpeciesDatabase
     /// <param name="name">The exact species name, as it appears in the file.</param>
     /// <returns>Every record of <paramref name="name"/>, in file order, products before reactants; an empty
     /// list when the name is unknown.</returns>
-    public IReadOnlyList<Species> Records(string name) => _recordsByName.TryGetValue(name, out var records) ? records : [];
+    public IReadOnlyList<Species> Records(string name) => _recordsByName.TryGetValue(name, out var records) ? records.AsReadOnly() : Array.AsReadOnly(Array.Empty<Species>());
 
     /// <summary>
     /// The atomic weight of an element in kg/kmol: the molar mass of the monatomic gaseous product species with that

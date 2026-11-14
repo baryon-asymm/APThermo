@@ -107,4 +107,29 @@ public sealed class CorruptionTests
         var text = MinimalFile(r => r).Replace("END PRODUCTS\n", replacement, StringComparison.Ordinal);
         _ = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
     }
+    /// <summary>Nonfinite header bounds fail at the header's source line.</summary>
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("1e999")]
+    public void NonfiniteHeaderBoundsAreMalformed(string token)
+    {
+        var text = MinimalFile(r => r).Replace("200.00", token, StringComparison.Ordinal);
+        var error = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
+        Assert.Equal(2, error.LineNumber);
+    }
+
+    /// <summary>A nonfinite coefficient is a located format error, not a loaded polynomial.</summary>
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("1e999")]
+    public void NonfiniteCoefficientsAreMalformed(string token)
+    {
+        var text = MinimalFile(record =>
+        {
+            record[3] = token.PadLeft(16) + record[3][16..];
+            return record;
+        });
+        var error = Assert.Throws<DatabaseFormatException>(() => SpeciesDatabase.Parse(new StringReader(text)));
+        Assert.Equal(6, error.LineNumber);
+    }
 }

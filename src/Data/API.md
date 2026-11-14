@@ -7,6 +7,12 @@ database answers, the index and the atomic weights included, is built by `Load` 
 (2026-09-14: the atomic weights used to be built on first use, the review's F-TD-10).
 Everything not listed here is internal and may change.
 
+⚠ 2026-11-14: the immutable contract previously exposed mutable arrays and lists
+behind read-only interfaces. Loaded collections now own read-only snapshots,
+including nested formulas, fits, coefficients, same-name results and provenance.
+Parsing rejects nonfinite mandatory numbers and requires the product terminator
+before the reactant terminator, with a located `DatabaseFormatException`.
+
 ⚠ 2026-09-15 (distribution phase): the API review of that day
 (its finding M1, fixed in `c85fd77`) found that `DatabaseProvenance`, `Species`,
 `TemperatureInterval`, `TransportEntry` and `TransportFit` each carried a public
