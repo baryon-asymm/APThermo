@@ -128,7 +128,7 @@ Inherited from the parent and, through it, from the root. In addition:
     not (a probe of the gas alone stands just above the floor of the phase that is to join). The probe lands
     at the floor itself, which the range tolerance admits; a record adjoined by a lower record of its formula
     is no floor, because the pinned plateau keeps `P` continuous across it.
-  - **The recheck.** A cold hp or sp attempt (the first, or the fallback after a failed warm one) that ended `Ok`
+  - **The recheck.** An initial cold or explicitly seeded warm hp or sp attempt that ended `Ok`
     at a temperature below the highest dead-end floor of a record whose inclusion gain at the final multipliers
     is positive (`DeadEnds.FloorAbove`) is a supersaturated vapour; hp equilibrium is the maximum-entropy state
     and sp the minimum-enthalpy one, so a state of the same h or s holding the phase above the floor, if there
@@ -136,8 +136,11 @@ Inherited from the parent and, through it, from the root. In addition:
     order. A probe at or below the target starts an upward bracket; a successful final replaces the original
     only when its thermodynamic objective is no worse. A rejected probe or failed bracket/final continues at
     the next floor. Once these floors are exhausted, the best candidate is restored exactly without another solve,
-    and iterations retain every attempted Newton step. A warm attempt is not rechecked: its seed is gone once a probe has run (the
-    declared limit; the case is that of a caller whose seed is itself a state below the floor).
+    and iterations retain every attempted Newton step. The original candidate bank preserves the completed warm result too;
+    no subsequent probe needs the caller's original estimate to restore that result.
+    ⚠ 2026-11-14 (R08): warm attempts were exempt because their seed was overwritten by a probe. The candidate bank now preserves
+    the complete result, and the independently seeded Mg-H-O-S SP witness demonstrates a dominated `Ok` under that exemption.
+    Apply the same bounded floor search and exact restoration to both initial sources; retain the no-floor fast path and cold retry.
   - **The list is the contract.** tp below a dead-end floor reports the supersaturated gas, the range rule, and
     that is correct (cea does the same). An hp or sp target that no state of the list reaches in the window
     is `TemperatureOutOfRange`; no status is added and `Problems` adds no ice.

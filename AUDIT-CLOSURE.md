@@ -74,6 +74,7 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 | R05 | URI-fragment and malformed JSON Pointer resolution (A17) | In progress | Independent IT04: percent-encoded ref chooses a different schema |
 | R06 | Copy failure before allocation result enters ownership (A04) | In progress | Actual ILGPU 1.5.3 CPU-buffer control; Species, Transport and ProbeMath convenience uploads |
 | R07 | Transport diagnostic storage can replace the primary (A04) | In progress | Read-only Exception.Data throws NotSupportedException; original failure must survive |
+| R08 | Explicitly seeded SP can bypass the multi-floor candidate bank (A35) | In progress | CPU companion: same Mg-H-O-S S,p witness, warm `Ok` has a dominated enthalpy; cold result passes |
 
 ## Integration verification
 
