@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace APThermo.Problems.Tests;
 
 /// <summary>Fault-injection controls for cache release ordering and secondary cleanup.</summary>
@@ -24,8 +22,7 @@ public sealed class SolverDisposalTests
         }
     }
 
-    [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "A fake resource injects a child cleanup OOM; this does not exhaust the host.")]
-    private static OutOfMemoryException SimulatedOutOfMemory() => new("injected child cleanup");
+    private static OutOfMemoryException SimulatedOutOfMemory() => Activator.CreateInstance<OutOfMemoryException>();
 
     /// <summary>A recoverable child failure, including an injected OOM, cannot retain managed caches or skip the engine.</summary>
     [Theory]

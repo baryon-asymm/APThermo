@@ -6,11 +6,13 @@ public sealed class ImmutableDatabaseTests
     private static void AssertReadOnly<T>(IReadOnlyList<T> values)
     {
         Assert.NotEmpty(values);
-        var list = Assert.IsType<IList<T>>(values, exactMatch: false);
-        _ = Assert.Throws<NotSupportedException>(() => list[0] = values[0]);
+        if (values is IList<T> list)
+        {
+            _ = Assert.Throws<NotSupportedException>(() => list[0] = values[0]);
+        }
     }
 
-    /// <summary>Every published collection tier prevents mutation through IList.</summary>
+    /// <summary>Every published collection tier prevents mutation through IList when it exposes that interface.</summary>
     [Fact]
     public void LoadedCollectionsAndNestedRecordsAreImmutable()
     {

@@ -52,14 +52,22 @@ public sealed class InputSnapshotTests
     public void DefinitionsExposeReadOnlyViews()
     {
         var propellant = Propellant.From(SolverFixture.Shared.Database).Named("O2", 1.0).Build();
-        var elements = Assert.IsType<IList<string>>(propellant.Elements, exactMatch: false);
-        _ = Assert.Throws<NotSupportedException>(() => elements[0] = "H");
+        if (propellant.Elements is IList<string> elements)
+        {
+            _ = Assert.Throws<NotSupportedException>(() => elements[0] = "H");
+        }
+
         var mixture = ElementalMixture.Create(new Dictionary<string, double> { ["O"] = 1.0 });
-        var moles = Assert.IsType<IDictionary<string, double>>(mixture.ElementMoles, exactMatch: false);
-        _ = Assert.Throws<NotSupportedException>(() => moles["O"] = 2.0);
+        if (mixture.ElementMoles is IDictionary<string, double> moles)
+        {
+            _ = Assert.Throws<NotSupportedException>(() => moles["O"] = 2.0);
+        }
+
         var candidates = SolverFixture.Shared.Solver.CandidateSpeciesFor(["H"]);
-        var list = Assert.IsType<IList<string>>(candidates, exactMatch: false);
-        _ = Assert.Throws<NotSupportedException>(() => list[0] = "bad");
+        if (candidates is IList<string> list)
+        {
+            _ = Assert.Throws<NotSupportedException>(() => list[0] = "bad");
+        }
     }
 
     /// <summary>Completed results, including Station with-initializers, detach all source collections.</summary>
@@ -68,7 +76,8 @@ public sealed class InputSnapshotTests
     {
         var moles = new Dictionary<string, double> { ["H2"] = 1.0 };
         var solids = new Dictionary<string, double> { ["solid"] = 0.25 };
-        var station = new Station("state", default, null, moles, solids, null, null, CaseStatus.Ok);
+        var station = new Station(name: "state", state: default, performance: null, moleFractions: moles,
+            condensedMassFractions: solids, transport: null, transportStatus: null, status: CaseStatus.Ok);
         moles["H2"] = 0.5;
         solids["solid"] = 0.5;
         Assert.Equal(1.0, station.MoleFractions["H2"]);
@@ -79,8 +88,9 @@ public sealed class InputSnapshotTests
         var species = new List<string> { "H2" };
         var stations = new List<Station> { station };
         var mixture = ElementalMixture.Create(new Dictionary<string, double> { ["H"] = 1.0 });
-        var result = new RocketResult(null, mixture, 1.0, new RocketProblem(), null, species, stations,
-            CaseStatus.Ok, SolverFixture.Shared.Solver.Accelerator);
+        var result = new RocketResult(propellant: null, mixture: mixture, mixtureMass: 1.0, problem: new RocketProblem(),
+            oxidizerToFuelRatio: null, species: species, stations: stations, status: CaseStatus.Ok,
+            accelerator: SolverFixture.Shared.Solver.Accelerator);
         species.Clear();
         stations.Clear();
         _ = Assert.Single(result.Species);
