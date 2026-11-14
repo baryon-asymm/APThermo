@@ -94,15 +94,14 @@ internal static class RecoveryFamilies
 
     /// <summary>
     /// What is wrong with the sampled run of cases that all bracket, or null: a case that did not end <c>NoGasPhase</c> (the batch was not
-    /// the bracketing family it stands for), or cumulative kernel time above <paramref name="limit"/>.
+    /// the bracketing family it stands for), or a longest synchronized launch above <paramref name="limit"/>. Missing/incomplete observations are refused.
     /// </summary>
     public static string? LaunchViolation(EquilibriumBatchResult run, TimeSpan limit)
     {
         ArgumentNullException.ThrowIfNull(run);
         var other = run.Status.Count(status => status != CaseStatus.NoGasPhase);
         return other > 0 ? $"{other} of {run.Count} cases of the batch did not end NoGasPhase"
-            : run.Timings.Kernel > limit ? $"{run.Count} cases that all bracket took {run.Timings.Kernel.TotalMilliseconds:F1} ms across the sampled run, above the budget of {limit.TotalMilliseconds:F0} ms"
-            : null;
+            : LaunchBudgetObservation.Violation(run.Count, run.Timings, limit);
     }
 
     /// <summary>A batch of the given rows of another, in the given order.</summary>

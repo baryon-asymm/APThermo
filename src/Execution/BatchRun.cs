@@ -69,7 +69,7 @@ internal static class BatchRun
         }
 
         var elapsed = Stopwatch.GetElapsedTime(start);
-        timer.Add(RunPhase.Kernel, elapsed);
+        timer.RecordSuccessfulLaunch(length, elapsed);
         return elapsed;
     }
 

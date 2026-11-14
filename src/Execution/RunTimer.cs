@@ -1,12 +1,17 @@
 namespace APThermo.Execution;
 
-/// <summary>The phases of one run as named scopes, and the warm-up of its kernel; produces the timings the result carries.</summary>
+/// <summary>Additive run phases and constant-size observations of successful synchronized launches.</summary>
 internal sealed class RunTimer
 {
     private readonly TimeSpan[] _phases = new TimeSpan[Enum.GetValues<RunPhase>().Length];
     private TimeSpan _warmUp;
+    private int _launchCount;
+    private int _coveredCases;
+    private TimeSpan _maxLaunchDuration;
+    private int _maxLaunchCases;
+    private int _maxLaunchOrdinal;
 
-    /// <summary>Kernel compilation and post-link, reported apart from the phases of the run and zero after the first run.</summary>
+    /// <summary>Kernel compilation and post-link, apart from run phases and zero after the first run.</summary>
     public void AddWarmUp(TimeSpan elapsed) => _warmUp += elapsed;
 
     public RunPhaseScope Uploading() => new(this, RunPhase.Upload);
@@ -16,7 +21,30 @@ internal sealed class RunTimer
     public RunPhaseScope Downloading() => new(this, RunPhase.Download);
 
     public RunTimings Timings() =>
-        new(_warmUp, _phases[(int)RunPhase.Upload], _phases[(int)RunPhase.Kernel], _phases[(int)RunPhase.Download]);
+        new(_warmUp, _phases[(int)RunPhase.Upload], _phases[(int)RunPhase.Kernel], _phases[(int)RunPhase.Download])
+        {
+            LaunchCount = _launchCount,
+            CoveredCases = _coveredCases,
+            MaxLaunchDuration = _maxLaunchDuration,
+            MaxLaunchCases = _maxLaunchCases,
+            MaxLaunchOrdinal = _maxLaunchOrdinal,
+        };
+
+    /// <summary>Records the existing launch-plus-synchronization interval; first occurrence wins an equal maximum.</summary>
+    internal void RecordSuccessfulLaunch(int cases, TimeSpan elapsed)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cases);
+        ArgumentOutOfRangeException.ThrowIfLessThan(elapsed, TimeSpan.Zero);
+        Add(RunPhase.Kernel, elapsed);
+        _launchCount++;
+        _coveredCases = checked(_coveredCases + cases);
+        if (_launchCount == 1 || elapsed > _maxLaunchDuration)
+        {
+            _maxLaunchDuration = elapsed;
+            _maxLaunchCases = cases;
+            _maxLaunchOrdinal = _launchCount;
+        }
+    }
 
     internal void Add(RunPhase phase, TimeSpan elapsed) => _phases[(int)phase] += elapsed;
 }

@@ -76,7 +76,23 @@ public sealed record AcceleratorInfo
 }
 
 /// <summary>Where the time of a run went. Warm-up is the kernel compilation on first use and is zero afterwards.</summary>
-internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
+internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download)
+{
+    /// <summary>Successful launches whose measured interval includes synchronization.</summary>
+    internal int LaunchCount { get; init; }
+
+    /// <summary>The sum of case counts covered by those successful launches.</summary>
+    internal int CoveredCases { get; init; }
+
+    /// <summary>The longest observed launch-plus-synchronization interval, separate from cumulative Kernel.</summary>
+    internal TimeSpan MaxLaunchDuration { get; init; }
+
+    /// <summary>Cases in the first launch that attained the observed maximum.</summary>
+    internal int MaxLaunchCases { get; init; }
+
+    /// <summary>One-based ordinal of that launch; zero when no successful launch was observed.</summary>
+    internal int MaxLaunchOrdinal { get; init; }
+}
 
 /// <summary>A requested accelerator cannot be created; the message names the missing piece.</summary>
 public sealed class AcceleratorUnavailableException : Exception

@@ -13,7 +13,7 @@ are compared by their bits.
 | CUDA batches equal CPU-accelerator batches bit for bit, in every field of every case: the status, the iteration count (the bracketed cases' sum of attempts included), the state, the figures and every amount, on 100 000 cases, on every rocket and throat fixture family, on the equilibrium families of the 0.2.1 fixtures, on every equilibrium fixture table (tp, hp and sp), on the seeded families, on the 0.2.2 gas-plateau families and on the 0.2.2 gasless and bracketed families (`RecoveryFamilies`), on the 0.2.2 trace-gas families (`TraceGasFamilies`, 2026-10-05), the transport pass and the species-function batch included | L2 (`CudaTests`, `SpeciesFunctionTests`) | ✅ (2026-10-05) |
 | the exact comparison is not degenerate: every kind of difference, down to one unit in the last place, is refused with a message naming the case and the field | L0 (`ExactComparisonTests`) | ✅ (2026-10-05) |
 | every host-compared station of every family closes the element balance to a relative residual of at most `ElementBalance.ClosureBound`, 1e-13 | L2 (`BatchTests`) | ✅ |
-| the unchanged bracketing and trace-gas workloads keep cumulative kernel time across sampled launches within the budget | L2 (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`, `AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`, 2026-10-05) | ✅ |
+| every observed synchronized launch of the unchanged bracketing and trace-gas workloads meets the original per-launch budget, with nonempty count and complete case coverage; cumulative Kernel remains a throughput measure | L2 (`CudaTests.AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget`, `AFamilyOfTraceGasStatesStaysWithinTheLaunchBudget`), R09 | ⏳ actual-device maximum verification pending |
 | batches on the CPU accelerator seeded by moles equal the solver called with the same seed, bit for bit, and independently of the chunking: the `seeded` fixtures, warm starts at half pressure, the bracketed gas-plateau states seeded 20 K above the plateau (2026-10-04) | L2 (`BatchTests.ASeededFamilyEqualsTheHostSolverBitForBit`, `ASeededBatchIsIndependentOfChunking`) | ✅ (2026-10-04) |
 | batches on the CPU accelerator equal the numerical nodes called case by case, bit for bit, the rocket and throat families, the 0.2.1 and 0.2.2 equilibrium families and the species-function batch included | L2 | ✅ |
 | batches are deterministic and independent of chunking | L2 | ✅ |
@@ -28,11 +28,22 @@ and the post-link naming "a wrapper whose definition is missing" and "every path
 and several rows still ⏳ for the CUDA run; now bit equality, the closure bound alone, and
 the post-link's own refusals → HISTORY.md#exact-comparison-2026-10-05
 
-⚠ 2026-11-14: the previous budget row and messages called a workload "one launch"
-and equated it with the first device wave. The bounded engine now starts with one
-case and grows at most twice per sample. These facts retain their workload count
-and aggregate kernel-time ceiling, measured across the sampled run. Historical
-device evidence remains dated; re-verification under the new policy is open.
+⚠ 2026-11-14 (R09): the earlier sampling note below incorrectly retained an
+aggregate 500 ms obligation. The original F2 watchdog target concerns each
+synchronized launch; first-one-case sampling makes a run contain several launches.
+The maximum, not the sum, last sample or mean, is now checked against the SAME
+500 ms limit over the SAME workloads. Count and case coverage refuse missing
+observations. Aggregate Kernel and every throughput gate keep their old meaning.
+C0 sums of 6523.4 ms (bracketing) and 668.8 ms (trace gas) remain failed aggregate
+observations; no per-launch maximum can be reconstructed from them. This correction
+does not establish safety until the actual-device maxima pass, or repair a separate
+throughput failure. The previous wording is retained verbatim:
+
+> ⚠ 2026-11-14: the previous budget row and messages called a workload "one launch"
+> and equated it with the first device wave. The bounded engine now starts with one
+> case and grows at most twice per sample. These facts retain their workload count
+> and aggregate kernel-time ceiling, measured across the sampled run. Historical
+> device evidence remains dated; re-verification under the new policy is open.
 
 ## What the tests rely on
 

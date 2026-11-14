@@ -120,15 +120,14 @@ internal static class TraceGasFamilies
 
     /// <summary>
     /// What is wrong with the sampled run of trace-gas cases, or null: a case that ended neither <c>Ok</c> nor <c>NoGasPhase</c> (the batch was
-    /// not the family it stands for), or cumulative kernel time above <paramref name="limit"/>.
+    /// not the family it stands for), or a longest synchronized launch above <paramref name="limit"/>. Missing/incomplete observations are refused.
     /// </summary>
     public static string? LaunchViolation(EquilibriumBatchResult run, TimeSpan limit)
     {
         ArgumentNullException.ThrowIfNull(run);
         var other = run.Status.Count(status => status is not (CaseStatus.Ok or CaseStatus.NoGasPhase));
         return other > 0 ? $"{other} of {run.Count} cases of the batch ended neither Ok nor NoGasPhase"
-            : run.Timings.Kernel > limit ? $"{run.Count} trace-gas cases took {run.Timings.Kernel.TotalMilliseconds:F1} ms across the sampled run, above the budget of {limit.TotalMilliseconds:F0} ms"
-            : null;
+            : LaunchBudgetObservation.Violation(run.Count, run.Timings, limit);
     }
 
     private static (List<Candidate> Kept, int Dropped) Settled(SpeciesDatabase database, UploadedTables tables, string name, TraceSystem system, Grid grid)

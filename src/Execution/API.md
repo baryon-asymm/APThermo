@@ -191,7 +191,14 @@ fire.
 ## Batches (tree contract) ✅
 
 ```csharp
-internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download);
+internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download)
+{
+    internal int LaunchCount { get; init; }
+    internal int CoveredCases { get; init; }
+    internal TimeSpan MaxLaunchDuration { get; init; }
+    internal int MaxLaunchCases { get; init; }
+    internal int MaxLaunchOrdinal { get; init; }
+}
 
 internal static class BatchLength                          // the one bound the batch constructors call (2026-09-30): a flat per-case host array must fit a 32-bit length
 {
@@ -420,3 +427,13 @@ branch. `Engine.Create` and `AcceleratorChoice.Decide` now reject them with
 ⚠ 2026-11-14: `ProbeMath` now registers its length-based input allocation before
 the host copy, so a copy or synchronization failure releases that latest buffer as
 well as the earlier prefix. Its result layout, values and empty-input behavior stay.
+
+⚠ 2026-11-14 (R09): the original per-launch watchdog target cannot be established
+from the cumulative `RunTimings.Kernel` after first-one-case sampling. Every
+successful `BatchRun.Launch` now records the same unchanged wall-clock interval
+around launch and synchronization: count, covered cases and the maximum with its
+case count and one-based ordinal. Equal maxima retain the first occurrence; an
+empty observation has zero identity. These scalars are run-local and constant-size.
+`Kernel` still sums every successful interval; the four-argument constructor and
+four existing public phase properties stay. The new tree-contract properties are
+internal and do not add fields to default public timing JSON or package output.
