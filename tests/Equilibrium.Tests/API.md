@@ -21,8 +21,6 @@ consider proven about `Equilibrium`.
 | rule B's gas column binds an assigned temperature only, its condensed-only half still binds hp and sp, and a release of rule A's tie that breaks the element invariant is undone by the restore of the tied iterate: hp and sp states seeded on the MgCO3 plateau end `Ok` with both condensed phases, and cold sp states of the calcite and calcium hydroxide plateaus end `Ok` (2026-10-03) | L1 and L2 (`MagnesiteLeverSeedTests`, `RuleBCondensedHalfTests`) | ✅ CPU 2026-10-03 |
 | no result of a fixture case changes a bit on the CPU accelerator without `Bits.approved.txt` moving in the same commit (a tripwire, not a contract) | Bits level (`BitSnapshotTests`, `Bits.approved.txt`) | ✅ |
 
-## What the tests rely on
-
 ## Long-running verification entry points ✅
 
 These CPU scan facts carry `Category=LongRunning`. Automation selects both by
@@ -41,7 +39,7 @@ public sealed class TraceGasScanTests
 node could not select their names from its neighbour's contract (audit A39).
 The declarations above expose the existing verification entry points explicitly.
 
-## Test dependencies
+## What the tests rely on
 
 - The fixtures node's loader and tolerance table.
 - Tables built with `Thermo` from the fixture's species list and the committed database.
