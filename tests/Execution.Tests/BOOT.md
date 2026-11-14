@@ -137,7 +137,7 @@ compile/cache observations replace them while the root's upper budget stays.
   `cuda_seconds`; the median of five such runs varies by 0.2 % (Windows) and 0.3 % (WSL2). A
   record without a valid per-iteration line fails with a message naming the file, never
   skips: a platform's file is re-approved from a run on that platform.
-  The approved figure must be finite and strictly positive. The measured figure
+  Both approved `ratio` and per-iteration figures must be finite and strictly positive. The measured per-iteration figure
   must be finite and nonnegative before the same inclusive 115 % comparison.
   Finite zero, including signed zero, is valid for this one-sided upper tripwire:
   clock resolution can yield zero and this gate supplies no positive lower bound.
@@ -156,6 +156,17 @@ compile/cache observations replace them while the root's upper budget stays.
   this ceiling for finite measurements despite a valid ratio. Negative measured
   values also passed. Evidence: `ThroughputRecordTests`, worktree
   `SCRATCH/audit/R11-old-red.log` and `.trx` (9 failed assertions, 18 passing controls).
+
+  ⚠ 2026-11-15 (R11 ratio follow-up): the ratio used `double.Parse` with no
+  finite-positive baseline guard. The unchanged parse and 5x/80 % comparisons
+  extracted into `ThroughputRecord.RatioViolation` reproduced six silent passes
+  with nonpositive/negative-infinite ratios despite a valid per-step figure.
+  Missing/malformed records already threw; NaN/positive infinity already failed
+  the comparison, and now each has an explicit baseline-validity failure.
+  Both approved scalars use one finite-positive reader. Portable evidence:
+  `ThroughputRecordTests`, `SCRATCH/audit/R11-ratio-old-red.log`/`.trx`
+  (12 failures, 33 passing controls, including the existing 27 per-step controls).
+  The original 5x, 80 % and 115 % arithmetic and every approved file stay unchanged.
 
   ⚠ 2026-10-05: was the figure of the first timed run's kernel time, now the median of the
   timed runs' kernel times. The first timed run's kernel time is not representative: three

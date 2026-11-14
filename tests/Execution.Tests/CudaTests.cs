@@ -360,10 +360,8 @@ public sealed class CudaTests(ITestOutputHelper output)
             $"this run is {BuildConfiguration.Current}, but {Path.GetFileName(approvedPath)} was measured in {approvedConfiguration}; " +
             "the CPU accelerator executes the kernels from the assemblies' IL, so its speed depends on the build " +
             $"configuration (BOOT.md); run in {approvedConfiguration} to compare against it");
-        var approvedRatio = double.Parse(approved["ratio"], CultureInfo.InvariantCulture);
-        Assert.True(ratio >= 5.0, $"CUDA is only {ratio:F2}x faster than the CPU accelerator (root criterion: at least 5x); see {actualPath}");
-        Assert.True(ratio >= 0.8 * approvedRatio,
-            $"CUDA/CPU ratio {ratio:F2} fell below 80 % of the approved {approvedRatio:F2} ({Path.GetFileName(approvedPath)})");
+        var ratioViolation = ThroughputRecord.RatioViolation(approved, Path.GetFileName(approvedPath), ratio);
+        Assert.True(ratioViolation is null, $"{ratioViolation}; see {actualPath}");
         var violation = ThroughputRecord.Violation(approved, Path.GetFileName(approvedPath), perIteration);
         Assert.True(violation is null, violation);
     }

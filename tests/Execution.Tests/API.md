@@ -153,7 +153,7 @@ CalibrationCudaTests.ActualCudaReportsColdHitAndChangedInputWithExactResults is 
 
 ## Throughput-record validity ✅
 
-Approved per-iteration figures must be finite and strictly positive. Current
+Approved `ratio` and per-iteration figures share a finite, strictly positive scalar guard. Current per-iteration
 measurements must be finite and nonnegative; finite signed zero remains a valid
 observation for this upper-bound comparison. Invalid measurements have their own
 validity failure, while finite valid values retain the original inclusive 115 %
@@ -164,3 +164,11 @@ workload, median, measurement boundary or acceptance threshold changes.
 ⚠ 2026-11-15 (A28/R11): the previous comment attributed per-step time to the
 compiled kernel alone and the error excluded the machine as a cause. The R10
 launch-partition diagnostic disproved that interpretation. New parsed-record controls reproduced accepted positive infinity/overflowed approved figures and negative measured values on the unchanged source (9 assertions red, 18 controls passing); `ThroughputRecordTests` covers the corrected finite domain and unchanged inclusive ceiling.
+⚠ 2026-11-15 (R11 ratio follow-up): `CudaTests` previously parsed the approved
+ratio directly. Its unchanged 5x/80 % expressions now live in the portable
+`ThroughputRecord.RatioViolation`; the same scalar validator also guards the
+per-step baseline. Before the guard, six nonpositive/negative-infinite baselines
+silently passed with a valid per-step line. The old-reader run had 12 failures
+and 33 passing controls; missing/malformed and other nonfinite values now have a
+baseline-validity message. Positive 18.52, finite extremes and inclusive original
+ratio floors are controlled independently. No approved value or gate changed.

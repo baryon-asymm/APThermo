@@ -112,6 +112,67 @@ public sealed class ThroughputRecordTests
         Assert.DoesNotContain("not of the machine", message, StringComparison.Ordinal);
     }
 
+    /// <summary>A valid per-step figure cannot hide an invalid approved ratio or disable the 80 percent half.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not a number")]
+    [InlineData("0")]
+    [InlineData("-0")]
+    [InlineData("-18.52")]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("+Infinity")]
+    [InlineData("-Infinity")]
+    [InlineData("1e400")]
+    [InlineData("-1e400")]
+    [InlineData("1e-400")]
+    public void AnInvalidApprovedRatioFailsClosedDespiteAValidPerStepFigure(string? text)
+    {
+        var lines = new List<string> { $"{ThroughputRecord.PerIterationKey}: 8e-8" };
+        if (text is not null)
+        {
+            lines.Add("ratio: " + text);
+        }
+
+        var approved = ThroughputRecord.Parse(lines);
+        Assert.Null(ThroughputRecord.Violation(approved, ApprovedFile, 8e-8));
+        var message = ThroughputRecord.RatioViolation(approved, ApprovedFile, 5.1);
+        Assert.NotNull(message);
+        Assert.Contains("ratio", message, StringComparison.Ordinal);
+        Assert.Contains(ApprovedFile, message, StringComparison.Ordinal);
+        Assert.Contains("valid", message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The ordinary baseline and finite positive extremes retain the original inclusive comparisons.</summary>
+    [Theory]
+    [InlineData("18.52", 18.52)]
+    [InlineData("6.25", 5.0)]
+    [InlineData("10", 8.0)]
+    [InlineData("5e-324", 5.0)]
+    [InlineData("1.7976931348623157e308", double.MaxValue)]
+    public void FinitePositiveApprovedRatiosKeepTheOriginalGates(string text, double measured)
+    {
+        var approved = ThroughputRecord.Parse(["ratio: " + text]);
+        Assert.Null(ThroughputRecord.RatioViolation(approved, ApprovedFile, measured));
+    }
+
+    /// <summary>The absolute 5x floor and relative 80 percent floor reject their own next lower finite value.</summary>
+    [Fact]
+    public void TheOriginalRatioFloorsRemainIndependentAndInclusive()
+    {
+        var smallBaseline = ThroughputRecord.Parse(["ratio: 1"]);
+        Assert.Null(ThroughputRecord.RatioViolation(smallBaseline, ApprovedFile, 5.0));
+        var belowFive = ThroughputRecord.RatioViolation(smallBaseline, ApprovedFile, Math.BitDecrement(5.0));
+        Assert.NotNull(belowFive);
+        Assert.Contains("at least 5x", belowFive, StringComparison.Ordinal);
+        var normalBaseline = ThroughputRecord.Parse(["ratio: 10"]);
+        Assert.Null(ThroughputRecord.RatioViolation(normalBaseline, ApprovedFile, 8.0));
+        var belowEighty = ThroughputRecord.RatioViolation(normalBaseline, ApprovedFile, Math.BitDecrement(8.0));
+        Assert.NotNull(belowEighty);
+        Assert.Contains("80 %", belowEighty, StringComparison.Ordinal);
+        Assert.Contains(ApprovedFile, belowEighty, StringComparison.Ordinal);
+    }
+
     /// <summary>The line of the figure parses back to the printed digits, in both of the record's formats.</summary>
     [Fact]
     public void ALineParsesBackToItsFigure()

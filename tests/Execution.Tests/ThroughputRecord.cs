@@ -3,8 +3,9 @@ using System.Globalization;
 namespace APThermo.Execution.Tests;
 
 /// <summary>
-/// The per-iteration half of the throughput tripwire (Execution.Tests BOOT.md, 2026-10-04): the rocket sweep's CUDA kernel time per
-/// Newton step against the approved record. This synchronized wall-time tripwire includes every timed launch. Launch partition,
+/// Throughput record tripwires: the original CUDA/CPU ratio floors and the rocket sweep's CUDA kernel time per Newton step
+/// against the approved record (Execution.Tests BOOT.md, per-step criterion of 2026-10-04). This synchronized wall-time tripwire
+/// includes every timed launch. Launch partition,
 /// device clocks and competing load can affect it; a breach does not identify its cause. The rule is a function of the record's
 /// figures so that a fact without a GPU can show it red.
 /// </summary>
@@ -45,10 +46,7 @@ internal static class ThroughputRecord
     /// </summary>
     public static string? Violation(IReadOnlyDictionary<string, string> approved, string fileName, double measuredPerIteration)
     {
-        if (!approved.TryGetValue(PerIterationKey, out var text)
-            || !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var figure)
-            || !double.IsFinite(figure)
-            || !(figure > 0.0))
+        if (!TryApprovedScalar(approved, PerIterationKey, out var figure))
         {
             return $"{fileName} carries no valid {PerIterationKey} line, so the kernel time per Newton step cannot be compared; "
                  + "re-approve the file from a Release run on this platform (Execution.Tests BOOT.md, the approved throughput file)";
@@ -66,6 +64,30 @@ internal static class ThroughputRecord
             : string.Create(CultureInfo.InvariantCulture,
                 $"the CUDA kernel time per Newton step {measuredPerIteration:0.000e+00} s is {relative:P1} of the approved {figure:0.000e+00} s ({fileName}); "
               + $"the limit is {PerIterationLimit:P0}. This synchronized wall-time tripwire does not identify the cause of the increase");
+    }
+
+    /// <summary>The existing 5x and 80 percent comparisons, extracted unchanged for portable record controls.</summary>
+    public static string? RatioViolation(IReadOnlyDictionary<string, string> approved, string fileName, double measuredRatio) =>
+        TryApprovedScalar(approved, "ratio", out var approvedRatio)
+            ? RatioFloorViolation(approvedRatio, fileName, measuredRatio)
+            : $"{fileName} carries no valid finite positive ratio line; re-approve the file from a Release run on this platform (BOOT.md)";
+
+    private static string? RatioFloorViolation(double approvedRatio, string fileName, double measuredRatio) =>
+        !(measuredRatio >= 5.0)
+            ? string.Create(CultureInfo.InvariantCulture,
+                $"CUDA is only {measuredRatio:F2}x faster than the CPU accelerator (root criterion: at least 5x)")
+            : measuredRatio >= 0.8 * approvedRatio
+                ? null
+                : string.Create(CultureInfo.InvariantCulture,
+                    $"CUDA/CPU ratio {measuredRatio:F2} fell below 80 % of the approved {approvedRatio:F2} ({fileName})");
+
+    private static bool TryApprovedScalar(IReadOnlyDictionary<string, string> approved, string key, out double figure)
+    {
+        figure = 0.0;
+        return approved.TryGetValue(key, out var text)
+            && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out figure)
+            && double.IsFinite(figure)
+            && figure > 0.0;
     }
 
     private static long Steps(RocketBatchResult result) => result.Iterations.Sum(count => (long)count);
