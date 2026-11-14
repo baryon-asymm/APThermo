@@ -108,7 +108,7 @@ public sealed class AcceleratorChoiceTests
         using var auto = Engine.Create();
         Assert.Equal(AcceleratorKind.Cpu, auto.Accelerator.Kind);
         var modules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(m => m.ModuleName).ToList();
-        Assert.DoesNotContain(modules, name => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(modules, IsCudaDriverModule);
     }
 
     /// <summary>
@@ -128,11 +128,37 @@ public sealed class AcceleratorChoiceTests
 
         _ = cuda.ProbeMath([1.0, 2.0]);
         var modules = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().Select(m => m.ModuleName).ToList();
-        Assert.Contains(modules, name => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase) || name.StartsWith("libcuda", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(AcceleratorKind.Cuda, cuda.Accelerator.Kind);
+        Assert.Contains(modules, IsCudaDriverModule);
         Assert.DoesNotContain(modules, name => name.Contains("nvvm", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(modules, name => name.Contains("cudart", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(modules, name => name.Contains("nvrtc", StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>Driver identification recognizes platform driver names and excludes Toolkit/lookalike names.</summary>
+    /// <param name="module">A platform module basename.</param>
+    /// <param name="expected">Whether it is the CUDA driver itself.</param>
+    [Theory]
+    [InlineData("nvcuda.dll", true)]
+    [InlineData("NVCUDA.DLL", true)]
+    [InlineData("libcuda.so", true)]
+    [InlineData("libcuda.so.1", true)]
+    [InlineData("libcuda.so.535.104.05", true)]
+    [InlineData("libcudart.so.12", false)]
+    [InlineData("cudart64_12.dll", false)]
+    [InlineData("libnvrtc.so.12", false)]
+    [InlineData("libcuda.so.backup", false)]
+    [InlineData("libcuda.so.", false)]
+    [InlineData("libcuda.so.1..2", false)]
+    [InlineData("other-nvcuda.dll", false)]
+    [InlineData("nvcuda.dll.backup", false)]
+    public void CudaDriverModuleNamesAreRecognizedOnBothPlatforms(string module, bool expected)
+    {
+        ArgumentNullException.ThrowIfNull(module);
+        Assert.Equal(expected, IsCudaDriverModule(module));
+    }
+
+    private static bool IsCudaDriverModule(string name) => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The ilgpu assertion fails loudly for another version.</summary>
     [Fact]

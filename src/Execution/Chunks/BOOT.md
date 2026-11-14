@@ -64,6 +64,10 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 
 ## Constraints
 
+- ⚠ 2026-11-14: the static covering advanced its final partial chunk by `Size`,
+  which wrapped near `int.MaxValue`. Advance by the emitted length so the covering
+  terminates at `Count`, including the largest count; no large array is allocated.
+
 - Chunk enumeration advances by its actual remaining length without integer overflow.
   Cleanup attempts every allocated buffer; rollback preserves the primary failure.
   Reserve ownership before buffer allocation; a failed allocation closes the group.
