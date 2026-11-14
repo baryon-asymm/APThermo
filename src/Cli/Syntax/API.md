@@ -26,7 +26,7 @@ internal static class CommandTable
     public static readonly string Usage;
 }
 
-internal sealed record Invocation(string Command, IReadOnlyList<string> Arguments, CommandOptions Options, bool Help);
+internal sealed record Invocation(string Command, IReadOnlyList<string> Arguments, CommandOptions Options, bool Help, bool Version);
 ```
 
 `CommandLine.Parse` throws `Cli.InputException` (the parent's own; every message it
@@ -34,6 +34,10 @@ carries is documented in the parent's `API.md`, "Command line" and "Errors"): an
 unknown command or option, a wrong argument count, an option that does not apply to the
 command, or a bad option value. `CommandTable.Names` is every command name, in table
 order; `CommandTable.Usage` is the full `--help` text (`Program` writes it verbatim).
+
+⚠ 2026-11-14: the implemented `Invocation` has required `bool Version` as well as
+`bool Help`; the four-parameter declaration omitted it since version handling was
+added. The audit found the signature drift; this documents the existing constructor.
 
 ## Options ✅
 

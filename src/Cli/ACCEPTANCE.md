@@ -2,6 +2,10 @@
 
 ## Acceptance criteria
 
+- [ ] Audit A26: an independent TP/HP/SP valid/invalid shape matrix agrees with the
+  reader and published schema; the permitted zero estimate and zero-mass diagnostic
+  output validate, while missing or forbidden per-kind fields do not.
+
 - [x] 2026-09-13 — Every example document in `API.md` and every document of the
       tests node's `documents/` directory runs end to end against the committed data
       files and produces a document that validates against the output schema (schema

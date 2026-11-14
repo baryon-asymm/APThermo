@@ -63,6 +63,9 @@ parsing is hand-written to avoid a dependency (revisited if the surface grows).
 
 ## Constraints
 
+Schemas include conditional TP/HP/SP fields, zero-valued HP/SP estimates and valid
+diagnostic outputs such as zero-mass `InvalidInput`; tests use independent shape cases.
+
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Commands and options are those of `API.md`, "Command line"; every option applies to
