@@ -23,6 +23,26 @@ consider proven about `Equilibrium`.
 
 ## What the tests rely on
 
+## Long-running verification entry points ✅
+
+These CPU scan facts carry `Category=LongRunning`. Automation selects both by
+fully qualified name and verifies discovery before execution; neither requires
+a CUDA device. They are verification entry points, not package API.
+
+```csharp
+public sealed class TraceGasScanTests
+{
+    public void EveryStateOfTheScanFamiliesEndsClearAndNoOkIsLostAndOnlyTheDeclaredLeftoversRemain();
+    public void EveryStateOfTheTraceExcessScanEndsClearOrIsDeclared();
+}
+```
+
+⚠ 2026-11-14: the test contract omitted the scan entry points, so the delivery
+node could not select their names from its neighbour's contract (audit A39).
+The declarations above expose the existing verification entry points explicitly.
+
+## Test dependencies
+
 - The fixtures node's loader and tolerance table.
 - Tables built with `Thermo` from the fixture's species list and the committed database.
 - An ILGPU context with the CPU accelerator.
