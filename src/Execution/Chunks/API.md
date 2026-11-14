@@ -101,7 +101,6 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     public void UploadChunk(int offset, int length);
     public void DownloadChunk(int offset, int length);
     public void Dispose();
-    internal void DisposePreserving(Exception? primary, Func<Exception, bool>? ignore = null);
 }
 
 internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
@@ -123,6 +122,10 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
     internal void DisposePreserving(Exception? primary, Func<Exception, bool>? ignore = null);
 }
 ```
+
+⚠ 2026-11-14: the cleanup signature was also duplicated under `ChunkBuffer<T>`.
+The full-signature check identified `ChunkBuffers` as its sole actual owner;
+the unsupported duplicate is removed without changing the cleanup contract.
 
 A pipeline builds one `ChunkBuffers` per run, declares every buffer its program's
 kernel needs through the six typed methods above, reads `BytesPerCase` and
