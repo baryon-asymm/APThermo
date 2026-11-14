@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Choose an eligible condensed polymorph by its thermodynamic potential when its
-  data range overlaps a same-formula partner. Cold HP/SP recovery keeps the best
+  data range overlaps a same-formula partner. Cold and seeded HP/SP recovery keep the best
   completed candidate across its bounded distinct-floor search, counts all work,
   and refuses an unresolved alternative instead of reporting a false `Ok`.
 - Publish owned, read-only database, propellant, problem and result collections;

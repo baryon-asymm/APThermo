@@ -74,7 +74,7 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 | R05 | URI-fragment and malformed JSON Pointer resolution (A17) | Local pass 2026-11-14 | `e486c513`; old 32 red/4 positive, corrected 36/36 and root Fixtures 187/187; original encoded-ref probe selects the right schema |
 | R06 | Copy failure before allocation result enters ownership (A04) | Local pass 2026-11-14 | `05ff0258`, `0a37d7aa`; real ILGPU CPU-buffer fault controls observe allocation layers and cleanup; root Transport 20/20 |
 | R07 | Transport diagnostic storage can replace the primary (A04) | Local pass 2026-11-14 | `0e8b032e`; old 3 red, corrected 18/18 diagnostic controls, root ownership integration 20/20 |
-| R08 | Explicitly seeded SP can bypass the multi-floor candidate bank (A35) | In progress | CPU companion: same Mg-H-O-S S,p witness, warm `Ok` has a dominated enthalpy; cold result passes |
+| R08 | Explicitly seeded SP can bypass the multi-floor candidate bank (A35) | Slice pass 2026-11-14 | `77d9c7b2`; root old 1 red/1 positive; corrected lower controls 16/16, CPU consumers 2/2 and Equilibrium 2197/2197; final integrated hardware matrix pending |
 
 ## Integration verification
 
