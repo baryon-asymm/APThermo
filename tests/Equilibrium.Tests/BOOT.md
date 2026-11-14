@@ -173,6 +173,10 @@ creation names its arguments; it passes them by position today (the criterion be
 
 ## Acceptance criteria
 
+- [ ] Audit A01/A35: frozen inputs and independent feasible witnesses in
+  AuditCases.json are checked by AuditPhaseBranchTests; old-source controls
+  fail phase stability and HP/SP objective ordering, positive TP witnesses pass.
+
 - [x] 2026-09-14 — L0 green: `DenseSolverTests` (5 tests), `InvalidInputTests` (8),
       `AbsentElementTests` (3 cases), `ElementConservationTests` over the enumerated
       tp, hp and sp files.

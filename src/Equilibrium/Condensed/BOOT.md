@@ -47,6 +47,18 @@ changes, and this node is where its condensed half enters and leaves the solutio
 - **One change per call.** `CondensedSet.Update` applies at most one change of the set and reports
   whether it did; the caller converges again if it did.
 
+- **Eligible polymorphs are stable.** In an overlap of same-formula records, a
+  held record with greater Gibbs energy is replaced by an eligible lower-energy
+  record. An hp/sp pair may pin at a crossing inside the overlap; at equality its
+  fractions need not be unique. The final guard also checks excluded partners.
+
+  ⚠ 2026-11-14: the same-formula exemption below assumed that phase ranges only
+  adjoin. SrCL2(a)/(b) overlap and cross inside that overlap, so an in-range held
+  record could hide a lower-potential partner. Eligibility remains unchanged;
+  eligible overlapping partners are ranked by their actual Gibbs functions before
+  ordinary inclusion. A crossing in their common interval is located by bounded
+  bisection and may pin an hp/sp pair under the existing latent-heat and
+  transition-window rules. The final guard no longer exempts an excluded partner.
 ## Dependencies
 
 - [Equilibrium](../API.md) — the descriptors of its inputs, scratch and outputs, `IterationState`,
@@ -230,6 +242,10 @@ arrays. The bounds are table reads, so the bit snapshot may not move.
 → HISTORY.md#s-bounds
 
 ## Acceptance criteria
+
+- [ ] Audit A01: the frozen SrCl2 HP counterexample and cold/warm TP states on
+  both sides of the overlap crossing meet independent phase-potential, assigned
+  property and element checks. Equality permits coexistence; old source fails HP.
 
 The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these files hold unchanged:
 the condensed-species facts, the anti-cycling rule, the plateau facts and the exit guard.

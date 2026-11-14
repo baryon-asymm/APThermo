@@ -140,6 +140,18 @@ Inherited from the parent and, through it, from the root. In addition:
   - **The list is the contract.** tp below a dead-end floor reports the supersaturated gas, the range rule, and
     that is correct (cea does the same). An hp or sp target that no state of the list reaches in the window
     is `TemperatureOutOfRange`; no status is added and `Problems` adds no ice.
+- **Multiple dead-end floors** (2026-11-14, audit A35). Recheck distinct floors in
+  ascending order above the original state's temperature. A probe above the
+  assigned target excludes its current continuous segment, not every segment
+  above other floors. Continue at the next floor after a rejected probe;
+  exhaustion alone permits replay of the original cold result. The cursor
+  advances strictly and is bounded by the number of condensed records. Failed
+  searches retain the deterministic replay and existing honest statuses.
+
+  ⚠ 2026-11-14: the recheck above said a probe above the target at the highest
+  floor proves there is no alternative. Mg-H-O-S supplies same-H and same-S
+  feasible states above lower floors that strictly improve the returned state.
+  That single-floor inference is replaced by the distinct-floor cursor above.
 - **Dead-end gaps** (2026-10-04, owner's decision on the 2e7 Pa AP/HTPB/Al residue). A dead-end ceiling is the
   mirror of a floor: the upper bound of a record with no record of its formula beginning there (`H2O(L)` at 600 K).
   Across a ceiling the equilibrium enthalpy and entropy jump up with the temperature, so an hp or sp target inside
@@ -194,6 +206,11 @@ method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`, `TraceGas
 floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state). One type per file.
 
 ## Acceptance criteria
+
+- [ ] Audit A35: frozen Mg-H-O-S HP/SP inputs meet assigned H/S and element
+  balances and are no worse than independently recomputed feasible witnesses.
+  Rejecting one floor does not prevent the next; cursor exhaustion, replay and
+  existing gap cases stay bounded.
 
 - [x] hp and sp `NoGasPhase`: for each gasless tp state at `T0`, the hp state at its `h` and the sp
       state at its `s` (computed by the test from the moles and the table) end `NoGasPhase`
