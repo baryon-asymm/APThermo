@@ -182,6 +182,12 @@ raw documents for the existing optional `Problem` fields parameter.
   refuses one more before allocating an expanded numeric array, and preserves the
   exact overall case bound and its first refused product.
 
+  ⚠ 2026-11-14: the first A25 boundary evidence covered integer/list endpoints only.
+  The independent public/CLI review at effc89f2 found the missing decimal maximum:
+  raw steps999999.0000000001 must round to999999 under the existing StepTolerance.
+  `ADecimalRangeAtTheRoundedAxisLimitIsAccepted` was red before the follow-up; the
+  rounded-count guard retains both exact-integer and decimal oversized refusals.
+
 - [x] 2026-09-13 — L0 green: `CommandLineTests` (`NoCommandIsExit2WithTheUsage`,
       `HelpPrintsTheUsageAndExits0`, `InvalidCommandLinesAreExit2NamingTheOffender`
       over the command lines of its theory, `TheUsageNamesEveryCommandAndOption`,

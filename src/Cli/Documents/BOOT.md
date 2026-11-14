@@ -108,12 +108,17 @@ StepTolerance and the inclusive allocation limit are unchanged.
 - [x] 2026-11-14 — `SweepBoundaryTests` proves audit A25: a range with exactly `MaxAxisValues` including both endpoints is
   accepted; one more value is refused before allocation. The total case bound stays.
 
-- [ ] Decimal boundary follow-up: `ADecimalRangeAtTheRoundedAxisLimitIsAccepted`
+- [x] 2026-11-14 — Decimal boundary follow-up: `ADecimalRangeAtTheRoundedAxisLimitIsAccepted`
   admits the rounded maximum; `ADecimalRangeWithOneMoreValueIsRefusedBeforeNumericAllocation`
   preserves the first oversized decimal refusal. The existing integer/list controls stay.
   ⚠ 2026-11-14: the earlier criterion was evidenced by integer/list bounds only;
   independent public/CLI review at effc89f2 found the decimal positive red. This
   successor adds that missing control with the original endpoint tolerance unchanged.
+  Evidence: `SweepBoundaryTests` old source 1 red/7 green; fixed boundary and second-audit
+  controls 21/21; deleting the rounded-count guard makes both oversized range controls red.
+  Logs: `SCRATCH/audit/decimal-boundary-old-source.trx`, `decimal-boundary-fixed.trx`,
+  `decimal-boundary-removed-rounded-guard.trx` in audit-cli. Full CPU CLI 177/177,
+  no skips (`decimal-boundary-cli-full.trx`); no schema, tolerance or approved changes.
 
 - [x] 2026-09-15 — The moved types compile unchanged under
       `APThermo.Cli.Documents` and every test of
