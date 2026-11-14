@@ -134,6 +134,15 @@ children rule, links check removed (the linter has it).
 
 ## Declaration verification
 
+Every explicitly written class base must match the compiled direct base; an explicitly
+written interface must occur in the compiled type's full interface closure. Resolve
+aliases and generic/nullability arguments semantically. Omitted bases/interfaces
+remain omitted promises; do not demand an exhaustive implicit base list (IT03).
+
+⚠ 2026-11-14: the type header compared kind/modifiers/constraints but silently ignored
+explicit base lists. IT03 accepted false IDisposable/Exception promises on a type with
+neither. Written base contracts now have their own metadata comparison.
+
 Implemented C# fences are parsed with Roslyn and bound in their documented namespace
 against every built tree assembly, including internal types and nested nodes. The
 actual symbol must come from metadata, never the documentation's own declaration.

@@ -180,3 +180,9 @@ only in this node.
       `signature-expanded/signature-expanded.trx`, `signature-protocol/signature-protocol.trx`.
       Root usage fences and the Ptx named tuple were corrected by their owning agent;
       no snapshot/approved file changed to conceal a document mismatch.
+
+- [x] 2026-11-14 — IT03 written-base matching: `SignatureInheritanceTests` 23/23,
+  old checker 12 red/11 positive cases. Controls include wrong class/interface bases,
+  generic record instantiations/nullability, synthesized record-struct interfaces,
+  inherited interface closure, and deliberately omitted bases. Evidence:
+  `SCRATCH/audit/it03-red/it03-red.trx`, `it03-bases-green/it03-bases-green.trx`.

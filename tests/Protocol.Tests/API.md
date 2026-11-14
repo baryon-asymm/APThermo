@@ -91,3 +91,8 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
 ⚠ 2026-11-14: signatures were previously excluded from this guarantee on the mistaken
 claim that snapshots verified the document. The Declarations level now compares the
 implemented API block directly with compiled metadata; snapshots remain tripwires.
+
+⚠ 2026-11-14: explicit base lists were previously ignored by declaration matching.
+The matcher now validates each written class base against the compiled direct base
+and each written interface against the compiled interface closure, including resolved
+generic/nullability arguments. Omitted bases remain deliberately unspecified (IT03).

@@ -108,7 +108,7 @@ internal static class Declaration
     {
         if (model.GetDeclaredSymbol(syntax) is INamedTypeSymbol type)
         {
-            foreach (var problem in CheckType(type, syntax))
+            foreach (var problem in CheckType(model, type, syntax))
             {
                 yield return problem;
             }
@@ -132,7 +132,7 @@ internal static class Declaration
         }
     }
 
-    private static IEnumerable<string> CheckType(INamedTypeSymbol type, MemberDeclarationSyntax syntax)
+    private static IEnumerable<string> CheckType(SemanticModel model, INamedTypeSymbol type, MemberDeclarationSyntax syntax)
     {
         var actual = MetadataType(type);
         if (actual is null)
@@ -149,6 +149,11 @@ internal static class Declaration
             yield break;
         }
 
+        foreach (var problem in CheckWrittenBases(model, syntax, actual))
+        {
+            yield return problem;
+        }
+
         if (type.DelegateInvokeMethod is { } invoke && MemberProblem(actual, invoke) is { } delegateProblem)
         {
             yield return delegateProblem;
@@ -159,6 +164,28 @@ internal static class Declaration
             foreach (var problem in CheckPrimaryConstructor(type, actual, syntax, parameters))
             {
                 yield return problem;
+            }
+        }
+    }
+
+    private static IEnumerable<string> CheckWrittenBases(SemanticModel model, MemberDeclarationSyntax syntax, INamedTypeSymbol actual)
+    {
+        if (syntax is not BaseTypeDeclarationSyntax { BaseList: { } bases } || actual.TypeKind == TypeKind.Enum)
+        {
+            yield break;
+        }
+        foreach (var written in bases.Types)
+        {
+            var expected = model.GetTypeInfo(written.Type).Type;
+            var candidates = expected?.TypeKind == TypeKind.Interface
+                ? actual.AllInterfaces.AsEnumerable()
+                : actual.TypeKind == TypeKind.Class && actual.BaseType is { } parent ? [parent] : [];
+            var signature = expected?.ToDisplayString(Signature) ?? written.Type.ToString();
+            if (!candidates.Any(candidate => candidate.ToDisplayString(Signature) == signature))
+            {
+                var available = actual.AllInterfaces.Select(candidate => candidate.ToDisplayString(Signature))
+                    .Prepend(actual.BaseType?.ToDisplayString(Signature) ?? "(none)");
+                yield return $"{actual}: explicit base '{signature}' is not a compiled base/interface; compiled: {string.Join(" | ", available)}";
             }
         }
     }
