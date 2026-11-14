@@ -50,6 +50,18 @@ public sealed class FiniteStateTests
         }
     }
 
+    /// <summary>Both solver entry points classify infinite pressure as invalid before calculation.</summary>
+    [Fact]
+    public void NonfinitePressureIsInvalidForEquilibriumToo()
+    {
+        var valid = FrozenAt(1e5);
+        var problem = valid.Case with { Pressure = double.PositiveInfinity };
+        var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
+        Assert.Equal(CaseStatus.InvalidInput, solution.Status);
+        Assert.Equal(0, solution.Iterations);
+        Assert.Empty(Bits.Differences<MixtureState>(default, solution.State, "refused state"));
+    }
+
     private static HostSolution FrozenAt(double pressure, double scale = 1.0)
     {
         var table = SpeciesTable.Build(CpuFixture.Shared.Database, ["H", "O"], ["H2", "O2", "H2O"]);
