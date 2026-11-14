@@ -21,6 +21,11 @@ provenance and coverage, never their values (AGENTS.md §1).
 
 ## Invariants
 
+- Process infrastructure controls use the owned ProcessProbe executable, never a
+  product calculation. Every process-starting guard is Category=EndToEnd. The probe
+  has its own finite self-stop, and tests clean up only the PID written by their own
+  probe. Ordinary byte/argument/environment/nonzero-exit cases remain exact.
+
 - **Lists are produced by the machine**: kinds by listing `cases/`, compared fields by
   reading the fixtures, the pinned version by reading `requirements.txt`. The one typed
   list is the set of kinds of the case matrix, which is the design decision under test.
@@ -47,6 +52,13 @@ Outside the tree: xunit.
   acceptance criteria.
 
 ## Acceptance criteria
+
+- [x] 2026-11-14 — T14: `DotnetProcessGuardTests` eleven controls pass; old unbounded
+  forwarding implementation had seven failures and two positive byte/exit controls.
+  Whole-tree kill mutation fails the live-child case; unbounded diagnostic excerpt
+  mutation fails the large-output case. Full Fixtures.Tests: 79/79. Evidence:
+  `SCRATCH/audit/process-red/process-red.trx`, `process-fixtures/process-fixtures.trx`,
+  `process-kill-mutant/process-kill-mutant.trx`, `process-excerpt-mutant/process-excerpt-mutant.trx`.
 
 - [x] 2026-11-14: A16/A17/A27, `OracleGuardTests` exercises infrastructure,
       not thermodynamics: initially 18 red and 5 green controls on the old helpers,

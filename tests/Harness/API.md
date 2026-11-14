@@ -118,6 +118,7 @@ public sealed record DotnetProcessResult(int ExitCode, ReadOnlyMemory<byte> Outp
 
 public static class DotnetProcess
 {
+    public static DotnetProcessResult Run(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory, TimeSpan timeout, IReadOnlyDictionary<string, string>? environment = null, CancellationToken cancellationToken = default);
     public static DotnetProcessResult Run(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory, IReadOnlyDictionary<string, string>? environment = null);   // `dotnet <assemblyPath> <arguments>` in workingDirectory, environment set on top of the inherited one, waited for
     public static string BuiltAssemblyPath(string assemblyName, params string[] projectDirectory);   // the .dll next to the running test assembly when its runtime configuration was copied there, else the project's build output (projectDirectory below the repository root, e.g. "src", "Cli") in the running configuration
 }
@@ -131,7 +132,7 @@ decodes it itself. The type names no type of the node under test: the assembly i
 
 | Situation | Behaviour |
 |---|---|
-| `dotnet` does not start | `InvalidOperationException` from `DotnetProcess.Run` |
+| `dotnet` does not start | native `Process.Start` exception (normally `Win32Exception`); `InvalidOperationException` if no process was returned |
 | `BuiltAssemblyPath` finds no built assembly | `FileNotFoundException` naming the path it looked at |
 | the database or the tolerance table cannot be loaded | the `Data` or `Fixtures` exception, from the `CpuHost` constructor |
 | `Bits.Differences<T>` is called on a `T` with no public `double` or `int` field or property | `InvalidOperationException`, naming the type |
@@ -169,3 +170,26 @@ Approved bytes are never rewritten by this node.
 ⚠ 2026-11-14: the old substring replacement could leave the path unchanged when
 `approved` was absent or differently cased (audit A16), writing over the baseline.
 The explicit fallback path removes that hidden file-name precondition.
+
+## Process deadlines ✅
+
+The original Run overload uses five minutes. The timeout overload requires a positive
+TimeSpan no greater than uint.MaxValue-1 milliseconds. An already cancelled token
+prevents launch. Expiry throws TimeoutException; cancellation throws
+OperationCanceledException with the caller token. Interrupted calls attempt a tree
+kill and spend at most another five seconds draining/reaping, then close pipe readers.
+Both exceptions attach partial raw byte[] under Data["StandardOutput"] and
+Data["StandardError"], and bounded readable excerpts in their message. Excerpts JSON-escape control bytes;
+the attached raw arrays remain unchanged.
+
+⚠ 2026-11-14: process/pipe waits were formerly unbounded. The additive overload and
+default deadline retain byte/argument/environment behavior while making hangs visible.
+
+⚠ 2026-11-14: the initially proposed timeout overload placed cancellation before
+optional environment. CA1068 rejected that order; the owner corrected it to keep
+the cancellation token last. The original four-argument overload remains unchanged.
+
+Pre-launch cancellation also attaches empty StandardOutput/StandardError arrays.
+The start-failure row now distinguishes native startup failure from a null process
+return; the old InvalidOperationException-only wording overstated existing behavior
+(clarified 2026-11-14, without changing native startup exceptions).

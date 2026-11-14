@@ -144,7 +144,7 @@ internal sealed class CliFixture : IDisposable
         return (run.Code, run.Json(), run.Error);
     }
 
-    /// <summary>As a separate process (<see cref="DotnetProcess.Run"/>) on the command line's assembly, in the fixture's empty directory, its streams decoded as UTF-8.</summary>
+    /// <summary>As a separate process (<see cref="DotnetProcess"/>) on the command line's assembly, in the fixture's empty directory, its streams decoded as UTF-8.</summary>
     public Run InvokeProcess(IReadOnlyList<string> args, IReadOnlyDictionary<string, string>? environment = null)
     {
         var result = DotnetProcess.Run(CliAssemblyPath(), args, Temp, environment);

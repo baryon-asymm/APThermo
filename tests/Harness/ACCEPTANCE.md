@@ -292,3 +292,10 @@
       The public surface snapshot gained the two types in the commit that added them
       (`PublicSurface.approved.txt`); no `Bits*.approved.txt` moved.
 
+
+- [x] 2026-11-14 — T14 process runner: `Fixtures.Tests.DotnetProcessGuardTests`
+  verifies default/explicit success, raw binary streams, argument/environment
+  preservation, nonzero exit, deadline, caller token, pre-launch cancellation,
+  timer range, inherited pipes, tree kill and bounded excerpts/full raw evidence.
+  Eleven controls green, old unbounded forwarding seven red/two green, targeted
+  kill/excerpt mutations red. Fixtures.Tests 79/79; logs in `SCRATCH/audit/process-*`.

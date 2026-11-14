@@ -2,6 +2,8 @@
 
   <!-- Node tests/Fixtures.Tests: the readiness criterion of tests/Fixtures (the loader, the tolerance table, the fixture files). -->
   <ItemGroup>
+    <Compile Remove="ProcessProbe/**/*.cs" />
+    <ProjectReference Include="ProcessProbe/APThermo.Fixtures.Tests.ProcessProbe.csproj" />
     <ProjectReference Include="..\Fixtures\APThermo.Fixtures.csproj" />
     <ProjectReference Include="..\Harness\APThermo.Harness.csproj" />
   </ItemGroup>

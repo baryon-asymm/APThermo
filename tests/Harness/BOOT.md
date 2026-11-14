@@ -21,6 +21,22 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
 ## Invariants
 
+- Process waits and stream drainage share a deadline. The existing four-argument
+  `DotnetProcess.Run` delegates to a five-minute default; an additive six-argument
+  overload accepts timeout/cancellation. Timeout must be positive and representable
+  by the .NET timer (at most uint.MaxValue-1 milliseconds). Cancellation already
+  requested prevents launch. Expiry throws TimeoutException; caller cancellation
+  throws OperationCanceledException carrying that caller's token.
+  On interruption attempt whole-process-tree kill and bounded reap/drain, with a
+  separate cleanup window of at most five seconds; inherited pipe handles cannot
+  make the caller wait indefinitely. Exceptions preserve captured partial raw bytes
+  in Data["StandardOutput"] and Data["StandardError"] (byte[]), plus bounded readable
+  stdout/stderr excerpts. Capture and snapshot operations are synchronized.
+
+⚠ 2026-11-14: the former process runner waited indefinitely for process/stream exit.
+T14 adds the deadline and cancellation contract while retaining raw-byte/argument/
+environment/nonzero-exit behavior and the original overload.
+
 - **Audit A16/A17, 2026-11-14.** An actual snapshot path is distinct from its
   approved path even when the input name lacks the conventional `.approved.`
   marker. Writes replace the actual directory entry atomically and never write
@@ -82,16 +98,16 @@ actual path and up-front finite-subset audit replace those assumptions.
   an optional third argument; on a problem it writes each value to its own line of a
   file beside the actual file, named from the actual file's own name and the key
   (sanitized): `<actual-base>.<sanitized key>.fields.txt`. A caller with a composite
-  line over more than one `BitHash` (the Cli tests node's JSON-plus-CSV row) has no
-  single `Fields` to offer and passes none, keeping the two-argument `Problem` it
-  already had. The mechanism lives once here, so every Bits-level consumer can adopt it
-  by passing its hash's `Fields` at the call site it already has; as of this task only
-  `Problems.Tests` does (its `BitSnapshotTests`, the node the release investigation
-  named) — the other five Bits-level consumers (`Cli.Tests`, `Equilibrium.Tests`,
-  `Performance.Tests`, `Thermo.Tests`, `Transport.Tests`) do not yet call the three-
-  argument overload, a gap recorded here rather than left to be assumed closed
-  (`AGENTS.md` §8), and open for whichever of those nodes wants it next. `BitHash.cs`,
-  `ApprovedSnapshot.cs`.
+  line over more than one `BitHash` can supply a named composite list of diagnostic
+  lines. The mechanism accepts caller-provided fields; it does not infer the caller's
+  result schema. Consumer adoption and named-field completeness are readiness claims
+  in each consumer node's own API/criteria, not a fixed caller inventory here.
+  `BitHash.cs`, `ApprovedSnapshot.cs`.
+
+  ⚠ 2026-11-14: was "as of this task only Problems.Tests does" and a list of consumers
+  said not to pass fields. That cross-node inventory becomes stale when a consumer
+  adopts diagnostics independently (T16). Harness now states the shared mechanism's
+  scope; global named-field coverage is verified by the owning consumer checks.
 - **One bit record per node, picked in one place** (2026-10-05, owner decision O5).
   `ApprovedSnapshot.RecordPathFor` names `<name>.approved.txt` on every platform, and every
   consumer's Bits level calls it, so the record of a node is one file. The tree's own correctly

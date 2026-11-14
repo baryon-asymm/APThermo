@@ -416,3 +416,8 @@ package's → HISTORY.md#diagnostics-audit-f5
 ⚠ 2026-11-14: the remaining reflection-only/`None` sentences duplicated the former
 constraint after the CPU fixture was introduced. They now state the same actual
 boundary as the dated correction above; semantic signature checks use metadata only.
+
+⚠ 2026-11-14: the public-surface formatter rendered metadata null for an optional
+nonnullable struct as "null". The T14 CancellationToken default exposed it; type-aware
+rendering now prints "default" while actual reference/nullable defaults stay "null"
+(`SurfaceDefaultsTests`, red before correction). No existing approved member changes.

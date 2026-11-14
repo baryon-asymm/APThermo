@@ -249,7 +249,7 @@ public sealed class SurfaceTests
     private static string Constant(object? value, Type type)
     {
         return value is null
-            ? "null"
+            ? NullConstant(type)
             : type.IsEnum
             ? Enum.ToObject(type, value).ToString()!
             : value switch
@@ -261,6 +261,13 @@ public sealed class SurfaceTests
                 IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => value.ToString() ?? "null",
             };
+    }
+
+    private static string NullConstant(Type type)
+    {
+        var valueType = type.IsByRef ? type.GetElementType()! : type;
+        return valueType.IsGenericParameter || (valueType.IsValueType && Nullable.GetUnderlyingType(valueType) is null)
+            ? "default" : "null";
     }
 
     /// <summary>Line endings and trailing white space normalised, so a snapshot compares equal across platforms; shared

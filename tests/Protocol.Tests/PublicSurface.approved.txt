@@ -300,6 +300,7 @@ sealed class APThermo.Harness.CpuHost : IDisposable
 
 static class APThermo.Harness.DotnetProcess
     static DotnetProcessResult Run(String assemblyPath, IReadOnlyList<String> arguments, String workingDirectory, IReadOnlyDictionary<String, String>? environment = null)
+    static DotnetProcessResult Run(String assemblyPath, IReadOnlyList<String> arguments, String workingDirectory, TimeSpan timeout, IReadOnlyDictionary<String, String>? environment = null, CancellationToken cancellationToken = default)
     static String BuiltAssemblyPath(String assemblyName, params String[] projectDirectory)
 
 sealed class (record) APThermo.Harness.DotnetProcessResult : IEquatable<DotnetProcessResult>

@@ -1,7 +1,7 @@
 # API.md — Fixtures.Tests
 
-The node exposes nothing outward: nobody references a test project. Its contract
-points upward: it is what the parent may consider proven about `Fixtures`.
+The node exposes no package API. Its assembly participates in protocol reflection;
+its contract points upward: it is what the parent may consider proven about `Fixtures`.
 
 ## What this node guarantees
 
@@ -22,3 +22,10 @@ points upward: it is what the parent may consider proven about `Fixtures`.
   fixture documents; the pinned package version is read from `generate/requirements.txt`.
 - Malformed documents are written under the system temporary directory and removed
   when the test class is disposed.
+
+Process infrastructure is checked with the owned finite ProcessProbe executable
+(`DotnetProcessGuardTests`, Category=EndToEnd): exact bytes/arguments/environment,
+nonzero exits, validation, cancellation, deadline and inherited-pipe/tree cleanup.
+
+⚠ 2026-11-14: the old introduction said nobody referenced a test project; the protocol
+inventory does reference this assembly. This is verification, not a consumer API.
