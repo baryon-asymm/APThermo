@@ -89,6 +89,10 @@ Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
 
 ## Constraints
 
+Resource ownership is transactional: partial uploads roll back, every owned resource
+gets a cleanup attempt, and cleanup never replaces a propagating primary failure.
+Secondary cleanup failures remain diagnosable. A lost session stays unusable.
+
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - **Accelerator choice** (`AcceleratorKind.Auto`): CUDA if `APTHERMO_NO_CUDA` is not

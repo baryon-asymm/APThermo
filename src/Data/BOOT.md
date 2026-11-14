@@ -154,6 +154,18 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     `thermo.inp:66: thermo.inp:66: …`. The prefix belongs to this node's message, and
     the command line prints it as given; the fix is the command line's.
 
+### Audit closure of 2026-11-14
+
+- Loaded collections are owned snapshots, including record arrays, formulas, indexes,
+  provenance bounds and transport entries/fits. Casting a read-only interface back to
+  a mutable collection must not alter the database or disagree with its content hash.
+- `END PRODUCTS` must precede `END REACTANTS`; missing, repeated or out-of-order
+  section transitions fail with `DatabaseFormatException` and a source location.
+- Mandatory numeric fields must be finite. Nonfinite tokens and overflowing exponents
+  are malformed data, not valid coefficients or masses; positive-mass checks remain.
+  This hardening preserves the declared raw finite bound anomalies and the supported
+  Fortran exponent spellings rather than normalizing the NASA files.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). Each
@@ -274,6 +286,10 @@ check's walk (`SpeciesRecordReader`, after R-Data-1 reversed the Ce-driven move 
 2026-09-14), below the root's limit of 14: no efferent coupling row is needed.
 
 ## Acceptance criteria
+
+- [ ] Audit A02/A41: collection-mutation controls cannot change a loaded snapshot;
+  missing section transitions and nonfinite numeric fields fail at their source line,
+  while the unchanged NASA files and supported finite format anomalies still load.
 
 - [x] 2026-09-12 — The number of product species and of reactant records parsed equals
       the counts produced by an independent line scan of the file in the test

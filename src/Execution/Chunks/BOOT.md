@@ -64,6 +64,9 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 
 ## Constraints
 
+- Chunk enumeration advances by its actual remaining length without integer overflow.
+  Cleanup attempts every allocated buffer; rollback preserves the primary failure.
+
 - Every type here is `internal`; none becomes public. A child of a node never carries
   a public type: that would move consumers' `using` directives and the surface
   snapshot, which is the parent's decision to make, not this node's (root `BOOT.md`,

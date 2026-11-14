@@ -266,6 +266,21 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     comma, which 84 product names contain (observation 4): `omit` lists
     `["B2H4,db"]` and `["B2H4", "db"]` built the same key.
 
+### Audit closure of 2026-11-14
+
+- Built propellants, elemental mixtures, problem lists and published results own
+  read-only snapshots of their nested collections; caller mutations cannot change
+  cached definitions, species ordering or completed results.
+- The chemical-system key encodes sequence boundaries and null/empty distinctions
+  unambiguously for arbitrary admitted names, including control characters. Keep
+  meaningful ordering and the rule that unknown `Omit` names are ignored.
+- Disposal releases every cached propellant reference as well as device resources,
+  including after an earlier cleanup failure; repeated disposal is safe.
+- Group normalization preserves its supported positive finite mass ratios even when
+  multiplication before division would underflow. Existing finite-sum refusals stand.
+- Reject undefined reactant-role and amount-kind enum values at the input boundary
+  with an argument error; never silently reinterpret them as a different role or unit.
+
 ## Structure
 
 Decided 2026-09-14 (the clean-code pass; the root's code-shape constraint). The data
