@@ -236,3 +236,10 @@ None. Writes only into `figures` and the scratch.
 - Parsing `trans.inp`: `Data`.
 - Deciding at which stations transport is evaluated: `Problems` and `Execution`.
 - Computing the composition: `Equilibrium`, `Performance`.
+
+⚠ 2026-11-14: upload rollback previously preserved the primary only when diagnostic
+storage was writable or threw OutOfMemoryException. Read-only or throwing Data can
+now lose secondary diagnostics but cannot replace the exact original exception for
+recoverable managed failures. Every owned buffer is attempted first; StackOverflowException
+and AccessViolationException remain outside the recovery guarantee. Managed fault
+injections cover this contract, not actual host exhaustion or driver recovery.

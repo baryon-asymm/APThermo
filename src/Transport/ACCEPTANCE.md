@@ -136,6 +136,12 @@
   disposal. Disabling rollback fails eight nonempty-prefix controls. An injected
   child OutOfMemoryException is aggregated while remaining resources are attempted;
   only the separately declared unrecoverable CLR exception classes propagate.
-- [ ] `RollbackDiagnosticTests` preserves exact primary identity, attempts every owned
+- [x] 2026-11-14 — `RollbackDiagnosticTests` preserves exact primary identity, attempts every owned
   resource and remains idempotent for ordinary/read-only/throwing Data, including
   injected OOM diagnostic payloads. Writable storage retains secondary diagnostics.
+
+  Evidence for diagnostic storage: frozen source 3 red/15 green; fixed ownership
+  controls 18/18. `SCRATCH/audit/transport-diagnostic-old-source.trx` and
+  `transport-diagnostic-fixed.trx` in audit-performance. Read-only Data and ordinary
+  throwing getters/setters were the three old failures; injected diagnostic OOM
+  payloads and writable secondary diagnostics remained positive controls.

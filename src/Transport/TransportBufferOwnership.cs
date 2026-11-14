@@ -43,9 +43,9 @@ internal sealed class TransportBufferOwnership : IDisposable
             {
                 allocatingFailure.Data["TransportBufferCleanup"] = cleanupFailure;
             }
-            catch (OutOfMemoryException)
+            catch (Exception diagnosticFailure) when (diagnosticFailure is not (StackOverflowException or AccessViolationException))
             {
-                // Diagnostic storage is best effort under real host memory exhaustion.
+                // Read-only or failing diagnostic storage must not replace the exact primary error.
             }
         }
     }

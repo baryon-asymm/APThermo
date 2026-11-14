@@ -149,7 +149,7 @@ hash traversal and approved bytes; labels are diagnostic text only.
 
 ## Acceptance criteria
 
-- [ ] `RollbackDiagnosticTests` controls the actual production Build/Rollback path:
+- [x] 2026-11-14 — `RollbackDiagnosticTests` controls the actual production Build/Rollback path:
   original exception identity and every cleanup attempt survive read-only diagnostic
   dictionaries and throwing getters/setters; ordinary and injected OOM controls stay.
 
