@@ -6,7 +6,7 @@
     "rawDataSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
     "method": "Independent raw NASA9 Decimal evaluation, 80 digits for phase potentials and 60 digits for feasible objectives; not CEA-generated output",
     "sourceArchive": "full-audit-20261113",
-    "srcl2Sources": ["reports/second-opinion/phase/oracle-output.json", "reports/second-opinion/phase/report.txt", "reproductions/srcl2-rocket.json"],
+    "srcl2Sources": ["reports/second-opinion/phase/oracle-output.json", "reports/second-opinion/phase/report.txt", "reproductions/srcl2-rocket.json", "reproductions/srcl2-rocket-result.json"],
     "multiFloorSources": ["reports/claude-assessment/public/Program.cs", "reports/claude-assessment/public/output.json", "reports/claude-assessment/equilibrium/independent-output.json", "reports/claude-assessment/equilibrium/saved-states.json", "claude-audit-20261114/core/cand_OSMgH.txt"],
     "limitation": "Feasible witnesses need not be unique global optima. Fixed-TP phases cannot be substituted as same-H HP solutions. Equal-potential TP phase fractions may be nonunique."
   },
@@ -25,6 +25,7 @@
     "pressure": 100000,
     "enthalpy": -2258964.4909374225,
     "pressureRatios": [2, 5, 10],
+    "oldReturnedHp": {"enthalpy": -2258964.490937421, "entropy": 2930.7632467483772},
     "phaseChecks": [
       {"temperature": 920, "presentInOldRepro": "SrCL2(a)", "alternative": "SrCL2(b)", "alternativeMinusPresentGibbs": "-142681.58676923271634738772771816711866615662158162362246595200803076059328291"},
       {"temperature": 940, "presentInOldRepro": "SrCL2(a)", "alternative": "SrCL2(b)", "alternativeMinusPresentGibbs": "-28756.46646635191579855952070122791190808625795598766683402453735759792236014"},
@@ -38,8 +39,10 @@
     "elementMoles": {"O": 20.171920499403143, "S": 4.719457743635287, "MG": 11.980788175693126, "H": 232.8897612972621},
     "products": ["H", "HO2", "H2", "H2O", "H2O2", "H2S", "H2SO4", "Mg", "MgH", "MgO", "MgOH", "Mg(OH)2", "MgS", "Mg2", "O", "OH", "O2", "O3", "S", "SH", "SO", "SO2", "SO3", "S2", "S2O", "S3", "S4", "S5", "S6", "S7", "S8", "H2O(cr)", "H2O(L)", "H2SO4(L)", "Mg(cr)", "Mg(L)", "MgH2(b)", "MgH2(L)", "MgO(cr)", "MgO(L)", "Mg(OH)2(cr)", "Mg(OH)2(L)", "MgS(cr)", "MgS(L)", "MgSO4(II)", "MgSO4(I)", "MgSO4(L)", "S(a)", "S(b)", "S(L)"],
     "pressure": 714927.03033567,
+    "areaRatios": [5],
     "hp": {
       "target": -6079741.665751922,
+      "oldReturned": {"enthalpy": -6079741.665752136, "entropy": 13870.787060258528},
       "witness": {
         "temperature": 1075.3181818181818,
         "independentEnthalpy": "-6079741.66575194435198600650604168860158879270488406091330452",
@@ -50,6 +53,7 @@
     },
     "sp": {
       "target": 14053.046519252319,
+      "oldReturned": {"enthalpy": -6044275.863694142, "entropy": 14053.046519252353},
       "witness": {
         "temperature": 341.7178286998136,
         "independentEnthalpy": "-9775607.01420417880746722522997390165739150698459016762512963",
