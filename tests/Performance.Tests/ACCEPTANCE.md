@@ -340,3 +340,20 @@ and `independent-beo-corruption-red.trx` in audit-public record both sides.
   CPU suite is 1494/1494 with no skips. Evidence in audit-public:
   `SCRATCH/audit/performance-bits-before-approved-row.trx`,
   `performance-approved-final-full.trx`, and `example13-approved-row.diff`.
+
+- [x] 2026-11-14 — T13: `SonicTailExecutionTests` compares actual solved throat
+  T/p against independent raw-Cp quadrature and a temperature-space sonic balance
+  (N2 at 3000 K), calibrated by the analytic constant-Cp argon state (600 K).
+  The 256/512-panel reference refinement meets the existing 1e-12 identity budget;
+  production comparisons retain `polishThresholdRelative`. A frozen scratch compile
+  overlay starts the tail loop at its unchanged limit: only the N2 physical-state
+  assertion fails (temperature relative error 1.2183505315732646e-9); the policy
+  constant fact and analytic argon control pass. Normal rebuild: all three pass;
+  full current Performance 1496/1496 and affected Protocol 18/18, no skips.
+  Evidence in audit-tail-test: `SCRATCH/audit/tail-overlay-proof.json`,
+  `tail-final-zero-execution/tail-final-zero-execution.trx`,
+  `tail-final-restored/tail-final-restored.trx`,
+  `performance-tail-current/performance-tail-current.trx`,
+  `tail-protocol/tail-protocol.trx`. Numerical production source, existing tolerances
+  and approved records are unchanged. This proves sensitivity to bypassing the
+  configured tail, not an independent count of its individual steps.

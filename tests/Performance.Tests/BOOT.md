@@ -152,6 +152,28 @@ approved bytes; labels are diagnostic text only, never extra hash input.
   source-text count is not a substitute for the solved-state assertion.
 
 
+### T13 sonic reference (2026-11-14)
+
+The new solver-level guard uses a single gaseous product without reactions or phase
+changes. Argon at 600 K stays within the 200-1000 K constant-Cp fit, checked
+from its NASA coefficients against the analytic perfect-gas sonic ratios. N2 at
+3000 K supplies the variable-Cp boundary
+case: independently integrate the raw NASA Cp polynomial with composite Simpson
+quadrature (256 and 512 panels), bisect the energy/sound-speed balance in
+temperature, then integrate Cp/T for the isentropic pressure ratio. With c=Cp/R
+and integrals over [T*, Tc], the reference solves
+2 integral(c dT) = c(T*)/(c(T*)-1) T*, and ln(p*/pc)=-integral(c/T dT).
+The reference uses no production H/S,
+station solve, throat update or actual reported state as an expectation. Mesh
+refinement and the analytic control must meet the existing 1e-12 pressure-ratio
+identity budget before comparison; retain the existing polish tolerance for the
+solved chamber and throat. Frozen flow with one candidate forbids dissociation and
+composition changes; the sonic interval stays inside one NASA fit. Production H
+sets the chamber input only, which must independently recover its prescribed T.
+A scratch compilation overlay skips only the tail-loop execution, preserving both
+policy constants and checked-in source. Its red physical-state assertion and the
+normal positive solve are required evidence; the constant fact alone is insufficient.
+
 ## Acceptance criteria
 
 → [ACCEPTANCE.md](ACCEPTANCE.md)

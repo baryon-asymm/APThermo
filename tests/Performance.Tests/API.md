@@ -7,6 +7,7 @@ consider proven about `Performance`.
 
 | Claim | Confirmed by | State |
 |---|---|---|
+| the configured throat tail is exercised in a solved N2 state, independently checked by raw-Cp sonic integrals; the reference also reproduces the analytic constant-Cp argon limit | `SonicTailExecutionTests`, normal positive and zero-execution overlay negative controls; policy constants separately checked | ✅ 2026-11-14 |
 | chamber, throat and exit stations, their compositions and the performance figures reproduce the reference within the tolerance table for every rocket fixture case, in shifting and frozen flow (subsonic stations excepted) | L1 over the enumerated fixtures (`RocketFixtureTests`) | ✅ |
 | the isentropic, sonic, area-ratio and frozen-composition invariants hold on every converged case; invalid exits fail their station only | L0 (`InvariantTests`) | ✅ |
 | the solver gives the same bits inside a CPU-accelerator kernel as on the host | L1 kernel-equality tests (`KernelEqualityTests`) | ✅ |

@@ -133,6 +133,13 @@
       families included, and the 100 000-case sweep with 35 of 400 000 stations at
       different Newton counts (696 at `1e-11`, guard 400). Merged `701d941`.
       ⚠ 2026-10-02: was ticked for `1e-11` alone → HISTORY.md#crit-throat-1e-11
+      ⚠ 2026-11-14: the fact name cited above is historical and overstated a constant
+      check. Its current name is
+      `ThroatToleranceTests.TheThroatPolicyConstantsSpecifyTheDecisionThresholdAndTailLength`;
+      it checks policy only. The dated historical runs remain evidence of those runs.
+      Solver execution is now checked independently
+      by `SonicTailExecutionTests` (T13), red for skipped tail execution with constants
+      unchanged; see [test acceptance](../../tests/Performance.Tests/ACCEPTANCE.md).
 
 - [x] 2026-11-14 — A05/A36 and the final area residual: AuditGuardTests and
   AreaRatioResidualTests (Performance.Tests) pass. The old source failed the
