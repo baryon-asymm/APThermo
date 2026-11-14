@@ -68,6 +68,16 @@ A per-case observable owned by the `TraceGas` or `Equilibrium` node would replac
   feasible-objective witnesses establish the scientific obligation separately.
   CUDA evidence records the actual selected device and cannot be a forbidden-CUDA
   early return. Public Solver regressions belong to `Problems.Tests`.
+- **Compilation evidence (test review T07, 2026-11-14).** Warm-up and a live
+  launcher/cache establish that a fresh engine compiled the requested kernel.
+  Allocation and retained-heap measurements keep upper budgets; a lower bound of
+  32 MiB is not evidence of compilation. Release checks retain observable cache
+  clearing and weak-reference liveness, with bounded heap diagnostics that permit
+  a smaller correct compiled program. A cache-clear mutation must remain red.
+
+⚠ 2026-11-14: the compile tests used allocation/retention floors to exclude empty
+measurements. Those floors could reject a successful compiler optimization; direct
+compile/cache observations replace them while the root's upper budget stays.
 
 - **CUDA equals the CPU accelerator, bit for bit** (2026-10-05, item 13 of 0.2.2). The tree's
   own `Exp`, `Log` and `Pow` are correctly rounded and the post-link keeps CUDA from fusing a
