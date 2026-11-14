@@ -61,7 +61,18 @@
     "chamberPressure": 7000000,
     "areaRatios": [5, 20, 100, 1000],
     "transport": false,
+    "observation": {
+      "measuredOn": "2026-11-14",
+      "numericalSourceBase": "1b0b2a857540911cf254dec6bd6d725ce5f93548",
+      "test": "ApplicabilityPolicyTests.FrozenFlowRetainsAluminaBelowItsFit",
+      "station": "exit4",
+      "temperature": 586.2439741389186,
+      "condensedMassFraction": 0.30473659704335393,
+      "status": "Ok",
+      "role": "Observed model output only; the policy test asserts retained condensate and below-fit temperature, not this number as an independent scientific expectation"
+    },
     "meaning": "The chamber's condensate is retained in frozen flow; positive condensate and an Ok exit below its raw/table fit lower bound disclose extrapolation rather than certify physical validity."
   }
 }
+
 

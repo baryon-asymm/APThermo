@@ -69,8 +69,8 @@ internal static class ApplicabilityMetadata
     private static void CheckAdmissionSamples(JsonObject item, List<string> errors)
     {
         if (item["admissionLower"] is null) { return; }
-        var samples = item["cases"] as JsonArray;
-        if (samples is null || samples.Count == 0) { errors.Add("admission samples"); return; }
+
+        if (item["cases"] is not JsonArray { Count: > 0 } samples) { errors.Add("admission samples"); return; }
         var accepted = samples.Where(sample => sample!["condensatePresent"]!.GetValue<bool>()).ToArray();
         if (accepted.Length == 0) { errors.Add("accepted admission sample"); return; }
         var low = accepted.Min(sample => sample!["temperature"]!.GetValue<double>());
@@ -97,3 +97,5 @@ internal static class ApplicabilityMetadata
 
     internal static string[] Strings(JsonNode value) => [.. value.AsArray().Select(item => item!.GetValue<string>())];
 }
+
+

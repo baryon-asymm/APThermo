@@ -161,6 +161,12 @@ contracts are unchanged.
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — A37: `ApplicabilityMetadataTests` and `ApplicabilityPolicyTests`
+  pass 17 CPU controls over `AuditApplicabilityCases.json`; missing provenance,
+  wrong data hash and wrong raw bound each make the positive metadata fact red.
+  Raw/table bounds and phase admission are distinct; the frozen witness records
+  exit4 at 586.2439741389186 K below the retained alumina fit, not a reference value.
+
 - [x] 2026-11-14 — `BitSnapshotTests.EveryFixtureGivesTheRecordedBits` preserves approved bytes;
   a numeric mutation emits a named actual field dump with station/property/species,
   element, h/mass/status and input target context.
@@ -415,3 +421,4 @@ contracts are unchanged.
 - Do not loosen a tolerance for green; do not exclude a failing propellant or station.
 - Do not skip a reacting field without proving the reference's defect visible at that station.
 - Do not compute `b_i` or `h_0` in the test with the code under test.
+
