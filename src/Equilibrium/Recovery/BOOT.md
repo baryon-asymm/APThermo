@@ -212,11 +212,27 @@ the earlier candidate, the original first. A successful final does not stop the
 floor walk. After all distinct floors are visited, restore the best moles,
 multipliers, status and state exactly, without another numerical solve.
 
-The caller supplies `RecoverySlices`: the two bracket ends plus `speciesCount`
-doubles for banked moles and `elementCount` for banked multipliers. The extra global-scratch cost
-is `8 * (speciesCount + elementCount)` bytes per case. The best `MixtureState`,
-objective, status and unresolved flag are per-case plan values. No allocation or
-temperature mesh is introduced, and every bracket retains its existing caps.
+The caller supplies `RecoverySlices`: bracket ends, banked moles/multipliers and
+one dedicated typed `MixtureState` scratch element per case. The existing double
+and integer layouts and offsets stay unchanged. Relative to the original two-end
+bracket, extra bytes per case are `8 * (speciesCount + elementCount) + sizeof(MixtureState)`;
+the chunk owner accounts for the separate typed buffer through its actual element size.
+Only objective, status, cursor and unresolved flag remain in the local plan.
+Save/restore the complete state bit for bit, including signed zeros, through a
+typed view; no field subset, numerical expression, selection rule or cap changes.
+No allocation or temperature mesh is introduced inside a solve.
+
+⚠ 2026-11-14 (R10): the first bank put its 19-double (152-byte) best state in the
+loop-live `AttemptPlan` passed by reference to `NoInlining` recovery decisions.
+C0 hardware shows a per-step throughput regression. Moving that dormant payload
+to global scratch is a controlled storage remedy, pending measured confirmation;
+it preserves the bank algorithm and every existing performance gate.
+
+⚠ 2026-11-14: a flat appended-double `SubView(...).Cast<MixtureState>()` experiment
+round-tripped its state but overwrote the leading sentinel at an eight-byte offset
+in a real CPU-compiled kernel. The isolation control rejects that variant.
+Use a dedicated `Scratch<MixtureState>(1)` buffer, sliced by case, and retain the
+failed experiment externally; padding or a double-layout cast is not the remedy.
 
 A rejected floor, a domain-edge refusal or a final bracket proven to land on a
 range gap resolves that branch. An exhausted numerical probe/final without such
@@ -241,6 +257,12 @@ method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`, `TraceGas
 floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state). One type per file.
 
 ## Acceptance criteria
+
+- [ ] R10 CPU storage: `RecoveryStorageTests` verifies generated type size/alignment,
+  unchanged C0 double-region offsets/lengths and per-case typed bank isolation;
+  `RecoveryCandidateTests` proves full-bit state restoration from poisoned global
+  storage and detects an omitted save. Scientific and full numerical controls remain
+  separate; hardware performance is pending root's serialized gates.
 
 - [x] 2026-11-14 — R08: `RecoveryCandidateTests` drives initial Warm HP/SP through AttemptPlan.Next,
   checks first probe Defaults/Cold, exact original restoration and counted work after
