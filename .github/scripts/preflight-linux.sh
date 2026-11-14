@@ -8,10 +8,12 @@ set -uo pipefail
 failures=()
 
 # git
-if command -v git >/dev/null 2>&1; then
-  echo "git: found ($(git --version))"
-else
+if ! command -v git >/dev/null 2>&1; then
   failures+=("git not found on PATH")
+elif git_version=$(git --version 2>&1); then
+  echo "git: found ($git_version)"
+else
+  failures+=("git --version failed: $git_version")
 fi
 
 # dotnet SDK named by global.json
@@ -22,19 +24,24 @@ else
   if [[ -z "$expected_sdk" ]]; then
     failures+=("could not read sdk.version from global.json")
   else
-    sdks=$(dotnet --list-sdks 2>&1)
-    if [[ $? -ne 0 ]]; then
-      failures+=("dotnet --list-sdks failed: $sdks")
-    elif ! echo "$sdks" | grep -q "$expected_sdk"; then
-      failures+=("dotnet SDK $expected_sdk (global.json) not among the installed SDKs: $sdks")
+    if ! command -v dotnet >/dev/null 2>&1; then
+      failures+=("dotnet not found on PATH")
+    elif selected_sdk=$(dotnet --version 2>&1); then
+      if [[ "$selected_sdk" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+        echo "dotnet SDK $selected_sdk: selected by global.json (requested $expected_sdk)"
+      else
+        failures+=("dotnet --version returned no single SDK version: $selected_sdk")
+      fi
     else
-      echo "dotnet SDK $expected_sdk: found"
+      failures+=("dotnet --version failed: $selected_sdk")
     fi
   fi
 fi
 
 # NVIDIA driver
-if nvidia_smi_out=$(nvidia-smi 2>&1); then
+if ! command -v nvidia-smi >/dev/null 2>&1; then
+  failures+=("nvidia-smi not found on PATH")
+elif nvidia_smi_out=$(nvidia-smi 2>&1); then
   echo "nvidia-smi: runs"
 else
   failures+=("nvidia-smi did not run: $nvidia_smi_out")

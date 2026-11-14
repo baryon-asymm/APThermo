@@ -129,22 +129,84 @@ class ReleaseGuards(unittest.TestCase):
         self.assertIn("--verify-tag", args)
 
 
+class LinuxPreflightGuards(unittest.TestCase):
+    """Bash command probes on either hosted OS; these are not Windows PowerShell evidence."""
+    def run_preflight(self, missing="", failing="", sdk_suffix="", selected_sdk=None):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sdk = json.loads((ROOT / "global.json").read_text(encoding="utf-8-sig"))["sdk"]["version"]
+            (root / "global.json").write_text(json.dumps({"sdk": {"version": sdk, "rollForward": "latestPatch"}}))
+            shutil.copy2(SCRIPTS / "preflight-linux.sh", root)
+            env = dict(os.environ)
+            env.pop("APTHERMO_NO_CUDA", None)
+            env.update({"MISSING_TOOL": missing, "FAILING_TOOL": failing, "CONTROLLED_SDK": (selected_sdk or sdk) + sdk_suffix})
+            script = r'''
+controlled_exit() { if [[ "$1" == "$FAILING_TOOL" ]]; then return 7; fi; if [[ "$1" == "$MISSING_TOOL" ]]; then return 127; fi; return 0; }
+git() { printf '%s\n' 'git version controlled'; controlled_exit git; }
+dotnet() { if [[ "$1" == --list-sdks ]]; then printf '%s [controlled]\n' "$CONTROLLED_SDK"; else printf '%s\n' "$CONTROLLED_SDK"; fi; controlled_exit dotnet; }
+nvidia-smi() { printf '%s\n' 'controlled NVIDIA probe'; controlled_exit nvidia-smi; }
+command() { if [[ "$1" == '-v' && "${2:-}" == "$MISSING_TOOL" ]]; then return 1; fi; builtin command "$@"; }
+source ./preflight-linux.sh
+'''
+            return subprocess.run([bash_path(), "-c", script], cwd=root, env=env,
+                                  text=True, capture_output=True, timeout=30)
+
+    def test_valid_host_prerequisites_pass(self):
+        result = self.run_preflight()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("all checks passed", result.stdout)
+
+    def test_each_missing_command_refuses(self):
+        for name in ["git", "dotnet", "nvidia-smi"]:
+            with self.subTest(name=name):
+                result = self.run_preflight(missing=name)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(name, result.stdout)
+
+    def test_each_failed_native_command_refuses(self):
+        for name in ["git", "dotnet", "nvidia-smi"]:
+            with self.subTest(name=name):
+                result = self.run_preflight(failing=name)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(name, result.stdout)
+
+    def test_sdk_resolver_output_must_be_one_version_token(self):
+        self.assertNotEqual(0, self.run_preflight(sdk_suffix=" invalid").returncode)
+
+    def test_patch_roll_forward_uses_the_selected_sdk(self):
+        result = self.run_preflight(selected_sdk="10.0.113")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_resolver_refusal_fails_even_with_version_output(self):
+        self.assertNotEqual(0, self.run_preflight(failing="dotnet").returncode)
+
+
 if os.name == "nt":
     class WindowsPreflightGuards(unittest.TestCase):
         """Windows PowerShell 5.1 with isolated .cmd tools; never calls a real GPU."""
-        def run_preflight(self, missing=None, failing=None, sdk_suffix=""):
+        def run_preflight(self, missing=None, failing=None, sdk_suffix="", selected_sdk=None, multiple_git=False):
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 tools = root / "bin"
                 tools.mkdir()
                 sdk = json.loads((ROOT / "global.json").read_text(encoding="utf-8-sig"))["sdk"]["version"]
-                (root / "global.json").write_text(json.dumps({"sdk": {"version": sdk}}))
-                for name, output in [("git", "git version controlled"), ("dotnet", sdk + sdk_suffix + " [controlled]"),
+                (root / "global.json").write_text(json.dumps({"sdk": {"version": sdk, "rollForward": "latestPatch"}}))
+                for name, output in [("git", "git version controlled"), ("dotnet", (selected_sdk or sdk) + sdk_suffix),
                                      ("nvidia-smi", "controlled NVIDIA probe")]:
                     if name != missing:
-                        (tools / (name + ".cmd")).write_text("@echo off\necho " + output + "\nexit /b " + ("7" if name == failing else "0") + "\n")
+                        lines = "@echo off\n"
+                        if name == "dotnet":
+                            lines += 'if "%~1"=="--list-sdks" (echo ' + output + ' [controlled]) else (echo ' + output + ')\n'
+                        else:
+                            lines += "echo " + output + "\n"
+                        (tools / (name + ".cmd")).write_text(lines + "exit /b " + ("7" if name == failing else "0") + "\n")
                 env = dict(os.environ)
                 env["PATH"] = str(tools)
+                if multiple_git:
+                    second = root / "second"
+                    second.mkdir()
+                    (second / "git.cmd").write_text("@echo off\necho secondary git\nexit /b 7\n")
+                    env["PATH"] += os.pathsep + str(second)
                 env.pop("APTHERMO_NO_CUDA", None)
                 powershell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
                 command = "$global:LASTEXITCODE=0; & '" + str(SCRIPTS / "preflight-windows.ps1").replace("'", "''") + "'"
@@ -170,9 +232,21 @@ if os.name == "nt":
                         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
                         self.assertIn(name, result.stdout)
 
-        def test_sdk_version_must_match_a_whole_entry(self):
-            self.assertNotEqual(0, self.run_preflight(sdk_suffix="0").returncode)
+        def test_sdk_resolver_output_must_be_one_version_token(self):
+            self.assertNotEqual(0, self.run_preflight(sdk_suffix=" invalid").returncode)
+
+        def test_patch_roll_forward_uses_the_selected_sdk(self):
+            result = self.run_preflight(selected_sdk="10.0.113")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+        def test_resolver_refusal_fails_even_with_version_output(self):
+            self.assertNotEqual(0, self.run_preflight(failing="dotnet").returncode)
+
+        def test_multiple_git_paths_select_only_the_first_application(self):
+            result = self.run_preflight(multiple_git=True)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertNotIn("secondary git", result.stdout)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

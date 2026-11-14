@@ -4,7 +4,7 @@ $failures = New-Object System.Collections.Generic.List[string]
 
 function Invoke-RequiredCommand {
     param([string]$Name, [string[]]$CommandArguments, [System.Collections.Generic.List[string]]$Failures)
-    $command = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue
+    $command = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $command) {
         $Failures.Add("$Name not found on PATH")
         return $null
@@ -29,7 +29,7 @@ if ($gitProbe) {
     Write-Host "git: found ($($gitProbe.Output -join '; '))"
 }
 
-$sdkProbe = Invoke-RequiredCommand 'dotnet' @('--list-sdks') $failures
+$sdkProbe = Invoke-RequiredCommand 'dotnet' @('--version') $failures
 if (-not (Test-Path -LiteralPath 'global.json' -PathType Leaf)) {
     $failures.Add('global.json not found at the repository root')
 }
@@ -40,12 +40,12 @@ else {
             $failures.Add('global.json has no sdk.version')
         }
         elseif ($sdkProbe) {
-            $installed = @($sdkProbe.Output | ForEach-Object { ($_ -split '\s+', 2)[0] })
-            if ($installed -notcontains $expectedSdk) {
-                $failures.Add("dotnet SDK $expectedSdk (global.json) not among the installed SDKs: $($sdkProbe.Output -join '; ')")
+            $selectedSdk = ($sdkProbe.Output -join "`n").Trim()
+            if ($selectedSdk -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') {
+                $failures.Add("dotnet --version returned no single SDK version: $selectedSdk")
             }
             else {
-                Write-Host "dotnet SDK ${expectedSdk}: found"
+                Write-Host "dotnet SDK ${selectedSdk}: selected by global.json (requested ${expectedSdk})"
             }
         }
     }
