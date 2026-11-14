@@ -112,6 +112,12 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — A04 copy window: `ColumnCopyOwnershipTests` releases both actual
+  CPU buffer layers after an injected copy failure, preserves empty-column behavior,
+  and fails on both layers with the old allocate-and-copy mutation. Non-long suite
+  1 248 passed; evidence `SCRATCH/audit/column-copy-negative.log`,
+  `copy-window-thermo-full.log`. No GPU or genuine resource exhaustion was induced.
+
 - [x] 2026-11-14 — T16: Thermo bit snapshots 252 passed without changing approved bytes.
   One deliberate digest mismatch failed and emitted the actual named species/element,
   interval, exponent and coefficient values. Evidence: `SCRATCH/audit/thermo-named-bits.log`,

@@ -17,6 +17,12 @@
   Evidence: `SCRATCH/audit/compile-observations.log`, `cache-launcher-negative.log`,
   `cache-ir-negative.log`; mutations restored and final build 0 warnings/errors.
 
+- [x] 2026-11-14 — A04 copy window: `InputCopyOwnershipTests` uses a real CPU copy
+  fault and proves both actual allocation layers disposed. Restoring ILGPU allocate-and-copy
+  makes both fail rollback. Execution targeted set 46 passed, Protocol Shape/Diagnostics
+  18 passed, strict lint 0/0; evidence `SCRATCH/audit/probe-copy-negative.log`,
+  `copy-window-execution-controls.log`, `copy-window-protocol.log`.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 

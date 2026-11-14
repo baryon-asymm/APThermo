@@ -35,14 +35,14 @@ internal sealed class SpeciesTableBuffers : IDisposable
         var arrays = table.Arrays;
         try
         {
-            var molarMass = _ownership.Acquire(() => accelerator.Allocate1D(arrays.MolarMass));
-            var formationEnthalpy = _ownership.Acquire(() => accelerator.Allocate1D(arrays.FormationEnthalpy));
-            var stoichiometry = _ownership.Acquire(() => accelerator.Allocate1D(arrays.Stoichiometry));
-            var intervalStart = _ownership.Acquire(() => accelerator.Allocate1D(arrays.IntervalStart));
-            var intervalCount = _ownership.Acquire(() => accelerator.Allocate1D(arrays.IntervalCount));
-            var intervalBounds = _ownership.Acquire(() => accelerator.Allocate1D(arrays.IntervalBounds));
-            var exponents = _ownership.Acquire(() => accelerator.Allocate1D(arrays.Exponents));
-            var coefficients = _ownership.Acquire(() => accelerator.Allocate1D(arrays.Coefficients));
+            var molarMass = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.MolarMass);
+            var formationEnthalpy = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.FormationEnthalpy);
+            var stoichiometry = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.Stoichiometry);
+            var intervalStart = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.IntervalStart);
+            var intervalCount = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.IntervalCount);
+            var intervalBounds = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.IntervalBounds);
+            var exponents = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.Exponents);
+            var coefficients = UploadColumn(_ownership, accelerator, accelerator.DefaultStream, arrays.Coefficients);
             View = new SpeciesTableView(
                 speciesCount: table.SpeciesCount, gasCount: table.GasCount, elementCount: table.ElementCount,
                 molarMass: molarMass.View, formationEnthalpy: formationEnthalpy.View, stoichiometry: stoichiometry.View,
@@ -69,4 +69,18 @@ internal sealed class SpeciesTableBuffers : IDisposable
     }
 
     public void Dispose() => _ownership.Dispose();
+
+    /// <summary>Owns the allocation before a host copy can fail; the surrounding transaction handles rollback.</summary>
+    private static MemoryBuffer1D<T, Stride1D.Dense> UploadColumn<T>(
+        SpeciesBufferOwnership ownership, Accelerator accelerator, AcceleratorStream stream, T[] values)
+        where T : unmanaged
+    {
+        var buffer = ownership.Acquire(() => accelerator.Allocate1D<T>(values.Length));
+        if (values.Length > 0)
+        {
+            buffer.View.CopyFromCPU(stream, values);
+        }
+
+        return buffer;
+    }
 }

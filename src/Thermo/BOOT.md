@@ -88,6 +88,11 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 - Species-table upload is transactional. Tracking for its flat array columns is
   reserved before allocation; failure rolls back the uploaded prefix. Cleanup
   attempts every buffer and preserves a primary failure with secondary diagnostics.
+  Allocation and host copy are separate: register the length-based buffer before
+  copying its nonempty host array. Preserve empty-column behavior.
+  ⚠ 2026-11-14: the first transaction still wrapped ILGPU's allocate-and-copy
+  convenience overload. Independent IL inspection and a real CPU copy failure
+  showed that its latest allocation never reached the owner when copying failed.
   ⚠ 2026-11-14: the previous constructor leaked its allocated prefix when a later
   allocation failed; sequential disposal could also stop at its first child error.
 

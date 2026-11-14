@@ -122,7 +122,7 @@ internal sealed class Engine : IDisposable
         using var resources = new ExecutionResourceOwner();
         try
         {
-            var inputBuffer = resources.Acquire(() => _session.Accelerator.Allocate1D(inputs));
+            var inputBuffer = UploadProbeInput(resources, _session.Accelerator, _session.Accelerator.DefaultStream, inputs);
             var outputBuffer = resources.Acquire(() => _session.Accelerator.Allocate1D<double>(outputLength));
             launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
             _session.Accelerator.Synchronize();
@@ -133,6 +133,19 @@ internal sealed class Engine : IDisposable
             resources.PrepareCleanup(primary, _session.CleanupFilter);
             throw;
         }
+    }
+
+    /// <summary>Registers the input allocation before the initial host copy, so rollback covers copy failures.</summary>
+    private static MemoryBuffer1D<double, Stride1D.Dense> UploadProbeInput(
+        ExecutionResourceOwner resources, Accelerator accelerator, AcceleratorStream stream, double[] inputs)
+    {
+        var buffer = resources.Acquire(() => accelerator.Allocate1D<double>(inputs.Length));
+        if (inputs.Length > 0)
+        {
+            buffer.View.CopyFromCPU(stream, inputs);
+        }
+
+        return buffer;
     }
 
     /// <inheritdoc />

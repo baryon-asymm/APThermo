@@ -295,14 +295,20 @@ operand exactly (`BOOT.md`, "`KernelMath`").
 
 ⚠ 2026-11-14: a partial SpeciesTableBuffers upload formerly leaked its acquired
 prefix. Upload now reserves ownership before allocations and rolls the prefix back
-on failure; successful disposal attempts each buffer and is idempotent. Secondary
+on failure; successful disposal attempts each buffer and is idempotent.
+⚠ 2026-11-14: ownership now records a length-based allocation before copying its
+nonempty host array. The previous combined ILGPU allocator could throw during copy
+without returning its latest buffer, leaving it outside rollback. Empty columns
+retain their zero-length allocation without a copy. Secondary
 rollback failures attach to the original exception under
 `APThermo.Thermo.CleanupFailures`; a standalone multi-failure cleanup reports an
 AggregateException. Diagnostic attachment is best-effort under genuine host exhaustion.
 
 ## Side effects
 
-None.
+`SpeciesTableBuffers.Upload` allocates accelerator buffers and copies the host columns;
+`Dispose` releases those allocations. The functions evaluate the given table and scratch.
+⚠ 2026-11-14: the previous unconditional "None" omitted the documented upload owner.
 
 ## Out of scope
 

@@ -416,3 +416,7 @@ added.)
 ⚠ 2026-11-14: undefined `EngineOptions.Accelerator` values previously reached the CUDA
 branch. `Engine.Create` and `AcceleratorChoice.Decide` now reject them with
 `ArgumentOutOfRangeException` before any backend binding, independently of the CUDA flag.
+
+⚠ 2026-11-14: `ProbeMath` now registers its length-based input allocation before
+the host copy, so a copy or synchronization failure releases that latest buffer as
+well as the earlier prefix. Its result layout, values and empty-input behavior stay.
