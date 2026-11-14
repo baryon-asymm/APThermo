@@ -4,9 +4,9 @@ namespace APThermo.Execution.Tests;
 
 /// <summary>
 /// The per-iteration half of the throughput tripwire (Execution.Tests BOOT.md, 2026-10-04): the rocket sweep's CUDA kernel time per
-/// Newton step against the approved record. The CPU/CUDA ratio moves with the CPU's load and with the transfer overhead; the kernel time
-/// per step moves with the compiled kernel alone, so a change that makes every step slower shows here and a run-to-run variation of
-/// 2 % does not. The rule is a function of the record's figures so that a fact without a GPU can show it red.
+/// Newton step against the approved record. This synchronized wall-time tripwire includes every timed launch. Launch partition,
+/// device clocks and competing load can affect it; a breach does not identify its cause. The rule is a function of the record's
+/// figures so that a fact without a GPU can show it red.
 /// </summary>
 internal static class ThroughputRecord
 {
@@ -16,7 +16,7 @@ internal static class ThroughputRecord
     /// <summary>The key of the Newton steps per case, summed over the stations, the workload the per-iteration figure divides by.</summary>
     public const string IterationsPerCaseKey = "iterations_per_case";
 
-    /// <summary>1.15: the largest ratio of a measured per-iteration kernel time to the approved one (run-to-run variation is under 2 %, the 0.2.1 to 0.2.2 regression was 25 %).</summary>
+    /// <summary>1.15: the unchanged inclusive ceiling on measured per-iteration kernel time divided by the finite positive approved figure.</summary>
     public const double PerIterationLimit = 1.15;
 
     /// <summary>The Newton steps of the batch, summed over every station of every case, per case.</summary>
@@ -47,10 +47,17 @@ internal static class ThroughputRecord
     {
         if (!approved.TryGetValue(PerIterationKey, out var text)
             || !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var figure)
+            || !double.IsFinite(figure)
             || !(figure > 0.0))
         {
             return $"{fileName} carries no valid {PerIterationKey} line, so the kernel time per Newton step cannot be compared; "
                  + "re-approve the file from a Release run on this platform (Execution.Tests BOOT.md, the approved throughput file)";
+        }
+
+        if (!double.IsFinite(measuredPerIteration) || measuredPerIteration < 0.0)
+        {
+            return string.Create(CultureInfo.InvariantCulture,
+                $"the measured CUDA kernel time per Newton step {measuredPerIteration:R} s must be finite and nonnegative ({fileName}); the synchronized wall-time tripwire cannot compare an invalid measurement");
         }
 
         var relative = measuredPerIteration / figure;
@@ -58,7 +65,7 @@ internal static class ThroughputRecord
             ? null
             : string.Create(CultureInfo.InvariantCulture,
                 $"the CUDA kernel time per Newton step {measuredPerIteration:0.000e+00} s is {relative:P1} of the approved {figure:0.000e+00} s ({fileName}); "
-              + $"the limit is {PerIterationLimit:P0}. A kernel slower per step is a regression of the code, not of the machine (root BOOT.md, Compile size)");
+              + $"the limit is {PerIterationLimit:P0}. This synchronized wall-time tripwire does not identify the cause of the increase");
     }
 
     private static long Steps(RocketBatchResult result) => result.Iterations.Sum(count => (long)count);

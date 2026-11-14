@@ -42,6 +42,12 @@ public sealed class ThroughputRecordTests
     [InlineData("not a number")]
     [InlineData("0")]
     [InlineData("-1e-8")]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("+Infinity")]
+    [InlineData("-Infinity")]
+    [InlineData("1e400")]
+    [InlineData("-1e400")]
     public void ARecordWithoutAValidFigureFails(string? text)
     {
         var lines = new List<string> { "ratio: 23.58" };
@@ -54,6 +60,56 @@ public sealed class ThroughputRecordTests
         Assert.NotNull(message);
         Assert.Contains(ThroughputRecord.PerIterationKey, message, StringComparison.Ordinal);
         Assert.Contains("re-approve", message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Approved figures must be finite and strictly positive; finite measured zero remains a valid upper-bound observation.</summary>
+    [Theory]
+    [InlineData("8e-8", 0.0)]
+    [InlineData("5e-324", 0.0)]
+    [InlineData("1.7976931348623157e308", 1.0)]
+    [InlineData("1", 1.15)]
+    public void FiniteApprovedFiguresAcceptFiniteNonnegativeMeasurements(string figure, double measured)
+    {
+        var approved = ThroughputRecord.Parse(["ratio: 23.58", $"{ThroughputRecord.PerIterationKey}: {figure}"]);
+        Assert.Null(ThroughputRecord.Violation(approved, ApprovedFile, measured));
+    }
+
+    /// <summary>Negative zero is nonnegative; this upper tripwire does not impose a new positive timing floor.</summary>
+    [Fact]
+    public void SignedZeroIsAValidMeasuredUpperBoundObservation()
+    {
+        var negativeZero = BitConverter.Int64BitsToDouble(long.MinValue);
+        Assert.Null(ThroughputRecord.Violation(Record(8.0e-8), ApprovedFile, negativeZero));
+    }
+
+    /// <summary>Invalid current measurements cannot be reported as improvements or attributed to a slower kernel.</summary>
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    [InlineData(-1.0e-9)]
+    [InlineData(-double.Epsilon)]
+    public void ANonfiniteOrNegativeMeasuredFigureFailsItsOwnValidityGuard(double measured)
+    {
+        var message = ThroughputRecord.Violation(Record(8.0e-8), ApprovedFile, measured);
+        Assert.NotNull(message);
+        Assert.Contains("measured", message, StringComparison.Ordinal);
+        Assert.Contains("finite", message, StringComparison.Ordinal);
+        Assert.Contains("nonnegative", message, StringComparison.Ordinal);
+        Assert.Contains(ApprovedFile, message, StringComparison.Ordinal);
+    }
+
+    /// <summary>The same inclusive 115 percent ceiling remains, with no cause inferred from a wall-time breach.</summary>
+    [Fact]
+    public void TheOriginalCeilingRejectsItsNextRepresentableValueWithoutClaimingACause()
+    {
+        var approved = ThroughputRecord.Parse(["ratio: 23.58", $"{ThroughputRecord.PerIterationKey}: 1"]);
+        Assert.Null(ThroughputRecord.Violation(approved, ApprovedFile, 1.15));
+        var message = ThroughputRecord.Violation(approved, ApprovedFile, Math.BitIncrement(1.15));
+        Assert.NotNull(message);
+        Assert.Contains("115", message, StringComparison.Ordinal);
+        Assert.Contains("synchronized wall-time", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("not of the machine", message, StringComparison.Ordinal);
     }
 
     /// <summary>The line of the figure parses back to the printed digits, in both of the record's formats.</summary>

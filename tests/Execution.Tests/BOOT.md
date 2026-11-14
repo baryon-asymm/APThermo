@@ -137,6 +137,25 @@ compile/cache observations replace them while the root's upper budget stays.
   `cuda_seconds`; the median of five such runs varies by 0.2 % (Windows) and 0.3 % (WSL2). A
   record without a valid per-iteration line fails with a message naming the file, never
   skips: a platform's file is re-approved from a run on that platform.
+  The approved figure must be finite and strictly positive. The measured figure
+  must be finite and nonnegative before the same inclusive 115 % comparison.
+  Finite zero, including signed zero, is valid for this one-sided upper tripwire:
+  clock resolution can yield zero and this gate supplies no positive lower bound.
+  Synchronized wall time can vary with launch partition, device clocks and load;
+  a breach does not by itself identify its cause.
+
+  ⚠ 2026-11-15 (A28/R11, verified reproduction): the source comment said
+  "per step moves with the compiled kernel alone" and its failure message said
+  "A kernel slower per step is a regression of the code, not of the machine".
+  R10's controlled launch-partition diagnostic disproved that attribution; the
+  current contract is a synchronized wall-time tripwire without causal attribution.
+  The 115 % threshold, timing boundaries, workload and medians are unchanged.
+  New synthetic parsed-record controls reproduced the finite-value defect on the
+  unchanged source (SHA-256 4C2EF9A89F44BF3761F7764AD4B2B46A42F3155D7B59E2A54678280DB5C84162):
+  `Infinity`, `+Infinity` and `1e400` were accepted as approved figures, disabling
+  this ceiling for finite measurements despite a valid ratio. Negative measured
+  values also passed. Evidence: `ThroughputRecordTests`, worktree
+  `SCRATCH/audit/R11-old-red.log` and `.trx` (9 failed assertions, 18 passing controls).
 
   ⚠ 2026-10-05: was the figure of the first timed run's kernel time, now the median of the
   timed runs' kernel times. The first timed run's kernel time is not representative: three

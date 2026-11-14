@@ -150,3 +150,17 @@ CalibrationLifecycleTests checks primary-preserving loop faults, lifecycle bound
 and weak ownership with a still-live positive control. This is host evidence only.
 The ordinary CUDA and throughput facts still own device duration and original gates.
 CalibrationCudaTests.ActualCudaReportsColdHitAndChangedInputWithExactResults is a small actual-device cold/hit/changed-input control. Forbidden CUDA and unbounded-device branches explicitly report that they provide no bounded-hit evidence. Root owns hardware execution.
+
+## Throughput-record validity ✅
+
+Approved per-iteration figures must be finite and strictly positive. Current
+measurements must be finite and nonnegative; finite signed zero remains a valid
+observation for this upper-bound comparison. Invalid measurements have their own
+validity failure, while finite valid values retain the original inclusive 115 %
+ceiling. A breach reports synchronized wall time without claiming a code-only
+cause: launch partition, clocks and competing load can affect it. No record,
+workload, median, measurement boundary or acceptance threshold changes.
+
+⚠ 2026-11-15 (A28/R11): the previous comment attributed per-step time to the
+compiled kernel alone and the error excluded the machine as a cause. The R10
+launch-partition diagnostic disproved that interpretation. New parsed-record controls reproduced accepted positive infinity/overflowed approved figures and negative measured values on the unchanged source (9 assertions red, 18 controls passing); `ThroughputRecordTests` covers the corrected finite domain and unchanged inclusive ceiling.
