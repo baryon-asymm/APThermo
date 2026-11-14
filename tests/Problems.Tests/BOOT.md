@@ -385,6 +385,12 @@ Outside the tree: xunit.
   Evidence `SCRATCH/audit/problems-final.log`, `comparison-green.log`,
   `overload-negative.log`, `disposal-negative.log` in audit-public worktree.
 
+- [x] 2026-11-14 — T15: independent explicit mass-tolerance validity table covers
+  NaN, both infinities, negative/positive subnormal and finite endpoints. The original
+  consistency check remains. A mutant allowing positive infinity passed consistency
+  but failed the independent table; restored source: 11 passed. Evidence
+  `SCRATCH/audit/tolerance-negative.log`, `tolerance-green.log` in audit-public.
+
 ## Taboos
 
 - Do not loosen a tolerance for green; do not exclude a failing propellant or station.

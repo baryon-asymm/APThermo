@@ -129,6 +129,31 @@ public sealed partial class RejectionTests
         }
     }
 
+    /// <summary>Independent boundary truth table; Create and its predicate cannot validate one another.</summary>
+    [Theory]
+    [InlineData(double.NaN, false)]
+    [InlineData(double.PositiveInfinity, false)]
+    [InlineData(double.NegativeInfinity, false)]
+    [InlineData(-double.Epsilon, false)]
+    [InlineData(-0.01, false)]
+    [InlineData(0.0, true)]
+    [InlineData(double.Epsilon, true)]
+    [InlineData(0.01, true)]
+    [InlineData(1.0, true)]
+    [InlineData(double.MaxValue, true)]
+    public void MassToleranceValidityMatchesItsIndependentBoundaryTable(double tolerance, bool expected)
+    {
+        Assert.Equal(expected, ElementalMixture.IsValidMassTolerance(tolerance));
+        if (expected)
+        {
+            Assert.Equal(tolerance, ElementalMixture.Create(OneKilogram, massTolerance: tolerance).MassTolerance);
+        }
+        else
+        {
+            _ = Assert.Throws<ArgumentException>(() => ElementalMixture.Create(OneKilogram, massTolerance: tolerance));
+        }
+    }
+
     /// <summary><see cref="ElementalMixture.IsValidMassTolerance"/> is the one statement of the rule (BOOT.md, the review's open question 2): false exactly where Create refuses.</summary>
     [Fact]
     public void TheToleranceRuleIsTheOneCreateApplies()
