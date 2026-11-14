@@ -137,7 +137,7 @@ decodes it itself. The type names no type of the node under test: the assembly i
 | the database or the tolerance table cannot be loaded | the `Data` or `Fixtures` exception, from the `CpuHost` constructor |
 | `Bits.Differences<T>` is called on a `T` with no public `double` or `int` field or property | `InvalidOperationException`, naming the type |
 | a schema uses a keyword outside `Validate`'s list | `InvalidOperationException`, naming the keyword |
-| a schema's `$ref` is not local (does not start with `#/`), or does not resolve | `InvalidOperationException`, naming the reference |
+| a schema reference is not a local URI-fragment JSON Pointer, has invalid percent/UTF-8/~ escapes, or does not resolve | `InvalidOperationException`, naming the reference |
 | a schema names a `type` `Validate` does not know | `InvalidOperationException`, naming the type |
 | the document `RunPropertyCut.Bytes` is given is not a JSON object at the top level, or has a malformed top-level property | `InvalidOperationException`, naming the example |
 | the document has no top-level `run` property, more than one, or only that one property | `InvalidOperationException`, naming the example |
@@ -203,3 +203,9 @@ minimum/exclusiveMinimum, minItems and numeric enum/const equality do not round 
 double/decimal or expand enormous exponent-sized powers. Supported valid numeric
 forms include fractional spellings of integers and exponents outside machine ranges.
 The keyword subset is unchanged (IT02, 2026-11-14).
+
+Local schema references percent-decode exactly once as strict UTF-8 before pointer
+token splitting and ~0/~1 decoding. Raw fragment characters follow RFC 3986; literal
+reserved/Unicode characters use their valid percent-encoded forms. Plus remains plus,
+encoded percent is not decoded again, and Unicode is not normalized. Traversal stays
+object-only; remote/anchor references and cyclic schemas remain unsupported (IT04).

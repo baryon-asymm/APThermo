@@ -312,3 +312,10 @@
   on old source; two enum/const cases also reproduced the platform DeepEquals exponent
   limit. Token normalization uses digits/BigInteger exponent, never huge powers.
   Evidence: `SCRATCH/audit/it02-red/it02-red.trx`, `it02-green/it02-green.trx`.
+
+- [x] 2026-11-14 — IT04: `Fixtures.Tests.JsonPointerSchemaTests` 36/36; canonical
+  old resolver replay 32 red/four positive controls. Percent bytes decode once as
+  strict UTF-8 before token splitting and ~0/~1 validation. Controls cover the wrong
+  %61 target, double-decoding canary, reserved/Unicode/NUL names, slash separators,
+  malformed/overlong/surrogate UTF-8 and invalid ~ escapes. No remote or array-reference
+  support added. Evidence: `SCRATCH/audit/it04-red/it04-red.trx`, `it04-green/it04-green.trx`.

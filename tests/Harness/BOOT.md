@@ -21,6 +21,17 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
 ## Invariants
 
+- Local schema references are URI-fragment JSON Pointers (RFC 3986/RFC 6901):
+  validate raw fragment syntax, percent-decode once with strict UTF-8, then split
+  pointer tokens and decode only ~0/~1 once. Malformed percent/UTF-8/tilde forms
+  fail closed, even if a literal similarly spelled property exists. Preserve plus,
+  encoded percent, Unicode, slash and tilde without normalization or double decoding.
+  Object-only traversal and the finite/noncyclic schema subset remain unchanged (IT04).
+
+⚠ 2026-11-14: IT04 selected literal %61 instead of decoded a and accepted ~2 when
+that literal property existed. Explicit URI/token decoding replaces raw slash-split
+and unchecked replacements; it neither adds remote references nor array traversal.
+
 - Schema numeric semantics use the mathematical JSON decimal value, not binary64
   conversion. Integrality, minimum/exclusiveMinimum, minItems and numeric enum/const
   equality remain exact for signs, zero, long coefficients and arbitrarily large

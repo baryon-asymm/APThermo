@@ -316,15 +316,9 @@ public sealed class JsonSchema
 
     private JsonElement Resolve(string reference)
     {
-        if (!reference.StartsWith("#/", StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException($"only local references are supported, not '{reference}'");
-        }
-
         var element = _root;
-        foreach (var segment in reference[2..].Split('/'))
+        foreach (var name in JsonPointerFragment.Tokens(reference))
         {
-            var name = segment.Replace("~1", "/", StringComparison.Ordinal).Replace("~0", "~", StringComparison.Ordinal);
             if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out element))
             {
                 throw new InvalidOperationException($"the reference '{reference}' does not resolve");
