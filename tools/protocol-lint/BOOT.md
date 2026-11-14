@@ -14,6 +14,14 @@ and is run before and after work in any node. Since 2026-10-01 its checks are th
 
 ## Invariants
 
+- Discovery includes shell scripts (`.sh`, `.ps1`) and MSBuild manifests (`.props`,
+  `.targets`). Workflow YAML directly under `.github/workflows` is executable source;
+  `action.yml`/`action.yaml` is an action manifest. Other YAML remains configuration
+  or data unless explicitly selected through `--ext`.
+
+⚠ 2026-11-14: the old extension list silently omitted delivery scripts and shared
+MSBuild files. A22 requires these real nodes, not an exemption for their directory.
+
 - **Exact forms (audit A24).** A checked date is a real calendar date, a document
   link resolves to a file, and an external acceptance pointer is the section's only
   physical nonblank line. Fenced examples do not create headings or links; only a
@@ -118,6 +126,11 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
   named node lacks), plus one for `--exclude`, which no fact guarded before.
 
 ## Acceptance criteria
+
+- [x] 2026-11-14 — A22 discovery: `test_protocol_lint.py` 84/84; eight new missing-pair
+  controls were red on the old defaults, then pass after a pair is supplied. Arbitrary
+  YAML stays data until explicitly selected. The generated node inventory includes
+  .github/scripts, .github/workflows and .github/actions/preflight; strict lint is 0/0.
 
 - [x] 2026-11-14: A24, `test_protocol_lint.py` (75 tests) rejects invalid calendar
       dates, directory links and extra physical acceptance-pointer content; nested

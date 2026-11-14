@@ -12,6 +12,10 @@ tools. Its contract is the list of workflows, jobs, actions and scripts in [API.
 
 ## Invariants
 
+- Ref names and extracted versions cross into shell steps as quoted environment data;
+  CHANGELOG version matching is literal. Native host-command failures cannot report
+  successful preflight (A23/A33/A34).
+
 - **Self-hosted runners** never run a pull request's code. GPU jobs trigger only on tags
   and on manual dispatch, and the runners run under an account without administrator
   rights, started for a release rather than kept as services.
@@ -81,6 +85,9 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
     relative → HISTORY.md#ci-field-comparison
 
     ⚠ 2026-10-03: was "the fast suite" alone, now the end-to-end facts named → HISTORY.md#ci-end-to-end
+  - A separate hosted CPU trace-gas lane covers the two LongRunning scan facts on
+    affected push/PR paths and manual dispatch, with nonempty discovery/results.
+    This is an audit improvement (A39), not an assertion that former CI ran them.
   - There is no nightly run (2026-09-17).
 
   ⚠ 2026-09-17: was a nightly run of the long-running tests, now none (they are CUDA
@@ -110,6 +117,11 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
   now removed with the step → HISTORY.md#isaprobe-removed
 
 ## Acceptance criteria
+
+- [ ] 2026-11-14 audit delivery changes: local discovery/adversarial script guards,
+      actionlint and protocol checks, followed by actual hosted CI/trace scan and
+      release-dispatch proof on the target runner classes. Local checks alone do not
+      fulfil the GitHub evidence invariant.
 
 - [x] 2026-10-01 — `.github` and (until its removal, HISTORY.md#isaprobe-removed)
       `diagnostics/IsaProbe` are nodes and the protocol lint reads them: 0 errors for both (`python -X utf8 tools/protocol-lint/protocol_lint.py .

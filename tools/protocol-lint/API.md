@@ -116,3 +116,13 @@ matcher supplies merge-guard's current-criterion check (audit A20).
   written for the project's stack (`AGENTS.md`, §13);
 - it does not check whether the document tells the truth;
 - it does not edit documents or code.
+
+## Source discovery ✅
+
+Default source extensions include `.sh` and `.ps1`; build manifests include
+`.props`/`.targets` and action.yml/action.yaml. Workflow .yml/.yaml files directly
+under .github/workflows are source. Other YAML is data/configuration unless `--ext`
+selects it. Existing source, manifest and document-pair discovery remains unchanged.
+
+⚠ 2026-11-14: shell/MSBuild/action/workflow nodes were previously omitted by default;
+A22 extends discovery while keeping arbitrary YAML data distinct.

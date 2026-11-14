@@ -145,6 +145,43 @@ class ProtocolLintTest(unittest.TestCase):
         offending = [finding for finding in found if needle in str(finding)]
         self.assertFalse(offending, "unexpected:\n{}".format("\n".join(str(f) for f in offending)))
 
+    def assert_discovered_pair(self, path):
+        file = self.write(path, "# controlled source\n")
+        owner = file.parent.relative_to(self.root).as_posix()
+        self.assertFinding("ERROR", "1", owner)
+        self.write(owner + "/BOOT.md", BOOT.format(name="delivery", dependencies="None"))
+        self.write(owner + "/API.md", "Delivery contract.")
+        self.assertEqual([], self.findings())
+
+    def test_shell_source_requires_its_own_pair(self):
+        self.assert_discovered_pair("scripts/check.sh")
+
+    def test_powershell_source_requires_its_own_pair(self):
+        self.assert_discovered_pair("scripts/check.ps1")
+
+    def test_props_manifest_requires_its_own_pair(self):
+        self.assert_discovered_pair("shared/Directory.Build.props")
+
+    def test_targets_manifest_requires_its_own_pair(self):
+        self.assert_discovered_pair("shared/build.targets")
+
+    def test_workflow_yaml_requires_its_own_pair(self):
+        self.assert_discovered_pair(".github/workflows/check.yml")
+
+    def test_workflow_yaml_long_suffix_requires_its_own_pair(self):
+        self.assert_discovered_pair(".github/workflows/check.yaml")
+
+    def test_action_manifest_requires_its_own_pair(self):
+        self.assert_discovered_pair(".github/actions/check/action.yml")
+
+    def test_action_manifest_long_suffix_requires_its_own_pair(self):
+        self.assert_discovered_pair(".github/actions/check/action.yaml")
+
+    def test_arbitrary_yaml_stays_data_until_selected(self):
+        self.write("configuration/table.yaml", "values: []\n")
+        self.assertEqual([], self.findings())
+        self.assertFinding("ERROR", "1", "configuration", findings=self.findings(extra_extensions=[".yaml"]))
+
     # -------------------------------------------------------------- the baseline
 
     def test_a_conforming_tree_is_clean(self) -> None:

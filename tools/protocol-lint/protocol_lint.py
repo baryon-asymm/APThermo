@@ -57,16 +57,16 @@ DEFAULT_SOURCE_EXTENSIONS: Set[str] = {
     ".exs", ".f", ".f90", ".f95", ".for", ".fs", ".go", ".h", ".hh", ".hpp", ".hs",
     ".java", ".jl", ".js", ".jsx", ".kt", ".kts", ".lua", ".m", ".ml", ".mm", ".nim",
     ".php", ".py", ".pyi", ".r", ".rb", ".rs", ".scala", ".sol", ".svelte", ".swift",
-    ".ts", ".tsx", ".vb", ".vue", ".zig",
+    ".ts", ".tsx", ".vb", ".vue", ".zig", ".sh", ".ps1",
 }
 
 # A directory holding one of these is a module boundary even when its own code sits
 # in subdirectories, so it is a node.
 DEFAULT_MANIFEST_NAMES: Set[str] = {
     "build.gradle", "build.gradle.kts", "Cargo.toml", "CMakeLists.txt", "go.mod",
-    "package.json", "pom.xml", "pyproject.toml", "setup.py",
+    "package.json", "pom.xml", "pyproject.toml", "setup.py", "action.yml", "action.yaml",
 }
-DEFAULT_MANIFEST_SUFFIXES: Tuple[str, ...] = (".csproj", ".fsproj", ".vbproj", ".vcxproj")
+DEFAULT_MANIFEST_SUFFIXES: Tuple[str, ...] = (".csproj", ".fsproj", ".vbproj", ".vcxproj", ".props", ".targets")
 
 # A directory whose name starts with a dot is a tool's cache or state and is skipped, with
 # one exception: these are committed configuration, and the tree reads them as part of
@@ -329,8 +329,10 @@ class Tree:
             dirnames[:] = sorted(name for name in dirnames if not self._excluded(name))
             self.directories.append(directory)
 
+            workflow_directory = directory.relative_to(self.root).parts == (".github", "workflows")
             sources = [directory / name for name in filenames
-                       if Path(name).suffix.lower() in self.source_extensions]
+                       if Path(name).suffix.lower() in self.source_extensions
+                       or (workflow_directory and Path(name).suffix.lower() in (".yml", ".yaml"))]
             self._sources[directory] = sources
             self.markdown.extend(directory / name for name in filenames if name.endswith(".md"))
 

@@ -1,7 +1,8 @@
 # API.md — .github
 
 What the directory provides to the tree: two workflows and the composite action and scripts
-they share. It declares no C# surface. Its one node is `.github`.
+they share. It declares no C# surface. Its source subnodes are [scripts](scripts/API.md), [workflows](workflows/API.md)
+and [preflight](actions/preflight/API.md).
 
 ⚠ 2026-10-05: was two workflows, their shared actions and scripts and a diagnostics probe
 (the node `diagnostics/IsaProbe`, the `runner-diagnostics` action and its step), now without
@@ -33,3 +34,6 @@ A manual dispatch of `release.yml` is the rehearsal: it runs `check` to `pack` a
 | `scripts/preflight-linux.sh` | `actions/preflight` on Linux | the preflight under bash |
 
 `actionlint.yaml` declares the runner label `gpu` of the two self-hosted jobs to actionlint.
+
+⚠ 2026-11-14: the former single-node claim omitted executable scripts, workflow YAML
+and the action manifest. These now have their own sufficient BOOT/API pairs (A22).
