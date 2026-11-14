@@ -123,6 +123,8 @@ closed in `3c0d271`).
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — Owner-approved A26 schema-input bytes match CLI delivery and the canonical resource; `CommandLineExampleTests` 4/4. Evidence: `SCRATCH/audit/schema-approval-proof.json`, `schema-approval-docs/schema-approval-docs.trx`.
+
 - [x] 2026-09-17 — L1–L6 are green over the committed guide, samples and documents:
       `dotnet test tests/Docs.Tests`, 18 of 18 passed.
 - [x] 2026-09-17 — Every level has been seen red once against a deliberate drift and
@@ -422,3 +424,8 @@ closed in `3c0d271`).
   from here; the only files this node writes are its own `*.actual.txt`/`*.actual.json`.
 - No network.
 - No early return that turns an empty population into a pass.
+
+⚠ 2026-11-14: schema-input approval was the former general Equilibrium shape; now
+it is the owner-approved A26 TP/HP/SP contract ([Cli](../../src/Cli/API.md)). Delivered
+and canonical resource bytes agree; `SCRATCH/audit/schema-approval-proof.json` records
+the exact structural delta and hashes. Only this schema approval changed.

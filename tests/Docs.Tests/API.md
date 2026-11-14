@@ -100,3 +100,8 @@ tagged `Category=EndToEnd`, and the in-process ones run on warm solvers (`Progra
 - `CaseStatus` of the Thermo node, the names L7 compares the status table against.
 - The approved files in this node's `approved/` directory; on a mismatch the actual
   bytes are written beside them as `*.actual.txt`/`*.actual.json` (git-ignored).
+
+⚠ 2026-11-14: schema-input.approved.json is reverified against the delivered A26
+conditional equilibrium schema under explicit owner approval. Only that schema record
+changed; its exact bytes equal the embedded/canonical input schema. The runtime-output
+and numerical approvals retain their existing evidence.
