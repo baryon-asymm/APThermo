@@ -52,25 +52,6 @@ archive. This revises the observed CPU status without asserting hardware proof.
   Evidence: `SCRATCH/audit/trace-role-split.log`, `trace-mechanism-negative.log`;
   mutation restored; final build 0 warnings/errors.
 
-- [ ] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
-  on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
-  500 ms target, nonzero launch count and covered cases equal the run count over the
-  unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
-  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.
-  ⚠ 2026-11-14 (R09): was "aggregate kernel-time ceilings", now per-launch duration
-  bounds with complete observations, because the original F2 target concerns each
-  synchronized launch. No GPU verification was performed by this implementation.
-
-⚠ 2026-11-14 (R09): the criterion above replaces the mistaken aggregate obligation
-below, not the original per-launch F2 target. C0 Windows CUDA measured aggregate
-6523.4 ms for bracketing and 668.8 ms for trace gas; both failed the aggregate predicate.
-Retain these observations. They establish neither a maximum nor absence of a separate
-throughput regression. The previous criterion is preserved verbatim:
-
-> - [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
->   ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
->   diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.
-
 - [x] 2026-11-14 — R09 CPU controls: `LaunchObservationTests` 8 passed; both existing
   family outcome/budget controls also passed (10 total). Safe launches with a 900 ms
   sum pass a 500 ms per-launch target; one launch one tick above the target fails
@@ -80,6 +61,25 @@ throughput regression. The previous criterion is preserved verbatim:
   of-maximum mutants each failed the intended assertion; all restored. Evidence:
   `SCRATCH/audit/launch-observation-final-controls.log`, `launch-omitted-negative.log`,
   `launch-late-negative.log`, `launch-last-negative.log`, `launch-sum-negative.log`.
+
+- [ ] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
+  on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
+  500 ms target, nonzero launch count and covered cases equal the run count over the
+  unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
+  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.
+  ⚠ 2026-11-14: R09 was "aggregate kernel-time ceilings", now per-launch duration
+  bounds with complete observations, because the original F2 target concerns each
+  synchronized launch. No GPU verification was performed by this implementation.
+
+⚠ 2026-11-14: R09 the criterion above replaces the mistaken aggregate obligation
+below, not the original per-launch F2 target. C0 Windows CUDA measured aggregate
+6523.4 ms for bracketing and 668.8 ms for trace gas; both failed the aggregate predicate.
+Retain these observations. They establish neither a maximum nor absence of a separate
+throughput regression. The previous criterion is preserved verbatim:
+
+> - [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
+>   ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
+>   diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.
 
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
