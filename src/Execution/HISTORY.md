@@ -1,5 +1,20 @@
 # HISTORY.md — Execution
 
+## primary-aware-cleanup-2026-11-14
+
+2026-11-14; BOOT.md, Constraints. Superseded detailed restatement of the preceding
+transactional-ownership frame: the frame stays current in BOOT.md and the outward
+diagnostic-dictionary contract is recorded in API.md. The draft made BOOT.md exceed
+its ancestor-reading limit; no cleanup obligation is dropped.
+
+> Cleanup groups reserve tracking before acquisition, attempt remaining resources after
+> ordinary or injected child OOM failures, and attach secondary cleanup diagnostics to
+> a propagating exception under `APThermo.Execution.CleanupFailures`. Diagnostics are
+> aggregated after attempts; actual host exhaustion can prevent their allocation.
+> ⚠ 2026-11-14: sticky-timeout-only catches did not preserve a primary failure when
+> an unrelated cleanup failed. Explicit primary-aware ownership replaces that assumption.
+
+
 Append-only store of what `BOOT.md` no longer needs to state as current truth
 (`AGENTS.md`, §15). Newest entry first. Every entry names the date it was moved, the
 `BOOT.md` section it came from, and carries the original text in full, unedited. The

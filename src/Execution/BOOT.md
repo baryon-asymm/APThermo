@@ -92,12 +92,7 @@ Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
 Resource ownership is transactional: partial uploads roll back, every owned resource
 gets a cleanup attempt, and cleanup never replaces a propagating primary failure.
 Secondary cleanup failures remain diagnosable. A lost session stays unusable.
-Cleanup groups reserve tracking before acquisition, attempt remaining resources after
-ordinary or injected child OOM failures, and attach secondary cleanup diagnostics to
-a propagating exception under `APThermo.Execution.CleanupFailures`. Diagnostics are
-aggregated after attempts; actual host exhaustion can prevent their allocation.
-⚠ 2026-11-14: sticky-timeout-only catches did not preserve a primary failure when
-an unrelated cleanup failed. Explicit primary-aware ownership replaces that assumption.
+⚠ 2026-11-14: was sticky-only cleanup, now primary-aware ownership and diagnostics → HISTORY.md#primary-aware-cleanup-2026-11-14
 Reject an undefined `AcceleratorKind` before binding a driver or allocating a session.
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
