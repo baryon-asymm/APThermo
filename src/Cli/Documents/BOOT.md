@@ -86,8 +86,10 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
       (finding F6, present since the first version). Since 2026-09-26 the duplicate
       check reaches it at every object's construction.
 
-A range's limit counts values, including both endpoints: steps may be at most
-`MaxAxisValues - 1`. An oversized JSON list is rejected from its array length before
+A range's limit counts values, including both endpoints: the rounded integer step
+count may be at most `MaxAxisValues - 1`. A broad finite/pre-cast bound is checked
+first; the rounded value count and unchanged endpoint tolerance are checked before
+numeric allocation. An oversized JSON list is rejected from its array length before
 materializing its numeric list. The Cartesian product bound is inclusive too, and is
 checked by the document reader before expansion.
 
@@ -95,10 +97,23 @@ checked by the document reader before expansion.
 1,000,001 values where a list allowed only 1,000,000. Both forms now share the value
 bound; refusals precede expanded numeric allocation.
 
+⚠ 2026-11-14: the first A25 correction said "steps may be at most MaxAxisValues - 1"
+and enforced that on the unrounded quotient. Independent public/CLI review at
+effc89f2 found 299999.7/0.3 rounds correctly but lies just above that raw bound.
+The bound now applies to the rounded integer, after a broad finite/pre-cast guard;
+StepTolerance and the inclusive allocation limit are unchanged.
+
 ## Acceptance criteria
 
 - [x] 2026-11-14 — `SweepBoundaryTests` proves audit A25: a range with exactly `MaxAxisValues` including both endpoints is
   accepted; one more value is refused before allocation. The total case bound stays.
+
+- [ ] Decimal boundary follow-up: `ADecimalRangeAtTheRoundedAxisLimitIsAccepted`
+  admits the rounded maximum; `ADecimalRangeWithOneMoreValueIsRefusedBeforeNumericAllocation`
+  preserves the first oversized decimal refusal. The existing integer/list controls stay.
+  ⚠ 2026-11-14: the earlier criterion was evidenced by integer/list bounds only;
+  independent public/CLI review at effc89f2 found the decimal positive red. This
+  successor adds that missing control with the original endpoint tolerance unchanged.
 
 - [x] 2026-09-15 — The moved types compile unchanged under
       `APThermo.Cli.Documents` and every test of

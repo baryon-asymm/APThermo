@@ -63,6 +63,32 @@ public sealed class SweepBoundaryTests
         }
     }
 
+    /// <summary>A decimal quotient may round to the admitted limit while lying just above its exact integer.</summary>
+    [Fact]
+    public void ADecimalRangeAtTheRoundedAxisLimitIsAccepted()
+    {
+        using var document = JsonDocument.Parse("""{"from":0,"to":299999.7,"step":0.3}""");
+        var range = document.RootElement;
+        var rawSteps = (range.GetProperty("to").GetDouble() - range.GetProperty("from").GetDouble()) / range.GetProperty("step").GetDouble();
+        Assert.True(rawSteps > SweepValues.MaxAxisValues - 1);
+        var values = SweepValues.Read(range, "$.sweep.pressure");
+        Assert.Equal(SweepValues.MaxAxisValues, values.Count);
+        Assert.Equal(range.GetProperty("from").GetDouble(), values[0]);
+        Assert.Equal(range.GetProperty("to").GetDouble(), values[^1]);
+    }
+
+    /// <summary>The next decimal endpoint produces a genuinely oversized rounded count and must not allocate its array.</summary>
+    [Fact]
+    public void ADecimalRangeWithOneMoreValueIsRefusedBeforeNumericAllocation()
+    {
+        using var document = JsonDocument.Parse("""{"from":0,"to":300000,"step":0.3}""");
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var exception = Assert.Throws<InputException>(() => SweepValues.Read(document.RootElement, "$.sweep.pressure"));
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Contains(SweepValues.MaxAxisValues.ToString(CultureInfo.InvariantCulture), exception.Message, StringComparison.Ordinal);
+        Assert.True(allocated < SweepValues.MaxAxisValues, $"refusal allocated {allocated} bytes");
+    }
+
     private static JsonDocument Axis(int count, bool list) => JsonDocument.Parse(list
         ? "[" + string.Concat(Enumerable.Repeat("0,", count - 1)) + "0]"
         : """{"from":0,"to":COUNT,"step":1}""".Replace("COUNT", (count - 1).ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal));
