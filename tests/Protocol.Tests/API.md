@@ -13,7 +13,7 @@ consider guaranteed about the agreement between its documents and its code.
 | every test method that starts a process, through a call of `Process.Start` or a `ProcessStartInfo` in the `tests` nodes' code, carries `Category=EndToEnd`, so the fast set holds no process fact | End-to-end level (`EndToEndTests`) | ✅ 2026-10-03 |
 | no public surface of a library assembly changes without the snapshot moving in the same commit | Surface level (`SurfaceTests`, `PublicSurface.approved.txt`) | ✅ |
 | every type a library assembly exports is named in its node's `API.md`, and every type of every assembly lives in its node's namespace | Coverage level (`CoverageTests`) | ✅ |
-| every declaration under ✅ exists, the type and the member | Declarations level (`DeclarationTests`) | ✅ |
+| every implemented C# declaration matches its compiled owner and complete signature, with a Markdown location on failure | Declarations level (`DeclarationTests`) | ✅ |
 | declared dependencies match the real ones, in both directions, from signatures and method bodies | Dependencies level (`DependencyTests`) | ✅ |
 | the numerical nodes hold no single-precision value or operation and no mutable static field, call only the root's allow-listed `System.Math`/`System.Double` members, and put no literal or `const` left of an ordered floating-point comparison; no node but the execution node and its tests names a CUDA type | Root invariants level (`InvariantTests`) | ✅ |
 | the tree meets the root's code-shape constraint (sizes, nesting, parameters, the coupling of the `src` types, stable types, the stable-dependencies direction, no `partial`, `#region` or helpers class), every exception a measured row of its node's `## Shape exceptions` table | Shape level (`ShapeTests`) | ✅ 2026-09-15 |
@@ -21,8 +21,7 @@ consider guaranteed about the agreement between its documents and its code.
 | no source, build or analyzer-configuration file of the tree suppresses a diagnostic (Roslyn's own generated-code markers and every MSBuild channel that lowers a severity included), the root `Directory.Build.props`/`.targets` set the compiler and every analyzer to their maximum, every compiled source lives in a node directory, and no method reached from a kernel entry point throws, allocates or boxes | Diagnostics level (`DiagnosticsTests`) | ✅ 2026-09-25 |
 
 What it does not guarantee: that a document tells the truth about the code it names
-correctly (`AGENTS.md` §13); that a signature under ✅ matches the code (names are
-checked here, signatures by the snapshot); a dependency carried only by constants,
+correctly (`AGENTS.md` §13); a dependency carried only by constants,
 which the compiler inlines (a node reading nothing but `const` values of a neighbour
 leaves no trace in its assembly); the surface of the test assemblies; that a stable
 type holds no behaviour beyond construction and validation; that a type or member a
@@ -88,3 +87,7 @@ node that packs its own assembly, `## Tree contract` in this node's `BOOT.md`); 
   through the tree's own assemblies (the guards audit's O6, 2026-09-28): no `throw`, no
   array allocation, no allocation of a reference type and no boxing in any method it
   reaches.
+
+⚠ 2026-11-14: signatures were previously excluded from this guarantee on the mistaken
+claim that snapshots verified the document. The Declarations level now compares the
+implemented API block directly with compiled metadata; snapshots remain tripwires.

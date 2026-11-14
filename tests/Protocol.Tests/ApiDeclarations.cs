@@ -1,115 +1,187 @@
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace APThermo.Protocol.Tests;
 
 /// <summary>
-/// The grammar of an API.md: its ✅ C# blocks and the declarations in them, and the text that sits under ✅ more broadly. The one
-/// meaning of "named in the API.md" for <c>DeclarationTests</c> (a specific declaration exists, read from the ✅ C# blocks) and
-/// <c>CoverageTests</c> (every exported type is at least named, by prose or by code, under a ✅ mark): both ask this type rather
-/// than carrying two separate ideas of what counts as documented. A type is not always given a full declaration: a struct public
-/// only because a framework requires it (for instance ILGPU's kernel parameters) may be named in a sentence instead, and that
-/// still counts.
+/// The grammar of an <c>API.md</c>: its ✅ C# blocks and the declarations in them, and the text that sits under ✅ more
+/// broadly (AGENTS.md §7). The one meaning of "named in the API.md" for <see cref="DeclarationTests"/> (a declaration
+/// exists, read from the ✅ C# blocks) and <see cref="CoverageTests"/> (every exported type is at least named, in prose
+/// or in code, under a ✅ mark). A type need not be given a full declaration: one public only because a framework
+/// requires it may be named in a sentence, and that still counts.
 /// </summary>
-internal static partial class ApiDeclarations
+internal static class ApiDeclarations
 {
-    /// <summary>Whether a type of the given simple name is named anywhere in the document's ✅-marked text (prose or code alike;
-    /// a document without a single status mark counts as ✅ throughout, AGENTS.md §7).</summary>
+
+    private static (string Marker, string Info, int Indent)? FenceOf(string line)
+    {
+        var indent = 0;
+        while (indent < line.Length && line[indent] == ' ')
+        {
+            indent++;
+        }
+
+        if (indent > 3 || indent == line.Length || line[indent] is not ('`' or '~'))
+        {
+            return null;
+        }
+
+        var end = indent;
+        while (end < line.Length && line[end] == line[indent])
+        {
+            end++;
+        }
+
+        return end - indent < 3 ? null : (line[indent..end], line[end..], indent);
+    }
+
+    private enum FenceKind { Other, CSharp, Unlabelled }
+
+    /// <summary>Whether a type of the given simple name is named anywhere in the document's ✅-marked text (prose or
+    /// code; a document without a single status mark counts as ✅ throughout).</summary>
     public static bool NamesType(string document, string simpleName) =>
-        Regex.IsMatch(string.Join("\n", Classify(document).Where(line => line.Implemented).Select(line => line.Text)), $@"\b{Regex.Escape(simpleName)}\b");
+        Mentions(Classify(document).Where(line => line.Implemented).Select(line => line.Text), simpleName);
 
-    /// <summary>Whether a type of the given simple name is named in the document's ✅-marked, package-surface text (root
-    /// <c>BOOT.md</c>, Delivery: Tree contracts) — a section whose heading carries no <c>(tree contract)</c> mark.</summary>
-    public static bool NamesTypeInPackageSurface(string document, string simpleName) => NamesTypeInSection(document, simpleName, treeContract: false);
+    /// <summary>Whether the name is named in ✅ text outside every tree-contract section: the package surface.</summary>
+    public static bool NamesTypeInPackageSurface(string document, string simpleName) =>
+        Mentions(Classify(document).Where(line => line.Implemented && !line.TreeContract).Select(line => line.Text), simpleName);
 
-    /// <summary>Whether a type of the given simple name is named in the document's ✅-marked, tree-contract text (root
-    /// <c>BOOT.md</c>, Delivery: Tree contracts) — a section whose heading carries the <c>(tree contract)</c> mark.</summary>
-    public static bool NamesTypeInTreeContract(string document, string simpleName) => NamesTypeInSection(document, simpleName, treeContract: true);
+    /// <summary>Whether the name is named in ✅ text of a section whose heading carries
+    /// <c>(tree contract)</c>.</summary>
+    public static bool NamesTypeInTreeContract(string document, string simpleName) =>
+        Mentions(Classify(document).Where(line => line.Implemented && line.TreeContract).Select(line => line.Text), simpleName);
 
-    private static bool NamesTypeInSection(string document, string simpleName, bool treeContract) =>
-        Regex.IsMatch(
-            string.Join("\n", Classify(document).Where(line => line.Implemented && line.TreeContract == treeContract).Select(line => line.Text)),
-            $@"\b{Regex.Escape(simpleName)}\b");
+    /// <summary>The C# blocks of a document whose nearest status mark above is ✅ (or that have no mark above at all).</summary>
+    public static IEnumerable<string> ImplementedCsharpBlocks(string document) => ImplementedSections(document).Select(pair => pair.Block);
 
-    /// <summary>The C# blocks of a document that sit under the nearest status mark above them being ✅ (or no mark at all).</summary>
-    public static IEnumerable<string> ImplementedCsharpBlocks(string document) => ImplementedCsharpBlocksBySection(document).Select(pair => pair.Block);
-
-    /// <summary>The names a document's ✅-marked C# blocks declare as types, paired with whether the block's own section is a
-    /// tree contract (root <c>BOOT.md</c>, Delivery: Tree contracts).</summary>
+    /// <summary>The type names a document's ✅ C# blocks declare, each with whether its section is a tree contract.</summary>
     public static IEnumerable<(string Name, bool TreeContract)> DeclaredTypeSections(string document) =>
-        ImplementedCsharpBlocksBySection(document).SelectMany(pair => Declarations(pair.Block).Where(d => d.IsType).Select(d => (d.Name, pair.TreeContract)));
+        ImplementedSections(document).SelectMany(pair => CSharpSyntaxTree.ParseText(pair.Block).GetRoot().DescendantNodes()
+            .OfType<MemberDeclarationSyntax>().Select(DeclaredTypeName).OfType<string>().Select(name => (name, pair.TreeContract)));
 
-    /// <summary>The C# blocks of a document that sit under the nearest status mark above them being ✅ (or no mark at all), each
-    /// paired with whether its own section is a tree contract: the state <see cref="Classify"/> reads from the heading line that
-    /// opened the block's section, frozen for the whole block the same way the ✅/⏳ state is.</summary>
-    private static IEnumerable<(string Block, bool TreeContract)> ImplementedCsharpBlocksBySection(string document)
+    internal static string? DeclaredTypeName(MemberDeclarationSyntax declaration) => declaration switch
+    {
+        BaseTypeDeclarationSyntax type => type.Identifier.ValueText,
+        DelegateDeclarationSyntax signature => signature.Identifier.ValueText,
+        _ => null,
+    };
+
+    private static bool Mentions(IEnumerable<string> lines, string simpleName) =>
+        Regex.IsMatch(string.Join("\n", lines), $@"\b{Regex.Escape(simpleName)}\b");
+
+    internal static IEnumerable<(string Block, bool TreeContract, int StartLine)> ImplementedSections(string document) =>
+        ImplementedFences(document).Where(section => section.Kind == FenceKind.CSharp)
+            .Select(section => (section.Block, section.TreeContract, section.StartLine));
+
+    /// <summary>The opening lines of unlabelled implemented blocks that look like API declarations.
+    /// Their author must identify the language, since some declaration syntax is shared across languages.</summary>
+    internal static IEnumerable<int> UnlabelledDeclarationLines(string document) =>
+        ImplementedFences(document).Where(section => section.Kind == FenceKind.Unlabelled && LooksLikeDeclaredApi(section.Block))
+            .Select(section => section.StartLine - 1);
+
+    private static bool LooksLikeDeclaredApi(string block)
+    {
+        static bool ExplicitApi(MemberDeclarationSyntax member) =>
+            member.Modifiers.Any(token => token.IsKind(SyntaxKind.PublicKeyword) || token.IsKind(SyntaxKind.InternalKeyword) ||
+                token.IsKind(SyntaxKind.ProtectedKeyword) || token.IsKind(SyntaxKind.PrivateKeyword));
+
+        var unit = SyntaxFactory.ParseCompilationUnit(block);
+        if (!unit.ContainsDiagnostics && unit.DescendantNodes().OfType<MemberDeclarationSyntax>()
+            .Any(member => DeclaredTypeName(member) is not null && (ExplicitApi(member) || member is RecordDeclarationSyntax)))
+        {
+            return true;
+        }
+
+        // A signature copied without its containing type is still an API-looking block.
+        return SyntaxFactory.ParseMemberDeclaration(block) is { ContainsDiagnostics: false } standalone &&
+            standalone is BaseMethodDeclarationSyntax or BasePropertyDeclarationSyntax or BaseFieldDeclarationSyntax &&
+            ExplicitApi(standalone);
+    }
+
+    private static IEnumerable<(string Block, bool TreeContract, int StartLine, FenceKind Kind)> ImplementedFences(string document)
     {
         var block = new List<string>();
-        var blockImplemented = false;
         var blockTreeContract = false;
-        var wasInsideBlock = false;
-        foreach (var (text, implemented, insideBlock, treeContract) in Classify(document))
+        var blockKind = FenceKind.Other;
+        var lineNumber = 0;
+        var startLine = 0;
+        foreach (var (text, implemented, kind, treeContract) in Classify(document))
         {
-            if (insideBlock)
+            lineNumber++;
+            if (implemented && kind != FenceKind.Other)
             {
+                if (block.Count == 0)
+                {
+                    startLine = lineNumber;
+                }
+
                 block.Add(text);
-                blockImplemented = implemented;
                 blockTreeContract = treeContract;
-                wasInsideBlock = true;
+                blockKind = kind;
                 continue;
             }
 
-            if (wasInsideBlock)
+            if (block.Count > 0)
             {
-                if (blockImplemented)
-                {
-                    yield return (string.Join("\n", block), blockTreeContract);
-                }
-
+                yield return (string.Join("\n", block), blockTreeContract, startLine, blockKind);
                 block.Clear();
-                wasInsideBlock = false;
             }
+        }
+
+        if (block.Count > 0)
+        {
+            yield return (string.Join("\n", block), blockTreeContract, startLine, blockKind);
         }
     }
 
     /// <summary>
-    /// Every line of the document, classified by two independent state machines: the ✅/⏳ status-mark one AGENTS.md §7
-    /// describes (whether the line sits under an effective ✅, or no mark at all, rather than ⏳), and the tree-contract one
-    /// (root <c>BOOT.md</c>, Delivery: Tree contracts): whether the line sits under a section heading (a line starting
-    /// <c>"## "</c>) that carries the text <c>(tree contract)</c>, package surface otherwise. Both machines read a mark only on
-    /// a heading line or, for ✅/⏳, anywhere outside a ```csharp fence; the two differ in how a mark's absence is read.
-    /// ✅/⏳ persists until the next mark, so a heading with neither leaves it as the nearest mark above left it. The
-    /// tree-contract mark does not persist across headings: every <c>"## "</c> line resets it, marked or not, because a
-    /// section's own heading is where AGENTS.md §7's own state-of-the-art model has nothing to say and the split needs its own,
-    /// simpler rule — a section is a tree contract only when its own heading says so. Also tracks whether the line itself lies
-    /// inside a ```csharp fence (the fence marker lines do not); a mark is read only outside such a fence — the nearest mark
-    /// above a code block decides the block's fate, not a character that happens to look like a mark inside the example code
-    /// the block holds — so a line inside a fence carries the state as of the line that opened it, frozen for the whole block.
-    /// <see cref="NamesType"/>, <see cref="NamesTypeInSection"/> and <see cref="ImplementedCsharpBlocksBySection"/> all read
-    /// this one walk, so both mark rules are written once.
+    /// Every line of the document, classified by two state machines. The status one (AGENTS.md §7): a ⏳ or ✅ outside a
+    /// fence sets the state until the next mark, so the nearest mark above a block decides it; a mark-like character
+    /// inside example code does not count. The tree-contract one: every <c>## </c> heading resets it, and it is on only
+    /// under a heading carrying <c>(tree contract)</c>. The fence lines themselves are outside.
     /// </summary>
-    private static IEnumerable<(string Text, bool Implemented, bool InsideCSharpBlock, bool TreeContract)> Classify(string document)
+    private static IEnumerable<(string Text, bool Implemented, FenceKind Kind, bool TreeContract)> Classify(string document)
     {
+        ArgumentNullException.ThrowIfNull(document);
         var implemented = true;
-        var inside = false;
+        string? opening = null;
+        var indent = 0;
+        var kind = FenceKind.Other;
         var treeContract = false;
         foreach (var line in document.ReplaceLineEndings("\n").Split('\n'))
         {
-            if (line.StartsWith("```", StringComparison.Ordinal))
+            var fence = FenceOf(line);
+            if (fence is not null)
             {
-                if (inside)
+                var marker = fence.Value.Marker;
+                var info = fence.Value.Info;
+                if (opening is null && (marker[0] != '`' || !info.Contains('`', StringComparison.Ordinal)))
                 {
-                    inside = false;
-                }
-                else if (line.Contains("csharp", StringComparison.Ordinal))
-                {
-                    inside = true;
+                    opening = marker;
+                    indent = fence.Value.Indent;
+                    var label = info.Trim();
+                    var language = label.Split([' ', '\t', ','], 2)[0];
+                    kind = label.Length == 0 ? FenceKind.Unlabelled :
+                        string.Equals(language, "csharp", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(language, "cs", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(language, "c#", StringComparison.OrdinalIgnoreCase) ? FenceKind.CSharp : FenceKind.Other;
+                    yield return (line, implemented, FenceKind.Other, treeContract);
+                    continue;
                 }
 
-                yield return (line, implemented, false, treeContract);
-                continue;
+                if (opening is not null && marker[0] == opening[0] && marker.Length >= opening.Length &&
+                    info.AsSpan().Trim(" \t").IsEmpty)
+                {
+                    opening = null;
+                    kind = FenceKind.Other;
+                    yield return (line, implemented, FenceKind.Other, treeContract);
+                    continue;
+                }
             }
 
-            if (!inside)
+            if (opening is null)
             {
                 if (line.Contains('⏳', StringComparison.Ordinal))
                 {
@@ -126,245 +198,18 @@ internal static partial class ApiDeclarations
                 }
             }
 
-            yield return (line, implemented, inside, treeContract);
+            yield return (kind == FenceKind.Other ? line : Unindent(line, indent), implemented, kind, treeContract);
         }
     }
-
-    /// <summary>
-    /// The names a C# block declares: types (class, struct, record, enum, interface, delegate), the positional parameters of
-    /// records, properties, methods, fields (several per line), enum members. Lines inside an open parameter list are skipped.
-    /// Tries each declaration kind in turn on every line; the first that matches wins.
-    /// </summary>
-    public static IEnumerable<Declaration> Declarations(string block)
+    private static string Unindent(string line, int indent)
     {
-        var lines = block.Split('\n');
-        for (var index = 0; index < lines.Length; index++)
+        var first = 0;
+        while (first < indent && first < line.Length && line[first] == ' ')
         {
-            var line = StripComment(lines[index]);
-            if (IsSkippable(line))
-            {
-                continue;
-            }
-
-            foreach (var declaration in OnLine(lines, ref index, line))
-            {
-                yield return declaration;
-            }
+            first++;
         }
+
+        return line[first..];
     }
 
-    private static bool IsSkippable(string line) =>
-        line.Length == 0 || line.TrimStart().StartsWith("using ", StringComparison.Ordinal)
-            || line.TrimStart().StartsWith("namespace ", StringComparison.Ordinal) || line.TrimStart().StartsWith('[');
-
-    /// <summary>The declarations of one line: a type first (which may open a parameter list spanning further lines), then a
-    /// property, a method (which may open a parameter list too), a field list, or an enum member.</summary>
-    private static List<Declaration> OnLine(string[] lines, ref int index, string line)
-    {
-        var type = TypeDeclaration(lines, ref index, line);
-        if (type is not null)
-        {
-            return type;
-        }
-
-        var property = PropertyDeclaration(line);
-        if (property is not null)
-        {
-            return [property.Value];
-        }
-
-        var method = MethodDeclaration(lines, ref index, line);
-        if (method is not null)
-        {
-            return [method.Value];
-        }
-
-        var fields = FieldDeclarations(line);
-        if (fields is not null)
-        {
-            return fields;
-        }
-
-        var enumMember = EnumMemberDeclaration(line);
-        return enumMember is null ? [] : [enumMember.Value];
-    }
-
-    /// <summary>A type declaration (class, struct, record, enum, interface, delegate) and the positional parameters of a
-    /// record, following the parameter list across lines when it opens one.</summary>
-    private static List<Declaration>? TypeDeclaration(string[] lines, ref int index, string line)
-    {
-        var match = TypeRegex().Match(line);
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        var declarations = new List<Declaration> { new(match.Groups[1].Value, IsType: true, IsEnumMember: false) };
-        foreach (var parameter in ParameterList(lines, ref index, line))
-        {
-            declarations.Add(new Declaration(parameter, IsType: false, IsEnumMember: false));
-        }
-
-        return declarations;
-    }
-
-    private static Declaration? PropertyDeclaration(string line)
-    {
-        var match = PropertyRegex().Match(line);
-        return match.Success ? new Declaration(match.Groups[1].Value, IsType: false, IsEnumMember: false) : null;
-    }
-
-    /// <summary>A method, constructor or operator declaration: the first name before a parenthesis that is not a modifier (a
-    /// modifier before a tuple return type, <c>internal static (long Low, long High) Band(...)</c>, is passed over and the
-    /// method's own name found after the tuple). A tuple left open at the end of the line is read on across lines until the name
-    /// is found, and the parameter list is then skipped from the name's own parenthesis, so a tuple's closing one never cancels
-    /// it: <c>(long Low,</c> / <c>long High) Band(</c> / <c>double p = 0.5);</c> declares <c>Band</c> alone.</summary>
-    private static Declaration? MethodDeclaration(string[] lines, ref int index, string line)
-    {
-        var last = index;
-        var text = line;
-        var match = MemberNameIn(text);
-        while (match is null && Depth(text) > 0 && last + 1 < lines.Length)
-        {
-            last++;
-            text += " " + StripComment(lines[last]);
-            match = MemberNameIn(text);
-        }
-
-        if (match is null || IsKeyword(match.Groups[1].Value))
-        {
-            return null;
-        }
-
-        var depth = Depth(text[match.Index..]);
-        while (depth > 0 && last + 1 < lines.Length)
-        {
-            last++;
-            depth += Depth(StripComment(lines[last]));
-        }
-
-        index = last;
-        return new Declaration(match.Groups[1].Value, IsType: false, IsEnumMember: false);
-    }
-
-    private static Match? MemberNameIn(string text) =>
-        MethodRegex().Matches(text).FirstOrDefault(candidate => !IsModifier(candidate.Groups[1].Value));
-
-    private static List<Declaration>? FieldDeclarations(string line)
-    {
-        var match = FieldDeclarationRegex().Match(line);
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        var declarations = new List<Declaration>();
-        foreach (var declarator in match.Groups["names"].Value.Split(','))
-        {
-            var name = FieldNameRegex().Match(declarator);
-            if (name.Success && !IsKeyword(name.Groups[1].Value))
-            {
-                declarations.Add(new Declaration(name.Groups[1].Value, IsType: false, IsEnumMember: false));
-            }
-        }
-
-        return declarations;
-    }
-
-    private static Declaration? EnumMemberDeclaration(string line)
-    {
-        var match = EnumMemberRegex().Match(line);
-        return match.Success && !IsKeyword(match.Groups[1].Value) ? new Declaration(match.Groups[1].Value, IsType: false, IsEnumMember: true) : null;
-    }
-
-    /// <summary>The parameter names of a positional record, following the list across lines; empty for a type without one.</summary>
-    private static List<string> ParameterList(string[] lines, ref int index, string first)
-    {
-        var names = new List<string>();
-        if (!first.Contains('(', StringComparison.Ordinal))
-        {
-            return names;
-        }
-
-        var text = Collect(lines, ref index, first);
-        var open = text.IndexOf('(', StringComparison.Ordinal);
-        var close = text.LastIndexOf(')');
-        if (open < 0 || close <= open)
-        {
-            return names;
-        }
-
-        foreach (var parameter in text[(open + 1)..close].Split(','))
-        {
-            var withoutDefault = parameter.Split('=')[0].Trim();
-            var name = ParameterNameRegex().Match(withoutDefault);
-            if (name.Success && char.IsUpper(name.Groups[1].Value[0]))
-            {
-                names.Add(name.Groups[1].Value);
-            }
-        }
-
-        return names;
-    }
-
-    /// <summary>The line and its continuation lines until the parentheses balance.</summary>
-    private static string Collect(string[] lines, ref int index, string first)
-    {
-        var text = first;
-        var depth = Depth(first);
-        while (depth > 0 && index + 1 < lines.Length)
-        {
-            index++;
-            var next = StripComment(lines[index]);
-            text += " " + next;
-            depth += Depth(next);
-        }
-
-        return text;
-    }
-
-    private static int Depth(string text) => text.Count(c => c == '(') - text.Count(c => c == ')');
-
-    private static string StripComment(string line)
-    {
-        var trimmed = line.TrimStart();
-        if (trimmed.StartsWith("//", StringComparison.Ordinal))
-        {
-            return string.Empty;
-        }
-
-        var comment = line.IndexOf("//", StringComparison.Ordinal);
-        return (comment >= 0 ? line[..comment] : line).TrimEnd();
-    }
-
-    private static bool IsKeyword(string word) =>
-        word is "if" or "for" or "foreach" or "while" or "switch" or "return" or "new" or "get" or "set" or "init" or "throw"
-            or "using" or "nameof" or "typeof" or "default" or "sizeof" or "var" or "operator" or "where" or "else" or "do" or "in";
-
-    private static bool IsModifier(string word) =>
-        word is "public" or "internal" or "private" or "protected" or "static" or "readonly" or "sealed" or "override" or "virtual"
-            or "abstract" or "async" or "extern" or "unsafe" or "partial" or "ref" or "required" or "const" or "volatile";
-
-    internal readonly record struct Declaration(string Name, bool IsType, bool IsEnumMember);
-
-    [GeneratedRegex(@"\b(?:record\s+struct|record\s+class|record|class|struct|enum|interface|delegate\s+[\w<>\[\],.?]+)\s+(\w+)")]
-    private static partial Regex TypeRegex();
-
-    [GeneratedRegex(@"\b(\w+)\s*\{\s*(?:get|set|init)")]
-    private static partial Regex PropertyRegex();
-
-    [GeneratedRegex(@"\b(\w+)\s*(?:<[\w,\s]+>)?\s*\(")]
-    private static partial Regex MethodRegex();
-
-    [GeneratedRegex(@"^\s*(?:(?:public|internal|private|protected|static|readonly|const|required|new|volatile|unsafe)\s+)*[\w.]+(?:<[^;=]*>)?(?:\[[\s,]*\])*\??\s+(?<names>\w+(?:\s*=\s*[^,;]+)?(?:\s*,\s*\w+(?:\s*=\s*[^,;]+)?)*)\s*;\s*$")]
-    private static partial Regex FieldDeclarationRegex();
-
-    [GeneratedRegex(@"^\s*(\w+)")]
-    private static partial Regex FieldNameRegex();
-
-    [GeneratedRegex(@"^\s*(\w+)\s*(?:=\s*[^,]+?)?\s*,?\s*$")]
-    private static partial Regex EnumMemberRegex();
-
-    [GeneratedRegex(@"(\w+)\s*$")]
-    private static partial Regex ParameterNameRegex();
 }

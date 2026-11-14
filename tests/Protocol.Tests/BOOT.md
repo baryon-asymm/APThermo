@@ -17,7 +17,7 @@ dependencies against the real ones.
 | Oracle guards | the benchmark comparison reports nonfinite/missing values as mismatches and distinguishes raw-bit equality from tolerated agreement; a deliberately corrupted comparison cannot pass (`BenchmarkComparisonGuardTests`) | private controls plus a complete real CPU input/output pair; no timing or independent physical oracle | ✅ 2026-11-14 |
 | Surface | the public surface of every library assembly of the tree equals `PublicSurface.approved.txt` | the approved snapshot (`SurfaceTests`) | ✅ |
 | Coverage | every type a library assembly exports is named in the `API.md` of its node; every type of every assembly lives in the namespace of its node | the documents; the project names (`CoverageTests`) | ✅ |
-| Declarations | every type and member under ✅ in any `API.md` exists | the assemblies (`DeclarationTests`) | ✅ |
+| Declarations | every implemented C# declaration matches its compiled owner, type kind, modifiers and complete member signature; unsupported or ambiguous declarations report the Markdown location | the assemblies (`DeclarationTests`) | ✅ |
 | Dependencies | `## Dependencies` of every node with an assembly equals the nodes whose types its code uses, in signatures and method bodies; ancestors allowed, descendants never | the assemblies' IL (`DependencyTests`) | ✅ |
 | Root invariants | double precision only and no mutable static field in the numerical nodes; only the allow-listed `System.Math`/`System.Double` members called, and no constant left of an ordered floating-point comparison; no CUDA type outside the execution node and its tests; no call from a `src` method to an ILGPU transfer with a raw by-reference parameter (a `ref T` into host memory, 2026-10-01) | the assemblies' shapes and IL, and the semantic model of a compilation over each numerical node's sources (`InvariantTests`) | ✅ |
 | Shape | the root's code-shape constraint: type and method lines, nesting, parameters, the efferent coupling of the `src` types, stable types, the stable-dependencies direction of the `src` nodes, no `partial`, `#region` or helpers class; every exception a row of its node's `## Shape exceptions` table, measured and still needed | the C# syntax trees of the source files and the assemblies' IL; the nodes' `BOOT.md` (`ShapeTests`) | ✅ (2026-09-15) |
@@ -83,7 +83,7 @@ dependencies against the real ones.
 
 Outside the tree: xunit; Microsoft.CodeAnalysis.CSharp 5.0.0 (Roslyn, the first stable
 package version built for C# 14, matching the compiler this SDK ships; pinned in the
-root `Directory.Packages.props`) for the syntax trees of the shape check (2026-09-14);
+root `Directory.Packages.props`) for source syntax and implemented API signature binding;
 Python 3.8+ on the path for the linter process; the reference
 implementation of the checks in the protocol kit (`reference/dotnet/`), adapted as its
 README requires: English headings, node by path, several assemblies, parent and
@@ -106,9 +106,9 @@ children rule, links check removed (the linter has it).
   (the merge guard's, 271 s with 64 CPU-bound processes on 16 cores), rounded up. A script that
   grows must be measured again under such a load before the figure moves; a deadline raised to
   fit a slow run proves nothing (`ACCEPTANCE.md`).
-- The assemblies are loaded from the build output found through the project references
-  of this test project, which references every node's project for that reason only and
-  uses none of their types (its `## Dependencies` is `None`, checked like any other).
+- Assemblies are loaded from this project's build output through its project references.
+  Reflection checks resolve every built assembly; the direct CPU fixture setup uses
+  only the producer contracts named in `## Dependencies`.
 - A missing snapshot is written once and the test fails with instructions; the actual
   snapshot on a mismatch is `PublicSurface.actual.txt` next to the approved one,
   git-ignored, removed again when the surfaces agree.
@@ -131,6 +131,23 @@ children rule, links check removed (the linter has it).
   type under a ✅ tree-contract heading of any `API.md`, moving with it in the same commit
   (F9). Mutation (4) is proved on a public type, the Ca table dated (F8).
   → HISTORY.md#constraints-blind-spots, HISTORY.md#constraints-condensed
+
+## Declaration verification
+
+Implemented C# fences are parsed with Roslyn and bound in their documented namespace
+against every built tree assembly, including internal types and nested nodes. The
+actual symbol must come from metadata, never the documentation's own declaration.
+Only the declarations shown are promises: compare type kind/accessibility/modifiers,
+constructors, overload parameter types/names/ref kinds/defaults, return/nullability,
+property accessor kinds/accessibility, fields/constants, events, delegates and generic
+constraints. Diagnostics name the API path, Markdown line, documented signature and
+available compiled candidates. Planned blocks are ignored; foreign fences cannot
+change status. Unlabelled declaration-like blocks must identify their language.
+
+⚠ 2026-11-14: the former declaration check compared names only and incorrectly treated
+the surface snapshot as verification of API signatures. The snapshot compares compiled
+versions, not documentation; A21 requires direct semantic comparison. Existing name
+coverage and package/tree-contract section rules remain separate checks.
 
 ## Structure
 
@@ -393,5 +410,9 @@ package's → HISTORY.md#diagnostics-audit-f5
 - Do not make a check pass by editing the documents when the check is wrong: fix the check.
 - Do not keep a red check; fix or remove it with a declared deviation.
 - Do not look up nodes by namespace segment.
-- Do not use a type of another node here: the assemblies are read by reflection only,
-  so that this node's `None` stays true and the checks do not depend on what they check.
+- Do not use producer implementation details in checks; direct CPU fixture setup is
+  limited to the documented contracts declared in `## Dependencies`.
+
+⚠ 2026-11-14: the remaining reflection-only/`None` sentences duplicated the former
+constraint after the CPU fixture was introduced. They now state the same actual
+boundary as the dated correction above; semantic signature checks use metadata only.

@@ -1,3 +1,6 @@
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace APThermo.Protocol.Tests;
 
 /// <summary>
@@ -14,7 +17,7 @@ public sealed class ApiDeclarationsTests
     public void ATupleReturningDeclarationIsReadByItsMemberName(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
-        var names = ApiDeclarations.Declarations(line).Select(declaration => declaration.Name).ToList();
+        var names = ParsedMethodNames(line);
 
         Assert.Equal(["Band"], names);
     }
@@ -27,8 +30,11 @@ public sealed class ApiDeclarationsTests
     {
         const string block = "    internal static (long Low,\n        long High) Band(\n        double p = 0.5);\n    int Next(int count);";
 
-        var names = ApiDeclarations.Declarations(block).Select(declaration => declaration.Name).ToList();
+        var names = ParsedMethodNames(block);
 
         Assert.Equal(["Band", "Next"], names);
     }
+    private static string[] ParsedMethodNames(string members) =>
+        [.. SyntaxFactory.ParseCompilationUnit("class Example { " + members + " }").DescendantNodes()
+            .OfType<MethodDeclarationSyntax>().Select(method => method.Identifier.ValueText)];
 }

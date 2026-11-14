@@ -166,3 +166,17 @@ only in this node.
       difference at line 582"). With the project reference and the snapshot section removed:
       `APTHERMO_NO_CUDA=1 dotnet test tests/Protocol.Tests` 46 passed, 0 failed, the end-to-end facts
       included; `dotnet build APThermo.sln` 0 warnings, 0 errors; the protocol lint 0 errors, 0 warnings.
+
+- [x] 2026-11-14 — A21: implemented API signatures match compiled metadata across the
+      generated tree/assembly inventory (`DeclarationTests`, both facts); semantic and
+      fence controls pass (`DocumentSignatureTests`, `ApiFenceTests`, preserved
+      `ApiDeclarationsTests`: 70 cases). The original name-only checker had 22 failures
+      among 30 controls, including incorrect signatures accepted and valid multiline
+      syntax rejected; eight positive cases already passed. Generic type constraints
+      and parameter-name controls additionally failed three cases on the skill's
+      reference matcher before its type-header comparison was extended. Full fast
+      protocol including live declarations, shape, dependencies and surfaces: 124/124.
+      Evidence: `SCRATCH/audit/signature-red/signature-red.trx`,
+      `signature-expanded/signature-expanded.trx`, `signature-protocol/signature-protocol.trx`.
+      Root usage fences and the Ptx named tuple were corrected by their owning agent;
+      no snapshot/approved file changed to conceal a document mismatch.
