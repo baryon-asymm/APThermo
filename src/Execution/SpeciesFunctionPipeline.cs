@@ -28,18 +28,32 @@ internal static class SpeciesFunctionPipeline
         // dispose is idempotent) — kept only because a diagnostic (CA2000) needs a literal dispose beside the
         // allocation below, in the same method, to accept that this object does not escape undisposed.
         using var buffers = new ChunkBuffers(session.Accelerator);
-        var speciesBuffer = buffers.Input(batch.Species, 1);
-        var temperatureBuffer = buffers.Input(batch.Temperature, 1);
-        var cpBuffer = buffers.Output(cpOverR, 1);
-        var hBuffer = buffers.Output(hOverRT, 1);
-        var sBuffer = buffers.Output(sOverR, 1);
-        var rangeBuffer = buffers.Output(inRange, 1);
+        try
+        {
+            var speciesBuffer = buffers.Input(batch.Species, 1);
+            var temperatureBuffer = buffers.Input(batch.Temperature, 1);
+            var cpBuffer = buffers.Output(cpOverR, 1);
+            var hBuffer = buffers.Output(hOverRT, 1);
+            var sBuffer = buffers.Output(sOverR, 1);
+            var rangeBuffer = buffers.Output(inRange, 1);
 
-        var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
-        buffers.Allocate(plan.Size);
-        var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
-        BatchRun.Execute(session, plan, buffers, timer,
-                         cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
-        return new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, [.. inRange.Select(flag => flag != 0)], timer.Timings(), session.Info);
+            var plan = ChunkPlan.For(count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
+            var inputIdentity = plan.Count > 0 && session.Budget.IsBounded && session.Info.Kind == AcceleratorKind.Cuda
+                ? buffers.InputIdentity() : null;
+            buffers.Allocate(plan.Size);
+            var views = new SpeciesFunctionBatchViews(speciesBuffer.View, temperatureBuffer.View, cpBuffer.View, hBuffer.View, sBuffer.View, rangeBuffer.View);
+            using var calibration = inputIdentity is null ? null : session.Calibration.Begin(launcher, tables, plan, inputIdentity, in views);
+            BatchRun.Execute(session, plan, buffers, timer,
+                             cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views), calibration);
+            var result = new SpeciesFunctionBatchResult(cpOverR, hOverRT, sOverR, [.. inRange.Select(flag => flag != 0)], timer.Timings(), session.Info);
+            calibration?.Complete();
+            return result;
+        }
+        catch (Exception primary)
+        {
+            session.Calibration.Clear();
+            buffers.DisposePreserving(primary, session.CleanupFilter);
+            throw;
+        }
     }
 }

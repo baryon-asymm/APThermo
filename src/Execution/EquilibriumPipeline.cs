@@ -25,23 +25,37 @@ internal static class EquilibriumPipeline
         // dispose is idempotent) — kept only because a diagnostic (CA2000) needs a literal dispose beside the
         // allocation below, in the same method, to accept that this object does not escape undisposed.
         using var buffers = new ChunkBuffers(session.Accelerator);
-        var (kindBuffer, pressureBuffer, temperatureBuffer, targetBuffer, elementBuffer, scratchDoubles, scratchInts,
-             molesBuffer, multiplierBuffer, stateBuffer, statusBuffer, iterationBuffer,
-             moles, states, status, iterations, recoveryStates) = Declare(buffers, batch, speciesCount);
+        try
+        {
+            var (kindBuffer, pressureBuffer, temperatureBuffer, targetBuffer, elementBuffer, scratchDoubles, scratchInts,
+                 molesBuffer, multiplierBuffer, stateBuffer, statusBuffer, iterationBuffer,
+                 moles, states, status, iterations, recoveryStates) = Declare(buffers, batch, speciesCount);
 
-        var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
-        buffers.Allocate(plan.Size);
-        var views = new EquilibriumBatchViews(
-            seeded: batch.IsSeeded ? 1 : 0, kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
-            elementMoles: elementBuffer.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
-            moles: molesBuffer.View, multipliers: multiplierBuffer.View, states: stateBuffer.View,
-            status: statusBuffer.View, iterations: iterationBuffer.View, recoveryStates: recoveryStates.View);
-        BatchRun.Execute(session, plan, buffers, timer,
-                         cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
-        return new EquilibriumBatchResult(
-            speciesCount: speciesCount, state: states, moles: moles,
-            status: [.. status.Select(code => (CaseStatus)code)], iterations: iterations,
-            timings: timer.Timings(), accelerator: session.Info);
+            var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
+            var inputIdentity = plan.Count > 0 && session.Budget.IsBounded && session.Info.Kind == AcceleratorKind.Cuda
+                ? buffers.InputIdentity() : null;
+            buffers.Allocate(plan.Size);
+            var views = new EquilibriumBatchViews(
+                seeded: batch.IsSeeded ? 1 : 0, kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
+                elementMoles: elementBuffer.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
+                moles: molesBuffer.View, multipliers: multiplierBuffer.View, states: stateBuffer.View,
+                status: statusBuffer.View, iterations: iterationBuffer.View, recoveryStates: recoveryStates.View);
+            using var calibration = inputIdentity is null ? null : session.Calibration.Begin(launcher, tables, plan, inputIdentity, in views);
+            BatchRun.Execute(session, plan, buffers, timer,
+                             cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views), calibration);
+            var result = new EquilibriumBatchResult(
+                speciesCount: speciesCount, state: states, moles: moles,
+                status: [.. status.Select(code => (CaseStatus)code)], iterations: iterations,
+                timings: timer.Timings(), accelerator: session.Info);
+            calibration?.Complete();
+            return result;
+        }
+        catch (Exception primary)
+        {
+            session.Calibration.Clear();
+            buffers.DisposePreserving(primary, session.CleanupFilter);
+            throw;
+        }
     }
 
     /// <summary>

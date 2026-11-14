@@ -193,6 +193,8 @@ fire.
 ```csharp
 internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download)
 {
+    internal int FirstLaunchCases { get; init; }
+    internal bool ReusedPrefix { get; init; }
     internal int LaunchCount { get; init; }
     internal int CoveredCases { get; init; }
     internal TimeSpan MaxLaunchDuration { get; init; }
@@ -473,3 +475,22 @@ cast of a double view is used. Chunk bytes include the actual typed element size
 automatically. Double/int slice lengths, numerical equations, launch sampling and
 R09 timing observations are unchanged. The host test wrappers allocate the same
 one-element typed bank (or one element per case in their synthetic kernel batch).
+
+## Bounded repeat calibration ✅
+
+The session owns one [Calibration transaction](Calibration/API.md). Only an identical
+bounded CUDA workload can probe its previously observed initial prefix. Unsupported
+identity uses cold bounded sampling; CPU/unbounded plans keep their static size and skip hashing. Inputs are stable
+from the pre-allocation digest until the run ends, under the existing one-thread engine
+precondition. A probe is empirical, not a duration upper bound. Current launches retain
+the same target, growth bound and R09 timing boundary. The result is assembled only
+after primary-aware buffer cleanup, and only then can its observation be published.
+FirstLaunchCases and ReusedPrefix are internal current-run telemetry: zero/false before
+any successful synchronization. The four public timing phases and JSON stay unchanged.
+Guard/identity/allocation/run/result failures and lifecycle clear/loss/table replacement
+invalidate; the cache owns neither workload objects nor saved numerical results.
+
+⚠ 2026-11-14 R10: the cold one-case rule previously applied to every repeated run.
+Identical work now may probe an expiring observed full initial prefix, with unchanged
+500 ms target and later growth at most 2x. Unknown work still starts at one. Existing
+throughput workloads, 5x/80%/115% gates and all numerical approvals are unchanged.

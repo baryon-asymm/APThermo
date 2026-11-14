@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Security.Cryptography;
 using APThermo.Execution.Chunks;
 using ILGPU.Runtime;
 
@@ -18,6 +19,8 @@ public sealed class BatchCleanupAuditTests
         public long BytesPerCase => 0;
 
         public long ElementsPerCase => 0;
+
+        public bool AppendIdentity(IncrementalHash hash) => false;
 
         public void Allocate(Accelerator accelerator, int chunk)
         {

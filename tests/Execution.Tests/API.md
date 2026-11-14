@@ -138,3 +138,15 @@ dotnet test tests/Execution.Tests/APThermo.Execution.Tests.csproj -c Release --f
 ⚠ 2026-11-14: its initial `Cuda` classification would also run the scheduling
 experiment in the ordinary release category. Only this diagnostic fact now uses
 `CudaDiagnostic`; actual-CUDA checks, `LongRunning` and original gates remain.
+
+## Bounded repeat calibration controls ✅
+
+CalibrationIdentityTests covers equal-content reuse and every key/descriptor scalar.
+CalibrationPrefixTests checks complete initial boundaries, cumulative cost, overrun,
+partial completion, expiry and cancellation. CalibrationLoopTests drives the actual
+BatchRun on a CPU accelerator with synthetic bounded policy: current InputOutput
+transfers, current computation and current synchronized telemetry remain mandatory.
+CalibrationLifecycleTests checks primary-preserving loop faults, lifecycle boundaries
+and weak ownership with a still-live positive control. This is host evidence only.
+The ordinary CUDA and throughput facts still own device duration and original gates.
+CalibrationCudaTests.ActualCudaReportsColdHitAndChangedInputWithExactResults is a small actual-device cold/hit/changed-input control. Forbidden CUDA and unbounded-device branches explicitly report that they provide no bounded-hit evidence. Root owns hardware execution.

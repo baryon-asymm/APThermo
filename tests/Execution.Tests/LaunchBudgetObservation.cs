@@ -28,6 +28,6 @@ internal static class LaunchBudgetObservation
     internal static string Describe(RunTimings timings)
     {
         ArgumentNullException.ThrowIfNull(timings);
-        return $"aggregate={timings.Kernel.TotalMilliseconds:F1} ms; launches={timings.LaunchCount}; coveredCases={timings.CoveredCases}; maximum={timings.MaxLaunchDuration.TotalMilliseconds:R} ms; maximumCases={timings.MaxLaunchCases}; maximumOrdinal={timings.MaxLaunchOrdinal}";
+        return $"firstLaunchCases={timings.FirstLaunchCases}; reusedPrefix={timings.ReusedPrefix}; aggregate={timings.Kernel.TotalMilliseconds:F1} ms; launches={timings.LaunchCount}; coveredCases={timings.CoveredCases}; maximum={timings.MaxLaunchDuration.TotalMilliseconds:R} ms; maximumCases={timings.MaxLaunchCases}; maximumOrdinal={timings.MaxLaunchOrdinal}";
     }
 }

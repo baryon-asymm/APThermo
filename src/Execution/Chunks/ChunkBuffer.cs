@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -17,6 +18,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     private readonly long _perCase;
     private readonly ChunkTransfer _transfer;
     private MemoryBuffer1D<T, Stride1D.Dense>? _buffer;
+    private bool _identityClosed;
 
     internal ChunkBuffer(T[]? host, long perCase, ChunkTransfer transfer)
     {
@@ -38,8 +40,32 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         _buffer ?? throw new InvalidOperationException("the chunk buffers have not been allocated yet.");
 
     /// <inheritdoc />
+    public bool AppendIdentity(IncrementalHash hash)
+    {
+        ArgumentNullException.ThrowIfNull(hash);
+        if (_identityClosed) { throw new InvalidOperationException("buffer identity must be captured before allocation or disposal"); }
+        var readsInitialBytes = _transfer switch
+        {
+            ChunkTransfer.Input or ChunkTransfer.Constant or ChunkTransfer.InputOutput => true,
+            ChunkTransfer.Output or ChunkTransfer.ClearedOutput or ChunkTransfer.Scratch => false,
+            _ => (bool?)null,
+        };
+        if (readsInitialBytes is not { } includeBytes || (_host is null && _transfer != ChunkTransfer.Scratch)
+            || typeof(T).AssemblyQualifiedName is not { } typeName) { return false; }
+        BufferIdentityFrame.Integer(hash, (int)_transfer);
+        BufferIdentityFrame.Text(hash, typeName);
+        BufferIdentityFrame.Integer(hash, Unsafe.SizeOf<T>());
+        BufferIdentityFrame.Integer(hash, _host?.LongLength ?? -1);
+        BufferIdentityFrame.Integer(hash, _perCase);
+        BufferIdentityFrame.InitialBytes(hash,
+            includeBytes ? _host : null);
+        return true;
+    }
+
+    /// <inheritdoc />
     public void Allocate(Accelerator accelerator, int chunk)
     {
+        _identityClosed = true;
         var length = _transfer == ChunkTransfer.Constant ? _host!.LongLength : chunk * _perCase;
 
         // ILGPU refuses an empty allocation, and a batch may legitimately have nothing here (a rocket batch without exits).
@@ -98,7 +124,11 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
         !slice.IsEmpty && MemoryMarshal.AsBytes(slice).IndexOfAnyExcept(Sentinel) < 0;
 
     /// <inheritdoc />
-    public void Dispose() => _buffer?.Dispose();
+    public void Dispose()
+    {
+        _identityClosed = true;
+        _buffer?.Dispose();
+    }
 
     private long Span(int length) => length * _perCase;
 

@@ -20,6 +20,7 @@ internal sealed class LaunchBudget
     public static LaunchBudget FromRunTimeLimit(TimeSpan runTimeLimit);
 
     public bool IsBounded { get; }
+    public TimeSpan? TargetDuration { get; }
     public int NextChunkCases(int previousCases, TimeSpan previousDuration);
 }
 
@@ -86,6 +87,7 @@ internal interface IChunkBuffer : IDisposable
 {
     long BytesPerCase { get; }
     long ElementsPerCase { get; }
+    bool AppendIdentity(System.Security.Cryptography.IncrementalHash hash);
     void Allocate(Accelerator accelerator, int chunk);
     void UploadChunk(int offset, int length);
     void DownloadChunk(int offset, int length);
@@ -98,6 +100,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     public ArrayView<T> View { get; }
     public long BytesPerCase { get; }
     public long ElementsPerCase { get; }
+    public bool AppendIdentity(System.Security.Cryptography.IncrementalHash hash);
     public void Allocate(Accelerator accelerator, int chunk);
     public void UploadChunk(int offset, int length);
     public void DownloadChunk(int offset, int length);
@@ -107,6 +110,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
 internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
 {
     public long BytesPerCase { get; }
+    public string? InputIdentity();
     public long MaxElementsPerCase { get; }         // 2026-09-26: the audit's F4, what ChunkPlan.For's offset cap clamps against
 
     public ChunkBuffer<T> Input<T>(T[] host, long perCase) where T : unmanaged;
@@ -135,7 +139,8 @@ own file) drives `UploadChunk`/`DownloadChunk` per chunk and `Dispose` at the en
 declaration's returned `ChunkBuffer<T>` is where a pipeline reads `.View` to build its
 kernel's views struct. `IChunkBuffer` and `ChunkTransfer` exist so `ChunkBuffers` can
 hold buffers of different element types in one list and move them uniformly; no code
-outside this node names either.
+outside this node names either in production source; mirroring Execution.Tests may
+name the internal declarations and implement IChunkBuffer fault doubles.
 
 ## Unwritten downloads ✅
 
@@ -171,3 +176,34 @@ a run's primary failure. Tracking is reserved before allocation, partial allocat
 rolls back, and DisposePreserving keeps that primary while recording secondary
 errors. Allocation and declaration form one build phase: Allocate is called once,
 and declarations after it are refused. Repeated disposal is safe.
+
+## Initial workload identity ✅
+
+InputIdentity is called before Allocate, otherwise it throws InvalidOperationException;
+a disposed group throws ObjectDisposedException. The caller captures it after all
+declarations and keeps initial inputs stable through the run, including Constant
+arrays uploaded by Allocate. The group does not derive a new key from downloaded seeds.
+An unsupported declaration returns null for the whole inventory, never a partial key.
+TargetDuration exposes the existing nullable launch target without a timing formula.
+
+Encoding version APThermo.ChunkBuffers.InputIdentity.v1 uses SHA-256, rendered as
+uppercase hexadecimal. Every integer is an eight-byte little-endian signed value;
+a text field is its UTF-8 byte length followed by those bytes. The header is the
+version text and declaration count. Each declaration, in order, contributes its
+ChunkTransfer integer, AssemblyQualifiedName text, Unsafe.SizeOf<T>(), host element
+length (-1 for absent scratch host), per-case stride, initial byte length and bytes.
+Input, Constant and InputOutput contribute every original unmanaged byte; other
+modes have zero initial-byte length and contribute structure alone. Raw bytes retain
+signed zeros, NaN payloads and any struct padding, without numerical conversion.
+Large arrays are fed in bounded spans; this does not frame or reorder their chunks.
+AppendIdentity returns false for a direction without an explicit closed data/structure role, a missing required host or
+an unavailable type name. It refuses use after allocation/disposal. A compatible
+custom declaration may return false to disable calibration safely.
+
+⚠ 2026-11-14: calibration additions were planned above; these implemented methods
+now encode the original declaration inventory before allocation/upload. Existing
+allocation, byte accounting, transfer order, chunk planning and cleanup are unchanged.
+⚠ 2026-11-14 (A28): "no code outside this node names either" was too broad:
+BatchCleanupAuditTests already implements IChunkBuffer, and BufferIdentityTests uses
+an unsupported-declaration double. The production-source boundary is unchanged;
+the mirroring tests exercise the internal contract through the existing test grant.

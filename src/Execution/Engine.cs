@@ -64,6 +64,7 @@ internal sealed class Engine : IDisposable
     /// engine itself is (BOOT.md, the audit's observations).</summary>
     public UploadedTables Upload(SpeciesTable species, TransportTable? transport = null)
     {
+        _session.Calibration.Clear();
         ArgumentNullException.ThrowIfNull(species);
         ThrowIfDisposed();
         _session.ThrowIfLost();
@@ -79,34 +80,67 @@ internal sealed class Engine : IDisposable
     /// <summary>Solves every case of the batch.</summary>
     public EquilibriumBatchResult Run(UploadedTables tables, EquilibriumBatch batch)
     {
-        Guard(tables, batch);
-        return EquilibriumPipeline.Run(_session, Launchers, _options, tables, batch);
+        try
+        {
+            Guard(tables, batch);
+            return EquilibriumPipeline.Run(_session, Launchers, _options, tables, batch);
+        }
+        catch
+        {
+            _session.Calibration.Clear();
+            throw;
+        }
     }
 
     /// <summary>Solves every case of the batch: chamber, throat and the exits.</summary>
     public RocketBatchResult Run(UploadedTables tables, RocketBatch batch)
     {
-        Guard(tables, batch);
-        return RocketPipeline.Run(_session, Launchers, _options, tables, batch);
+        try
+        {
+            Guard(tables, batch);
+            return RocketPipeline.Run(_session, Launchers, _options, tables, batch);
+        }
+        catch
+        {
+            _session.Calibration.Clear();
+            throw;
+        }
     }
 
     /// <summary>Evaluates the transport properties of every station of the batch.</summary>
     public TransportBatchResult Run(UploadedTables tables, TransportBatch batch)
     {
-        Guard(tables, batch);
-        return TransportPipeline.Run(_session, Launchers, _options, tables, batch);
+        try
+        {
+            Guard(tables, batch);
+            return TransportPipeline.Run(_session, Launchers, _options, tables, batch);
+        }
+        catch
+        {
+            _session.Calibration.Clear();
+            throw;
+        }
     }
 
     /// <summary>Evaluates Cp/R, H/RT and S/R of table species at temperatures, one entry per thread.</summary>
     public SpeciesFunctionBatchResult Run(UploadedTables tables, SpeciesFunctionBatch batch)
     {
-        Guard(tables, batch);
-        return SpeciesFunctionPipeline.Run(_session, Launchers, _options, tables, batch);
+        try
+        {
+            Guard(tables, batch);
+            return SpeciesFunctionPipeline.Run(_session, Launchers, _options, tables, batch);
+        }
+        catch
+        {
+            _session.Calibration.Clear();
+            throw;
+        }
     }
 
     /// <summary>Runs the probe of the root's math list: <c>[input * MathProbe.FunctionCount + function]</c>.</summary>
     public double[] ProbeMath(double[] inputs)
     {
+        _session.Calibration.Clear();
         ArgumentNullException.ThrowIfNull(inputs);
         ThrowIfDisposed();
         _session.ThrowIfLost();
@@ -162,6 +196,8 @@ internal sealed class Engine : IDisposable
     }
 
     internal Accelerator IlgpuAccelerator => _session.Accelerator;
+
+    internal void ClearCalibration() => _session.Calibration.Clear();
 
     /// <summary>The typed launchers this engine compiled (2026-09-30, "Release at dispose"): visible to the tests node the way
     /// <see cref="IlgpuAccelerator"/> already is, so a fact can watch a launcher die at <see cref="Dispose"/>, not to any consumer.</summary>
@@ -264,6 +300,7 @@ internal sealed class UploadedTables : IDisposable
         }
 
         _disposed = true;
+        _engine.ClearCalibration();
         _ownership.Dispose();
     }
 }

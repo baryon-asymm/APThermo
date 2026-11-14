@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ILGPU.Runtime;
 
 namespace APThermo.Execution.Chunks;
@@ -12,6 +13,9 @@ internal interface IChunkBuffer : IDisposable
     /// kernel's <c>index * perCase</c> offset arithmetic must not overflow (BOOT.md, "A chunk's buffers stay within 32-bit
     /// offsets"; the audit's F4).</summary>
     long ElementsPerCase { get; }
+
+    /// <summary>Append the framed declaration and initial input bytes; false disables identity reuse for the whole inventory.</summary>
+    bool AppendIdentity(IncrementalHash hash);
 
     /// <summary>Allocates the buffer for a chunk of the given size, and uploads it if it is a constant.</summary>
     void Allocate(Accelerator accelerator, int chunk);

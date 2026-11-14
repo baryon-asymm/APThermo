@@ -1,4 +1,5 @@
 using APThermo.Execution.Chunks;
+using APThermo.Execution.Calibration;
 using ILGPU;
 using ILGPU.Runtime;
 using ILGPU.Runtime.Cuda;
@@ -26,6 +27,8 @@ internal sealed class AcceleratorSession : IDisposable
     }
 
     public LaunchBudget Budget { get; private set; } = LaunchBudget.None;
+
+    internal LaunchCalibrationCache Calibration { get; } = new();
 
     public AcceleratorInfo Info
     {
@@ -70,11 +73,19 @@ internal sealed class AcceleratorSession : IDisposable
         return accelerator;
     }
 
-    public LaunchBudget Attach(LaunchBudget budget) => Budget = budget;
+    public LaunchBudget Attach(LaunchBudget budget)
+    {
+        Calibration.Clear();
+        return Budget = budget;
+    }
 
     public Context Context { get; }
 
-    internal void MarkLost(AcceleratorUnavailableException timeout) => _lostBy ??= timeout;
+    internal void MarkLost(AcceleratorUnavailableException timeout)
+    {
+        Calibration.Clear();
+        _lostBy ??= timeout;
+    }
 
     internal void ThrowIfLost()
     {
@@ -104,6 +115,7 @@ internal sealed class AcceleratorSession : IDisposable
         }
 
         _disposed = true;
+        Calibration.Clear();
         _ownership.PrepareCleanup(primary, CleanupFilter);
         _ownership.Dispose();
     }

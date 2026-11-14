@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ILGPU.Runtime;
 
 namespace APThermo.Execution.Chunks;
@@ -30,6 +31,22 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
 
     public ChunkBuffer<T> Constant<T>(T[] host) where T : unmanaged =>
         Declare(new ChunkBuffer<T>(host, 0, ChunkTransfer.Constant));
+
+    /// <summary>Hash the complete initial declaration inventory before any allocation or upload; unsupported declarations disable reuse.</summary>
+    public string? InputIdentity()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_ownership is not null) { throw new InvalidOperationException("buffer identity must be captured before allocation"); }
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        BufferIdentityFrame.Text(hash, "APThermo.ChunkBuffers.InputIdentity.v1");
+        BufferIdentityFrame.Integer(hash, _buffers.Count);
+        foreach (var buffer in _buffers)
+        {
+            if (!buffer.AppendIdentity(hash)) { return null; }
+        }
+
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
 
     /// <summary>Registers the declared owners before allocation; partial allocation rolls the whole group back.</summary>
     public void Allocate(int chunk)

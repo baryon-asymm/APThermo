@@ -81,6 +81,12 @@ internal sealed record RunTimings(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Ker
     /// <summary>Successful launches whose measured interval includes synchronization.</summary>
     internal int LaunchCount { get; init; }
 
+    /// <summary>Actual case count of the first successful synchronized launch, or zero.</summary>
+    internal int FirstLaunchCases { get; init; }
+
+    /// <summary>Whether that current launch used a live previously observed initial prefix.</summary>
+    internal bool ReusedPrefix { get; init; }
+
     /// <summary>The sum of case counts covered by those successful launches.</summary>
     internal int CoveredCases { get; init; }
 

@@ -8,6 +8,28 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="identical-prefix-calibration-2026-11-14"></a>
+
+## 2026-11-14 — from Constraints — identical-workload empirical prefix reuse
+
+The former current rule was:
+
+      - `ChunkPlan` takes the budget as a fourth bound, beside count, bytes and offsets.
+        On a constrained device the first chunk is one case; later chunks use the
+        measured budget estimate but grow by at most twice the preceding case count.
+        Unbounded CPU/headless plans retain their size and results.
+        ⚠ 2026-11-14: was an unmeasured device wave, now one case with bounded growth
+        → HISTORY.md#launch-sampling-2026-11-14
+
+Repeated small launches regress the unchanged cumulative throughput gate. The
+root permits a bounded, weak, exact-input calibration entry for a measured initial
+prefix, with expiry, invalidation and actual current-run measurement. Unknown work
+still starts at one with 2x growth. A merged prefix is a new empirical probe, not a
+proven upper bound; the target, driver headroom and original gates remain unchanged.
+The full contract and controls live in ../Calibration/BOOT.md.
+
+---
+
 <a id="launch-sampling-2026-11-14"></a>
 
 ## 2026-11-14 — from Constraints — first launch and growth sampling

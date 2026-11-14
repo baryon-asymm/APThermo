@@ -17,11 +17,11 @@ internal sealed class LaunchBudget
     /// </summary>
     public static readonly TimeSpan DefaultRunTimeLimit = TimeSpan.FromSeconds(2);
 
-    private readonly TimeSpan? _limit;
+
 
     private LaunchBudget(TimeSpan? limit)
     {
-        _limit = limit;
+        TargetDuration = limit;
     }
 
     /// <summary>No budget: every chunk may be as large as the plan's other bounds allow.</summary>
@@ -35,7 +35,10 @@ internal sealed class LaunchBudget
     public static LaunchBudget FromRunTimeLimit(TimeSpan runTimeLimit) => new(runTimeLimit / 4);
 
     /// <summary>True when this budget actually bounds a launch's duration.</summary>
-    public bool IsBounded => _limit.HasValue;
+    public bool IsBounded => TargetDuration.HasValue;
+
+    /// <summary>The existing nullable launch target; no target means an unbounded plan.</summary>
+    public TimeSpan? TargetDuration { get; }
 
     /// <summary>
     /// How many cases the next launch may take, from how long the previous chunk's launch of <paramref name="previousCases"/>
@@ -45,7 +48,7 @@ internal sealed class LaunchBudget
     /// </summary>
     public int NextChunkCases(int previousCases, TimeSpan previousDuration)
     {
-        if (_limit is not { } limit)
+        if (TargetDuration is not { } limit)
         {
             return int.MaxValue;
         }

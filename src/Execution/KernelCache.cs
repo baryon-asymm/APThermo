@@ -42,6 +42,7 @@ internal sealed class KernelCache(AcceleratorSession session)
     {
         lock (_gate)
         {
+            session.Calibration.Clear();
             _launchers.Clear();
             session.Context.ClearCache(ClearCacheMode.Everything);
         }
@@ -58,6 +59,7 @@ internal sealed class KernelCache(AcceleratorSession session)
                 return (TDelegate)cached;
             }
 
+            session.Calibration.Clear();
             var watch = Stopwatch.StartNew();
             var launcher = Load(session, name).CreateLauncherDelegate<TDelegate>();
             _launchers[name] = launcher;

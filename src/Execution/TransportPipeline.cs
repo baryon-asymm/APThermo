@@ -26,16 +26,30 @@ internal static class TransportPipeline
         // dispose is idempotent) — kept only because a diagnostic (CA2000) needs a literal dispose beside the
         // allocation below, in the same method, to accept that this object does not escape undisposed.
         using var buffers = new ChunkBuffers(session.Accelerator);
-        var (temperatureBuffer, molesBuffer, scratchDoubles, scratchInts, figureBuffer, statusBuffer, figures, status) =
-            Declare(buffers, batch, table.ElementCount);
+        try
+        {
+            var (temperatureBuffer, molesBuffer, scratchDoubles, scratchInts, figureBuffer, statusBuffer, figures, status) =
+                Declare(buffers, batch, table.ElementCount);
 
-        var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
-        buffers.Allocate(plan.Size);
-        var views = new TransportBatchViews(temperatureBuffer.View, molesBuffer.View, scratchDoubles.View, scratchInts.View,
-                                            figureBuffer.View, statusBuffer.View);
-        BatchRun.Execute(session, plan, buffers, timer,
-                         cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, transportBuffers.View, views));
-        return new TransportBatchResult(figures, [.. status.Select(code => (CaseStatus)code)], timer.Timings(), session.Info);
+            var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
+            var inputIdentity = plan.Count > 0 && session.Budget.IsBounded && session.Info.Kind == AcceleratorKind.Cuda
+                ? buffers.InputIdentity() : null;
+            buffers.Allocate(plan.Size);
+            var views = new TransportBatchViews(temperatureBuffer.View, molesBuffer.View, scratchDoubles.View, scratchInts.View,
+                                                figureBuffer.View, statusBuffer.View);
+            using var calibration = inputIdentity is null ? null : session.Calibration.Begin(launcher, tables, plan, inputIdentity, in views);
+            BatchRun.Execute(session, plan, buffers, timer,
+                             cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, transportBuffers.View, views), calibration);
+            var result = new TransportBatchResult(figures, [.. status.Select(code => (CaseStatus)code)], timer.Timings(), session.Info);
+            calibration?.Complete();
+            return result;
+        }
+        catch (Exception primary)
+        {
+            session.Calibration.Clear();
+            buffers.DisposePreserving(primary, session.CleanupFilter);
+            throw;
+        }
     }
 
     /// <summary>

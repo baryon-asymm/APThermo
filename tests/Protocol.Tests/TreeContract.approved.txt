@@ -133,6 +133,7 @@ sealed class APThermo.Execution.Engine : IDisposable
     internal Boolean DropsAfterLoss(CudaError error)
     internal KernelCache Launchers { get; }
     internal LaunchBudget Budget { get; }
+    internal Void ClearCalibration()
     internal Void DisposeAfterLoss(IDisposable disposable)
     internal Void MarkLost(AcceleratorUnavailableException timeout)
     internal Void RunBatchLoop(ChunkPlan plan, ChunkBuffers buffers, RunTimer timer, Action<Int32> launch)
@@ -257,7 +258,9 @@ sealed class (record) APThermo.Execution.RunTimings : IEquatable<RunTimings>
     TimeSpan Kernel { get; init; }
     TimeSpan Upload { get; init; }
     TimeSpan WarmUp { get; init; }
+    internal Boolean ReusedPrefix { get; init; }
     internal Int32 CoveredCases { get; init; }
+    internal Int32 FirstLaunchCases { get; init; }
     internal Int32 LaunchCount { get; init; }
     internal Int32 MaxLaunchCases { get; init; }
     internal Int32 MaxLaunchOrdinal { get; init; }

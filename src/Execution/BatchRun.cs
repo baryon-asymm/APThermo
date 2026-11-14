@@ -1,24 +1,30 @@
 using System.Diagnostics;
+using APThermo.Execution.Calibration;
 using APThermo.Execution.Chunks;
 using ILGPU.Runtime.Cuda;
 
 namespace APThermo.Execution;
 
-/// <summary>The batch loop: upload, launch/synchronise and download each chunk, preserving a primary failure during cleanup.</summary>
+/// <summary>The timed batch loop, preserving a primary failure during cleanup.</summary>
 internal static class BatchRun
 {
-    public static void Execute(AcceleratorSession session, ChunkPlan plan, ChunkBuffers buffers, RunTimer timer, Action<int> launch)
+    public static void Execute(AcceleratorSession session, ChunkPlan plan, ChunkBuffers buffers,
+        RunTimer timer, Action<int> launch, CalibrationRun? calibration = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(buffers);
         ArgumentNullException.ThrowIfNull(timer);
         ArgumentNullException.ThrowIfNull(launch);
+        if (calibration is null)
+        {
+            session.Calibration.Clear();
+        }
 
         Exception? primary = null;
         try
         {
             var offset = 0;
-            var length = plan.FirstChunkCases();
+            var length = calibration?.FirstChunkCases() ?? plan.FirstChunkCases();
             while (offset < plan.Count)
             {
                 length = Math.Min(length, plan.Count - offset);
@@ -27,8 +33,12 @@ internal static class BatchRun
                     buffers.UploadChunk(offset, length);
                 }
 
-                var elapsed = Launch(launch, length, session, timer);
+                if (offset == 0 && calibration is not null)
+                {
+                    length = RefreshFirstUpload(buffers, timer, calibration, length);
+                }
 
+                var elapsed = Launch(launch, length, session, timer, calibration);
                 using (timer.Downloading())
                 {
                     buffers.DownloadChunk(offset, length);
@@ -44,6 +54,7 @@ internal static class BatchRun
         catch (Exception failure)
         {
             primary = failure;
+            calibration?.Dispose();
             throw;
         }
         finally
@@ -52,8 +63,24 @@ internal static class BatchRun
         }
     }
 
+    /// <summary>Expiry during the initial upload restores the cold sample before physical launch.</summary>
+    private static int RefreshFirstUpload(ChunkBuffers buffers, RunTimer timer, CalibrationRun calibration, int length)
+    {
+        var refreshed = calibration.FirstChunkCases();
+        if (refreshed != length)
+        {
+            using (timer.Uploading())
+            {
+                buffers.UploadChunk(0, refreshed);
+            }
+        }
+
+        return refreshed;
+    }
+
     /// <summary>Normalizes only a CUDA launch timeout; the lost session refuses subsequent work.</summary>
-    private static TimeSpan Launch(Action<int> launch, int length, AcceleratorSession session, RunTimer timer)
+    private static TimeSpan Launch(Action<int> launch, int length, AcceleratorSession session,
+        RunTimer timer, CalibrationRun? calibration)
     {
         var start = Stopwatch.GetTimestamp();
         try
@@ -69,7 +96,8 @@ internal static class BatchRun
         }
 
         var elapsed = Stopwatch.GetElapsedTime(start);
-        timer.RecordSuccessfulLaunch(length, elapsed);
+        timer.RecordSuccessfulLaunch(length, elapsed, calibration?.ReusedPrefix ?? false);
+        calibration?.ObserveSuccessfulLaunch(length, elapsed);
         return elapsed;
     }
 

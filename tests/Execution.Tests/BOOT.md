@@ -67,6 +67,16 @@ Retain the controlled positive/negative observable cases and the scientific chec
 
 ## Invariants
 
+- **Bounded repeat calibration (2026-11-14).** Host controls independently check
+  every key dimension and reflected scalar, observed full-prefix boundaries,
+  cumulative cost and actual overrun refusal, expiry at lookup and first launch,
+  primary-aware failure invalidation, publication after result assembly and weak
+  nonretention. Actual BatchRun controls prove current uploads/results/timings on
+  a hit; InputOutput uses its initial seed identity. FirstLaunchCases/ReusedPrefix
+  report the first current successful launch, never an inferred or saved sample.
+  These CPU controls do not establish CUDA speed or duration; root runs unchanged
+  budget and 5x/80%/115% throughput gates on the actual device.
+
 - **Audit A01/A35 witnesses (2026-11-14).** Frozen SrCl2 overlap and Mg/H/O/S
   multi-floor inputs exercise the changed equilibrium kernel on CUDA as well as
   the CPU accelerator. Exact backend equality includes statuses, every state
@@ -172,6 +182,8 @@ compile/cache observations replace them while the root's upper budget stays.
 ⚠ 2026-10-04: was "states left out of the families for their element balance" (the 17-element table and the hp states of magnesite at 1e4 and 1e6 Pa), now none: the relative closure of the solver puts every one back in its family → HISTORY.md#left-out-states
 
 ## Dependencies
+
+[Calibration](../../src/Execution/Calibration/API.md)
 
 - [Execution](../../src/Execution/API.md) — what is being checked.
 - [Execution.Chunks](../../src/Execution/Chunks/API.md) — `Chunk` and `ChunkPlan`, in
