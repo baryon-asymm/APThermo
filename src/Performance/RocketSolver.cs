@@ -42,13 +42,7 @@ internal static class RocketSolver
     {
         var stationCount = RocketLayout.StationCount((int)problem.ExitValues.Length);
         result.Status[0] = (int)CaseStatus.InvalidInput;
-        for (var station = 0; station < stationCount; station++)
-        {
-            result.StationStatus[station] = (int)CaseStatus.InvalidInput;
-            result.Iterations[station] = 0;
-            result.Figures[station] = default;
-            result.Stations[station] = default;
-        }
+        StationFigures.Initialize(in result, stationCount);
 
         if (!(problem.ChamberPressure > 0.0) || table.SpeciesCount <= 0 || table.ElementCount <= 0 || !IsDefinedFlow(problem.Flow))
         {
@@ -73,28 +67,7 @@ internal static class RocketSolver
     }
 
     /// <summary>Keep only the documented NoGasPhase T,p exception and diagnostic composition on failure.</summary>
-    internal static void FinalizeFailures(in RocketResult result)
-    {
-        for (var station = 0; station < result.Stations.Length; station++)
-        {
-            var status = (CaseStatus)result.StationStatus[station];
-            if (status == CaseStatus.Ok)
-            {
-                continue;
-            }
-
-            var failed = result.Stations[station];
-            var retained = default(MixtureState);
-            if (status == CaseStatus.NoGasPhase)
-            {
-                retained.Temperature = failed.Temperature;
-                retained.Pressure = failed.Pressure;
-            }
-
-            result.Stations[station] = retained;
-            result.Figures[station] = default;
-        }
-    }
+    internal static void FinalizeFailures(in RocketResult result) => StationFigures.FinalizeFailures(in result);
 
     private static bool IsDefinedFlow(FlowModel flow) =>
         flow is FlowModel.ShiftingEquilibrium or FlowModel.FrozenAtChamber or FlowModel.FrozenAtThroat;

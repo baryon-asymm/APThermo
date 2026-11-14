@@ -169,8 +169,8 @@ internal struct ThroatBracket
 /// <summary>
 /// One end of a bracket <see cref="PhaseBoundaryLocator"/> narrows: a solved point's pressure, its temperature (the
 /// next solve's estimate), its sonic ratio u²/a² (0 where u² was not positive, the same subsonic reading
-/// <see cref="ThroatBracketSearch"/>'s trials use, BOOT.md, 2026-09-28) and the condensed-species fingerprint of the
-/// state solved there.
+/// <see cref="ThroatBracketSearch"/>'s trials use, BOOT.md, 2026-09-28) and the exact condensed-species identity of the
+/// state solved there. Capture and equality belong to this point, not to a consumer's knowledge of its representation.
 /// </summary>
 internal readonly struct PhaseBoundaryEnd(double pressure, double temperature, double sonicRatio, CondensedSetIdentity fingerprint)
 {
@@ -178,6 +178,11 @@ internal readonly struct PhaseBoundaryEnd(double pressure, double temperature, d
     public readonly double Temperature = temperature;
     public readonly double SonicRatio = sonicRatio;
     public readonly CondensedSetIdentity Fingerprint = fingerprint;
+
+    internal static PhaseBoundaryEnd Capture(in RocketContext context, double pressure, double temperature, double sonicRatio) =>
+        new(pressure, temperature, sonicRatio, CondensedSetIdentity.FromSlots(context.Scratch.CondensedInSolution));
+
+    internal bool SameSetAs(in PhaseBoundaryEnd other) => Fingerprint.SameAs(in other.Fingerprint);
 }
 
 /// <summary>

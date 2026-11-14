@@ -145,8 +145,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
     ⚠ 2026-09-28, the third pass: was a cap of 4 that accepted the unverified
     candidate as Ok, now 8 and ThroatNotFound → HISTORY.md#boundary-cap
 
-  `ThroatSearch` composes the local search and the check, and stays the only writer of
-  the throat's figures. `FrozenAtChamber` flow is unaffected: its frozen sound speed is
+  `ThroatSearch` composes the local search and the check; `StationFigures` writes
+  the accepted throat's figures. `FrozenAtChamber` flow is unaffected: its frozen sound speed is
   continuous. The throat's figures are those of the state actually solved: its pressure
   ratio is `p_c` over that state's pressure (2026-09-26). → HISTORY.md#throat-search
 
@@ -218,7 +218,7 @@ rewrote no formula.
 |---|---|---|
 | `RocketSolver` | the contract: the constants and `Solve`, reduced to the station order (clear the views, the chamber, the throat, the exits, the case status); holds no formula | internal (2026-09-15, distribution phase), contract unchanged |
 | `ChamberSolve` | the chamber state at assigned enthalpy and pressure, made frozen where the flow model says so (sections 6.3.1 and 6.5.3); returns `ChamberReference` | internal |
-| `ThroatSearch` | asks `ThroatBracketSearch` for the throat pressure and defines what the accepted station gives the case: the mass flux and `c*`; returns `ThroatReference` | internal |
+| `ThroatSearch` | composes the local throat search, upstream choke verification and accepted-throat figure write; returns `ThroatReference` | internal |
 | `ThroatBracketSearch` | the sonic throat pressure: the momentum iterations of (6.15)–(6.17), the bracket they track along the way, its bisection where the iterations end short, and the plateau-edge acceptance (2026-09-26, finding F1); since 2026-09-28 a candidate with its condensed set, the first trial's limit at `γ_s` = 1, and the edge state checked for its side | internal |
 | `PhaseBoundaryLocator` | the pressures along the chamber isentrope where the condensed set changes between the chamber and a candidate throat, each by a bounded bisection in `ln p` (2026-09-28) | internal |
 | `UpstreamChokeCheck` | the first maximum of the mass flux from the chamber: over the located boundaries, the first plateau edge or sonic crossing, else the candidate (2026-09-28) | internal |
@@ -226,7 +226,7 @@ rewrote no formula.
 | `AreaRatioIteration` | one exit assigned by area ratio: the initial `ln(p_c/p_e)` of (6.21)–(6.23), the correction of (6.24)–(6.25), an explicit outcome | internal |
 | `PressureRatioStation` | one exit assigned by pressure ratio (6.3.6): the station pressure from the ratio, the solve at that pressure, the velocity, the area ratio and the figures as outputs | internal |
 | `StationSolve` | one station's sp or frozen solve: the sub-views, the estimate composition copied in, the call into `Equilibrium` | internal |
-| `StationFigures` | the energy equation, the area ratio and the figures of section 6.2, each written once | internal |
+| `StationFigures` | the energy equation, the area ratio and the figures of section 6.2, each written once; initializes station payloads and finalizes failed payloads; writes accepted-throat figures and its downstream reference | internal |
 
 Carriers (`Carriers.cs`, each documented there): `RocketContext`, `ChamberReference`,
 `ThroatReference`, `StationRequest`, `StationFigureInputs`, `ThroatQuery` (its
@@ -291,12 +291,29 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 |---|---|---|---|
 | `RocketProblem.RocketProblem` | parameters | 7 | mirrors, one argument per field, the case the kernel reads, as `API.md` publishes it; grouping it would move the contract and re-emit the kernels (the decision "The descriptors keep their constructors"); every creation names its arguments |
 | `RocketResult.RocketResult` | parameters | 7 | mirrors, one argument per field, the views the solver writes into, as `RocketProblem` above |
-| `UpstreamChokeCheck` | efferent coupling | 15 | the first-maximum orchestration stage (2026-09-28, finding F1): it walks `PhaseBoundaryLocator`'s boundaries and hands each to `ThroatBracketSearch`'s own `Bisect` or `AcceptPlateauEdge`, so it names every carrier the two together use (`RocketContext`, `ThroatQuery`, `ChamberReference`, `CaseStatus`, `PhaseBoundaryEnd`, `PhaseBoundaryQuery`, `PhaseBoundary`, `ThroatBracket`, `StationRequest`, `MixtureState`) plus the four stages themselves (`PhaseBoundaryLocator`, `ThroatBracketSearch`, `StationSolve`, `RocketSolver`) — the same kind of figure the root's own history records for the decomposed kernel stages (12 to 16, `BOOT.md`'s Code shape note of 2026-09-14); it holds no formula of its own, only the walk and the acceptance dispatch |
+| `UpstreamChokeCheck` | efferent coupling | 18 | formula-free first-maximum walk and acceptance dispatch: it assembles existing boundary/bracket carriers and calls PhaseBoundaryLocator, ThroatBracketSearch and StationSolve; the root's existing composition-root exception applies to this stage only. Its concrete tree types are RocketContext, RocketResult, ThroatQuery, ChamberReference, CaseStatus, PhaseBoundaryEnd, PhaseBoundaryQuery, PhaseBoundary, ThroatBracket, StationRequest, StationFlow, MixtureState, PhaseBoundaryLocator, ThroatBracketSearch, StationSolve, CondensedSetIdentity, PhaseBoundaryWalk and PhaseBoundaryAction. The last three implement exact identity and bounded classification, rather than a new physical formula; dispatch stays together so the cap and restoration paths remain reviewable |
+
+⚠ 2026-11-14: the row stated Ce 15 before exact identity and the explicit bounded
+walk/classification added CondensedSetIdentity, PhaseBoundaryWalk and PhaseBoundaryAction.
+The current ShapeTests measurement is 18. The prior explanation incorrectly counted
+a RocketSolver constants-only reference; the actual body walk also includes the
+RocketResult and StationFlow carrier types. No general coupling limit is raised.
 
 Outside the row above no type of this node names more than 14 distinct types of the
 tree by the dependency check's walk (`ExitStations` and `ChamberSolve` tie at 14, the
 ceiling): the Size bullet's composition-root exception is not claimed, and this node
 needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
+
+### Integration responsibility correction (2026-11-14)
+
+⚠ 2026-11-14: the audit additions exposed excess coupling in the locator and
+orchestration stages. Previously ThroatSearch also owned throat-figure formulas,
+and RocketSolver directly initialized/finalized station payloads. Those writes now
+belong to the existing StationFigures stage; expressions and their order stay exact.
+PhaseBoundaryEnd owns identity capture and equality so a boundary locator need not
+know the identity representation. Preserve NoInlining, scratch limits and policies.
+The existing formula-free UpstreamChokeCheck exception must name the measured walk
+and dispatch types; a stale count is not permission to raise the general limit.
 
 ### Audit closure (2026-11-14)
 

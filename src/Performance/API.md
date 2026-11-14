@@ -90,6 +90,7 @@ internal static class RocketSolver                         // kernel-compatible
 {
     public const double SonicTolerance = 4.0e-5;         // equation (6.16), on |u² − a²|/u²
     public const double AreaRatioTolerance = 4.0e-5;     // equation (6.25), on the last correction of ln(p_c/p_e)
+    internal const double AreaRatioResidualTolerance = 1.0e-6; // final relative area residual before Ok
     internal const double ThroatDecisionTolerance = 1.0e-8; // the throat decides on |u²/a² − 1| within this (2026-10-02, owner)
     internal const int ThroatTailSteps = 2;              // momentum steps after the decision, the last is the throat (2026-10-02, owner)
     public const int MaxThroatIterations = 20;
@@ -97,6 +98,7 @@ internal static class RocketSolver                         // kernel-compatible
     public const int MaxThroatBisections = 60;           // halvings of the throat bracket in ln p (2026-09-26, BOOT.md)
     public static void Solve(in SpeciesTableView table, in RocketProblem problem,
                              in EquilibriumScratch scratch, in RocketResult result);
+    internal static void FinalizeFailures(in RocketResult result); // failed state/figures zero, NoGasPhase T,p retained
 }
 ```
 
@@ -132,6 +134,11 @@ coder of the same day found it and reported it (AGENTS.md §7: a ✅ may be plac
 after what is declared exists); the constant was moved to a ⏳ section until the code
 was written. The throat's largest-mass-flux rule (`BOOT.md`, 2026-09-26) now carries
 the constant, and it moved back into the block above, with this note kept as history.
+
+⚠ 2026-11-14: the final-area residual constant and failure-finalization entry were
+implemented during audit closure but omitted from this tree-contract declaration.
+Their real signatures are now recorded. Internal payload writes are owned by
+StationFigures; the RocketSolver finalization entry retains its existing signature.
 
 ## Errors
 

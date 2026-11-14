@@ -4,11 +4,66 @@ namespace APThermo.Performance;
 
 /// <summary>
 /// The quantities RP-1311 section 6.2 defines at a station: the velocity from the energy equation, the area ratio from the
-/// throat's mass flux, and the figures of the throat and of every exit, each formula here once. The characteristic velocity is the
-/// throat's; <see cref="ThroatSearch"/> writes it, with p_c/p = 1, into the chamber's figures.
+/// throat's mass flux, and the figures of the throat and of every exit, each formula here once. This stage owns writes to
+/// station payloads, including their initial state and the documented failed-station finalization policy.
 /// </summary>
 internal static class StationFigures
 {
+    /// <summary>Initialize the requested station rows before any solve.</summary>
+    internal static void Initialize(in RocketResult result, int stationCount)
+    {
+        for (var station = 0; station < stationCount; station++)
+        {
+            result.StationStatus[station] = (int)CaseStatus.InvalidInput;
+            result.Iterations[station] = 0;
+            result.Figures[station] = default;
+            result.Stations[station] = default;
+        }
+    }
+
+    /// <summary>Keep only the documented NoGasPhase T,p exception and diagnostic composition on failure.</summary>
+    internal static void FinalizeFailures(in RocketResult result)
+    {
+        for (var station = 0; station < result.Stations.Length; station++)
+        {
+            var status = (CaseStatus)result.StationStatus[station];
+            if (status == CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var failed = result.Stations[station];
+            var retained = default(MixtureState);
+            if (status == CaseStatus.NoGasPhase)
+            {
+                retained.Temperature = failed.Temperature;
+                retained.Pressure = failed.Pressure;
+            }
+
+            result.Stations[station] = retained;
+            result.Figures[station] = default;
+        }
+    }
+
+    /// <summary>The accepted throat's mass flux, characteristic velocity and figures, and the chamber's figures.</summary>
+    internal static ThroatReference Throat(in RocketContext context, in ChamberReference chamber, double pressureThroat)
+    {
+        var result = context.Result;
+        var pressureChamber = chamber.Pressure;
+        var throatState = result.Stations[RocketSolver.Throat];
+        var velocityThroat = Velocity(chamber.Enthalpy, in throatState);
+        var massFluxThroat = throatState.Density * velocityThroat;
+        var characteristicVelocity = pressureChamber / massFluxThroat;
+        var inputs = new StationFigureInputs(velocityThroat, 1.0, pressureChamber / pressureThroat, characteristicVelocity);
+        Write(in context, RocketSolver.Throat, in inputs, chamber.Entropy);
+        var chamberFigures = result.Figures[RocketSolver.Chamber];
+        chamberFigures.PressureRatio = 1.0;
+        chamberFigures.CharacteristicVelocity = characteristicVelocity;
+        result.Figures[RocketSolver.Chamber] = chamberFigures;
+        return new ThroatReference(pressureThroat, massFluxThroat, characteristicVelocity, KernelMath.Log(pressureChamber / pressureThroat),
+                                   throatState.GammaS);
+    }
+
     /// <summary>The energy equation of section 6.2: u² = 2(h_c − h).</summary>
     public static double VelocitySquared(double chamberEnthalpy, in MixtureState state) => 2.0 * (chamberEnthalpy - state.Enthalpy);
 

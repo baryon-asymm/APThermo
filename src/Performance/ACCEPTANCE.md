@@ -144,3 +144,16 @@
   refusal with Ok makes the negative control fail; reaching the candidate is green.
 - [ ] The changed rocket program passes the orchestrator's CUDA/CPU equality and
   architecture runs, without blind approval of any moved bit snapshot.
+
+- [x] 2026-11-14 — Integration coupling corrections: the full ShapeTests run reports
+  no Performance violation after PhaseBoundaryEnd encapsulation and moving station
+  payload/throat-figure writes into StationFigures. The existing formula-free walk
+  exception is measured at 18 with its concrete types recorded. Evidence:
+  `SCRATCH/audit/shape-before.log`, `shape-after.log` in audit-performance.
+  The latter still fails only on stale foreign Solver/DeadEndRecheck findings.
+- [x] 2026-11-14 — Refactoring leaves the rocket bits unchanged: full CPU Performance
+  run 1489 pass, one pre-existing rp1311-example13 snapshot mismatch; restoring all
+  five changed source files to pre-refactor HEAD reproduces the same cb1f950c... hash
+  (approved 76703e3f...). No approved file changed. Evidence
+  `SCRATCH/audit/performance-ce-full.log`, `performance-ce-old-source-bits.log`.
+  Root must resolve that already-present numerical delta at integration.
