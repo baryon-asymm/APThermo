@@ -1,4 +1,5 @@
 using APThermo.Equilibrium.Recovery;
+using APThermo.Harness;
 using APThermo.Thermo;
 using ILGPU.Runtime;
 
@@ -123,6 +124,119 @@ public sealed class RecoveryCandidateTests
         });
     }
 
+    /// <summary>A completed warm result, including signed-zero state bits, survives rejected alternatives exactly.</summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure)]
+    [InlineData(ProblemKind.AssignedEntropyPressure)]
+    public void ASuccessfulWarmHpOrSpBanksAndRestoresTheExactOriginal(ProblemKind kind)
+    {
+        WithViews(kind, (table, input, scratch, result) =>
+        {
+            var plan = new AttemptPlan();
+            plan.Begin(input, useMolesAsEstimate: true);
+            plan.Iterations = 17;
+            var original = State(kind, 0);
+            original.InternalEnergy = -0.0;
+            WriteCandidate(table, result, original, 1.0);
+            SetPhaseGains(table, scratch, positive: true);
+            Assert.True(AttemptPlan.Next(table, input, scratch, result, CaseStatus.Ok, ref plan));
+            Assert.Equal(Recheck.Pending, plan.Recheck.Stage);
+            Assert.Equal(AttemptPhase.Cold, plan.Phase);
+            Assert.Equal(EstimateSource.Defaults, plan.Source);
+            Assert.Equal(ProblemKind.AssignedTemperaturePressure, plan.Current.Kind);
+            AssertState(original, plan.Recheck.BestState);
+            var spent = Exhaust(table, input, scratch, result, ref plan);
+            Assert.Equal(Recheck.Complete, plan.Recheck.Stage);
+            Assert.Equal(CaseStatus.Ok, plan.Status);
+            AssertState(original, result.State[0]);
+            AssertCandidate(table, result, 1.0);
+            Assert.Equal(17 + spent, plan.Iterations);
+        });
+    }
+
+    /// <summary>A warm success without a positive-gain floor still completes directly, without changing its result.</summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure)]
+    [InlineData(ProblemKind.AssignedEntropyPressure)]
+    public void ANoFloorWarmSuccessEndsUntouched(ProblemKind kind)
+    {
+        WithViews(kind, (table, input, scratch, result) =>
+        {
+            var plan = new AttemptPlan();
+            plan.Begin(input, useMolesAsEstimate: true);
+            plan.Iterations = 17;
+            var original = State(kind, 0);
+            WriteCandidate(table, result, original, 1.0);
+            SetPhaseGains(table, scratch, positive: false);
+            Assert.False(AttemptPlan.Next(table, input, scratch, result, CaseStatus.Ok, ref plan));
+            Assert.Equal(Recheck.None, plan.Recheck.Stage);
+            Assert.Equal(AttemptPhase.Warm, plan.Phase);
+            Assert.Equal(EstimateSource.PreviousSolution, plan.Source);
+            Assert.Equal(17, plan.Iterations);
+            AssertState(original, result.State[0]);
+            AssertCandidate(table, result, 1.0);
+        });
+    }
+
+    /// <summary>A failed warm attempt keeps the existing one-time cold fallback and discards its temperature estimate.</summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure)]
+    [InlineData(ProblemKind.AssignedEntropyPressure)]
+    public void AFailedWarmAttemptStillRequestsItsColdFallback(ProblemKind kind)
+    {
+        WithViews(kind, (table, input, scratch, result) =>
+        {
+            var seeded = new EquilibriumProblem(kind, input.Pressure, 725.0, input.Target, input.ElementMoles);
+            var plan = new AttemptPlan();
+            plan.Begin(seeded, useMolesAsEstimate: true);
+            plan.Iterations = 17;
+            Assert.True(AttemptPlan.Next(table, seeded, scratch, result, CaseStatus.SingularMatrix, ref plan));
+            Assert.Equal(AttemptPhase.Cold, plan.Phase);
+            Assert.Equal(EstimateSource.Defaults, plan.Source);
+            Assert.Equal(0.0, plan.Current.Temperature);
+            Assert.Equal(input.Target, plan.Current.Target);
+            Assert.Equal(input.Pressure, plan.Current.Pressure);
+            Assert.Equal(Recheck.None, plan.Recheck.Stage);
+            Assert.Equal(17, plan.Iterations);
+        });
+    }
+
+    /// <summary>Recovery finals contribute to the existing bank and advance its cursor instead of beginning a new recheck.</summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, false)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, false)]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure, true)]
+    [InlineData(ProblemKind.AssignedEntropyPressure, true)]
+    public void AWarmRecheckFinalAdvancesWithoutResettingItsBank(ProblemKind kind, bool traceGas)
+    {
+        WithViews(kind, (table, input, scratch, result) =>
+        {
+            var plan = new AttemptPlan();
+            plan.Begin(input, useMolesAsEstimate: true);
+            WriteCandidate(table, result, State(kind, 0), 1.0);
+            SetPhaseGains(table, scratch, positive: true);
+            Assert.True(AttemptPlan.Next(table, input, scratch, result, CaseStatus.Ok, ref plan));
+            var firstFloor = plan.Recheck.Floor;
+            plan.Recheck.Stage = Recheck.Held;
+            plan.Phase = traceGas ? AttemptPhase.TraceGasFinal : AttemptPhase.Final;
+            var better = State(kind, 1);
+            WriteCandidate(table, result, better, 2.0);
+            Assert.True(AttemptPlan.Next(table, input, scratch, result, CaseStatus.Ok, ref plan));
+            Assert.True(plan.Recheck.Floor > firstFloor);
+            AssertState(better, plan.Recheck.BestState);
+            _ = Exhaust(table, input, scratch, result, ref plan);
+            AssertState(better, result.State[0]);
+            AssertCandidate(table, result, 2.0);
+        });
+    }
+
+    private static void SetPhaseGains(SpeciesTableView table, EquilibriumScratch scratch, bool positive)
+    {
+        for (var index = table.GasCount; index < table.SpeciesCount; index++)
+        {
+            scratch.GOverRT[index] = positive ? -1e6 : 1e6;
+        }
+    }
     private static int Exhaust(SpeciesTableView table, EquilibriumProblem problem, EquilibriumScratch scratch,
                                EquilibriumResult result, ref AttemptPlan plan)
     {
@@ -165,7 +279,7 @@ public sealed class RecoveryCandidateTests
         Assert.Equal(typeof(MixtureState).GetProperties().Length, properties.Length);
         foreach (var property in properties)
         {
-            Assert.Equal(property.GetValue(expected), property.GetValue(actual));
+            Assert.True(Bits.Same((double)property.GetValue(expected)!, (double)property.GetValue(actual)!), property.Name);
         }
     }
     private static void WriteCandidate(SpeciesTableView table, EquilibriumResult result, MixtureState state, double marker)

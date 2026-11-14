@@ -26,9 +26,13 @@ own iteration fails, which RP-1311 leaves open.
 
 The parent's invariants hold here.
 
-- **An `Ok` attempt ends the case untouched**, with the one exception of "Dead-end floors": an `Ok` cold
+- **An `Ok` attempt ends the case untouched**, with the one exception of "Dead-end floors": an initial `Ok` cold or warm
   hp or sp state below a dead-end floor with a positive inclusion gain is rechecked, and banks its exact physical result. The best completed candidate replaces it;
   unresolved alternatives cause an honest refusal and all search work is counted.
+
+  ⚠ 2026-11-14 (R08): this invariant formerly named cold only. Root decision d84e423d
+  extends the same bank to an initial warm success; the independent seeded SP witness
+  and exact candidate-transfer controls cover that previously omitted path.
 
   ⚠ 2026-10-04: was "the plan acts only after a failure", now also after an `Ok` below a dead-end floor → HISTORY.md#recheck-ok
 - **Every probe is a Gibbs minimization at an assigned temperature.** The probes are tp attempts of
@@ -237,6 +241,12 @@ method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`, `TraceGas
 floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state). One type per file.
 
 ## Acceptance criteria
+
+- [ ] R08: `RecoveryCandidateTests` drives initial Warm HP/SP through AttemptPlan.Next,
+  checks first probe Defaults/Cold, exact original restoration and counted work after
+  rejected alternatives, no-floor untouched completion, failed-Warm cold fallback,
+  and Final/TraceGasFinal routing through the active bank. The shared CPU consumer
+  checks the independently constrained seeded HP/SP physical witnesses.
 
 - [x] 2026-11-14 — CPU audit A35 (`AuditPhaseBranchTests`): Mg-H-O-S HP/SP inputs meet H/S and element
   balances and are no worse than independently recomputed feasible witnesses.

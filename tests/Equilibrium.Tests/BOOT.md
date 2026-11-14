@@ -184,6 +184,10 @@ creation names its arguments; it passes them by position today (the criterion be
 
 ## Acceptance criteria
 
+- [ ] R08: initial Warm HP/SP entry, bank restoration, no-floor completion, failed
+  warm fallback and nonrecursive final routing are checked by RecoveryCandidateTests;
+  the shared Execution CPU companion retains independent same-H/S objectives.
+
 - [x] 2026-11-14 — `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` preserves the approved
   bytes; an actual one-ULP mole mutation yields a readable named per-case field dump.
 
