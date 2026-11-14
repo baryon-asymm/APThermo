@@ -18,9 +18,13 @@ The definition of what "`Performance` is ready" means.
 
 - **Reference is files**; **tolerances come from the fixtures node**; **every fixture
   case is enumerated**, as in the equilibrium tests node.
-- The compared fields are enumerated by reflection over `MixtureState` and
-  `PerformanceFigures`, so a new field is compared without a code change or fails
-  loudly if the fixture lacks it.
+- The fixture's numeric fields map by reflection to MixtureState or
+  PerformanceFigures; an unmapped fixture field fails loudly. The finite-figure
+  invariant separately enumerates every double property of PerformanceFigures.
+
+  ⚠ 2026-11-14: the old wording promised reverse coverage of newly added result
+  fields. StationComparison is fixture-driven, so it never established that claim
+  (A28); its actual scope and the independent finite-field inventory are stated here.
 - **The bits are a tripwire, not a contract** (2026-09-14): the Bits level guards the
   numerics against unnoticed change the way the surface snapshot guards the contract
   (`AGENTS.md` §13). A moved line in `Bits.approved.txt` is legitimate only with the

@@ -4,68 +4,50 @@ using APThermo.Thermo;
 namespace APThermo.Performance;
 
 /// <summary>
-/// Theoretical rocket performance of one case with an infinite-area chamber, RP-1311 Part I chapter 6: the chamber at
-/// assigned enthalpy and pressure, the throat by the sonic condition (equations 6.15 to 6.17), the exit stations at assigned
-/// pressure ratios or area ratios (6.21 to 6.25), in shifting equilibrium or with the composition frozen at the chamber or
-/// at the throat (6.5). Kernel-compatible: static, no allocation, no exceptions.
+/// Theoretical rocket performance of one case with an infinite-area chamber, RP-1311 Part I chapter 6.
+/// The stages own the formulae; this composition root owns station order and failure finalization.
 /// </summary>
-/// <remarks>
-/// This is the contract and the order of the stations; every formula lives in the stage it belongs to — <see cref="ChamberSolve"/>,
-/// <see cref="ThroatSearch"/>, <see cref="ExitStations"/>, <see cref="AreaRatioIteration"/>, <see cref="PressureRatioStation"/>,
-/// <see cref="StationSolve"/> and <see cref="StationFigures"/> — as the node's BOOT.md sets out under Structure.
-/// </remarks>
 internal static class RocketSolver
 {
-    /// <summary>Equation (6.16): the throat is sonic when |u² − a²|/u² is within this.</summary>
+    /// <summary>Equation (6.16): the report's relative sonic tolerance.</summary>
     public const double SonicTolerance = 4.0e-5;
-
-    /// <summary>Equation (6.25): an assigned area ratio is met when the last correction of ln(p_c/p_e) is within this.</summary>
+    /// <summary>Equation (6.25): the report's correction tolerance for an area-ratio station.</summary>
     public const double AreaRatioTolerance = 4.0e-5;
-
-    /// <summary>Iterations continue past the report's tolerances until the correction is this small, so that the reported station is at rounding level.</summary>
+    /// <summary>Polishing tolerance of the area-ratio iteration.</summary>
     internal const double TightTolerance = 1.0e-10;
-
-    /// <summary>The throat's decision: the first trial with |u²/a² − 1| within this decides, in the momentum loop and in the bisection of a bracket whose ends hold one condensed set (BOOT.md, 2026-10-02, the owner's decision); <see cref="ThroatTailSteps"/> momentum steps follow it. The area-ratio iteration keeps <see cref="TightTolerance"/>.</summary>
+    /// <summary>Final relative area residual required by the node invariant.</summary>
+    internal const double AreaRatioResidualTolerance = 1.0e-6;
+    /// <summary>The owner's throat-decision threshold, followed by the fixed momentum tail.</summary>
     internal const double ThroatDecisionTolerance = 1.0e-8;
-
-    /// <summary>The momentum steps taken after the throat's decision, whatever their ratio; the last is the throat. They may run past <see cref="MaxThroatIterations"/> (BOOT.md, 2026-10-02).</summary>
+    /// <summary>Momentum steps after the throat decision, even beyond the initial iteration cap.</summary>
     internal const int ThroatTailSteps = 2;
-
     public const int MaxThroatIterations = 20;
     public const int MaxAreaRatioIterations = 20;
-
-    /// <summary>Halvings of the throat bracket in ln p when the momentum iterations end without a sonic throat (BOOT.md, 2026-09-26).</summary>
+    /// <summary>Maximum halvings of the throat bracket.</summary>
     public const int MaxThroatBisections = 60;
-
-    /// <summary>The bracket's width in ln p below which the bisection stops (BOOT.md, 2026-09-26).</summary>
+    /// <summary>The throat bracket's width floor in ln p.</summary>
     internal const double ThroatBracketWidth = 1.0e-10;
-
-    /// <summary>Within this of 1, the chamber's isentropic exponent takes (6.15) through its limit
-    /// <c>p_c·e^(−1/2)</c> instead of the degenerate <c>KernelMath.Pow(1, ±∞)</c> (BOOT.md, 2026-09-28, finding F4).</summary>
+    /// <summary>Reach around gamma=1 where the initial estimate uses its analytic limit.</summary>
     internal const double GammaOneTolerance = 1.0e-6;
-
-    /// <summary>Isentropic expansion (BOOT.md, Invariants, 2026-09-26): every accepted station downstream of the
-    /// chamber keeps the chamber's entropy to this relative tolerance.</summary>
+    /// <summary>Relative entropy tolerance of every accepted downstream station.</summary>
     internal const double EntropyTolerance = 1.0e-9;
-
-    /// <summary>Above this area ratio the report's analytic extrapolation from the previous station gives the initial estimate.</summary>
+    /// <summary>Area ratio above which the previous station's estimate can be extrapolated.</summary>
     internal const double ExtrapolationAreaRatio = 2.0;
-
-    /// <summary>The station indices of the two fixed stations; the k-th exit is <see cref="RocketLayout.FixedStations"/> + k.</summary>
+    /// <summary>The two fixed station indices.</summary>
     internal const int Chamber = 0;
     internal const int Throat = 1;
 
-    /// <summary>Solves the case; every station's state, composition, figures and status are written, then the case status.</summary>
+    /// <summary>Solves the case and finalizes every station's status and outward numerical payload.</summary>
     public static void Solve(in SpeciesTableView table, in RocketProblem problem, in EquilibriumScratch scratch, in RocketResult result)
     {
-        var exitCount = (int)problem.ExitValues.Length;
-        var stationCount = RocketLayout.StationCount(exitCount);
+        var stationCount = RocketLayout.StationCount((int)problem.ExitValues.Length);
         result.Status[0] = (int)CaseStatus.InvalidInput;
         for (var station = 0; station < stationCount; station++)
         {
             result.StationStatus[station] = (int)CaseStatus.InvalidInput;
             result.Iterations[station] = 0;
             result.Figures[station] = default;
+            result.Stations[station] = default;
         }
 
         if (!(problem.ChamberPressure > 0.0) || table.SpeciesCount <= 0 || table.ElementCount <= 0 || !IsDefinedFlow(problem.Flow))
@@ -74,24 +56,46 @@ internal static class RocketSolver
         }
 
         var context = new RocketContext(in table, in problem, in scratch, in result);
+        result.Status[0] = (int)SolveStations(in context);
+        FinalizeFailures(in result);
+    }
+
+    private static CaseStatus SolveStations(in RocketContext context)
+    {
         var chamberStatus = ChamberSolve.At(in context, out var chamber);
         if (chamberStatus != CaseStatus.Ok)
         {
-            result.Status[0] = (int)chamberStatus;
-            return;
+            return chamberStatus;
         }
 
         var throatStatus = ThroatSearch.At(in context, in chamber, out var throat);
-        if (throatStatus != CaseStatus.Ok)
-        {
-            result.Status[0] = (int)throatStatus;
-            return;
-        }
-
-        result.Status[0] = (int)ExitStations.All(in context, in chamber, in throat);
+        return throatStatus == CaseStatus.Ok ? ExitStations.All(in context, in chamber, in throat) : throatStatus;
     }
 
-    /// <summary>A flow model other than the three named values is <see cref="CaseStatus.InvalidInput"/> for the case (BOOT.md, 2026-09-26).</summary>
+    /// <summary>Keep only the documented NoGasPhase T,p exception and diagnostic composition on failure.</summary>
+    internal static void FinalizeFailures(in RocketResult result)
+    {
+        for (var station = 0; station < result.Stations.Length; station++)
+        {
+            var status = (CaseStatus)result.StationStatus[station];
+            if (status == CaseStatus.Ok)
+            {
+                continue;
+            }
+
+            var failed = result.Stations[station];
+            var retained = default(MixtureState);
+            if (status == CaseStatus.NoGasPhase)
+            {
+                retained.Temperature = failed.Temperature;
+                retained.Pressure = failed.Pressure;
+            }
+
+            result.Stations[station] = retained;
+            result.Figures[station] = default;
+        }
+    }
+
     private static bool IsDefinedFlow(FlowModel flow) =>
         flow is FlowModel.ShiftingEquilibrium or FlowModel.FrozenAtChamber or FlowModel.FrozenAtThroat;
 }

@@ -34,6 +34,8 @@ public sealed class AuditGuardTests
         slots[1] = 101;
         slots[2] = 102;
         Assert.Equal(second, ThroatBracketSearch.CondensedFingerprint(in context));
+        slots[3] = 106;
+        Assert.Equal(second, ThroatBracketSearch.CondensedFingerprint(in context));
     }
 
     /// <summary>An ordinary sonic throat must still compare its numeric state and figures.</summary>
@@ -81,4 +83,55 @@ public sealed class AuditGuardTests
         Assert.All(solution.Outcome.StationStatus.Take(failed), status => Assert.Equal(CaseStatus.Ok, status));
         Assert.True(solution.Outcome.Stations[RocketSolver.Chamber].Temperature > 0.0);
     }
+    /// <summary>The cleanup boundary preserves only NoGasPhase's documented T,p.</summary>
+    [Fact]
+    public void TheNoGasPhaseFinalizerKeepsOnlyTemperatureAndPressure()
+    {
+        var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, inputs.System.Elements, inputs.System.Products);
+        using var rocketCase = new RocketCase(CpuFixture.Shared.Accelerator, table, inputs);
+        var context = rocketCase.Context;
+        var retained = new MixtureState { Temperature = 300.0, Pressure = 100000.0 };
+        var stale = retained;
+        stale.Density = 17.0;
+        context.Result.Stations[RocketSolver.Chamber] = stale;
+        context.Result.Figures[RocketSolver.Chamber] = new PerformanceFigures { AreaRatio = 2.0 };
+        context.Result.StationStatus[RocketSolver.Chamber] = (int)CaseStatus.NoGasPhase;
+        RocketSolver.FinalizeFailures(in context.Result);
+        Assert.Equal(retained, context.Result.Stations[RocketSolver.Chamber]);
+        Assert.Equal(default, context.Result.Figures[RocketSolver.Chamber]);
+    }
+
+    /// <summary>Every scratch position and the maximum table key participate in exact identity.</summary>
+    [Fact]
+    public void EveryAllowedCondensedSlotParticipatesInTheIdentity()
+    {
+        Assert.True(TableLimits.MaxSpecies < 4096, "the twelve-bit packed keys must cover the table limit");
+        var inputs = RocketInputs.Of(RocketHost.Load("lox-lh2_of6_pc7MPa_shiftingEquilibrium"));
+        var table = SpeciesTable.Build(CpuFixture.Shared.Database, inputs.System.Elements, inputs.System.Products);
+        using var rocketCase = new RocketCase(CpuFixture.Shared.Accelerator, table, inputs);
+        var context = rocketCase.Context;
+        var slots = context.Scratch.CondensedInSolution;
+        for (var slot = 0; slot < slots.Length; slot++)
+        {
+            slots[slot] = TableLimits.MaxSpecies - 1 - slot;
+        }
+
+        var original = ThroatBracketSearch.CondensedFingerprint(in context);
+        for (var slot = 0; slot < slots.Length; slot++)
+        {
+            var saved = slots[slot];
+            slots[slot] = slot;
+            Assert.NotEqual(original, ThroatBracketSearch.CondensedFingerprint(in context));
+            slots[slot] = saved;
+        }
+
+        for (var slot = 0; slot < slots.Length; slot++)
+        {
+            slots[slot] = TableLimits.MaxSpecies - (int)slots.Length + slot;
+        }
+
+        Assert.Equal(original, ThroatBracketSearch.CondensedFingerprint(in context));
+    }
+
 }

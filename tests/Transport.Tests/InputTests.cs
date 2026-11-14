@@ -42,6 +42,13 @@ public sealed class InputTests
         Assert.Equal(CaseStatus.InvalidInput, TransportHost.Evaluate(CpuFixture.Shared.Accelerator, species, transport, 3000.0, moles).Status);
         moles[species.IndexOf("H2O")] = double.NaN;
         Assert.Equal(CaseStatus.InvalidInput, TransportHost.Evaluate(CpuFixture.Shared.Accelerator, species, transport, 3000.0, moles).Status);
+        moles[species.IndexOf("H2O")] = double.PositiveInfinity;
+        Assert.Equal(CaseStatus.InvalidInput, TransportHost.Evaluate(CpuFixture.Shared.Accelerator, species, transport, 3000.0, moles).Status);
+        moles[species.IndexOf("H2O")] = double.MaxValue;
+        moles[species.IndexOf("H2")] = double.MaxValue;
+        var overflow = TransportHost.Evaluate(CpuFixture.Shared.Accelerator, species, transport, 3000.0, moles);
+        Assert.Equal(CaseStatus.InvalidInput, overflow.Status);
+        Assert.Equal(default, overflow.Figures);
     }
 
     /// <summary>No gaseous moles is no transport data.</summary>
@@ -84,6 +91,18 @@ public sealed class InputTests
         Assert.Equal(0, evaluation.Figures.EstimatedSpeciesCount);
     }
 
+    /// <summary>Finite but unrepresentable fit extrapolation publishes no nonfinite figures.</summary>
+    [Fact]
+    public void AFiniteOverflowTemperatureHasNoPublishedFigures()
+    {
+        var (species, transport) = Tables();
+        var moles = new double[species.SpeciesCount];
+        var h2 = species.IndexOf("H2");
+        moles[h2] = 1.0 / species.Arrays.MolarMass[h2];
+        var evaluation = TransportHost.Evaluate(CpuFixture.Shared.Accelerator, species, transport, double.MaxValue, moles);
+        Assert.Equal(CaseStatus.TemperatureOutOfRange, evaluation.Status);
+        Assert.Equal(default, evaluation.Figures);
+    }
     /// <summary>Scratch layout slices the declared sizes.</summary>
     [Fact]
     public void ScratchLayoutSlicesTheDeclaredSizes()

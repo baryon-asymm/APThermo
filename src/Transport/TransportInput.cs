@@ -11,8 +11,8 @@ internal static class TransportInput
 {
     /// <summary>
     /// Returns <see cref="CaseStatus.Ok"/> with the gaseous mole sum in <paramref name="gasMoles"/>,
-    /// <see cref="CaseStatus.InvalidInput"/> (non-positive or NaN temperature, an empty or gas-free table, a transport table of
-    /// another species table, a negative or NaN mole number) or <see cref="CaseStatus.NoTransportData"/> (no gaseous moles).
+    /// <see cref="CaseStatus.InvalidInput"/> (non-positive or nonfinite temperature, an empty or gas-free table, a transport table of
+    /// another species table, a negative or nonfinite mole number) or <see cref="CaseStatus.NoTransportData"/> (no gaseous moles).
     /// </summary>
     internal static CaseStatus Validate(in StationInputs inputs, out double gasMoles)
     {
@@ -20,7 +20,7 @@ internal static class TransportInput
         var speciesCount = species.SpeciesCount;
         var gasCount = species.GasCount;
         gasMoles = 0.0;
-        if (!(inputs.Temperature > 0.0) || speciesCount <= 0 || gasCount <= 0 || species.ElementCount <= 0
+        if (!(inputs.Temperature > 0.0 && inputs.Temperature <= double.MaxValue) || speciesCount <= 0 || gasCount <= 0 || species.ElementCount <= 0
             || inputs.Transport.SpeciesCount != speciesCount)
         {
             return CaseStatus.InvalidInput;
@@ -29,7 +29,7 @@ internal static class TransportInput
         for (var j = 0; j < speciesCount; j++)
         {
             var nj = inputs.Moles[j];
-            if (!(nj >= 0.0))
+            if (nj is not (>= 0.0 and <= double.MaxValue))
             {
                 return CaseStatus.InvalidInput;
             }
@@ -40,6 +40,7 @@ internal static class TransportInput
             }
         }
 
-        return gasMoles > 0.0 ? CaseStatus.Ok : CaseStatus.NoTransportData;
+        return !(gasMoles <= double.MaxValue) ? CaseStatus.InvalidInput
+            : gasMoles > 0.0 ? CaseStatus.Ok : CaseStatus.NoTransportData;
     }
 }

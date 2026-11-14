@@ -231,34 +231,31 @@ internal readonly struct TransportTableView(int speciesCount, int pairTotal,
 /// <summary>A transport table uploaded to one accelerator; owns the buffers.</summary>
 internal sealed class TransportTableBuffers : IDisposable
 {
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _viscosityStart;
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _viscosityCount;
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _conductivityStart;
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _conductivityCount;
-    private readonly MemoryBuffer1D<double, Stride1D.Dense> _fits;
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _pairIndex;
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _pairStart;
-    private readonly MemoryBuffer1D<int, Stride1D.Dense> _pairCount;
+    private readonly TransportBufferOwnership _ownership = new();
 
     private TransportTableBuffers(Accelerator accelerator, TransportTable table)
     {
-        var arrays = table.Arrays;
-        _viscosityStart = accelerator.Allocate1D(arrays.ViscosityStart);
-        _viscosityCount = accelerator.Allocate1D(arrays.ViscosityCount);
-        _conductivityStart = accelerator.Allocate1D(arrays.ConductivityStart);
-        _conductivityCount = accelerator.Allocate1D(arrays.ConductivityCount);
-        _fits = accelerator.Allocate1D(arrays.Fits);
-        _pairIndex = accelerator.Allocate1D(arrays.PairIndex);
-        _pairStart = accelerator.Allocate1D(arrays.PairStart);
-        _pairCount = accelerator.Allocate1D(arrays.PairCount);
         Table = table;
-        View = new TransportTableView(
-            speciesCount: table.SpeciesCount, pairTotal: arrays.PairTotal,
-            viscosityStart: _viscosityStart.View, viscosityCount: _viscosityCount.View,
-            conductivityStart: _conductivityStart.View, conductivityCount: _conductivityCount.View,
-            fits: _fits.View, pairIndex: _pairIndex.View, pairStart: _pairStart.View, pairCount: _pairCount.View);
+        View = _ownership.Build(owner => UploadView(accelerator, table, owner));
     }
 
+    private static TransportTableView UploadView(Accelerator accelerator, TransportTable table, TransportBufferOwnership owner)
+    {
+        var arrays = table.Arrays;
+        var viscosityStart = owner.Acquire(() => accelerator.Allocate1D(arrays.ViscosityStart));
+        var viscosityCount = owner.Acquire(() => accelerator.Allocate1D(arrays.ViscosityCount));
+        var conductivityStart = owner.Acquire(() => accelerator.Allocate1D(arrays.ConductivityStart));
+        var conductivityCount = owner.Acquire(() => accelerator.Allocate1D(arrays.ConductivityCount));
+        var fits = owner.Acquire(() => accelerator.Allocate1D(arrays.Fits));
+        var pairIndex = owner.Acquire(() => accelerator.Allocate1D(arrays.PairIndex));
+        var pairStart = owner.Acquire(() => accelerator.Allocate1D(arrays.PairStart));
+        var pairCount = owner.Acquire(() => accelerator.Allocate1D(arrays.PairCount));
+        return new TransportTableView(
+            speciesCount: table.SpeciesCount, pairTotal: arrays.PairTotal,
+            viscosityStart: viscosityStart.View, viscosityCount: viscosityCount.View,
+            conductivityStart: conductivityStart.View, conductivityCount: conductivityCount.View,
+            fits: fits.View, pairIndex: pairIndex.View, pairStart: pairStart.View, pairCount: pairCount.View);
+    }
     /// <summary>The table the buffers hold.</summary>
     public TransportTable Table { get; }
 
@@ -274,15 +271,5 @@ internal sealed class TransportTableBuffers : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        _viscosityStart.Dispose();
-        _viscosityCount.Dispose();
-        _conductivityStart.Dispose();
-        _conductivityCount.Dispose();
-        _fits.Dispose();
-        _pairIndex.Dispose();
-        _pairStart.Dispose();
-        _pairCount.Dispose();
-    }
+    public void Dispose() => _ownership.Dispose();
 }

@@ -58,9 +58,10 @@ internal static class TransportSolver
     /// <summary>
     /// Evaluates the station: the transport set is chosen from <paramref name="moles"/> as the reference does, the species without
     /// data are estimated, and <paramref name="figures"/>[0] receives the result. Returns <see cref="CaseStatus.Ok"/>,
-    /// <see cref="CaseStatus.InvalidInput"/> (non-positive temperature, negative or NaN moles, a table that does not match),
+    /// <see cref="CaseStatus.InvalidInput"/> (non-positive or nonfinite temperature, negative or nonfinite moles, a table that does not match),
     /// <see cref="CaseStatus.NoTransportData"/> (no gaseous moles) or <see cref="CaseStatus.SingularMatrix"/> (the reaction
-    /// system could not be solved; the frozen figures are written, the reacting ones equal them).
+    /// system could not be solved; the frozen figures are written, the reacting ones equal them), or
+    /// <see cref="CaseStatus.TemperatureOutOfRange"/> (nonfinite extrapolated figures; zero output).
     /// </summary>
     public static CaseStatus Evaluate(in SpeciesTableView species, in TransportTableView transport, double temperature,
                                       ArrayView<double> moles, in TransportScratch scratch, ArrayView<TransportFigures> figures)

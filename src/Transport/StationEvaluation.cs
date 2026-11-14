@@ -38,7 +38,20 @@ internal static class StationEvaluation
         var mixture = MixtureRules.Evaluate(in inputs, nm);
         var reaction = ReactionTerms.Evaluate(in inputs, nm, nr);
         SetProperties.Fill(in inputs, nm, in mixture, in reaction, ref result);
+        if (!Finite(in result))
+        {
+            return CaseStatus.TemperatureOutOfRange;
+        }
+
         figures[0] = result;
         return reaction.Status;
     }
+    /// <summary>Every double output must be representable before any figures are published.</summary>
+    internal static bool Finite(in TransportFigures figures) =>
+        IsFinite(figures.Viscosity) && IsFinite(figures.FrozenConductivity)
+        && IsFinite(figures.ReactingConductivity) && IsFinite(figures.FrozenPrandtl)
+        && IsFinite(figures.ReactingPrandtl) && IsFinite(figures.FrozenHeatCapacity)
+        && IsFinite(figures.EquilibriumHeatCapacity) && IsFinite(figures.EstimatedMoleFraction);
+
+    private static bool IsFinite(double value) => value is >= -double.MaxValue and <= double.MaxValue;
 }

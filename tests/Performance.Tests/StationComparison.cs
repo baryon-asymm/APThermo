@@ -21,6 +21,10 @@ internal static class StationComparison
     /// <summary>With transport on, the reference's frozen heat capacities of a station with condensed species are gas-phase values (Fixtures BOOT.md).</summary>
     private static readonly HashSet<string> GasPhaseWithTransport = ["cpFrozen", "cvFrozen"];
 
+    /// <summary>The known BeO reference plateau's derivative fields; no other numeric outputs are exempt.</summary>
+    private static readonly HashSet<string> PlateauEdgeFields =
+        ["cpEquilibrium", "cvEquilibrium", "gammaS", "dlnVdlnT", "dlnVdlnP", "soundSpeed", "mach"];
+
     /// <summary>Every numeric station output mapped to a field of <see cref="MixtureState"/> or <see cref="PerformanceFigures"/>.</summary>
     public static IEnumerable<(string Name, double Expected, PropertyInfo Field, bool IsFigure)> Fields(JsonElement station)
     {
@@ -66,10 +70,10 @@ internal static class StationComparison
             var frozen = reference.GetProperty("frozen").GetBoolean();
             var moleFractions = reference.GetProperty("moleFractions");
             var condensedPresent = moleFractions.EnumerateObject().Any(p => p.Value.GetDouble() > 0.0 && IsCondensed(solution.Table, p.Name));
-            var plateauEdgeDivergence = IsPlateauEdgeDivergence(label, reference);
+            var plateauEdgeDivergence = IsPlateauEdgeDivergence(c, label, reference);
             foreach (var (name, expected, field, isFigure) in Fields(reference))
             {
-                if (plateauEdgeDivergence)
+                if (plateauEdgeDivergence && PlateauEdgeFields.Contains(name))
                 {
                     continue;
                 }
@@ -127,15 +131,11 @@ internal static class StationComparison
         expected == 0.0 || (freezingReference is { } freeze && expected == freeze.GetProperty(name).GetDouble());
 
     /// <summary>
-    /// The reference's own scan (`tests/Fixtures/generate/throat_scan.py`) is not guaranteed to land on the chamber
-    /// side of a melting plateau's edge: its ternary search refines toward the largest rho*u it can evaluate, and at
-    /// the very edge that can be the pinned-pair state itself, at or past Mach 1 (Performance BOOT.md, finding F3,
-    /// 2026-09-28: "the state re-solved ... can land on the far side of the edge"). Guarded on the reference's own
-    /// recorded Mach, so a throat station is skipped only when the reference itself carries this signature, never
-    /// as a blanket exemption: `beo-h2o-throat_pc15MPa_h-11.06875MJkg`'s reference Mach is 1.011285688885813, and
-    /// the tree's own `ThePlateauEdgeAcceptsTheChamberSideOnTheAuditsLi2OAndBeOCases`
-    /// (`SecondAuditFixTests.cs`) checks that fixture's chamber-side answer directly, without the reference.
+    /// Only this pinned BeO fixture carries the diagnosed far-side plateau answer.
+    /// Ordinary Mach=1 throats are compared in full; even this fixture exempts only
+    /// PlateauEdgeFields, while temperature, pressure, c* and composition remain checked.
     /// </summary>
-    private static bool IsPlateauEdgeDivergence(string? label, JsonElement reference) =>
-        label == "throat" && reference.TryGetProperty("mach", out var mach) && mach.GetDouble() >= 1.0;
+    private static bool IsPlateauEdgeDivergence(CeaCase c, string? label, JsonElement reference) =>
+        Path.GetFileNameWithoutExtension(c.Path) == "beo-h2o-throat_pc15MPa_h-11.06875MJkg"
+        && label == "throat" && reference.TryGetProperty("mach", out var mach) && mach.GetDouble() > 1.0;
 }

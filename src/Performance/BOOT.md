@@ -184,7 +184,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   reports them, while its heat capacities stay the equilibrium ones.
 - Outputs per case: the chamber, throat and exit `MixtureState`s with velocity and
   Mach number, the mole numbers and multipliers at every station (for composition
-  output and for `Transport`), the performance figures per station (the reference
+  diagnostics and composition output; Transport takes temperature and moles), the performance figures per station (the reference
   reports them at every station: `c*` everywhere, the throat's `C_F`, `Isp`, `Ivac`),
   a status per station, the equilibrium iteration counts, and the case status.
 - Not in version 1: finite-area chamber, subsonic exit stations, freezing at an
@@ -307,7 +307,9 @@ needs no other efferent-coupling row. → HISTORY.md#shape-closing-wording
   retains only temperature and pressure. Earlier successful stations and
   diagnostic composition remain available.
 - A bounded phase-boundary walk accepts no candidate after unresolved exhaustion.
-  The boundary classification and the cap are exercised through the real walk.
+  The boundary classification and the cap are exercised through PhaseBoundaryWalk,
+  the same state machine Verify uses. A final area residual guard independently
+  enforces the invariant above before any area station is accepted.
 
 
 ## Acceptance criteria

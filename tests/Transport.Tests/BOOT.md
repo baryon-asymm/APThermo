@@ -131,8 +131,11 @@ existing L1 facts above are still taken from the fixtures, not solved here.
 
 ### Audit closure (2026-11-14)
 
-- Order-consistency comparisons reject nonfinite values in either operand before
-  relative arithmetic; equal zero and equal finite controls pass.
+- Order-consistency comparisons reject nonfinite values in every double property
+  of either operand before relative arithmetic. Relative agreement covers the seven
+  coefficients and heat capacities, as before; EstimatedMoleFraction describes the
+  auxiliary selected set, not an order-independent thermodynamic observable. Equal
+  zero and equal finite controls pass.
 - Invalid nonfinite temperature or moles yields zero figures. A finite overflow
   temperature cannot report Ok with nonfinite figures.
 
@@ -343,6 +346,13 @@ existing L1 facts above are still taken from the fixtures, not solved here.
       to `internal` so `EquilibriumConsistencyTests` shares them rather than
       re-implementing the conservation check.
 
+- [x] 2026-11-14 — A07/A14: AuditGuardTests rejects NaN and both infinities in
+  either comparison operand; equal finite and zero inputs pass. The old comparator
+  failed all three negative controls. InputTests and the generated output-property
+  controls cover the internal nonfinite boundary.
+- [x] 2026-11-14 — BufferOwnershipTests proves rollback of every generated
+  acquisition prefix and aggregation of ordinary cleanup failures without losing
+  the primary allocation error. Its positive control and repeat-disposal check pass.
 ## Taboos
 
 - Do not loosen a tolerance for green; do not exclude a failing case.

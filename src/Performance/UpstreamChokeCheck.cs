@@ -22,30 +22,26 @@ internal static class UpstreamChokeCheck
     /// </summary>
     internal const int MaxPhaseBoundaries = 8;
 
-    /// <summary>
-    /// Verifies the candidate at <paramref name="pressureSolved"/>; on return the value is unchanged when the
-    /// candidate stands, or moved to an earlier choke's pressure, with the throat's row re-solved there.
-    /// </summary>
-    public static CaseStatus Verify(in ThroatQuery query, long chamberFingerprint, ref double pressureSolved)
+    /// <summary>Verifies the candidate, replacing it only with an earlier choke.</summary>
+    public static CaseStatus Verify(in ThroatQuery query, CondensedSetIdentity chamberFingerprint, ref double pressureSolved)
     {
         var context = query.Context;
         var chamber = query.Chamber;
         var candidatePressure = pressureSolved;
         var candidateTemperature = context.Result.Stations[RocketSolver.Throat].Temperature;
         var candidateFingerprint = ThroatBracketSearch.CondensedFingerprint(in context);
-        if (candidateFingerprint == chamberFingerprint)
+        if (candidateFingerprint.SameAs(in chamberFingerprint))
         {
-            // The interval from the chamber to the candidate shares one fingerprint throughout: the momentum or
-            // bisection search already located the only sonic point in it.
             return CaseStatus.Ok;
         }
 
         StationSolve.CopyComposition(in context, RocketSolver.Chamber, RocketSolver.Throat);
-        var outer = new PhaseBoundaryEnd(chamber.Pressure, context.Result.Stations[RocketSolver.Chamber].Temperature, 0.0, chamberFingerprint);
+        var start = new PhaseBoundaryEnd(chamber.Pressure, context.Result.Stations[RocketSolver.Chamber].Temperature, 0.0, chamberFingerprint);
         var inner = new PhaseBoundaryEnd(candidatePressure, candidateTemperature, 1.0, candidateFingerprint);
-
-        for (var b = 0; b < MaxPhaseBoundaries; b++)
+        var walk = new PhaseBoundaryWalk(start, candidateFingerprint);
+        for (var boundaryIndex = 0; boundaryIndex < MaxPhaseBoundaries; boundaryIndex++)
         {
+            var outer = walk.Outer;
             var span = new PhaseBoundaryQuery(in outer, in inner);
             var status = PhaseBoundaryLocator.Locate(in query, in span, out var boundary);
             if (status != CaseStatus.Ok)
@@ -53,37 +49,25 @@ internal static class UpstreamChokeCheck
                 return status;
             }
 
-            // The interval above this boundary shares the outer fingerprint (chamber's, or the previous boundary's
-            // far side): a smooth crossing there, from the outer point's own subsonic ratio up to the boundary's, is
-            // the earliest choke.
-            if (boundary.Hi.SonicRatio >= 1.0)
+            switch (walk.Inspect(in boundary))
             {
-                return AcceptEarlierCrossing(in query, in outer, in boundary.Hi, ref pressureSolved);
+                case PhaseBoundaryAction.EarlierCrossing:
+                    return AcceptEarlierCrossing(in query, in outer, in boundary.Hi, ref pressureSolved);
+                case PhaseBoundaryAction.EdgeChoke:
+                    return AcceptEdgeChoke(in query, in boundary, ref pressureSolved);
+                case PhaseBoundaryAction.Candidate:
+                    return RestoreCandidate(in query, candidatePressure, candidateTemperature, ref pressureSolved);
+                case PhaseBoundaryAction.Exhausted:
+                    return PhaseBoundaryWalk.ExhaustedStatus;
+                case PhaseBoundaryAction.Continue:
+                    break;
+                default:
+                    return CaseStatus.ThroatNotFound;
             }
-
-            // The boundary itself: a jump from subsonic above it to sonic or supersonic below it is the plateau-edge
-            // choke, the state on the chamber side of the jump (BOOT.md's plateau-edge rule).
-            if (boundary.Lo.SonicRatio >= 1.0)
-            {
-                return AcceptEdgeChoke(in query, in boundary, ref pressureSolved);
-            }
-
-            if (boundary.Lo.Fingerprint == candidateFingerprint)
-            {
-                // No further boundary separates this point from the candidate: the search already found the only
-                // sonic point of that shared segment.
-                return RestoreCandidate(in query, candidatePressure, candidateTemperature, ref pressureSolved);
-            }
-
-            outer = boundary.Lo;
         }
 
-        // The cap is exhausted without reaching the candidate's own fingerprint or an earlier choke: nothing above
-        // the last boundary looked at has been proved choke-free, so the candidate is never accepted unverified
-        // (BOOT.md, 2026-09-28, the third pass's observation).
-        return CaseStatus.ThroatNotFound;
+        return PhaseBoundaryWalk.ExhaustedStatus;
     }
-
     /// <summary>
     /// Re-solves the throat row at the candidate's own pressure before accepting it: <see cref="PhaseBoundaryLocator"/>'s
     /// own bisections leave whatever they last solved in that row, which need not be the candidate's state even when

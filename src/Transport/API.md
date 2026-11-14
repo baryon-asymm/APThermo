@@ -203,13 +203,20 @@ execution node passes the element count alone.
 
 ## Errors
 
-Never throws. `Evaluate` returns `Ok`; `InvalidInput` (non-positive or NaN
-temperature, a negative or NaN mole number, a transport table whose species count is
+Never throws. `Evaluate` returns `Ok`; `InvalidInput` (non-positive or nonfinite
+temperature, a negative or nonfinite mole number, a transport table whose species count is
 not the species table's, an empty or gas-free table); `NoTransportData` (no gaseous
 species with positive moles); `SingularMatrix` (a reaction system could not be solved:
 the frozen figures are written and the reacting ones equal them, the reacting
 conductivity, the equilibrium heat capacity and the reacting Prandtl number alike).
-`figures[0]` is written on every status, zero on `InvalidInput` and `NoTransportData`.
+`figures[0]` is written on every status, zero on `InvalidInput`, `NoTransportData` and `TemperatureOutOfRange`.
+
+`TemperatureOutOfRange` means a finite input extrapolated to nonfinite numeric
+figures; those figures are not published. A nonfinite gaseous mole sum is invalid.
+
+⚠ 2026-11-14: positive Infinity temperature and moles could pass the input sign
+test, and an extrapolation could publish nonfinite figures (A14). Both boundaries
+are checked before an Ok result is returned; representable extrapolation is unchanged.
 
 ⚠ 2026-09-14: the sentence was the contract, and the code kept only half of it: when
 the second of the two reaction systems could not be solved, the reacting conductivity

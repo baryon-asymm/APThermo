@@ -136,11 +136,14 @@ reference, recovered from its source:
   capacities, the mole fraction of the estimated species, the counts (species of the
   set, reactions, estimated species, trace eliminations), a flag for a full set, and a
   status.
-- Not done: the reference restores gaseous species down to x ≈ e^−25.33 ≈ 1e-11 of
-  the gas before the selection; this node takes the moles it is given, and
-  `Equilibrium` reports species below 1e-8 of the gas as zero. The difference is
-  confined to species below 1e-8 and to the coverage test and lies below every
-  tolerance of the fixtures.
+- The evaluation consumes the supplied composition without independently restoring
+  trace species. Retention and reporting thresholds belong to
+  [Equilibrium](../Equilibrium/API.md), including its held-set policy.
+
+⚠ 2026-11-14: this paragraph said Equilibrium zeroed every species below 1e-8;
+that predates its two-stage retention and held-set rules (A28). The seeding invariant
+also incorrectly claimed every zero-mole species was skipped, despite the default
+component rule below. Both statements now defer to their owning policies.
 
 ⚠ 2026-09-12, a defect of the reference: cea 3.3.4 writes `continue` (a no-op in
 Fortran) where CEA2 had `GOTO 260` in the elimination of a trace species, so the
@@ -148,8 +151,8 @@ reaction through the trace species is kept while its pairs are dropped, and the
 reacting conductivity of a station whose component species is a trace is inflated
 (170 to 440 times the frozen at the LOX/LH2 exits below 1020 K). This node keeps the
 rule of CEA2; the fixtures node records the defective stations, and the test node
-skips the reacting fields where the solver reports a trace elimination and asserts
-that the defect is still visible there. → HISTORY.md#reference-defect-continue
+skips the reacting fields at committed reference-defect keys and asserts
+that the defect remains visible there (the test node's API). → HISTORY.md#reference-defect-continue
 
 ## Structure
 
@@ -385,6 +388,15 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
       Evidence: `tests/Transport.Tests` 167/167, the fast suite and the protocol lint
       green at the commit the tick names. → HISTORY.md#crit-components-settled
 
+- [x] 2026-11-14 — A14: InputTests rejects nonfinite temperature and verifies
+  finite-overflow refusal with zero figures; AuditGuardTests independently mutates
+  every numeric output property. Removing the final guard yields Ok on the
+  overflow control and fails the test. Normal pure-gas and fixture controls pass.
+- [x] 2026-11-14 — A04 (this node's upload): BufferOwnershipTests exercises the
+  production allocation transaction over every prefix of the generated view-buffer
+  inventory, both failing cleanup resources, primary-error preservation and repeat
+  disposal. Disabling rollback fails eight nonempty-prefix controls. Fatal CLR
+  exceptions propagate rather than being aggregated.
 ## Taboos
 
 - No silent estimate: every estimated species is counted and its mole fraction reported.

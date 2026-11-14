@@ -83,21 +83,11 @@ public sealed class ThirdPassFixTests
     }
 
     /// <summary>
-    /// The cap: a walk that meets more boundaries than <see cref="UpstreamChokeCheck.MaxPhaseBoundaries"/> without
-    /// resolving proves nothing about what lies beyond the last one it looked at, and must end
-    /// <see cref="CaseStatus.ThroatNotFound"/>, never an unverified <see cref="CaseStatus.Ok"/>. No real system on
-    /// hand needs more than a handful of boundaries to resolve (the richest measured, BeO/H2O at 15 MPa, needs
-    /// six), so this fact drives <see cref="PhaseBoundaryLocator.Locate"/> directly with a hand-built chain of
-    /// already-narrow (inside <see cref="RocketSolver.ThroatBracketWidth"/>) brackets, each echoed back verbatim by
-    /// <c>Locate</c>'s own first check before any solve (the same direct-call idiom observations O1 and O2 use for
-    /// <see cref="ThroatBracketSearch"/>): every end's sonic ratio stays below 1 and every fingerprint differs from
-    /// a fixed sentinel "candidate" fingerprint, so none of <see cref="UpstreamChokeCheck.Verify"/>'s three
-    /// resolving conditions (an outer or inner end at or above the sonic point, or an inner end sharing the
-    /// candidate's own fingerprint) ever fires — reproducing, one boundary at a time, the walk `Verify` performs
-    /// for a case with more real boundaries than its cap.
+    /// An already-narrow locator bracket preserves its ends. This does not prove
+    /// the walk's cap: PhaseBoundaryWalkTests drives that bounded state machine.
     /// </summary>
     [Fact]
-    public void AWalkThatMeetsMoreBoundariesThanTheCapEndsThroatNotFound()
+    public void ANarrowPhaseBoundaryLocatorPreservesTheSuppliedEnds()
     {
         var c = RocketHost.Load("throat", "li2o-throat_pc3MPa_h2.2375MJkg");
         var inputs = RocketInputs.Of(c);
@@ -108,13 +98,13 @@ public sealed class ThirdPassFixTests
         var query = new ThroatQuery(in context, in chamber);
         var temperature = context.Result.Stations[RocketSolver.Chamber].Temperature;
 
-        const long candidateFingerprint = -100L;
+        var candidateFingerprint = CondensedSetIdentity.Single(1000);
         var pressure = chamber.Pressure;
         for (var b = 0; b <= UpstreamChokeCheck.MaxPhaseBoundaries; b++)
         {
-            var outer = new PhaseBoundaryEnd(pressure, temperature, 0.4, b);
+            var outer = new PhaseBoundaryEnd(pressure, temperature, 0.4, CondensedSetIdentity.Single(b));
             var nextPressure = pressure * Math.Exp(-0.5 * RocketSolver.ThroatBracketWidth);
-            var inner = new PhaseBoundaryEnd(nextPressure, temperature, 0.4, b + 1);
+            var inner = new PhaseBoundaryEnd(nextPressure, temperature, 0.4, CondensedSetIdentity.Single(b + 1));
             var status = PhaseBoundaryLocator.Locate(in query, new PhaseBoundaryQuery(in outer, in inner), out var boundary);
             Assert.Equal(CaseStatus.Ok, status);
             Assert.Equal(outer.Pressure, boundary.Hi.Pressure);

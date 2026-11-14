@@ -133,3 +133,14 @@
       families included, and the 100 000-case sweep with 35 of 400 000 stations at
       different Newton counts (696 at `1e-11`, guard 400). Merged `701d941`.
       ⚠ 2026-10-02: was ticked for `1e-11` alone → HISTORY.md#crit-throat-1e-11
+
+- [x] 2026-11-14 — A05/A36 and the final area residual: AuditGuardTests and
+  AreaRatioResidualTests (Performance.Tests) pass. The old source failed the
+  distinct-set, ordinary-throat and frozen-failure controls; NoGasPhase's T,p
+  exception is checked separately at the finalization boundary. Exact identities
+  include every scratch slot and the largest species-table keys.
+- [x] 2026-11-14 — The phase-boundary cap uses PhaseBoundaryWalk in Verify;
+  PhaseBoundaryWalkTests rejects the unresolved stream at the cap. Replacing its
+  refusal with Ok makes the negative control fail; reaching the candidate is green.
+- [ ] The changed rocket program passes the orchestrator's CUDA/CPU equality and
+  architecture runs, without blind approval of any moved bit snapshot.

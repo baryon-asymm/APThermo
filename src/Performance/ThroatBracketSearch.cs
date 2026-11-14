@@ -133,7 +133,7 @@ internal static class ThroatBracketSearch
 
             pressure = candidate;
             pressureEnd = candidate;
-            setKept = setKept && CondensedFingerprint(in context) == decidedFingerprint;
+            setKept = setKept && CondensedFingerprint(in context).SameAs(in decidedFingerprint);
         }
 
         return CaseStatus.Ok;
@@ -172,7 +172,7 @@ internal static class ThroatBracketSearch
         var status = Bisect(in query, ref bracket, out var bisected);
         if (status != CaseStatus.Ok)
         {
-            return status != CaseStatus.ThroatNotFound || bracket.SubsonicFingerprint == bracket.SupersonicFingerprint
+            return status != CaseStatus.ThroatNotFound || bracket.SubsonicFingerprint.SameAs(in bracket.SupersonicFingerprint)
                 ? status
                 : AcceptPlateauEdge(in query, in bracket, ref pressureSolved);
         }
@@ -211,7 +211,7 @@ internal static class ThroatBracketSearch
             }
 
             var fingerprint = CondensedFingerprint(in context);
-            var oneSet = bracket.SubsonicFingerprint == bracket.SupersonicFingerprint && fingerprint == bracket.SubsonicFingerprint;
+            var oneSet = bracket.SubsonicFingerprint.SameAs(in bracket.SupersonicFingerprint) && fingerprint.SameAs(in bracket.SubsonicFingerprint);
             bracket.Track(midPressure, state.Temperature, ratio, fingerprint);
             lastRatio = ratio;
             pressureSolved = midPressure;
@@ -270,7 +270,7 @@ internal static class ThroatBracketSearch
             }
 
             var state = context.Result.Stations[RocketSolver.Throat];
-            if (CondensedFingerprint(in context) == bracket.SubsonicFingerprint && TryRatio(chamber.Enthalpy, in state, out var ratio) && ratio < 1.0)
+            if (CondensedFingerprint(in context).SameAs(in bracket.SubsonicFingerprint) && TryRatio(chamber.Enthalpy, in state, out var ratio) && ratio < 1.0)
             {
                 pressureSolved = pressure;
                 return CaseStatus.Ok;
@@ -307,31 +307,7 @@ internal static class ThroatBracketSearch
         return true;
     }
 
-    /// <summary>
-    /// A fingerprint of the condensed species in solution (the equilibrium scratch's <c>CondensedInSolution</c>),
-    /// order-independent and sensitive to both the count and the identity of the slots in use, so that a single-phase
-    /// state and a pinned pair of the same substance never collide (BOOT.md, the plateau-edge acceptance).
-    /// </summary>
-    private const long FingerprintModulus = 100_000_007L;
-
-    internal static long CondensedFingerprint(in RocketContext context)
-    {
-        var slots = context.Scratch.CondensedInSolution;
-        var count = 0L;
-        var sumOfSquares = 0L;
-        for (var i = 0; i < slots.Length; i++)
-        {
-            var species = slots[i];
-            if (species < 0)
-            {
-                continue;
-            }
-
-            count++;
-            var key = species + 1L;
-            sumOfSquares += key * key;
-        }
-
-        return count * FingerprintModulus + sumOfSquares;
-    }
+    /// <summary>The exact canonical condensed set currently held in the equilibrium scratch.</summary>
+    internal static CondensedSetIdentity CondensedFingerprint(in RocketContext context) =>
+        CondensedSetIdentity.FromSlots(context.Scratch.CondensedInSolution);
 }

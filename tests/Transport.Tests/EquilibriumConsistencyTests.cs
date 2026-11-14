@@ -223,18 +223,10 @@ public sealed class EquilibriumConsistencyTests
         return false;
     }
 
-    /// <summary>The reacting figures two element orders must agree on, by name, for the mismatch messages.</summary>
+    /// <summary>Generated numeric figure inventory, independent of the controls' inventory.</summary>
     private static (string Name, double Value)[] NamedFigures(TransportFigures figures) =>
-    [
-        ("Viscosity", figures.Viscosity),
-        ("FrozenConductivity", figures.FrozenConductivity),
-        ("ReactingConductivity", figures.ReactingConductivity),
-        ("FrozenPrandtl", figures.FrozenPrandtl),
-        ("ReactingPrandtl", figures.ReactingPrandtl),
-        ("FrozenHeatCapacity", figures.FrozenHeatCapacity),
-        ("EquilibriumHeatCapacity", figures.EquilibriumHeatCapacity),
-    ];
-
+        [.. typeof(TransportFigures).GetProperties().Where(p => p.PropertyType == typeof(double))
+            .Select(p => (p.Name, (double)p.GetValue(figures)!))];
     /// <summary>The reacting figures of two element orders, field by field, within <see cref="ConsistencyTolerance"/>.</summary>
     internal static List<string> CompareFigures(TransportFigures first, TransportFigures second, string label)
     {
@@ -245,8 +237,15 @@ public sealed class EquilibriumConsistencyTests
         {
             var reference = Math.Max(Math.Abs(a[i].Value), Math.Abs(b[i].Value));
             var difference = Math.Abs(a[i].Value - b[i].Value);
-            if (reference > 0.0 && difference / reference > ConsistencyTolerance)
+            if (!double.IsFinite(a[i].Value) || !double.IsFinite(b[i].Value))
             {
+                violations.Add($"{label} {a[i].Name}: nonfinite {a[i].Value:R} vs {b[i].Value:R}");
+            }
+            else if (a[i].Name != nameof(TransportFigures.EstimatedMoleFraction)
+                && reference > 0.0 && difference / reference > ConsistencyTolerance)
+            {
+                // The seven coefficients/heat capacities are the order-consistency oracle.
+                // EstimatedMoleFraction describes the selected auxiliary set, not that oracle.
                 violations.Add($"{label} {a[i].Name}: {a[i].Value:R} vs {b[i].Value:R} ({difference / reference:E} relative)");
             }
         }

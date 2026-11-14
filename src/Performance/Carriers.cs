@@ -127,12 +127,12 @@ internal struct ThroatBracket
     public bool HasSubsonic;
     public double SubsonicPressure;
     public double SubsonicTemperature;
-    public long SubsonicFingerprint;
+    public CondensedSetIdentity SubsonicFingerprint;
 
     public bool HasSupersonic;
     public double SupersonicPressure;
     public double SupersonicTemperature;
-    public long SupersonicFingerprint;
+    public CondensedSetIdentity SupersonicFingerprint;
 
     /// <summary>Both ends of the bracket have been seen.</summary>
     public readonly bool IsComplete => HasSubsonic && HasSupersonic;
@@ -141,7 +141,7 @@ internal struct ThroatBracket
     public readonly double LogWidth => KernelMath.Log(SubsonicPressure) - KernelMath.Log(SupersonicPressure);
 
     /// <summary>Records one trial if it narrows its side of the bracket (the smallest subsonic pressure, the largest supersonic one).</summary>
-    public void Track(double pressure, double temperature, double sonicRatio, long fingerprint)
+    public void Track(double pressure, double temperature, double sonicRatio, CondensedSetIdentity fingerprint)
     {
         if (sonicRatio < 1.0)
         {
@@ -172,12 +172,12 @@ internal struct ThroatBracket
 /// <see cref="ThroatBracketSearch"/>'s trials use, BOOT.md, 2026-09-28) and the condensed-species fingerprint of the
 /// state solved there.
 /// </summary>
-internal readonly struct PhaseBoundaryEnd(double pressure, double temperature, double sonicRatio, long fingerprint)
+internal readonly struct PhaseBoundaryEnd(double pressure, double temperature, double sonicRatio, CondensedSetIdentity fingerprint)
 {
     public readonly double Pressure = pressure;
     public readonly double Temperature = temperature;
     public readonly double SonicRatio = sonicRatio;
-    public readonly long Fingerprint = fingerprint;
+    public readonly CondensedSetIdentity Fingerprint = fingerprint;
 }
 
 /// <summary>

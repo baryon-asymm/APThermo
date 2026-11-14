@@ -272,3 +272,26 @@
       wrong. `Bits.approved.txt` and `Problems.Tests/Bits.approved.txt` unchanged by
       this investigation itself (no source line touched outside the temporary,
       reverted probes listed above).
+
+⚠ 2026-11-14: the old plateau comparison paragraph above described Mach>=1 as
+a guard for one fixture, but the code exempted ordinary sonic throats too (A06).
+The exemption now names the known BeO fixture and only its seven derivative fields;
+temperature, pressure, characteristic velocity and composition remain compared.
+
+- [x] 2026-11-14 — AuditGuardTests corrupts an ordinary throat's temperature,
+  GammaS and characteristic velocity and sees each mismatch (old comparator: red
+  regression control, because it incorrectly accepted them). Its unchanged case
+  is the positive control.
+- [x] 2026-11-14 — FigureCheckTests independently enumerates every numeric
+  PerformanceFigures property. Removing ThrustCoefficient from FigureChecks
+  causes three nonfinite controls to fail; finite figures pass (A11).
+- [x] 2026-11-14 — ThroatToleranceTests rejects a later higher maximum when an
+  earlier smaller maximum exists; reversal of the ordering predicate is red.
+  Existing first-maximum scans use that same position check at grid-cell resolution
+  and still refine/check the peak flux (A10).
+- [x] 2026-11-14 — The former cap test is now accurately named as a locator-end
+  check. PhaseBoundaryWalkTests supplies the actual bounded state machine with an
+  unresolved chain and with a resolving positive control (A09).
+- [x] 2026-11-14 — The tail policy test is named
+  TheThroatPolicyConstantsSpecifyTheDecisionThresholdAndTailLength; reading those
+  constants is not presented as proof that the tail executed (A40).

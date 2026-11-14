@@ -80,8 +80,7 @@ internal static class AreaRatioIteration
 
         estimate.LogAreaRatio = logAreaRatio;
         estimate.Derivative = derivative;
-        Accept(in context, in chamber, in throat, areaRatio, station, ref estimate);
-        return outcome;
+        return Accept(in context, in chamber, in throat, areaRatio, station, ref estimate) ? outcome : ExitOutcome.NotMet;
     }
 
     /// <summary>
@@ -98,15 +97,27 @@ internal static class AreaRatioIteration
     }
 
     /// <summary>The station is met: its figures are written and it becomes the station the next one is extrapolated from.</summary>
-    private static void Accept(in RocketContext context, in ChamberReference chamber, in ThroatReference throat,
+    private static bool Accept(in RocketContext context, in ChamberReference chamber, in ThroatReference throat,
                                double areaRatio, int station, ref ExitEstimate estimate)
     {
         var state = context.Result.Stations[station];
         var velocity = StationFigures.Velocity(chamber.Enthalpy, in state);
         var currentAreaRatio = StationFigures.AreaRatio(throat.MassFlux, in state, velocity);
+        if (!MeetsAreaRatio(areaRatio, currentAreaRatio))
+        {
+            estimate.Extrapolable = false;
+            context.Result.StationStatus[station] = (int)CaseStatus.NotConverged;
+            return false;
+        }
+
         var inputs = new StationFigureInputs(velocity, currentAreaRatio, chamber.Pressure / state.Pressure, throat.CharacteristicVelocity);
         StationFigures.Write(in context, station, in inputs, chamber.Entropy);
         estimate.Extrapolable = areaRatio > RocketSolver.ExtrapolationAreaRatio;
         estimate.LogPressureRatio = StationFigures.LogOf(chamber.Pressure / state.Pressure);
+        return context.Result.StationStatus[station] == (int)CaseStatus.Ok;
     }
+    /// <summary>The stated area residual is a final postcondition, independent of the correction stop.</summary>
+    internal static bool MeetsAreaRatio(double requested, double actual) =>
+        requested is > 1.0 and <= double.MaxValue && actual is > 0.0 and <= double.MaxValue
+        && Math.Abs(actual - requested) <= RocketSolver.AreaRatioResidualTolerance * requested;
 }

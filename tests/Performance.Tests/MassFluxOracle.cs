@@ -64,6 +64,13 @@ internal static class MassFluxOracle
         }
     }
 
+    /// <summary>
+    /// A grid maximum is distinctly upstream when its entire bracketing cell is
+    /// closer to the chamber than the selected pressure. Height is irrelevant.
+    /// A selected point in the same cell is the same maximum at this scan's resolution.
+    /// </summary>
+    internal static bool IsDistinctEarlierMaximum(double[] ratios, int peak, double selectedRatio) =>
+        Math.Min(ratios[peak - 1], ratios[peak + 1]) > selectedRatio;
     /// <summary>Refines the flux maximum bracketed by the grid points around index <paramref name="peak"/> by
     /// golden-section search; returns its ratio and flux.</summary>
     public static (double Ratio, double Flux) Refine(in RocketContext context, in ChamberReference chamber, StationFlow flow,

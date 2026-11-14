@@ -76,7 +76,7 @@ internal readonly struct RocketResult                      // views the solver w
 {
     public readonly ArrayView<MixtureState> Stations;    // [stations]: chamber, throat, exits in order
     public readonly ArrayView<double> Moles;             // [stations * species], kmol per kg
-    public readonly ArrayView<double> Multipliers;       // [stations * elements], for Transport
+    public readonly ArrayView<double> Multipliers;       // [stations * elements], equilibrium diagnostics
     public readonly ArrayView<PerformanceFigures> Figures; // [stations]
     public readonly ArrayView<int> StationStatus;        // [stations], CaseStatus per station
     public readonly ArrayView<int> Iterations;           // [stations], equilibrium iterations of the last solve at the station
@@ -109,7 +109,9 @@ figures follow RP-1311 section 6.2. The throat and the area-ratio iterations con
 past the report's tolerances so that a reported station is at rounding level: the
 throat by a decision at `1e-8` and two more momentum steps (`BOOT.md`, 2026-10-02), the
 area-ratio iterations to `1e-10`, when they can; a case whose last correction lies above
-its tight tolerance but within the report's tolerance is still `Ok`. In frozen flow the stations downstream of the freezing
+its tight tolerance but within the report's tolerance is `Ok` only when the final
+area residual also meets `1e-6` relative. In frozen flow the stations downstream of
+the freezing
 station carry its composition bit for bit and the frozen state of the equilibrium
 node. In `FrozenAtChamber` flow the chamber's `GammaS`, `SoundSpeed`, `DlnVdlnT` and
 `DlnVdlnP` are the frozen ones (`Cp/Cv`, 1, −1), as the reference reports them; its
@@ -163,13 +165,42 @@ THAN VALUE AT nfz"). Freezing the throat's composition there put the station at 
 enthalpy above the chamber's; this status replaces the `Ok` station with an infinite
 area ratio and vacuum specific impulse that resulted before the fix.
 
+A failed station has zero State and performance figures, except NoGasPhase retains
+its temperature and pressure only. Earlier successful stations and the permitted
+diagnostic composition remain available.
+
+⚠ 2026-11-14: failed frozen/area iterations could expose a partial State even with
+a correct failure status (A36). Finalization now enforces the outward payload rule.
+The correction preserves NoGasPhase's T,p exception and equilibrium's internal
+State-not-written contract.
+
+## Condensed-model applicability
+
+Ok certifies the numerical conditions of the selected model. It does not establish
+that every physically possible condensed phase is admitted at that temperature.
+The candidate-domain and effective/open-below rules belong to
+[Equilibrium](../Equilibrium/API.md); they also apply to the default product list.
+
+Frozen flow holds the freezing station's condensed composition. This version does
+not implement CEA's stop 50 K below a condensed fit's range: the fixed condensed
+fit can be extrapolated below its tabulated interval while the gas-based temperature
+guard remains satisfied. An Ok station can therefore contain a condensate outside
+its raw fit domain. Check the records' ranges when interpreting such results.
+
+Both equilibrium and frozen transport properties may be reported for a frozen-flow
+station; the appropriate transport model depends on the intended perturbation.
+
+⚠ 2026-11-14: the earlier out-of-scope sentence named the missing CEA stop without
+explaining its effect on an Ok output (A37). The policy is unchanged; its numerical
+and physical applicability limits are now explicit.
+
 ## Side effects
 
 None.
 
 ## Out of scope
 
-- Transport properties at the stations: `Transport`, from `Moles` and `Multipliers`.
+- Transport properties at the stations: `Transport`, from temperature and `Moles`.
 - Reactant enthalpy and element moles from a propellant definition: `Problems`.
 - Finite-area chamber, subsonic exits, the report's stop 50 K below a condensed
   species' range in frozen flow: not in version 1.

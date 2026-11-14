@@ -273,10 +273,7 @@ public sealed class SecondAuditFixTests
             }
 
             var figures = solution.Outcome.Figures[station];
-            Assert.True(double.IsFinite(figures.AreaRatio), $"{name} station {station}: AreaRatio {figures.AreaRatio}");
-            Assert.True(double.IsFinite(figures.PressureRatio), $"{name} station {station}: PressureRatio {figures.PressureRatio}");
-            Assert.True(double.IsFinite(figures.CharacteristicVelocity), $"{name} station {station}: CharacteristicVelocity {figures.CharacteristicVelocity}");
-            Assert.True(double.IsFinite(figures.SpecificImpulse), $"{name} station {station}: SpecificImpulse {figures.SpecificImpulse}");
+            Assert.Empty(FigureChecks.NonFinite(in figures, $"{name} station {station}"));
         }
     }
 
@@ -394,6 +391,8 @@ public sealed class SecondAuditFixTests
                 continue;
             }
 
+            Assert.False(MassFluxOracle.IsDistinctEarlierMaximum(ratios, peak, throatRatio),
+                $"{label}: an earlier local maximum at p/p_c {ratios[peak]:R} precedes the selected throat {throatRatio:R}");
             var (_, peakFlux) = MassFluxOracle.Refine(in context, in chamber, flow, probeStation, ratios, peak);
             Assert.True(throat.MassFlux >= peakFlux * (1.0 - 1.0e-6),
                 $"{label}: an upstream local maximum at p/p_c {ratios[peak]:R} (refined flux {peakFlux:R}) exceeds the throat's {throat.MassFlux:R}");

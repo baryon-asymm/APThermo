@@ -43,7 +43,7 @@ internal static class PhaseBoundaryLocator
             _ = ThroatBracketSearch.TryRatio(chamber.Enthalpy, in state, out var ratio);
             var fingerprint = ThroatBracketSearch.CondensedFingerprint(in context);
             var mid = new PhaseBoundaryEnd(midPressure, midTemperature, ratio, fingerprint);
-            if (fingerprint == span.Outer.Fingerprint)
+            if (fingerprint.SameAs(in span.Outer.Fingerprint))
             {
                 hi = mid;
             }

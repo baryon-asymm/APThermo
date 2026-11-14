@@ -19,7 +19,7 @@ public enum FlowModel
 /// <summary>How an exit station is assigned.</summary>
 internal enum ExitSpecification
 {
-    AreaRatio,       // A_e/A_t ≥ 1, supersonic branch
+    AreaRatio,       // A_e/A_t > 1, supersonic branch
     PressureRatio,   // p_c/p_e > 1
 }
 
