@@ -266,6 +266,8 @@ sealed class APThermo.Fixtures.ToleranceTable
     static ToleranceTable Load()
     static ToleranceTable Load(String path)
 
+== APThermo.Fixtures.Tests.ProcessProbe
+
 == APThermo.Harness
 
 sealed class APThermo.Harness.ApprovedSnapshot
