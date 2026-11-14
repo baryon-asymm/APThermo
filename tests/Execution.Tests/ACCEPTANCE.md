@@ -76,10 +76,9 @@ below, not the original per-launch F2 target. C0 Windows CUDA measured aggregate
 6523.4 ms for bracketing and 668.8 ms for trace gas; both failed the aggregate predicate.
 Retain these observations. They establish neither a maximum nor absence of a separate
 throughput regression. The previous criterion is preserved verbatim:
-
-> - [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
->   ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
->   diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.
+“- [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
+  ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
+  diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.”
 
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
