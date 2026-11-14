@@ -64,12 +64,12 @@ public sealed class LaunchBudgetTests
         Assert.Equal(100, unbounded.FirstChunkCases(wave: 4096));
 
         var bounded = ChunkPlan.For(1000, 8, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
-        Assert.Equal(64, bounded.FirstChunkCases(wave: 64));           // below Size and Count: the wave itself
-        Assert.Equal(100, bounded.FirstChunkCases(wave: 4096));        // above Size: clamped to it
+        Assert.Equal(1, bounded.FirstChunkCases(wave: 64));           // below Size and Count: the wave itself
+        Assert.Equal(1, bounded.FirstChunkCases(wave: 4096));        // above Size: clamped to it
         Assert.Equal(1, bounded.FirstChunkCases(wave: 0));             // never below one case
 
         var smallBatch = ChunkPlan.For(10, 8, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
-        Assert.Equal(10, smallBatch.FirstChunkCases(wave: 4096));      // above Count: clamped to it
+        Assert.Equal(1, smallBatch.FirstChunkCases(wave: 4096));      // above Count: clamped to it
     }
 
     /// <summary><see cref="ChunkPlan.NextChunkCases"/>: with no budget every chunk is <see cref="ChunkPlan.Size"/> (or the
@@ -84,8 +84,51 @@ public sealed class LaunchBudgetTests
 
         // A budget answering far more cases than Size allows is still clamped to Size, and to the batch's remainder.
         var bounded = ChunkPlan.For(150, 8, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
-        Assert.Equal(100, bounded.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 0));
-        Assert.Equal(50, bounded.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 100));
+        Assert.Equal(2, bounded.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 0));
+        Assert.Equal(2, bounded.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 100));
+    }
+
+    /// <summary>A fast sample cannot cause an unbounded growth jump; slow samples can shrink immediately.</summary>
+    [Fact]
+    public void BoundedGrowthIsAtMostTwiceThePreviousCaseCount()
+    {
+        var options = new EngineOptions { ChunkSize = int.MaxValue, ScratchBytes = long.MaxValue };
+        var plan = ChunkPlan.For(int.MaxValue, 1, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
+        Assert.Equal(2, plan.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 1));
+        Assert.Equal(128, plan.NextChunkCases(64, TimeSpan.FromTicks(1), coveredSoFar: 64));
+        Assert.Equal(1, plan.NextChunkCases(64, TimeSpan.FromHours(1), coveredSoFar: 64));
+        Assert.Equal(3, plan.NextChunkCases(64, TimeSpan.FromTicks(1), coveredSoFar: int.MaxValue - 3));
+        Assert.Equal(int.MaxValue - 1, plan.NextChunkCases(int.MaxValue - 1, TimeSpan.FromTicks(1), coveredSoFar: 1));
+    }
+
+    /// <summary>The actual batch loop starts with one bounded case and respects the growth cap.</summary>
+    /// <param name="bounded">Whether a display-runtime budget constrains the plan.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BatchLoopUsesTheConservativeSamplingPlan(bool bounded)
+    {
+        using var cpu = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
+        var budget = bounded ? LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)) : LaunchBudget.None;
+        var plan = ChunkPlan.For(31, 8, 1, new EngineOptions { ChunkSize = 16 }, budget);
+        using var buffers = new ChunkBuffers(cpu.IlgpuAccelerator);
+        buffers.Allocate(plan.Size);
+        var lengths = new List<int>();
+        cpu.RunBatchLoop(plan, buffers, new RunTimer(), lengths.Add);
+        Assert.Equal(31, lengths.Sum());
+        Assert.Equal(bounded ? 1 : 16, lengths[0]);
+        Assert.All(lengths, length => Assert.InRange(length, 1, 16));
+        if (bounded)
+        {
+            for (var index = 1; index < lengths.Count; index++)
+            {
+                Assert.True(lengths[index] <= 2 * lengths[index - 1], string.Join(",", lengths));
+            }
+        }
+        else
+        {
+            Assert.Equal([16, 15], lengths);
+        }
     }
 
     /// <summary>
