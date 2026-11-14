@@ -34,7 +34,8 @@ public sealed class BitSnapshotTests
                 var name = Path.GetFileNameWithoutExtension(path);
                 var key = kind + "/" + name + ".json";
                 keys.Add(key);
-                var problem = snapshot.Problem(key, Hash(HostSolver.Solve(CpuFixture.Shared, HostSolver.Load(kind, name))));
+                var (actualHash, actualFields) = Snapshot(HostSolver.Solve(CpuFixture.Shared, HostSolver.Load(kind, name)));
+                var problem = snapshot.Problem(key, actualHash, actualFields);
                 if (problem is not null)
                 {
                     hashProblems.Add(problem);
@@ -57,14 +58,21 @@ public sealed class BitSnapshotTests
     /// of <see cref="MixtureState"/> in declaration order (by reflection, so that a field added there cannot be forgotten),
     /// the status and the iteration count.
     /// </summary>
-    private static string Hash(HostSolution solution)
+    private static (string Hash, IReadOnlyList<string> Fields) Snapshot(HostSolution solution)
     {
         var hash = new BitHash().Add(solution.Moles).Add(solution.Multipliers);
-        foreach (var field in typeof(MixtureState).GetProperties())
+        var properties = typeof(MixtureState).GetProperties();
+        foreach (var field in properties)
         {
             _ = hash.Add((double)field.GetValue(solution.State)!);
         }
 
-        return hash.Add((int)solution.Status).Add(solution.Iterations).ToHex();
+        _ = hash.Add((int)solution.Status).Add(solution.Iterations);
+        var names = solution.Case.Table.Species.Select(name => $"moles[{name}]")
+            .Concat(solution.Case.Table.Elements.Select(name => $"multipliers[{name}]"))
+            .Concat(properties.Select(property => $"state.{property.Name}"))
+            .Append($"status ({solution.Status})").Append("iterations");
+        var fields = names.Zip(hash.Fields, (name, value) => $"{name} = {value}").ToArray();
+        return (hash.ToHex(), fields);
     }
 }

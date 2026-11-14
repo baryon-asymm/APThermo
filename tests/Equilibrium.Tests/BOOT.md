@@ -35,6 +35,13 @@ than keeping a stale copy. This correction records no new hardware measurement.
   accelerator on the reference machine's runtime; a runtime update that moves lines
   is re-approved with that reason recorded here. A fixture case absent from the
   snapshot fails the test with instructions, as the surface snapshot does.
+  Each actual mismatch passes named mole/species, multiplier/element, reflected state
+  property, status and iteration values to the Harness per-case field dump. Hash
+  order and approved bytes remain unchanged.
+
+  ⚠ 2026-11-14: T16 found this node supplied only a digest despite Harness supporting
+  field dumps. Numeric failures now also emit the named actual values beside the
+  actual snapshot; the approval and hashing contracts are unchanged.
 
   ⚠ 2026-10-05: the Windows and the Linux record named below are one record now (owner
   decision O5, item 13 of release 0.2.2). The tree's own correctly rounded `Exp`, `Log`
@@ -176,6 +183,9 @@ creation names its arguments; it passes them by position today (the criterion be
 | `BatchViews.BatchViews` | parameters | 12 | the parameter struct of one kernel launch, one argument per view; its creation names its arguments |
 
 ## Acceptance criteria
+
+- [x] 2026-11-14 — `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` preserves the approved
+  bytes; an actual one-ULP mole mutation yields a readable named per-case field dump.
 
 - [x] 2026-11-14 — `FiniteStateTests` freezes lower-level pressure controls: false Ok at the smallest
   pressure and infinity must be refused; representable extreme finite pressure remains
