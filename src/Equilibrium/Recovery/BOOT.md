@@ -290,6 +290,11 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
       recheck off: 2 hp and 4 sp false `Ok`s of 300 states each, and with the floors of the held records only: 4 of 168
       in `ThreeElementTieTests`). The floors themselves: `TheLiquidIsADeadEndFloorExactlyWhenNoIceAdjoinsIt`,
       `ADownwardStepLandsOnTheHighestDeadEndFloorBelowTheProbe`.
+  ⚠ 2026-11-14: the earlier claim was "Dead-end floors: on example 12's list, every hp and sp target of a tp state of the list plus `H2O(cr)` ends `Ok` at the list-plus-ice temperature (1e-9 relative) when that state holds no ice, and otherwise `TemperatureOutOfRange` or the vapour with the original attempt's iterations; every class walked".
+  The original-attempt counter discarded work paid by the recovery search. The
+  physical no-alternative result is still restored exactly, but every attempted
+  step is now counted; the CPU floor and bank tests reverify the successor above.
+  Full original criterion and evidence → HISTORY.md#audit-bank-counter.
 - [x] Dead-end gaps: the hp targets of the AP/HTPB/Al tp states at 20 MPa and 200 to 275 K (16), cold and seeded
       from 430 K, end `Ok` at the tp temperature clear of `EquilibriumConditions`; a target a tenth or three
       tenths across the jump of `H2O(L)` at 600 K at 30 MPa, below every state at or above 160 K, ends
@@ -331,10 +336,6 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
   exact CPU/CUDA and bit checks and the execution compile/memory/throughput guards
   on the reference machine; the root orchestrator owns these hardware proofs.
 
-⚠ 2026-11-14: the earlier floor criterion required the original attempt's iteration
-count after replay. The physical no-alternative result is still restored exactly,
-but every attempted step is now counted; the CPU floor tests and bank controls
-reverify that contract. Original criterion → HISTORY.md#audit-bank-counter.
 Historical 2026-10-04 measurements above are not redated.
 ## Taboos
 
