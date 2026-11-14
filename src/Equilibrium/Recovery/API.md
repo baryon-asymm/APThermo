@@ -99,3 +99,12 @@ internal static class RecheckFinal
     public static bool End(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref AttemptPlan plan);
 }
 ```
+
+⚠ 2026-11-14 (R08): the original successful-attempt gate admitted Cold only.
+Initial Warm HP/SP successes now use the same positive-floor bounded bank. The
+completed warm result is retained exactly before the first Defaults/Cold probe;
+no positive floor leaves it untouched, and a failed Warm still takes its existing
+cold retry. Final/TraceGasFinal passes contribute to the active bank through the
+existing interception, so they do not recursively start a new bank. This extends
+entry eligibility without changing objectives, strict ties, work counters or search
+scope; it is not a universal global-optimum claim.

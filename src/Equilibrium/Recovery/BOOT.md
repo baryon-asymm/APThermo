@@ -242,11 +242,15 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 
 ## Acceptance criteria
 
-- [ ] R08: `RecoveryCandidateTests` drives initial Warm HP/SP through AttemptPlan.Next,
+- [x] 2026-11-14 — R08: `RecoveryCandidateTests` drives initial Warm HP/SP through AttemptPlan.Next,
   checks first probe Defaults/Cold, exact original restoration and counted work after
   rejected alternatives, no-floor untouched completion, failed-Warm cold fallback,
   and Final/TraceGasFinal routing through the active bank. The shared CPU consumer
   checks the independently constrained seeded HP/SP physical witnesses.
+  Evidence in audit-seeded-numerical `SCRATCH/audit/`: lower controls old 6 red/10 green,
+  fixed 16/16 (`r08-candidate-*.trx`); shared CPU old 1 red/1 green, fixed 2/2
+  (`r08-shared-consumer-*.trx`); full CPU Equilibrium 2197/2197, no skips
+  (`r08-equilibrium-full.trx`). NASA files, tolerance values and approved records unchanged.
 
 - [x] 2026-11-14 — CPU audit A35 (`AuditPhaseBranchTests`): Mg-H-O-S HP/SP inputs meet H/S and element
   balances and are no worse than independently recomputed feasible witnesses.

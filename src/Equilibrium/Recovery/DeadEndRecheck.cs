@@ -5,12 +5,13 @@ namespace APThermo.Equilibrium.Recovery;
 /// <summary>Walk every distinct relevant floor and restore the best feasible candidate, never the first improvement alone.</summary>
 internal static class DeadEndRecheck
 {
-    /// <summary>A cold HP/SP Ok below a positive-gain floor starts the bounded best-candidate search.</summary>
+    /// <summary>An initial cold or warm HP/SP Ok below a positive-gain floor starts the bounded best-candidate search.</summary>
     public static bool AfterOk(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
                                in EquilibriumResult result, ref AttemptPlan plan)
     {
         var temperature = PassOutcome.Temperature(result);
-        var hasFloor = plan.Phase == AttemptPhase.Cold && DeadEnds.FloorAbove(table, scratch, result, temperature) > 0.0;
+        var initial = plan.Phase is AttemptPhase.Cold or AttemptPhase.Warm;
+        var hasFloor = initial && DeadEnds.FloorAbove(table, scratch, result, temperature) > 0.0;
         var floor = hasFloor ? DeadEnds.NextFloorAbove(table, scratch, temperature) : 0.0;
         if (!(floor > 0.0))
         {

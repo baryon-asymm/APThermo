@@ -184,9 +184,12 @@ creation names its arguments; it passes them by position today (the criterion be
 
 ## Acceptance criteria
 
-- [ ] R08: initial Warm HP/SP entry, bank restoration, no-floor completion, failed
+- [x] 2026-11-14 — R08: initial Warm HP/SP entry, bank restoration, no-floor completion, failed
   warm fallback and nonrecursive final routing are checked by RecoveryCandidateTests;
   the shared Execution CPU companion retains independent same-H/S objectives.
+  Old lower controls: 6 red/10 green; fixed: 16/16. Shared CPU: 1 red/1 green to 2/2.
+  Full CPU Equilibrium: 2197/2197, no skips. Evidence `SCRATCH/audit/r08-*.trx` in
+  audit-seeded-numerical, with machine-readable seeded rows in `r08-fixed-seeded-rows.json`.
 
 - [x] 2026-11-14 — `BitSnapshotTests.EveryFixtureCaseGivesTheRecordedBits` preserves the approved
   bytes; an actual one-ULP mole mutation yields a readable named per-case field dump.
