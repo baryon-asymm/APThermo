@@ -18,7 +18,7 @@ internal static class BatchRun
         try
         {
             var offset = 0;
-            var length = plan.FirstChunkCases(session.Accelerator.MaxNumThreads);
+            var length = plan.FirstChunkCases();
             while (offset < plan.Count)
             {
                 length = Math.Min(length, plan.Count - offset);

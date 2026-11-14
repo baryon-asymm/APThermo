@@ -32,7 +32,7 @@ internal readonly struct ChunkPlan
     public static ChunkPlan For(int count, long bytesPerCase, long maxElementsPerCase, EngineOptions options);
     public static ChunkPlan For(int count, long bytesPerCase, long maxElementsPerCase, EngineOptions options, LaunchBudget budget);
     public IEnumerable<Chunk> Chunks();
-    public int FirstChunkCases(int wave);
+    public int FirstChunkCases();
     public int NextChunkCases(int previousCases, TimeSpan previousDuration, int coveredSoFar);
 }
 ```
@@ -55,16 +55,17 @@ five-argument overload with the session's own budget, built at bind time from th
 device's run-time-limit attribute — `None` for the CPU accelerator or a device
 without the limit, `FromRunTimeLimit(LaunchBudget.DefaultRunTimeLimit)` otherwise.
 `LaunchBudget` holds no ILGPU type: it is one nullable `TimeSpan` and arithmetic on
-`TimeSpan.Ticks`. `FirstChunkCases(wave)` returns `Size` when the plan is unbounded,
-or a chunk clamped to one device wave (`Accelerator.MaxNumThreads`, the caller's own
-measure of "one launch that surely fits") otherwise, so the very first chunk — with no
-measured duration yet to scale from — starts small on a bounded device. `NextChunkCases`
-on the plan scales the previous chunk's case count by `LaunchBudget.NextChunkCases`
-(the previous chunk's measured time per case against a quarter of the run-time limit,
-so three retries stay inside it even if the estimate is off), clamped to `Size` and to
-what remains of the batch, and never below one case. `BatchRun` (the parent node's own
-file) drives this loop; `Chunks()` is unaffected and stays the choice for a caller with
-no timing loop of its own.
+`TimeSpan.Ticks`. `FirstChunkCases()` returns `Size` when unbounded and one case
+when bounded (zero for an empty plan). `NextChunkCases` scales the previous measured
+time through the budget estimate, caps growth at twice the previous case count,
+then respects `Size` and the remainder, with a one-case floor. CPU/headless plans
+retain their static size. `BatchRun` drives the timing loop; `Chunks()` remains the
+static covering. One indivisible case may still exceed the runtime limit.
+
+⚠ 2026-11-14: the old wave argument and its claim of a launch that surely fits
+were unsupported by measured case duration. A bounded run now samples one case
+and grows at most twice per observation; this is a heuristic, not a TDR guarantee.
+The unused wave parameter was removed from this internal contract.
 
 ## Chunk buffers ✅
 

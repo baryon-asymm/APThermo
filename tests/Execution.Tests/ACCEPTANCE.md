@@ -5,6 +5,11 @@
   Evidence: `SCRATCH/audit/planning-old-negative.log`, `planning-final.log`.
   No GPU executed; the actual module inventory uses the same Windows/Linux driver classifier.
 
+- [x] 2026-11-14 — Conservative bounded sampling: `LaunchBudgetTests` host controls
+  10 passed, including the real CPU batch-loop wiring, one-case start, 2x cap, immediate
+  shrink, remainder and integer-maximum bounds. Old policy: four failed/one passed.
+  Evidence: `SCRATCH/audit/sampling-old-negative.log`, `sampling-final.log`; no GPU run.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 

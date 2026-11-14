@@ -65,25 +65,21 @@ internal readonly struct ChunkPlan
         }
     }
 
-    /// <summary>
-    /// How many cases the very first chunk of a run should take: with no budget, <see cref="Size"/> (the case Windows
-    /// or Linux runs on Windows-forever, and the pre-existing behaviour); with a budget, one wave of the device
-    /// (<paramref name="wave"/> cases — its multiprocessors times the threads each holds at once), never above
-    /// <see cref="Size"/> or <see cref="Count"/>.
-    /// </summary>
-    public int FirstChunkCases(int wave) =>
-        Budget.IsBounded ? Math.Clamp(wave, 1, Math.Min(Size, Count)) : Math.Min(Size, Count);
+    /// <summary>The first bounded launch samples one case; an unbounded launch retains the static size.</summary>
+    public int FirstChunkCases() =>
+        Budget.IsBounded ? Math.Min(1, Math.Min(Size, Count)) : Math.Min(Size, Count);
 
     /// <summary>
     /// How many cases the next chunk should take, given the previous chunk's case count and measured launch duration, and
     /// how many cases of the batch are already covered. With no budget this is <see cref="Size"/> again (or the batch's
     /// remainder, whichever is smaller); with a budget it is the budget's own answer, still never above <see cref="Size"/>
-    /// and never above the remainder.
+    /// and never above the remainder. Bounded growth is at most twice the preceding case count.
     /// </summary>
     public int NextChunkCases(int previousCases, TimeSpan previousDuration, int coveredSoFar)
     {
         var remainder = Count - coveredSoFar;
-        var length = Budget.IsBounded ? Budget.NextChunkCases(previousCases, previousDuration) : Size;
+        var growthLimit = (int)Math.Min(int.MaxValue, 2L * Math.Max(1, previousCases));
+        var length = Budget.IsBounded ? Math.Min(Budget.NextChunkCases(previousCases, previousDuration), growthLimit) : Size;
         return Math.Clamp(Math.Min(length, Size), 1, remainder);
     }
 }

@@ -55,21 +55,18 @@ public sealed class LaunchBudgetTests
     }
 
     /// <summary><see cref="ChunkPlan.FirstChunkCases"/>: with no budget it is the plan's static <see cref="ChunkPlan.Size"/>
-    /// (or the count, if smaller); with a budget it is one wave of the device, clamped to the same bounds.</summary>
+    /// (or the count, if smaller); with a budget it is one case, including a one-case batch and an empty plan.</summary>
     [Fact]
-    public void TheFirstChunkIsSizeWithNoBudgetAndOneWaveWithABudget()
+    public void TheFirstChunkIsSizeWithNoBudgetAndOneCaseWithABudget()
     {
         var options = new EngineOptions { Accelerator = AcceleratorKind.Cpu, ChunkSize = 100 };
         var unbounded = ChunkPlan.For(1000, 8, 1, options);
-        Assert.Equal(100, unbounded.FirstChunkCases(wave: 4096));
+        Assert.Equal(100, unbounded.FirstChunkCases());
 
-        var bounded = ChunkPlan.For(1000, 8, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
-        Assert.Equal(1, bounded.FirstChunkCases(wave: 64));           // below Size and Count: the wave itself
-        Assert.Equal(1, bounded.FirstChunkCases(wave: 4096));        // above Size: clamped to it
-        Assert.Equal(1, bounded.FirstChunkCases(wave: 0));             // never below one case
-
-        var smallBatch = ChunkPlan.For(10, 8, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
-        Assert.Equal(1, smallBatch.FirstChunkCases(wave: 4096));      // above Count: clamped to it
+        var budget = LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2));
+        Assert.Equal(1, ChunkPlan.For(1000, 8, 1, options, budget).FirstChunkCases());
+        Assert.Equal(1, ChunkPlan.For(1, 8, 1, options, budget).FirstChunkCases());
+        Assert.Equal(0, ChunkPlan.For(0, 8, 1, options, budget).FirstChunkCases());
     }
 
     /// <summary><see cref="ChunkPlan.NextChunkCases"/>: with no budget every chunk is <see cref="ChunkPlan.Size"/> (or the
@@ -82,7 +79,7 @@ public sealed class LaunchBudgetTests
         Assert.Equal(100, unbounded.NextChunkCases(100, TimeSpan.FromMilliseconds(1), coveredSoFar: 0));
         Assert.Equal(50, unbounded.NextChunkCases(100, TimeSpan.FromMilliseconds(1), coveredSoFar: 100));
 
-        // A budget answering far more cases than Size allows is still clamped to Size, and to the batch's remainder.
+        // A fast one-case sample grows by at most two, regardless of the larger size and remainder.
         var bounded = ChunkPlan.For(150, 8, 1, options, LaunchBudget.FromRunTimeLimit(TimeSpan.FromSeconds(2)));
         Assert.Equal(2, bounded.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 0));
         Assert.Equal(2, bounded.NextChunkCases(1, TimeSpan.FromTicks(1), coveredSoFar: 100));
