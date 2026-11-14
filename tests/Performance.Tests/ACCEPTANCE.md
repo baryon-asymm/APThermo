@@ -303,3 +303,26 @@ temperature, pressure, characteristic velocity and composition remain compared.
   caller and before the production refactor. The other 100 bit controls pass.
   Evidence `SCRATCH/audit/performance-named-bits.log` and
   `performance-named-example.txt` in audit-performance; no approved file changed.
+
+- [x] 2026-11-14 — Independent BeO sonic known answer: `IndependentBeOThroatTests` freezes the
+  external 80-digit raw-NASA equation solution for rp1311-example13 T/p/c*, checks
+  the existing polish tolerance, and rejects corrupted measured fields. The bounded
+  three-field guard supplements the full fixture/KKT/bit evidence; it replaces none.
+  Data and input SHA-256 provenance live in `IndependentBeOThroat.json`.
+
+The root authorized exactly the rp1311-example13 Performance bit row after the
+independent numerical review of 2026-11-14. Root's pinned-source A01 reversal restores
+its original complete outcome and counters; A35, A13 and Performance decomposition
+are excluded by the controlled variants. Independent raw fits and sonic balance
+solve accept the same BeO(b)/BeO(L) throat: maximum selected primary/sonic relative
+error 1.73535e-11, gas stationarity 7.7222e-14, element residual 8.0094e-15, held-phase
+potential residuals below 6.5e-15. Both neighboring pressures have lower mass flux.
+The two-phase temperature remains the existing effective-range correction near
+2851 K. No intermediate swap/exit-guard branch trace was claimed. This is a named
+intentional numerical convergence-path change, not a refactoring allowance.
+Provenance: external audit `fix-evidence/independent-numerics/REVIEW.md`,
+`raw-oracle.json`, `throat-oracle.json`, `raw_oracle.py`, `throat_oracle.py` and
+root `fix-evidence/root/cause-*-fields.json`; the guard retains a small frozen answer.Guard evidence: `IndependentBeOThroatTests` 4/4 CPU positive/negative controls;
+a temporary actual throat-temperature corruption in the positive solve made that
+known-answer assertion red, then was restored. `SCRATCH/audit/independent-beo-green.trx`
+and `independent-beo-corruption-red.trx` in audit-public record both sides.
