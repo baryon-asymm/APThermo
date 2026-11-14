@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Choose an eligible condensed polymorph by its thermodynamic potential when its
+  data range overlaps a same-formula partner. Cold HP/SP recovery keeps the best
+  completed candidate across its bounded distinct-floor search, counts all work,
+  and refuses an unresolved alternative instead of reporting a false `Ok`.
+- Publish owned, read-only database, propellant, problem and result collections;
+  distinguish arbitrary species names in chemical-system cache keys, release cached
+  propellants on disposal, and preserve group normalization at subnormal scales.
+- Enforce failed-station state and performance postconditions at the public boundary,
+  retaining temperature and pressure for `NoGasPhase` and diagnostic compositions.
+- Reject nonfinite mandatory database numbers and missing or out-of-order section
+  transitions. Reject nonfinite internal transport inputs and comparison values.
+- Preserve approved snapshot files for arbitrary baseline names and output links;
+  validate schema reference siblings and all schema branches before use. Numerical
+  comparisons reject nonfinite inputs and finite intermediate-overflow false matches.
+- Check complete documented signatures against compiled metadata, pin merge inputs
+  through atomic publication, preserve revised acceptance criteria with their evidence,
+  and exercise the strengthened guards with negative controls.
+
+### Documentation
+
+- State the frozen-composition extrapolation limits, failed-state exceptions and
+  per-solver threading constraint in the public contracts and guides. Distinguish
+  backend reproducibility, independent scientific evidence and policy-only tests.
+
 ## [0.3.0] - 2026-10-05
 
 This release breaks the public surface of 0.2.1: the CUDA Toolkit paths leave `EngineOptions`,
