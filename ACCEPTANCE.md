@@ -6,6 +6,10 @@ frame; this file holds the criteria that prove it, read only in the root node.
 
 ## Acceptance criteria
 
+- [ ] The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+      verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
+      prior criteria and historical measurements remain discoverable.
+
 - [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
       throat and exit states and the performance figures, in equilibrium and in frozen
       flow, agree with the NASA CEA reference outputs within the tolerance table of the

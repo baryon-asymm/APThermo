@@ -27,6 +27,10 @@ in one solver invocation.
    in the order given. Check every result's stations' `Status` before reading a
    figure.
 
+Use a solver instance from one thread at a time. A batch call groups work for its
+accelerator; it does not make concurrent calls on that same solver safe. Use separate
+solver instances for concurrent callers, sharing the immutable loaded database.
+
 <!-- snippet: BatchSolveUsings -->
 ```csharp
 using APThermo.Data;

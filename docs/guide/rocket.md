@@ -168,13 +168,17 @@ AIAA Journal, 2021, doi:10.2514/1.J060972. The heat of formation of HTPB varies 
 in the literature and changes equilibrium results by up to 5 % (the same paper); set
 your own binder from your own data.
 
-An `Only` list means exactly that list: the library adds no species to it. A phase whose
-record ends below with no lower record of the same formula (`H2O(L)` without `H2O(cr)`
-below 273.15 K, `NH4CL(II)` below 298.15 K, `C(gr)` below 300 K) cannot be held below that
-temperature. An assigned-temperature state there reports the supersaturated gas, and an
-assigned-enthalpy or assigned-entropy target below every state of the list ends
-`TemperatureOutOfRange`; add the lower record to the list if you need the phase there. See
-[Troubleshooting](troubleshooting.md).
+An `Only` list means exactly that list: the library adds no species to it. Phase-domain
+limits also apply to the default selection. Some condensed records become unavailable
+below their effective bounds; others have declared open-below behavior. The admitted
+model can therefore report supersaturated gas or sharp changes across a phase-domain
+boundary. See [Troubleshooting](troubleshooting.md) before interpreting such a result.
+
+This example freezes the composition at the throat, including condensed products.
+Downstream properties may extrapolate their condensed fits outside the data range.
+`Ok` establishes success within that frozen model, not validation of the extrapolated
+material properties. Compare positive condensed species and station temperatures with
+the database records when those fit limits matter.
 
 <!-- snippet: CustomPropellantUsings -->
 ```csharp
@@ -240,10 +244,12 @@ foreach (var station in result.Stations)
   `ArgumentException` naming the reactant and its valid range, at `Build`.
 - **Non-positive chamber pressure or exit value**: `ArgumentException` at `Solve`,
   before any kernel runs.
-- **A station fails numerically** (no physical solution at that station, the Newton
+- **A station fails numerically** (the selected model or numerical search cannot produce
+  an accepted solution, the Newton
   iteration does not converge, a singular derivative matrix, an hp chamber search
   leaving the database's temperature range): the station carries a `CaseStatus`
-  other than `Ok` and a zero state; the run itself does not throw. See
+  other than `Ok` and a zero state, except that `NoGasPhase` retains T and p; the run
+  itself does not throw. Earlier successful stations remain valid. See
   [Troubleshooting](troubleshooting.md) for the full list of statuses.
 
 ## See also

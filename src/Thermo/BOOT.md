@@ -63,9 +63,12 @@ can be uploaded to an accelerator and evaluated without allocation.
   equilibrium node then sees every real transition as a boundary between two records
   and never as a jump inside one. Gaseous species are never joined or split.
   (The join-and-cut section of `API.md`.)
-- **One physical constant.** `R = 8314.51 J/(kmol·K)` is the value NASA CEA uses and
-  the only physical constant typed into the tree; it lives here and nowhere else, and
-  a test compares it with the value the reference implementation exposes.
+- **Gas constant.** `R = 8314.51 J/(kmol·K)` is the value NASA CEA uses; this node owns
+  it, and a test compares it with the value the reference implementation exposes.
+  Other physical constants belong to their owning transport or unit-conversion node.
+  ⚠ 2026-11-14: "the only physical constant typed into the tree" was false:
+  Transport uses Boltzmann/Avogadro and CLI conversion uses standard gravity. The audit
+  found the scope error; no evidence justifies changing the accepted numeric values.
 - **The stoichiometry matrix is complete.** Every element of every species in the
   table is one of the table's elements; the builder refuses a species that brings an
   element outside the given list.
