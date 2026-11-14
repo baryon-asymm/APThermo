@@ -79,8 +79,13 @@ tool; `apthermo schema [NAME]` prints one by name, to standard output or `--outp
 or lists the embedded names when `NAME` is missing or unknown.
 
 Pressures in Pa, temperatures in K, specific impulse in m/s; every other unit is SI as
-stated in `BOOT.md`. A failed case is reported with a status, never with a partially
-filled result.
+stated in `BOOT.md`. A failed station has a status and no valid state or performance
+figures; `NoGasPhase` retains its temperature and pressure. Earlier successful stations
+remain valid. A failed station's composition may retain diagnostic iterates; its
+[Problems contract](src/Problems/API.md) defines their meaning.
+
+⚠ 2026-11-14: "never with a partially filled result" obscured the declared
+`NoGasPhase` and diagnostic-composition exceptions; this states their scope explicitly.
 
 ## Children ✅
 

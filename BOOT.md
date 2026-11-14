@@ -43,7 +43,9 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   monatomic gaseous species of the same database.
 - **Gibbs minimization is the only equilibrium method.** Equilibrium composition is
   the minimum of the Gibbs energy under element conservation (the Gordon–McBride
-  formulation). No reaction sets and no equilibrium constants anywhere in the tree.
+  formulation). The equilibrium solver uses no reaction sets or equilibrium constants;
+  transport may construct a reaction basis for its own property calculation.
+  ⚠ 2026-11-14: was tree-wide, now equilibrium-only → HISTORY.md#audit-scope-2026-11-14
 - **A batch has one species set.** All cases of a batch share the element list, the
   candidate species list (gaseous and condensed) and the thermodynamic tables.
   Condensed species enter and leave a case's solution, but the candidate list does not
@@ -56,7 +58,9 @@ graphical interfaces, thermodynamic databases in formats other than the NASA one
   are equal bit for bit: every field of every result, statuses and iteration counts
   included, a NaN's payload aside. The tree's own correctly rounded `Exp`, `Log` and `Pow`
   and the execution node's post-link, which keeps CUDA from fusing a multiplication into
-  an addition, make the two run one set of IEEE operations. Every batch test compares both.
+  an addition, make the two run one set of IEEE operations. CUDA comparison facts prove
+  this contract; CPU-only validation and repetition facts have narrower purposes.
+  ⚠ 2026-11-14: was every batch fact, now CUDA facts → HISTORY.md#audit-scope-2026-11-14
 
   ⚠ 2026-10-05: was within a tolerance table (1e-10 temperature, 1e-9 mole fractions), now exact → HISTORY.md#gpu-exact
 
@@ -95,14 +99,16 @@ delivery (2026-09-15, `## Delivery` below).
 ## Constraints
 
 - Platform: Windows x64 and Linux x64 are the supported platforms, both on the CPU
-  accelerator and on CUDA (2026-09-15). Nothing but the execution node's WSL device
-  registration may be platform-specific. Every test runs on both platforms, and the bit
+  accelerator and on CUDA (2026-09-15). Numerical code is shared; execution adapters
+  and delivery/preflight scripts may handle platform differences. Tests apply to both
+  platforms, with hardware requirements explicit, and the bit
   records are compared exactly on every runner, the hosted CI runners included
   (2026-10-05). The approved records are one per node: a node's `Bits.approved.txt` holds
   the bits of both platforms, since the tree's own `Exp`, `Log` and `Pow` do not read the
   machine's C runtime and the Windows and WSL2 bits are equal; the throughput figures keep
   a Windows and a Linux file, a speed belonging to a machine. An intended numerical change
   re-approves them in the same commit.
+  ⚠ 2026-11-14: was WSL alone, now host adapters too → HISTORY.md#audit-scope-2026-11-14
 
   ⚠ 2026-10-05: was a declared deviation (bit facts off the hosted runners, a C runtime moving
   last bits), now lifted → HISTORY.md#platform-deviation-lifted, HISTORY.md#platform-deviation-condensed
@@ -209,14 +215,10 @@ delivery (2026-09-15, `## Delivery` below).
     argument of an inlined method) is the reason `KernelMath` tests both operands for
     NaN first, and the execution node's probe runs `KernelMath` with the constant in
     either position.
-  - A fourth (2026-10-01): its transfer overloads that take a `ref T` into host memory
-    do not pin it, and a garbage collection between the pointer and the copy moves the
-    array under the copy. A lost download handed a consumer an `Ok` case with zero
-    figures (`CaseStatus.Ok` is 0), against the failures-are-values invariant. The rule:
-    host memory crosses into ILGPU only through an overload that pins it, and a download
-    that wrote nothing is refused. The execution node's `Chunks` child holds both (its
-    `BOOT.md`); the protocol tests node checks that no `src` method calls a
-    by-reference transfer. → HISTORY.md#ilgpu-hazards-condensed
+  - Host memory crosses into ILGPU only through an overload that pins it; a download
+    that wrote nothing is refused. `Execution/Chunks` owns these rules, and protocol
+    tests reject by-reference transfers in `src`.
+    ⚠ 2026-11-14: was incident narrative, now rule → HISTORY.md#pinned-transfer-incident
 
   ⚠ 2026-09-26: was the defect tied to libnvvm, now to the target → HISTORY.md#ilgpu-sm
 - Compile size (2026-09-30): ILGPU 1.5.3 inlines every function by default (`InliningMode.Default`), so each call
@@ -303,8 +305,8 @@ There is no external ancestor: the tree root is the repository root, and the loa
   orders of magnitude.
 - No coefficient, atomic weight or table typed into code: it cannot be audited against
   the source file.
-- No equilibrium constants, reaction sets or hidden species lists: they bind results to
-  choices nobody can review.
+- No equilibrium constants or reaction sets in the equilibrium solver, and no hidden
+  species lists: they bind results to choices nobody can review.
 - No `LibDevice.*`, `XMath` or ILGPU.Algorithms in numerical nodes: Algorithms replaces
   double math with CORDIC, and direct bindings bypass the tree's own correctly rounded math.
 - No exceptions, allocations or virtual calls in numerical nodes: kernels cannot run them.
@@ -324,7 +326,9 @@ numerical level is written once in kernel-compatible C# (first invariant): a cas
 one thread's sequential program, so the same code serves single calls on the CPU and
 batches on the GPU. What each node owns is its own `## Purpose`, the nodes are listed
 with links in [API.md](API.md), and the arrows between them are the nodes'
-`## Dependencies`, which point downward only and which `DependencyTests` holds.
+`## Dependencies`, pointing sideways or upward, never to owned children.
+`DependencyTests` holds those links.
+⚠ 2026-11-14: was downward, now sideways/upward → HISTORY.md#audit-scope-2026-11-14
 - The kernel-capable numerical levels are `src/Thermo`, `src/Equilibrium`,
   `src/Performance` and `src/Transport`. `src/Data` is CPU-only, allocation-heavy code
   and the only node that knows the file formats, which is why it is not merged with

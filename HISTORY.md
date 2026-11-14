@@ -8,6 +8,44 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="audit-scope-2026-11-14"></a>
+
+## 2026-11-14 — from Invariants, Constraints, Taboos and Decomposition — audit scope
+
+The original claims were:
+
+> formulation). No reaction sets and no equilibrium constants anywhere in the tree.
+> an addition, make the two run one set of IEEE operations. Every batch test compares both.
+> accelerator and on CUDA (2026-09-15). Nothing but the execution node's WSL device
+> registration may be platform-specific. Every test runs on both platforms, and the bit
+> No equilibrium constants, reaction sets or hidden species lists: they bind results to
+> choices nobody can review.
+> `## Dependencies`, which point downward only and which `DependencyTests` holds.
+
+The audit found `Transport/ReactionSet`, the CPU-only chunk/repetition fact and the
+Windows/Linux preflight scripts. The scientific equilibrium and backend-equality
+rules stand; their blanket descriptions are now scoped to the code they govern.
+Dependency declarations point sideways/upward under AGENTS section 6; ownership of
+children is not a declared dependency. No numerical tolerance or criterion was removed.
+
+<a id="pinned-transfer-incident"></a>
+
+## 2026-11-14 — from Constraints — pinned host transfer incident
+
+Original text in full:
+
+> A fourth (2026-10-01): its transfer overloads that take a `ref T` into host memory
+> do not pin it, and a garbage collection between the pointer and the copy moves the
+> array under the copy. A lost download handed a consumer an `Ok` case with zero
+> figures (`CaseStatus.Ok` is 0), against the failures-are-values invariant. The rule:
+> host memory crosses into ILGPU only through an overload that pins it, and a download
+> that wrote nothing is refused. The execution node's `Chunks` child holds both (its
+> `BOOT.md`); the protocol tests node checks that no `src` method calls a
+> by-reference transfer. → HISTORY.md#ilgpu-hazards-condensed
+
+The current pinning and missing-download rules remain in BOOT; only this past incident
+moves here to keep the ancestor inside its line limit after the audit corrections.
+
 <a id="docs-one-file"></a>
 
 ## 2026-10-05 — from "## Delivery", "Documentation" — one approved document per example
