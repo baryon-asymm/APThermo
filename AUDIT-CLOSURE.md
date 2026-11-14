@@ -40,7 +40,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A23 | PowerShell preflight failure propagation | Local pass 2026-11-14 | `4e5d1494`, `a3191c24`; root guards 20/20, real Windows PS5.1 and Ubuntu-24.04 preflight pass; GitHub runner proof pending |
 | A24 | Current protocol-linter negative controls | Local pass 2026-11-14 | `a6ff702c`; lint self-tests 75/75, strict lint 0/0 |
 | A25 | Inclusive sweep limit | Local pass 2026-11-14 | `e8b9bf46`, `695d9715`; decimal maximum regression corrected after independent review; root CLI CPU 177/177 (`fix-evidence/root/cli-integration-current.trx`) |
-| A26 | Input/output schema parity | Slice pass 2026-11-14 | `6bf771aa`; conditional shape controls 42/42, real zero-mass InvalidInput output admitted; root CLI 177/177; docs schema approval pending |
+| A26 | Input/output schema parity | Local pass 2026-11-14 | `6bf771aa`, `8406c714`; conditional shape controls 42/42, real zero-mass InvalidInput output admitted; root CLI 177/177; reviewed input-schema bytes approved and four documentation consumers pass |
 | A27 | Finite fixture tolerances | Local pass 2026-11-14 | `ed8acaae`; finite-intermediate-overflow control included in root Fixtures 68/68 |
 | A28 | Current contract and guide claims | Local pass 2026-11-14 | Owning numerical/public claims corrected, `9dd497c9` benchmark launch/fallback/setup scope, `8b5cbfa7` exact sample snippet, `9ea4c213` cleanup scope; final docs consumer run pending |
 | A29 | Unambiguous chemical-system cache key | Local pass 2026-11-14 | `782ced8f`; framed-name collision and positive controls in root public 28/28 |
@@ -49,7 +49,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A32 | Complete batch-composition comparison | Local pass 2026-11-14 | `31c28741`; union/condensed/zero-key controls in root public 28/28 |
 | A33 | Literal release tag shell arguments | Local pass 2026-11-14 | `4e5d1494`; adversarial valid-ref and fake-gh controls in root 20/20; affected GitHub runner proof pending |
 | A34 | Literal changelog version matching | Local pass 2026-11-14 | `4e5d1494`; exact/prerelease/build-metadata, lookalike and empty-section controls in root 20/20 |
-| A35 | Multi-floor HP/SP objective selection | In progress | `b8f90090`; cold bank/floor/independent-witness controls 34/34 and public regressions added; seeded recovery bypass R08 reproduced by root, hardware matrix pending |
+| A35 | Multi-floor HP/SP objective selection | Slice pass 2026-11-14 | `b8f90090`, `77d9c7b2`; cold bank/floor controls 34/34, warm controls 16/16, public and CPU witness consumers; final integrated platform/hardware matrix pending |
 | A36 | Failed-state public postcondition | Local pass 2026-11-14 | `14d875bb`, `782ced8f`; internal/public failure controls, NoGasPhase exception and prior-success preservation |
 | A37 | Public condensed-model applicability | Local pass 2026-11-14 | `668939f6`, `14d875bb`; Problems contract and rocket/troubleshooting guides name frozen extrapolation and retained phase bounds |
 | A38 | Disposal overload inventory | Local pass 2026-11-14 | `31c28741`; exact MethodInfo inventory and same-name wrong-overload negative control |
@@ -98,7 +98,7 @@ so that correcting a test name cannot silently substitute for its behavioral che
 | T08 | Separate family results from fallback-path inference | `b15c6cdd`; behavior and mechanism facts split, 13/13; marker mutation fails five diagnostics while five result checks remain green |
 | T10 | Distinguish CPU-forbidden CUDA facts from real hardware proof | Separate final hardware lanes; explicit backend/device reporting and new P1 consumers in progress |
 | T11/T12 | Retain independent scientific evidence and bounded bit contracts | Existing independent suites retained; one BeO numerical row approved only after raw NASA9 and independent sonic validation (`0702dd45`, `effc89f2`) |
-| T13 | Show solved-throat sensitivity to skipped tail execution | In progress; `tests/Performance.Tests/BOOT.md` requires an independent sonic reference and a red skipped-tail mutation |
+| T13 | Show solved-throat sensitivity to skipped tail execution | `508ab286`; analytic Ar calibration and independently integrated/bisected N2 sonic state, skipped-tail mutation fails the physical comparison while policy/Ar pass; Performance 1496/1496, no production/tolerance/snapshot change |
 | T14 | Bound subprocess completion and preserve partial output | `af3ac921`; root process-fixture integration 79/79, controlled timeout/cancellation/pipe cases |
 | T15 | Add a literal independent mass-tolerance validity table | `4dcb374b`; finite boundaries, NaN and both infinities, public boundary controls retained |
 | T16 | Print actual named fields for numerical bit mismatches | Thermo, Equilibrium, Performance, Transport, Problems and CLI callers updated; one-ULP mutations remain red without approved-record changes |
