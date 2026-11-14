@@ -411,7 +411,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `Solver` | efferent coupling | 24 | the composition root of the front door: owns the engine and the collaborators, turns each public entry point into a system and cases and hands them to a runner; holds no rule |
+| `Solver` | efferent coupling | 26 | the composition root of the front door: owns the engine and collaborators, hands each entry point to a runner, publishes owned lists through `CollectionSnapshot` and completes both resource owners through `SolverDisposal`; holds no numerical rule |
 | `RocketRunner` | efferent coupling | 26 | the composition root of the rocket pipeline: groups the cases, fills the batch, runs the engine and the transport pass, assembles the stations through `StationFactory`; holds no formula (the decision "The runners are the pipelines' composition roots") |
 | `EquilibriumRunner` | efferent coupling | 24 | the composition root of the equilibrium pipeline, as `RocketRunner` |
 | `RocketResult.RocketResult` | parameters | 9 | a published result record, the contract's shape field for field (the decision "Size"); created once, with named arguments |
@@ -421,6 +421,10 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 ⚠ 2026-09-28: was `Solver`'s Ce 22, now 24 (`ValidatedOptions` and
 `ValidateRecordElements`, composition-root code, no rule)
 → HISTORY.md#shape-solver-ce-24
+
+⚠ 2026-11-14: the measured `Solver` coupling was 24, now 26 after adding the
+snapshot and disposal collaborators; the existing formula-free composition-root
+exception remains narrow and its two additional responsibilities are named above.
 
 ## Acceptance criteria
 
