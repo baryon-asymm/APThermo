@@ -96,6 +96,18 @@ public static class JsonFieldComparison
 }
 ```
 
+`Parse` audits every schema box before returning, including definitions and branches
+that a particular instance never visits. Unknown keywords, invalid local references
+and reference cycles fail with `InvalidOperationException`; the supported subset
+has a finite reference graph. Boolean schemas are accepted. Objects carried by
+`enum`/`const` and annotation values are data, not schema boxes. A `$ref` combines
+with its sibling constraints as in the tree's draft-2020-12 schemas; JSON Pointer
+segments decode `~1` and `~0`.
+
+⚠ 2026-11-14: a `$ref` previously skipped its siblings and keyword checks occurred
+only during validation of visited boxes (audit A17). The up-front audit and
+conjunctive sibling validation replace those incomplete checks.
+
 ## Processes ✅
 
 A built .NET assembly run as a separate process (2026-10-03, the test pyramid: the process runner
@@ -144,3 +156,16 @@ folded them (BOOT.md, the per-case field dump). Both are git-ignored. `DotnetPro
 
 - Any comparison within a tolerance, any formula, any type of the nodes under test.
 - CUDA: the execution tests node creates its own accelerators.
+
+## Snapshot path safety ✅
+
+A conventional `<name>.approved.<extension>` writes `<name>.actual.<extension>`.
+For an arbitrary input file name, `.actual` is inserted before the extension, so
+`baseline.txt` writes `baseline.actual.txt`. Paths are captured as full paths.
+Actual records and caller-opted field dumps replace their directory entries
+atomically; an existing output link is not followed into the approved content.
+Approved bytes are never rewritten by this node.
+
+⚠ 2026-11-14: the old substring replacement could leave the path unchanged when
+`approved` was absent or differently cased (audit A16), writing over the baseline.
+The explicit fallback path removes that hidden file-name precondition.

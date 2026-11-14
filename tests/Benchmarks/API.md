@@ -1,6 +1,7 @@
 # API.md — Benchmarks
 
-The node is run from the command line; no node of the tree uses it. Its public types
+The node is run from the command line; no production node calls it. The protocol
+tests inspect its correctness diagnostic by reflection. Its public types
 exist because BenchmarkDotNet requires public benchmark classes, public `[Benchmark]`,
 `[GlobalSetup]`, `[GlobalCleanup]`, `[IterationSetup]` and `[IterationCleanup]` methods,
 and public `[Params]` properties. They are listed here so that no public type goes
@@ -156,3 +157,15 @@ reads them but a person.
 ⚠ 2026-09-15: written by the comparison run (`results/2026-09-15-8f99d11-run1/`,
 `results/2026-09-15-427fc0d-run2/`, `results/2026-09-15-8f99d11-run3/`,
 `results/comparison-2026-09-15.md`); this section previously read "not yet written".
+
+## Correctness diagnostic ✅
+
+The internal `EngineSolverComparison` is tested through reflected diagnostic seams
+by the protocol tests node. It rejects nonfinite state/performance/fraction values
+and missing fractions before trace/tolerance allowances. `ExactlyBitEqual` means
+raw bits agree in every compared field, including signed zeros and tolerated trace
+differences; a zero relative error alone is insufficient. Existing finite numeric
+tolerances retain their values.
+
+⚠ 2026-11-14: NaN could collapse to a reported relative error of zero, and zero
+relative error was incorrectly equated with raw-bit equality (audit A08).

@@ -7,6 +7,7 @@ consider guaranteed about the agreement between its documents and its code.
 
 | Claim | Confirmed by | State |
 |---|---|---|
+| the benchmark correctness diagnostic refuses nonfinite/missing values and tells exact bits from tolerated agreement | `BenchmarkComparisonGuardTests`, reflected diagnostic seams; no timing or numerical solve | ✅ 2026-11-14 |
 | the tree passes the language-independent linter without errors or warnings | Lint level (`LintTests`) | ✅ |
 | every Python tool node's self-test passes (`tools/*/test_*.py`) | Tool self-tests level (`ToolSelfTestTests`) | ✅ 2026-10-02 |
 | every test method that starts a process, through a call of `Process.Start` or a `ProcessStartInfo` in the `tests` nodes' code, carries `Category=EndToEnd`, so the fast set holds no process fact | End-to-end level (`EndToEndTests`) | ✅ 2026-10-03 |

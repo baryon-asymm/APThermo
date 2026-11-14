@@ -2,6 +2,14 @@
 
 ## Acceptance criteria
 
+- [x] 2026-11-14: A08, `Protocol.Tests.BenchmarkComparisonGuardTests` directly
+      exercises the diagnostic seams without a solve or timing run: every numeric
+      property (reflected from both result structs) rejects nonfinite values;
+      missing fractions fail, finite equality passes, signed-zero and allowed
+      trace differences are not called bitwise equal. Before repair 6 of 7 controls
+      fail and the finite positive control passes; after repair all 7 pass. The
+      protocol fast set is green (48 tests), including unchanged public surface.
+
 - [x] 2026-09-15 — The node builds in Release with the solution
       (`dotnet build APThermo.sln -c Release`, 0 errors), and
       `dotnet run -c Release --project tests/Benchmarks -- --list flat` lists all ten

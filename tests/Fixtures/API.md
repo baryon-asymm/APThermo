@@ -120,3 +120,14 @@ The loader reads files. The generator writes into `cases/` only.
 
 - Running the tree's own code: this node knows nothing of it.
 - Deciding whether a difference is acceptable beyond the tolerance table: the test nodes.
+
+## Finite tolerance guards ✅
+
+`ToleranceTable.Load` rejects a nonfinite or negative absolute/relative value as a
+`FixtureFormatException` naming the field. A JSON number overflowing binary64 is
+rejected too. Zero remains valid. `Matches` returns false for any nonfinite
+expected/actual value. The committed tolerance budgets and derivations are unchanged.
+
+⚠ 2026-11-14: a non-negative check admitted positive infinity from `1e309`, making
+a tolerance comparison vacuous (audit A27). Finite validation now guards both the
+table boundary and compared values.

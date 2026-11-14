@@ -15,6 +15,17 @@ node `Runner` (CA1515) → HISTORY.md#console-to-library
 
 ## Invariants
 
+- **Finite correctness diagnostics (audit A08).** A nonfinite compared state,
+  performance or mole-fraction value is a mismatch even when raw bits happen to
+  agree or a reference species is below the trace floor. A missing species is a
+  mismatch. ExactlyBitEqual means every compared raw bit agrees, including signed
+  zero and differences that a tolerance or trace policy otherwise permits.
+
+⚠ 2026-11-14: the relative-error calculation could turn NaN into zero and report
+`Passed`/`ExactlyBitEqual`; the latter also inferred bits from zero relative error.
+Audit A08 exposed the first gap. Finite-value guards and an explicit bit-equality
+flag replace those incomplete diagnostics; the numeric tolerances stay unchanged.
+
 - **Figures are recorded, never asserted.** No test of the tree compares a timing with
   a bound: a wall-clock assertion reddens on a busy machine for no defect (AGENTS.md
   §13, a perpetually red check). A regression is found by reading the comparison, and

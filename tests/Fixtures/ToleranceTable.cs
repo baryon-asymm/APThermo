@@ -75,7 +75,8 @@ public sealed class ToleranceTable
     public bool Matches(string field, double expected, double actual)
     {
         var tolerance = For(field);
-        return Math.Abs(expected - actual) <= tolerance.Absolute + tolerance.Relative * Math.Abs(expected);
+        return double.IsFinite(expected) && double.IsFinite(actual)
+            && Math.Abs(expected - actual) <= tolerance.Absolute + tolerance.Relative * Math.Abs(expected);
     }
 
     /// <summary>
@@ -96,8 +97,8 @@ public sealed class ToleranceTable
         }
 
         var number = value.GetDouble();
-        return number >= 0.0
+        return double.IsFinite(number) && number >= 0.0
             ? number
-            : throw new FixtureFormatException(path, $"{field}.{property}", "a tolerance is not negative");
+            : throw new FixtureFormatException(path, $"{field}.{property}", "a tolerance must be finite and non-negative");
     }
 }

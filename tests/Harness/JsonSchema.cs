@@ -26,7 +26,9 @@ public sealed class JsonSchema
     public static JsonSchema Parse(string text)
     {
         using var document = JsonDocument.Parse(text);
-        return new JsonSchema(document.RootElement.Clone());
+        var schema = new JsonSchema(document.RootElement.Clone());
+        schema.Audit(schema._root, new HashSet<string>(StringComparer.Ordinal));
+        return schema;
     }
 
     /// <summary>Every violation, with its path; empty when the instance conforms.</summary>
@@ -37,14 +39,21 @@ public sealed class JsonSchema
         return errors;
     }
 
-    /// <summary>One schema box against one instance, split by the kind of check ($ref and type gate the rest; the others by the instance's own kind).</summary>
+    /// <summary>One schema box against one instance, split by the kind of check ($ref siblings combine; type gates kind-specific checks).</summary>
     private void Check(JsonElement schema, JsonElement instance, string path, List<string> errors)
     {
-        CheckKeywords(schema);
+        if (schema.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            if (schema.ValueKind == JsonValueKind.False)
+            {
+                errors.Add($"{path}: the false schema rejects every instance");
+            }
+            return;
+        }
+
         if (schema.TryGetProperty("$ref", out var reference))
         {
             Check(Resolve(reference.GetString()!), instance, path, errors);
-            return;
         }
 
         if (!CheckType(schema, instance, path, errors))
@@ -57,6 +66,80 @@ public sealed class JsonSchema
         CheckObject(schema, instance, path, errors);
         CheckArray(schema, instance, path, errors);
         CheckCombinators(schema, instance, path, errors);
+    }
+
+    /// <summary>Audit the supported finite schema graph before any particular instance can hide a branch.</summary>
+    private void Audit(JsonElement schema, HashSet<string> references)
+    {
+        if (schema.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return;
+        }
+        if (schema.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException("a schema box must be an object or a boolean");
+        }
+        CheckKeywords(schema);
+        if (schema.TryGetProperty("$ref", out var reference))
+        {
+            var pointer = reference.ValueKind == JsonValueKind.String ? reference.GetString() : null;
+            if (string.IsNullOrEmpty(pointer))
+            {
+                throw new InvalidOperationException("a schema reference must be a non-empty string");
+            }
+            if (!references.Add(pointer))
+            {
+                throw new InvalidOperationException($"cyclic schema reference '{pointer}' is not supported");
+            }
+            Audit(Resolve(pointer), references);
+            _ = references.Remove(pointer);
+        }
+        AuditMap(schema, "$defs", references);
+        AuditMap(schema, "properties", references);
+        AuditSingle(schema, "additionalProperties", references);
+        AuditSingle(schema, "items", references);
+        AuditAlternatives(schema, "oneOf", references);
+        AuditAlternatives(schema, "anyOf", references);
+    }
+
+    private void AuditMap(JsonElement schema, string keyword, HashSet<string> references)
+    {
+        if (!schema.TryGetProperty(keyword, out var map))
+        {
+            return;
+        }
+        if (map.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException($"schema '{keyword}' must be an object");
+        }
+        foreach (var property in map.EnumerateObject())
+        {
+            Audit(property.Value, references);
+        }
+    }
+
+    private void AuditSingle(JsonElement schema, string keyword, HashSet<string> references)
+    {
+        if (schema.TryGetProperty(keyword, out var child))
+        {
+            Audit(child, references);
+        }
+    }
+
+    private void AuditAlternatives(JsonElement schema, string keyword, HashSet<string> references)
+    {
+        if (!schema.TryGetProperty(keyword, out var alternatives))
+        {
+            return;
+        }
+        if (alternatives.ValueKind != JsonValueKind.Array || alternatives.GetArrayLength() == 0)
+        {
+            throw new InvalidOperationException($"schema '{keyword}' must be a non-empty array");
+        }
+        foreach (var alternative in alternatives.EnumerateArray())
+        {
+            Audit(alternative, references);
+        }
     }
 
     /// <summary>A schema may not ask for a keyword this validator does not check (the keyword whitelist, unchanged).</summary>
@@ -224,7 +307,8 @@ public sealed class JsonSchema
         var element = _root;
         foreach (var segment in reference[2..].Split('/'))
         {
-            if (!element.TryGetProperty(segment, out element))
+            var name = segment.Replace("~1", "/", StringComparison.Ordinal).Replace("~0", "~", StringComparison.Ordinal);
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out element))
             {
                 throw new InvalidOperationException($"the reference '{reference}' does not resolve");
             }

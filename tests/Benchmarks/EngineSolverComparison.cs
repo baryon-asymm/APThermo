@@ -45,7 +45,7 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
     private readonly List<string> _mismatches = [];
 
     public bool Passed => _mismatches.Count == 0;
-    public bool ExactlyBitEqual => Passed && WorstFieldRelative == 0.0 && WorstMoleFractionRelative == 0.0;
+    public bool ExactlyBitEqual { get => Passed && field; private set; } = true;
     public double WorstFieldRelative { get; private set; }
     public double WorstMoleFractionRelative { get; private set; }
     public IReadOnlyList<string> Mismatches => _mismatches;
@@ -94,11 +94,19 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
 
             var e = (double)field.GetValue(expected)!;
             var a = (double)field.GetValue(actual)!;
+            if (!double.IsFinite(e) || !double.IsFinite(a))
+            {
+                ExactlyBitEqual = false;
+                WorstFieldRelative = double.PositiveInfinity;
+                _mismatches.Add($"case {caseIndex} station {stationIndex}: {label}.{field.Name} is nonfinite: engine={e:r} solver={a:r}");
+                continue;
+            }
             if (Bits.Same(e, a))
             {
                 continue;
             }
 
+            ExactlyBitEqual = false;
             var relative = RelativeDifference(e, a);
             WorstFieldRelative = Math.Max(WorstFieldRelative, relative);
             var tolerance = field.Name == "Temperature" ? TemperatureRelativeTolerance : OtherFieldRelativeTolerance;
@@ -130,11 +138,19 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
         int caseIndex, int stationIndex)
     {
         var actual = solverFractions.TryGetValue(name, out var value) ? value : double.NaN;
+        if (!double.IsFinite(expected) || !double.IsFinite(actual))
+        {
+            ExactlyBitEqual = false;
+            WorstMoleFractionRelative = double.PositiveInfinity;
+            _mismatches.Add($"case {caseIndex} station {stationIndex}: moleFraction[{name}] is missing or nonfinite: engine={expected:r} solver={actual:r}");
+            return;
+        }
         if (Bits.Same(expected, actual))
         {
             return;
         }
 
+        ExactlyBitEqual = false;
         if (expected < _tolerances.For("moleFractionFloor").Absolute)
         {
             return;
@@ -153,7 +169,14 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
     // (`## Constraints`): `|a-b|/max(|a|,|b|)`.
     private static double RelativeDifference(double expected, double actual)
     {
+        if (!double.IsFinite(expected) || !double.IsFinite(actual))
+        {
+            return double.PositiveInfinity;
+        }
         var scale = Math.Max(Math.Abs(expected), Math.Abs(actual));
-        return scale > 0 ? Math.Abs(expected - actual) / scale : 0.0;
+        var difference = Math.Abs(expected - actual);
+        return scale > 0
+            ? double.IsFinite(difference) ? difference / scale : Math.Abs(expected / scale - actual / scale)
+            : 0.0;
     }
 }

@@ -7,6 +7,11 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
 
 ## Acceptance criteria
 
+- [x] 2026-11-14: A27, `Fixtures.Tests.OracleGuardTests` rejects overflowing
+      absolute and relative JSON tolerances and nonfinite compared values. The
+      finite/exact-zero controls pass. The complete consumer suite is green
+      (66 tests), including the existing committed table and its derivations.
+
 - [x] 2026-09-12 — Every fixture regenerates byte-identically from the committed
       scripts with the pinned package on the reference machine:
       `regenerate.py --check` exits 0 on the committed `cases/` directory after a full

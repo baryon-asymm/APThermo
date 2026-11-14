@@ -12,6 +12,15 @@ node generates the outputs itself, from committed scripts, and records how.
 
 ## Invariants
 
+- **Finite comparisons (audit A27).** Every loaded absolute/relative tolerance is
+  finite and non-negative. `Matches` refuses nonfinite expected or actual values;
+  infinity cannot turn a broken reference comparison into a match. Zero remains
+  a valid exact tolerance. The committed tolerance values are not changed.
+
+⚠ 2026-11-14: the non-negative check accepted overflowed JSON numbers as infinity.
+Audit A27 showed a `1e309` tolerance admitting arbitrary differences. Finite-value
+validation is required in addition to the existing sign rule.
+
 - **Every fixture carries its provenance**: package name and version, the library
   version string the package reports, since 2026-09-27 the SHA-256 of the whole
   generator (`generatorSha256`, defined in `generate/BOOT.md`), the method (`cea-package`,

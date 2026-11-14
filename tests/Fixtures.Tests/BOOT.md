@@ -2,6 +2,10 @@
 
 ## Purpose
 
+The node also exercises the shared Harness snapshot/schema guards used by fixture
+consumers (`OracleGuardTests`, audit A16/A17/A27). These are infrastructure negative
+controls, not additional thermodynamic reference calculations.
+
 The definition of what "`Fixtures` is ready" means: the levels of verification, what
 each is checked against, what is covered and what is not. The fixtures are the
 reference every numerical node is compared with; this node proves their form,
@@ -27,6 +31,8 @@ provenance and coverage, never their values (AGENTS.md §1).
 
 ## Dependencies
 
+[Harness](../Harness/API.md)
+
 - [Fixtures](../Fixtures/API.md) — the loader, the tolerance table and the fixture files under test.
 
 Outside the tree: xunit.
@@ -41,6 +47,11 @@ Outside the tree: xunit.
   acceptance criteria.
 
 ## Acceptance criteria
+
+- [x] 2026-11-14: A16/A17/A27, `OracleGuardTests` exercises infrastructure,
+      not thermodynamics: initially 18 red and 5 green controls on the old helpers,
+      plus a separate red multiple-marker filename case. All 24 controls and the
+      full Fixtures.Tests suite pass (66 tests).
 
 - [x] 2026-09-12 — L1 loader: `FixtureLoadingTests` (`EveryFixtureOfAKindLoads`
       for every kind directory, `TheKindsPresentAreThoseOfTheCaseMatrix`,

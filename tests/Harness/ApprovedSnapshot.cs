@@ -24,8 +24,8 @@ public sealed class ApprovedSnapshot
 
     private ApprovedSnapshot(string approvedPath, char? approvedDelimiter, IReadOnlyDictionary<string, string> approved)
     {
-        _approvedPath = approvedPath;
-        _actualPath = ActualPathOf(approvedPath);
+        _approvedPath = Path.GetFullPath(approvedPath);
+        _actualPath = ActualPathOf(_approvedPath);
         _approvedDelimiter = approvedDelimiter;
         _approved = approved;
     }
@@ -122,7 +122,7 @@ public sealed class ApprovedSnapshot
         if (_dirty)
         {
             var delimiter = _approvedDelimiter ?? DelimiterFor(_actualPairs);
-            File.WriteAllLines(_actualPath, _actualPairs.Select(pair => pair.Key + delimiter + pair.Value));
+            WriteLinesAtomically(_actualPath, _actualPairs.Select(pair => pair.Key + delimiter + pair.Value));
         }
 
         return problem;
@@ -146,7 +146,12 @@ public sealed class ApprovedSnapshot
     private static string ActualPathOf(string approvedPath)
     {
         var directory = Path.GetDirectoryName(approvedPath);
-        var fileName = Path.GetFileName(approvedPath).Replace("approved", "actual", StringComparison.Ordinal);
+        var approvedName = Path.GetFileName(approvedPath);
+        const string marker = ".approved.";
+        var position = approvedName.LastIndexOf(marker, StringComparison.Ordinal);
+        var fileName = position >= 0
+            ? string.Concat(approvedName.AsSpan(0, position), ".actual.", approvedName.AsSpan(position + marker.Length))
+            : Path.GetFileNameWithoutExtension(approvedName) + ".actual" + Path.GetExtension(approvedName);
         return directory is null ? fileName : Path.Combine(directory, fileName);
     }
 
@@ -162,7 +167,26 @@ public sealed class ApprovedSnapshot
         var baseName = Path.GetFileNameWithoutExtension(_actualPath);
         var fileName = $"{baseName}.{Sanitize(key)}.fields.txt";
         var path = directory is null ? fileName : Path.Combine(directory, fileName);
-        File.WriteAllLines(path, fields);
+        WriteLinesAtomically(path, fields);
+    }
+
+    /// <summary>Replace the output directory entry, rather than writing through an existing symbolic or hard link.</summary>
+    private static void WriteLinesAtomically(string path, IEnumerable<string> lines)
+    {
+        var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
+        var temporary = Path.Combine(directory, ".snapshot-" + Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            File.WriteAllLines(temporary, lines);
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
     }
 
     /// <summary>A key turned into a safe file-name fragment: every character but a letter, a digit, '-', '_' or '.' becomes '_'.</summary>
