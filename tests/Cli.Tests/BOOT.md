@@ -156,6 +156,10 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
 
 ## Acceptance criteria
 
+- [ ] `SweepBoundaryTests` admits exactly the inclusive axis bound for lists and ranges,
+  refuses one more before allocating an expanded numeric array, and preserves the
+  exact overall case bound and its first refused product.
+
 - [x] 2026-09-13 — L0 green: `CommandLineTests` (`NoCommandIsExit2WithTheUsage`,
       `HelpPrintsTheUsageAndExits0`, `InvalidCommandLinesAreExit2NamingTheOffender`
       over the command lines of its theory, `TheUsageNamesEveryCommandAndOption`,

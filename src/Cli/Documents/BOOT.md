@@ -86,6 +86,15 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and the root. In addition:
       (finding F6, present since the first version). Since 2026-09-26 the duplicate
       check reaches it at every object's construction.
 
+A range's limit counts values, including both endpoints: steps may be at most
+`MaxAxisValues - 1`. An oversized JSON list is rejected from its array length before
+materializing its numeric list. The Cartesian product bound is inclusive too, and is
+checked by the document reader before expansion.
+
+⚠ 2026-11-14: A25 found the range guard compared steps with the value limit, allowing
+1,000,001 values where a list allowed only 1,000,000. Both forms now share the value
+bound; refusals precede expanded numeric allocation.
+
 ## Acceptance criteria
 
 - [ ] Audit A25: a range with exactly `MaxAxisValues` including both endpoints is
