@@ -59,6 +59,12 @@ condition suffices alone, and the facts show each one false on a real state (a j
 the pass from another attempt that follows the same verdict, and for an hp or sp case it rests on the bracket's own seams to the pass.
 A per-case observable owned by the `TraceGas` or `Equilibrium` node would replace it (the report of coder 17, AGENTS.md section 11).
 
+⚠ 2026-11-14 (test review T08): family result/backend assertions and scratch-based
+path inference previously shared one fact. Keep the path-coverage assertion in a
+separately named mechanism diagnostic; it is evidence about the current fallback
+wiring, not a client requirement to take that path after a correct optimization.
+Retain the controlled positive/negative observable cases and the scientific checks.
+
 ## Invariants
 
 - **Audit A01/A35 witnesses (2026-11-14).** Frozen SrCl2 overlap and Mg/H/O/S

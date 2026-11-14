@@ -144,6 +144,12 @@ approved bytes; labels are diagnostic text only, never extra hash input.
   proves the ordering predicate.
 - A policy-constant test states only its policy scope; execution of tail steps
   is not inferred from reading the constants.
+- Test review T13 also requires a solver-level boundary case whose physical throat
+  state agrees with an independent sonic reference and distinguishes the configured
+  two-step tail from a mutation that skips its execution while leaving constants
+  intact. Prefer a single ideal-gas case with an analytic sonic relation; preserve
+  existing numerical tolerances and snapshots. A private-method reflection call or
+  source-text count is not a substitute for the solved-state assertion.
 
 
 ## Acceptance criteria
