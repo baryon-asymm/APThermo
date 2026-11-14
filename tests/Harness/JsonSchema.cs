@@ -80,6 +80,7 @@ public sealed class JsonSchema
             throw new InvalidOperationException("a schema box must be an object or a boolean");
         }
         CheckKeywords(schema);
+        CheckNumericKeywords(schema);
         if (schema.TryGetProperty("$ref", out var reference))
         {
             var pointer = reference.ValueKind == JsonValueKind.String ? reference.GetString() : null;
@@ -154,6 +155,22 @@ public sealed class JsonSchema
         }
     }
 
+    private static void CheckNumericKeywords(JsonElement schema)
+    {
+        foreach (var keyword in new[] { "minimum", "exclusiveMinimum", "minItems" })
+        {
+            if (!schema.TryGetProperty(keyword, out var value))
+            {
+                continue;
+            }
+            var number = ExactJsonNumber.From(value);
+            if (keyword == "minItems" && (!number.IsInteger || number.Compare(ExactJsonNumber.FromInt32(0)) < 0))
+            {
+                throw new InvalidOperationException("schema minItems must be a nonnegative integer");
+            }
+        }
+    }
+
     /// <summary>type: false stops every other check on this instance, as a type mismatch makes them meaningless.</summary>
     private static bool CheckType(JsonElement schema, JsonElement instance, string path, List<string> errors)
     {
@@ -169,12 +186,12 @@ public sealed class JsonSchema
     /// <summary>enum, const: checked against the instance's value regardless of its kind.</summary>
     private static void CheckValue(JsonElement schema, JsonElement instance, string path, List<string> errors)
     {
-        if (schema.TryGetProperty("enum", out var allowed) && !allowed.EnumerateArray().Any(v => JsonElement.DeepEquals(v, instance)))
+        if (schema.TryGetProperty("enum", out var allowed) && !allowed.EnumerateArray().Any(v => JsonValueEquality.Equal(v, instance)))
         {
             errors.Add($"{path}: {instance} is not one of {allowed}");
         }
 
-        if (schema.TryGetProperty("const", out var constant) && !JsonElement.DeepEquals(constant, instance))
+        if (schema.TryGetProperty("const", out var constant) && !JsonValueEquality.Equal(constant, instance))
         {
             errors.Add($"{path}: expected {constant}, found {instance}");
         }
@@ -187,15 +204,15 @@ public sealed class JsonSchema
             return;
         }
 
-        var value = instance.GetDouble();
-        if (schema.TryGetProperty("minimum", out var minimum) && value < minimum.GetDouble())
+        var value = ExactJsonNumber.From(instance);
+        if (schema.TryGetProperty("minimum", out var minimum) && value.Compare(ExactJsonNumber.From(minimum)) < 0)
         {
-            errors.Add($"{path}: {value} is below the minimum {minimum.GetDouble()}");
+            errors.Add($"{path}: {instance} is below the minimum {minimum}");
         }
 
-        if (schema.TryGetProperty("exclusiveMinimum", out var exclusive) && value <= exclusive.GetDouble())
+        if (schema.TryGetProperty("exclusiveMinimum", out var exclusive) && value.Compare(ExactJsonNumber.From(exclusive)) <= 0)
         {
-            errors.Add($"{path}: {value} is not above {exclusive.GetDouble()}");
+            errors.Add($"{path}: {instance} is not above {exclusive}");
         }
     }
 
@@ -257,9 +274,9 @@ public sealed class JsonSchema
         }
 
         var count = instance.GetArrayLength();
-        if (schema.TryGetProperty("minItems", out var minItems) && count < minItems.GetInt32())
+        if (schema.TryGetProperty("minItems", out var minItems) && ExactJsonNumber.FromInt32(count).Compare(ExactJsonNumber.From(minItems)) < 0)
         {
-            errors.Add($"{path}: {count} items, fewer than {minItems.GetInt32()}");
+            errors.Add($"{path}: {count} items, fewer than {minItems}");
         }
 
         if (schema.TryGetProperty("items", out var items))
@@ -326,7 +343,7 @@ public sealed class JsonSchema
                 "array" => instance.ValueKind == JsonValueKind.Array,
                 "string" => instance.ValueKind == JsonValueKind.String,
                 "number" => instance.ValueKind == JsonValueKind.Number,
-                "integer" => instance.ValueKind == JsonValueKind.Number && instance.GetDouble() == Math.Floor(instance.GetDouble()),
+                "integer" => instance.ValueKind == JsonValueKind.Number && ExactJsonNumber.From(instance).IsInteger,
                 "boolean" => instance.ValueKind is JsonValueKind.True or JsonValueKind.False,
                 "null" => instance.ValueKind == JsonValueKind.Null,
                 var other => throw new InvalidOperationException($"unknown type '{other}' in the schema"),

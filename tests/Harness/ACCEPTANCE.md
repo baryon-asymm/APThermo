@@ -304,3 +304,11 @@
   finite-domain controls pass (11/11; old source four red/seven green), including
   nested path reporting and ordinary near-limit/budget controls. The public numeric
   tolerance is unchanged. Evidence: `SCRATCH/audit/it01-red/it01-red.trx`, `it01-green/it01-green.trx`.
+
+- [x] 2026-11-14 — IT02: `Fixtures.Tests.JsonNumericSchemaTests` 61/61, including
+  a generated bounded decimal-oracle matrix, exact integrality/order, arbitrary
+  exponents, signed zero, minItems valid integer spellings and invalid keyword types,
+  recursive enum/const equality. The initial 51 controls had 21 failures/30 positives
+  on old source; two enum/const cases also reproduced the platform DeepEquals exponent
+  limit. Token normalization uses digits/BigInteger exponent, never huge powers.
+  Evidence: `SCRATCH/audit/it02-red/it02-red.trx`, `it02-green/it02-green.trx`.

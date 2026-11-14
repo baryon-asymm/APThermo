@@ -197,3 +197,9 @@ return; the old InvalidOperationException-only wording overstated existing behav
 JSON field comparison requires finite converted double output values. An invalid or
 nonfinite numeric result is a path-named mismatch before tolerance arithmetic; the
 relative number tolerance is unchanged (IT01, 2026-11-14).
+
+Schema numeric validation is exact mathematical JSON decimal validation: integer,
+minimum/exclusiveMinimum, minItems and numeric enum/const equality do not round to
+double/decimal or expand enormous exponent-sized powers. Supported valid numeric
+forms include fractional spellings of integers and exponents outside machine ranges.
+The keyword subset is unchanged (IT02, 2026-11-14).

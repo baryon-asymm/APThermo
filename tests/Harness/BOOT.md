@@ -21,6 +21,19 @@ is a neighbour of every test node that uses it (`AGENTS.md` §11).
 
 ## Invariants
 
+- Schema numeric semantics use the mathematical JSON decimal value, not binary64
+  conversion. Integrality, minimum/exclusiveMinimum, minItems and numeric enum/const
+  equality remain exact for signs, zero, long coefficients and arbitrarily large
+  signed exponents. Represent normalized digits with a BigInteger exponent; compare
+  decimal orders and padded digits, never materialize exponent-sized powers.
+  Enum/const recurse through arrays and objects, keeping object-order independence.
+  The supported keyword subset is unchanged (IT02; JSON Schema 2020-12 §4.2/§6).
+
+⚠ 2026-11-14: IT02 found fractional values rounded into integers and distinct
+bounds rounded into equality, including underflow to zero. Exact token semantics
+replace GetDouble/GetInt32 in schema numeric decisions; output tolerance comparison
+continues to have its distinct finite-double contract.
+
 - JSON result comparisons accept only values converting to finite double output.
   Invalid/unrepresentable/nonfinite numeric output is a path-named mismatch, before
   relative-tolerance arithmetic. The existing relative budget is unchanged (IT01).
