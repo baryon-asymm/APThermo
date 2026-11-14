@@ -37,3 +37,9 @@ verify metadata discovery and run on CPU. Persist discovery.log, matrix.json,
 trace-gas.trx and execution.log; exit nonzero for missing/duplicate/skipped tests,
 failed process, timeout, missing report or inconsistent counters. Discover-only
 produces a matrix marked unexecuted and exits after verified discovery.
+
+⚠ 2026-11-14: a failed execution attempt formerly left matrix entries "not-run".
+Matrix entries now change to "started" before the execution call; that means an
+execution attempt, not proof each method ran. Only an exact successful TRX changes
+them to "passed". Nonzero exit, timeout and malformed/missing report retain
+"started" with their execution log/error; discover-only retains "not-run".

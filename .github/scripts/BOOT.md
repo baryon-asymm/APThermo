@@ -32,6 +32,12 @@ Windows preflight runs under Windows PowerShell 5.1, without Python or Git Bash.
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — A39 matrix truth: `test_trace_scan.py` nine tests pass; nine failure
+  subcases were red before started-state persistence (nonzero exit, timeout and
+  invalid/missing/skipped reports). Execution attempts retain started; only verified
+  exact TRX becomes passed. Discover-only remains not-run. Evidence:
+  `SCRATCH/audit/trace-started-red.txt`, `trace-started-green.txt`.
+
 - [x] 2026-11-14 — Trace runner guards (`test_trace_scan.py`, eight tests) reject empty,
   missing, duplicate and extra discovery; nonzero process status; absent, skipped,
   failed or inconsistent TRX. Positive synthetic reports generate a passed matrix;

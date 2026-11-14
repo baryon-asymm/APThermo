@@ -88,6 +88,21 @@ class TraceRunnerGuards(unittest.TestCase):
                 self.artifacts = self.root / ("evidence-" + str(len(self.calls)))
                 with self.assertRaises(RuntimeError):
                     scan.execute(self.root, self.artifacts, run=self.executor(**values))
+                matrix = json.loads((self.artifacts / "matrix.json").read_text())
+                self.assertTrue(all(entry["execution"] == "started" for entry in matrix))
+
+    def test_execution_timeout_keeps_started_matrix_and_partial_log(self):
+        successful_discovery = self.executor()
+        def fail(command, **options):
+            if "--list-tests" in command:
+                return successful_discovery(command, **options)
+            options["stdout"].write(b"partial execution")
+            raise subprocess.TimeoutExpired(command, 1200)
+        with self.assertRaises(subprocess.TimeoutExpired):
+            scan.execute(self.root, self.artifacts, run=fail)
+        matrix = json.loads((self.artifacts / "matrix.json").read_text())
+        self.assertTrue(all(entry["execution"] == "started" for entry in matrix))
+        self.assertEqual(b"partial execution", (self.artifacts / "execution.log").read_bytes())
 
     def test_discovery_only_is_explicitly_unexecuted(self):
         scan.execute(self.root, self.artifacts, discover_only=True, run=self.executor())

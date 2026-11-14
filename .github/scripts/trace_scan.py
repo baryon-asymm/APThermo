@@ -78,6 +78,9 @@ def execute(root, artifacts, configuration="Release", discover_only=False, run=s
     (artifacts / "matrix.json").write_text(json.dumps(matrix, indent=2) + "\n", encoding="utf-8")
     if discover_only:
         return
+    for entry in matrix:
+        entry["execution"] = "started"
+    (artifacts / "matrix.json").write_text(json.dumps(matrix, indent=2) + "\n", encoding="utf-8")
     with (artifacts / "execution.log").open("wb") as log:
         result = run(command + ["--logger", "trx;LogFileName=trace-gas.trx", "--results-directory", str(artifacts)],
                      cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT, timeout=1200)
