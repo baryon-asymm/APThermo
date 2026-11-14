@@ -190,9 +190,11 @@ optional environment. CA1068 rejected that order; the owner corrected it to keep
 the cancellation token last. The original four-argument overload remains unchanged.
 
 Pre-launch cancellation also attaches empty StandardOutput/StandardError arrays.
-The start-failure row now distinguishes native startup failure from a null process
-return; the old InvalidOperationException-only wording overstated existing behavior
-(clarified 2026-11-14, without changing native startup exceptions).
+
+⚠ 2026-11-14: the old start-failure row/XML description implied only
+InvalidOperationException. Native Process.Start exceptions already propagate; that
+exception is explicitly created only for a null returned process. The table and XML
+now distinguish those cases. No exception wrapper or normalization was introduced.
 
 JSON field comparison requires finite converted double output values. An invalid or
 nonfinite numeric result is a path-named mismatch before tolerance arithmetic; the

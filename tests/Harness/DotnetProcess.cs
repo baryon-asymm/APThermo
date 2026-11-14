@@ -43,7 +43,8 @@ public static class DotnetProcess
     /// <exception cref="ArgumentOutOfRangeException">The timeout is nonpositive or exceeds the timer range.</exception>
     /// <exception cref="TimeoutException">The process or its streams exceeded the deadline.</exception>
     /// <exception cref="OperationCanceledException">Caller cancellation interrupted the process or streams.</exception>
-    /// <exception cref="InvalidOperationException">The dotnet host did not start.</exception>
+    /// <exception cref="InvalidOperationException">Process.Start returned no process.</exception>
+    /// <exception cref="System.ComponentModel.Win32Exception">The operating system could not start the dotnet host.</exception>
     public static DotnetProcessResult Run(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory,
         TimeSpan timeout, IReadOnlyDictionary<string, string>? environment = null, CancellationToken cancellationToken = default)
     {
