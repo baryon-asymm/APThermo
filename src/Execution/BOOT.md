@@ -223,8 +223,8 @@ Decisions taken with the review of 2026-09-14:
 - Review of 2026-09-14: the chunk bound counts every buffer; its other half, a guard that
   names a missing wrapper, went with the wrappers (2026-10-05) →
   HISTORY.md#review-decisions-guard-and-chunk-bound-2026-09-14
-- **The views structs keep their constructors.** `RocketBatchViews` (17 parameters)
-  and `EquilibriumBatchViews` (13) are kernel parameter descriptors; grouping their
+- **The views structs keep their constructors.** `RocketBatchViews` (18 parameters)
+  and `EquilibriumBatchViews` (14) are kernel parameter descriptors; grouping their
   views would re-emit the kernels and move the contract. They are this node's
   declared exception to the parameter rule, and so are the constructors of
   `RocketBatchResult` (10) and `EquilibriumBatchResult` (7), which mirror the batch
@@ -258,8 +258,8 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | `TransportPipeline` | efferent coupling | 23 | the same case as `RocketPipeline` above |
 | `EquilibriumPipeline` | efferent coupling | 22 | the same case as `RocketPipeline` above |
 | `SpeciesFunctionPipeline` | efferent coupling | 18 | the same case as `RocketPipeline` above |
-| `RocketBatchViews.RocketBatchViews` | parameters | 17 | a kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
-| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 13 | the same case as `RocketBatchViews` above |
+| `RocketBatchViews.RocketBatchViews` | parameters | 18 | ⚠ 2026-11-14 R10: was 17, now 18 after appending one typed recovery-state view per case; field projection only. A kernel parameter descriptor (internal since 2026-09-15, the ⚠ under "The views structs keep their constructors"); grouping its views would re-emit the kernels and move the contract; every creation names its arguments |
+| `EquilibriumBatchViews.EquilibriumBatchViews` | parameters | 14 | ⚠ 2026-11-14 R10: was 13, now 14 for the same appended typed recovery-state projection as `RocketBatchViews` above |
 | `RocketBatchResult.RocketBatchResult` | parameters | 10 | mirrors the batch result `API.md` publishes, one argument per property, as `RocketBatchViews` above |
 | `EquilibriumBatchResult.EquilibriumBatchResult` | parameters | 7 | the same case as `RocketBatchResult` above |
 

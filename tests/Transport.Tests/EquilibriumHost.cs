@@ -45,7 +45,8 @@ internal static class EquilibriumHost
         using var state = accelerator.Allocate1D<MixtureState>(1);
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryState = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryState.View);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
         var problem = new EquilibriumProblem(condition.Kind, condition.Pressure, condition.Temperature, condition.Target, elementMolesBuffer.View);
         var speciesView = speciesBuffers.View;

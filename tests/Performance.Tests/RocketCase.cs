@@ -47,7 +47,8 @@ internal sealed class RocketCase : IDisposable
             chamberPressure: inputs.ChamberPressure, reactantEnthalpy: inputs.Mixture.ReactantEnthalpy, temperatureEstimate: 0.0,
             flow: inputs.Flow, elementMoles: elements.View,
             exitValues: exitValues.View.SubView(0, inputs.ExitCount), exitKinds: exitKinds.View.SubView(0, inputs.ExitCount));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        var recoveryState = Own(accelerator.Allocate1D<MixtureState>(1));
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryState.View);
         var result = new RocketResult(
             stations: _stations.View, moles: _moles.View, multipliers: _multipliers.View, figures: _figures.View,
             stationStatus: _stationStatus.View, iterations: _iterations.View, status: _status.View);

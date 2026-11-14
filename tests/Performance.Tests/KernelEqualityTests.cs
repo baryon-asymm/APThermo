@@ -18,7 +18,7 @@ internal readonly record struct RocketBatchViews(
     ArrayView<double> ElementMoles, ArrayView<double> ExitValues, ArrayView<int> ExitKinds,
     ArrayView<double> ScratchDoubles, ArrayView<int> ScratchInts,
     ArrayView<MixtureState> Stations, ArrayView<double> Moles, ArrayView<double> Multipliers, ArrayView<PerformanceFigures> Figures,
-    ArrayView<int> StationStatus, ArrayView<int> Iterations, ArrayView<int> Status);
+    ArrayView<int> StationStatus, ArrayView<int> Iterations, ArrayView<int> Status, ArrayView<MixtureState> RecoveryStates);
 
 /// <summary>
 /// One batch's buffers on the accelerator, released together: allocates and uploads the cases' inputs, their scratch and their
@@ -51,6 +51,7 @@ internal sealed class RocketBatchBuffers : IDisposable
         Figures = Own(accelerator.Allocate1D<PerformanceFigures>((long)count * stationCount));
         StationStatus = Own(accelerator.Allocate1D<int>((long)count * stationCount));
         Status = Own(accelerator.Allocate1D<int>(count));
+        var recoveryStates = Own(accelerator.Allocate1D<MixtureState>(count));
         Moles.MemSetToZero();
         Stations.MemSetToZero();
 
@@ -59,7 +60,7 @@ internal sealed class RocketBatchBuffers : IDisposable
             ExitCount: exitCount, ChamberPressures: chamberPressures.View, ReactantEnthalpies: reactantEnthalpies.View, Flows: flows.View,
             ElementMoles: elementMoles.View, ExitValues: exitValues.View, ExitKinds: exitKinds.View, ScratchDoubles: scratchDoubles.View,
             ScratchInts: scratchInts.View, Stations: Stations.View, Moles: Moles.View, Multipliers: multipliers.View, Figures: Figures.View,
-            StationStatus: StationStatus.View, Iterations: iterations.View, Status: Status.View);
+            StationStatus: StationStatus.View, Iterations: iterations.View, Status: Status.View, RecoveryStates: recoveryStates.View);
     }
 
     public SpeciesTableView Table { get; }
@@ -194,7 +195,8 @@ public sealed class KernelEqualityTests
             exitValues: batch.ExitValues.SubView(index * exitCount, exitCount),
             exitKinds: batch.ExitKinds.SubView(index * exitCount, exitCount));
         var scratch = EquilibriumScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
-                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
+                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount,
+                                               batch.RecoveryStates.SubView(index, 1));
         var result = new RocketResult(
             stations: batch.Stations.SubView(index * stationCount, stationCount),
             moles: batch.Moles.SubView(index * stationCount * speciesCount, stationCount * speciesCount),

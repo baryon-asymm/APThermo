@@ -27,7 +27,7 @@ internal static class EquilibriumPipeline
         using var buffers = new ChunkBuffers(session.Accelerator);
         var (kindBuffer, pressureBuffer, temperatureBuffer, targetBuffer, elementBuffer, scratchDoubles, scratchInts,
              molesBuffer, multiplierBuffer, stateBuffer, statusBuffer, iterationBuffer,
-             moles, states, status, iterations) = Declare(buffers, batch, speciesCount);
+             moles, states, status, iterations, recoveryStates) = Declare(buffers, batch, speciesCount);
 
         var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
         buffers.Allocate(plan.Size);
@@ -35,7 +35,7 @@ internal static class EquilibriumPipeline
             seeded: batch.IsSeeded ? 1 : 0, kinds: kindBuffer.View, pressures: pressureBuffer.View, temperatures: temperatureBuffer.View, targets: targetBuffer.View,
             elementMoles: elementBuffer.View, scratchDoubles: scratchDoubles.View, scratchInts: scratchInts.View,
             moles: molesBuffer.View, multipliers: multiplierBuffer.View, states: stateBuffer.View,
-            status: statusBuffer.View, iterations: iterationBuffer.View);
+            status: statusBuffer.View, iterations: iterationBuffer.View, recoveryStates: recoveryStates.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
         return new EquilibriumBatchResult(
@@ -57,7 +57,7 @@ internal static class EquilibriumPipeline
         ChunkBuffer<double> ElementMoles, ChunkBuffer<double> ScratchDoubles, ChunkBuffer<int> ScratchInts,
         ChunkBuffer<double> Moles, ChunkBuffer<double> Multipliers, ChunkBuffer<MixtureState> States,
         ChunkBuffer<int> Status, ChunkBuffer<int> Iterations,
-        double[] MolesHost, MixtureState[] StatesHost, int[] StatusHost, int[] IterationsHost)
+        double[] MolesHost, MixtureState[] StatesHost, int[] StatusHost, int[] IterationsHost, ChunkBuffer<MixtureState> RecoveryStates)
         Declare(ChunkBuffers buffers, EquilibriumBatch batch, int speciesCount)
     {
         var elementCount = batch.ElementCount;
@@ -81,8 +81,9 @@ internal static class EquilibriumPipeline
         var status = buffers.Output(statusHost, 1);
         var iterationsHost = new int[count];
         var iterations = buffers.Output(iterationsHost, 1);
+        var recoveryStates = buffers.Scratch<MixtureState>(1);
         return (kind, pressure, temperature, target, elementMoles, scratchDoubles, scratchInts,
-                moles, multipliers, states, status, iterations, molesHost, statesHost, statusHost, iterationsHost);
+                moles, multipliers, states, status, iterations, molesHost, statesHost, statusHost, iterationsHost, recoveryStates);
     }
 
     /// <summary>

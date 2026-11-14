@@ -12,7 +12,7 @@ namespace APThermo.Execution;
 internal readonly struct EquilibriumBatchViews(
     int seeded, ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
     ArrayView<double> elementMoles, ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
-    ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> states, ArrayView<int> status, ArrayView<int> iterations)
+    ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> states, ArrayView<int> status, ArrayView<int> iterations, ArrayView<MixtureState> recoveryStates)
 {
     /// <summary>1 when every case starts from its row of the moles view (a seeded batch), 0 for a cold one; an int, never a bool (the post-link constraint of the equilibrium node).</summary>
     public readonly int Seeded = seeded;
@@ -28,6 +28,7 @@ internal readonly struct EquilibriumBatchViews(
     public readonly ArrayView<MixtureState> States = states;
     public readonly ArrayView<int> Status = status;
     public readonly ArrayView<int> Iterations = iterations;
+    public readonly ArrayView<MixtureState> RecoveryStates = recoveryStates;
 }
 
 /// <summary>Device views of one rocket chunk. Internal: see the note on <see cref="EquilibriumBatchViews"/>.</summary>
@@ -36,7 +37,7 @@ internal readonly struct RocketBatchViews(
     ArrayView<int> flows, ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds,
     ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
     ArrayView<MixtureState> stations, ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<PerformanceFigures> figures,
-    ArrayView<int> stationStatus, ArrayView<int> iterations, ArrayView<int> status)
+    ArrayView<int> stationStatus, ArrayView<int> iterations, ArrayView<int> status, ArrayView<MixtureState> recoveryStates)
 {
     public readonly int ExitCount = exitCount;
     public readonly ArrayView<double> ChamberPressures = chamberPressures;
@@ -55,6 +56,7 @@ internal readonly struct RocketBatchViews(
     public readonly ArrayView<int> StationStatus = stationStatus;
     public readonly ArrayView<int> Iterations = iterations;
     public readonly ArrayView<int> Status = status;
+    public readonly ArrayView<MixtureState> RecoveryStates = recoveryStates;
 }
 
 /// <summary>Device views of one transport chunk. Internal: see the note on <see cref="EquilibriumBatchViews"/>.</summary>
@@ -95,7 +97,8 @@ internal static class Kernels
         var problem = new EquilibriumProblem((ProblemKind)batch.Kinds[index], batch.Pressures[index], batch.Temperatures[index],
                                              batch.Targets[index], batch.ElementMoles.SubView(index * elementCount, elementCount));
         var scratch = EquilibriumScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
-                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
+                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount,
+                                               batch.RecoveryStates.SubView(index, 1));
         var result = new EquilibriumResult(batch.Moles.SubView(index * speciesCount, speciesCount),
                                            batch.Multipliers.SubView(index * elementCount, elementCount),
                                            batch.States.SubView(index, 1), batch.Status.SubView(index, 1), batch.Iterations.SubView(index, 1));
@@ -117,7 +120,8 @@ internal static class Kernels
             exitValues: batch.ExitValues.SubView(index * exitCount, exitCount),
             exitKinds: batch.ExitKinds.SubView(0, exitCount));
         var scratch = EquilibriumScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
-                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
+                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount,
+                                               batch.RecoveryStates.SubView(index, 1));
         var result = new RocketResult(
             stations: batch.Stations.SubView(index * stationCount, stationCount),
             moles: batch.Moles.SubView(index * stationCount * speciesCount, stationCount * speciesCount),
@@ -136,7 +140,7 @@ internal static class Kernels
         var doublesPerCase = TransportLayout.DoublesPerCase(elementCount);
         var intsPerCase = TransportLayout.IntsPerCase(speciesCount, elementCount);
         var scratch = TransportScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
-                                             batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
+                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
         batch.Status[index] = (int)TransportSolver.Evaluate(in species, in transport, batch.Temperatures[index],
                                                              batch.Moles.SubView(index * speciesCount, speciesCount), in scratch,
                                                              batch.Figures.SubView(index, 1));

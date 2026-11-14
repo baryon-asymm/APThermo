@@ -62,7 +62,8 @@ internal static class HostSolves
             chamberPressure: batch.ChamberPressure[k], reactantEnthalpy: batch.ReactantEnthalpy[k],
             temperatureEstimate: batch.TemperatureEstimate[k], flow: batch.Flow[k], elementMoles: elements.View,
             exitValues: exitValues.View.SubView(0, batch.Exits), exitKinds: exitKinds.View.SubView(0, batch.Exits));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryState = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryState.View);
         var result = new RocketResult(
             stations: stations.View, moles: moles.View, multipliers: multipliers.View, figures: figures.View,
             stationStatus: stationStatus.View, iterations: iterations.View, status: status.View);
@@ -122,7 +123,8 @@ internal static class HostSolves
         }
 
         var problem = new EquilibriumProblem(batch.Kind[k], batch.Pressure[k], batch.Temperature[k], batch.Target[k], elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryState = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryState.View);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         EquilibriumSolver.Solve(in view, in problem, in scratch, in result, batch.IsSeeded);

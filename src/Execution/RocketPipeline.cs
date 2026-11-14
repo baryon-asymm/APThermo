@@ -29,7 +29,7 @@ internal static class RocketPipeline
         using var buffers = new ChunkBuffers(session.Accelerator);
         var (pressureBuffer, enthalpyBuffer, estimateBuffer, flowBuffer, elementBuffer, exitValueBuffer, exitKindBuffer,
              scratchDoubles, scratchInts, stationBuffer, molesBuffer, multiplierBuffer, figureBuffer, stationStatusBuffer,
-             iterationBuffer, statusBuffer, stationStates, moles, figures, stationStatus, iterations, status) =
+             iterationBuffer, statusBuffer, stationStates, moles, figures, stationStatus, iterations, status, recoveryStates) =
             Declare(buffers, batch, speciesCount);
 
         var plan = ChunkPlan.For(batch.Count, buffers.BytesPerCase, buffers.MaxElementsPerCase, options, session.Budget);
@@ -41,7 +41,7 @@ internal static class RocketPipeline
             scratchInts: scratchInts.View, stations: stationBuffer.View,
             moles: molesBuffer.View, multipliers: multiplierBuffer.View, figures: figureBuffer.View,
             stationStatus: stationStatusBuffer.View, iterations: iterationBuffer.View,
-            status: statusBuffer.View);
+            status: statusBuffer.View, recoveryStates: recoveryStates.View);
         BatchRun.Execute(session, plan, buffers, timer,
                          cases => launcher(session.Accelerator.DefaultStream, cases, tables.SpeciesBuffers.View, views));
         return new RocketBatchResult(
@@ -61,7 +61,7 @@ internal static class RocketPipeline
         ChunkBuffer<double> Moles, ChunkBuffer<double> Multipliers, ChunkBuffer<PerformanceFigures> Figures,
         ChunkBuffer<int> StationStatus, ChunkBuffer<int> Iterations, ChunkBuffer<int> Status,
         MixtureState[] StationsHost, double[] MolesHost, PerformanceFigures[] FiguresHost, int[] StationStatusHost,
-        int[] IterationsHost, int[] StatusHost)
+        int[] IterationsHost, int[] StatusHost, ChunkBuffer<MixtureState> RecoveryStates)
         Declare(ChunkBuffers buffers, RocketBatch batch, int speciesCount)
     {
         var elementCount = batch.ElementCount;
@@ -90,9 +90,10 @@ internal static class RocketPipeline
         var iterations = buffers.Output(iterationsHost, stations);
         var statusHost = new int[count];
         var status = buffers.Output(statusHost, 1);
+        var recoveryStates = buffers.Scratch<MixtureState>(1);
         return (pressure, enthalpy, estimate, flow, elementMoles, exitValues, exitKinds, scratchDoubles, scratchInts,
                 stationBuffer, moles, multipliers, figures, stationStatus, iterations, status,
-                stationsHost, molesHost, figuresHost, stationStatusHost, iterationsHost, statusHost);
+                stationsHost, molesHost, figuresHost, stationStatusHost, iterationsHost, statusHost, recoveryStates);
     }
 
     /// <summary>The same buffer declarations <see cref="Run"/> makes for a table of the given shape, with a

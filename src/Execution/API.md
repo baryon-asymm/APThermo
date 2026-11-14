@@ -437,3 +437,39 @@ empty observation has zero identity. These scalars are run-local and constant-si
 `Kernel` still sums every successful interval; the four-argument constructor and
 four existing public phase properties stay. The new tree-contract properties are
 internal and do not add fields to default public timing JSON or package output.
+
+## Typed recovery-state projection (tree contract) ✅
+
+```csharp
+internal readonly struct EquilibriumBatchViews
+{
+    public EquilibriumBatchViews(
+        int seeded, ArrayView<int> kinds, ArrayView<double> pressures, ArrayView<double> temperatures, ArrayView<double> targets,
+        ArrayView<double> elementMoles, ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
+        ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<MixtureState> states, ArrayView<int> status, ArrayView<int> iterations,
+        ArrayView<MixtureState> recoveryStates);
+    public readonly ArrayView<MixtureState> RecoveryStates;
+}
+internal readonly struct RocketBatchViews
+{
+    public RocketBatchViews(
+        int exitCount, ArrayView<double> chamberPressures, ArrayView<double> reactantEnthalpies, ArrayView<double> temperatureEstimates,
+        ArrayView<int> flows, ArrayView<double> elementMoles, ArrayView<double> exitValues, ArrayView<int> exitKinds,
+        ArrayView<double> scratchDoubles, ArrayView<int> scratchInts,
+        ArrayView<MixtureState> stations, ArrayView<double> moles, ArrayView<double> multipliers, ArrayView<PerformanceFigures> figures,
+        ArrayView<int> stationStatus, ArrayView<int> iterations, ArrayView<int> status,
+        ArrayView<MixtureState> recoveryStates);
+    public readonly ArrayView<MixtureState> RecoveryStates;
+}
+```
+
+⚠ 2026-11-14 (R10): the recovery candidate state previously lived as a loop-live
+local struct. Each equilibrium and rocket chunk now appends a dedicated typed
+`Scratch<MixtureState>(1)` buffer per case, after all previous buffer declarations.
+The descriptors above append one view/argument while preserving all earlier field
+and constructor order. Each kernel supplies `RecoveryStates.SubView(index, 1)` to
+the required fifth argument of `EquilibriumScratch.Slice`; no empty/default slot or
+cast of a double view is used. Chunk bytes include the actual typed element size
+automatically. Double/int slice lengths, numerical equations, launch sampling and
+R09 timing observations are unchanged. The host test wrappers allocate the same
+one-element typed bank (or one element per case in their synthetic kernel batch).
