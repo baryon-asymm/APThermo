@@ -206,7 +206,7 @@ floor walk. After all distinct floors are visited, restore the best moles,
 multipliers, status and state exactly, without another numerical solve.
 
 The caller supplies `RecoverySlices`: the two bracket ends plus `speciesCount`
-doubles for banked moles and `elementCount` for banked multipliers. The extra cost
+doubles for banked moles and `elementCount` for banked multipliers. The extra global-scratch cost
 is `8 * (speciesCount + elementCount)` bytes per case. The best `MixtureState`,
 objective, status and unresolved flag are per-case plan values. No allocation or
 temperature mesh is introduced, and every bracket retains its existing caps.
