@@ -52,11 +52,14 @@ archive. This revises the observed CPU status without asserting hardware proof.
   Evidence: `SCRATCH/audit/trace-role-split.log`, `trace-mechanism-negative.log`;
   mutation restored; final build 0 warnings/errors.
 
-- [ ] R09 actual CUDA: on the unchanged 16,384-case reference bracketing and trace-gas
-  workloads, require nonempty synchronized-launch observations, covered cases equal
-  the run count and maximum duration at most the SAME 500 ms target. Report aggregate,
-  count, maximum duration and its chunk cases/ordinal; leave cumulative throughput gates
-  unchanged. No GPU verification was performed by this host-telemetry implementation.
+- [ ] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
+  on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
+  500 ms target, nonzero launch count and covered cases equal the run count over the
+  unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
+  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.
+  ⚠ 2026-11-14 (R09): was "aggregate kernel-time ceilings", now per-launch duration
+  bounds with complete observations, because the original F2 target concerns each
+  synchronized launch. No GPU verification was performed by this implementation.
 
 ⚠ 2026-11-14 (R09): the criterion above replaces the mistaken aggregate obligation
 below, not the original per-launch F2 target. C0 Windows CUDA measured aggregate
