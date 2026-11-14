@@ -17,6 +17,8 @@ public sealed class CalibrationLoopTests
         Assert.Equal(original.Select(value => value + 1), coldValues);
         Assert.Equal(1, coldTimings.FirstLaunchCases);
         Assert.False(coldTimings.ReusedPrefix);
+        // R12, 2026-11-15: real Stopwatch partitions are not a deterministic prefix oracle.
+        work.Train(scenario, original);
         var previousCalls = work.Calls;
         var (hitValues, hitTimings) = work.Run(scenario, (int[])original.Clone());
         Assert.Equal(original.Select(value => value + 2), hitValues);
@@ -43,10 +45,27 @@ public sealed class CalibrationLoopTests
         var (_, newInputTimings) = work.Run(scenario, (int[])coldValues.Clone());
         Assert.Equal(1, newInputTimings.FirstLaunchCases);
         Assert.False(newInputTimings.ReusedPrefix);
-        _ = work.Run(scenario, (int[])original.Clone());
+        work.Train(scenario, original);
         var (_, originalTimings) = work.Run(scenario, (int[])original.Clone());
         Assert.True(originalTimings.ReusedPrefix);
         Assert.Equal(15, originalTimings.FirstLaunchCases);
+    }
+
+    /// <summary>A slower historical partition has an exact full boundary of ten, proving fifteen is not a universal host invariant.</summary>
+    [Fact]
+    public void AControlledNonDoublingPartitionDrivesTheActualFirstLaunch()
+    {
+        using var scenario = new CalibrationScenario();
+        var work = new LoopWork();
+        var original = Enumerable.Range(0, scenario.Plan.Count).ToArray();
+        work.Train(scenario, original, nonDoubling: true);
+        var (values, timings) = work.Run(scenario, (int[])original.Clone());
+        Assert.True(timings.ReusedPrefix);
+        Assert.Equal(10, timings.FirstLaunchCases);
+        Assert.Equal(original.Select(value => value + 1), values);
+        Assert.Equal(work.Calls, timings.LaunchCount);
+        Assert.Equal(original.Length, timings.CoveredCases);
+        Assert.True(timings.Kernel > TimeSpan.Zero);
     }
 
     /// <summary>A late assembly failure leaves no entry even after the loop has completed and disposed its buffers.</summary>
@@ -111,6 +130,33 @@ public sealed class CalibrationLoopTests
             var result = (values, timer.Timings());
             calibration.Complete();
             return result;
+        }
+
+        /// <summary>A controlled completed observation, independent of the current host's Stopwatch/GC/load.</summary>
+        internal void Train(CalibrationScenario scenario, int[] initial, bool nonDoubling = false)
+        {
+            using var buffers = new ChunkBuffers(scenario.Cpu.IlgpuAccelerator);
+            _ = buffers.InputOutput(initial, perCase: 1);
+            var identity = buffers.InputIdentity();
+            using var run = scenario.Cache.Begin(Launcher, scenario.Tables, scenario.Plan, identity, scenario.Views);
+            if (nonDoubling)
+            {
+                // A previous repeat can start at two; one slower launch changes its later partition.
+                run.ObserveSuccessfulLaunch(2, TimeSpan.FromMilliseconds(10));
+                run.ObserveSuccessfulLaunch(4, TimeSpan.FromMilliseconds(400));
+                run.ObserveSuccessfulLaunch(4, TimeSpan.FromMilliseconds(10));
+                run.ObserveSuccessfulLaunch(8, TimeSpan.FromMilliseconds(10));
+                run.ObserveSuccessfulLaunch(13, TimeSpan.FromMilliseconds(10));
+            }
+            else
+            {
+                foreach (var cases in new[] { 1, 2, 4, 8, 16 })
+                {
+                    run.ObserveSuccessfulLaunch(cases, TimeSpan.FromMilliseconds(5));
+                }
+            }
+
+            run.Complete();
         }
 
         private void Launch(int cases)

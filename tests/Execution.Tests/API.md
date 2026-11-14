@@ -172,3 +172,12 @@ silently passed with a valid per-step line. The old-reader run had 12 failures
 and 33 passing controls; missing/malformed and other nonfinite values now have a
 baseline-validity message. Positive 18.52, finite extremes and inclusive original
 ratio floors are controlled independently. No approved value or gate changed.
+⚠ 2026-11-15 (R12): CalibrationLoopTests previously treated the real host's
+adaptive Stopwatch partition as always yielding prefix15. Its hit/current-work
+control and final original-A hit now prepare deterministic observations through
+the existing cache transaction, then run real uploads, computation, synchronization
+and downloads. A slower controlled partition proves an exact prefix10 and makes
+the old15 assertion red without sleeps/retries. The cold-A-to-new-input-B check
+still consumes the actual cold run's entry, with no intervening training. Stale
+input identity, post-download identity and skipped-work mutations remain red.
+Exact prefix unit tests and the hardware CUDA control retain their assertions.

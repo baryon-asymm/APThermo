@@ -332,3 +332,14 @@ Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA
 - Do not mark a CUDA test skipped on a machine without CUDA: absence is a failure
   unless CUDA is forbidden explicitly.
 - Do not commit the actual throughput file.
+
+⚠ 2026-11-15 (R12): host hit assertions previously assumed real Stopwatch sampling
+always produced prefix15. Final CPU load produced a valid prefix10. Host hit
+controls now prepare completed observations through the existing cache API, then
+execute real BatchRun transfers, computation, synchronization and current timings.
+A slower controlled historical partition has boundary10 and makes the old15
+assertion red without sleeps or retries. The real cold-A-to-new-input-B check
+still consumes the actual cold run's entry, with no intervening training; only
+the final original-A hit is prepared. Stale input key, post-download key and
+skipped-work mutations remain red. Exact prefix unit tests and hardware checks
+retain their assertions. No budget, production clock or cache changed.
