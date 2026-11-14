@@ -60,7 +60,11 @@ flag replace those incomplete diagnostics; the numeric tolerances stay unchanged
 - **Group 7 compares `Solver` against the engine on a proven baseline, not an
   assumption.** `SolverBatchBenchmarks`'s `[GlobalSetup]` also runs group 1's engine
   path over the identical batch once and compares the two results field by field
-  (`EngineSolverComparison`), then logs which relation holds. On the CPU accelerator
+  (`EngineSolverComparison`), then logs which relation holds. Comparison is a setup
+  diagnostic: mismatches print FAILED and up to five details; they do not throw or
+  stop timed iterations. Timed `SolveBatch` calls solve/consume only, without repeating
+  validation. A comparison outside its budget invalidates interpretation of timing
+  and requires operator review, not an assumed automatic correctness gate. On the CPU accelerator
   a dry run found `Solver` and the engine bit-for-bit equal — every `MixtureState`
   and `PerformanceFigures` field and every mole fraction, at every case of every case
   count (2026-09-15, `## Acceptance criteria`). On CUDA the same dry run found the two
@@ -96,11 +100,12 @@ flag replace those incomplete diagnostics; the numeric tolerances stay unchanged
   record, in file order, pressure index ascending within a record: the same order the
   48-state verification of `## Acceptance criteria` checks.
 - **Every group is listed by the machine.** `dotnet run -c Release --project
-  tests/Benchmarks -- --list flat` prints every benchmark. The criteria below check
+  tests/Benchmarks/Runner -- --list flat` prints every benchmark. The criteria below check
   against that list, not against a typed one.
-- **CUDA is optional.** A CUDA benchmark on a machine without CUDA, or with
-  `APTHERMO_NO_CUDA=1`, is skipped. The skip is recorded with the engine's
-  `CudaSkippedBecause`; it never fails.
+- **CUDA is optional.** The requested `Cuda` axis maps to `AcceleratorKind.Auto`:
+  without CUDA, or with `APTHERMO_NO_CUDA=1`, the benchmark runs on the CPU fallback.
+  `CudaSkippedBecause` records the CUDA refusal; the benchmark itself is not skipped.
+  Other setup/solve/BenchmarkDotNet failures can still fail the run.
 
 ## Dependencies
 
@@ -259,3 +264,10 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   another agent building.
 - No change to library code for a benchmark's sake: this node measures, it does not
   tune. A finding goes to a design session.
+
+⚠ 2026-11-14: the current listing command formerly targeted the library, now its
+Runner child. The CUDA paragraph formerly said the benchmark was skipped and never
+failed; code actually runs CPU fallback through Auto and logs the CUDA refusal.
+The Group 7 comparison is setup-time logging, not a per-iteration or failing timing
+gate (`SolverBatchBenchmarks.Setup`, `LogComparison`, `SolveBatch`). Historical
+measurements and their dates remain in ACCEPTANCE/HISTORY unchanged.

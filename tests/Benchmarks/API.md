@@ -133,7 +133,7 @@ entirely for the raw `Execution.Engine` batch API, so their `Accelerator` axis m
 `Cuda` to `EngineOptions { Accelerator = AcceleratorKind.Auto }` (`AcceleratorSelection`,
 internal): the one `AcceleratorKind` that falls back to the CPU accelerator instead of
 throwing when CUDA is unavailable, recording why through `AcceleratorInfo.CudaSkippedBecause`
-(BOOT.md, Invariants — CUDA is optional, a benchmark asking for it never fails).
+(BOOT.md, Invariants — CUDA is optional: the requested CUDA axis can run on CPU).
 
 Every group that solves logs one diagnostic line per configuration to the console
 during `[GlobalSetup]` (BOOT.md, Invariants): the case count or kind, the accelerator,
@@ -176,3 +176,8 @@ meaning zero. A trace allowance applies only when both magnitudes are below the
 existing floor; an actual macroscopic fraction cannot hide behind a zero reference.
 Repeated raw report names are aggregated before comparison. Whole-entry controls
 use one real CPU pair in addition to the private assertion controls.
+
+⚠ 2026-11-14: CUDA absence causes CPU fallback, not a skipped benchmark or immunity
+from failures. Group 7 compares once in GlobalSetup and logs its verdict; a failed
+comparison does not throw or suppress timed SolveBatch iterations. The Runner's exit
+code reports BenchmarkDotNet critical validation errors, not this logged verdict.
