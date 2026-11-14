@@ -119,15 +119,15 @@ internal static class TraceGasFamilies
         solved.Status is CaseStatus.Ok or CaseStatus.NoGasPhase && solved.Bracketed && solved.Iterations > EquilibriumSolver.MaxNewtonSteps;
 
     /// <summary>
-    /// What is wrong with one launch of trace-gas cases, or null: a case that ended neither <c>Ok</c> nor <c>NoGasPhase</c> (the launch was
-    /// not the family it stands for), or a kernel time above <paramref name="limit"/>.
+    /// What is wrong with the sampled run of trace-gas cases, or null: a case that ended neither <c>Ok</c> nor <c>NoGasPhase</c> (the batch was
+    /// not the family it stands for), or cumulative kernel time above <paramref name="limit"/>.
     /// </summary>
     public static string? LaunchViolation(EquilibriumBatchResult run, TimeSpan limit)
     {
         ArgumentNullException.ThrowIfNull(run);
         var other = run.Status.Count(status => status is not (CaseStatus.Ok or CaseStatus.NoGasPhase));
-        return other > 0 ? $"{other} of {run.Count} cases of the launch ended neither Ok nor NoGasPhase"
-            : run.Timings.Kernel > limit ? $"{run.Count} trace-gas cases took {run.Timings.Kernel.TotalMilliseconds:F1} ms in one launch, above the budget of {limit.TotalMilliseconds:F0} ms"
+        return other > 0 ? $"{other} of {run.Count} cases of the batch ended neither Ok nor NoGasPhase"
+            : run.Timings.Kernel > limit ? $"{run.Count} trace-gas cases took {run.Timings.Kernel.TotalMilliseconds:F1} ms across the sampled run, above the budget of {limit.TotalMilliseconds:F0} ms"
             : null;
     }
 

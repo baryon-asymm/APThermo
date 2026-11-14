@@ -93,15 +93,15 @@ internal static class RecoveryFamilies
     }
 
     /// <summary>
-    /// What is wrong with one launch of cases that all bracket, or null: a case that did not end <c>NoGasPhase</c> (the launch was not
-    /// the bracketing family it stands for), or a kernel time above <paramref name="limit"/>.
+    /// What is wrong with the sampled run of cases that all bracket, or null: a case that did not end <c>NoGasPhase</c> (the batch was not
+    /// the bracketing family it stands for), or cumulative kernel time above <paramref name="limit"/>.
     /// </summary>
     public static string? LaunchViolation(EquilibriumBatchResult run, TimeSpan limit)
     {
         ArgumentNullException.ThrowIfNull(run);
         var other = run.Status.Count(status => status != CaseStatus.NoGasPhase);
-        return other > 0 ? $"{other} of {run.Count} cases of the launch did not end NoGasPhase"
-            : run.Timings.Kernel > limit ? $"{run.Count} cases that all bracket took {run.Timings.Kernel.TotalMilliseconds:F1} ms in one launch, above the budget of {limit.TotalMilliseconds:F0} ms"
+        return other > 0 ? $"{other} of {run.Count} cases of the batch did not end NoGasPhase"
+            : run.Timings.Kernel > limit ? $"{run.Count} cases that all bracket took {run.Timings.Kernel.TotalMilliseconds:F1} ms across the sampled run, above the budget of {limit.TotalMilliseconds:F0} ms"
             : null;
     }
 

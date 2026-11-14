@@ -11,7 +11,7 @@ namespace APThermo.Execution.Tests;
 [Collection(EngineFixture.CollectionName)]
 public sealed class CudaTests(ITestOutputHelper output)
 {
-    /// <summary>The most cases of the launch-budget fact: one wave of the device where it is smaller, so that the fact never launches more than the engine's own first chunk would.</summary>
+    /// <summary>The unchanged measured workload cap, limited by device residency where smaller; it is independent of the first bounded sample of one case.</summary>
     private const int LaunchBudgetCases = 16_384;
 
     /// <summary>The rocket family names as theory data, delegating to <see cref="FixtureBatches.FamilyNames"/>.</summary>
@@ -210,10 +210,10 @@ public sealed class CudaTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// One launch of cases that all bracket (the hp and sp states of the gasless KO2 family, repeated) stays within the launch budget
-    /// (Execution.Tests BOOT.md; the quarter of the default run-time limit, which <c>LaunchBudget</c> sizes later chunks from): the
-    /// engine's first chunk is one wave of the device, so a family that all brackets must fit it, and the measured kernel time of the
-    /// launch is below the budget. Every case ends <c>NoGasPhase</c> on CUDA; the figure is written to the test output.
+    /// The fixed bracketing workload (the hp and sp states of the gasless KO2 family, repeated) retains its cumulative kernel-time
+    /// ceiling of one quarter of the default run-time limit. The engine samples one bounded case first, then grows chunks conservatively;
+    /// this records the sum across those launches, not a claim about one device wave. Every case ends <c>NoGasPhase</c> on CUDA.
+    /// The workload size and aggregate ceiling are unchanged; the figure is written to the test output.
     /// </summary>
     [Fact]
     [Trait("Category", "Cuda")]
@@ -232,16 +232,16 @@ public sealed class CudaTests(ITestOutputHelper output)
         _ = cuda.Run(tables, batch);
         var run = cuda.Run(tables, batch);
         var limit = LaunchBudget.DefaultRunTimeLimit / 4;
-        output.WriteLine($"{count} bracketing cases in one launch: kernel {run.Timings.Kernel.TotalMilliseconds:F1} ms, the budget {limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
+        output.WriteLine($"{count} bracketing cases across the sampled run: cumulative kernel {run.Timings.Kernel.TotalMilliseconds:F1} ms, the budget {limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
         var violation = RecoveryFamilies.LaunchViolation(run, limit);
         Assert.True(violation is null, violation);
     }
 
     /// <summary>
-    /// One launch of trace-gas hp and sp cases (the data-junction and chlorine-excess states of the KCl family of
-    /// <see cref="TraceGasFamilies"/>, repeated, each settled by the temperature bracket and the pass) stays within the launch budget, as
-    /// <see cref="AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget"/> holds for the gasless bracket: one wave of the device, every case
-    /// ends <c>Ok</c> or <c>NoGasPhase</c>, and the measured kernel time of the launch is below the quarter of the default run-time limit.
+    /// The fixed trace-gas hp and sp workload (the data-junction and chlorine-excess states of the KCl family of
+    /// <see cref="TraceGasFamilies"/>, repeated) retains the aggregate ceiling used by
+    /// <see cref="AFamilyOfCasesThatAllBracketStaysWithinTheLaunchBudget"/>: every case ends <c>Ok</c> or <c>NoGasPhase</c>,
+    /// and cumulative kernel time across conservatively sampled launches is below one quarter of the default run-time limit.
     /// The figure is written to the test output.
     /// </summary>
     [Fact]
@@ -261,7 +261,7 @@ public sealed class CudaTests(ITestOutputHelper output)
         _ = cuda.Run(tables, batch);
         var run = cuda.Run(tables, batch);
         var limit = LaunchBudget.DefaultRunTimeLimit / 4;
-        output.WriteLine($"{count} trace-gas hp and sp cases in one launch: kernel {run.Timings.Kernel.TotalMilliseconds:F1} ms, the budget {limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
+        output.WriteLine($"{count} trace-gas hp and sp cases across the sampled run: cumulative kernel {run.Timings.Kernel.TotalMilliseconds:F1} ms, the budget {limit.TotalMilliseconds:F0} ms; {run.Iterations.Average():F0} Newton steps per case on average");
         var violation = TraceGasFamilies.LaunchViolation(run, limit);
         Assert.True(violation is null, violation);
     }

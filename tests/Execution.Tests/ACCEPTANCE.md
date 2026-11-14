@@ -42,6 +42,10 @@
   Evidence: `SCRATCH/audit/trace-role-split.log`, `trace-mechanism-negative.log`;
   mutation restored; final build 0 warnings/errors.
 
+- [ ] Re-verify the unchanged bracketing and trace-gas workload aggregate kernel-time
+  ceilings on actual CUDA under first-one-case and 2x maximum growth. Comments and
+  diagnostics corrected 2026-11-14; no case count, budget or numerical expression changed.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 
