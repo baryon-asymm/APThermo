@@ -25,7 +25,9 @@ internal static class ProcessBitExamples
             var spec = specs[index];
             var json = Run(assembly, spec.Name, spec.JsonArgs, "");
             var csv = Run(assembly, spec.Name, spec.CsvArgs, " (csv)");
-            examples[index] = new BitExample(spec.Name, BitExamples.JsonSha256(json.ToArray(), spec.Name), BitExamples.Sha256(Encoding.UTF8.GetString(csv.Span)));
+            var csvText = Encoding.UTF8.GetString(csv.Span);
+            examples[index] = new BitExample(spec.Name, BitExamples.JsonSha256(json.ToArray(), spec.Name), BitExamples.Sha256(csvText),
+                BitExamples.ActualFields(Encoding.UTF8.GetString(json.Span), csvText));
         });
         return examples;
     }

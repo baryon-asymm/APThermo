@@ -37,7 +37,7 @@ public sealed class BitSnapshotTests
         var problems = new List<string>();
         foreach (var example in examples)
         {
-            var problem = snapshot.Problem(example.Name, $"{example.JsonSha256}\t{example.CsvSha256}");
+            var problem = snapshot.Problem(example.Name, $"{example.JsonSha256}\t{example.CsvSha256}", example.Fields);
             if (problem is not null)
             {
                 problems.Add(problem);
@@ -79,8 +79,9 @@ public sealed class BitSnapshotTests
 /// <summary>
 /// One example's recorded output: the SHA-256 of the bytes the command line delivers for its JSON document with the
 /// top-level `run` property cut out (<see cref="RunPropertyCut"/>), and the SHA-256 of its CSV text as written.
+/// Named raw documents are retained for diagnostics and do not participate in either digest.
 /// </summary>
-internal sealed record BitExample(string Name, string JsonSha256, string CsvSha256);
+internal sealed record BitExample(string Name, string JsonSha256, string CsvSha256, IReadOnlyList<string> Fields);
 
 /// <summary>One example's name and the arguments of its two runs, the JSON one and the CSV one.</summary>
 internal sealed record ExampleSpec(string Name, string[] JsonArgs, string[] CsvArgs);
@@ -142,11 +143,15 @@ internal static class BitExamples
     /// <summary>The SHA-256 of a text's UTF-8 bytes, as the snapshot's lines hash it.</summary>
     public static string Sha256(string text) => new BitHash().Add(text).ToHex();
 
+    /// <summary>Named delivered documents for the optional per-case diagnostic, never part of either digest.</summary>
+    public static IReadOnlyList<string> ActualFields(string json, string csv) =>
+        [$"json.rawDocument =\n{json}", $"csv.rawDocument =\n{csv}"];
+
     private static BitExample Compute(ExampleSpec spec)
     {
         var json = Run(spec.Name, spec.JsonArgs, "");
         var csv = Run(spec.Name, spec.CsvArgs, " (csv)");
-        return new BitExample(spec.Name, JsonSha256(json, spec.Name), Sha256(csv));
+        return new BitExample(spec.Name, JsonSha256(json, spec.Name), Sha256(csv), ActualFields(json, csv));
     }
 
     private static string Run(string name, string[] args, string which)

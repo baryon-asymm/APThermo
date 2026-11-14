@@ -148,7 +148,7 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
   of the fast set, `Category!=LongRunning&Category!=EndToEnd` (the budgets are the root's).
 - Output documents are written into a temporary directory of the fixture, removed
   after the run; nothing else is written into the working directory but the
-  `Bits.actual.txt` of a failed snapshot comparison, next to the approved file and
+  `Bits.actual.txt` and its per-case `.fields.txt` diagnostic for a failed snapshot, next to the approved file and
   git-ignored (2026-09-14).
 - The process-level tests run the command line's assembly through `Harness.DotnetProcess`
   (2026-10-03, moved from this node's fixture): the one copied next to this test assembly with
@@ -162,7 +162,18 @@ the same zero estimate. This is bounded shape parity, not a chemistry-domain pro
 The output guard admits an emitted zero-mass InvalidInput diagnostic and still refuses
 negative mass and an unknown status.
 
+On an in-process or process bit mismatch the existing Harness field dump receives
+named raw JSON and CSV documents. JSON/CSV hash definitions, order and approved
+bytes stay unchanged; the diagnostic text is not hashed.
+
+⚠ 2026-11-14: T16 found this node discarded delivered text after computing digests,
+so a numeric mismatch had no readable actual values. Both paths now retain named
+raw documents for the existing optional `Problem` fields parameter.
+
 ## Acceptance criteria
+
+- [x] 2026-11-14 — `BitSnapshotTests` preserves JSON and CSV approved digests on both paths;
+  separate actual JSON and CSV value mutations produce named raw-document dumps.
 
 - [x] 2026-11-14 — `SchemaShapeParityTests` proves both positive and negative TP/HP/SP shapes,
   zero estimates, and the emitted zero-mass diagnostic with negative output controls.
