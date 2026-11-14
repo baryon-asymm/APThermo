@@ -18,7 +18,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A01 | Eligible polymorph stability | Local pass 2026-11-14 | `25b95f55`; independent integration regression 18/18, full platform verification pending |
 | A02 | Immutable database and problem snapshots | Local pass 2026-11-14 | `e5e3bfe5`, `782ced8f`; Data 54/54, public integration controls 28/28; final matrix pending |
 | A03 | Cleanup preserves the primary failure | Local pass 2026-11-14 | `6e9fcfb1`; root multiple-fault/lost-session integration 7/7; remaining ownership chains tracked under A04 |
-| A04 | Rollback partial table allocation | In progress | `233c8cca`, `395ef758` cover table/wrapper transactions; independent copy-boundary and diagnostic-storage follow-ups R06/R07 remain |
+| A04 | Rollback partial table allocation | Local pass 2026-11-14 | `233c8cca`, `395ef758`, `05ff0258`, `0a37d7aa`, `0e8b032e`; table/wrapper transactions, real CPU copy-fault controls and primary-preserving diagnostics; root Transport 20/20 |
 | A05 | Exact condensed-set identity | Local pass 2026-11-14 | `14d875bb`; Performance integration controls 32/32; architecture follow-up in progress |
 | A06 | Ordinary-throat reference sensitivity | Local pass 2026-11-14 | `14d875bb`; finite corrupted ordinary-throat controls included in 32/32 |
 | A07 | Finite transport comparison | Local pass 2026-11-14 | `14d875bb`; Transport integration controls 73/73 |
@@ -31,11 +31,11 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A14 | Internal transport finite temperature | Local pass 2026-11-14 | `14d875bb`; root Transport controls 73/73 |
 | A15 | Windows and Linux CUDA-driver detection | Slice pass 2026-11-14 | `17f048d2`; shared name predicate and ordinary/forbidden-module controls; final platform process checks pending |
 | A16 | Approved snapshot write protection | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68, including ordinary/link output controls |
-| A17 | Schema validator semantics and keyword coverage | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68 and schema consumers 3/3 |
+| A17 | Schema validator semantics and keyword coverage | Local pass 2026-11-14 | `200a1bc2`, `38488d5a`, `e486c513`; exact decimal semantics and strict URI pointers; root Fixtures 187/187 and original independent probes reject all reproduced bypasses |
 | A18 | Chunk enumerator integer boundary | Slice pass 2026-11-14 | `17f048d2`; finite int.MaxValue covering and ordinary/empty chunks in boundary controls; root Protocol 131/131 |
 | A19 | Pinned and atomically published merge candidate | Local pass 2026-11-14 | `a6ff702c`; merge guard self-tests 72/72, independent rerun |
 | A20 | Preservation of active acceptance criteria | Local pass 2026-11-14 | `a6ff702c`; history guard 35/35 and baseline-to-HEAD criteria check |
-| A21 | Complete documented signatures | Local pass 2026-11-14 | `3b9f5f7e`, `739a69b4`; root contract/comparison controls 90/90; final changed-document reconciliation pending |
+| A21 | Complete documented signatures | Local pass 2026-11-14 | `3b9f5f7e`, `739a69b4`, `674a63c7`; explicit base/interface promises checked; root integrated Protocol 154/154 |
 | A22 | Complete source and build-manifest node discovery | Local pass 2026-11-14 | `7ec349d6`; root lint self-tests 84/84 and strict lint 0/0 |
 | A23 | PowerShell preflight failure propagation | Local pass 2026-11-14 | `4e5d1494`, `a3191c24`; root guards 20/20, real Windows PS5.1 and Ubuntu-24.04 preflight pass; GitHub runner proof pending |
 | A24 | Current protocol-linter negative controls | Local pass 2026-11-14 | `a6ff702c`; lint self-tests 75/75, strict lint 0/0 |
@@ -49,7 +49,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A32 | Complete batch-composition comparison | Local pass 2026-11-14 | `31c28741`; union/condensed/zero-key controls in root public 28/28 |
 | A33 | Literal release tag shell arguments | Local pass 2026-11-14 | `4e5d1494`; adversarial valid-ref and fake-gh controls in root 20/20; affected GitHub runner proof pending |
 | A34 | Literal changelog version matching | Local pass 2026-11-14 | `4e5d1494`; exact/prerelease/build-metadata, lookalike and empty-section controls in root 20/20 |
-| A35 | Multi-floor HP/SP objective selection | Local pass 2026-11-14 | `b8f90090`; complete bank/floor/independent-witness controls 34/34 in integration; hardware/public witness matrix pending |
+| A35 | Multi-floor HP/SP objective selection | In progress | `b8f90090`; cold bank/floor/independent-witness controls 34/34 and public regressions added; seeded recovery bypass R08 reproduced by root, hardware matrix pending |
 | A36 | Failed-state public postcondition | Local pass 2026-11-14 | `14d875bb`, `782ced8f`; internal/public failure controls, NoGasPhase exception and prior-success preservation |
 | A37 | Public condensed-model applicability | Local pass 2026-11-14 | `668939f6`, `14d875bb`; Problems contract and rocket/troubleshooting guides name frozen extrapolation and retained phase bounds |
 | A38 | Disposal overload inventory | Local pass 2026-11-14 | `31c28741`; exact MethodInfo inventory and same-name wrong-overload negative control |
@@ -68,12 +68,12 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 | ID | Mechanism and original area | Status | Evidence |
 |---|---|---|---|
 | R01 | Decimal quotient rounding at the inclusive sweep maximum (A25) | Slice pass 2026-11-14 | `695d9715`; old source 1 red/7 green, corrected boundaries 21/21 and full CLI 177/177 |
-| R02 | Nonfinite conversion bypass in JSON field comparison | In progress | Independent IT01: approved 1 versus delivered 1e400 is incorrectly accepted |
-| R03 | Binary64 rounding in schema numeric decisions (A17) | In progress | Independent IT02: fractional integer, adjacent large bounds and tiny minima |
-| R04 | Explicitly false documented base/interface contracts (A21) | In progress | Independent IT03: nonexistent IDisposable/Exception bases accepted |
-| R05 | URI-fragment and malformed JSON Pointer resolution (A17) | In progress | Independent IT04: percent-encoded ref chooses a different schema |
-| R06 | Copy failure before allocation result enters ownership (A04) | In progress | Actual ILGPU 1.5.3 CPU-buffer control; Species, Transport and ProbeMath convenience uploads |
-| R07 | Transport diagnostic storage can replace the primary (A04) | In progress | Read-only Exception.Data throws NotSupportedException; original failure must survive |
+| R02 | Nonfinite conversion bypass in JSON field comparison | Local pass 2026-11-14 | `7bbb636b`; old 4 red/7 positive, corrected 11/11; root Fixtures 187/187 and independent original probe now rejects 1e400 |
+| R03 | Binary64 rounding in schema numeric decisions (A17) | Local pass 2026-11-14 | `38488d5a`; exact normalized digits/exponents for integer/bounds/minItems/enum/const; 61 controls and root Fixtures 187/187 |
+| R04 | Explicitly false documented base/interface contracts (A21) | Local pass 2026-11-14 | `674a63c7`; 23 base/interface controls, root Protocol 154/154; original independent wrong-base probes now reject |
+| R05 | URI-fragment and malformed JSON Pointer resolution (A17) | Local pass 2026-11-14 | `e486c513`; old 32 red/4 positive, corrected 36/36 and root Fixtures 187/187; original encoded-ref probe selects the right schema |
+| R06 | Copy failure before allocation result enters ownership (A04) | Local pass 2026-11-14 | `05ff0258`, `0a37d7aa`; real ILGPU CPU-buffer fault controls observe allocation layers and cleanup; root Transport 20/20 |
+| R07 | Transport diagnostic storage can replace the primary (A04) | Local pass 2026-11-14 | `0e8b032e`; old 3 red, corrected 18/18 diagnostic controls, root ownership integration 20/20 |
 | R08 | Explicitly seeded SP can bypass the multi-floor candidate bank (A35) | In progress | CPU companion: same Mg-H-O-S S,p witness, warm `Ok` has a dominated enthalpy; cold result passes |
 
 ## Integration verification
