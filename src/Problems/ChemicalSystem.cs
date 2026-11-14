@@ -12,5 +12,10 @@ internal sealed class ChemicalSystem(IReadOnlyList<string> elements, SpeciesTabl
 
     public UploadedTables Tables { get; } = tables;
 
+    // Cleanup stores diagnostics in the existing owner, so a child OOM does not allocate during the attempt loop.
+    internal Exception? DisposalFailure { get; set; }
+
+    internal ChemicalSystem? NextFailedDisposal { get; set; }
+
     public void Dispose() => Tables.Dispose();
 }

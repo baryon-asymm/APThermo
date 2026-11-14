@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Thermo;
@@ -11,14 +13,6 @@ namespace APThermo.Problems;
 /// </summary>
 internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engine) : IDisposable
 {
-    /// <summary>Separates the items within one of the three lists the key joins; no species name of the committed
-    /// database contains it (the printable-ASCII scan behind the second audit's observation 4), unlike the comma
-    /// the previous key used, which 84 product names contain.</summary>
-    private const char KeyItemSeparator = '\u001f';
-
-    /// <summary>Separates the three lists (elements, Omit, Only) within the key; equally absent from every name.</summary>
-    private const char KeyFieldSeparator = '\u0000';
-
     private readonly Dictionary<string, ChemicalSystem> _systems = new(StringComparer.Ordinal);
 
     public ChemicalSystem Get(ElementalMixture mixture) => Get(mixture.Elements, mixture.Omit, mixture.Only, AbundantElementsOf(mixture));
@@ -114,21 +108,84 @@ internal sealed class ChemicalSystemCache(SpeciesDatabase database, Engine engin
     private static HashSet<string> AbundantElementsOf(ElementalMixture mixture) =>
         new(mixture.ElementMoles.Where(pair => pair.Value > 0.0).Select(pair => pair.Key), StringComparer.Ordinal);
 
-    private static string KeyOf(IReadOnlyList<string> elements, IReadOnlyList<string> omit, IReadOnlyList<string>? only) =>
-        string.Join(KeyItemSeparator, elements) + KeyFieldSeparator +
-        string.Join(KeyItemSeparator, omit.Order(StringComparer.Ordinal)) + KeyFieldSeparator +
-        (only is null ? "*" : string.Join(KeyItemSeparator, only));
+    private static string KeyOf(IReadOnlyList<string> elements, IReadOnlyList<string> omit, IReadOnlyList<string>? only)
+    {
+        var key = new StringBuilder();
+        AppendNames(key, elements);
+        AppendNames(key, [.. omit.Order(StringComparer.Ordinal)]);
+        AppendNames(key, only);
+        return key.ToString();
+    }
+
+    /// <summary>Length framing preserves arbitrary UTF-16 names and sequence/null boundaries.</summary>
+    private static void AppendNames(StringBuilder key, IReadOnlyList<string>? names)
+    {
+        if (names is null)
+        {
+            _ = key.Append("-1:");
+            return;
+        }
+
+        _ = key.Append(names.Count.ToString(CultureInfo.InvariantCulture)).Append(':');
+        foreach (var name in names)
+        {
+            _ = key.Append((name?.Length ?? -1).ToString(CultureInfo.InvariantCulture)).Append(':');
+            _ = key.Append(name);
+        }
+    }
 
     private static bool SameNames(IReadOnlyList<string>? a, IReadOnlyList<string>? b) =>
         a is null ? b is null : b is not null && a.Count == b.Count && a.ToHashSet(StringComparer.Ordinal).SetEquals(b);
 
     public void Dispose()
     {
-        foreach (var system in _systems.Values)
+        ChemicalSystem? firstFailure = null;
+        ChemicalSystem? lastFailure = null;
+        try
         {
-            system.Dispose();
+            foreach (var system in _systems.Values)
+            {
+                try
+                {
+                    system.Dispose();
+                }
+                catch (Exception error) when (error is not AccessViolationException)
+                {
+                    RecordFailure(ref firstFailure, ref lastFailure, system, error);
+                }
+            }
+        }
+        finally
+        {
+            _systems.Clear();
         }
 
-        _systems.Clear();
+        if (firstFailure is not null)
+        {
+            throw new AggregateException("chemical-system cleanup failed", DisposalFailures(firstFailure));
+        }
+    }
+
+    private static void RecordFailure(ref ChemicalSystem? first, ref ChemicalSystem? last, ChemicalSystem system, Exception error)
+    {
+        system.DisposalFailure = error;
+        if (last is not null)
+        {
+            last.NextFailedDisposal = system;
+        }
+        else
+        {
+            first = system;
+        }
+
+        last = system;
+    }
+
+    private static IEnumerable<Exception> DisposalFailures(ChemicalSystem first)
+    {
+        for (var current = first; current is not null; current = current.NextFailedDisposal)
+        {
+            yield return current.DisposalFailure!;
+        }
     }
 }

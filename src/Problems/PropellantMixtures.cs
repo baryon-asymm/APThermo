@@ -92,6 +92,9 @@ internal sealed class PropellantMixtures(SpeciesDatabase database, Engine engine
         return perKilogram;
     }
 
+    /// <summary>Release every cached propellant reference at solver disposal.</summary>
+    public void Clear() => _reactantEnthalpies.Clear();
+
     private static int IndexOf(IReadOnlyList<string> elements, string symbol)
     {
         for (var i = 0; i < elements.Count; i++)

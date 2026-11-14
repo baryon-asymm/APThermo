@@ -117,9 +117,18 @@ internal static class MixtureRule
         for (var k = 0; k < count; k++)
         {
             var r = resolved[k];
-            fractions[k] = r.Reactant.Role == ReactantRole.Oxidizer ? oxidizerShare * r.Mass / oxidizerMass : fuelShare * r.Mass / fuelMass;
+            fractions[k] = r.Reactant.Role == ReactantRole.Oxidizer
+                ? GroupFraction(oxidizerShare, r.Mass, oxidizerMass) : GroupFraction(fuelShare, r.Mass, fuelMass);
         }
 
         return fractions;
+    }
+
+    /// <summary>Keep ordinary bits; divide first only when the weighted intermediate underflows.</summary>
+    private static double GroupFraction(double share, double mass, double total)
+    {
+        var weighted = share * mass;
+        return mass > 0.0 && (weighted == 0.0 || double.IsSubnormal(weighted))
+            ? share * (mass / total) : weighted / total;
     }
 }

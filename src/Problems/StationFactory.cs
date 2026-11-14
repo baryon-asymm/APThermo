@@ -62,14 +62,19 @@ internal static class StationFactory
 
         return new Station(
             name: name,
-            state: slice.State,
-            performance: slice.Performance,
+            state: PublicState(slice),
+            performance: slice.Status == CaseStatus.Ok || !slice.Performance.HasValue ? slice.Performance : default(PerformanceFigures),
             moleFractions: fractions,
             condensedMassFractions: condensed,
-            transport: slice.Transport,
-            transportStatus: slice.TransportStatus,
+            transport: slice.Status == CaseStatus.Ok ? slice.Transport : null,
+            transportStatus: slice.Status == CaseStatus.Ok ? slice.TransportStatus : null,
             status: slice.Status);
     }
+
+    private static MixtureState PublicState(in StationSlice slice) =>
+        slice.Status == CaseStatus.Ok ? slice.State :
+        slice.Status == CaseStatus.NoGasPhase
+            ? new MixtureState { Temperature = slice.State.Temperature, Pressure = slice.State.Pressure } : default;
 
     /// <summary>The species names a result reports: the table's, with the pieces of a cut condensed record collapsed to the record's name (BOOT.md, results).</summary>
     public static IReadOnlyList<string> SpeciesNames(SpeciesTable table)
@@ -84,6 +89,6 @@ internal static class StationFactory
             }
         }
 
-        return names;
+        return CollectionSnapshot.List(names);
     }
 }

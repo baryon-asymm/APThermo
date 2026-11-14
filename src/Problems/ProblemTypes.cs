@@ -14,10 +14,18 @@ public sealed record RocketProblem
     public FlowModel Flow { get; init; } = FlowModel.ShiftingEquilibrium;
 
     /// <summary>p_c / p_e of the exits reported first.</summary>
-    public IReadOnlyList<double> PressureRatios { get; init; } = [];
+    public IReadOnlyList<double> PressureRatios
+    {
+        get;
+        init => field = CollectionSnapshot.List(value);
+    } = Array.AsReadOnly(Array.Empty<double>());
 
     /// <summary>A / A_t of the supersonic exits reported after the pressure-ratio ones.</summary>
-    public IReadOnlyList<double> AreaRatios { get; init; } = [];
+    public IReadOnlyList<double> AreaRatios
+    {
+        get;
+        init => field = CollectionSnapshot.List(value);
+    } = Array.AsReadOnly(Array.Empty<double>());
 
     /// <summary>K for the chamber solve; 0 = the equilibrium node's default.</summary>
     public double TemperatureEstimate { get; init; }

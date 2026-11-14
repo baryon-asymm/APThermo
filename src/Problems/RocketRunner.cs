@@ -57,7 +57,7 @@ internal sealed class RocketRunner(SpeciesDatabase database, Engine engine)
             }
         }
 
-        return results;
+        return Array.AsReadOnly(results);
     }
 
     private RocketResult[] SolveGroup(ChemicalSystem system, IReadOnlyList<AdmittedCase> group, bool wantsTransport, ExitSpecification[] kinds, IReadOnlyList<string> speciesNames)

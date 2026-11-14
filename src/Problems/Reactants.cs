@@ -38,7 +38,15 @@ public sealed record CustomReactantDefinition(
     IReadOnlyList<ElementCount> Formula,   // atoms per formula unit; not empty
     double Enthalpy,                       // J/mol at Temperature; finite
     double Temperature,                    // K; positive
-    double? MolarMass = null);             // kg/kmol; null = from the formula and the atomic weights
+    double? MolarMass = null)              // kg/kmol; null = from the formula and the atomic weights
+{
+    /// <summary>Owned formula snapshot, including on a with-initializer.</summary>
+    public IReadOnlyList<ElementCount> Formula
+    {
+        get;
+        init => field = CollectionSnapshot.List(value);
+    } = CollectionSnapshot.List(Formula);
+}
 
 /// <summary>One reactant of a propellant: a database record by name, or a custom definition by formula and enthalpy (a binder such as HTPB).</summary>
 public sealed record Reactant
@@ -49,6 +57,8 @@ public sealed record Reactant
     private Reactant(string name, ReactantRole role, double amount, AmountKind amountKind, double? temperature, CustomReactantDefinition? definition)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ValidateEnums(name, role, amountKind);
+
         if (!(amount >= 0.0) || double.IsInfinity(amount))
         {
             throw new ArgumentException($"reactant '{name}': the amount must be a finite non-negative number", nameof(amount));
@@ -93,6 +103,19 @@ public sealed record Reactant
         Definition = definition;
     }
 
+    private static void ValidateEnums(string name, ReactantRole role, AmountKind amountKind)
+    {
+        if (role is not (ReactantRole.Oxidizer or ReactantRole.Fuel or ReactantRole.Named))
+        {
+            throw new ArgumentException($"reactant '{name}': unknown role {role}", nameof(role));
+        }
+
+        if (amountKind is not (AmountKind.MassFraction or AmountKind.Moles))
+        {
+            throw new ArgumentException($"reactant '{name}': unknown amount kind {amountKind}", nameof(amountKind));
+        }
+    }
+
     /// <summary>A reactant of the database by exact name; the temperature defaults to the record's assigned temperature, or to 298.15 K for a record with polynomial intervals.</summary>
     /// <param name="name">The exact species name, as it appears in the database.</param>
     /// <param name="role">The group the reactant belongs to.</param>
@@ -102,7 +125,7 @@ public sealed record Reactant
     /// <param name="amountKind">Whether <paramref name="amount"/> is a mass fraction or a mole count.</param>
     /// <returns>The reactant.</returns>
     /// <exception cref="ArgumentException"><paramref name="amount"/> is negative, infinite or not a number, or
-    /// <paramref name="temperature"/> is given and is not positive and finite.</exception>
+    /// <paramref name="temperature"/> is given and is not positive and finite; or an enum value is undefined.</exception>
     public static Reactant FromDatabase(string name, ReactantRole role, double amount, double? temperature = null, AmountKind amountKind = AmountKind.MassFraction) =>
         new(name, role, amount, amountKind, temperature, null);
 
@@ -170,12 +193,12 @@ public sealed record Propellant
     internal Propellant(IReadOnlyList<Reactant> reactants, MixtureSpecification mixture, IReadOnlyList<string> elements,
                         IReadOnlyList<string> omit, IReadOnlyList<string>? only, IReadOnlyList<ResolvedReactant> resolved)
     {
-        Reactants = reactants;
+        Reactants = CollectionSnapshot.List(reactants);
         Mixture = mixture;
-        Elements = elements;
-        Omit = omit;
-        Only = only;
-        Resolved = resolved;
+        Elements = CollectionSnapshot.List(elements);
+        Omit = CollectionSnapshot.List(omit);
+        Only = CollectionSnapshot.Optional(only);
+        Resolved = CollectionSnapshot.List(resolved);
     }
 
     /// <summary>Starts building a propellant against <paramref name="database"/>.</summary>

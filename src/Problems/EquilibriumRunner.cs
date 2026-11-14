@@ -39,7 +39,7 @@ internal sealed class EquilibriumRunner(SpeciesDatabase database, Engine engine)
             }
         }
 
-        return results;
+        return Array.AsReadOnly(results);
     }
 
     private EquilibriumResult[] SolveGroup(ChemicalSystem system, IReadOnlyList<AdmittedCase> group, bool wantsTransport, IReadOnlyList<string> speciesNames)

@@ -71,7 +71,7 @@ public sealed class Solver : IDisposable
     {
         ArgumentNullException.ThrowIfNull(elements);
         ThrowIfDisposed();
-        return SpeciesSelection.Candidates(Database, elements, omit ?? [], only);
+        return CollectionSnapshot.List(SpeciesSelection.Candidates(Database, elements, omit ?? [], only));
     }
 
     /// <summary>Σ n_i A_i in kilograms with the database's atomic weights: the mass the element moles describe, the number the mass check compares with one kilogram.</summary>
@@ -297,8 +297,7 @@ public sealed class Solver : IDisposable
         }
 
         _disposed = true;
-        _systems.Dispose();
-        _engine.Dispose();
+        SolverDisposal.Complete(_mixtures.Clear, _systems, _engine);
     }
 
     /// <summary>

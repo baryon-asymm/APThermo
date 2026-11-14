@@ -21,8 +21,8 @@ public sealed record Station
         Name = name;
         State = state;
         Performance = performance;
-        MoleFractions = moleFractions;
-        CondensedMassFractions = condensedMassFractions;
+        _moleFractions = CollectionSnapshot.Dictionary(moleFractions);
+        _condensedMassFractions = CollectionSnapshot.Dictionary(condensedMassFractions);
         Transport = transport;
         TransportStatus = transportStatus;
         Status = status;
@@ -31,17 +31,29 @@ public sealed record Station
     /// <summary>"chamber", "throat", "exit1", "exit2", … ; "state" for an equilibrium result.</summary>
     public string Name { get; init; }
 
-    /// <summary>Zero where the status is not Ok.</summary>
+    /// <summary>Zero where the status is not Ok, except NoGasPhase retains temperature and pressure.</summary>
     public MixtureState State { get; init; }
 
     /// <summary>Rocket stations only.</summary>
     public PerformanceFigures? Performance { get; init; }
 
     /// <summary>Every species of the table, n_j over the moles of all species, as the reference reports them.</summary>
-    public IReadOnlyDictionary<string, double> MoleFractions { get; init; }
+    public IReadOnlyDictionary<string, double> MoleFractions
+    {
+        get => _moleFractions;
+        init => _moleFractions = CollectionSnapshot.Dictionary(value);
+    }
+
+    private readonly IReadOnlyDictionary<string, double> _moleFractions;
 
     /// <summary>Every condensed species of the table, n_j M_j.</summary>
-    public IReadOnlyDictionary<string, double> CondensedMassFractions { get; init; }
+    public IReadOnlyDictionary<string, double> CondensedMassFractions
+    {
+        get => _condensedMassFractions;
+        init => _condensedMassFractions = CollectionSnapshot.Dictionary(value);
+    }
+
+    private readonly IReadOnlyDictionary<string, double> _condensedMassFractions;
 
     /// <summary>Null when not requested or not Ok; see <see cref="TransportStatus"/>.</summary>
     public TransportFigures? Transport { get; init; }
@@ -73,8 +85,8 @@ public sealed record RocketResult
         MixtureMass = mixtureMass;
         Problem = problem;
         OxidizerToFuelRatio = oxidizerToFuelRatio;
-        Species = species;
-        Stations = stations;
+        Species = CollectionSnapshot.List(species);
+        Stations = CollectionSnapshot.List(stations);
         Status = status;
         Accelerator = accelerator;
     }
@@ -121,7 +133,7 @@ public sealed record EquilibriumResult
         Mixture = mixture;
         MixtureMass = mixtureMass;
         Problem = problem;
-        Species = species;
+        Species = CollectionSnapshot.List(species);
         State = state;
         Status = status;
         Accelerator = accelerator;

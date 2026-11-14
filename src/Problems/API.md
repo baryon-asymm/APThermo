@@ -314,6 +314,11 @@ public sealed record EquilibriumResult     // internal constructor (M1): a consu
 }
 ```
 
+⚠ 2026-11-14: failed public state and rocket-figure fields are finalized at station
+assembly, independently of internal buffer writes. Earlier successful stations and
+permitted diagnostic compositions are retained. The `NoGasPhase` exception below
+continues to apply.
+
 `NoGasPhase` (2026-10-03, 0.3.0) is a status like the others for this node: `Station.State` holds
 `Temperature` and `Pressure` only, every other field zero (for an hp or sp case the temperature the
 equilibrium search found); `MoleFractions` and `CondensedMassFractions` carry the condensed composition the
@@ -465,13 +470,24 @@ the same commit as the renames above:
   `Solve` overloads refused only because a method they called (`Mixture`) happened to
   check. Every public method now checks for itself.
 
+⚠ 2026-11-14: collection-valued definitions and completed results previously retained
+mutable inputs or exposed mutable implementations. They now own read-only snapshots,
+including constructor and `with` assignments to formulas, records, options and station
+compositions. Batch results and candidate-species queries expose read-only views.
+The chemical-system cache uses length-framed names; unknown `Omit` names still have
+no selection effect. Disposal clears cached propellant references before resource
+cleanup, attempts remaining systems and the engine after a child cleanup failure,
+and retains failure diagnostics. Injected cleanup OOM is recoverable here; real host
+exhaustion can prevent diagnostic aggregation, and fatal CLR failures are outside
+this best-effort cleanup contract.
+
 ## Errors
 
 | Situation | Behaviour |
 |---|---|
 | no reactant, an unknown reactant name | `ArgumentException`, `KeyNotFoundException` naming it, from `Build` |
 | a reactant temperature outside its record's range and margin; a reactant name whose records mix fitted and unfitted intervals (the second hidden-defect audit of 2026-09-28, observation 3); a mixture rule with an empty or zero-mass group, oxidizers and fuels without a ratio, a named reactant with a ratio, mass-fraction and mole amounts mixed within one unit of normalization (a role group with a ratio, the whole propellant without one), or a group whose amounts sum to a non-finite mass (2026-09-28, finding F2 and observation 7); a custom reactant with an element without atomic weight; an `Only` name that is no product species, lies outside the elements, is ionized, or is an inert pseudo-element record (2026-09-28, observation 2) | `ArgumentException` naming the reactant, the element, the species or the group, from `Build` |
-| a negative amount, a non-positive temperature, an empty formula, a non-finite enthalpy | `ArgumentException` naming the reactant, from `Reactant` |
+| a negative amount, a non-positive temperature, an empty formula, a non-finite enthalpy, an undefined `ReactantRole` or `AmountKind` | `ArgumentException` naming the reactant, from `Reactant` |
 | an element symbol without a database record; an element with a nonzero abundance and no candidate species, naming an `Only` or `Omit` list as the cause when one excluded it (2026-09-28, finding F1 and observation 1: an element absent everywhere, or at zero abundance everywhere, is masked instead); a mixture without enthalpy given a rocket problem or an assigned-enthalpy problem without one; a non-positive or non-finite pressure, chamber pressure, exit value, temperature estimate or assigned temperature (2026-09-28, observation 5); transport requested on a database loaded without `trans.inp`; an empty batch; a ratio set on a propellant given by mass fractions | `ArgumentException` naming the element or the problem index, from `Solve` and `MixtureOf`, before any kernel runs |
 | a state record with none or more than one of enthalpy, temperature and entropy; a record with exits given to `SolveStates` or one without exits given to `SolveRocketStates`; exits without an enthalpy; a flow named without exits; a negative abundance, an empty or duplicated symbol; an unknown element or one with a nonzero abundance and no candidate species in that record's own composition; a non-finite temperature estimate or assigned temperature in that record's problem (2026-09-28, finding F3: checked against the record's own elements before the union of the batch is built) | `StateRecordException` (an `ArgumentException`) naming the record's index and the reason, from `SolveStates` and `SolveRocketStates`, before any kernel runs |
 | transport requested for a state batch on a database loaded without `trans.inp`, or a `StateBatchOptions.MassTolerance` that is negative or not finite (2026-09-28, finding F3: a condition of the batch, not of any one record) | `ArgumentException` naming the option, from `SolveStates` and `SolveRocketStates`, never attributed to a record, before any kernel runs |

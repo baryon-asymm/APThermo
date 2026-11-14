@@ -202,3 +202,19 @@
       `c02e14d`, green after. `dotnet test tests/Problems.Tests`: 1252 of 1252; the
       protocol lint 0 and 0; no `Bits*.approved.txt` or `PublicSurface.approved.txt`
       moved. → HISTORY.md#criterion-third-pass-0928
+
+- [x] 2026-11-14 — Audit A02/A29/A30/A31: owned nested snapshots and `with`
+  assignments (`InputSnapshotTests`), collision-free cache history in both orders,
+  subnormal singleton normalization, defined enum guards and reachable-solver cache
+  release (`AuditRuntimeTests`). Frozen source failed the corresponding controls;
+  new source passed. `SolverDisposalTests` covers ordinary and injected child OOM,
+  release ordering and preservation of both failures; the fail-fast mutant failed
+  all three controls. Real host exhaustion and fatal CLR failures are not simulated.
+- [x] 2026-11-14 — Audit A36: failed `StationSlice` states/figures finalized for the
+  generated failed-status enum set; the stale-slice pre-fix control failed. Public
+  frozen-exit and condensed-only TP positive controls pass (`StationBoundaryTests`).
+- [x] 2026-11-14 — CPU `Problems.Tests` (excluding LongRunning): 1336 passed, no
+  failures/skips, no approved snapshot or NASA data change; build zero warnings/errors.
+  Logs `SCRATCH/audit/problems-final.log`, `problems-build.log`, `public-red.log`,
+  `input-snapshot-red.log`, `public-runtime-green.log`, `boundary-red.log`,
+  `boundary-green.log`, `disposal-negative.log`, `disposal-green.log` in audit-public.

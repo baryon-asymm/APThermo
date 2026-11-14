@@ -16,11 +16,11 @@ public sealed record ElementalMixture
     private ElementalMixture(IReadOnlyDictionary<string, double> elementMoles, double? enthalpy, IReadOnlyList<string> elements,
                              IReadOnlyList<string> omit, IReadOnlyList<string>? only, double massTolerance)
     {
-        ElementMoles = elementMoles;
+        ElementMoles = CollectionSnapshot.Dictionary(elementMoles);
         Enthalpy = enthalpy;
-        Elements = elements;
-        Omit = omit;
-        Only = only;
+        Elements = CollectionSnapshot.List(elements);
+        Omit = CollectionSnapshot.List(omit);
+        Only = CollectionSnapshot.Optional(only);
         MassTolerance = massTolerance;
     }
 
@@ -145,11 +145,26 @@ public sealed record StateRecord(
     double? Temperature = null,                       // K: an assigned-temperature problem
     double? Entropy = null)                           // J/(kg·K): an assigned-entropy problem
 {
+    /// <summary>Owned element-abundance snapshot, including on a with-initializer.</summary>
+    public IReadOnlyDictionary<string, double> Composition
+    {
+        get;
+        init => field = CollectionSnapshot.Dictionary(value);
+    } = CollectionSnapshot.Dictionary(Composition);
+
     /// <summary>Supersonic A / A_t, reported after the pressure-ratio exits; empty by default.</summary>
-    public IReadOnlyList<double> AreaRatios { get; init; } = [];
+    public IReadOnlyList<double> AreaRatios
+    {
+        get;
+        init => field = CollectionSnapshot.List(value);
+    } = Array.AsReadOnly(Array.Empty<double>());
 
     /// <summary>p_c / p_e, reported first; empty by default.</summary>
-    public IReadOnlyList<double> PressureRatios { get; init; } = [];
+    public IReadOnlyList<double> PressureRatios
+    {
+        get;
+        init => field = CollectionSnapshot.List(value);
+    } = Array.AsReadOnly(Array.Empty<double>());
 
     /// <summary>Records with exits only; null means shifting equilibrium. Meaningless, and refused, on a record without exits.</summary>
     public FlowModel? Flow { get; init; }
@@ -165,7 +180,22 @@ public sealed record StateRecord(
 /// <param name="MassTolerance">The mass tolerance every record of the batch declares, relative to one kilogram.
 /// Defaults to <see cref="ElementalMixture.DefaultMassTolerance"/>.</param>
 public sealed record StateBatchOptions(bool Transport = false, IReadOnlyList<string>? Omit = null, IReadOnlyList<string>? Only = null,
-                                       double MassTolerance = ElementalMixture.DefaultMassTolerance);
+                                       double MassTolerance = ElementalMixture.DefaultMassTolerance)
+{
+    /// <summary>Owned omitted-species snapshot.</summary>
+    public IReadOnlyList<string>? Omit
+    {
+        get;
+        init => field = CollectionSnapshot.Optional(value);
+    } = CollectionSnapshot.Optional(Omit);
+
+    /// <summary>Owned restricted-species snapshot.</summary>
+    public IReadOnlyList<string>? Only
+    {
+        get;
+        init => field = CollectionSnapshot.Optional(value);
+    } = CollectionSnapshot.Optional(Only);
+}
 
 /// <summary>
 /// A state record refused by a rule of its shape (`StateRecords`, BOOT.md): none or several of enthalpy, temperature and

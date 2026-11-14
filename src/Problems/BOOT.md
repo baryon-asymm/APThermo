@@ -268,6 +268,12 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 ### Audit closure of 2026-11-14
 
+- At the public station boundary, failed states and rocket figures are zero, except
+  `NoGasPhase` keeps Temperature and Pressure. Failed diagnostic composition and
+  earlier successful stations remain available. Transport is absent on a failed station.
+  ⚠ 2026-11-14: the prior zero-state wording relied on internal buffers; the
+  public assembler must enforce it even when an internal failure leaves stale fields.
+
 - Built propellants, elemental mixtures, problem records and published results own
   read-only snapshots of their nested collections; caller mutations cannot change
   cached definitions, species ordering or completed results.
