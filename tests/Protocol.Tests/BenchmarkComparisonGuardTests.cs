@@ -6,6 +6,9 @@ namespace APThermo.Protocol.Tests;
 /// <summary>Negative controls of the benchmark's correctness diagnostic, independent of timing or a solve.</summary>
 public sealed class BenchmarkComparisonGuardTests
 {
+    private static readonly Lazy<BenchmarkComparisonFixture> SharedFixture = new(() => new BenchmarkComparisonFixture());
+    private static BenchmarkComparisonFixture Fixture => SharedFixture.Value;
+
     private static readonly Type Comparison = Assembly.Load("APThermo.Benchmarks").GetType("APThermo.Benchmarks.EngineSolverComparison", throwOnError: true)!;
 
     /// <summary>Every numeric field refuses nonfinite corruption, including identical nonfinite raw bits.</summary>
@@ -76,6 +79,72 @@ public sealed class BenchmarkComparisonGuardTests
         CompareFraction(comparison, 1, new Dictionary<string, double> { ["H2"] = 1 });
         Assert.True(Flag(comparison, "Passed"));
         Assert.True(Flag(comparison, "ExactlyBitEqual"));
+    }
+
+    /// <summary>The whole diagnostic reaches its numeric guards, not merely their private test seams.</summary>
+    [Fact]
+    public void WholeCompareRejectsANonfiniteStationField()
+    {
+        var stations = Fixture.Results[0].Stations.ToArray();
+        stations[0] = stations[0] with { State = stations[0].State with { Temperature = double.NaN } };
+        var comparison = WholeCompare([Fixture.WithStations(stations)]);
+        Assert.False(Flag(comparison, "Passed"));
+    }
+
+    /// <summary>A missing result case is not a successful empty comparison.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void WholeCompareRejectsWrongCaseCounts(int count) =>
+        Assert.False(Flag(WholeCompare([.. Enumerable.Repeat(Fixture.Results[0], count)]), "Passed"));
+
+    /// <summary>Missing stations are diagnosed before a prefix can be mistaken for a whole result.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WholeCompareRejectsWrongStationCounts(bool extra)
+    {
+        var stations = extra ? [.. Fixture.Results[0].Stations, .. Fixture.Results[0].Stations.Take(1)] : Array.Empty<APThermo.Problems.Station>();
+        Assert.False(Flag(WholeCompare([Fixture.WithStations(stations)]), "Passed"));
+    }
+
+    /// <summary>An actual-only macroscopic species is compared against an absent, zero expected fraction.</summary>
+    [Fact]
+    public void WholeCompareRejectsAnActualOnlyPositiveSpecies()
+    {
+        var stations = Fixture.Results[0].Stations.ToArray();
+        var fractions = new Dictionary<string, double>(stations[0].MoleFractions, StringComparer.Ordinal) { ["audit-extra-species"] = 0.25 };
+        stations[0] = stations[0] with { MoleFractions = fractions };
+        Assert.False(Flag(WholeCompare([Fixture.WithStations(stations)]), "Passed"));
+    }
+
+    /// <summary>A legitimate extra zero or trace key remains permitted by the existing trace budget.</summary>
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(double.Epsilon)]
+    public void WholeCompareAllowsAnActualOnlyZeroOrTraceSpecies(double fraction)
+    {
+        var stations = Fixture.Results[0].Stations.ToArray();
+        var fractions = new Dictionary<string, double>(stations[0].MoleFractions, StringComparer.Ordinal) { ["audit-extra-species"] = fraction };
+        stations[0] = stations[0] with { MoleFractions = fractions };
+        Assert.True(Flag(WholeCompare([Fixture.WithStations(stations)]), "Passed"));
+    }
+
+    /// <summary>The unmodified real CPU paths are an exact finite positive control for the whole entry point.</summary>
+    [Fact]
+    public void WholeComparePassesTheRealExactFinitePair()
+    {
+        var comparison = WholeCompare(Fixture.Results);
+        Assert.True(Flag(comparison, "Passed"));
+        Assert.True(Flag(comparison, "ExactlyBitEqual"),
+            $"worst field={Comparison.GetProperty("WorstFieldRelative")!.GetValue(comparison)}; worst fraction={Comparison.GetProperty("WorstMoleFractionRelative")!.GetValue(comparison)}");
+    }
+
+    private static object WholeCompare(IReadOnlyList<APThermo.Problems.RocketResult> results)
+    {
+        var comparison = Create();
+        _ = Comparison.GetMethod("Compare")!.Invoke(comparison, [Fixture.EngineResult, Fixture.Species, results]);
+        return comparison;
     }
 
     private static object Create()

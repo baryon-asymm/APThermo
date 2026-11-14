@@ -3,7 +3,8 @@
   <!--
     Node tests/Protocol.Tests: the reflection half of the machine checks of AGENTS.md §13 and the wiring of the linter.
     Every project of the tree is referenced so that its assembly lands in this build output and can be loaded by name;
-    none of their types is used (this node's BOOT.md: Dependencies, None).
+    most are inspected only by reflection. BenchmarkComparisonFixture additionally uses the documented public
+    setup contracts listed in this node's BOOT.md Dependencies to exercise a complete diagnostic call.
   -->
   <ItemGroup>
     <!-- Roslyn: syntax trees only, for the Shape level's SourceSyntax (tests/Protocol.Tests/BOOT.md, Dependencies). -->

@@ -131,3 +131,9 @@ expected/actual value. The committed tolerance budgets and derivations are uncha
 ⚠ 2026-11-14: a non-negative check admitted positive infinity from `1e309`, making
 a tolerance comparison vacuous (audit A27). Finite validation now guards both the
 table boundary and compared values.
+
+If finite inputs overflow the difference or tolerance budget, `Matches` uses the
+same inequality scaled by the larger input magnitude. Ordinary finite arithmetic
+retains its existing evaluation and inclusive boundary. This avoids an accidental
+`Infinity <= Infinity` pass without weakening any budget (A27 completion,
+2026-11-14, `OracleGuardTests.FiniteIntermediateOverflowKeepsTheTrueBoundary`).

@@ -7,6 +7,14 @@ cited below is held in [generate/BOOT.md](generate/BOOT.md), which its scripts a
 
 ## Acceptance criteria
 
+- [x] 2026-11-14: A27 completion,
+      `OracleGuardTests.FiniteIntermediateOverflowKeepsTheTrueBoundary`: maximum
+      finite inputs with absolute MaxValue and relative 0.5 no longer turn the
+      false `2M <= 1.5M` into `Infinity <= Infinity`; relative 1.0 retains the true
+      inclusive boundary. The false case was red before the scaled fallback and
+      both cases pass after it. The ordinary table boundaries and all 68 fixture
+      tests pass without changing a committed tolerance.
+
 - [x] 2026-11-14: A27, `Fixtures.Tests.OracleGuardTests` rejects overflowing
       absolute and relative JSON tolerances and nonfinite compared values. The
       finite/exact-zero controls pass. The complete consumer suite is green

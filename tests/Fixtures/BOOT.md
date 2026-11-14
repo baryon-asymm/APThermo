@@ -16,6 +16,9 @@ node generates the outputs itself, from committed scripts, and records how.
   finite and non-negative. `Matches` refuses nonfinite expected or actual values;
   infinity cannot turn a broken reference comparison into a match. Zero remains
   a valid exact tolerance. The committed tolerance values are not changed.
+  If finite inputs overflow an intermediate difference or budget, evaluate the
+  same inequality after normalization by the larger input magnitude. The ordinary
+  finite-arithmetic path retains its established rounding and boundary behavior.
 
 ⚠ 2026-11-14: the non-negative check accepted overflowed JSON numbers as infinity.
 Audit A27 showed a `1e309` tolerance admitting arbitrary differences. Finite-value

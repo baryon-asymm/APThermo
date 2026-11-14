@@ -14,7 +14,7 @@ dependencies against the real ones.
 | Lint | the file half of the protocol, in strict mode (a warning fails too) | `tools/protocol-lint` run as a process (`LintTests`) | ✅ |
 | Tool self-tests | every Python tool node's own self-test (`tools/*/test_*.py`: the linter's, the merge guard's, the coder-scope hook's), each run as a process and green; the list found by the walk, an empty walk a failure (2026-10-02: a self-test nothing runs goes stale unseen) | the tools' self-tests run as processes (`ToolSelfTestTests`) | ✅ (2026-10-02) |
 | End-to-end | every test method that reaches a call of `Process.Start` or a construction of a `ProcessStartInfo` through the methods of the `tests` nodes' assemblies carries `[Trait("Category", "EndToEnd")]`, on the method or a type around it (root `BOOT.md`, Test time budgets); the walk follows a lambda to the method its delegate names and an async or iterator method to its state machine, resolves no virtual call and does not follow a call into a `src` assembly, and fails when it finds no test method or none that starts a process | the assemblies' IL (`EndToEndTests`, `ProcessStarts`) | ✅ (2026-10-03) |
-| Oracle guards | the benchmark comparison reports nonfinite/missing values as mismatches and distinguishes raw-bit equality from tolerated agreement; a deliberately corrupted comparison cannot pass (`BenchmarkComparisonGuardTests`) | the benchmark node's diagnostic contract, exercised by reflection, not a numerical oracle | ✅ 2026-11-14 |
+| Oracle guards | the benchmark comparison reports nonfinite/missing values as mismatches and distinguishes raw-bit equality from tolerated agreement; a deliberately corrupted comparison cannot pass (`BenchmarkComparisonGuardTests`) | private controls plus a complete real CPU input/output pair; no timing or independent physical oracle | ✅ 2026-11-14 |
 | Surface | the public surface of every library assembly of the tree equals `PublicSurface.approved.txt` | the approved snapshot (`SurfaceTests`) | ✅ |
 | Coverage | every type a library assembly exports is named in the `API.md` of its node; every type of every assembly lives in the namespace of its node | the documents; the project names (`CoverageTests`) | ✅ |
 | Declarations | every type and member under ✅ in any `API.md` exists | the assemblies (`DeclarationTests`) | ✅ |
@@ -74,7 +74,12 @@ dependencies against the real ones.
 
 ## Dependencies
 
-None.
+[Data](../../src/Data/API.md)
+[Execution](../../src/Execution/API.md)
+[Fixtures](../Fixtures/API.md)
+[Performance](../../src/Performance/API.md)
+[Problems](../../src/Problems/API.md)
+[Thermo](../../src/Thermo/API.md)
 
 Outside the tree: xunit; Microsoft.CodeAnalysis.CSharp 5.0.0 (Roslyn, the first stable
 package version built for C# 14, matching the compiler this SDK ships; pinned in the
@@ -86,8 +91,16 @@ children rule, links check removed (the linter has it).
 
 ## Constraints
 
-- Part of the fast set, except `ToolSelfTestTests`, which starts processes and so carries
-  `Category=EndToEnd` (the root's test budgets); no accelerator is created.
+- Part of the fast set except process-launching `LintTests`/`ToolSelfTestTests`,
+  which carry `Category=EndToEnd`. `BenchmarkComparisonFixture` alone creates and
+  disposes two CPU engines once per test process for its whole-entry control;
+  no CUDA context, benchmark method or timing measurement is involved.
+
+  ⚠ 2026-11-14: was reflection-only with no accelerator and no declared neighbours;
+  the benchmark diagnostic now has a real CPU input/output pair through documented
+  public/tree contracts. Its direct dependencies are listed above. A result clone
+  uses the internal record constructor only to inject corrupted station lists,
+  binding unique public property types, not private fields or parameter names.
 - **The tool self-tests' deadline** (`ToolSelfTestTests.Deadline`, 2026-10-04) is a hang guard,
   not a budget: ten minutes per script, twice the worst measured run of the slowest script
   (the merge guard's, 271 s with 64 CPU-bound processes on 16 cores), rounded up. A script that

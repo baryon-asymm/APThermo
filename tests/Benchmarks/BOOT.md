@@ -20,6 +20,11 @@ node `Runner` (CA1515) → HISTORY.md#console-to-library
   agree or a reference species is below the trace floor. A missing species is a
   mismatch. ExactlyBitEqual means every compared raw bit agrees, including signed
   zero and differences that a tolerance or trace policy otherwise permits.
+  The whole Compare entry checks case/station cardinality and every fraction key
+  on either side. Extra zeros and differences within the established trace floor
+  remain permitted; a macroscopic actual-only species cannot hide below a zero
+  reference. Engine entries sharing a report species name are summed before
+  comparison with the public result dictionary.
 
 ⚠ 2026-11-14: the relative-error calculation could turn NaN into zero and report
 `Passed`/`ExactlyBitEqual`; the latter also inferred bits from zero relative error.

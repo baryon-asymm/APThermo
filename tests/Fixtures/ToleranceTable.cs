@@ -75,8 +75,20 @@ public sealed class ToleranceTable
     public bool Matches(string field, double expected, double actual)
     {
         var tolerance = For(field);
-        return double.IsFinite(expected) && double.IsFinite(actual)
-            && Math.Abs(expected - actual) <= tolerance.Absolute + tolerance.Relative * Math.Abs(expected);
+        if (!double.IsFinite(expected) || !double.IsFinite(actual))
+        {
+            return false;
+        }
+        var difference = Math.Abs(expected - actual);
+        var budget = tolerance.Absolute + tolerance.Relative * Math.Abs(expected);
+        if (double.IsFinite(difference) && double.IsFinite(budget))
+        {
+            return difference <= budget;
+        }
+        var scale = Math.Max(Math.Abs(expected), Math.Abs(actual));
+        var scaledDifference = Math.Abs(expected / scale - actual / scale);
+        var scaledBudget = tolerance.Absolute / scale + tolerance.Relative * (Math.Abs(expected) / scale);
+        return scaledDifference <= scaledBudget;
     }
 
     /// <summary>

@@ -52,6 +52,16 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
 
     public void Compare(RocketBatchResult engine, IReadOnlyList<string> engineSpecies, IReadOnlyList<RocketResult> solver)
     {
+        if (engine.Count == 0 || solver.Count != engine.Count)
+        {
+            _mismatches.Add($"case count engine={engine.Count} solver={solver.Count}; a whole non-empty batch is required");
+            return;
+        }
+        if (engineSpecies.Count != engine.SpeciesCount || engine.StationCount == 0)
+        {
+            _mismatches.Add("engine species/station layout is incomplete");
+            return;
+        }
         for (var i = 0; i < solver.Count; i++)
         {
             CompareCase(engine, engineSpecies, solver[i], i);
@@ -63,6 +73,11 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
         if (result.Status != engine.Status[caseIndex])
         {
             _mismatches.Add($"case {caseIndex}: status engine={engine.Status[caseIndex]} solver={result.Status}");
+        }
+        if (result.Stations.Count != engine.StationCount)
+        {
+            _mismatches.Add($"case {caseIndex}: station count engine={engine.StationCount} solver={result.Stations.Count}");
+            return;
         }
         for (var s = 0; s < result.Stations.Count; s++)
         {
@@ -78,7 +93,14 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
             _mismatches.Add($"case {caseIndex} station {stationIndex}: status engine={engine.StationStatus[flat]} solver={station.Status}");
         }
         CompareStructFields(StateFields, engine.Stations[flat], station.State, caseIndex, stationIndex, "state");
-        CompareStructFields(PerformanceFields, engine.Figures[flat], station.Performance!.Value, caseIndex, stationIndex, "performance");
+        if (station.Performance is { } performance)
+        {
+            CompareStructFields(PerformanceFields, engine.Figures[flat], performance, caseIndex, stationIndex, "performance");
+        }
+        else
+        {
+            _mismatches.Add($"case {caseIndex} station {stationIndex}: rocket performance is missing");
+        }
         CompareMoles(engine, species, station.MoleFractions, flat, caseIndex, stationIndex);
     }
 
@@ -127,10 +149,26 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
         {
             total += engine.Moles[start + j];
         }
+        if (!double.IsFinite(total))
+        {
+            _mismatches.Add($"case {caseIndex} station {stationIndex}: engine mole total is nonfinite");
+            WorstMoleFractionRelative = double.PositiveInfinity;
+            return;
+        }
+        var fractions = new Dictionary<string, double>(StringComparer.Ordinal);
         for (var j = 0; j < engine.SpeciesCount; j++)
         {
             var expected = total > 0 ? engine.Moles[start + j] / total : 0.0;
-            CompareMoleFraction(species[j], expected, solverFractions, caseIndex, stationIndex);
+            var name = species[j];
+            fractions[name] = fractions.TryGetValue(name, out var present) ? present + expected : expected;
+        }
+        foreach (var (name, expected) in fractions)
+        {
+            CompareMoleFraction(name, expected, solverFractions, caseIndex, stationIndex);
+        }
+        foreach (var name in solverFractions.Keys.Where(name => !fractions.ContainsKey(name)))
+        {
+            CompareMoleFraction(name, 0.0, solverFractions, caseIndex, stationIndex);
         }
     }
 
@@ -151,7 +189,7 @@ internal sealed class EngineSolverComparison(ToleranceTable tolerances)
         }
 
         ExactlyBitEqual = false;
-        if (expected < _tolerances.For("moleFractionFloor").Absolute)
+        if (Math.Max(Math.Abs(expected), Math.Abs(actual)) < _tolerances.For("moleFractionFloor").Absolute)
         {
             return;
         }

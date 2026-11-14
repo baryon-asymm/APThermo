@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using APThermo.Harness;
 
@@ -116,6 +117,19 @@ public sealed class OracleGuardTests : IDisposable
         var path = Write("bad-tolerances.json", text);
         var exception = Assert.Throws<FixtureFormatException>(() => ToleranceTable.Load(path));
         Assert.Contains("value." + property, exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Overflow on both sides cannot turn two maximum magnitudes into a false match.</summary>
+    [Theory]
+    [InlineData(0.5, false)]
+    [InlineData(1.0, true)]
+    public void FiniteIntermediateOverflowKeepsTheTrueBoundary(double relative, bool matches)
+    {
+        var maximum = double.MaxValue.ToString("R", CultureInfo.InvariantCulture);
+        var ratio = relative.ToString("R", CultureInfo.InvariantCulture);
+        var text = "{\"fields\":{\"value\":{\"absolute\":" + maximum + ",\"relative\":" + ratio + ",\"derivation\":\"overflow boundary control\"}}}";
+        var table = ToleranceTable.Load(Write("overflow-boundary.json", text));
+        Assert.Equal(matches, table.Matches("value", double.MaxValue, -double.MaxValue));
     }
 
     /// <summary>Exact zero remains a legitimate finite tolerance.</summary>

@@ -169,3 +169,10 @@ tolerances retain their values.
 
 ⚠ 2026-11-14: NaN could collapse to a reported relative error of zero, and zero
 relative error was incorrectly equated with raw-bit equality (audit A08).
+
+The whole entry rejects incomplete case/station cardinality before comparing
+prefixes. Fraction keys are checked in both directions, with absent expected keys
+meaning zero. A trace allowance applies only when both magnitudes are below the
+existing floor; an actual macroscopic fraction cannot hide behind a zero reference.
+Repeated raw report names are aggregated before comparison. Whole-entry controls
+use one real CPU pair in addition to the private assertion controls.

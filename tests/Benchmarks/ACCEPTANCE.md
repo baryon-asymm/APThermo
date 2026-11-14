@@ -2,6 +2,17 @@
 
 ## Acceptance criteria
 
+- [x] 2026-11-14: A08 completion, whole-entry
+      `Protocol.Tests.BenchmarkComparisonGuardTests` rejects missing/extra cases
+      and stations, NaN state corruption and an actual-only positive species;
+      extra zero/trace keys pass. `BenchmarkComparisonFixture` computes a real
+      one-case CPU pair through the documented public/tree contracts, using the
+      same representable mol/kg-to-kmol/kg input on both routes. Its finite pair
+      passes exactly. Three new guard cases were red before repair; the numeric
+      whole-entry fact was also seen red on a scratch wiring mutation that compared
+      the engine state to itself instead of the actual state. Private controls
+      stayed intact. All 16 comparison facts and the 57-test protocol fast set pass.
+
 - [x] 2026-11-14: A08, `Protocol.Tests.BenchmarkComparisonGuardTests` directly
       exercises the diagnostic seams without a solve or timing run: every numeric
       property (reflected from both result structs) rejects nonfinite values;
