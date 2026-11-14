@@ -116,7 +116,11 @@ $ apthermo devices
 | `Auto` requested and the same failures occur | silent fallback to the CPU accelerator; `AcceleratorInfo.CudaSkippedBecause` names the reason |
 | the installed ILGPU version, or a reflected member it exposes, does not match what the tree expects | `InvalidOperationException` naming the ILGPU version, at `Solver.Create` or `AcceleratorProbe.Describe` |
 | a kernel's compiled program holds an instruction the package's post-link will not vouch for, or the driver refuses the module | `InvalidOperationException` naming the instruction or carrying the driver's log, on that program's first run |
-| a launch on CUDA exceeds the device's kernel run-time limit (a display GPU's driver kills a kernel that runs too long, 2 s by default) | `AcceleratorUnavailableException` naming the limit and the CPU accelerator as the remedy; the solver is unusable from there on — every later solve throws naming the earlier timeout, and disposing it never throws |
+| a launch on CUDA exceeds the device's kernel run-time limit (a display GPU's driver kills a kernel that runs too long, 2 s by default) | `AcceleratorUnavailableException` naming the limit and the CPU accelerator as the remedy; every later solve refuses the lost session. Cleanup preserves the launch failure, attempts every resource and attaches secondary diagnostics. Later disposal ignores that session's sticky CUDA timeout errors; unrelated cleanup failures remain reportable. |
+
+⚠ 2026-11-14: "disposing it never throws" was too broad. The exemption applies to
+the lost session's sticky timeout errors; suppressing unrelated resource failures
+would hide incomplete cleanup. The primary launch exception remains observable.
 
 ## See also
 
