@@ -29,6 +29,9 @@ internal sealed class CustomPropellant
             .Omit("AL(L)")
             .Build();
 
+        // Frozen flow can extrapolate the retained condensate's fits outside their fitted intervals.
+        // Ok means success within this model; inspect condensed fractions, temperature and fit bounds
+        // when judging the extrapolated properties. Omitting AL(L) does not remove this limitation.
         var problem = new RocketProblem
         {
             ChamberPressure = 7.0e6,   // Pa
