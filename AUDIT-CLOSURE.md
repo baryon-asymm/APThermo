@@ -18,7 +18,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A01 | Eligible polymorph stability | Local pass 2026-11-14 | `25b95f55`; independent integration regression 18/18, full platform verification pending |
 | A02 | Immutable database and problem snapshots | Local pass 2026-11-14 | `e5e3bfe5`, `782ced8f`; Data 54/54, public integration controls 28/28; final matrix pending |
 | A03 | Cleanup preserves the primary failure | Local pass 2026-11-14 | `6e9fcfb1`; root multiple-fault/lost-session integration 7/7; remaining ownership chains tracked under A04 |
-| A04 | Rollback partial table allocation | In progress | Transport ownership controls pass; Execution species/upload rollback remains |
+| A04 | Rollback partial table allocation | In progress | `233c8cca`, `395ef758` cover table/wrapper transactions; independent copy-boundary and diagnostic-storage follow-ups R06/R07 remain |
 | A05 | Exact condensed-set identity | Local pass 2026-11-14 | `14d875bb`; Performance integration controls 32/32; architecture follow-up in progress |
 | A06 | Ordinary-throat reference sensitivity | Local pass 2026-11-14 | `14d875bb`; finite corrupted ordinary-throat controls included in 32/32 |
 | A07 | Finite transport comparison | Local pass 2026-11-14 | `14d875bb`; Transport integration controls 73/73 |
@@ -39,7 +39,7 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A22 | Complete source and build-manifest node discovery | Local pass 2026-11-14 | `7ec349d6`; root lint self-tests 84/84 and strict lint 0/0 |
 | A23 | PowerShell preflight failure propagation | Local pass 2026-11-14 | `4e5d1494`, `a3191c24`; root guards 20/20, real Windows PS5.1 and Ubuntu-24.04 preflight pass; GitHub runner proof pending |
 | A24 | Current protocol-linter negative controls | Local pass 2026-11-14 | `a6ff702c`; lint self-tests 75/75, strict lint 0/0 |
-| A25 | Inclusive sweep limit | Slice pass 2026-11-14 | `e8b9bf46`; frozen inclusive-boundary controls fail old source; coder CLI CPU 175/175; final root consumer run pending |
+| A25 | Inclusive sweep limit | Slice pass 2026-11-14 | `e8b9bf46`, `695d9715`; decimal maximum regression corrected after independent review; coder CLI CPU 177/177; final root consumer run pending |
 | A26 | Input/output schema parity | Slice pass 2026-11-14 | `6bf771aa`; conditional shape controls 42/42, real zero-mass InvalidInput output admitted; final root consumer run pending |
 | A27 | Finite fixture tolerances | Local pass 2026-11-14 | `ed8acaae`; finite-intermediate-overflow control included in root Fixtures 68/68 |
 | A28 | Current contract and guide claims | Local pass 2026-11-14 | Owning numerical/public claims corrected, `9dd497c9` benchmark launch/fallback/setup scope, `8b5cbfa7` exact sample snippet, `9ea4c213` cleanup scope; final docs consumer run pending |
@@ -56,6 +56,24 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A39 | TraceGas scan automation | Local pass 2026-11-14 | `56345fe4`; root runner guards 8/8 and actual Windows discovery/execution 2/2 with exact TRX/matrix; hosted runner proof pending |
 | A40 | Tail-test name and established behavior | Local pass 2026-11-14 | `14d875bb`; policy-only name states the constants it verifies |
 | A41 | Required database section transition | Local pass 2026-11-14 | `e5e3bfe5`; missing/duplicate/reordered section controls in root Data 54/54 |
+
+## Findings from verification of the fixes
+
+These entries preserve additional reproduced mechanisms without renumbering the
+original combined audit. Every open entry is part of the same closure obligation.
+The independent reports and reproducible controls are retained in the external
+audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
+`independent-ownership` directories.
+
+| ID | Mechanism and original area | Status | Evidence |
+|---|---|---|---|
+| R01 | Decimal quotient rounding at the inclusive sweep maximum (A25) | Slice pass 2026-11-14 | `695d9715`; old source 1 red/7 green, corrected boundaries 21/21 and full CLI 177/177 |
+| R02 | Nonfinite conversion bypass in JSON field comparison | In progress | Independent IT01: approved 1 versus delivered 1e400 is incorrectly accepted |
+| R03 | Binary64 rounding in schema numeric decisions (A17) | In progress | Independent IT02: fractional integer, adjacent large bounds and tiny minima |
+| R04 | Explicitly false documented base/interface contracts (A21) | In progress | Independent IT03: nonexistent IDisposable/Exception bases accepted |
+| R05 | URI-fragment and malformed JSON Pointer resolution (A17) | In progress | Independent IT04: percent-encoded ref chooses a different schema |
+| R06 | Copy failure before allocation result enters ownership (A04) | In progress | Actual ILGPU 1.5.3 CPU-buffer control; Species, Transport and ProbeMath convenience uploads |
+| R07 | Transport diagnostic storage can replace the primary (A04) | In progress | Read-only Exception.Data throws NotSupportedException; original failure must survive |
 
 ## Integration verification
 
