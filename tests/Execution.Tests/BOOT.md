@@ -193,6 +193,15 @@ Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA
 
 ## Constraints
 
+- T08: `AFamilyHoldsTheCasesItStandsFor` checks observable backend results against
+  plain host solves: status, work counters, exact states/compositions and element
+  closure. The separate `MechanismDiagnosticEverySelectedCaseCarriesTheDeclaredPassObservable`
+  checks the selected family's scratch-anchor/bracket and iteration inference.
+  Keep its calibrated positive/negative observable controls; the inference is not
+  an independent scientific oracle or direct instrumentation of a pass call.
+  ⚠ 2026-11-14: these roles previously shared one per-case acceptance fact; an
+  internal path change could fail the same assertion stream as a wrong result.
+
 - The CPU-only part of the node runs in the default test command; the CUDA category
   runs in the full set on the reference machine; the long-running category (the
   sweep and the benchmark, about 20 s, and since 2026-09-26 the architecture fact) is

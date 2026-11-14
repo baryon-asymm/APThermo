@@ -33,6 +33,15 @@
   exact seed species/moles, assigned arrays, cold/seeded states, statuses and counters;
   `phase-cpu-companion-red.log` is 1 passed/1 failed. No GPU run.
 
+- [x] 2026-11-14 — T08: `TraceGasFamiliesTests` 13 passed after separating plain-host
+  result acceptance from the named mechanism diagnostic, retaining the calibrated
+  observable controls. Result acceptance now also checks exact states/compositions
+  and the unchanged element-closure bound. Clearing only diagnostic scratch markers
+  makes all five mechanism cases fail while all five trace-gas behavior cases pass
+  (the command also ran five unchanged bracketed behavior cases, all passed).
+  Evidence: `SCRATCH/audit/trace-role-split.log`, `trace-mechanism-negative.log`;
+  mutation restored; final build 0 warnings/errors.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 

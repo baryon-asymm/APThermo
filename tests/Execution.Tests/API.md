@@ -61,3 +61,20 @@ the post-link's own refusals → HISTORY.md#exact-comparison-2026-10-05
 ⚠ 2026-09-12: the sketch named the table `Tolerances.cs`; the file was
 `GpuCpuTolerances.cs`, so that it was not mistaken for the fixtures node's tolerance
 table against the reference. Both are gone (2026-10-05).
+
+## Trace-gas verification roles ✅
+
+`TraceGasFamiliesTests.AFamilyHoldsTheCasesItStandsFor` checks the selected inputs'
+observable CPU results against plain host solves: status, work counters, exact
+state/composition and the existing element-closure bound. The separately named
+`MechanismDiagnosticEverySelectedCaseCarriesTheDeclaredPassObservable` checks
+scratch-anchor/bracket and iteration inference, with nonempty family coverage.
+The two existing controlled observable facts remain: neither isolated condition
+is sufficient, and the plain/probed solves agree. This diagnostic depends on
+internal writers; it does not independently prove a physical equilibrium or
+instrument entry into the trace-gas routine. Family selection itself still uses
+the documented mechanism inference.
+
+⚠ 2026-11-14: the per-case mechanism assertion previously lived in the same fact
+as the backend/status comparison. The split makes an internal-path change distinct
+from a numerical result failure; it removes no controlled observable check.

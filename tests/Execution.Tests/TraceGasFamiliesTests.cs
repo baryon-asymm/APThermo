@@ -8,7 +8,7 @@ namespace APThermo.Execution.Tests;
 /// <summary>
 /// The 0.2.2 families of the trace-gas pass (<see cref="TraceGasFamilies"/>) on the CPU accelerator alone, the half of
 /// <see cref="CudaTests.ATraceGasFamilyOnCudaMatchesTheCpuAccelerator"/> that needs no GPU: what each family holds, that every case of
-/// it reaches the pass, and the check of the launch budget.
+/// results it returns, a separate mechanism diagnostic, and the check of the launch budget.
 /// </summary>
 [Collection(EngineFixture.CollectionName)]
 public sealed class TraceGasFamiliesTests(ITestOutputHelper output)
@@ -27,8 +27,8 @@ public sealed class TraceGasFamiliesTests(ITestOutputHelper output)
 
     /// <summary>
     /// A family keeps the cases it stands for, on the CPU accelerator: every case ends <c>Ok</c> or <c>NoGasPhase</c>, as the host solver
-    /// ended it (status, iterations, temperature), every <c>Ok</c> tp case was settled by the pass and every hp and sp case by the bracket,
-    /// and every kind of problem the family's grids ask for is among its cases.
+    /// ended it (status, iterations and every state/composition bit), closes the element balance, and includes every problem kind
+    /// requested by the family. Internal pass markers belong to the separate mechanism diagnostic below.
     /// </summary>
     [Theory]
     [MemberData(nameof(FamilyNames))]
@@ -45,15 +45,38 @@ public sealed class TraceGasFamiliesTests(ITestOutputHelper output)
         using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
         var run = EngineFixture.Shared.Cpu.Run(tables, family.Batch);
         Assert.Equal(family.Gasless, run.Status.Count(status => status == CaseStatus.NoGasPhase));
+        var balance = new ElementBalance(family.Table, family.Batch.ElementMoles);
+        for (var k = 0; k < family.Batch.Count; k++)
+        {
+            var solved = HostSolves.Equilibrium(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, family.Batch, k);
+            Assert.True(run.Status[k] is CaseStatus.Ok or CaseStatus.NoGasPhase, $"{family.Labels[k]} ends {run.Status[k]}");
+            Assert.True(solved.Status == run.Status[k] && solved.Iterations == run.Iterations[k], $"{family.Labels[k]}: the host ends {solved.Status} in {solved.Iterations} steps, the accelerator {run.Status[k]} in {run.Iterations[k]}");
+            Assert.Empty(Bits.Differences(solved.State, run.State[k], family.Labels[k]));
+            for (var species = 0; species < family.Table.SpeciesCount; species++)
+            {
+                Assert.True(Bits.Same(solved.Moles[species], run.Moles[k * family.Table.SpeciesCount + species]), $"{family.Labels[k]}: moles of {family.Table.Species[species]}");
+            }
+
+            Assert.Empty(balance.Exceeding(balance.Residuals(k, run.Moles, k), "CPU accelerator", family.Labels[k]));
+        }
+    }
+
+    /// <summary>Mechanism diagnostic: the selected cases retain the documented anchor/bracket and iteration inference.</summary>
+    /// <param name="name">The selected trace-gas family, whose coverage must be nonempty.</param>
+    [Theory]
+    [MemberData(nameof(FamilyNames))]
+    public void MechanismDiagnosticEverySelectedCaseCarriesTheDeclaredPassObservable(string name)
+    {
+        var family = TraceGasFamilies.Family(EngineFixture.Shared.Database, name);
+        Assert.True(family.Batch.Count >= FewestCases, $"{name} has no representative mechanism coverage");
+        using var tables = EngineFixture.Shared.Cpu.Upload(family.Table);
         for (var k = 0; k < family.Batch.Count; k++)
         {
             var solved = HostSolves.EquilibriumProbed(EngineFixture.Shared.Cpu.IlgpuAccelerator, tables.SpeciesBuffers, family.Batch, k);
-            Assert.True(run.Status[k] is CaseStatus.Ok or CaseStatus.NoGasPhase, $"{family.Labels[k]} ends {run.Status[k]}");
-            Assert.True(solved.Status == run.Status[k] && solved.Iterations == run.Iterations[k], $"{family.Labels[k]}: the host ends {solved.Status} in {solved.Iterations} steps, the accelerator {run.Status[k]} in {run.Iterations[k]}");
             var reaches = family.Batch.Kind[k] == ProblemKind.AssignedTemperaturePressure
                 ? solved.Status == CaseStatus.NoGasPhase || TraceGasFamilies.ReachesThePass(solved)
                 : TraceGasFamilies.BracketsToThePass(solved);
-            Assert.True(reaches, $"{family.Labels[k]} does not reach the pass: {solved.Status} in {solved.Iterations} steps, verdict anchor {solved.Anchored}, bracket {solved.Bracketed}");
+            Assert.True(reaches, $"mechanism diagnostic {family.Labels[k]}: {solved.Status} in {solved.Iterations} steps, verdict anchor {solved.Anchored}, bracket {solved.Bracketed}");
         }
     }
 
