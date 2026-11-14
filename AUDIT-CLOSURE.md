@@ -33,12 +33,12 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A16 | Approved snapshot write protection | Open | Pending |
 | A17 | Schema validator semantics and keyword coverage | Open | Pending |
 | A18 | Chunk enumerator integer boundary | Open | Pending |
-| A19 | Pinned and atomically published merge candidate | Open | Pending |
-| A20 | Preservation of active acceptance criteria | Open | Pending |
+| A19 | Pinned and atomically published merge candidate | Local pass 2026-11-14 | `a6ff702c`; merge guard self-tests 72/72, independent rerun |
+| A20 | Preservation of active acceptance criteria | Local pass 2026-11-14 | `a6ff702c`; history guard 35/35 and baseline-to-HEAD criteria check |
 | A21 | Complete documented signatures | Open | Pending |
 | A22 | Complete source and build-manifest node discovery | Open | Pending |
 | A23 | PowerShell preflight failure propagation | Open | Pending |
-| A24 | Current protocol-linter negative controls | Open | Pending |
+| A24 | Current protocol-linter negative controls | Local pass 2026-11-14 | `a6ff702c`; lint self-tests 75/75, strict lint 0/0 |
 | A25 | Inclusive sweep limit | Open | Pending |
 | A26 | Input/output schema parity | Open | Pending |
 | A27 | Finite fixture tolerances | Open | Pending |
