@@ -180,7 +180,7 @@ creation names its arguments; it passes them by position today (the criterion be
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `BatchViews.BatchViews` | parameters | 12 | the parameter struct of one kernel launch, one argument per view; its creation names its arguments |
+| `BatchViews.BatchViews` | parameters | 13 | ⚠ 2026-11-14 R10: was 12, now 13 after appending the isolated typed recovery-state view; the descriptor only projects fields and its creation names its arguments |
 
 ## Acceptance criteria
 

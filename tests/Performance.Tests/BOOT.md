@@ -122,7 +122,7 @@ position today (the criterion below).
 
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
-| `RocketBatchViews.RocketBatchViews` | parameters | 16 | the parameter struct of one rocket kernel launch, one argument per view; its creation names its arguments |
+| `RocketBatchViews.RocketBatchViews` | parameters | 17 | ⚠ 2026-11-14 R10: was 16, now 17 after appending the isolated typed recovery-state view; the descriptor only projects fields and its creation names its arguments |
 
 ### Snapshot diagnostics correction (2026-11-14)
 

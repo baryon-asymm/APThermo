@@ -71,7 +71,7 @@ readonly struct APThermo.Equilibrium.EquilibriumScratch
     readonly ArrayView<Int32> SpeciesActive
     readonly RecoverySlices Recovery
     readonly TieSlices Tie
-    static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount)
+    static EquilibriumScratch Slice(ArrayView<Double> doubles, ArrayView<Int32> ints, Int32 speciesCount, Int32 elementCount, ArrayView<MixtureState> bestState)
 
 static class APThermo.Equilibrium.EquilibriumSolver
     const Double SecondStageTraceThreshold = 25.328436
@@ -88,14 +88,16 @@ static class APThermo.Equilibrium.EquilibriumSolver
     static Void SolveFrozen(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result)
 
 readonly struct APThermo.Equilibrium.RecoverySlices
-    .ctor(ArrayView<Double> bracketEnds, ArrayView<Double> bestMoles, ArrayView<Double> bestMultipliers)
+    .ctor(ArrayView<Double> bracketEnds, ArrayView<Double> bestMoles, ArrayView<Double> bestMultipliers, ArrayView<MixtureState> bestState)
     readonly ArrayView<Double> BestMoles
     readonly ArrayView<Double> BestMultipliers
     readonly ArrayView<Double> BracketEnds
-    static RecoverySlices Slice(ArrayView<Double> doubles, Int64 offset, Int32 speciesCount, Int32 elementCount)
+    readonly ArrayView<MixtureState> BestState
+    static RecoverySlices Slice(ArrayView<Double> doubles, Int64 offset, Int32 speciesCount, Int32 elementCount, ArrayView<MixtureState> bestState)
 
 static class APThermo.Equilibrium.ScratchLayout
     const Int32 MaxCondensedInSolution = 20
+    static Int32 BytesPerCase(Int32 speciesCount, Int32 elementCount)
     static Int32 DoublesPerCase(Int32 speciesCount, Int32 elementCount)
     static Int32 IntsPerCase(Int32 speciesCount, Int32 elementCount)
     static Int32 MaxUnknowns(Int32 elementCount)
@@ -163,6 +165,23 @@ sealed class APThermo.Execution.EquilibriumBatchResult
     RunTimings Timings { get; }
     internal .ctor(Int32 speciesCount, MixtureState[] state, Double[] moles, CaseStatus[] status, Int32[] iterations, RunTimings timings, AcceleratorInfo accelerator)
 
+readonly struct APThermo.Execution.EquilibriumBatchViews
+    .ctor(Int32 seeded, ArrayView<Int32> kinds, ArrayView<Double> pressures, ArrayView<Double> temperatures, ArrayView<Double> targets, ArrayView<Double> elementMoles, ArrayView<Double> scratchDoubles, ArrayView<Int32> scratchInts, ArrayView<Double> moles, ArrayView<Double> multipliers, ArrayView<MixtureState> states, ArrayView<Int32> status, ArrayView<Int32> iterations, ArrayView<MixtureState> recoveryStates)
+    readonly ArrayView<Double> ElementMoles
+    readonly ArrayView<Double> Moles
+    readonly ArrayView<Double> Multipliers
+    readonly ArrayView<Double> Pressures
+    readonly ArrayView<Double> ScratchDoubles
+    readonly ArrayView<Double> Targets
+    readonly ArrayView<Double> Temperatures
+    readonly ArrayView<Int32> Iterations
+    readonly ArrayView<Int32> Kinds
+    readonly ArrayView<Int32> ScratchInts
+    readonly ArrayView<Int32> Status
+    readonly ArrayView<MixtureState> RecoveryStates
+    readonly ArrayView<MixtureState> States
+    readonly Int32 Seeded
+
 sealed class APThermo.Execution.KernelCache
     .ctor(AcceleratorSession session)
     Int32 Count { get; }
@@ -211,12 +230,38 @@ sealed class APThermo.Execution.RocketBatchResult
     RunTimings Timings { get; }
     internal .ctor(Int32 speciesCount, Int32 stationCount, MixtureState[] stations, Double[] moles, PerformanceFigures[] figures, CaseStatus[] stationStatus, Int32[] iterations, CaseStatus[] status, RunTimings timings, AcceleratorInfo accelerator)
 
+readonly struct APThermo.Execution.RocketBatchViews
+    .ctor(Int32 exitCount, ArrayView<Double> chamberPressures, ArrayView<Double> reactantEnthalpies, ArrayView<Double> temperatureEstimates, ArrayView<Int32> flows, ArrayView<Double> elementMoles, ArrayView<Double> exitValues, ArrayView<Int32> exitKinds, ArrayView<Double> scratchDoubles, ArrayView<Int32> scratchInts, ArrayView<MixtureState> stations, ArrayView<Double> moles, ArrayView<Double> multipliers, ArrayView<PerformanceFigures> figures, ArrayView<Int32> stationStatus, ArrayView<Int32> iterations, ArrayView<Int32> status, ArrayView<MixtureState> recoveryStates)
+    readonly ArrayView<Double> ChamberPressures
+    readonly ArrayView<Double> ElementMoles
+    readonly ArrayView<Double> ExitValues
+    readonly ArrayView<Double> Moles
+    readonly ArrayView<Double> Multipliers
+    readonly ArrayView<Double> ReactantEnthalpies
+    readonly ArrayView<Double> ScratchDoubles
+    readonly ArrayView<Double> TemperatureEstimates
+    readonly ArrayView<Int32> ExitKinds
+    readonly ArrayView<Int32> Flows
+    readonly ArrayView<Int32> Iterations
+    readonly ArrayView<Int32> ScratchInts
+    readonly ArrayView<Int32> StationStatus
+    readonly ArrayView<Int32> Status
+    readonly ArrayView<MixtureState> RecoveryStates
+    readonly ArrayView<MixtureState> Stations
+    readonly ArrayView<PerformanceFigures> Figures
+    readonly Int32 ExitCount
+
 sealed class (record) APThermo.Execution.RunTimings : IEquatable<RunTimings>
     .ctor(TimeSpan WarmUp, TimeSpan Upload, TimeSpan Kernel, TimeSpan Download)
     TimeSpan Download { get; init; }
     TimeSpan Kernel { get; init; }
     TimeSpan Upload { get; init; }
     TimeSpan WarmUp { get; init; }
+    internal Int32 CoveredCases { get; init; }
+    internal Int32 LaunchCount { get; init; }
+    internal Int32 MaxLaunchCases { get; init; }
+    internal Int32 MaxLaunchOrdinal { get; init; }
+    internal TimeSpan MaxLaunchDuration { get; init; }
 
 sealed class APThermo.Execution.SpeciesFunctionBatch
     .ctor(Int32 count)
