@@ -40,7 +40,7 @@ internal struct AttemptPlan
     /// <summary>The status of the failed attempt the verdict judged <c>GasRequired</c>, which a failed trace-gas pass leaves as the pass's own status (BOOT.md, seam (a)).</summary>
     public CaseStatus Judged;
 
-    /// <summary>Trace-gas finals the case has launched (seams (b) and (b′)): at most one.</summary>
+    /// <summary>Trace-gas finals in the current bracket (seams (b) and (b′)): at most one; a new floor starts a new bracket.</summary>
     public int TraceGasFinals;
 
     /// <summary>Whether <see cref="EquilibriumSolver.Solve"/> runs the iteration for the pass asked for; false for a pass that is the verdict alone.</summary>
@@ -49,7 +49,7 @@ internal struct AttemptPlan
     /// <summary>Whether <see cref="EquilibriumSolver.Solve"/> runs the trace-gas pass, not the reduced iteration, for the pass asked for.</summary>
     public readonly bool RunsTraceGas => Phase is AttemptPhase.TraceGas or AttemptPhase.TraceGasFinal;
 
-    /// <summary>Whether the ordinary final that just ended is owed the trace-gas final of seam (b′): it ended <c>NotConverged</c> or <c>SingularMatrix</c> and the case has had none.</summary>
+    /// <summary>Whether the ordinary final that just ended is owed the trace-gas final of seam (b′): it ended <c>NotConverged</c> or <c>SingularMatrix</c> and the current bracket has had none.</summary>
     public readonly bool OwesTraceGasFinal =>
         TraceGasFinals == 0 && Phase == AttemptPhase.Final && Status is CaseStatus.NotConverged or CaseStatus.SingularMatrix;
 

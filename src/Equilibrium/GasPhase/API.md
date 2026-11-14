@@ -15,6 +15,7 @@ internal static class GasPhaseVerdict
                                     in EquilibriumResult result, out CondensedFigures figures);
         // problem: tp, its temperature the verdict's. Gasless: Moles = the condensed minimum, Multipliers = the certificate.
         // Otherwise Moles and Multipliers as on entry; figures default.
+    public static CondensedFigures Figures(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double temperature);
     public static double LogTangentSum(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double logPressure);
 }
 ```

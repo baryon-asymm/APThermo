@@ -7,6 +7,20 @@ start procedure (`AGENTS.md`, §10) does not read this file; it is reached only 
 following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
+<a id="audit-counts"></a>
+## 2026-11-14 — Constraints: copied condensed-slot count
+
+The current parent text repeated "24 today" although the slot limit is the named
+`ScratchLayout.MaxCondensedInSolution`/`TableLimits.MaxElements` constant. Audit
+D-EQ-01 found the stale copy. The current text now names the constant only.
+Original text, in full:
+
+```text
+  stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
+  the constant is the number, this document only names it).
+```
+
+---
 
 <a id="relative-invariant"></a>
 

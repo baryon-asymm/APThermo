@@ -27,13 +27,13 @@ internal static class BracketDriver
     {
         if (plan.Phase != AttemptPhase.VerdictOnly)
         {
-            return plan.Bracket.Active && Launch(table, problem, scratch, result, plan.Bracket.Retreat(), ref plan);
+            return plan.Bracket.Active && BracketLaunch.Move(table, problem, scratch, result, plan.Bracket.Retreat(), ref plan);
         }
 
         if (plan.Bracket.Finishing)
         {
             var both = plan.Bracket.HaveLow && plan.Bracket.HaveHigh;
-            return Launch(table, problem, scratch, result, both ? BracketMove.AttemptFromLever : BracketMove.AttemptFromProbe, ref plan);
+            return BracketLaunch.Move(table, problem, scratch, result, both ? BracketMove.AttemptFromLever : BracketMove.AttemptFromProbe, ref plan);
         }
 
         plan.Phase = AttemptPhase.Warm;
@@ -49,26 +49,27 @@ internal static class BracketDriver
     {
         if (plan.Bracket.Finishing)
         {
-            return Finished(table, problem, scratch, result, ref plan);
+            return GaslessFinal.End(table, problem, scratch, result, ref plan);
         }
 
         var hp = PassOutcome.IsEnthalpy(problem);
         var value = PassOutcome.Value(result, plan, hp);
-        if (DeadEndRecheck.Rejects(table, problem, scratch, result, value, ref plan))
+        var rejected = DeadEndRecheck.Rejects(table, problem, scratch, result, value, ref plan);
+        if (rejected || DeadEndRecheck.Completed(plan))
         {
-            return true;
+            return rejected;
         }
 
         if (plan.Bracket.Scanning && !(value > problem.Target))
         {
             var below = DeadEnds.FloorBelow(table, scratch, plan.Bracket.ProbeAsTemperature);
-            return Launch(table, problem, scratch, result, plan.Bracket.Scan(below), ref plan);
+            return BracketLaunch.Move(table, problem, scratch, result, plan.Bracket.Scan(below), ref plan);
         }
 
         var step = plan.Bracket.Record(problem.Target, value, PassOutcome.Slope(result, plan, hp), plan.Found);
-        BracketSeeds.Save(table, scratch, result, plan.Bracket.LastBelow);
+        BracketLaunch.SaveEnd(table, scratch, result, plan.Bracket.LastBelow);
         var floor = plan.Bracket.NeedsFloor ? DeadEnds.FloorBelow(table, scratch, plan.Bracket.ProbeAsTemperature) : 0.0;
-        return Launch(table, problem, scratch, result, plan.Bracket.Advance(step, floor), ref plan);
+        return BracketLaunch.Move(table, problem, scratch, result, plan.Bracket.Advance(step, floor), ref plan);
     }
 
     /// <summary>
@@ -86,68 +87,13 @@ internal static class BracketDriver
 
         var floor = DeadEnds.FloorBelow(table, scratch, plan.Current.Temperature);
         plan.Bracket.BeginScan();
-        return Launch(table, problem, scratch, result, plan.Bracket.Scan(floor), ref plan);
+        return BracketLaunch.Move(table, problem, scratch, result, plan.Bracket.Scan(floor), ref plan);
     }
 
-    /// <summary>
-    /// The tp probe at the bracket's temperature: cold when no end is known; else seeded from the nearer end, and the verdict
-    /// alone first when that end holds no gas.
-    /// </summary>
+    /// <summary>Carry out the next probe requested by this node's floor cursor or bracket.</summary>
     public static bool LaunchProbe(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                   in EquilibriumResult result, ref AttemptPlan plan)
-    {
-        plan.Current = PassOutcome.TpAt(problem, plan.Bracket.ProbeTemperature);
-        if (!(plan.Bracket.HaveLow || plan.Bracket.HaveHigh))
-        {
-            plan.Source = EstimateSource.Defaults;
-            plan.Phase = AttemptPhase.Cold;
-            return true;
-        }
-
-        BracketSeeds.Seed(table, scratch, result, plan.Bracket.NearerIsLow(plan.Bracket.ProbeX));
-        plan.Source = EstimateSource.PreviousSolution;
-        plan.Phase = plan.Bracket.NearerKind == EndKind.Gasless ? AttemptPhase.VerdictOnly : AttemptPhase.Warm;
-        return true;
-    }
-
-    /// <summary>The gasless final held: the case ends <c>NoGasPhase</c> at its temperature, with the lever mix of the ends in place of the verdict's moles when it was taken between two ends.</summary>
-    private static bool Finished(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                 in EquilibriumResult result, ref AttemptPlan plan)
-    {
-        if (plan.Bracket.Final == BracketMove.GaslessFromLever)
-        {
-            BracketSeeds.Lever(table, scratch, result, plan.Bracket.LeverFraction(problem.Target));
-        }
-
-        PassOutcome.EndGasless(result, ref plan);
-        return false;
-    }
-
-    /// <summary>Carries out the bracket's move: the next probe, a final, or the end of the case.</summary>
-    private static bool Launch(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                               in EquilibriumResult result, BracketMove move, ref AttemptPlan plan)
-    {
-        if (move == BracketMove.Probe)
-        {
-            return LaunchProbe(table, problem, scratch, result, ref plan);
-        }
-
-        if (move == BracketMove.GiveUp)
-        {
-            if (DeadEndRecheck.AdvanceOrReplay(table, problem, scratch, result, ref plan))
-            {
-                return true;
-            }
-
-            PassOutcome.EndGiveUp(result, ref plan);
-            return false;
-        }
-
-        return move is BracketMove.GaslessAtProbe or BracketMove.GaslessFromLever
-            ? LaunchGasless(problem, move, ref plan)
-            : LaunchFinal(table, problem, scratch, result, move, ref plan);
-    }
-
+                                   in EquilibriumResult result, ref AttemptPlan plan) =>
+        BracketLaunch.Probe(table, problem, scratch, result, ref plan);
     /// <summary>
     /// Seam (b′): the ordinary final of the bracket ended <c>NotConverged</c> or <c>SingularMatrix</c>, and the case has not had a
     /// trace-gas final yet, so the same final runs again from the same seed, rebuilt from the ends, by the trace-gas pass. False
@@ -162,50 +108,7 @@ internal static class BracketDriver
         }
 
         var move = plan.Bracket.Final == BracketMove.AttemptFromLever ? BracketMove.TraceGasFromLever : BracketMove.TraceGasFromProbe;
-        return LaunchFinal(table, problem, scratch, result, move, ref plan);
+        return BracketLaunch.Final(table, problem, scratch, result, move, ref plan);
     }
 
-    /// <summary>
-    /// The final attempt, the case itself, warm, from the lever rule between the two ends or from the last probe; it never falls back.
-    /// A trace-gas final (seams (b) and (b′)) takes the multipliers the result holds as its anchor, and counts once against the case.
-    /// </summary>
-    private static bool LaunchFinal(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
-                                    in EquilibriumResult result, BracketMove move, ref AttemptPlan plan)
-    {
-        var temperature = plan.Bracket.ProbeAsTemperature;
-        if (move is BracketMove.AttemptFromLever or BracketMove.TraceGasFromLever)
-        {
-            temperature = plan.Bracket.LeverTemperature(problem.Target);
-            BracketSeeds.Lever(table, scratch, result, plan.Bracket.LeverFraction(problem.Target));
-        }
-        else
-        {
-            BracketSeeds.Seed(table, scratch, result, plan.Bracket.LastBelow);
-        }
-
-        var traceGas = move is BracketMove.TraceGasFromLever or BracketMove.TraceGasFromProbe;
-        if (traceGas)
-        {
-            BracketSeeds.Anchor(table, scratch, result);
-            plan.TraceGasFinals++;
-        }
-
-        plan.Bracket.Final = move;
-        plan.Current = PassOutcome.CaseAt(problem, temperature);
-        plan.Source = EstimateSource.PreviousSolution;
-        plan.Phase = traceGas ? AttemptPhase.TraceGasFinal : AttemptPhase.Final;
-        return true;
-    }
-
-    /// <summary>The gasless final: the verdict alone at the temperature Newton's step converged on, or at the lever temperature between two gasless ends.</summary>
-    private static bool LaunchGasless(in EquilibriumProblem problem, BracketMove move, ref AttemptPlan plan)
-    {
-        var temperature = move == BracketMove.GaslessAtProbe ? plan.Bracket.FinalAsTemperature : plan.Bracket.LeverTemperature(problem.Target);
-        plan.Bracket.Finishing = true;
-        plan.Bracket.Final = move;
-        plan.Current = PassOutcome.TpAt(problem, temperature);
-        plan.Source = EstimateSource.PreviousSolution;
-        plan.Phase = AttemptPhase.VerdictOnly;
-        return true;
-    }
 }

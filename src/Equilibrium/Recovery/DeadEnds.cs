@@ -106,7 +106,7 @@ internal static class DeadEnds
         {
             var low = SpeciesFunctions.RecordLow(table, j);
             if (SpeciesMarks.Of(scratch, j) != SpeciesMark.Absent && cursor * RangeMargin < low
-                && IsDeadEnd(table, j) && low < floor)
+                && IsDeadEnd(table, j) && low <= EquilibriumSolver.MaxTemperature && low < floor)
             {
                 floor = low;
             }

@@ -133,8 +133,8 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
   Iteration cap: 50 Newton steps after the last change of the
   condensed species set, and at most `MaxCondensedSetChanges` changes of that set per
   case: three per slot of the condensed set, an inclusion, a forgiveness and a
-  stand-down for each of the `ScratchLayout.MaxCondensedInSolution` slots (24 today;
-  the constant is the number, this document only names it).
+  stand-down for each slot of `ScratchLayout.MaxCondensedInSolution`.
+  ⚠ 2026-11-14: was 24 slots, now the named limit → HISTORY.md#audit-counts
   → HISTORY.md#constraints-newton-split-2026-10-02
 
   ⚠ 2026-09-28: was one retention threshold, now two stages → HISTORY.md#two-stage
@@ -265,7 +265,7 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 | Where | Rule | Measured | Reason |
 |---|---|---|---|
 | `EquilibriumSolver` | efferent coupling | 24 | the composition root: `Solve` and `SolveFrozen` as the sequence of stage calls, the exit guards and the status write; holds no formula |
-| `EquilibriumScratch.EquilibriumScratch` | parameters | 14 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot grouped in `TieSlices`; grouping the rest would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
+| `EquilibriumScratch.EquilibriumScratch` | parameters | 14 | lists the slices of the batch-sized scratch buffers `API.md` publishes, one argument per slice, rule A's snapshot grouped in `TieSlices` and recovery data in `RecoverySlices`; regrouping the rest would move the contract and re-emit the kernels (the decision "The scratch descriptor keeps its constructor"); its one construction site names its arguments |
 
 The rows of the child nodes' types stand in their own `## Shape exceptions`
 ([Newton/BOOT.md](Newton/BOOT.md), [StateRecord/BOOT.md](StateRecord/BOOT.md)).

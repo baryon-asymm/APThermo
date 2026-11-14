@@ -116,6 +116,12 @@ internal struct TemperatureBracket
     public readonly double ProbeTemperature => KernelMath.Max(EquilibriumSolver.MinMixtureTemperature, KernelMath.Exp(ProbeX));
 
     /// <summary>Whether the search stands at a one-sided probe going down, where the data floor of a condensed record may stop it.</summary>
+    /// <summary>Both recorded ends are narrow enough for the ordinary final.</summary>
+    /// <summary>A domain edge is an exclusion rather than an unresolved numerical attempt.</summary>
+    public readonly bool GaveUpAtDomainEdge => GiveUpStatus == CaseStatus.TemperatureOutOfRange;
+
+    public readonly bool NarrowEnds => HaveLow && HaveHigh && Math.Abs(HighX - LowX) <= Narrow;
+
     public readonly bool NeedsFloor => !(HaveLow && HaveHigh) && !LastBelow;
 
     /// <summary>Starts the search at <paramref name="estimate"/> K, or at section 3.1's 3800 K when none is given, remembering the failure that sent the case here.</summary>

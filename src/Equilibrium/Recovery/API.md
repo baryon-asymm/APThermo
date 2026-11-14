@@ -11,7 +11,7 @@ internal struct AttemptPlan
 {
     public EquilibriumProblem Current; public EstimateSource Source; public AttemptPhase Phase;
     public CaseStatus Status; public int Iterations; public CaseStatus Judged;   // Judged: the status of the attempt a GasRequired verdict judged
-    public int TraceGasFinals;                                 // trace-gas finals launched (seams (b), (b′)): at most one per case
+    public int TraceGasFinals;                                 // trace-gas finals (seams (b), (b′)): at most one per bracket, reset at a new floor
     public TemperatureBracket Bracket; public EndKind Found; public CondensedFigures Figures;
     public RecheckState Recheck;
     public readonly bool RunsAttempt { get; }
@@ -41,6 +41,8 @@ internal struct TemperatureBracket
     public double OlderStep; public double LastStep; public bool Finishing; public BracketMove Final; public double FinalX;
     public readonly double ProbeTemperature { get; }
     public readonly bool NeedsFloor { get; }
+    public readonly bool NarrowEnds { get; }
+    public readonly bool GaveUpAtDomainEdge { get; }
     public readonly EndKind NearerKind { get; }
     public void Start(CaseStatus firstFailure, double estimate);
     public readonly bool NearerIsLow(double x);
@@ -57,8 +59,12 @@ internal struct TemperatureBracket
 ## The recheck below a dead-end floor ✅
 
 ```csharp
-internal enum Recheck { None, Pending, Held, Replay }
-internal struct RecheckState { public Recheck Stage; public EquilibriumProblem Original; public int Banked; public double Floor; public double OriginalObjective; }
+internal enum Recheck { None, Pending, Held, Complete }
+internal struct RecheckState
+{
+    public Recheck Stage; public double Floor; public double BestObjective;
+    public CaseStatus BestStatus; public MixtureState BestState; public bool Unresolved;
+}
 internal static class DeadEnds
 {
     public static bool IsDeadEnd(in SpeciesTableView table, int species);
@@ -73,3 +79,23 @@ internal static class DeadEnds
 `BracketDriver` (the bracket's moves), `DeadEndRecheck`, `BracketSeeds` (the only writer of `BracketEnds`: `Save`,
 `Seed`, `Lever`, `Anchor`) and `PassOutcome` (`Finds`, `EndGasless`, `EndGiveUp`, `ClearState`, `Value`, `Slope` and the problem
 constructors) are internal to this node.
+
+## Best-candidate bank ✅
+
+The scratch bank preserves the best feasible result while later floor probes run.
+Strict objective improvement wins; ties retain the earlier state, original first.
+All Newton steps remain counted. An unresolved branch returns `NotConverged` with
+zero state and the best known composition; a gasless winner keeps T,p only.
+
+```csharp
+internal static class DeadEndCandidates
+{
+    public static void Begin(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref AttemptPlan plan);
+    public static void Consider(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref AttemptPlan plan);
+    public static void Complete(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref AttemptPlan plan);
+}
+internal static class RecheckFinal
+{
+    public static bool End(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref AttemptPlan plan);
+}
+```

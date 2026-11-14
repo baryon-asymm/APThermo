@@ -27,15 +27,16 @@ own iteration fails, which RP-1311 leaves open.
 The parent's invariants hold here.
 
 - **An `Ok` attempt ends the case untouched**, with the one exception of "Dead-end floors": an `Ok` cold
-  hp or sp state below a dead-end floor with a positive inclusion gain is rechecked, and ends with the bits
-  it had unless the recheck finds a state of the same h or s above the floor, which replaces it.
+  hp or sp state below a dead-end floor with a positive inclusion gain is rechecked, and banks its exact physical result. The best completed candidate replaces it;
+  unresolved alternatives cause an honest refusal and all search work is counted.
 
   ⚠ 2026-10-04: was "the plan acts only after a failure", now also after an `Ok` below a dead-end floor → HISTORY.md#recheck-ok
 - **Every probe is a Gibbs minimization at an assigned temperature.** The probes are tp attempts of
   the same solver and verdicts of the `GasPhase` node; the final attempt is the case itself. No
   formula of the iteration changes and no equation is added.
 - **Bounded.** At most 40 probes, 8 retreats, two attempts, two verdicts and one trace-gas pass per
-  probe, one final and one trace-gas final; one trace-gas pass for a tp case.
+  probe, one final and one trace-gas final per bracket; a floor starts a new bracket.
+  The floor cursor visits at most the number of condensed records; no temperature mesh.
 - **No status but `Ok` carries a state**, with one exception: a `NoGasPhase` case carries the
   temperature and the pressure (root `BOOT.md`, "Failures are values"). A case that ends otherwise
   after a probe wrote a state gets `result.State[0] = default`.
@@ -134,8 +135,8 @@ Inherited from the parent and, through it, from the root. In addition:
     is one, may improve the original. The distinct floors above the original state are probed cold in ascending
     order. A probe at or below the target starts an upward bracket; a successful final replaces the original
     only when its thermodynamic objective is no worse. A rejected probe or failed bracket/final continues at
-    the next floor. Once these floors are exhausted, the original cold attempt is rerun deterministically,
-    with its original bits and iteration count. A warm attempt is not rechecked: its seed is gone once a probe has run (the
+    the next floor. Once these floors are exhausted, the best candidate is restored exactly without another solve,
+    and iterations retain every attempted Newton step. A warm attempt is not rechecked: its seed is gone once a probe has run (the
     declared limit; the case is that of a caller whose seed is itself a state below the floor).
   - **The list is the contract.** tp below a dead-end floor reports the supersaturated gas, the range rule, and
     that is correct (cea does the same). An hp or sp target that no state of the list reaches in the window
@@ -144,9 +145,9 @@ Inherited from the parent and, through it, from the root. In addition:
   ascending order above the original state's temperature. A probe above the
   assigned target excludes its current continuous segment, not every segment
   above other floors. Continue at the next floor after a rejected probe;
-  exhaustion alone permits replay of the original cold result. The cursor
+  exhaustion restores the best banked result if every branch is resolved. The cursor
   advances strictly and is bounded by the number of condensed records. Failed
-  searches retain the deterministic replay and existing honest statuses.
+  searches that remain numerically unresolved return `NotConverged`.
 
   ⚠ 2026-11-14: the recheck above said a probe above the target at the highest
   floor proves there is no alternative. Mg-H-O-S supplies same-H and same-S
@@ -165,7 +166,7 @@ Inherited from the parent and, through it, from the root. In addition:
     probe at or below the target has none in its segment, since `P` rises with `T` within a segment, and the scan takes
     the next floor down. With no floor left the case ends `TemperatureOutOfRange`: no state of the table at or above
     160 K has the target. The segment between the gap and that floor holds none, for the same reason.
-  - It runs after the recheck's rerun and never for a final that did not fail on a bound; a failed scan probe retreats
+  - Outside a dead-end recheck it runs only for a final that failed on a bound; a failed scan probe retreats
     and gives up with the first failure like any probe. Each scan starts below the last gap's temperature, so the
     number of scans is bounded by the number of floors.
   - The 16 AP/HTPB/Al hp targets of the tp states at 200–275 K and 20 MPa, `NotConverged` in 0.2.2's first
@@ -182,8 +183,8 @@ Inherited from the parent and, through it, from the root. In addition:
     from the seed the final would use (`BracketMove.TraceGasFromLever`, `TraceGasFromProbe`).
   - (b′) An ordinary final that ends `NotConverged` or `SingularMatrix` is followed by one `TraceGas`
     final from the same seed, rebuilt from `BracketEnds` (`AttemptPlan.OwesTraceGasFinal`,
-    `BracketDriver.RetryFinalWithTraceGas`); one per case (`AttemptPlan.TraceGasFinals`), tried
-    before the recheck's rerun and the scan below a gap.
+    `BracketDriver.RetryFinalWithTraceGas`); one per bracket (`AttemptPlan.TraceGasFinals`, reset at each new floor), tried
+    before marking a recheck branch unresolved or scanning below an ordinary gap.
   - `BracketSeeds.Anchor` copies `result.Multipliers` into `Tie.Elements.Multipliers` before either;
     the pass takes a value that is not finite as zero.
   - A `TraceGas` final's status is the case's. `Solve` sends a pass with `plan.RunsTraceGas` to
@@ -195,21 +196,48 @@ Inherited from the parent and, through it, from the root. In addition:
 - **Scratch.** `BracketEnds` (`[2 · species]`), written only by `BracketSeeds`, survives the
   probes; every other slice is an attempt's.
 
+## Candidate bank (audit A35, 2026-11-14)
+
+The original feasible result is banked before any recheck probe. Every successful
+candidate final is compared with the banked objective: larger entropy for hp,
+smaller enthalpy for sp. Strict improvement replaces the bank; an exact tie keeps
+the earlier candidate, the original first. A successful final does not stop the
+floor walk. After all distinct floors are visited, restore the best moles,
+multipliers, status and state exactly, without another numerical solve.
+
+The caller supplies `RecoverySlices`: the two bracket ends plus `speciesCount`
+doubles for banked moles and `elementCount` for banked multipliers. The extra cost
+is `8 * (speciesCount + elementCount)` bytes per case. The best `MixtureState`,
+objective, status and unresolved flag are per-case plan values. No allocation or
+temperature mesh is introduced, and every bracket retains its existing caps.
+
+A rejected floor, a domain-edge refusal or a final bracket proven to land on a
+range gap resolves that branch. An exhausted numerical probe/final without such
+a certificate marks the search unresolved: preserve the best composition for
+diagnostics but return `NotConverged` with zero state. A failed branch is never
+silently turned into a proof of optimality. Iterations count all attempted work;
+restoring the bank never resets the counter. A gasless winner retains its
+`NoGasPhase` status and T,p-only state.
+
+⚠ 2026-11-14: the first cursor implementation stopped after one improving final
+and replayed the original with its old iteration count. Neither proves the best
+candidate across later floors or reports the work done. The bank and complete
+floor walk replace those shortcuts; frozen tests retain their separate evidence.
 ## Structure
 
 `AttemptPlan` (struct: `Current`, `Source`, `Phase`, `Status`, `Iterations`, `Judged` (the status the
-verdict judged), `TraceGasFinals`, the `TemperatureBracket`, what the last pass `Found`, the `RecheckState`; `RunsAttempt`
+verdict judged), `TraceGasFinals`, the `TemperatureBracket`, what the last pass `Found`, the candidate-bank `RecheckState`; `RunsAttempt`
 is false for a `VerdictOnly` pass and `RunsTraceGas` true for a trace-gas one; `Next` is the ladder's one
 method), `AttemptPhase` (enum: `Warm`, `Cold`, `VerdictOnly`, `Final`, `TraceGas`, `TraceGasFinal`),
 `TemperatureBracket` (struct, pure transitions, each constant above named), `BracketMove` and `EndKind`
-(enums; the end kinds are `Gas`, `Gasless` and `TraceGas`), `BracketDriver` (carries the moves out), `BracketSeeds` and `PassOutcome` (static), `DeadEnds` (the
+(enums; the end kinds are `Gas`, `Gasless` and `TraceGas`), `BracketDriver` (decides the moves), `BracketLaunch` (carries them out), `GaslessFinal` (the final lever composition), `RecheckFinal` (final-attempt routing), `BracketSeeds` and `PassOutcome` (static), `DeadEnds` (the
 floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state). One type per file.
 
 ## Acceptance criteria
 
 - [x] 2026-11-14 — CPU audit A35 (`AuditPhaseBranchTests`): Mg-H-O-S HP/SP inputs meet H/S and element
   balances and are no worse than independently recomputed feasible witnesses.
-  Rejecting one floor does not prevent the next; cursor exhaustion, replay and
+  Rejecting one floor does not prevent the next; cursor exhaustion, bank restoration and
   existing gap cases stay bounded.
 
 - [x] hp and sp `NoGasPhase`: for each gasless tp state at `T0`, the hp state at its `h` and the sp
@@ -255,10 +283,10 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
       red with (b′) removed: 37 facts of `GasStationarityTests` and `TraceGasFinalTests`. 2026-10-04,
       `TraceGasFinalTests.AnOrdinaryFinalThatFailsIsRetriedByTheTraceGasPass`; the ownership of the
       retry in `TraceGasFinalTests.AFailedOrdinaryFinalIsOwedOneTraceGasFinal`.
-- [x] Dead-end floors: on example 12's list, every hp and sp target of a tp state of the list plus `H2O(cr)` ends `Ok`
+- [x] 2026-11-14 — CPU reverified dead-end floors: on example 12's list, every hp and sp target of a tp state of the list plus `H2O(cr)` ends `Ok`
       at the list-plus-ice temperature (1e-9 relative) when that state holds no ice, and otherwise
-      `TemperatureOutOfRange` or the vapour with the original attempt's iterations; every class walked
-      (2026-10-04, `DeadEndFloorTests.EveryTargetOfTheListPlusIceEndsAtItsStateOrBelowTheFloor`; red with the
+      `TemperatureOutOfRange` or the vapour with its original physical state and all attempted iterations counted; every class walked
+      (`DeadEndFloorTests.EveryTargetOfTheListPlusIceEndsAtItsStateOrBelowTheFloor`; red with the
       recheck off: 2 hp and 4 sp false `Ok`s of 300 states each, and with the floors of the held records only: 4 of 168
       in `ThreeElementTieTests`). The floors themselves: `TheLiquidIsADeadEndFloorExactlyWhenNoIceAdjoinsIt`,
       `ADownwardStepLandsOnTheHighestDeadEndFloorBelowTheProbe`.
@@ -293,6 +321,20 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
         and 25.92× (WSL2);
       - the fast set 1 min 56 s on Windows and 127 s under WSL2, green (root `ACCEPTANCE.md`, the test pyramid).
 
+
+- [x] 2026-11-14 — CPU bank selection and transfer: `RecoveryCandidateTests` checks
+  two improving HP/SP candidates, original/tie retention, every state property
+  generated by reflection, full mole/multiplier arrays, paid iteration counts,
+  unresolved refusal and the gasless T,p exception. First-improvement, omitted
+  restore, tie replacement and false-Ok mutations each fail their named tests.
+- [ ] The new recovery scratch and best-state carrier pass CUDA compilation,
+  exact CPU/CUDA and bit checks and the execution compile/memory/throughput guards
+  on the reference machine; the root orchestrator owns these hardware proofs.
+
+⚠ 2026-11-14: the earlier floor criterion required the original attempt's iteration
+count after replay. The physical no-alternative result is still restored exactly,
+but every attempted step is now counted; the CPU floor tests and bank controls
+reverify that contract. Historical 2026-10-04 measurements above are not redated.
 ## Taboos
 
 - No formula of the iteration and no new equation: a probe is a tp solve of the same solver.

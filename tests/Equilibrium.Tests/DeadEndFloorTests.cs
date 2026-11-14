@@ -31,8 +31,8 @@ public sealed class DeadEndFloorTests
     /// ends <c>Ok</c> at the temperature of the list-plus-ice solve when that state holds no ice (the target has a state of
     /// the list, above the floor or in the gas); when it holds ice, the list has none below the floor, and the solve ends
     /// <c>TemperatureOutOfRange</c> or <c>Ok</c> on the vapour below the floor (tp below a dead-end floor reporting the
-    /// supercooled gas is correct, the range rule) with the iterations of the original attempt alone: the recheck that found
-    /// no state above the floor reran it to the same bits.
+    /// supercooled gas is correct, the range rule) with its original physical result and all attempted iterations counted: the candidate bank
+    /// restores the original exactly when no alternative improves it.
     /// Red before the recheck and the bracket's dead-end floors: the cold solve ended <c>Ok</c> on the supercooled vapour
     /// below the floor, or <c>TemperatureOutOfRange</c>, for targets whose state holds the liquid.
     /// </summary>
@@ -62,7 +62,7 @@ public sealed class DeadEndFloorTests
             var reproduces = back.Status == CaseStatus.Ok
                 && Math.Abs(back.State.Temperature - reference.State.Temperature) <= TemperatureReproduction * reference.State.Temperature;
             var vapour = back.Status == CaseStatus.Ok && back.State.Temperature < LiquidFloor;
-            var original = vapour && back.Iterations == GasPhaseRig.FirstAttemptIterations(list with { Kind = kind, Pressure = pressure, Temperature = 0.0, Target = target });
+            var original = vapour && back.Iterations >= GasPhaseRig.FirstAttemptIterations(list with { Kind = kind, Pressure = pressure, Temperature = 0.0, Target = target });
             stood += vapour ? 1 : 0;
             if (holdsIce ? !(back.Status == CaseStatus.TemperatureOutOfRange || original) : !reproduces)
             {

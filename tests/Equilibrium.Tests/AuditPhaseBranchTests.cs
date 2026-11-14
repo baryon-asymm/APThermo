@@ -125,7 +125,8 @@ public sealed class AuditPhaseBranchTests
         Assert.True(floors.Length > 1, "this control requires several distinct floors");
         var plan = new AttemptPlan();
         plan.Begin(input, useMolesAsEstimate: false);
-        plan.Recheck.Original = input;
+        result.State[0] = new MixtureState { Temperature = problem.Temperature, Pressure = problem.Pressure, Enthalpy = 1.0 };
+        DeadEndCandidates.Begin(buffers.View, input, scratch, result, ref plan);
         plan.Recheck.Floor = floors[0];
         plan.Recheck.Stage = Recheck.Pending;
         Assert.Equal(floors[0], DeadEnds.NextFloorAbove(buffers.View, scratch, problem.Temperature));
@@ -134,11 +135,12 @@ public sealed class AuditPhaseBranchTests
             plan.Phase = AttemptPhase.TraceGasFinal;
             plan.Status = outcome == "FailedFinal" ? CaseStatus.NotConverged : CaseStatus.Ok;
             plan.Recheck.Stage = outcome == "RejectedProbe" ? Recheck.Pending : Recheck.Held;
-            plan.Recheck.OriginalObjective = 1.0;
+            plan.Recheck.BestObjective = 1.0;
             result.State[0] = new MixtureState { Enthalpy = 2.0 };
-            Assert.True(outcome == "RejectedProbe"
+            var next = outcome == "RejectedProbe"
                 ? DeadEndRecheck.Rejects(buffers.View, input, scratch, result, problem.Target + 1.0, ref plan)
-                : DeadEndRecheck.EndFinal(buffers.View, input, scratch, result, ref plan));
+                : RecheckFinal.End(buffers.View, input, scratch, result, ref plan);
+            Assert.Equal(index < floors.Length, next);
             if (index < floors.Length)
             {
                 Assert.Equal(Recheck.Pending, plan.Recheck.Stage);
@@ -147,7 +149,8 @@ public sealed class AuditPhaseBranchTests
             }
             else
             {
-                Assert.Equal(Recheck.Replay, plan.Recheck.Stage);
+                Assert.Equal(Recheck.Complete, plan.Recheck.Stage);
+                Assert.Equal(outcome == "FailedFinal" ? CaseStatus.NotConverged : CaseStatus.Ok, plan.Status);
                 Assert.Equal(problem.Temperature, plan.Current.Temperature);
             }
         }
@@ -223,7 +226,7 @@ public sealed class AuditPhaseBranchTests
         return new EquilibriumCase(table, kind, 1.0e5, temperature, target, [0.5 / database.AtomicWeight("AR"), salt, 2.0 * salt]);
     }
 
-    private static EquilibriumCase Magnesium(ProblemKind kind, JsonElement witness)
+    internal static EquilibriumCase Magnesium(ProblemKind kind, JsonElement witness)
     {
         var mixture = Data().GetProperty("mixture");
         var abundances = mixture.GetProperty("b").EnumerateObject().ToArray();
@@ -261,7 +264,7 @@ public sealed class AuditPhaseBranchTests
     private static double Number(JsonElement item, string name) =>
         double.Parse(item.GetProperty(name).GetString()!, CultureInfo.InvariantCulture);
 
-    private static JsonElement Data([CallerFilePath] string source = "")
+    internal static JsonElement Data([CallerFilePath] string source = "")
     {
         using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(source)!, "AuditCases.json")));
         return document.RootElement.Clone();

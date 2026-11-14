@@ -62,16 +62,25 @@ internal readonly struct EquilibriumScratch              // slices of batch-size
     public readonly ArrayView<int> SpeciesActive;      // [species], the species mark: 0 Absent (an element missing), 1 Active, 2 ForgivenOnce, 3 StoodDown (BOOT.md, the condensed-species rule)
     public readonly ArrayView<int> ElementActive;      // [element], 1 when the abundance is positive
     public readonly ArrayView<int> CondensedInSolution;// [MaxCondensedInSolution], species indices, −1 beyond the count
-    public readonly ArrayView<double> BracketEnds;     // [2 · species], the temperature bracket's lower then upper end, after RowScale in the double slice so that no earlier slice moves
+    public readonly RecoverySlices Recovery;
+    public ArrayView<double> BracketEnds { get; }     // [2 · species], the temperature bracket's lower then upper end, after RowScale in the double slice so that no earlier slice moves
     public EquilibriumScratch(ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
                               ArrayView<double> logMoles, ArrayView<double> corrections, TieSlices tie,
                               ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
                               ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution,
-                              ArrayView<double> bracketEnds);
+                              RecoverySlices recovery);
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount);
         // cuts one case's scratch from views of at least DoublesPerCase and IntsPerCase elements
 }
 
+internal readonly struct RecoverySlices
+{
+    public readonly ArrayView<double> BracketEnds;
+    public readonly ArrayView<double> BestMoles;
+    public readonly ArrayView<double> BestMultipliers;
+    public RecoverySlices(ArrayView<double> bracketEnds, ArrayView<double> bestMoles, ArrayView<double> bestMultipliers);
+    public static RecoverySlices Slice(ArrayView<double> doubles, long offset, int speciesCount, int elementCount);
+}
 internal readonly struct TieSlices                       // rule A's release snapshot, grouped 2026-10-03 (Newton/BOOT.md, "Release")
 {
     public readonly ArrayView<double> LogMoles;        // [species], the release snapshot of LogMoles

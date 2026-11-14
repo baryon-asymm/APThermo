@@ -85,7 +85,7 @@ internal static class GasPhaseVerdict
     }
 
     /// <summary>h, s and cp of the condensed minimum in <c>result.Moles</c> at the temperature.</summary>
-    private static CondensedFigures Figures(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
+    public static CondensedFigures Figures(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,
                                             double temperature)
     {
         var enthalpy = 0.0;

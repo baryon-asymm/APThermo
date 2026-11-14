@@ -7,7 +7,8 @@ namespace APThermo.Equilibrium.TraceGas;
 /// <summary>
 /// One trace-gas pass of a case (BOOT.md, "The sequence", "The starts"): the facade the <c>Recovery</c> node schedules after a
 /// <c>GasRequired</c> verdict and as the final of a temperature bracket. It converges the case by the trace-gas Newton from
-/// up to four starts, each from the entry, with the condensed set changing between convergences as in
+/// the configured starts in bounded rounds, each from the entry, with the condensed set changing
+/// between convergences as in
 /// <c>ConvergenceSequence</c>, and puts the entry back when no start converges. Kernel-compatible.
 /// </summary>
 internal static class TraceGasPass

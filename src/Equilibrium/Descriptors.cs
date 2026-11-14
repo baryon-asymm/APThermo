@@ -50,16 +50,17 @@ internal static class ScratchLayout
     public static int MaxUnknowns(int elementCount) => elementCount + MaxCondensedInSolution + 2;
 
     /// <summary>
-    /// Doubles per case: nine per species (the seventh being rule A's tie snapshot of the gaseous logarithms, BOOT.md,
+    /// Doubles per case: ten per species (the seventh being rule A's tie snapshot of the gaseous logarithms, BOOT.md,
     /// the third pass of 2026-09-28, finding F1, and the eighth and ninth the two ends of the temperature bracket,
     /// 2026-10-03), the matrix, the right-hand side, the row scales, one <see cref="MaxCondensedInSolution"/>-sized
     /// slice for the tie snapshot's condensed moles, and three slices of the element count for rule A's multipliers
-    /// snapshot, live coefficients and coefficients snapshot (<see cref="TieElementSlices"/>).
+    /// snapshot, live coefficients and coefficients snapshot (<see cref="TieElementSlices"/>). The tenth species slice and
+    /// one further element slice bank the best candidate (<see cref="RecoverySlices"/>).
     /// </summary>
     public static int DoublesPerCase(int speciesCount, int elementCount)
     {
         var unknowns = MaxUnknowns(elementCount);
-        return 9 * speciesCount + MaxCondensedInSolution + 3 * elementCount + unknowns * unknowns + 2 * unknowns;
+        return 10 * speciesCount + MaxCondensedInSolution + 4 * elementCount + unknowns * unknowns + 2 * unknowns;
     }
 
     /// <summary>
@@ -101,7 +102,7 @@ internal readonly struct EquilibriumScratch(
     ArrayView<double> logMoles, ArrayView<double> corrections, TieSlices tie,
     ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
     ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution,
-    ArrayView<double> bracketEnds)
+    RecoverySlices recovery)
 {
     public readonly ArrayView<double> HOverRT = hOverRT;             // [species]
     public readonly ArrayView<double> SOverR = sOverR;               // [species]
@@ -116,7 +117,9 @@ internal readonly struct EquilibriumScratch(
     public readonly ArrayView<int> SpeciesActive = speciesActive;    // [species], 1 when every element of the species is present
     public readonly ArrayView<int> ElementActive = elementActive;    // [element], 1 when the abundance is positive
     public readonly ArrayView<int> CondensedInSolution = condensedInSolution;    // [MaxCondensedInSolution], species indices
-    public readonly ArrayView<double> BracketEnds = bracketEnds;     // [2 * species], the temperature bracket's lower then upper end, after RowScale so that no earlier slice moves
+    public readonly RecoverySlices Recovery = recovery;
+
+    public ArrayView<double> BracketEnds => Recovery.BracketEnds;     // [2 * species], the temperature bracket's lower then upper end, after RowScale so that no earlier slice moves
 
     /// <summary>Cuts the scratch of one case from views of at least <see cref="ScratchLayout.DoublesPerCase"/> and <see cref="ScratchLayout.IntsPerCase"/> elements.</summary>
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount)
@@ -152,9 +155,8 @@ internal readonly struct EquilibriumScratch(
         var rowScale = doubles.SubView(offset, unknowns);
         offset += unknowns;
 
-        // The last slice: with no species it would be a zero-length view at the very end of the buffer, which ILGPU
-        // reports as out of bounds, and a table with no species is a valid input that the solver answers with InvalidInput.
-        var bracketEnds = speciesCount > 0 ? doubles.SubView(offset, 2L * speciesCount) : default;
+        // Recovery owns the appended ends and bank; its slicer keeps an empty view default at a buffer end.
+        var recovery = RecoverySlices.Slice(doubles, offset, speciesCount, elementCount);
 
         var speciesActive = ints.SubView(0, speciesCount);
         var elementActive = ints.SubView(speciesCount, elementCount);
@@ -166,7 +168,7 @@ internal readonly struct EquilibriumScratch(
             tie: new TieSlices(logMoles: tieLogMoles, condensedMoles: tieCondensedMoles, condensedSet: tieCondensedSet, elements: tieElements),
             matrix: matrix, rightHandSide: rightHandSide, rowScale: rowScale,
             speciesActive: speciesActive, elementActive: elementActive, condensedInSolution: condensed,
-            bracketEnds: bracketEnds);
+            recovery: recovery);
     }
 }
 

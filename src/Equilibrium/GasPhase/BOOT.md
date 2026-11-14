@@ -121,6 +121,10 @@ struct: the temperature, `ln(p/p°)` and whether the gases are columns, 2026-10-
 `TangentPlane` within six parameters and its nesting within three. Each constant of `## Constraints`
 is named in the class that uses it.
 
+The `Figures` tree operation also evaluates the final lever composition supplied
+by `Recovery`; it reuses this node's existing h/s/cp reduction rather than adding
+another thermodynamic formula (audit A35, 2026-11-14).
+
 ## Acceptance criteria
 
 - [x] tp `NoGasPhase`, each red on the old code (`NotConverged` or `TemperatureOutOfRange`; red with the
