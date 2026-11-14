@@ -79,6 +79,17 @@ verified by [Fixtures.Tests](../Fixtures.Tests/BOOT.md)).
 
 ## Constraints
 
+- `AuditPhaseCases.json` is a separate frozen independent audit witness document,
+  outside the CEA case tree and its regeneration/enumeration. It imports the exact
+  public SrCl2 and Mg–H–O–S inputs, raw data hash, Decimal NASA-fit phase checks and
+  independently recomputed feasible HP and SP objectives with saved compositions.
+  Units are explicit; consumers use `RepositoryPaths.Resolve` and JSON directly.
+  The witnesses establish necessary stability and objective obligations for these
+  inputs, not a unique global optimum or experimental validation. Backend equality
+  is a separate execution obligation. No CEA fixture count or tolerance is changed.
+  ⚠ 2026-11-14: the earlier fixture rules described CEA-generated cases only;
+  the separately imported audit witness file has its own source/method provenance.
+
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - Layout: `generate/` holds the Python scripts and `requirements.txt`; `cases/<kind>/`

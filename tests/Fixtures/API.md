@@ -137,3 +137,14 @@ same inequality scaled by the larger input magnitude. Ordinary finite arithmetic
 retains its existing evaluation and inclusive boundary. This avoids an accidental
 `Infinity <= Infinity` pass without weakening any budget (A27 completion,
 2026-11-14, `OracleGuardTests.FiniteIntermediateOverflowKeepsTheTrueBoundary`).
+
+## Frozen independent audit witnesses ✅
+
+`RepositoryPaths.Resolve("tests", "Fixtures", "AuditPhaseCases.json")` names the
+portable SrCl2 overlap and Mg–H–O–S multi-floor witness document. It is separate
+from `FixtureFiles.Enumerate` and `CeaFixtures.Load`: its schema is identified by
+`schemaVersion`, with source/method/raw-data provenance and units, exact public
+inputs, independent phase-potential checks and same-constraint feasible HP and SP
+objectives plus saved mole fractions. Decimal oracle values remain strings to
+preserve the original precision; input values are JSON numbers. Consumers read
+JSON directly; there is no new loader API or change to CEA case generation.
