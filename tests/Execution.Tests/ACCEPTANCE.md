@@ -23,6 +23,16 @@
   18 passed, strict lint 0/0; evidence `SCRATCH/audit/probe-copy-negative.log`,
   `copy-window-execution-controls.log`, `copy-window-protocol.log`.
 
+- [ ] P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
+  in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
+  refusal labeled as no hardware proof. CPU companion is intentionally red pending the
+  numerical owner's correction: Mg–H–O–S SP seeded from the 1075.3181818181818 K TP
+  witness returns Ok at 199.43950239292752 K, H=-6044275.863694346 instead of a state
+  no worse than the independent feasible H=-9775607.014204179 at the same S,p.
+  Evidence obtained 2026-11-14: `SCRATCH/audit/seeded-sp-failure-witness.json` contains
+  exact seed species/moles, assigned arrays, cold/seeded states, statuses and counters;
+  `phase-cpu-companion-red.log` is 1 passed/1 failed. No GPU run.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 
