@@ -154,7 +154,18 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
   (2026-10-03, moved from this node's fixture): the one copied next to this test assembly with
   its runtime configuration, else the `Cli` node's own build output.
 
+The schema parity matrix checks independently declared expected shapes against both
+`ProblemDocumentReader` and the published input schema, not against each other alone.
+TP requires temperature and forbids h/s, HP permits omitted h and optional nonnegative
+temperature (zero is the default estimate), and SP requires s, forbids h, and permits
+the same zero estimate. This is bounded shape parity, not a chemistry-domain proof.
+The output guard admits an emitted zero-mass InvalidInput diagnostic and still refuses
+negative mass and an unknown status.
+
 ## Acceptance criteria
+
+- [ ] `SchemaShapeParityTests` proves both positive and negative TP/HP/SP shapes,
+  zero estimates, and the emitted zero-mass diagnostic with negative output controls.
 
 - [x] 2026-11-14 — `SweepBoundaryTests` admits exactly the inclusive axis bound for lists and ranges,
   refuses one more before allocating an expanded numeric array, and preserves the
