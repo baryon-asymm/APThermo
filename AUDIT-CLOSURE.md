@@ -85,6 +85,23 @@ audit's `fix-evidence/independent-public-cli`, `independent-tooling` and
 - [ ] Local packages, samples, installed tool, schemas and symbols.
 - [ ] Workflow validation on the affected runner paths.
 
+## Test-quality review obligations
+
+T01–T06 map to the original numerical, comparison, corpus, ownership and protocol
+findings above; T09 maps to A38. The remaining recommendations are tracked explicitly
+so that correcting a test name cannot silently substitute for its behavioral check.
+
+| Review | Obligation | Status and evidence |
+|---|---|---|
+| T07 | Observe compilation and release without memory floors | `b5b72b23`; warm-up/cache/weak-reference observations, upper budgets retained; cache/IR retention mutations red |
+| T08 | Separate family results from fallback-path inference | In progress; `tests/Execution.Tests/BOOT.md` records the diagnostic scope |
+| T10 | Distinguish CPU-forbidden CUDA facts from real hardware proof | Separate final hardware lanes; explicit backend/device reporting and new P1 consumers in progress |
+| T11/T12 | Retain independent scientific evidence and bounded bit contracts | Existing independent suites retained; one BeO numerical row approved only after raw NASA9 and independent sonic validation (`0702dd45`, `effc89f2`) |
+| T13 | Show solved-throat sensitivity to skipped tail execution | In progress; `tests/Performance.Tests/BOOT.md` requires an independent sonic reference and a red skipped-tail mutation |
+| T14 | Bound subprocess completion and preserve partial output | `af3ac921`; root process-fixture integration 79/79, controlled timeout/cancellation/pipe cases |
+| T15 | Add a literal independent mass-tolerance validity table | `20688e9b`; finite boundaries, NaN and both infinities, public boundary controls retained |
+| T16 | Print actual named fields for numerical bit mismatches | Thermo, Equilibrium, Performance, Transport, Problems and CLI callers updated; one-ULP mutations remain red without approved-record changes |
+
 ## Review recommendations
 
 Apply concrete hardening where it preserves the approved model: process deadlines,
