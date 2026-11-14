@@ -251,7 +251,6 @@ internal sealed class UploadedTables : IDisposable
         }
 
         _disposed = true;
-        _ownership.PrepareCleanup(null, _session.CleanupFilter);
         _ownership.Dispose();
     }
 }
