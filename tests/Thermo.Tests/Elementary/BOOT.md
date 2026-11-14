@@ -43,6 +43,10 @@ Outside the tree: xunit; Python 3.8+ with mpmath 1.3.0 for the generators and th
 
 ## Constraints
 
+- The full optional corpus is exactly the upstream revision and raw-byte hashes in
+  `fixtures/PROVENANCE.txt`. Reject missing, truncated or modified lists before both
+  input generation and result verification; a selected sample is not a full campaign.
+
 - Part of the default test command of the thermo tests; no CUDA involved (the execution tests node compares the two
   accelerators exactly, and the CPU accelerator with `KernelMath`).
 - Paths from the repository root. No fact writes into the tree; the optional full check writes into the system
@@ -52,6 +56,9 @@ Outside the tree: xunit; Python 3.8+ with mpmath 1.3.0 for the generators and th
   (https://gitlab.inria.fr/core-math/core-math, commit 284b3b0e198042c38f5c30316f696786b10816b0) and rewrites `fixtures/`.
 
 ## Acceptance criteria
+
+- [ ] Audit A12: truncated/corrupted/empty corpus controls are refused, the pinned
+  complete corpus passes, and the integrity self-check is part of automated tests.
 
 - [x] 2026-10-05 — Correct rounding: `CorrectRoundingTests.EveryFixtureInputIsCorrectlyRounded` and
       `TheAccuratePathAgreesWithTheOracleOnEveryFixture`, six fixtures each (the families 4 420, 3 948 and

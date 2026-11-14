@@ -92,6 +92,7 @@ Linux → HISTORY.md#dependencies-libnvvm-on-linux-2026-09-15
 Resource ownership is transactional: partial uploads roll back, every owned resource
 gets a cleanup attempt, and cleanup never replaces a propagating primary failure.
 Secondary cleanup failures remain diagnosable. A lost session stays unusable.
+Reject an undefined `AcceleratorKind` before binding a driver or allocating a session.
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 

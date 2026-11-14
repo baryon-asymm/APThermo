@@ -112,10 +112,15 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
         device's kernel run-time-limit attribute. A device without the limit, and the
         CPU accelerator, have no budget. A device with it gets a quarter of the 2 s
         default.
-      - `ChunkPlan` takes the budget as a fourth bound, beside the count, the bytes and
-        the offsets. The first chunk of a run is one wave of the device (its
-        multiprocessors times the threads each holds at once). Each later chunk is sized
-        from the previous chunk's measured time per case.
+      - `ChunkPlan` takes the budget as a fourth bound, beside count, bytes and offsets.
+        On a constrained device the first chunk is one case; later chunks use the
+        measured budget estimate but grow by at most twice the preceding case count.
+        Unbounded CPU/headless plans retain their size and results.
+        ⚠ 2026-11-14: was an unmeasured device wave, now one case with bounded growth
+        → HISTORY.md#launch-sampling-2026-11-14
+      - This is a conservative sampling policy, not a duration guarantee. One case
+        cannot be split; it may exceed the target. Retain timeout normalization and
+        lost-session handling without provoking a driver reset as a test.
       - Results do not depend on the chunking. The audit's `E13` found the same bits at
         chunk sizes 16 384, 1, 7 and 64, so no result bit moves.
 - **Batches are processed in chunks** (moved here from the parent's `BOOT.md`,

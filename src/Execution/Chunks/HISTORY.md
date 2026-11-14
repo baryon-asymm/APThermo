@@ -8,6 +8,23 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="launch-sampling-2026-11-14"></a>
+
+## 2026-11-14 — from Constraints — first launch and growth sampling
+
+The former rule was:
+
+> `ChunkPlan` takes the budget as a fourth bound, beside the count, the bytes and
+> the offsets. The first chunk of a run is one wave of the device (its
+> multiprocessors times the threads each holds at once). Each later chunk is sized
+> from the previous chunk's measured time per case.
+
+The audit measured a wide spread of launch costs between species systems, including
+a single case above the 0.5 s target. A hardware thread count cannot certify a first
+launch's duration. The owner-requested hardening starts with one case and bounds
+growth; it preserves all numerical results and the root throughput criterion. A
+single case can still exceed a target, so the policy does not promise TDR immunity.
+
 <a id="input-output-2026-10-04"></a>
 
 ## 2026-10-04 — from "## Purpose" — five declaration methods
