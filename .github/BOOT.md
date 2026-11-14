@@ -2,13 +2,16 @@
 
 ## Purpose
 
-The repository's continuous-integration and release configuration and the one tool that
-configuration runs: the workflows `ci.yml` and `release.yml`, the composite actions they
-share under `actions/` and the scripts under `scripts/`. It gives the tree the proof, on every
+The repository's integration, release and extended CPU-verification configuration:
+the workflows under `workflows/`, the composite actions shared under `actions/`
+and the delivery and verification scripts under `scripts/`. It gives the tree the proof, on every
 push and pull request, that a commit builds and passes the fast suite on a Windows and a
 Linux runner, and, on a tag, the path from the tested commit to the packages on nuget.org.
 It holds no product code and no formula: a step calls the tree's own projects, scripts and
 tools. Its contract is the list of workflows, jobs, actions and scripts in [API.md](API.md).
+
+⚠ 2026-11-14: this overview named only `ci.yml` and `release.yml`; the A39
+trace-gas workflow now supplies the separately selected long CPU scan lane.
 
 ## Invariants
 
