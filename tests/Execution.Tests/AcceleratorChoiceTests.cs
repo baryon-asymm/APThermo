@@ -158,7 +158,17 @@ public sealed class AcceleratorChoiceTests
         Assert.Equal(expected, IsCudaDriverModule(module));
     }
 
-    private static bool IsCudaDriverModule(string name) => name.Contains("nvcuda", StringComparison.OrdinalIgnoreCase);
+    private static bool IsCudaDriverModule(string name)
+    {
+        if (name.Equals("nvcuda.dll", StringComparison.OrdinalIgnoreCase) || name == "libcuda.so")
+        {
+            return true;
+        }
+
+        const string prefix = "libcuda.so.";
+        return name.StartsWith(prefix, StringComparison.Ordinal) &&
+            name[prefix.Length..].Split('.').All(part => part.Length > 0 && part.All(char.IsAsciiDigit));
+    }
 
     /// <summary>The ilgpu assertion fails loudly for another version.</summary>
     [Fact]

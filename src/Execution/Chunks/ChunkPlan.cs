@@ -56,9 +56,12 @@ internal readonly struct ChunkPlan
     /// with <see cref="FirstChunkCases"/> and <see cref="NextChunkCases"/> instead.</summary>
     public IEnumerable<Chunk> Chunks()
     {
-        for (var offset = 0; offset < Count; offset += Size)
+        var offset = 0;
+        while (offset < Count)
         {
-            yield return new Chunk(offset, Math.Min(Size, Count - offset));
+            var length = Math.Min(Size, Count - offset);
+            yield return new Chunk(offset, length);
+            offset += length;
         }
     }
 

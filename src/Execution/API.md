@@ -412,3 +412,7 @@ added.)
 
 - Turning propellant definitions into element moles and enthalpies: `Problems`.
 - Interpreting statuses for a user, building result records with species names: `Problems`.
+
+⚠ 2026-11-14: undefined `EngineOptions.Accelerator` values previously reached the CUDA
+branch. `Engine.Create` and `AcceleratorChoice.Decide` now reject them with
+`ArgumentOutOfRangeException` before any backend binding, independently of the CUDA flag.

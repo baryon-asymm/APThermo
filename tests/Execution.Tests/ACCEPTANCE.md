@@ -1,5 +1,10 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [x] 2026-11-14 — A15/A18: `PlanningBoundaryTests` and the platform driver-name table
+  plus forbidden-CUDA and ordinary chunk controls: 20 passed; old source 10 failed/8 passed.
+  Evidence: `SCRATCH/audit/planning-old-negative.log`, `planning-final.log`.
+  No GPU executed; the actual module inventory uses the same Windows/Linux driver classifier.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 

@@ -31,6 +31,11 @@ internal static class AcceleratorChoice
     internal static AcceleratorDecision Decide(EngineOptions options, bool cudaForbidden)
     {
         ArgumentNullException.ThrowIfNull(options);
+        if (options.Accelerator is not (AcceleratorKind.Auto or AcceleratorKind.Cpu or AcceleratorKind.Cuda))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), options.Accelerator, "the accelerator kind must be Auto, Cpu or Cuda");
+        }
+
         if (options.Accelerator == AcceleratorKind.Cpu)
         {
             return Decided(Cpu(null), null);
