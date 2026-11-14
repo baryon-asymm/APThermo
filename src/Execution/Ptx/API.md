@@ -53,9 +53,13 @@ internal static class CudaWslDevices
 {
     public static void Register(Context.Builder builder);    // what builder.Cuda() does, for every context of a process under WSL
     internal static bool IsResolverAlreadySet(InvalidOperationException failure);
-    internal static ValueTuple<PropertyInfo, MethodInfo> Reflect(string registryPropertyName, string getDevicesMethodName);   // (Registry, GetDevices)
+    internal static (PropertyInfo Registry, MethodInfo GetDevices) Reflect(string registryPropertyName, string getDevicesMethodName);
 }
 ```
+
+⚠ 2026-11-14: `Reflect` was documented with an unnamed `ValueTuple` return and
+names only in a comment. The signature check exposed the omitted tuple element
+names; the contract now records the compiled `Registry` and `GetDevices` names.
 
 `Register` tries the public `builder.Cuda()` every time and registers the devices itself
 only when it throws the resolver-already-set exception; a missing ILGPU member is an

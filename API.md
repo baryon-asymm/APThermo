@@ -22,9 +22,14 @@ command-line tool over it. Everything not named here is internal and may change.
 
 The command line does the same with JSON files (`Cli`).
 
-## Entry points ✅
+## Usage outline ✅
 
-```csharp
+The outline below shows call order; `problems` and `records` stand for caller-owned
+inputs. It is an illustration, not a declaration block. Exact declarations belong
+to the [Problems](src/Problems/API.md), [Data](src/Data/API.md) and
+[Execution](src/Execution/API.md) contracts.
+
+```text
 using APThermo.Data;
 using APThermo.Execution;
 using APThermo.Performance;
@@ -52,6 +57,10 @@ IReadOnlyList<RocketResult> results = solver.Solve(propellant, problems);   // o
 EquilibriumResult state = solver.Solve(propellant, new EquilibriumProblem { Pressure = 7.0e6 });   // hp at the propellant's enthalpy
 IReadOnlyList<EquilibriumResult> states = solver.SolveStates(records);      // element moles, pressure and one target each
 ```
+
+⚠ 2026-11-14: this usage outline was labelled as a checked C# declaration block.
+The complete-signature check exposed that it contains statements and illustrative
+input variables instead of declarations; the owning contracts remain checked.
 
 ⚠ 2026-09-12: the sketch solved on an `Engine` of the execution node
 (`engine.Solve(propellant, problem)`) and froze the flow with a `Frozen(FreezeAt.Chamber)`
