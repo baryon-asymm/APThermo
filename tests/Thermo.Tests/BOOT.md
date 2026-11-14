@@ -99,12 +99,23 @@ Outside the tree: xunit; ILGPU 1.5.3 (CPU accelerator only).
 
 ## Constraints
 
+- T16 diagnostics retain the established hash order and bytes, while passing actual
+  named table fields to the harness: species/element identity, interval/piece and
+  coefficient/exponent index. A deliberate hash mismatch must emit those values.
+  ⚠ 2026-11-14: the previous caller passed only a digest, so its failure could not
+  identify the table field that changed. Names are diagnostic metadata, never hashed.
+
 - Part of the default test command; no CUDA involved.
 - Paths from the repository root; the only write into the working directory is the
   `Bits.actual.txt` of a failed bit comparison, next to the approved file and
   git-ignored (2026-09-14; until that day the node wrote nothing).
 
 ## Acceptance criteria
+
+- [x] 2026-11-14 — T16: Thermo bit snapshots 252 passed without changing approved bytes.
+  One deliberate digest mismatch failed and emitted the actual named species/element,
+  interval, exponent and coefficient values. Evidence: `SCRATCH/audit/thermo-named-bits.log`,
+  `thermo-named-negative.log`; mutation restored and final build 0 warnings/errors.
 
 - [x] 2026-09-12 — L0 green: `FunctionFixtureTests`
       (`FunctionsEqualTheIndependentEvaluation` for every file under

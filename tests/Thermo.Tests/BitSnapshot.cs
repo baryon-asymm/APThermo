@@ -26,7 +26,8 @@ internal sealed class BitSnapshot
         foreach (var path in CaseFiles())
         {
             var relative = Relative(path);
-            _problems[relative] = _approved.Problem(relative, Digest(database, path));
+            var (hash, fields) = Digest(database, path);
+            _problems[relative] = _approved.Problem(relative, hash, fields);
         }
     }
 
@@ -45,7 +46,7 @@ internal sealed class BitSnapshot
     public IReadOnlyList<string> StaleKeys() => _approved.StaleKeys(_problems.Keys);
 
     /// <summary>The table of one case: the elements are the names of its element moles in their order, the species its product list.</summary>
-    private static string Digest(SpeciesDatabase database, string path)
+    private static (string Hash, IReadOnlyList<string> Fields) Digest(SpeciesDatabase database, string path)
     {
         var inputs = CeaFixtures.Load(path).Inputs;
         var elements = inputs.GetProperty("elementMoles").EnumerateObject().Select(property => property.Name).ToArray();
@@ -61,7 +62,7 @@ internal sealed class BitSnapshot
         }
 
         var arrays = table.Arrays;
-        return new BitHash()
+        var hash = new BitHash()
             .Add(string.Join(',', table.Species))
             .Add(arrays.MolarMass)
             .Add(arrays.FormationEnthalpy)
@@ -70,7 +71,33 @@ internal sealed class BitSnapshot
             .Add(arrays.IntervalCount)
             .Add(arrays.IntervalBounds)
             .Add(arrays.Exponents)
-            .Add(arrays.Coefficients)
-            .ToHex();
+            .Add(arrays.Coefficients);
+        var labels = new List<string> { "Species" };
+        labels.AddRange(table.Species.Select(name => $"MolarMass[{name}]"));
+        labels.AddRange(table.Species.Select(name => $"FormationEnthalpy[{name}]"));
+        labels.AddRange(table.Elements.SelectMany(element => table.Species.Select(name => $"Stoichiometry[{element},{name}]")));
+        labels.AddRange(table.Species.Select(name => $"IntervalStart[{name}]"));
+        labels.AddRange(table.Species.Select(name => $"IntervalCount[{name}]"));
+        var owners = IntervalOwners(table);
+        labels.AddRange(Enumerable.Range(0, arrays.IntervalBounds.Length).Select(index => $"IntervalBounds[{owners[index / 2]},{(index % 2 == 0 ? "TLow" : "THigh")}]"));
+        labels.AddRange(Enumerable.Range(0, arrays.Exponents.Length).Select(index => $"Exponents[{owners[index / 8]},{index % 8}]"));
+        labels.AddRange(Enumerable.Range(0, arrays.Coefficients.Length).Select(index => $"Coefficients[{owners[index / 9]},{index % 9}]"));
+        Assert.Equal(labels.Count, hash.Fields.Count);
+        return (hash.ToHex(), labels.Zip(hash.Fields, (label, value) => $"{label}={value}").ToArray());
+    }
+
+    private static string[] IntervalOwners(SpeciesTable table)
+    {
+        var owners = new string[table.Arrays.IntervalTotal];
+        for (var species = 0; species < table.SpeciesCount; species++)
+        {
+            var start = table.Arrays.IntervalStart[species];
+            for (var piece = 0; piece < table.Arrays.IntervalCount[species]; piece++)
+            {
+                owners[start + piece] = $"{table.Species[species]},piece={piece}";
+            }
+        }
+
+        return owners;
     }
 }
