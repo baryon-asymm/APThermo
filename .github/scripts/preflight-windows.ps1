@@ -1,62 +1,77 @@
-# Preflight for the release workflow's Windows GPU job (.github/BOOT.md, "Self-hosted runners"): asserts what the
-# runner must provide before any build step runs, and names every missing item instead of letting a later step fail
-# on an unhelpful error (the 2026-09-19 post-mortem, "Rehearsal before the tag"). Runs with Windows PowerShell 5.1:
-# no $IsWindows, no ternary operator. Working directory is the repository root (the job's default), so relative
-# paths resolve without $PSScriptRoot.
-
+# Windows PowerShell 5.1 host preflight; see this node's BOOT.md and API.md.
+# Command discovery precedes invocation so a missing command cannot inherit a stale exit code.
 $failures = New-Object System.Collections.Generic.List[string]
 
-# git
-$gitCommand = Get-Command git -ErrorAction SilentlyContinue
-if ($gitCommand) {
-    Write-Host "git: found ($((git --version)))"
-}
-else {
-    $failures.Add("git not found on PATH")
+function Invoke-RequiredCommand {
+    param([string]$Name, [string[]]$CommandArguments, [System.Collections.Generic.List[string]]$Failures)
+    $command = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue
+    if (-not $command) {
+        $Failures.Add("$Name not found on PATH")
+        return $null
+    }
+    try {
+        $output = & $command.Source @CommandArguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
+        $Failures.Add("${Name} failed to start: $_")
+        return $null
+    }
+    if ($exitCode -ne 0) {
+        $Failures.Add("${Name} failed (exit code ${exitCode}): $($output -join '; ')")
+        return $null
+    }
+    return [PSCustomObject]@{ Output = @($output) }
 }
 
-# dotnet SDK named by global.json
-$globalJsonPath = "global.json"
-if (-not (Test-Path $globalJsonPath)) {
-    $failures.Add("global.json not found at the repository root")
+$gitProbe = Invoke-RequiredCommand 'git' @('--version') $failures
+if ($gitProbe) {
+    Write-Host "git: found ($($gitProbe.Output -join '; '))"
+}
+
+$sdkProbe = Invoke-RequiredCommand 'dotnet' @('--list-sdks') $failures
+if (-not (Test-Path -LiteralPath 'global.json' -PathType Leaf)) {
+    $failures.Add('global.json not found at the repository root')
 }
 else {
-    $expectedSdk = (Get-Content $globalJsonPath -Raw | ConvertFrom-Json).sdk.version
-    $sdks = & dotnet --list-sdks 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        $failures.Add("dotnet --list-sdks failed: $sdks")
+    try {
+        $expectedSdk = (Get-Content -LiteralPath 'global.json' -Raw | ConvertFrom-Json -ErrorAction Stop).sdk.version
+        if (-not $expectedSdk) {
+            $failures.Add('global.json has no sdk.version')
+        }
+        elseif ($sdkProbe) {
+            $installed = @($sdkProbe.Output | ForEach-Object { ($_ -split '\s+', 2)[0] })
+            if ($installed -notcontains $expectedSdk) {
+                $failures.Add("dotnet SDK $expectedSdk (global.json) not among the installed SDKs: $($sdkProbe.Output -join '; ')")
+            }
+            else {
+                Write-Host "dotnet SDK ${expectedSdk}: found"
+            }
+        }
     }
-    elseif (-not ($sdks | Select-String -SimpleMatch $expectedSdk)) {
-        $failures.Add("dotnet SDK $expectedSdk (global.json) not among the installed SDKs: $($sdks -join '; ')")
-    }
-    else {
-        Write-Host "dotnet SDK ${expectedSdk}: found"
+    catch {
+        $failures.Add("global.json could not be read: $_")
     }
 }
 
-# NVIDIA driver
-$nvidiaSmi = & nvidia-smi 2>&1
-if ($LASTEXITCODE -ne 0) {
-    $failures.Add("nvidia-smi did not run (exit code $LASTEXITCODE): $nvidiaSmi")
-}
-else {
-    Write-Host "nvidia-smi: runs"
+$nvidiaProbe = Invoke-RequiredCommand 'nvidia-smi' @() $failures
+if ($nvidiaProbe) {
+    Write-Host 'nvidia-smi: runs'
 }
 
-# APTHERMO_NO_CUDA must be unset, or the CUDA tests only check the refusal
 if ($env:APTHERMO_NO_CUDA) {
     $failures.Add("APTHERMO_NO_CUDA is set ('$($env:APTHERMO_NO_CUDA)'); the CUDA tests would refuse the accelerator instead of running on it")
 }
 else {
-    Write-Host "APTHERMO_NO_CUDA: unset"
+    Write-Host 'APTHERMO_NO_CUDA: unset'
 }
 
 if ($failures.Count -gt 0) {
-    Write-Host "::error::preflight failed:"
-    foreach ($f in $failures) {
-        Write-Host "::error::- $f"
+    Write-Host '::error::preflight failed:'
+    foreach ($failure in $failures) {
+        Write-Host "::error::- $failure"
     }
     exit 1
 }
 
-Write-Host "preflight: all checks passed"
+Write-Host 'preflight: all checks passed'

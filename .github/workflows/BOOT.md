@@ -23,8 +23,20 @@ Inherit .github delivery policy and hosted evidence requirement. Every changed p
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — A33 local controls: both release ref uses bind through the actual
+  YAML env mappings and quoted shell variables (`test_delivery.py`, 11 total guards);
+  valid Git refs containing quotes, semicolons and command substitution remain one
+  literal value. The frozen old workflow executes their controlled sentinel and
+  turns the guards red. actionlint 1.7.12 reports no workflow errors.
+
 - [ ] A33/A39: adversarial ref values remain literal, hosted scan wiring discovers both facts and publishes nonempty evidence; a real hosted run remains required.
 
 ## Taboos
 
 Do not run PR code on self-hosted runners or claim local validation proves GitHub execution.
+
+⚠ 2026-11-14: two release steps formerly embedded github.ref_name into generated
+Bash source. They now pass RELEASE_REF_NAME as environment data; event/version
+inputs use the same boundary. Strict protocol lint and the delivery guard suite
+now run explicitly in hosted CI/release matrices. These are local/CI guard changes;
+actual GitHub execution is still required by the ancestor's evidence invariant.

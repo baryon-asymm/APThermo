@@ -39,12 +39,16 @@ jobs:
 
       - name: Check the tag and extract the release notes
         shell: bash
+        env:
+          RELEASE_REF_NAME: ${{ github.ref_name }}
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           ref_name=""
-          if [ "${{ github.event_name }}" = "push" ]; then
-            ref_name="${{ github.ref_name }}"
+          if [ "$RELEASE_EVENT_NAME" = "push" ]; then
+            ref_name="$RELEASE_REF_NAME"
           fi
-          bash .github/scripts/check-release.sh "${{ steps.version.outputs.version }}" CHANGELOG.md release-notes.md "$ref_name"
+          bash .github/scripts/check-release.sh "$RELEASE_VERSION" CHANGELOG.md release-notes.md "$ref_name"
 
       - name: Upload release notes
         uses: actions/upload-artifact@v7
@@ -76,7 +80,10 @@ jobs:
           python-version: '3.x'
 
       - name: Protocol lint
-        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates
+        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates --strict
+
+      - name: Delivery guard tests
+        run: python -X utf8 .github/scripts/test_delivery.py
 
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
@@ -238,9 +245,11 @@ jobs:
           path: .
 
       - name: Create release
+        shell: bash
         env:
+          RELEASE_REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" artifacts/packages/* \
+          gh release create "$RELEASE_REF_NAME" artifacts/packages/* \
             --notes-file release-notes.md \
             --verify-tag

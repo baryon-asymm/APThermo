@@ -25,11 +25,11 @@ if [[ ! -f "$changelog" ]]; then
   exit 1
 fi
 
-awk -v ver="$version" '
-  BEGIN { found = 0 }
+RELEASE_NOTES_VERSION="$version" awk '
+  BEGIN { found = 0; heading = "## [" ENVIRON["RELEASE_NOTES_VERSION"] "]" }
   /^## \[/ {
     if (found) { exit }
-    if ($0 ~ ("^## \\[" ver "\\]")) { found = 1; next }
+    if ($0 == heading || index($0, heading " ") == 1) { found = 1; next }
     next
   }
   found { print }

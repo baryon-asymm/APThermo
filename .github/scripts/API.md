@@ -14,3 +14,8 @@ allowing a date suffix, with nonempty notes; failure exits nonzero.
 
 `test_delivery.py`: standard-library local guard suite on hosted Windows/Linux;
 controlled command probes, no GPU, publishing or external mutation.
+
+⚠ 2026-11-14: A23/A34 implementation now enforces the declared refusal contract:
+missing commands and every nonzero native exit fail, SDK versions are whole entries,
+and CHANGELOG headings are literal strings. Local guards do not prove an actual
+self-hosted GitHub preflight run; that evidence remains open in BOOT.md.

@@ -40,7 +40,10 @@ jobs:
           python-version: '3.x'
 
       - name: Protocol lint
-        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates
+        run: python -X utf8 tools/protocol-lint/protocol_lint.py . --exclude templates --strict
+
+      - name: Delivery guard tests
+        run: python -X utf8 .github/scripts/test_delivery.py
 
       # The fixtures' provenance hashes bind an output to the scripts that produced it, never to the reference
       # package's own answer (tests/Fixtures/ACCEPTANCE.md, "The outputs are bound to the generator"): a hand-edited

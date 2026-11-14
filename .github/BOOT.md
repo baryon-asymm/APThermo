@@ -161,3 +161,8 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
   the `release` environment, and no tag moved once pushed.
 - No pull request's code on a self-hosted runner, and no assumption of PowerShell 7,
   Python or Git Bash there.
+
+⚠ 2026-11-14: A23/A33/A34 local evidence is recorded in scripts/workflows BOOT.md;
+formerly permissive preflight/native exits, shell ref interpolation and regex version
+matching are corrected. Hosted matrices now run strict lint and delivery guards.
+This does not tick the open actual-run criterion above.
