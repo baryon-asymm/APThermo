@@ -32,7 +32,8 @@ internal static class GasPhaseRig
         using var iterations = accelerator.Allocate1D<int>(1);
         state.MemSetToZero();
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
         var view = buffers.View;
 
@@ -67,7 +68,8 @@ internal static class GasPhaseRig
         using var iterations = accelerator.Allocate1D<int>(1);
         molesBuffer.MemSetToZero();
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
         var attempt = new IterationState();
         Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(buffers.View, input, scratch, result, EstimateSource.Defaults, ref attempt));
@@ -95,7 +97,8 @@ internal static class GasPhaseRig
         using var iterations = accelerator.Allocate1D<int>(1);
         molesBuffer.MemSetToZero();
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         var attempt = new IterationState();
@@ -125,7 +128,8 @@ internal static class GasPhaseRig
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         var attempt = new IterationState();
@@ -168,7 +172,8 @@ internal static class GasPhaseRig
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         var result = new EquilibriumResult(molesBuffer.View, multipliersBuffer.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         var attempt = new IterationState();

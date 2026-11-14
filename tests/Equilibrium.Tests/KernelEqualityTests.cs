@@ -14,7 +14,7 @@ namespace APThermo.Equilibrium.Tests;
 /// </summary>
 internal readonly record struct BatchViews(
     ArrayView<int> Kinds, ArrayView<double> Pressures, ArrayView<double> Temperatures, ArrayView<double> Targets,
-    ArrayView<double> ElementMoles, ArrayView<double> ScratchDoubles, ArrayView<int> ScratchInts,
+    ArrayView<double> ElementMoles, ArrayView<double> ScratchDoubles, ArrayView<int> ScratchInts, ArrayView<MixtureState> RecoveryStates,
     ArrayView<double> Moles, ArrayView<double> Multipliers, ArrayView<MixtureState> States,
     ArrayView<int> Statuses, ArrayView<int> Iterations);
 
@@ -70,13 +70,14 @@ public sealed class KernelEqualityTests
         using var moles = accelerator.Allocate1D<double>((long)count * speciesCount);
         using var multipliers = accelerator.Allocate1D<double>((long)count * elementCount);
         using var states = accelerator.Allocate1D<MixtureState>(count);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(count);
         using var statuses = accelerator.Allocate1D<int>(count);
         using var iterations = accelerator.Allocate1D<int>(count);
         moles.MemSetToZero();
 
         var batch = new BatchViews(
             Kinds: kinds.View, Pressures: pressures.View, Temperatures: temperatures.View, Targets: targets.View,
-            ElementMoles: elementMoles.View, ScratchDoubles: scratchDoubles.View, ScratchInts: scratchInts.View,
+            ElementMoles: elementMoles.View, ScratchDoubles: scratchDoubles.View, ScratchInts: scratchInts.View, RecoveryStates: recoveryStates.View,
             Moles: moles.View, Multipliers: multipliers.View, States: states.View, Statuses: statuses.View, Iterations: iterations.View);
         var kernel = accelerator.LoadAutoGroupedStreamKernel<Index1D, SpeciesTableView, BatchViews>(SolveKernel);
         kernel(count, buffers.View, batch);
@@ -126,7 +127,7 @@ public sealed class KernelEqualityTests
         var problem = new EquilibriumProblem((ProblemKind)batch.Kinds[index], batch.Pressures[index], batch.Temperatures[index],
                                              batch.Targets[index], batch.ElementMoles.SubView(index * elementCount, elementCount));
         var scratch = EquilibriumScratch.Slice(batch.ScratchDoubles.SubView(index * doublesPerCase, doublesPerCase),
-                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount);
+                                               batch.ScratchInts.SubView(index * intsPerCase, intsPerCase), speciesCount, elementCount, batch.RecoveryStates.SubView(index, 1));
         var result = new EquilibriumResult(batch.Moles.SubView(index * speciesCount, speciesCount),
                                            batch.Multipliers.SubView(index * elementCount, elementCount),
                                            batch.States.SubView(index, 1), batch.Statuses.SubView(index, 1), batch.Iterations.SubView(index, 1));

@@ -131,7 +131,9 @@ internal static class HostSolver
         fill.Scratch(doubles, ints);
         fill.Outputs(multipliers, state, status, iterations);
         var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        fill.RecoveryState(recoveryStates);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         var result = new EquilibriumResult(molesBuffer.View, multipliers.View, state.View, status.View, iterations.View);
         var view = buffers.View;
         if (frozen)

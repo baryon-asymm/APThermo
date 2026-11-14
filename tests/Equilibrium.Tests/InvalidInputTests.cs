@@ -30,7 +30,8 @@ public sealed class InvalidInputTests
             intervalStart: default, intervalCount: default,
             intervalBounds: default, exponents: default, coefficients: default);
         var problem = new EquilibriumProblem(ProblemKind.AssignedTemperaturePressure, 1e5, 3000.0, 0.0, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, 0, 0);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, 0, 0, recoveryStates.View);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
 
         EquilibriumSolver.Solve(in table, in problem, in scratch, in result, false);

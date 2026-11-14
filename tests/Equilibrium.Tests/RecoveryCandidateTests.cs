@@ -9,6 +9,37 @@ namespace APThermo.Equilibrium.Tests;
 [Collection(CpuFixture.CollectionName)]
 public sealed class RecoveryCandidateTests
 {
+    /// <summary>Saving replaces every poisoned state bit; a later attempt cannot overwrite the isolated original bank.</summary>
+    [Theory]
+    [InlineData(ProblemKind.AssignedEnthalpyPressure)]
+    [InlineData(ProblemKind.AssignedEntropyPressure)]
+    public void APoisonedGlobalBankRestoresTheExactOriginalAfterAttemptSetup(ProblemKind kind)
+    {
+        WithViews(kind, (table, input, scratch, result) =>
+        {
+            object poison = default(MixtureState);
+            foreach (var property in typeof(MixtureState).GetProperties()) { property.SetValue(poison, double.NaN); }
+            scratch.Recovery.BestState[0] = (MixtureState)poison;
+            var plan = new AttemptPlan();
+            plan.Begin(input, useMolesAsEstimate: true);
+            plan.Status = CaseStatus.Ok;
+            plan.Iterations = 42;
+            var original = State(kind, 0);
+            original.InternalEnergy = -0.0;
+            WriteCandidate(table, result, original, 1.0);
+            DeadEndCandidates.Begin(table, input, scratch, result, ref plan);
+            AssertState(original, scratch.Recovery.BestState[0]);
+            var attempt = new IterationState();
+            Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(table, input, scratch, result, EstimateSource.Defaults, ref attempt));
+            WriteCandidate(table, result, State(kind, 4), 7.0);
+            DeadEndCandidates.Complete(table, input, scratch, result, ref plan);
+            AssertState(original, result.State[0]);
+            AssertCandidate(table, result, 1.0);
+            Assert.Equal(CaseStatus.Ok, plan.Status);
+            Assert.Equal(42, plan.Iterations);
+        });
+    }
+
     /// <summary>A second improving candidate beats the first; remaining floors cannot overwrite its banked state.</summary>
     [Theory]
     [InlineData(ProblemKind.AssignedEnthalpyPressure)]
@@ -144,7 +175,7 @@ public sealed class RecoveryCandidateTests
             Assert.Equal(AttemptPhase.Cold, plan.Phase);
             Assert.Equal(EstimateSource.Defaults, plan.Source);
             Assert.Equal(ProblemKind.AssignedTemperaturePressure, plan.Current.Kind);
-            AssertState(original, plan.Recheck.BestState);
+            AssertState(original, scratch.Recovery.BestState[0]);
             var spent = Exhaust(table, input, scratch, result, ref plan);
             Assert.Equal(Recheck.Complete, plan.Recheck.Stage);
             Assert.Equal(CaseStatus.Ok, plan.Status);
@@ -223,7 +254,7 @@ public sealed class RecoveryCandidateTests
             WriteCandidate(table, result, better, 2.0);
             Assert.True(AttemptPlan.Next(table, input, scratch, result, CaseStatus.Ok, ref plan));
             Assert.True(plan.Recheck.Floor > firstFloor);
-            AssertState(better, plan.Recheck.BestState);
+            AssertState(better, scratch.Recovery.BestState[0]);
             _ = Exhaust(table, input, scratch, result, ref plan);
             AssertState(better, result.State[0]);
             AssertCandidate(table, result, 2.0);
@@ -326,7 +357,8 @@ public sealed class RecoveryCandidateTests
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
         var input = new EquilibriumProblem(kind, c.Pressure, c.Temperature, c.Target, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount, recoveryStates.View);
         var result = new EquilibriumResult(moles.View, multipliers.View, states.View, status.View, iterations.View);
         var state = new IterationState();
         Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(buffers.View, input, scratch, result, EstimateSource.Defaults, ref state));

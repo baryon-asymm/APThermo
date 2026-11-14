@@ -76,7 +76,8 @@ public sealed class ElementConservationTests
         var view = buffers.View;
         using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(view.SpeciesCount, view.ElementCount));
         using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(view.SpeciesCount, view.ElementCount));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
         using var elements = accelerator.Allocate1D(TwoElementMoles);
         using var molesBuffer = accelerator.Allocate1D(OneNaNMole);
         using var multipliers = accelerator.Allocate1D<double>(view.ElementCount);

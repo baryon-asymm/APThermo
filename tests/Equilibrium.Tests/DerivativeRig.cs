@@ -59,10 +59,11 @@ internal sealed class DerivativeRig : IDisposable
         doubles.MemSetToZero();
         ints.MemSetToZero();
         moles.MemSetToZero();
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
         var result = new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View);
         var rig = new DerivativeRig(table, tableBuffers, scratch, result, inSolution.Length, temperature);
-        rig._buffers.AddRange([doubles, ints, moles, multipliers, state, status, iterations]);
+        rig._buffers.AddRange([recoveryStates, doubles, ints, moles, multipliers, state, status, iterations]);
         rig.Place(gasMoles, inSolution);
         return rig;
     }

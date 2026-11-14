@@ -137,9 +137,10 @@ public sealed class GasPhaseDependencyTests
             doubles.MemSetToZero();
             ints.MemSetToZero();
             moles.MemSetToZero();
-            var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+            var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+            var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
             var rig = new Rig(table, tableBuffers, scratch, new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View));
-            rig._buffers.AddRange([doubles, ints, moles, multipliers, state, status, iterations]);
+            rig._buffers.AddRange([recoveryStates, doubles, ints, moles, multipliers, state, status, iterations]);
             return rig;
         }
 

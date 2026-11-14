@@ -101,7 +101,7 @@ internal readonly struct TieSlices(ArrayView<double> logMoles, ArrayView<double>
     public readonly TieElementSlices Elements = elements;                // the multipliers snapshot, the live coefficients, their snapshot
 }
 
-/// <summary>Per-case scratch views. <see cref="Slice"/> cuts them from one double and one int view of the sizes in <see cref="ScratchLayout"/>.</summary>
+/// <summary>Per-case scratch views. <see cref="Slice"/> cuts them from double/int views of the sizes in <see cref="ScratchLayout"/> and one isolated typed state view.</summary>
 internal readonly struct EquilibriumScratch(
     ArrayView<double> hOverRT, ArrayView<double> sOverR, ArrayView<double> cpOverR, ArrayView<double> gOverRT,
     ArrayView<double> logMoles, ArrayView<double> corrections, TieSlices tie,
@@ -126,7 +126,7 @@ internal readonly struct EquilibriumScratch(
 
     public ArrayView<double> BracketEnds => Recovery.BracketEnds;     // [2 * species], the temperature bracket's lower then upper end, after RowScale so that no earlier slice moves
 
-    /// <summary>Cuts the scratch of one case from views of at least <see cref="ScratchLayout.DoublesPerCase"/> and <see cref="ScratchLayout.IntsPerCase"/> elements.</summary>
+    /// <summary>Cuts one case from the sized double/int views and its separate one-element typed recovery-state view.</summary>
     public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount, ArrayView<MixtureState> bestState)
     {
         var unknowns = ScratchLayout.MaxUnknowns(elementCount);

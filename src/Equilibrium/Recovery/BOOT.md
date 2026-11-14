@@ -258,11 +258,13 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 
 ## Acceptance criteria
 
-- [ ] R10 CPU storage: `RecoveryStorageTests` verifies generated type size/alignment,
+- [x] 2026-11-14 — R10 CPU storage: `RecoveryStorageTests` verifies generated type size/alignment,
   unchanged C0 double-region offsets/lengths and per-case typed bank isolation;
   `RecoveryCandidateTests` proves full-bit state restoration from poisoned global
-  storage and detects an omitted save. Scientific and full numerical controls remain
-  separate; hardware performance is pending root's serialized gates.
+  storage; omitting the save is red for both HP/SP cases (r10-omitted-state-red.trx).
+  Targeted storage/recovery/A01/A35/R08/no-hidden-state/kernel/bit controls: 58 pass
+  (r10-targeted-final.trx). Generated local sizes: RecheckState 192→32 bytes,
+  AttemptPlan 432→272 bytes; state 152 bytes. Full CPU and hardware gates remain pending.
 
 - [x] 2026-11-14 — R08: `RecoveryCandidateTests` drives initial Warm HP/SP through AttemptPlan.Next,
   checks first probe Defaults/Cold, exact original restoration and counted work after

@@ -184,6 +184,12 @@ creation names its arguments; it passes them by position today (the criterion be
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — R10: RecoveryStorageTests checks generated state size/alignment,
+  the frozen RecoveryLayoutC0.json region inventory and isolated typed case banks in
+  a CPU kernel. RecoveryCandidateTests restores all state bits from a poisoned bank;
+  omitting the save makes both HP/SP controls red. Dedicated typed storage replaces
+  the failed Cast experiment (Recovery/BOOT.md rationale); hardware speed is unproven.
+
 - [x] 2026-11-14 — R08: initial Warm HP/SP entry, bank restoration, no-floor completion, failed
   warm fallback and nonrecursive final routing are checked by RecoveryCandidateTests;
   the shared Execution CPU companion retains independent same-H/S objectives.

@@ -40,7 +40,8 @@ public sealed class SingularRemedyRulesTests
     [Fact]
     public void ANitrogenChlorineTieOfNh4ClAloneIsFoundThroughThePinnedRetry()
     {
-        var (table, view, scratch, result) = BuildTieTable();
+        var (table, view, scratch, result, bank) = BuildTieTable();
+        using var recoveryStates = bank;
         result.Moles[table.IndexOf("NH4CL(II)")] = 0.01;   // in the solution; every gas stays at zero
 
         var tie = ElementCoupling.Find(view, scratch, result, condensedCount: 1, N);
@@ -59,7 +60,8 @@ public sealed class SingularRemedyRulesTests
     [Fact]
     public void Nh4ClWithHclTiesNitrogenToAThirdOfHydrogenMinusChlorine()
     {
-        var (table, view, scratch, result) = BuildTieTable();
+        var (table, view, scratch, result, bank) = BuildTieTable();
+        using var recoveryStates = bank;
         result.Moles[table.IndexOf("NH4CL(II)")] = 0.01;
         result.Moles[table.IndexOf("HCL")] = 0.002;
 
@@ -79,7 +81,8 @@ public sealed class SingularRemedyRulesTests
     [Fact]
     public void Nh4ClHclAndN2WithMolesGiveNoTie()
     {
-        var (table, view, scratch, result) = BuildTieTable();
+        var (table, view, scratch, result, bank) = BuildTieTable();
+        using var recoveryStates = bank;
         result.Moles[table.IndexOf("NH4CL(II)")] = 0.01;
         result.Moles[table.IndexOf("HCL")] = 0.002;
         result.Moles[table.IndexOf("N2")] = 0.004;
@@ -101,7 +104,8 @@ public sealed class SingularRemedyRulesTests
     [Fact]
     public void ATieHeldByACondensedSpeciesIsDetected()
     {
-        var (table, view, scratch, _) = BuildTieTable();
+        var (table, view, scratch, _, bank) = BuildTieTable();
+        using var recoveryStates = bank;
         var condensed = table.IndexOf("NH4CL(II)");
         var tie = new ElementTie { Element = N };
         SetCoefficients(scratch, view.ElementCount, (Cl, 1.0));
@@ -137,7 +141,7 @@ public sealed class SingularRemedyRulesTests
         }
     }
 
-    private static (SpeciesTable Table, SpeciesTableView View, EquilibriumScratch Scratch, EquilibriumResult Result) BuildTieTable()
+    private static (SpeciesTable Table, SpeciesTableView View, EquilibriumScratch Scratch, EquilibriumResult Result, MemoryBuffer1D<MixtureState, ILGPU.Stride1D.Dense> RecoveryStates) BuildTieTable()
     {
         var accelerator = CpuFixture.Shared.Accelerator;
         var table = SpeciesTable.Build(CpuFixture.Shared.Database, TieElements, TieSpecies);
@@ -147,7 +151,8 @@ public sealed class SingularRemedyRulesTests
         var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(view.SpeciesCount, view.ElementCount));
         doubles.MemSetToZero();   // accelerator memory is not zeroed on allocation (HostSolver.Run does the same): the element masks and coefficients are read
         ints.MemSetToZero();
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
         for (var i = 0; i < view.ElementCount; i++)
         {
             scratch.ElementActive[i] = 1;   // every element of the table, as the solver's mask leaves it
@@ -161,7 +166,7 @@ public sealed class SingularRemedyRulesTests
         var iterations = accelerator.Allocate1D<int>(1);
         var result = new EquilibriumResult(molesBuffer.View, multipliers.View, state.View, status.View, iterations.View);
         scratch.CondensedInSolution[0] = table.IndexOf("NH4CL(II)");
-        return (table, view, scratch, result);
+        return (table, view, scratch, result, recoveryStates);
     }
 
     /// <summary>
@@ -182,7 +187,8 @@ public sealed class SingularRemedyRulesTests
         var view = buffers.View;
         var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(view.SpeciesCount, view.ElementCount));
         var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(view.SpeciesCount, view.ElementCount));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
         var molesBuffer = accelerator.Allocate1D<double>(view.SpeciesCount);
         var multipliers = accelerator.Allocate1D<double>(view.ElementCount);
         var state = accelerator.Allocate1D<MixtureState>(1);
@@ -215,7 +221,8 @@ public sealed class SingularRemedyRulesTests
         var view = buffers.View;
         var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(view.SpeciesCount, view.ElementCount));
         var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(view.SpeciesCount, view.ElementCount));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
         var molesBuffer = accelerator.Allocate1D<double>(view.SpeciesCount);
         var multipliers = accelerator.Allocate1D<double>(view.ElementCount);
         var state = accelerator.Allocate1D<MixtureState>(1);

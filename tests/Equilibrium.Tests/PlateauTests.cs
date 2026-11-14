@@ -166,7 +166,8 @@ public sealed class PlateauTests
         var elementCount = table.ElementCount;
         using var doubles = Cpu.Accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(speciesCount, elementCount));
         using var ints = Cpu.Accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(speciesCount, elementCount));
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount);
+        using var recoveryStates = Cpu.Accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, speciesCount, elementCount, recoveryStates.View);
         for (var j = 0; j < speciesCount; j++)
         {
             SpeciesMarks.Set(scratch, j, SpeciesMark.Active);

@@ -291,14 +291,15 @@ public sealed class ThreeElementTieTests
             doubles.MemSetToZero();   // accelerator memory is not zeroed on allocation
             ints.MemSetToZero();
             moles.MemSetToZero();
-            var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount);
+            var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+            var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, view.SpeciesCount, view.ElementCount, recoveryStates.View);
             for (var i = 0; i < view.ElementCount; i++)
             {
                 scratch.ElementActive[i] = 1;
             }
 
             var rig = new TieRig(table, tableBuffers, scratch, new EquilibriumResult(moles.View, multipliers.View, state.View, status.View, iterations.View));
-            rig._buffers.AddRange([doubles, ints, moles, multipliers, state, status, iterations]);
+            rig._buffers.AddRange([recoveryStates, doubles, ints, moles, multipliers, state, status, iterations]);
             return rig;
         }
 

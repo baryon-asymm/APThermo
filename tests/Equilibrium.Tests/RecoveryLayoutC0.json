@@ -1,0 +1,380 @@
+{
+  "baseCommit": "5d62cb48",
+  "mixtureStateBytes": 152,
+  "recheckStateBytes": 192,
+  "attemptPlanBytes": 432,
+  "layouts": [
+    {
+      "Species": 0,
+      "Elements": 0,
+      "Doubles": 548,
+      "Ints": 40,
+      "Regions": [
+        {
+          "Name": "HOverRT",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "SOverR",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "CpOverR",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "GOverRT",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "LogMoles",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Corrections",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Tie.LogMoles",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Tie.CondensedMoles",
+          "Length": 20,
+          "Offset": 0
+        },
+        {
+          "Name": "Tie.Elements.Multipliers",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Tie.Elements.Coefficients",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Tie.Elements.CoefficientSnapshot",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Matrix",
+          "Length": 484,
+          "Offset": 20
+        },
+        {
+          "Name": "RightHandSide",
+          "Length": 22,
+          "Offset": 504
+        },
+        {
+          "Name": "RowScale",
+          "Length": 22,
+          "Offset": 526
+        },
+        {
+          "Name": "Recovery.BracketEnds",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Recovery.BestMoles",
+          "Length": 0,
+          "Offset": null
+        },
+        {
+          "Name": "Recovery.BestMultipliers",
+          "Length": 0,
+          "Offset": null
+        }
+      ]
+    },
+    {
+      "Species": 1,
+      "Elements": 1,
+      "Doubles": 609,
+      "Ints": 42,
+      "Regions": [
+        {
+          "Name": "HOverRT",
+          "Length": 1,
+          "Offset": 0
+        },
+        {
+          "Name": "SOverR",
+          "Length": 1,
+          "Offset": 1
+        },
+        {
+          "Name": "CpOverR",
+          "Length": 1,
+          "Offset": 2
+        },
+        {
+          "Name": "GOverRT",
+          "Length": 1,
+          "Offset": 3
+        },
+        {
+          "Name": "LogMoles",
+          "Length": 1,
+          "Offset": 4
+        },
+        {
+          "Name": "Corrections",
+          "Length": 1,
+          "Offset": 5
+        },
+        {
+          "Name": "Tie.LogMoles",
+          "Length": 1,
+          "Offset": 6
+        },
+        {
+          "Name": "Tie.CondensedMoles",
+          "Length": 20,
+          "Offset": 7
+        },
+        {
+          "Name": "Tie.Elements.Multipliers",
+          "Length": 1,
+          "Offset": 27
+        },
+        {
+          "Name": "Tie.Elements.Coefficients",
+          "Length": 1,
+          "Offset": 28
+        },
+        {
+          "Name": "Tie.Elements.CoefficientSnapshot",
+          "Length": 1,
+          "Offset": 29
+        },
+        {
+          "Name": "Matrix",
+          "Length": 529,
+          "Offset": 30
+        },
+        {
+          "Name": "RightHandSide",
+          "Length": 23,
+          "Offset": 559
+        },
+        {
+          "Name": "RowScale",
+          "Length": 23,
+          "Offset": 582
+        },
+        {
+          "Name": "Recovery.BracketEnds",
+          "Length": 2,
+          "Offset": 605
+        },
+        {
+          "Name": "Recovery.BestMoles",
+          "Length": 1,
+          "Offset": 607
+        },
+        {
+          "Name": "Recovery.BestMultipliers",
+          "Length": 1,
+          "Offset": 608
+        }
+      ]
+    },
+    {
+      "Species": 11,
+      "Elements": 2,
+      "Doubles": 762,
+      "Ints": 53,
+      "Regions": [
+        {
+          "Name": "HOverRT",
+          "Length": 11,
+          "Offset": 0
+        },
+        {
+          "Name": "SOverR",
+          "Length": 11,
+          "Offset": 11
+        },
+        {
+          "Name": "CpOverR",
+          "Length": 11,
+          "Offset": 22
+        },
+        {
+          "Name": "GOverRT",
+          "Length": 11,
+          "Offset": 33
+        },
+        {
+          "Name": "LogMoles",
+          "Length": 11,
+          "Offset": 44
+        },
+        {
+          "Name": "Corrections",
+          "Length": 11,
+          "Offset": 55
+        },
+        {
+          "Name": "Tie.LogMoles",
+          "Length": 11,
+          "Offset": 66
+        },
+        {
+          "Name": "Tie.CondensedMoles",
+          "Length": 20,
+          "Offset": 77
+        },
+        {
+          "Name": "Tie.Elements.Multipliers",
+          "Length": 2,
+          "Offset": 97
+        },
+        {
+          "Name": "Tie.Elements.Coefficients",
+          "Length": 2,
+          "Offset": 99
+        },
+        {
+          "Name": "Tie.Elements.CoefficientSnapshot",
+          "Length": 2,
+          "Offset": 101
+        },
+        {
+          "Name": "Matrix",
+          "Length": 576,
+          "Offset": 103
+        },
+        {
+          "Name": "RightHandSide",
+          "Length": 24,
+          "Offset": 679
+        },
+        {
+          "Name": "RowScale",
+          "Length": 24,
+          "Offset": 703
+        },
+        {
+          "Name": "Recovery.BracketEnds",
+          "Length": 22,
+          "Offset": 727
+        },
+        {
+          "Name": "Recovery.BestMoles",
+          "Length": 11,
+          "Offset": 749
+        },
+        {
+          "Name": "Recovery.BestMultipliers",
+          "Length": 2,
+          "Offset": 760
+        }
+      ]
+    },
+    {
+      "Species": 5,
+      "Elements": 3,
+      "Doubles": 757,
+      "Ints": 48,
+      "Regions": [
+        {
+          "Name": "HOverRT",
+          "Length": 5,
+          "Offset": 0
+        },
+        {
+          "Name": "SOverR",
+          "Length": 5,
+          "Offset": 5
+        },
+        {
+          "Name": "CpOverR",
+          "Length": 5,
+          "Offset": 10
+        },
+        {
+          "Name": "GOverRT",
+          "Length": 5,
+          "Offset": 15
+        },
+        {
+          "Name": "LogMoles",
+          "Length": 5,
+          "Offset": 20
+        },
+        {
+          "Name": "Corrections",
+          "Length": 5,
+          "Offset": 25
+        },
+        {
+          "Name": "Tie.LogMoles",
+          "Length": 5,
+          "Offset": 30
+        },
+        {
+          "Name": "Tie.CondensedMoles",
+          "Length": 20,
+          "Offset": 35
+        },
+        {
+          "Name": "Tie.Elements.Multipliers",
+          "Length": 3,
+          "Offset": 55
+        },
+        {
+          "Name": "Tie.Elements.Coefficients",
+          "Length": 3,
+          "Offset": 58
+        },
+        {
+          "Name": "Tie.Elements.CoefficientSnapshot",
+          "Length": 3,
+          "Offset": 61
+        },
+        {
+          "Name": "Matrix",
+          "Length": 625,
+          "Offset": 64
+        },
+        {
+          "Name": "RightHandSide",
+          "Length": 25,
+          "Offset": 689
+        },
+        {
+          "Name": "RowScale",
+          "Length": 25,
+          "Offset": 714
+        },
+        {
+          "Name": "Recovery.BracketEnds",
+          "Length": 10,
+          "Offset": 739
+        },
+        {
+          "Name": "Recovery.BestMoles",
+          "Length": 5,
+          "Offset": 749
+        },
+        {
+          "Name": "Recovery.BestMultipliers",
+          "Length": 3,
+          "Offset": 754
+        }
+      ]
+    }
+  ]
+}

@@ -59,6 +59,14 @@ internal static class BufferFills
         state.CopyFromCPU([PoisonedState(Number(fill))]);
     }
 
+    /// <summary>Fill the independent recovery-state scratch with the same whole-state poison as the outputs.</summary>
+    public static void RecoveryState(this BufferFill fill, MemoryBuffer1D<MixtureState, Stride1D.Dense> state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (fill == BufferFill.Zero) { state.MemSetToZero(); }
+        else { state.CopyFromCPU([PoisonedState(Number(fill))]); }
+    }
+
     private static double Number(BufferFill fill) => fill == BufferFill.NotANumber ? double.NaN : 1.0e300;
 
     private static int Integer(BufferFill fill) => fill == BufferFill.NotANumber ? -77777 : int.MaxValue;

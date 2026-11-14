@@ -73,7 +73,8 @@ public sealed class OverlappingPhaseInventoryTests
         using var status = accelerator.Allocate1D<int>(1);
         using var iterations = accelerator.Allocate1D<int>(1);
         var problem = new EquilibriumProblem(ProblemKind.AssignedTemperaturePressure, 1.0e5, temperature, 0.0, elements.View);
-        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount);
+        using var recoveryStates = accelerator.Allocate1D<MixtureState>(1);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount, recoveryStates.View);
         var result = new EquilibriumResult(moles.View, multipliers.View, states.View, status.View, iterations.View);
         var state = new IterationState();
         Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(buffers.View, problem, scratch, result, EstimateSource.Defaults, ref state));
