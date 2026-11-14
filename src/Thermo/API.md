@@ -293,6 +293,13 @@ operand exactly (`BOOT.md`, "`KernelMath`").
 | more species, elements or intervals than `TableLimits` | `ArgumentException`, checked before any lookup |
 | a species function with an index outside the table | undefined in kernels; callers guarantee the range |
 
+⚠ 2026-11-14: a partial SpeciesTableBuffers upload formerly leaked its acquired
+prefix. Upload now reserves ownership before allocations and rolls the prefix back
+on failure; successful disposal attempts each buffer and is idempotent. Secondary
+rollback failures attach to the original exception under
+`APThermo.Thermo.CleanupFailures`; a standalone multi-failure cleanup reports an
+AggregateException. Diagnostic attachment is best-effort under genuine host exhaustion.
+
 ## Side effects
 
 None.

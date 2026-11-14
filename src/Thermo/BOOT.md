@@ -85,6 +85,12 @@ and `Accelerator` as the parameter of the upload; no accelerator is created here
 
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
+- Species-table upload is transactional. Tracking for its flat array columns is
+  reserved before allocation; failure rolls back the uploaded prefix. Cleanup
+  attempts every buffer and preserves a primary failure with secondary diagnostics.
+  ⚠ 2026-11-14: the previous constructor leaked its allocated prefix when a later
+  allocation failed; sequential disposal could also stop at its first child error.
+
 - The functions and the view are kernel-compatible C# (static methods, blittable
   structs, no allocation, no exceptions). The builder is ordinary .NET.
 - Size limits are fixed here because they size the scratch of every consumer: at most

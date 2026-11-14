@@ -316,5 +316,11 @@
   source: three failures; new source: three pass. CPU cleanup/transfer/launch-policy
   regressions: 15 pass, no skips. Logs `SCRATCH/audit/batch-cleanup-red.log`,
   `batch-cleanup-green.log`, `cleanup-cpu-regression.log` in audit-execution.
-- [ ] A04 remaining owner chains: species-table partial upload, Engine.Upload,
+- [x] 2026-11-14 — A04 remaining owner chains: species-table partial upload, Engine.Upload,
   UploadedTables and engine disposal must use transactional ownership and fault controls.
+  Evidence: TransactionOwnershipTests (allocation/wrapper faults, ordinary/injected
+  OOM, successful/transport-free handoff, rejected registration, real CPU session
+  release), BatchCleanupAuditTests and the CPU function/transport batch comparisons.
+  Negative mutations drop primary propagation or omit handoff and fail the controls.
+  Logs `SCRATCH/audit/transaction-cpu-regression.log`, `upload-primary-negative.log`,
+  `upload-transfer-negative.log`. No actual host exhaustion or driver reset induced.

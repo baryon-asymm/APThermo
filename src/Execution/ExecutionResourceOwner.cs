@@ -30,6 +30,14 @@ internal sealed class ExecutionResourceOwner : IDisposable
         return resource;
     }
 
+    internal T? AcquireOptional<T>(Func<T?> allocate) where T : class, IDisposable
+    {
+        var entry = Reserve(prepend: false);
+        var resource = allocate();
+        entry.Resource = resource;
+        return resource;
+    }
+
     /// <summary>Accepts an existing resource; failed registration still releases that just-handed resource.</summary>
     internal void Own(IDisposable resource, bool prepend = false)
     {
@@ -44,7 +52,34 @@ internal sealed class ExecutionResourceOwner : IDisposable
         }
     }
 
-    internal void Own(Action release, bool prepend = false) => Reserve(prepend).Release = release;
+    internal void Own(Action release, bool prepend = false)
+    {
+        try
+        {
+            Reserve(prepend).Release = release;
+        }
+        catch (Exception primary)
+        {
+            try
+            {
+                release();
+            }
+            catch (Exception error) when (Recoverable(error))
+            {
+                Attach(primary, error);
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>Closes this staging owner after a completed wrapper has accepted the same resources.</summary>
+    internal void HandOff()
+    {
+        _closed = true;
+        _first = null;
+        _last = null;
+    }
 
     internal void PrepareCleanup(Exception? primary, Func<Exception, bool>? ignore = null)
     {

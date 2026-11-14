@@ -367,7 +367,7 @@ is the same bound for `ProbeMath`, whose inline check a fact could reach only th
 array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now, where it named `inputs`.
 
 ⚠ 2026-11-14: cleanup could mask a propagating normalized timeout with an unrelated
-failure. Chunk-loop and session-construction cleanup now preserve that primary's
+failure. Chunk-loop, upload/probe rollback and session-construction cleanup preserve that primary's
 identity/type/stack and attach secondary diagnostics to its Data dictionary under
 `APThermo.Execution.CleanupFailures`. Registered resources receive cleanup attempts
 before diagnostics are aggregated. Without a primary, a single cleanup failure keeps
@@ -375,6 +375,12 @@ its type; multiple failures are an AggregateException. Real host exhaustion or a
 unwritable diagnostic dictionary can prevent attachment, after attempts have run.
 The former blanket "timed-out disposal never throws" statement now applies only to
 that session's own sticky timeout; other failures are not silently dropped.
+
+Uploads also cover final UploadedTables wrapper construction. Until that wrapper
+accepts both resources the staging owner retains them. Engine disposal clears the
+kernel cache and attempts session cleanup even if cache cleanup fails; UploadedTables
+attempts transport and species cleanup independently. Only the lost session's own
+sticky CUDA error is ignored; unrelated failures remain reportable.
 
 ## Errors
 

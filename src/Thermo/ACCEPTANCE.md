@@ -184,3 +184,11 @@
       `main`. The single fact named by the criteria of 2026-09-27 and 2026-09-28 is
       replaced by these two, their evidence dates stay.
       → HISTORY.md#crit-kernelmath-payload
+
+- [x] 2026-11-14 — A04 species upload: SpeciesBufferOwnershipTests enumerates
+  failure boundaries from the reflected array-column inventory, checks ordinary and
+  injected OOM cleanup faults, preallocation, retained diagnostics and actual CPU
+  MemoryBuffer.IsDisposed values. Stopping cleanup after one resource fails both the
+  group and actual upload controls. Full non-long Thermo.Tests: 1245 passed, no skips,
+  unchanged bit snapshots. Logs `SCRATCH/audit/species-ownership-negative.log` and
+  `thermo-transaction-full.log` in audit-execution; no NASA data changed.

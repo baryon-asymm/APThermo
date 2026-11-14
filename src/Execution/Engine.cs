@@ -13,6 +13,7 @@ internal sealed class Engine : IDisposable
 {
     private readonly AcceleratorSession _session;
     private readonly EngineOptions _options;
+    private readonly ExecutionResourceOwner _ownership;
     private bool _disposed;
 
     private Engine(AcceleratorSession session, EngineOptions options)
@@ -20,6 +21,9 @@ internal sealed class Engine : IDisposable
         _session = session;
         Launchers = new KernelCache(session);
         _options = options;
+        _ownership = new ExecutionResourceOwner();
+        _ownership.Own(session);
+        _ownership.Own(Launchers.Clear, prepend: true);
     }
 
     /// <summary>The accelerator this engine is bound to, and why it is that one.</summary>
@@ -43,7 +47,16 @@ internal sealed class Engine : IDisposable
         }
 
         PtxPostLink.AssertIlgpu();
-        return new Engine(AcceleratorChoice.Decide(options).Session, options);
+        var session = AcceleratorChoice.Decide(options).Session;
+        try
+        {
+            return new Engine(session, options);
+        }
+        catch (Exception primary)
+        {
+            session.DisposePreserving(primary);
+            throw;
+        }
     }
 
     /// <summary>Copies the tables to the accelerator; reusable across batches until disposed. When a transport table is given
@@ -54,22 +67,13 @@ internal sealed class Engine : IDisposable
         ArgumentNullException.ThrowIfNull(species);
         ThrowIfDisposed();
         _session.ThrowIfLost();
-        if (transport is not null && !ReferenceEquals(transport.Species, species))
-        {
-            throw new ArgumentException("the transport table was built for another species table", nameof(transport));
-        }
+        ValidateTransport(species, transport);
 
-        var speciesBuffers = SpeciesTableBuffers.Upload(_session.Accelerator, species);
-        try
-        {
-            var transportBuffers = transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport);
-            return new UploadedTables(this, species, transport, speciesBuffers, transportBuffers);
-        }
-        catch
-        {
-            speciesBuffers.Dispose();
-            throw;
-        }
+        return TableUpload.Create(
+            () => SpeciesTableBuffers.Upload(_session.Accelerator, species),
+            () => transport is null ? null : TransportTableBuffers.Upload(_session.Accelerator, transport),
+            (speciesBuffers, transportBuffers) => new UploadedTables(this, species, transport, speciesBuffers, transportBuffers),
+            _session.CleanupFilter);
     }
 
     /// <summary>Solves every case of the batch.</summary>
@@ -115,11 +119,20 @@ internal sealed class Engine : IDisposable
         // audit's observation 7): MathProbe.OutputLength refuses a count whose offsets would overflow.
         var outputLength = MathProbe.OutputLength(inputs.Length);
         var launch = Launchers.Get<Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<double>>>(nameof(Kernels.Probe), out _);
-        using var inputBuffer = _session.Accelerator.Allocate1D(inputs);
-        using var outputBuffer = _session.Accelerator.Allocate1D<double>(outputLength);
-        launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
-        _session.Accelerator.Synchronize();
-        return outputBuffer.GetAsArray1D();
+        using var resources = new ExecutionResourceOwner();
+        try
+        {
+            var inputBuffer = resources.Acquire(() => _session.Accelerator.Allocate1D(inputs));
+            var outputBuffer = resources.Acquire(() => _session.Accelerator.Allocate1D<double>(outputLength));
+            launch(_session.Accelerator.DefaultStream, inputs.Length, inputBuffer.View, outputBuffer.View);
+            _session.Accelerator.Synchronize();
+            return outputBuffer.GetAsArray1D();
+        }
+        catch (Exception primary)
+        {
+            resources.PrepareCleanup(primary, _session.CleanupFilter);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -131,8 +144,8 @@ internal sealed class Engine : IDisposable
         }
 
         _disposed = true;
-        Launchers.Clear();
-        _session.Dispose();
+        _ownership.PrepareCleanup(null, _session.CleanupFilter);
+        _ownership.Dispose();
     }
 
     internal Accelerator IlgpuAccelerator => _session.Accelerator;
@@ -163,14 +176,14 @@ internal sealed class Engine : IDisposable
     /// one decision behind every drop (<see cref="AcceleratorSession.DropsAfterLoss(CudaException)"/>; BOOT.md, the
     /// third audit pass's finding 2): a lost session's own sticky <see cref="CudaException"/> is dropped, any other
     /// exception propagates.</summary>
-    internal void DisposeAfterLoss(IDisposable disposable)
+    internal void DisposeAfterLoss(IDisposable disposable) =>
+        ExecutionResourceOwner.ReleaseOne(disposable, null, _session.CleanupFilter);
+
+    private static void ValidateTransport(SpeciesTable species, TransportTable? transport)
     {
-        try
+        if (transport is not null && !ReferenceEquals(transport.Species, species))
         {
-            disposable.Dispose();
-        }
-        catch (CudaException failure) when (_session.DropsAfterLoss(failure))
-        {
+            throw new ArgumentException("the transport table was built for another species table", nameof(transport));
         }
     }
 
@@ -191,6 +204,7 @@ internal sealed class Engine : IDisposable
 internal sealed class UploadedTables : IDisposable
 {
     private readonly Engine _engine;
+    private readonly ExecutionResourceOwner _ownership = new();
     private bool _disposed;
 
     internal UploadedTables(Engine engine, SpeciesTable species, TransportTable? transport, SpeciesTableBuffers speciesBuffers, TransportTableBuffers? transportBuffers)
@@ -200,7 +214,16 @@ internal sealed class UploadedTables : IDisposable
         Transport = transport;
         SpeciesBuffers = speciesBuffers;
         TransportBuffers = transportBuffers;
+        _ownership.Own(ReleaseSpecies);
+        if (transportBuffers is not null)
+        {
+            _ownership.Own(ReleaseTransport, prepend: true);
+        }
     }
+
+    private void ReleaseSpecies() => _engine.DisposeAfterLoss(SpeciesBuffers);
+
+    private void ReleaseTransport() => _engine.DisposeAfterLoss(TransportBuffers!);
 
     public SpeciesTable Species { get; }
 
@@ -228,11 +251,7 @@ internal sealed class UploadedTables : IDisposable
         }
 
         _disposed = true;
-        if (TransportBuffers is { } transport)
-        {
-            _engine.DisposeAfterLoss(transport);
-        }
-
-        _engine.DisposeAfterLoss(SpeciesBuffers);
+        _ownership.PrepareCleanup(null, _session.CleanupFilter);
+        _ownership.Dispose();
     }
 }
