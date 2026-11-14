@@ -260,6 +260,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
   policy for representable values.
 - Table upload owns each buffer as soon as allocation succeeds. A later allocation
   failure rolls back previous allocations; disposal attempts every owned buffer.
+  A child OutOfMemoryException is recorded and does not stop later cleanup.
+  StackOverflowException and AccessViolationException propagate; actual host OOM
+  is not claimed tested, and diagnostic storage under it is best effort.
 
 
 ## Acceptance criteria
@@ -395,8 +398,9 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 - [x] 2026-11-14 — A04 (this node's upload): BufferOwnershipTests exercises the
   production allocation transaction over every prefix of the generated view-buffer
   inventory, both failing cleanup resources, primary-error preservation and repeat
-  disposal. Disabling rollback fails eight nonempty-prefix controls. Fatal CLR
-  exceptions propagate rather than being aggregated.
+  disposal. Disabling rollback fails eight nonempty-prefix controls. An injected
+  child OutOfMemoryException is aggregated while remaining resources are attempted;
+  only the separately declared unrecoverable CLR exception classes propagate.
 ## Taboos
 
 - No silent estimate: every estimated species is counted and its mole fraction reported.

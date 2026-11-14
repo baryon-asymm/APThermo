@@ -1,19 +1,18 @@
-using System.Runtime.CompilerServices;
-
 namespace APThermo.Transport;
 
 /// <summary>Host-side ownership during transport-table allocation and after publication.</summary>
 internal sealed class TransportBufferOwnership : IDisposable
 {
-    private readonly List<StrongBox<IDisposable?>> _resources = [];
+    private List<TransportBufferRegistration>? _resources = [];
 
-    /// <summary>Register the ownership slot before allocating; publication needs no later allocation.</summary>
+    /// <summary>Register ownership before allocating; reference publication needs no later allocation.</summary>
     internal T Acquire<T>(Func<T> allocate) where T : class, IDisposable
     {
-        var slot = new StrongBox<IDisposable?>();
+        ObjectDisposedException.ThrowIf(_resources is null, this);
+        var slot = new TransportBufferRegistration();
         _resources.Add(slot);
         var resource = allocate();
-        slot.Value = resource;
+        slot.Resource = resource;
         return resource;
     }
 
@@ -31,37 +30,43 @@ internal sealed class TransportBufferOwnership : IDisposable
         }
     }
 
-    /// <summary>Preserve the allocating failure while retaining secondary cleanup errors.</summary>
+    /// <summary>Keep the allocating error primary, including if cleanup diagnostic allocation fails.</summary>
     internal void Rollback(Exception allocatingFailure)
     {
         try
         {
             Dispose();
         }
-        catch (AggregateException cleanupFailure)
-        {
-            allocatingFailure.Data["TransportBufferCleanup"] = cleanupFailure;
-        }
-    }
-
-    /// <summary>Attempts every resource after ordinary cleanup failures; fatal CLR failures propagate.</summary>
-    public void Dispose()
-    {
-        List<Exception>? failures = null;
-        for (var index = _resources.Count - 1; index >= 0; index--)
+        catch (Exception cleanupFailure) when (cleanupFailure is not (StackOverflowException or AccessViolationException))
         {
             try
             {
-                _resources[index].Value?.Dispose();
+                allocatingFailure.Data["TransportBufferCleanup"] = cleanupFailure;
             }
-            catch (Exception failure) when (failure is not (OutOfMemoryException or StackOverflowException or AccessViolationException))
+            catch (OutOfMemoryException)
             {
-                (failures ??= []).Add(failure);
+                // Diagnostic storage is best effort under real host memory exhaustion.
             }
         }
+    }
 
-        _resources.Clear();
-        if (failures is not null)
+    /// <summary>Attempt every resource before allocating aggregate diagnostics; repeated calls are harmless.</summary>
+    public void Dispose()
+    {
+        var resources = _resources;
+        _resources = null;
+        if (resources is null)
+        {
+            return;
+        }
+
+        for (var index = resources.Count - 1; index >= 0; index--)
+        {
+            resources[index].Dispose();
+        }
+
+        var failures = resources.Select(r => r.Failure).OfType<Exception>().ToArray();
+        if (failures.Length > 0)
         {
             throw new AggregateException("Transport-buffer cleanup failed.", failures);
         }

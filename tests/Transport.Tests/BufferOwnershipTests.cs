@@ -3,16 +3,16 @@ namespace APThermo.Transport.Tests;
 /// <summary>Fault controls exercise upload ownership without provoking a device OOM.</summary>
 public sealed class BufferOwnershipTests
 {
-    private sealed class Resource(bool fails = false) : IDisposable
+    private sealed class Resource(bool fails = false, Exception? failure = null) : IDisposable
     {
         internal int Attempts { get; private set; }
 
         public void Dispose()
         {
             Attempts++;
-            if (fails && Attempts == 1)
+            if ((fails || failure is not null) && Attempts == 1)
             {
-                throw new InvalidOperationException("controlled cleanup failure");
+                throw failure ?? new InvalidOperationException("controlled cleanup failure");
             }
         }
     }
@@ -84,5 +84,25 @@ public sealed class BufferOwnershipTests
         Assert.Equal(count, resource.Attempts);
         ownership.Dispose();
         Assert.Equal(count, resource.Attempts);
+    }
+    /// <summary>A child OOM is recorded while every remaining buffer is still attempted.</summary>
+    [Fact]
+    public void AChildOutOfMemoryFailureDoesNotStopRollbackOrMaskThePrimaryError()
+    {
+        using var remaining = new Resource();
+        // A runtime failure payload avoids provoking actual host memory exhaustion.
+        var failure = Activator.CreateInstance<OutOfMemoryException>();
+        using var oom = new Resource(failure: failure);
+        var ownership = new TransportBufferOwnership();
+        _ = ownership.Acquire(() => remaining);
+        _ = ownership.Acquire(() => oom);
+        var primary = new InvalidOperationException("controlled allocating failure");
+        ownership.Rollback(primary);
+        Assert.Equal(1, oom.Attempts);
+        Assert.Equal(1, remaining.Attempts);
+        var cleanup = Assert.IsType<AggregateException>(primary.Data["TransportBufferCleanup"]);
+        _ = Assert.IsType<OutOfMemoryException>(Assert.Single(cleanup.InnerExceptions));
+        ownership.Dispose();
+        Assert.Equal(1, remaining.Attempts);
     }
 }
