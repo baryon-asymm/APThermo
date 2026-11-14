@@ -334,7 +334,8 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 ⚠ 2026-11-14: the earlier floor criterion required the original attempt's iteration
 count after replay. The physical no-alternative result is still restored exactly,
 but every attempted step is now counted; the CPU floor tests and bank controls
-reverify that contract. Historical 2026-10-04 measurements above are not redated.
+reverify that contract. Original criterion → HISTORY.md#audit-bank-counter.
+Historical 2026-10-04 measurements above are not redated.
 ## Taboos
 
 - No formula of the iteration and no new equation: a probe is a tp solve of the same solver.

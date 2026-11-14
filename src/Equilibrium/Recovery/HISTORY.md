@@ -8,6 +8,27 @@ following a dated pointer left in `BOOT.md` at the place the text used to stand.
 
 ---
 
+<a id="audit-bank-counter"></a>
+## 2026-11-14 — Acceptance criteria: paid recovery work
+
+The root's audit-closure assignment explicitly requires counting all attempted
+work rather than discarding it to retain an iteration snapshot. The physical
+no-alternative predicate and its tests remain current in BOOT.md; only the old
+replay-count clause is superseded and reverified by the CPU floor and bank tests.
+This is an authorized reformulation, not an archive of the current criterion.
+Original criterion, in full:
+
+- [x] Dead-end floors: on example 12's list, every hp and sp target of a tp state of the list plus `H2O(cr)` ends `Ok`
+      at the list-plus-ice temperature (1e-9 relative) when that state holds no ice, and otherwise
+      `TemperatureOutOfRange` or the vapour with the original attempt's iterations; every class walked
+      (2026-10-04, `DeadEndFloorTests.EveryTargetOfTheListPlusIceEndsAtItsStateOrBelowTheFloor`; red with the
+      recheck off: 2 hp and 4 sp false `Ok`s of 300 states each, and with the floors of the held records only: 4 of 168
+      in `ThreeElementTieTests`). The floors themselves: `TheLiquidIsADeadEndFloorExactlyWhenNoIceAdjoinsIt`,
+      `ADownwardStepLandsOnTheHighestDeadEndFloorBelowTheProbe`.
+
+---
+
+
 <a id="magnesite-band-2026-10-04"></a>
 
 ## 2026-10-04 — from "## Acceptance criteria" — the declared magnesite band
