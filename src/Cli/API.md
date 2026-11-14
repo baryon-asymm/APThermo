@@ -480,3 +480,8 @@ engine. No other file, no network.
 
 - A CEA-like formatted text table.
 - Plotting, interpolation, optimization over the sweep: consumers of the document.
+
+⚠ 2026-11-14: A25 found ranges counted steps against the axis value bound and could
+admit 1,000,001 values. The axis bound now includes both endpoints: exactly 1,000,000
+values are accepted, the next value is refused before numeric expansion, for ranges
+and lists alike. The inclusive total document bound remains 10,000,000 cases.

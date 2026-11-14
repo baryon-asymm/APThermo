@@ -14,7 +14,7 @@ internal static class SweepValues
 
     /// <summary>
     /// The most values one axis (a list or a range) may expand to (the second hidden-defect audit of 2026-09-28,
-    /// finding F4, and `API.md`, Input document). A range's own step count is checked against this limit before it
+    /// finding F4, and `API.md`, Input document). A range's step count plus its initial value is checked against this limit before it
     /// is rounded to an <c>int</c>, so the "ends on a step" test below never runs on a step count the limit would
     /// already refuse, and its reason is never false (`range-3e9`: 3e9 steps used to saturate to <see cref="int.MaxValue"/>
     /// first and fail that test with a misleading reason).
@@ -25,11 +25,16 @@ internal static class SweepValues
     {
         if (value.ValueKind == JsonValueKind.Array)
         {
+            var count = value.GetArrayLength();
+            if (count > MaxAxisValues)
+            {
+                throw new InputException($"the list at {path} has {count} values, more than the limit of {MaxAxisValues}");
+            }
+
             var list = StrictObject.AsNumberList(value, path);
             return list.Count switch
             {
                 0 => throw new InputException($"the list at {path} is empty"),
-                > MaxAxisValues => throw new InputException($"the list at {path} has {list.Count} values, more than the limit of {MaxAxisValues}"),
                 _ => list,
             };
         }
@@ -60,7 +65,7 @@ internal static class SweepValues
         // Non-finite (a huge span over a tiny step) and merely too large (2^31-1 steps, or 3e9 with a false "not an
         // integer" reason once rounded to int) are refused here, before the count is rounded to an int and before
         // the "ends on a step" test below, which would otherwise run on a saturated, wrong count (F4).
-        if (!(steps <= MaxAxisValues))
+        if (!(steps <= MaxAxisValues - 1))
         {
             throw new InputException($"the range at {path} would produce more than {MaxAxisValues} values: ({to} - {from}) / {step} = {steps:R}");
         }

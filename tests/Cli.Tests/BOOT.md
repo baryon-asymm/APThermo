@@ -156,7 +156,7 @@ Outside the tree: xunit; the `dotnet` host for the process-level runs.
 
 ## Acceptance criteria
 
-- [ ] `SweepBoundaryTests` admits exactly the inclusive axis bound for lists and ranges,
+- [x] 2026-11-14 — `SweepBoundaryTests` admits exactly the inclusive axis bound for lists and ranges,
   refuses one more before allocating an expanded numeric array, and preserves the
   exact overall case bound and its first refused product.
 

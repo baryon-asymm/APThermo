@@ -97,7 +97,7 @@ bound; refusals precede expanded numeric allocation.
 
 ## Acceptance criteria
 
-- [ ] Audit A25: a range with exactly `MaxAxisValues` including both endpoints is
+- [x] 2026-11-14 — `SweepBoundaryTests` proves audit A25: a range with exactly `MaxAxisValues` including both endpoints is
   accepted; one more value is refused before allocation. The total case bound stays.
 
 - [x] 2026-09-15 — The moved types compile unchanged under
