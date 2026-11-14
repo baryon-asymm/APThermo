@@ -268,7 +268,7 @@ Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 ### Audit closure of 2026-11-14
 
-- Built propellants, elemental mixtures, problem lists and published results own
+- Built propellants, elemental mixtures, problem records and published results own
   read-only snapshots of their nested collections; caller mutations cannot change
   cached definitions, species ordering or completed results.
 - The chemical-system key encodes sequence boundaries and null/empty distinctions
