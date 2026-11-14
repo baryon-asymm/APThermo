@@ -66,6 +66,11 @@ Outside the tree: ILGPU 1.5.3 (`ILGPU`, `ILGPU.Runtime` — `Accelerator`, `Arra
 
 - Chunk enumeration advances by its actual remaining length without integer overflow.
   Cleanup attempts every allocated buffer; rollback preserves the primary failure.
+  Reserve ownership before buffer allocation; a failed allocation closes the group.
+  Primary-aware disposal records unrelated cleanup failures instead of replacing a
+  normalized timeout. A lost session's sticky error is the only ignorable device error.
+  ⚠ 2026-11-14: declaration-order disposal previously stopped at its first failure;
+  now all declared owners receive an attempt and diagnostics follow the primary.
 
 - Every type here is `internal`; none becomes public. A child of a node never carries
   a public type: that would move consumers' `using` directives and the surface
