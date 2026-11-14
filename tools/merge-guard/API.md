@@ -56,18 +56,32 @@ the current directory, which it never changes.
 4. **History**, always: no non-blank line is removed from any `HISTORY.md` of the tree,
    printed as its own line `ok    history: N HISTORY.md touched, append-only`. Then
    **documents** (`--doc-nodes`, skipped without it): the moved-text rules of `BOOT.md`,
-   `## Constraints`.
+   `## Constraints`. Independently, **criteria** always preserves current checkboxes
+   and their evidence; an archive copy is not a live criterion. Dated completions,
+   re-verifications and documented revisions are permitted by the criterion matcher.
 
    ⚠ 2026-10-02: was the append-only rule inside the documents check, skipped without
    `--doc-nodes`; now it runs on every branch, since a branch that rewrites history is
    no less wrong for moving no text (the orchestrator's decision on the coder's report).
 5. **Overlap** (`--overlap`): files changed on both sides since the merge base.
-6. **Trial merge**: a detached worktree at the target's head in the system temp
-   directory, `git merge --no-ff --no-commit <branch>`.
-7. **Commands**, in the trial worktree, in the order of the command table.
-8. **Merge** (`--merge`): `git merge --no-ff --no-commit` in the main checkout, the
-   tree compared with the trial's, then `git commit -F <message-file>`; on a different
-   tree, `git merge --abort` and a failure.
+6. **Pinned inputs and trial merge**: source and target commit OIDs are fixed
+   before the static checks. They must still name the same refs before the trial.
+   A detached worktree at the target OID merges the source OID, never a live ref.
+   Current criteria from the target must survive in the merged tree too.
+7. **Commands**, in the trial worktree, in the order of the command table. Both refs
+   must remain unchanged when the commands finish.
+8. **Publication** (`--merge`): create a two-parent commit of the tested tree with
+   the pinned parents and supplied message. One Git transaction verifies/locks the
+   source and target refs; while held, checkout the candidate without moving HEAD
+   or running a post-merge hook, verify its index/working files, then atomically
+   publish it. A failed transaction publishes nothing. Recovery only reverts the
+   guard's unchanged checkout; concurrent edits are never discarded.
+
+⚠ 2026-11-14: steps 6 and 8 previously resolved the branch name again and performed
+another ordinary merge. Tree equality did not prove the source passed the static
+checks (audit A19). The pinned OIDs and compare-and-swap transaction replace that
+incomplete guarantee. Audit A20 adds live-criterion preservation independently of
+verbatim moved-text preservation.
 
 ## The command table ✅
 

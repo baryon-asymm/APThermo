@@ -23,6 +23,22 @@ whether a condensed rule kept its meaning is not something a script can tell.
 
 ## Invariants
 
+- **Pinned acceptance inputs (audit A19).** Resolve source and target commit OIDs
+  before checking paths, records or documents. Every later read and trial uses
+  those OIDs. A moved source or target ref fails acceptance, even if its new tree
+  happens to match. Publication verifies and locks both expected refs in one Git
+  transaction; no unchecked branch tip can become a parent of the accepted commit.
+- **Live criteria stay live (audit A20).** Across every candidate, a checkbox and
+  its evidence remain together in current acceptance documents, not only HISTORY.
+  A dated completion/re-verification or documented criterion revision is allowed;
+  silent deletion, archival or loss of one duplicate occurrence is refused.
+
+⚠ 2026-11-14: the tree-equality claim alone did not pin the source revision, and
+moved-text preservation allowed current criteria to be archived. Audit A19/A20
+exposed both gaps; pinned publication and a distinct live-criterion check replace
+those incomplete proofs. The reviewed protocol kit supplies the Git transaction
+publisher and the criterion matcher; their local copies are tested here.
+
 - **Standard library of Python 3.8+ only**, like the protocol linter: it runs on the
   reference machine as it is, Windows and WSL2.
 - **Nothing leaves the machine.** The guard never pushes, fetches, tags or calls any
@@ -36,9 +52,11 @@ whether a condensed rule kept its meaning is not something a script can tell.
   --force` of the trial worktree only. The trial merge and the build leave that
   worktree dirty and git refuses to remove a dirty worktree otherwise; nothing but the
   guard's own worktree is ever named in that call.
-- **What was tested is what is merged.** The final merge is made with `--no-commit`,
-  its tree (`git write-tree`) is compared with the tree of the trial merge, and it is
-  committed only when the two are equal; otherwise it is aborted.
+- **What was tested is what is published.** The candidate commit has the trial's
+  exact tree and the pinned target/source OIDs as its two parents. Publication
+  verifies both expected refs in one prepared Git transaction, checks out that
+  candidate without moving HEAD, checks the index tree and only then commits the
+  ref transaction. A moved ref cannot pass by having the same tree.
 - **The trial worktree is the guard's own**: created detached in the system temp
   directory, removed on every exit path, success or failure.
 - **Every check fails loudly on an empty walk**: a branch with no commit over the
@@ -95,8 +113,8 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
   as a file header, losing the line unseen.
 - **Overlap.** A file changed both on the target since the merge base and on the
   branch must match an `--overlap` pattern.
-- **Trial.** The branch is merged with `--no-ff --no-commit` into a detached worktree
-  at the target's head, its git writes under `core.longpaths` (a scratch checkout of this
+- **Trial.** The pinned source OID is merged with `--no-ff --no-commit` into a
+  detached worktree at the pinned target OID, its git writes under `core.longpaths` (a scratch checkout of this
   tree beneath a long Windows path failed on the benchmark results,
   `test_a_path_beyond_the_windows_limit_is_checked_out_in_the_trial`); a conflict is a
   failure that names the files. The linter runs
@@ -119,6 +137,20 @@ and `Category!=LongRunning`, and, with `--cuda`, the reference-machine proofs.
   them by review.
 
 ## Acceptance criteria
+
+- [x] 2026-11-14: A19, `AuditAcceptanceTests` proves a source movement after the
+      static checks and a same-tree target movement after the trial are refused;
+      `MergeTests` publishes the tested tree with the two expected parents.
+      `test_publication_locks_both_refs_during_checkout` rejects competing writes
+      to both refs while checkout runs. Removing the source verification in a
+      scratch publisher makes that test red (`publication did not lock ... coder`);
+      removing the target update makes it red for `integration`.
+- [x] 2026-11-14: A20, `AuditAcceptanceTests` rejects archival and lost evidence
+      without `--doc-nodes`, accepts a dated completion. The criterion matcher's
+      `tools/protocol-lint/test_history_guard.py` covers revisions, duplicates,
+      comments, fences, evidence and current `ACCEPTANCE.md` pointers (35 tests).
+      On the pre-fix guard the archive and evidence controls were red because the
+      invalid candidates were accepted; the post-fix suite passes (72 tests).
 
 - [x] The self-test `python -X utf8 tools/merge-guard/test_merge_guard.py` passes and
       builds its repositories in the system temp directory, never in this tree; its

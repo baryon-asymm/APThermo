@@ -265,6 +265,119 @@ class GuardCase(unittest.TestCase):
         return match.group(1)
 
 
+class AuditAcceptanceTests(GuardCase):
+    """Pinned revisions and live acceptance criteria are independent guards."""
+
+    def injected_guard(self, checkpoint: str, action: str, merge: bool = False) -> Run:
+        """Inject one race in a child process, not in the parallel test runner."""
+        arguments = ["coder", "--scope", "^app/", "--commands", self.green_stub()]
+        if merge:
+            arguments += ["--merge", self.message_file()]
+        code = ("import sys; sys.path.insert(0, " + repr(str(Path(GUARD_SCRIPT).parent)) + "); "
+                "import merge_guard as guard\n"
+                "original = guard." + checkpoint + "\n"
+                "def injected(*args):\n"
+                "    result = original(*args)\n"
+                "    ctx = args[0]\n" + action + "\n"
+                "    return result\n"
+                "guard." + checkpoint + " = injected\n"
+                "sys.exit(guard.run_guard(guard.parse_arguments(" + repr(arguments) + "), '.'))\n")
+        result = subprocess.run([sys.executable, "-X", "utf8", "-c", code], cwd=self.repo,
+                                env=self.environment, capture_output=True, text=True, encoding="utf-8")
+        return Run(result.returncode, result.stdout + result.stderr)
+
+    def message_file(self) -> str:
+        path = os.path.join(self.work, "merge-message.txt")
+        write(self.work, {"merge-message.txt": MERGE_MESSAGE})
+        return path
+
+    def test_source_movement_after_static_checks_is_refused(self) -> None:
+        self.coder_commit({"app/allowed.txt": "checked\n"})
+        checked = git(self.repo, "rev-parse", "coder")
+        self.coder_commit({"outside/unreviewed.txt": "not checked\n"})
+        unchecked = git(self.repo, "rev-parse", "coder")
+        git(self.repo, "update-ref", "refs/heads/coder", checked, unchecked)
+        action = "    guard.git(ctx.repo, 'update-ref', 'refs/heads/coder', {!r}, {!r})".format(unchecked, checked)
+        self.assert_red(self.injected_guard("check_overlap", action, merge=True), "source branch moved")
+        self.assertFalse(os.path.exists(os.path.join(self.repo, "outside", "unreviewed.txt")))
+        self.assert_left_clean()
+
+    def test_target_movement_after_trial_is_refused_even_for_the_same_tree(self) -> None:
+        self.coder_commit({"app/new.txt": "checked\n"})
+        target = self.head()
+        tree = git(self.repo, "rev-parse", "HEAD^{tree}")
+        moved = git(self.repo, "commit-tree", tree, "-p", target, "-m", "concurrent empty commit")
+        action = "    guard.git(ctx.repo, 'update-ref', 'refs/heads/integration', {!r}, {!r})".format(moved, target)
+        self.assert_red(self.injected_guard("run_trial", action, merge=True), "target branch moved")
+        self.assertEqual(moved, self.head())
+        self.assert_left_clean()
+
+    def test_publication_locks_both_refs_during_checkout(self) -> None:
+        self.coder_commit({"app/new.txt": "checked\n"})
+        source = git(self.repo, "rev-parse", "coder")
+        target = self.head()
+        tree = git(self.repo, "rev-parse", "coder^{tree}")
+        candidate = git(self.repo, "commit-tree", tree, "-p", target, "-p", source, "-m", "tested merge")
+        moved = git(self.repo, "commit-tree", tree, "-p", source, "-m", "concurrent source")
+        directory = repr(str(Path(GUARD_SCRIPT).parent))
+        code = ("import sys, subprocess; sys.path.insert(0, " + directory + "); import publish_merge as p\n"
+                "original = p.git\n"
+                "def checked(*args, **options):\n"
+                "    if 'merge' in args:\n"
+                "        for ref, old in " + repr([("refs/heads/coder", source), ("refs/heads/integration", target)]) + ":\n"
+                "            attempt = subprocess.run(['git', 'update-ref', ref, " + repr(moved) + ", old], capture_output=True)\n"
+                "            p.require(attempt.returncode != 0, 'publication did not lock ' + ref)\n"
+                "            print('LOCKED=' + ref)\n"
+                "    return original(*args, **options)\n"
+                "p.git = checked\n"
+                "p.publish(*" + repr(["refs/heads/coder", source, "refs/heads/integration", target, candidate, tree]) + ")\n")
+        result = subprocess.run([sys.executable, "-X", "utf8", "-c", code], cwd=self.repo,
+                                env=self.environment, capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("LOCKED=refs/heads/coder", result.stdout)
+        self.assertIn("LOCKED=refs/heads/integration", result.stdout)
+        self.assertEqual(candidate, self.head())
+        self.assertEqual(source, git(self.repo, "rev-parse", "coder"))
+        self.assert_left_clean()
+
+    def test_publication_keeps_the_long_path_checkout_contract(self) -> None:
+        deep = "/".join(["app"] + ["d" * 40] * 6 + ["file.txt"])
+        self.coder_commit({deep: "deep\n"})
+        run = self.run_green("--merge", self.message_file())
+        self.assertEqual(0, run.code, run.out)
+        self.assertEqual("deep\n", read_text(extended(os.path.join(self.repo, deep))))
+        self.assert_left_clean()
+
+    def seed_criterion(self, criterion: str) -> str:
+        text = BOOT_TEXT + "\n## Acceptance criteria\n\n" + criterion + "\n"
+        self.commit({"node/BOOT.md": text}, "seed live acceptance")
+        git(self.repo, "branch", "-f", "main", "HEAD")
+        return text
+
+    def test_archiving_a_live_criterion_is_refused_without_doc_nodes(self) -> None:
+        criterion = "- [x] Export is complete (2026-11-14, `ExportTest`)."
+        text = self.seed_criterion(criterion)
+        self.coder_commit({"node/BOOT.md": text.replace(criterion, ""),
+                           "node/HISTORY.md": HISTORY_TEXT + "\n" + criterion + "\n"})
+        run = self.run_guard("coder", "--scope", "^node/", "--checks-only")
+        self.assert_red(run, "criteria")
+        self.assert_left_clean()
+
+    def test_deleting_live_evidence_is_refused(self) -> None:
+        criterion = "- [x] Export is complete (2026-11-14, `ExportTest`)."
+        text = self.seed_criterion(criterion)
+        self.coder_commit({"node/BOOT.md": text.replace(", `ExportTest`", "")})
+        self.assert_red(self.run_guard("coder", "--scope", "^node/", "--checks-only"), "criteria")
+
+    def test_dated_completion_of_a_live_criterion_is_allowed(self) -> None:
+        criterion = "- [ ] Export is complete."
+        text = self.seed_criterion(criterion)
+        completed = "- [x] Export is complete. (2026-11-14, `ExportTest`)."
+        self.coder_commit({"node/BOOT.md": text.replace(criterion, completed)})
+        run = self.run_guard("coder", "--scope", "^node/", "--checks-only")
+        self.assertEqual(0, run.code, run.out)
+
+
 class InvocationTests(GuardCase):
     """Exit code 2: the command line is wrong, not the branch."""
 
@@ -795,7 +908,7 @@ class MergeTests(GuardCase):
         self.assertNotEqual("", git(self.repo, "rev-parse", "--verify", "--quiet", "refs/heads/coder"))
 
     def test_a_target_that_moved_after_the_trial_aborts_the_merge(self) -> None:
-        """The tree of the final merge differs from the trial's: aborted, nothing committed by the guard."""
+        """A moved target is refused before publication; its independent commit is retained."""
         self.coder_commit({"app/new.txt": "x\n"})
         moving = (
             "import subprocess\n"
@@ -805,8 +918,8 @@ class MergeTests(GuardCase):
                 repo=self.repo, late=os.path.join(self.repo, "late.txt"))
         commands = self.stubs(self.stub("mover", moving), self.stub("cuda probe", requires="cuda"))
         run = self.run_guard("coder", "--scope", "^app/", "--cuda", "--commands", commands, "--merge", self.message())
-        self.assert_red(run, "differs from the trial tree")
-        self.assertIn("merge aborted", run.out)
+        self.assert_red(run, "target branch moved")
+        self.assertNotIn("ok    merged:", run.out)
         self.assertEqual("late target work", git(self.repo, "log", "-1", "--format=%s"))
         self.assertFalse(os.path.exists(os.path.join(self.repo, "app", "new.txt")))
         self.assert_left_clean()

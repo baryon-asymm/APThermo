@@ -14,6 +14,18 @@ and is run before and after work in any node. Since 2026-10-01 its checks are th
 
 ## Invariants
 
+- **Exact forms (audit A24).** A checked date is a real calendar date, a document
+  link resolves to a file, and an external acceptance pointer is the section's only
+  physical nonblank line. Fenced examples do not create headings or links; only a
+  matching fence with no information string closes them. Explicit source roots
+  may select an owned subtree below a normally excluded directory, never outside
+  the tree, while retaining exclusions inside that selected subtree.
+
+⚠ 2026-11-14: shape-only dates, `exists()` links and a masked acceptance section
+accepted invalid calendar dates, directory targets and extra hidden content.
+Audit A24 demonstrated the omissions. The reviewed current kit's form checks and
+its positive/negative self-tests replace those approximations.
+
 - **Standard library of Python 3.8+ only.** The protocol check must run where nothing
   has been installed yet, including on the first commit of a new repository, before a
   package manager has been chosen.
@@ -106,6 +118,16 @@ Outside the tree: Python 3.8+ (standard library), `unittest` for the self-test.
   named node lacks), plus one for `--exclude`, which no fact guarded before.
 
 ## Acceptance criteria
+
+- [x] 2026-11-14: A24, `test_protocol_lint.py` (75 tests) rejects invalid calendar
+      dates, directory links and extra physical acceptance-pointer content; nested
+      headings, fence boundaries and explicit source roots have positive controls.
+      These new controls on the old linter produced 10 failures and 2 errors; on
+      the corrected linter all pass. Existing repository template tests remain.
+- [x] 2026-11-14: `test_history_guard.py` (35 tests) verifies the current-criterion
+      matcher used by merge-guard: checkbox/evidence multiplicity and current
+      acceptance locations are preserved; permitted dated updates and documented
+      revisions are distinguished from deletion or archival.
 
 - [x] Every check is proven non-degenerate: exactly one breakage is applied to a
       conformant tree and the check turns red — 68 tests, none skipped

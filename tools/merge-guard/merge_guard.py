@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Optional, Pattern, Sequence, Set, Tuple
 
 PROTECTED_TARGET = "main"
@@ -91,6 +92,7 @@ class Context:
     options: Options
     target: str
     target_head: str
+    source_head: str
     base: str
     changed: List[str]
 
@@ -169,15 +171,17 @@ def check_preconditions(repo: str, options: Options) -> Tuple[Context, str]:
     branch_ref = "refs/heads/" + options.branch
     if git(repo, "rev-parse", "--verify", "--quiet", branch_ref + "^{commit}", check=False).returncode != 0:
         raise GuardFailure("branch {} does not exist".format(options.branch))
-    base = git(repo, "merge-base", "HEAD", branch_ref, check=False).stdout.strip()
+    target_head = git_text(repo, "rev-parse", "HEAD")
+    source_head = git_text(repo, "rev-parse", branch_ref + "^{commit}")
+    base = git(repo, "merge-base", target_head, source_head, check=False).stdout.strip()
     if not base:
         raise GuardFailure("branch {} shares no history with {}".format(options.branch, target))
-    commits = int(git_text(repo, "rev-list", "--count", "{}..{}".format(base, branch_ref)))
+    commits = int(git_text(repo, "rev-list", "--count", "{}..{}".format(base, source_head)))
     if commits < 1:
         raise GuardFailure("branch {} has no commit over the merge base: an empty walk".format(options.branch))
     check_coder_worktree(repo, options.branch)
-    changed = git_names(repo, "diff", "--name-only", "-z", "--no-renames", base, branch_ref)
-    context = Context(repo, options, target, git_text(repo, "rev-parse", "HEAD"), base, changed)
+    changed = git_names(repo, "diff", "--name-only", "-z", "--no-renames", base, source_head)
+    context = Context(repo, options, target, target_head, source_head, base, changed)
     return context, "preconditions: target {}, merge base {}, {} coder commits".format(target, base[:7], commits)
 
 
@@ -214,7 +218,7 @@ def is_approved_record(path: str) -> bool:
 def check_approved_records(ctx: Context) -> str:
     """Check 3: a changed approved record must match an --approve pattern; every one is listed."""
     options = ctx.options
-    tree = git_names(ctx.repo, "ls-tree", "-r", "--name-only", "-z", "refs/heads/" + options.branch)
+    tree = git_names(ctx.repo, "ls-tree", "-r", "--name-only", "-z", ctx.source_head)
     records = [path for path in tree if is_approved_record(path)]
     unmatched = [p.pattern for p in options.approve if not any(p.search(r) for r in records)]
     if unmatched:
@@ -237,7 +241,7 @@ def check_approved_records(ctx: Context) -> str:
 
 def line_counts(ctx: Context, path: str) -> Tuple[int, int]:
     """Added and removed line counts of one path between the merge base and the branch."""
-    text = git_text(ctx.repo, "diff", "--numstat", "--no-renames", ctx.base, "refs/heads/" + ctx.options.branch, "--", path)
+    text = git_text(ctx.repo, "diff", "--numstat", "--no-renames", ctx.base, ctx.source_head, "--", path)
     fields = text.split("\t")
     if len(fields) < 3 or not fields[0].isdigit() or not fields[1].isdigit():
         return 0, 0
@@ -283,7 +287,7 @@ def parse_hunks(diff_text: str) -> Tuple[List[str], List[str]]:
 def diff_lines(ctx: Context, path: str) -> Tuple[List[str], List[str]]:
     """Removed and added lines of `path` between the merge base and the branch."""
     text = git_text(ctx.repo, "diff", "--unified=0", "--no-color", "--no-ext-diff", "--no-renames",
-                    ctx.base, "refs/heads/" + ctx.options.branch, "--", path)
+                    ctx.base, ctx.source_head, "--", path)
     return parse_hunks(text)
 
 
@@ -349,15 +353,15 @@ def node_findings(ctx: Context, prefix: str, gained: Set[str], moved_down: Set[s
     boot = prefix + "BOOT.md"
     removed, added = diff_lines(ctx, boot)
     lost = [line for line in removed if line.strip() and normalize_line(line) not in gained]
-    new_text = show_file(ctx, "refs/heads/" + ctx.options.branch, boot)
+    new_text = show_file(ctx, ctx.source_head, boot)
     allowed = pointer_lines(new_text) | moved_down
     stray: List[str] = []
     if file_exists(ctx, ctx.base, boot):
         stray = [line for line in added
                  if line.strip() and not line.lstrip().startswith("#") and normalize_line(line) not in allowed]
-    history = "".join(show_file(ctx, "refs/heads/" + ctx.options.branch, up + "HISTORY.md")
+    history = "".join(show_file(ctx, ctx.source_head, up + "HISTORY.md")
                       for up in ancestor_prefixes(prefix))
-    cited_in = new_text + show_file(ctx, "refs/heads/" + ctx.options.branch, prefix + "ACCEPTANCE.md")
+    cited_in = new_text + show_file(ctx, ctx.source_head, prefix + "ACCEPTANCE.md")
     known = defined_anchors(history)
     unresolved = sorted(anchor for anchor in set(BARE_CITATION.findall(cited_in)) if anchor not in known)
     return NodeFindings(len([line for line in removed if line.strip()]), lost, stray, unresolved)
@@ -384,7 +388,7 @@ def check_documents(ctx: Context) -> str:
         if node_prefix(node) not in prefixes:
             prefixes.append(node_prefix(node))
     for prefix in prefixes:
-        if not file_exists(ctx, "refs/heads/" + ctx.options.branch, prefix + "BOOT.md"):
+        if not file_exists(ctx, ctx.source_head, prefix + "BOOT.md"):
             raise GuardFailure("documents: node {} has no BOOT.md: an empty walk".format(prefix.rstrip("/") or "."))
     gained: Set[str] = set()
     moved_down: Set[str] = set()
@@ -454,9 +458,9 @@ class TrialWorktree:
         self.path = os.path.join(self.parent, "trial")
         git(self.repo, *LONG_PATHS, "worktree", "add", "--detach", self.path, target_head)
 
-    def merge(self, branch: str) -> str:
+    def merge(self, source_head: str) -> str:
         """`merge --no-ff --no-commit` of the branch; the tree it produced, or a conflict failure."""
-        result = git(self.path, *LONG_PATHS, "merge", "--no-ff", "--no-commit", "refs/heads/" + branch, check=False)
+        result = git(self.path, *LONG_PATHS, "merge", "--no-ff", "--no-commit", source_head, check=False)
         if result.returncode != 0:
             conflicts = git_names(self.path, "diff", "--name-only", "-z", "--diff-filter=U")
             what = "trial merge: conflict in {} files".format(len(conflicts)) if conflicts else \
@@ -638,24 +642,52 @@ class GpuLock:
 # ------------------------------------------------------------------- final merge
 
 
-def merge_into_checkout(ctx: Context, trial_tree: str, message_file: str) -> str:
-    """Check 8: merge in the main checkout, prove the tree equals the trial's, commit.
+def check_pinned_refs(ctx: Context) -> str:
+    """A name still resolves to the input checked at the start, not merely its tree."""
+    source = git_text(ctx.repo, "rev-parse", "refs/heads/" + ctx.options.branch)
+    target = git_text(ctx.repo, "rev-parse", "refs/heads/" + ctx.target)
+    if source != ctx.source_head:
+        raise GuardFailure("source branch moved after acceptance inputs were pinned")
+    if target != ctx.target_head:
+        raise GuardFailure("target branch moved after acceptance inputs were pinned")
+    if git_text(ctx.repo, "symbolic-ref", "--quiet", "--short", "HEAD") != ctx.target:
+        raise GuardFailure("target checkout switched after acceptance inputs were pinned")
+    return "pinned refs: source and target unchanged"
 
-    Every failure after the merge started aborts it; the checkout is never left in a merge state.
-    """
-    repo = ctx.repo
-    try:
-        result = git(repo, "merge", "--no-ff", "--no-commit", "refs/heads/" + ctx.options.branch, check=False)
-        if result.returncode != 0:
-            raise GuardFailure("merge into {} failed: {}".format(ctx.target, (result.stderr or result.stdout).strip()))
-        tree = git_text(repo, "write-tree")
-        if tree != trial_tree:
-            raise GuardFailure("merged tree {} differs from the trial tree {}: merge aborted".format(tree[:7], trial_tree[:7]))
-        git(repo, "commit", "-F", message_file)
-        return "merged: {}, tree equal to the trial tree".format(git_text(repo, "rev-parse", "--short", "HEAD"))
-    finally:
-        if merge_in_progress(repo):
-            git(repo, "merge", "--abort", check=False)
+
+def check_criteria_between(ctx: Context, before: str, after: str) -> str:
+    """Keep live criteria in current acceptance documents, not merely in HISTORY."""
+    script = Path(__file__).resolve().parent.parent / "protocol-lint" / "history_guard.py"
+    result = subprocess.run([sys.executable, "-X", "utf8", str(script), "--criteria-only",
+                             ctx.repo, before, after], capture_output=True,
+                            text=True, encoding="utf-8", errors="replace")
+    if result.returncode:
+        lines = (result.stdout + result.stderr).splitlines()
+        raise GuardFailure("criteria: live criterion or evidence was lost", capped(lines))
+    return "criteria: current checkboxes and evidence preserved"
+
+
+def check_live_criteria(ctx: Context) -> str:
+    """Static acceptance includes criterion preservation even without --doc-nodes."""
+    return check_criteria_between(ctx, ctx.base, ctx.source_head)
+
+
+def merge_into_checkout(ctx: Context, trial_tree: str, message_file: str) -> str:
+    """Publish the tested two-parent commit while Git locks and verifies both tips."""
+    check_pinned_refs(ctx)
+    check_criteria_between(ctx, ctx.target_head, trial_tree)
+    candidate = git_text(ctx.repo, "commit-tree", trial_tree, "-p", ctx.target_head,
+                         "-p", ctx.source_head, "-F", message_file)
+    publisher = Path(__file__).resolve().parent / "publish_merge.py"
+    result = subprocess.run([sys.executable, "-X", "utf8", str(publisher),
+                             "refs/heads/" + ctx.options.branch, ctx.source_head,
+                             "refs/heads/" + ctx.target, ctx.target_head,
+                             candidate, trial_tree], cwd=ctx.repo, capture_output=True,
+                            text=True, encoding="utf-8", errors="replace")
+    if result.returncode:
+        details = (result.stdout + result.stderr).splitlines()
+        raise GuardFailure("atomic publication failed", capped(details))
+    return "merged: {}, tree equal to the trial tree".format(candidate[:7])
 
 
 # ----------------------------------------------------------------------- driver
@@ -679,8 +711,10 @@ class Reporter:
 
 def run_trial(ctx: Context, trial: TrialWorktree, lock: GpuLock, log: str) -> str:
     """Checks 6 and 7: the trial merge and the commands; the trial tree."""
+    check_pinned_refs(ctx)
     trial.create(ctx.target_head)
-    tree = trial.merge(ctx.options.branch)
+    tree = trial.merge(ctx.source_head)
+    check_criteria_between(ctx, ctx.target_head, tree)
     Reporter.ok("trial merge: no conflict (worktree removed on exit)")
     ran = 0
     for command in ctx.options.commands or default_commands():
@@ -708,12 +742,14 @@ def run_guard(options: Options, repo: str) -> int:
     try:
         ctx, line = check_preconditions(repo, options)
         Reporter.ok(line)
-        for check in (check_scope, check_approved_records, check_history, check_documents, check_overlap):
+        for check in (check_scope, check_approved_records, check_history, check_documents, check_live_criteria, check_overlap):
             Reporter.ok(check(ctx))
+        check_pinned_refs(ctx)
         if options.checks_only:
             print("merge-guard: green (static checks only)", flush=True)
             return 0
         tree = run_trial(ctx, trial, lock, log)
+        check_pinned_refs(ctx)
         if options.merge_message:
             Reporter.ok(merge_into_checkout(ctx, tree, options.merge_message))
         print("merge-guard: green (log: {})".format(log), flush=True)

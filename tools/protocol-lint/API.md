@@ -1,13 +1,13 @@
 # API.md — protocol-lint
 
-The node exposes a command line and one Python module. Everything else is internal
-and may change.
+The node exposes the linter command/module and a document-history command.
+Everything else is internal and may change.
 
 ## Command line ✅
 
 ```console
 $ python protocol_lint.py <tree-root> [--ext .sh,.ps1] [--exclude vendor]
-                          [--strict] [--no-heuristics] [--list-nodes]
+                          [--source-root <path> ...] [--strict] [--no-heuristics] [--list-nodes]
 ERROR 15    src/Orders/BOOT.md: 512 non-blank lines, over the 400-line limit for a leaf node; move what is no longer current truth to HISTORY.md, oldest superseded material first, or declare the deviation (AGENTS.md §12)
 ERROR 15    src/Orders/BOOT.md:37: points to HISTORY.md#ghost-anchor, which no anchor in src/Orders/HISTORY.md defines
 WARN  7     src/Orders/API.md:12: declares Ghost under a tick, and no source file of this node mentions it
@@ -19,6 +19,7 @@ protocol_lint: 2 errors, 1 warnings
 | `<tree-root>` | the tree root: the directory holding `AGENTS.md` |
 | `--ext` | additional source extensions, comma-separated |
 | `--exclude` | additional directory names to skip |
+| `--source-root` | additionally scan an existing owned subtree below an excluded directory; repeatable, must remain inside the tree |
 | `--strict` | warnings also produce a non-zero exit code |
 | `--no-heuristics` | skip the textual check of names under ✅ |
 | `--list-nodes` | print the nodes found and exit |
@@ -75,7 +76,7 @@ begin with.
 ## Python module ✅
 
 ```python
-def lint(root, extra_extensions=(), extra_excluded=(), heuristics=True): ...
+def lint(root, extra_extensions=(), extra_excluded=(), heuristics=True, source_roots=()): ...
 def main(argv=None): ...
 
 class Finding:                 # level: ERROR | WARN, article, where, message
@@ -85,6 +86,29 @@ class Finding:                 # level: ERROR | WARN, article, where, message
 `lint` returns the list of findings ordered by location; `main` returns the exit code.
 Neither writes to disk. For a project wiring the linter into its own test set the entry
 point is `lint`: findings are easier to assert on than to parse from the text output.
+
+## Document history command ✅
+
+```console
+$ python -X utf8 tools/protocol-lint/history_guard.py <repo> <base> <branch> <node> [<node> ...]
+$ python -X utf8 tools/protocol-lint/history_guard.py --criteria-only <repo> <before> <after>
+```
+
+The first form checks a document move: lost/stray text, append-only history,
+anchors and current criteria. The second checks the changed acceptance documents
+between two commits or trees; code changes are permitted. Each old checkbox and
+its associated evidence must remain in a current acceptance section or correctly
+linked `ACCEPTANCE.md`, with multiplicity preserved. A copy in `HISTORY.md` does
+not satisfy that obligation. Dated completion/re-verification and a documented
+revision with a concrete successor are allowed; merely adding a date or a vague
+replacement is not. Missing criteria or malformed pointers print `GUARD:` lines
+and exit 1, otherwise the command exits 0. Semantic adequacy of the replacement
+and evidence remains the reviewer's responsibility.
+
+⚠ 2026-11-14: the old form checks accepted date-shaped invalid dates, directory
+link targets and extra masked content beside an acceptance pointer (audit A24).
+Those exact physical/calendar checks now apply. The separately tested history
+matcher supplies merge-guard's current-criterion check (audit A20).
 
 ## What this node does not do
 

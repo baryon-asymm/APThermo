@@ -150,6 +150,66 @@ class ProtocolLintTest(unittest.TestCase):
     def test_a_conforming_tree_is_clean(self) -> None:
         self.assertEqual([], self.findings(), "the fixture itself must satisfy the protocol")
 
+    def test_explicit_source_root_inside_packages_is_scanned(self) -> None:
+        source_root = "packages/orders/src"
+        self.write(source_root + "/index.ts", "export const value = 1;")
+        self.write("packages/downloaded/src/index.ts", "export const external = 1;")
+        self.write(source_root + "/node_modules/nested/index.ts", "export const dep = 1;")
+        args = [str(self.root), "--source-root", source_root]
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(0, lint.main(args + ["--list-nodes"]))
+        self.assertEqual([".", "a", "b", source_root], output.getvalue().splitlines())
+        findings = self.findings(source_roots=[source_root])
+        self.assertEqual(2, len(findings))
+        self.assertTrue(all(item.where.startswith(source_root) for item in findings))
+        self.write(source_root + "/BOOT.md", BOOT.format(name="orders", dependencies="None"))
+        self.write(source_root + "/API.md", "Order values.")
+        self.assertEqual([], self.findings(source_roots=[source_root]))
+
+    def test_explicit_source_root_reports_a_typo(self) -> None:
+        with contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(2, lint.main([str(self.root), "--source-root", "unknown/src"]))
+        self.assertIn("unknown/src", errors.getvalue())
+
+    def test_nested_acceptance_heading_and_calendar_date(self) -> None:
+        marker = "## Acceptance criteria"
+        for separate in (False, True):
+            for day, valid in (("", False), ("2026-99-99", False), ("2024-02-29", True)):
+                with self.subTest(separate=separate, day=day):
+                    body = "### Integration\n\n- [x] Stable output (" + day + ", FixtureRun).\n"
+                    original = BOOT.format(name="root", dependencies="None")
+                    prefix, rest = original.split(marker)
+                    tail = rest[rest.index("## Taboos"):]
+                    if separate:
+                        self.write("ACCEPTANCE.md", body)
+                        body = "→ [ACCEPTANCE.md](ACCEPTANCE.md)\n"
+                    self.write("BOOT.md", prefix + marker + "\n\n" + body + "\n" + tail)
+                    with contextlib.redirect_stdout(io.StringIO()) as output:
+                        self.assertEqual(0 if valid else 1, lint.main([str(self.root), "--strict"]))
+                    if not valid:
+                        self.assertIn("date", output.getvalue())
+
+    def test_document_link_must_resolve_to_a_file(self) -> None:
+        self.write("a/notes.md", "See the document [Beta API](../b).")
+        self.assertFinding("ERROR", "-", "a/notes.md", "file")
+        self.write("a/notes.md", "See the document [Beta API](../b/API.md).")
+        self.assertEqual([], self.findings())
+
+    def test_fence_with_an_info_string_does_not_close_an_example(self) -> None:
+        for delimiter in ("```", "~~~"):
+            with self.subTest(delimiter=delimiter):
+                inner = delimiter + "CSharp"
+                example = "  " + delimiter + "text\n" + inner + "\n[example](missing.md)\n   " + delimiter
+                self.write("a/notes.md", example)
+                self.assertEqual([], self.findings())
+                self.assertEqual([("text", 0, [inner, "[example](missing.md)"])], lint.fenced_blocks(example))
+
+    def test_comma_options_preserve_the_language_of_a_fenced_block(self) -> None:
+        for tag, language in (("CSharp,linenos", "csharp"), ("text,linenos", "text")):
+            with self.subTest(tag=tag):
+                document = "~~~" + tag + "\npublic class Ghost {}\n~~~"
+                self.assertEqual([(language, 0, ["public class Ghost {}"])], lint.fenced_blocks(document))
+
     # ------------------------------------------------------------- 1: the pair
 
     def test_a_node_without_its_api_is_an_error(self) -> None:
@@ -471,6 +531,15 @@ Written inline: `[Neighbour](../Neighbour/API.md)`.
         self.write("b/ACCEPTANCE.md", "# ACCEPTANCE.md - b\n\n## Acceptance criteria\n\n"
                                        "- [x] It does the thing (2026-09-12, `ItDoesTheThing`).\n")
         self.assertEqual([], self.findings())
+
+    def test_acceptance_pointer_is_the_only_physical_line(self) -> None:
+        pointer = "→ [ACCEPTANCE.md](ACCEPTANCE.md)"
+        self.write("b/ACCEPTANCE.md", "# Acceptance\n")
+        for extra in ("`extra`", "~~~markdown\n## Heading inside an example\n~~~", "<!-- note -->"):
+            with self.subTest(extra=extra):
+                boot = self.leaf_boot_with_pointer().replace(pointer, pointer + "\n" + extra)
+                self.write("b/BOOT.md", boot)
+                self.assertFinding("ERROR", "6", "b/ACCEPTANCE.md", "does not point to it")
 
     def test_a_leaf_moving_its_criteria_out_comes_inside_its_limit(self) -> None:
         """300 lines of rules and 200 of criteria: over the leaf's 400 inline, inside it

@@ -31,6 +31,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 from urllib.parse import unquote
@@ -105,7 +106,7 @@ NOT_A_NAME: Set[str] = {
 DATE = re.compile(r"\b(?:19|20)\d{2}-\d{2}-\d{2}\b")
 LINK = re.compile(r"!?\[[^\]\n]*\]\(\s*<?([^)\s>]+)>?[^)]*\)")
 HEADING = re.compile(r"^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$")
-FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})\s*([^\s`]*)")
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 CHECKED_ITEM = re.compile(r"^(\s*)[-*+]\s+\[[xX]\]\s*(.*)$")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
 
@@ -202,31 +203,24 @@ def mask_inline_code(line: str) -> str:
     return "".join(out)
 
 
+def fence_opener(line: str) -> Optional[re.Match[str]]:
+    match = FENCE.match(line)
+    if match and (match[1][0] == "~" or "`" not in match[2]):
+        return match
+    return None
+
+
+def closes_fence(line: str, fence: str) -> bool:
+    match = FENCE.match(line)
+    return bool(match and match[1].startswith(fence) and not match[2].strip(" \t\r"))
+
+
 def mask_code(text: str) -> List[str]:
     """The document's lines with code - fenced and inline - replaced by blanks.
 
     Line numbers survive, so a finding can still name the line it came from.
     """
-    masked: List[str] = []
-    fence: Optional[str] = None
-
-    for line in text.split("\n"):
-        opening = FENCE.match(line)
-        if fence is None:
-            if opening:
-                fence = opening.group(1)
-                masked.append("")
-                continue
-            masked.append(mask_inline_code(line))
-            continue
-
-        # Inside a fence: only a marker of the same character and at least the same
-        # length closes it, which is how a fence can quote another fence.
-        if opening and opening.group(1)[0] == fence[0] and len(opening.group(1)) >= len(fence):
-            fence = None
-        masked.append("")
-
-    return masked
+    return [mask_inline_code(line) for line in mask_fences(text)]
 
 
 def fenced_blocks(text: str) -> List[Tuple[str, int, List[str]]]:
@@ -238,13 +232,14 @@ def fenced_blocks(text: str) -> List[Tuple[str, int, List[str]]]:
     body: List[str] = []
 
     for index, line in enumerate(text.split("\n")):
-        opening = FENCE.match(line)
         if fence is None:
+            opening = fence_opener(line)
             if opening:
-                fence, language, start, body = opening.group(1), opening.group(2).lower(), index, []
+                fence, start, body = opening[1], index, []
+                language = re.split(r"[\s,]", opening[2].strip(), maxsplit=1)[0].lower()
             continue
 
-        if opening and opening.group(1)[0] == fence[0] and len(opening.group(1)) >= len(fence):
+        if closes_fence(line, fence):
             blocks.append((language, start, body))
             fence = None
             continue
@@ -258,21 +253,11 @@ def fenced_blocks(text: str) -> List[Tuple[str, int, List[str]]]:
 
 def section_lines(masked: List[str], name: str) -> Optional[List[Tuple[int, str]]]:
     """The lines of the '## name' section, numbered from 0, or None if there is none."""
-    inside = False
-    collected: List[Tuple[int, str]] = []
-
-    for index, line in enumerate(masked):
-        heading = HEADING.match(line)
-        if heading:
-            level, title = len(heading.group(1)), heading.group(2)
-            if inside and level <= 2:
-                break
-            inside = level == 2 and title == name
-            continue
-        if inside:
-            collected.append((index, line))
-
-    return collected if inside or collected else None
+    bounds = section_ranges(masked).get(name)
+    if bounds is None:
+        return None
+    start, end = bounds
+    return list(enumerate(masked[start + 1:end], start + 1))
 
 
 def second_level_headings(masked: List[str]) -> List[str]:
@@ -283,8 +268,7 @@ def section_ranges(masked: List[str]) -> Dict[str, Tuple[int, int]]:
     """Level-2 heading name -> (start, end) line indices, 0-based, end exclusive.
 
     `start` is the heading line itself; `end` is the index of the next heading at
-    level 1 or 2, or the end of the document. Used only to slice out the sections a
-    §6 deviation names as replaced by a transcription (AGENTS.md 15).
+    level 1 or 2, or the end of the document. Lower headings belong to the section.
     """
     ranges: Dict[str, Tuple[int, int]] = {}
     name: Optional[str] = None
@@ -312,6 +296,7 @@ class Tree:
         root: Path,
         source_extensions: Set[str],
         excluded_dirs: Set[str],
+        source_roots: Sequence[str] = (),
     ) -> None:
         self.root = root
         self.source_extensions = source_extensions
@@ -321,17 +306,27 @@ class Tree:
         self.markdown: List[Path] = []
         self._sources: Dict[Path, List[Path]] = {}
         self._text: Dict[Path, str] = {}
-        self._scan()
+        scan_roots = [root]
+        for value in source_roots:
+            directory = (root / value).resolve()
+            if (directory != root and root not in directory.parents) or not directory.is_dir():
+                raise ValueError("source root must be an existing directory inside the tree: {}".format(value))
+            scan_roots.append(directory)
+        for directory in scan_roots:
+            self._scan(directory)
 
     def _excluded(self, name: str) -> bool:
         if name in DOT_DIRECTORIES_READ:
             return name in self.excluded_dirs
         return name.startswith(".") or name in self.excluded_dirs or name.endswith(".egg-info")
 
-    def _scan(self) -> None:
-        for dirpath, dirnames, filenames in os.walk(self.root):
-            dirnames[:] = sorted(name for name in dirnames if not self._excluded(name))
+    def _scan(self, start: Path) -> None:
+        for dirpath, dirnames, filenames in os.walk(start):
             directory = Path(dirpath)
+            if directory in self._sources:
+                dirnames.clear()
+                continue
+            dirnames[:] = sorted(name for name in dirnames if not self._excluded(name))
             self.directories.append(directory)
 
             sources = [directory / name for name in filenames
@@ -438,7 +433,7 @@ def check_agents(tree: Tree) -> List[Finding]:
 
 
 def check_sections(tree: Tree, boot: Path, masked: List[str]) -> List[Finding]:
-    """AGENTS.md 6: the six sections are the condition for leaving design mode."""
+    """AGENTS.md 6: check the required headings. Sufficiency is assessed in design."""
     headings = second_level_headings(masked)
     findings: List[Finding] = []
     for name in CANONICAL_SECTIONS:
@@ -512,10 +507,11 @@ def check_links(tree: Tree, document: Path, masked: List[str]) -> List[Finding]:
                 continue
 
             resolved = (document.parent / path).resolve()
-            if not resolved.exists():
+            if not resolved.is_file():
+                reason = "is a directory, expected a file" if resolved.is_dir() else "resolves to nothing"
                 findings.append(error(
                     "-", "{}:{}".format(tree.relative(document), number + 1),
-                    "the link to {} resolves to nothing".format(target),
+                    "the link to {} {}".format(target, reason),
                 ))
     return findings
 
@@ -608,13 +604,13 @@ def check_boot_size(
     )]
 
 
-def acceptance_pointer_only(lines: Optional[List[Tuple[int, str]]]) -> bool:
-    """Whether a `## Acceptance criteria` section (as `section_lines` returns it) holds
-    nothing but the one line AGENTS.md 3.1 (§6) prescribes for a node that keeps its
-    criteria in `ACCEPTANCE.md`."""
-    if not lines:
+def acceptance_pointer_only(text: str, masked: List[str]) -> bool:
+    """Locate the section by its Markdown heading, then compare its actual contents (§6)."""
+    bounds = section_ranges(masked).get("Acceptance criteria")
+    if bounds is None:
         return False
-    non_blank = [line for _, line in lines if line.strip()]
+    start, end = bounds
+    non_blank = [line for line in text.split("\n")[start + 1:end] if line.strip()]
     return len(non_blank) == 1 and bool(ACCEPTANCE_POINTER.match(non_blank[0].strip()))
 
 
@@ -686,15 +682,15 @@ def mask_fences(text: str) -> List[str]:
     masked: List[str] = []
     fence: Optional[str] = None
     for line in text.split("\n"):
-        opening = FENCE.match(line)
         if fence is None:
+            opening = fence_opener(line)
             if opening:
                 fence = opening.group(1)
                 masked.append("")
                 continue
             masked.append(line)
             continue
-        if opening and opening.group(1)[0] == fence[0] and len(opening.group(1)) >= len(fence):
+        if closes_fence(line, fence):
             fence = None
         masked.append("")
     return masked
@@ -788,7 +784,14 @@ def check_acceptance_dates(
             text.append(following)
             index += 1
 
-        if not DATE.search(" ".join(text)):
+        dates = DATE.findall(" ".join(text))
+        try:
+            for day in dates:
+                date.fromisoformat(day)
+        except ValueError:
+            findings.append(warn("6", "{}:{}".format(tree.relative(boot), number + 1),
+                                 "invalid calendar date in checked criterion: {}".format(day)))
+        if not dates:
             findings.append(warn(
                 "6", "{}:{}".format(tree.relative(boot), number + 1),
                 "a checked criterion with no date: a tick carries the day the evidence was "
@@ -850,6 +853,7 @@ def lint(
     extra_extensions: Sequence[str] = (),
     extra_excluded: Sequence[str] = (),
     heuristics: bool = True,
+    source_roots: Sequence[str] = (),
 ) -> List[Finding]:
     """Every complaint about the tree at root, ordered by place.
 
@@ -863,6 +867,7 @@ def lint(
         root=root.resolve(),
         source_extensions=DEFAULT_SOURCE_EXTENSIONS | {e.lower() for e in extra_extensions},
         excluded_dirs=DEFAULT_EXCLUDED_DIRS | set(extra_excluded),
+        source_roots=source_roots,
     )
 
     findings: List[Finding] = []
@@ -878,7 +883,7 @@ def lint(
             findings += check_sections(tree, boot, masked)
             findings += check_dependencies(tree, node, boot, masked)
             findings += check_acceptance_dates(tree, boot, masked)
-            has_pointer = acceptance_pointer_only(section_lines(masked, "Acceptance criteria"))
+            has_pointer = acceptance_pointer_only(text, masked)
             excluded, exemption_findings = check_section_exemption(tree, boot, text, masked)
             findings += exemption_findings
             findings += check_boot_size(tree, node, boot, text, excluded, has_pointer)
@@ -923,6 +928,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("root", help="the root of the tree - the directory holding AGENTS.md")
     parser.add_argument("--ext", default="", help="extra source extensions, comma separated (.sh,.ps1)")
     parser.add_argument("--exclude", default="", help="extra directory names to skip, comma separated")
+    parser.add_argument("--source-root", action="append", default=[], metavar="PATH",
+                        help="also scan this source subtree, even below an excluded directory; repeatable")
     parser.add_argument("--strict", action="store_true", help="warnings fail too")
     parser.add_argument("--no-heuristics", action="store_true",
                         help="skip the textual check of declarations under a tick")
@@ -936,17 +943,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     split = lambda value: [part.strip() for part in value.split(",") if part.strip()]  # noqa: E731
 
-    if arguments.list_nodes:
-        tree = Tree(
-            root=root.resolve(),
-            source_extensions=DEFAULT_SOURCE_EXTENSIONS | {e.lower() for e in split(arguments.ext)},
-            excluded_dirs=DEFAULT_EXCLUDED_DIRS | set(split(arguments.exclude)),
-        )
-        for node in sorted(tree.nodes):
-            print(tree.relative(node))
-        return 0
+    try:
+        if arguments.list_nodes:
+            tree = Tree(
+                root=root.resolve(),
+                source_extensions=DEFAULT_SOURCE_EXTENSIONS | {e.lower() for e in split(arguments.ext)},
+                excluded_dirs=DEFAULT_EXCLUDED_DIRS | set(split(arguments.exclude)),
+                source_roots=arguments.source_root,
+            )
+            for node in sorted(tree.nodes):
+                print(tree.relative(node))
+            return 0
 
-    findings = lint(root, split(arguments.ext), split(arguments.exclude), not arguments.no_heuristics)
+        findings = lint(root, split(arguments.ext), split(arguments.exclude),
+                        not arguments.no_heuristics, arguments.source_root)
+    except ValueError as problem:
+        print("protocol_lint: {}".format(problem), file=sys.stderr)
+        return 2
     for finding in findings:
         print(finding)
 
