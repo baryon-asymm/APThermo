@@ -129,6 +129,13 @@ existing L1 facts above are still taken from the fixtures, not solved here.
   `x < y`), or asserts finiteness first. `StationTests.ReactingConductivityIsNeverBelowTheFrozenOne`
   is the audit's instance: a NaN reacting conductivity passed it.
 
+### Snapshot diagnostics correction (2026-11-14)
+
+⚠ 2026-11-14: a snapshot mismatch formerly exposed only a digest. The caller must
+pass actual named station values through ApprovedSnapshot.Problem's existing fields
+argument: station index/name, reflected figure property and status. Keep the exact
+hash traversal and approved bytes; labels are diagnostic text only.
+
 ### Audit closure (2026-11-14)
 
 - Order-consistency comparisons reject nonfinite values in every double property
@@ -353,6 +360,13 @@ existing L1 facts above are still taken from the fixtures, not solved here.
 - [x] 2026-11-14 — BufferOwnershipTests proves rollback of every generated
   acquisition prefix and aggregation of ordinary cleanup failures without losing
   the primary allocation error. Its positive control and repeat-disposal check pass.
+- [x] 2026-11-14 — T16: named actual station/property/status dumps accompany hash
+  failures. A temporary forced digest mismatch failed and wrote the real named
+  fields; restored caller passes the snapshot. Full Transport.Tests: 232 passed,
+  no skips, unchanged approved files. Evidence `SCRATCH/audit/transport-named-full.log`,
+  `transport-named-negative.log`, `transport-named-restored.log` and
+  `transport-named-example.txt` in audit-performance.
+
 ## Taboos
 
 - Do not loosen a tolerance for green; do not exclude a failing case.

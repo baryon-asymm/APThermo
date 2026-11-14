@@ -124,6 +124,14 @@ position today (the criterion below).
 |---|---|---|---|
 | `RocketBatchViews.RocketBatchViews` | parameters | 16 | the parameter struct of one rocket kernel launch, one argument per view; its creation names its arguments |
 
+### Snapshot diagnostics correction (2026-11-14)
+
+⚠ 2026-11-14: a snapshot mismatch formerly exposed only a digest. The caller must
+pass actual named values through ApprovedSnapshot.Problem's existing fields argument:
+station index, reflected property name, species/element identity for moles/multipliers,
+station status, iteration count and case status. Keep the hash's exact traversal and
+approved bytes; labels are diagnostic text only, never extra hash input.
+
 ### Audit closure (2026-11-14)
 
 - Only the known BeO plateau-edge mismatch exempts its seven derivative, sound and

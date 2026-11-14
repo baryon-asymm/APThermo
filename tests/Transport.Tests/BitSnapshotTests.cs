@@ -6,18 +6,17 @@ using APThermo.Thermo;
 namespace APThermo.Transport.Tests;
 
 /// <summary>
-/// Bits level: the host evaluation of every station of every rocket fixture run with transport hashes to the line recorded in
-/// Bits.approved.txt. A tripwire, not a contract (BOOT.md): a decomposition, a renaming or a reordering of code moves no line,
-/// and a line that does move is legitimate only with the numerical change that moved it named in the same commit.
+/// Bits level: the host evaluation of every station of every rocket fixture run with transport hashes to the
+/// recorded line. A mismatch includes the actual station/property names and values without changing hash input.
 /// </summary>
 [Collection(CpuFixture.CollectionName)]
 public sealed class BitSnapshotTests
 {
-    /// <summary>The properties of the figures in declaration order; read by reflection, so that a new one cannot be forgotten.</summary>
+    /// <summary>The properties of the figures in declaration order, including future properties.</summary>
     private static readonly IReadOnlyList<PropertyInfo> FiguresFields =
         [.. typeof(TransportFigures).GetProperties(BindingFlags.Public | BindingFlags.Instance).OrderBy(f => f.MetadataToken)];
 
-    /// <summary>The committed snapshot: one line per fixture, its path relative to the repository root, a space, the hash.</summary>
+    /// <summary>The committed snapshot: one line per fixture, its path relative to the repository root and hash.</summary>
     public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Transport.Tests"), "Bits");
 
     /// <summary>Every fixture with transport gives the recorded bits.</summary>
@@ -33,7 +32,8 @@ public sealed class BitSnapshotTests
             var c = TransportHost.LoadRocket(name);
             var key = RelativePath(c);
             keys.Add(key);
-            var problem = snapshot.Problem(key, HashOfStations(c));
+            var bits = HashOfStations(c, out var fields);
+            var problem = snapshot.Problem(key, bits, fields);
             if (problem is not null)
             {
                 problems.Add(problem);
@@ -50,8 +50,8 @@ public sealed class BitSnapshotTests
             $"{problems.Count} fixture(s) no longer give the recorded bits:\n{string.Join("\n", problems)}");
     }
 
-    /// <summary>The SHA-256, lower-case hex, of the raw bits of every station of the case in station order: the figures, then the status.</summary>
-    private static string HashOfStations(CeaCase c)
+    /// <summary>The raw bits of every station: figures in declaration order, then status, retaining recorded station order.</summary>
+    private static string HashOfStations(CeaCase c, out IReadOnlyList<string> fields)
     {
         var (table, transport) = TransportHost.TablesOf(CpuFixture.Shared, c);
         using var speciesBuffers = SpeciesTableBuffers.Upload(CpuFixture.Shared.Accelerator, table);
@@ -59,32 +59,31 @@ public sealed class BitSnapshotTests
         var stations = TransportHost.StationsWithTransport(c);
         Assert.NotEmpty(stations);
         var hash = new BitHash();
-        foreach (var station in stations)
+        var named = new List<string>();
+        for (var index = 0; index < stations.Count; index++)
         {
+            var station = stations[index];
             var evaluation = TransportHost.Evaluate(CpuFixture.Shared.Accelerator, speciesBuffers, transportBuffers,
                                                     station.GetProperty("temperature").GetDouble(), TransportHost.MolesOf(table, station));
-            Append(hash, evaluation);
+            Append(hash, named, $"station[{index}:{station.GetProperty("station").GetString()}]", evaluation);
         }
 
+        fields = named;
         return hash.ToHex();
     }
 
-    /// <summary>One station: every field of the figures in declaration order, then the status.</summary>
-    private static void Append(BitHash hash, TransportEvaluation evaluation)
+    /// <summary>Named diagnostics use the same actual values and order as the hash; labels do not enter it.</summary>
+    private static void Append(BitHash hash, List<string> named, string station, TransportEvaluation evaluation)
     {
         foreach (var field in FiguresFields)
         {
             var value = field.GetValue(evaluation.Figures)!;
-            if (value is double x)
-            {
-                _ = hash.Add(x);
-                continue;
-            }
-
-            _ = hash.Add((int)value);
+            _ = value is double x ? hash.Add(x) : hash.Add((int)value);
+            named.Add($"{station}.Figures.{field.Name}: {hash.Fields[^1]}");
         }
 
         _ = hash.Add((int)evaluation.Status);
+        named.Add($"{station}.Status ({evaluation.Status}): {hash.Fields[^1]}");
     }
 
     private static string RelativePath(CeaCase c) => Path.GetRelativePath(RepositoryPaths.Root, c.Path).Replace('\\', '/');

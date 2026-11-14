@@ -6,9 +6,8 @@ using APThermo.Thermo;
 namespace APThermo.Performance.Tests;
 
 /// <summary>
-/// The raw bits of one host solve, hashed: every station's <see cref="MixtureState"/> fields in declaration order, then every
-/// station's moles, multipliers and <see cref="PerformanceFigures"/> fields, the station statuses, the iteration counts and the
-/// case status. The fields are enumerated by reflection, so a new field enters the hash without a change here.
+/// The raw bits of one host solve, hashed in the recorded traversal order. Diagnostic labels share that traversal;
+/// names and text values do not enter the hash. Reflected properties retain their metadata-token declaration order.
 /// </summary>
 internal static class RocketBits
 {
@@ -16,47 +15,82 @@ internal static class RocketBits
 
     private static readonly PropertyInfo[] FigureFields = Declared(typeof(PerformanceFigures));
 
-    public static string Hash(RocketSolution solution)
+    public static string Hash(RocketSolution solution, out IReadOnlyList<string> fields)
     {
         var hash = new BitHash();
-        var speciesCount = solution.Table.SpeciesCount;
-        var elementCount = solution.Table.ElementCount;
+        var named = new List<string>();
         for (var station = 0; station < solution.StationCount; station++)
         {
             var state = solution.Outcome.Stations[station];
             foreach (var field in StateFields)
             {
-                _ = hash.Add((double)field.GetValue(state)!);
+                Append(hash, named, $"station[{station}].State.{field.Name}", (double)field.GetValue(state)!);
             }
         }
 
         for (var station = 0; station < solution.StationCount; station++)
         {
-            _ = hash.Add(solution.Outcome.Moles.AsSpan(station * speciesCount, speciesCount));
-            _ = hash.Add(solution.Outcome.Multipliers.AsSpan(station * elementCount, elementCount));
-            var figures = solution.Outcome.Figures[station];
-            foreach (var field in FigureFields)
-            {
-                _ = hash.Add((double)field.GetValue(figures)!);
-            }
+            AppendStation(hash, named, solution, station);
         }
 
-        foreach (var status in solution.Outcome.StationStatus)
+        for (var station = 0; station < solution.Outcome.StationStatus.Length; station++)
         {
-            _ = hash.Add((int)status);
+            var status = solution.Outcome.StationStatus[station];
+            Append(hash, named, $"station[{station}].Status ({status})", (int)status);
         }
 
-        return hash.Add(solution.Outcome.Iterations).Add((int)solution.Status).ToHex();
+        for (var station = 0; station < solution.Outcome.Iterations.Length; station++)
+        {
+            Append(hash, named, $"station[{station}].Iterations", solution.Outcome.Iterations[station]);
+        }
+
+        Append(hash, named, $"CaseStatus ({solution.Status})", (int)solution.Status);
+        fields = named;
+        return hash.ToHex();
     }
 
-    /// <summary>The struct's properties in declaration order; <see cref="Type.GetProperties()"/> promises no order, the metadata token carries it.</summary>
+    private static void AppendStation(BitHash hash, List<string> named, RocketSolution solution, int station)
+    {
+        var speciesCount = solution.Table.SpeciesCount;
+        var elementCount = solution.Table.ElementCount;
+        for (var species = 0; species < speciesCount; species++)
+        {
+            Append(hash, named, $"station[{station}].Moles[{species}:{solution.Table.Records[species].Name}]",
+                solution.Outcome.Moles[station * speciesCount + species]);
+        }
+
+        for (var element = 0; element < elementCount; element++)
+        {
+            Append(hash, named, $"station[{station}].Multipliers[{element}:{solution.Table.Elements[element]}]",
+                solution.Outcome.Multipliers[station * elementCount + element]);
+        }
+
+        var figures = solution.Outcome.Figures[station];
+        foreach (var field in FigureFields)
+        {
+            Append(hash, named, $"station[{station}].Figures.{field.Name}", (double)field.GetValue(figures)!);
+        }
+    }
+
+    private static void Append(BitHash hash, List<string> named, string name, double value)
+    {
+        _ = hash.Add(value);
+        named.Add($"{name}: {hash.Fields[^1]}");
+    }
+
+    private static void Append(BitHash hash, List<string> named, string name, int value)
+    {
+        _ = hash.Add(value);
+        named.Add($"{name}: {hash.Fields[^1]}");
+    }
+
+    /// <summary>The struct's properties in declaration order; GetProperties promises no order, the metadata token carries it.</summary>
     private static PropertyInfo[] Declared(Type type) => [.. type.GetProperties().OrderBy(field => field.MetadataToken)];
 }
 
 /// <summary>
-/// Bits level: the host solve of every rocket fixture gives the bits recorded in <c>Bits.approved.txt</c>. A tripwire, not a
-/// contract (BOOT.md): a decomposition, a renaming or a reordering of code moves no line, so a moved line is a numerical change
-/// and must be named in the commit that moves it.
+/// Bits level: the host solve of every rocket fixture gives the bits recorded in Bits.approved.txt. A tripwire,
+/// not a contract: a refactoring moves no line. A mismatch includes the actual named fields beside the actual digest.
 /// </summary>
 [Collection(CpuFixture.CollectionName)]
 public sealed class BitSnapshotTests
@@ -66,7 +100,7 @@ public sealed class BitSnapshotTests
     /// <summary>The path of this node's approved bit snapshot.</summary>
     public static string ApprovedPath => ApprovedSnapshot.RecordPathFor(RepositoryPaths.Resolve("tests", "Performance.Tests"), "Bits");
 
-    /// <summary>The rocket fixture files as theory data, delegating to <see cref="RocketHost.Cases()"/>.</summary>
+    /// <summary>The rocket fixture files as theory data, delegating to RocketHost.Cases.</summary>
     public static TheoryData<string> Cases() => RocketHost.Cases();
 
     /// <summary>The host solve of every rocket fixture gives the recorded bits.</summary>
@@ -76,15 +110,12 @@ public sealed class BitSnapshotTests
     public void EveryRocketFixtureGivesTheRecordedBits(string name)
     {
         var c = RocketHost.Load(name);
-        var bits = RocketBits.Hash(RocketHost.Solve(CpuFixture.Shared, c));
-        var problem = Snapshot.Problem(PathOf(c.Path), bits);
+        var bits = RocketBits.Hash(RocketHost.Solve(CpuFixture.Shared, c), out var fields);
+        var problem = Snapshot.Problem(PathOf(c.Path), bits, fields);
         Assert.True(problem is null, problem);
     }
 
-    /// <summary>
-    /// The Bits invariant's other direction (BOOT.md): every approved line still names a rocket fixture. Without this, a
-    /// deleted or renamed fixture would leave its line in place, read by no case and never failing.
-    /// </summary>
+    /// <summary>Every approved line still names a rocket fixture; deleted or renamed fixtures cannot leave stale records.</summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
     public void EveryApprovedLineNamesARocketFixture()

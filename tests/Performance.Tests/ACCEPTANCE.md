@@ -295,3 +295,11 @@ temperature, pressure, characteristic velocity and composition remain compared.
 - [x] 2026-11-14 — The tail policy test is named
   TheThroatPolicyConstantsSpecifyTheDecisionThresholdAndTailLength; reading those
   constants is not presented as proof that the tail executed (A40).
+
+- [x] 2026-11-14 — T16: snapshot mismatches write actual named state/figure fields,
+  species moles, element multipliers, statuses, iterations and case status. Reflection
+  and array traversal preserve the former hash order. The existing rp1311-example13
+  mismatch produced a named dump; its cb1f950c... hash is identical with the former
+  caller and before the production refactor. The other 100 bit controls pass.
+  Evidence `SCRATCH/audit/performance-named-bits.log` and
+  `performance-named-example.txt` in audit-performance; no approved file changed.
