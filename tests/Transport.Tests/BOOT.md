@@ -129,6 +129,14 @@ existing L1 facts above are still taken from the fixtures, not solved here.
   `x < y`), or asserts finiteness first. `StationTests.ReactingConductivityIsNeverBelowTheFrozenOne`
   is the audit's instance: a NaN reacting conductivity passed it.
 
+### Audit closure (2026-11-14)
+
+- Order-consistency comparisons reject nonfinite values in either operand before
+  relative arithmetic; equal zero and equal finite controls pass.
+- Invalid nonfinite temperature or moles yields zero figures. A finite overflow
+  temperature cannot report Ok with nonfinite figures.
+
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — L0 green: `FitTests` (every transport fit fixture, enumerated by

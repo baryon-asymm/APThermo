@@ -236,7 +236,7 @@ public sealed class EquilibriumConsistencyTests
     ];
 
     /// <summary>The reacting figures of two element orders, field by field, within <see cref="ConsistencyTolerance"/>.</summary>
-    private static List<string> CompareFigures(TransportFigures first, TransportFigures second, string label)
+    internal static List<string> CompareFigures(TransportFigures first, TransportFigures second, string label)
     {
         var a = NamedFigures(first);
         var b = NamedFigures(second);

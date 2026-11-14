@@ -248,6 +248,17 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
 ⚠ 2026-09-28: was no `StationEvaluation` row, Ce 14 at the limit, now Ce 15 with
 `ComponentBasis`, the row above → HISTORY.md#shape-row-ce15
 
+### Audit closure (2026-11-14)
+
+- Temperature and mole numbers must be finite as well as having their documented
+  signs; the gaseous mole sum must remain finite. Invalid input leaves zero figures.
+- An otherwise successful evaluation with unrepresentable numeric figures returns
+  TemperatureOutOfRange with zero figures. Fit extrapolation remains the reference
+  policy for representable values.
+- Table upload owns each buffer as soon as allocation succeeds. A later allocation
+  failure rolls back previous allocations; disposal attempts every owned buffer.
+
+
 ## Acceptance criteria
 
 - [x] 2026-09-14 — Every rocket fixture run with transport (enumerated by the tests

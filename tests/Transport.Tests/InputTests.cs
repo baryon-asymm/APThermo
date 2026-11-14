@@ -22,6 +22,8 @@ public sealed class InputTests
     [InlineData(0.0)]
     [InlineData(-300.0)]
     [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
     public void ANonPositiveTemperatureIsInvalidInput(double temperature)
     {
         var (species, transport) = Tables();
