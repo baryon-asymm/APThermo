@@ -173,7 +173,7 @@ creation names its arguments; it passes them by position today (the criterion be
 
 ## Acceptance criteria
 
-- [ ] Audit A01/A35: frozen inputs and independent feasible witnesses in
+- [x] 2026-11-14 — CPU audit A01/A35 (`AuditPhaseBranchTests`): frozen inputs and independent witnesses in
   AuditCases.json are checked by AuditPhaseBranchTests; old-source controls
   fail phase stability and HP/SP objective ordering, positive TP witnesses pass.
 

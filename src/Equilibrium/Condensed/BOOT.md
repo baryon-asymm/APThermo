@@ -124,8 +124,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
      positive is added, one at a time, compared per mole as RP-1311 section 3.4
      words it (the reference's code — cea2.f as 3.3.4 — divides the gain by the
      molar mass; this node follows the report). Two candidates are passed over: a
-     species whose formula is already in the solution, because a pair is completed
-     by rule 2, never by inclusion; and, once, the record just removed for range
+     species whose formula is already in the solution, because its stable record and
+     possible pair are decided by the phase rules, never by ordinary inclusion; and, once, the record just removed for range
      while another positive candidate exists — the anti-cycling rule; when it is the
      only positive candidate it is taken, so no equilibrium is lost.
 
@@ -209,8 +209,8 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
   lives in the species mask — and the scratch layout is unchanged.
   Exit guard (2026-09-26): an `Ok` exit is re-checked over every condensed record whose
   elements are present (every mark but `Absent`, the stood-down ones included) that is
-  not in the solution, lies in its effective range at the final state, and has no record
-  of its formula in the solution. If one of them would gain more
+  not in the solution and lies in its effective range at the final state, including
+  an excluded partner of a held record. If one of them would gain more
   than 1e-9 per mole, the rounding of the converged multipliers, the status becomes
   `NotConverged`. The guard is the stood-down guard of rule 2 widened; it reports
   whatever the rules above failed to include, a full set among it, instead of
@@ -224,7 +224,7 @@ Inherited from the parent ([BOOT.md](../BOOT.md)) and, through it, from the root
 ## Structure
 
 The classes of this node, all internal, static and kernel-compatible: `CondensedSet`,
-`PhaseGeometry` and `BalancingRecord`, each described by the summary of its declaration. Every floating-point expression
+`PhaseGeometry`, `PhasePreference` and `BalancingRecord`, each described by the summary of its declaration. Every floating-point expression
 keeps the form and the order of evaluation it had when the node was part of its parent.
 
 - **The geometry stays here.** The pure part of `PhaseGeometry` (which records share
@@ -243,7 +243,7 @@ arrays. The bounds are table reads, so the bit snapshot may not move.
 
 ## Acceptance criteria
 
-- [ ] Audit A01: the frozen SrCl2 HP counterexample and cold/warm TP states on
+- [x] 2026-11-14 — CPU audit A01 (`AuditPhaseBranchTests`): SrCl2 HP and cold/warm TP states on
   both sides of the overlap crossing meet independent phase-potential, assigned
   property and element checks. Equality permits coexistence; old source fails HP.
 

@@ -11,13 +11,13 @@ namespace APThermo.Equilibrium.Condensed;
 internal static class CondensedSet
 {
     /// <summary>K, section 3.5: closer than this to a transition, both records of the pair are kept and the temperature settles at it.</summary>
-    private const double PhaseTransitionWindow = 50.0;
+    public const double PhaseTransitionWindow = 50.0;
 
     /// <summary>
     /// A positive per-mole inclusion gain this far above zero is real at a converged state; below it is the rounding of the
-    /// polished multipliers. Used only for the stand-down honesty check at an Ok exit.
+    /// polished multipliers. Shared by overlap-phase preference and the honesty check at an Ok exit.
     /// </summary>
-    private const double ResidualGainLimit = 1.0e-9;
+    public const double ResidualGainLimit = 1.0e-9;
 
     /// <summary>Applies at most one change to the set and says whether it changed; the caller converges again if it did.</summary>
     public static bool Update(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch,
@@ -26,6 +26,7 @@ internal static class CondensedSet
         var skipInclusion = state.LastRemovedForRange;
         state.LastRemovedForRange = -1;
         return RemoveNegative(table, scratch, result, ref state)
+               || PhasePreference.Update(table, problem, scratch, result, ref state)
                || OutOfRange(table, problem, scratch, result, ref state)
                || Include(table, scratch, result, skipInclusion, ref state);
     }
@@ -49,7 +50,7 @@ internal static class CondensedSet
 
     /// <summary>
     /// True when some condensed record whose elements are all present, not in the solution, would qualify for
-    /// inclusion at the final state: inside its effective range, no phase partner in the solution, and a gain above
+    /// inclusion at the final state: inside its effective range, including an excluded phase partner, and a gain above
     /// the rounding of the converged multipliers. An Ok status must not hide such a candidate (BOOT.md, the exit
     /// guard); the caller turns it into NotConverged.
     /// </summary>
@@ -71,8 +72,7 @@ internal static class CondensedSet
                 continue;
             }
 
-            if (!PhaseGeometry.InEffectiveRange(table, scratch, j, state.Temperature)
-                || PhaseGeometry.PartnerInSolution(table, scratch, state.CondensedCount, j) >= 0)
+            if (!PhaseGeometry.InEffectiveRange(table, scratch, j, state.Temperature))
             {
                 continue;
             }
@@ -230,7 +230,7 @@ internal static class CondensedSet
 
     /// <summary>
     /// Rule 3: the candidate with the largest positive per-mole gain enters, one at a time. A species whose formula already
-    /// stands in the solution is passed over — a pair is completed by rule 2, never by inclusion — and so is the record just
+    /// stands in the solution is passed over — the phase rules select its record or pair — and so is the record just
     /// removed for its range, unless it is the only positive candidate, in which case no equilibrium is lost by taking it.
     /// </summary>
     private static bool Include(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result,

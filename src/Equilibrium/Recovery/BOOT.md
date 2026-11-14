@@ -131,11 +131,11 @@ Inherited from the parent and, through it, from the root. In addition:
     at a temperature below the highest dead-end floor of a record whose inclusion gain at the final multipliers
     is positive (`DeadEnds.FloorAbove`) is a supersaturated vapour; hp equilibrium is the maximum-entropy state
     and sp the minimum-enthalpy one, so a state of the same h or s holding the phase above the floor, if there
-    is one, is the equilibrium. One tp probe is taken at that floor, cold. If its `P` (h for hp, s for sp) is at
-    or below the target, the bracket starts with it as its lower end and searches upward, and its final replaces
-    the `Ok`. If it is above, there is none and the `Ok` stands. If the probe or the bracket fails, or its final
-    does, the original attempt is rerun from the cold start, deterministic, and ends the case with the bits and
-    the iterations it had. A warm attempt is not rechecked: its seed is gone once a probe has run (the
+    is one, may improve the original. The distinct floors above the original state are probed cold in ascending
+    order. A probe at or below the target starts an upward bracket; a successful final replaces the original
+    only when its thermodynamic objective is no worse. A rejected probe or failed bracket/final continues at
+    the next floor. Once these floors are exhausted, the original cold attempt is rerun deterministically,
+    with its original bits and iteration count. A warm attempt is not rechecked: its seed is gone once a probe has run (the
     declared limit; the case is that of a caller whose seed is itself a state below the floor).
   - **The list is the contract.** tp below a dead-end floor reports the supersaturated gas, the range rule, and
     that is correct (cea does the same). An hp or sp target that no state of the list reaches in the window
@@ -207,7 +207,7 @@ floors), `DeadEndRecheck` (the recheck), `RecheckState` and `Recheck` (its state
 
 ## Acceptance criteria
 
-- [ ] Audit A35: frozen Mg-H-O-S HP/SP inputs meet assigned H/S and element
+- [x] 2026-11-14 — CPU audit A35 (`AuditPhaseBranchTests`): Mg-H-O-S HP/SP inputs meet H/S and element
   balances and are no worse than independently recomputed feasible witnesses.
   Rejecting one floor does not prevent the next; cursor exhaustion, replay and
   existing gap cases stay bounded.

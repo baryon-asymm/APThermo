@@ -98,6 +98,22 @@ internal static class DeadEnds
         return floor;
     }
 
+    /// <summary>The next distinct dead-end floor above the cursor, independent of multipliers overwritten by probes.</summary>
+    public static double NextFloorAbove(in SpeciesTableView table, in EquilibriumScratch scratch, double cursor)
+    {
+        var floor = double.PositiveInfinity;
+        for (var j = table.GasCount; j < table.SpeciesCount; j++)
+        {
+            var low = SpeciesFunctions.RecordLow(table, j);
+            if (SpeciesMarks.Of(scratch, j) != SpeciesMark.Absent && cursor * RangeMargin < low
+                && IsDeadEnd(table, j) && low < floor)
+            {
+                floor = low;
+            }
+        }
+
+        return floor < double.PositiveInfinity ? floor : 0.0;
+    }
     /// <summary>
     /// The highest dead-end floor below <paramref name="temperature"/> of a record whose elements are present, held by the
     /// probe or not (a probe of the gas alone may stand just above the floor of the phase that is to join), which a

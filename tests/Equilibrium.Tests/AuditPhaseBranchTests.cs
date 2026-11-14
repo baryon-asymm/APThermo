@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using APThermo.Equilibrium.Recovery;
 using APThermo.Thermo;
+using ILGPU.Runtime;
 
 namespace APThermo.Equilibrium.Tests;
 
@@ -85,6 +87,133 @@ public sealed class AuditPhaseBranchTests
             $"{kind}: objective {actual:R}; feasible witness {expected:R} at {Number(witness, "T"):R} K; returned {solution.State.Temperature:R} K");
     }
 
+    /// <summary>A rejected floor advances to every next distinct floor before the deterministic original replay.</summary>
+    [Theory]
+    [InlineData("RejectedProbe")]
+    [InlineData("FailedFinal")]
+    [InlineData("InferiorFinal")]
+    public void RejectingOneFloorDoesNotExcludeEveryLaterDistinctFloor(string outcome)
+    {
+        var witness = Data().GetProperty("witnesses").GetProperty("SP_feasible_lower_H");
+        var original = Data().GetProperty("witnesses").GetProperty("SP_returned_cold");
+        var problem = Magnesium(ProblemKind.AssignedEntropyPressure, witness) with { Temperature = Number(original, "T") };
+        CheckRejectedFloors(problem, outcome);
+    }
+
+    private static void CheckRejectedFloors(EquilibriumCase problem, string outcome)
+    {
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var table = problem.Table;
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        using var elements = accelerator.Allocate1D(problem.ElementMoles);
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(table.SpeciesCount, table.ElementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(table.SpeciesCount, table.ElementCount));
+        using var moles = accelerator.Allocate1D<double>(table.SpeciesCount);
+        using var multipliers = accelerator.Allocate1D<double>(table.ElementCount);
+        using var states = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount);
+        var result = new EquilibriumResult(moles.View, multipliers.View, states.View, status.View, iterations.View);
+        var state = new IterationState();
+        Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(buffers.View, input, scratch, result, EstimateSource.Defaults, ref state));
+        var floors = Enumerable.Range(table.GasCount, table.CondensedCount)
+            .Where(j => DeadEnds.IsDeadEnd(buffers.View, j))
+            .Select(j => SpeciesFunctions.RecordLow(buffers.View, j))
+            .Where(t => t > problem.Temperature * (1.0 + 1.0e-9)).Distinct().Order().ToArray();
+        Assert.True(floors.Length > 1, "this control requires several distinct floors");
+        var plan = new AttemptPlan();
+        plan.Begin(input, useMolesAsEstimate: false);
+        plan.Recheck.Original = input;
+        plan.Recheck.Floor = floors[0];
+        plan.Recheck.Stage = Recheck.Pending;
+        Assert.Equal(floors[0], DeadEnds.NextFloorAbove(buffers.View, scratch, problem.Temperature));
+        for (var index = 1; index <= floors.Length; index++)
+        {
+            plan.Phase = AttemptPhase.TraceGasFinal;
+            plan.Status = outcome == "FailedFinal" ? CaseStatus.NotConverged : CaseStatus.Ok;
+            plan.Recheck.Stage = outcome == "RejectedProbe" ? Recheck.Pending : Recheck.Held;
+            plan.Recheck.OriginalObjective = 1.0;
+            result.State[0] = new MixtureState { Enthalpy = 2.0 };
+            Assert.True(outcome == "RejectedProbe"
+                ? DeadEndRecheck.Rejects(buffers.View, input, scratch, result, problem.Target + 1.0, ref plan)
+                : DeadEndRecheck.EndFinal(buffers.View, input, scratch, result, ref plan));
+            if (index < floors.Length)
+            {
+                Assert.Equal(Recheck.Pending, plan.Recheck.Stage);
+                Assert.Equal(floors[index], plan.Recheck.Floor);
+                AssertProperty(floors[index], plan.Current.Temperature);
+            }
+            else
+            {
+                Assert.Equal(Recheck.Replay, plan.Recheck.Stage);
+                Assert.Equal(problem.Temperature, plan.Current.Temperature);
+            }
+        }
+    }
+    /// <summary>An HP target inside the overlap latent heat admits both phases at their independently evaluated crossing.</summary>
+    [Fact]
+    public void AnOverlapLatentHeatStatePinsAtTheCrossing()
+    {
+        var crossing = Number(Data().GetProperty("phaseCrossing"), "temperature_K");
+        var problem = Strontium(ProblemKind.AssignedTemperaturePressure, crossing - 0.1, 0.0);
+        var below = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem);
+        var above = HostSolver.Solve(CpuFixture.Shared.Accelerator, problem with { Temperature = crossing + 0.1 });
+        Assert.Equal(CaseStatus.Ok, below.Status);
+        Assert.Equal(CaseStatus.Ok, above.Status);
+        var target = (below.State.Enthalpy + above.State.Enthalpy) * 0.5;
+        var solution = HostSolver.Solve(CpuFixture.Shared.Accelerator,
+            problem with { Kind = ProblemKind.AssignedEnthalpyPressure, Temperature = 0.0, Target = target });
+        Assert.Equal(CaseStatus.Ok, solution.Status);
+        AssertProperty(crossing, solution.State.Temperature);
+        AssertProperty(target, solution.State.Enthalpy);
+        Assert.True(solution.Moles[problem.Table.IndexOf("SrCL2(a)")] > 0.0);
+        Assert.True(solution.Moles[problem.Table.IndexOf("SrCL2(b)")] > 0.0);
+        Assert.Empty(EquilibriumConditions.ElementConservationViolations(solution));
+        AssertStablePartner(solution);
+    }
+    /// <summary>The exit guard catches a lower-potential excluded partner even when it has stood down.</summary>
+    [Theory]
+    [InlineData("SrCL2(a)", false)]
+    [InlineData("SrCL2(b)", true)]
+    public void TheExitGuardDoesNotExemptAnExcludedSameFormulaPartner(string held, bool expected)
+    {
+        var temperature = Data().GetProperty("phaseChecks").EnumerateArray().Max(x => Number(x, "T_K"));
+        var problem = Strontium(ProblemKind.AssignedTemperaturePressure, temperature, 0.0);
+        var accelerator = CpuFixture.Shared.Accelerator;
+        var table = problem.Table;
+        using var buffers = SpeciesTableBuffers.Upload(accelerator, table);
+        using var elements = accelerator.Allocate1D(problem.ElementMoles);
+        using var doubles = accelerator.Allocate1D<double>(ScratchLayout.DoublesPerCase(table.SpeciesCount, table.ElementCount));
+        using var ints = accelerator.Allocate1D<int>(ScratchLayout.IntsPerCase(table.SpeciesCount, table.ElementCount));
+        using var moles = accelerator.Allocate1D<double>(table.SpeciesCount);
+        using var multipliers = accelerator.Allocate1D<double>(table.ElementCount);
+        using var states = accelerator.Allocate1D<MixtureState>(1);
+        using var status = accelerator.Allocate1D<int>(1);
+        using var iterations = accelerator.Allocate1D<int>(1);
+        var input = new EquilibriumProblem(problem.Kind, problem.Pressure, problem.Temperature, problem.Target, elements.View);
+        var scratch = EquilibriumScratch.Slice(doubles.View, ints.View, table.SpeciesCount, table.ElementCount);
+        var result = new EquilibriumResult(moles.View, multipliers.View, states.View, status.View, iterations.View);
+        var state = new IterationState();
+        Assert.Equal(CaseStatus.Ok, CaseSetup.Begin(buffers.View, input, scratch, result, EstimateSource.Defaults, ref state));
+        var heldIndex = table.IndexOf(held);
+        var absentIndex = table.IndexOf(held == "SrCL2(a)" ? "SrCL2(b)" : "SrCL2(a)");
+        state.CondensedCount = 1;
+        scratch.CondensedInSolution[0] = heldIndex;
+        SpeciesMarks.Set(scratch, absentIndex, SpeciesMark.StoodDown);
+        for (var j = 0; j < table.SpeciesCount; j++)
+        {
+            scratch.GOverRT[j] = SpeciesFunctions.GOverRT(buffers.View, j, temperature);
+        }
+
+        for (var i = 0; i < table.ElementCount; i++)
+        {
+            result.Multipliers[i] = table.Elements[i] == "SR" ? scratch.GOverRT[heldIndex] : 0.0;
+        }
+
+        Assert.Equal(expected, Condensed.CondensedSet.ExitGuardFindsAPositiveCandidate(buffers.View, scratch, result, state));
+    }
     private static EquilibriumCase Strontium(ProblemKind kind, double temperature, double target)
     {
         var database = CpuFixture.Shared.Database;

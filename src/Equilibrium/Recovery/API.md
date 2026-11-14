@@ -58,13 +58,14 @@ internal struct TemperatureBracket
 
 ```csharp
 internal enum Recheck { None, Pending, Held, Replay }
-internal struct RecheckState { public Recheck Stage; public EquilibriumProblem Original; public int Banked; }
+internal struct RecheckState { public Recheck Stage; public EquilibriumProblem Original; public int Banked; public double Floor; public double OriginalObjective; }
 internal static class DeadEnds
 {
     public static bool IsDeadEnd(in SpeciesTableView table, int species);
     public static bool IsDeadCeiling(in SpeciesTableView table, int species);
     public static bool BoundNear(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature);
     public static double FloorAbove(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, double temperature);
+    public static double NextFloorAbove(in SpeciesTableView table, in EquilibriumScratch scratch, double cursor);
     public static double FloorBelow(in SpeciesTableView table, in EquilibriumScratch scratch, double temperature);
 }
 ```

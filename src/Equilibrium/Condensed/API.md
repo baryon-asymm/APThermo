@@ -14,6 +14,8 @@ namespace APThermo.Equilibrium.Condensed;
 
 internal static class CondensedSet
 {
+    public const double PhaseTransitionWindow = 50.0;
+    public const double ResidualGainLimit = 1.0e-9;
     public static bool Update(in SpeciesTableView table, in EquilibriumProblem problem, in EquilibriumScratch scratch, in EquilibriumResult result, ref IterationState state);
         // applies at most one change of the set and says whether it changed; the caller converges again if it did.
         // A negative record that is a balancing record (BOOT.md, "A balancing record stays") is no change: it stays at zero moles

@@ -54,7 +54,7 @@ internal static class BracketDriver
 
         var hp = PassOutcome.IsEnthalpy(problem);
         var value = PassOutcome.Value(result, plan, hp);
-        if (DeadEndRecheck.Rejects(ref plan, value, problem.Target))
+        if (DeadEndRecheck.Rejects(table, problem, scratch, result, value, ref plan))
         {
             return true;
         }
@@ -134,7 +134,7 @@ internal static class BracketDriver
 
         if (move == BracketMove.GiveUp)
         {
-            if (DeadEndRecheck.Rerun(ref plan))
+            if (DeadEndRecheck.AdvanceOrReplay(table, problem, scratch, result, ref plan))
             {
                 return true;
             }
