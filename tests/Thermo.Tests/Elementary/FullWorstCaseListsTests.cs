@@ -63,6 +63,16 @@ public sealed class FullWorstCaseListsTests
         }
     }
 
+    /// <summary>A sample or damaged corpus cannot claim the optional complete proof.</summary>
+    /// <returns>The task of the portable integrity controls.</returns>
+    [Fact]
+    [Trait("Category", "EndToEnd")]
+    public async Task FullCorpusIntegrityHasPortableNegativeControls()
+    {
+        var (exitCode, output) = await Run(["self-test"]).ConfigureAwait(true);
+        Assert.True(exitCode == 0, output);
+    }
+
     private static string Evaluate(string function, string line) =>
         ElementaryFixtures.Encode(ElementaryFixtures.Evaluate(function, [.. line.Split(' ').Select(Decode)]));
 

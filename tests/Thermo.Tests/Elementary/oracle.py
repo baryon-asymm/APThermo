@@ -5,7 +5,7 @@ with a fixed seed, so a regeneration writes the same bytes (for the same Python 
 fixtures' headers).
 """
 import random
-import struct
+from worst_case_inputs import ARITY, f2h, h2f, hexs, parse_token, usable, wc_entries
 from fractions import Fraction
 
 import mpmath
@@ -13,29 +13,6 @@ import mpmath
 mpmath.mp.prec = 400
 TWO = mpmath.mpf(2)
 MIN_NORMAL_EXPONENT = -1022
-
-
-def f2h(v):
-    """The bit pattern of a binary64 as an integer."""
-    return struct.unpack("<Q", struct.pack("<d", v))[0]
-
-
-def h2f(h):
-    """The binary64 of a bit pattern."""
-    return struct.unpack("<d", struct.pack("<Q", h))[0]
-
-
-def hexs(v):
-    """Sixteen hexadecimal digits of the bit pattern of v."""
-    return "%016X" % f2h(v)
-
-
-def parse_token(token):
-    """A C99 hexadecimal floating literal, or one of the words of the CORE-MATH special sections, as a float."""
-    token = token.strip()
-    if "0x" in token.lower():
-        return float.fromhex(token)
-    return float(token)
 
 
 def rn(v):
@@ -257,33 +234,3 @@ def pow_margin_inputs():
     out += [(rnd.uniform(1.05, 1.7), rnd.uniform(2, 30)) for _ in range(300)]
     out += [(rnd.uniform(0.9, 1.1), rnd.uniform(-300, 300)) for _ in range(300)]
     return [entry for entry in out if abs(entry[1] * float(mpmath.log(entry[0]))) <= 600]
-
-
-ARITY = {"exp": 1, "log": 1, "pow": 2}
-
-
-def usable(func, args):
-    if any(a != a or a in (float("inf"), float("-inf")) for a in args):
-        return False
-    if func == "exp":
-        return -746.0 <= args[0] <= 710.0
-    if func == "log":
-        return args[0] > 0
-    x, y = args
-    return x != 0 and y != 0 and (x > 0 or y == int(y))
-
-
-def wc_entries(path, func):
-    entries = []
-    with open(path, encoding="utf-8") as handle:
-        for raw in handle:
-            text = raw.split("#", 1)[0].strip()
-            if not text:
-                continue
-            try:
-                args = tuple(parse_token(t) for t in text.split(","))
-            except ValueError:
-                continue
-            if len(args) == ARITY[func] and usable(func, args):
-                entries.append(args)
-    return entries

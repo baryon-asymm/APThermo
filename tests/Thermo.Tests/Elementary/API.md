@@ -16,4 +16,10 @@ The node exposes nothing outward. Its contract points upward: what the parent ma
 
 - `fixtures/*.txt`: bit patterns, the oracle's results and exact values (`fixtures/PROVENANCE.txt` names the source, the
   commit, the licence and the selection rule of the worst-case files).
-- Python 3.8+ and mpmath 1.3.0 for the generators and the optional full check; none for the default run.
+- Python 3.8+ standard library for the default portable full-corpus refusal controls;
+  mpmath 1.3.0 additionally for the generators and the optional numerical full check.
+- ⚠ 2026-11-14: the previous default-run statement excluded Python entirely. The new
+  automated integrity self-check uses Python without importing mpmath. Both full-campaign
+  halves verify the pinned raw SHA-256 identities, strict format and usable counts from
+  `fixtures/PROVENANCE.txt` before producing inputs or reading numerical outputs.
+  `identity` checks those prerequisites alone; it does not establish correct rounding.

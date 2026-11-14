@@ -6,8 +6,8 @@ The definition of what "the tree's own exp, log and pow are correctly rounded" m
 the exact value rounded to nearest even), the fixtures it writes, the generators of the tables and the facts that hold
 the node [Thermo.Elementary](../../../src/Thermo/Elementary/API.md) to them. A child node of `tests/Thermo.Tests`
 (no project of its own: its facts compile into the thermo tests assembly, namespace `APThermo.Thermo.Tests.Elementary`).
-It also holds the Python files, which are code of the node: `oracle.py`, `generate_fixtures.py`, `generate_tables.py` and
-`check_worst_cases.py`.
+It also holds the Python oracle, fixture/table generators, full-campaign runner, shared
+standard-library corpus parser/identity guard and its portable refusal controls.
 
 ## Invariants
 
@@ -64,8 +64,11 @@ Outside the tree: xunit; Python 3.8+ with mpmath 1.3.0 for the generators and th
 
 ## Acceptance criteria
 
-- [ ] Audit A12: truncated/corrupted/empty corpus controls are refused, the pinned
-  complete corpus passes, and the integrity self-check is part of automated tests.
+- [x] 2026-11-14 — Audit A12: `FullCorpusIntegrityHasPortableNegativeControls` runs seven
+  standard-library controls; old source failed seven assertions. The pinned complete corpus
+  passes identity, format and count validation (2 266 122 usable rows), evidence
+  `SCRATCH/audit/corpus-full-identity.log`; Thermo non-long suite 1 246 passed.
+  This re-verifies corpus integrity, not the historical full rounding campaign.
 
 - [x] 2026-10-05 — Correct rounding: `CorrectRoundingTests.EveryFixtureInputIsCorrectlyRounded` and
       `TheAccuratePathAgreesWithTheOracleOnEveryFixture`, six fixtures each (the families 4 420, 3 948 and
