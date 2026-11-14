@@ -263,6 +263,15 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
   A child OutOfMemoryException is recorded and does not stop later cleanup.
   StackOverflowException and AccessViolationException propagate; actual host OOM
   is not claimed tested, and diagnostic storage under it is best effort.
+- Upload rollback keeps the exact original exception object if diagnostic access or
+  assignment fails with a recoverable managed exception. Read-only Data and throwing
+  getters/setters may suppress secondary diagnostics, but never replace the primary.
+
+⚠ 2026-11-14: A04's earlier primary-preservation evidence used writable diagnostic
+storage only. Independent ownership review at f78f549d reproduced read-only Data
+replacing the primary with NotSupportedException. Diagnostic attachment now follows
+the same recoverable-exception policy as cleanup; the two CLR fatal exceptions remain
+outside that guarantee. No actual memory exhaustion or driver failure is simulated.
 
 
 ## Acceptance criteria
@@ -401,6 +410,10 @@ in the form the protocol tests node reads; their reasons are decisions of `## St
   disposal. Disabling rollback fails eight nonempty-prefix controls. An injected
   child OutOfMemoryException is aggregated while remaining resources are attempted;
   only the separately declared unrecoverable CLR exception classes propagate.
+- [ ] `RollbackDiagnosticTests` preserves exact primary identity, attempts every owned
+  resource and remains idempotent for ordinary/read-only/throwing Data, including
+  injected OOM diagnostic payloads. Writable storage retains secondary diagnostics.
+
 ## Taboos
 
 - No silent estimate: every estimated species is counted and its mole fraction reported.

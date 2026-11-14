@@ -149,6 +149,10 @@ hash traversal and approved bytes; labels are diagnostic text only.
 
 ## Acceptance criteria
 
+- [ ] `RollbackDiagnosticTests` controls the actual production Build/Rollback path:
+  original exception identity and every cleanup attempt survive read-only diagnostic
+  dictionaries and throwing getters/setters; ordinary and injected OOM controls stay.
+
 - [x] 2026-09-14 — L0 green: `FitTests` (every transport fit fixture, enumerated by
       `TransportHost.FitCases`, two theories, plus the SI factors, the species lists
       and the pair index), `InputTests`. Re-dated from 2026-09-12: the hand-typed "27
