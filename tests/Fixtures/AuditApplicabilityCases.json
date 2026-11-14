@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "frozenOn": "2026-11-14",
+    "auditedRevision": "1cfbaea8d1d75af670aebfb456e05702e72ec533",
+    "thermoSha256": "fa7746572952d74e249e818a82a35c113829742fb421a308e167185528884363",
+    "transSha256": "379c514a7f7638371d8d9254a1d653cd078084a9371061aa0b45c5a5c3334d41",
+    "method": "Inputs and bounds transcribed from the pinned audit and committed NASA data; applicability witnesses, not independent scientific reference outputs",
+    "sourceArchive": "full-audit-20261113",
+    "auditSources": [
+      { "path": "claude-audit-20261114/api-cli/probe/Program.cs", "sha256": "b3a8249e77869c0b61d9690efcf7ea449bd07bff001fc4ec7d9d6d9331e71b06", "location": "case H: C2H2 composition, C and H 1:1, one kilogram; 1000.0 / 13.01864 mol/kg each" },
+      { "path": "claude-audit-20261114/perf-transport/FINDINGS.md", "sha256": "89a216166f6cca9b0eea32ce1d3eef713cc909120525da77e92702a1c0ac8748", "location": "PT-01: frozencondensed AP/HTPB/Al 0.68/0.14/0.18, 7 MPa, area ratios 5,20,100,1000" }
+    ],
+    "limitation": "A public Ok/NoGasPhase result demonstrates the admitted model policy. It does not establish material stability or validate extrapolated condensate fits. No CEA output or numerical bit approval is added."
+  },
+  "units": { "temperature": "K", "pressure": "Pa", "elementMoles": "mol/kg", "fitBounds": "K" },
+  "graphite": {
+    "species": "C(gr)",
+    "policy": "equilibrium-phase-admission",
+    "rawFit": { "low": 300, "high": 6000 },
+    "tableFit": { "low": 300, "high": 6000 },
+    "admissionLower": 300,
+    "elements": ["C", "H"],
+    "elementMoles": { "C": 76.8129389859463, "H": 76.8129389859463 },
+    "pressure": 100000,
+    "products": null,
+    "cases": [
+      { "temperature": 300, "expectedStatus": "Ok", "condensatePresent": true },
+      { "temperature": 299.99, "expectedStatus": "Ok", "condensatePresent": false }
+    ],
+    "meaning": "Default product selection admits graphite at its lower effective bound and excludes it just below; a raw fit boundary can create a discontinuous admitted equilibrium model."
+  },
+  "ice": {
+    "species": "H2O(cr)",
+    "policy": "equilibrium-open-below-exception",
+    "rawFit": { "low": 200, "high": 273.15 },
+    "tableFit": { "low": 200, "high": 273.15 },
+    "admissionLower": 160,
+    "elements": ["H", "O"],
+    "elementMoles": { "H": 111.01687012358397, "O": 55.508435061791985 },
+    "pressure": 100000,
+    "products": ["H2O", "H2O(cr)"],
+    "cases": [
+      { "temperature": 160, "expectedStatus": "NoGasPhase", "condensatePresent": true },
+      { "temperature": 190, "expectedStatus": "NoGasPhase", "condensatePresent": true }
+    ],
+    "sourcePolicy": "docs/guide/troubleshooting.md: effective/open-below rules admit ice down to the mixture lower window of 160 K despite the 200 K raw fit",
+    "meaning": "Raw-fit refusal is not a universal equilibrium admission rule; this explicit ice-only product selection demonstrates the declared open-below exception."
+  },
+  "frozenAlumina": {
+    "species": "AL2O3(L)",
+    "policy": "frozen-retained-condensate-extrapolation",
+    "rawFit": { "low": 2327, "high": 6000 },
+    "tableFit": { "low": 2327, "high": 6000 },
+    "admissionLower": null,
+    "elements": ["AL", "O"],
+    "inputFixture": "tests/Fixtures/cases/rocket/ap-htpb-al_pc7MPa_shiftingEquilibrium.json",
+    "inputFixtureSha256": "85ff06c12ebeec6be7fcfc2cfef55e8709ee7c8ca18d5618bd7fb6ee807c001d",
+    "inputDerivation": "Copy the fixture's exact reactant inputs, then apply only the explicit flow and exit overrides below, as in audit PT-01; no reference outputs are imported.",
+    "flow": "frozenAtChamber",
+    "chamberPressure": 7000000,
+    "areaRatios": [5, 20, 100, 1000],
+    "transport": false,
+    "meaning": "The chamber's condensate is retained in frozen flow; positive condensate and an Ok exit below its raw/table fit lower bound disclose extrapolation rather than certify physical validity."
+  }
+}
+

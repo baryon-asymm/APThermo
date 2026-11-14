@@ -27,3 +27,13 @@ consider proven about `Problems` and, through it, about the system.
   execution node to evaluate the transport solver on the reference's composition.
 - `Bits.approved.txt` in this node: one line per fixture, the fixture path and the
   SHA-256 of the raw bits of its front-door result (2026-09-14).
+
+## Boundary applicability witnesses ✅
+
+`ApplicabilityMetadataTests` checks the A37 sidecar's committed data/source-fixture
+hashes, generated raw/table fit bounds and rejects missing or corrupted metadata.
+`ApplicabilityPolicyTests` consumes its exact inputs through the public solver:
+graphite is present at 300 K and absent at 299.99 K with default products; ice is
+admitted below its raw fit under the open-below rule; frozen flow retains alumina
+at an `Ok` exit below the condensate fit. These establish the disclosed model
+policy and diagnostic interpretation, not the physical validity of extrapolation.

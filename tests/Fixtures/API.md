@@ -148,3 +148,14 @@ inputs, independent phase-potential checks and same-constraint feasible HP and S
 objectives plus saved mole fractions. Decimal oracle values remain strings to
 preserve the original precision; input values are JSON numbers. Consumers read
 JSON directly; there is no new loader API or change to CEA case generation.
+
+## Audit applicability sidecar ✅
+
+`AuditApplicabilityCases.json` is separate from `cases/`, CEA regeneration and bit
+snapshots. It records the exact A37 graphite, ice and frozen-alumina inputs, units,
+raw NASA fit bounds, generated table bounds and separate equilibrium admission
+observations. Frozen inputs name the unchanged source fixture and its SHA-256;
+provenance pins both NASA files and locates the original audit witnesses by archive
+path and SHA-256. The archive is not needed at test time. Public-policy consumers
+and the provenance/bound refusal controls live in `Problems.Tests`.
+These are applicability witnesses, not independent scientific reference outputs.
