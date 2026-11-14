@@ -63,7 +63,7 @@ internal enum Recheck { None, Pending, Held, Complete }
 internal struct RecheckState
 {
     public Recheck Stage; public double Floor; public double BestObjective;
-    public CaseStatus BestStatus; public MixtureState BestState; public bool Unresolved;
+    public CaseStatus BestStatus; public bool Unresolved;
 }
 internal static class DeadEnds
 {
@@ -108,3 +108,7 @@ cold retry. Final/TraceGasFinal passes contribute to the active bank through the
 existing interception, so they do not recursively start a new bank. This extends
 entry eligibility without changing objectives, strict ties, work counters or search
 scope; it is not a universal global-optimum claim.
+⚠ 2026-11-14: RecheckState previously carried the full MixtureState candidate by
+value. R10 stores those exact bits in the required isolated RecoverySlices.BestState
+view instead. The local plan retains only the objective/status/cursor and unresolved
+flag; strict selection, tie retention, restoration and paid iteration counts are unchanged.

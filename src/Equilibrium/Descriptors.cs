@@ -68,6 +68,11 @@ internal static class ScratchLayout
     /// set (BOOT.md, the third pass of 2026-09-28, finding F1).
     /// </summary>
     public static int IntsPerCase(int speciesCount, int elementCount) => speciesCount + elementCount + 2 * MaxCondensedInSolution;
+
+    /// <summary>Total per-case scratch bytes, including one independently allocated typed recovery state.</summary>
+    public static int BytesPerCase(int speciesCount, int elementCount) =>
+        sizeof(double) * DoublesPerCase(speciesCount, elementCount) + sizeof(int) * IntsPerCase(speciesCount, elementCount)
+        + Interop.SizeOf<MixtureState>();
 }
 
 /// <summary>
@@ -122,7 +127,7 @@ internal readonly struct EquilibriumScratch(
     public ArrayView<double> BracketEnds => Recovery.BracketEnds;     // [2 * species], the temperature bracket's lower then upper end, after RowScale so that no earlier slice moves
 
     /// <summary>Cuts the scratch of one case from views of at least <see cref="ScratchLayout.DoublesPerCase"/> and <see cref="ScratchLayout.IntsPerCase"/> elements.</summary>
-    public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount)
+    public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount, ArrayView<MixtureState> bestState)
     {
         var unknowns = ScratchLayout.MaxUnknowns(elementCount);
         var offset = 0L;
@@ -156,7 +161,7 @@ internal readonly struct EquilibriumScratch(
         offset += unknowns;
 
         // Recovery owns the appended ends and bank; its slicer keeps an empty view default at a buffer end.
-        var recovery = RecoverySlices.Slice(doubles, offset, speciesCount, elementCount);
+        var recovery = RecoverySlices.Slice(doubles, offset, speciesCount, elementCount, bestState);
 
         var speciesActive = ints.SubView(0, speciesCount);
         var elementActive = ints.SubView(speciesCount, elementCount);

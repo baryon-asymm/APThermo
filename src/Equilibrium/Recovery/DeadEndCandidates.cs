@@ -12,7 +12,7 @@ internal static class DeadEndCandidates
         plan.Recheck.BestObjective = Objective(problem, result, plan);
         plan.Recheck.BestStatus = CaseStatus.Ok;
         plan.Recheck.Unresolved = false;
-        Save(table, scratch, result, ref plan.Recheck);
+        Save(table, scratch, result);
     }
 
     /// <summary>Strictly better objective replaces the bank; equality retains the earlier feasible state.</summary>
@@ -31,7 +31,7 @@ internal static class DeadEndCandidates
         {
             plan.Recheck.BestObjective = objective;
             plan.Recheck.BestStatus = plan.Status;
-            Save(table, scratch, result, ref plan.Recheck);
+            Save(table, scratch, result);
         }
     }
 
@@ -49,9 +49,9 @@ internal static class DeadEndCandidates
             result.Multipliers[i] = scratch.Recovery.BestMultipliers[i];
         }
 
-        result.State[0] = plan.Recheck.Unresolved ? default : plan.Recheck.BestState;
+        result.State[0] = plan.Recheck.Unresolved ? default : scratch.Recovery.BestState[0];
         plan.Status = plan.Recheck.Unresolved ? CaseStatus.NotConverged : plan.Recheck.BestStatus;
-        plan.Current = PassOutcome.CaseAt(problem, plan.Recheck.BestState.Temperature);
+        plan.Current = PassOutcome.CaseAt(problem, scratch.Recovery.BestState[0].Temperature);
         plan.Bracket = default;
         plan.Recheck.Stage = Recheck.Complete;
     }
@@ -60,7 +60,7 @@ internal static class DeadEndCandidates
         plan.Status == CaseStatus.NoGasPhase ? PassOutcome.Value(result, plan, !PassOutcome.IsEnthalpy(problem))
             : PassOutcome.IsEnthalpy(problem) ? result.State[0].Entropy : result.State[0].Enthalpy;
 
-    private static void Save(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result, ref RecheckState state)
+    private static void Save(in SpeciesTableView table, in EquilibriumScratch scratch, in EquilibriumResult result)
     {
         for (var j = 0; j < table.SpeciesCount; j++)
         {
@@ -72,6 +72,6 @@ internal static class DeadEndCandidates
             scratch.Recovery.BestMultipliers[i] = result.Multipliers[i];
         }
 
-        state.BestState = result.State[0];
+        scratch.Recovery.BestState[0] = result.State[0];
     }
 }

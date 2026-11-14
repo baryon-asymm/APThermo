@@ -69,7 +69,7 @@ internal readonly struct EquilibriumScratch              // slices of batch-size
                               ArrayView<double> matrix, ArrayView<double> rightHandSide, ArrayView<double> rowScale,
                               ArrayView<int> speciesActive, ArrayView<int> elementActive, ArrayView<int> condensedInSolution,
                               RecoverySlices recovery);
-    public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount);
+    public static EquilibriumScratch Slice(ArrayView<double> doubles, ArrayView<int> ints, int speciesCount, int elementCount, ArrayView<MixtureState> bestState);
         // cuts one case's scratch from views of at least DoublesPerCase and IntsPerCase elements
 }
 
@@ -78,8 +78,9 @@ internal readonly struct RecoverySlices
     public readonly ArrayView<double> BracketEnds;
     public readonly ArrayView<double> BestMoles;
     public readonly ArrayView<double> BestMultipliers;
-    public RecoverySlices(ArrayView<double> bracketEnds, ArrayView<double> bestMoles, ArrayView<double> bestMultipliers);
-    public static RecoverySlices Slice(ArrayView<double> doubles, long offset, int speciesCount, int elementCount);
+    public readonly ArrayView<MixtureState> BestState; // one isolated typed element per case
+    public RecoverySlices(ArrayView<double> bracketEnds, ArrayView<double> bestMoles, ArrayView<double> bestMultipliers, ArrayView<MixtureState> bestState);
+    public static RecoverySlices Slice(ArrayView<double> doubles, long offset, int speciesCount, int elementCount, ArrayView<MixtureState> bestState);
 }
 internal readonly struct TieSlices                       // rule A's release snapshot, grouped 2026-10-03 (Newton/BOOT.md, "Release")
 {
@@ -129,7 +130,8 @@ internal static class ScratchLayout
 {
     public const int MaxCondensedInSolution = 20;                              // = TableLimits.MaxElements (2026-09-26; was 8)
     public static int MaxUnknowns(int elementCount);                          // elementCount + MaxCondensedInSolution + 2
-    public static int DoublesPerCase(int speciesCount, int elementCount);     // 9 · species + MaxCondensedInSolution + 3 · elements + MaxUnknowns² + 2 · MaxUnknowns
+    public static int DoublesPerCase(int speciesCount, int elementCount);     // 10 · species + MaxCondensedInSolution + 4 · elements + MaxUnknowns² + 2 · MaxUnknowns
+    public static int BytesPerCase(int speciesCount, int elementCount);        // 8 · DoublesPerCase + 4 · IntsPerCase + Interop.SizeOf<MixtureState>()
     public static int IntsPerCase(int speciesCount, int elementCount);        // species + elements + 2 · MaxCondensedInSolution
 }
 
@@ -336,3 +338,14 @@ Nonfinite pressure is `InvalidInput` on both equilibrium and frozen paths.
 The pressure mixing term retains ln(p/p0) for ordinary bits; if that positive-pressure
 ratio underflows, it uses ln(p)-ln(p0). A small pressure is therefore not refused solely
 because its ratio underflows when the final density and other fields are representable.
+
+⚠ 2026-11-14: the scratch formula still said nine species and three element slices;
+A35 had already added the candidate moles/multipliers, making it ten and four.
+R10 leaves those double/int offsets and lengths unchanged and moves the exact candidate
+state out of the loop-live RecheckState into RecoverySlices.BestState. Both Slice
+entry points now require that separate one-element typed view; no default/alias fallback.
+Execution supplies RecoveryStates.SubView(caseIndex, 1) from Scratch<MixtureState>(1).
+BytesPerCase includes its generated size (152 bytes in the current layout), beyond
+8*(speciesCount+elementCount) already paid by the A35 candidate composition bank.
+A flat double SubView.Cast experiment failed the compiled CPU leading-sentinel
+control; the dedicated typed allocation avoids its offset conversion issue.
