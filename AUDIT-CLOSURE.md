@@ -26,10 +26,10 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A09 | Actual boundary-walk cap verification | Local pass 2026-11-14 | `14d875bb`; actual automaton cap and mutation controls; root Performance 32/32 |
 | A10 | First-maximum ordering oracle | Local pass 2026-11-14 | `14d875bb`; late-higher-peak rejection; root Performance 32/32 |
 | A11 | Generated performance field inventory | Local pass 2026-11-14 | `14d875bb`; reflected six-field corruption controls; root Performance 32/32 |
-| A12 | Pinned full math corpus integrity | Slice pass 2026-11-14 | `7d42fae6`; seven portable corpus refusal controls; pinned full identity verified; root full rounding campaign in progress |
+| A12 | Pinned full math corpus integrity | Local pass 2026-11-14 | `7d42fae6`; seven portable refusal controls; root complete 2,266,122-input rounding campaigns passed on Windows and Ubuntu-24.04, with pinned identity and no skip |
 | A13 | Internal frozen-state finite guards | Local pass 2026-11-14 | `4755241d`, `77afac60`; root finite-state/bit controls 17/17, representable extreme positive cases retained |
 | A14 | Internal transport finite temperature | Local pass 2026-11-14 | `14d875bb`; root Transport controls 73/73 |
-| A15 | Windows and Linux CUDA-driver detection | Slice pass 2026-11-14 | `17f048d2`; shared name predicate and ordinary/forbidden-module controls; final platform process checks pending |
+| A15 | Windows and Linux CUDA-driver detection | Local pass 2026-11-14 | `17f048d2`; shared Windows/Linux name predicate and ordinary/forbidden-module controls; real Ubuntu-24.04 CPU process/planning controls 36/36, final full matrix pending |
 | A16 | Approved snapshot write protection | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68, including ordinary/link output controls |
 | A17 | Schema validator semantics and keyword coverage | Local pass 2026-11-14 | `200a1bc2`, `38488d5a`, `e486c513`; exact decimal semantics and strict URI pointers; root Fixtures 187/187 and original independent probes reject all reproduced bypasses |
 | A18 | Chunk enumerator integer boundary | Slice pass 2026-11-14 | `17f048d2`; finite int.MaxValue covering and ordinary/empty chunks in boundary controls; root Protocol 131/131 |
@@ -95,12 +95,12 @@ so that correcting a test name cannot silently substitute for its behavioral che
 | Review | Obligation | Status and evidence |
 |---|---|---|
 | T07 | Observe compilation and release without memory floors | `b5b72b23`; warm-up/cache/weak-reference observations, upper budgets retained; cache/IR retention mutations red |
-| T08 | Separate family results from fallback-path inference | In progress; `tests/Execution.Tests/BOOT.md` records the diagnostic scope |
+| T08 | Separate family results from fallback-path inference | `b15c6cdd`; behavior and mechanism facts split, 13/13; marker mutation fails five diagnostics while five result checks remain green |
 | T10 | Distinguish CPU-forbidden CUDA facts from real hardware proof | Separate final hardware lanes; explicit backend/device reporting and new P1 consumers in progress |
 | T11/T12 | Retain independent scientific evidence and bounded bit contracts | Existing independent suites retained; one BeO numerical row approved only after raw NASA9 and independent sonic validation (`0702dd45`, `effc89f2`) |
 | T13 | Show solved-throat sensitivity to skipped tail execution | In progress; `tests/Performance.Tests/BOOT.md` requires an independent sonic reference and a red skipped-tail mutation |
 | T14 | Bound subprocess completion and preserve partial output | `af3ac921`; root process-fixture integration 79/79, controlled timeout/cancellation/pipe cases |
-| T15 | Add a literal independent mass-tolerance validity table | `20688e9b`; finite boundaries, NaN and both infinities, public boundary controls retained |
+| T15 | Add a literal independent mass-tolerance validity table | `4dcb374b`; finite boundaries, NaN and both infinities, public boundary controls retained |
 | T16 | Print actual named fields for numerical bit mismatches | Thermo, Equilibrium, Performance, Transport, Problems and CLI callers updated; one-ULP mutations remain red without approved-record changes |
 
 ## Review recommendations
