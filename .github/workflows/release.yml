@@ -85,6 +85,9 @@ jobs:
       - name: Delivery guard tests
         run: python -X utf8 .github/scripts/test_delivery.py
 
+      - name: Trace runner guard tests
+        run: python -X utf8 .github/scripts/test_trace_scan.py
+
       - name: Build
         run: dotnet build APThermo.sln --configuration Release
 

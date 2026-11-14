@@ -16,6 +16,14 @@ Outside the tree: host shells and GitHub Actions versions inherited from the anc
 
 ## Constraints
 
+The CPU trace runner derives scan methods from the neighbour's checked API declaration,
+requires exact nonempty discovery under Category=LongRunning, and then runs exactly
+that filter with APTHERMO_NO_CUDA=1. It records discovery, a generated category/job
+matrix and TRX. Successful execution requires the exact discovered methods passed,
+no duplicates/skips and matching nonzero TRX counters. A discover-only mode never
+claims execution. The workflow builds beforehand; runner commands are argument lists,
+with bounded discovery/execution times and no shell interpolation.
+
 Linux preflight has the same native-status and global.json SDK-resolution obligation as Windows.
 Bash guards use controlled functions for all three host tools and explicit missing
 command discovery, so no test reaches a real NVIDIA command on either test host.
@@ -23,6 +31,12 @@ command discovery, so no test reaches a real NVIDIA command on either test host.
 Windows preflight runs under Windows PowerShell 5.1, without Python or Git Bash. Bash release scripts run on hosted Linux. Local tests may use Python and controlled fake commands; never call a GPU or publish.
 
 ## Acceptance criteria
+
+- [x] 2026-11-14 — Trace runner guards (`test_trace_scan.py`, eight tests) reject empty,
+  missing, duplicate and extra discovery; nonzero process status; absent, skipped,
+  failed or inconsistent TRX. Positive synthetic reports generate a passed matrix;
+  actual metadata discovery generates a not-run matrix. No numerical scan was run
+  locally. Discovery/TRX bypass mutations are red (four/seven subcases).
 
 - [x] 2026-11-14 — Linux native parity and SDK-resolution guards (`LinuxPreflightGuards`)
   pass valid/roll-forward prerequisites and refuse missing/nonzero-native tools plus

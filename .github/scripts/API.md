@@ -30,3 +30,10 @@ SDK is selected by `dotnet --version` in the repository, respecting global.json
 rollForward and other resolver policy. Root's real host validly selected 10.0.113
 for 10.0.112/latestPatch. Native resolver failure or malformed output still refuses.
 Windows uses the first discovered application when PATH contains multiple matches.
+
+`trace_scan.py [--configuration Debug|Release] [--results-dir <path>] [--discover-only]`:
+select the checked `TraceGasScanTests` methods from Equilibrium.Tests/API.md,
+verify metadata discovery and run on CPU. Persist discovery.log, matrix.json,
+trace-gas.trx and execution.log; exit nonzero for missing/duplicate/skipped tests,
+failed process, timeout, missing report or inconsistent counters. Discover-only
+produces a matrix marked unexecuted and exits after verified discovery.

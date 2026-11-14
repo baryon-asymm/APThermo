@@ -1,0 +1,75 @@
+name: Trace gas CPU scans
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'src/**'
+      - 'tests/Equilibrium.Tests/**'
+      - 'tests/Fixtures/**'
+      - 'tests/Harness/**'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.github/**'
+      - 'tools/protocol-lint/**'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/Equilibrium.Tests/**'
+      - 'tests/Fixtures/**'
+      - 'tests/Harness/**'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.github/**'
+      - 'tools/protocol-lint/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trace-gas-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trace-scan:
+    name: ${{ matrix.os }} — CPU trace scans
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    env:
+      APTHERMO_NO_CUDA: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Trace runner guards
+        run: python -X utf8 .github/scripts/test_trace_scan.py
+      - name: Build scan assembly
+        run: dotnet build tests/Equilibrium.Tests/APThermo.Equilibrium.Tests.csproj --configuration Release -m:1
+      - name: Discover and run documented CPU scans
+        run: python -X utf8 .github/scripts/trace_scan.py --results-dir artifacts/trace-gas
+      - name: Upload scan evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trace-gas-${{ matrix.os }}
+          path: |
+            artifacts/trace-gas/**
+            **/*.actual.txt
+            **/*.fields.txt
+          if-no-files-found: error

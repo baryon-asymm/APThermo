@@ -23,6 +23,16 @@ Inherit .github delivery policy and hosted evidence requirement. Every changed p
 
 ## Acceptance criteria
 
+- [x] 2026-11-14 — A39 local wiring: eight `test_trace_scan.py` guards pass; bypassing
+  discovery verification produces four red subcases, bypassing TRX verification
+  produces seven. The actual built Debug assembly discovers exactly both documented
+  CPU/LongRunning facts (`SCRATCH/audit/trace-discovery/matrix.json`); that matrix
+  explicitly says not-run. actionlint 1.7.12 accepts the affected workflow files.
+- [ ] A real hosted Windows/Linux trace-scan run executes both full scan corpora and
+  publishes discovery/matrix/TRX evidence with no skip. The audit baseline is 4158
+  meaningful scan rows and 1632 expected states; each owning scan fact enforces its
+  corpus. Local metadata discovery is not execution proof.
+
 - [x] 2026-11-14 — A33 local controls: both release ref uses bind through the actual
   YAML env mappings and quoted shell variables (`test_delivery.py`, 11 total guards);
   valid Git refs containing quotes, semicolons and command substitution remain one
