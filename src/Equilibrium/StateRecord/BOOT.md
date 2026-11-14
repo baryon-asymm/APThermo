@@ -29,8 +29,20 @@ at a plateau.
 The invariants of the parent ([BOOT.md](../BOOT.md)) hold here unchanged.
 
 - **A refused state is never written.** `WriteEquilibrium` and `WriteFrozen` decide the state guard
-  before `result.State[0]` is touched, return false when it fails with nothing written, and write
+  before a successful state is published, clear `result.State[0]` on refusal, and write
   nothing but `result.State[0]` otherwise.
+
+- A calculated state must have finite h, u, s, g and volume derivatives; finite positive
+  T, p, density and both molar masses; and the existing positive response fields.
+  A density rounded to zero is unrepresentable and is refused. There is no pressure
+  ceiling: a large finite pressure whose calculated fields remain valid is admitted.
+  The gasless T,p-only contract belongs to the parent and is unchanged.
+- Refusal writes the zero state; it never leaves a partial or previously written state.
+
+⚠ 2026-11-14: the guard formerly checked response fields alone and left the output
+untouched on refusal. A13's frozen TP controls exposed false Ok with zero density,
+infinite entropy/Gibbs energy, or infinite pressure. The guard now checks the full
+calculated state and clears it on refusal; nonfinite pressure is invalid input.
 
 ## Dependencies
 
@@ -241,6 +253,10 @@ decomposition to make, not an exception to declare.
 
 ## Acceptance criteria
 
+- [ ] `FiniteStateTests` rejects frozen TP at double.Epsilon, nonfinite pressure and
+  overflowing calculated density with zero state, admits ordinary and representable
+  extreme finite pressures, and verifies state-writer refusals clear poisoned output.
+
 The criteria of the parent ([ACCEPTANCE.md](../ACCEPTANCE.md)) that name these files hold unchanged:
 the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snapshot.
 
@@ -302,5 +318,5 @@ the derivatives and the plateau facts, `MixturePropertiesTests` and the bit snap
 ## Taboos
 
 - No public type here: undocumented surface is a contract nobody agreed to.
-- No state written for a refused case: the state guard decides first.
+- No partial state published: the state guard clears refused output to zero.
 - No iteration and no condensed-set change in this node: they are the `Newton` and `Condensed` nodes'.

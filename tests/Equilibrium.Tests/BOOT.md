@@ -177,6 +177,10 @@ creation names its arguments; it passes them by position today (the criterion be
 
 ## Acceptance criteria
 
+- [ ] `FiniteStateTests` freezes lower-level pressure controls: false Ok at the smallest
+  pressure and infinity must be refused; representable extreme finite pressure remains
+  admitted. The full public state property list is checked by reflection.
+
 - [x] 2026-11-14 — `RecoveryCandidateTests` covers the bounded best-candidate bank
   and all generated state properties; `AuditPhaseBranchTests` and the generated
   `OverlappingPhaseInventoryTests` check the separate physical/phase witnesses.
