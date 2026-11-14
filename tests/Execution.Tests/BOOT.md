@@ -72,7 +72,9 @@ A per-case observable owned by the `TraceGas` or `Equilibrium` node would replac
   launcher/cache establish that a fresh engine compiled the requested kernel.
   Allocation and retained-heap measurements keep upper budgets; a lower bound of
   32 MiB is not evidence of compilation. Release checks retain observable cache
-  clearing and weak-reference liveness, with bounded heap diagnostics that permit
+  clearing and weak-reference liveness, with post-dispose retained heap bounded by
+  the larger of one quarter of the measured live program and 1 MiB of process noise
+  (the concurrent non-engine facts allocate under 1 MiB, measured above). This permits
   a smaller correct compiled program. A cache-clear mutation must remain red.
 
 ⚠ 2026-11-14: the compile tests used allocation/retention floors to exclude empty

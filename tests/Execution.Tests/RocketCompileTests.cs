@@ -28,18 +28,6 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
     private const long CompileAllocationBound = 7L * 1024 * 1024 * 1024;
 
     /// <summary>
-    /// The least a real compile allocates, 32 MB: a measurement below it means the kernel was not compiled by the run this
-    /// fact watches, and the fact fails instead of passing on an empty measurement.
-    /// </summary>
-    private const long CompileAllocationFloor = 32L * 1024 * 1024;
-
-    /// <summary>
-    /// The least heap a live engine keeps for its compiled rocket program, 32 MiB (143 MiB measured): a measurement below it
-    /// means there was no program to release.
-    /// </summary>
-    private const long CompiledProgramFloor = 32L * 1024 * 1024;
-
-    /// <summary>
     /// The first rocket run of a fresh CPU engine, one case, allocates less than <see cref="CompileAllocationBound"/> bytes in
     /// the whole process, every thread counted (<see cref="GC.GetTotalAllocatedBytes"/>, precise). The compile dominates the
     /// run: the case itself allocates the size of its buffers. The class joins the engine collection, so no other fact of that
@@ -55,6 +43,7 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
         using var engine = Engine.Create(new EngineOptions { Accelerator = AcceleratorKind.Cpu });
         using var tables = engine.Upload(family.Table, family.Transport);
 
+        Assert.Equal(0, engine.Launchers.Count);
         var totalBefore = GC.GetTotalAllocatedBytes(precise: true);
         var callingThreadBefore = GC.GetAllocatedBytesForCurrentThread();
         var result = engine.Run(tables, batch);
@@ -64,7 +53,11 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
         output.WriteLine($"the rocket kernel's first run allocated {allocated} bytes in the process ({callingThread} of them on the calling thread, a figure of this machine's {Environment.ProcessorCount} processors), warm-up {result.Timings.WarmUp.TotalSeconds:F2} s");
         Assert.Equal(CaseStatus.Ok, result.Status[0]);
         Assert.True(result.Timings.WarmUp > TimeSpan.Zero, "the run did not compile the rocket kernel, so there is nothing to bound");
-        Assert.True(allocated > CompileAllocationFloor, $"the compile allocated {allocated} bytes in the process, below the floor of a real compile ({CompileAllocationFloor})");
+        Assert.Equal(1, engine.Launchers.Count);
+        var launcher = TheCachedRocketLauncher(engine);
+        _ = HeapAfterCollection();
+        Assert.True(launcher.IsAlive, "the compiled rocket launcher is retained while its engine is live");
+        GC.KeepAlive(engine);
         Assert.True(allocated <= CompileAllocationBound,
                     $"the rocket kernel's compile allocated {allocated} bytes in the process, over the bound of {CompileAllocationBound}: a stage that holds a whole solve is inlined at too many call sites (root BOOT.md, Compile size)");
     }
@@ -97,7 +90,8 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
     /// dispose"): the managed heap after <see cref="Engine.Dispose"/> and a full collection is under a quarter of what it held
     /// while the engine was in use. Measured in <see cref="GC.GetTotalMemory"/> against the heap before the run, so no constant
     /// is a machine's: 143 MiB kept live and none after, at the time of writing, 3.9 GB kept live before the inlining bound.
-    /// The floor fails the fact on an empty measurement. Red without the context's cache cleared by <see cref="KernelCache.Clear"/>,
+    /// A live cached launcher proves a real program; a one-MiB noise allowance permits smaller compiler output.
+    /// Red without the context's cache cleared by <see cref="KernelCache.Clear"/>,
     /// which dropping the launchers alone does not do.
     /// </summary>
     [Fact]
@@ -110,16 +104,31 @@ public sealed class RocketCompileTests(ITestOutputHelper output)
         var baseline = HeapAfterCollection();
 
         var result = engine.Run(tables, batch);
+        Assert.True(result.Timings.WarmUp > TimeSpan.Zero, "the fresh engine must compile the requested rocket kernel");
+        Assert.Equal(1, engine.Launchers.Count);
+        var launcher = TheCachedRocketLauncher(engine);
         var kept = HeapAfterCollection() - baseline;
+        Assert.True(launcher.IsAlive, "the live engine must retain the compiled rocket launcher");
         tables.Dispose();
         engine.Dispose();
         var keptAfterDispose = HeapAfterCollection() - baseline;
 
         output.WriteLine($"the rocket kernel's program kept {kept} bytes of managed heap while the engine was in use and {keptAfterDispose} after Dispose");
         Assert.Equal(CaseStatus.Ok, result.Status[0]);
-        Assert.True(kept > CompiledProgramFloor, $"the engine kept {kept} bytes of heap for its compiled program, below the floor of a real compile ({CompiledProgramFloor})");
-        Assert.True(keptAfterDispose < kept / 4, $"the disposed engine, still referenced, keeps {keptAfterDispose} of the {kept} bytes its compiled program held");
+        Assert.Equal(0, engine.Launchers.Count);
+        Assert.False(launcher.IsAlive, "the disposed engine must release its rocket launcher");
+        var retainedBound = Math.Max(1L << 20, kept / 4);
+        Assert.True(keptAfterDispose <= retainedBound, $"the disposed engine, still referenced, keeps {keptAfterDispose} of the {kept} program bytes, over the noise-aware bound {retainedBound}");
         GC.KeepAlive(engine);
+    }
+
+    /// <summary>Observes the already compiled rocket launcher without retaining a strong caller reference.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference TheCachedRocketLauncher(Engine engine)
+    {
+        var launcher = engine.Launchers.Get<Delegate>(nameof(Kernels.Rocket), out var warmUp);
+        Assert.Equal(TimeSpan.Zero, warmUp);
+        return new WeakReference(launcher);
     }
 
     /// <summary>The managed heap after every collection and finalizer has run, so a garbage object is not counted.</summary>

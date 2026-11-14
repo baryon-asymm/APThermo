@@ -10,6 +10,13 @@
   shrink, remainder and integer-maximum bounds. Old policy: four failed/one passed.
   Evidence: `SCRATCH/audit/sampling-old-negative.log`, `sampling-final.log`; no GPU run.
 
+- [x] 2026-11-14 — T07: three `RocketCompileTests` passed with direct warm-up,
+  cache and weak-launcher observations; allocation remains bounded by 7 GiB.
+  Cache dictionary retention fails the launcher fact; retaining context IR fails
+  the heap bound (476 490 640 bytes retained versus 119 129 548 allowed).
+  Evidence: `SCRATCH/audit/compile-observations.log`, `cache-launcher-negative.log`,
+  `cache-ir-negative.log`; mutations restored and final build 0 warnings/errors.
+
 The node's acceptance criteria (AGENTS.md §6, §15), moved here from `BOOT.md` on
 2026-10-03 when the balance-remnant correction would have taken the leaf over its limit.
 
