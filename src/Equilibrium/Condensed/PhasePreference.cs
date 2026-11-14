@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using APThermo.Thermo;
 
 namespace APThermo.Equilibrium.Condensed;
@@ -72,7 +73,8 @@ internal static class PhasePreference
             return false;
         }
 
-        var crossing = Crossing(table, j, k);
+        var crossingTable = table;
+        var crossing = Crossing(crossingTable, j, k);
         if (!(crossing > 0.0))
         {
             return false;
@@ -84,6 +86,7 @@ internal static class PhasePreference
     }
 
     /// <summary>A sign-bracketed crossing inside the common raw interval; zero when none is bracketed.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static double Crossing(in SpeciesTableView table, int j, int k)
     {
         var low = KernelMath.Max(SpeciesFunctions.RecordLow(table, j), SpeciesFunctions.RecordLow(table, k));
