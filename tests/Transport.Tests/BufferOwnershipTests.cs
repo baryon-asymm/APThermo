@@ -48,7 +48,7 @@ public sealed class BufferOwnershipTests
         ownership.Dispose();
         Assert.Equal(1, resource.Attempts);
     }
-    /// <summary>Every upload view contributes one owned buffer, plus the empty prefix.</summary>
+    /// <summary>Every view is a possible nonempty upload column; exercise its maximum acquisition-prefix inventory.</summary>
     public static TheoryData<int> AcquisitionPrefixes()
     {
         var count = typeof(TransportTableView).GetFields()
