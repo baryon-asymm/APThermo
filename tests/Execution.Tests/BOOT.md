@@ -193,6 +193,14 @@ Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA
 
 ## Constraints
 
+- A separate CUDA/LongRunning plan diagnostic may temporarily attach `LaunchBudget.None`
+  to the existing session of the frozen throughput family, restoring the original
+  budget in `finally`. Compare the identical full batch and one-launch prefixes of
+  1, 2, 4, 8192 and 16384 cases; never run 100000 single-case chunks. Print R09
+  summaries, statuses and work, and require exact bounded/static result equality.
+  This opt-out is diagnostic-only, adds no production escape hatch, changes no
+  original throughput gate and cannot close a throughput regression by passing.
+
 - R10 throughput diagnostics retain the existing workload, warm-ups, timed-run count,
   elapsed capture points and independent medians. Keep each timed run's bounded R09
   summary and print it after measurement, alongside unchanged cumulative metrics.

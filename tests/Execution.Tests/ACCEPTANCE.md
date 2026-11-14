@@ -1,5 +1,12 @@
 # ACCEPTANCE.md — tests/Execution.Tests
 
+- [x] 2026-11-14 — Diagnostic budget override restoration: the CPU-only
+  `DiagnosticOverrideRestoresTheOriginalBudgetOnFailure` control passed in
+  `SCRATCH/audit/launch-plan-diagnostic-control.log`. The exact original session
+  budget survives an injected callback failure. The separate CUDA/LongRunning
+  experiment is implemented/compiled, not hardware-verified here; it cannot
+  satisfy the original throughput acceptance by disabling the bounded plan.
+
 - [x] 2026-11-14 — R10 diagnostic guard: `CachedKernelDiagnosticsTests` and existing
   `ThroughputRecordTests` 13 passed in `SCRATCH/audit/r10-observability-controls.log`.
   A real cached CPU probe is described through public ILGPU APIs with zero new

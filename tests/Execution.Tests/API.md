@@ -110,3 +110,20 @@ Missing kernel, PTX or FunctionInfo is explicitly unavailable; diagnostics enabl
 no compiler options. No new field retains a kernel or IR, and the full PTX is not
 printed. IR local allocations and virtual declarations are compiler metadata,
 not measured physical spills, physical registers or occupancy.
+
+## Isolated launch-plan diagnostic ✅
+
+`CudaLaunchPlanDiagnosticTests.DiagnosticOnlyFrozenThroughputBoundedVersusStaticLaunches`
+is a separately named CUDA/LongRunning experiment. It requires an actual CUDA
+engine and the usual bounded device policy, then compares that policy with a
+scoped `LaunchBudget.None` on the SAME engine, table and original 100000-case
+frozen throughput batch. It restores the original session budget in `finally`.
+Static one-launch probes copy prefixes of the SAME batch: 1, 2, 4, 8192 and 16384
+cases, rather than submitting 100000 single-case chunks. The private session field
+is read only by this explicitly authorized test-side reflection; no production
+option or default changes. It reports three timed runs per measurement, R09
+summaries, outcomes and Newton work, and compares bounded/static numerical results
+with the existing exact comparator. It does not collect a new per-launch trace.
+A passing static experiment is NOT throughput regression closure and writes no
+approval or replacement throughput record. The original throughput fact and its
+5x/80%/115% gates remain unchanged. Hardware execution belongs to the root's lane.
