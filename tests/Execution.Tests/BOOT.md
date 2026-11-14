@@ -61,6 +61,14 @@ A per-case observable owned by the `TraceGas` or `Equilibrium` node would replac
 
 ## Invariants
 
+- **Audit A01/A35 witnesses (2026-11-14).** Frozen SrCl2 overlap and Mg/H/O/S
+  multi-floor inputs exercise the changed equilibrium kernel on CUDA as well as
+  the CPU accelerator. Exact backend equality includes statuses, every state
+  property, composition and work counters; independent phase-potential and HP/SP
+  feasible-objective witnesses establish the scientific obligation separately.
+  CUDA evidence records the actual selected device and cannot be a forbidden-CUDA
+  early return. Public Solver regressions belong to `Problems.Tests`.
+
 - **CUDA equals the CPU accelerator, bit for bit** (2026-10-05, item 13 of 0.2.2). The tree's
   own `Exp`, `Log` and `Pow` are correctly rounded and the post-link keeps CUDA from fusing a
   multiplication into an addition, so the two accelerators run one program on one set of IEEE
