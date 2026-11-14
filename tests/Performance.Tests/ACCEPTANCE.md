@@ -322,7 +322,21 @@ The two-phase temperature remains the existing effective-range correction near
 intentional numerical convergence-path change, not a refactoring allowance.
 Provenance: external audit `fix-evidence/independent-numerics/REVIEW.md`,
 `raw-oracle.json`, `throat-oracle.json`, `raw_oracle.py`, `throat_oracle.py` and
-root `fix-evidence/root/cause-*-fields.json`; the guard retains a small frozen answer.Guard evidence: `IndependentBeOThroatTests` 4/4 CPU positive/negative controls;
+root `fix-evidence/root/cause-*-fields.json`; the guard retains a small frozen answer.
+
+Guard evidence: `IndependentBeOThroatTests` 4/4 CPU positive/negative controls;
 a temporary actual throat-temperature corruption in the positive solve made that
 known-answer assertion red, then was restored. `SCRATCH/audit/independent-beo-green.trx`
 and `independent-beo-corruption-red.trx` in audit-public record both sides.
+- [x] 2026-11-14 — Root-approved intentional A01 numerical record, exactly one row:
+  `tests/Fixtures/cases/rocket/rp1311-example13.json` in `Bits.approved.txt` changes
+  from `76703e3ffd0d51ca479b902495c420114b63ac49d5a9606eb4e0611a63b4e526`
+  to `cb1f950c110a137b5317c7f98dc474e5c8c8c9efefab79f35e155dfe9efd44c5`.
+  The root's source-reversal proof and independent raw/sonic oracle above justify
+  the changed convergence path; the independent guard preserves the established
+  `polishThresholdRelative` budget. Hash order, all other approved rows and tolerance
+  values are unchanged. Before this one-row update, the generated bit inventory
+  yielded 100 passing controls and only this mismatch; after it, the full Performance
+  CPU suite is 1494/1494 with no skips. Evidence in audit-public:
+  `SCRATCH/audit/performance-bits-before-approved-row.trx`,
+  `performance-approved-final-full.trx`, and `example13-approved-row.diff`.
