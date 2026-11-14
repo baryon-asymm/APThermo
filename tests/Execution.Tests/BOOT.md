@@ -193,9 +193,18 @@ Outside the tree: xunit; ILGPU 1.5.3; an NVIDIA GPU with its driver for the CUDA
 
 ## Constraints
 
-- ⚠ 2026-11-14: the current budget workload is sampled across launches, not a first
-  device wave. Its count cap and aggregate kernel-time ceiling are unchanged.
-  Old device measurements remain historical; the new sampling needs GPU re-verification.
+- The display-driver safety target is 500 ms for each successful synchronized
+  launch over the unchanged 16,384-case bracketing and trace-gas workloads.
+  Record launch count, longest duration and its case count at the production
+  `BatchRun.Launch` boundary, with constant-size host telemetry. A nonempty run
+  must report nonzero launch count; an over-budget launch and an omitted/later
+  maximum must make controls red. Keep the aggregate `Timings.Kernel` and all
+  approved throughput/iteration gates unchanged; report both aggregate and maximum.
+- ⚠ 2026-11-14 (R09): the prior sampling note called 500 ms an aggregate ceiling.
+  The original F2 contract and measurements concern one launch; after first-one
+  sampling the sum covers multiple launches and cannot establish their maximum.
+  C0 measured sums of 6523.4/668.8 ms. Preserve these red observations, and accept
+  this correction only after actual-device per-launch maxima pass the same target.
 
 - T08: `AFamilyHoldsTheCasesItStandsFor` checks observable backend results against
   plain host solves: status, work counters, exact states/compositions and element
