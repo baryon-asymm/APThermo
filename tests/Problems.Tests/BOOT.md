@@ -144,7 +144,20 @@ Outside the tree: xunit.
   - The comparisons of `ReferenceComparison` fail on NaN.
   - The frozen cv skip is keyed on the reference's signature.
 
+Bit diagnostics name every hashed scalar without changing its order: mixture element
+and h/mass, station index/name, state/performance/transport property, species fraction,
+presence flags and statuses. Input fields including targets are extra named context,
+not hashed. Labels come from the property expressions at the hash write sites.
+
+⚠ 2026-11-14: T16 found the existing per-case dump contained positional values only.
+It now names those same actual values and adds input context; hash and approval
+contracts are unchanged.
+
 ## Acceptance criteria
+
+- [x] 2026-11-14 — `BitSnapshotTests.EveryFixtureGivesTheRecordedBits` preserves approved bytes;
+  a numeric mutation emits a named actual field dump with station/property/species,
+  element, h/mass/status and input target context.
 
 - [x] 2026-09-12 — L0 green: `PropellantTests`
       (`ElementMolesAndEnthalpyEqualTheReferenceFromItsMassFractions`,

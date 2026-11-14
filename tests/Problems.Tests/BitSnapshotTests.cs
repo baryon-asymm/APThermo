@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using APThermo.Fixtures;
 using APThermo.Harness;
 using APThermo.Performance;
@@ -36,7 +37,7 @@ public sealed class BitSnapshotTests
             var c = CeaFixtures.Load(path);
             var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
             var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.RocketProblemOf(c));
-            Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
+            Record(snapshot, problems, keys, path, c, HashOf(result.Mixture, result.MixtureMass, result.Species, result.Stations, result.Status));
         }
 
         foreach (var kind in new[] { "tp", "hp", "sp" })
@@ -46,7 +47,7 @@ public sealed class BitSnapshotTests
                 var c = CeaFixtures.Load(path);
                 var propellant = FixtureCases.PropellantOf(SolverFixture.Shared.Database, c);
                 var result = SolverFixture.Shared.Solver.Solve(propellant, FixtureCases.EquilibriumProblemOf(c));
-                Record(snapshot, problems, keys, path, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
+                Record(snapshot, problems, keys, path, c, HashOf(result.Mixture, result.MixtureMass, result.Species, [result.State], result.Status));
             }
         }
 
@@ -69,79 +70,155 @@ public sealed class BitSnapshotTests
     /// beside <c>Bits.actual.txt</c>, so a run that disagrees with <c>Bits.approved.txt</c> also says which of the
     /// hashed numbers moved (BOOT.md, the Bits level's per-case field dump).
     /// </summary>
-    private static void Record(ApprovedSnapshot snapshot, List<string> problems, List<string> keys, string path, BitHash hash)
+    private static void Record(ApprovedSnapshot snapshot, List<string> problems, List<string> keys, string path, CeaCase fixture,
+                               (BitHash Hash, IReadOnlyList<string> Fields) actual)
     {
         var key = RelativePath(path);
         keys.Add(key);
-        var problem = snapshot.Problem(key, hash.ToHex(), hash.Fields);
+        var fields = actual.Fields.Concat(fixture.Inputs.EnumerateObject()
+            .Select(property => $"inputs.{property.Name} = {property.Value.GetRawText()}")).ToArray();
+        var problem = snapshot.Problem(key, actual.Hash.ToHex(), fields);
         if (problem is not null)
         {
             problems.Add(problem);
         }
     }
 
-    private static BitHash HashOf(ElementalMixture mixture, double mixtureMass, IReadOnlyList<string> species, IReadOnlyList<Station> stations, CaseStatus caseStatus)
+    private static (BitHash Hash, IReadOnlyList<string> Fields) HashOf(
+        ElementalMixture mixture, double mixtureMass, IReadOnlyList<string> species, IReadOnlyList<Station> stations, CaseStatus caseStatus)
     {
         var hash = new BitHash();
+        var names = new List<string>();
         foreach (var element in mixture.Elements)
         {
             _ = hash.Add(mixture.ElementMoles[element]);
+            names.Add($"mixture.elementMoles[{element}]");
         }
 
         _ = hash.Add(mixture.Enthalpy!.Value);
+        names.Add("mixture.enthalpy");
         _ = hash.Add(mixtureMass);
+        names.Add("mixture.mass");
 
+        var index = 0;
         foreach (var station in stations)
         {
-            WriteState(hash, station.State);
-
-            _ = hash.Add(station.Performance.HasValue);
-            if (station.Performance is { } figures)
-            {
-                WriteFigures(hash, figures);
-            }
-
-            _ = hash.Add(station.Transport.HasValue);
-            if (station.Transport is { } transport)
-            {
-                WriteTransport(hash, transport);
-            }
-
-            foreach (var name in species)
-            {
-                _ = hash.Add(station.MoleFractions.GetValueOrDefault(name));
-            }
-
-            foreach (var name in species)
-            {
-                if (station.CondensedMassFractions.TryGetValue(name, out var massFraction))
-                {
-                    _ = hash.Add(massFraction);
-                }
-            }
-
-            _ = hash.Add((int)station.Status);
-            _ = hash.Add(station.TransportStatus.HasValue);
-            if (station.TransportStatus is { } transportStatus)
-            {
-                _ = hash.Add((int)transportStatus);
-            }
+            WriteStation(hash, names, species, station, index);
+            index++;
         }
 
         _ = hash.Add((int)caseStatus);
-        return hash;
+        names.Add($"case.status ({caseStatus})");
+        Assert.Equal(hash.Fields.Count, names.Count);
+        return (hash, names.Zip(hash.Fields, (name, value) => $"{name} = {value}").ToArray());
     }
 
-    private static void WriteState(BitHash hash, MixtureState s) =>
-        hash.Add(s.Temperature).Add(s.Pressure).Add(s.Density).Add(s.Enthalpy).Add(s.InternalEnergy).Add(s.Entropy).Add(s.GibbsEnergy)
-            .Add(s.MolarMass).Add(s.MixtureMolarMass).Add(s.CpFrozen).Add(s.CpEquilibrium).Add(s.CvFrozen).Add(s.CvEquilibrium)
-            .Add(s.DlnVdlnT).Add(s.DlnVdlnP).Add(s.GammaS).Add(s.SoundSpeed).Add(s.Velocity).Add(s.Mach);
+    private static void WriteStation(BitHash hash, List<string> names, IReadOnlyList<string> species, Station station, int index)
+    {
+        var prefix = $"stations[{index}] ({station.Name})";
+        WriteState(hash, names, prefix + ".state", station.State);
 
-    private static void WriteFigures(BitHash hash, PerformanceFigures f) =>
-        hash.Add(f.AreaRatio).Add(f.PressureRatio).Add(f.CharacteristicVelocity).Add(f.ThrustCoefficient).Add(f.SpecificImpulse).Add(f.VacuumSpecificImpulse);
+        _ = hash.Add(station.Performance.HasValue);
+        names.Add(prefix + ".performance.present");
+        if (station.Performance is { } figures)
+        {
+            WriteFigures(hash, names, prefix + ".performance", figures);
+        }
 
-    private static void WriteTransport(BitHash hash, TransportFigures t) =>
-        hash.Add(t.Viscosity).Add(t.FrozenConductivity).Add(t.ReactingConductivity).Add(t.FrozenPrandtl).Add(t.ReactingPrandtl)
-            .Add(t.FrozenHeatCapacity).Add(t.EquilibriumHeatCapacity).Add(t.EstimatedMoleFraction).Add(t.SpeciesCount).Add(t.ReactionCount)
-            .Add(t.EstimatedSpeciesCount).Add(t.TraceEliminations).Add(t.Capped);
+        _ = hash.Add(station.Transport.HasValue);
+        names.Add(prefix + ".transport.present");
+        if (station.Transport is { } transport)
+        {
+            WriteTransport(hash, names, prefix + ".transport", transport);
+        }
+
+        foreach (var name in species)
+        {
+            _ = hash.Add(station.MoleFractions.GetValueOrDefault(name));
+            names.Add($"{prefix}.moleFractions[{name}]");
+        }
+
+        foreach (var name in species)
+        {
+            if (station.CondensedMassFractions.TryGetValue(name, out var massFraction))
+            {
+                _ = hash.Add(massFraction);
+                names.Add($"{prefix}.condensedMassFractions[{name}]");
+            }
+        }
+
+        _ = hash.Add((int)station.Status);
+        names.Add($"{prefix}.status ({station.Status})");
+        _ = hash.Add(station.TransportStatus.HasValue);
+        names.Add(prefix + ".transportStatus.present");
+        if (station.TransportStatus is { } transportStatus)
+        {
+            _ = hash.Add((int)transportStatus);
+            names.Add($"{prefix}.transportStatus ({transportStatus})");
+        }
+    }
+
+    private static void WriteState(BitHash hash, List<string> names, string prefix, MixtureState s)
+    {
+        WriteProperty(hash, names, prefix, s.Temperature);
+        WriteProperty(hash, names, prefix, s.Pressure);
+        WriteProperty(hash, names, prefix, s.Density);
+        WriteProperty(hash, names, prefix, s.Enthalpy);
+        WriteProperty(hash, names, prefix, s.InternalEnergy);
+        WriteProperty(hash, names, prefix, s.Entropy);
+        WriteProperty(hash, names, prefix, s.GibbsEnergy);
+        WriteProperty(hash, names, prefix, s.MolarMass);
+        WriteProperty(hash, names, prefix, s.MixtureMolarMass);
+        WriteProperty(hash, names, prefix, s.CpFrozen);
+        WriteProperty(hash, names, prefix, s.CpEquilibrium);
+        WriteProperty(hash, names, prefix, s.CvFrozen);
+        WriteProperty(hash, names, prefix, s.CvEquilibrium);
+        WriteProperty(hash, names, prefix, s.DlnVdlnT);
+        WriteProperty(hash, names, prefix, s.DlnVdlnP);
+        WriteProperty(hash, names, prefix, s.GammaS);
+        WriteProperty(hash, names, prefix, s.SoundSpeed);
+        WriteProperty(hash, names, prefix, s.Velocity);
+        WriteProperty(hash, names, prefix, s.Mach);
+    }
+
+    private static void WriteFigures(BitHash hash, List<string> names, string prefix, PerformanceFigures f)
+    {
+        WriteProperty(hash, names, prefix, f.AreaRatio);
+        WriteProperty(hash, names, prefix, f.PressureRatio);
+        WriteProperty(hash, names, prefix, f.CharacteristicVelocity);
+        WriteProperty(hash, names, prefix, f.ThrustCoefficient);
+        WriteProperty(hash, names, prefix, f.SpecificImpulse);
+        WriteProperty(hash, names, prefix, f.VacuumSpecificImpulse);
+    }
+
+    private static void WriteTransport(BitHash hash, List<string> names, string prefix, TransportFigures t)
+    {
+        WriteProperty(hash, names, prefix, t.Viscosity);
+        WriteProperty(hash, names, prefix, t.FrozenConductivity);
+        WriteProperty(hash, names, prefix, t.ReactingConductivity);
+        WriteProperty(hash, names, prefix, t.FrozenPrandtl);
+        WriteProperty(hash, names, prefix, t.ReactingPrandtl);
+        WriteProperty(hash, names, prefix, t.FrozenHeatCapacity);
+        WriteProperty(hash, names, prefix, t.EquilibriumHeatCapacity);
+        WriteProperty(hash, names, prefix, t.EstimatedMoleFraction);
+        WriteProperty(hash, names, prefix, t.SpeciesCount);
+        WriteProperty(hash, names, prefix, t.ReactionCount);
+        WriteProperty(hash, names, prefix, t.EstimatedSpeciesCount);
+        WriteProperty(hash, names, prefix, t.TraceEliminations);
+        WriteProperty(hash, names, prefix, t.Capped);
+    }
+
+    private static void WriteProperty(BitHash hash, List<string> names, string prefix, double value,
+                                      [CallerArgumentExpression(nameof(value))] string expression = "")
+    {
+        _ = hash.Add(value);
+        names.Add(prefix + "." + expression[(expression.IndexOf('.') + 1)..]);
+    }
+
+    private static void WriteProperty(BitHash hash, List<string> names, string prefix, int value,
+                                      [CallerArgumentExpression(nameof(value))] string expression = "")
+    {
+        _ = hash.Add(value);
+        names.Add(prefix + "." + expression[(expression.IndexOf('.') + 1)..]);
+    }
 }
