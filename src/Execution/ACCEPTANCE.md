@@ -309,3 +309,12 @@
       facts above green on the CPU accelerator and each shown red once (`tests/Execution.Tests/ACCEPTANCE.md`, criterion of
       this date, which lists the families, the mutations and the findings); the fast set of the solution green with no
       approved record moved; `TreeContract.approved.txt` replaced in the commit that moved `API.md`.
+
+- [x] 2026-11-14 — A03 batch/session segment: BatchCleanupAuditTests preserves the
+  normalized primary through ordinary plus injected child OOM cleanup failures,
+  attempts the complete registered group and retains both diagnostics. Frozen old
+  source: three failures; new source: three pass. CPU cleanup/transfer/launch-policy
+  regressions: 15 pass, no skips. Logs `SCRATCH/audit/batch-cleanup-red.log`,
+  `batch-cleanup-green.log`, `cleanup-cpu-regression.log` in audit-execution.
+- [ ] A04 remaining owner chains: species-table partial upload, Engine.Upload,
+  UploadedTables and engine disposal must use transactional ownership and fault controls.

@@ -1,5 +1,7 @@
 # HISTORY.md — Execution
 
+<a id="primary-aware-cleanup-2026-11-14"></a>
+
 ## primary-aware-cleanup-2026-11-14
 
 2026-11-14; BOOT.md, Constraints. Superseded detailed restatement of the preceding

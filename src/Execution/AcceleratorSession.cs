@@ -5,76 +5,77 @@ using ILGPU.Runtime.Cuda;
 
 namespace APThermo.Execution;
 
-/// <summary>
-/// One ILGPU context, the accelerator built on it, and the description of both. Disposes them in order, once, and disposes
-/// whatever the build created when the build fails: the rule lives here instead of once per creation path.
-/// </summary>
+/// <summary>One context and accelerator, with transactional construction and complete primary-aware cleanup.</summary>
 internal sealed class AcceleratorSession : IDisposable
 {
-    private Accelerator? _accelerator;
+    private readonly ExecutionResourceOwner _ownership;
     private bool _disposed;
     private AcceleratorUnavailableException? _lostBy;
 
     private AcceleratorSession(Context context)
     {
         Context = context;
+        CleanupFilter = IgnoreCleanupFailure;
+        _ownership = new ExecutionResourceOwner();
     }
 
-    /// <summary>The accelerator; available once the build has attached it.</summary>
-    public Accelerator Accelerator => _accelerator ?? throw new InvalidOperationException("the session has no accelerator: its build did not finish.");
+    public Accelerator Accelerator
+    {
+        get => field ?? throw new InvalidOperationException("the session has no accelerator: its build did not finish.");
+        private set;
+    }
 
-    /// <summary>The launch budget of this session's accelerator (2026-09-28, "A launch fits a time budget"):
-    /// <see cref="LaunchBudget.None"/> until the build delegate calls <see cref="Attach(LaunchBudget)"/>, which every
-    /// build path does before <see cref="Build"/> returns — the CPU accelerator and a CUDA device with no run-time
-    /// limit attach <see cref="LaunchBudget.None"/> explicitly, a CUDA device that has one attaches a bounded budget.</summary>
     public LaunchBudget Budget { get; private set; } = LaunchBudget.None;
 
-    /// <summary>What the session is bound to, as the results report it.</summary>
     public AcceleratorInfo Info
     {
         get => field ?? throw new InvalidOperationException("the session has no description: its build did not finish.");
         private set;
     }
 
-    /// <summary>Builds a session around a context; whatever the build attached, the context included, is disposed when it throws.</summary>
+    /// <summary>Allocated during construction, so cleanup never creates this delegate while a primary is propagating.</summary>
+    internal Func<Exception, bool> CleanupFilter { get; }
+
     public static AcceleratorSession Build(Context context, Func<AcceleratorSession, AcceleratorInfo> build)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(build);
-        var session = new AcceleratorSession(context);
+        AcceleratorSession? session = null;
         try
         {
+            session = new AcceleratorSession(context);
+            session._ownership.Own(context);
             session.Info = build(session);
             return session;
         }
-        catch
+        catch (Exception primary)
         {
-            session.Dispose();
+            if (session is null)
+            {
+                ExecutionResourceOwner.ReleaseOne(context, primary);
+            }
+            else
+            {
+                session.DisposePreserving(primary);
+            }
+
             throw;
         }
     }
 
-    /// <summary>Hands the accelerator to the session, which owns it from that moment; the caller keeps its own type.</summary>
     public T Attach<T>(T accelerator) where T : Accelerator
     {
-        _accelerator = accelerator;
+        _ownership.Own(accelerator, prepend: true);
+        Accelerator = accelerator;
         return accelerator;
     }
 
-    /// <summary>Records the launch budget the build delegate decided for this session's accelerator.</summary>
     public LaunchBudget Attach(LaunchBudget budget) => Budget = budget;
 
-    /// <summary>The context the accelerator was created on.</summary>
     public Context Context { get; }
 
-    /// <summary>
-    /// Records that a launch timeout left this session's CUDA context sticky (BOOT.md, the third audit pass's finding
-    /// 2): every later CUDA call on it returns the same error, so a fresh run must not be attempted and the engine's own
-    /// cleanup must not let that error replace whatever is already propagating. Only the first timeout is kept.
-    /// </summary>
     internal void MarkLost(AcceleratorUnavailableException timeout) => _lostBy ??= timeout;
 
-    /// <summary>Refuses a call on a session an earlier launch timeout left unusable, naming that timeout.</summary>
     internal void ThrowIfLost()
     {
         if (_lostBy is { } timeout)
@@ -85,27 +86,17 @@ internal sealed class AcceleratorSession : IDisposable
         }
     }
 
-    /// <summary>
-    /// The one decision behind every drop this node performs on disposal (BOOT.md, the third audit pass's finding 2):
-    /// whether this session, already marked lost by <see cref="MarkLost"/>, is dropping its own sticky launch-timeout
-    /// error. Decided on the bare <see cref="CudaError"/> value, which needs no CUDA driver call to construct or
-    /// compare, unlike a real <see cref="CudaException"/> — a genuine CUDA run under WSL found that constructing one
-    /// at all loads the driver even on the CPU accelerator, which the tests node's own
-    /// <c>AcceleratorChoiceTests.NoCudaDriverIsLoadedInAProcessThatForbidsCuda</c> catches (2026-09-29, review). A
-    /// session that was never marked lost, or any error but that one sticky one, answers false.
-    /// </summary>
     internal bool DropsAfterLoss(CudaError error) =>
         _lostBy is not null && error == CudaError.CUDA_ERROR_LAUNCH_TIMEOUT;
 
-    /// <summary>
-    /// The exception-typed half every real catch filter in this node reads — this session's own <see cref="Dispose"/>
-    /// below, a pipeline's chunk buffers (<see cref="BatchRun"/>) and the uploaded tables (<c>Engine</c>) — a thin
-    /// extraction of <see cref="CudaException.Error"/> onto the decision above.
-    /// </summary>
-    internal bool DropsAfterLoss(CudaException failure) => DropsAfterLoss(Enum.Parse<CudaError>(failure.Error));
+    internal bool DropsAfterLoss(CudaException failure) =>
+        Enum.TryParse<CudaError>(failure.Error, out var error) && DropsAfterLoss(error);
 
-    /// <inheritdoc />
-    public void Dispose()
+    private bool IgnoreCleanupFailure(Exception failure) => failure is CudaException cuda && DropsAfterLoss(cuda);
+
+    public void Dispose() => DisposePreserving(null);
+
+    internal void DisposePreserving(Exception? primary)
     {
         if (_disposed)
         {
@@ -113,20 +104,7 @@ internal sealed class AcceleratorSession : IDisposable
         }
 
         _disposed = true;
-        try
-        {
-            _accelerator?.Dispose();
-        }
-        catch (CudaException failure) when (DropsAfterLoss(failure))
-        {
-        }
-
-        try
-        {
-            Context.Dispose();
-        }
-        catch (CudaException failure) when (DropsAfterLoss(failure))
-        {
-        }
+        _ownership.PrepareCleanup(primary, CleanupFilter);
+        _ownership.Dispose();
     }
 }

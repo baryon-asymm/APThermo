@@ -366,6 +366,16 @@ tests node now calls it, in place of allocating a 16 GB array to read a length. 
 is the same bound for `ProbeMath`, whose inline check a fact could reach only through a 1.2 GB input
 array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now, where it named `inputs`.
 
+⚠ 2026-11-14: cleanup could mask a propagating normalized timeout with an unrelated
+failure. Chunk-loop and session-construction cleanup now preserve that primary's
+identity/type/stack and attach secondary diagnostics to its Data dictionary under
+`APThermo.Execution.CleanupFailures`. Registered resources receive cleanup attempts
+before diagnostics are aggregated. Without a primary, a single cleanup failure keeps
+its type; multiple failures are an AggregateException. Real host exhaustion or an
+unwritable diagnostic dictionary can prevent attachment, after attempts have run.
+The former blanket "timed-out disposal never throws" statement now applies only to
+that session's own sticky timeout; other failures are not silently dropped.
+
 ## Errors
 
 | Situation | Behaviour |
@@ -377,7 +387,7 @@ array; `ProbeMath`'s `ArgumentException` for such a count names `inputCount` now
 | a batch of another element or species count than the table, a seeded equilibrium batch whose seed stride is not the table's species count or whose seed holds a value that is not finite (2026-10-04, naming the case and the species), tables of another engine, a transport run over tables uploaded without a transport table, a transport table of another species table, a chunk size or a scratch bound of zero or less | `ArgumentException` before any kernel runs (a batch's arrays cannot be inconsistent: every one is sized by its constructor from one count) |
 | a kernel's PTX holds a fused multiply-add the post-link did not write, an `.approx` instruction of doubles or an external function, or the driver refused the PTX, or a driver call of the post-link returned a result other than success (2026-10-05, `BOOT.md`, "No driver result is ignored") | `InvalidOperationException` naming the post-link, the target, what the PTX holds or the call and its result code, and carrying the driver's log where one exists, on the first run of that program; for the probe kernel, at binding (the row above) |
 | a launch exceeds a display GPU's kernel run-time limit (2026-09-28, the second audit's Execution finding F2) | `AcceleratorUnavailableException` naming the limit, the chunk's case count and the CPU accelerator as remedy, its inner exception the driver's `CudaException` (`CUDA_ERROR_LAUNCH_TIMEOUT`); the context is lost with it, so the engine and its tables must be recreated |
-| `Upload`, a `Run` overload or `ProbeMath` is called after a launch of the same engine has already timed out (2026-09-29, the third audit pass, finding 2) | `AcceleratorUnavailableException` naming the earlier timeout, its inner exception that earlier `AcceleratorUnavailableException`; no CUDA call is made. Disposing a timed-out engine or its `UploadedTables` never throws: ILGPU's own cleanup of the lost context raises the same sticky `CudaException`, which is dropped rather than replacing whatever is already propagating |
+| `Upload`, a `Run` overload or `ProbeMath` is called after a launch of the same engine has already timed out (2026-09-29, the third audit pass, finding 2) | `AcceleratorUnavailableException` naming the earlier timeout, its inner exception that earlier `AcceleratorUnavailableException`; no CUDA call is made. Disposal drops the lost session's own sticky `CudaException`; unrelated cleanup failures are still errors |
 | a download from the accelerator leaves a chunk's host slice unwritten (2026-10-01, `Chunks/BOOT.md`, "A download that wrote nothing is refused"; never seen since the transfers are pinned) | `InvalidOperationException` from the `Run` overload, naming the element type and the chunk; no result is returned, so no `Ok` case carries zero figures |
 | per-case numerical failure | `CaseStatus` in the result; no exception |
 | a disposed engine or tables | `ObjectDisposedException` |

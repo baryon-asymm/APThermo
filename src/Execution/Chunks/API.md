@@ -101,6 +101,7 @@ internal sealed class ChunkBuffer<T> : IChunkBuffer where T : unmanaged
     public void UploadChunk(int offset, int length);
     public void DownloadChunk(int offset, int length);
     public void Dispose();
+    internal void DisposePreserving(Exception? primary, Func<Exception, bool>? ignore = null);
 }
 
 internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
@@ -119,6 +120,7 @@ internal sealed class ChunkBuffers(Accelerator accelerator) : IDisposable
     public void UploadChunk(int offset, int length);
     public void DownloadChunk(int offset, int length);
     public void Dispose();
+    internal void DisposePreserving(Exception? primary, Func<Exception, bool>? ignore = null);
 }
 ```
 
@@ -159,3 +161,9 @@ device buffer; disposing a `ChunkBuffers` disposes every buffer it declared. Rea
 `.View` or any transfer method before `Allocate` throws
 `InvalidOperationException`; nothing here retries or degrades an accelerator failure,
 it surfaces it.
+
+⚠ 2026-11-14: disposal formerly stopped at the first failed buffer and could replace
+a run's primary failure. Tracking is reserved before allocation, partial allocation
+rolls back, and DisposePreserving keeps that primary while recording secondary
+errors. Allocation and declaration form one build phase: Allocate is called once,
+and declarations after it are refused. Repeated disposal is safe.
