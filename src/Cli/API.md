@@ -485,3 +485,11 @@ engine. No other file, no network.
 admit 1,000,001 values. The axis bound now includes both endpoints: exactly 1,000,000
 values are accepted, the next value is refused before numeric expansion, for ranges
 and lists alike. The inclusive total document bound remains 10,000,000 cases.
+⚠ 2026-11-14: A26 found the published input schema did not encode conditional
+TP/HP/SP fields and rejected the documented zero HP/SP estimate. Complete exclusive
+branches now require TP temperature and SP entropy, forbid fields of other kinds,
+and admit optional zero HP/SP estimates. HP enthalpy stays optional (the mixture's
+own value when omitted). The output schema admits nonnegative mixture mass so a
+zero-mass `invalidInput` diagnostic emitted with an explicit mass tolerance validates;
+negative mass and unknown statuses remain invalid. This is shape validation, not a
+proof of chemical or model applicability.

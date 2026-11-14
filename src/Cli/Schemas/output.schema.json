@@ -70,7 +70,7 @@
           "properties": {
             "elementMoles": { "type": "object", "additionalProperties": { "type": "number" } },
             "enthalpy": { "type": ["number", "null"] },
-            "mass": { "type": "number", "exclusiveMinimum": 0 }
+            "mass": { "type": "number", "minimum": 0 }
           }
         },
         "stations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/station" } }

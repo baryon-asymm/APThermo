@@ -2,7 +2,7 @@
 
 ## Acceptance criteria
 
-- [ ] Audit A26: an independent TP/HP/SP valid/invalid shape matrix agrees with the
+- [x] 2026-11-14 — `SchemaShapeParityTests` proves audit A26: an independent TP/HP/SP valid/invalid shape matrix agrees with the
   reader and published schema; the permitted zero estimate and zero-mass diagnostic
   output validate, while missing or forbidden per-kind fields do not.
 

@@ -91,15 +91,46 @@
       }
     },
     "equilibriumProblem": {
+      "oneOf": [
+        { "$ref": "#/$defs/tpProblem" },
+        { "$ref": "#/$defs/hpProblem" },
+        { "$ref": "#/$defs/spProblem" }
+      ]
+    },
+    "tpProblem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "pressure", "temperature"],
+      "properties": {
+        "type": { "const": "equilibrium" },
+        "kind": { "const": "tp" },
+        "pressure": { "type": "number", "exclusiveMinimum": 0 },
+        "temperature": { "type": "number", "exclusiveMinimum": 0 },
+        "transport": { "type": "boolean" }
+      }
+    },
+    "hpProblem": {
       "type": "object",
       "additionalProperties": false,
       "required": ["type", "kind", "pressure"],
       "properties": {
         "type": { "const": "equilibrium" },
-        "kind": { "enum": ["tp", "hp", "sp"] },
+        "kind": { "const": "hp" },
         "pressure": { "type": "number", "exclusiveMinimum": 0 },
-        "temperature": { "type": "number", "exclusiveMinimum": 0 },
+        "temperature": { "type": "number", "minimum": 0 },
         "enthalpy": { "type": "number" },
+        "transport": { "type": "boolean" }
+      }
+    },
+    "spProblem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "pressure", "entropy"],
+      "properties": {
+        "type": { "const": "equilibrium" },
+        "kind": { "const": "sp" },
+        "pressure": { "type": "number", "exclusiveMinimum": 0 },
+        "temperature": { "type": "number", "minimum": 0 },
         "entropy": { "type": "number" },
         "transport": { "type": "boolean" }
       }

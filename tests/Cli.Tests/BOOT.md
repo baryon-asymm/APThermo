@@ -164,7 +164,7 @@ negative mass and an unknown status.
 
 ## Acceptance criteria
 
-- [ ] `SchemaShapeParityTests` proves both positive and negative TP/HP/SP shapes,
+- [x] 2026-11-14 — `SchemaShapeParityTests` proves both positive and negative TP/HP/SP shapes,
   zero estimates, and the emitted zero-mass diagnostic with negative output controls.
 
 - [x] 2026-11-14 — `SweepBoundaryTests` admits exactly the inclusive axis bound for lists and ranges,
