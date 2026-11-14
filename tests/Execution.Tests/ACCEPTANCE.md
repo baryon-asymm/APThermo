@@ -41,7 +41,16 @@
 - [ ] P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
   in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
   refusal labeled as no hardware proof. The CPU companion passes after R08;
-  actual Windows/WSL CUDA equality and scientific obligations remain to be verified.
+  actual Windows/WSL CUDA equality and the independent scientific obligations must pass.
+  ⚠ 2026-11-15: the last sentence is stated as a readiness requirement rather than
+  an implementation handoff's pending status, so a later tick cannot coexist with
+  a claim that verification remains undone. It still requires actual device proof
+  on both platforms and independent scientific evidence; this wording change
+  supplies neither. Full previous criterion: [HISTORY.md](HISTORY.md#p1-hardware-proof-2026-11-15).
+  “P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
+  in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
+  refusal labeled as no hardware proof. The CPU companion passes after R08;
+  actual Windows/WSL CUDA equality and scientific obligations remain to be verified.”
 
 ⚠ 2026-11-14: the previous wording recorded a deliberately red shared consumer:
 “P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented

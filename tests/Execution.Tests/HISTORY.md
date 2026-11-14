@@ -9,6 +9,25 @@ used to stand.
 
 ---
 
+<a id="p1-hardware-proof-2026-11-15"></a>
+
+## 2026-11-15 — from "ACCEPTANCE.md" — P1 required proof versus the implementation handoff
+
+The pending criterion's final sentence described the handoff state. Its successor
+states the same Windows/WSL hardware and scientific proof as a requirement, so a
+subsequent acceptance tick does not leave a contradictory claim that verification
+remains undone. This reformulation claims no hardware pass and removes no proof.
+The earlier dated correction and red shared-consumer witness remain in ACCEPTANCE.md.
+
+Full previous criterion, unchanged:
+
+- [ ] P1 frozen consumers: actual CPU/CUDA cold, seeded and rocket pairs are implemented
+  in `AuditPhaseCudaTests`, with explicit selected-device provenance and a forbidden-CUDA
+  refusal labeled as no hardware proof. The CPU companion passes after R08;
+  actual Windows/WSL CUDA equality and scientific obligations remain to be verified.
+
+---
+
 <a id="identical-prefix-launch-budget-2026-11-15"></a>
 
 ## 2026-11-15 — from "ACCEPTANCE.md" — the bounded sampling policy after identical-workload calibration
