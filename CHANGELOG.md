@@ -19,12 +19,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   retaining temperature and pressure for `NoGasPhase` and diagnostic compositions.
 - Reject nonfinite mandatory database numbers and missing or out-of-order section
   transitions. Reject nonfinite internal transport inputs and comparison values.
+- Guard frozen-state thermodynamic inputs and intermediate results against nonfinite
+  values without rejecting representable extreme states.
+- Roll back partially uploaded tables and probe inputs, including failures during the
+  first host copy. Attempt every cleanup while preserving the primary exception.
+- Reject undefined accelerator choices, cover integer-maximum batches without offset
+  overflow, and sample one case before growing a bounded launch by at most twofold.
+- Admit the inclusive sweep maximum after decimal quotient rounding, and align the
+  input schema with the distinct TP, HP and SP requirements and failed-output shapes.
 - Preserve approved snapshot files for arbitrary baseline names and output links;
   validate schema reference siblings and all schema branches before use. Numerical
   comparisons reject nonfinite inputs and finite intermediate-overflow false matches.
 - Check complete documented signatures against compiled metadata, pin merge inputs
   through atomic publication, preserve revised acceptance criteria with their evidence,
   and exercise the strengthened guards with negative controls.
+- Require the pinned hashes and usable-input counts before a full CORE-MATH campaign;
+  detect both Windows and Linux CUDA driver names in CPU-only process checks.
+- Propagate native preflight failures, pass release refs as literal shell data, match
+  changelog versions literally, and add an affected-change CPU trace-gas scan lane.
+- Bound process execution and stream draining, preserve partial diagnostics on timeout,
+  and report named actual fields when numerical bit records differ.
 
 ### Documentation
 

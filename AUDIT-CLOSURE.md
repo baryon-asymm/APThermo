@@ -26,21 +26,21 @@ tolerance weakening or diagnostic suppression is an acceptable closure.
 | A09 | Actual boundary-walk cap verification | Local pass 2026-11-14 | `14d875bb`; actual automaton cap and mutation controls; root Performance 32/32 |
 | A10 | First-maximum ordering oracle | Local pass 2026-11-14 | `14d875bb`; late-higher-peak rejection; root Performance 32/32 |
 | A11 | Generated performance field inventory | Local pass 2026-11-14 | `14d875bb`; reflected six-field corruption controls; root Performance 32/32 |
-| A12 | Pinned full math corpus integrity | Open | Pending |
+| A12 | Pinned full math corpus integrity | Slice pass 2026-11-14 | `7d42fae6`; seven portable corpus refusal controls; pinned full identity verified; root full rounding campaign in progress |
 | A13 | Internal frozen-state finite guards | Local pass 2026-11-14 | `4755241d`, `77afac60`; root finite-state/bit controls 17/17, representable extreme positive cases retained |
 | A14 | Internal transport finite temperature | Local pass 2026-11-14 | `14d875bb`; root Transport controls 73/73 |
-| A15 | Windows and Linux CUDA-driver detection | Open | Pending |
+| A15 | Windows and Linux CUDA-driver detection | Slice pass 2026-11-14 | `17f048d2`; shared name predicate and ordinary/forbidden-module controls; final platform process checks pending |
 | A16 | Approved snapshot write protection | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68, including ordinary/link output controls |
 | A17 | Schema validator semantics and keyword coverage | Local pass 2026-11-14 | `200a1bc2`; root Fixtures 68/68 and schema consumers 3/3 |
-| A18 | Chunk enumerator integer boundary | Open | Pending |
+| A18 | Chunk enumerator integer boundary | Slice pass 2026-11-14 | `17f048d2`; finite int.MaxValue covering and ordinary/empty chunks in boundary controls; root Protocol 131/131 |
 | A19 | Pinned and atomically published merge candidate | Local pass 2026-11-14 | `a6ff702c`; merge guard self-tests 72/72, independent rerun |
 | A20 | Preservation of active acceptance criteria | Local pass 2026-11-14 | `a6ff702c`; history guard 35/35 and baseline-to-HEAD criteria check |
 | A21 | Complete documented signatures | Local pass 2026-11-14 | `3b9f5f7e`, `739a69b4`; root contract/comparison controls 90/90; final changed-document reconciliation pending |
 | A22 | Complete source and build-manifest node discovery | Local pass 2026-11-14 | `7ec349d6`; root lint self-tests 84/84 and strict lint 0/0 |
 | A23 | PowerShell preflight failure propagation | Local pass 2026-11-14 | `4e5d1494`, `a3191c24`; root guards 20/20, real Windows PS5.1 and Ubuntu-24.04 preflight pass; GitHub runner proof pending |
 | A24 | Current protocol-linter negative controls | Local pass 2026-11-14 | `a6ff702c`; lint self-tests 75/75, strict lint 0/0 |
-| A25 | Inclusive sweep limit | Slice pass 2026-11-14 | `e8b9bf46`, `695d9715`; decimal maximum regression corrected after independent review; coder CLI CPU 177/177; final root consumer run pending |
-| A26 | Input/output schema parity | Slice pass 2026-11-14 | `6bf771aa`; conditional shape controls 42/42, real zero-mass InvalidInput output admitted; final root consumer run pending |
+| A25 | Inclusive sweep limit | Local pass 2026-11-14 | `e8b9bf46`, `695d9715`; decimal maximum regression corrected after independent review; root CLI CPU 177/177 (`fix-evidence/root/cli-integration-current.trx`) |
+| A26 | Input/output schema parity | Slice pass 2026-11-14 | `6bf771aa`; conditional shape controls 42/42, real zero-mass InvalidInput output admitted; root CLI 177/177; docs schema approval pending |
 | A27 | Finite fixture tolerances | Local pass 2026-11-14 | `ed8acaae`; finite-intermediate-overflow control included in root Fixtures 68/68 |
 | A28 | Current contract and guide claims | Local pass 2026-11-14 | Owning numerical/public claims corrected, `9dd497c9` benchmark launch/fallback/setup scope, `8b5cbfa7` exact sample snippet, `9ea4c213` cleanup scope; final docs consumer run pending |
 | A29 | Unambiguous chemical-system cache key | Local pass 2026-11-14 | `782ced8f`; framed-name collision and positive controls in root public 28/28 |
