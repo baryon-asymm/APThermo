@@ -3,7 +3,7 @@
 - [x] 2026-11-14 — Diagnostic budget override restoration: the CPU-only
   `DiagnosticOverrideRestoresTheOriginalBudgetOnFailure` control passed in
   `SCRATCH/audit/launch-plan-diagnostic-control.log`. The exact original session
-  budget survives an injected callback failure. The separate CUDA/LongRunning
+  budget survives an injected callback failure. The opt-in CudaDiagnostic/LongRunning
   experiment is implemented/compiled, not hardware-verified here; it cannot
   satisfy the original throughput acceptance by disabling the bounded plan.
 

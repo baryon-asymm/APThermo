@@ -18,7 +18,7 @@ public sealed class CudaLaunchPlanDiagnosticTests(ITestOutputHelper output)
 
     /// <summary>Compare default sampling with static capped launches on the identical batch; passing is not regression closure.</summary>
     [Fact]
-    [Trait("Category", "Cuda")]
+    [Trait("Category", "CudaDiagnostic")]
     [Trait("Category", "LongRunning")]
     public void DiagnosticOnlyFrozenThroughputBoundedVersusStaticLaunches()
     {

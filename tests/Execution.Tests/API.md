@@ -114,7 +114,8 @@ not measured physical spills, physical registers or occupancy.
 ## Isolated launch-plan diagnostic ✅
 
 `CudaLaunchPlanDiagnosticTests.DiagnosticOnlyFrozenThroughputBoundedVersusStaticLaunches`
-is a separately named CUDA/LongRunning experiment. It requires an actual CUDA
+is an opt-in `CudaDiagnostic`/`LongRunning` experiment, excluded from the ordinary
+`Category=Cuda` release matrix. It requires an actual CUDA
 engine and the usual bounded device policy, then compares that policy with a
 scoped `LaunchBudget.None` on the SAME engine, table and original 100000-case
 frozen throughput batch. It restores the original session budget in `finally`.
@@ -127,3 +128,13 @@ with the existing exact comparator. It does not collect a new per-launch trace.
 A passing static experiment is NOT throughput regression closure and writes no
 approval or replacement throughput record. The original throughput fact and its
 5x/80%/115% gates remain unchanged. Hardware execution belongs to the root's lane.
+
+Select this experiment explicitly, under the root's serialized GPU lane:
+
+```console
+dotnet test tests/Execution.Tests/APThermo.Execution.Tests.csproj -c Release --filter "FullyQualifiedName=APThermo.Execution.Tests.CudaLaunchPlanDiagnosticTests.DiagnosticOnlyFrozenThroughputBoundedVersusStaticLaunches"
+```
+
+⚠ 2026-11-14: its initial `Cuda` classification would also run the scheduling
+experiment in the ordinary release category. Only this diagnostic fact now uses
+`CudaDiagnostic`; actual-CUDA checks, `LongRunning` and original gates remain.
