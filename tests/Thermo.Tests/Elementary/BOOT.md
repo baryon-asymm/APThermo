@@ -46,6 +46,13 @@ Outside the tree: xunit; Python 3.8+ with mpmath 1.3.0 for the generators and th
 - The full optional corpus is exactly the upstream revision and raw-byte hashes in
   `fixtures/PROVENANCE.txt`. Reject missing, truncated or modified lists before both
   input generation and result verification; a selected sample is not a full campaign.
+  The guard reads the pinned revision, hashes and usable counts from the provenance fixture;
+  SHA-256 is over raw bytes, every non-comment row must parse with the declared arity,
+  and every list is validated before any input output or multiprecision worker starts.
+- ⚠ 2026-11-14: the full-check entry previously accepted arbitrary samples and silently
+  discarded malformed rows. Frozen portable refusal controls demonstrate that this could
+  report a full proof from three trivial inputs. Corpus identity is now a prerequisite;
+  its automated self-check needs only Python standard-library modules, not mpmath.
 
 - Part of the default test command of the thermo tests; no CUDA involved (the execution tests node compares the two
   accelerators exactly, and the CPU accelerator with `KernelMath`).
