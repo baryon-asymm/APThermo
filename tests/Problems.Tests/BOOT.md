@@ -25,6 +25,12 @@ it now compares exact overload identities from the same expressions it executes.
 
 ## Invariants
 
+- A37 boundary-fixture metadata is checked against the committed data hash and
+  generated raw/effective fit ranges. Public TP/frozen witnesses consume the exact
+  sidecar inputs and demonstrate the documented admission/extrapolation policies,
+  including the ice exception. A missing/hash-mismatched or corrupted bound is a
+  failing control. No numerical baseline, tolerance or model policy changes here.
+
 - Reference is files; tolerances from the fixtures node; every fixture case is
   enumerated from the directory listing at run time (the theories' member data), so
   the root's first criterion is checked against a generated list.

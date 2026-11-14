@@ -79,6 +79,15 @@ verified by [Fixtures.Tests](../Fixtures.Tests/BOOT.md)).
 
 ## Constraints
 
+- A37 boundary applicability lives in a separate audit sidecar, outside the CEA
+  regeneration and bit-record inventory. It records the exact inputs and source
+  witness/fixture, committed NASA data hashes, raw and effective fit bounds, and
+  the distinction between equilibrium phase admission and frozen extrapolation.
+  Cover graphite across 300/299.99 K, frozen retained alumina below its 2327 K
+  raw fit, and ice's effective/open-below exception. Bounds are checked against
+  loaded data and table contracts, not copied into an alternative numerical model.
+  These records describe model applicability; they do not validate physical phases.
+
 - `AuditPhaseCases.json` is a separate frozen independent audit witness document,
   outside the CEA case tree and its regeneration/enumeration. It imports the exact
   public SrCl2 and Mg–H–O–S inputs, raw data hash, Decimal NASA-fit phase checks and
