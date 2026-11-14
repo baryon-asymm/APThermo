@@ -9,6 +9,32 @@ used to stand.
 
 ---
 
+<a id="identical-prefix-launch-budget-2026-11-15"></a>
+
+## 2026-11-15 — from "ACCEPTANCE.md" — the bounded sampling policy after identical-workload calibration
+
+The accepted calibration design (`90dfdec1`, implemented in `c1db01d3`) keeps
+unknown/changed workloads cold and allows a live identical workload to probe a
+historically observed full initial prefix. The probe is new current work, measured
+again; its duration is not guaranteed by the historical sum. The preceding
+unconditional first-one-case criterion therefore needed an explicit successor.
+The 500 ms target, 16,384-case workloads, subsequent 2x maximum growth and original
+cumulative throughput gates do not change. No hardware pass is asserted by this
+wording revision; readiness remains unticked until the orchestrator accepts proof.
+
+Full previous criterion and its attached correction, unchanged:
+
+- [ ] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
+  on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
+  500 ms target, nonzero launch count and covered cases equal the run count over the
+  unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
+  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.
+  ⚠ 2026-11-14: R09 was "aggregate kernel-time ceilings", now per-launch duration
+  bounds with complete observations, because the original F2 target concerns each
+  synchronized launch. No GPU verification was performed by this implementation.
+
+---
+
 <a id="compile-bound-process-wide-2026-10-05"></a>
 
 ## 2026-10-05 — from "BOOT.md" (the L0 row of the rocket compile bound) — the bound on the calling thread

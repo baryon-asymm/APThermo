@@ -78,10 +78,25 @@ archive. This revises the observed CPU status without asserting hardware proof.
   `launch-late-negative.log`, `launch-last-negative.log`, `launch-sum-negative.log`.
 
 - [ ] Re-verify the unchanged bracketing and trace-gas workload per-launch durations
+  on actual CUDA under the documented bounded sampling policy: unknown or changed
+  workloads start at one case; an identical workload may probe a live observed full
+  initial prefix through Calibration. Every later launch grows by at most 2x.
+  Every current synchronized launch meets the SAME 500 ms target, with nonzero
+  launch count and covered cases equal to the unchanged 16,384-case workloads.
+  Report current first-launch cases/reuse, aggregate, count, maximum duration and
+  its chunk cases/ordinal. Preserve all cumulative throughput workloads, timing
+  domains and 5x/80%/115% gates unchanged.
+  ⚠ 2026-11-15: the accepted calibration design (`90dfdec1`) permits a live identical
+  workload prefix as a new empirical probe; its merged duration is measured again,
+  never inferred from the old sum. The previous blanket first-one-case wording did
+  not describe that policy. Unknown/changed inputs still start at one, subsequent
+  growth stays at most 2x, and the 500 ms target and workloads are unchanged.
+  Full previous criterion and provenance: [HISTORY.md](HISTORY.md#identical-prefix-launch-budget-2026-11-15).
+  “Re-verify the unchanged bracketing and trace-gas workload per-launch durations
   on actual CUDA under first-one-case and 2x maximum growth: maximum at most the SAME
   500 ms target, nonzero launch count and covered cases equal the run count over the
   unchanged 16,384-case reference workloads. Report aggregate, count, maximum duration
-  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.
+  and its chunk cases/ordinal; leave cumulative throughput gates unchanged.”
   ⚠ 2026-11-14: R09 was "aggregate kernel-time ceilings", now per-launch duration
   bounds with complete observations, because the original F2 target concerns each
   synchronized launch. No GPU verification was performed by this implementation.
