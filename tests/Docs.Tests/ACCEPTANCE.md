@@ -5,6 +5,14 @@ The node frame remains in BOOT.md.
 
 ## Acceptance criteria
 
+- [ ] R15: every actual cold CLI invocation retains identity, input hash, limits,
+  start/end/outcome context before a failure can escape. Controlled normal/timeout
+  runners prove result/exception/raw-byte identity; omitting context is old-red.
+  Both actual hosted OS paths execute every generated invocation in both field
+  and exact modes with the unchanged five-minute process deadline. Actual logs/TRX
+  establish the new execution; they do not infer which historical49 command hung.
+
+
 - [x] 2026-11-14 — Owner-approved A26 schema-input bytes match CLI delivery and the canonical resource; `CommandLineExampleTests` 4/4. Evidence: `SCRATCH/audit/schema-approval-proof.json`, `schema-approval-docs/schema-approval-docs.trx`.
 
 - [x] 2026-09-17 — L1–L6 are green over the committed guide, samples and documents:

@@ -121,6 +121,30 @@ nesting 4) is gone: `SchemaValidationTests` now extracts the JSON Lines loop int
 `CheckJsonLines`/`CheckJsonLine`, which removes the exception (finding D11,
 closed in `3c0d271`).
 
+### Cold CLI invocation diagnostics
+
+Before every actual process invocation, record its machine-enumerated ordinal,
+source document/line, comparison mode, complete argument vector, assembly/working
+paths, committed input path and SHA-256 where present, and effective five-minute
+process plus five-second cleanup limits. Record monotonic start/finish elapsed,
+exit or exception outcome, using ITestOutputHelper so failed and successful TRX
+retain the records. No environment dump or user-secret data is recorded.
+Use the same supplied runner and return the same result; on error add diagnostic
+context to the original exception Data and rethrow that same exception with its
+original stack/raw StandardOutput/StandardError arrays and cancellation token.
+A diagnostic failure must not replace the original process failure. Keep both
+field and exact cold-process facts, every discovered invocation and duplicate
+source location. Do not deduplicate work, increase deadlines, skip examples or
+change any approved output. In-process facts must not start processes or require
+a process-only clock/logger. Synthetic timeout/normal runner controls prove the
+context before invocation, original exception/result identity and raw data.
+
+⚠ 2026-11-15: Release49 Windows job132779316611 timed out one numerical CLI
+invocation after five minutes with no output. RunToExit0 previously called the
+runner before attaching where/arguments to an assertion, so that log cannot name
+the invocation. The historical command and cause remain unknown; new diagnostics
+must identify future invocations rather than reconstruct an unsampled past.
+
 ## Acceptance criteria
 
 → [ACCEPTANCE.md](ACCEPTANCE.md)

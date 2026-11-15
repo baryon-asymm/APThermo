@@ -119,7 +119,37 @@ and nothing is pushed to GitHub or nuget.org without the owner's word.
   ⚠ 2026-10-05: was `diagnostics/IsaProbe`, the runner-diagnostics probe, a node of this directory,
   now removed with the step → HISTORY.md#isaprobe-removed
 
+### Hosted CPU resource isolation
+
+Hosted verification partitions the machine-discovered solution test projects into
+core, CLI and Docs lanes on separate runner jobs per OS. CLI and Docs each own
+their one named project; core contains every other test project and runs them
+sequentially. A test project is a solution project whose name ends `.Tests.csproj`,
+the tree's test-project naming convention. Discovery is nonempty, duplicate-free,
+repository-contained and includes both designated CLI/Docs projects. The three
+assignments must be disjoint and their union exactly the discovered set.
+Every lane keeps Release/no-build/Category!=LongRunning, including EndToEnd and
+BitSnapshot, and the default subprocess deadlines. Do not reduce test populations,
+change approvals/tolerances or raise job/per-process limits. The existing CLI
+internal four-example concurrency remains; the orchestration removes cross-project
+competition rather than reclassifying a functional check as a timing benchmark.
+Core alone performs per-OS package/sample/installed-tool checks; Windows core alone
+binds fixtures to CEA. Every lane uploads manifest and nonempty TRX artifacts even
+after failure. Release waits for all hosted lanes before the unchanged serialized
+CUDA jobs/Pack/publishing conditions. Self-hosted commands/shells remain unchanged.
+
+⚠ 2026-11-15: Release49 log proves overlapping Cli.Tests and Docs.Tests; the failed
+PID's CPU/RAM/command were not captured, so contention is not an established cause.
+The new policy isolates cold-process contracts on finite hosted resources while
+preserving their original workloads and deadlines, with actual runner evidence
+required before acceptance.
+
 ## Acceptance criteria
+
+- [ ] R15 hosted lanes run every discovered test project exactly once per OS,
+  retain all original filters/deadlines/approvals, and pass fresh actual CI and
+  release-dispatch paths with per-project manifest/TRX and package consumption.
+
 
 - [x] 2026-11-14 audit delivery changes: local discovery/adversarial script guards,
       actionlint and protocol checks, followed by actual hosted CI/trace scan and

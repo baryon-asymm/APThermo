@@ -51,3 +51,14 @@ this attempt; an old successful report cannot cover a missing new report.
 ⚠ 2026-11-14: reusing a results directory could previously accept a stale successful
 TRX when the new process returned zero without a report. A controlled counterexample
 was red; preserving/renaming the old report before execution closes that path.
+
+
+## Hosted test execution ⏳
+
+`hosted_tests.py --lane core|cli|docs --results-dir PATH`: discover and partition all
+solution `.Tests.csproj` projects; run the selected lane once with Release/no-build/
+-m:1/Category!=LongRunning and per-project TRX; retain manifest/raw logs with source,
+commands, states, timing and counters. Exit nonzero on discovery/selection errors,
+failed command, missing/empty/skipped/failed/inconsistent TRX; no retries. Core is
+all projects except the designated Cli.Tests and Docs.Tests projects. Selection
+must be a disjoint exhaustive partition; every selected project executes once.

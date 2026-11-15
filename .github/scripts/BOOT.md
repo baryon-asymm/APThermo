@@ -30,7 +30,35 @@ command discovery, so no test reaches a real NVIDIA command on either test host.
 
 Windows preflight runs under Windows PowerShell 5.1, without Python or Git Bash. Bash release scripts run on hosted Linux. Local tests may use Python and controlled fake commands; never call a GPU or publish.
 
+### Hosted test runner
+
+`hosted_tests.py --lane core|cli|docs --results-dir PATH` is the single implementation
+of hosted project selection/execution, rooted from __file__. Discover solution
+projects with `dotnet sln APThermo.sln list`; select names ending `.Tests.csproj`,
+validate nonempty/unique/contained paths, require CLI/Docs designated projects,
+compute all three assignments and prove exact disjoint union. CLI/Docs lanes each
+run their named project; core runs every remaining project sequentially.
+For each selected project invoke dotnet test Release/no-build/-m:1 with the exact
+Category!=LongRunning filter and TRX logger into a distinct project directory.
+Record discovered/assigned/selected projects, full command vectors, UTC/monotonic
+start/finish, elapsed, exit status and source identity; mark execution started
+before invoking, never call a failed/not-executed record passed. Continue remaining
+selected projects after a failure but return nonzero overall. Preserve console/raw
+execution logs and parse nonempty actual TRX: failed/skipped/inconsistent counters
+or missing reports fail. Never retry, filter away a case or change a timeout.
+Use only stdlib/Python and declared .NET tools, no extra service/package. Unit
+controls inject bounded fake tool/process/TRX fixtures, including a newly added
+core project, empty/duplicate/outside/missing discovery, wrong assignment, failed
+command, absent/failed/skipped/inconsistent TRX and positive normal cases. Guards
+must read actual workflow wiring/runner commands; remove-a-lane/filter mutations
+must be red. No numerical/GPU/credential/publication operations in local guards.
+
 ## Acceptance criteria
+
+- [ ] R15 runner/guard controls and deliberate wiring/discovery/result mutations
+  prove exact project coverage and honest started/failed/complete states; actual
+  hosted artifacts confirm all generated assignments and real passed TRX.
+
 
 - [x] 2026-11-14 — A39 fresh-report control: `test_trace_scan.py` ten tests pass.
   A stale successful TRX plus a new zero-exit/no-report attempt was first accepted

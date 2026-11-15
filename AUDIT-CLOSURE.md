@@ -5,6 +5,20 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
+## Additional delivery finding R15 — 2026-11-15
+
+R14's actual process controls pass192/192 Fixtures in all four source49 hosted
+cohorts. Source49 CI and Trace pass, but Windows Release job132779316611 fails one
+Docs cold CLI example at its unchanged five-minute deadline, with zero stdout and
+stderr; 7,615/7,616 tests pass. The failed invocation and resource state were not
+logged. This is a separate open finding R15: preserve process-example context and
+isolate hosted project workloads while retaining every command and deadline.
+The raw log proves overlapping Cli.Tests/Docs.Tests, not the timeout's cause.
+Current readiness remains open until new actual evidence accepts R15 as well as
+the reopened aggregate. The failure occurred on GitHub's hosted Windows VM; it does not establish a
+performance problem on the local reference host. Prior successful/failed/cancelled
+runs below keep their actual sources.
+
 ## Reopened verification — 2026-11-15
 
 Final-head CI `43695098528` at `84e0cb09`, Ubuntu job `132753766806`, fails

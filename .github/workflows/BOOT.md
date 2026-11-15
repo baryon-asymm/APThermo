@@ -27,7 +27,18 @@ in a fresh virtual environment and import the native binding before running the
 unchanged generator sample comparison. Missing compatible wheels or native DLLs
 fail the job; never fall back to a local Fortran build or skip fixture binding.
 
+Hosted CI and release matrices use OS × lane(core/cli/docs). Each calls the one
+scripts-node hosted test runner. Artifact names include OS and lane to avoid
+collisions. CI Pack/sample/tool and Windows CEA binding run only in core; package
+upload remains Ubuntu core. Release hosted job timeout stays thirty minutes per
+lane and CUDA/publishing dependency/event conditions remain unchanged.
+
 ## Acceptance criteria
+
+- [ ] R15 workflow guards reject missing/duplicate lane wiring, dropped filters,
+  misplaced package/binding steps or colliding artifacts; actual hosted CI and
+  release dispatch cover all lanes on both OS with complete source-bound evidence.
+
 
 - [x] 2026-11-14 — A39 local wiring: eight `test_trace_scan.py` guards pass; bypassing
   discovery verification produces four red subcases, bypassing TRX verification
