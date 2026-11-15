@@ -33,7 +33,23 @@ collisions. CI Pack/sample/tool and Windows CEA binding run only in core; packag
 upload remains Ubuntu core. Release hosted job timeout stays thirty minutes per
 lane and CUDA/publishing dependency/event conditions remain unchanged.
 
+R16 requires `-m:1` in each GPU solution test command. Keep the existing shell,
+Release/no-build and exact `Category=Cuda|Category=BitSnapshot` filter. Preserve
+the shared Execution.Tests process, original warm-ups, all three timed samples,
+calibration TTL, gates, Windows-before-Linux dependency and job limits. Emit fresh
+TRX per project and always upload GPU evidence under an OS/run/attempt-unique
+artifact name; do not introduce Python or another self-hosted dependency. The
+former concurrent command remains a historical failed run, not proof of its cause.
+
 ## Acceptance criteria
+
+- [ ] R16: both self-hosted GPU jobs execute solution test projects sequentially,
+  preserve the complete original CUDA-or-bit selection and all three timed samples,
+  and pass unchanged throughput and launch-budget gates on Windows and Linux.
+  Frozen former commands are red under the new bounded wiring guard; deliberate
+  loss of serialization or selected work is refused. Fresh source-bound reports
+  and actual job logs establish the executed cases, no skips and project ordering;
+  Pack passes, while dispatch publishing/release creation remain skipped.
 
 - [x] 2026-11-15 — R15 local wiring: `test_hosted_tests.py` passes 15 tests,
   including deliberate lane/filter/package/binding/artifact/timeout/dependency

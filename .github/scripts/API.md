@@ -1,5 +1,13 @@
 # API.md — .github/scripts
 
+## GPU release command guards ⏳
+
+`test_delivery.py` checks both actual GPU job commands: sequential project
+execution, complete CUDA-or-bit selection, Release/no-build, original shells,
+dependencies and job limits. Frozen former wiring and deliberate independent
+Windows/Linux command mutations must fail. These are local stdlib guards;
+actual self-hosted verification is a separate acceptance requirement.
+
 ## Contract ✅
 
 Host preflight, release-note extraction and CPU verification orchestration, plus controlled local guard tests.

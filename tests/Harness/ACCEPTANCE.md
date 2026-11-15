@@ -2,6 +2,15 @@
 
 ## Acceptance criteria
 
+- [ ] R18: injected documented partial tree-kill failure cannot replace timeout or
+  caller cancellation, their raw stdout/stderr, readable excerpts or caller token;
+  cleanup remains bounded and ordinary cleanup remains positive. Frozen prior
+  filtering is red, full consuming process guards pass on Windows/Linux.
+- [ ] R19: the runner and Docs diagnostic consumer use the same immutable actual
+  timeout/cleanup policy. A controlled alternate policy makes the frozen duplicate
+  metadata red without a real wait, corrected metadata follows actual policy,
+  the unchanged real defaults and the reviewed public surface/API checks pass.
+
 - [x] 2026-11-14: A16/A17, `Fixtures.Tests.OracleGuardTests` preserves approved
       bytes for conventional/arbitrary/upper-case names and writes distinct actual
       files and opted-in field dumps. `$ref` siblings apply; unknown keywords and

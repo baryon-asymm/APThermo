@@ -1,5 +1,22 @@
 # API.md — Harness
 
+## Process policy ⏳
+
+```csharp
+namespace APThermo.Harness;
+
+public static class DotnetProcess
+{
+    public static TimeSpan DefaultTimeout { get; }
+    public static TimeSpan CleanupTimeout { get; }
+}
+```
+
+These immutable values remain five minutes and five seconds. The actual runner
+and its cleanup use the same values exposed to diagnostic consumers. A partial
+tree-kill AggregateException is retained as secondary cleanup evidence; the
+primary timeout/cancellation, raw bytes and caller token are preserved.
+
 Namespace `APThermo.Harness`. The scaffolding the test nodes
 share: a CPU host, bit comparison, bit hashes with their approval files, fixture
 families, the JSON-document helpers (schema validation, the `run`-property cut, the

@@ -1,5 +1,11 @@
 # API.md — Docs.Tests
 
+## Cold-call policy source ⏳
+
+Cold process metadata reads DotnetProcess.DefaultTimeout and CleanupTimeout,
+the same immutable values the actual runner uses. Limits, invocation population,
+comparison behavior and primary exception/result identity remain unchanged.
+
 The node exposes nothing outward. Its contract points upward: what the parent may
 consider proven about the documentation, the samples and the schemas.
 

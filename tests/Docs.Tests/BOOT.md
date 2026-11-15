@@ -85,6 +85,12 @@ Outside the tree: xunit, as every tests node.
 
 ## Constraints
 
+R19: cold-call metadata reads the actual immutable DotnetProcess timeout/cleanup
+policy. Keep the original five-minute/five-second values, runner arguments,
+exception/result identity, source population and all comparisons. An alternate
+policy in an isolated pure build/control must expose frozen duplicated literals;
+the corrected consumer follows the runner policy without launching a real CLI.
+
 Inherited from the root ([BOOT.md](../../BOOT.md)). In addition:
 
 - The project is `tests/Docs.Tests/APThermo.Docs.Tests.csproj`, an xunit test assembly

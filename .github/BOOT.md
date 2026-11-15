@@ -136,7 +136,25 @@ competition rather than reclassifying a functional check as a timing benchmark.
 Core alone performs per-OS package/sample/installed-tool checks; Windows core alone
 binds fixtures to CEA. Every lane uploads manifest and nonempty TRX artifacts even
 after failure. Release waits for all hosted lanes before the unchanged serialized
-CUDA jobs/Pack/publishing conditions. Self-hosted commands/shells remain unchanged.
+CUDA jobs/Pack/publishing conditions. The R15 change leaves self-hosted commands/shells unchanged.
+
+### GPU project serialization
+
+Each self-hosted CUDA solution test command must pass `-m:1`: run test projects
+sequentially within a GPU job as well as Windows before Linux. Keep the entire
+`Category=Cuda|Category=BitSnapshot` filter, Release/no-build, existing shells,
+job limits, all sample work and throughput gates. Do not split the benchmark from
+its shared correctness fixture, discard a cold sample or change calibration TTL.
+Hosted stdlib guards read both actual GPU commands and reject lost serialization
+or altered selection. Actual Windows and Linux GPU runs and Pack are required.
+
+⚠ 2026-11-15 (R16): was "Self-hosted commands/shells remain unchanged." That was
+the R15 change boundary. Source6878's Windows GPU run has 449/450 passing cases;
+the throughput median is 217.1% of its approved value against an unchanged 115%
+ceiling. Its solution command starts CLI and Execution test projects concurrently,
+so the engine collection cannot isolate their CPU loads across processes.
+R16 adds project serialization while preserving shells, workloads and gates.
+The historical miss reason and the cause of that median remain unknown.
 
 ⚠ 2026-11-15: Release49 log proves overlapping Cli.Tests and Docs.Tests; the failed
 PID's CPU/RAM/command were not captured, so contention is not an established cause.

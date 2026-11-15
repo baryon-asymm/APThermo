@@ -6,6 +6,12 @@ only in this node.
 
 ## Acceptance criteria
 
+- [ ] R17: inherited stdout/stderr after Python parent exit and a live hanging
+  parent fail within the original supplied deadline plus one bounded cleanup;
+  ordinary/nonzero/UTF-8 output remains exact. Frozen parent-only waiting fails
+  the owned inherited-pipe control, all final controls and full Protocol.Tests
+  pass on Windows/Linux, with no skipped cases or surviving owned probes.
+
 - [x] 2026-09-13 — Lint wired:
       `LintTests.TheTreePassesTheProtocolLinterWithNoErrorAndNoWarning` runs the linter as a
       process in strict mode; red once on mutations 5, 3a and 10 → HISTORY.md#crit-lint

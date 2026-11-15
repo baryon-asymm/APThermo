@@ -5,6 +5,35 @@ The owner requested closure of the combined Sol, independent second-pass and Cla
 findings, plus justified improvements from the test-quality review. The external audit
 retains the original reproductions; these stable IDs preserve the mapping.
 
+## Latest GPU verification and independent timeout review — 2026-11-15
+
+Source `68781f6972b4f2f7bf0ffdd63985c0cbba4ade35` passes CI `43710324828`,
+Trace `43710324831` and all six Release hosted lanes (7,625/7,625 per OS, no skips).
+Release `43710385057` fails Windows GPU job `132803574118`: 449/450 pass, with
+only the 115% per-step throughput guard failing at 217.1% of its approved value.
+R10's current integrated verification is reopened; the original native/0f7
+successes remain successful for their actual sources. Linux GPU and Pack skip.
+The generated three-sample record is cold/hit/cold, with 20/7/20 launches; its
+largest individual launch is below 43 ms. This is a performance refusal, not a
+process timeout or a 500 ms launch-budget violation. Its historical cause is unknown.
+
+Independent GPT-6 Astra Ultra review of committed source and archived logs adds:
+
+| ID | Confirmed gap / required correction | Current state |
+|---|---|---|
+| R16 | Self-hosted solution projects can overlap the shared CPU/GPU measurement; require sequential project execution and fresh per-project evidence while retaining every selected case/sample/gate | Design; actual overlap is known, its causal role in the 217.1% result is not established |
+| R17 | PythonProcess bounds parent exit but can await inherited stdout/stderr forever | Design; deadline must span process and streams, with bounded owned cleanup and old-red controls |
+| R18 | Documented partial tree-kill AggregateException can escape cleanup and replace timeout/cancellation plus partial output | Design; preserve primary and secondary diagnostics with injected old-red controls |
+| R19 | Cold-call diagnostics duplicate the runner's policy values and can silently drift | Design; consume one immutable actual policy, prove alternate-policy drift without real CLI work |
+
+The review keeps hang guards, owner suite budgets, launch targets and performance
+thresholds in their distinct roles. It does not justify a timeout/threshold increase,
+dropping a cold sample or treating historical overlap as proof of causality.
+External source-bound receipts: `fix-evidence/github-6878/`; independent report:
+`astra-timeout-review-v1.md`. The expanded register has 76 overlapping obligation
+IDs (41 original A, 19 verification R, 16 test-quality T), not 76 distinct defects.
+The prior 71/72-ID accepted/pending registers below retain their historical scope.
+
 ## Additional delivery finding R15 — 2026-11-15
 
 R14's actual process controls pass192/192 Fixtures in all four source49 hosted

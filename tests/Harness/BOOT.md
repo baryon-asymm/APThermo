@@ -171,6 +171,25 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 
 ## Constraints
 
+- R18: a documented partial tree-kill AggregateException is a secondary cleanup
+  failure. It must not replace the primary timeout/caller cancellation or discard
+  partial raw byte arrays, excerpts or caller token. Retain its diagnostic detail
+  separately within the same existing five-second cleanup budget. Do not catch
+  unrelated failures indiscriminately or change ordinary exit/start semantics.
+  A narrow injected kill-failure seam must exercise the same production cleanup
+  path: frozen prior filtering is red, corrected timeout and cancellation retain
+  their primary type/data/token, and ordinary cleanup remains positive.
+- R19: immutable public DefaultTimeout and CleanupTimeout properties on
+  DotnetProcess are the single source for the unchanged five-minute/five-second
+  policy. Actual Run and cleanup consume them, as does Docs cold-call metadata.
+  No mutable global override or process-wide test hook is introduced. Update this
+  node's API and the Protocol surface tripwire together; package APIs are unchanged.
+
+⚠ 2026-11-15 (R18/R19): source review found that the tree-kill/cleanup filters
+omitted documented AggregateException, and Docs repeated policy literals in its
+log. Preserve primary diagnostics and expose the actual immutable policy rather
+than imply the duplicated values can never drift. Historical failures are separate.
+
 - A library assembly (`APThermo.Harness`) referenced by test
   projects only; it references no test framework, so its public surface enters the
   protocol tests node's snapshot like any library's.

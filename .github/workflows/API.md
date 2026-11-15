@@ -1,5 +1,12 @@
 # API.md — .github/workflows
 
+## GPU project execution ⏳
+
+Each existing GPU solution command uses `-m:1` with the unchanged CUDA-or-bit
+filter, shared benchmark fixture and three timed samples. Fresh per-project TRX
+and always-upload artifacts identify OS/run/attempt. The existing shells, limits,
+sequential OS dependencies and dispatch publication conditions remain unchanged.
+
 ## Contract ✅
 
 GitHub event and job orchestration for hosted verification and approved releases.

@@ -5,6 +5,11 @@ The node frame remains in BOOT.md.
 
 ## Acceptance criteria
 
+- [ ] R19: cold-call limit metadata follows the actual immutable Harness policy;
+  an isolated alternate-policy control rejects the frozen duplicated literals
+  without a real CLI or timed wait. All nine original diagnostic controls and
+  both original cold invocation populations/arguments remain valid.
+
 - [ ] R15: every actual cold CLI invocation retains identity, input hash, limits,
   start/end/outcome context before a failure can escape. Controlled normal/timeout
   runners prove result/exception/raw-byte identity; omitting context is old-red.

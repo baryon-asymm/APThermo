@@ -132,6 +132,11 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
 
 ## Acceptance criteria
 
+- [ ] R18: controlled partial tree-kill AggregateException on the actual cleanup
+  path preserves primary timeout/cancellation, raw arrays, excerpts and caller
+  token within the existing cleanup budget. Frozen prior filtering is red;
+  normal cleanup and the full process-fixture controls pass on Windows/Linux.
+
 - [x] 2026-11-15 — Local asynchronous-observation controls: immediate frozen waiter
   is red only for release-after-first-LIVE on each OS (three positives); final bounded
   waiter passes release, held, spent and already-completed controls. Terminal-assertion

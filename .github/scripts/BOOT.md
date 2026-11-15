@@ -53,6 +53,14 @@ command, absent/failed/skipped/inconsistent TRX and positive normal cases. Guard
 must read actual workflow wiring/runner commands; remove-a-lane/filter mutations
 must be red. No numerical/GPU/credential/publication operations in local guards.
 
+R16 delivery guards inspect both actual release GPU job blocks, not merely the
+first step named CUDA tests. Require project serialization `-m:1`, the original
+solution, Release/no-build and exact CUDA-or-bit filter, with Windows PowerShell
+and Linux Bash unchanged. Preserve the sequential job dependencies and limits.
+Freeze the former commands and see the new guard red for each OS before changing
+the workflow; positive controls and deliberate command mutations must distinguish
+the two job blocks. Tests use bounded fake fixtures, never actual CUDA or publishing.
+
 ## Acceptance criteria
 
 - [x] 2026-11-15 — R15 local controls: `test_hosted_tests.py` passes 15 tests;

@@ -91,6 +91,21 @@ children rule, links check removed (the linter has it).
 
 ## Constraints
 
+- R17: the supplied Python timeout covers process exit AND completion of both
+  redirected streams. A descendant holding a pipe after parent exit must not
+  extend it indefinitely. On expiry keep the calling test's XunitException,
+  attempt owned-tree cleanup within one additional five-second budget, stop and
+  observe pending readers, and report script/PID/deadline/cleanup information.
+  Retain normal exit codes, stdout-then-stderr text and missing-Python refusal;
+  do not skip failures or increase the existing script deadlines. Controlled
+  EndToEnd probes use owned, self-terminating children, an outer bound and reliable
+  teardown. Freeze old parent-only waiting and prove inherited-pipe failure red;
+  normal/nonzero/UTF-8 and a genuinely hanging parent are distinct controls.
+
+⚠ 2026-11-15 (R17): the former helper bounded only WaitForExitAsync, then awaited
+ReadToEndAsync without a deadline. Astra's independent source review found the
+inherited-pipe gap. This does not explain any historical numerical/GPU failure.
+
 - Part of the fast set except process-launching `LintTests`/`ToolSelfTestTests`,
   which carry `Category=EndToEnd`. `BenchmarkComparisonFixture` alone creates and
   disposes two CPU engines once per test process for its whole-entry control;
