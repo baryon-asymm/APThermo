@@ -247,6 +247,11 @@ unsupported/partial/over-target/abandoned/nonpublished outcomes. Current work/re
 and observations must remain fresh. Existing weak-lifecycle and full-field controls
 stay; do not use real sleeps or a fixed adaptive host partition as their oracle.
 Deliberate missing/wrong-stage observations and false publication must be red.
+CPU bypass freshness controls seed a nonzero Published observation in the actual
+Engine session cache first, then assert the real CPU Run invalidates that older
+transaction. Retain the fresh-engine NotApplicable/zero control separately. Follow
+the API's Invalidated/same-transaction semantics; the scenario's separate fake cache
+cannot establish this precondition. A missed-invalidation mutation must be red.
 An actual bounded Linux original-throughput diagnostic follows only after local
 controls; one predeclared execution, unchanged selection/work/gates, all outcomes
 retained. A clean diagnostic run cannot reconstruct an unsampled historical miss.
