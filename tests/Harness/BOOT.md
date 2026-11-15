@@ -174,7 +174,8 @@ Outside the tree: ILGPU 1.5.3 (the CPU accelerator only); the .NET base class li
 - R18: a documented partial tree-kill AggregateException is a secondary cleanup
   failure. It must not replace the primary timeout/caller cancellation or discard
   partial raw byte arrays, excerpts or caller token. Retain its diagnostic detail
-  separately within the same existing five-second cleanup budget. Do not catch
+  separately as primary.Data["CleanupException"] within the same existing
+  five-second cleanup budget. Do not catch
   unrelated failures indiscriminately or change ordinary exit/start semantics.
   A narrow injected kill-failure seam must exercise the same production cleanup
   path: frozen prior filtering is red, corrected timeout and cancellation retain

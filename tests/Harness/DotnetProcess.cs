@@ -74,7 +74,7 @@ public static class DotnetProcess
         using var process = Process.Start(start) ?? throw new InvalidOperationException("dotnet did not start");
         using var output = new ProcessOutput(process.StandardOutput.BaseStream);
         using var error = new ProcessOutput(process.StandardError.BaseStream);
-        return await CompleteAsync(process, output, error, linked.Token, cancellationToken).ConfigureAwait(false);
+        return await CompleteAsync(process, output, error, null, linked.Token, cancellationToken).ConfigureAwait(false);
     }
 
     private static ProcessStartInfo StartInfo(string assemblyPath, IReadOnlyList<string> arguments, string workingDirectory,
@@ -100,7 +100,7 @@ public static class DotnetProcess
     }
 
     private static async Task<DotnetProcessResult> CompleteAsync(Process process, ProcessOutput output, ProcessOutput error,
-        CancellationToken linkedToken, CancellationToken cancellationToken)
+        Action<Process>? kill, CancellationToken linkedToken, CancellationToken cancellationToken)
     {
         try
         {
@@ -109,11 +109,11 @@ public static class DotnetProcess
         }
         catch (OperationCanceledException) when (linkedToken.IsCancellationRequested)
         {
-            var cleanup = await CleanupAsync(process, output, error).ConfigureAwait(false);
+            var cleanup = await CleanupAsync(process, output, error, kill).ConfigureAwait(false);
             var capturedOutput = output.Snapshot();
             var capturedError = error.Snapshot();
             var reason = cancellationToken.IsCancellationRequested ? "was cancelled" : "exceeded its deadline";
-            var message = $"dotnet process {process.Id} {reason}; {cleanup}. " +
+            var message = $"dotnet process {process.Id} {reason}; {cleanup.Description}. " +
                 $"stdout={capturedOutput.Length} bytes, stderr={capturedError.Length} bytes.\n" +
                 $"stdout: {Excerpt(capturedOutput)}\nstderr: {Excerpt(capturedError)}";
             Exception problem = cancellationToken.IsCancellationRequested
@@ -121,14 +121,18 @@ public static class DotnetProcess
                 : new TimeoutException(message);
             problem.Data["StandardOutput"] = capturedOutput;
             problem.Data["StandardError"] = capturedError;
+            if (cleanup.Failure is { } secondary)
+            {
+                problem.Data["CleanupException"] = secondary;
+            }
             throw problem;
         }
     }
 
-    private static async Task<string> CleanupAsync(Process process, ProcessOutput output, ProcessOutput error)
+    private static async Task<ProcessCleanup> CleanupAsync(Process process, ProcessOutput output, ProcessOutput error, Action<Process>? killAction)
     {
         using var cancellation = new CancellationTokenSource(CleanupTimeout);
-        var kill = Task.Run(() => AttemptTreeKill(process));
+        var kill = Task.Run(() => AttemptTreeKill(process, killAction));
         try
         {
             await Task.WhenAll(kill, process.WaitForExitAsync(cancellation.Token), output.Completion, error.Completion)
@@ -137,11 +141,15 @@ public static class DotnetProcess
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            return "tree kill attempted; cleanup deadline reached";
+            var failure = kill.IsCompletedSuccessfully ? (await kill.ConfigureAwait(false)).Failure : null;
+            var detail = failure is null ? string.Empty : "; " + failure.GetType().Name;
+            return new ProcessCleanup("tree kill attempted; cleanup deadline reached" + detail, failure);
         }
-        catch (Exception problem) when (problem is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        catch (Exception problem) when (problem is IOException or InvalidOperationException or System.ComponentModel.Win32Exception or AggregateException)
         {
-            return "tree kill attempted; cleanup: " + problem.GetType().Name;
+            var previous = kill.IsCompletedSuccessfully ? (await kill.ConfigureAwait(false)).Failure : null;
+            var failure = previous is null ? problem : new AggregateException(previous, problem);
+            return new ProcessCleanup("tree kill attempted; cleanup: " + problem.GetType().Name, failure);
         }
         finally
         {
@@ -150,19 +158,26 @@ public static class DotnetProcess
         }
     }
 
-    private static string AttemptTreeKill(Process process)
+    private static ProcessCleanup AttemptTreeKill(Process process, Action<Process>? killAction)
     {
         try
         {
             if (!process.HasExited)
             {
-                process.Kill(entireProcessTree: true);
+                if (killAction is null)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                else
+                {
+                    killAction(process);
+                }
             }
-            return "tree kill attempted; streams drained";
+            return new ProcessCleanup("tree kill attempted; streams drained", null);
         }
-        catch (Exception problem) when (problem is InvalidOperationException or System.ComponentModel.Win32Exception)
+        catch (Exception problem) when (problem is InvalidOperationException or System.ComponentModel.Win32Exception or AggregateException)
         {
-            return "tree kill attempted: " + problem.GetType().Name;
+            return new ProcessCleanup("tree kill attempted: " + problem.GetType().Name, problem);
         }
     }
 

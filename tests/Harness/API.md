@@ -199,6 +199,11 @@ Both exceptions attach partial raw byte[] under Data["StandardOutput"] and
 Data["StandardError"], and bounded readable excerpts in their message. Excerpts JSON-escape control bytes;
 the attached raw arrays remain unchanged.
 
+Documented partial tree-kill failures remain secondary. On interruption,
+Data["CleanupException"] retains the original cleanup exception, or an aggregate
+if separate cleanup operations fail. Its child exception objects remain available;
+timeout/cancellation types, caller token and raw output arrays retain their contract.
+
 ⚠ 2026-11-14: process/pipe waits were formerly unbounded. The additive overload and
 default deadline retain byte/argument/environment behavior while making hangs visible.
 

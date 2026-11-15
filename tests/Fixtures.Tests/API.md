@@ -57,3 +57,12 @@ identity, parent/start/state and original elapsed/budget before test teardown.
 ⚠ 2026-11-15: immediate descendant assertions assumed tree-kill completion on parent
 exit/pipe EOF. Controlled readiness/release tests replace that timing assumption
 with bounded state observation. The historical hosted kernel instant stays unknown.
+
+## Partial tree-kill diagnostics ✅
+
+`DotnetCleanupFailureTests` uses one owned finite ProcessProbe and the private
+per-call kill seam through the actual Harness completion/cleanup path. Both timeout
+and cancellation retain raw fixture bytes, bounded excerpts and caller token; a
+simulated documented AggregateException survives as secondary CleanupException
+data. The injected kill still terminates the owned real probe. Ordinary cleanup
+and normal exit are positive controls; no mutable global hook is introduced.

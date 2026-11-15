@@ -132,6 +132,14 @@ about PF_EXITING or the historical failed instant is inferred from a later pass.
 
 ## Acceptance criteria
 
+- [x] R18 local cleanup controls preserve primary timeout/cancellation and raw
+  evidence under documented partial tree-kill failures. (2026-11-15:
+  `DotnetCleanupFailureTests`, frozen old filters 2 red/3 positive on Windows
+  and Linux, corrected controls 5/5; full Fixtures 197/197 on each OS.
+  Evidence: `SCRATCH/audit/secondary-policy/old-filter-red/`,
+  `linux-old-filter-red/`, `cleanup-fixed/`, `windows-fixtures-r18/` and
+  `linux-fixtures-r18/`, with TRX and source hashes retained.)
+
 - [ ] R18: controlled partial tree-kill AggregateException on the actual cleanup
   path preserves primary timeout/cancellation, raw arrays, excerpts and caller
   token within the existing cleanup budget. Frozen prior filtering is red;
