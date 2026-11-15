@@ -303,3 +303,18 @@ The node frame remains in BOOT.md.
       no in-process fact reaches a process start (`Protocol.Tests.EndToEndTests` walks the
       call graph). Evidence, Windows, `APTHERMO_NO_CUDA=1`: 30 facts of the fast set in 44 s and
       the two process facts in 44 s, inside whole-solution runs on a machine other agents used.
+
+
+- [x] 2026-11-15 — R15 local diagnostic mechanism: ColdCliDiagnosticTests 9/9,
+  using injected runners only. Original forwarding control was 2 red/1 positive;
+  original exception/result/argv/raw-array/token/stack identity, before-call context,
+  failing output sink, duplicate ordinals and both comparison modes are checked.
+  Pure actual parser/classifier witnesses generate identical original/final lists:
+  all eleven calls per mode, same order and duplicate arguments/source entries.
+  Evidence: SCRATCH/audit/cli-doc-diagnostics/frozen-controls.json,
+  missing-context-red-v2.trx, injected-controls-final-v2.trx, population-proof.json,
+  verification-summary.json. No real cold CLI or numerical suite was run locally;
+  R15 actual-hosted criterion above remains unchecked for the root's cloud proof.
+  Additional same-day evidence: injected-controls-trx-final.trx retains the JSON
+  records through real ITestOutputHelper/TRX; old-source-adapter-proof.json invokes
+  the original private RunToExit0 with an injected timeout and proves missing Data context.

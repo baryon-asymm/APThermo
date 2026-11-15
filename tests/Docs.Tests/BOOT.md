@@ -139,6 +139,20 @@ change any approved output. In-process facts must not start processes or require
 a process-only clock/logger. Synthetic timeout/normal runner controls prove the
 context before invocation, original exception/result identity and raw data.
 
+The cold facts construct a dedicated diagnostic runner per comparison mode; its
+ordinal increments for each actual runner call, including duplicates. The normal
+in-process delegates accept source context without creating diagnostics, a clock or
+a process runner; the class can be constructed without diagnostic output. Before
+the cold delegate runs, JSON start output freezes source/argv and hashes committed
+sample inputs with SHA-256 (uppercase hex). Finish/failure records carry monotonic
+elapsed seconds, exit code or exception type. The same original args reach the
+supplied runner and the same normal result is returned.
+Process exceptions gain `Docs.ColdCliInvocation` and `Docs.ColdCliOutcome` Data
+records; raw arrays and tokens are untouched, and bare throw preserves the stack.
+Diagnostic actions execute synchronously in fault-contained Tasks on the default
+scheduler, with child attachment denied and observed exceptions. They never run in
+the background; a diagnostic sink/data-write fault cannot replace the runner outcome.
+
 ⚠ 2026-11-15: Release49 Windows job132779316611 timed out one numerical CLI
 invocation after five minutes with no output. RunToExit0 previously called the
 runner before attaching where/arguments to an assertion, so that log cannot name

@@ -105,3 +105,23 @@ tagged `Category=EndToEnd`, and the in-process ones run on warm solvers (`Progra
 conditional equilibrium schema under explicit owner approval. Only that schema record
 changed; its exact bytes equal the embedded/canonical input schema. The runtime-output
 and numerical approvals retain their existing evidence.
+
+## Cold invocation context ✅
+
+The existing field and exact process facts retain each discovered invocation and
+its duplicate source locations. Their per-fact diagnostic runner emits JSON start
+before calling the supplied runner and finish/failure afterwards: generated ordinal,
+source document/line, comparison mode, full argv, assembly/workdir, committed input
+path/SHA-256, five-minute process/five-second cleanup limits, monotonic start and
+elapsed time, exit code or exception type. Environment values are not dumped.
+
+A runner failure gains Data["Docs.ColdCliInvocation"] and Data["Docs.ColdCliOutcome"],
+then the same exception is rethrown with its original raw arrays/token/stack.
+Diagnostic faults are contained synchronously; the same original normal result is
+returned. In-process checks do not construct the diagnostic runner or need its output.
+`ColdCliDiagnosticTests` verifies this behavior with injected runners; actual hosted cold-run acceptance remains
+R15's unchecked criterion in ACCEPTANCE.md.
+
+⚠ 2026-11-15: runner failures previously escaped before RunToExit0's assertion could
+name the invocation. The new context identifies future calls; it does not reconstruct
+the unknown command/cause of the historical Release49 timeout.

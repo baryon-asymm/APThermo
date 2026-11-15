@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using APThermo.Fixtures;
 using APThermo.Harness;
+using Xunit.Abstractions;
 
 namespace APThermo.Docs.Tests;
 
@@ -54,7 +55,8 @@ namespace APThermo.Docs.Tests;
 /// as fresh processes (<see cref="CliInvocation.AsProcess"/>), <c>Category=EndToEnd</c>, the exact one also
 /// <c>Category=BitSnapshot</c>.
 /// </summary>
-public sealed partial class CommandLineExampleTests
+/// <param name="output">Optional test output, required only by cold-process facts.</param>
+public sealed partial class CommandLineExampleTests(ITestOutputHelper? output = null)
 {
     /// <summary>Which comparison <see cref="RunAndApprove"/> performs against a runnable example's approved JSON
     /// document: every runner's mandatory field-by-field tolerance, or the reference machine's exact byte comparison.</summary>
@@ -68,7 +70,7 @@ public sealed partial class CommandLineExampleTests
     /// solvers or <see cref="CliInvocation.AsProcess"/> as a fresh process, the shipped cold path, and how its document is
     /// compared. The run is the method itself, passed by the fact, so that the call graph of an in-process fact never reaches
     /// the process (<c>Protocol.Tests</c>, the end-to-end level).</summary>
-    private readonly record struct Check(ComparisonMode Comparison, Func<IReadOnlyList<string>, CliRun> Run);
+    private readonly record struct Check(ComparisonMode Comparison, Func<string, IReadOnlyList<string>, CliRun> Run);
 
     private static readonly HashSet<string> RunnableVerbs = new(StringComparer.Ordinal) { "rocket", "equilibrium", "states" };
     private static readonly HashSet<string> DeclaredOnlyVerbs = new(StringComparer.Ordinal) { "devices", "--version" };
@@ -100,7 +102,7 @@ public sealed partial class CommandLineExampleTests
     [Fact]
     public void EveryCommandLineInvocationIsACheckedExampleOrADeclaredSynopsis()
     {
-        var runnableKeys = RunInvocations(new Check(ComparisonMode.Field, CliInvocation.InProcess));
+        var runnableKeys = RunInvocations(new Check(ComparisonMode.Field, (_, args) => CliInvocation.InProcess(args)));
         CheckApprovedFilesMatch(runnableKeys);
     }
 
@@ -112,7 +114,7 @@ public sealed partial class CommandLineExampleTests
     /// </summary>
     [Fact]
     [Trait("Category", "BitSnapshot")]
-    public void EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly() => RunInvocations(new Check(ComparisonMode.Exact, CliInvocation.InProcess));
+    public void EveryCommandLineExamplesApprovedDocumentMatchesItsPlatformExactly() => RunInvocations(new Check(ComparisonMode.Exact, (_, args) => CliInvocation.InProcess(args)));
 
     /// <summary>
     /// The same invocations, each as a fresh process, the shipped cold path (BOOT.md, L3, the end-to-end set): every
@@ -120,7 +122,7 @@ public sealed partial class CommandLineExampleTests
     /// </summary>
     [Fact]
     [Trait("Category", "EndToEnd")]
-    public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField() => RunInvocations(new Check(ComparisonMode.Field, CliInvocation.AsProcess));
+    public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentFieldByField() => RunInvocations(ColdCheck(ComparisonMode.Field));
 
     /// <summary>
     /// The same invocations, each as a fresh process, equal their approved file exactly: the record of the shipped cold
@@ -129,7 +131,15 @@ public sealed partial class CommandLineExampleTests
     [Fact]
     [Trait("Category", "EndToEnd")]
     [Trait("Category", "BitSnapshot")]
-    public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentExactly() => RunInvocations(new Check(ComparisonMode.Exact, CliInvocation.AsProcess));
+    public void EveryCommandLineInvocationRunAsAProcessMatchesItsApprovedDocumentExactly() => RunInvocations(ColdCheck(ComparisonMode.Exact));
+
+    private Check ColdCheck(ComparisonMode mode)
+    {
+        Assert.NotNull(output);
+        var settings = new ColdCliSettings(mode.ToString(), DotnetProcess.BuiltAssemblyPath("APThermo.Cli", "src", "Cli"), Path.GetTempPath());
+        var diagnostic = new ColdCliInvocation(settings, CliInvocation.AsProcess, output.WriteLine);
+        return new Check(mode, diagnostic.Run);
+    }
 
     /// <summary>Finds every invocation of the guide and classifies each under <paramref name="check"/>, returning the
     /// runnable keys the caller may still want to check the approved directory against.</summary>
@@ -444,9 +454,9 @@ public sealed partial class CommandLineExampleTests
     }
 
     /// <summary>Runs `apthermo &lt;args&gt;` through <paramref name="run"/> and returns its result, failing unless it exited 0.</summary>
-    private static CliRun RunToExit0(string where, IReadOnlyList<string> args, Func<IReadOnlyList<string>, CliRun> run)
+    private static CliRun RunToExit0(string where, IReadOnlyList<string> args, Func<string, IReadOnlyList<string>, CliRun> run)
     {
-        var result = run(args);
+        var result = run(where, args);
         Assert.True(result.Code == 0, $"{where}: 'apthermo {string.Join(' ', args)}' exited with {result.Code}: {result.Error}");
         return result;
     }
@@ -503,7 +513,7 @@ public sealed partial class CommandLineExampleTests
     /// Runs `apthermo &lt;args&gt;` through <paramref name="run"/> and compares its plain-text output (not JSON, no
     /// `run` cut) with the approved file keyed by <paramref name="key"/> — the form `--help`'s usage text takes.
     /// </summary>
-    private static void RunAndApproveText(string where, IReadOnlyList<string> args, string key, Func<IReadOnlyList<string>, CliRun> run)
+    private static void RunAndApproveText(string where, IReadOnlyList<string> args, string key, Func<string, IReadOnlyList<string>, CliRun> run)
     {
         var actual = GuideDocuments.Lf(RunToExit0(where, args, run).Output);
         var approvedPath = ApprovedPathOf(key, "txt");
