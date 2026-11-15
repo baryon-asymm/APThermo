@@ -17,6 +17,12 @@ frame; this file holds the criteria that prove it, read only in the root node.
   (2026-11-15: reopened after final-head CI `43695098528` at `84e0cb09`;
   Ubuntu job `132753766806` again rejects the tree-child assertion. Historical
   accepted runs above retain their actual sources; current completion is pending.)
+  ⚠ 2026-11-15: the formerly checked aggregate is reopened after the actual
+  final-head Linux tree assertion failed. Its requirement and earlier proof are
+  retained, while its completion mark is withdrawn pending the corrected guard:
+  “The owner-requested 2026-11-14 audit is closed: every obligation and integrated
+  verification in [AUDIT-CLOSURE.md](AUDIT-CLOSURE.md) has dated evidence; the
+  prior criteria and historical measurements remain discoverable.”
 
 - [x] 2026-09-12 — For LOX/LH2, LOX/RP-1, N2O4/UDMH and AP/HTPB/Al the chamber,
       throat and exit states and the performance figures, in equilibrium and in frozen
